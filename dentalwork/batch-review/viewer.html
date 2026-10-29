@@ -155,6 +155,7 @@ const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(devicePixelRatio);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 stage.prepend(renderer.domElement);
 const scene = new THREE.Scene();
@@ -294,7 +295,8 @@ async function show(row) {
         object.material = PLASTIC;
       } else if (key && ['DENTURE', 'TEAL', 'NEUTRAL'].includes(key)) {
         if (!object.geometry.attributes.normal) object.geometry.computeVertexNormals();
-        object.material = new THREE.MeshStandardMaterial({ color: key === 'DENTURE' ? DENTURE_COLOUR : object.material.color, roughness: 0.85, side: THREE.DoubleSide });
+        // ACES plus the new lights washed the model to white, so its colour is dimmed (0.6) and it takes a light room reflection: neutral, matte, shaded.
+        object.material = new THREE.MeshStandardMaterial({ color: key === 'DENTURE' ? DENTURE_COLOUR : object.material.color.clone().multiplyScalar(0.6), roughness: 0.85, envMapIntensity: 0.25, side: THREE.DoubleSide });
       }
     });
     scene.add(model);
