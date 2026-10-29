@@ -5,6 +5,7 @@ describe('explainReason', () => {
   it('gives plain words for every reason the detector and the build emit', () => {
     for (const code of ['non-manifold-or-degenerate-mesh', 'outer-ridge-not-closed', 'outer-ridge-sharp-all-round', 'central-opening-absent',
       'opening-loop-branched', 'projected-holes-uncertain', 'surface-region-not-isolated', 'orientation-no-cavity', 'contact-footprint-invalid-tuning',
+      'orientation-no-trim', 'orientation-non-manifold-or-degenerate-mesh', 'orientation-trim-plane-degenerate', 'orientation-trim-ends-unclear',
       'diagnostic-band-x', 'dental-pose-inconclusive', 'empty-or-invalid-mesh', 'no-proposed-dental-tips', 'islands: non-manifold edge']) {
       expect(explainReason(code), code).not.toBe(code);
     }

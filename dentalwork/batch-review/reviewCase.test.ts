@@ -28,6 +28,17 @@ describe('folder review', () => {
     expect(row.tipsPlaced).toBeGreaterThan(0);
     const glb = readFileSync(join(scratch, 'case-001.glb'));
     expect(glb.toString('latin1', 0, 4)).toBe('glTF');
+    // Step 1 evidence: the reference is a U bridged by its palatal plate (a ring), the floor rule
+    // and the trim plane agree on up, and the evidence GLB stands beside the review GLB.
+    expect(row.archKind).toBe('ring');
+    expect(row.upCrossCheck).toBe('agrees');
+    expect(row.floorOffsetRatio).toBeGreaterThan(0.3);
+    expect(row.orientationNote).toBe('');
+    expect(row.orientationGlb).toBe('case-001-orientation.glb');
+    const evidence = readFileSync(join(scratch, 'case-001-orientation.glb'));
+    expect(evidence.toString('latin1', 0, 4)).toBe('glTF');
+    for (const layer of ['TRIM detected trim chains', 'UEND trim U ends', 'PLANE bottom plane outline']) expect(evidence.toString('latin1')).toContain(layer);
+    expect(evidence.toString('latin1')).not.toContain('BACK arrow');
   }, 120_000);
 
   it('removes collapsed triangles before processing and counts them', async () => {

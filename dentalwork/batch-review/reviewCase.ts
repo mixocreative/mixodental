@@ -2,7 +2,8 @@
  * One case of the folder review: every STL under the given folders goes through the app's own dental pipeline
  * (import, orientation, print-angle search and its confirm, region, placement, Rust `generate` with
  * its safety and island checks), and
- * each result is written as a review GLB plus one summary for the viewer (`serve.mjs`).
+ * each result is written as a review GLB plus one summary for the viewer (`serve.mjs`). Step 1's
+ * evidence (what the trim decided: `orientationEvidence.ts`) goes into the row and a companion GLB.
  *
  *   (driven by batch.ts; tested by reviewCase.test.ts)
  *
@@ -16,9 +17,13 @@ import { buildDentalReview, pickPrintAngle } from '../../scripts/dental-region-r
 import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
 import { exportDentalRegionReview } from '../../scripts/dental-region-review/review';
 import { removeDegenerateTriangles } from '@mixo-geocore/host/core/removeDegenerate';
+import { REFERENCE_PROFILE } from '../../scripts/dental-region-review/profile';
 import { explainReason } from './reasons';
+import { NO_EVIDENCE, orientationEvidence, orientationGlb, orientationLayers, type OrientationEvidence } from './orientationEvidence';
 
-export type CaseRow = {
+export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
+  /** The Step 1 evidence GLB (trim chains, U ends, bottom plane, back arrow) beside `glb`, or ''. */
+  orientationGlb: string;
   case: string; source: string; result: 'built' | 'inconclusive' | 'error'; reason: string;
   /** `reason` in plain words with what to do next (empty when there is no reason). */
   explanation: string; seconds: number;
@@ -36,9 +41,11 @@ export type CaseRow = {
 /** Runs one STL through the pipeline; writes `<name>.glb` into `out` when it builds. Never throws: errors land in `row.reason`. */
 export async function reviewCase(file: string, name: string, out: string): Promise<CaseRow> {
   const started = performance.now();
+  const { rotation: _unused, ...noEvidence } = NO_EVIDENCE;
   const row: CaseRow = { case: name, source: file, result: 'error', reason: '', explanation: '', seconds: 0, verdict: '', crossings: 0, uncertain: 0,
     islandsUnresolved: 0, islandsOutsideArea: 0, tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
-    rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0 };
+    rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
+    ...noEvidence, orientationGlb: '' };
   try {
     const bytes = readFileSync(file);
     const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
@@ -50,6 +57,10 @@ export async function reviewCase(file: string, name: string, out: string): Promi
     }
     // Centred as the app's import does, so the review sees the same coordinates as the app.
     nodeEngine.center_positions_in_place(mesh.positions);
+    // Step 1 as the app runs it: arch kind and the up/down cross-check go into the row; the evidence
+    // GLB is written below in the review's frame (or Step 1's own pose when nothing was built).
+    const { rotation: step1Rotation, ...evidence } = orientationEvidence(mesh, REFERENCE_PROFILE);
+    Object.assign(row, evidence);
     const angle = pickPrintAngle(mesh);
     if (angle.kind === 'angle') {
       const { scan } = angle;
@@ -57,6 +68,15 @@ export async function reviewCase(file: string, name: string, out: string): Promi
         stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none' });
     }
     const review = buildDentalReview(mesh, angle.kind === 'angle' ? angle.rotation : undefined);
+    const evidenceFrame = review.kind === 'proposal' ? review.frame
+      : step1Rotation ? { position: [0, 0, 0] as [number, number, number], rotation: step1Rotation } : undefined;
+    if (evidenceFrame) {
+      const layers = orientationLayers(mesh, REFERENCE_PROFILE);
+      if (layers.length > 0) {
+        writeFileSync(join(out, `${name}-orientation.glb`), Buffer.from(await orientationGlb(layers, evidenceFrame)));
+        row.orientationGlb = `${name}-orientation.glb`;
+      }
+    }
     if (review.kind === 'inconclusive') {
       Object.assign(row, { result: 'inconclusive', reason: review.reason });
     } else {
@@ -93,6 +113,6 @@ export async function reviewCase(file: string, name: string, out: string): Promi
   }
   row.explanation = row.reason ? explainReason(row.reason) : '';
   row.seconds = +((performance.now() - started) / 1000).toFixed(1);
-  row.needsLook = row.result !== 'built' || row.verdict !== 'clear' || row.islandsUnresolved > 0 || row.rimNeedsReview;
+  row.needsLook = row.result !== 'built' || row.verdict !== 'clear' || row.islandsUnresolved > 0 || row.rimNeedsReview || row.upCrossCheck === 'disagrees';
   return row;
 }

@@ -34,6 +34,16 @@ export class DentalOrientResult {
     free(): void;
     [Symbol.dispose](): void;
     /**
+     * What the trim found (engine 13, `dental::trim`): 0 open arch (the trim plane and its U ends
+     * decided up and front), 1 ring (a U bridged by a plate; the floor rule decided), 2 not oriented.
+     */
+    arch_kind(): number;
+    /**
+     * Whether the rule that did not decide agrees on up/down: 0 agrees, 1 inconclusive, 2 disagrees
+     * (the host reports a disagreement as needing a look; nothing resolves it silently).
+     */
+    cross_check(): number;
+    /**
      * confidence, floor offset ratio (how far the axis-facing floor leans toward one end), axial variance ratio.
      */
     diagnostics(): Float64Array;
@@ -52,7 +62,8 @@ export class DentalOrientResult {
     reason(): string;
     /**
      * kind (0 lower-edge loop, 1 projection fallback), opening direction, centroid, tangent,
-     * bitangent (3 each), visibility resolution, visibility min (2), visibility max (2).
+     * bitangent (3 each), visibility resolution, visibility min (2), visibility max (2), whether the
+     * trim's U decided a front (0/1), that front (3; zeros without one).
      */
     rim_scalars(): Float64Array;
     /**
@@ -297,6 +308,11 @@ export class GeometrySession {
      * triangle. Review only; nothing here is support permission.
      */
     diagnose(model: number, revision: number, profile: string, contact_faces: Uint8Array, outer_ridge_edges: Uint32Array, connector_edges: Uint32Array, opening_edges: Uint32Array, bands: Uint8Array, outer_contacts: Float64Array, inner_contacts: Float64Array, support_positions: Float32Array, support_indices: Uint32Array, tip_flags: Uint8Array): Diagnosis;
+    /**
+     * Step 1 evidence layers of a loaded aligner (`dental::review_orientation`): the detected trim
+     * chains, the two U ends, the bottom plane's outline and the back arrow. Review only.
+     */
+    diagnose_orientation(model: number, revision: number, profile: string): Diagnosis;
     /**
      * The support pipeline for a plate-space model: `contacts` and `shapes` as `build_supports`,
      * `policy` the unit's policy as Rust made it (same frame as the model). `timeout_ms` > 0 ends the repair and checks early with
@@ -584,6 +600,11 @@ export function rekey_hand_work(deleted: string[], override_ids: string[], manua
 export function remap_deleted_ids(deleted: string[], point_ids: string[], point_positions: Float64Array, match_radius: number): string[];
 
 /**
+ * Removes collapsed triangles; the host reports the count.
+ */
+export function remove_degenerate_triangles(positions: Float32Array, indices: Uint32Array): WeldResult;
+
+/**
  * Positions of any mesh (not necessarily in a session) through a matrix; see `GeometrySession.transform`.
  */
 export function transform_positions(positions: Float32Array, matrix: Float64Array, handedness: number): Float32Array;
@@ -650,6 +671,8 @@ export interface InitOutput {
     readonly contacts_hidden_by_marker_ids: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
     readonly decimate_display: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly dental_allowed_vertices: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number) => [number, number, number, number];
+    readonly dentalorientresult_arch_kind: (a: number) => number;
+    readonly dentalorientresult_cross_check: (a: number) => number;
     readonly dentalorientresult_diagnostics: (a: number) => [number, number];
     readonly dentalorientresult_matches_profile: (a: number) => number;
     readonly dentalorientresult_mesh_ok: (a: number) => number;
@@ -730,6 +753,7 @@ export interface InitOutput {
     readonly geometrysession_dental_policy: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number) => [number, number, number];
     readonly geometrysession_dental_tilt_scan: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number];
     readonly geometrysession_diagnose: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number, y: number) => [number, number, number];
+    readonly geometrysession_diagnose_orientation: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly geometrysession_generate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number) => [number, number, number];
     readonly geometrysession_generic_place: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly geometrysession_generic_policy: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number, y: number) => [number, number, number];
@@ -783,6 +807,7 @@ export interface InitOutput {
     readonly rekey_contact_ids: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly rekey_hand_work: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => [number, number, number];
     readonly remap_deleted_ids: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
+    readonly remove_degenerate_triangles: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly supportproblems_take_areas: (a: number) => [number, number];
     readonly supportproblems_take_positions: (a: number) => [number, number];
     readonly transform_positions: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];

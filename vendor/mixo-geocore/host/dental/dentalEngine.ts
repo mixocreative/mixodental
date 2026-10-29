@@ -21,6 +21,10 @@ export interface DentalOrientResultLike {
   take_rim_points(): Float32Array;
   take_visibility_mask(): Uint8Array;
   matches_profile(): boolean;
+  /** 0 open arch (the trim decided), 1 ring (the floor rule decided), 2 not oriented. */
+  arch_kind(): number;
+  /** Up/down cross-check by the rule that did not decide: 0 agrees, 1 inconclusive, 2 disagrees. */
+  cross_check(): number;
 }
 
 /** Result handle of the region and footprint calls; read it, then `free()`. */
@@ -144,22 +148,26 @@ export function withDentalMesh<T>(mesh: TriangleMesh, use: (session: DentalSessi
 
 /** The flat frame the pose and opening calls take: the layout of `DentalOrientResult.rim_scalars`. */
 export function rimScalars(rim: DentalRim): Float64Array {
-  // 18 f64: 0 boundary kind (0 lower-edge loop, 1 projection fallback), 1-3 opening direction,
+  // 22 f64: 0 boundary kind (0 lower-edge loop, 1 projection fallback), 1-3 opening direction,
   // 4-6 centroid, 7-9 tangent, 10-12 bitangent, 13 visibility resolution, 14-15 visibility min,
-  // 16-17 visibility max. `rimOf` reads the same layout back.
+  // 16-17 visibility max, 18 whether the trim's U decided a front (0/1), 19-21 that front (zeros
+  // without one; a rim saved by engine 12 has none). `rimOf` reads the same layout back.
   return Float64Array.of(rim.boundaryKind === 'lower-edge-loop' ? 0 : 1, ...rim.openingDirection, ...rim.centroid,
-    ...rim.tangent, ...rim.bitangent, rim.visibilityResolution, ...rim.visibilityMin, ...rim.visibilityMax);
+    ...rim.tangent, ...rim.bitangent, rim.visibilityResolution, ...rim.visibilityMin, ...rim.visibilityMax,
+    rim.front ? 1 : 0, ...(rim.front ?? [0, 0, 0]));
 }
 
 /** The unit-local rim an orientation result carries. */
 export function rimOf(result: DentalOrientResultLike): DentalRim {
   const s = result.rim_scalars();
   const at = (i: number): [number, number, number] => [s[i]!, s[i + 1]!, s[i + 2]!];
-  return {
+  const rim: DentalRim = {
     boundaryKind: s[0] === 0 ? 'lower-edge-loop' : 'projection-fallback',
     points: result.take_rim_points(),
     openingDirection: at(1), centroid: at(4), tangent: at(7), bitangent: at(10),
     visibilityMask: result.take_visibility_mask(), visibilityResolution: s[13]!,
     visibilityMin: [s[14]!, s[15]!], visibilityMax: [s[16]!, s[17]!],
   };
+  if (s.length >= 22 && s[18] === 1) rim.front = at(19);
+  return rim;
 }

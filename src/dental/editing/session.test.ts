@@ -11,7 +11,7 @@ const run = (state: EditSession, ...events: SessionEvent[]) => events.reduce(red
 const withActive = run(initialSession, { type: 'activeUnitChanged', id: 'u1' });
 const editing = run(withActive, { type: 'enterEdit' });
 const selected = run(editing, { type: 'setTool', tool: 'select' }, { type: 'toggleContact', id: 'a' }, { type: 'toggleContact', id: 'b' });
-const proposal: Extract<DentalProposal, { kind: 'proposal' }> = { kind: 'proposal', rim: {} as Extract<DentalProposal, { kind: 'proposal' }>['rim'], diagnostics: { confidence: 0.9, terminalAreaRatio: 0.9, axialVarianceRatio: 0.1 } };
+const proposal: Extract<DentalProposal, { kind: 'proposal' }> = { kind: 'proposal', rim: {} as Extract<DentalProposal, { kind: 'proposal' }>['rim'], diagnostics: { confidence: 0.9, floorOffsetRatio: 0.9, axialVarianceRatio: 0.1 } };
 
 describe('reduceSession: modes', () => {
   it('starts outside the modes with the default tools', () => {

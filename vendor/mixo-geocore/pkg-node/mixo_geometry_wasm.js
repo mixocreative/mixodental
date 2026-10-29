@@ -278,6 +278,24 @@ class DentalOrientResult {
         wasm.__wbg_dentalorientresult_free(ptr, 0);
     }
     /**
+     * What the trim found (engine 13, `dental::trim`): 0 open arch (the trim plane and its U ends
+     * decided up and front), 1 ring (a U bridged by a plate; the floor rule decided), 2 not oriented.
+     * @returns {number}
+     */
+    arch_kind() {
+        const ret = wasm.dentalorientresult_arch_kind(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Whether the rule that did not decide agrees on up/down: 0 agrees, 1 inconclusive, 2 disagrees
+     * (the host reports a disagreement as needing a look; nothing resolves it silently).
+     * @returns {number}
+     */
+    cross_check() {
+        const ret = wasm.dentalorientresult_cross_check(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
      * confidence, floor offset ratio (how far the axis-facing floor leans toward one end), axial variance ratio.
      * @returns {Float64Array}
      */
@@ -328,7 +346,8 @@ class DentalOrientResult {
     }
     /**
      * kind (0 lower-edge loop, 1 projection fallback), opening direction, centroid, tangent,
-     * bitangent (3 each), visibility resolution, visibility min (2), visibility max (2).
+     * bitangent (3 each), visibility resolution, visibility min (2), visibility max (2), whether the
+     * trim's U decided a front (0/1), that front (3; zeros without one).
      * @returns {Float64Array}
      */
     rim_scalars() {
@@ -1456,6 +1475,23 @@ class GeometrySession {
         const ptr10 = passArray8ToWasm0(tip_flags, wasm.__wbindgen_malloc);
         const len10 = WASM_VECTOR_LEN;
         const ret = wasm.geometrysession_diagnose(this.__wbg_ptr, model, revision, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, ptr4, len4, ptr5, len5, ptr6, len6, ptr7, len7, ptr8, len8, ptr9, len9, ptr10, len10);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return Diagnosis.__wrap(ret[0]);
+    }
+    /**
+     * Step 1 evidence layers of a loaded aligner (`dental::review_orientation`): the detected trim
+     * chains, the two U ends, the bottom plane's outline and the back arrow. Review only.
+     * @param {number} model
+     * @param {number} revision
+     * @param {string} profile
+     * @returns {Diagnosis}
+     */
+    diagnose_orientation(model, revision, profile) {
+        const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_diagnose_orientation(this.__wbg_ptr, model, revision, ptr0, len0);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -3128,6 +3164,25 @@ function remesh_cache_stats() {
     return v1;
 }
 exports.remesh_cache_stats = remesh_cache_stats;
+
+/**
+ * Removes collapsed triangles; the host reports the count.
+ * @param {Float32Array} positions
+ * @param {Uint32Array} indices
+ * @returns {WeldResult}
+ */
+function remove_degenerate_triangles(positions, indices) {
+    const ptr0 = passArrayF32ToWasm0(positions, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray32ToWasm0(indices, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.remove_degenerate_triangles(ptr0, len0, ptr1, len1);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return WeldResult.__wrap(ret[0]);
+}
+exports.remove_degenerate_triangles = remove_degenerate_triangles;
 
 /**
  * Flat order of the settings array (`SETTINGS_LAYOUT`), for the host packer to check against.
