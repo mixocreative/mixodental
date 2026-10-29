@@ -7,7 +7,7 @@ import type { DentalTuning } from '@mixo-geocore/host/dental/dentalTuning';
 import type { ProfileDefaults } from '@mixo-geocore/host/dental/alignerProfiles';
 import { CommandButton } from './CommandButton';
 import { DentalAlignerPrompt, DentalTypeStep, noticeText } from './DentalSteps';
-import { OrientationBar } from './OrientationBar';
+import { OrientationBar, type DentalFreeControls } from './OrientationBar';
 import { TiltReadout } from './TiltReadout';
 import { DentalSupportsStep, type DentalReview } from './DentalSupports';
 import { RangeField } from './RangeField';
@@ -23,7 +23,7 @@ const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
 /** Dental Auto Generate chrome: review the detector first, then mark only permitted support area. */
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
   lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, onTuningChange,
-  review, clickReach, tilt, onTilt, freeTransform = false, risks, onShowRisk, send, run }: {
+  review, clickReach, tilt, onTilt, free, risks, onShowRisk, send, run }: {
   gesture: Extract<Gesture, { kind: 'dental-type' | 'dental-aligner' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
   /** Step 1: the object selected on the plate, offered as the aligner without a drop. */
@@ -48,8 +48,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   /** Step 1's print-angle search (of the aligner in the step) and its slider. */
   tilt?: DentalTiltState | undefined;
   onTilt?: (index: number) => void;
-  /** Step 1: Free transform is on (PD.11 S6); the big print-angle number is hidden then. */
-  freeTransform?: boolean;
+  /** Step 1: Free transform (PD.11 S6); the big print-angle number is hidden while it is on. */
+  free?: DentalFreeControls;
   /** Step 2: overhang low points outside the permitted area (the blue spots), listed with Show me. */
   risks?: readonly AreaRisk[];
   onShowRisk?: (risk: AreaRisk) => void;
@@ -70,10 +70,10 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       {t('Step 1 · Aligner')}<span>{gesture.phase === 'ready' ? unitName : profileById(gesture.profile)?.name[lang]}</span>
       <b>{gesture.phase === 'ready' ? t('Review the orientation. Turn the aligner with the gizmo if needed.') : t('Add the aligner STL.')}</b>
     </div>
-    {tilt?.status === 'ready' && !freeTransform ? <TiltReadout deg={tilt.scan.rows[tilt.index]!.tiltDeg} /> : null}
+    {tilt?.status === 'ready' && !free?.on ? <TiltReadout deg={tilt.scan.rows[tilt.index]!.tiltDeg} /> : null}
     {gesture.phase === 'ready'
       ? <OrientationBar notices={gesture.notices} profile={gesture.profile} lang={lang} ui={ui} send={send} run={run}
-        tilt={tilt} onTilt={onTilt} />
+        tilt={tilt} onTilt={onTilt} free={free} />
       : <>
         <div className="edit-bar"><div className="edit-row">
           <CommandButton command={resolve('dental.back', ui)} run={run} />

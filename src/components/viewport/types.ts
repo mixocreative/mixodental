@@ -30,6 +30,8 @@ export interface ObjectViewportProps {
   /** What a press or drag does now (editing/gesture): the mode, the tool and its brush. */
   gesture: Gesture;
   gizmoMode: GizmoMode;
+  /** Step 1 Free transform is on: the active object shows a rotation-only gizmo (PD.11 S6). */
+  rotationGizmo?: boolean;
   modelVisible: boolean;
   wireframe: boolean;
   onSelect: (unitId: string | null, additive: boolean) => void;

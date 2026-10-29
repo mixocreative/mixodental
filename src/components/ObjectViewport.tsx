@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { TransformControls as TransformControlsImpl } from 'three-stdlib';
-import { gestureMode } from '@mixo-geocore/editing/gesture';
+import { gestureMode, type Gesture } from '@mixo-geocore/editing/gesture';
 import { missAction } from '@mixo-geocore/editing/pick';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { ViewCamera, PlateSide, FocusCamera } from './viewport/cameras';
@@ -17,6 +17,16 @@ export function acceptModelFile(file: File): boolean {
 
 export function isTransformMode(mode: GizmoMode): mode is 'translate' | 'rotate' {
   return mode !== 'none';
+}
+
+/**
+ * The transform gizmo drawn on the active object: the rotation-only gizmo of Step 1's Free transform
+ * when `rotationGizmo` is on; otherwise the chosen mode, and only in the plain viewer (no gesture).
+ * Undefined: no gizmo.
+ */
+export function gizmoShown(gesture: Gesture, gizmoMode: GizmoMode, rotationGizmo: boolean): 'translate' | 'rotate' | undefined {
+  if (rotationGizmo) return 'rotate';
+  return gesture.kind === 'none' && isTransformMode(gizmoMode) ? gizmoMode : undefined;
 }
 
 /** A gizmo-moved object's placement (Euler XYZ, the three.js default order this app keeps). */
@@ -56,6 +66,7 @@ export default function ObjectViewport(props: ObjectViewportProps) {
   const { scene } = props;
   const selected = new Set(scene.selectedUnitIds);
   const activeId = scene.activeUnitId;
+  const gizmo = gizmoShown(props.gesture, props.gizmoMode, props.rotationGizmo === true);
 
   return <Canvas
     style={{ cursor: canvasCursor(props.gesture, overBrush) }}
@@ -112,8 +123,8 @@ export default function ObjectViewport(props: ObjectViewportProps) {
       problems={props.problems.filter((problem) => problem.unitId === unit.id)}
       {...(unit.id === activeId ? { onGroup: setActiveGroup, onBrushOver: setOverBrush } : {})}
     />)}
-    {activeId && activeGroup?.unitId === activeId && props.gesture.kind === 'none' && isTransformMode(props.gizmoMode) && <UnitTransformControls
-      mode={props.gizmoMode}
+    {activeId && activeGroup?.unitId === activeId && gizmo && <UnitTransformControls
+      mode={gizmo}
       object={activeGroup.group}
       onDraggingChanged={setDragging}
       onCommit={(transform) => props.onTransform(activeId, transform)}

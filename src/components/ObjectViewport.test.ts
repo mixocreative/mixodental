@@ -1,6 +1,7 @@
 import { Object3D } from 'three';
 import { describe, expect, it } from 'vitest';
-import { acceptModelFile, isTransformMode, transformFromObject } from './ObjectViewport';
+import { acceptModelFile, gizmoShown, isTransformMode, transformFromObject } from './ObjectViewport';
+import type { Gesture } from '@mixo-geocore/editing/gesture';
 
 describe('acceptModelFile', () => {
   it('accepts STL and glTF model files but rejects unsupported files', () => {
@@ -40,5 +41,22 @@ describe('canvas clicks use the live edit tool', () => {
   it('the app hands the viewport its session ref, set synchronously on every step', () => {
     expect(app).toMatch(/liveTool=\{liveTool\}/);
     expect(app).toMatch(/const liveTool = useCallback\(\(\) => sessionRef\.current, \[\]\)/);
+  });
+});
+
+describe('gizmoShown', () => {
+  const plain = { kind: 'none' } as Gesture;
+  const aligner = { kind: 'dental-aligner' } as Gesture;
+
+  it('shows the chosen mode in the plain viewer, and nothing while Edit mode gestures run', () => {
+    expect(gizmoShown(plain, 'translate', false)).toBe('translate');
+    expect(gizmoShown(plain, 'rotate', false)).toBe('rotate');
+    expect(gizmoShown(plain, 'none', false)).toBeUndefined();
+    expect(gizmoShown(aligner, 'rotate', false)).toBeUndefined();
+  });
+
+  it('Free transform shows a rotation-only gizmo whatever the chosen mode is', () => {
+    expect(gizmoShown(aligner, 'translate', true)).toBe('rotate');
+    expect(gizmoShown(aligner, 'none', true)).toBe('rotate');
   });
 });

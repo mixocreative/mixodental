@@ -36,6 +36,8 @@ import { currentDentalPreview, shownDentalPreview, useDentalPreview } from './co
 import { useDentalTuning } from './components/useDentalTuning';
 import { useAreaRisks } from './components/useAreaRisks';
 import { useDentalFlow } from './components/useDentalFlow';
+import { useFreeTransform } from './components/useFreeTransform';
+import type { DentalFreeControls } from './components/OrientationBar';
 import { useProjectFile } from './components/useProjectFile';
 import { isProjectFile } from './state/projectFile';
 import { hint } from './components/hint';
@@ -536,6 +538,10 @@ export default function App() {
 
   // ---- Dental Steps 1 and 2 (orient, detect the area): components/useDentalFlow ------------
   const dentalFlow = useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, session, setStatus, requestView, setGizmoMode, unitName });
+  // Step 1 Free transform (PD.11 S6): confirm marks the rotation as the operator's; Auto orient restores the stored pose.
+  const free = useFreeTransform(`${session.dentalStage}:${session.dentalUnitId}`);
+  const dentalFree: DentalFreeControls = { on: free.free, asking: free.asking, ask: free.ask, cancel: free.cancel,
+    confirm: () => { dentalFlow.markHand(); free.confirm(); }, autoOrient: () => { dentalFlow.useDetected(); free.leave(); } };
   const startDentalAligner = dentalFlow.startAligner;
 
   // ---- Import --------------------------------------------------------------------------
@@ -1262,6 +1268,7 @@ export default function App() {
           onPickTip={onPickTip}
           gesture={canvasGesture(press)}
           gizmoMode={gizmoMode}
+          rotationGizmo={orienting && free.free}
           modelVisible={modelVisible}
           wireframe={wireframe}
           onSelect={onSelect}
@@ -1310,7 +1317,7 @@ export default function App() {
           <div className="viewport-note">{t('Millimetres. Build plate at zero.')}</div>
         </> : press.kind === 'zones'
           ? <ZonesBar brush={press.brush} unitName={activeUnit?.name} belowPlate={tips.below} hidden={zonesHidden} ui={ui} send={send} run={runCommand} />
-          : press.kind === 'dental-type' || press.kind === 'dental-aligner' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} onTuningChange={dentalTuning.change} tilt={dentalFlow.tilt?.unitId === activeUnit?.id ? dentalFlow.tilt : undefined} onTilt={dentalFlow.chooseTilt} send={send} run={runCommand} />
+          : press.kind === 'dental-type' || press.kind === 'dental-aligner' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} onTuningChange={dentalTuning.change} tilt={dentalFlow.tilt?.unitId === activeUnit?.id ? dentalFlow.tilt : undefined} onTilt={dentalFlow.chooseTilt} free={dentalFree} send={send} run={runCommand} />
           : <EditBar gesture={press} unitName={activeUnit?.name} ui={ui} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} send={send} run={runCommand} />}
       </section>
       {editMode !== 'dental' ? <aside className="panel right" onClick={blockedClick('right')}>

@@ -257,5 +257,11 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     if (tiltRef.current?.status === 'scanning') setTilt(undefined);
   }, [setTilt]);
 
-  return { startAligner, useDetected, next, invalidate, tilt, chooseTilt };
+  /** Free transform is confirmed: the operator's own rotation is kept, so Next does not turn the aligner back to the scanned row. */
+  const markHand = useCallback(() => {
+    const current = tiltRef.current;
+    if (current?.status === 'ready') keepTilt({ ...current, hand: true });
+  }, [keepTilt]);
+
+  return { startAligner, useDetected, next, invalidate, tilt, chooseTilt, markHand };
 }
