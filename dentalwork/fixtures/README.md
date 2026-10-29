@@ -22,3 +22,7 @@ Current case-001 measurements: the supported shell is lifted 3.5 mm from the pla
 An additional local 3D triangle-distance check found 89/90 column tops within 0.4 mm of the diagnostic non-opening-side strips. Forty were distinctly closer to those strips, 45 were within 0.1 mm of both sides of a ridge, and five were distinctly closer to an opening-side strip. These are evidence for a narrow ridge-adjacent strategy, **not** proof that every contact or support body is safe.
 
 For another case, create a new numbered directory, keep the source STL outside Git, and neutralize the first 80 bytes of each binary STL header with `scripts/prepare-dental-reference.mjs`. Record comparison measurements in the tracked handoff without names or original source paths. The paired supported model is evidence of intended contacts, spacing, and support direction; the raft need not match.
+
+## Support contact files (`*-sup.contacts.json`)
+
+For every `<name>-sup.stl` that has a bare partner `<name>.stl` beside it, `scripts/extract-sup-contacts.py` writes `<name>-sup.contacts.json` in the same (git-ignored) folder. Format `mixo-sup-contacts/1`: `bare` and `sup` file names, `frame` ("bare scan coordinates, mm"), `transform_bare_to_sup` (4x4), `icp_rms_mm`, `contacts` (`[x,y,z]` points where supports touch the bare surface), `normals` (bare surface normal at each contact), `cluster_mm` (1.0) and `touch_mm` (0.3). Run it as `python -I scripts/extract-sup-contacts.py dentalwork/fixtures`. The scans are read in place and never modified; the JSON files stay local like the scans.
