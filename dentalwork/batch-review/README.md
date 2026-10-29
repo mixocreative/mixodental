@@ -6,7 +6,7 @@ Check a whole folder of aligner STLs on your own computer, without the app and w
 
 ## Run it
 
-1. Once per computer: install Node.js 22 and run `npm ci` in the project folder. The first run also builds the geometry engine (a minute or two).
+1. Once per computer: install Node.js 22 and run `npm ci` in the project folder. The geometry engine ships vendored in `vendor/mixo-geocore` (the Node build is `vendor/mixo-geocore/pkg-node`); if the window says it is missing, run `npm run vendor:geometry` once.
 2. Double-click `run-batch-review.bat` and choose the folder in the window that opens, or drag one or more folders onto it in File Explorer. Subfolders are included. If you close the window without choosing, it asks for a folder path to paste instead.
 3. The window prints one line per file. When it ends, the viewer opens in your browser. Keep the window open while you look; close it when you are done.
 
@@ -72,7 +72,9 @@ For each file, write down whether the edges and the support area are right, wron
 |---|---|
 | `run-batch-review.bat` | Runs a folder, then opens the viewer |
 | `view-batch-review.bat` | Reopens a finished run, or opens an empty viewer to drop one into |
-| `batch.ts` | Runs each STL through `scripts/dental-region-review/build.ts` (the app's detector, placement and Rust `generate`) and writes the GLBs and the summary |
+| `batch.ts` | Walks the folders, runs each STL through `reviewCase.ts`, writes the summary, and exits non-zero on any error |
+| `reviewCase.ts` | One STL through `scripts/dental-region-review/build.ts` (the app's detector, placement and Rust `generate`) into a GLB and a summary row |
+| `reviewCase.test.ts` | Runs the reference aligner through the whole pipeline (about 20 s, part of `npm test`) so a broken import cannot go unnoticed |
 | `serve.mjs` | Serves the viewer, three.js and the run's files (if a run folder is given) on 127.0.0.1 only |
 | `viewer.html` | The viewer |
 | `tokens.css`, `base.css` | Mixo app style, copied unchanged from the `mixo-app-style` skill |

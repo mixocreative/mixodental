@@ -16,12 +16,12 @@ if (!input || !output) throw new Error('Usage: npx vite-node --script scripts/de
 const bytes = readFileSync(input);
 const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
 const review = withSupports ? buildDentalReview(mesh) : undefined;
-const result = review ?? proposeDentalSupportRegion(mesh, referenceTuning, REFERENCE_PROFILE);
+const result: { kind: 'inconclusive'; reason: string } | { kind: 'proposal' } = review ?? proposeDentalSupportRegion(mesh, referenceTuning, REFERENCE_PROFILE);
 if (result.kind === 'inconclusive') {
   process.stderr.write(`Dental region inconclusive: ${result.reason}\n`);
   process.exitCode = 2;
 } else {
-  const region = review?.kind === 'proposal' ? review.region : result;
+  const region = review?.kind === 'proposal' ? review.region : (result as unknown as ReturnType<typeof proposeDentalSupportRegion> & { kind: 'proposal' });
   const glb = await exportDentalRegionReview(mesh, region,
     review?.kind === 'proposal' ? { supports: review.supports, frame: review.frame, bands: review.bands,
       diagnosticContacts: review.diagnosticContacts,

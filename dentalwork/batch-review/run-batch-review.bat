@@ -13,9 +13,11 @@ if not exist "%VITE%" (
   pause
   exit /b 1
 )
-if not exist "%ROOT%crates\geometry-wasm\pkg-node" (
-  echo Building the geometry engine once...
-  pushd "%ROOT%" && call npm run wasm:build && popd
+rem The geometry engine is vendored from mixo-geocore (no local Rust build).
+if not exist "%ROOT%vendor\mixo-geocore\pkg-node\mixo_geometry_wasm.js" (
+  echo The geometry engine files are missing. Run "npm run vendor:geometry" in %ROOT% first.
+  pause
+  exit /b 1
 )
 set "FOLDERS=%*"
 if "%~1"=="" set "FOLDERS="
