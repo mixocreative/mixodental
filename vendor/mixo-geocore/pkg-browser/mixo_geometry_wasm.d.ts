@@ -156,6 +156,37 @@ export class DentalTiltScanResult {
 }
 
 /**
+ * Step 1 result for a denture. Failed: `status() == 1` with `reason()`. Oriented: `status() == 0`.
+ */
+export class DentureOrientResult {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * flatness (smallest / largest covariance eigenvalue), legs gap ratio, teeth offset mm.
+     */
+    diagnostics(): Float64Array;
+    /**
+     * The arch frame: centroid, up (apex direction), teeth side, across (3 each); empty when failed.
+     */
+    frame(): Float64Array;
+    /**
+     * Failure reason (`too-few-vertices`, `no-arch-plane`, `no-legs`, `both-ends-split`), empty when oriented.
+     */
+    reason(): string;
+    /**
+     * Euler XYZ radians turning the mesh upright (tilt 0); empty when failed.
+     */
+    rotation(): Float64Array;
+    status(): number;
+    /**
+     * False when the teeth side's lean was below the profile's minimum (a side was still taken;
+     * the host reports it as needing a look).
+     */
+    teeth_decided(): boolean;
+}
+
+/**
  * The review GLB data of `diagnose`: coloured layers, one per role (docs/SHIP-PLAN.md ABI).
  */
 export class Diagnosis {
@@ -302,6 +333,20 @@ export class GeometrySession {
      */
     dental_tilt_scan(model: number, profile: string, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, on_tilt?: Function | null): DentalTiltScanResult;
     /**
+     * The denture policy of a unit as a `PolicyResult` for `generate`: every face permitted, the
+     * pose's tips as candidates (lowest points, bottom band, bars, light fill), pillars may land on
+     * the model, Tree off, Brace by `brace`. `frame` is the unit's placement `[position xyz,
+     * rotation xyz]` the result is expressed in (its +Y is the plate normal the tips are placed
+     * for); `manual_positions` the unit's manual tips (unit-local xyz triples) to keep clear of.
+     */
+    denture_policy(model: number, profile: string, frame: Float64Array, brace: boolean, manual_positions: Float64Array): PolicyHandle;
+    /**
+     * Print-angle search of a denture from upright over the profile's range, with the host's
+     * current support settings; rows as `dental_tilt_scan` (fitting-side tips and rim gap are 0).
+     * `on_tilt(done, total)`, when given, is called after each scanned tilt.
+     */
+    denture_tilt_scan(model: number, profile: string, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, on_tilt?: Function | null): DentalTiltScanResult;
+    /**
      * Review layers of a loaded aligner: the contact strip, the contours and, when given, the
      * diagnostic strips (`bands`: four masks of one byte per face, or empty), the sampled
      * contacts (position then normal, 6 numbers each), and a support mesh with a tip flag per
@@ -348,6 +393,10 @@ export class GeometrySession {
      * Step 1: mesh check, orientation, central opening and whether they fit the profile.
      */
     orient_dental(model: number, profile: string): DentalOrientResult;
+    /**
+     * Step 1 for a denture: the upright frame (arch plane vertical, legs down, teeth side) and its rotation.
+     */
+    orient_denture(model: number, profile: string): DentureOrientResult;
     /**
      * First hit of each ray (origin xyz, direction xyz, mesh-local): 5 floats per ray
      * (face or -1, distance, x, y, z). `side` 0 front, 1 back, 2 double.
@@ -551,6 +600,8 @@ export function decimate_display(positions: Float32Array, indices: Uint32Array, 
  */
 export function dental_allowed_vertices(positions: Float32Array, indices: Uint32Array, normals: Float32Array, rim: Float64Array, visibility_mask: Uint8Array, manual_area: boolean, stamps: Float64Array, profile: string): Uint8Array;
 
+export function denture_profile_ids(): string[];
+
 export function engine_version(): number;
 
 export function face_mask_contour_segments(positions: Float32Array, pairs: Uint32Array): Float32Array;
@@ -643,6 +694,7 @@ export interface InitOutput {
     readonly __wbg_dentalorientresult_free: (a: number, b: number) => void;
     readonly __wbg_dentalregionresult_free: (a: number, b: number) => void;
     readonly __wbg_dentaltiltscanresult_free: (a: number, b: number) => void;
+    readonly __wbg_dentureorientresult_free: (a: number, b: number) => void;
     readonly __wbg_diagnosis_free: (a: number, b: number) => void;
     readonly __wbg_faceoverlay_free: (a: number, b: number) => void;
     readonly __wbg_generation_free: (a: number, b: number) => void;
@@ -705,6 +757,13 @@ export interface InitOutput {
     readonly dentaltiltscanresult_reason: (a: number) => [number, number];
     readonly dentaltiltscanresult_rows: (a: number) => [number, number];
     readonly dentaltiltscanresult_start_deg: (a: number) => number;
+    readonly denture_profile_ids: () => [number, number];
+    readonly dentureorientresult_diagnostics: (a: number) => [number, number];
+    readonly dentureorientresult_frame: (a: number) => [number, number];
+    readonly dentureorientresult_reason: (a: number) => [number, number];
+    readonly dentureorientresult_rotation: (a: number) => [number, number];
+    readonly dentureorientresult_status: (a: number) => number;
+    readonly dentureorientresult_teeth_decided: (a: number) => number;
     readonly diagnosis_layer_color: (a: number, b: number) => number;
     readonly diagnosis_layer_count: (a: number) => number;
     readonly diagnosis_layer_name: (a: number, b: number) => [number, number];
@@ -752,6 +811,8 @@ export interface InitOutput {
     readonly geometrysession_dental_legacy_fill: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number) => [number, number, number];
     readonly geometrysession_dental_policy: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number) => [number, number, number];
     readonly geometrysession_dental_tilt_scan: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number];
+    readonly geometrysession_denture_policy: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number];
+    readonly geometrysession_denture_tilt_scan: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number];
     readonly geometrysession_diagnose: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number, y: number) => [number, number, number];
     readonly geometrysession_diagnose_orientation: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly geometrysession_generate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number) => [number, number, number];
@@ -763,6 +824,7 @@ export interface InitOutput {
     readonly geometrysession_mesh_bounds: (a: number, b: number) => [number, number, number, number];
     readonly geometrysession_new: (a: number) => number;
     readonly geometrysession_orient_dental: (a: number, b: number, c: number, d: number) => [number, number, number];
+    readonly geometrysession_orient_denture: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly geometrysession_pick: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
     readonly geometrysession_pick_index: (a: number, b: number) => [number, number, number];
     readonly geometrysession_pick_pixels: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => [number, number, number, number];

@@ -59,6 +59,21 @@ export interface DentalTiltScanResultLike {
   band(): Uint32Array;
 }
 
+/** Result handle of `orient_denture` (Rust `DentureOrientResult`; decoded by `dentureOrient.ts`); read it, then `free()`. */
+export interface DentureOrientResultLike {
+  free(): void;
+  /** 0 oriented, 1 failed (see `reason`). */
+  status(): number;
+  reason(): string;
+  /** Euler XYZ radians turning the unit upright; empty when failed. */
+  rotation(): Float64Array;
+  /** 12 values: centroid, up, teeth, across (xyz each), mesh frame; empty when failed. */
+  frame(): Float64Array;
+  /** flatness, legs gap ratio, teeth offset mm. */
+  diagnostics(): Float64Array;
+  teeth_decided(): boolean;
+}
+
 /** Result handle of `dental_legacy_fill`: kept indices into the initial points, plus the added contacts. */
 export interface LegacyFillLike {
   free(): void; take_kept(): Uint32Array; take_positions(): Float64Array; take_normals(): Float64Array; take_ids(): string[];
@@ -82,11 +97,21 @@ export interface DentalSession {
   dental_legacy_fill(model: number, profile: string, rim: Float64Array, visibilityMask: Uint8Array, manualArea: boolean,
     stamps: Float64Array, rotation: Float64Array, spacing: number, overhangAngleDegrees: number,
     initialPositions: Float64Array, initialNormals: Float64Array): LegacyFillLike;
+  // Denture calls (`crates/geometry-wasm/src/denture.rs`); `profile` is a denture profile id.
+  /** Step 1 for a denture: the upright frame and its rotation. */
+  orient_denture(model: number, profile: string): DentureOrientResultLike;
+  /** Denture print-angle search from upright; rows as `dental_tilt_scan`. */
+  denture_tilt_scan(model: number, profile: string, neckLengthMm: number, pillarDiameterMm: number, liftMm: number, braced: boolean,
+    onTilt?: (done: number, total: number) => void): DentalTiltScanResultLike;
+  /** The denture policy for `generate` in `frame` (+Y the plate normal); `brace` is the lattice switch. */
+  denture_policy(model: number, profile: string, frame: Float64Array, brace: boolean, manualPositions: Float64Array): PolicyHandle;
 }
 
-/** The dental calls of the engine module the browser build has (sessions and the overlay mask). */
+/** The dental calls of the engine module the browser build has (sessions, the overlay mask, the denture profile ids). */
 export interface DentalEngine {
   GeometrySession: new (maxBytes: number) => unknown;
+  /** Ids of the embedded denture profiles (production ABI; the aligner ids are a test-abi call). */
+  denture_profile_ids(): string[];
   dental_allowed_vertices(positions: Float32Array, indices: Uint32Array, normals: Float32Array, rim: Float64Array, visibilityMask: Uint8Array,
     manualArea: boolean, stamps: Float64Array, profile: string): Uint8Array;
 }

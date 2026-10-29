@@ -543,6 +543,91 @@ export class DentalTiltScanResult {
 if (Symbol.dispose) DentalTiltScanResult.prototype[Symbol.dispose] = DentalTiltScanResult.prototype.free;
 
 /**
+ * Step 1 result for a denture. Failed: `status() == 1` with `reason()`. Oriented: `status() == 0`.
+ */
+export class DentureOrientResult {
+    static __wrap(ptr) {
+        const obj = Object.create(DentureOrientResult.prototype);
+        obj.__wbg_ptr = ptr;
+        DentureOrientResultFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        DentureOrientResultFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_dentureorientresult_free(ptr, 0);
+    }
+    /**
+     * flatness (smallest / largest covariance eigenvalue), legs gap ratio, teeth offset mm.
+     * @returns {Float64Array}
+     */
+    diagnostics() {
+        const ret = wasm.dentureorientresult_diagnostics(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The arch frame: centroid, up (apex direction), teeth side, across (3 each); empty when failed.
+     * @returns {Float64Array}
+     */
+    frame() {
+        const ret = wasm.dentureorientresult_frame(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Failure reason (`too-few-vertices`, `no-arch-plane`, `no-legs`, `both-ends-split`), empty when oriented.
+     * @returns {string}
+     */
+    reason() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.dentureorientresult_reason(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Euler XYZ radians turning the mesh upright (tilt 0); empty when failed.
+     * @returns {Float64Array}
+     */
+    rotation() {
+        const ret = wasm.dentureorientresult_rotation(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * @returns {number}
+     */
+    status() {
+        const ret = wasm.dentureorientresult_status(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * False when the teeth side's lean was below the profile's minimum (a side was still taken;
+     * the host reports it as needing a look).
+     * @returns {boolean}
+     */
+    teeth_decided() {
+        const ret = wasm.dentureorientresult_teeth_decided(this.__wbg_ptr);
+        return ret !== 0;
+    }
+}
+if (Symbol.dispose) DentureOrientResult.prototype[Symbol.dispose] = DentureOrientResult.prototype.free;
+
+/**
  * The review GLB data of `diagnose`: coloured layers, one per role (docs/SHIP-PLAN.md ABI).
  */
 export class Diagnosis {
@@ -1160,6 +1245,54 @@ export class GeometrySession {
         return DentalTiltScanResult.__wrap(ret[0]);
     }
     /**
+     * The denture policy of a unit as a `PolicyResult` for `generate`: every face permitted, the
+     * pose's tips as candidates (lowest points, bottom band, bars, light fill), pillars may land on
+     * the model, Tree off, Brace by `brace`. `frame` is the unit's placement `[position xyz,
+     * rotation xyz]` the result is expressed in (its +Y is the plate normal the tips are placed
+     * for); `manual_positions` the unit's manual tips (unit-local xyz triples) to keep clear of.
+     * @param {number} model
+     * @param {string} profile
+     * @param {Float64Array} frame
+     * @param {boolean} brace
+     * @param {Float64Array} manual_positions
+     * @returns {PolicyHandle}
+     */
+    denture_policy(model, profile, frame, brace, manual_positions) {
+        const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF64ToWasm0(frame, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArrayF64ToWasm0(manual_positions, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_denture_policy(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, brace, ptr2, len2);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return PolicyHandle.__wrap(ret[0]);
+    }
+    /**
+     * Print-angle search of a denture from upright over the profile's range, with the host's
+     * current support settings; rows as `dental_tilt_scan` (fitting-side tips and rim gap are 0).
+     * `on_tilt(done, total)`, when given, is called after each scanned tilt.
+     * @param {number} model
+     * @param {string} profile
+     * @param {number} neck_length_mm
+     * @param {number} pillar_diameter_mm
+     * @param {number} lift_mm
+     * @param {boolean} braced
+     * @param {Function | null} [on_tilt]
+     * @returns {DentalTiltScanResult}
+     */
+    denture_tilt_scan(model, profile, neck_length_mm, pillar_diameter_mm, lift_mm, braced, on_tilt) {
+        const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_denture_tilt_scan(this.__wbg_ptr, model, ptr0, len0, neck_length_mm, pillar_diameter_mm, lift_mm, braced, isLikeNone(on_tilt) ? 0 : addToExternrefTable0(on_tilt));
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return DentalTiltScanResult.__wrap(ret[0]);
+    }
+    /**
      * Review layers of a loaded aligner: the contact strip, the contours and, when given, the
      * diagnostic strips (`bands`: four masks of one byte per face, or empty), the sampled
      * contacts (position then normal, 6 numbers each), and a support mesh with a tip flag per
@@ -1426,6 +1559,21 @@ export class GeometrySession {
             throw takeFromExternrefTable0(ret[1]);
         }
         return DentalOrientResult.__wrap(ret[0]);
+    }
+    /**
+     * Step 1 for a denture: the upright frame (arch plane vertical, legs down, teeth side) and its rotation.
+     * @param {number} model
+     * @param {string} profile
+     * @returns {DentureOrientResult}
+     */
+    orient_denture(model, profile) {
+        const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_orient_denture(this.__wbg_ptr, model, ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return DentureOrientResult.__wrap(ret[0]);
     }
     /**
      * First hit of each ray (origin xyz, direction xyz, mesh-local): 5 floats per ray
@@ -2202,6 +2350,16 @@ export function dental_allowed_vertices(positions, indices, normals, rim, visibi
 }
 
 /**
+ * @returns {string[]}
+ */
+export function denture_profile_ids() {
+    const ret = wasm.denture_profile_ids();
+    var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+
+/**
  * @returns {number}
  */
 export function engine_version() {
@@ -2681,6 +2839,9 @@ const DentalRegionResultFinalization = (typeof FinalizationRegistry === 'undefin
 const DentalTiltScanResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_dentaltiltscanresult_free(ptr, 1));
+const DentureOrientResultFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_dentureorientresult_free(ptr, 1));
 const DiagnosisFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_diagnosis_free(ptr, 1));

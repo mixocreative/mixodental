@@ -208,6 +208,37 @@ export class DentalTiltScanResult {
 }
 
 /**
+ * Step 1 result for a denture. Failed: `status() == 1` with `reason()`. Oriented: `status() == 0`.
+ */
+export class DentureOrientResult {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * flatness (smallest / largest covariance eigenvalue), legs gap ratio, teeth offset mm.
+     */
+    diagnostics(): Float64Array;
+    /**
+     * The arch frame: centroid, up (apex direction), teeth side, across (3 each); empty when failed.
+     */
+    frame(): Float64Array;
+    /**
+     * Failure reason (`too-few-vertices`, `no-arch-plane`, `no-legs`, `both-ends-split`), empty when oriented.
+     */
+    reason(): string;
+    /**
+     * Euler XYZ radians turning the mesh upright (tilt 0); empty when failed.
+     */
+    rotation(): Float64Array;
+    status(): number;
+    /**
+     * False when the teeth side's lean was below the profile's minimum (a side was still taken;
+     * the host reports it as needing a look).
+     */
+    teeth_decided(): boolean;
+}
+
+/**
  * The review GLB data of `diagnose`: coloured layers, one per role (docs/SHIP-PLAN.md ABI).
  */
 export class Diagnosis {
@@ -368,6 +399,20 @@ export class GeometrySession {
      */
     dental_tilt_scan(model: number, profile: string, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, on_tilt?: Function | null): DentalTiltScanResult;
     /**
+     * The denture policy of a unit as a `PolicyResult` for `generate`: every face permitted, the
+     * pose's tips as candidates (lowest points, bottom band, bars, light fill), pillars may land on
+     * the model, Tree off, Brace by `brace`. `frame` is the unit's placement `[position xyz,
+     * rotation xyz]` the result is expressed in (its +Y is the plate normal the tips are placed
+     * for); `manual_positions` the unit's manual tips (unit-local xyz triples) to keep clear of.
+     */
+    denture_policy(model: number, profile: string, frame: Float64Array, brace: boolean, manual_positions: Float64Array): PolicyHandle;
+    /**
+     * Print-angle search of a denture from upright over the profile's range, with the host's
+     * current support settings; rows as `dental_tilt_scan` (fitting-side tips and rim gap are 0).
+     * `on_tilt(done, total)`, when given, is called after each scanned tilt.
+     */
+    denture_tilt_scan(model: number, profile: string, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, on_tilt?: Function | null): DentalTiltScanResult;
+    /**
      * Review layers of a loaded aligner: the contact strip, the contours and, when given, the
      * diagnostic strips (`bands`: four masks of one byte per face, or empty), the sampled
      * contacts (position then normal, 6 numbers each), and a support mesh with a tip flag per
@@ -414,6 +459,10 @@ export class GeometrySession {
      * Step 1: mesh check, orientation, central opening and whether they fit the profile.
      */
     orient_dental(model: number, profile: string): DentalOrientResult;
+    /**
+     * Step 1 for a denture: the upright frame (arch plane vertical, legs down, teeth side) and its rotation.
+     */
+    orient_denture(model: number, profile: string): DentureOrientResult;
     /**
      * First hit of each ray (origin xyz, direction xyz, mesh-local): 5 floats per ray
      * (face or -1, distance, x, y, z). `side` 0 front, 1 back, 2 double.
@@ -675,6 +724,8 @@ export function dental_profile_ids(): string[];
 export function dental_sample_contacts(positions: Float32Array, indices: Uint32Array, contour: Uint32Array, side_band: Uint8Array, spacing: number, max_search: number, phase_fraction: number, min_separation: number): DentalSampleResult;
 
 export function dental_side_bands(positions: Float32Array, indices: Uint32Array, allowed_faces: Uint8Array, outer_edges: Uint32Array, opening_edges: Uint32Array, setback: number, width: number): DentalBandsResult;
+
+export function denture_profile_ids(): string[];
 
 export function engine_version(): number;
 
