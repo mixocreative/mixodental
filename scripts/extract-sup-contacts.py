@@ -26,6 +26,7 @@ from scipy.spatial import cKDTree
 
 FORMAT = "mixo-sup-contacts/1"
 TOUCH_MM = 0.3
+TIP_MM = 1.0
 CLUSTER_MM = 1.0
 ICP_ITERS = 80
 
@@ -186,6 +187,27 @@ def register(bare, sup, den, den_vert_set):
     return T, rms, "icp"
 
 
+def cluster_points(pts, r):
+    """Connected components of the r-proximity graph; returns list of index arrays."""
+    if not len(pts):
+        return []
+    pairs = cKDTree(pts).query_pairs(r, output_type="ndarray")
+    parent = np.arange(len(pts))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for a, b in pairs:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+    roots = np.array([find(i) for i in range(len(pts))])
+    return [np.where(roots == r_)[0] for r_ in np.unique(roots)]
+
+
 def process_pair(bare_path, sup_path):
     bare = load(bare_path)
     sup = load(sup_path)
@@ -197,45 +219,64 @@ def process_pair(bare_path, sup_path):
     den_vert_set = np.unique(sup.faces[denture_faces])
     T, rms, method = register(bare, sup, den, den_vert_set)
 
-    sup_mask = np.ones(len(sup.vertices), bool)
+    # support pieces = every non-denture face-connected component
+    comp_of_v = np.full(len(sup.vertices), -1, dtype=int)
+    for k, g in enumerate(groups[1:], start=1):
+        comp_of_v[np.unique(sup.faces[np.asarray(g)])] = k
+    sup_mask = comp_of_v >= 0
     sup_mask[den_vert_set] = False
-    support_pts = sup.vertices[sup_mask]
+    sup_idx = np.where(sup_mask)[0]
+    support_pts = sup.vertices[sup_idx]
 
     bare_in_sup = bare.copy()
     bare_in_sup.apply_transform(T)
-    d0, _ = cKDTree(bare_in_sup.vertices).query(support_pts,
-                                                distance_upper_bound=TOUCH_MM * 4)
-    cand = support_pts[d0 <= TOUCH_MM * 4]
-    _, dist, _ = closest_on_mesh(bare_in_sup, cand, radius=1.0)
-    cand = cand[dist <= TOUCH_MM]
-
-    clusters = []
-    if len(cand):
-        pairs = cKDTree(cand).query_pairs(CLUSTER_MM, output_type="ndarray")
-        parent = np.arange(len(cand))
-
-        def find(x):
-            while parent[x] != x:
-                parent[x] = parent[parent[x]]
-                x = parent[x]
-            return x
-
-        for a, b in pairs:
-            ra, rb = find(a), find(b)
-            if ra != rb:
-                parent[ra] = rb
-        roots = np.array([find(i) for i in range(len(cand))])
-        clusters = [cand[roots == r] for r in np.unique(roots)]
-
     Tinv = np.linalg.inv(T)
+
+    # exact distance of every support vertex to the bare surface (prefiltered)
+    d0, _ = cKDTree(bare_in_sup.vertices).query(support_pts, distance_upper_bound=TOUCH_MM * 4)
+    near = d0 <= TOUCH_MM * 4
+    near_idx = sup_idx[near]
+    _, dist_near, _ = closest_on_mesh(bare_in_sup, support_pts[near], radius=1.0)
+
+    # OLD rule (for comparison): support vertices within TOUCH_MM, clustered at CLUSTER_MM
+    old_pts = support_pts[near][dist_near <= TOUCH_MM]
+    old_clusters = cluster_points(old_pts, CLUSTER_MM)
+    old_count = len(old_clusters)
+
+    # NEW rule: per support piece, its nearest vertex to the bare surface; accept if <= TIP_MM
+    best = {}
+    for vi, dv in zip(near_idx, dist_near):
+        k = comp_of_v[vi]
+        if k not in best or dv < best[k][1]:
+            best[k] = (vi, dv)
+    piece_d = np.array([v[1] for v in best.values()])
+    accepted = [v[0] for v in best.values() if v[1] <= TIP_MM]
+    acc_pts = sup.vertices[np.array(accepted, dtype=int)] if accepted else np.zeros((0, 3))
+
+    # project each accepted tip point onto the bare surface (bare frame) and cluster
+    if len(acc_pts):
+        proj, _, tri = closest_on_mesh(bare_in_sup, acc_pts, radius=1.5)
+        proj_bare = apply(Tinv, proj)
+    else:
+        proj_bare, tri = np.zeros((0, 3)), np.zeros(0, dtype=int)
+    clusters = cluster_points(proj_bare, CLUSTER_MM)
     snapped, normals = [], []
     for c in clusters:
-        cen_bare = apply(Tinv, c.mean(0)[None])
-        closest, _, tri = closest_on_mesh(bare, cen_bare, radius=1.5)
+        p = proj_bare[c].mean(0)
+        closest, _, ftri = closest_on_mesh(bare, p[None], radius=1.5)
         snapped.append(closest[0])
-        normals.append(bare.face_normals[tri[0]])
+        normals.append(bare.face_normals[ftri[0]])
 
-    return {
+    stats = {
+        "pieces": int(len(best)),
+        "piece_nearest_mm_min": round(float(piece_d.min()), 4) if len(piece_d) else None,
+        "piece_nearest_mm_median": round(float(np.median(piece_d)), 4) if len(piece_d) else None,
+        "piece_nearest_mm_p90": round(float(np.percentile(piece_d, 90)), 4) if len(piece_d) else None,
+        "accepted_pieces": len(accepted),
+        "old_count_touch_0.3mm": old_count,
+        "new_count": len(snapped),
+    }
+    out = {
         "format": FORMAT,
         "bare": bare_path.name,
         "sup": sup_path.name,
@@ -244,25 +285,49 @@ def process_pair(bare_path, sup_path):
         "registration": method,
         "rms_mm": round(rms, 6),
         "rms_flag_over_0.02_mm": bool(rms > EXACT_RMS_MM),
+        "touch_rule": f"tip-piece nearest point <= {TIP_MM} mm",
         "contacts": np.round(np.array(snapped).reshape(-1, 3), 4).tolist(),
         "normals": np.round(np.array(normals).reshape(-1, 3), 5).tolist(),
         "cluster_mm": CLUSTER_MM,
-        "touch_mm": TOUCH_MM,
+        "touch_mm": TIP_MM,
     }
+    return out, stats, bare, bare_in_sup, snapped
+
+
+def save_png(bare, snapped, png_path, title):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    surf = bare.sample(40000)
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    for ax, (i, j, name) in zip(axes, [(0, 1, "top X-Y"), (0, 2, "side X-Z")]):
+        ax.scatter(surf[:, i], surf[:, j], s=0.3, c="#bbbbbb", linewidths=0)
+        if len(snapped):
+            ax.scatter(snapped[:, i], snapped[:, j], s=14, c="#d62728", linewidths=0)
+        ax.set_aspect("equal")
+        ax.set_title(f"{title} {name}: {len(snapped)} contacts")
+    fig.tight_layout()
+    fig.savefig(png_path, dpi=110)
+    plt.close(fig)
 
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     root = Path(sys.argv[1])
-    for sup_path in sorted(root.rglob("*-sup.stl")):
+    png_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else None
+    pairs = sorted(root.rglob("*-sup.stl"))
+    for idx, sup_path in enumerate(pairs, 1):
         bare_path = sup_path.with_name(sup_path.name[: -len("-sup.stl")] + ".stl")
         if not bare_path.exists():
             print(f"skip (no bare partner): {sup_path.name}")
             continue
-        out = process_pair(bare_path, sup_path)
+        out, stats, bare, _, snapped = process_pair(bare_path, sup_path)
         out_path = sup_path.with_name(sup_path.name[: -len(".stl")] + ".contacts.json")
         out_path.write_text(json.dumps(out), encoding="utf-8")
-        print(f"wrote {out_path.name}: contacts={len(out['contacts'])} registration={out['registration']} rms_mm={out['rms_mm']}")
+        print(f"wrote {out_path.name}: {json.dumps(stats)}")
+        if png_dir is not None:
+            png_dir.mkdir(parents=True, exist_ok=True)
+            save_png(bare, np.array(snapped).reshape(-1, 3), png_dir / f"pair_{idx}.png", f"pair {idx}")
 
 
 if __name__ == "__main__":
