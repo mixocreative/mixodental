@@ -36,81 +36,16 @@
   "maxMath": 1,
   "why": "three.js camera projection for the ViewportPort seam, and the unit normal of one picked triangle (render-side picking answer)"
  },
- "src/core/analysis/dental.ts": {
-  "label": "host-adapter"
- },
- "src/core/analysis/dentalOrient.ts": {
-  "label": "host-adapter"
- },
- "src/core/analysis/dentalTilt.ts": {
-  "label": "host-adapter"
- },
  "src/core/handedness.ts": {
-  "label": "host-adapter"
- },
- "src/core/jobs.ts": {
-  "label": "host-adapter"
- },
- "src/core/supports/mesh.ts": {
-  "label": "host-adapter"
- },
- "src/core/supports/meshQuery.ts": {
-  "label": "host-adapter"
- },
- "src/core/supports/zones.ts": {
-  "label": "host-math",
-  "maxMath": 4,
-  "why": "U5 decision: stamp spacing along a stroke and the vertex-grid paint of the zone layer display mesh stay host (UI); the zone decision (AreaStamp::resolve) is Rust, asked through supports/zoneCheck (zoned_at)"
- },
- "src/core/transform.ts": {
-  "label": "host-adapter"
- },
- "src/core/vec3.ts": {
-  "label": "host-math",
-  "maxMath": 10,
-  "why": "D4: the small vec3 helper set used by render, camera and UI glue; shrinks as callers move to Rust, may not grow"
- },
- "src/dental/arrange.ts": {
   "label": "host-adapter"
  },
  "src/dental/confirmTilt.ts": {
   "label": "host-adapter"
  },
- "src/editing/check.ts": {
-  "label": "host-math",
-  "maxMath": 3,
-  "why": "UI proximity of a problem-list spot to a support/finding (hover and fix-spot matching), no mesh geometry"
- },
- "src/editing/stroke.ts": {
+ "src/state/import.ts": {
   "label": "host-adapter"
  },
- "src/editing/surfaceBrush.ts": {
-  "label": "host-adapter"
- },
- "src/state/transform.ts": {
-  "label": "host-adapter"
- },
- "src/supports/export.ts": {
-  "label": "host-math",
-  "maxMath": 1,
-  "why": "STL file writer: the facet normal of each exported triangle is serialised from its vertices (file format, not a geometry decision); a Rust export call would own this."
- },
- "src/supports/jobRunner.ts": {
-  "label": "host-adapter"
- },
- "src/supports/omittedProblem.ts": {
-  "label": "host-adapter"
- },
- "src/supports/supportBuildWasm.ts": {
-  "label": "host-adapter"
- },
- "src/supports/supportFrame.ts": {
-  "label": "host-adapter"
- },
- "src/supports/unitSupports.ts": {
-  "label": "host-adapter"
- },
- "src/supports/zoneCheck.ts": {
+ "src/state/project.ts": {
   "label": "host-adapter"
  },
  "src/workers/analysisClient.ts": {

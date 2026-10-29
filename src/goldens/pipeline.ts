@@ -1,15 +1,15 @@
-import type { SupportProblem } from '../core/analysis/supportCheck';
-import { checkSupportProblems } from '../supports/checkSupports';
-import { placeGeneric } from '../supports/genericPlacement';
-import type { SupportPoint, TriangleMesh } from '../core/analysis/types';
+import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
+import { checkSupportProblems } from '@mixo-geocore/host/supports/checkSupports';
+import { placeGeneric } from '@mixo-geocore/host/supports/genericPlacement';
+import type { SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { placeImportedUnits } from '../state/import';
 import { emptyScene, type PrintUnit, type SupportSettings } from '../state/project';
-import { applyTransform, inverseTransformDirection, inverseTransformPoint, transformPoint, type ModelTransform } from '../state/transform';
-import { encodeStl, planExport } from '../supports/export';
-import type { GeneratedSupportMesh } from '../core/supports/mesh';
-import { contactAtTriangle, meshBounds } from '../core/supports/meshQuery';
-import { defaultSupportSettings, setRoofMode, toPlacementSettings, updateSetting, type LiveSupportSettings } from '../core/supports/settings';
-import { unitContacts, unitSupportMesh } from '../supports/unitSupports';
+import { applyTransform, inverseTransformDirection, inverseTransformPoint, transformPoint, type ModelTransform } from '@mixo-geocore/host/state/transform';
+import { encodeStl, planExport } from '@mixo-geocore/host/supports/export';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import { contactAtTriangle, meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
+import { defaultSupportSettings, setRoofMode, toPlacementSettings, updateSetting, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import { unitContacts, unitSupportMesh } from '@mixo-geocore/host/supports/unitSupports';
 import type { GoldenFixture, GoldenVariant } from './fixtures';
 
 /**

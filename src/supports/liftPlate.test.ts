@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { GeneratedSupportMesh } from '../core/supports/mesh';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import { GOLDEN_FIXTURES } from '../goldens/fixtures';
 import { supportedUnit } from '../goldens/pipeline';
 import type { PrintUnit, SceneCommand } from '../state/project';
-import { BuildSessions } from '../workers/buildSessions';
+import { BuildSessions } from '@mixo-geocore/host/workers/buildSessions';
 import { nodeEngine } from '../../scripts/test-support/rustImport';
 import { base, jobAt, liftedJob, mesh } from '../../scripts/test-support/referenceStep3';
-import { runSupportJob } from './jobRunner';
-import { generationPlate, generationTransform, liftCommands, resolveSettings, supportJobOf } from './unitSupports';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import { generationPlate, generationTransform, liftCommands, resolveSettings, supportJobOf } from '@mixo-geocore/host/supports/unitSupports';
 
 /*
  * Unit L, lift as a plate offset: after a lift change the supports are built on the frame they were

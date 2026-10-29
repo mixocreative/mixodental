@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { SupportPoint, TriangleMesh } from '../core/analysis/types';
-import type { DentalPolicy } from '../core/analysis/dentalPolicy';
+import type { SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { identityTransform, type PrintUnit, type SceneCommand } from '../state/project';
-import { applyTransform } from '../state/transform';
-import { meshBounds } from '../core/supports/meshQuery';
-import { defaultSupportSettings } from '../core/supports/settings';
-import { jobContacts } from './genericPolicy';
-import { dentalPlacementJobOf, hiddenByZones, PLACEMENT_KEYS, resolveSettings, supportJobOf, unitContacts, unitRemovedCount, unitSupportMesh } from './unitSupports';
+import { applyTransform } from '@mixo-geocore/host/state/transform';
+import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
+import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import { jobContacts } from '@mixo-geocore/host/supports/genericPolicy';
+import { dentalPlacementJobOf, hiddenByZones, PLACEMENT_KEYS, resolveSettings, supportJobOf, unitContacts, unitRemovedCount, unitSupportMesh } from '@mixo-geocore/host/supports/unitSupports';
 
 // A closed 10 mm cube: its underside (y = -5) is where the contacts sit.
 const source: TriangleMesh = {
@@ -158,9 +158,9 @@ describe('per-support settings in preview and export', () => {
 
 describe('unitLowestY', () => {
   it('equals the lowest point of the transformed copy, bit for bit', async () => {
-    const { meshBounds } = await import('../core/supports/meshQuery');
-    const { applyTransform } = await import('../state/transform');
-    const { unitLowestY } = await import('./unitSupports');
+    const { meshBounds } = await import('@mixo-geocore/host/core/supports/meshQuery');
+    const { applyTransform } = await import('@mixo-geocore/host/state/transform');
+    const { unitLowestY } = await import('@mixo-geocore/host/supports/unitSupports');
     const positions = new Float32Array(300).map((_, k) => Math.sin(k * 12.9898) * 20.123);
     const unit = { source: { positions, indices: new Uint32Array([0, 1, 2]) }, transform: { position: [3.3, 7.77, -1.5] as [number, number, number], rotation: [0.4, -1.1, 0.25] as [number, number, number] } } as never;
     expect(unitLowestY(unit)).toBe(meshBounds(applyTransform((unit as { source: never }).source, (unit as { transform: never }).transform)).min[1]);
@@ -173,7 +173,7 @@ describe('placementCommands (a finished placement meets the unit as it is now)',
   const lift = 5;
 
   it('keeps a move made while the placement ran and lifts the model to Lift Height', async () => {
-    const { placementCommands } = await import('./unitSupports');
+    const { placementCommands } = await import('@mixo-geocore/host/supports/unitSupports');
     const moved: PrintUnit = { ...unit, transform: { position: [30, 10, -4], rotation: [0, 0, 0] } };
     const commands = placementCommands(moved, requested, result, lift, 1.5)!.commands;
     expect(commands[0]).toEqual({ type: 'transform/set', unitId: 'unit-a', transform: { position: [30, 10, -4], rotation: [0, 0, 0] } });
@@ -184,7 +184,7 @@ describe('placementCommands (a finished placement meets the unit as it is now)',
   });
 
   it('maps contacts back to unit-local space through the requested orientation', async () => {
-    const { placementCommands } = await import('./unitSupports');
+    const { placementCommands } = await import('@mixo-geocore/host/supports/unitSupports');
     const turned = { position: [0, 0, 0] as [number, number, number], rotation: [Math.PI, 0, 0] as [number, number, number] };
     const now: PrintUnit = { ...unit, transform: { position: [0, 10, 0], rotation: [Math.PI, 0, 0] } };
     const placed = { points: [{ ...point('auto-0', 2), position: [2, 5, 0] as [number, number, number], normal: [0, -1, 0] as [number, number, number] }], regions: [] };
@@ -194,7 +194,7 @@ describe('placementCommands (a finished placement meets the unit as it is now)',
   });
 
   it('applies nothing when the unit was rotated meanwhile (its contacts face the old way)', async () => {
-    const { placementCommands } = await import('./unitSupports');
+    const { placementCommands } = await import('@mixo-geocore/host/supports/unitSupports');
     const rotated: PrintUnit = { ...unit, transform: { position: [0, 10, 0], rotation: [0, 0.5, 0] } };
     expect(placementCommands(rotated, requested, result, lift, 1.5)).toBeUndefined();
   });
@@ -205,7 +205,7 @@ describe('liftCommands (a lift change raises the placed unit without placing it 
     supports: { kind: 'live', data: { transform: generated, placed: { ...Object.fromEntries(PLACEMENT_KEYS.map((key) => [key, defaultSupportSettings[key]])) } } } } as PrintUnit;
 
   it('a unit turned since generation: moves the unit and the supports frame exactly where a placement landing would', async () => {
-    const { liftCommands, placementCommands, orientationOf, placementSignature } = await import('./unitSupports');
+    const { liftCommands, placementCommands, orientationOf, placementSignature } = await import('@mixo-geocore/host/supports/unitSupports');
     const settings = { ...resolveSettings(placed.settings), liftHeight: 7.5 };
     const commands = liftCommands(placed, settings)!;
     const landing = placementCommands(placed, orientationOf(placed), placed.placement!, settings.liftHeight, 1.5, placementSignature(settings))!.commands;
@@ -214,7 +214,7 @@ describe('liftCommands (a lift change raises the placed unit without placing it 
   });
 
   it('keeps the generation frame and moves the plate in it instead (no new placed model), every lift from that frame', async () => {
-    const { liftCommands, supportJobOf, generationPlate } = await import('./unitSupports');
+    const { liftCommands, supportJobOf, generationPlate } = await import('@mixo-geocore/host/supports/unitSupports');
     const still = { ...placed, transform: { position: [30, 8, -4] as [number, number, number], rotation: [0, 0, 0] as [number, number, number] } } as PrintUnit;
     const apply = (at: PrintUnit, lift: number): PrintUnit => {
       const [move, set] = liftCommands(at, { ...resolveSettings(at.settings), liftHeight: lift })! as [Extract<SceneCommand, { type: 'transform/set' }>, Extract<SceneCommand, { type: 'supports/set' }>];
@@ -237,7 +237,7 @@ describe('liftCommands (a lift change raises the placed unit without placing it 
   });
 
   it('is not used without placed supports or with another placement change pending', async () => {
-    const { liftCommands } = await import('./unitSupports');
+    const { liftCommands } = await import('@mixo-geocore/host/supports/unitSupports');
     const settings = resolveSettings(placed.settings);
     expect(liftCommands({ ...placed, supports: undefined }, settings)).toBeUndefined();
     expect(liftCommands(placed, { ...settings, scatterSpacing: settings.scatterSpacing + 1 })).toBeUndefined();
@@ -246,9 +246,9 @@ describe('liftCommands (a lift change raises the placed unit without placing it 
 
 describe('deleted contacts after Regenerate on a rotated unit', () => {
   it('hide the contact nearest the deleted one, in the unit-local frame', async () => {
-    const { placementCommands, orientationOf } = await import('./unitSupports');
+    const { placementCommands, orientationOf } = await import('@mixo-geocore/host/supports/unitSupports');
     const { reduceScene, emptyScene } = await import('../state/project');
-    const { transformPoint } = await import('../state/transform');
+    const { transformPoint } = await import('@mixo-geocore/host/state/transform');
     const { deleteCommands } = await import('./selection');
     const rotated = { position: [0, 10, 0] as [number, number, number], rotation: [0, Math.PI / 2, 0] as [number, number, number] };
     const base: PrintUnit = { ...unit, transform: rotated, placement: undefined, supports: undefined, manual: [], deleted: [] };
@@ -292,7 +292,7 @@ describe('placementPending (a placement setting changed since the contacts were 
   const result = { points: [point('auto-0', 0)], regions: [] };
 
   it('is set by a placement setting change and cleared by placing again', async () => {
-    const { placementCommands, placementPending, placementSignature, resolveSettings } = await import('./unitSupports');
+    const { placementCommands, placementPending, placementSignature, resolveSettings } = await import('@mixo-geocore/host/supports/unitSupports');
     const { reduceScene, emptyScene } = await import('../state/project');
     const place = (scene: ReturnType<typeof reduceScene>) => {
       const now = scene.units[0]!;
@@ -311,7 +311,7 @@ describe('placementPending (a placement setting changed since the contacts were 
   });
 
   it('is not set for a unit with no recorded placement', async () => {
-    const { placementPending } = await import('./unitSupports');
+    const { placementPending } = await import('@mixo-geocore/host/supports/unitSupports');
     expect(placementPending({ ...unit, supports: { kind: 'live', data: {} } })).toBe(false);
     expect(placementPending({ ...unit, supports: undefined })).toBe(false);
   });
@@ -319,8 +319,8 @@ describe('placementPending (a placement setting changed since the contacts were 
 
 describe('withRekeyedHandWork (a saved project meets a recomputed placement)', () => {
   it('moves a deletion saved under an old position id, off the new grid, to the nearest new tip', async () => {
-    const { withRekeyedHandWork, contactsWith } = await import('./unitSupports');
-    const { positionId, positionIds } = await import('./contactEdits');
+    const { withRekeyedHandWork, contactsWith } = await import('@mixo-geocore/host/supports/unitSupports');
+    const { positionId, positionIds } = await import('@mixo-geocore/host/supports/contactEdits');
     const spots: [number, number, number][] = [[0, -5, 0], [3, -5, 0], [6, -5, 0]];
     const grid = spots.map((position, k) => ({ ...point('x', 0), position, id: positionIds(spots)[k]! }));
     // Saved before the even belt: the tip stood 0.4 mm from the new tip at x = 3, so its id names no new tip.
@@ -332,8 +332,8 @@ describe('withRekeyedHandWork (a saved project meets a recomputed placement)', (
   });
 
   it('resets a deletion when no new tip is near, and keeps one already on the grid', async () => {
-    const { withRekeyedHandWork } = await import('./unitSupports');
-    const { positionId, positionIds } = await import('./contactEdits');
+    const { withRekeyedHandWork } = await import('@mixo-geocore/host/supports/unitSupports');
+    const { positionId, positionIds } = await import('@mixo-geocore/host/supports/contactEdits');
     const spots: [number, number, number][] = [[0, -5, 0], [3, -5, 0]];
     const grid = spots.map((position, k) => ({ ...point('x', 0), position, id: positionIds(spots)[k]! }));
     expect(withRekeyedHandWork({ ...unit, deleted: [positionId([40, -5, 0])], manual: [] }, grid).deleted).toEqual([]);

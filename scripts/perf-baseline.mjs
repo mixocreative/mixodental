@@ -21,14 +21,14 @@ const engine = require(resolve(root, 'vendor/mixo-geocore/pkg-node/mixo_geometry
 await import('./test-support/useNodeEngine'); // registers the Rust engine the transforms and the support build run on
 const { binaryStlTriangles, stlKind } = await import('../src/core/import/stlHeader');
 const { prepare, centerImportedWithWasm, decimateWithWasm } = await import('../src/workers/prepareImport');
-const { proposeDentalSupportRegion } = await import('../src/core/analysis/dentalRegion');
+const { proposeDentalSupportRegion } = await import('@mixo-geocore/host/dental/dentalRegion');
 const { REFERENCE_PROFILE, referenceTuning } = await import('./test-support/referenceProfile');
-const { runSupportJob } = await import('../src/supports/jobRunner');
-const { filterDentalPlacement } = await import('../src/dental/placement');
-const { defaultSupportSettings } = await import('../src/core/supports/settings');
+const { runSupportJob } = await import('@mixo-geocore/host/supports/jobRunner');
+const { filterDentalPlacement } = await import('@mixo-geocore/host/dental/placement');
+const { defaultSupportSettings } = await import('@mixo-geocore/host/core/supports/settings');
 const { GOLDEN_FIXTURES } = await import('../src/goldens/fixtures');
 const { supportedUnit } = await import('../src/goldens/pipeline');
-const { unitSupportMesh } = await import('../src/supports/unitSupports');
+const { unitSupportMesh } = await import('@mixo-geocore/host/supports/unitSupports');
 
 const ALIGNER = resolve(root, 'docs/dental-reference/reference-aligner.stl');
 const CHUNK_BYTES = 16 * 1024 * 1024;
@@ -113,7 +113,7 @@ const flag = (name) => { const at = process.argv.indexOf(name); return at < 0 ? 
 const outFile = flag('--out');
 const checkFile = flag('--check');
 if (outFile || checkFile) {
-  const { proposeDentalSupportRegion: propose } = await import('../src/core/analysis/dentalRegion');
+  const { proposeDentalSupportRegion: propose } = await import('@mixo-geocore/host/dental/dentalRegion');
   const { base, jobAt } = await import('./test-support/referenceStep3');
   const ms = (fn) => { fn(); return median(Array.from({ length: RUNS }, () => { const start = performance.now(); fn(); return performance.now() - start; })); };
   // Step 2 slider: one Area width step re-proposes the region and re-filters the placement (no support build).

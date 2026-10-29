@@ -1,5 +1,5 @@
-import type { DentalPolicy } from '../core/analysis/dentalPolicy';
-import type { PlacementResult } from '../core/analysis/types';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { PlacementResult } from '@mixo-geocore/host/core/analysis/types';
 import type { PrintUnit } from '../state/project';
 
 /*

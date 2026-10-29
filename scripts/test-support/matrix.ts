@@ -1,10 +1,10 @@
-import type { Matrix4, Placement } from '../../src/core/transform';
-import type { Vector } from '../../src/core/vec3';
+import type { Matrix4, Placement } from '@mixo-geocore/host/core/transform';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 
 /*
  * Test-only TypeScript reference for the placement matrix maths (three.js r173 arithmetic, operation for
  * operation). Production runs the Rust `placement_matrix` / `invert_matrix` / `transform_positions` through
- * `src/state/transform`; tests use this to build poses and as the reference the Rust calls are checked against.
+ * `@mixo-geocore/host/state/transform`; tests use this to build poses and as the reference the Rust calls are checked against.
  */
 
 /** Rotation quaternion `[x, y, z, w]` of Euler XYZ angles (radians). */

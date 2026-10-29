@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { proposeDentalSupportRegion } from '../../src/core/analysis/dentalRegion';
+import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
 import { exportDentalRegionReview } from './review';
 import { buildDentalReview } from './build';
 import { parseStl } from '../node-engine';

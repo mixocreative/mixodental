@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { inverseTransformDirection, type ModelTransform } from '../state/transform';
-import { buildVertexGrid, nextStamp, sameStamp, stampsAlong, stampVertices, zonedVertices, type ZoneStamp } from '../core/supports/zones';
-import { problemInZone, zonedAt } from './zoneCheck';
+import { inverseTransformDirection, type ModelTransform } from '@mixo-geocore/host/state/transform';
+import { buildVertexGrid, nextStamp, sameStamp, stampsAlong, stampVertices, zonedVertices, type ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
+import { problemInZone, zonedAt } from '@mixo-geocore/host/supports/zoneCheck';
 
 const stamp = (kind: ZoneStamp['kind'], normal: ZoneStamp['normal'] = [0, -1, 0]): ZoneStamp => ({ center: [0, 0, 0], radius: 2, normal, kind });
 

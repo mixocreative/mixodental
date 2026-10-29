@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { resolve, type CommandId, type UiState } from '../editing/commands';
-import type { EditGesture } from '../editing/gesture';
-import { FIX_TOOL_EVENTS, type SessionEvent } from '../editing/session';
-import type { DentalStructure } from '../core/analysis/dentalPolicy';
-import type { SupportProblem } from '../core/analysis/supportCheck';
-import { settingLimits, type LiveSupportSettings, type SettingKey } from '../core/supports/settings';
-import { DENTAL_LABEL_MAX, DEFAULT_DENTAL_LABEL, filterDentalLabel } from '../dental/label';
+import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
+import type { EditGesture } from '@mixo-geocore/editing/gesture';
+import { FIX_TOOL_EVENTS, type SessionEvent } from '@mixo-geocore/editing/session';
+import type { DentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
+import { settingLimits, type LiveSupportSettings, type SettingKey } from '@mixo-geocore/host/core/supports/settings';
+import { DENTAL_LABEL_MAX, DEFAULT_DENTAL_LABEL, filterDentalLabel } from '@mixo-geocore/host/dental/label';
 import { t } from '../i18n';
 import { CommandButton } from './CommandButton';
 import { EditTools } from './EditBar';

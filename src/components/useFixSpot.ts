@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { atSpot, coverRadius, recheckStatus, type FixSpot } from '../editing/check';
-import { busyStatus } from '../editing/status';
-import { editsSupports, FIX_TOOL_EVENTS, type EditSession, type SessionEvent } from '../editing/session';
-import type { EditMode } from '../editing/types';
+import { atSpot, coverRadius, recheckStatus, type FixSpot } from '@mixo-geocore/editing/check';
+import { busyStatus } from '@mixo-geocore/editing/status';
+import { editsSupports, FIX_TOOL_EVENTS, type EditSession, type SessionEvent } from '@mixo-geocore/editing/session';
+import type { EditMode } from '@mixo-geocore/editing/types';
 import type { Message } from '../i18n';
-import type { GeneratedSupportMesh } from '../core/supports/mesh';
-import type { Vector } from '../core/vec3';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { PrintScene, PrintUnit, SceneCommand } from '../state/project';
-import { currentBuild, resolveSettings, type UnitBuild } from '../supports/unitSupports';
+import { currentBuild, resolveSettings, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
 import type { SetStatus } from './appShared';
 
 /** A check finding as Fix needs it: where it is in its object's frame and how large. */

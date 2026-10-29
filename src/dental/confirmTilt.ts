@@ -1,12 +1,12 @@
-import type { DentalPolicy } from '../core/analysis/dentalPolicy';
-import type { PlacementResult, TriangleMesh } from '../core/analysis/types';
-import type { JobTransform } from '../core/jobs';
-import type { GeneratedSupportMesh } from '../core/supports/mesh';
-import { toPlacementSettings, type LiveSupportSettings } from '../core/supports/settings';
-import type { Vector } from '../core/vec3';
-import { applyTransform, inverseTransformDirection, inverseTransformPoint } from '../state/transform';
-import { runSupportJob } from '../supports/jobRunner';
-import { filterDentalPlacement } from './placement';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { PlacementResult, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { JobTransform } from '@mixo-geocore/host/core/jobs';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import { toPlacementSettings, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
+import { applyTransform, inverseTransformDirection, inverseTransformPoint } from '@mixo-geocore/host/state/transform';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
 
 /*
  * The print-angle confirm (docs/ROADMAP.md F): one real generate with the automatic tips at a

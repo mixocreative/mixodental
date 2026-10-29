@@ -1,4 +1,4 @@
-import type { TriangleMesh } from '../core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 
 /*
  * What the import worker prepares for the viewport next to a unit's mesh, keyed by mesh object

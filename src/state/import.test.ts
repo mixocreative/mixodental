@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { BoxGeometry, BufferGeometry, Float32BufferAttribute, Group, Mesh } from 'three';
 import { placeImportedUnits } from './import';
 import { identityTransform, type PrintUnit } from './project';
-import { meshBounds } from '../core/supports/meshQuery';
-import { applyTransform } from './transform';
+import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
+import { applyTransform } from '@mixo-geocore/host/state/transform';
 import { centreInPlace, geometryToMesh, importGltfUnits, importStl, weldRawMesh } from '../../scripts/test-support/rustImport';
 
 describe('geometryToMesh', () => {

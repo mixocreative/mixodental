@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
-import type { TriangleMesh } from '../../src/core/analysis/types';
-import type { DentalRegionProposal } from '../../src/core/analysis/dentalRegion';
-import { proposeDentalOrientation, rotationToDentalPose } from '../../src/core/analysis/dental';
-import type { GeneratedSupportMesh } from '../../src/core/supports/mesh';
-import type { JobTransform } from '../../src/core/jobs';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { DentalRegionProposal } from '@mixo-geocore/host/dental/dentalRegion';
+import { proposeDentalOrientation, rotationToDentalPose } from '@mixo-geocore/host/dental/dental';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import type { JobTransform } from '@mixo-geocore/host/core/jobs';
 import { diagnose } from '../../src/dental/diagnose';
-import type { DentalDiagnosticBands } from '../../src/core/analysis/dentalContactBand';
-import type { DiagnosticContourContact } from '../../src/core/analysis/dentalContourContacts';
+import type { DentalDiagnosticBands } from '@mixo-geocore/host/dental/dentalContactBand';
+import type { DiagnosticContourContact } from '@mixo-geocore/host/dental/dentalContourContacts';
 import { REFERENCE_PROFILE } from './profile';
 
 type Region = Extract<DentalRegionProposal, { kind: 'proposal' }>;

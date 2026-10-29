@@ -1,17 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { DentalRim } from '../core/analysis/dental';
-import { proposeDentalOrientation, rotationToDentalPose } from '../core/analysis/dental';
-import type { DentalPolicy } from '../core/analysis/dentalPolicy';
-import type { PlacementResult, PlacementSettings, TriangleMesh } from '../core/analysis/types';
-import type { DentalPlacementJob } from '../core/jobs';
-import { applyTransform } from '../state/transform';
-import { placeGeneric } from '../supports/genericPlacement';
+import type { DentalRim } from '@mixo-geocore/host/dental/dental';
+import { proposeDentalOrientation, rotationToDentalPose } from '@mixo-geocore/host/dental/dental';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { PlacementResult, PlacementSettings, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { DentalPlacementJob } from '@mixo-geocore/host/core/jobs';
+import { applyTransform } from '@mixo-geocore/host/state/transform';
+import { placeGeneric } from '@mixo-geocore/host/supports/genericPlacement';
 import { parseStl } from '../../scripts/test-support/rustImport';
 import { expectGolden, exactArray } from '../../scripts/test-support/golden';
 import { placementSnapshot } from '../../scripts/test-support/dentalSnapshots';
-import { filterDentalPlacement } from './placement';
-import { legacyBaselineVertices } from './legacyArea';
+import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
+import { legacyBaselineVertices } from '@mixo-geocore/host/dental/legacyArea';
 import { manualAreaPolicy } from './manualArea';
 import { REFERENCE_PROFILE } from '../../scripts/test-support/referenceProfile';
 

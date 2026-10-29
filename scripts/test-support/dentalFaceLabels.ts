@@ -4,7 +4,7 @@ import './useNodeEngine';
 // The labels are the allowed/forbidden face sets the dental tests rely on (dentalContactBand,
 // dentalPolicy, dentalContactFootprint): tips and secondary landings may sit only on `allowed`.
 import { readFileSync } from 'node:fs';
-import { proposeDentalSupportRegion } from '../../src/core/analysis/dentalRegion';
+import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
 import { REFERENCE_PROFILE, referenceTuning } from './referenceProfile';
 import { parseStl } from './rustImport';
 

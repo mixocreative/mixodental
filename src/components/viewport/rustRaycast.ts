@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { sharedSession } from '../../workers/geometryClient';
+import { sharedSession } from '@mixo-geocore/host/workers/geometryClient';
 import { sessionHandle } from './sessionMesh';
 
 const inverse = new THREE.Matrix4();

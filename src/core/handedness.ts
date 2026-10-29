@@ -1,6 +1,6 @@
-import type { TriangleMesh } from './analysis/types';
-import type { Matrix4 } from './transform';
-import type { Vector } from './vec3';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { Matrix4 } from '@mixo-geocore/host/core/transform';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 
 /**
  * Conversion between the core's right-handed frame (conventions.ts) and a left-handed Y-up host

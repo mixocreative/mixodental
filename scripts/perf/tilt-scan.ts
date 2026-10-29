@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseStl, useNodeEngine } from '../node-engine';
-import { scanDentalTilts, tiltLabel } from '../../src/core/analysis/dentalTilt';
+import { scanDentalTilts, tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
 
 useNodeEngine();
 const bytes = readFileSync(resolve(process.cwd(), 'docs/dental-reference/reference-aligner.stl'));

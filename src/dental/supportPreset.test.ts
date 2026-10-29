@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSupportSettings } from '../core/supports/settings';
-import { profileData } from './alignerProfiles';
+import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { dentalStructureOf, dentalSupportSettings } from './supportPreset';
 
 describe('dental Step 3 defaults from the aligner profile', () => {

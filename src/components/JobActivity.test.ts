@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { setLanguage } from '../i18n';
-import type { JobRow } from '../workers/jobActivity';
+import type { JobRow } from '@mixo-geocore/host/workers/jobActivity';
 import { failureText, rowText } from './JobActivity';
 
 const row = (overrides: Partial<JobRow>): JobRow => ({
@@ -16,6 +16,8 @@ describe('job activity texts', () => {
     expect(rowText(row({ state: 'determinate', stage: 'Welding vertices', percent: 40, remainingMs: 72_000 }))).toEqual({ label: 'Importing statue.stl · Welding vertices', meta: '40% · about 1 min 12 s left' });
     expect(rowText(row({ showElapsed: true, elapsedMs: 12_400 })).meta).toBe('12 s so far');
     expect(rowText(row({ cancelling: true })).meta).toBe('Cancelling…');
+    // The shared host's stage codes read as the same words.
+    expect(rowText(row({ state: 'determinate', stage: 'supports.progress.writingStl', percent: 10 })).label).toBe('Importing statue.stl · Writing STL');
   });
 
   it('explains failures like the status line does (editing/errors), by context and code, in the chosen language', () => {

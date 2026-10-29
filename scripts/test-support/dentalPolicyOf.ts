@@ -1,8 +1,8 @@
-import { withDentalMesh } from '../../src/core/analysis/dentalEngine';
-import type { DentalPolicy } from '../../src/core/analysis/dentalPolicy';
-import type { TriangleMesh } from '../../src/core/analysis/types';
-import type { JobTransform } from '../../src/core/jobs';
-import { makeDentalPolicy } from '../../src/dental/placement';
+import { withDentalMesh } from '@mixo-geocore/host/dental/dentalEngine';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { JobTransform } from '@mixo-geocore/host/core/jobs';
+import { makeDentalPolicy } from '@mixo-geocore/host/dental/placement';
 
 const still: JobTransform = { position: [0, 0, 0], rotation: [0, 0, 0] };
 

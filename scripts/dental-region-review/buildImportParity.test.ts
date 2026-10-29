@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { proposeDentalOrientation } from '../../src/core/analysis/dental';
-import { defaultSupportSettings } from '../../src/core/supports/settings';
-import { runSupportJob } from '../../src/supports/jobRunner';
+import { proposeDentalOrientation } from '@mixo-geocore/host/dental/dental';
+import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
 import { placeImportedUnits } from '../../src/state/import';
-import { inverseTransformDirection, inverseTransformPoint, transformPoint } from '../../src/state/transform';
+import { inverseTransformDirection, inverseTransformPoint, transformPoint } from '@mixo-geocore/host/state/transform';
 import { buildDentalReview } from './build';
 import { dentalStructureOf, dentalSupportSettings } from '../../src/dental/supportPreset';
 import { parseStl } from '../test-support/rustImport';

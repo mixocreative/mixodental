@@ -1,7 +1,7 @@
-import { dentalInternals } from '../core/analysis/dentalEngine';
-import type { DentalRim } from '../core/analysis/dental';
-import type { DentalAllowStamp, DentalPolicy } from '../core/analysis/dentalPolicy';
-import type { TriangleMesh } from '../core/analysis/types';
+import { dentalInternals } from '@mixo-geocore/host/dental/dentalEngine';
+import type { DentalRim } from '@mixo-geocore/host/dental/dental';
+import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 
 /*
  * Owner decision (2026-10-28): when detection finds no support area, the operator may paint one

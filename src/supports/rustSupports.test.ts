@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { GeneratedSupportMesh } from '../core/supports/mesh';
-import { defaultSupportSettings } from '../core/supports/settings';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { expectGolden } from '../../scripts/test-support/golden';
 import { buildSnapshot } from '../../scripts/test-support/buildSnapshot';
 import { goldenName } from '../../scripts/test-support/supportParityHarness';

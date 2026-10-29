@@ -11,9 +11,9 @@ import { writeFileSync } from 'node:fs';
 import { GOLDEN_FIXTURES } from '../src/goldens/fixtures';
 import { supportedUnit } from '../src/goldens/pipeline';
 import { emptyScene } from '../src/state/project';
-import { encodeStl, planExport } from '../src/supports/export';
-import { runSupportJob } from '../src/supports/jobRunner';
-import { unitSupportMesh } from '../src/supports/unitSupports';
+import { encodeStl, planExport } from '@mixo-geocore/host/supports/export';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import { unitSupportMesh } from '@mixo-geocore/host/supports/unitSupports';
 import { base, jobAt, mesh as referenceMesh } from './test-support/referenceStep3';
 
 const sha256 = (buffer: ArrayBuffer): string => createHash('sha256').update(new Uint8Array(buffer)).digest('hex');

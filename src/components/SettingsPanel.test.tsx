@@ -1,8 +1,8 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { resolveSettings } from '../supports/unitSupports';
-import { READY } from '../editing/uiFixture';
-import { shapeView } from '../editing/shapeEdit';
+import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
+import { READY } from '../dental/editing/uiFixture';
+import { shapeView } from '@mixo-geocore/editing/shapeEdit';
 import SettingsPanel from './SettingsPanel';
 
 const settings = resolveSettings({});

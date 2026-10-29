@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import '../../scripts/test-support/useNodeEngine';
-import type { TriangleMesh } from '../core/analysis/types';
-import type { GeneratedSupportMesh, SupportContact } from '../core/supports/mesh';
-import { defaultSupportSettings, type LiveSupportSettings } from '../core/supports/settings';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { GeneratedSupportMesh, SupportContact } from '@mixo-geocore/host/core/supports/mesh';
+import { defaultSupportSettings, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { alignerScenario } from '../../scripts/test-support/supportParityHarness';
 import { approxArray, exactArray, expectGolden, readGolden } from '../../scripts/test-support/golden';
-import { checkSupportProblems } from './checkSupports';
-import { generateSupports } from './generateSupports';
+import { checkSupportProblems } from '@mixo-geocore/host/supports/checkSupports';
+import { generateSupports } from '@mixo-geocore/host/supports/generateSupports';
 import { testPolicy, type TestPolicy } from '../../scripts/test-support/testPolicy';
-import type { Vector } from '../core/vec3';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 
 /*
  * U7 parity (SHIP-PLAN rule 7): the Rust `generate` (permit, build, exact body check, bounded repair)

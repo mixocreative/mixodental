@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Object3D } from 'three';
-import type { SupportPoint, TriangleMesh } from '../core/analysis/types';
-import type { ZoneStamp } from '../core/supports/zones';
-import type { DentalPolicy } from '../core/analysis/dentalPolicy';
+import type { SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { deserializeScene, emptyScene, identityTransform, reduceScene, serializeScene, type PrintScene, type PrintUnit } from './project';
 
 const source: TriangleMesh = {

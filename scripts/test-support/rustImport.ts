@@ -1,5 +1,5 @@
 import type { BufferGeometry, Object3D } from 'three';
-import type { TriangleMesh } from '../../src/core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { centerImportedWithWasm, weldRawWithWasm } from '../../src/workers/prepareImport';
 import { gltfRawMeshes, type ImportedMesh, type RawMesh } from '../../src/state/import';
 

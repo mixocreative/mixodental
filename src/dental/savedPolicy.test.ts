@@ -1,17 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { DentalRim } from '../core/analysis/dental';
-import type { DentalPlacementJob } from '../core/jobs';
-import type { DentalPolicy } from '../core/analysis/dentalPolicy';
-import { proposeDentalSupportRegion } from '../core/analysis/dentalRegion';
-import type { PlacementResult } from '../core/analysis/types';
-import { filterDentalPlacement } from './placement';
+import type { DentalRim } from '@mixo-geocore/host/dental/dental';
+import type { DentalPlacementJob } from '@mixo-geocore/host/core/jobs';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
+import type { PlacementResult } from '@mixo-geocore/host/core/analysis/types';
+import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
 import { decodeProject, encodeProject } from '../state/projectFile';
 import { emptyScene, identityTransform, reduceScene, type PrintUnit } from '../state/project';
 import { parseStl } from '../../scripts/test-support/rustImport';
 import { dentalPolicyOf } from '../../scripts/test-support/dentalPolicyOf';
 import { REFERENCE_PROFILE, referenceTuning } from '../../scripts/test-support/referenceProfile';
-import { UNSAVED_TUNING } from './tuning';
+import { UNSAVED_TUNING } from '@mixo-geocore/host/dental/tuning';
 
 /** A saved two-contour policy is recomputed from the mesh when it is used; it is never trusted as saved. */
 const rim: DentalRim = {

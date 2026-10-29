@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { CodedError, ERROR_CONTEXTS, errorCode, errorStatus } from './editing/errors';
-import { CapacityError } from './core/budget';
+import { CodedError, ERROR_CONTEXTS, errorCode, errorStatus } from '@mixo-geocore/editing/errors';
+import { CapacityError } from '@mixo-geocore/host/core/budget';
 import { codedJobError } from './workers/jobErrors';
-import { WorkerTaskError } from './workers/WorkerTask';
+import { WorkerTaskError } from '@mixo-geocore/host/workers/WorkerTask';
 import { weldRawMesh } from '../scripts/test-support/rustImport';
 
 const WORKER_CLIENTS = import.meta.glob<string>(['./workers/*Client.ts'], { query: '?raw', import: 'default', eager: true });

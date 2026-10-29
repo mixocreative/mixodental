@@ -1,6 +1,6 @@
-import { resolve, type CommandId, type UiState } from '../editing/commands';
-import type { Gesture } from '../editing/gesture';
-import type { SessionEvent } from '../editing/session';
+import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
+import type { Gesture } from '@mixo-geocore/editing/gesture';
+import type { SessionEvent } from '@mixo-geocore/editing/session';
 import { plural, t } from '../i18n';
 import { CommandButton } from './CommandButton';
 import { DoneButton } from './EditBar';

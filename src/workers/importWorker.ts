@@ -1,8 +1,9 @@
-import type { TriangleMesh } from '../core/analysis/types';
-import { geometryReady, type GeometryEngine } from './geometryClient';
+import './engineSource';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { geometryReady, type GeometryEngine } from '@mixo-geocore/host/workers/geometryClient';
 import type { ImportTask, PreparedMesh } from './importProtocol';
 import { buffers, centerImportedWithWasm, decimateWithWasm, prepare, weldRawWithWasm, type Progress } from './prepareImport';
-import { serveTask, transferable } from './serveTask';
+import { serveTask, transferable } from '@mixo-geocore/host/workers/serveTask';
 import { buildPickIndexData } from './pickIndexes';
 import { finishStl, openStlSession, pushStl } from './stlSession';
 

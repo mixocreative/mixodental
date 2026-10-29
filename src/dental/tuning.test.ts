@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { profileData } from './alignerProfiles';
-import { UNSAVED_TUNING, defaultDentalTuning, parseDentalTuning } from './tuning';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
+import { UNSAVED_TUNING, defaultDentalTuning, parseDentalTuning } from '@mixo-geocore/host/dental/tuning';
 
 const REFERENCE = 'reference-aligner';
 

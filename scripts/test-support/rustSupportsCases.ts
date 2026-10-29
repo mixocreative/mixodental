@@ -1,7 +1,7 @@
-import type { TriangleMesh } from '../../src/core/analysis/types';
-import type { SupportContact } from '../../src/core/supports/mesh';
-import { defaultSupportSettings, type LiveSupportSettings } from '../../src/core/supports/settings';
-import type { ZoneStamp } from '../../src/core/supports/zones';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { SupportContact } from '@mixo-geocore/host/core/supports/mesh';
+import { defaultSupportSettings, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
 
 /*
  * The cases of src/supports/rustSupports.test.ts: zones, landing rules (as a per-face predicate here, a mask in

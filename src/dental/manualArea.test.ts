@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { DentalRim } from '../core/analysis/dental';
-import { isManualArea } from '../core/analysis/dentalPolicy';
-import type { TriangleMesh } from '../core/analysis/types';
+import type { DentalRim } from '@mixo-geocore/host/dental/dental';
+import { isManualArea } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { deserializeScene, emptyScene, identityTransform, reduceScene, serializeScene, type PrintUnit } from '../state/project';
 import { DetectedAreaExistsError, manualAreaFaces, manualAreaPolicy } from './manualArea';
 import { REFERENCE_PROFILE } from '../../scripts/test-support/referenceProfile';

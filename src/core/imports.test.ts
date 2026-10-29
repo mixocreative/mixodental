@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-// The support core and the editing rules must stay portable to a Babylon.js host (mixomesh):
+// What is left of the support core and the editing rules here must stay portable like the shared
+// packages they sit beside (mixo-geocore host/ and editing/, checked there by its D22 test):
 // no UI framework, no three.js, no DOM, no Vite-only syntax, no app state or app glue.
 const GLOBBED = import.meta.glob<string>(['./**/*.ts', './**/*.tsx', '../editing/**/*.ts', '../editing/**/*.tsx'], { query: '?raw', import: 'default', eager: true });
 /** Source text of every scanned module (tests included), keyed by its path under src. */
@@ -17,9 +18,10 @@ const FORBIDDEN_PACKAGES = [/^react(-dom)?(\/|$)/, /^three(\/|$)/, /^@react-thre
 function allowedTarget(file: string, target: readonly string[]): boolean {
   const path = target.join('/');
   if (path.startsWith('src/core/') || path.startsWith('src/editing/')) return true;
+  // The shared packages themselves (vendored mixo-geocore host/ and editing/).
+  if (path.startsWith('vendor/mixo-geocore/host/') || path.startsWith('vendor/mixo-geocore/editing/')) return true;
   if (path.startsWith('tools/') && path.endsWith('.json')) return true;
-  // Aligner profile data is shared with the Rust core (src/dental/profiles); tests read the face labels.
-  if (path.startsWith('src/dental/profiles/') && path.endsWith('.json')) return true;
+  // Tests read the face labels.
   if (file.endsWith('.test.ts') && path.startsWith('docs/dental-reference/') && path.endsWith('.json')) return true;
   // Tests may also load fixtures through the Rust import path (scripts/test-support/rustImport).
   return file.endsWith('.test.ts') && (path.startsWith('src/goldens/') || path.startsWith('scripts/test-support/'));
@@ -38,6 +40,7 @@ function portabilityProblems(file: string, source: string): string[] {
   for (const specifier of specifiers) {
     if (specifier.includes('?')) problems.push(`${file}: bundler query import '${specifier}'`);
     if (FORBIDDEN_PACKAGES.some((pattern) => pattern.test(specifier))) problems.push(`${file}: imports '${specifier}'`);
+    if (/^@mixo-geocore\/(host|editing)\//.test(specifier)) continue;
     if (!specifier.startsWith('.')) continue;
     const target = resolveFrom(file, specifier);
     if (!target || !allowedTarget(file, target)) problems.push(`${file}: imports non-portable module '${specifier}'`);
@@ -67,9 +70,9 @@ describe('portable modules', () => {
   const files = Object.keys(SOURCES);
 
   it('scans the support core and the editing rules', () => {
-    expect(files).toContain('core/vec3.ts');
-    expect(files).toContain('core/supports/mesh.ts');
-    expect(files).toContain('editing/keys.ts');
+    expect(files).toContain('core/handedness.ts');
+    expect(files).toContain('core/plateLedger.ts');
+
   });
 
   it('import no UI framework, three.js, DOM, bundler-only syntax or app module', () => {

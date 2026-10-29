@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import type { SupportPoint, TriangleMesh } from '../core/analysis/types';
-import type { ContactInputs, DentalPlacementJob, JobTransform, SupportJob } from '../core/jobs';
-import { defaultSupportSettings, type LiveSupportSettings } from '../core/supports/settings';
-import type { ZoneStamp } from '../core/supports/zones';
-import type { DentalPolicy } from '../core/analysis/dentalPolicy';
-import { proposeDentalSupportRegion } from '../core/analysis/dentalRegion';
+import type { SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { ContactInputs, DentalPlacementJob, JobTransform, SupportJob } from '@mixo-geocore/host/core/jobs';
+import { defaultSupportSettings, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
 import { readFileSync } from 'node:fs';
-import { runSupportJob } from './jobRunner';
-import { filterDentalPlacement } from '../dental/placement';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
 import { parseStl } from '../../scripts/test-support/rustImport';
 import { REFERENCE_PROFILE, footprintSettings, fromBelow, referenceTuning } from '../../scripts/test-support/referenceProfile';
-import { proposeDentalContactFootprint } from '../core/analysis/dentalContactFootprint';
+import { proposeDentalContactFootprint } from '@mixo-geocore/host/dental/dentalContactFootprint';
 
 type V = [number, number, number];
 

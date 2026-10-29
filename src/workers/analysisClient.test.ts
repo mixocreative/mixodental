@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { PlacementSettings, TriangleMesh } from '../core/analysis/types';
-import type { DentalPlacementJob, PlacementJob } from '../core/jobs';
-import type { DentalPolicy } from '../core/analysis/dentalPolicy';
-import { TriangleGate } from '../core/jobGate';
+import type { PlacementSettings, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { DentalPlacementJob, PlacementJob } from '@mixo-geocore/host/core/jobs';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import { TriangleGate } from '@mixo-geocore/host/core/jobGate';
 import { AnalysisClient, analysisPoolSize } from './analysisClient';
-import { JobActivity } from './jobActivity';
+import { JobActivity } from '@mixo-geocore/host/workers/jobActivity';
 import type { AnalysisTask } from './analysisProtocol';
-import type { WorkerLike } from './WorkerTask';
+import type { WorkerLike } from '@mixo-geocore/host/workers/WorkerTask';
 
 /** Stand-in for a browser Worker: records what it is sent; the test answers for it. */
 class FakeWorker implements WorkerLike {
@@ -171,7 +171,7 @@ describe('analysis client', () => {
     const { workers, create } = pool();
     const client = new AnalysisClient(create, () => {}, 1);
     const job = client.place('place:a', { mesh: mesh(), orientation: { position: [0, 0, 0], rotation: [0, 0, 0] }, settings: {} as PlacementSettings }, label);
-    const { jobActivity } = await import('./jobActivity');
+    const { jobActivity } = await import('@mixo-geocore/host/workers/jobActivity');
     const row = jobActivity.view(Date.now() + 1000).filter((candidate) => candidate.label === label && candidate.cancellable).pop();
     expect(row?.cancellable).toBe(true);
     jobActivity.cancel(row!.id);

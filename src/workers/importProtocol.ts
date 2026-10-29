@@ -1,5 +1,5 @@
-import type { TriangleMesh } from '../core/analysis/types';
-import type { Runtime } from '../core/budget';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { Runtime } from '@mixo-geocore/host/core/budget';
 import type { ImportedMesh, RawMesh } from '../state/import';
 import type { PickIndexData } from './pickIndexes';
 

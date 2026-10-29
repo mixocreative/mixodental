@@ -1,4 +1,4 @@
-import type { WorkerLike } from './WorkerTask';
+import type { WorkerLike } from '@mixo-geocore/host/workers/WorkerTask';
 
 /*
  * The app's worker factories, the only place a Worker is created (Vite bundles a worker from the
@@ -12,4 +12,4 @@ const hasWorker = typeof Worker !== 'undefined';
 export const createImportWorker = hasWorker ? () => new Worker(new URL('./importWorker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike : null;
 export const createProjectWorker = hasWorker ? () => new Worker(new URL('./projectWorker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike : null;
 export const createAnalysisWorker = hasWorker ? () => new Worker(new URL('./analysisWorker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike : null;
-export const createMeshWorker = hasWorker ? () => new Worker(new URL('./meshWorker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike : null;
+export const createMeshWorker = hasWorker ? () => new Worker(new URL('./meshWorker.entry.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike : null;

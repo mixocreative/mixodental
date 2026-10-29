@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Object3D } from 'three';
-import { labelForIndex } from './core/analysis/mesh';
-import type { SupportProblem } from './core/analysis/supportCheck';
-import type { PlacementResult, SupportPoint } from './core/analysis/types';
-import type { Vector } from './core/vec3';
+import { labelForIndex } from '@mixo-geocore/host/core/analysis/mesh';
+import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
+import type { PlacementResult, SupportPoint } from '@mixo-geocore/host/core/analysis/types';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 import JobActivityPanel from './components/JobActivity';
 import { AnalysisClient } from './workers/analysisClient';
 import { ImportClient } from './workers/importClient';
 import { createAnalysisWorker, createImportWorker, createMeshWorker } from './workers/factories';
-import { SupportMeshClient } from './workers/meshClient';
+import { SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
 import type { PreparedMesh } from './workers/importProtocol';
 import { codedJobError } from './workers/jobErrors';
 import ObjectViewport, { acceptModelFile } from './components/ObjectViewport';
@@ -40,48 +40,49 @@ import { cancelSceneEdit, canUndo as historyCanUndo, createSceneHistory, redoSce
 import { gltfRawMeshes, placeImportedUnits } from './state/import';
 import { setDisplayMesh } from './state/meshExtras';
 import { memoryInfo } from './state/runtime';
-import { assertMemoryCapacity, assertPlateCapacity, assertTriangleCapacity, memoryCapBytes, meshTier, refusalLimit } from './core/budget';
-import { TriangleGate } from './core/jobGate';
+import { assertMemoryCapacity, assertPlateCapacity, assertTriangleCapacity, memoryCapBytes, meshTier, refusalLimit } from '@mixo-geocore/host/core/budget';
+import { TriangleGate } from '@mixo-geocore/host/core/jobGate';
 import { PlateLedger, type PlateScene } from './core/plateLedger';
 import { estimateTriangles, ESTIMATE_HEAD_BYTES } from './core/import/estimate';
 import { emptyScene, reduceScene, type ContactSettings, type PrintScene, type PrintUnit, type SceneCommand, type SupportSettings } from './state/project';
-import { applyTransform, inverseTransformDirection, inverseTransformPoint, transformPoint, type ModelTransform } from './state/transform';
-import type { ExportKind } from './supports/export';
-import type { GeneratedSupportMesh, SupportContact } from './core/supports/mesh';
-import { meshBounds } from './core/supports/meshQuery';
-import { type ZoneStamp } from './core/supports/zones';
-import { problemInZone } from './supports/zoneCheck';
-import type { DentalAllowStamp, DentalPolicy } from './core/analysis/dentalPolicy';
-import { defaultDentalStructure } from './core/analysis/dentalPolicy';
+import { applyTransform, inverseTransformDirection, inverseTransformPoint, transformPoint, type ModelTransform } from '@mixo-geocore/host/state/transform';
+import type { ExportKind } from '@mixo-geocore/host/supports/export';
+import type { GeneratedSupportMesh, SupportContact } from '@mixo-geocore/host/core/supports/mesh';
+import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
+import { type ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
+import { problemInZone } from '@mixo-geocore/host/supports/zoneCheck';
+import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import { defaultDentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
 import { deleteCommands } from './supports/selection';
-import { canvasGesture, gesture, type GestureKind } from './editing/gesture';
-import { TIPS_START, tipsButton, tipsCamera, tipsPress } from './editing/view';
-import { applyPreset, defaultSupportSettings, setRoofMode, updateSetting, withShape, type LiveSupportSettings, type SettingKey, type ShapeKey } from './core/supports/settings';
-import { islandProblems } from './supports/islandProblems';
-import { omittedProblems } from './supports/omittedProblem';
-import { checkJobOf, contactsWith, currentBuild, hiddenByZones, liftCommands, orientationOf, placementPending, PLACEMENT_KEYS, resolveSettings, supportJobOf, unitContacts, unitRemovedCount, unitSupportMesh, withRekeyedHandWork, type UnitBuild } from './supports/unitSupports';
-import { COMMAND_IDS, resolve, type CommandId, type UiState } from './editing/commands';
-import { effectiveBrushMode } from './editing/selection';
-import { keyAction } from './editing/keys';
-import { customisedAmong, liveSelection, scopeCounts, shapePatch, shapeView } from './editing/shapeEdit';
-import { lockNote, sectionLocked, type Panel } from './editing/locks';
-import { contactToRemove } from './editing/removal';
-import { profileData } from './dental/alignerProfiles';
-import { editsSupports, initialSession, reduceSession, selectsTips, startsEditing, type SessionEvent } from './editing/session';
-import { acceptsDentalDrop } from './editing/session';
+import { canvasGesture, gesture, type GestureKind } from '@mixo-geocore/editing/gesture';
+import { TIPS_START, tipsButton, tipsCamera, tipsPress } from '@mixo-geocore/editing/view';
+import { applyPreset, defaultSupportSettings, setRoofMode, updateSetting, withShape, type LiveSupportSettings, type SettingKey, type ShapeKey } from '@mixo-geocore/host/core/supports/settings';
+import { islandProblems } from '@mixo-geocore/editing/islandProblems';
+import { omittedProblems } from '@mixo-geocore/editing/omittedProblem';
+import { checkJobOf, contactsWith, currentBuild, hiddenByZones, liftCommands, orientationOf, placementPending, PLACEMENT_KEYS, resolveSettings, supportJobOf, unitContacts, unitRemovedCount, unitSupportMesh, withRekeyedHandWork, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import { COMMAND_IDS, resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
+import { effectiveBrushMode } from '@mixo-geocore/editing/selection';
+import { keyAction } from '@mixo-geocore/editing/keys';
+import { customisedAmong, liveSelection, scopeCounts, shapePatch, shapeView } from '@mixo-geocore/editing/shapeEdit';
+import { lockNote, sectionLocked, type Panel } from '@mixo-geocore/editing/locks';
+import { contactToRemove } from '@mixo-geocore/editing/removal';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
+import { editsSupports, initialSession, reduceSession, selectsTips, startsEditing, type SessionEvent } from '@mixo-geocore/editing/session';
+import { acceptsDentalDrop } from './dental/editingMode';
+import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type StartScreenId } from './components/StartScreen';
-import { arrangeAlignerCommands } from './dental/arrange';
+import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts } from './dental/flow';
-import { dentalLabelOf } from './dental/label';
+import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import type { DentalReview } from './components/DentalSupports';
-import { BUILDING_STATUS, busyStatus, heavyStatus, importRefusal, importStatus, missStatus, sessionStatus } from './editing/status';
-import { CodedError, errorStatus } from './editing/errors';
-import { checkStatus, joinRun, runToken, tallyChecks, uncovered, type CheckTally } from './editing/check';
+import { BUILDING_STATUS, busyStatus, heavyStatus, importRefusal, importStatus, missStatus, sessionStatus } from '@mixo-geocore/editing/status';
+import { CodedError, errorStatus } from '@mixo-geocore/editing/errors';
+import { checkStatus, joinRun, runToken, tallyChecks, uncovered, type CheckTally } from '@mixo-geocore/editing/check';
 import { stepKind } from './state/stepKind';
-import { toastAlive, undoToast, type UndoAction, type UndoToast as UndoToastState } from './editing/toast';
+import { toastAlive, undoToast, type UndoAction, type UndoToast as UndoToastState } from '@mixo-geocore/editing/toast';
 import UndoToast from './components/UndoToast';
 import TermsDialog from './components/TermsDialog';
-import type { BrushMode } from './editing/types';
+import type { BrushMode } from '@mixo-geocore/editing/types';
 import { detectLanguage, LANGS, plural, setLanguage, t, translateMessage, type Lang, type Message } from './i18n';
 
 type HistoryAction = { type: 'command'; command: SceneCommand; edit?: string } | { type: 'cancelEdit'; edit: string } | { type: 'undo' } | { type: 'redo' } | { type: 'replace'; scene: PrintScene };
@@ -765,25 +766,15 @@ export default function App() {
     const local = inverseTransformPoint(unit.transform, point);
     const reach = resolveSettings(unit.settings).eraseRadius;
     const gone = new Set(withRekeyedHandWork(unit, preview.localPoints).deleted);
-    let snapped: SupportPoint | undefined;
-    let nearest = Infinity;
-    for (const candidate of [...preview.localPoints, ...preview.localSuggested]) {
-      if (gone.has(candidate.id)) continue;
-      const apart = Math.hypot(candidate.position[0] - local[0], candidate.position[1] - local[1], candidate.position[2] - local[2]);
-      if (apart <= reach && apart < nearest) { snapped = candidate; nearest = apart; }
-    }
-    const contact: SupportPoint = {
-      id: `manual-${crypto.randomUUID()}`,
-      regionId: -1,
-      position: snapped ? [...snapped.position] : local,
-      normal: snapped ? [...snapped.normal] : inverseTransformDirection(unit.transform, normal),
-      source: 'interior',
-    };
-    dispatch({ type: 'batch', commands: [{ type: 'manual/add', unitId: unit.id, point: contact }, ...(snapped ? [{ type: 'deletion/add' as const, unitId: unit.id, pointIds: [snapped.id] }] : [])] });
-    const minFromUp = unit.dental ? profileData(unit.dental.profileId).defaults.tipMinFromUpDeg : 0;
-    // Angle between the hit's normal and the plate's up (+y), under the profile's smallest allowed.
-    const facesUp = Math.acos(Math.max(-1, Math.min(1, normal[1]))) * 180 / Math.PI < minFromUp;
-    setStatus(facesUp ? 'This spot faces up, so a tip here may not hold.' : 'Support added.');
+    // The shared add-tip snapping (mixo-geocore editing/addTip); a spot under the profile's smallest angle from up is flagged.
+    const plan = planAddTip({
+      point: local, normal: inverseTransformDirection(unit.transform, normal), worldNormal: normal, reach,
+      candidates: [...preview.localPoints, ...preview.localSuggested], removed: gone,
+      minFromUpDeg: unit.dental ? profileData(unit.dental.profileId).defaults.tipMinFromUpDeg : 0,
+      createId: () => `manual-${crypto.randomUUID()}`,
+    });
+    dispatch({ type: 'batch', commands: [{ type: 'manual/add', unitId: unit.id, point: plan.contact }, ...(plan.removeId ? [{ type: 'deletion/add' as const, unitId: unit.id, pointIds: [plan.removeId] }] : [])] });
+    setStatus(plan.status === 'faces-up' ? 'This spot faces up, so a tip here may not hold.' : 'Support added.');
   }, [dispatch, setStatus]);
 
   const onAddContact = useCallback((unitId: string, point: [number, number, number], normal: [number, number, number]) => {

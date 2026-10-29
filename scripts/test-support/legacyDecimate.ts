@@ -1,4 +1,4 @@
-import type { TriangleMesh } from '../../src/core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 
 /**
  * Vertex-clustering simplification for the display copy of a heavy mesh (never for support

@@ -1,9 +1,9 @@
 import { BufferGeometry, Mesh, type Object3D } from 'three';
-import type { TriangleMesh } from '../core/analysis/types';
-import { meshBounds } from '../core/supports/meshQuery';
-import { defaultSupportSettings } from '../core/supports/settings';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
+import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import type { PrintUnit, SupportSettings } from './project';
-import { applyTransform } from './transform';
+import { applyTransform } from '@mixo-geocore/host/state/transform';
 
 /*
  * Import as pure TriangleMesh results. STL bytes and glTF arrays are parsed, welded and centred in

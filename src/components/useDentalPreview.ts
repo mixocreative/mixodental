@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { PlacementResult, SupportPoint } from '../core/analysis/types';
+import type { PlacementResult, SupportPoint } from '@mixo-geocore/host/core/analysis/types';
 import type { PrintUnit } from '../state/project';
-import { dentalPlacementJobOf, orientationOf, placedPoints, resolveSettings } from '../supports/unitSupports';
-import type { FinishedPlacement } from '../supports/landing';
+import { dentalPlacementJobOf, orientationOf, placedPoints, resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
+import type { FinishedPlacement } from '@mixo-geocore/editing/landing';
 import type { AnalysisClient } from '../workers/analysisClient';
 import { seededDentalPlacement } from './dentalPlacementSeed';
 

@@ -1,12 +1,12 @@
 import { useCallback, useState, type MutableRefObject } from 'react';
-import { errorStatus } from '../editing/errors';
-import { exportStatus, type CheckTally } from '../editing/check';
+import { errorStatus } from '@mixo-geocore/editing/errors';
+import { exportStatus, type CheckTally } from '@mixo-geocore/editing/check';
 import { plural, type Message } from '../i18n';
 import type { PrintScene, PrintUnit } from '../state/project';
-import { exportUnits, planExport, type ExportKind } from '../supports/export';
-import { exportRefusal } from '../supports/exportGate';
-import { currentBuilds, supportJobOf, unitContacts, type UnitBuild } from '../supports/unitSupports';
-import type { SupportMeshClient } from '../workers/meshClient';
+import { exportUnits, planExport, type ExportKind } from '@mixo-geocore/host/supports/export';
+import { exportRefusal } from '@mixo-geocore/host/supports/exportGate';
+import { currentBuilds, supportJobOf, unitContacts, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import type { SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
 import { codedJobError } from '../workers/jobErrors';
 import { isAbort, type SetStatus } from './appShared';
 

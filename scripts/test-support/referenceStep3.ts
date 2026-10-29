@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { proposeDentalSupportRegion } from '../../src/core/analysis/dentalRegion';
-import type { DentalPolicy } from '../../src/core/analysis/dentalPolicy';
-import type { SupportJob } from '../../src/core/jobs';
-import { defaultSupportSettings, type LiveSupportSettings } from '../../src/core/supports/settings';
-import { filterDentalPlacement } from '../../src/dental/placement';
+import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { SupportJob } from '@mixo-geocore/host/core/jobs';
+import { defaultSupportSettings, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
 import { dentalStructureOf, dentalSupportSettings } from '../../src/dental/supportPreset';
 import { parseStl } from '../node-engine';
 import { REFERENCE_PROFILE, referenceTuning } from './referenceProfile';

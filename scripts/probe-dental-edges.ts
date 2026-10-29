@@ -1,9 +1,9 @@
 import './test-support/useNodeEngine';
 /** Edge-network diagnosis for a neutral dental STL; optional SVG/GLB debug exports never alter the source mesh. */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { proposeDentalOrientation } from '../src/core/analysis/dental';
+import { proposeDentalOrientation } from '@mixo-geocore/host/dental/dental';
 import { placementMatrix, transformPositions } from './test-support/matrix';
-import { cross, dot, normalize, subtract, type Vector } from '../src/core/vec3';
+import { cross, dot, normalize, subtract, type Vector } from '@mixo-geocore/host/core/vec3';
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { parseStl } from './test-support/rustImport';

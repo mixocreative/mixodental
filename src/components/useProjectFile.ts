@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, type MutableRefObject } from 'react';
-import { importRefusal } from '../editing/status';
+import { importRefusal } from '@mixo-geocore/editing/status';
 import { openProjectFile } from './openProject';
-import { saveFailure, savedStatus, SAVE_CANCELLED } from '../editing/project';
-import type { EditMode, StatusMessage } from '../editing/types';
-import type { UndoAction } from '../editing/toast';
+import { saveFailure, savedStatus, SAVE_CANCELLED } from '@mixo-geocore/editing/project';
+import type { EditMode, StatusMessage } from '@mixo-geocore/editing/types';
+import type { UndoAction } from '@mixo-geocore/editing/toast';
 import type { PrintScene } from '../state/project';
 import { packProject, projectFileName, PROJECT_EXTENSION, sameUnits } from '../state/projectFile';
 import { t } from '../i18n';
-import { jobActivity } from '../workers/jobActivity';
+import { jobActivity } from '@mixo-geocore/host/workers/jobActivity';
 import { createProjectWorker } from '../workers/factories';
 import { ProjectClient } from '../workers/projectClient';
 import { isAbort, RUNTIME } from './appShared';

@@ -1,5 +1,5 @@
-import type { PlacementSettings, SupportPoint } from '../../src/core/analysis/types';
-import { defaultSupportSettings, toPlacementSettings, updateSetting, type LiveSupportSettings } from '../../src/core/supports/settings';
+import type { PlacementSettings, SupportPoint } from '@mixo-geocore/host/core/analysis/types';
+import { defaultSupportSettings, toPlacementSettings, updateSetting, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { approxArray } from './golden';
 
 /*

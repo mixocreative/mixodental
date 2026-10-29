@@ -1,7 +1,7 @@
-import type { LiveSupportSettings } from '../../src/core/supports/settings';
-import type { Vector } from '../../src/core/vec3';
-import type { ZoneStamp } from '../../src/core/supports/zones';
-import { decodeComponents, packContacts, packSettings, packZones, type ColumnInput, type TaggedComponent } from '../../src/supports/supportBuildWasm';
+import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
+import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
+import { decodeComponents, packContacts, packSettings, packZones, type ColumnInput, type TaggedComponent } from '@mixo-geocore/host/supports/supportBuildWasm';
 
 /*
  * Test-only adapter for the low-level Rust `build_supports`, `cast_down` and `support_settings_layout`

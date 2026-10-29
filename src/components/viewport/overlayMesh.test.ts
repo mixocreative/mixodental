@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { TriangleMesh } from '../../core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { refineForOverlay, warmZoneOverlay, zoneOverlay } from './overlayMesh';
 import { parseStl } from '../../../scripts/test-support/rustImport';
 

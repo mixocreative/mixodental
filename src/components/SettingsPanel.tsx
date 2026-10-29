@@ -1,9 +1,9 @@
 
 import type { ReactNode } from 'react';
-import type { LiveSupportSettings, PresetName, RoofMode, SettingKey, ShapeKey } from '../core/supports/settings';
-import { settingLimits } from '../core/supports/settings';
-import { resolve, type CommandId, type UiState } from '../editing/commands';
-import { shapeHeading, type ShapeView } from '../editing/shapeEdit';
+import type { LiveSupportSettings, PresetName, RoofMode, SettingKey, ShapeKey } from '@mixo-geocore/host/core/supports/settings';
+import { settingLimits } from '@mixo-geocore/host/core/supports/settings';
+import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
+import { shapeHeading, type ShapeView } from '@mixo-geocore/editing/shapeEdit';
 import { CommandButton } from './CommandButton';
 import { NumberField } from './NumberField';
 import { t } from '../i18n';

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { UNDO_TOAST_MS, type UndoToast as Toast } from '../editing/toast';
+import { UNDO_TOAST_MS, type UndoToast as Toast } from '@mixo-geocore/editing/toast';
 import { t, translateMessage } from '../i18n';
 
 /**

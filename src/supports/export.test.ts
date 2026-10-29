@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { SupportPoint, TriangleMesh } from '../core/analysis/types';
+import type { SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { emptyScene, type PrintScene, type PrintUnit } from '../state/project';
-import { encodeStl, planExport, uniqueFileNames, type ExportPart } from './export';
-import { meshBounds } from '../core/supports/meshQuery';
-import { applyTransform } from '../state/transform';
-import { currentBuilds, unitSupportMesh } from './unitSupports';
-import { defaultSupportSettings } from '../core/supports/settings';
+import { encodeStl, planExport, uniqueFileNames, type ExportPart } from '@mixo-geocore/host/supports/export';
+import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
+import { applyTransform } from '@mixo-geocore/host/state/transform';
+import { currentBuilds, unitSupportMesh } from '@mixo-geocore/host/supports/unitSupports';
+import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { importStl } from '../../scripts/test-support/rustImport';
 
 const cube: TriangleMesh = {

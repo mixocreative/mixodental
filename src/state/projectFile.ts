@@ -1,5 +1,5 @@
-import { refusalLimit } from '../core/budget';
-import { ProjectFileError, ProjectTooLarge } from '../editing/project';
+import { refusalLimit } from '@mixo-geocore/host/core/budget';
+import { ProjectFileError, ProjectTooLarge } from '@mixo-geocore/editing/project';
 import { normalizeScene, sceneJsonReplacer, sceneJsonReviver, type PrintScene, type PrintUnit } from './project';
 
 /** The project file: the scene's own JSON (project.ts) under a header that names the app and the format version. */

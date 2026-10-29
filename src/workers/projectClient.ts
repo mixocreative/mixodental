@@ -1,9 +1,9 @@
-import { ProjectFileError, ProjectTooLarge, type ProjectErrorCode } from '../editing/project';
+import { ProjectFileError, ProjectTooLarge, type ProjectErrorCode } from '@mixo-geocore/editing/project';
 import type { PrintScene } from '../state/project';
 import { unpackProject } from '../state/projectFile';
-import type { JobActivity } from './jobActivity';
+import type { JobActivity } from '@mixo-geocore/host/workers/jobActivity';
 import type { ProjectResult, ProjectTask } from './projectProtocol';
-import { WorkerJobError, WorkerTask, type WorkerLike } from './WorkerTask';
+import { WorkerJobError, WorkerTask, type WorkerLike } from '@mixo-geocore/host/workers/WorkerTask';
 
 const FILE_ERRORS: readonly string[] = ['not-project', 'damaged', 'newer'] satisfies ProjectErrorCode[];
 

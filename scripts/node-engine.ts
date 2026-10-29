@@ -1,8 +1,8 @@
-import { setDentalEngine } from '../src/core/analysis/dentalEngine';
-import type { TriangleMesh } from '../src/core/analysis/types';
-import { setTransformEngine } from '../src/state/transformEngine';
-import { setSupportEngine } from '../src/supports/supportEngine';
-import type { GeometryEngine } from '../src/workers/geometryClient';
+import { setDentalEngine } from '@mixo-geocore/host/dental/dentalEngine';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { setTransformEngine } from '@mixo-geocore/host/state/transformEngine';
+import { setSupportEngine } from '@mixo-geocore/host/supports/supportEngine';
+import type { GeometryEngine } from '@mixo-geocore/host/workers/geometryClient';
 import { parseStlBytes } from '../src/workers/stlSession';
 import * as wasm from '../vendor/mixo-geocore/pkg-node/mixo_geometry_wasm.js';
 

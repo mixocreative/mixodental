@@ -1,6 +1,6 @@
-import { CapacityError, PlateFullError } from '../core/budget';
-import { CodedError, ENGINE_OVER_CAPACITY, ERROR_CODES, type ErrorCode } from '../editing/errors';
-import { WorkerJobError, WorkerTaskError } from './WorkerTask';
+import { CapacityError, PlateFullError } from '@mixo-geocore/host/core/budget';
+import { CodedError, ENGINE_OVER_CAPACITY, ERROR_CODES, type ErrorCode } from '@mixo-geocore/editing/errors';
+import { WorkerJobError, WorkerTaskError } from '@mixo-geocore/host/workers/WorkerTask';
 
 /** Numbers formatted for the message (thousands separators in the user's locale). */
 function formatted(vars: Record<string, string | number> | undefined): Record<string, string | number> {

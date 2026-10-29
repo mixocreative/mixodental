@@ -12,7 +12,8 @@
     "wasm:test": "node scripts/vendor-geometry.mjs --check && node scripts/geometry-wasm-smoke.mjs",
     "host-example": "node scripts/host-example.mjs",
     "test": "vitest run",
-    "walk": "node scripts/walk.mjs"
+    "walk": "node scripts/walk.mjs",
+    "check:duplicates": "node scripts/check-no-duplicates.mjs"
   },
   "devDependencies": {
     "@fontsource/zen-kaku-gothic-new": "^5.3.1",

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DentalBar } from './DentalBar';
-import { profileData } from '../dental/alignerProfiles';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import type { DentalReview } from './DentalSupports';
-import { defaultSupportSettings } from '../core/supports/settings';
-import type { Gesture } from '../editing/gesture';
-import type { UiState } from '../editing/commands';
+import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import type { Gesture } from '@mixo-geocore/editing/gesture';
+import type { UiState } from '@mixo-geocore/editing/commands';
 
 describe('DentalBar', () => {
   it('Step 0 shows one card per profile, with its art, name and description', () => {

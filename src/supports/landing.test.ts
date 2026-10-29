@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { SupportPoint, TriangleMesh } from '../core/analysis/types';
-import { defaultSupportSettings } from '../core/supports/settings';
-import { landedStatus } from '../editing/regenerate';
+import type { SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import { landedStatus } from '@mixo-geocore/editing/regenerate';
 import { reduceScene, type PrintUnit } from '../state/project';
-import { landPlacements } from './landing';
-import { resolveSettings } from './unitSupports';
+import { landPlacements } from '@mixo-geocore/editing/landing';
+import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 
 const source: TriangleMesh = {
   positions: new Float32Array([-5, -5, -5, 5, -5, -5, 5, -5, 5, -5, -5, 5, -5, 5, -5, 5, 5, -5, 5, 5, 5, -5, 5, 5]),

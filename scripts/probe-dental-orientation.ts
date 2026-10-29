@@ -1,15 +1,15 @@
 import './test-support/useNodeEngine';
 // Disposable, read-only local probe. Supply DENTAL_PROBE_FIXTURE; never commit patient geometry.
 import { readFileSync } from 'node:fs';
-import { proposeDentalOrientation, rotationToDentalPose } from '../src/core/analysis/dental';
+import { proposeDentalOrientation, rotationToDentalPose } from '@mixo-geocore/host/dental/dental';
 import { rotationToPlateDown } from './test-support/dentalExpect';
-import { legacyBaselineVertices } from '../src/dental/legacyArea';
-import { runPlacementJob } from '../src/supports/jobRunner';
-import { filterDentalPlacement } from '../src/dental/placement';
-import { defaultSupportSettings, toPlacementSettings } from '../src/core/supports/settings';
-import { inverseTransformPoint } from '../src/state/transform';
+import { legacyBaselineVertices } from '@mixo-geocore/host/dental/legacyArea';
+import { runPlacementJob } from '@mixo-geocore/host/supports/jobRunner';
+import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
+import { defaultSupportSettings, toPlacementSettings } from '@mixo-geocore/host/core/supports/settings';
+import { inverseTransformPoint } from '@mixo-geocore/host/state/transform';
 import { applyToDirection, applyToPoint, placementMatrix, transformPositions } from './test-support/matrix';
-import type { Vector } from '../src/core/vec3';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { parseStl } from './test-support/rustImport';
 import { REFERENCE_PROFILE } from './test-support/referenceProfile';
 

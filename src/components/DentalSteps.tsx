@@ -1,13 +1,14 @@
 import { useRef } from 'react';
-import { resolve, type CommandId, type UiState } from '../editing/commands';
-import type { Gesture } from '../editing/gesture';
-import type { DentalNotice, SessionEvent } from '../editing/session';
-import { ALIGNER_PROFILES, profileById, profilesWithoutOpening, type AlignerProfile } from '../dental/alignerProfiles';
+import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
+import type { Gesture } from '@mixo-geocore/editing/gesture';
+import type { SessionEvent } from '@mixo-geocore/editing/session';
+import type { DentalNotice } from '../dental/editingMode';
+import { ALIGNER_PROFILES, profileById, profilesWithoutOpening, type AlignerProfile } from '@mixo-geocore/host/dental/alignerProfiles';
 import { t, translateMessage, type Lang } from '../i18n';
 import { CommandButton } from './CommandButton';
 import { RangeField } from './RangeField';
-import { profileData } from '../dental/alignerProfiles';
-import { tiltLabel, type TiltRow, type TiltRule } from '../core/analysis/dentalTilt';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
+import { tiltLabel, type TiltRow, type TiltRule } from '@mixo-geocore/host/dental/dentalTilt';
 import type { DentalTiltState } from './useDentalFlow';
 
 /** The problem-list name of each print-angle rule. */

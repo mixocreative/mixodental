@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { dot, subtract, type Vector } from '../vec3';
+import { dot, subtract, type Vector } from '@mixo-geocore/host/core/vec3';
 import { applyToPoint, placementMatrix, transformPositions } from '../../../scripts/test-support/matrix';
-import { proposeDentalOrientation, rotationToDentalPose } from './dental';
+import { proposeDentalOrientation, rotationToDentalPose } from '@mixo-geocore/host/dental/dental';
 import { parseStl } from '../../../scripts/test-support/rustImport';
 import { REFERENCE_PROFILE } from '../../../scripts/test-support/referenceProfile';
 

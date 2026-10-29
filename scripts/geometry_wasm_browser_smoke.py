@@ -14,7 +14,7 @@ with sync_playwright() as playwright:
         assert response.ok, f"Vite browser package returned HTTP {response.status}: {response.text()[:200]}"
         result = page.evaluate(
             """async () => {
-              const { geometryReady } = await import('/mixo-supports/src/workers/geometryClient.ts');
+              const { geometryReady } = await import('/mixo-supports/vendor/mixo-geocore/host/workers/geometryClient.ts');
               const engine = await geometryReady();
               const session = new engine.GeometrySession(48);
               const handle = session.load_mesh(
@@ -45,7 +45,7 @@ with sync_playwright() as playwright:
     "hit": [0, 5, 0, 0, 0], "moved": [0, 1, -3, 2, 1, -3, 1, 3, -3]}, result
         worker_result = page.evaluate(
             """async () => new Promise((resolve, reject) => {
-              const worker = new Worker('/mixo-supports/src/workers/meshWorker.ts', { type: 'module' });
+              const worker = new Worker('/mixo-supports/src/workers/meshWorker.entry.ts', { type: 'module' });
               const timer = setTimeout(() => { worker.terminate(); reject(new Error('mesh worker timed out')); }, 10000);
               worker.onmessage = ({ data }) => {
                 if (data.type !== 'done' && data.type !== 'error') return;

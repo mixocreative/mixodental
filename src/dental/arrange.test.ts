@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { arrangeFootprints, type Footprint } from './arrange';
+import { arrangeFootprints, type Footprint } from '@mixo-geocore/editing/arrange';
 
 const box = (id: string, w: number, d: number, x = 0, z = 0): Footprint => ({ id, minX: x, maxX: x + w, minZ: z, maxZ: z + d });
 const moved = (item: Footprint, move: { dx: number; dz: number }) => ({ ...item, minX: item.minX + move.dx, maxX: item.maxX + move.dx, minZ: item.minZ + move.dz, maxZ: item.maxZ + move.dz });

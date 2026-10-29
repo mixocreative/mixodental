@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { placementMatrix, transformPositions } from '../../../scripts/test-support/matrix';
-import { diagnosticDentalSideBands } from './dentalContactBand';
-import { proposeDentalSupportRegion } from './dentalRegion';
-import { sampleDiagnosticContourContacts } from './dentalContourContacts';
+import { diagnosticDentalSideBands } from '@mixo-geocore/host/dental/dentalContactBand';
+import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
+import { sampleDiagnosticContourContacts } from '@mixo-geocore/host/dental/dentalContourContacts';
 import { parseStl } from '../../../scripts/test-support/rustImport';
 import { REFERENCE_PROFILE, referenceTuning } from '../../../scripts/test-support/referenceProfile';
 

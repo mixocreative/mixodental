@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import type { Vector } from '../../core/vec3';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { flashLook } from './flash';
 import { PREVIEW } from './style';
 

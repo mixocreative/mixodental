@@ -19,7 +19,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    setupFiles: ['scripts/test-support/useNodeEngine.ts'],
+    setupFiles: ['scripts/test-support/useNodeEngine.ts', 'src/dental/editingMode.ts'],
     // Heavy aligner fixtures and first WASM engine load exceed the 5 s default under load.
     testTimeout: 60000,
     // Worker threads drop onTaskUpdate RPCs under heavy WASM load; forks do not.

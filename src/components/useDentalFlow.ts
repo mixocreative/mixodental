@@ -1,19 +1,20 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { defaultDentalTuning } from '../dental/tuning';
-import type { Vector } from '../core/vec3';
+import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { GizmoMode, ViewRequest } from './viewport/types';
 import type { PrintScene, PrintUnit, SceneCommand, SupportSettings } from '../state/project';
-import type { DentalNotice, EditSession, SessionEvent } from '../editing/session';
+import type { EditSession, SessionEvent } from '@mixo-geocore/editing/session';
+import type { DentalNotice } from '../dental/editingMode';
 import type { AnalysisClient } from '../workers/analysisClient';
-import { arrangeAlignerCommands } from '../dental/arrange';
+import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { manualAreaPolicy } from '../dental/manualArea';
 import { dentalStructureOf, dentalSupportSettings } from '../dental/supportPreset';
-import { resolveSettings } from '../supports/unitSupports';
-import type { TiltScan } from '../core/analysis/dentalTilt';
-import type { LiveSupportSettings } from '../core/supports/settings';
-import type { DentalStructure } from '../core/analysis/dentalPolicy';
-import { profileData } from '../dental/alignerProfiles';
-import { tiltLabel } from '../core/analysis/dentalTilt';
+import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
+import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
+import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import type { DentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
+import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
 
 /**
  * Step 1's print-angle search (docs/ROADMAP.md F): scanning (tilts done of total), the scan with

@@ -1,5 +1,5 @@
-import { cross, dot, length, normalize, subtract, type Vector } from '../../src/core/vec3';
-import type { DentalRim } from '../../src/core/analysis/dental';
+import { cross, dot, length, normalize, subtract, type Vector } from '@mixo-geocore/host/core/vec3';
+import type { DentalRim } from '@mixo-geocore/host/dental/dental';
 
 /*
  * Small pure helpers for dental tests and the disposable orientation probe (kept when the TS oracle was removed:

@@ -1,16 +1,20 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { PRESET_HINTS, ROOF_HINTS, SETTING_GROUPS } from './components/SettingsPanel';
-import { CodedError, ERROR_CODES, ERROR_CONTEXTS, errorStatus } from './editing/errors';
-import { COMMAND_IDS, resolve } from './editing/commands';
-import { regeneratedStatus } from './editing/regenerate';
-import { undoToast } from './editing/toast';
-import { STEP_KINDS } from './editing/types';
-import { READY, STATES } from './editing/uiFixture';
+import { CodedError, ERROR_CODES, ERROR_CONTEXTS, errorStatus } from '@mixo-geocore/editing/errors';
+import { COMMAND_IDS, resolve } from '@mixo-geocore/editing/commands';
+import { regeneratedStatus } from '@mixo-geocore/editing/regenerate';
+import { undoToast } from '@mixo-geocore/editing/toast';
+import { STEP_KINDS } from '@mixo-geocore/editing/types';
+import { READY, STATES } from './dental/editing/uiFixture';
 import { DICTIONARY, STAGE_KEYS, detectLanguage, plural, setLanguage, t, translateMessage } from './i18n';
 
-/** Source text of every non-test module, keyed './path'. */
-const SOURCES = import.meta.glob<string>(['./**/*.ts', './**/*.tsx', '!./**/*.test.ts', '!./**/*.test.tsx'], { query: '?raw', import: 'default', eager: true });
-const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx'];
+/** Source text of every non-test module, keyed './path'; the shared editing package (vendored mixo-geocore editing/) as './editing/<file>'. */
+const SOURCES = {
+  ...import.meta.glob<string>(['./**/*.ts', './**/*.tsx', '!./**/*.test.ts', '!./**/*.test.tsx'], { query: '?raw', import: 'default', eager: true }),
+  ...Object.fromEntries(Object.entries(import.meta.glob<string>('../vendor/mixo-geocore/editing/*.ts', { query: '?raw', import: 'default', eager: true }))
+    .map(([file, source]) => [file.replace('../vendor/mixo-geocore/editing/', './editing/'), source])),
+};
+const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx', './dental/editingMode.ts'];
 /** Quoted literals in UI files that are not shown to the user. */
 const NOT_UI = new Set(['Tab', 'Escape', 'Enter', 'Delete', 'Backspace', 'Unit', 'Mixo supports', 'ArrowUp', 'ArrowDown', 'CodedError', 'ProjectFileError', 'TimeoutError', '{error}', 'AbortError']);
 

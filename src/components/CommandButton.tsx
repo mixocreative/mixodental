@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { CommandId, ResolvedCommand } from '../editing/commands';
+import type { CommandId, ResolvedCommand } from '@mixo-geocore/editing/commands';
 import { t } from '../i18n';
 import { hint } from './hint';
 

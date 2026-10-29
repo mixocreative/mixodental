@@ -1,4 +1,4 @@
-import type { SupportProblem } from '../core/analysis/supportCheck';
+import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
 import { plural, t } from '../i18n';
 import { hint } from './hint';
 

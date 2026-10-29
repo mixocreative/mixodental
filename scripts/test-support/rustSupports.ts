@@ -1,9 +1,9 @@
-import type { ProgressCallback, TriangleMesh } from '../../src/core/analysis/types';
-import type { GeneratedSupportMesh, SupportContact, SupportPart } from '../../src/core/supports/mesh';
-import type { LiveSupportSettings } from '../../src/core/supports/settings';
-import type { ZoneStamp } from '../../src/core/supports/zones';
-import type { ColumnInput } from '../../src/supports/supportBuildWasm';
-import { withSession } from '../../src/supports/supportEngine';
+import type { ProgressCallback, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { GeneratedSupportMesh, SupportContact, SupportPart } from '@mixo-geocore/host/core/supports/mesh';
+import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
+import type { ColumnInput } from '@mixo-geocore/host/supports/supportBuildWasm';
+import { withSession } from '@mixo-geocore/host/supports/supportEngine';
 import { buildSupportsWasm } from './supportBuildCall';
 
 /*

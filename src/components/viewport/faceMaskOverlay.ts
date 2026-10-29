@@ -1,5 +1,5 @@
-import type { TriangleMesh } from '../../core/analysis/types';
-import { geometryNow, type GeometryEngine } from '../../workers/geometryClient';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { geometryNow, type GeometryEngine } from '@mixo-geocore/host/workers/geometryClient';
 
 type OverlayEngine = Pick<GeometryEngine, 'face_mask_overlay' | 'face_mask_contour_segments'>;
 

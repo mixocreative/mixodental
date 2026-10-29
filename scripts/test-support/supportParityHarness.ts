@@ -1,20 +1,20 @@
 import { readFileSync } from 'node:fs';
 import { nodeEngine, parseStl } from './rustImport';
-import type { TriangleMesh } from '../../src/core/analysis/types';
-import { proposeDentalSupportRegion } from '../../src/core/analysis/dentalRegion';
-import { jobContacts } from '../../src/supports/genericPolicy';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
+import { jobContacts } from '@mixo-geocore/host/supports/genericPolicy';
 import { REFERENCE_PROFILE, referenceTuning } from './referenceProfile';
-import type { SupportContact } from '../../src/core/supports/mesh';
-import { defaultSupportSettings, setRoofMode, updateSetting, withShape, type LiveSupportSettings } from '../../src/core/supports/settings';
+import type { SupportContact } from '@mixo-geocore/host/core/supports/mesh';
+import { defaultSupportSettings, setRoofMode, updateSetting, withShape, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { approxArray, exactArray } from './golden';
 import { buildSnapshot } from './buildSnapshot';
 import { GOLDEN_FIXTURES } from '../../src/goldens/fixtures';
 import { supportedUnit } from '../../src/goldens/pipeline';
-import { applyTransform, transformDirection, transformPoint } from '../../src/state/transform';
-import { supportJobOf, resolveSettings } from '../../src/supports/unitSupports';
-import type { ColumnInput } from '../../src/supports/supportBuildWasm';
+import { applyTransform, transformDirection, transformPoint } from '@mixo-geocore/host/state/transform';
+import { supportJobOf, resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
+import type { ColumnInput } from '@mixo-geocore/host/supports/supportBuildWasm';
 import { buildSupportsWasm, castDownWasm, type WasmSupportBuild } from './supportBuildCall';
-import { add, normalizeOrDown, scale, type Vector } from '../../src/core/vec3';
+import { add, normalizeOrDown, scale, type Vector } from '@mixo-geocore/host/core/vec3';
 
 /*
  * Parity harness for the Rust support builder (U4a-U4c, U9). A scenario is a placement: plate-space contacts,

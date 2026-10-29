@@ -1,6 +1,6 @@
 import { approxArray, exactArray, hashArray } from './golden';
-import type { DentalRegionProposal } from '../../src/core/analysis/dentalRegion';
-import type { PlacementResult } from '../../src/core/analysis/types';
+import type { DentalRegionProposal } from '@mixo-geocore/host/dental/dentalRegion';
+import type { PlacementResult } from '@mixo-geocore/host/core/analysis/types';
 
 /*
  * Snapshot shapes shared by the dental golden recorder (a one-off recorder that ran the TS oracle; in git history at 13aef9a)

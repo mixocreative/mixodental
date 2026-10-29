@@ -6,14 +6,14 @@
 // applied to the job and the worker's build path (`runSupportJob`, the same call meshWorker makes)
 // runs on it, median of 3 after one warm-up. "cold" builds with a fresh session per build (as before
 // E1); "live" goes through the mesh worker's persistent per-unit build session
-// (`src/workers/buildSessions.ts`). Both must build the same mesh. Two lift rows: "lift (new frame)"
+// (mixo-geocore `host/workers/buildSessions.ts`). Both must build the same mesh. Two lift rows: "lift (new frame)"
 // places the model again at the new height (the job before unit L), "lift (plate offset)" keeps the
 // generation frame and moves the plate (the job `liftCommands` makes since unit L).
 import { performance } from 'node:perf_hooks';
 import './../test-support/useNodeEngine';
-import type { SupportJob } from '../../src/core/jobs';
-import { runSupportJob } from '../../src/supports/jobRunner';
-import { BuildSessions } from '../../src/workers/buildSessions';
+import type { SupportJob } from '@mixo-geocore/host/core/jobs';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import { BuildSessions } from '@mixo-geocore/host/workers/buildSessions';
 import { base, jobAt, liftedJob, mesh, placed } from '../test-support/referenceStep3';
 
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)]!;

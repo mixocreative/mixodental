@@ -27,7 +27,7 @@ describe('display decimation WASM parity', () => {
     } finally {
       result.free();
     }
-    const hosted = decimateWithWasm(mesh, { decimate_display }, 350);
+    const hosted = decimateWithWasm(mesh, { decimate_display } as unknown as Parameters<typeof decimateWithWasm>[1], 350);
     expect(hosted.positions).toEqual(expected.positions);
     expect(hosted.indices).toEqual(expected.indices);
   });
@@ -38,7 +38,7 @@ describe('display decimation WASM parity', () => {
     // The Rust import is bit-identical to the old TS welder (golden import-stl-aligner).
     const mesh = parseStl(bytes);
     const expected = decimate(mesh, 20_000);
-    const actual = decimateWithWasm(mesh, { decimate_display }, 20_000);
+    const actual = decimateWithWasm(mesh, { decimate_display } as unknown as Parameters<typeof decimateWithWasm>[1], 20_000);
     expect(new Uint32Array(actual.positions.buffer)).toEqual(new Uint32Array(expected.positions.buffer));
     expect(actual.indices).toEqual(expected.indices);
   });

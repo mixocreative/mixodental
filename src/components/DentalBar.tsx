@@ -1,10 +1,10 @@
-import { resolve, type CommandId, type UiState } from '../editing/commands';
-import type { Gesture } from '../editing/gesture';
-import type { SessionEvent } from '../editing/session';
-import { profileById } from '../dental/alignerProfiles';
+import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
+import type { Gesture } from '@mixo-geocore/editing/gesture';
+import type { SessionEvent } from '@mixo-geocore/editing/session';
+import { profileById } from '@mixo-geocore/host/dental/alignerProfiles';
 import { t, type Lang } from '../i18n';
-import type { DentalTuning } from '../core/analysis/dentalTuning';
-import type { ProfileDefaults } from '../dental/alignerProfiles';
+import type { DentalTuning } from '@mixo-geocore/host/dental/dentalTuning';
+import type { ProfileDefaults } from '@mixo-geocore/host/dental/alignerProfiles';
 import { CommandButton } from './CommandButton';
 import { DentalAlignerBar, DentalAlignerPrompt, DentalTypeStep, noticeText } from './DentalSteps';
 import { DentalSupportsStep, type DentalReview } from './DentalSupports';

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { SupportPoint, TriangleMesh } from '../core/analysis/types';
+import type { SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { createSceneHistory, replaceScene, undoScene } from './history';
 import { emptyScene, identityTransform, reduceScene, type PrintScene, type PrintUnit } from './project';
-import { ProjectFileError } from '../editing/project';
+import { ProjectFileError } from '@mixo-geocore/editing/project';
 import { decodeProject, encodeProject, packProject, projectFileName, sameUnits, unpackProject } from './projectFile';
 import { stepKind } from './stepKind';
 

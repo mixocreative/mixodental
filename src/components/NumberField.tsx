@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { enteredValue, escapeValue, formatNumber, readNumberInput, stepNumber, type NumberLimits } from '../editing/numberInput';
+import { enteredValue, escapeValue, formatNumber, readNumberInput, stepNumber, type NumberLimits } from '@mixo-geocore/editing/numberInput';
 
 let editCount = 0;
 

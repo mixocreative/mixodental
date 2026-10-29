@@ -1,8 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import type { Vector } from '../../core/vec3';
-import { belowPlate, boundsSphere, frameView, spotView } from '../../editing/view';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
+import { belowPlate, boundsSphere, frameView, spotView } from '@mixo-geocore/editing/view';
 import type { ViewRequest } from './types';
 
 /**

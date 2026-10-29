@@ -1,8 +1,8 @@
-import type { TriangleMesh } from '../core/analysis/types';
-import { assertTriangleCapacity, meshTier, TRIANGLE_BUDGET, type Runtime } from '../core/budget';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { assertTriangleCapacity, meshTier, TRIANGLE_BUDGET, type Runtime } from '@mixo-geocore/host/core/budget';
 import type { ImportedMesh, RawMesh } from '../state/import';
 import type { PreparedMesh } from './importProtocol';
-import type { GeometryEngine } from './geometryClient';
+import type { GeometryEngine } from '@mixo-geocore/host/workers/geometryClient';
 import { nonFiniteError } from './stlSession';
 
 export type Progress = (fraction: number, stage: string) => void;

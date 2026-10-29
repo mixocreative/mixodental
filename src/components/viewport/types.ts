@@ -1,13 +1,13 @@
-import type { SupportProblem } from '../../core/analysis/supportCheck';
-import type { SupportPoint } from '../../core/analysis/types';
-import type { GeneratedSupportMesh } from '../../core/supports/mesh';
-import type { ZoneStamp } from '../../core/supports/zones';
-import type { DentalAllowStamp } from '../../core/analysis/dentalPolicy';
-import type { Vector } from '../../core/vec3';
-import type { Gesture } from '../../editing/gesture';
-import type { AddAction, BrushMode, EditTool, SelectStyle } from '../../editing/types';
+import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
+import type { SupportPoint } from '@mixo-geocore/host/core/analysis/types';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
+import type { DentalAllowStamp } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
+import type { Gesture } from '@mixo-geocore/editing/gesture';
+import type { AddAction, BrushMode, EditTool, SelectStyle } from '@mixo-geocore/editing/types';
 import type { PrintScene } from '../../state/project';
-import type { ModelTransform } from '../../state/transform';
+import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import type { AddedAt } from './AddFlash';
 
 export type GizmoMode = 'none' | 'translate' | 'rotate';

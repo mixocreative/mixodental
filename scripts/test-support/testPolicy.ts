@@ -1,6 +1,5 @@
-import type { PolicyHandle } from '../../src/core/analysis/dentalEngine';
-import type { MakePolicy } from '../../src/supports/generateSupports';
-import type { Vector } from '../../src/core/vec3';
+import type { MakePolicy, PolicyHandle } from '@mixo-geocore/host/supports/generateSupports';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { nodeEngine } from './rustImport';
 
 interface TestPolicyHandle extends PolicyHandle {

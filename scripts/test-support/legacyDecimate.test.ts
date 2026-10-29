@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { TriangleMesh } from '../../src/core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { decimate } from './legacyDecimate';
-import { meshBounds } from '../../src/core/supports/meshQuery';
+import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
 
 /** A UV sphere of radius 10 with `rings` x `segments` quads (two triangles each). */
 function sphere(rings: number, segments: number): TriangleMesh {

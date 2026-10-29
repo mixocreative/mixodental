@@ -1,9 +1,9 @@
-import type { Runtime } from '../core/budget';
+import type { Runtime } from '@mixo-geocore/host/core/budget';
 import type { RawMesh } from '../state/import';
-import type { JobLabel } from './jobActivity';
+import type { JobLabel } from '@mixo-geocore/host/workers/jobActivity';
 import type { ImportTask, PreparedMesh } from './importProtocol';
 import { setPickIndex } from './pickIndexes';
-import { WorkerTask, type WorkerLike } from './WorkerTask';
+import { WorkerTask, type WorkerLike } from '@mixo-geocore/host/workers/WorkerTask';
 
 /** An import that runs longer than this is stopped (worker terminated) and fails with a timeout. */
 const IMPORT_TIMEOUT_MS = 5 * 60_000;

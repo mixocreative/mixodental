@@ -1,9 +1,9 @@
-import type { DentalDiagnosticBands } from '../core/analysis/dentalContactBand';
-import type { DiagnosticContourContact } from '../core/analysis/dentalContourContacts';
-import type { DentalRegionProposal } from '../core/analysis/dentalRegion';
-import type { TriangleMesh } from '../core/analysis/types';
-import type { GeneratedSupportMesh } from '../core/supports/mesh';
-import { withSession } from '../supports/supportEngine';
+import type { DentalDiagnosticBands } from '@mixo-geocore/host/dental/dentalContactBand';
+import type { DiagnosticContourContact } from '@mixo-geocore/host/dental/dentalContourContacts';
+import type { DentalRegionProposal } from '@mixo-geocore/host/dental/dentalRegion';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import { withSession } from '@mixo-geocore/host/supports/supportEngine';
 
 /*
  * Host adapter of the Rust `diagnose` (docs/SHIP-PLAN.md ABI): the review GLB's geometry as coloured

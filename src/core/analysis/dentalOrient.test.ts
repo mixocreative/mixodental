@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { orientDentalAligner } from './dentalOrient';
-import type { TriangleMesh } from './types';
+import { orientDentalAligner } from '@mixo-geocore/host/dental/dentalOrient';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { parseStl } from '../../../scripts/test-support/rustImport';
 import { REFERENCE_PROFILE } from '../../../scripts/test-support/referenceProfile';
 

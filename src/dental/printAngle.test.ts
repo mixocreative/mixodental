@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { decodeTiltScan, type TiltRow } from '../core/analysis/dentalTilt';
-import type { DentalTiltScanResultLike } from '../core/analysis/dentalEngine';
-import type { GeneratedSupportMesh } from '../core/supports/mesh';
+import { decodeTiltScan, type TiltRow } from '@mixo-geocore/host/dental/dentalTilt';
+import type { DentalTiltScanResultLike } from '@mixo-geocore/host/dental/dentalEngine';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import { tiltFlags, tiltProblems } from '../components/DentalSteps';
 import { confirmHolds } from './confirmTilt';
-import { reduceSession, initialSession } from '../editing/session';
+import { reduceSession, initialSession } from '@mixo-geocore/editing/session';
 
 /** A scan result as the Rust call returns it: two tilts, the second failing a resin trap and a crossing. */
 function fakeResult(): DentalTiltScanResultLike {

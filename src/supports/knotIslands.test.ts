@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { supportedUnit } from '../goldens/pipeline';
 import { parseStl } from '../../scripts/test-support/rustImport';
-import { runSupportJob } from './jobRunner';
-import { supportJobOf } from './unitSupports';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import { supportJobOf } from '@mixo-geocore/host/supports/unitSupports';
 
 /*
  * scripts/fixtures/knot.stl welds to a mesh with 282 degenerate (repeated-vertex) triangles and 4,011 edges

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GOLDEN_FIXTURES } from './fixtures';
-import type { GeneratedSupportMesh } from '../core/supports/mesh';
-import { unitSupportMesh } from '../supports/unitSupports';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import { unitSupportMesh } from '@mixo-geocore/host/supports/unitSupports';
 import { assertFinite, goldenDiff, goldenName, goldenSnapshot, supportedUnit } from './pipeline';
 
 /** Stored snapshots, written only by `npx vite-node scripts/update-goldens.ts`. */

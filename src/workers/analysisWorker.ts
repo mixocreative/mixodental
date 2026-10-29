@@ -1,14 +1,15 @@
-import { runCheckJob, runPlacementJob } from '../supports/jobRunner';
-import { filterDentalPlacement } from '../dental/placement';
-import { orientDentalAligner } from '../core/analysis/dentalOrient';
-import { proposeDentalSupportRegion, retuneDentalSupportRegion } from '../core/analysis/dentalRegion';
-import { defaultDentalTuning } from '../dental/tuning';
-import { scanDentalTilts } from '../core/analysis/dentalTilt';
+import './engineSource';
+import { runCheckJob, runPlacementJob } from '@mixo-geocore/host/supports/jobRunner';
+import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
+import { orientDentalAligner } from '@mixo-geocore/host/dental/dentalOrient';
+import { proposeDentalSupportRegion, retuneDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
+import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
+import { scanDentalTilts } from '@mixo-geocore/host/dental/dentalTilt';
 import { confirmPick } from '../dental/confirmTilt';
 import type { AnalysisResult, AnalysisTask } from './analysisProtocol';
-import { geometryReady } from './geometryClient';
-import { serveTask, transferable } from './serveTask';
-import { runAfterGeometryReady } from './geometryVersion';
+import { geometryReady } from '@mixo-geocore/host/workers/geometryClient';
+import { serveTask, transferable } from '@mixo-geocore/host/workers/serveTask';
+import { runAfterGeometryReady } from '@mixo-geocore/host/geometryVersion.js';
 
 const PROGRESS_INTERVAL_MS = 60;
 

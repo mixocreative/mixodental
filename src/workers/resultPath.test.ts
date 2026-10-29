@@ -1,13 +1,13 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { SupportJob } from '../core/jobs';
+import type { SupportJob } from '@mixo-geocore/host/core/jobs';
 import { GOLDEN_FIXTURES } from '../goldens/fixtures';
 import { supportedUnit } from '../goldens/pipeline';
-import { exportRefusal } from '../supports/exportGate';
-import { runSupportJob } from '../supports/jobRunner';
-import { supportJobOf } from '../supports/unitSupports';
+import { exportRefusal } from '@mixo-geocore/host/supports/exportGate';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import { supportJobOf } from '@mixo-geocore/host/supports/unitSupports';
 import { nodeEngine } from '../../scripts/test-support/rustImport';
-import { SupportMeshClient } from './meshClient';
-import type { WorkerLike } from './WorkerTask';
+import { SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
+import type { WorkerLike } from '@mixo-geocore/host/workers/WorkerTask';
 
 /*
  * U8, one result path: the real mesh worker (`meshWorker.ts`, the same `runSupportJob` -> `generate`
@@ -18,7 +18,7 @@ import type { WorkerLike } from './WorkerTask';
  * browser the whole instance goes with it; here the in-process module's build sessions are released).
  */
 
-vi.mock('./geometryClient', () => ({ geometryReady: () => Promise.resolve({}) }));
+vi.mock('@mixo-geocore/host/workers/geometryClient', () => ({ geometryReady: () => Promise.resolve({}) }));
 
 interface Scope { onmessage: ((event: { data: unknown }) => Promise<void> | void) | null; postMessage(message: unknown, transfer?: Transferable[]): void }
 const scope: Scope = { onmessage: null, postMessage: () => {} };
@@ -57,7 +57,7 @@ const contactIds = (mesh: { components: Array<{ contactId?: string | undefined }
 
 beforeAll(async () => {
   vi.stubGlobal('self', scope);
-  releaseSessions = (await import('./meshWorker')).releaseBuildSessions;
+  releaseSessions = (await import('@mixo-geocore/host/workers/meshWorker')).releaseBuildSessions;
 });
 
 afterEach(() => { workers.length = 0; });

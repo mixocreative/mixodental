@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { COMMAND_IDS } from '../editing/commands';
+import { COMMAND_IDS } from '@mixo-geocore/editing/commands';
 import { emptyScene } from '../state/project';
-import { exportUnits, type ExportKind } from './export';
+import { exportUnits, type ExportKind } from '@mixo-geocore/host/supports/export';
 
 describe('the Export STL commands', () => {
   it('are named for the export kinds the planner knows', () => {

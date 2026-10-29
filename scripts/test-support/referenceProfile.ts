@@ -1,7 +1,7 @@
-import type { DentalContactFootprintSettings } from '../../src/core/analysis/dentalContactFootprint';
-import type { DentalTuning } from '../../src/core/analysis/dentalTuning';
-import { profileData } from '../../src/dental/alignerProfiles';
-import { defaultDentalTuning } from '../../src/dental/tuning';
+import type { DentalContactFootprintSettings } from '@mixo-geocore/host/dental/dentalContactFootprint';
+import type { DentalTuning } from '@mixo-geocore/host/dental/dentalTuning';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
+import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
 
 /** Tests name the profile they run with: the reference aligner (profile #1). */
 export const REFERENCE_PROFILE = 'reference-aligner';

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { applyToDirection, applyToPoint, placementMatrix } from '../../../scripts/test-support/matrix';
-import { dot, type Vector } from '../vec3';
-import { proposeDentalOrientation, rotationToDentalPose } from './dental';
+import { dot, type Vector } from '@mixo-geocore/host/core/vec3';
+import { proposeDentalOrientation, rotationToDentalPose } from '@mixo-geocore/host/dental/dental';
 import { rimContainsPoint, rotationToPlateDown } from '../../../scripts/test-support/dentalExpect';
-import type { TriangleMesh } from './types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { REFERENCE_PROFILE } from '../../../scripts/test-support/referenceProfile';
 
 describe('proposeDentalOrientation', () => {

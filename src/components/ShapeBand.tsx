@@ -1,4 +1,4 @@
-import { resolve, type CommandId, type UiState } from '../editing/commands';
+import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import { t } from '../i18n';
 import { CommandButton } from './CommandButton';
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { emptyScene } from '../state/project';
 import { encodeProject } from '../state/projectFile';
-import { JobActivity } from '../workers/jobActivity';
+import { JobActivity } from '@mixo-geocore/host/workers/jobActivity';
 import { ProjectClient } from '../workers/projectClient';
 import { openProjectFile, type OpenHost } from './openProject';
 

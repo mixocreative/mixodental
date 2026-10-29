@@ -3,8 +3,8 @@ import { fromLeftHanded, fromLeftHandedMatrix, toLeftHanded, toLeftHandedMatrix 
 import { placementMatrix, transformPositions } from '../../scripts/test-support/matrix';
 import { GOLDEN_FIXTURES } from '../goldens/fixtures';
 import { supportedUnit } from '../goldens/pipeline';
-import { runSupportJob } from '../supports/jobRunner';
-import { generationTransform, supportJobOf } from '../supports/unitSupports';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import { generationTransform, supportJobOf } from '@mixo-geocore/host/supports/unitSupports';
 
 /*
  * Babylon contract smoke (U8). A left-handed host (Babylon with its default `useRightHandedSystem =

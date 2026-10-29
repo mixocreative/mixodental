@@ -1,6 +1,6 @@
-import type { DentalStructure } from '../core/analysis/dentalPolicy';
-import type { LiveSupportSettings } from '../core/supports/settings';
-import { profileData } from './alignerProfiles';
+import type { DentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 
 /*
  * The Step 3 support settings a new aligner starts with, from its profile's `supports` block

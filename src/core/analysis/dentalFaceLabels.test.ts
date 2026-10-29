@@ -4,10 +4,10 @@ import labelData from '../../../docs/dental-reference/face-labels.json';
 import { buildLabels } from '../../../scripts/test-support/dentalFaceLabels';
 import { parseStl } from '../../../scripts/test-support/rustImport';
 import { dentalPolicyOf } from '../../../scripts/test-support/dentalPolicyOf';
-import type { DentalPolicy } from './dentalPolicy';
-import { proposeDentalSupportRegion } from './dentalRegion';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
 import { REFERENCE_PROFILE, footprintSettings, fromBelow, referenceTuning } from '../../../scripts/test-support/referenceProfile';
-import { proposeDentalContactFootprint } from './dentalContactFootprint';
+import { proposeDentalContactFootprint } from '@mixo-geocore/host/dental/dentalContactFootprint';
 
 /** Face labels of the reference aligner (docs/dental-reference/face-labels.json): tips and secondary landings on allowed faces only. */
 interface Labels { faceCount: number; forbiddenFaceRuns: number[]; allowedFaceRuns: number[] }

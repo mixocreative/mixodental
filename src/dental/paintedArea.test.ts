@@ -1,20 +1,20 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { proposeDentalOrientation, rotationToDentalPose } from '../core/analysis/dental';
-import type { DentalPolicy } from '../core/analysis/dentalPolicy';
-import type { TriangleMesh } from '../core/analysis/types';
-import type { JobTransform } from '../core/jobs';
-import { defaultSupportSettings } from '../core/supports/settings';
-import type { Vector } from '../core/vec3';
-import { inverseTransformDirection, inverseTransformPoint, transformedMinY } from '../state/transform';
-import { placeGeneric } from '../supports/genericPlacement';
-import { runSupportJob } from '../supports/jobRunner';
-import { applyTransform } from '../state/transform';
+import { proposeDentalOrientation, rotationToDentalPose } from '@mixo-geocore/host/dental/dental';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { JobTransform } from '@mixo-geocore/host/core/jobs';
+import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
+import { inverseTransformDirection, inverseTransformPoint, transformedMinY } from '@mixo-geocore/host/state/transform';
+import { placeGeneric } from '@mixo-geocore/host/supports/genericPlacement';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import { applyTransform } from '@mixo-geocore/host/state/transform';
 import { dentalPolicyOf } from '../../scripts/test-support/dentalPolicyOf';
 import { REFERENCE_PROFILE } from '../../scripts/test-support/referenceProfile';
 import { parseStl } from '../../scripts/test-support/rustImport';
 import { manualAreaFaces, manualAreaPolicy } from './manualArea';
-import { filterDentalPlacement } from './placement';
+import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
 
 /*
  * Regression (owner bug): an area painted from scratch (no area detected) used to send a policy that

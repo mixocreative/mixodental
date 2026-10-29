@@ -1,13 +1,13 @@
-import type { PlacementResult, Region, SupportPoint, TriangleMesh } from '../core/analysis/types';
-import { contactsHiddenByMarkers, rekeyPoints, remapDeleted } from '../supports/contactEdits';
-import { defaultSupportSettings, parseShapeOverride, type ShapeOverride } from '../core/supports/settings';
-import type { ZoneStamp } from '../core/supports/zones';
-import type { DentalAllowStamp, DentalPolicy } from '../core/analysis/dentalPolicy';
-import { UNSAVED_TUNING, parseDentalTuning } from '../dental/tuning';
-import { DEFAULT_PROFILE_ID, profileData } from '../dental/alignerProfiles';
-import type { ModelTransform } from './transform';
+import type { PlacementResult, Region, SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { contactsHiddenByMarkers, rekeyPoints, remapDeleted } from '@mixo-geocore/host/supports/contactEdits';
+import { defaultSupportSettings, parseShapeOverride, type ShapeOverride } from '@mixo-geocore/host/core/supports/settings';
+import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
+import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import { UNSAVED_TUNING, parseDentalTuning } from '@mixo-geocore/host/dental/tuning';
+import { DEFAULT_PROFILE_ID, profileData } from '@mixo-geocore/host/dental/alignerProfiles';
+import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 
-export { identityTransform } from './transform';
+export { identityTransform } from '@mixo-geocore/host/state/transform';
 
 /**
  * The settings contract is intentionally open until the complete support-settings

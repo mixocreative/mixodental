@@ -1,7 +1,7 @@
-import { resolve, type CommandId, type UiState } from '../editing/commands';
-import type { EditGesture } from '../editing/gesture';
-import type { SessionEvent } from '../editing/session';
-import { settingLimits } from '../core/supports/settings';
+import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
+import type { EditGesture } from '@mixo-geocore/editing/gesture';
+import type { SessionEvent } from '@mixo-geocore/editing/session';
+import { settingLimits } from '@mixo-geocore/host/core/supports/settings';
 import { t } from '../i18n';
 import { CommandButton } from './CommandButton';
 import { KeyCaps } from './KeyCaps';

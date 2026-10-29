@@ -1,17 +1,18 @@
 import { useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import type { GeneratedSupportMesh } from '../../core/supports/mesh';
-import { createBrushScheduler, type Brush, type FrameTest } from '../../editing/brushScheduler';
-import { createDragOver } from '../../editing/dragOver';
-import { createHoverProbe } from '../../editing/hoverProbe';
-import { takesText } from '../../editing/keys';
-import { effectiveBrushMode } from '../../editing/selection';
-import { bodySegments, brushHits, type BodySegments, type BrushOccluder } from '../../editing/screenBrush';
-import type { Stroke } from '../../editing/stroke';
-import type { BrushMode } from '../../editing/types';
-import { geometryNow, sharedSession } from '../../workers/geometryClient';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import { createBrushScheduler, type Brush, type FrameTest } from '@mixo-geocore/editing/brushScheduler';
+import { createDragOver } from '@mixo-geocore/editing/dragOver';
+import { createHoverProbe } from '@mixo-geocore/editing/hoverProbe';
+import { takesText } from '@mixo-geocore/editing/keys';
+import { effectiveBrushMode } from '@mixo-geocore/editing/selection';
+import { bodySegments, brushHits, type BodySegments, type BrushOccluder } from '@mixo-geocore/editing/screenBrush';
+import type { Stroke } from '@mixo-geocore/editing/stroke';
+import type { BrushMode } from '@mixo-geocore/editing/types';
+import { geometryNow, sharedSession } from '@mixo-geocore/host/workers/geometryClient';
 import { sessionHandle } from './sessionMesh';
+import { createThreeViewportPort } from './viewportPort';
 
 /**
  * Marks on the model mesh and the support mesh of an object (their `userData`). Models hide
@@ -57,6 +58,7 @@ function createObjectTest() {
  * bodies and tests visibility with rays against the visible models, one batched call per brush
  * step. The host supplies what is on screen: the view-projection with the object's world matrix,
  * the camera in support-local space, and each visible model's mesh with its support → model matrix.
+ * The view reaches the shared brush through the three.js ViewportPort (`viewportPort.ts`, the editing seam).
  */
 function screenBrushView(bodies: BodySegments, camera: THREE.Camera, scene: THREE.Scene, group: { current: THREE.Group | null }, canvas: HTMLCanvasElement) {
   const matrix = new THREE.Matrix4();
@@ -78,6 +80,17 @@ function screenBrushView(bodies: BodySegments, camera: THREE.Camera, scene: THRE
     });
     return found;
   };
+  const port = createThreeViewportPort({
+    camera, canvas, session: sharedSession, mesh: () => undefined,
+    // Clip matrix of the support group and the eye in its space, at the canvas size the pointer last saw.
+    brushView: () => {
+      group.current!.updateWorldMatrix(true, false);
+      camera.updateMatrixWorld();
+      matrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).multiply(group.current!.matrixWorld);
+      eye.copy(camera.position).applyMatrix4(inverseGroup.copy(group.current!.matrixWorld).invert());
+      return { clip: matrix.elements.slice(), eye: [eye.x, eye.y, eye.z] as const, width: size.width, height: size.height };
+    },
+  });
   return {
     /** The canvas size the pointer last saw. */
     resize(width: number, height: number) {
@@ -86,11 +99,7 @@ function screenBrushView(bodies: BodySegments, camera: THREE.Camera, scene: THRE
     frame(): FrameTest | undefined {
       const session = sharedSession();
       if (!group.current || !session) return undefined;
-      group.current.updateWorldMatrix(true, false);
-      camera.updateMatrixWorld();
-      matrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).multiply(group.current.matrixWorld);
-      eye.copy(camera.position).applyMatrix4(inverseGroup.copy(group.current.matrixWorld).invert());
-      const view = { clip: matrix.elements.slice(), eye: [eye.x, eye.y, eye.z] as const, width: size.width, height: size.height };
+      const view = port.brushView();
       const occluders = visibleOccluders();
       return (job, want) => ({ hits: brushHits(session, bodies, occluders, view, job.from, job.to, job.radius, job.next, want), next: bodies.ids.length });
     },

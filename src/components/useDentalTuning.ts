@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DentalPolicy } from '../core/analysis/dentalPolicy';
-import type { DentalTuning } from '../core/analysis/dentalTuning';
-import type { PlacementResult } from '../core/analysis/types';
-import { defaultDentalTuning } from '../dental/tuning';
-import { profileData } from '../dental/alignerProfiles';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { DentalTuning } from '@mixo-geocore/host/dental/dentalTuning';
+import type { PlacementResult } from '@mixo-geocore/host/core/analysis/types';
+import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import type { PrintUnit, SceneCommand } from '../state/project';
-import { dentalPlacementJobOf } from '../supports/unitSupports';
+import { dentalPlacementJobOf } from '@mixo-geocore/host/supports/unitSupports';
 import type { AnalysisClient } from '../workers/analysisClient';
 import { seedDentalPlacement } from './dentalPlacementSeed';
 

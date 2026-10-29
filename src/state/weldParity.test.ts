@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BufferAttribute, BufferGeometry, Matrix4, TorusKnotGeometry } from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { TriangleMesh } from '../core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { nodeEngine, parseStl, weldPositions } from '../../scripts/test-support/rustImport';
 import { finishStl, openStlSession, pushStl } from '../workers/stlSession';
 

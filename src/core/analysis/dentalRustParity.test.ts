@@ -1,15 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { applyToPoint, placementMatrix, transformPositions } from '../../../scripts/test-support/matrix';
-import type { Vector } from '../vec3';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { parseStl } from '../../../scripts/test-support/rustImport';
 import { approxArray, exactArray, expectGolden } from '../../../scripts/test-support/golden';
 import { regionSnapshot } from '../../../scripts/test-support/dentalSnapshots';
-import { proposeDentalOrientation, rotationToDentalPose } from './dental';
-import { inspectDentalCentralOpening } from './dentalContours';
-import { orientDentalAligner } from './dentalOrient';
-import { proposeDentalSupportRegion, retuneDentalSupportRegion, type DentalRegionProposal } from './dentalRegion';
-import type { TriangleMesh } from './types';
+import { proposeDentalOrientation, rotationToDentalPose } from '@mixo-geocore/host/dental/dental';
+import { inspectDentalCentralOpening } from '@mixo-geocore/host/dental/dentalContours';
+import { orientDentalAligner } from '@mixo-geocore/host/dental/dentalOrient';
+import { proposeDentalSupportRegion, retuneDentalSupportRegion, type DentalRegionProposal } from '@mixo-geocore/host/dental/dentalRegion';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { REFERENCE_PROFILE, referenceTuning } from '../../../scripts/test-support/referenceProfile';
 
 /*

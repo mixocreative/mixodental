@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ProjectFileError, ProjectTooLarge } from '../editing/project';
-import { JobActivity } from './jobActivity';
+import { ProjectFileError, ProjectTooLarge } from '@mixo-geocore/editing/project';
+import { JobActivity } from '@mixo-geocore/host/workers/jobActivity';
 import { ProjectClient } from './projectClient';
-import { serveTask } from './serveTask';
-import type { WorkerLike } from './WorkerTask';
+import { serveTask } from '@mixo-geocore/host/workers/serveTask';
+import type { WorkerLike } from '@mixo-geocore/host/workers/WorkerTask';
 
 /** A worker that runs `handler` through the real serveTask, so errors cross as code and vars. */
 function workerOf(handler: () => never): () => WorkerLike {

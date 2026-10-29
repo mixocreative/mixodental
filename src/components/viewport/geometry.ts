@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState } from 'react';
 import * as THREE from 'three';
-import type { TriangleMesh } from '../../core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 
 export function toGeometry(mesh: TriangleMesh): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry();

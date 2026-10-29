@@ -1,13 +1,13 @@
-import type { SupportProblem } from '../core/analysis/supportCheck';
-import type { PlacementResult } from '../core/analysis/types';
-import type { CheckJob, DentalPlacementJob, PlacementJob } from '../core/jobs';
-import type { TriangleMesh } from '../core/analysis/types';
-import type { DentalRegionProposal } from '../core/analysis/dentalRegion';
-import type { DentalTuning } from '../core/analysis/dentalTuning';
-import type { DentalOrientation } from '../core/analysis/dentalOrient';
-import type { TiltScan, TiltScanSettings } from '../core/analysis/dentalTilt';
+import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
+import type { PlacementResult } from '@mixo-geocore/host/core/analysis/types';
+import type { CheckJob, DentalPlacementJob, PlacementJob } from '@mixo-geocore/host/core/jobs';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { DentalRegionProposal } from '@mixo-geocore/host/dental/dentalRegion';
+import type { DentalTuning } from '@mixo-geocore/host/dental/dentalTuning';
+import type { DentalOrientation } from '@mixo-geocore/host/dental/dentalOrient';
+import type { TiltScan, TiltScanSettings } from '@mixo-geocore/host/dental/dentalTilt';
 import type { DentalBuildInput } from '../dental/confirmTilt';
-import type { Vector } from '../core/vec3';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 
 /** One analysis job: automatic placement or a support check (the mesh arrives as a transferred copy). */
 export type AnalysisTask =

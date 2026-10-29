@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import type { Vector } from '../core/vec3';
-import { boundsSphere, fitDirection, frameView } from '../editing/view';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
+import { boundsSphere, fitDirection, frameView } from '@mixo-geocore/editing/view';
 
 // The framing the viewport did with three.js before editing/view took it over, kept here as the
 // reference: the pure functions must give the same numbers bit for bit.

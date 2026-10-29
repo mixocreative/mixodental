@@ -1,21 +1,21 @@
 import { useNodeEngine } from '../node-engine';
-import { proposeDentalOrientation, rotationToDentalPose } from '../../src/core/analysis/dental';
-import { proposeDentalSupportRegion, type DentalRegionProposal } from '../../src/core/analysis/dentalRegion';
-import { dentalAreaBand, diagnosticDentalSideBands, type DentalDiagnosticBands } from '../../src/core/analysis/dentalContactBand';
-import { profileData } from '../../src/dental/alignerProfiles';
-import { sampleDiagnosticContourContacts, type DiagnosticContourContact } from '../../src/core/analysis/dentalContourContacts';
-import type { PlacementResult, TriangleMesh } from '../../src/core/analysis/types';
-import type { JobTransform } from '../../src/core/jobs';
-import type { GeneratedSupportMesh } from '../../src/core/supports/mesh';
-import { defaultSupportSettings, toPlacementSettings } from '../../src/core/supports/settings';
-import { runSupportJob } from '../../src/supports/jobRunner';
-import { filterDentalPlacement } from '../../src/dental/placement';
+import { proposeDentalOrientation, rotationToDentalPose } from '@mixo-geocore/host/dental/dental';
+import { proposeDentalSupportRegion, type DentalRegionProposal } from '@mixo-geocore/host/dental/dentalRegion';
+import { dentalAreaBand, diagnosticDentalSideBands, type DentalDiagnosticBands } from '@mixo-geocore/host/dental/dentalContactBand';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
+import { sampleDiagnosticContourContacts, type DiagnosticContourContact } from '@mixo-geocore/host/dental/dentalContourContacts';
+import type { PlacementResult, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { JobTransform } from '@mixo-geocore/host/core/jobs';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import { defaultSupportSettings, toPlacementSettings } from '@mixo-geocore/host/core/supports/settings';
+import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
 import { dentalStructureOf, dentalSupportSettings } from '../../src/dental/supportPreset';
-import { applyTransform, inverseTransformDirection, inverseTransformPoint } from '../../src/state/transform';
+import { applyTransform, inverseTransformDirection, inverseTransformPoint } from '@mixo-geocore/host/state/transform';
 import { REFERENCE_PROFILE, referenceTuning } from './profile';
-import { scanDentalTilts, type TiltScan } from '../../src/core/analysis/dentalTilt';
+import { scanDentalTilts, type TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
 import { confirmPick } from '../../src/dental/confirmTilt';
-import type { Vector } from '../../src/core/vec3';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 
 useNodeEngine();
 

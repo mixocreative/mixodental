@@ -1,7 +1,8 @@
 import { useEffect, useReducer, useRef } from 'react';
-import { ERROR_CONTEXTS, errorStatus, type ErrorContext } from '../editing/errors';
+import { ERROR_CONTEXTS, errorStatus, type ErrorContext } from '@mixo-geocore/editing/errors';
 import { t, translateMessage } from '../i18n';
-import { jobActivity, type JobActivity, type JobRow } from '../workers/jobActivity';
+import { jobActivity, type JobActivity, type JobRow } from '@mixo-geocore/host/workers/jobActivity';
+import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
 import { rebuiltJobError } from '../workers/jobErrors';
 
 /** Re-render this often while jobs are listed: the show delay, linger and times are time-driven. */
@@ -23,6 +24,17 @@ export function failureText(row: JobRow): string {
   return translateMessage(errorStatus(context, error, name === undefined ? {} : { name: String(name) }));
 }
 
+/** The shared host reports its own stages as codes (no English in shared code); the engine and this app's workers post the English key. */
+const HOST_STAGES: Readonly<Record<string, string>> = {
+  [PROGRESS_STAGE.writingStl]: 'Writing STL',
+  [PROGRESS_STAGE.samplingNormals]: 'Sampling surface normals',
+  [PROGRESS_STAGE.findingOverhangs]: 'Finding overhangs',
+  [PROGRESS_STAGE.done]: 'Done',
+};
+
+/** The i18n key of a progress stage. */
+export const stageKey = (stage: string): string => HOST_STAGES[stage] ?? stage;
+
 /** Row text: what runs (and its stage), and the numbers (percent, time left or elapsed). */
 export function rowText(row: JobRow): { label: string; meta: string } {
   const label = translateMessage(row.label);
@@ -33,7 +45,7 @@ export function rowText(row: JobRow): { label: string; meta: string } {
   if (row.percent !== null) meta.push(`${row.percent}%`);
   if (row.remainingMs !== null) meta.push(t('about {time} left', { time: formatTime(row.remainingMs) }));
   else if (row.showElapsed) meta.push(t('{time} so far', { time: formatTime(row.elapsedMs) }));
-  return { label: row.stage ? `${label} · ${t(row.stage)}` : `${label}…`, meta: meta.join(' · ') };
+  return { label: row.stage ? `${label} · ${t(stageKey(row.stage))}` : `${label}…`, meta: meta.join(' · ') };
 }
 
 /**

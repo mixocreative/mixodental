@@ -1,4 +1,4 @@
-import type { TriangleMesh } from '../core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { importStl } from '../../scripts/test-support/rustImport';
 
 type Vector = [number, number, number];

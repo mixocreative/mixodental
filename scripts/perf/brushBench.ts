@@ -1,7 +1,7 @@
 import type { BrushFixture } from '../fixtures/brush/types';
-import { brushHits } from '../../src/editing/screenBrush';
-import type { BodySegments } from '../../src/editing/screenBrush';
-import { geometryReady } from '../../src/workers/geometryClient';
+import { brushHits } from '@mixo-geocore/editing/screenBrush';
+import type { BodySegments } from '@mixo-geocore/editing/screenBrush';
+import { geometryReady } from '@mixo-geocore/host/workers/geometryClient';
 import { parseStlBytes } from '../../src/workers/stlSession';
 
 /*

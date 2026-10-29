@@ -1,6 +1,6 @@
-import type { TriangleMesh } from '../../core/analysis/types';
-import { supportEngine } from '../../supports/supportEngine';
-import { buildVertexGrid, type VertexGrid } from '../../core/supports/zones';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { supportEngine } from '@mixo-geocore/host/supports/supportEngine';
+import { buildVertexGrid, type VertexGrid } from '@mixo-geocore/host/core/supports/zones';
 
 /**
  * A finer copy of a mesh for display-only overlays (the no-support zone layer): per-vertex

@@ -1,4 +1,4 @@
-import type { Runtime } from '../core/budget';
+import type { Runtime } from '@mixo-geocore/host/core/budget';
 
 /**
  * The runtime tier the budgets apply to: 'desktop' in an Electron-like shell (or a build made with

@@ -13,7 +13,7 @@ const THREE_IMPORT = /\b(?:import|export)\s[^'"`;]*?\sfrom\s*['"](three|three\/[
 
 describe('three.js boundary', () => {
   it('scans the app sources', () => {
-    expect(Object.keys(SOURCES)).toContain('./state/transform.ts');
+    expect(Object.keys(SOURCES)).toContain('./state/project.ts');
   });
 
   it('keeps three.js in the view layer and the listed loaders', () => {

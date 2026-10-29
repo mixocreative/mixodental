@@ -1,8 +1,8 @@
 import { Euler, Matrix4, Quaternion, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
-import type { TriangleMesh } from '../core/analysis/types';
-import type { Vector } from '../core/vec3';
-import { applyTransform, inverseTransformDirection, inverseTransformMesh, inverseTransformPoint, transformDirection, transformPoint, type ModelTransform } from './transform';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
+import { applyTransform, inverseTransformDirection, inverseTransformMesh, inverseTransformPoint, transformDirection, transformPoint, type ModelTransform } from '@mixo-geocore/host/state/transform';
 
 // The three.js code state/transform.ts used before core/transform.ts replaced it, kept as the
 // reference: the replacement must give the same numbers (to 1e-9; the Rust calls may differ in the last bit).

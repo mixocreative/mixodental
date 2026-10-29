@@ -1,4 +1,4 @@
-import type { TriangleMesh } from '../../src/core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 
 /** 400 seeded rays from a sphere around the mesh toward a random point near its centre: [origin xyz, unit direction xyz] each. */
 export function seededRays(mesh: TriangleMesh, count = 400): number[] {

@@ -1,7 +1,7 @@
-import type { TriangleMesh } from '../core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { binaryStlTriangles, StlEmptyError, StlFormatError, stlKind } from '../core/import/stlHeader';
-import { CodedError, ENGINE_OVER_CAPACITY } from '../editing/errors';
-import type { GeometryEngine } from './geometryClient';
+import { CodedError, ENGINE_OVER_CAPACITY } from '@mixo-geocore/editing/errors';
+import type { GeometryEngine } from '@mixo-geocore/host/workers/geometryClient';
 
 /* Host glue around the Rust STL sessions: header classification (TS), chunk feeding, typed errors. */
 

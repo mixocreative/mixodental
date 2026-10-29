@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import type { SupportPoint, TriangleMesh } from '../../core/analysis/types';
-import { buildVertexGrid, sameStamp, stampVertices, type VertexGrid } from '../../core/supports/zones';
-import type { DentalRim } from '../../core/analysis/dental';
-import { legacyBaselineVertices } from '../../dental/legacyArea';
-import { dentalContactMask, isManualArea, type DentalAllowStamp, type DentalPolicy } from '../../core/analysis/dentalPolicy';
+import type { SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { buildVertexGrid, sameStamp, stampVertices, type VertexGrid } from '@mixo-geocore/host/core/supports/zones';
+import type { DentalRim } from '@mixo-geocore/host/dental/dental';
+import { legacyBaselineVertices } from '@mixo-geocore/host/dental/legacyArea';
+import { dentalContactMask, isManualArea, type DentalAllowStamp, type DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { PREVIEW } from './style';
 import { faceMaskContourSegments, faceMaskOverlay } from './faceMaskOverlay';
 import { SurfaceStampLayer } from './supportLayers';

@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { sharedSession } from '../../workers/geometryClient';
+import { sharedSession } from '@mixo-geocore/host/workers/geometryClient';
 import { pickIndexFor } from '../../workers/pickIndexes';
 
 /**

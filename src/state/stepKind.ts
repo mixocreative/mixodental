@@ -1,4 +1,4 @@
-import type { StepKind } from '../editing/types';
+import type { StepKind } from '@mixo-geocore/editing/types';
 import type { PrintScene, PrintUnit } from './project';
 
 /** What a unit's change was, by the first field that differs; undefined when only view state moved. */

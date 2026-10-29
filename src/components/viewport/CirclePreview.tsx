@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Gesture } from '../../editing/gesture';
+import type { Gesture } from '@mixo-geocore/editing/gesture';
 
 /** How long the circle stays after its slider is let go (ms). */
 const LINGER_MS = 800;

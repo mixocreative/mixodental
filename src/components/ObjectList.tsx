@@ -1,8 +1,8 @@
-import { labelForIndex } from '../core/analysis/mesh';
-import type { CommandId, ResolvedCommand } from '../editing/commands';
+import { labelForIndex } from '@mixo-geocore/host/core/analysis/mesh';
+import type { CommandId, ResolvedCommand } from '@mixo-geocore/editing/commands';
 import { plural, t } from '../i18n';
 import type { PrintScene, PrintUnit } from '../state/project';
-import { resolveSettings } from '../supports/unitSupports';
+import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { CommandButton } from './CommandButton';
 import { hint } from './hint';
 

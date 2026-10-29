@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { placementMatrix, transformPositions } from '../../../scripts/test-support/matrix';
-import { proposeDentalSupportRegion, retuneDentalSupportRegion } from './dentalRegion';
+import { proposeDentalSupportRegion, retuneDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
 import { parseStl } from '../../../scripts/test-support/rustImport';
 import { REFERENCE_PROFILE, referenceTuning } from '../../../scripts/test-support/referenceProfile';
 

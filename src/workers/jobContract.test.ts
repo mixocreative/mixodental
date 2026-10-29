@@ -10,9 +10,10 @@ describe('worker job contract', () => {
   const clients = Object.entries(SOURCES).filter(([file, code]) => /Client\.ts$/.test(file) && /new WorkerTask\b/.test(code));
   const workers = Object.entries(SOURCES).filter(([file]) => /Worker\.ts$/.test(file));
 
+  // The mesh client and worker are the shared host's (mixo-geocore host/workers, its own contract test).
   it('finds the clients and workers', () => {
-    expect(clients.map(([file]) => file).sort()).toEqual(['./analysisClient.ts', './importClient.ts', './meshClient.ts', './projectClient.ts']);
-    expect(workers.map(([file]) => file).sort()).toEqual(['./analysisWorker.ts', './importWorker.ts', './meshWorker.ts', './projectWorker.ts']);
+    expect(clients.map(([file]) => file).sort()).toEqual(['./analysisClient.ts', './importClient.ts', './projectClient.ts']);
+    expect(workers.map(([file]) => file).sort()).toEqual(['./analysisWorker.ts', './importWorker.ts', './projectWorker.ts']);
   });
 
   it('labels every job a client runs', () => {

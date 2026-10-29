@@ -1,10 +1,10 @@
-import { refusalLimit, type Runtime } from '../core/budget';
+import { refusalLimit, type Runtime } from '@mixo-geocore/host/core/budget';
 import type { PrintScene } from '../state/project';
 import { triangleCountOf } from '../state/projectFile';
-import { MODELS_IGNORED, openedStatus, openFailure, ProjectTooLarge } from '../editing/project';
-import { importRefusal } from '../editing/status';
-import type { EditMode, StatusMessage } from '../editing/types';
-import type { UndoAction } from '../editing/toast';
+import { MODELS_IGNORED, openedStatus, openFailure, ProjectTooLarge } from '@mixo-geocore/editing/project';
+import { importRefusal } from '@mixo-geocore/editing/status';
+import type { EditMode, StatusMessage } from '@mixo-geocore/editing/types';
+import type { UndoAction } from '@mixo-geocore/editing/toast';
 
 /** What Open project needs of the app; the hook supplies them. */
 export interface OpenHost {

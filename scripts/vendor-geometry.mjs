@@ -94,29 +94,8 @@ function hashLayout({ engine, node, host, editing }) {
   return hashes;
 }
 
-/** The dental data the engine embeds (crates/.../profiles, label font) is copied into src/dental; a drifted copy is an error. */
-const DENTAL_DATA = [
-  [join('crates', 'geometry-core', 'src', 'dental', 'profiles'), join('src', 'dental', 'profiles'), name => name.endsWith('.json')],
-  [join('crates', 'geometry-core', 'src', 'supports', 'parts', 'labelFont.json'), join('src', 'dental', 'labelFont.json')],
-];
-
-function checkDentalData(source) {
-  const read = file => asBuilt(file, readFileSync(file)).toString('latin1');
-  for (const [from, to, keep] of DENTAL_DATA) {
-    const pairs = keep
-      ? listFiles(join(source, from), keep).map(rel => [join(source, from, rel), join(ROOT, to, rel)])
-      : [[join(source, from), join(ROOT, to)]];
-    for (const [a, b] of pairs) {
-      if (!existsSync(b) || read(a) !== read(b)) {
-        throw new Error(`${relative(ROOT, b)} differs from the engine's ${a}: copy it, then re-run (dental data must match what the engine embeds)`);
-      }
-    }
-  }
-}
-
 /** Stage the engine + packages of a local mixo-geocore checkout (fresh build, clean tree). */
 function stageFromCheckout(source, stage) {
-  checkDentalData(source);
   const pkg = join(source, PKG);
   const nodePkg = join(source, NODE_PKG);
   for (const [dir, names] of [[pkg, FILES], [nodePkg, NODE_FILES]]) {
