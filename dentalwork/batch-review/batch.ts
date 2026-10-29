@@ -3,7 +3,7 @@
  * (see reviewCase.ts), and each result is written as a review GLB plus one summary for the viewer
  * (`serve.mjs`).
  *
- *   npx vite-node --script dentalwork/batch-review/batch.ts --out <folder> <stl folder> [more folders]
+ *   npx vite-node --script dentalwork/batch-review/batch.ts [--kind aligner|denture] --out <folder> <stl folder> [more folders]
  *
  * Output names are case-001.glb, case-002.glb...; the original file paths appear only in
  * summary.json / summary.csv inside the output folder, which Git ignores (patient data).
@@ -12,13 +12,16 @@
 import { mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { reviewCase, type CaseRow } from './reviewCase';
+import { parseKind } from './profileSelect';
 
 async function main(): Promise<void> {
 const args = process.argv.slice(2);
 const outAt = args.indexOf('--out');
-if (outAt < 0 || !args[outAt + 1]) throw new Error('Usage: batch.ts --out <folder> <stl folder> [more folders]');
+if (outAt < 0 || !args[outAt + 1]) throw new Error('Usage: batch.ts [--kind aligner|denture] --out <folder> <stl folder> [more folders]');
+const kindAt = args.indexOf('--kind');
+const kind = parseKind(kindAt < 0 ? undefined : args[kindAt + 1]);
 const out = resolve(args[outAt + 1]!);
-const roots = args.filter((_, k) => k !== outAt && k !== outAt + 1).map((root) => resolve(root.replace(/"/g, '')));
+const roots = args.filter((_, k) => k !== outAt && k !== outAt + 1 && (kindAt < 0 || (k !== kindAt && k !== kindAt + 1))).map((root) => resolve(root.replace(/"/g, '')));
 
 function stlsUnder(path: string): string[] {
   if (!statSync(path, { throwIfNoEntry: false })) return [];
@@ -38,7 +41,7 @@ const rows: CaseRow[] = [];
 for (const [k, file] of files.entries()) {
   const name = `case-${String(k + 1).padStart(3, '0')}`;
   process.stdout.write(`[${k + 1}/${files.length}] ${name} ... `);
-  const row = await reviewCase(file, name, out);
+  const row = await reviewCase(file, name, out, kind);
   rows.push(row);
   process.stdout.write(`${row.result}${row.verdict ? ` / ${row.verdict}` : ''}${row.reason ? ` (${row.reason})` : ''}${row.printAngleDeg === null ? '' : `, print angle ${row.printAngleDeg}° (stable ${row.stableBand})`} in ${row.seconds} s
 `);

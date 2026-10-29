@@ -357,6 +357,8 @@ const shown = () => (onlyLook ? cases.filter((c) => c.needsLook) : cases);
 const status = (c) => (c.result !== 'built' ? c.result : c.verdict);
 function facts(c) {
   const rows = [
+    ['Kind', c.kind || 'aligner', !!c.shapeNote],
+    ['Shape check', c.shapeNote || 'ok', !!c.shapeNote],
     ['Result', c.result, c.result !== 'built'],
     ['Safety check', c.verdict || '-', c.verdict && c.verdict !== 'clear'],
     ['Supports crossing the aligner', c.crossings, c.crossings > 0],
@@ -401,7 +403,8 @@ function drawList() {
     const small = document.createElement('small');
     small.textContent = c.result !== 'built' ? `Not built: ${explain(c)}` : status(c);
     if (c.result !== 'built') { small.title = explain(c); small.className = 'why'; }
-    li.append(badge, name, small);
+    const kindLabel = document.createElement('small'); kindLabel.className = 'kind'; kindLabel.textContent = c.kind || 'aligner';
+    li.append(badge, name, kindLabel, small);
     li.addEventListener('click', () => select(k));
     return li;
   }));

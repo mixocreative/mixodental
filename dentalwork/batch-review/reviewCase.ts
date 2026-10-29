@@ -10,6 +10,7 @@
  * Output names are case-001.glb, case-002.glb...; the original file paths appear only in
  * summary.json / summary.csv inside the output folder, which Git ignores (patient data).
  */
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { nodeEngine, parseStl } from '../../scripts/node-engine';
@@ -21,10 +22,15 @@ import { REFERENCE_PROFILE } from '../../scripts/dental-region-review/profile';
 import { explainReason } from './reasons';
 import { NO_EVIDENCE, orientationEvidence, orientationLayers, type OrientationEvidence } from '../../src/dental/orientationEvidence';
 import { orientationGlb } from './orientationEvidenceGlb';
+import { buildDentureReview, dentureLayers, shapeNote, type DentalKind } from './profileSelect';
 
 export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   /** The Step 1 evidence GLB (trim chains, U ends, bottom plane, back arrow) beside `glb`, or ''. */
   orientationGlb: string;
+  /** What the operator chose for this run (the shape check only verifies it). */
+  kind: DentalKind;
+  /** The shape check's note ('looks like a denture' / 'looks like an aligner') when the file does not look like `kind`; '' otherwise. */
+  shapeNote: string;
   case: string; source: string; result: 'built' | 'inconclusive' | 'error'; reason: string;
   /** `reason` in plain words with what to do next (empty when there is no reason). */
   explanation: string; seconds: number;
@@ -40,13 +46,14 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
 };
 
 /** Runs one STL through the pipeline; writes `<name>.glb` into `out` when it builds. Never throws: errors land in `row.reason`. */
-export async function reviewCase(file: string, name: string, out: string): Promise<CaseRow> {
+export async function reviewCase(file: string, name: string, out: string, kind: DentalKind = 'aligner'): Promise<CaseRow> {
   const started = performance.now();
   const { rotation: _unused, ...noEvidence } = NO_EVIDENCE;
-  const row: CaseRow = { case: name, source: file, result: 'error', reason: '', explanation: '', seconds: 0, verdict: '', crossings: 0, uncertain: 0,
+  const row: CaseRow = { kind, shapeNote: '', case: name, source: file, result: 'error', reason: '', explanation: '', seconds: 0, verdict: '', crossings: 0, uncertain: 0,
     islandsUnresolved: 0, islandsOutsideArea: 0, tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
     ...noEvidence, orientationGlb: '' };
+  let shapeMesh: TriangleMesh | undefined;
   try {
     const bytes = readFileSync(file);
     const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
@@ -58,6 +65,11 @@ export async function reviewCase(file: string, name: string, out: string): Promi
     }
     // Centred as the app's import does, so the review sees the same coordinates as the app.
     nodeEngine.center_positions_in_place(mesh.positions);
+    shapeMesh = mesh;
+    if (kind === 'denture') {
+      await reviewDenture(mesh, name, out, row);
+      return finish(row, started, shapeMesh);
+    }
     // Step 1 as the app runs it: arch kind and the up/down cross-check go into the row; the evidence
     // GLB is written below in the review's frame (or Step 1's own pose when nothing was built).
     const { rotation: step1Rotation, ...evidence } = orientationEvidence(mesh, REFERENCE_PROFILE);
@@ -113,8 +125,36 @@ export async function reviewCase(file: string, name: string, out: string): Promi
   } catch (error) {
     row.reason = error instanceof Error ? error.message : String(error);
   }
-  row.explanation = row.reason ? explainReason(row.reason) : '';
+  return finish(row, started, shapeMesh);
+}
+
+function finish(row: CaseRow, started: number, mesh: TriangleMesh | undefined): CaseRow {
+  if (row.result !== 'built' && mesh) row.shapeNote = shapeNote(row.kind, mesh);
+  row.explanation = [row.reason ? explainReason(row.reason) : '', row.shapeNote ? `This file ${row.shapeNote}; check the type chosen for the run.` : ''].filter(Boolean).join(' ');
   row.seconds = +((performance.now() - started) / 1000).toFixed(1);
-  row.needsLook = row.result !== 'built' || row.verdict !== 'clear' || row.islandsUnresolved > 0 || row.rimNeedsReview || row.upCrossCheck === 'disagrees';
+  row.needsLook = row.result !== 'built' || row.verdict !== 'clear' || row.islandsUnresolved > 0 || row.rimNeedsReview || row.upCrossCheck === 'disagrees' || row.shapeNote !== '';
   return row;
+}
+
+/** The denture path (profileSelect.ts): upright, print angle, tips, supports; the GLB holds the model, supports and the upright plane. */
+async function reviewDenture(mesh: TriangleMesh, name: string, out: string, row: CaseRow): Promise<void> {
+  const review = buildDentureReview(mesh);
+  if (review.kind === 'inconclusive') {
+    Object.assign(row, { result: 'inconclusive', reason: review.reason });
+    return;
+  }
+  const { supports, scan, index } = review;
+  const issues = supports.verdict?.issues ?? [];
+  const islands = supports.islands?.status === 'ok' ? supports.islands.islands : [];
+  const glb = await orientationGlb(dentureLayers(mesh, review), review.frame);
+  writeFileSync(join(out, `${name}.glb`), Buffer.from(glb));
+  Object.assign(row, {
+    result: 'built', reason: supports.verdict?.reason ?? (supports.islands?.status === 'inconclusive' ? `islands: ${supports.islands.reason}` : ''),
+    verdict: supports.verdict?.status ?? 'none', crossings: issues.filter((i) => i.blocked).length, uncertain: issues.filter((i) => !i.blocked).length,
+    islandsUnresolved: islands.filter((i) => i.status === 'unresolved').length, islandsOutsideArea: islands.filter((i) => i.status === 'outside-policy').length,
+    tipsPlaced: review.placement.points.length - supports.dropped.length, tipsLeftOut: supports.dropped.length, glb: `${name}.glb`,
+    printAngleDeg: Number(tiltLabel(scan.rows[index]!.tiltDeg)), angleReason: scan.reason, angleConfirmed: false,
+    stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none',
+    structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
+  });
 }

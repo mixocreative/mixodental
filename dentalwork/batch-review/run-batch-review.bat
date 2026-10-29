@@ -19,6 +19,11 @@ if not exist "%ROOT%vendor\mixo-geocore\pkg-node\mixo_geometry_wasm.js" (
   pause
   exit /b 1
 )
+rem One question per run: the product kind decides the whole pipeline (never guessed from the scan).
+choice /C AD /N /M "Aligner/Retainer or Denture? [A/D] "
+set "KIND=aligner"
+if errorlevel 2 set "KIND=denture"
+echo.
 set "FOLDERS=%*"
 if "%~1"=="" set "FOLDERS="
 if not defined FOLDERS (
