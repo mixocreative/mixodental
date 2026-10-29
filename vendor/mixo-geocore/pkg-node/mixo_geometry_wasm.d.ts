@@ -378,9 +378,9 @@ export class GeometrySession {
     /**
      * The generic policy of a unit as a `PolicyHandle` for `generate`: its contacts (automatic
      * minus deleted and zoned, plus manual; unit-local), every face of `model` permitted, the
-     * structures the settings ask for, report-only repair. Arguments as `generic_policy_contacts`.
+     * structures the settings ask for, and `repair_budget` safety-repair trials (0: report only). Arguments as `generic_policy_contacts`.
      */
-    generic_policy(model: number, settings: Float64Array, auto_ids: string[], auto_positions: Float64Array, auto_normals: Float64Array, auto_sources: Uint8Array, manual_ids: string[], manual_positions: Float64Array, manual_normals: Float64Array, manual_sources: Uint8Array, deleted: string[], zones: Float64Array): PolicyHandle;
+    generic_policy(model: number, settings: Float64Array, auto_ids: string[], auto_positions: Float64Array, auto_normals: Float64Array, auto_sources: Uint8Array, manual_ids: string[], manual_positions: Float64Array, manual_normals: Float64Array, manual_sources: Uint8Array, deleted: string[], zones: Float64Array, repair_budget: number): PolicyHandle;
     load_mesh(positions: Float32Array, indices: Uint32Array): number;
     /**
      * `load_mesh` with a pick index built elsewhere (`build_pick_index`, in a worker): used as is,
