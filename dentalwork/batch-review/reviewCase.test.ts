@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -9,6 +9,7 @@ import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
 import { nodeEngine, parseStl } from '../../scripts/node-engine';
 import { explainReason } from './reasons';
 import { reviewCase } from './reviewCase';
+import { distancesToSurface, readGlbWorldMeshes } from './glbWorld';
 
 /*
  * The folder review end to end: batch.ts' per-file pipeline on the reference aligner, and batch.ts
@@ -16,6 +17,27 @@ import { reviewCase } from './reviewCase';
  */
 const scratch = mkdtempSync(join(tmpdir(), 'batch-review-test-'));
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
+
+/*
+ * The Step 1 evidence must sit on the model in the review GLB's own frame (node transforms applied).
+ * The drawn trim line is lifted off the ridge on purpose (about 0.3 mm), and each U-end marker sits at
+ * the turn's centre (about 1 mm off the surface), hence the limits. The reference is posed at about
+ * zero; a real scan with a large print angle is what proves the overlays follow the rotation.
+ */
+async function expectEvidenceOnModel(file: string, name: string, dir: string): Promise<void> {
+  mkdirSync(dir, { recursive: true });
+  const row = await reviewCase(file, name, dir);
+  expect(row.result).toBe('built');
+  const model = readGlbWorldMeshes(readFileSync(join(dir, `${name}.glb`))).filter((m) => /^(TEAL|NEUTRAL)/.test(m.name));
+  const evidence = readGlbWorldMeshes(readFileSync(join(dir, `${name}-orientation.glb`)));
+  const pointsOf = (prefix: string) => Float64Array.from(evidence.filter((m) => m.name.startsWith(prefix)).flatMap((m) => [...m.positions]));
+  const trim = pointsOf('TRIM');
+  const uEnds = pointsOf('UEND');
+  expect(trim.length).toBeGreaterThan(0);
+  expect(uEnds.length).toBeGreaterThan(0);
+  expect(Math.max(...distancesToSurface(trim, model))).toBeLessThanOrEqual(0.5);
+  expect(Math.max(...distancesToSurface(uEnds, model))).toBeLessThanOrEqual(1.5);
+}
 
 describe('folder review', () => {
   it('builds a review GLB for the reference aligner', async () => {
@@ -40,6 +62,10 @@ describe('folder review', () => {
     for (const layer of ['TRIM detected trim chains', 'UEND trim U ends', 'PLANE bottom plane outline']) expect(evidence.toString('latin1')).toContain(layer);
     expect(evidence.toString('latin1')).not.toContain('BACK arrow');
   }, 120_000);
+
+  it('puts the Step 1 evidence on the reference model (trim <= 0.5 mm, U ends <= 1.5 mm)', async () => {
+    await expectEvidenceOnModel(resolve('docs/dental-reference/reference-aligner.stl'), 'case-004', join(scratch, 'frame-reference'));
+  }, 300_000);
 
   it('removes collapsed triangles before processing and counts them', async () => {
     const source = readFileSync(resolve('docs/dental-reference/reference-aligner.stl'));
@@ -109,3 +135,14 @@ describe.skipIf(!existsSync(CASE_002))('case-002 (local real scan)', () => {
   }, 120_000);
 });
 
+/*
+ * The first scan of dentalwork/fixtures/case-aligner (sorted), read in place: a real scan with a large
+ * print angle (about 36.5 deg), so the overlays must follow the rotation. Local only; skipped when absent.
+ */
+const CASE_ALIGNER_DIR = resolve('dentalwork/fixtures/case-aligner');
+const CASE_ALIGNER_FIRST = existsSync(CASE_ALIGNER_DIR) ? readdirSync(CASE_ALIGNER_DIR).filter((n) => n.toLowerCase().endsWith('.stl')).sort()[0] : undefined;
+describe.skipIf(!CASE_ALIGNER_FIRST)('case-aligner first scan (local real scan)', () => {
+  it('puts the Step 1 evidence on the model after a large print-angle rotation', async () => {
+    await expectEvidenceOnModel(join(CASE_ALIGNER_DIR, CASE_ALIGNER_FIRST!), 'case-005', join(scratch, 'frame-real'));
+  }, 300_000);
+});

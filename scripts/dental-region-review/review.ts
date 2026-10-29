@@ -18,6 +18,18 @@ type ReviewLayers = { supports: GeneratedSupportMesh; frame: JobTransform; bands
 /** Extra point markers in the model's own frame (for example where a support crosses the model). */
 export type ReviewMarkers = Array<{ name: string; color: number; points: number[] }>;
 
+/**
+ * The rotation (Euler XYZ) the review GLB's model scene carries. Its lift is `ReviewLayers.frame.position`.
+ * Step 1's evidence GLB takes this same rotation with the same lift, so every overlay sits on the model.
+ */
+export function dentalModelRotation(mesh: TriangleMesh): [number, number, number] {
+  const orientation = proposeDentalOrientation(mesh, REFERENCE_PROFILE);
+  if (orientation.kind !== 'proposal') throw new Error('Dental orientation is inconclusive');
+  const rotation = rotationToDentalPose(mesh, orientation.rim, REFERENCE_PROFILE);
+  if (!rotation) throw new Error('Dental pose is inconclusive');
+  return rotation;
+}
+
 /** Diagnostic GLB only. Names and metadata never include the input STL filename or patient fields. */
 export async function exportDentalRegionReview(mesh: TriangleMesh, region: Region, layers?: ReviewLayers, markers: ReviewMarkers = []): Promise<ArrayBuffer> {
   if (region.contactFaces?.length !== mesh.indices.length / 3) throw new Error('Contact mask does not match mesh triangles');
@@ -57,11 +69,7 @@ export async function exportDentalRegionReview(mesh: TriangleMesh, region: Regio
       source: 'app dental placement and support builder', approval: 'diagnostic only' };
   }
 
-  const orientation = proposeDentalOrientation(mesh, REFERENCE_PROFILE);
-  if (orientation.kind !== 'proposal') throw new Error('Dental orientation is inconclusive');
-  const rotation = rotationToDentalPose(mesh, orientation.rim, REFERENCE_PROFILE);
-  if (!rotation) throw new Error('Dental pose is inconclusive');
-  scene.rotation.set(...rotation);
+  scene.rotation.set(...dentalModelRotation(mesh));
 
 
   // GLTFExporter reads its binary Blob through FileReader, which Node does not provide.

@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { nodeEngine, parseStl } from '../../scripts/node-engine';
 import { buildDentalReview, pickPrintAngle } from '../../scripts/dental-region-review/build';
 import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
-import { exportDentalRegionReview } from '../../scripts/dental-region-review/review';
+import { dentalModelRotation, exportDentalRegionReview } from '../../scripts/dental-region-review/review';
 import { removeDegenerateTriangles } from '@mixo-geocore/host/core/removeDegenerate';
 import { REFERENCE_PROFILE } from '../../scripts/dental-region-review/profile';
 import { explainReason } from './reasons';
@@ -68,7 +68,8 @@ export async function reviewCase(file: string, name: string, out: string): Promi
         stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none' });
     }
     const review = buildDentalReview(mesh, angle.kind === 'angle' ? angle.rotation : undefined);
-    const evidenceFrame = review.kind === 'proposal' ? review.frame
+    // The evidence takes the model's own transform (lift from the review frame, pose from review.ts), so the overlays sit on the model.
+    const evidenceFrame = review.kind === 'proposal' ? { position: review.frame.position, rotation: dentalModelRotation(mesh) }
       : step1Rotation ? { position: [0, 0, 0] as [number, number, number], rotation: step1Rotation } : undefined;
     if (evidenceFrame) {
       const layers = orientationLayers(mesh, REFERENCE_PROFILE);
