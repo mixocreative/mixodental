@@ -72,8 +72,12 @@ export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector): De
   if (bands.kind !== 'proposal') return { kind: 'inconclusive', reason: `diagnostic-band-${bands.reason}` };
   const outer = sampleDiagnosticContourContacts(mesh, region.outerEdges, bands.outerOtherSide,
     { spacing: defaults.outerSpacingMm / referenceTuning.density, maxSearchDistance: defaults.maxSearchMm });
-  const inner = sampleDiagnosticContourContacts(mesh, region.openingEdges, bands.innerOtherSide,
-    { spacing: defaults.innerSpacingMm / referenceTuning.density, maxSearchDistance: defaults.maxSearchMm });
+  // An open arch has no central opening (empty opening contour): there is no inner rim to sample, so
+  // it has no inner contacts. Any other opening contour still has to be one valid closed loop.
+  const inner = region.openingEdges.length === 0
+    ? { kind: 'proposal' as const, contacts: [], skippedSamples: 0, perimeter: 0 }
+    : sampleDiagnosticContourContacts(mesh, region.openingEdges, bands.innerOtherSide,
+      { spacing: defaults.innerSpacingMm / referenceTuning.density, maxSearchDistance: defaults.maxSearchMm });
   if (outer.kind !== 'proposal' || inner.kind !== 'proposal') {
     return { kind: 'inconclusive', reason: `diagnostic-contact-${outer.kind !== 'proposal' ? outer.reason : inner.kind !== 'proposal' ? inner.reason : 'unknown'}` };
   }
