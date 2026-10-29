@@ -1,8 +1,19 @@
 import { configDefaults } from 'vitest/config';
 import { defineConfig } from 'vite';
+import { resolve } from 'node:path';
+
+/** Vendored mixo-geocore packages (vendor/mixo-geocore, written by scripts/vendor-geometry.mjs). */
+const VENDOR = resolve(import.meta.dirname, 'vendor/mixo-geocore');
 
 export default defineConfig({
   base: '/mixo-supports/',
+  resolve: {
+    alias: {
+      '@mixo-geocore/host': resolve(VENDOR, 'host'),
+      '@mixo-geocore/editing': resolve(VENDOR, 'editing'),
+      '@mixo-geocore/engine': resolve(VENDOR, 'pkg-browser/mixo_geometry_wasm.js'),
+    },
+  },
   build: {
     assetsInlineLimit: (file) => (file.endsWith('.woff2') ? false : undefined),
   },

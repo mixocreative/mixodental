@@ -71,12 +71,13 @@ describe('contact IDs and the manual-edit bookkeeping against the recorded oracl
   });
 });
 
-const sources = import.meta.glob<string>(['../workers/geometryClient.ts', './genericPolicy.ts', './contactEdits.ts', './genericPlacement.ts', './supportBuildWasm.ts', './supportEngine.ts', './generateSupports.ts', './checkSupports.ts'], { query: '?raw', import: 'default', eager: true });
+// The adapters that moved to the shared package are read from the vendored copy (their local files are shims).
+const sources = import.meta.glob<string>(['../workers/geometryClient.ts', './genericPolicy.ts', './generateSupports.ts', '../../vendor/mixo-geocore/host/supports/{genericPolicy,contactEdits,genericPlacement,supportBuildWasm,supportEngine,checkSupports}.ts'], { query: '?raw', import: 'default', eager: true });
 
 describe('browser engine registration', () => {
   it('geometryClient hands the adapters every call they use (the browser build lists its exports by name)', () => {
     const client = sources['../workers/geometryClient.ts']!;
-    const adapters = Object.entries(sources).filter(([file]) => file.startsWith('./')).map(([, text]) => text).join(' ');
+    const adapters = Object.entries(sources).filter(([file]) => file !== '../workers/geometryClient.ts').map(([, text]) => text).join(' ');
     const calls = [...adapters.matchAll(/^  ([a-z][a-z_]+)\(/gm)].map((m) => m[1]!).filter((name) => name.includes('_') && !/^(take|set|add)_/.test(name) && !['generic_place', 'load_mesh', 'island_reason',
       // GeometrySession methods (the class is registered below), not free exports.
       'load_placed', 'release_mesh', 'dental_policy', 'generic_policy'].includes(name));

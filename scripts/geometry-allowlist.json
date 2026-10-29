@@ -31,6 +31,11 @@
  "src/components/viewport/useScreenBrush.ts": {
   "label": "host-adapter"
  },
+ "src/components/viewport/viewportPort.ts": {
+  "label": "host-math",
+  "maxMath": 1,
+  "why": "three.js camera projection for the ViewportPort seam, and the unit normal of one picked triangle (render-side picking answer)"
+ },
  "src/core/analysis/dental.ts": {
   "label": "host-adapter"
  },
@@ -38,9 +43,6 @@
   "label": "host-adapter"
  },
  "src/core/analysis/dentalTilt.ts": {
-  "label": "host-adapter"
- },
- "src/core/analysis/supportCheck.ts": {
   "label": "host-adapter"
  },
  "src/core/handedness.ts": {
@@ -85,18 +87,7 @@
  "src/editing/surfaceBrush.ts": {
   "label": "host-adapter"
  },
- "src/editing/view.ts": {
-  "label": "host-math",
-  "maxMath": 7,
-  "why": "camera framing (fit/spot view distance from a bounding sphere and the field of view): render/camera, not model geometry"
- },
  "src/state/transform.ts": {
-  "label": "host-adapter"
- },
- "src/supports/checkSupports.ts": {
-  "label": "host-adapter"
- },
- "src/supports/contactEdits.ts": {
   "label": "host-adapter"
  },
  "src/supports/export.ts": {
