@@ -13,6 +13,8 @@ import { SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
 import type { PreparedMesh } from './workers/importProtocol';
 import { codedJobError } from './workers/jobErrors';
 import ObjectViewport, { acceptModelFile } from './components/ObjectViewport';
+import DebugSection from './components/DebugSection';
+import { useDebugLayers, visibleLayers } from './components/useDebugLayers';
 import { CirclePreview } from './components/viewport/CirclePreview';
 import type { GizmoMode, ViewRequest } from './components/viewport/types';
 import SettingsPanel from './components/SettingsPanel';
@@ -250,6 +252,9 @@ export default function App() {
 
   const activeUnit = scene.units.find((unit) => unit.id === scene.activeUnitId);
   const activeIndex = activeUnit ? scene.units.indexOf(activeUnit) : -1;
+  // Debug section (dental only): the Step 1 evidence of the active model; shown only while its section is open.
+  const debug = useDebugLayers(activeUnit?.source, session.mode === 'dental' ? session.dentalProfile : undefined);
+  const debugShown = debug.open ? visibleLayers(debug.layers, debug.visible) : [];
   /** Triangles of a heavy active object: the session refuses hand edits on it (Edit Mode, zones); generation and export still run. */
   const activeHeavy = activeUnit && meshTier(triangleCount(activeUnit), RUNTIME) === 'heavy' ? triangleCount(activeUnit) : undefined;
   const tipsContext = { zones: editMode === 'zones' };
@@ -1275,7 +1280,9 @@ export default function App() {
           {...(viewRequest ? { viewRequest } : {})}
           tipsView={tipsOnly.shown}
           onBelowPlate={onBelowPlate}
+          {...(activeUnit && debugShown.length > 0 ? { debugLayers: { unitId: activeUnit.id, layers: debugShown } } : {})}
         />
+        {activeUnit && session.mode === 'dental' && session.dentalProfile ? <DebugSection open={debug.open} onOpenChange={debug.setOpen} status={debug.status} layers={debug.layers} visible={debug.visible} onToggle={debug.toggle} /> : null}
         <div className="viewport-view" role="group" aria-label={t('View')}>
           {/* Forced by zones, the button stays focusable (its hint says why) but does nothing. */}
           <button aria-pressed={tipsOnly.shown} aria-disabled={tipsOnly.forced} onClick={() => setTips((state) => tipsPress(state, tipsContext))} {...hint(tipsOnly.hint)}>{t('Tips only')}</button>

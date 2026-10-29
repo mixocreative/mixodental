@@ -21,6 +21,8 @@ import { useGeometry } from './geometry';
 import { rustRaycast } from './rustRaycast';
 import { type Hover, EditPreview, SupportBodies, ZoneLayer, useDoomed, useWarmZoneOverlay, ProblemMarkers, CustomisedMarks, useSelectionColors } from './supportLayers';
 import type { AreaRisk } from '../../dental/areaRisk';
+import type { OrientationLayer } from '../../dental/orientationEvidence';
+import { DebugLayerMeshes } from './DebugLayerMeshes';
 import { DentalFaceLayer, DentalPaintLayer, DentalRiskLayer, DentalRegionLines, DentalRimLine, DentalStampLayer, DentalTipMarkers, type TipMark } from './dentalLayers';
 import type { ObjectViewportProps } from './types';
 import { MODEL_MESH, SUPPORT_MESH, useScreenBrush } from './useScreenBrush';
@@ -41,6 +43,8 @@ interface UnitObjectProps extends Pick<ObjectViewportProps,
   dentalTips?: readonly TipMark[];
   /** Dental Step 2: low points of overhang regions outside the permitted area. */
   dentalRisks?: readonly AreaRisk[];
+  /** Debug section: Step 1 evidence layers drawn inside this object's group, so they follow its transform. */
+  debugLayers?: readonly OrientationLayer[];
   /** Dental Step 2, whichever tool: tips and the area are drawn, no support bodies, and Select works on the tips. */
   dentalArea?: boolean;
   selected: boolean;
@@ -312,6 +316,7 @@ export function UnitObject(props: UnitObjectProps) {
     {areaShown && props.dentalRisks && props.dentalRisks.length > 0 && shown === unit.source && <group visible={props.modelVisible}>
       <DentalRiskLayer mesh={unit.source} risks={props.dentalRisks} opacity={0.85} />
     </group>}
+    {props.debugLayers && props.debugLayers.length > 0 && <DebugLayerMeshes layers={props.debugLayers} />}
     {areaShown && props.dentalTips && <DentalTipMarkers points={props.dentalTips} {...(tipMarks ? { marks: tipMarks } : {})} />}
     {supportGeometry && <mesh
       geometry={supportGeometry}

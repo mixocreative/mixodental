@@ -10,6 +10,7 @@ import type { PrintScene } from '../../state/project';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import type { AddedAt } from './AddFlash';
 import type { AreaRisk } from '../../dental/areaRisk';
+import type { OrientationLayer } from '../../dental/orientationEvidence';
 
 export type GizmoMode = 'none' | 'translate' | 'rotate';
 
@@ -22,6 +23,8 @@ export interface ObjectViewportProps {
   dentalArea?: boolean;
   /** Dental Step 2: the overhang low points outside the permitted area, drawn blue. */
   dentalRisks?: { unitId: string; risks: readonly AreaRisk[] };
+  /** Debug section: the Step 1 evidence layers checked for the active object, in its own frame (drawn with its transform). */
+  debugLayers?: { unitId: string; layers: readonly OrientationLayer[] };
   /** Step 2, Select → Click: the click hit the model at this plate point; pick the tip nearest it. */
   onPickTip: (unitId: string, point: Vector) => void;
   /** What a press or drag does now (editing/gesture): the mode, the tool and its brush. */

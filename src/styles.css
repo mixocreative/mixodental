@@ -402,6 +402,11 @@ kbd {
 }
 .settings details[open] > summary::before { transform: rotate(45deg); }
 .settings details[open] > summary { margin-bottom: 6px; }
+/* Debug section of the 3D view: the Step 1 evidence layers, collapsed by default (display only). */
+.debug-section { position: absolute; left: 14px; bottom: 14px; z-index: 2; width: 240px; max-height: calc(100% - 28px); overflow: auto; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.debug-section details { margin-top: 0; }
+.debug-layer { margin: 6px 0; }
+.debug-swatch { display: inline-block; flex: none; width: 12px; height: 12px; border: 1px solid var(--line-strong); border-radius: 2px; }
 .check { display: flex; gap: 9px; align-items: center; margin: 10px 0; font-size: 12.5px; cursor: pointer; }
 .check input { accent-color: var(--ink); width: 14px; height: 14px; margin: 0; }
 

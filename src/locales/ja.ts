@@ -764,4 +764,12 @@ export const ja: Dictionary = {
   'Print angle checked': '造形角度を確認しました',
   'Wait until the print angles are checked.': '造形角度の確認が終わるまでお待ちください。',
   '{n}°': '{n}°',
+  "Debug": "デバッグ",
+  "Trim lines": "トリムライン",
+  "U ends": "U端",
+  "Bottom plane": "底平面",
+  "Back arrow": "戻る矢印",
+  "Computing layers…": "レイヤーを計算中…",
+  "The layers could not be computed for this model.": "このモデルのレイヤーを計算できませんでした。",
+  "Step 1 evidence on the model. Display only; the export never reads it.": "モデル上のステップ1のエビデンス。表示専用であり、書き出し時に読み込まれることはありません。",
 };
