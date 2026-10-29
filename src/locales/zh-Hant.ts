@@ -757,6 +757,8 @@ export const zhHant: Dictionary = {
   'Print angle': '列印角度',
   'Print angle {n}° (stable {a}–{b}°)': '列印角度 {n}°（穩定區間 {a}–{b}°）',
   'Print angle {n}° (no stable angle)': '列印角度 {n}°（無穩定角度）',
+  'Stable {a}–{b}°': '穩定區間 {a}–{b}°',
+  'No stable angle': '無穩定角度',
   'Tilt of the aligner on the plate. The highlighted part of the track is the stable band': '牙套在底板上的傾斜角度。軌道上醒目標示的部分為穩定區間',
   'Passes every rule.': '符合所有規則。',
   'No print angle passes every rule.': '無任何列印角度符合所有規則。',

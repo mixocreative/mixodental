@@ -4,7 +4,7 @@ import type { SessionEvent } from '@mixo-geocore/editing/session';
 import type { DentalNotice } from '../dental/editingMode';
 import { ALIGNER_PROFILES, type AlignerProfile } from '@mixo-geocore/host/dental/alignerProfiles';
 import { t, translateMessage, type Lang } from '../i18n';
-import { RangeField } from './RangeField';
+import { TiltDial } from '../ui/parts/TiltDial';
 import { Icon } from '../ui/Icon';
 import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { tiltLabel, type TiltRow, type TiltRule } from '@mixo-geocore/host/dental/dentalTilt';
@@ -111,17 +111,16 @@ export function PrintAngleField({ tilt, profile, onChoose }: {
   if (tilt.status === 'scanning') return <p className="edit-note" role="status">{t('Scanning print angles {i}/{n}', { i: tilt.done, n: tilt.total })}</p>;
   if (tilt.status === 'failed') return <p className="edit-note" role="alert">{t('The print angles could not be scanned. The detected angle is kept.')}</p>;
   const { scan, index } = tilt;
-  const { tiltRangeDeg, tiltStepDeg } = profileData(profile).pose;
+  const { tiltStepDeg } = profileData(profile).pose;
   const row = scan.rows[index]!;
   const band = scan.band ? [scan.rows[scan.band[0]]!.tiltDeg, scan.rows[scan.band[1]]!.tiltDeg] as const : undefined;
   const flags = tiltFlags(row);
   const pick = scan.rows[scan.order[0]!]!;
   return <div className="print-angle" role="group" aria-label={t('Print angle')}>
-    <p className="edit-hint" role="status">{band
-      ? t('Print angle {n}° (stable {a}–{b}°)', { n: tiltLabel(row.tiltDeg), a: tiltLabel(band[0]), b: tiltLabel(band[1]) })
-      : t('Print angle {n}° (no stable angle)', { n: tiltLabel(row.tiltDeg) })}</p>
-    <RangeField layout="row" label="Print angle" unit="{n}°" hint="Tilt of the aligner on the plate. The highlighted part of the track is the stable band"
-      min={scan.startDeg - tiltRangeDeg} max={scan.startDeg + tiltRangeDeg} step={tiltStepDeg} value={row.tiltDeg} display={tiltLabel(row.tiltDeg)} band={band}
+    <p className="orient-range" role="status">{band
+      ? t('Stable {a}–{b}°', { a: tiltLabel(band[0]), b: tiltLabel(band[1]) })
+      : t('No stable angle')}</p>
+    <TiltDial min={scan.rows[0]!.tiltDeg} max={scan.rows.at(-1)!.tiltDeg} step={tiltStepDeg} value={row.tiltDeg} band={band} label={t('Print angle')}
       onChange={(value) => {
         const nearest = scan.rows.reduce((best, candidate, at) => (Math.abs(candidate.tiltDeg - value) < Math.abs(scan.rows[best]!.tiltDeg - value) ? at : best), 0);
         if (nearest !== index) onChoose(nearest);

@@ -753,6 +753,8 @@ export const ja: Dictionary = {
   'Print angle': '造形角度',
   'Print angle {n}° (stable {a}–{b}°)': '造形角度 {n}°（安定範囲 {a}–{b}°）',
   'Print angle {n}° (no stable angle)': '造形角度 {n}°（安定した角度なし）',
+  'Stable {a}–{b}°': '安定範囲 {a}–{b}°',
+  'No stable angle': '安定した角度なし',
   'Tilt of the aligner on the plate. The highlighted part of the track is the stable band': 'プレート上のアライナーの傾き。トラックの強調部分が安定範囲です',
   'Passes every rule.': 'すべてのルールを満たしています。',
   'No print angle passes every rule.': 'すべてのルールを満たす造形角度はありません。',

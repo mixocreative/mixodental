@@ -507,6 +507,16 @@ footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
 .range-band { position: absolute; top: 50%; height: 6px; transform: translateY(-50%); background: var(--kraft); border-radius: var(--radius); pointer-events: none; }
 .range-track input { position: relative; background: transparent; }
 .print-angle .problems { margin-top: 4px; }
+/* PD.11 S5: the print-angle dial, its stable band and the big number under the Step 1 badge. */
+.orient-range { margin: 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tilt-dial { display: block; width: 100%; max-width: 200px; margin: 0 auto; touch-action: none; }
+.tilt-dial:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; border-radius: 50%; }
+.tilt-dial-track { fill: none; stroke: var(--line-strong); stroke-width: 6; stroke-linecap: round; }
+.tilt-dial-band { fill: none; stroke: var(--kraft); stroke-width: 10; stroke-linecap: round; }
+.tilt-dial-knob { fill: var(--red); stroke: var(--surface); stroke-width: 2; }
+.tilt-readout { position: absolute; top: 62px; left: 16px; z-index: 3; pointer-events: none; color: var(--ink); font-variant-numeric: tabular-nums; }
+.tilt-readout-num { font-size: 56px; font-weight: 500; line-height: 1; }
+.tilt-readout-deg { font-size: 28px; }
 .problem-kind.angle { background: var(--danger); }
 .edit-count { color: var(--muted); font-variant-numeric: tabular-nums; }
 /* The wide edit bar takes the top right; the view buttons move to the bottom right meanwhile. */
