@@ -9,6 +9,7 @@ Every icon in the app is one SVG file in this folder. To change an icon, replace
 | `aligner-standard.svg` | Step 0 "Choose the aligner type" card for the standard (reference) aligner: the U-shaped outline with its central opening |
 | `tool-pointer.svg` | Edit bar, "How to select" switch: **Click** (pick one support at a time) |
 | `tool-brush.svg` | Edit bar, "How to select" switch: **Drag over** (paint many supports at once) |
+| `orient.svg` | Orientation bar, Auto orientation button (the box with a turn arrow) |
 
 ## Rules for a replacement
 

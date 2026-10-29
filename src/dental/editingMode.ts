@@ -276,7 +276,7 @@ registerCommands({
     disabledReason: (s) => (s.generating ? generatingReason : s.mode !== 'off' ? entryReason(s) : undefined),
   },
   'dental.useDetected': {
-    role: 'secondary', label: () => 'Auto orientation', hint: () => 'Rotate the aligner to the proposed orientation again',
+    role: 'primary', label: () => 'Auto orientation', hint: () => 'Rotate the aligner to the proposed orientation again',
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner', enabled: (s) => Boolean(s.dentalProposed),
     disabledReason: (s) => (s.dentalProposed ? undefined : { key: 'No orientation was proposed for this aligner.' }),
   },

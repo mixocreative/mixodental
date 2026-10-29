@@ -5,6 +5,7 @@ import { t, type Lang } from '../i18n';
 import type { DentalNotice } from '../dental/editingMode';
 import { CommandButton } from './CommandButton';
 import { PrintAngleField, noticeText } from './DentalSteps';
+import { Icon } from '../ui/Icon';
 import type { DentalTiltState } from './useDentalFlow';
 
 /**
@@ -27,7 +28,7 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
   const alternatives = profilesWithoutOpening();
   return <div className="edit-bar edit-bar--orient">
     <div className="orient-row">
-      <CommandButton command={resolve('dental.useDetected', ui)} run={run} />
+      <CommandButton command={resolve('dental.useDetected', ui)} run={run} className="orient-auto"><Icon name="orient" /></CommandButton>
     </div>
     {tilt && profile ? <div className="orient-row">
       <PrintAngleField tilt={tilt} profile={profile} onChoose={(index) => onTilt?.(index)} />
