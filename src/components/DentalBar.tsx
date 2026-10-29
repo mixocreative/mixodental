@@ -73,7 +73,6 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       : <>
         <div className="edit-bar"><div className="edit-row">
           <CommandButton command={resolve('dental.back', ui)} run={run} />
-          <CommandButton command={resolve('dental.exit', ui)} run={run} />
         </div></div>
         <DentalAlignerPrompt phase={gesture.phase} notices={gesture.notices} selectedName={selectedName}
           onFiles={(files) => onFiles?.(files)} onUseSelected={() => onUseSelected?.()} />

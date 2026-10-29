@@ -435,7 +435,16 @@ footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
 .panel, .units { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 
 /* ---- Language switch ------------------------------------------------------ */
-.segmented.lang button { padding: 6px 10px; font-size: 12px; }
+.lang-select {
+  height: 36px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+}
+.nav-exit { height: 36px; margin-left: 8px; }
 
 /* ---- Support check ---------------------------------------------------------- */
 .problems { list-style: none; margin: 8px 0 0; padding: 0; border-top: 1px solid var(--line); }

@@ -39,6 +39,7 @@ import { useDentalFlow } from './components/useDentalFlow';
 import { useProjectFile } from './components/useProjectFile';
 import { isProjectFile } from './state/projectFile';
 import { hint } from './components/hint';
+import { LanguageSelect } from './components/LanguageSelect';
 import { cancelSceneEdit, canUndo as historyCanUndo, createSceneHistory, redoScene, replaceScene, undoScene, withSceneCommand, type SceneHistory } from './state/history';
 import { gltfRawMeshes, placeImportedUnits } from './state/import';
 import { setDisplayMesh } from './state/meshExtras';
@@ -86,7 +87,7 @@ import { toastAlive, undoToast, type UndoAction, type UndoToast as UndoToastStat
 import UndoToast from './components/UndoToast';
 import TermsDialog from './components/TermsDialog';
 import type { BrushMode } from '@mixo-geocore/editing/types';
-import { detectLanguage, LANGS, plural, setLanguage, t, translateMessage, type Lang, type Message } from './i18n';
+import { detectLanguage, plural, setLanguage, t, translateMessage, type Lang, type Message } from './i18n';
 
 type HistoryAction = { type: 'command'; command: SceneCommand; edit?: string } | { type: 'cancelEdit'; edit: string } | { type: 'undo' } | { type: 'redo' } | { type: 'replace'; scene: PrintScene };
 
@@ -1182,17 +1183,17 @@ export default function App() {
     <header>
       <div className="brand"><h1><BrandLogo /></h1><small>{t('Resin Support Studio')}</small></div>
       <div className="header-actions">
-        <Segmented className="segmented lang" label={t('Language')} value={lang} onChange={chooseLanguage} options={LANGS.map((entry) => ({ value: entry.lang, label: entry.label, lang: entry.lang, title: entry.name }))} />
+        <LanguageSelect lang={lang} onChange={chooseLanguage} />
         {startScreen === null ? <>
           <div className="toolbar-group">
             <CommandButton command={command('history.undo')} run={runCommand} />
             <CommandButton command={command('history.redo')} run={runCommand} />
           </div>
           <div className="toolbar-group">
-            <CommandButton command={command('view.models')} run={runCommand} />
             <CommandButton command={command('view.wireframe')} run={runCommand} />
           </div>
         </> : null}
+        {session.mode === 'dental' ? <CommandButton command={command('dental.exit')} run={runCommand} className="nav-exit" /> : null}
       </div>
     </header>
     {startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
