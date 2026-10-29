@@ -1,4 +1,4 @@
-# How Mixo Supports handles an aligner, in plain language
+# How mixoDental handles an aligner, in plain language
 
 This page is for dentists and technicians. It has no code. For the engineering detail, see [the technical algorithm](technical-algorithm.md).
 

@@ -1,21 +1,21 @@
 <div align="center">
 
-# Mixo Supports
+# mixoDental
 
 **免費的光固化 3D 列印支撐，直接在瀏覽器裡完成。**
 拖進模型，幾秒內就能產生可直接列印的 SLA / MSLA / DLP 支撐，再用手動微調，最後匯出 STL 給你的切片軟體。不用安裝、不用註冊，檔案也不會離開你的電腦。
 
-### [▶ 開啟 Mixo Supports](https://mixocreative.github.io/mixo-supports/)
+### [▶ 開啟 mixoDental](https://mixocreative.github.io/mixodental/)
 
 [English](README.md) · 繁體中文 · [日本語](README.ja.md)
 
-![Mixo Supports：繩結模型加上自動產生的樹脂支撐與底筏](docs/images/editor.png)
+![mixoDental：繩結模型加上自動產生的樹脂支撐與底筏](docs/images/editor.png)
 
 </div>
 
 ---
 
-## 為什麼選 Mixo Supports
+## 為什麼選 mixoDental
 
 - **到哪都能用。** 在瀏覽器裡執行，Windows、macOS、Linux、ChromeOS、平板和手機都可以。打開連結就能開始。
 - **隱私優先。** 模型只在你的裝置上讀取和運算，不會上傳，不用註冊，也沒有追蹤分析。
@@ -56,13 +56,13 @@
 
 | 手機 | 日本語 |
 |---|---|
-| <img src="docs/images/phone.png" alt="手機上的 Mixo Supports" width="260"> | <img src="docs/images/japanese.png" alt="日文介面的 Mixo Supports" width="520"> |
+| <img src="docs/images/phone.png" alt="手機上的 mixoDental" width="260"> | <img src="docs/images/japanese.png" alt="日文介面的 mixoDental" width="520"> |
 
 介面會依照瀏覽器語言自動切換並記住你的選擇，隨時可在 **English**、**繁體中文** 和 **日本語** 之間切換。
 
 ## 使用方式
 
-1. 開啟 **[mixocreative.github.io/mixo-supports](https://mixocreative.github.io/mixo-supports/)**。
+1. 開啟 **[mixocreative.github.io/mixodental](https://mixocreative.github.io/mixodental/)**。
 2. 把 STL、GLB 或 glTF 拖到 **匯入模型**。
 3. 移動或旋轉模型到列印方向。
 4. 按 **產生支撐**，再選預設組合或調整設定。
@@ -75,7 +75,7 @@ React、Three.js（react-three-fiber）、TypeScript、Vite 與 Web Workers，�
 
 ```bash
 npm install
-npm run dev      # 本機編輯器：http://localhost:5173/mixo-supports/
+npm run dev      # 本機編輯器：http://localhost:5173/mixodental/
 npm test         # Vitest 測試，含 Blender 一致性測試
 npm run build    # 型別檢查並建置到 dist/
 ```
@@ -84,11 +84,11 @@ npm run build    # 型別檢查並建置到 dist/
 
 ## 授權
 
-Copyright © 2026 mixocreative，保留所有權利。程式碼公開供閱讀，但複製、修改、散布、架設或任何商業用途都需要書面授權。你可以自由使用 [線上版](https://mixocreative.github.io/mixo-supports/) 準備自己的列印，匯出的檔案屬於你。詳見 [LICENSE](LICENSE)（以英文版為準）。
+Copyright © 2026 mixocreative，保留所有權利。程式碼公開供閱讀，但複製、修改、散布、架設或任何商業用途都需要書面授權。你可以自由使用 [線上版](https://mixocreative.github.io/mixodental/) 準備自己的列印，匯出的檔案屬於你。詳見 [LICENSE](LICENSE)（以英文版為準）。
 
 ## 意見回饋
 
-遇到支撐效果不好的模型，或想要新功能？請 [開一個 issue](https://github.com/mixocreative/mixo-supports/issues)，可以的話附上檔案。給個 ⭐ 能幫助更多光固化玩家找到這個專案。
+遇到支撐效果不好的模型，或想要新功能？請 [開一個 issue](https://github.com/mixocreative/mixodental/issues)，可以的話附上檔案。給個 ⭐ 能幫助更多光固化玩家找到這個專案。
 
 ---
 

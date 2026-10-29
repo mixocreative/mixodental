@@ -17,7 +17,7 @@ export const LANGS: readonly { lang: Lang; label: string; name: string }[] = [
   { lang: 'ja', label: '日本語', name: '日本語' },
 ];
 
-const STORAGE_KEY = 'mixo-supports.lang';
+const STORAGE_KEY = 'mixodental.lang';
 
 /** Saved choice, else the first browser language we speak, else English. */
 export function detectLanguage(): Lang {

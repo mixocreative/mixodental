@@ -85,7 +85,7 @@ async function main() {
     const args = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
     browser = await chromium.launch({ headless: true, args }).catch(() => chromium.launch({ headless: true, args, executablePath: chromiumPath() }));
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    await context.addInitScript(() => { try { localStorage.setItem('mixo-supports.lang', 'en'); } catch { /* storage off */ } });
+    await context.addInitScript(() => { try { localStorage.setItem('mixodental.lang', 'en'); } catch { /* storage off */ } });
     await context.addInitScript(recordJobs);
     const page = await context.newPage();
     if (process.env.E1_LOG) page.on('console', (m) => { if (m.text().startsWith('[E1]')) console.log(m.text()); });

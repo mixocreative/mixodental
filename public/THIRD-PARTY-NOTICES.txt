@@ -1,4 +1,4 @@
-Third-party notices for Mixo Supports (https://mixocreative.github.io/mixo-supports/)
+Third-party notices for mixoDental (https://mixocreative.github.io/mixodental/)
 
 The application is Copyright (c) 2026 mixocreative, all rights reserved (see
 LICENSE in the source repository). It contains the third-party material below,

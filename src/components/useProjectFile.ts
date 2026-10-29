@@ -17,7 +17,7 @@ type SavePicker = (options: object) => Promise<{ name: string; createWritable():
 const savePicker = (): SavePicker | undefined => (typeof window !== 'undefined' && !navigator.webdriver ? (window as unknown as { showSaveFilePicker?: SavePicker }).showSaveFilePicker : undefined);
 
 /**
- * Save project and Open project: the scene as a `.mixosupports` file and back. Opening replaces the
+ * Save project and Open project: the scene as a `.mixodental` file and back. Opening replaces the
  * plate as one history step (an Undo toast when objects were there); it waits while a mode is on,
  * like an import. `dirty` is true once the objects differ from the last save or open, which arms the
  * page's leave prompt.
@@ -77,7 +77,7 @@ export function useProjectFile(host: {
     try {
       // The dialog first: it needs the click's activation, which a long pack could outlast.
       const picker = savePicker();
-      const target = await picker?.({ suggestedName: name, types: [{ description: t('Mixo Supports project'), accept: { 'application/octet-stream': [PROJECT_EXTENSION] } }] });
+      const target = await picker?.({ suggestedName: name, types: [{ description: t('mixoDental project'), accept: { 'application/octet-stream': [PROJECT_EXTENSION] } }] });
       const file = await packProject(current);
       job.progress({ fraction: 0.8 });
       if (target) {

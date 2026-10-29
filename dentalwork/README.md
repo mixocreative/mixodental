@@ -1,6 +1,6 @@
 # Dental support work: shipped state
 
-Mixo Supports builds supports for dental aligners. This folder explains how that works. Everything described here is the state of branch `codex/dental-rework` at the commit that last changed these files. [The ship plan](../docs/SHIP-PLAN.md) is the record of what was built and when, including the review fixes after its last unit; these documents describe the result.
+mixoDental builds supports for dental aligners. This folder explains how that works. Everything described here is the state of branch `codex/dental-rework` at the commit that last changed these files. [The ship plan](../docs/SHIP-PLAN.md) is the record of what was built and when, including the review fixes after its last unit; these documents describe the result.
 
 **Dental mode is a preview feature and is not clinically validated.** It was tuned and tested on one reference aligner. See "What is validated and what is not" in [the technical algorithm](technical-algorithm.md#what-is-validated-and-what-is-not) before relying on any result.
 

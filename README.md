@@ -1,21 +1,21 @@
 <div align="center">
 
-# Mixo Supports
+# mixoDental
 
 **Free resin 3D-print supports, made in your browser.**
 Drop in a model, get print-ready SLA / MSLA / DLP supports in seconds, fine-tune them by hand, and export an STL for your slicer. Nothing to install and no account needed. Your files never leave your computer.
 
-### [▶ Open Mixo Supports](https://mixocreative.github.io/mixo-supports/)
+### [▶ Open mixoDental](https://mixocreative.github.io/mixodental/)
 
 English · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md)
 
-![Mixo Supports: a knot model with automatic resin supports and a raft](docs/images/editor.png)
+![mixoDental: a knot model with automatic resin supports and a raft](docs/images/editor.png)
 
 </div>
 
 ---
 
-## Why Mixo Supports
+## Why mixoDental
 
 - **Works anywhere.** It runs in the browser on Windows, macOS, Linux, ChromeOS, tablets and phones. Open the link and start.
 - **Private by design.** Models are read and processed on your device. Nothing is uploaded, and there is no sign-up and no analytics.
@@ -63,13 +63,13 @@ Scans the model for islands and overhangs that no support reaches and lists each
 
 | Phone | 日本語 |
 |---|---|
-| <img src="docs/images/phone.png" alt="Mixo Supports on a phone" width="260"> | <img src="docs/images/japanese.png" alt="Mixo Supports in Japanese" width="520"> |
+| <img src="docs/images/phone.png" alt="mixoDental on a phone" width="260"> | <img src="docs/images/japanese.png" alt="mixoDental in Japanese" width="520"> |
 
 The interface picks up your browser language and remembers your choice. Switch between **English**, **繁體中文** and **日本語** at any time.
 
 ## How to use it
 
-1. Open **[mixocreative.github.io/mixo-supports](https://mixocreative.github.io/mixo-supports/)**.
+1. Open **[mixocreative.github.io/mixodental](https://mixocreative.github.io/mixodental/)**.
 2. Choose **Aligner supports** (and follow Steps 1 to 3), or **Any model** and drop your STL, GLB or glTF onto **Import models**.
 3. Move or rotate the model into print orientation.
 4. Press **Generate supports**, then pick a preset or tune the settings.
@@ -82,7 +82,7 @@ React, Three.js (react-three-fiber), TypeScript, Vite and Web Workers, with thre
 
 ```bash
 npm install
-npm run dev      # local editor at http://localhost:5173/mixo-supports/
+npm run dev      # local editor at http://localhost:5173/mixodental/
 npm test         # Vitest suite, including the Blender parity tests
 npm run build    # type-check and production build into dist/
 ```
@@ -114,11 +114,11 @@ The counts are baselines measured at 1440x900 with software GL (`BASE` in the sc
 
 ## License
 
-Copyright © 2026 mixocreative. All rights reserved. The code is public to read, but copying, modifying, redistributing, hosting or any commercial use requires written permission. You are free to use the [hosted app](https://mixocreative.github.io/mixo-supports/) for your own prints, and the files you export are yours. See [LICENSE](LICENSE).
+Copyright © 2026 mixocreative. All rights reserved. The code is public to read, but copying, modifying, redistributing, hosting or any commercial use requires written permission. You are free to use the [hosted app](https://mixocreative.github.io/mixodental/) for your own prints, and the files you export are yours. See [LICENSE](LICENSE).
 
 ## Feedback
 
-Found a model that supports badly, or want a feature? [Open an issue](https://github.com/mixocreative/mixo-supports/issues) and attach the file if you can. A ⭐ helps other resin printers find the project.
+Found a model that supports badly, or want a feature? [Open an issue](https://github.com/mixocreative/mixodental/issues) and attach the file if you can. A ⭐ helps other resin printers find the project.
 
 ---
 

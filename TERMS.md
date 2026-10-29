@@ -1,8 +1,8 @@
-# mixosupports Terms of Use
+# mixoDental Terms of Use
 
 Last updated: 2026-10-22
 
-mixosupports ("the App") is a free web app from Mixo Creative ("we"). By using it you accept these terms.
+mixoDental ("the App") is a free web app from Mixo Creative ("we"). By using it you accept these terms.
 
 1. **Free to use.** You may use the App at no charge for personal or commercial work. We may change or stop the App at any time.
 2. **Your files stay on your device.** The App runs in your browser. Models you open and files you export are processed on your device and are not uploaded to us. We do not run analytics or tracking in the App.

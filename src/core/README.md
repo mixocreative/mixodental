@@ -129,7 +129,7 @@ the workers move to mixomesh unchanged. "Jobs and workers" below has the app's p
 
 Shared cross-app contract: mixomesh's heavy-mesh spec,
 `S:\ai\mixomesh\docs\superpowers\specs\2026-10-21-heavy-mesh-handling.md` (branch `feat/heavy-mesh`).
-Measurements and fixtures: `docs/migration/2026-10-21-heavy-mesh-mixosupports.md`
+Measurements and fixtures: `docs/migration/2026-10-21-heavy-mesh-mixodental.md`
 (`scripts/make-heavy-meshes.ts`, `scripts/measure-heavy.mjs`).
 
 **Budgets** (`budget.ts`), web and desktop alike: warn above **1.5M** triangles, refuse above

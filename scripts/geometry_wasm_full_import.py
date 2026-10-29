@@ -17,14 +17,14 @@ with sync_playwright() as playwright:
             "**/reference-aligner.stl",
             lambda route: route.fulfill(body=fixture, content_type="application/octet-stream"),
         )
-        page.goto("http://127.0.0.1:5173/mixo-supports/")
+        page.goto("http://127.0.0.1:5173/mixodental/")
         result = page.evaluate(
             """async () => {
-              const response = await fetch('/mixo-supports/reference-aligner.stl');
+              const response = await fetch('/mixodental/reference-aligner.stl');
               if (!response.ok) throw new Error(`fixture HTTP ${response.status}`);
               const file = await response.blob();
               return new Promise((resolve, reject) => {
-                const worker = new Worker('/mixo-supports/src/workers/importWorker.ts', { type: 'module' });
+                const worker = new Worker('/mixodental/src/workers/importWorker.ts', { type: 'module' });
                 const start = performance.now();
                 const timer = setTimeout(() => { worker.terminate(); reject(new Error('full import timed out')); }, 120000);
                 worker.onmessage = ({ data }) => {

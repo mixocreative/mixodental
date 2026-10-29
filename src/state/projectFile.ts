@@ -3,9 +3,9 @@ import { ProjectFileError, ProjectTooLarge } from '@mixo-geocore/editing/project
 import { normalizeScene, sceneJsonReplacer, sceneJsonReviver, type PrintScene, type PrintUnit } from './project';
 
 /** The project file: the scene's own JSON (project.ts) under a header that names the app and the format version. */
-export const PROJECT_APP = 'mixo-supports';
+export const PROJECT_APP = 'mixodental';
 export const PROJECT_VERSION = 1;
-export const PROJECT_EXTENSION = '.mixosupports';
+export const PROJECT_EXTENSION = '.mixodental';
 
 export const isProjectFile = (name: string) => name.toLowerCase().endsWith(PROJECT_EXTENSION);
 
@@ -22,7 +22,7 @@ export function decodeProject(text: string): PrintScene {
     throw new ProjectFileError('not-project', 'Not JSON');
   }
   const file = parsed as { app?: unknown; version?: unknown; scene?: unknown } | null;
-  if (typeof file !== 'object' || file === null || file.app !== PROJECT_APP) throw new ProjectFileError('not-project', 'No Mixo Supports header');
+  if (typeof file !== 'object' || file === null || file.app !== PROJECT_APP) throw new ProjectFileError('not-project', 'No mixoDental header');
   if (typeof file.version !== 'number' || !Number.isInteger(file.version) || file.version < 1) throw new ProjectFileError('damaged', 'Bad version field');
   if (file.version > PROJECT_VERSION) throw new ProjectFileError('newer', `Version ${file.version}`, { v: file.version, max: PROJECT_VERSION });
   const scene = file.scene as { units?: unknown } | null;
@@ -114,7 +114,7 @@ export function sameUnits(a: PrintScene, b: PrintScene): boolean {
   return a.units.length === b.units.length && a.units.every((unit: PrintUnit, index) => unit === b.units[index]);
 }
 
-/** `<first object name or "project">.mixosupports`, with characters a file name cannot hold replaced. */
+/** `<first object name or "project">.mixodental`, with characters a file name cannot hold replaced. */
 export function projectFileName(scene: PrintScene): string {
   const base = (scene.units[0]?.name ?? '').replace(/\.(stl|glb|gltf)$/i, '').replace(/[\/:*?"<>|\u0000-\u001f]/g, '_').trim();
   return `${base || 'project'}${PROJECT_EXTENSION}`;

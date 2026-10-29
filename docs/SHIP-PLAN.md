@@ -4,7 +4,7 @@ Status: owner-approved direction (2026-10-27); revised after two independent rev
 
 ## Goal
 
-Ship Mixo Supports with **every 3D calculation in one Rust/WASM core**, modular so generic (non-dental) use has every capability and dental mode only supplies policy data. Keep the stack minimal: Rust core + thin TypeScript host + Vite + Vitest + one browser walk.
+Ship mixoDental with **every 3D calculation in one Rust/WASM core**, modular so generic (non-dental) use has every capability and dental mode only supplies policy data. Keep the stack minimal: Rust core + thin TypeScript host + Vite + Vitest + one browser walk.
 
 "Ship" = every **software gate** below passes on one revision, then the owner approves merge and deploy. **Clinical/print validation** (more patient STLs, physical prints) is a separate track that decides how dental mode is labelled, not whether the code ships.
 

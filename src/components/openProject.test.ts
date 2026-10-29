@@ -6,8 +6,8 @@ import { ProjectClient } from '../workers/projectClient';
 import { openProjectFile, type OpenHost } from './openProject';
 
 let now = 1000;
-const goodFile = new File([encodeProject(emptyScene)], 'knot.mixosupports');
-const junkFile = new File(['not json'], 'junk.mixosupports');
+const goodFile = new File([encodeProject(emptyScene)], 'knot.mixodental');
+const junkFile = new File(['not json'], 'junk.mixodental');
 
 /** Open runs through the real client (no Worker, so the main-thread reader), which owns the blocking job row. */
 function host(over: Partial<OpenHost> = {}) {
@@ -27,7 +27,7 @@ describe('open project', () => {
     const { jobs, calls, host: h } = host();
     await openProjectFile(goodFile, h);
     expect(calls.replace).toHaveBeenCalledTimes(1);
-    expect(calls.status).toHaveBeenCalledWith({ key: 'Opened {name}.', vars: { name: 'knot.mixosupports' } });
+    expect(calls.status).toHaveBeenCalledWith({ key: 'Opened {name}.', vars: { name: 'knot.mixodental' } });
     expect(idle(jobs)).toEqual([]);
   });
 
@@ -45,7 +45,7 @@ describe('open project', () => {
   it('reports a file that cannot be read, leaves the plate alone and ends the job', async () => {
     const { jobs, calls, host: h } = host();
     await openProjectFile(junkFile, h);
-    expect(calls.status).toHaveBeenCalledWith(expect.objectContaining({ key: expect.stringContaining('not a Mixo Supports project') }));
+    expect(calls.status).toHaveBeenCalledWith(expect.objectContaining({ key: expect.stringContaining('not a mixoDental project') }));
     expect(calls.replace).not.toHaveBeenCalled();
     expect(idle(jobs)).toMatchObject([{ state: 'failed' }]);
   });

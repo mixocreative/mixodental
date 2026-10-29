@@ -1,14 +1,14 @@
-# mixomesh performance audit — for mixosupports adoption
+# mixomesh performance audit — for mixoDental adoption
 
-Date: 2026-10-21 · mixomesh HEAD `6bcfc75` (release 0.2.0) · mixosupports branch `feat/migration-prep` · Read-only; nothing in either repo changed (`git status` clean after the test run).
+Date: 2026-10-21 · mixomesh HEAD `6bcfc75` (release 0.2.0) · mixoDental branch `feat/migration-prep` · Read-only; nothing in either repo changed (`git status` clean after the test run).
 
 ## Verdict
 
-**PARTLY.** Adopt mixomesh's **WorkerTask/serveTask protocol** (it is real, small, well tested, and used by all 7 workers). **Do not** adopt mixomesh's large-mesh handling as a model, because it does not handle large meshes well. STL and 3MF parse on the main thread. STL stays unwelded (about 84 B/triangle on the CPU, the same again on the GPU). The 4x budget check runs only *after* the whole file is parsed. Picking uses Babylon's default per-triangle ray test, with no BVH or octree, and there is no LOD. The budget numbers are guesses, not measurements. `GeometryStore` is a revision counter plus a copy helper, not a single owned copy; ADR 0006 itself says Babylon still owns the vertex data. For a 10M-triangle print file, mixosupports' current design (worker parse, weld to an indexed mesh, three-mesh-bvh picking, structurally shared history) is already ahead in the areas that matter most. It has its own crash risk in the weld step.
+**PARTLY.** Adopt mixomesh's **WorkerTask/serveTask protocol** (it is real, small, well tested, and used by all 7 workers). **Do not** adopt mixomesh's large-mesh handling as a model, because it does not handle large meshes well. STL and 3MF parse on the main thread. STL stays unwelded (about 84 B/triangle on the CPU, the same again on the GPU). The 4x budget check runs only *after* the whole file is parsed. Picking uses Babylon's default per-triangle ray test, with no BVH or octree, and there is no LOD. The budget numbers are guesses, not measurements. `GeometryStore` is a revision counter plus a copy helper, not a single owned copy; ADR 0006 itself says Babylon still owns the vertex data. For a 10M-triangle print file, mixoDental' current design (worker parse, weld to an indexed mesh, three-mesh-bvh picking, structurally shared history) is already ahead in the areas that matter most. It has its own crash risk in the weld step.
 
 ## Test run
 
-`node --import ./tests/register-hooks.mjs --test tests/*.test.mjs` in S:\ai\mixomesh (no installs; TMP pointed at the scratch dir): **767/767 pass, 11.9 s**. Log: `C:\Users\DCT\AppData\Local\Temp\claude\S--ai-mixosupports\685e21c0-818c-4598-a157-0d5200c45358\scratchpad\mixomesh-audit\unit-tests.log`. WorkerTask has 17 unit tests: abort, timeout restart, crash, stale revision, serial, per-job and fallback. These are protocol tests with a fake worker. **None of the tests use a large mesh.** The largest fixtures are real-scan GLBs of about 1 MB (`tests/fixtures/real-scans/`).
+`node --import ./tests/register-hooks.mjs --test tests/*.test.mjs` in S:\ai\mixomesh (no installs; TMP pointed at the scratch dir): **767/767 pass, 11.9 s**. Log: `C:\Users\DCT\AppData\Local\Temp\claude\S--ai-mixodental\685e21c0-818c-4598-a157-0d5200c45358\scratchpad\mixomesh-audit\unit-tests.log`. WorkerTask has 17 unit tests: abort, timeout restart, crash, stale revision, serial, per-job and fallback. These are protocol tests with a fake worker. **None of the tests use a large mesh.** The largest fixtures are real-scan GLBs of about 1 MB (`tests/fixtures/real-scans/`).
 
 ## The 8 areas
 
@@ -33,16 +33,16 @@ Date: 2026-10-21 · mixomesh HEAD `6bcfc75` (release 0.2.0) · mixosupports bran
 6. ASCII STL takes a JS-array path through Babylon's loader. That is several GB on-heap and an out-of-memory crash.
 7. Embedding assets in a save: base64 of a 500 MB asset is a string of about 667M characters, above V8's limit (`ProjectSerializer.js:200-209`, `PersistenceManager.js:55` `JSON.stringify`). Autosave skips embedding unless the asset is a loose drop with no file handle (`ProjectSerializer.js:186-189`); in that case it re-encodes on every interval.
 
-## mixosupports today — comparison
+## mixoDental today — comparison
 
-| Topic | mixosupports | vs mixomesh |
+| Topic | mixoDental | vs mixomesh |
 |---|---|---|
 | STL parse | In a worker, buffer transferred (`src/workers/importClient.ts:151-153`, `importWorker.ts:216-218`) | **Better** (mixomesh: main thread) |
 | Weld/indexed | Welds to an indexed `TriangleMesh` (`src/state/import.ts:21-34`). 10M tris becomes about 5M verts, about 180 MB | **Much better memory**, about 18 B/tri vs 84 |
 | Weld cost | Worker peak: buffer + STLLoader positions/normals + `geometry.clone().rotateX` (`import.ts:86`) + position clone (`:23`) + three's `mergeVertices`, which builds a **string-keyed hash per vertex** (30M strings). Likely to **run out of memory or take minutes** at 10M; no timeout, cancel or size check | **Worse risk** at 10M (but it fails inside the worker, not the tab) |
 | glTF | `GLTFLoader.parse` and the raw copy on the main thread (`App.tsx:375-382`), weld in the worker | Similar to mixomesh |
 | Budget/refusal | None for import. Only the overlay refinement cap of 1.5M (`ObjectViewport.tsx:212`) | **Worse.** No pre-check, no message |
-| Worker protocol | Three hand-rolled clients (import, analysis pool, mesh with replace-and-restart) | Worse uniformity; mixosupports has no timeouts. Cancellation by restart exists (`analysisClient.ts:47-52`, `meshClient.ts:103-113`) |
+| Worker protocol | Three hand-rolled clients (import, analysis pool, mesh with replace-and-restart) | Worse uniformity; mixoDental has no timeouts. Cancellation by restart exists (`analysisClient.ts:47-52`, `meshClient.ts:103-113`) |
 | Long-lived worker copy | Mesh worker keeps one source copy per unit on purpose, for its caches; the model is sent once per token (`meshClient.ts:84-100`, `meshWorker.ts:203`). The analysis worker gets a transferred copy per job (`analysisClient.ts:85-86`) | Deliberate; costs 1 extra copy. mixomesh has none, because it runs no long-lived geometry jobs |
 | Picking | three-mesh-bvh `acceleratedRaycast` + `firstHitOnly` (`ObjectViewport.tsx:537,557,620-622`) | **Much better**. But `computeBoundsTree` runs synchronously on the main thread (`ObjectViewport.tsx:107-118`), about 1–3 s at 10M |
 | History | Immutable snapshots with structural sharing, so meshes are shared, not copied (`src/state/history.ts:14-25`); limit 100 | **Better**. A deleted unit's mesh is freed when it leaves the 100-step window |
@@ -53,18 +53,18 @@ Date: 2026-10-21 · mixomesh HEAD `6bcfc75` (release 0.2.0) · mixosupports bran
 
 **Adopt as-is**
 - `WorkerTask` + `serveTask` + `transferable()` (port to TS). Rules: copy then transfer; per-job `timeoutMs`; `AbortSignal`; `restarted` and `stale` codes. Migrate `importClient` first, since it is closest to a plain job. Keep the mesh client's own replace/need-source logic on top of WorkerTask rather than forcing it in.
-- The ADR 0006 rule "record revision before the job, compare after the await". mixosupports gets this almost for free through object identity of `unit.source`, and an explicit counter is fine too.
+- The ADR 0006 rule "record revision before the job, compare after the await". mixoDental gets this almost for free through object identity of `unit.source`, and an explicit counter is fine too.
 - The import caps style: `assertImportFileSize`, zip-safety checks, and one user-readable refusal message.
 
 **Adopt but fix**
-- Budgets: keep the *shape* (runtime tier, warn at 1x, refuse at 4x, HUD at 70/90%). Do **not** copy 1.5M/6M. mixosupports stores about 18 B/tri welded vs mixomesh's 84, plus a BVH and one mesh-worker copy. **Measure** peak heap and VRAM on 2/5/10M fixtures and derive the numbers from that. **Refuse before parsing**: binary STL count = `(byteLength-84)/50`; ASCII STL or glTF accessor counts give a cheap estimate.
-- `GeometryStore`: take the idea (revisions + `extract` gives a transferable copy) and drop the Babylon coupling. In mixosupports the immutable `TriangleMesh` already is the store. Make it the **only** CPU copy: pass the same arrays to three.js `BufferAttribute`, then drop the CPU side after GPU upload if raycasting moves to the BVH.
+- Budgets: keep the *shape* (runtime tier, warn at 1x, refuse at 4x, HUD at 70/90%). Do **not** copy 1.5M/6M. mixoDental stores about 18 B/tri welded vs mixomesh's 84, plus a BVH and one mesh-worker copy. **Measure** peak heap and VRAM on 2/5/10M fixtures and derive the numbers from that. **Refuse before parsing**: binary STL count = `(byteLength-84)/50`; ASCII STL or glTF accessor counts give a cheap estimate.
+- `GeometryStore`: take the idea (revisions + `extract` gives a transferable copy) and drop the Babylon coupling. In mixoDental the immutable `TriangleMesh` already is the store. Make it the **only** CPU copy: pass the same arrays to three.js `BufferAttribute`, then drop the CPU side after GPU upload if raycasting moves to the BVH.
 - WorkerTask fallback: never fall back to a main-thread parse for jobs above a size threshold. mixomesh's OBJ timeout fallback shows why.
 
 **Do not adopt**
 - mixomesh's import pipeline (main-thread SceneLoader, unwelded STL, whole-file hash, post-parse refusal), its picking (per-triangle; keep three-mesh-bvh), and its soft-delete undo retention.
 
-**Fix in mixosupports regardless (10M readiness)**
+**Fix in mixoDental regardless (10M readiness)**
 1. Replace `mergeVertices` with a typed-array spatial-hash weld: grid or sorted keys, no strings, in-place. Drop the extra `clone()` calls in `geometryToMesh` and `importStlUnit`, and parse STL straight into welded arrays.
 2. Pre-parse triangle estimate and refusal message; a timeout and cancel on import.
 3. Build the BVH off-thread: three-mesh-bvh `GenerateMeshBVHWorker`, or build it in the import worker and transfer it.

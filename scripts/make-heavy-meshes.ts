@@ -30,7 +30,7 @@ for (const target of targets) {
   const name = `heavy-${(target / 1e6).toString().replace('.', '_')}m.stl`;
   const file = openSync(new URL(name, OUT), 'w');
   const header = Buffer.alloc(84);
-  header.write(`mixosupports synthetic heavy mesh ${triangles}`, 0);
+  header.write(`mixodental synthetic heavy mesh ${triangles}`, 0);
   header.writeUInt32LE(triangles, 80);
   writeSync(file, header);
   const BATCH = 65_536;

@@ -5,7 +5,7 @@ rem Drop one or more folders onto this file, or double-click it and choose a fol
 set "HERE=%~dp0"
 set "ROOT=%HERE%..\..\"
 set "VITE=%ROOT%node_modules\.bin\vite-node.cmd"
-echo Mixo Supports - dental folder review
+echo mixoDental - dental folder review
 echo Review only: inspect every result before printing. Not clinically validated.
 echo.
 if not exist "%VITE%" (

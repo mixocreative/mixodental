@@ -67,7 +67,7 @@ header {
   background: var(--paper);
 }
 .brand { display: flex; align-items: center; gap: 14px; }
-/* Mixo Supports wordmark, outlined SVG in the ink colour. */
+/* mixoDental wordmark, outlined SVG in the ink colour. */
 .app-logo { display: flex; align-items: center; color: var(--ink); }
 .app-logo svg { height: 22px; width: auto; display: block; fill: currentColor; }
 h1 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: .08em; }

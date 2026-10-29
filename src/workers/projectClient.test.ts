@@ -17,7 +17,7 @@ function workerOf(handler: () => never): () => WorkerLike {
     return worker;
   };
 }
-const file = new File(['x'], 'a.mixosupports');
+const file = new File(['x'], 'a.mixodental');
 
 describe('project client', () => {
   it('rebuilds a ProjectFileError and a ProjectTooLarge that crossed the worker boundary', async () => {

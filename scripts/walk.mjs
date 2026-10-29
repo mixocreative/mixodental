@@ -385,7 +385,7 @@ let vite;
 async function walk(url, scratch, dentalFixture) {
   browser = await launch();
   const context = await browser.newContext({ viewport: VIEWPORT, acceptDownloads: true });
-  await context.addInitScript(() => { try { localStorage.setItem('mixo-supports.lang', 'en'); } catch { /* storage off */ } });
+  await context.addInitScript(() => { try { localStorage.setItem('mixodental.lang', 'en'); } catch { /* storage off */ } });
   await context.addInitScript(slowMeshWorker);
   const page = await context.newPage();
   const errors = [];
@@ -614,7 +614,7 @@ async function walk(url, scratch, dentalFixture) {
     const unsaved = await leavePrompt();
     const download = page.waitForEvent('download', { timeout: 120000 });
     await d.button('Save project').click();
-    const projectFile = path.join(scratch, 'knot.mixosupports');
+    const projectFile = path.join(scratch, 'knot.mixodental');
     const saved = await download;
     await saved.saveAs(projectFile);
     await d.settled();
@@ -622,8 +622,8 @@ async function walk(url, scratch, dentalFixture) {
     const raw = gunzipSync(bytes);
     note(`project file ${saved.suggestedFilename()}: ${bytes.length} bytes gzip, ${raw.length} bytes plain`);
     const header = JSON.parse(raw.toString('utf8').slice(0, 200).replace(/,"scene".*$/s, '}'));
-    check('i2 Save writes knot.mixosupports with the format header, and the leave prompt follows it',
-      saved.suggestedFilename() === 'knot.mixosupports' && header.app === 'mixo-supports' && header.version === 1 && unsaved === true && (await leavePrompt()) === false && (await d.status()) === 'Saved knot.mixosupports.',
+    check('i2 Save writes knot.mixodental with the format header, and the leave prompt follows it',
+      saved.suggestedFilename() === 'knot.mixodental' && header.app === 'mixodental' && header.version === 1 && unsaved === true && (await leavePrompt()) === false && (await d.status()) === 'Saved knot.mixodental.',
       `file ${saved.suggestedFilename()}, header ${JSON.stringify(header)}, prompt before the save ${unsaved}, status "${await d.status()}"`);
 
     await page.goto(url);
@@ -642,7 +642,7 @@ async function walk(url, scratch, dentalFixture) {
     note(`Open project main-thread long tasks (ms): ${JSON.stringify(await page.evaluate(() => window.__longTasks))}`);
     const after = await projectStats();
     check('i3 Open after a reload: automatic, manual, removed, customised and zones are identical', JSON.stringify(after) === JSON.stringify(before), `before ${JSON.stringify(before)}, after ${JSON.stringify(after)}`);
-    check('i4 a freshly opened project has nothing unsaved', (await leavePrompt()) === false && (await d.status()) === 'Opened knot.mixosupports.', `status "${await d.status()}"`);
+    check('i4 a freshly opened project has nothing unsaved', (await leavePrompt()) === false && (await d.status()) === 'Opened knot.mixodental.', `status "${await d.status()}"`);
 
     await page.goto(url);
 
@@ -665,8 +665,8 @@ async function walk(url, scratch, dentalFixture) {
       over.auto === before.auto && undoneOpen.auto === 0 && undoneOpen.manual === 0 && undoneOpen.zones === 0 && (await page.locator('footer').innerText()).includes('1 object'),
       `opened ${JSON.stringify(over)}, after Undo ${JSON.stringify(undoneOpen)}`);
 
-    const wrong = path.join(scratch, 'wrong.mixosupports');
-    writeFileSync(wrong, JSON.stringify({ app: 'mixo-supports', version: 99, scene: { units: [], selectedUnitIds: [] } }));
+    const wrong = path.join(scratch, 'wrong.mixodental');
+    writeFileSync(wrong, JSON.stringify({ app: 'mixodental', version: 99, scene: { units: [], selectedUnitIds: [] } }));
     const chooser3 = page.waitForEvent('filechooser');
     await d.button('Open project').click();
     await (await chooser3).setFiles(wrong);
@@ -1455,7 +1455,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
   const tag = (name) => `[${lang}] ${name}`;
   const shot = (page, name) => page.screenshot({ path: path.join(scratch, `${lang}-${name}.png`) });
   const context = await browser.newContext({ viewport: VIEWPORT, acceptDownloads: true });
-  await context.addInitScript((value) => { try { localStorage.setItem('mixo-supports.lang', value); } catch { /* storage off */ } }, lang);
+  await context.addInitScript((value) => { try { localStorage.setItem('mixodental.lang', value); } catch { /* storage off */ } }, lang);
   const page = await context.newPage();
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });
@@ -1606,7 +1606,7 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 try {
   const port = await freePort(FIRST_PORT);
   vite = startVite(port);
-  const url = `http://127.0.0.1:${port}/mixo-supports/`;
+  const url = `http://127.0.0.1:${port}/mixodental/`;
   await waitFor(url, vite);
   console.log(`walk on ${url}`);
   const dentalFixture = process.env.DENTAL_WALK_FIXTURE;

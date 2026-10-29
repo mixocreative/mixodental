@@ -1,6 +1,6 @@
-# Design System: Mixo Supports
+# Design System: mixoDental
 
-Stitch design system for mixosupports (resin 3D-print support editor). Tokens only. Screen
+Stitch design system for mixoDental (resin 3D-print support editor). Tokens only. Screen
 structure, modes, the command registry and per-screen Stitch prompts are in
 `docs/design/ui-structure.md`; token source of truth is the `mixo-app-style` skill
 (`tokens.css`, `base.css`). Upload with `stitch upload design DESIGN.md` only after the owner

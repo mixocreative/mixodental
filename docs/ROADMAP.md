@@ -34,7 +34,7 @@ Decided (by the owner unless noted):
 | D13 | Folder review: with the camera below the floor (the bottom of the supports and raft) the viewer shows only the aligner and its support tips (owner, 2026-10-28; built). | review |
 | D14 | F is built in full: scan, stable band, slider and the automatic pick with its confirm and retries, slenderness limits 20/35 (owner, 2026-10-28, Q6). | F |
 | D15 | F's criteria are the measured reference band (braced 26.46–44.46°, pick 44.46°), not the earlier 35–46° estimate; the example's 46.46° passes but is not robust (cups from 48.46°). Scan once per file off the UI thread, ≤ 5 s; gap rule = `needs_review`; slenderness from the plate at the host's lift, braced per the host's settings (Fable, lead, reversible; prints in V are the real check). | F |
-| D16 | Target split (owner, 2026-10-28): mixosupports becomes dental-only; mixomesh becomes the generic 3D tool with auto supports. Electron stays (it provides automation, batch jobs, a 4 GB heap, file opening and publishing; WASM runs inside it). Shared: the WASM engine, the framework-free editing logic and the style tokens, not UI components (Fable, EGM-reviewed). | After H |
+| D16 | Target split (owner, 2026-10-28): mixoDental becomes dental-only; mixomesh becomes the generic 3D tool with auto supports. Electron stays (it provides automation, batch jobs, a 4 GB heap, file opening and publishing; WASM runs inside it). Shared: the WASM engine, the framework-free editing logic and the style tokens, not UI components (Fable, EGM-reviewed). | After H |
 | D17 | No real aligners besides the reference for now: step V is skipped and the remaining steps go on best guesses from the reference alone (owner, 2026-10-28). O moves to deferred until a no-opening file exists (lead: nothing to test it on). | V, O |
 | D18 | The app starts on a full-screen start: choose the task, then the aligner type, then the file; built right after S3, before B2 (owner, 2026-10-28; replaces A2's timing). | ST |
 | D19 | B2 corrections from the build (lead): (1) each rim reports its actual step L/N as its spacing, so the gap rule (> 2 × spacing) stays one-missing-tip-tolerant with even spacing; F's recorded band and pick are re-measured after B2; (2) deletions stay keyed by position ids (`auto-X_Y_Z`, `filterDentalPlacement`): a deletion survives where a tip keeps its spot; the `dropFillDeletions` step and the `dental-paint-*` migration are not built; (3) the half-step alternate after a rim's last primary belongs to its first primary (the rim is closed). | B2, F |
@@ -207,7 +207,7 @@ Pinned (lead, 2026-10-29):
 - **Comments**: each step has a one-line comment saying which ABI call it is and what it returns, so the file serves as the host example (D16, A1).
 - **Done when**: on `dentalwork/fixtures/case-001/aligner.stl` the summary matches the folder review (44.5°, clear, 93 tips, 1 left out, 0 crossings); runs in under 30 s; `npm run host-example` script added; a section "Driving the engine without the app" in `dentalwork/wasm-geometry-design.md` points to it. Tier: `node scripts/host-example.mjs` on the reference, `npx tsc --noEmit`, `npx vitest run`.
 
-## After H: dental-only mixosupports, generic supports in mixomesh (D16)
+## After H: dental-only mixoDental, generic supports in mixomesh (D16)
 
 Not started before H is merged. Each step gets a specification and review first. Units are approximate.
 
@@ -219,7 +219,7 @@ Not started before H is merged. Each step gets a specification and review first.
 | A3 | mixomesh spike: engine in a worker, supports on one selected mesh, tips shown in Babylon (right-handed adapter, one parity fixture); checks size, CSP, memory | 1 | go / no-go |
 | A4 | Support UX in mixomesh on selected models, no orientation: paint and erase the support area, select by paint, edit each tip, via the shared framework-free editing logic and a one-page UX contract (modes, keys, brush, cursors, strings) | 2 | sign the UX contract |
 | A5 | Tips preview and export in mixomesh through the engine | 1 | export as merged or separate parts |
-| A6 | Remove the generic UI from mixosupports (dental-only); the generic engine tests and goldens stay as UI-free Rust/TS tests | 0.5–1 | confirm after A5 |
+| A6 | Remove the generic UI from mixoDental (dental-only); the generic engine tests and goldens stay as UI-free Rust/TS tests | 0.5–1 | confirm after A5 |
 | A7 | Other mixomesh geometry to WASM only where a benchmark shows ≥ 2× (Manifold and MeshFix stay) | per case | only if it touches those engines |
 
 Users of generic mode on the website move to mixomesh (desktop) at A6.

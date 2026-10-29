@@ -1,5 +1,5 @@
 /* Mixo app style — tokens. Paper, warm grey ink, hairlines, kraft, one red. Flat. Dense.
-   Source: mixosupports/src/styles.css palette at the Dense density (22px rows, 11.5px text).
+   Source: mixodental/src/styles.css palette at the Dense density (22px rows, 11.5px text).
    Drop in as-is for a new app, or scope under :root[data-ui-style="new"] to sit beside an
    existing look (see SKILL.md "Adding to an existing app"). */
 :root {

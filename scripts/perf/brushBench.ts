@@ -16,8 +16,8 @@ const stats = (values: number[]) => ({ n: values.length, p50_ms: +pct(values, 0.
 
 export async function run(reps = 20) {
   const engine = await geometryReady();
-  const fixture = (await (await fetch('/mixo-supports/scripts/fixtures/brush/aligner-brush.json')).json()) as BrushFixture;
-  const bytes = new Uint8Array(await (await fetch(`/mixo-supports/${fixture.aligner}`)).arrayBuffer());
+  const fixture = (await (await fetch('/mixodental/scripts/fixtures/brush/aligner-brush.json')).json()) as BrushFixture;
+  const bytes = new Uint8Array(await (await fetch(`/mixodental/${fixture.aligner}`)).arrayBuffer());
   const mesh = parseStlBytes(engine, bytes, 'aligner');
   const session = new engine.GeometrySession(0x30000000);
   const handle = session.load_mesh(mesh.positions, mesh.indices);

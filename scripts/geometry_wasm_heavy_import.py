@@ -8,7 +8,7 @@ with sync_playwright() as playwright:
     try:
         page = browser.new_page()
         page.set_default_timeout(150_000)
-        page.goto("http://127.0.0.1:5173/mixo-supports/")
+        page.goto("http://127.0.0.1:5173/mixodental/")
         result = page.evaluate(
             """async () => {
               const side = 868;
@@ -31,7 +31,7 @@ with sync_playwright() as playwright:
                   at += 6;
                 }
               }
-              const worker = new Worker('/mixo-supports/src/workers/importWorker.ts', { type: 'module' });
+              const worker = new Worker('/mixodental/src/workers/importWorker.ts', { type: 'module' });
               return new Promise((resolve, reject) => {
                 const start = performance.now();
                 const timer = setTimeout(() => { worker.terminate(); reject(new Error('heavy import timed out')); }, 120000);

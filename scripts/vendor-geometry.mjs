@@ -1,12 +1,12 @@
 // Vendor (or verify) the mixo-geocore engine and TS packages.
 //
 // mixo-geocore (private first-party repo mixocreative/mixo-geocore) owns the Rust/wasm
-// engine and the TypeScript host/ and editing/ packages. mixosupports consumes them AS BUILT and
+// engine and the TypeScript host/ and editing/ packages. mixodental consumes them AS BUILT and
 // never edits them: vendor/mixo-geocore/ (VERSION, SOURCE.json). Every vendored file is hashed in
 // SOURCE.json; the runtime refuses an engine whose engine_version() differs from
 // HOST_GEOMETRY_VERSION (vendor/mixo-geocore/host/geometryVersion.js).
 //
-// mixosupports layout: everything lands under vendor/mixo-geocore/ - pkg-browser (the engine Vite
+// mixodental layout: everything lands under vendor/mixo-geocore/ - pkg-browser (the engine Vite
 // bundles into the app and its workers), pkg-node (the same engine for vitest and Node scripts),
 // host/ and editing/ (TypeScript, imported as @mixo-geocore/host/* and @mixo-geocore/editing/*).
 //

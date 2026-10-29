@@ -133,7 +133,7 @@ async function measure(chromePath, file) {
     const version = await (await waitHttp(`http://127.0.0.1:${DEBUG_PORT}/json/version`)).json();
     const browser = new Cdp(version.webSocketDebuggerUrl);
     await browser.ready;
-    const target = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/new?http://localhost:${PORT}/mixo-supports/`, { method: 'PUT' })).json();
+    const target = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/new?http://localhost:${PORT}/mixodental/`, { method: 'PUT' })).json();
     page = new Cdp(target.webSocketDebuggerUrl);
     await page.ready;
     await page.send('Runtime.enable');
@@ -234,7 +234,7 @@ const vite = spawn(process.execPath, [join(ROOT, 'node_modules/vite/bin/vite.js'
   cwd: ROOT, stdio: 'ignore', env: { ...process.env, ...(RUNTIME === 'desktop' ? { VITE_RUNTIME: 'desktop' } : {}) },
 });
 try {
-  await waitHttp(`http://localhost:${PORT}/mixo-supports/`);
+  await waitHttp(`http://localhost:${PORT}/mixodental/`);
   const chromePath = findChrome();
   for (const file of FILES) console.log(JSON.stringify(await measure(chromePath, file)));
 } finally {

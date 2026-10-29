@@ -1,21 +1,21 @@
 <div align="center">
 
-# Mixo Supports
+# mixoDental
 
 **無料の光造形 3D プリント用サポートを、ブラウザだけで。**
 モデルをドロップすれば、数秒で印刷できる SLA / MSLA / DLP サポートを生成。手作業で細かく調整し、STL でスライサーへ書き出せます。インストールもアカウントも不要。ファイルがパソコンの外に出ることはありません。
 
-### [▶ Mixo Supports を開く](https://mixocreative.github.io/mixo-supports/)
+### [▶ mixoDental を開く](https://mixocreative.github.io/mixodental/)
 
 [English](README.md) · [繁體中文](README.zh-Hant.md) · 日本語
 
-![Mixo Supports：結び目モデルに自動生成したレジンサポートとラフト](docs/images/editor.png)
+![mixoDental：結び目モデルに自動生成したレジンサポートとラフト](docs/images/editor.png)
 
 </div>
 
 ---
 
-## Mixo Supports の特長
+## mixoDental の特長
 
 - **どこでも使える。** ブラウザで動作し、Windows、macOS、Linux、ChromeOS、タブレット、スマートフォンに対応。リンクを開くだけで始められます。
 - **プライバシー重視。** モデルはお使いの端末上で読み込み・処理されます。アップロードも登録もなく、アクセス解析もありません。
@@ -56,13 +56,13 @@
 
 | スマートフォン | 日本語 |
 |---|---|
-| <img src="docs/images/phone.png" alt="スマートフォンでの Mixo Supports" width="260"> | <img src="docs/images/japanese.png" alt="日本語表示の Mixo Supports" width="520"> |
+| <img src="docs/images/phone.png" alt="スマートフォンでの mixoDental" width="260"> | <img src="docs/images/japanese.png" alt="日本語表示の mixoDental" width="520"> |
 
 インターフェースはブラウザの言語を自動で選び、選択を記憶します。**English**・**繁體中文**・**日本語** をいつでも切り替えられます。
 
 ## 使い方
 
-1. **[mixocreative.github.io/mixo-supports](https://mixocreative.github.io/mixo-supports/)** を開きます。
+1. **[mixocreative.github.io/mixodental](https://mixocreative.github.io/mixodental/)** を開きます。
 2. STL、GLB、glTF を **モデルを読み込む** にドロップします。
 3. モデルを移動・回転して印刷の向きにします。
 4. **サポートを生成** を押し、プリセットを選ぶか設定を調整します。
@@ -75,7 +75,7 @@ React、Three.js（react-three-fiber）、TypeScript、Vite、Web Workers。ピ�
 
 ```bash
 npm install
-npm run dev      # ローカルエディタ：http://localhost:5173/mixo-supports/
+npm run dev      # ローカルエディタ：http://localhost:5173/mixodental/
 npm test         # Vitest（Blender との一致テストを含む）
 npm run build    # 型チェックと dist/ への本番ビルド
 ```
@@ -84,11 +84,11 @@ npm run build    # 型チェックと dist/ への本番ビルド
 
 ## ライセンス
 
-Copyright © 2026 mixocreative. All rights reserved. コードは閲覧用に公開していますが、複製・改変・再配布・ホスティング・商用利用には書面による許可が必要です。[公開版アプリ](https://mixocreative.github.io/mixo-supports/) はご自身の印刷のために自由に使え、書き出したファイルはあなたのものです。詳しくは [LICENSE](LICENSE)（英語版が正本）をご覧ください。
+Copyright © 2026 mixocreative. All rights reserved. コードは閲覧用に公開していますが、複製・改変・再配布・ホスティング・商用利用には書面による許可が必要です。[公開版アプリ](https://mixocreative.github.io/mixodental/) はご自身の印刷のために自由に使え、書き出したファイルはあなたのものです。詳しくは [LICENSE](LICENSE)（英語版が正本）をご覧ください。
 
 ## フィードバック
 
-うまくサポートできないモデルや、欲しい機能はありますか？ [Issue を作成](https://github.com/mixocreative/mixo-supports/issues) し、可能ならファイルを添付してください。⭐ を付けていただくと、ほかの光造形ユーザーがこのプロジェクトを見つけやすくなります。
+うまくサポートできないモデルや、欲しい機能はありますか？ [Issue を作成](https://github.com/mixocreative/mixodental/issues) し、可能ならファイルを添付してください。⭐ を付けていただくと、ほかの光造形ユーザーがこのプロジェクトを見つけやすくなります。
 
 ---
 

@@ -7,14 +7,14 @@ with sync_playwright() as playwright:
     browser = playwright.chromium.launch(headless=True)
     try:
         page = browser.new_page()
-        page.goto("http://127.0.0.1:5173/mixo-supports/")
+        page.goto("http://127.0.0.1:5173/mixodental/")
         page.wait_for_load_state("networkidle")
-        package_url = "http://127.0.0.1:5173/mixo-supports/vendor/mixo-geocore/pkg-browser/mixo_geometry_wasm.js"
+        package_url = "http://127.0.0.1:5173/mixodental/vendor/mixo-geocore/pkg-browser/mixo_geometry_wasm.js"
         response = page.request.get(package_url)
         assert response.ok, f"Vite browser package returned HTTP {response.status}: {response.text()[:200]}"
         result = page.evaluate(
             """async () => {
-              const { geometryReady } = await import('/mixo-supports/vendor/mixo-geocore/host/workers/geometryClient.ts');
+              const { geometryReady } = await import('/mixodental/vendor/mixo-geocore/host/workers/geometryClient.ts');
               const engine = await geometryReady();
               const session = new engine.GeometrySession(48);
               const handle = session.load_mesh(
@@ -45,7 +45,7 @@ with sync_playwright() as playwright:
     "hit": [0, 5, 0, 0, 0], "moved": [0, 1, -3, 2, 1, -3, 1, 3, -3]}, result
         worker_result = page.evaluate(
             """async () => new Promise((resolve, reject) => {
-              const worker = new Worker('/mixo-supports/src/workers/meshWorker.entry.ts', { type: 'module' });
+              const worker = new Worker('/mixodental/src/workers/meshWorker.entry.ts', { type: 'module' });
               const timer = setTimeout(() => { worker.terminate(); reject(new Error('mesh worker timed out')); }, 10000);
               worker.onmessage = ({ data }) => {
                 if (data.type !== 'done' && data.type !== 'error') return;
@@ -67,7 +67,7 @@ with sync_playwright() as playwright:
         assert worker_result == 'need-source', f"unexpected mesh worker result: {worker_result}"
         import_result = page.evaluate(
             """async () => new Promise((resolve, reject) => {
-              const worker = new Worker('/mixo-supports/src/workers/importWorker.ts', { type: 'module' });
+              const worker = new Worker('/mixodental/src/workers/importWorker.ts', { type: 'module' });
               const timer = setTimeout(() => { worker.terminate(); reject(new Error('import worker timed out')); }, 15000);
               worker.onmessage = ({ data }) => {
                 if (data.type !== 'done' && data.type !== 'error') return;
@@ -100,7 +100,7 @@ with sync_playwright() as playwright:
               const view = new DataView(bytes.buffer);
               view.setUint32(80, 1, true);
               [0, 0, 0, 2, 0, 0, 0, 0, 2].forEach((value, index) => view.setFloat32(96 + index * 4, value, true));
-              const worker = new Worker('/mixo-supports/src/workers/importWorker.ts', { type: 'module' });
+              const worker = new Worker('/mixodental/src/workers/importWorker.ts', { type: 'module' });
               const timer = setTimeout(() => { worker.terminate(); reject(new Error('binary STL import timed out')); }, 15000);
               worker.onmessage = ({ data }) => {
                 if (data.type !== 'done' && data.type !== 'error') return;
@@ -126,7 +126,7 @@ with sync_playwright() as playwright:
         ascii_import = page.evaluate(
             """async () => new Promise((resolve, reject) => {
               const bytes = new TextEncoder().encode('solid x\\nvertex 0 0 0\\nvertex 2 0 0\\nvertex 0 0 2\\nendsolid x');
-              const worker = new Worker('/mixo-supports/src/workers/importWorker.ts', { type: 'module' });
+              const worker = new Worker('/mixodental/src/workers/importWorker.ts', { type: 'module' });
               const timer = setTimeout(() => { worker.terminate(); reject(new Error('ASCII STL import timed out')); }, 15000);
               worker.onmessage = ({ data }) => {
                 if (data.type !== 'done' && data.type !== 'error') return;
@@ -151,7 +151,7 @@ with sync_playwright() as playwright:
         assert ascii_import["center"][0:2] == [1, 1], ascii_import
         invalid_import = page.evaluate(
             """async () => new Promise((resolve, reject) => {
-              const worker = new Worker('/mixo-supports/src/workers/importWorker.ts', { type: 'module' });
+              const worker = new Worker('/mixodental/src/workers/importWorker.ts', { type: 'module' });
               const timer = setTimeout(() => { worker.terminate(); reject(new Error('invalid import timed out')); }, 15000);
               worker.onmessage = ({ data }) => {
                 if (data.type !== 'done' && data.type !== 'error') return;

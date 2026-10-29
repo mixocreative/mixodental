@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 const VENDOR = resolve(import.meta.dirname, 'vendor/mixo-geocore');
 
 export default defineConfig({
-  base: '/mixo-supports/',
+  base: '/mixodental/',
   resolve: {
     alias: {
       '@mixo-geocore/host': resolve(VENDOR, 'host'),

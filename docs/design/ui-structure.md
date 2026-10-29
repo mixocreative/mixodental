@@ -1,4 +1,4 @@
-# mixosupports UI structure
+# mixoDental UI structure
 
 Date: 2026-10-22. Status: implemented at `05d42c4` (see the status section below). Written as a design,
 with the owner decisions of 2026-10-22 encoded; revised after a four-model
@@ -148,7 +148,7 @@ English shown; zh-Hant and ja are longer and must fit the same rows (see 7.6).
 
 ```text
 +--------------------------------------------------------------------------------------------------------------------+
-| MIXO SUPPORTS  Resin Support Studio      [EN|ZH|JA]  [Undo][Redo] | [Hide models][Wireframe]                       |
+| mixoDental  Resin Support Studio      [EN|ZH|JA]  [Undo][Redo] | [Hide models][Wireframe]                       |
 +----------------------+-------------------------------------------------------------------+-------------------------+
 | IMPORT MODELS        | bust.stl                        [Tips only][Fit view][Bottom view]| SUPPORT SETTINGS  bust  |
 | [ Import models    ] |                                                                   | Preset [Lt|=Md=|Hv|Cu]  |
@@ -186,7 +186,7 @@ top-right corner. Job list and toast appear only while there is something to sho
 
 ```text
 +--------------------------------------------------------------------------------------------------------------------+
-| MIXO SUPPORTS  Resin Support Studio      [EN|ZH|JA]  [Undo][Redo] | [Hide models][Wireframe]                       |
+| mixoDental  Resin Support Studio      [EN|ZH|JA]  [Undo][Redo] | [Hide models][Wireframe]                       |
 +----------------------+-------------------------------------------------------------------+-------------------------+
 | Finish editing       |#=================================================================#| SUPPORT SETTINGS  bust  |
 | supports first: press|#[SUPPORT EDIT MODE  bust.stl  Click the model to add supports]   #| Preset [Lt|=Md=|Hv|Cu]  |
@@ -228,7 +228,7 @@ Done. No selection actions exist under Add.
 
 ```text
 +--------------------------------------------------------------------------------------------------------------------+
-| MIXO SUPPORTS  Resin Support Studio      [EN|ZH|JA]  [Undo][Redo] | [Hide models][Wireframe]                       |
+| mixoDental  Resin Support Studio      [EN|ZH|JA]  [Undo][Redo] | [Hide models][Wireframe]                       |
 +----------------------+-------------------------------------------------------------------+-------------------------+
 | Finish editing       |#=================================================================#| SUPPORT SETTINGS  bust  |
 | supports first: press|#[SUPPORT EDIT MODE  bust.stl  Drag over supports to select]      #| Settings for 37         |
@@ -274,7 +274,7 @@ that feature ships it looks as in 2.4.
 
 ```text
 +--------------------------------------------------------------------------------------------------------------------+
-| MIXO SUPPORTS  Resin Support Studio      [EN|ZH|JA]  [Undo][Redo] | [Hide models][Wireframe]                       |
+| mixoDental  Resin Support Studio      [EN|ZH|JA]  [Undo][Redo] | [Hide models][Wireframe]                       |
 +----------------------+-------------------------------------------------------------------+-------------------------+
 | Finish painting zones|#=================================================================#| Finish painting zones   |
 | first: press Esc or  |#[PAINTING NO-SUPPORT ZONES  bust.stl]                            #| first: press Esc or     |
@@ -322,7 +322,7 @@ carries "{n} supports hidden by zones" **[new]**. The camera-above-plate note sh
 ### 3.1 Proposed order and why
 
 1. **Import models** — first step, always at the top.
-   Under it, one row with **Open project** and **Save project** (the file counterpart of Import; same lock in a mode). The format is the scene JSON under a `{ app: 'mixo-supports', version: 1 }` header, gzip-compressed where the browser can; opening an older or plain file works.
+   Under it, one row with **Open project** and **Save project** (the file counterpart of Import; same lock in a mode). The format is the scene JSON under a `{ app: 'mixodental', version: 1 }` header, gzip-compressed where the browser can; opening an older or plain file works.
 2. **Objects** — what was imported; selection decides the scope of everything below.
 3. **Transform** — orient before generating (rotation changes placement).
 4. **Supports for {scope}** — Generate / Regenerate (the primary), Clear manual edits, Remove supports.
@@ -542,8 +542,8 @@ header Generate stays, it locks in modes.)
 | id | Label (copy) | Icon | Hint (copy) | Shortcut | Visible | Enabled | Role | Status |
 |---|---|---|---|---|---|---|---|---|
 | import.files | imp.title, imp.help | — | imp.hint | drop on viewport | always | mode = setup | secondary (drop zone) | today; viewport drop refused in a mode **[change]** |
-| project.open | Open project | — | Open a .mixosupports project. It replaces the plate; Undo brings the previous plate back | drop a .mixosupports file on the viewport | always | mode = setup (refused with the "Finish … first" line in a mode, like an import) | secondary | **[new]** |
-| project.save | Save project | — | Save the plate, supports and hand edits as a .mixosupports file | — | always | units > 0 ("Import a model first.") | secondary | **[new]** |
+| project.open | Open project | — | Open a .mixodental project. It replaces the plate; Undo brings the previous plate back | drop a .mixodental file on the viewport | always | mode = setup (refused with the "Finish … first" line in a mode, like an import) | secondary | **[new]** |
+| project.save | Save project | — | Save the plate, supports and hand edits as a .mixodental file | — | always | units > 0 ("Import a model first.") | secondary | **[new]** |
 | objects.row[i] | object letter, name, support count | — | obj.row.hint | Shift / Ctrl+click adds or removes | units > 0 | mode = setup | choice | today |
 | objects.selectAll | obj.selectAll | — | obj.selectAll.hint | — | always | units > 0 | secondary | today |
 | objects.delete | obj.delete | — | obj.delete.hint | Delete (setup) | always | selObj > 0 | destructive | role **[change]** |
@@ -1046,7 +1046,7 @@ Dense desktop editor for preparing resin 3D prints with support structures, for 
 PLATFORM: Web, desktop 1366 × 768.
 
 PAGE STRUCTURE:
-1. Header (56 px): wordmark "MIXO SUPPORTS" and caption "Resin Support Studio" on the left; on the right a three-segment language switch "EN | 中文 | 日本語", a button pair "Undo" "Redo", a divider, then "Hide models" and "Wireframe".
+1. Header (56 px): wordmark "mixoDental" and caption "Resin Support Studio" on the left; on the right a three-segment language switch "EN | 中文 | 日本語", a button pair "Undo" "Redo", a divider, then "Hide models" and "Wireframe".
 2. Left panel (268 px), sections each under a bold heading on a light grey band:
    - "Import models": dashed drop area with "Import models" and the caption "STL, GLB or glTF. Files stay on this device."
    - "Objects  3": three compact rows (letter badge, file name, support count); row A active with a small dark-red letter badge; buttons "Select all" and "Delete" (red outline).
@@ -1343,7 +1343,7 @@ ring mark. 5. The Regenerate report. Steps 1 and 2 ship without any UI change.
 | C1 | Remove the header Generate (duplicate, second red button) | removed | Implemented. The header has no Generate (`a55d4ec`). |
 | C2 | Left Exit stays live inside the locked panel AND the viewport Done stays; both run `mode.exit` and never disagree (4.4). Two of four reviewers preferred one Exit in the viewport bar. | both, one command | Implemented. The left Exit and the viewport Done both run `mode.exit` (`e01941f`). |
 | C3 | Header: the lock blocks scene-changing commands only. Language, Hide models, Wireframe stay live in every mode; Undo / Redo stay live down to the mode's floor | view toggles live | Implemented. Language, Hide models and Wireframe stay live; Undo and Redo stop at the mode floor (`83ccbe1`). |
-| C4 | File drop on the viewport is refused while a mode is on (today it ends the mode and imports) | refused | Implemented. A file dropped in a mode is refused, the status line says why and the lock note pulses (`83b85e4`, `54be8c9`). A dropped `.mixosupports` file follows the same rule. |
+| C4 | File drop on the viewport is refused while a mode is on (today it ends the mode and imports) | refused | Implemented. A file dropped in a mode is refused, the status line says why and the lock note pulses (`83b85e4`, `54be8c9`). A dropped `.mixodental` file follows the same rule. |
 | C5 | Click reach (was Remove radius): drop the right-panel field once the Add bar has it | keep both for now (one registry control) | Implemented as the default. One registry command, `setting.clickReach`, renders in the Add bar and in the right panel Advanced group (`commands.ts:245`). |
 | C6 | Viewport primary keeps the word "Done" (left button says "Exit ...") | "Done": says the work is kept | Implemented. The viewport button says "Done" and the left button says "Exit ..." (`EditBar.tsx:20`). |
 | C7 | Supports follow defaults unless explicitly edited; Reset drops the override (replaces the earlier "freeze at add" and "re-snapshot" options) | decided by the coordinator, recorded | Implemented. `contactSettings` holds only edited values; Reset drops them (`8fc7742`). |
@@ -1472,15 +1472,15 @@ No row is marked won't do.
 
 Not in the original design. Shipped in `05d42c4`.
 
-Save project writes the plate as one `.mixosupports` file. Open project reads it back.
+Save project writes the plate as one `.mixodental` file. Open project reads it back.
 
 - **Where.** An Open / Save row sits under Import models in the left panel (`App.tsx:867-870`). Both are registry commands, `project.open` and `project.save` (`commands.ts:168-175`).
 - **Enabled.** Open needs no mode on, and in a mode its reason is the busy line. Save needs at least one object, and its reason is the no-model line. The row is inert with the Import section when a mode locks it.
-- **Format.** Version 1. JSON with a header `{ app: "mixo-supports", version: 1, scene }`, gzip-compressed where the browser has `CompressionStream`, else plain JSON. Open reads both by the gzip magic bytes (`state/projectFile.ts:5-7,36-62`).
+- **Format.** Version 1. JSON with a header `{ app: "mixodental", version: 1, scene }`, gzip-compressed where the browser has `CompressionStream`, else plain JSON. Open reads both by the gzip magic bytes (`state/projectFile.ts:5-7,36-62`).
 - **Contents.** The scene's units. Each holds its model mesh, transform, settings, manual supports, removals, per-support settings and zones. Selection and the active object are not saved.
-- **File name.** The first object's name without its extension, plus `.mixosupports`. Characters a file name cannot hold become `_`.
+- **File name.** The first object's name without its extension, plus `.mixodental`. Characters a file name cannot hold become `_`.
 - **Saving.** A native save dialog opens where the browser offers one, else the file downloads. A cancelled dialog says "Save cancelled; no file was written." A failure says nothing was written.
-- **Opening.** Open replaces the plate as one history step. When objects were on the plate, an Undo toast brings them back. Dropping a `.mixosupports` file on the viewport opens it the same way (`App.tsx:785-791`).
+- **Opening.** Open replaces the plate as one history step. When objects were on the plate, an Undo toast brings them back. Dropping a `.mixodental` file on the viewport opens it the same way (`App.tsx:785-791`).
 - **Refusals.** Open waits while a mode is on, as an import does. It refuses a file with no header, a newer version, a damaged file, and a project over this device's triangle limit. Each message names the file, says what to do, and leaves the plate unchanged.
 - **Progress.** A job entry shows "Opening {name}" or "Saving {name}".
 - **Leave guard.** After a change since the last save or open, the page asks before it closes (`beforeunload`, `useProjectFile.ts:36-46`). A selection change alone does not arm it.

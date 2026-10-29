@@ -1,8 +1,8 @@
-# Heavy meshes in mixosupports — measurements and budgets
+# Heavy meshes in mixoDental — measurements and budgets
 
 Shared contract (budgets pattern, tiers, pre-parse refusal, memory model, progress UX): mixomesh
 `docs/superpowers/specs/2026-10-21-heavy-mesh-handling.md` (branch `feat/heavy-mesh`). This note holds
-the mixosupports side; the controller merges these numbers into the shared spec.
+the mixoDental side; the controller merges these numbers into the shared spec.
 
 Fixtures: `npx vite-node scripts/make-heavy-meshes.ts` (bumpy closed spheres, binary STL, written to the
 git-ignored `.playwright-mcp/heavy/`). Harness: `node scripts/measure-heavy.mjs [--runtime desktop]` (Vite
@@ -25,7 +25,7 @@ the refusal line follows generation, not import. A desktop shell runs the same C
 gets the same numbers until placement memory drops. mixomesh (import and editing only) measured web
 2.5M / 10M and desktop 6M / 24M.
 
-Differences from the shared wording: the refusal omits "or use the desktop app" (mixosupports has none).
+Differences from the shared wording: the refusal omits "or use the desktop app" (mixoDental has none).
 
 Guards added after review (Task 9 fix round 1): the plate may hold at most 6M triangles (`plate-full`
 at import); placements, preview builds and exports start only while running heavy jobs plus their own

@@ -43,7 +43,7 @@ describe('project file', () => {
 
   it('writes a header that names the app and the version', () => {
     const file = JSON.parse(encodeProject(sceneOf(worked('u1', 'knot'))));
-    expect([file.app, file.version]).toEqual(['mixo-supports', 1]);
+    expect([file.app, file.version]).toEqual(['mixodental', 1]);
   });
 
   it('refuses a file without the header, a newer version, a bad version and a missing scene', () => {
@@ -99,9 +99,9 @@ describe('project file', () => {
   });
 
   it('names the file after the first object, or "project"', () => {
-    expect(projectFileName(sceneOf(worked('u1', 'knot')))).toBe('knot.mixosupports');
-    expect(projectFileName(sceneOf(worked('u1', 'a/b:c')))).toBe('a_b_c.mixosupports');
-    expect(projectFileName(emptyScene)).toBe('project.mixosupports');
+    expect(projectFileName(sceneOf(worked('u1', 'knot')))).toBe('knot.mixodental');
+    expect(projectFileName(sceneOf(worked('u1', 'a/b:c')))).toBe('a_b_c.mixodental');
+    expect(projectFileName(emptyScene)).toBe('project.mixodental');
   });
 
   it('counts a change of the objects as unsaved, a change of the selection as not', () => {
