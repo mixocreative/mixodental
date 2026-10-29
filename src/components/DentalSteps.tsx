@@ -7,6 +7,7 @@ import { ALIGNER_PROFILES, profileById, profilesWithoutOpening, type AlignerProf
 import { t, translateMessage, type Lang } from '../i18n';
 import { CommandButton } from './CommandButton';
 import { RangeField } from './RangeField';
+import { Icon } from '../ui/Icon';
 import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { tiltLabel, type TiltRow, type TiltRule } from '@mixo-geocore/host/dental/dentalTilt';
 import type { DentalTiltState } from './useDentalFlow';
@@ -29,11 +30,13 @@ export function tiltProblems(row: TiltRow): string[] {
   return row.failed.map((failure) => t('{rule} at {n}° ({at})', { rule: t(TILT_RULE_NAMES[failure.rule]), n: tiltLabel(row.tiltDeg), at: failure.at }));
 }
 
-/** The top-view line art of one profile, in the card's ink colour. */
+/** The Step 0 card art of each aligner type: the icon file that draws its top view. */
+const CARD_ICON: Record<string, string> = { 'reference-aligner': 'aligner-standard' };
+
+/** The top-view line art of one profile, in the card's ink colour (src/ui/assets/icons). */
 function ProfileArt({ profile }: { profile: AlignerProfile }) {
-  return <svg className="dental-card-art" viewBox="0 0 120 90" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    {profile.card.map((d) => <path key={d} d={d} />)}
-  </svg>;
+  const name = CARD_ICON[profile.id];
+  return name ? <Icon name={name} className="dental-card-art" /> : null;
 }
 
 /** The message of one notice, in the words of Step 1 and Step 2. */

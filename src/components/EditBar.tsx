@@ -8,7 +8,7 @@ import { KeyCaps } from './KeyCaps';
 import { NumberField } from './NumberField';
 import { RangeField } from './RangeField';
 import { Segmented } from './Segmented';
-import { BrushIcon, PointerIcon } from './ToolIcons';
+import { Icon } from '../ui/Icon';
 
 export type { EditGesture };
 
@@ -106,9 +106,9 @@ export function SelectStyleSwitch({ gesture, ui, send, run }: {
   run: (id: CommandId) => void;
 }) {
   return <Segmented className="tool-choice" label={t('How to select')} value={gesture.kind === 'drag' ? 'brush' : 'click'} onChange={(style) => send({ type: 'setSelectStyle', style })} options={[
-        { value: 'click', icon: <PointerIcon />, label: t('Click'), hint: 'Click supports one at a time to select them' },
+        { value: 'click', icon: <Icon name="tool-pointer" />, label: t('Click'), hint: 'Click supports one at a time to select them' },
         {
-          value: 'brush', icon: <BrushIcon />, label: t('Drag over'), hint: 'Drag over the model or its supports to select many at once. A drag that starts on empty space turns the view',
+          value: 'brush', icon: <Icon name="tool-brush" />, label: t('Drag over'), hint: 'Drag over the model or its supports to select many at once. A drag that starts on empty space turns the view',
           // The tool's own size, under it: shown only while Drag over is the way to select.
           under: gesture.kind === 'drag' && <div className="drag-under">
             <DragActionSwitch ui={ui} run={run} />
