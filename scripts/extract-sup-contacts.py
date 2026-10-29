@@ -9,7 +9,9 @@ modified. The outputs sit in git-ignored customer-data folders; do not add them 
 Method:
   1. Denture/part component inside the -sup = largest face-connected component of the -sup.
   2. Support geometry = -sup vertices outside that component.
-  3. Bare-to-sup transform = centroid start + point-to-point ICP (reported as icp_rms_mm).
+  3. Bare-to-sup transform: "exact" = least-squares fit on one-to-one vertex correspondences when
+     the denture is the same mesh (RMS ~0); otherwise "icp" = point-to-plane ICP, then point-to-point.
+     rms_mm is reported; rms_flag_over_0.02_mm is set when it exceeds 0.02 mm.
   4. Contacts = support vertices within TOUCH_MM of the transformed bare surface, clustered
      with CLUSTER_MM (connected components); each cluster centroid is mapped to the bare frame
      and snapped to the nearest bare-surface point, normal = that face's normal.
@@ -124,6 +126,66 @@ def load(path):
     return trimesh.load(str(path), file_type="stl", force="mesh", process=True)
 
 
+EXACT_RMS_MM = 0.02
+
+
+def exact_fit(bare_v, den_v, iters=30):
+    """Least-squares fit on one-to-one vertex correspondences (identical meshes). None if not 1:1."""
+    T = np.eye(4)
+    T[:3, 3] = den_v.mean(0) - bare_v.mean(0)
+    tree = cKDTree(den_v)
+    rms = np.inf
+    for _ in range(iters):
+        d, idx = tree.query(apply(T, bare_v))
+        if len(set(idx.tolist())) != len(bare_v):
+            return None, np.inf
+        T = kabsch(apply(T, bare_v), den_v[idx]) @ T
+        rms = float(np.sqrt(np.mean(d ** 2)))
+    d, idx = tree.query(apply(T, bare_v))
+    if len(set(idx.tolist())) != len(bare_v):
+        return None, np.inf
+    return T, float(np.sqrt(np.mean(d ** 2)))
+
+
+def icp_point_to_plane(A, B, Bn, T0, iters=30):
+    """Point-to-plane ICP: A bare samples, B target points with unit normals Bn."""
+    from scipy.spatial.transform import Rotation
+    tree = cKDTree(B)
+    T = T0.copy()
+    for _ in range(iters):
+        At = apply(T, A)
+        d, idx = tree.query(At)
+        q, n = B[idx], Bn[idx]
+        J = np.hstack([np.cross(At, n), n])
+        r = np.einsum("ij,ij->i", n, At - q)
+        x, *_ = np.linalg.lstsq(J, -r, rcond=None)
+        dT = np.eye(4)
+        dT[:3, :3] = Rotation.from_rotvec(x[:3]).as_matrix()
+        dT[:3, 3] = x[3:]
+        T = dT @ T
+        if np.linalg.norm(x) < 1e-9:
+            break
+    return T
+
+
+def register(bare, sup, den, den_vert_set):
+    """Return (T bare->sup, rms_mm, method). Exact vertex fit when the denture matches the bare
+    mesh; otherwise point-to-plane ICP refined by point-to-point ICP."""
+    den_v = sup.vertices[den_vert_set]
+    if len(den.faces) == len(bare.faces) and len(den_v) == len(bare.vertices):
+        T, rms = exact_fit(bare.vertices, den_v)
+        if T is not None and rms <= EXACT_RMS_MM:
+            return T, rms, "exact"
+    den_pts, den_fi = trimesh.sample.sample_surface(den, 60000)
+    den_n = den.face_normals[den_fi]
+    bare_samp = bare.sample(20000)
+    T0 = np.eye(4)
+    T0[:3, 3] = den_pts.mean(0) - bare_samp.mean(0)
+    T = icp_point_to_plane(bare_samp, den_pts, den_n, T0)
+    T, rms = icp_point_to_point(bare_samp, den_pts, T)
+    return T, rms, "icp"
+
+
 def process_pair(bare_path, sup_path):
     bare = load(bare_path)
     sup = load(sup_path)
@@ -133,12 +195,7 @@ def process_pair(bare_path, sup_path):
     denture_faces = np.asarray(groups[0])
     den = trimesh.Trimesh(vertices=sup.vertices, faces=sup.faces[denture_faces], process=False)
     den_vert_set = np.unique(sup.faces[denture_faces])
-    den_surface = den.sample(60000)
-
-    bare_samp = bare.sample(20000)
-    T0 = np.eye(4)
-    T0[:3, 3] = den_surface.mean(0) - bare_samp.mean(0)
-    T, rms = icp_point_to_point(bare_samp, den_surface, T0)
+    T, rms, method = register(bare, sup, den, den_vert_set)
 
     sup_mask = np.ones(len(sup.vertices), bool)
     sup_mask[den_vert_set] = False
@@ -184,7 +241,9 @@ def process_pair(bare_path, sup_path):
         "sup": sup_path.name,
         "frame": "bare scan coordinates, mm",
         "transform_bare_to_sup": np.round(T, 6).tolist(),
-        "icp_rms_mm": round(rms, 5),
+        "registration": method,
+        "rms_mm": round(rms, 6),
+        "rms_flag_over_0.02_mm": bool(rms > EXACT_RMS_MM),
         "contacts": np.round(np.array(snapped).reshape(-1, 3), 4).tolist(),
         "normals": np.round(np.array(normals).reshape(-1, 3), 5).tolist(),
         "cluster_mm": CLUSTER_MM,
@@ -203,7 +262,7 @@ def main():
         out = process_pair(bare_path, sup_path)
         out_path = sup_path.with_name(sup_path.name[: -len(".stl")] + ".contacts.json")
         out_path.write_text(json.dumps(out), encoding="utf-8")
-        print(f"wrote {out_path.name}: contacts={len(out['contacts'])} icp_rms_mm={out['icp_rms_mm']}")
+        print(f"wrote {out_path.name}: contacts={len(out['contacts'])} registration={out['registration']} rms_mm={out['rms_mm']}")
 
 
 if __name__ == "__main__":
