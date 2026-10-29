@@ -211,6 +211,9 @@ function drawLayers() {
 // runs made before summary.json carried `explanation` read the same.
 const REASONS = await fetch('/reasons.json').then((r) => (r.ok ? r.json() : { reasons: [] })).then((j) => j.reasons ?? []).catch(() => []);
 const explain = (c) => c.explanation || REASONS.find(([prefix]) => (c.reason ?? '').startsWith(prefix))?.[1] || c.reason || '';
+// "case-003 · scan name" — the file name (no folder, no .stl) from summary.json's source path.
+const fileName = (c) => (c.source ?? '').split(/[\\/]/).pop().replace(/\.stl$/i, '');
+const caseLabel = (c) => (fileName(c) ? `${c.case} · ${fileName(c)}` : c.case);
 const RESULT_WORDS = { inconclusive: 'Not built: the review could not decide', error: 'Not built: the file could not be read' };
 
 const loader = new GLTFLoader();
@@ -223,7 +226,7 @@ async function show(row) {
   const card = document.getElementById('nocase');
   card.hidden = Boolean(row.glb);
   if (!row.glb) {
-    document.getElementById('nocase-name').textContent = row.case;
+    document.getElementById('nocase-name').textContent = caseLabel(row);
     document.getElementById('nocase-result').textContent = RESULT_WORDS[row.result] ?? `Result: ${row.result}`;
     document.getElementById('nocase-text').textContent = explain(row) || 'No reason was recorded.';
     document.getElementById('nocase-code').textContent = row.reason ? `Reason code: ${row.reason}` : '';
@@ -276,8 +279,10 @@ function openRun(summary, glbUrl, csvUrl) {
   const csv = document.getElementById('csv');
   csv.hidden = !csvUrl;
   if (csvUrl) csv.href = csvUrl;
-  onlyLook = needing.length > 0;
-  select(0);
+  // Open on All with the first BUILT case shown in 3D: starting on "Needs a look" showed only the
+  // unbuilt cases (no model), which read as an empty review.
+  onlyLook = false;
+  select(Math.max(0, cases.findIndex((c) => c.result === 'built')));
 }
 
 function empty(message) {
@@ -377,7 +382,8 @@ function drawList() {
     const li = document.createElement('li');
     li.className = `${c.needsLook ? 'look' : ''} ${k === current ? 'selected current' : ''}`;
     const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = c.needsLook ? '!' : '✓';
-    const name = document.createElement('span'); name.textContent = c.case;
+    // Case id plus the scan's file name, so a row is recognisable without opening it.
+    const name = document.createElement('span'); name.textContent = caseLabel(c); name.title = c.source ?? '';
     // A case that was not built says why, in plain words (full text on hover); a built one says its safety verdict.
     const small = document.createElement('small');
     small.textContent = c.result !== 'built' ? `Not built: ${explain(c)}` : status(c);
