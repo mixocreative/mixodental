@@ -158,7 +158,9 @@ describe('synthetic aligners without a decidable central opening abstain', () =>
     const { mesh, rim, min, max } = frame();
     const covered = withPlate(mesh, plate(rim, [min[0] - 1, max[0] + 1], [min[1] - 1, max[1] + 1], 0.4));
     expect(orientDentalAligner(covered, REFERENCE_PROFILE)).toMatchObject({ kind: 'oriented', opening: 'absent' });
-    expect(proposeDentalSupportRegion(covered, referenceTuning, REFERENCE_PROFILE)).toEqual({ kind: 'inconclusive', reason: 'central-opening-absent' });
+    // Engine 12 (geocore 2facbe7) accepts an absent opening (open arches), so a plate over the
+    // reference's opening is now stopped one step later: its surface region is not isolated.
+    expect(proposeDentalSupportRegion(covered, referenceTuning, REFERENCE_PROFILE)).toEqual({ kind: 'inconclusive', reason: 'surface-region-not-isolated' });
   }, 120000);
 
   it('a bar that splits the opening is ambiguous, never absent, and no region is proposed', () => {
