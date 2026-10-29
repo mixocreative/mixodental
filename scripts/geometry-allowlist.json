@@ -39,6 +39,9 @@
  "src/core/handedness.ts": {
   "label": "host-adapter"
  },
+ "src/dental/areaRisk.ts": {
+  "label": "host-adapter"
+ },
  "src/dental/confirmTilt.ts": {
   "label": "host-adapter"
  },

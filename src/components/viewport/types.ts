@@ -9,6 +9,7 @@ import type { AddAction, BrushMode, EditTool, SelectStyle } from '@mixo-geocore/
 import type { PrintScene } from '../../state/project';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import type { AddedAt } from './AddFlash';
+import type { AreaRisk } from '../../dental/areaRisk';
 
 export type GizmoMode = 'none' | 'translate' | 'rotate';
 
@@ -19,6 +20,8 @@ export interface ObjectViewportProps {
   dentalTips?: { unitId: string; points: readonly Pick<SupportPoint, 'id' | 'position' | 'normal'>[] };
   /** Dental Step 2 is on (whichever tool): the area and tips show, no support bodies. */
   dentalArea?: boolean;
+  /** Dental Step 2: the overhang low points outside the permitted area, drawn blue. */
+  dentalRisks?: { unitId: string; risks: readonly AreaRisk[] };
   /** Step 2, Select → Click: the click hit the model at this plate point; pick the tip nearest it. */
   onPickTip: (unitId: string, point: Vector) => void;
   /** What a press or drag does now (editing/gesture): the mode, the tool and its brush. */

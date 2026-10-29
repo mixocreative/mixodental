@@ -4,6 +4,7 @@ import type { DentalTuning } from '@mixo-geocore/host/dental/dentalTuning';
 import type { DentalOrientation } from '@mixo-geocore/host/dental/dentalOrient';
 import type { TiltScan, TiltScanSettings } from '@mixo-geocore/host/dental/dentalTilt';
 import type { DentalBuildInput } from '../dental/confirmTilt';
+import type { AreaRisk, AreaRiskJob } from '../dental/areaRisk';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { PlacementResult, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import type { CheckJob, DentalPlacementJob, PlacementJob } from '@mixo-geocore/host/core/jobs';
@@ -101,6 +102,11 @@ export class AnalysisClient {
   dentalConfirmTilt(key: string, input: DentalBuildInput, rotations: Vector[], label: JobLabel): Promise<{ confirmed: number | undefined; tried: number } | undefined> {
     return this.submit(key, { kind: 'dental-confirm-tilt', job: { ...input, rotations } }, label).then((result) =>
       result?.kind === 'dental-tilt-confirmed' ? { confirmed: result.confirmed, tried: result.tried } : undefined);
+  }
+
+  /** Step 2: the overhang low points outside the permitted area. A newer job with the key replaces this one (resolves undefined). */
+  dentalRisks(key: string, job: AreaRiskJob, label: JobLabel): Promise<AreaRisk[] | undefined> {
+    return this.submit(key, { kind: 'dental-risk', job }, label).then((result) => (result?.kind === 'dental-risks' ? result.risks : undefined));
   }
 
   check(key: string, job: CheckJob, label: JobLabel): Promise<SupportProblem[] | undefined> {

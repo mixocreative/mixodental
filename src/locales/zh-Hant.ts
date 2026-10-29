@@ -662,6 +662,10 @@ export const zhHant: Dictionary = {
   'Generate supports only on the approved dental area': '只在核准的牙套區域產生支撐',
   'Approve a dental support area before generating dental supports.': '請先核准牙套支撐區域，再產生牙套支撐。',
   'Placing dental contacts on {name}': '正在為 {name} 配置牙套接觸點',
+  'Blue spots are overhang low points outside the support area. Extend the area over them, or leave them to the aligner shape.': '藍色標記是位於支撐區域外的懸空處最低點。請將區域擴大到這些位置，或交由牙套形狀決定。',
+  'Low points outside the support area': '支撐區域外的最低點',
+  'Low point outside the support area': '支撐區域外的最低點',
+  'Looking for low points outside the support area on {name}': '正在尋找 {name} 上支撐區域外的最低點',
   'Dental support placement cancelled; existing supports kept.': '已取消牙套支撐配置；現有支撐會保留。',
   'Analysing approved dental surface for {name}.': '正在分析 {name} 的核准牙套表面。',
   // Dental flow: aligner type, drop, orientation

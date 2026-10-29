@@ -1,7 +1,10 @@
 import type { Gesture } from '@mixo-geocore/editing/gesture';
 
-/** Colours of the edit preview and check markers (the app's red, kraft, blue and an amber). */
-export const PREVIEW = { add: '#b59f78', remove: '#7f0019', ring: '#3b3631', zone: '#1d3461', dental: '#2f6f5e', island: '#b3261e', overhang: '#d97706', outside: '#6b7280' };
+/**
+ * Colours of the edit preview and check markers (the app's red, kraft, blue and an amber). `dental` is the tip markers' green;
+ * `areaPermitted` (vermilion) is the dental support area, `riskOutside` (blue) a low point that lies outside it.
+ */
+export const PREVIEW = { add: '#b59f78', remove: '#7f0019', ring: '#3b3631', zone: '#1d3461', dental: '#2f6f5e', areaPermitted: '#E83F25', riskOutside: '#1E50A2', island: '#b3261e', overhang: '#d97706', outside: '#6b7280' };
 /** Opacity of the no-support zone layer in zones mode (`full`) and in Support Edit Mode (`faint`). */
 export const ZONE_OPACITY = { full: 0.7, faint: 0.3 } as const;
 /** Opacity of a support body previewed (not yet selected) in red. */

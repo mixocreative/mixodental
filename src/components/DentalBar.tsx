@@ -12,6 +12,8 @@ import { RangeField } from './RangeField';
 import { ClickReachField, SelectStyleSwitch } from './EditBar';
 import { Segmented } from './Segmented';
 import type { DentalTiltState } from './useDentalFlow';
+import type { AreaRisk } from '../dental/areaRisk';
+import { hint } from './hint';
 
 /** Step 2's tools, in the order of their keys. */
 const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
@@ -19,7 +21,7 @@ const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
 /** Dental Auto Generate chrome: review the detector first, then mark only permitted support area. */
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
   lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, onTuningChange,
-  review, clickReach, tilt, onTilt, send, run }: {
+  review, clickReach, tilt, onTilt, risks, onShowRisk, send, run }: {
   gesture: Extract<Gesture, { kind: 'dental-type' | 'dental-aligner' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
   /** Step 1: the object selected on the plate, offered as the aligner without a drop. */
@@ -44,6 +46,9 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   /** Step 1's print-angle search (of the aligner in the step) and its slider. */
   tilt?: DentalTiltState | undefined;
   onTilt?: (index: number) => void;
+  /** Step 2: overhang low points outside the permitted area (the blue spots), listed with Show me. */
+  risks?: readonly AreaRisk[];
+  onShowRisk?: (risk: AreaRisk) => void;
   send: (event: SessionEvent) => void;
   run: (id: CommandId) => void;
 }) {
@@ -116,6 +121,16 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       {tuningBusy && <p className="edit-note" role="status">{t('Updating support area and tips…')}</p>}
       {tuningError && <p className="edit-note" role="alert">{t('Could not update the support strip. The previous area is still active.')}</p>}
       {gesture.notices.map((notice) => <p key={notice.kind} className="edit-note" role="alert">{noticeText(notice)}</p>)}
+      {risks && risks.length > 0 && <>
+        <p className="edit-note" role="note">{t('Blue spots are overhang low points outside the support area. Extend the area over them, or leave them to the aligner shape.')}</p>
+        <ul className="problems dental-risks" aria-label={t('Low points outside the support area')}>
+          {risks.map((risk) => <li key={risk.id}>
+            <span className="problem-kind risk" aria-hidden="true" />
+            <span className="problem-text">{t('Low point outside the support area')}</span>
+            <button type="button" onClick={() => onShowRisk?.(risk)} {...hint('Frame the camera on this spot')}>{t('Show me')}</button>
+          </li>)}
+        </ul>
+      </>}
       <p className="edit-note" role="note">{t('Drag on the model to paint; drag empty space to rotate the view. Proposed support tips: {n}. Final generation may exclude tips whose supports touch an unapproved face.', { n: tipCount })}</p>
       {!gesture.notices.some((notice) => notice.kind === 'no-area') && (previewStatus !== 'ready' || tipCount === 0) ? <p className="edit-note" role="status">{t(previewStatus === 'error'
         ? 'Could not preview safe support tips. Adjust the area or retry.'

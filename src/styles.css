@@ -450,6 +450,10 @@ footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
 .problem-kind.island { background: #b3261e; }
 .problem-kind.overhang { background: #d97706; }
 .problem-kind.outside, .problem-kind.omitted { background: #6b7280; }
+.problem-kind.risk { background: #1E50A2; }
+/* Step 2's low points sit over the viewport: two rows show, the rest scroll, so the panel never grows over the model. */
+.dental-side .problems.dental-risks, .edit-bar .problems.dental-risks { margin-top: 2px; max-height: 64px; overflow-y: auto; }
+.problems.dental-risks li { padding: 2px 0; }
 
 /* ---- Edit bar tools and selection ---------------------------------------- */
 /* Viewport tools keep the app's button sizes; segments get room for their words. */

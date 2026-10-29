@@ -812,6 +812,13 @@ async function walk(url, scratch, dentalFixture) {
       const movedAndShown = movedTo !== undefined && JSON.stringify((await d.props()).activeRotation) !== JSON.stringify(pickRotation);
       check('f6 Next confirmed the automatic pick with a real build: it held, or it moved with the notice and a new rotation', held || movedAndShown, `moved notes ${movedNotes}, angle ${shownAngle}, rotation ${JSON.stringify((await d.props()).activeRotation)} vs ${JSON.stringify(pickRotation)}`);
       await page.screenshot({ path: path.join(scratch, 'ux-a-step2.png') });
+      // PD.1: the area is vermilion; overhang low points outside it come from the worker ~0.5 s after the area last changed, listed with Show me.
+      await page.waitForTimeout(2500);
+      const riskRows = await page.locator('.dental-risks li').count();
+      const riskShows = await page.locator('.dental-risks li button').count();
+      note(`PD.1 overhang low points outside the default area on the reference aligner: ${riskRows}`);
+      check('u10c Step 2 lists each low point outside the area with a Show me button', riskRows === riskShows, `${riskRows} rows, ${riskShows} buttons`);
+      await page.screenshot({ path: path.join(scratch, 'pd1-step2-area.png') });
       // Step 2 controls (unit B): Paint / Erase anywhere, Area width, Area position and Support density, all live.
       const bar = page.locator('.dental-brush');
       check('u10b Step 2 offers Paint and Erase and the Area width, Area position and Support density sliders (no hidden setback)',

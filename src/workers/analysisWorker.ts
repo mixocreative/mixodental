@@ -6,6 +6,7 @@ import { proposeDentalSupportRegion, retuneDentalSupportRegion } from '@mixo-geo
 import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
 import { scanDentalTilts } from '@mixo-geocore/host/dental/dentalTilt';
 import { confirmPick } from '../dental/confirmTilt';
+import { areaRisks } from '../dental/areaRisk';
 import type { AnalysisResult, AnalysisTask } from './analysisProtocol';
 import { geometryReady } from '@mixo-geocore/host/workers/geometryClient';
 import { serveTask, transferable } from '@mixo-geocore/host/workers/serveTask';
@@ -23,6 +24,7 @@ serveTask<AnalysisTask, AnalysisResult>((task, { progress: post }) => runAfterGe
     post({ fraction, stage });
   };
   if (task.kind === 'check') return { kind: 'checked', problems: runCheckJob(task.job, progress) };
+  if (task.kind === 'dental-risk') return { kind: 'dental-risks', risks: areaRisks(task.job) };
   if (task.kind === 'dental-orient') {
     progress(0, 'Checking and orienting the aligner');
     const orientation = orientDentalAligner(task.job.mesh, task.job.profile);

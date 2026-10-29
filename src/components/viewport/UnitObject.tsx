@@ -20,7 +20,8 @@ import { PREVIEW, ZONE_OPACITY, SEE_THROUGH } from './style';
 import { useGeometry } from './geometry';
 import { rustRaycast } from './rustRaycast';
 import { type Hover, EditPreview, SupportBodies, ZoneLayer, useDoomed, useWarmZoneOverlay, ProblemMarkers, CustomisedMarks, useSelectionColors } from './supportLayers';
-import { DentalFaceLayer, DentalPaintLayer, DentalRegionLines, DentalRimLine, DentalStampLayer, DentalTipMarkers, type TipMark } from './dentalLayers';
+import type { AreaRisk } from '../../dental/areaRisk';
+import { DentalFaceLayer, DentalPaintLayer, DentalRiskLayer, DentalRegionLines, DentalRimLine, DentalStampLayer, DentalTipMarkers, type TipMark } from './dentalLayers';
 import type { ObjectViewportProps } from './types';
 import { MODEL_MESH, SUPPORT_MESH, useScreenBrush } from './useScreenBrush';
 
@@ -38,6 +39,8 @@ interface UnitObjectProps extends Pick<ObjectViewportProps,
   unit: PrintUnit;
   supports?: GeneratedSupportMesh;
   dentalTips?: readonly TipMark[];
+  /** Dental Step 2: low points of overhang regions outside the permitted area. */
+  dentalRisks?: readonly AreaRisk[];
   /** Dental Step 2, whichever tool: tips and the area are drawn, no support bodies, and Select works on the tips. */
   dentalArea?: boolean;
   selected: boolean;
@@ -306,6 +309,9 @@ export function UnitObject(props: UnitObjectProps) {
         : <><DentalStampLayer mesh={unit.source} geometry={model} policy={{ ...unit.dental, stamps: dentalStamps ?? unit.dental.stamps }} opacity={0.7} />
           <DentalRimLine rim={unit.dental.rim} /></>}
     </group>}
+    {areaShown && props.dentalRisks && props.dentalRisks.length > 0 && shown === unit.source && <group visible={props.modelVisible}>
+      <DentalRiskLayer mesh={unit.source} risks={props.dentalRisks} opacity={0.85} />
+    </group>}
     {areaShown && props.dentalTips && <DentalTipMarkers points={props.dentalTips} {...(tipMarks ? { marks: tipMarks } : {})} />}
     {supportGeometry && <mesh
       geometry={supportGeometry}
@@ -325,7 +331,7 @@ export function UnitObject(props: UnitObjectProps) {
       <meshStandardMaterial key={selectionColored ? 'selection' : 'plain'} color={selectionColored ? '#ffffff' : supportColor} vertexColors={selectionColored} metalness={0} roughness={0.9} />
     </mesh>}
     {editing && hover && !brush && <EditPreview hover={hover} unit={unit} contacts={contacts} {...(zoneBrush || dentalBrush
-      ? { brush: { radius: (zoneBrush ?? dentalBrush)!.radius, color: zoneBrush?.kind === 'paint' ? PREVIEW.zone : dentalBrush?.kind === 'allow' ? PREVIEW.dental : PREVIEW.ring } }
+      ? { brush: { radius: (zoneBrush ?? dentalBrush)!.radius, color: zoneBrush?.kind === 'paint' ? PREVIEW.zone : dentalBrush?.kind === 'allow' ? PREVIEW.areaPermitted : PREVIEW.ring } }
       : {})} />}
     {editing && !surfacePainting && supports && supportGeometry && <>
       <SupportBodies supports={supports} geometry={supportGeometry} ids={doomed} opacity={1} />

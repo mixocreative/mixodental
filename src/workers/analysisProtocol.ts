@@ -8,6 +8,7 @@ import type { DentalOrientation } from '@mixo-geocore/host/dental/dentalOrient';
 import type { TiltScan, TiltScanSettings } from '@mixo-geocore/host/dental/dentalTilt';
 import type { DentalBuildInput } from '../dental/confirmTilt';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
+import type { AreaRisk, AreaRiskJob } from '../dental/areaRisk';
 
 /** One analysis job: automatic placement or a support check (the mesh arrives as a transferred copy). */
 export type AnalysisTask =
@@ -21,6 +22,8 @@ export type AnalysisTask =
   | { kind: 'dental-tilt-scan'; job: { mesh: TriangleMesh; profile: string; settings: TiltScanSettings } }
   /** Step 1 Next: the automatic pick's confirm builds, the pick then the next tilts in pick order. */
   | { kind: 'dental-confirm-tilt'; job: DentalBuildInput & { rotations: Vector[] } }
+  /** Step 2: the overhang low points outside the permitted area (PD.1). */
+  | { kind: 'dental-risk'; job: AreaRiskJob }
   | { kind: 'check'; job: CheckJob };
 
 export type AnalysisResult =
@@ -32,4 +35,5 @@ export type AnalysisResult =
   | { kind: 'dental-retuned'; region: DentalRegionProposal; placement?: PlacementResult }
   | { kind: 'dental-tilt-scanned'; scan: TiltScan }
   | { kind: 'dental-tilt-confirmed'; confirmed: number | undefined; tried: number }
+  | { kind: 'dental-risks'; risks: AreaRisk[] }
   | { kind: 'checked'; problems: SupportProblem[] };

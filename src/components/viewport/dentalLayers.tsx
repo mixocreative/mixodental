@@ -5,6 +5,7 @@ import { buildVertexGrid, sameStamp, stampVertices, type VertexGrid } from '@mix
 import type { DentalRim } from '@mixo-geocore/host/dental/dental';
 import { legacyBaselineVertices } from '@mixo-geocore/host/dental/legacyArea';
 import { dentalContactMask, isManualArea, type DentalAllowStamp, type DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { AreaRisk } from '../../dental/areaRisk';
 import { PREVIEW } from './style';
 import { faceMaskContourSegments, faceMaskOverlay } from './faceMaskOverlay';
 import { SurfaceStampLayer } from './supportLayers';
@@ -25,7 +26,7 @@ export function DentalStampLayer({ mesh, geometry, policy, opacity }: { mesh: Tr
       clearTimeout(timer);
     };
   }, [mesh, policy.rim, isManualArea(policy)]);
-  return <SurfaceStampLayer mesh={mesh} geometry={geometry} stamps={policy.stamps} filledKind="allow" color={PREVIEW.dental} opacity={opacity} baseline={baseline} />;
+  return <SurfaceStampLayer mesh={mesh} geometry={geometry} stamps={policy.stamps} filledKind="allow" color={PREVIEW.areaPermitted} opacity={opacity} baseline={baseline} />;
 }
 
 /**
@@ -33,7 +34,7 @@ export function DentalStampLayer({ mesh, geometry, policy, opacity }: { mesh: Tr
  * Erase removes it; last stamp wins). Display only: Rust `dental_policy` decides the faces and tips.
  */
 export function DentalPaintLayer({ mesh, geometry, stamps, opacity }: { mesh: TriangleMesh; geometry: THREE.BufferGeometry; stamps: readonly DentalAllowStamp[]; opacity: number }) {
-  return <SurfaceStampLayer mesh={mesh} geometry={geometry} stamps={stamps} filledKind="allow" color={PREVIEW.dental} opacity={opacity} />;
+  return <SurfaceStampLayer mesh={mesh} geometry={geometry} stamps={stamps} filledKind="allow" color={PREVIEW.areaPermitted} opacity={opacity} />;
 }
 
 /** The exact approved triangles only: shared vertices cannot bleed colour onto tooth faces. */
@@ -72,7 +73,7 @@ export function DentalFaceLayer({ mesh, policy, opacity }: { mesh: TriangleMesh;
   }, [layer, policy.stamps]);
   if (!layer) return null;
   return <mesh geometry={layer.geometry} raycast={() => undefined} renderOrder={16}>
-    <meshBasicMaterial color={PREVIEW.dental} vertexColors side={THREE.DoubleSide} transparent opacity={opacity}
+    <meshBasicMaterial color={PREVIEW.areaPermitted} vertexColors side={THREE.DoubleSide} transparent opacity={opacity}
       depthWrite={false} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
   </mesh>;
 }
@@ -86,9 +87,36 @@ export function DentalRegionLines({ mesh, policy }: { mesh: TriangleMesh; policy
   }), [mesh, policy.region]);
   useEffect(() => () => lines.forEach((line) => line.dispose()), [lines]);
   return <group raycast={() => undefined} renderOrder={17}>
-    <lineSegments geometry={lines[0]} raycast={() => undefined}><lineBasicMaterial color="#007ed3" depthTest={false} depthWrite={false} /></lineSegments>
+    <lineSegments geometry={lines[0]} raycast={() => undefined}><lineBasicMaterial color={PREVIEW.ring} depthTest={false} depthWrite={false} /></lineSegments>
     <lineSegments geometry={lines[1]} raycast={() => undefined}><lineBasicMaterial color="#ee1938" depthTest={false} depthWrite={false} /></lineSegments>
   </group>;
+}
+
+/**
+ * Low points of overhang regions that lie outside the permitted area: a blue disc on each (the
+ * region's faces within click reach), drawn like the area layer so it shows through nothing else.
+ * Display only: the supports and the export never read it.
+ */
+export function DentalRiskLayer({ mesh, risks, opacity }: { mesh: TriangleMesh; risks: readonly AreaRisk[]; opacity: number }) {
+  const geometry = useMemo(() => {
+    const faces = risks.reduce((sum, risk) => sum + risk.faces.length, 0);
+    const positions = new Float32Array(faces * 9);
+    let at = 0;
+    for (const risk of risks) for (const face of risk.faces) for (let k = 0; k < 3; k += 1) {
+      const vertex = mesh.indices[face * 3 + k]! * 3;
+      positions.set([mesh.positions[vertex]!, mesh.positions[vertex + 1]!, mesh.positions[vertex + 2]!], at);
+      at += 3;
+    }
+    const built = new THREE.BufferGeometry();
+    built.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    return built;
+  }, [mesh, risks]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  if (risks.length === 0) return null;
+  return <mesh geometry={geometry} raycast={() => undefined} renderOrder={18} name="area-risks">
+    <meshBasicMaterial color={PREVIEW.riskOutside} side={THREE.DoubleSide} transparent opacity={opacity}
+      depthWrite={false} polygonOffset polygonOffsetFactor={-3} polygonOffsetUnits={-3} />
+  </mesh>;
 }
 
 /** The proven lower-edge loop, held just above the model so the permitted area has a clear boundary. */
@@ -103,10 +131,10 @@ export function DentalRimLine({ rim }: { rim: DentalRim }) {
   if (rim.boundaryKind !== 'lower-edge-loop') return null;
   return <group position={offset} raycast={() => undefined} renderOrder={17}>
     <lineLoop geometry={geometry} raycast={() => undefined}>
-      <lineBasicMaterial color={PREVIEW.dental} transparent opacity={0.9} depthTest={false} depthWrite={false} />
+      <lineBasicMaterial color={PREVIEW.areaPermitted} transparent opacity={0.9} depthTest={false} depthWrite={false} />
     </lineLoop>
     <lineLoop geometry={geometry} scale={1.001} raycast={() => undefined}>
-      <lineBasicMaterial color={PREVIEW.dental} transparent opacity={0.22} depthTest={false} depthWrite={false} />
+      <lineBasicMaterial color={PREVIEW.areaPermitted} transparent opacity={0.22} depthTest={false} depthWrite={false} />
     </lineLoop>
   </group>;
 }

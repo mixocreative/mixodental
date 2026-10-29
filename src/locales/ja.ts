@@ -658,6 +658,10 @@ export const ja: Dictionary = {
   'Generate supports only on the approved dental area': '承認済みのデンタル領域だけにサポートを生成します',
   'Approve a dental support area before generating dental supports.': 'デンタルサポートを生成する前に、デンタル領域を承認してください。',
   'Placing dental contacts on {name}': '{name} にデンタル接触点を配置中',
+  'Blue spots are overhang low points outside the support area. Extend the area over them, or leave them to the aligner shape.': '青い部分は、サポート領域の外にあるオーバーハングの最下点です。領域をそこまで広げるか、アライナーの形状に委ねてください。',
+  'Low points outside the support area': 'サポート領域の外にある最下点',
+  'Low point outside the support area': 'サポート領域の外にある最下点',
+  'Looking for low points outside the support area on {name}': '{name} でサポート領域の外にある最下点を検索中',
   'Dental support placement cancelled; existing supports kept.': 'デンタルサポートの配置を中止しました。既存のサポートは保持されます。',
   'Analysing approved dental surface for {name}.': '{name} の承認済みデンタル表面を解析中です。',
   // Dental flow: aligner type, drop, orientation
