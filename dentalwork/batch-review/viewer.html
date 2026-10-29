@@ -109,6 +109,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Plain names for the review layers (the GLB names start with the colour word set in Rust).
 const LAYERS = [
@@ -152,9 +154,20 @@ const visible = new Map(LAYERS.map(([prefix, , on]) => [prefix, on]));
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(devicePixelRatio);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 stage.prepend(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(getComputedStyle(document.body).getPropertyValue('--viewport-bg').trim() || '#e9e6df');
+// A soft room environment gives the PBR materials something to reflect; the lights below stay as they were.
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+pmrem.dispose();
+// One plastic for every support layer (tips, pillars, braces, raft, label: the GLB's GOLD and ORANGE meshes).
+// Each layer keeps its colour through a vertex colour attribute set in show(), so the material is shared.
+const SUPPORT_KEYS = ['GOLD', 'ORANGE'];
+const PLASTIC = new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, metalness: 0, roughness: 0.45,
+  clearcoat: 0.3, clearcoatRoughness: 0.4, side: THREE.DoubleSide });
 const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 5000);
 scene.add(camera, new THREE.HemisphereLight(0xffffff, 0x8a847a, 1.6));
 const light = new THREE.DirectionalLight(0xffffff, 1.4);
@@ -214,7 +227,7 @@ function drawLayers() {
     const swatch = document.createElement('i');
     swatch.className = 'swatch';
     let colour = '#ccc';
-    model.traverse((object) => { if (object.isMesh && (keyOf(object.name) === prefix || keyOf(object.parent?.name) === prefix)) colour = '#' + object.material.color.getHexString(); });
+    model.traverse((object) => { if (object.isMesh && (keyOf(object.name) === prefix || keyOf(object.parent?.name) === prefix)) colour = '#' + (object.userData.colour ?? object.material.color).getHexString(); });
     swatch.style.background = colour;
     const text = document.createElement('span');
     text.textContent = label;
@@ -267,7 +280,19 @@ async function show(row) {
       }
       // Shade the surfaces so the shape reads; markers and tubes keep their flat colour.
       const key = object.isMesh && keyOf(object.name);
-      if (key && ['DENTURE', 'TEAL', 'NEUTRAL', 'GOLD', 'ORANGE'].includes(key)) {
+      if (key && SUPPORT_KEYS.includes(key)) {
+        // Weld the duplicated corners first so the normals are smooth across each part, not faceted.
+        const old = object.geometry;
+        object.geometry = mergeVertices(old);
+        old.dispose();
+        object.geometry.computeVertexNormals();
+        const tint = object.material.color.clone();
+        const colours = new Float32Array(object.geometry.attributes.position.count * 3);
+        for (let i = 0; i < colours.length; i += 3) tint.toArray(colours, i);
+        object.geometry.setAttribute('color', new THREE.BufferAttribute(colours, 3));
+        object.userData.colour = tint;
+        object.material = PLASTIC;
+      } else if (key && ['DENTURE', 'TEAL', 'NEUTRAL'].includes(key)) {
         if (!object.geometry.attributes.normal) object.geometry.computeVertexNormals();
         object.material = new THREE.MeshStandardMaterial({ color: key === 'DENTURE' ? DENTURE_COLOUR : object.material.color, roughness: 0.85, side: THREE.DoubleSide });
       }
