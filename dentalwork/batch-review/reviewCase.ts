@@ -15,12 +15,7 @@ import { nodeEngine, parseStl } from '../../scripts/node-engine';
 import { buildDentalReview, pickPrintAngle } from '../../scripts/dental-region-review/build';
 import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
 import { exportDentalRegionReview } from '../../scripts/dental-region-review/review';
-import { reasons } from './reasons.json';
-
-/** The plain-language text for a reason code (`reasons.json`, first matching prefix); an error message or unknown code as is. */
-export function explainReason(reason: string): string {
-  return reasons.find(([prefix]) => reason.startsWith(prefix!))?.[1] ?? reason;
-}
+import { explainReason } from './reasons';
 
 export type CaseRow = {
   case: string; source: string; result: 'built' | 'inconclusive' | 'error'; reason: string;

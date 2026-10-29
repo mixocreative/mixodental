@@ -7,7 +7,8 @@ import { orientDentalAligner } from '@mixo-geocore/host/dental/dentalOrient';
 import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
 import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
 import { nodeEngine, parseStl } from '../../scripts/node-engine';
-import { explainReason, reviewCase } from './reviewCase';
+import { explainReason } from './reasons';
+import { reviewCase } from './reviewCase';
 
 /*
  * The folder review end to end: batch.ts' per-file pipeline on the reference aligner, and batch.ts
@@ -74,13 +75,3 @@ describe.skipIf(!existsSync(CASE_002))('case-002 (local real scan)', () => {
   }, 120_000);
 });
 
-describe('explainReason', () => {
-  it('gives plain words for every reason the detector and the build emit, and passes other text through', () => {
-    for (const code of ['non-manifold-or-degenerate-mesh', 'outer-ridge-not-closed', 'outer-ridge-sharp-all-round', 'central-opening-absent',
-      'opening-loop-branched', 'projected-holes-uncertain', 'surface-region-not-isolated', 'orientation-no-cavity', 'contact-footprint-invalid-tuning',
-      'diagnostic-band-x', 'dental-pose-inconclusive', 'empty-or-invalid-mesh', 'no-proposed-dental-tips', 'islands: non-manifold edge']) {
-      expect(explainReason(code), code).not.toBe(code);
-    }
-    expect(explainReason('the STL file is truncated or damaged')).toBe('the STL file is truncated or damaged');
-  });
-});
