@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { BrushFixture } from '../../scripts/fixtures/brush/types';
 import { approxArray, exactArray, expectGolden, readGolden } from '../../scripts/test-support/golden';
 import { seededRays } from '../../scripts/test-support/knotRays';
+import { knotAsRecorded } from '../../scripts/test-support/recordedKnot';
 import { nodeEngine, parseStl } from '../../scripts/test-support/rustImport';
 import { fromLeftHandedMatrix, toLeftHanded, toLeftHandedMatrix } from '../core/handedness';
 import { applyToDirection, applyToPoint, invertMatrix, placementMatrix, transformPositions } from '../../scripts/test-support/matrix';
@@ -15,8 +16,8 @@ import { applyToDirection, applyToPoint, invertMatrix, placementMatrix, transfor
 const engine = nodeEngine as unknown as Record<string, any>;
 const fixtureBytes = readFileSync('scripts/fixtures/brush/aligner-brush.json');
 const FIXTURE = JSON.parse(new TextDecoder().decode(new Uint8Array(fixtureBytes.buffer, fixtureBytes.byteOffset, fixtureBytes.byteLength))) as BrushFixture;
-const knotBytes = readFileSync('scripts/fixtures/knot.stl');
-const knot = parseStl(new Uint8Array(knotBytes.buffer, knotBytes.byteOffset, knotBytes.byteLength), 'knot');
+// The knot as the goldens recorded it (collapsed triangles kept; see recordedKnot.ts).
+const knot = knotAsRecorded();
 const maxDiff = (a: ArrayLike<number>, b: ArrayLike<number>) => {
   expect(a.length).toBe(b.length);
   let worst = 0;

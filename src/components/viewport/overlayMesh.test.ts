@@ -1,8 +1,7 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { refineForOverlay, warmZoneOverlay, zoneOverlay } from './overlayMesh';
-import { parseStl } from '../../../scripts/test-support/rustImport';
+import { knotAsRecorded } from '../../../scripts/test-support/recordedKnot';
 
 /** A 100 mm square of two triangles in the xy plane. */
 const square: TriangleMesh = {
@@ -138,8 +137,8 @@ const fnv = (data: Uint8Array) => {
 const digest = (mesh: TriangleMesh) => [mesh.indices.length / 3, mesh.positions.length / 3, fnv(new Uint8Array(mesh.positions.buffer)), fnv(new Uint8Array(mesh.indices.buffer))];
 
 describe('overlay refinement on the knot fixture', () => {
-  const file = readFileSync('scripts/fixtures/knot.stl');
-  const knot = parseStl(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength) as ArrayBuffer);
+  // The knot as the goldens recorded it (collapsed triangles kept; see recordedKnot.ts).
+  const knot = knotAsRecorded();
 
   // Digests of the output of the first implementation (one pass-by-pass call, no slicing).
   it.each([
