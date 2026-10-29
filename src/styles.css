@@ -277,6 +277,12 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
   white-space: nowrap;
 }
 .edit-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 16px; align-items: center; }
+/* PD.11 Step 1: the orientation bar is a narrow column on the right edge; rows stack, Back | Next spans the bottom. */
+.edit-bar--orient { width: 232px; align-items: stretch; padding: 8px; }
+.orient-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.orient-row > * { flex: 1 1 auto; }
+.orient-nav { margin-top: auto; }
+.orient-nav button { flex: 1 1 0; }
 .tool-option { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--ink); }
 .tool-option-head { display: flex; justify-content: space-between; gap: 8px; }
 .tool-option output { color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -543,6 +549,7 @@ footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
   .left { grid-area: left; overflow: visible; }
   .right { grid-area: right; overflow: visible; }
   .edit-bar { left: 14px; right: 14px; top: auto; bottom: 12px; max-width: none; align-items: stretch; white-space: normal; }
+  .edit-bar--orient { width: auto; }
   .edit-row { justify-content: space-between; }
   /* The count leads; Delete, Clear and Done stay together at the end. */
   .edit-row + .edit-row { justify-content: flex-end; }

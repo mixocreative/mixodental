@@ -1,11 +1,9 @@
 import { useRef } from 'react';
-import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import type { Gesture } from '@mixo-geocore/editing/gesture';
 import type { SessionEvent } from '@mixo-geocore/editing/session';
 import type { DentalNotice } from '../dental/editingMode';
-import { ALIGNER_PROFILES, profileById, profilesWithoutOpening, type AlignerProfile } from '@mixo-geocore/host/dental/alignerProfiles';
+import { ALIGNER_PROFILES, type AlignerProfile } from '@mixo-geocore/host/dental/alignerProfiles';
 import { t, translateMessage, type Lang } from '../i18n';
-import { CommandButton } from './CommandButton';
 import { RangeField } from './RangeField';
 import { Icon } from '../ui/Icon';
 import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
@@ -133,39 +131,5 @@ export function PrintAngleField({ tilt, profile, onChoose }: {
       <li><span className="problem-kind angle" aria-hidden="true" /><span className="problem-text">{t('No print angle passes every rule.')}
         {tiltProblems(pick).map((line) => <small key={line}>{line}</small>)}</span></li>
     </ul> : null}
-  </div>;
-}
-
-/** Step 1 after the aligner is oriented: the notices, the type-mismatch choice, Auto orientation, Back, Exit, Next. */
-export function DentalAlignerBar({ notices, proposal, profile, lang, ui, send, run, tilt, onTilt }: {
-  notices: readonly DentalNotice[];
-  proposal: Extract<Gesture, { kind: 'dental-aligner' }>['proposal'];
-  profile: string | undefined;
-  lang: Lang;
-  ui: UiState;
-  send: (event: SessionEvent) => void;
-  run: (id: CommandId) => void;
-  tilt?: DentalTiltState | undefined;
-  onTilt?: (index: number) => void;
-}) {
-  const current = profileById(profile);
-  const alternatives = profilesWithoutOpening();
-  return <div className="edit-bar">
-    <div className="edit-row">
-      {proposal ? <span className="edit-hint">{t('Detector confidence {n}%', { n: Math.round(proposal.diagnostics.confidence * 100) })}</span> : null}
-      <CommandButton command={resolve('dental.useDetected', ui)} run={run} />
-      <CommandButton command={resolve('dental.back', ui)} run={run} />
-      <CommandButton command={resolve('dental.exit', ui)} run={run} />
-      <CommandButton command={resolve('dental.next', ui)} run={run} />
-    </div>
-    {tilt && profile ? <PrintAngleField tilt={tilt} profile={profile} onChoose={(index) => onTilt?.(index)} /> : null}
-    {notices.map((notice) => <div key={notice.kind} className="dental-notice">
-      <p className="edit-note" role="alert">{noticeText(notice)}</p>
-      {notice.kind === 'mismatch' ? <div className="edit-row">
-        {alternatives.map((entry) => <button key={entry.id} type="button" onClick={() => send({ type: 'switchDentalProfile', id: entry.id })}>{t('Switch to {name}', { name: entry.name[lang] })}</button>)}
-        <button type="button" onClick={() => send({ type: 'dismissDentalNotice', kind: 'mismatch' })}>{t('Keep {name}', { name: current ? current.name[lang] : '' })}</button>
-      </div> : null}
-    </div>)}
-    <p className="edit-note" role="note">{t('Auto orientation only rotates the aligner. Adjust with the rotation gizmo, then press Next.')}</p>
   </div>;
 }

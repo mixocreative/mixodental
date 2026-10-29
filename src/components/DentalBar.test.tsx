@@ -38,12 +38,13 @@ describe('DentalBar', () => {
     expect(loadingHtml).not.toContain('Drop the aligner STL here');
   });
 
-  it('Step 1 after orientation offers Auto orientation, Back, Exit and Next, plus its notices', () => {
+  it('Step 1 after orientation offers Auto orientation, Back and Next, no Exit, plus its notices', () => {
     const ready = { kind: 'dental-aligner', phase: 'ready', profile: 'reference-aligner',
       proposal: { kind: 'proposal', diagnostics: { confidence: 0.9 } }, notices: [{ kind: 'mismatch' }, { kind: 'holes' }, { kind: 'uncertain' }] } as unknown as Gesture & { kind: 'dental-aligner' };
     const ui = { mode: 'dental', dentalStage: 'aligner', dentalAlignerReady: true, dentalProposed: true } as UiState;
     const html = renderToStaticMarkup(<DentalBar gesture={ready} unitName="sample" ui={ui} send={() => {}} run={() => {}} />);
-    for (const word of ['Auto orientation', 'Back', 'Exit', 'Next', 'Keep Reference aligner', 'holes or non-manifold', 'different aligner type']) expect(html).toContain(word);
+    for (const word of ['Auto orientation', 'Back', 'Next', 'Keep Reference aligner', 'holes or non-manifold', 'different aligner type']) expect(html).toContain(word);
+    expect(html).not.toContain('Exit');
     expect(html).not.toContain('Done');
   });
 

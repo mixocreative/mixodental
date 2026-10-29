@@ -6,7 +6,8 @@ import { t, type Lang } from '../i18n';
 import type { DentalTuning } from '@mixo-geocore/host/dental/dentalTuning';
 import type { ProfileDefaults } from '@mixo-geocore/host/dental/alignerProfiles';
 import { CommandButton } from './CommandButton';
-import { DentalAlignerBar, DentalAlignerPrompt, DentalTypeStep, noticeText } from './DentalSteps';
+import { DentalAlignerPrompt, DentalTypeStep, noticeText } from './DentalSteps';
+import { OrientationBar } from './OrientationBar';
 import { DentalSupportsStep, type DentalReview } from './DentalSupports';
 import { RangeField } from './RangeField';
 import { ClickReachField, SelectStyleSwitch } from './EditBar';
@@ -67,7 +68,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       <b>{gesture.phase === 'ready' ? t('Review the orientation. Turn the aligner with the gizmo if needed.') : t('Add the aligner STL.')}</b>
     </div>
     {gesture.phase === 'ready'
-      ? <DentalAlignerBar notices={gesture.notices} proposal={gesture.proposal} profile={gesture.profile} lang={lang} ui={ui} send={send} run={run}
+      ? <OrientationBar notices={gesture.notices} profile={gesture.profile} lang={lang} ui={ui} send={send} run={run}
         tilt={tilt} onTilt={onTilt} />
       : <>
         <div className="edit-bar"><div className="edit-row">
