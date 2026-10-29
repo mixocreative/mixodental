@@ -15,6 +15,7 @@ import { nodeEngine, parseStl } from '../../scripts/node-engine';
 import { buildDentalReview, pickPrintAngle } from '../../scripts/dental-region-review/build';
 import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
 import { exportDentalRegionReview } from '../../scripts/dental-region-review/review';
+import { removeDegenerateTriangles } from '@mixo-geocore/host/core/removeDegenerate';
 import { explainReason } from './reasons';
 
 export type CaseRow = {
@@ -28,6 +29,8 @@ export type CaseRow = {
   printAngleDeg: number | null; stableBand: string; angleReason: string; angleConfirmed: boolean;
   /** Structures the repair switched off because they crossed the aligner (tree, brace), joined by '+'. */
   structuresLeftOut: string;
+  /** Collapsed triangles (repeated corner or zero area) the batch removed before processing; 0 = scan untouched. */
+  cleanedDegenerateTriangles: number;
 };
 
 /** Runs one STL through the pipeline; writes `<name>.glb` into `out` when it builds. Never throws: errors land in `row.reason`. */
@@ -35,10 +38,16 @@ export async function reviewCase(file: string, name: string, out: string): Promi
   const started = performance.now();
   const row: CaseRow = { case: name, source: file, result: 'error', reason: '', explanation: '', seconds: 0, verdict: '', crossings: 0, uncertain: 0,
     islandsUnresolved: 0, islandsOutsideArea: 0, tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
-    rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '' };
+    rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0 };
   try {
     const bytes = readFileSync(file);
     const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+    // Explicit, reported clean-up (batch only; the interactive import is unchanged).
+    const cleaned = removeDegenerateTriangles(nodeEngine, mesh.positions, mesh.indices);
+    if (cleaned.removed > 0) {
+      mesh.indices = cleaned.indices;
+      row.cleanedDegenerateTriangles = cleaned.removed;
+    }
     // Centred as the app's import does, so the review sees the same coordinates as the app.
     nodeEngine.center_positions_in_place(mesh.positions);
     const angle = pickPrintAngle(mesh);

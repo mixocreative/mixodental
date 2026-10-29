@@ -23,10 +23,33 @@ describe('folder review', () => {
     expect(row.reason).toBe('');
     expect(row.result).toBe('built');
     expect(row.glb).toBe('case-001.glb');
+    expect(row.cleanedDegenerateTriangles).toBe(0);
     expect(row.printAngleDeg).not.toBeNull();
     expect(row.tipsPlaced).toBeGreaterThan(0);
     const glb = readFileSync(join(scratch, 'case-001.glb'));
     expect(glb.toString('latin1', 0, 4)).toBe('glTF');
+  }, 120_000);
+
+  it('removes collapsed triangles before processing and counts them', async () => {
+    const source = readFileSync(resolve('docs/dental-reference/reference-aligner.stl'));
+    const count = source.readUInt32LE(80);
+    expect(84 + count * 50).toBe(source.length); // binary STL
+    // Two extra triangles with a repeated corner, drawn on the first triangle's corners.
+    const extra = Buffer.alloc(100);
+    for (let t = 0; t < 2; t++) {
+      for (let k = 0; k < 3; k++) {
+        const corner = [0, 1, 0][k]!;
+        for (let axis = 0; axis < 3; axis++) extra.writeFloatLE(source.readFloatLE(84 + 12 + corner * 12 + axis * 4), t * 50 + 12 + k * 12 + axis * 4);
+      }
+    }
+    const file = join(scratch, 'collapsed.stl');
+    const out = Buffer.concat([source, extra]);
+    out.writeUInt32LE(count + 2, 80);
+    writeFileSync(file, out);
+    const row = await reviewCase(file, 'case-003', scratch);
+    expect(row.reason).toBe('');
+    expect(row.result).toBe('built');
+    expect(row.cleanedDegenerateTriangles).toBe(2);
   }, 120_000);
 
   it('reports an unreadable file as an error row instead of throwing', async () => {
