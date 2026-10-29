@@ -139,7 +139,6 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run }: {
       {review.finishedCount > 0 && <p className="help">{t('Aligners finished so far: {n}', { n: review.finishedCount })}</p>}
       <div className="edit-row">
         <CommandButton command={resolve('dental.back', ui)} run={run} />
-        <CommandButton command={resolve('dental.exit', ui)} run={run} />
       </div>
       <div className="edit-row">
         <CommandButton command={resolve('dental.addAnother', ui)} run={run} />

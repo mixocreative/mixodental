@@ -58,7 +58,6 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       {t('Step 0 · Aligner type')}
       <b>{t('Choose the aligner type to begin.')}</b>
     </div>
-    <div className="edit-bar"><div className="edit-row"><CommandButton command={resolve('dental.exit', ui)} run={run} /></div></div>
     <DentalTypeStep profile={gesture.profile} lang={lang} send={send} />
   </>;
   if (gesture.kind === 'dental-aligner') return <>
@@ -137,7 +136,6 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
           : 'Finding safe support tips…')}</p> : null}
       <div className="edit-row">
         <CommandButton command={resolve('dental.back', ui)} run={run} />
-        <CommandButton command={resolve('dental.exit', ui)} run={run} />
         <CommandButton command={resolve('dental.generate', tuningBusy ? { ...ui, dentalPreviewReady: false } : ui)} run={run} />
       </div>
     </div>

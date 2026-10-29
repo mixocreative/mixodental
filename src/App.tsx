@@ -39,6 +39,7 @@ import { useDentalFlow } from './components/useDentalFlow';
 import { useProjectFile } from './components/useProjectFile';
 import { isProjectFile } from './state/projectFile';
 import { hint } from './components/hint';
+import { isOrientationStep, NO_SUPPORT_MESHES } from './dental/step1View';
 import { LanguageSelect } from './components/LanguageSelect';
 import { cancelSceneEdit, canUndo as historyCanUndo, createSceneHistory, redoScene, replaceScene, undoScene, withSceneCommand, type SceneHistory } from './state/history';
 import { gltfRawMeshes, placeImportedUnits } from './state/import';
@@ -256,6 +257,8 @@ export default function App() {
   // Debug section (dental only): the Step 1 evidence of the active model; shown only while its section is open.
   const debug = useDebugLayers(activeUnit?.source, session.mode === 'dental' ? session.dentalProfile : undefined);
   const debugShown = debug.open ? visibleLayers(debug.layers, debug.visible) : [];
+  // Step 1 shows the model and the Debug layers only (PD.11).
+  const orienting = isOrientationStep(session);
   /** Triangles of a heavy active object: the session refuses hand edits on it (Edit Mode, zones); generation and export still run. */
   const activeHeavy = activeUnit && meshTier(triangleCount(activeUnit), RUNTIME) === 'heavy' ? triangleCount(activeUnit) : undefined;
   const tipsContext = { zones: editMode === 'zones' };
@@ -1252,7 +1255,7 @@ export default function App() {
       >
         <ObjectViewport
           scene={scene}
-          supportMeshes={supportMeshes}
+          supportMeshes={orienting ? NO_SUPPORT_MESHES : supportMeshes}
           {...(shownPreview ? { dentalTips: { unitId: shownPreview.unitId, points: areaContacts } } : {})}
           {...(inArea ? { dentalArea: true } : {})}
           {...(inArea && activeUnit && areaRisks.length > 0 ? { dentalRisks: { unitId: activeUnit.id, risks: areaRisks } } : {})}
@@ -1284,12 +1287,14 @@ export default function App() {
           {...(activeUnit && debugShown.length > 0 ? { debugLayers: { unitId: activeUnit.id, layers: debugShown } } : {})}
         />
         {activeUnit && session.mode === 'dental' && session.dentalProfile ? <DebugSection open={debug.open} onOpenChange={debug.setOpen} status={debug.status} layers={debug.layers} visible={debug.visible} onToggle={debug.toggle} /> : null}
-        <div className="viewport-view" role="group" aria-label={t('View')}>
-          {/* Forced by zones, the button stays focusable (its hint says why) but does nothing. */}
-          <button aria-pressed={tipsOnly.shown} aria-disabled={tipsOnly.forced} onClick={() => setTips((state) => tipsPress(state, tipsContext))} {...hint(tipsOnly.hint)}>{t('Tips only')}</button>
-          <CommandButton command={command('view.fit')} run={runCommand} />
-          <CommandButton command={command('view.bottom')} run={runCommand} />
-        </div>
+        {orienting ? null : (
+          <div className="viewport-view" role="group" aria-label={t('View')}>
+            {/* Forced by zones, the button stays focusable (its hint says why) but does nothing. */}
+            <button aria-pressed={tipsOnly.shown} aria-disabled={tipsOnly.forced} onClick={() => setTips((state) => tipsPress(state, tipsContext))} {...hint(tipsOnly.hint)}>{t('Tips only')}</button>
+            <CommandButton command={command('view.fit')} run={runCommand} />
+            <CommandButton command={command('view.bottom')} run={runCommand} />
+          </div>
+        )}
         <CirclePreview gesture={canvasGesture(press)} />
         {isDraggingOver && <div className="viewport-drop-overlay">{t('Drop to import')}</div>}
         <JobActivityPanel />

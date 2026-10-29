@@ -15,7 +15,7 @@ describe('DentalBar', () => {
     expect(html).toContain('Reference aligner');
     expect(html).toContain('<svg');
     expect(html).toContain('aria-pressed="true"');
-    expect(html).toContain('Exit');
+    expect(html).not.toContain('Exit');
     expect(html).not.toContain('>Back<');
     const taiwan = renderToStaticMarkup(<DentalBar gesture={gesture} lang="zh-Hant" unitName={undefined} ui={{ mode: 'dental', dentalStage: 'type' } as UiState} send={() => {}} run={() => {}} />);
     expect(taiwan).toContain('標準牙套');
@@ -52,7 +52,7 @@ describe('DentalBar', () => {
     const html = renderToStaticMarkup(<DentalBar gesture={area} unitName="sample" ui={{ mode: 'dental', dentalStage: 'area' } as UiState} send={() => {}} run={() => {}} tipCount={0} previewStatus="idle" />);
     expect(html).toContain('No support area was detected');
     expect(html).toContain('>Back<');
-    expect(html).toContain('>Exit<');
+    expect(html).not.toContain('>Exit<');
   });
 
   it('shows Next without Done in Step 2, then Done only in Step 3', () => {
@@ -81,7 +81,8 @@ describe('DentalBar', () => {
     expect(reviewHtml).toContain('Step 3');
     // Density, Paint and Erase live in Step 2 only (D5).
     for (const word of ['Support density', 'Paint', 'Erase']) expect(reviewHtml).not.toContain(word);
-    for (const word of ['Tip size', 'Lift height', 'Raft', 'Tree branches', 'Cross-braces', 'Add supports', 'Label', '>OK<', 'Add another aligner', 'Back', 'Exit']) expect(reviewHtml).toContain(word);
+    for (const word of ['Tip size', 'Lift height', 'Raft', 'Tree branches', 'Cross-braces', 'Add supports', 'Label', '>OK<', 'Add another aligner', 'Back']) expect(reviewHtml).toContain(word);
+    expect(reviewHtml).not.toContain('Exit');
     const gapHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
       review={{ ...base, rimGap: { outerMm: 4.2, openingMm: 8 } }} send={() => {}} run={() => {}} />);
     expect(gapHtml).toContain('8.0 mm');
