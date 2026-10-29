@@ -78,11 +78,13 @@ function cupStl() {
  * Numbers measured on `scripts/fixtures/knot.stl` at 1440x900 with the software GL below. They move
  * only when the support generator or the brush rules change on purpose; update them then.
  */
+// Engine 10 (P5.14): 1167 -> 1200 automatic contacts (corner samples kept, geodesic insets, 1 um
+// quantising), so the drag, bottom-view and occlusion counts move with them.
 const BASE = {
-  auto: 1167,
-  dragSelected: [177, 272, 183],
-  bottomSelected: 53,
-  occlusion: [131, 602],
+  auto: 1200,
+  dragSelected: [175, 279, 189],
+  bottomSelected: 57,
+  occlusion: [140, 622],
 };
 
 const results = [];
