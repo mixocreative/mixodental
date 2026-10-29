@@ -7,18 +7,20 @@
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="base.css">
 <style>
+  /* The page never grows: body is exactly the window, and only the side panels scroll. */
   html, body { height: 100%; }
-  body { display: grid; grid-template-rows: var(--header-h) 1fr; color: var(--ink); font-size: var(--fs-md); }
+  body { height: 100vh; overflow: hidden; display: grid; grid-template-rows: var(--header-h) minmax(0, 1fr); color: var(--ink); font-size: var(--fs-md); }
   header { display: flex; align-items: center; gap: 12px; padding: 0 var(--pad); border-bottom: 1px solid var(--line); background: var(--surface); }
   header h1 { margin: 0; font-size: var(--fs-lg); font-weight: 500; }
   header .muted, .muted { color: var(--muted); }
   header a { margin-left: auto; color: var(--ink); }
   header a[hidden] + .open { margin-left: auto; }
-  main { display: grid; grid-template-columns: 260px 1fr 260px; min-height: 0; }
-  .panel { border-right: 1px solid var(--line); }
+  main { display: grid; grid-template-columns: 260px minmax(0, 1fr) 260px; grid-template-rows: minmax(0, 1fr); min-height: 0; overflow: hidden; }
+  .panel { border-right: 1px solid var(--line); min-height: 0; }
   .panel.right { border-right: 0; border-left: 1px solid var(--line); }
-  .stage { position: relative; min-width: 0; background: var(--viewport-bg); }
-  .stage canvas { display: block; width: 100%; height: 100%; }
+  /* The stage is sized by the grid, never by its canvas: the canvas is absolutely placed, so its pixel size cannot push the page taller. */
+  .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--viewport-bg); }
+  .stage canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
   .views { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
   .steps { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; }
   .note { position: absolute; top: 8px; left: 8px; max-width: 60%; color: var(--muted); font-size: var(--fs-sm); }
@@ -43,7 +45,7 @@
   /* A case with no 3D result: a card in the middle of the stage, never an empty view. */
   .nocase { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; pointer-events: none; }
   .nocase[hidden] { display: none; }
-  .nocase div { max-width: 460px; padding: 16px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); pointer-events: auto; }
+  .nocase div { max-width: 460px; max-height: 100%; overflow: auto; padding: 16px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); pointer-events: auto; }
   .nocase h2 { margin: 0 0 4px; font-size: var(--fs-xl); font-weight: 500; }
   .nocase .result { margin: 0 0 10px; color: var(--danger); }
   .nocase p { margin: 0 0 8px; line-height: 1.45; }
@@ -111,6 +113,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 // Plain names for the review layers (the GLB names start with the colour word set in Rust).
 const LAYERS = [
   ['TEAL', 'Support area (where tips may go)', true],
+  // Only a denture's own mesh (named TEAL by the engine) maps here: see keyOf.
+  ['DENTURE', 'Denture model', true],
   ['NEUTRAL', 'Rest of the aligner', true],
   ['BLUE', 'Outer edge, detected', true],
   ['GREEN', 'Outer edge, joining paths', true],
@@ -135,7 +139,14 @@ const LAYERS = [
 ];
 // GLTFLoader turns spaces in node names into underscores; compare with them put back.
 const plain = (name) => (name ?? '').replace(/_/g, ' ');
-const layerOf = (name) => LAYERS.find(([prefix]) => plain(name).startsWith(prefix));
+// The kind of the case on screen. A denture's one mesh is named TEAL by the engine, and its support-
+// permitted faces are nearly the whole denture: for a denture that mesh is the model, not a support area.
+let kindNow = 'aligner';
+const keyOf = (name) => {
+  const key = LAYERS.find(([prefix]) => plain(name).startsWith(prefix))?.[0];
+  return key === 'TEAL' && kindNow === 'denture' ? 'DENTURE' : key;
+};
+const DENTURE_COLOUR = new THREE.Color('#d6cfbf');
 const visible = new Map(LAYERS.map(([prefix, , on]) => [prefix, on]));
 
 const stage = document.getElementById('stage');
@@ -186,14 +197,14 @@ document.querySelectorAll('[data-view]').forEach((button) => button.addEventList
 
 function applyVisibility() {
   model?.traverse((object) => {
-    const layer = object.name && layerOf(object.name);
-    if (layer) object.visible = visible.get(layer[0]) && !(underside && layer[0] === 'GOLD');
+    const key = object.name && keyOf(object.name);
+    if (key) object.visible = visible.get(key) && !(underside && key === 'GOLD');
   });
 }
 
 function drawLayers() {
   const present = new Set();
-  model?.traverse((object) => { const layer = object.name && layerOf(object.name); if (layer) present.add(layer[0]); });
+  model?.traverse((object) => { const key = object.name && keyOf(object.name); if (key) present.add(key); });
   const box = document.getElementById('layers');
   box.replaceChildren(...LAYERS.filter(([prefix]) => present.has(prefix)).map(([prefix, label]) => {
     const row = document.createElement('label');
@@ -203,7 +214,7 @@ function drawLayers() {
     const swatch = document.createElement('i');
     swatch.className = 'swatch';
     let colour = '#ccc';
-    model.traverse((object) => { if (object.isMesh && (plain(object.name).startsWith(prefix) || plain(object.parent?.name).startsWith(prefix))) colour = '#' + object.material.color.getHexString(); });
+    model.traverse((object) => { if (object.isMesh && (keyOf(object.name) === prefix || keyOf(object.parent?.name) === prefix)) colour = '#' + object.material.color.getHexString(); });
     swatch.style.background = colour;
     const text = document.createElement('span');
     text.textContent = label;
@@ -225,6 +236,7 @@ const loader = new GLTFLoader();
 let showing = 0;
 async function show(row) {
   const ticket = ++showing;
+  kindNow = row.kind === 'denture' ? 'denture' : 'aligner';
   if (model) { scene.remove(model); model.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); model = null; floorY = null; }
   const url = row.glb ? urlOf(row.glb) : '';
   // The Step 1 evidence GLB (trim chains, U ends, plane, back arrow) loads into the same scene; a
@@ -254,14 +266,15 @@ async function show(row) {
         object.renderOrder = 10;
       }
       // Shade the surfaces so the shape reads; markers and tubes keep their flat colour.
-      if (object.isMesh && /^(TEAL|NEUTRAL|GOLD|ORANGE)/.test(object.name)) {
+      const key = object.isMesh && keyOf(object.name);
+      if (key && ['DENTURE', 'TEAL', 'NEUTRAL', 'GOLD', 'ORANGE'].includes(key)) {
         if (!object.geometry.attributes.normal) object.geometry.computeVertexNormals();
-        object.material = new THREE.MeshStandardMaterial({ color: object.material.color, roughness: 0.85, side: THREE.DoubleSide });
+        object.material = new THREE.MeshStandardMaterial({ color: key === 'DENTURE' ? DENTURE_COLOUR : object.material.color, roughness: 0.85, side: THREE.DoubleSide });
       }
     });
     scene.add(model);
     const supports = new THREE.Box3();
-    model.traverse((object) => { if (object.isMesh && layerOf(object.name)?.[0] === 'GOLD') supports.expandByObject(object); });
+    model.traverse((object) => { if (object.isMesh && keyOf(object.name) === 'GOLD') supports.expandByObject(object); });
     floorY = supports.isEmpty() ? null : supports.min.y;
     underside = false;
     applyVisibility();
@@ -356,6 +369,9 @@ const shown = () => (onlyLook ? cases.filter((c) => c.needsLook) : cases);
 
 const status = (c) => (c.result !== 'built' ? c.result : c.verdict);
 function facts(c) {
+  // A denture reads only the rows that apply to it; the aligner-only rows (arch, cross-checks, gaps, edge
+  // coverage, support crossings) would show "not oriented" and similar in red for a case that has none.
+  const DENTURE_ROWS = ['Kind', 'Shape check', 'Result', 'Safety check', 'Low points with no support', 'Print angle', 'Tips placed', 'Tips left out', 'Scan clean-up', 'Time (s)'];
   const rows = [
     ['Kind', c.kind || 'aligner', !!c.shapeNote],
     ['Shape check', c.shapeNote || 'ok', !!c.shapeNote],
@@ -383,7 +399,8 @@ function facts(c) {
   const explanation = document.getElementById('explanation');
   explanation.textContent = [c.reason ? explain(c) : '', c.orientationNote ?? ''].filter(Boolean).join(' ');
   explanation.hidden = !explanation.textContent;
-  document.getElementById('facts').replaceChildren(...rows.flatMap(([k, v, bad]) => {
+  const factRows = c.kind === 'denture' ? rows.filter(([k]) => DENTURE_ROWS.includes(k) || k === 'Reason code') : rows;
+  document.getElementById('facts').replaceChildren(...factRows.flatMap(([k, v, bad]) => {
     const dt = document.createElement('dt'); dt.textContent = k;
     const dd = document.createElement('dd'); dd.textContent = String(v ?? '-'); if (bad) dd.className = 'bad';
     return [dt, dd];
