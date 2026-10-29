@@ -36,6 +36,15 @@
   .open { display: flex; gap: 4px; }
   .open input { display: none; }
   body.dragging .stage { outline: 2px dashed var(--accent, var(--ink)); outline-offset: -6px; }
+  /* A case with no 3D result: a card in the middle of the stage, never an empty view. */
+  .nocase { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; pointer-events: none; }
+  .nocase[hidden] { display: none; }
+  .nocase div { max-width: 460px; padding: 16px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); pointer-events: auto; }
+  .nocase h2 { margin: 0 0 4px; font-size: var(--fs-xl); font-weight: 500; }
+  .nocase .result { margin: 0 0 10px; color: var(--danger); }
+  .nocase p { margin: 0 0 8px; line-height: 1.45; }
+  .nocase code { color: var(--muted); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+  .explanation { margin: 8px 0 0; line-height: 1.45; }
 </style>
 <script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
 </head>
@@ -59,6 +68,12 @@
   </div>
   <div class="stage" id="stage">
     <div class="note" id="note"></div>
+    <div class="nocase" id="nocase" hidden><div>
+      <h2 id="nocase-name"></h2>
+      <p class="result" id="nocase-result"></p>
+      <p id="nocase-text"></p>
+      <code id="nocase-code"></code>
+    </div></div>
     <div class="views">
       <button data-view="fit">Fit view</button>
       <button data-view="top">Top view</button>
@@ -76,6 +91,7 @@
       <h3>Case</h3>
       <p class="source" id="source"></p>
       <dl id="facts"></dl>
+      <p class="explanation" id="explanation" hidden></p>
     </section>
     <section>
       <h3>Layers</h3>
@@ -187,15 +203,33 @@ function drawLayers() {
   }));
 }
 
+// Plain words for the reason codes (reasons.json beside this page, first matching prefix wins), so
+// runs made before summary.json carried `explanation` read the same.
+const REASONS = await fetch('/reasons.json').then((r) => (r.ok ? r.json() : { reasons: [] })).then((j) => j.reasons ?? []).catch(() => []);
+const explain = (c) => c.explanation || REASONS.find(([prefix]) => (c.reason ?? '').startsWith(prefix))?.[1] || c.reason || '';
+const RESULT_WORDS = { inconclusive: 'Not built: the review could not decide', error: 'Not built: the file could not be read' };
+
 const loader = new GLTFLoader();
+let showing = 0;
 async function show(row) {
+  const ticket = ++showing;
   if (model) { scene.remove(model); model.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); model = null; floorY = null; }
   const url = row.glb ? urlOf(row.glb) : '';
+  // No GLB (the case was not built): a card with the case, its result and the reason in plain words.
+  const card = document.getElementById('nocase');
+  card.hidden = Boolean(row.glb);
+  if (!row.glb) {
+    document.getElementById('nocase-name').textContent = row.case;
+    document.getElementById('nocase-result').textContent = RESULT_WORDS[row.result] ?? `Result: ${row.result}`;
+    document.getElementById('nocase-text').textContent = explain(row) || 'No reason was recorded.';
+    document.getElementById('nocase-code').textContent = row.reason ? `Reason code: ${row.reason}` : '';
+  }
   document.getElementById('note').textContent = url ? 'Loading...'
-    : row.glb ? `${row.glb} was not in what was dropped. Drop the whole batch-... folder.`
-    : `No 3D result: ${row.result}${row.reason ? ` (${row.reason})` : ''}`;
+    : row.glb ? `${row.glb} was not in what was dropped. Drop the whole batch-... folder.` : '';
   if (url) {
     const gltf = await loader.loadAsync(url);
+    // A newer selection started while this one loaded: drop this result.
+    if (ticket !== showing) return;
     model = gltf.scene;
     model.traverse((object) => {
       // Markers draw over everything, so a crossing inside a support body still shows.
@@ -242,6 +276,7 @@ function openRun(summary, glbUrl, csvUrl) {
 }
 
 function empty(message) {
+  document.getElementById('nocase').hidden = true;
   document.getElementById('totals').textContent = '';
   document.getElementById('csv').hidden = true;
   document.getElementById('note').textContent = message;
@@ -318,7 +353,10 @@ function facts(c) {
     ['Edge coverage needs review', c.rimNeedsReview ? 'yes' : 'no', c.rimNeedsReview],
     ['Time (s)', c.seconds, false],
   ];
-  if (c.reason) rows.push(['Reason', c.reason, true]);
+  if (c.reason) rows.push(['Reason code', c.reason, true]);
+  const explanation = document.getElementById('explanation');
+  explanation.textContent = c.reason ? explain(c) : '';
+  explanation.hidden = !c.reason;
   document.getElementById('facts').replaceChildren(...rows.flatMap(([k, v, bad]) => {
     const dt = document.createElement('dt'); dt.textContent = k;
     const dd = document.createElement('dd'); dd.textContent = String(v ?? '-'); if (bad) dd.className = 'bad';
@@ -345,7 +383,7 @@ function drawList() {
 
 function select(k) {
   const list = shown();
-  if (list.length === 0) { drawList(); document.getElementById('position').textContent = ''; return; }
+  if (list.length === 0) { drawList(); document.getElementById('position').textContent = ''; document.getElementById('nocase').hidden = true; return; }
   current = Math.max(0, Math.min(list.length - 1, k));
   drawList();
   document.getElementById('position').textContent = `${current + 1} / ${list.length}`;

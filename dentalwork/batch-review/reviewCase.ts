@@ -15,9 +15,17 @@ import { nodeEngine, parseStl } from '../../scripts/node-engine';
 import { buildDentalReview, pickPrintAngle } from '../../scripts/dental-region-review/build';
 import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
 import { exportDentalRegionReview } from '../../scripts/dental-region-review/review';
+import { reasons } from './reasons.json';
+
+/** The plain-language text for a reason code (`reasons.json`, first matching prefix); an error message or unknown code as is. */
+export function explainReason(reason: string): string {
+  return reasons.find(([prefix]) => reason.startsWith(prefix!))?.[1] ?? reason;
+}
 
 export type CaseRow = {
-  case: string; source: string; result: 'built' | 'inconclusive' | 'error'; reason: string; seconds: number;
+  case: string; source: string; result: 'built' | 'inconclusive' | 'error'; reason: string;
+  /** `reason` in plain words with what to do next (empty when there is no reason). */
+  explanation: string; seconds: number;
   verdict: string; crossings: number; uncertain: number; islandsUnresolved: number; islandsOutsideArea: number;
   tipsPlaced: number; tipsLeftOut: number; outerGapMm: number | null; openingGapMm: number | null;
   rimNeedsReview: boolean; needsLook: boolean; glb: string;
@@ -30,7 +38,7 @@ export type CaseRow = {
 /** Runs one STL through the pipeline; writes `<name>.glb` into `out` when it builds. Never throws: errors land in `row.reason`. */
 export async function reviewCase(file: string, name: string, out: string): Promise<CaseRow> {
   const started = performance.now();
-  const row: CaseRow = { case: name, source: file, result: 'error', reason: '', seconds: 0, verdict: '', crossings: 0, uncertain: 0,
+  const row: CaseRow = { case: name, source: file, result: 'error', reason: '', explanation: '', seconds: 0, verdict: '', crossings: 0, uncertain: 0,
     islandsUnresolved: 0, islandsOutsideArea: 0, tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '' };
   try {
@@ -79,6 +87,7 @@ export async function reviewCase(file: string, name: string, out: string): Promi
   } catch (error) {
     row.reason = error instanceof Error ? error.message : String(error);
   }
+  row.explanation = row.reason ? explainReason(row.reason) : '';
   row.seconds = +((performance.now() - started) / 1000).toFixed(1);
   row.needsLook = row.result !== 'built' || row.verdict !== 'clear' || row.islandsUnresolved > 0 || row.rimNeedsReview;
   return row;

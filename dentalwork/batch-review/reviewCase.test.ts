@@ -3,7 +3,11 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { reviewCase } from './reviewCase';
+import { orientDentalAligner } from '@mixo-geocore/host/dental/dentalOrient';
+import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
+import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
+import { nodeEngine, parseStl } from '../../scripts/node-engine';
+import { explainReason, reviewCase } from './reviewCase';
 
 /*
  * The folder review end to end: batch.ts' per-file pipeline on the reference aligner, and batch.ts
@@ -40,4 +44,43 @@ describe('folder review', () => {
     expect(run.status).toBe(1);
     expect(run.stderr).toContain('No .stl files');
   }, 90_000);
+});
+
+/*
+ * case-002: an owner-supplied real aligner scan (customer data, git-ignored under dentalwork/fixtures/case-*).
+ * Local only: skipped when the file is absent, so CI never needs it. It once came back as
+ * `non-manifold-or-degenerate-mesh` in 0.6 s: the 1e-4 mm grid import weld merged 12 vertex pairs of
+ * sub-0.1 um edges (engine 12 welds duplicates only: the file comes in exactly as it is). Its trim is sharp all the way round, which the reference
+ * detector does not take; the review and the app's own Step 1 / Step 2 calls must say the same.
+ */
+const CASE_002 = resolve('dentalwork/fixtures/case-002/aligner002.stl');
+describe.skipIf(!existsSync(CASE_002))('case-002 (local real scan)', () => {
+  it('imports as a closed two-manifold and the review gives the same precise reason as the app', async () => {
+    const bytes = readFileSync(CASE_002);
+    const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+    nodeEngine.center_positions_in_place(mesh.positions);
+    expect(mesh.indices.length / 3).toBe(336_386);
+    expect(mesh.positions.length / 3).toBe(168_195);
+    // The app's Step 1 (analysis worker): the mesh check passes, so no "holes or non-manifold" notice.
+    const oriented = orientDentalAligner(mesh, 'reference-aligner');
+    expect(oriented.meshOk).toBe(true);
+    // The app's Step 2 detection (analysis worker): no area, so Step 2 opens empty for painting.
+    const region = proposeDentalSupportRegion(mesh, defaultDentalTuning('reference-aligner'), 'reference-aligner');
+    expect(region).toEqual({ kind: 'inconclusive', reason: 'outer-ridge-sharp-all-round' });
+    const row = await reviewCase(CASE_002, 'case-002', scratch);
+    expect(row).toMatchObject({ result: 'inconclusive', reason: 'outer-ridge-sharp-all-round', glb: '' });
+    expect(row.explanation).toBe(explainReason('outer-ridge-sharp-all-round'));
+    expect(row.explanation).toContain('sharp all the way round');
+  }, 120_000);
+});
+
+describe('explainReason', () => {
+  it('gives plain words for every reason the detector and the build emit, and passes other text through', () => {
+    for (const code of ['non-manifold-or-degenerate-mesh', 'outer-ridge-not-closed', 'outer-ridge-sharp-all-round', 'central-opening-absent',
+      'opening-loop-branched', 'projected-holes-uncertain', 'surface-region-not-isolated', 'orientation-no-cavity', 'contact-footprint-invalid-tuning',
+      'diagnostic-band-x', 'dental-pose-inconclusive', 'empty-or-invalid-mesh', 'no-proposed-dental-tips', 'islands: non-manifold edge']) {
+      expect(explainReason(code), code).not.toBe(code);
+    }
+    expect(explainReason('the STL file is truncated or damaged')).toBe('the STL file is truncated or damaged');
+  });
 });

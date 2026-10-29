@@ -40,7 +40,7 @@ The right panel gives the numbers for the selected file:
 
 | Line | Meaning |
 |---|---|
-| Result | `built`; `inconclusive` (the detector or the build could not decide, with the reason); `error` (the file could not be read) |
+| Result | `built`; `inconclusive` (the detector or the build could not decide, with the reason); `error` (the file could not be read). A file that was not built shows a card in the middle of the view with the reason in plain words and what to do next (`reasons.json`; also the `explanation` column of `summary.csv`), and the reason code underneath |
 | Safety check | `clear`, `blocked` (a support cuts through the aligner) or `inconclusive` (could not decide) |
 | Supports crossing the aligner | Places where a support cuts through: red markers |
 | Crossings not judged | Crossings that had no face to judge against: amber markers |

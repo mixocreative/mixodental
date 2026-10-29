@@ -1,0 +1,21 @@
+{
+  "_comment": "Plain-language text for the reason codes of the folder review (first matching prefix wins). Read by reviewCase.ts (summary.json / summary.csv 'explanation') and by viewer.html (also for older runs).",
+  "reasons": [
+    ["non-manifold-or-degenerate-mesh", "The mesh is not a closed surface: some edges are shared by more than two triangles, or some triangles have no area. Repair the file (close holes, remove duplicate or zero-area triangles) and run it again."],
+    ["outer-ridge-sharp-all-round", "The outer edge is sharp all the way round (one closed sharp loop). The automatic detector for this aligner type needs an edge that is sharp only along part of its length, so it found no support area. Open the file in the app: Step 2 opens empty and you mark where supports may go."],
+    ["outer-ridge-not-closed", "The outer edge could not be traced as one closed line: the sharp parts of the trim are too short, or they could not be joined. Open the file in the app and mark where supports may go in Step 2."],
+    ["central-opening-absent", "No central opening was found. This may be a different aligner type: choose another type in the app, or mark the support area by hand."],
+    ["opening-", "The central opening could not be traced reliably. Open the file in the app and check the opening, or mark the support area by hand."],
+    ["projected-holes-uncertain", "The central opening could not be traced reliably. Open the file in the app and check the opening, or mark the support area by hand."],
+    ["surface-region-not-isolated", "The two detected edges do not split the aligner into a fitting side and an outer side. Open the file in the app and mark where supports may go."],
+    ["orientation-invalid-mesh", "The file has no usable triangles for orientation. Check that it is a complete aligner STL."],
+    ["orientation-no-cavity", "No aligner cavity was found, so the aligner could not be oriented. Check that the file is an aligner, or orient it by hand in the app."],
+    ["orientation-ambiguous-cavity", "The aligner cavity is ambiguous, so it could not be oriented automatically. Orient it by hand in the app."],
+    ["dental-pose-inconclusive", "The print pose could not be worked out. Orient the aligner by hand in the app."],
+    ["contact-footprint-", "The support strip settings could not be applied to this aligner. Check the strip settings in the app."],
+    ["diagnostic-", "The diagnostic strips could not be built for this aligner; the support area itself may still be fine. Check it in the app."],
+    ["empty-or-invalid-mesh", "The file holds no usable geometry."],
+    ["no-proposed-dental-tips", "A support area was found, but no tip could be placed in it. Check the support area and the strip settings in the app."],
+    ["islands:", "Supports were built, but the check for unsupported low points could not decide. Look at the aligner in the app before printing."]
+  ]
+}
