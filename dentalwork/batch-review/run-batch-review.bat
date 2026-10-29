@@ -29,8 +29,13 @@ if not defined FOLDERS set /p "FOLDERS=No folder chosen. Paste a folder path, or
 if not defined FOLDERS exit /b 1
 for /f %%t in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd-HHmmss"') do set "STAMP=%%t"
 set "OUT=%HERE%..\output\batch-%STAMP%"
-call "%VITE%" --script "%HERE%batch.ts" --out "%OUT%" %FOLDERS%
-if errorlevel 1 (
+rem vite-node takes the current folder as the project root (vite.config, @mixo-geocore aliases), so run from
+rem the repo root whatever folder Explorer or a drag-and-drop started this file in.
+pushd "%ROOT%"
+call "%VITE%" --script "dentalwork\batch-review\batch.ts" --out "%OUT%" %FOLDERS%
+set "RUN_EXIT=%errorlevel%"
+popd
+if not "%RUN_EXIT%"=="0" (
   echo The review did not run. See the reason above.
   pause
   exit /b 2
