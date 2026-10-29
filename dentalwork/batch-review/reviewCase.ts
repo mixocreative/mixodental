@@ -19,7 +19,8 @@ import { dentalModelRotation, exportDentalRegionReview } from '../../scripts/den
 import { removeDegenerateTriangles } from '@mixo-geocore/host/core/removeDegenerate';
 import { REFERENCE_PROFILE } from '../../scripts/dental-region-review/profile';
 import { explainReason } from './reasons';
-import { NO_EVIDENCE, orientationEvidence, orientationGlb, orientationLayers, type OrientationEvidence } from './orientationEvidence';
+import { NO_EVIDENCE, orientationEvidence, orientationLayers, type OrientationEvidence } from '../../src/dental/orientationEvidence';
+import { orientationGlb } from './orientationEvidenceGlb';
 
 export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   /** The Step 1 evidence GLB (trim chains, U ends, bottom plane, back arrow) beside `glb`, or ''. */
