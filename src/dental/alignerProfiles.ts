@@ -2,12 +2,12 @@ import type { Lang } from '../i18n';
 
 /**
  * The aligner types the dental flow offers (Step 0), read from the same JSON files the Rust core
- * embeds (`crates/geometry-core/src/dental/profiles/*.json`, one per type). Adding an aligner type
+ * embeds (`src/dental/profiles/*.json`, one per type; the engine embeds the same files, `vendor-geometry --from` checks they match). Adding an aligner type
  * is adding one file there: this list, the card, the operator defaults and limits all follow, with
  * no code change. Parsing is strict like the Rust side (an unknown or a missing key throws), and
  * `alignerProfiles.test.ts` checks both read the same set.
  */
-const FILES = import.meta.glob<unknown>('../../crates/geometry-core/src/dental/profiles/*.json', { eager: true, import: 'default' });
+const FILES = import.meta.glob<unknown>('./profiles/*.json', { eager: true, import: 'default' });
 
 export interface ProfileDefaults {
   positionMm: number;

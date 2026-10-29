@@ -9,7 +9,7 @@ with sync_playwright() as playwright:
         page = browser.new_page()
         page.goto("http://127.0.0.1:5173/mixo-supports/")
         page.wait_for_load_state("networkidle")
-        package_url = "http://127.0.0.1:5173/mixo-supports/crates/geometry-wasm/pkg-browser/mixo_geometry_wasm.js"
+        package_url = "http://127.0.0.1:5173/mixo-supports/vendor/mixo-geocore/pkg-browser/mixo_geometry_wasm.js"
         response = page.request.get(package_url)
         assert response.ok, f"Vite browser package returned HTTP {response.status}: {response.text()[:200]}"
         result = page.evaluate(

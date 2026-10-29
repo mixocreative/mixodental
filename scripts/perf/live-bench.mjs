@@ -1,6 +1,6 @@
 // Live-update bench (E1): how long a Step 2 or Step 3 change takes to reach the preview on the
 // reference aligner, in headless Chromium against the dev server, and which worker jobs it ran.
-// Run: npm run wasm:build && node scripts/perf/live-bench.mjs [runs]
+// Run: node scripts/perf/live-bench.mjs [runs]
 // It also times Step 1's print-angle search in the browser (the worker's dental-tilt-scan job, F) and
 // records it as `tiltScanMs` in dentalwork/perf-current.json (the other keys are kept).
 //

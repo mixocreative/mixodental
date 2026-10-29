@@ -1,2 +1,5 @@
 # The golden update script writes LF; keep the snapshots LF in every checkout so it leaves no diff.
 src/goldens/__snapshots__/*.json text eol=lf
+
+# Vendored shared engine (scripts/vendor-geometry.mjs writes it; never hand-edit).
+vendor/mixo-geocore/** linguist-generated

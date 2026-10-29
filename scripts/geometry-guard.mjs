@@ -41,7 +41,7 @@ const LABELS = new Set(['host-adapter', 'host-math']);
 // require) of test-support / ts-oracle from a non-test file fails. These dev tools exist to run tests and
 // oracles (re-record goldens, probes, perf) and may use them; production tools (dental-region-review) may not.
 const TEST_SUPPORT_IMPORT = /(?:from\s*|import\s*\(?\s*|require\s*\(\s*)['"][^'"]*(?:ts-oracle|test-support)/;
-const DEV_TOOLS = new Set(['scripts/update-goldens.ts', 'scripts/probe-dental-edges.ts', 'scripts/probe-dental-orientation.ts', 'scripts/perf-baseline.mjs', 'scripts/dental-face-labels.ts']);
+const DEV_TOOLS = new Set(['scripts/update-goldens.ts', 'scripts/export-hashes.ts', 'scripts/probe-dental-edges.ts', 'scripts/probe-dental-orientation.ts', 'scripts/perf-baseline.mjs', 'scripts/dental-face-labels.ts']);
 const NOT_PRODUCTION_SCRIPTS = new Set(['test-support', 'fixtures', 'perf']);
 
 function walk(dir, out = []) {

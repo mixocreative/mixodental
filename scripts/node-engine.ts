@@ -4,7 +4,7 @@ import { setTransformEngine } from '../src/state/transformEngine';
 import { setSupportEngine } from '../src/supports/supportEngine';
 import type { GeometryEngine } from '../src/workers/geometryClient';
 import { parseStlBytes } from '../src/workers/stlSession';
-import * as wasm from '../crates/geometry-wasm/pkg-node/mixo_geometry_wasm.js';
+import * as wasm from '../vendor/mixo-geocore/pkg-node/mixo_geometry_wasm.js';
 
 /*
  * The Rust geometry engine under Node (the pkg-node build), for the production command-line tools

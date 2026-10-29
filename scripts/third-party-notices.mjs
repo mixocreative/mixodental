@@ -169,7 +169,20 @@ export function render(packages, heading = 'npm packages bundled in the applicat
   return out.join('\n') + '\n';
 }
 
+/** The vendored engine's crate list: written by `--snapshot-rust` from a mixo-geocore checkout (the only step that needs cargo). */
+const RUST_SNAPSHOT = join('scripts', 'rust-notices.json');
+
+function snapshotRust(geocoreDir) {
+  const rust = rustPackages(cargoMetadata(geocoreDir));
+  if (rust.problems.length) throw new Error(rust.problems.join('; '));
+  writeFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', RUST_SNAPSHOT), `${JSON.stringify({ packages: rust.packages }, null, 1)}
+`);
+  console.log(`third-party notices: ${rust.packages.length} Rust crates recorded in ${RUST_SNAPSHOT}`);
+}
+
 function main() {
+  const snapshotAt = process.argv.indexOf('--snapshot-rust');
+  if (snapshotAt >= 0) return snapshotRust(resolve(process.argv[snapshotAt + 1] ?? 'S:/ai/mixo-geocore'));
   const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   const { packages, problems } = collect(rootDir, REVIEWED);
   if (problems.length) {
@@ -180,15 +193,16 @@ function main() {
   const handWritten = readFileSync(join(rootDir, 'public', 'THIRD-PARTY-NOTICES.txt'), 'utf8')
     .replace(/\r\n/g, '\n')
     .replace(/\s+$/, '\n');
-  const rust = rustPackages(cargoMetadata(rootDir));
-  if (rust.problems.length) {
-    console.error('third-party notices: build failed');
-    for (const p of rust.problems) console.error(`  - ${p}`);
+  const snapshot = join(rootDir, RUST_SNAPSHOT);
+  if (!existsSync(snapshot)) {
+    console.error(`third-party notices: build failed
+  - ${RUST_SNAPSHOT} is missing (node scripts/third-party-notices.mjs --snapshot-rust <mixo-geocore dir>)`);
     process.exit(1);
   }
+  const rust = { packages: JSON.parse(readFileSync(snapshot, 'utf8')).packages };
   mkdirSync(join(rootDir, 'dist'), { recursive: true });
   writeFileSync(join(rootDir, 'dist', 'THIRD-PARTY-NOTICES.txt'), handWritten + render(packages)
-    + render(rust.packages, 'Rust crates compiled into the geometry engine (generated at build time)', 'Normal dependencies of the geometry WebAssembly crate (from cargo metadata), each under the'));
+    + render(rust.packages, 'Rust crates compiled into the geometry engine (generated at build time)', 'Normal dependencies of the shared geometry WebAssembly crate (mixo-geocore, from cargo metadata), each under the'));
   console.log(`third-party notices: ${packages.length} npm packages, ${rust.packages.length} Rust crates -> dist/THIRD-PARTY-NOTICES.txt`);
 }
 

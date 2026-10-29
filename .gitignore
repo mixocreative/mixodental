@@ -4,6 +4,3 @@ dist/
 walk-out/
 dentalwork/fixtures/case-*/
 __pycache__/
-target/
-crates/geometry-wasm/pkg-browser/
-crates/geometry-wasm/pkg-node/

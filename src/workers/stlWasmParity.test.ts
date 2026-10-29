@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'vitest';
-import { AsciiStlSession, BinaryStlSession } from '../../crates/geometry-wasm/pkg-node/mixo_geometry_wasm.js';
+import { AsciiStlSession, BinaryStlSession } from '../../vendor/mixo-geocore/pkg-node/mixo_geometry_wasm.js';
 import { binaryStlTriangles } from '../core/import/stlHeader';
 import { exactArray, expectGolden } from '../../scripts/test-support/golden';
 

@@ -1,4 +1,4 @@
-# One pipeline for every push and pull request: Rust and app tests plus the production build, the
+# One pipeline for every push and pull request: app tests plus the production build, the
 # browser walk, and (main only) the GitHub Pages deploy, which waits for both checks to pass.
 name: CI
 
@@ -28,17 +28,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # Installs the toolchain pinned in rust-toolchain.toml.
-      - run: rustup toolchain install
-      - uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
       - run: npm ci
-      - run: cargo test --workspace
+      # The engine is vendored (vendor/mixo-geocore, built and tested in mixo-geocore): no Rust toolchain here.
+      - run: npm run vendor:check
       - run: npm test
       - run: npm run build
       - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -58,14 +50,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: rustup toolchain install
-      - uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock') }}
       - run: npm ci
       - run: npx playwright-core install --with-deps chromium
       - run: mkdir -p walk-out && npm run walk 2>&1 | tee walk-out/walk.log

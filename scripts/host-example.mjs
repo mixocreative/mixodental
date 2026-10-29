@@ -13,8 +13,8 @@ if (!stlArg || !outArg) {
   process.stderr.write('Usage: node scripts/host-example.mjs <aligner.stl> <out-dir>\n');
   process.exit(2);
 }
-const packageFile = fileURLToPath(new URL('../crates/geometry-wasm/pkg-node/mixo_geometry_wasm.js', import.meta.url));
-assert.ok(existsSync(packageFile), 'Build the Node WASM package first: npm run wasm:build');
+const packageFile = fileURLToPath(new URL('../vendor/mixo-geocore/pkg-node/mixo_geometry_wasm.js', import.meta.url));
+assert.ok(existsSync(packageFile), 'Vendor the engine first: node scripts/vendor-geometry.mjs');
 const engine = createRequire(import.meta.url)(packageFile);
 
 const PROFILE = 'reference-aligner';

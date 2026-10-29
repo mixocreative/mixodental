@@ -5,7 +5,7 @@ import { performance } from 'node:perf_hooks';
 
 // Microbenchmark only: it excludes STL parse, weld, pick-index build and UI work.
 const require = createRequire(import.meta.url);
-const { center_positions_in_place: centerWasm } = require('../crates/geometry-wasm/pkg-node/mixo_geometry_wasm.js');
+const { center_positions_in_place: centerWasm } = require('../vendor/mixo-geocore/pkg-node/mixo_geometry_wasm.js');
 const file = readFileSync(new URL('../docs/dental-reference/reference-aligner.stl', import.meta.url));
 const triangles = file.readUInt32LE(80);
 assert.equal(file.length, 84 + 50 * triangles, 'benchmark fixture must be binary STL');

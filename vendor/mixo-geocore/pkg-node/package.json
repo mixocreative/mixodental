@@ -1,0 +1,11 @@
+{
+  "name": "mixo-geometry-wasm",
+  "version": "0.1.0",
+  "files": [
+    "mixo_geometry_wasm_bg.wasm",
+    "mixo_geometry_wasm.js",
+    "mixo_geometry_wasm.d.ts"
+  ],
+  "main": "mixo_geometry_wasm.js",
+  "types": "mixo_geometry_wasm.d.ts"
+}

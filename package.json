@@ -4,16 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "predev": "npm run wasm:build",
     "dev": "vite",
-    "prebuild": "npm run wasm:build",
     "build": "tsc --noEmit && vite build",
     "postbuild": "node scripts/third-party-notices.mjs",
-    "wasm:build": "node scripts/build-geometry-wasm.mjs",
-    "wasm:test": "node scripts/geometry-wasm-smoke.mjs",
+    "vendor:geometry": "node scripts/vendor-geometry.mjs",
+    "vendor:check": "node scripts/vendor-geometry.mjs --check",
+    "wasm:test": "node scripts/vendor-geometry.mjs --check && node scripts/geometry-wasm-smoke.mjs",
     "host-example": "node scripts/host-example.mjs",
-    "prewalk": "npm run wasm:build",
-    "pretest": "npm run wasm:build",
     "test": "vitest run",
     "walk": "node scripts/walk.mjs"
   },
@@ -24,8 +21,7 @@
     "playwright-core": "^1.64.1",
     "typescript": "^5.7.3",
     "vite": "^6.0.7",
-    "vitest": "^3.0.2",
-    "wasm-pack": "0.15.0"
+    "vitest": "^3.0.2"
   },
   "dependencies": {
     "@react-three/drei": "^9.120.0",

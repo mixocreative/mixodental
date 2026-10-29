@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { dentalInternals } from '../core/analysis/dentalEngine';
 import type { Lang } from '../i18n';
-import second from '../../crates/geometry-core/src/dental/profiles/testdata/second-aligner.json';
+import second from './profiles/testdata/second-aligner.json';
 import { ALIGNER_PROFILES, parseAlignerProfile, profileById, profileData, profilesFrom, profilesWithoutOpening } from './alignerProfiles';
 import { defaultDentalTuning, parseDentalTuning } from './tuning';
 
-const FILES = import.meta.glob<unknown>('../../crates/geometry-core/src/dental/profiles/*.json', { eager: true, import: 'default' });
+const FILES = import.meta.glob<unknown>('./profiles/*.json', { eager: true, import: 'default' });
 
 describe('aligner profiles', () => {
   it('list exactly the profiles the Rust core embeds (one source of truth: the JSON files)', () => {
@@ -49,7 +49,7 @@ describe('aligner profiles', () => {
   });
 
   it('a second profile file is all a new aligner type needs: card, defaults and limits follow', () => {
-    const files = { ...FILES, '../../crates/geometry-core/src/dental/profiles/test-second-aligner.json': second };
+    const files = { ...FILES, './profiles/test-second-aligner.json': second };
     const profiles = profilesFrom(files);
     const added = profiles.find((profile) => profile.id === 'test-second-aligner');
     expect(added?.opening).toBe('either');
