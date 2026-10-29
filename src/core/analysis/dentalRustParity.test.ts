@@ -96,13 +96,15 @@ describe('Rust orientation vs the recorded TS oracle', () => {
 });
 
 describe('100 random poses restore within 0.02 mm (seeded)', () => {
-  it('proposes and restores the reference pose on every pose', () => {
+  it('proposes and restores the reference pose on every pose', async () => {
     const mesh = reference();
     let state = 20261024;
     const random = () => ((state = (1664525 * state + 1013904223) >>> 0) / 2 ** 32);
     let proposals = 0;
     let maxError = 0;
     for (let trial = 0; trial < 100; trial += 1) {
+      // Yield per trial so no single synchronous block nears vitest's 60 s RPC timeout.
+      await new Promise<void>((resolve) => setImmediate(resolve));
       const scramble: Vector = [(random() * 2 - 1) * Math.PI, (random() * 2 - 1) * Math.PI, (random() * 2 - 1) * Math.PI];
       const turned = { positions: transformPositions(mesh.positions, placementMatrix({ position: [0, 0, 0], rotation: scramble })), indices: mesh.indices };
       const found = proposeDentalOrientation(turned, REFERENCE_PROFILE);
