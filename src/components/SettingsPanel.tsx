@@ -136,7 +136,7 @@ export const SETTING_GROUPS: Group[] = [
   {
     title: 'Letter label', fields: [
       bool('labelEnabled', 'Letter label', 'Emboss the letter of this object on a small pad at the raft corner so printed parts can be sorted. Needs Raft on'),
-      { kind: 'text', key: 'labelText', label: 'Letter', placeholder: 'auto', hint: 'The letter of this object, assigned automatically (A, B, … Z, AA …)' },
+      { kind: 'text', key: 'labelText', label: 'ID label', placeholder: 'auto', hint: 'The ID label of this object, assigned automatically (A, B, … Z, AA …)' },
       mm('labelSize', 'Letter size', 0.5, 'Height of the letters'),
       mm('labelHeight', 'Emboss height', 0.1, 'How far the letters stand up from the raft'),
       mm('labelMargin', 'Pad margin', 0.1, 'Space around the letters on their pad'),
