@@ -82,7 +82,7 @@ describe('DentalBar', () => {
     expect(reviewHtml).toContain('Step 3');
     // Density, Paint and Erase live in Step 2 only (D5).
     for (const word of ['Support density', 'Paint', 'Erase']) expect(reviewHtml).not.toContain(word);
-    for (const word of ['Tip size', 'Lift height', 'Raft', 'Tree branches', 'Cross-braces', 'Add supports', 'Label', '>OK<', 'Add another aligner', 'Back']) expect(reviewHtml).toContain(word);
+    for (const word of ['Tip size', 'Lift height', 'Raft', 'Tree branches', 'Cross-braces', 'Add supports', 'ID label', '>OK<', 'Add another aligner', 'Back']) expect(reviewHtml).toContain(word);
     expect(reviewHtml).not.toContain('Exit');
     const gapHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
       review={{ ...base, rimGap: { outerMm: 4.2, openingMm: 8 } }} send={() => {}} run={() => {}} />);

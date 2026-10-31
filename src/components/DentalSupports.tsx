@@ -120,14 +120,14 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run }: {
     </section>
     </div>
     <div className="dental-footer">
-    <section className="dental-block" aria-label={t('Label')}>
+    <section className="dental-block" aria-label={t('ID label')}>
       <label className="field-row" {...hint('Letters, digits and "-" only, up to 8. Embossed on the raft so printed aligners can be told apart')}>
-        <span>{t('Label')}</span>
+        <span>{t('ID label')}</span>
         <input className="text dental-label" type="text" inputMode="text" autoComplete="off" spellCheck={false} value={settings.labelText}
-          placeholder={DEFAULT_DENTAL_LABEL} aria-label={t('Label')} data-max={DENTAL_LABEL_MAX}
+          placeholder={DEFAULT_DENTAL_LABEL} aria-label={t('ID label')} data-max={DENTAL_LABEL_MAX}
           onChange={(event) => onSetting('labelText', filterDentalLabel(event.target.value), 'dental-label')} />
       </label>
-      {!settings.raftEnabled && <p className="help" role="note">{t('The label is embossed on the raft. Turn the raft on to print it.')}</p>}
+      {!settings.raftEnabled && <p className="help" role="note">{t('The ID label is embossed on the raft. Turn the raft on to print it.')}</p>}
     </section>
     {review.backAsk ? <section className="dental-block dental-confirm" role="alertdialog" aria-label={t('Go back?')}>
       <p className="edit-note" role="alert">{t('Going back discards your manual support edits ({added} added, {removed} removed, {customised} with own settings). Continue?', review.backAsk)}</p>
