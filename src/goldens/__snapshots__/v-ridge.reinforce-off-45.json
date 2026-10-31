@@ -134,7 +134,7 @@
   "supportMesh": {
     "vertices": 3062,
     "triangles": 5728,
-    "hash": "cca5c2c4",
+    "hash": "23426478",
     "parts": ["neck","pillar","foot","brace","raft","label"],
     "components": [
       ["neck","auto--189_-103_-461",0,144],
@@ -242,11 +242,11 @@
   "exportMesh": {
     "vertices": 3062,
     "triangles": 5728,
-    "hash": "cca5c2c4"
+    "hash": "23426478"
   },
   "stl": {
     "bytes": 286884,
-    "hash": "b5291bf7"
+    "hash": "c3fafc8e"
   },
   "check": {
     "allContacts": [

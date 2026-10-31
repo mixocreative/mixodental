@@ -8,7 +8,7 @@ import type { PlacementResult, TriangleMesh } from '@mixo-geocore/host/core/anal
 import type { JobTransform } from '@mixo-geocore/host/core/jobs';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
-import { applyTransform } from '@mixo-geocore/host/state/transform';
+import { applyTransform, inverseTransformDirection, inverseTransformPoint } from '@mixo-geocore/host/state/transform';
 import { defaultProfileId, isDentalKind, type DentalKind } from '@mixo-geocore/host/dental/dentalKind';
 import { proposeDentalOrientation } from '@mixo-geocore/host/dental/dental';
 import { dentureProfileData, dentureSupportPreset } from '@mixo-geocore/host/dental/dentureProfiles';
@@ -16,11 +16,13 @@ import { orientDenture, type DentureOrientation } from '@mixo-geocore/host/denta
 import { scanDentureTilts } from '@mixo-geocore/host/dental/dentureTilt';
 import { withDentalMesh } from '@mixo-geocore/host/dental/dentalEngine';
 import { defaultDenturePolicy, denturePlacement, denturePolicy, makeDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
-import { GENERATE_TIMEOUT_MS } from '@mixo-geocore/host/supports/jobRunner';
+import { GENERATE_LIMITS } from '@mixo-geocore/host/supports/generateLimits';
 import { generateSupports, type MakePolicy } from '@mixo-geocore/host/supports/generateSupports';
+import type { LiftAttempt } from '@mixo-geocore/host/dental/dentureGenerate';
 import { supportMeshToUnitLocal } from '@mixo-geocore/host/supports/supportFrame';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
+import { LAYER_COLOURS } from './layerColours';
 
 export type { DentalKind };
 
@@ -51,7 +53,13 @@ export function shapeNote(kind: DentalKind, mesh: TriangleMesh): string {
 
 export type DentureReview =
   | { kind: 'built'; orientation: Extract<DentureOrientation, { kind: 'oriented' }>; scan: Extract<TiltScan, { kind: 'scan' }>; index: number;
-    frame: JobTransform; placement: PlacementResult; supports: GeneratedSupportMesh }
+    frame: JobTransform; placement: PlacementResult; supports: GeneratedSupportMesh;
+    /** The tips the supports were built from, in unit-local coordinates (the same contacts as `supports`). */
+    placed: Array<{ position: Vector; normal: Vector }>;
+    /** The contacts the build left out (no support built, any source), unit-local, each with the engine's reason. */
+    leftOutTips: Array<{ position: Vector; normal: Vector; reason: string }>;
+    /** Extra lift (mm over the profile's) of the kept build and every attempt of the extra-lift retry (+2.5, +5 mm when tips are left out). */
+    extraLiftMm: number; liftAttempts: LiftAttempt[] }
   | { kind: 'inconclusive'; reason: string };
 
 /** The denture flow on a centred `mesh`: upright, print angle, tips, supports (one pipeline, no UI). */
@@ -89,8 +97,17 @@ export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfile
     }
   });
   const make: MakePolicy = denturePolicy(policy, frame);
-  const out = generateSupports(contacts, settings, make, { mode: 'export', model: mesh, frame, plateY: 0, labelText: '', zones: [], timeoutMs: GENERATE_TIMEOUT_MS });
-  return { kind: 'built', orientation, scan, index, frame, placement, supports: supportMeshToUnitLocal(out.mesh, frame) };
+  // One build at the profile lift. The extra-lift retry (`dentureGenerate.ts`) measured no gain on any case (2026-10-30) and tripled the build time.
+  const out = generateSupports(contacts, settings, make, { mode: 'export', model: mesh, frame, plateY: 0, labelText: '', zones: [], limits: GENERATE_LIMITS });
+  // Our placed tips: the build's contacts that the repair did not leave out, back in unit-local coordinates
+  // (the frame the supports and the review layers are drawn in). A left-out tip has no pillar, so no cone.
+  const leftOut = new Set(out.mesh.dropped);
+  const placed = contacts.filter((contact) => !leftOut.has(contact.id))
+    .map((contact) => ({ position: inverseTransformPoint(frame, contact.position), normal: inverseTransformDirection(frame, contact.normal) }));
+  const reasons = new Map((out.mesh.leftOut ?? []).map((entry) => [entry.id, entry.reason]));
+  const leftOutTips = contacts.filter((contact) => leftOut.has(contact.id))
+    .map((contact) => ({ position: inverseTransformPoint(frame, contact.position), normal: inverseTransformDirection(frame, contact.normal), reason: reasons.get(contact.id) ?? 'dropped (policy, landing rule or no-support zone)' }));
+  return { kind: 'built', orientation, scan, index, frame, placement, supports: supportMeshToUnitLocal(out.mesh, frame), placed, leftOutTips, extraLiftMm: 0, liftAttempts: [{ extraLiftMm: 0, leftOut: out.mesh.leftOut?.length ?? out.mesh.dropped.length }] };
 }
 
 /** Review layers of a built denture, in the unit-local frame (the GLB node carries `review.frame`): model, supports, upright (arch) plane. */
@@ -105,7 +122,7 @@ export function dentureLayers(mesh: TriangleMesh, review: Extract<DentureReview,
   const { supports } = review;
   return [
     { name: 'TEAL denture model', color: 0x2aa198, positions: Float32Array.from(mesh.positions), indices: Uint32Array.from(mesh.indices) },
-    { name: 'SUPPORTS', color: 0xd9a441, positions: Float32Array.from(supports.positions), indices: Uint32Array.from(supports.indices) },
-    { name: 'PLANE upright arch plane (teeth side is its normal)', color: 0x6c7a89, positions: Float32Array.from(plane), indices: Uint32Array.of(0, 1, 2, 0, 2, 3) },
+    { name: 'SUPPORT PILLARS (ours)', color: LAYER_COLOURS.pillars, positions: Float32Array.from(supports.positions), indices: Uint32Array.from(supports.indices) },
+    { name: 'UPRIGHT PLANE (arch; teeth side is its normal)', color: 0x6c7a89, positions: Float32Array.from(plane), indices: Uint32Array.of(0, 1, 2, 0, 2, 3) },
   ];
 }

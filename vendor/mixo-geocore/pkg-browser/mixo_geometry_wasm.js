@@ -543,6 +543,49 @@ export class DentalTiltScanResult {
 if (Symbol.dispose) DentalTiltScanResult.prototype[Symbol.dispose] = DentalTiltScanResult.prototype.free;
 
 /**
+ * Support-area comparison: per-face classes and the three areas (mm^2).
+ */
+export class DentureAreaResult {
+    static __wrap(ptr) {
+        const obj = Object.create(DentureAreaResult.prototype);
+        obj.__wbg_ptr = ptr;
+        DentureAreaResultFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        DentureAreaResultFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_denturearearesult_free(ptr, 0);
+    }
+    /**
+     * Owner area, generated area, area in both (mm^2).
+     * @returns {Float64Array}
+     */
+    areas() {
+        const ret = wasm.denturearearesult_areas(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Per face: 0 neither, 1 owner only, 2 generated only, 3 both.
+     * @returns {Uint8Array}
+     */
+    mask() {
+        const ret = wasm.denturearearesult_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+}
+if (Symbol.dispose) DentureAreaResult.prototype[Symbol.dispose] = DentureAreaResult.prototype.free;
+
+/**
  * Step 1 result for a denture. Failed: `status() == 1` with `reason()`. Oriented: `status() == 0`.
  */
 export class DentureOrientResult {
@@ -626,6 +669,387 @@ export class DentureOrientResult {
     }
 }
 if (Symbol.dispose) DentureOrientResult.prototype[Symbol.dispose] = DentureOrientResult.prototype.free;
+
+/**
+ * The review layers of the owner denture rules, flat numbers in the mesh frame (mm).
+ */
+export class DentureReviewResult {
+    static __wrap(ptr) {
+        const obj = Object.create(DentureReviewResult.prototype);
+        obj.__wbg_ptr = ptr;
+        DentureReviewResultFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        DentureReviewResultFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_denturereviewresult_free(ptr, 0);
+    }
+    /**
+     * Step 2, per face: 1 when a ray from the back origin reaches it first (ALLOWED; overrides no-support; tips stand only here), else 0.
+     * @returns {Uint8Array}
+     */
+    allowed_mask() {
+        const ret = wasm.denturereviewresult_allowed_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Tight box: centre (3, the line-of-sight point), axes (9), half extents (3).
+     * @returns {Float64Array}
+     */
+    box_() {
+        const ret = wasm.denturereviewresult_box_(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Length (mm) of each chain.
+     * @returns {Float64Array}
+     */
+    chain_lengths() {
+        const ret = wasm.denturereviewresult_chain_lengths(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The continuous down-edge chains: `x y z` per point, chains back to back (sizes in `chain_sizes`).
+     * @returns {Float64Array}
+     */
+    chain_points() {
+        const ret = wasm.denturereviewresult_chain_points(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Point count of each chain.
+     * @returns {Uint32Array}
+     */
+    chain_sizes() {
+        const ret = wasm.denturereviewresult_chain_sizes(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * The hard edges that face down in the oriented pose (before the print tilt), same layout.
+     * @returns {Float64Array}
+     */
+    down_edges() {
+        const ret = wasm.denturereviewresult_down_edges(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Overhang candidates, per face: 1 when within 60 degrees of straight down for the reviewed plate normal.
+     * @returns {Uint8Array}
+     */
+    down_mask() {
+        const ret = wasm.denturereviewresult_down_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Every hard edge as segments `ax ay az bx by bz`.
+     * @returns {Float64Array}
+     */
+    hard_edges() {
+        const ret = wasm.denturereviewresult_hard_edges(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Per face: 1 within 5 mm along the surface of a hole (support-allowed).
+     * @returns {Uint8Array}
+     */
+    hole_band_mask() {
+        const ret = wasm.denturereviewresult_hole_band_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Per hole: area (mm2), faces next to it.
+     * @returns {Float64Array}
+     */
+    hole_info() {
+        const ret = wasm.denturereviewresult_hole_info(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The hole outlines (hit points around each hole seen along the teeth axis), `x y z` points back to back.
+     * @returns {Float64Array}
+     */
+    hole_outlines() {
+        const ret = wasm.denturereviewresult_hole_outlines(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Point count of each hole outline.
+     * @returns {Uint32Array}
+     */
+    hole_sizes() {
+        const ret = wasm.denturereviewresult_hole_sizes(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Low points that got a tip (xyz each).
+     * @returns {Float64Array}
+     */
+    low_tip_points() {
+        const ret = wasm.denturereviewresult_low_tip_points(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Per low tip: 0 allowed, 1 outside the no-support zone, 2 within lowRimBandMm of the rim.
+     * @returns {Uint8Array}
+     */
+    low_tip_reasons() {
+        const ret = wasm.denturereviewresult_low_tip_reasons(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Low points outside the allowed area (left unsupported), `x y z` each.
+     * @returns {Float64Array}
+     */
+    lows_outside() {
+        const ret = wasm.denturereviewresult_lows_outside(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The face of each `lows_outside` point.
+     * @returns {Uint32Array}
+     */
+    lows_outside_faces() {
+        const ret = wasm.denturereviewresult_lows_outside_faces(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Allowed low points no tip reaches, `x y z` each.
+     * @returns {Float64Array}
+     */
+    lows_unreached() {
+        const ret = wasm.denturereviewresult_lows_unreached(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The face of each `lows_unreached` point.
+     * @returns {Uint32Array}
+     */
+    lows_unreached_faces() {
+        const ret = wasm.denturereviewresult_lows_unreached_faces(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * The unit 45 degree no-support ray direction xyz.
+     * @returns {Float64Array}
+     */
+    no_support_dir() {
+        const ret = wasm.denturereviewresult_no_support_dir(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Step 1, per face: 1 when a 45 degree front-top parallel ray hits it first (NO_SUPPORT before the override), else 0.
+     * @returns {Uint8Array}
+     */
+    no_support_mask() {
+        const ret = wasm.denturereviewresult_no_support_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Oral cavity ray origin xyz: on the rim plane, at the back edge of the tight box, on the symmetry plane (the allowed-area rays start here).
+     * @returns {Float64Array}
+     */
+    oral_cavity_ray() {
+        const ret = wasm.denturereviewresult_oral_cavity_ray(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Pillar geometry inputs: contact ball diameter, frustum base diameter, neck length, pillar diameter, lift (mm).
+     * @returns {Float64Array}
+     */
+    pillar() {
+        const ret = wasm.denturereviewresult_pillar(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Candidates released because their face is not an overhang for the plate normal.
+     * @returns {number}
+     */
+    released() {
+        const ret = wasm.denturereviewresult_released(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Per face: 1 within the rim band of the rim line (support-allowed; overhanging band faces get rim tips).
+     * @returns {Uint8Array}
+     */
+    rim_band_mask() {
+        const ret = wasm.denturereviewresult_rim_band_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Per rim polyline: 1 when closed (the last edge joins the last point to the first).
+     * @returns {Uint8Array}
+     */
+    rim_closed() {
+        const ret = wasm.denturereviewresult_rim_closed(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Mesh edge ids of the rim polylines, back to back (a closed line has as many edges as points, an open one one fewer).
+     * @returns {Uint32Array}
+     */
+    rim_edges() {
+        const ret = wasm.denturereviewresult_rim_edges(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Total rim length (mm), line count, all the way around 0/1, largest empty stretch (deg); zeros without a rim.
+     * @returns {Float64Array}
+     */
+    rim_info() {
+        const ret = wasm.denturereviewresult_rim_info(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The rim (engine 20): one or more ordered polylines of mesh vertex positions, `x y z` each, back to back.
+     * @returns {Float64Array}
+     */
+    rim_loops() {
+        const ret = wasm.denturereviewresult_rim_loops(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Rim plane: point xyz, unit normal xyz pointing to the top; empty without a rim.
+     * @returns {Float64Array}
+     */
+    rim_plane() {
+        const ret = wasm.denturereviewresult_rim_plane(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Point count of each rim polyline.
+     * @returns {Uint32Array}
+     */
+    rim_sizes() {
+        const ret = wasm.denturereviewresult_rim_sizes(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Symmetry plane (splits the U left/right): point xyz, unit normal xyz.
+     * @returns {Float64Array}
+     */
+    symmetry_plane() {
+        const ret = wasm.denturereviewresult_symmetry_plane(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The mesh face each tip stands on, in `tips` order.
+     * @returns {Uint32Array}
+     */
+    tip_faces() {
+        const ret = wasm.denturereviewresult_tip_faces(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Generated tips, `x y z nx ny nz stream` each (0 low, 1 area, 4 rim, 5 hole).
+     * @returns {Float64Array}
+     */
+    tips() {
+        const ret = wasm.denturereviewresult_tips(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Tips on an overhang with no free path to the plate, same layout as `tips`; not built.
+     * @returns {Float64Array}
+     */
+    unsupportable() {
+        const ret = wasm.denturereviewresult_unsupportable(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The oriented pose's plate normal (up) in the mesh frame, xyz.
+     * @returns {Float64Array}
+     */
+    up() {
+        const ret = wasm.denturereviewresult_up(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The up decision (layout in `denture/review.rs` `up_decision_values`): T1b diagnostic (box axis, decided, flipped, medians, margin, hits), up xyz, arch frame up before xyz, slice votes (for, against, abstain), confidence, top xyz, teeth flipped, back xyz, front/back margin, cross-check agrees, end widths; empty for a mesh with no box.
+     * @returns {Float64Array}
+     */
+    up_decision() {
+        const ret = wasm.denturereviewresult_up_decision(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+}
+if (Symbol.dispose) DentureReviewResult.prototype[Symbol.dispose] = DentureReviewResult.prototype.free;
 
 /**
  * The review GLB data of `diagnose`: coloured layers, one per role (docs/SHIP-PLAN.md ABI).
@@ -821,6 +1245,22 @@ export class Generation {
         return ret >>> 0;
     }
     /**
+     * The full sentence when the time rule stopped the build ("stopped: no progress for 30 s"); empty otherwise.
+     * @returns {string}
+     */
+    stop_reason() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.generation_stop_reason(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
      * @returns {string[]}
      */
     take_contact_ids() {
@@ -910,6 +1350,36 @@ export class Generation {
     take_issues() {
         const ret = wasm.generation_take_issues(this.__wbg_ptr);
         var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Left-out contacts with a reason: ids.
+     * @returns {string[]}
+     */
+    take_left_out_ids() {
+        const ret = wasm.generation_take_left_out_ids(this.__wbg_ptr);
+        var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Left-out contacts: x y z of each tip (plate frame, mm).
+     * @returns {Float64Array}
+     */
+    take_left_out_points() {
+        const ret = wasm.generation_take_left_out_points(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Left-out contacts: the reason of each, `step` or `step:part` (build-omission, leave-out:pillar, leave-out:neck, all-manual, structures-off-leave-out, structure-fallback).
+     * @returns {string[]}
+     */
+    take_left_out_reasons() {
+        const ret = wasm.generation_take_left_out_reasons(this.__wbg_ptr);
+        var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
         wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
         return v1;
     }
@@ -1245,6 +1715,25 @@ export class GeometrySession {
         return DentalTiltScanResult.__wrap(ret[0]);
     }
     /**
+     * Classes every face by whether it lies within `radius_mm` of the owner points, of the generated points, of both or neither.
+     * @param {number} model
+     * @param {Float64Array} owner
+     * @param {Float64Array} generated
+     * @param {number} radius_mm
+     * @returns {DentureAreaResult}
+     */
+    denture_compare_areas(model, owner, generated, radius_mm) {
+        const ptr0 = passArrayF64ToWasm0(owner, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF64ToWasm0(generated, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_denture_compare_areas(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, radius_mm);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return DentureAreaResult.__wrap(ret[0]);
+    }
+    /**
      * The denture policy of a unit as a `PolicyResult` for `generate`: every face permitted, the
      * pose's tips as candidates (lowest points, bottom band, bars, light fill), pillars may land on
      * the model, Tree off, Brace by `brace`. `frame` is the unit's placement `[position xyz,
@@ -1269,6 +1758,22 @@ export class GeometrySession {
             throw takeFromExternrefTable0(ret[1]);
         }
         return PolicyHandle.__wrap(ret[0]);
+    }
+    /**
+     * The review layers of the owner denture rules on a loaded mesh (independent of its import orientation) at the print tilt `tilt_deg` (0 = canonical).
+     * @param {number} model
+     * @param {string} profile
+     * @param {number} tilt_deg
+     * @returns {DentureReviewResult | undefined}
+     */
+    denture_review(model, profile, tilt_deg) {
+        const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_denture_review(this.__wbg_ptr, model, ptr0, len0, tilt_deg);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] === 0 ? undefined : DentureReviewResult.__wrap(ret[0]);
     }
     /**
      * Print-angle search of a denture from upright over the profile's range, with the host's
@@ -1360,8 +1865,12 @@ export class GeometrySession {
     }
     /**
      * The support pipeline for a plate-space model: `contacts` and `shapes` as `build_supports`,
-     * `policy` the unit's policy as Rust made it (same frame as the model). `timeout_ms` > 0 ends the repair and checks early with
-     * an inconclusive verdict (never a clear one) once that much time has passed. `plate_y` is the
+     * `policy` the unit's policy as Rust made it (same frame as the model). `limits` overrides the time rule
+     * (`supports::time_limits::TimeRules::from_overrides`: base, per tip, per 100k triangles, stall, ceiling; ms; a missing or NaN
+     * entry keeps the default, an empty array keeps them all). The build gets a start allowance by size, is extended while it
+     * progresses, and stops with an inconclusive verdict (never a clear one) after the stall window or at the ceiling;
+     * `stop_reason()` then holds the sentence. `rules` overrides the planner's rules (`supports::rules::SupportRules::from_overrides`,
+     * one entry per name of `rule_names()`; a missing or NaN entry keeps Rust's default). `plate_y` is the
      * plate's height in the model's frame: 0 for a model placed on the plate; a lift change keeps the
      * placed model (and its caches) and moves the plate instead. Island heights are above the plate.
      * @param {number} model
@@ -1373,13 +1882,14 @@ export class GeometrySession {
      * @param {string} label_text
      * @param {Float64Array} zones
      * @param {PolicyHandle} policy
-     * @param {number} timeout_ms
+     * @param {Float64Array} limits
+     * @param {Float64Array} rules
      * @param {number} revision
      * @param {number} plate_y
      * @param {Float64Array} frame
      * @returns {Generation}
      */
-    generate(model, ids, contacts, shapes, settings, mode, label_text, zones, policy, timeout_ms, revision, plate_y, frame) {
+    generate(model, ids, contacts, shapes, settings, mode, label_text, zones, policy, limits, rules, revision, plate_y, frame) {
         const ptr0 = passArrayJsValueToWasm0(ids, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArrayF64ToWasm0(contacts, wasm.__wbindgen_malloc);
@@ -1393,9 +1903,13 @@ export class GeometrySession {
         const ptr5 = passArrayF64ToWasm0(zones, wasm.__wbindgen_malloc);
         const len5 = WASM_VECTOR_LEN;
         _assertClass(policy, PolicyHandle);
-        const ptr6 = passArrayF64ToWasm0(frame, wasm.__wbindgen_malloc);
+        const ptr6 = passArrayF64ToWasm0(limits, wasm.__wbindgen_malloc);
         const len6 = WASM_VECTOR_LEN;
-        const ret = wasm.geometrysession_generate(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, mode, ptr4, len4, ptr5, len5, policy.__wbg_ptr, timeout_ms, revision, plate_y, ptr6, len6);
+        const ptr7 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+        const len7 = WASM_VECTOR_LEN;
+        const ptr8 = passArrayF64ToWasm0(frame, wasm.__wbindgen_malloc);
+        const len8 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_generate(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, mode, ptr4, len4, ptr5, len5, policy.__wbg_ptr, ptr6, len6, ptr7, len7, revision, plate_y, ptr8, len8);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -1634,6 +2148,36 @@ export class GeometrySession {
         return v3;
     }
     /**
+     * Where the pillar of that support may stand (`skeleton::edit::pillar_reach`): a grid mask around the
+     * tip, `radius_mm` out at `grid_mm` a cell; `judged` false gives the cheap drop-map answer, true judges
+     * every cell's support. `take_pieces()` holds [x0, z0, cell, nx, nz, then nx*nz cells as 0/1, row by row].
+     * @param {number} model
+     * @param {Float64Array} settings
+     * @param {Float64Array} rules
+     * @param {Float64Array} tip
+     * @param {Float64Array} normal
+     * @param {number} plate_y
+     * @param {number} radius_mm
+     * @param {number} grid_mm
+     * @param {boolean} judged
+     * @returns {Reroute}
+     */
+    pillar_reach(model, settings, rules, tip, normal, plate_y, radius_mm, grid_mm, judged) {
+        const ptr0 = passArrayF64ToWasm0(settings, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArrayF64ToWasm0(tip, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArrayF64ToWasm0(normal, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_pillar_reach(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, plate_y, radius_mm, grid_mm, judged);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return Reroute.__wrap(ret[0]);
+    }
+    /**
      * Slots of the support bodies the brush stroke touches and can see (ascending). Occluders are
      * session meshes with the support-local to model-local matrices (16 f64 each) and sides.
      * @param {Float32Array} body_points
@@ -1706,6 +2250,38 @@ export class GeometrySession {
         if (ret[1]) {
             throw takeFromExternrefTable0(ret[0]);
         }
+    }
+    /**
+     * Live edit of one support (`skeleton::edit::reroute_support`): the tip at `tip` (xyz, plate frame)
+     * with outward `normal`, its pillar dragged to plan (`x`, `z`); `settings` and `rules` as `generate`'s
+     * (the capsule judge's margin comes from the rules). The result's `take_pieces()` is the skeleton, nine
+     * numbers per piece: kind (0 tip cone, 1 neck, 2 rod, 3 transition, 4 trunk, 5 joint, 6 brace, 7 foot),
+     * the piece's two points (xyz each; a joint or foot repeats its point) and its two radii (mm). Empty
+     * with `refusal()` naming the rule that refused (too far, under the floor, clearance).
+     * @param {number} model
+     * @param {Float64Array} settings
+     * @param {Float64Array} rules
+     * @param {Float64Array} tip
+     * @param {Float64Array} normal
+     * @param {number} x
+     * @param {number} z
+     * @param {number} plate_y
+     * @returns {Reroute}
+     */
+    reroute_support(model, settings, rules, tip, normal, x, z, plate_y) {
+        const ptr0 = passArrayF64ToWasm0(settings, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArrayF64ToWasm0(tip, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArrayF64ToWasm0(normal, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_reroute_support(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, x, z, plate_y);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return Reroute.__wrap(ret[0]);
     }
     /**
      * Recomputes the strip and contacts for accepted contours. `phase_fraction` (of the even step)
@@ -2102,6 +2678,55 @@ export class PolicyHandle {
     }
 }
 if (Symbol.dispose) PolicyHandle.prototype[Symbol.dispose] = PolicyHandle.prototype.free;
+
+/**
+ * The answer of a live edit (`GeometrySession::reroute_support`, `pillar_reach`): a flat number array and, for a refused reroute, the reason.
+ */
+export class Reroute {
+    static __wrap(ptr) {
+        const obj = Object.create(Reroute.prototype);
+        obj.__wbg_ptr = ptr;
+        RerouteFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        RerouteFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_reroute_free(ptr, 0);
+    }
+    /**
+     * Why the reroute was refused; empty when it was taken.
+     * @returns {string}
+     */
+    refusal() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.reroute_refusal(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * The flat array (see the call that made it); taken once.
+     * @returns {Float64Array}
+     */
+    take_pieces() {
+        const ret = wasm.reroute_take_pieces(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+}
+if (Symbol.dispose) Reroute.prototype[Symbol.dispose] = Reroute.prototype.free;
 
 /**
  * Overhang spots the contacts leave unsupported: position xyz, area. (Islands are the `generate` verdict.)
@@ -2641,6 +3266,18 @@ export function remove_degenerate_triangles(positions, indices) {
 }
 
 /**
+ * The names of the planner rules `generate`'s `rules` array overrides, in array order
+ * (`mixo_geometry_core::supports::rules::NAMES`): the host packs its overrides by these names.
+ * @returns {string[]}
+ */
+export function rule_names() {
+    const ret = wasm.rule_names();
+    var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+
+/**
  * Positions of any mesh (not necessarily in a session) through a matrix; see `GeometrySession.transform`.
  * @param {Float32Array} positions
  * @param {Float64Array} matrix
@@ -2839,9 +3476,15 @@ const DentalRegionResultFinalization = (typeof FinalizationRegistry === 'undefin
 const DentalTiltScanResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_dentaltiltscanresult_free(ptr, 1));
+const DentureAreaResultFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_denturearearesult_free(ptr, 1));
 const DentureOrientResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_dentureorientresult_free(ptr, 1));
+const DentureReviewResultFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_denturereviewresult_free(ptr, 1));
 const DiagnosisFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_diagnosis_free(ptr, 1));
@@ -2872,6 +3515,9 @@ const PickIndexFinalization = (typeof FinalizationRegistry === 'undefined')
 const PolicyHandleFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_policyhandle_free(ptr, 1));
+const RerouteFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_reroute_free(ptr, 1));
 const SupportProblemsFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_supportproblems_free(ptr, 1));

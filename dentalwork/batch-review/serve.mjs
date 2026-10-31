@@ -1,7 +1,9 @@
 // Local viewer for one folder-review output: serves the viewer page, three.js from node_modules
 // and the review files on 127.0.0.1 only, then opens the browser. Ctrl+C (or closing the window)
 // stops it. Without a folder the viewer opens empty and takes a run dropped onto the page.
-// Usage: node dentalwork/batch-review/serve.mjs [output folder] [--no-open]
+// Usage: node dentalwork/batch-review/serve.mjs [output folder] [--no-open] [--lan]
+// --lan also listens on the local network (e.g. to look from a phone); review files hold patient scans,
+// so use it only on a trusted home/office network.
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
@@ -9,7 +11,8 @@ import { fileURLToPath } from 'node:url';
 import { exec } from 'node:child_process';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const [folder] = process.argv.slice(2).filter((arg) => arg !== '--no-open');
+const [folder] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
+const lan = process.argv.includes('--lan');
 if (folder && !existsSync(join(resolve(folder), 'summary.json'))) {
   console.error('Give an output folder that holds summary.json (made by run-batch-review.bat), or none to drop one in the viewer.');
   process.exit(1);
@@ -34,7 +37,7 @@ const server = createServer((request, response) => {
   createReadStream(file).pipe(response);
 });
 
-server.listen(0, '127.0.0.1', () => {
+server.listen(0, lan ? '0.0.0.0' : '127.0.0.1', () => {
   const url = `http://127.0.0.1:${server.address().port}/`;
   console.log(`Review viewer: ${url}  (keep this window open while you look; Ctrl+C to stop)`);
   const open = process.platform === 'win32' ? `start "" "${url}"` : process.platform === 'darwin' ? `open "${url}"` : `xdg-open "${url}"`;

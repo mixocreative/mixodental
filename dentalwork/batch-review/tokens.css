@@ -60,3 +60,34 @@
 
 /* Traditional Chinese: Taiwan glyph forms; the Japanese face would draw kanji forms. */
 :root:lang(zh-Hant), [lang="zh-Hant"] { font-family: var(--font-sans-tw); }
+
+/* Batch-review layer colours. dentalwork/batch-review/layerColours.ts holds the same values for the GLB
+   writers: the two MUST match (change both together). */
+:root {
+  --layer-allowed: #2e9e5b;
+  --layer-no-support: #c0392b;
+  --layer-low-outside: #ff7f11;
+  --layer-low-unsupported: #8e44ad;
+  --layer-our-tips: #f1c40f;
+  --layer-unsupportable-tips: #1f1f1f;
+  --layer-tips-left-out: #ff1744;
+  --layer-pillars: #c8ccd0;
+  --layer-owner: #7fd3f7;
+  --layer-down-facing: #6d8fb0;
+  --layer-down-edges: #1f3f66;
+  --layer-tight-box: #3b4a5c;
+  --layer-middle-plane: #6c7a89;
+  --layer-symmetry-plane: #2a9d8f;
+  --layer-ray-origin: #ff00ff;
+  --layer-compare-both: #1f7a6d;
+  --layer-compare-owner-only: #3b6fd0;
+  --layer-compare-ours-only: #a0522d;
+  --layer-rim-edge: #d81b60;
+  --layer-rim-bridged: #f48fb1;
+  --layer-hole-edge: #00acc1;
+  --layer-hole-band: #b2ebf2;
+  --layer-source-rim: #d81b60;
+  --layer-source-hole: #00acc1;
+  --layer-source-area: #7cb342;
+  --layer-source-low: #fdd835;
+}

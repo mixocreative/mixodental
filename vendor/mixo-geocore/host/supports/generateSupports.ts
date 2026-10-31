@@ -1,3 +1,5 @@
+import { packLimits, type GenerateTimeLimits } from './generateLimits';
+import { packRules, type GenerateRules } from './generateRules';
 import { PROGRESS_STAGE } from '../core/progress';
 import type { ProgressCallback, TriangleMesh } from '../core/analysis/types';
 import type { JobTransform } from '../core/jobs';
@@ -112,8 +114,10 @@ export interface GenerateOptions {
   zones?: readonly ZoneStamp[];
   /** The unit's persistent build site (the mesh worker's); absent: a one-shot session for this build. */
   site?: BuildSite;
-  /** Ends the repair and the checks early with an inconclusive verdict. */
-  timeoutMs?: number;
+  /** Overrides of the engine's time rule (see `GenerateTimeLimits`); absent: the engine's defaults. */
+  limits?: GenerateTimeLimits;
+  /** Overrides of the planner's rules (see `GenerateRules`); absent: the engine's defaults. */
+  rules?: GenerateRules;
   /** The request's revision: the engine echoes it so the host can drop a result that is not the newest. */
   revision?: number;
   onProgress?: ProgressCallback;
@@ -132,7 +136,8 @@ interface Generation {
   take_positions(): Float32Array; take_indices(): Uint32Array; take_tags(): Uint32Array;
   take_reach(): Float64Array; take_intents(): Float64Array; take_contact_ids(): string[];
   take_dropped(): string[]; take_dropped_by_zones(): string[]; take_fallback(): Uint8Array;
-  status(): number; reason(): string; take_issues(): Uint32Array;
+  take_left_out_ids(): string[]; take_left_out_points(): Float64Array; take_left_out_reasons(): string[];
+  status(): number; reason(): string; stop_reason(): string; take_issues(): Uint32Array;
   take_island_heights(): Float64Array; take_island_vertices(): Uint32Array; take_island_status(): Uint8Array; island_reason(): string;
   take_rings(): Float64Array; trials(): number; revision(): number; free(): void;
 }
@@ -146,7 +151,7 @@ export interface GenerateSession extends PolicySession {
   release_mesh(handle: number): void;
   load_placed(model: number, frame: Float64Array): number;
   generate(model: number, ids: string[], contacts: Float64Array, shapes: Float64Array, settings: Float64Array, mode: number,
-    labelText: string, zones: Float64Array, policy: PolicyHandle, timeoutMs: number, revision: number, plateY: number, frame: Float64Array): Generation;
+    labelText: string, zones: Float64Array, policy: PolicyHandle, limits: Float64Array, rules: Float64Array, revision: number, plateY: number, frame: Float64Array): Generation;
 }
 
 const PARTS: readonly SupportPart[] = [
@@ -191,7 +196,7 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
     let result: Generation;
     try {
       result = wasm.generate(handle, inputs.map((c) => c.id), packed.contacts, packed.shapes, packSettings(settings), options.mode === 'export' ? 1 : 0,
-        options.labelText ?? '', packZones(options.zones ?? []), data.handle, options.timeoutMs ?? 0, options.revision ?? 0, options.plateY ?? 0,
+        options.labelText ?? '', packZones(options.zones ?? []), data.handle, packLimits(options.limits), packRules(options.rules), options.revision ?? 0, options.plateY ?? 0,
         options.frame ? frameArray(options.frame) : new Float64Array());
     } finally {
       data.release();
@@ -209,9 +214,12 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
           part: PARTS[issues[k + 1]!]!, modelFace: issues[k + 2]!, blocked: issues[k + 3] === 1, origin: ISSUE_ORIGIN[issues[k + 4]!]!,
         });
       }
-      const reason = result.reason();
+      // A build the time rule stopped says so in full ("stopped: no progress for 30 s"), not by the short code.
+      const stop = result.stop_reason();
+      const worded = (code: string) => (stop && code.startsWith('stopped') ? stop : code);
+      const reason = worded(result.reason());
       const verdict: SupportVerdict = { status: STATUS[result.status()]!, ...(reason ? { reason } : {}), issues: found };
-      const islandReason = result.island_reason();
+      const islandReason = worded(result.island_reason());
       const heights = result.take_island_heights();
       const vertices = result.take_island_vertices();
       const status = result.take_island_status();
@@ -228,6 +236,12 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
         revision,
         positions: result.take_positions(), indices: result.take_indices(), parts, components,
         dropped: result.take_dropped(), droppedByZones: result.take_dropped_by_zones(), verdict, islands,
+        leftOut: (() => {
+          const ids = result.take_left_out_ids();
+          const points = result.take_left_out_points();
+          const reasons = result.take_left_out_reasons();
+          return ids.map((id, k) => ({ id, position: [points[k * 3]!, points[k * 3 + 1]!, points[k * 3 + 2]!] as [number, number, number], reason: reasons[k]! }));
+        })(),
       };
       // Fallback codes: 1 tree, 3 brace-pruned, anything else brace.
       return { mesh, rings, fallback: Array.from(result.take_fallback(), (f) => (f === 1 ? 'tree' as const : f === 3 ? 'brace-pruned' as const : 'brace' as const)), trials: result.trials(), revision };

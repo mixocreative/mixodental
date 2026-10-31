@@ -16,6 +16,18 @@
   header a { margin-left: auto; color: var(--ink); }
   header a[hidden] + .open { margin-left: auto; }
   main { display: grid; grid-template-columns: 260px minmax(0, 1fr) 260px; grid-template-rows: minmax(0, 1fr); min-height: 0; overflow: hidden; }
+  /* Phone / narrow window: one column, the 3D view first, then the case list and the facts + layers; the page scrolls. */
+  @media (max-width: 820px) {
+    body { height: auto; min-height: 100dvh; overflow: auto; grid-template-rows: auto auto; }
+    header { flex-wrap: wrap; row-gap: 4px; padding: 6px var(--pad); }
+    header a { margin-left: 0; }
+    main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; overflow: visible; }
+    .stage { order: -1; height: 62dvh; touch-action: none; }
+    .panel, .panel.right { border: 0; border-top: 1px solid var(--line); overflow: visible; max-height: none; }
+    .panel:not(.right) { max-height: 30dvh; overflow: auto; }
+    .views { flex-wrap: wrap; justify-content: flex-end; max-width: 70%; }
+    .note { max-width: 45%; }
+  }
   .panel { border-right: 1px solid var(--line); min-height: 0; }
   .panel.right { border-right: 0; border-left: 1px solid var(--line); }
   /* The stage is sized by the grid, never by its canvas: the canvas is absolutely placed, so its pixel size cannot push the page taller. */
@@ -31,13 +43,33 @@
   .list li:has(small.why) { height: auto; flex-wrap: wrap; row-gap: 2px; padding: 6px 4px; }
   .list li > span:not(.badge) { white-space: nowrap; }
   .list li small.why { flex: 1 1 100%; margin-left: 26px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; line-height: 1.35; color: var(--danger); }
-  dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; }
+  dl { display: grid; grid-template-columns: minmax(0, 45%) minmax(0, 1fr); gap: 4px 8px; margin: 0; }
   dt { color: var(--muted); }
-  dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: break-word; min-width: 0; }
   dd.bad { color: var(--danger); }
+  .peel-report { margin: 8px 0; }
+  .peel-title { margin: 0 0 4px; font-size: var(--fs-sm); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .peel-chart svg { width: 100%; height: auto; display: block; }
+  .peel-legend { margin: 2px 0 0; font-size: var(--fs-sm); }
+  .peel-key.ours { color: var(--danger); } .peel-key.owner { color: var(--ink); }
   .source { color: var(--muted); font-size: var(--fs-sm); overflow-wrap: anywhere; margin: 0 0 6px; }
   .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
-  .check span { flex: 1; }
+  .check { align-items: flex-start; }
+  .check > span { flex: 1; min-width: 0; }
+  .check small { display: block; color: var(--muted); font-size: var(--fs-sm); line-height: 1.3; }
+  .layers h4 { margin: 10px 0 4px; font-size: var(--fs-sm); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .layers h4:first-child { margin-top: 0; }
+  /* Denture steps: numbered headings in the review's order, a one-line note, then that step's layers. */
+  .layers h4.step { margin: 0; font-size: var(--fs-md); font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink); }
+  .step-block + .step-block { margin-top: 12px; }
+  .step-block.later { opacity: .45; }
+  .step-note { margin: 2px 0 4px; color: var(--muted); font-size: var(--fs-sm); line-height: 1.35; }
+  .step-line { margin: 0 0 4px; font-size: var(--fs-sm); overflow-wrap: anywhere; }
+  .stepper { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0 4px; }
+  .stepper .muted { flex-basis: 100%; font-size: var(--fs-sm); }
+  /* The box centre's label, pinned to its sphere each frame. */
+  .marker-label { position: absolute; left: 0; top: 0; transform: translate(10px, -26px); padding: 1px 6px; border-radius: 3px; background: var(--surface); border: 1px solid var(--line-strong); font-size: var(--fs-sm); white-space: nowrap; pointer-events: none; }
+  .marker-label[hidden] { display: none; }
   .segmented { margin-bottom: 6px; }
   .open { display: flex; gap: 4px; }
   .open input { display: none; }
@@ -74,6 +106,7 @@
   </div>
   <div class="stage" id="stage">
     <div class="note" id="note"></div>
+    <div class="marker-label" id="box-label" hidden>Oral cavity ray</div>
     <div class="nocase" id="nocase" hidden><div>
       <h2 id="nocase-name"></h2>
       <p class="result" id="nocase-result"></p>
@@ -97,6 +130,11 @@
       <h3>Case</h3>
       <p class="source" id="source"></p>
       <dl id="facts"></dl>
+      <div class="peel-report" data-ui="review-peel-report" id="peel" hidden>
+        <h4 class="peel-title" data-ui="review-peel-title">Peel and strength</h4>
+        <div class="peel-chart" data-ui="review-peel-chart" id="peel-chart"></div>
+        <p class="peel-legend" data-ui="review-peel-legend"><span class="peel-key ours">ours</span> <span class="peel-key owner">owner (Chitubox)</span> <span class="muted">layer area (mm²) by height (mm)</span></p>
+      </div>
       <p class="explanation" id="explanation" hidden></p>
     </section>
     <section>
@@ -112,33 +150,78 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
-// Plain names for the review layers (the GLB names start with the colour word set in Rust).
-const LAYERS = [
-  ['TEAL', 'Support area (where tips may go)', true],
-  // Only a denture's own mesh (named TEAL by the engine) maps here: see keyOf.
-  ['DENTURE', 'Denture model', true],
-  ['NEUTRAL', 'Rest of the aligner', true],
-  ['BLUE', 'Outer edge, detected', true],
-  ['GREEN', 'Outer edge, joining paths', true],
-  ['RED', 'Inner opening edge, detected', true],
-  ['GOLD', 'Supports', true],
-  ['ORANGE', 'Support tips', true],
-  // Step 1 evidence (the companion case-NNN-orientation.glb): what the trim decided.
-  ['TRIM', 'Step 1: trim chains detected', true],
-  ['UEND', 'Step 1: the two U ends', true],
-  ['BACK', 'Step 1: back arrow (open side of the U)', true],
-  ['PLANE', 'Step 1: bottom plane fitted to the trim', false],
-  ['MARK support crosses', 'Support crosses the aligner', true],
-  ['MARK crossing that', 'Crossing that could not be judged', true],
-  ['MARK low point with', 'Low point with no support', true],
-  ['MARK low point outside', 'Low point outside the support area', false],
-  ['VIOLET', 'Diagnostic: outer strip, opening side', false],
-  ['AMBER', 'Diagnostic: outer strip, other side', false],
-  ['CYAN', 'Diagnostic: inner strip, opening side', false],
-  ['MAGENTA', 'Diagnostic: inner strip, other side', false],
-  ['LIME', 'Diagnostic: outer sample points', false],
-  ['PINK', 'Diagnostic: inner sample points', false],
+// Layers, in groups. Each entry: [GLB name prefix, plain-language name, one-line legend, shown by default].
+// Only the layers a file actually has are listed (a group with none is not shown). GLTFLoader turns spaces
+// in node names into underscores; `plain` puts them back before matching.
+const GROUPS = [
+  ['Model', [
+    ['DENTURE', 'Denture model', 'The scan in the print pose shown.', true],
+    ['NEUTRAL', 'Rest of the aligner', 'The aligner body outside the support area.', true],
+  ]],
+  ['Support area', [
+    // Only a denture's own mesh (named TEAL by the engine) maps to DENTURE: see keyOf. For an aligner TEAL is the support area.
+    ['TEAL', 'Support area (where tips may go)', 'Aligner: the faces where tips may go.', true],
+    ['No-support zone', 'No-support zone (hit by 45° rays)', 'Faces the parallel 45-degree rays from the front-top hit first. The allowed area overrides it.', true],
+    ['Ray directions', 'Ray directions (45°, parallel)', 'The parallel rays that define the no-support zone.', true],
+    ['Allowed area (seen', 'Allowed area (seen from the oral cavity ray)', 'Tips may stand on these faces: rays from the oral cavity ray origin reach them. Overrides the no-support zone.', true],
+    ['Down-facing area', 'Down-facing area (≤60° from down)', 'Faces within 60 degrees of straight down in the print pose: the support candidates.', false],
+  ]],
+  ['Supports', [
+    ['SUPPORT PILLARS', 'Support pillars (ours)', 'The pillars and braces our build made for the placed tips.', true],
+    ['Tips: rim', 'Tips: rim', 'Tips generated along the rim.', true],
+    ['Tips: hole', 'Tips: hole', 'Tips generated round a hole.', true],
+    ['Tips: area', 'Tips: area', 'Tips from the down-facing area grid.', true],
+    ['Tips: low', 'Tips: low', 'Tips at low points.', true],
+    ['Tips that cannot reach', 'Tips that cannot reach the plate', 'Overhang tips with no free path to the plate: not built.', true],
+    ['Tips left out', 'Tips left out', 'Tips with no support built (any source). Empty = every tip is supported.', true],
+    ['GOLD', 'Supports', 'Aligner: pillars, braces and raft.', true],
+    ['ORANGE', 'Support tips', 'Aligner: the tip cones.', true],
+  ]],
+  ['Your supports and contacts (-sup file)', [
+    ['YOUR SUPPORTS', 'Your supports (from -sup file)', 'The -sup STL you sent, placed on this scan.', false],
+    ['YOUR CONTACTS', 'Your contacts (dots)', 'Contact points from the -sup file, on the displayed scan.', true],
+  ]],
+  ['Compare', [
+    ['AREA both', 'Area compare: both', 'Faces near both your contacts and our tips (within 2 mm).', true],
+    ['AREA owner only', 'Area compare: yours only', 'Faces near your contacts but not our tips: we do not cover them.', true],
+    ['AREA ours only', 'Area compare: ours only', 'Faces near our tips but not your contacts.', true],
+  ]],
+  ['Edges and planes', [
+    ['TIGHT BOX', 'Tight box (oriented, around the model)', 'The oriented box the review works in; the oral cavity ray sits on its back edge.', true],
+    ['Print tilt', 'Print tilt: build plate', 'The build plate at the chosen print angle (its normal is up).', true],
+    ['DOWN-FACING', 'Down-facing hard edges', 'Hard edges of the bottom chains.', false],
+    ['ALL hard', 'All hard edges (thin)', 'Every hard edge the review found.', false],
+    ['Rim edge (continuous', 'Rim edge (continuous hard edge)', 'The rim as thick continuous line(s); the count and closed/open state are in the name.', true],
+    ['Hole outlines', 'Hole outlines (thick, around each hole)', 'A thick line round each hole.', true],
+    ['Hole band', 'Hole band (5 mm, allowed if overhang)', 'Faces within 5 mm of a hole edge; tips may stand here if they overhang.', true],
+    ['RIM PLANE', 'Rim plane (level fit through the rim)', 'The level plane fitted through the rim loop; the oral cavity ray sits on it.', true],
+    ['SYMMETRY PLANE', 'Symmetry plane (left / right split)', 'The upright plane that splits the U into left and right; the oral cavity ray sits on it.', true],
+    ['UPRIGHT PLANE', 'Upright arch plane', 'The upright plane; its teeth side is its normal.', false],
+    ['TRIM', 'Step 1: trim chains detected', 'Aligner: the sharp trim edges the orientation fitted to.', true],
+    ['UEND', 'Step 1: the two U ends', 'Aligner: the two distal ends of the U.', true],
+    ['BACK', 'Step 1: back arrow (open side of the U)', 'Aligner: points out of the back of the arch.', true],
+    ['PLANE', 'Step 1: bottom plane fitted to the trim', 'Aligner: the plane the orientation fitted.', false],
+    ['BLUE', 'Outer edge, detected', 'Aligner: the detected outer rim.', true],
+    ['GREEN', 'Outer edge, joining paths', 'Aligner: the paths that join the outer rim.', true],
+    ['RED', 'Inner opening edge, detected', 'Aligner: the detected opening edge.', true],
+  ]],
+  ['Markers', [
+    ['Oral cavity ray', 'Oral cavity ray (rim plane, back edge)', 'Marker: on the rim plane, at the back edge of the tight box, on the symmetry plane; the rays that find the allowed area start here.', true],
+    ['MARK support crosses', 'Support crosses the aligner', 'Aligner: a support cuts through the model (red).', true],
+    ['MARK crossing that', 'Crossing that could not be judged', 'Aligner: a crossing with no face to judge against (amber).', true],
+    ['MARK low point with', 'Low point with no support', 'Inside the allowed area, no tip reaches it (purple).', true],
+    ['MARK low point outside', 'Low point outside the allowed area', 'Outside the allowed area: left unsupported (orange).', true],
+  ]],
+  ['Diagnostic (off by default)', [
+    ['VIOLET', 'Outer strip, opening side', 'Aligner: sample strip beside the outer edge.', false],
+    ['AMBER', 'Outer strip, other side', 'Aligner: sample strip beside the outer edge.', false],
+    ['CYAN', 'Inner strip, opening side', 'Aligner: sample strip beside the opening edge.', false],
+    ['MAGENTA', 'Inner strip, other side', 'Aligner: sample strip beside the opening edge.', false],
+    ['LIME', 'Outer sample points', 'Aligner: points used to find the outer edge.', false],
+    ['PINK', 'Inner sample points', 'Aligner: points used to find the opening edge.', false],
+  ]],
 ];
+const LAYERS = GROUPS.flatMap(([, items]) => items);
 // GLTFLoader turns spaces in node names into underscores; compare with them put back.
 const plain = (name) => (name ?? '').replace(/_/g, ' ');
 // The kind of the case on screen. A denture's one mesh is named TEAL by the engine, and its support-
@@ -149,7 +232,45 @@ const keyOf = (name) => {
   return key === 'TEAL' && kindNow === 'denture' ? 'DENTURE' : key;
 };
 const DENTURE_COLOUR = new THREE.Color('#d6cfbf');
-const visible = new Map(LAYERS.map(([prefix, , on]) => [prefix, on]));
+// Layer prefix -> the shared colour token (tokens.css; the GLB writers use layerColours.ts, the same values).
+const SWATCH_VAR = {
+  'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing',
+  'DOWN-FACING': '--layer-down-edges', 'TIGHT BOX': '--layer-tight-box', 'RIM PLANE': '--layer-middle-plane', 'SYMMETRY PLANE': '--layer-symmetry-plane', 'Oral cavity ray': '--layer-ray-origin',
+  'MARK low point outside': '--layer-low-outside', 'MARK low point with': '--layer-low-unsupported',
+  'Rim edge (continuous': '--layer-rim-edge', 'Hole outlines': '--layer-hole-edge', 'Hole band': '--layer-hole-band',
+  'Tips: rim': '--layer-source-rim', 'Tips: hole': '--layer-source-hole', 'Tips: area': '--layer-source-area', 'Tips: low': '--layer-source-low',
+  'Tips that cannot reach': '--layer-unsupportable-tips', 'Tips left out': '--layer-tips-left-out', 'SUPPORT PILLARS': '--layer-pillars', 'YOUR SUPPORTS': '--layer-owner',
+  'YOUR CONTACTS': '--layer-owner', 'AREA both': '--layer-compare-both', 'AREA owner only': '--layer-compare-owner-only', 'AREA ours only': '--layer-compare-ours-only',
+};
+const visible = new Map(LAYERS.map(([prefix, , , on]) => [prefix, on]));
+
+// Denture only: the layers in the order the review ran its steps. Each step: heading, one-line note, the layer
+// prefixes it draws (the print tilt has no layer: its line comes from the case facts). Other layers come after step 10.
+const DENTURE_STEPS = [
+  ['1. Orient', 'Up decision first (back-face rays: the side whose rays reach farther is the teeth top), then the tight box, rim plane and symmetry plane, before the print tilt.', ['TIGHT BOX', 'RIM PLANE', 'SYMMETRY PLANE']],
+  ['2. Rim edge', 'The rim as thick continuous line(s), each closed or open (the count is in the name). Holes: a thick outline round each, and a 5 mm band.', ['Rim edge (continuous', 'Hole outlines', 'Hole band']],
+  ['3. No-support zone', 'Faces the parallel 45-degree rays from the front-top hit first, with a few arrows showing the rays.', ['No-support zone', 'Ray directions']],
+  ['4. Oral cavity ray', 'On the rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
+  ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
+  ['6. Print tilt', 'The build plate at the print angle the build chose.', ['Print tilt']],
+  ['7. Overhangs and low points', 'Faces within 60 degrees of straight down, the down-facing edges, and low points: orange outside the allowed area, purple inside it with no support.', ['Down-facing area', 'DOWN-FACING', 'MARK low point outside', 'MARK low point with']],
+  ['8. Tips', 'Tips by source: rim, hole, area, low. Black cones: overhang tips with no free path to the plate (not built). Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
+  ['9. Supports', 'Our pillars (plastic), the braces and the base.', ['SUPPORT PILLARS']],
+  ['10. Compare with owner', 'Your -sup supports (off by default) and contacts, and the area each covers against ours.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
+];
+const MODEL_KEYS = ['DENTURE', 'NEUTRAL'];
+// Step-by-step (denture): the last step shown (0 = model only), null = off. caseNow is the case on screen.
+let stepAt = null;
+let caseNow = null;
+// The step a layer key belongs to: model 0, its numbered step, or the last step for Other.
+const stepOf = (key) => {
+  if (MODEL_KEYS.includes(key)) return 0;
+  const at = DENTURE_STEPS.findIndex(([, , keys]) => keys.includes(key));
+  return at < 0 ? DENTURE_STEPS.length : at + 1;
+};
+const stepShows = (key) => stepAt === null || stepOf(key) <= stepAt;
+// Shown = the checkbox is on and the step-by-step position allows it.
+const isShown = (key) => Boolean(visible.get(key)) && stepShows(key);
 
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -164,9 +285,15 @@ scene.background = new THREE.Color(getComputedStyle(document.body).getPropertyVa
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 pmrem.dispose();
-// One plastic for every support layer (tips, pillars, braces, raft, label: the GLB's GOLD and ORANGE meshes).
-// Each layer keeps its colour through a vertex colour attribute set in show(), so the material is shared.
-const SUPPORT_KEYS = ['GOLD', 'ORANGE'];
+// One plastic for every support layer: the aligner's GOLD (pillars, braces, raft) and ORANGE (tips), and the
+// denture's own pillars, our tip cones and the owner's supports. Each keeps its colour through a vertex colour
+// attribute set in show(), so the material is shared.
+const SUPPORT_KEYS = ['GOLD', 'ORANGE', 'SUPPORT PILLARS', 'Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out', 'YOUR SUPPORTS'];
+// The pillar layers: they hide below the floor (under the raft); tips stay.
+const PILLAR_KEYS = ['GOLD', 'SUPPORT PILLARS', 'YOUR SUPPORTS'];
+// The denture box centre's label, pinned to the sphere (set in show()).
+const boxLabel = document.getElementById('box-label');
+let boxAnchor = null;
 const PLASTIC = new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, metalness: 0, roughness: 0.45,
   clearcoat: 0.3, clearcoatRoughness: 0.4, side: THREE.DoubleSide });
 const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 5000);
@@ -192,8 +319,19 @@ renderer.setAnimationLoop(() => {
   controls.update();
   const below = floorY !== null && camera.position.y < floorY;
   if (below !== underside) { underside = below; applyVisibility(); }
+  placeBoxLabel();
   renderer.render(scene, camera);
 });
+
+// The box centre's label sits over its sphere, and hides when the sphere is behind the camera or the layer is off.
+function placeBoxLabel() {
+  boxLabel.hidden = !(boxAnchor && isShown('Oral cavity ray'));
+  if (boxLabel.hidden) return;
+  const p = boxAnchor.clone().project(camera);
+  boxLabel.style.display = p.z > 1 ? 'none' : '';
+  boxLabel.style.left = `${(p.x * 0.5 + 0.5) * stage.clientWidth}px`;
+  boxLabel.style.top = `${(-p.y * 0.5 + 0.5) * stage.clientHeight}px`;
+}
 
 function look(direction) {
   if (!model) return;
@@ -212,29 +350,127 @@ document.querySelectorAll('[data-view]').forEach((button) => button.addEventList
 function applyVisibility() {
   model?.traverse((object) => {
     const key = object.name && keyOf(object.name);
-    if (key) object.visible = visible.get(key) && !(underside && key === 'GOLD');
+    if (key) object.visible = isShown(key) && !(underside && PILLAR_KEYS.includes(key));
   });
 }
 
+// The layer panel: groups with a heading, then each layer that the file has: a checkbox, its colour, its name and a one-line legend.
+// One layer's checkbox row: its colour, plain name and one-line legend.
+function layerRow([prefix, label, legend]) {
+  const row = document.createElement('label');
+  row.className = 'check legend-row';
+  row.dataset.ui = `review-legend-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+  const input = Object.assign(document.createElement('input'), { type: 'checkbox', checked: visible.get(prefix) });
+  input.addEventListener('change', () => { visible.set(prefix, input.checked); applyVisibility(); placeBoxLabel(); });
+  const swatch = document.createElement('i');
+  swatch.className = 'swatch';
+  let colour = '#ccc';
+  const token = SWATCH_VAR[prefix];
+  model.traverse((object) => { if (object.material && (keyOf(object.name) === prefix || keyOf(object.parent?.name) === prefix)) colour = '#' + (object.userData.colour ?? object.material.color).getHexString(); });
+  swatch.style.background = token ? `var(${token})` : colour;
+  const text = document.createElement('span');
+  const name = document.createElement('strong');
+  // Rim and hole layers name their own counts in the GLB (lines closed or open, holes): show that name.
+  let shown = label;
+  if (['Rim edge (continuous', 'Hole outlines'].includes(prefix)) model.traverse((object) => { if (object.name && keyOf(object.name) === prefix) shown = plain(object.name); });
+  name.textContent = shown;
+  const note = document.createElement('small');
+  note.textContent = legend;
+  text.append(name, note);
+  row.append(input, swatch, text);
+  return row;
+}
+
+// Denture step-by-step: move to a step (0 = model only); null turns it off, and the checkboxes rule again.
+function setStep(at) {
+  stepAt = at;
+  applyVisibility();
+  placeBoxLabel();
+  drawLayers();
+}
+
+// The layer panel: groups with a heading, then each layer that the file has: a checkbox, its colour, its name and a one-line legend.
+// A denture instead lists the model, the step-by-step controls, then the numbered steps, then Other.
 function drawLayers() {
   const present = new Set();
   model?.traverse((object) => { const key = object.name && keyOf(object.name); if (key) present.add(key); });
   const box = document.getElementById('layers');
-  box.replaceChildren(...LAYERS.filter(([prefix]) => present.has(prefix)).map(([prefix, label]) => {
-    const row = document.createElement('label');
-    row.className = 'check';
-    const input = Object.assign(document.createElement('input'), { type: 'checkbox', checked: visible.get(prefix) });
-    input.addEventListener('change', () => { visible.set(prefix, input.checked); applyVisibility(); });
-    const swatch = document.createElement('i');
-    swatch.className = 'swatch';
-    let colour = '#ccc';
-    model.traverse((object) => { if (object.isMesh && (keyOf(object.name) === prefix || keyOf(object.parent?.name) === prefix)) colour = '#' + (object.userData.colour ?? object.material.color).getHexString(); });
-    swatch.style.background = colour;
-    const text = document.createElement('span');
-    text.textContent = label;
-    row.append(input, swatch, text);
-    return row;
-  }));
+  box.className = 'layers';
+  const group = ([heading, items]) => {
+    const here = items.filter(([prefix]) => present.has(prefix));
+    if (here.length === 0) return [];
+    const title = document.createElement('h4');
+    title.textContent = heading;
+    return [title, ...here.map(layerRow)];
+  };
+  if (kindNow !== 'denture') {
+    box.replaceChildren(...GROUPS.flatMap(group));
+    return;
+  }
+  const modelGroup = GROUPS.find(([heading]) => heading === 'Model');
+  const placed = new Set(DENTURE_STEPS.flatMap(([, , keys]) => keys));
+  const other = LAYERS.filter(([prefix]) => present.has(prefix) && !MODEL_KEYS.includes(prefix) && !placed.has(prefix));
+  const last = DENTURE_STEPS.length;
+
+  const stepper = document.createElement('div');
+  stepper.className = 'stepper';
+  const toggle = document.createElement('button');
+  toggle.textContent = 'Step-by-step';
+  toggle.setAttribute('aria-pressed', String(stepAt !== null));
+  toggle.addEventListener('click', () => setStep(stepAt === null ? 0 : null));
+  stepper.append(toggle);
+  if (stepAt !== null) {
+    const prev = Object.assign(document.createElement('button'), { textContent: 'Prev step', disabled: stepAt === 0 });
+    prev.addEventListener('click', () => setStep(stepAt - 1));
+    const next = Object.assign(document.createElement('button'), { textContent: 'Next step', disabled: stepAt === last });
+    next.addEventListener('click', () => setStep(stepAt + 1));
+    const where = document.createElement('span');
+    where.className = 'muted';
+    where.textContent = stepAt === 0 ? 'Model only (step 0)' : `Step ${stepAt} of ${last}: ${DENTURE_STEPS[stepAt - 1][0].replace(/^\d+\.\s*/, '')}`;
+    stepper.append(prev, next, where);
+  }
+
+  const blocks = DENTURE_STEPS.map(([title, text, keys], index) => {
+    const n = index + 1;
+    const block = document.createElement('div');
+    block.className = `step-block${stepAt !== null && n > stepAt ? ' later' : ''}`;
+    const heading = document.createElement('h4');
+    heading.className = 'step';
+    heading.textContent = title;
+    const note = document.createElement('p');
+    note.className = 'step-note';
+    note.textContent = text;
+    const rows = keys.filter((prefix) => present.has(prefix)).map((prefix) => layerRow(LAYERS.find(([p]) => p === prefix)));
+    // Plain text lines (no layer): the up decision in step 1, the print angle in step 6.
+    if (n === 1) {
+      const line = document.createElement('p');
+      line.className = 'step-line';
+      line.textContent = `Up: ${caseNow?.upDecision || '-'}`;
+      rows.push(line);
+    }
+    if (n === 6) {
+      const line = document.createElement('p');
+      line.className = 'step-line';
+      line.textContent = `Print angle: ${printAngleText(caseNow ?? {})}`;
+      rows.push(line);
+    }
+    if (rows.length === 0) {
+      const none = document.createElement('p');
+      none.className = 'step-note';
+      none.textContent = 'Nothing drawn for this step in this case.';
+      rows.push(none);
+    }
+    block.append(heading, note, ...rows);
+    return block;
+  });
+  const otherBlock = other.length === 0 ? [] : [Object.assign(document.createElement('div'), { className: `step-block${stepAt !== null && last > stepAt ? ' later' : ''}` })];
+  if (otherBlock.length) {
+    const heading = document.createElement('h4');
+    heading.className = 'step';
+    heading.textContent = 'Other';
+    otherBlock[0].append(heading, ...other.map(layerRow));
+  }
+  box.replaceChildren(...(modelGroup ? group(modelGroup) : []), stepper, ...blocks, ...otherBlock);
 }
 
 // Plain words for the reason codes (reasons.json beside this page, first matching prefix wins), so
@@ -251,7 +487,10 @@ let showing = 0;
 async function show(row) {
   const ticket = ++showing;
   kindNow = row.kind === 'denture' ? 'denture' : 'aligner';
-  if (model) { scene.remove(model); model.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); model = null; floorY = null; }
+  caseNow = row;
+  // Step-by-step belongs to denture cases only; an aligner always shows its checkboxes.
+  if (kindNow !== 'denture') stepAt = null;
+  if (model) { scene.remove(model); model.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); model = null; floorY = null; boxAnchor = null; }
   const url = row.glb ? urlOf(row.glb) : '';
   // The Step 1 evidence GLB (trim chains, U ends, plane, back arrow) loads into the same scene; a
   // case that was not built may still have one, so the owner sees what orientation detected.
@@ -301,7 +540,15 @@ async function show(row) {
     });
     scene.add(model);
     const supports = new THREE.Box3();
-    model.traverse((object) => { if (object.isMesh && keyOf(object.name) === 'GOLD') supports.expandByObject(object); });
+    model.traverse((object) => {
+      const key = object.isMesh && keyOf(object.name);
+      if (key && PILLAR_KEYS.includes(key)) supports.expandByObject(object);
+    });
+    // The ray origin's sphere: its world-space centre (the label's anchor).
+    model.updateMatrixWorld(true);
+    model.traverse((object) => {
+      if (object.isMesh && keyOf(object.name) === 'Oral cavity ray') boxAnchor = new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3());
+    });
     floorY = supports.isEmpty() ? null : supports.min.y;
     underside = false;
     applyVisibility();
@@ -395,10 +642,16 @@ for (const id of ['pick-folder', 'pick-files']) {
 const shown = () => (onlyLook ? cases.filter((c) => c.needsLook) : cases);
 
 const status = (c) => (c.result !== 'built' ? c.result : c.verdict);
+// The print angle in words, from the case facts (the denture's step 8 line and its facts row share it).
+function printAngleText(c) {
+  if (c.printAngleDeg == null) return '-';
+  return `${c.printAngleDeg}° (stable ${c.stableBand || 'none'})${c.angleConfirmed ? ', confirm build passed' : ', confirm build did not pass'}`;
+}
 function facts(c) {
   // A denture reads only the rows that apply to it; the aligner-only rows (arch, cross-checks, gaps, edge
   // coverage, support crossings) would show "not oriented" and similar in red for a case that has none.
-  const DENTURE_ROWS = ['Kind', 'Shape check', 'Result', 'Safety check', 'Low points with no support', 'Print angle', 'Tips placed', 'Tips left out', 'Scan clean-up', 'Time (s)'];
+  const DENTURE_ROWS = ['Kind', 'Shape check', 'Result', 'Safety check', 'Low points with no support', 'Print angle', 'Up decision', 'Tips by source', 'Unsupportable tips', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Scan clean-up', 'Time (s)',
+    'Rim plane', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
   const rows = [
     ['Kind', c.kind || 'aligner', !!c.shapeNote],
     ['Shape check', c.shapeNote || 'ok', !!c.shapeNote],
@@ -408,7 +661,7 @@ function facts(c) {
     ['Crossings not judged', c.uncertain, c.uncertain > 0],
     ['Low points with no support', c.islandsUnresolved, c.islandsUnresolved > 0],
     ['Low points outside the area', c.islandsOutsideArea, false],
-    ['Print angle', c.printAngleDeg == null ? '-' : `${c.printAngleDeg}° (stable ${c.stableBand || 'none'})${c.printAngleDeg == null ? '' : c.angleConfirmed ? ', confirm build passed' : ', confirm build did not pass'}`, false],
+    ['Print angle', printAngleText(c), false],
     // Step 1 (orientation by the trim): how the arch was read and whether the floor rule agrees on up/down.
     ['Arch', c.archKind === 'open' ? 'open arch (trim decided)' : c.archKind === 'ring' ? 'ring (floor rule decided)' : c.archKind == null ? '-' : 'not oriented', c.archKind === ''],
     ['Up/down cross-check', c.upCrossCheck || (c.upCrossCheck == null ? '-' : 'none'), c.upCrossCheck === 'disagrees'],
@@ -422,6 +675,23 @@ function facts(c) {
     ['Edge coverage needs review', c.rimNeedsReview ? 'yes' : 'no', c.rimNeedsReview],
     ['Time (s)', c.seconds, false],
   ];
+  // Denture only: the owner's contacts (with the mapping check) and the area comparison; '-' when the scan has no contacts file.
+  if (c.kind === 'denture') rows.push(
+    ['Up decision', c.upDecision || '-', false],
+    ['Tips by source', c.tipsBySource || '-', false],
+    ['Unsupportable tips', c.unsupportableTips ?? '-', false],
+    ['Left-out reasons', c.tipsLeftOutReasons || '-', false],
+    ['Peel: largest layer, ours (mm²)', c.peelMaxOurs == null ? (c.peelNote || '-') : `${c.peelMaxOurs} at ${c.peelMaxOursAtMm} mm (above the raft${c.peelRaftTopMm ? `, top ${c.peelRaftTopMm} mm` : ''})`, false],
+    ['Peel: largest layer, owner (mm²)', c.peelMaxOwner == null ? '-' : `${c.peelMaxOwner} at ${c.peelMaxOwnerAtMm} mm`, false],
+    ['Peel: layers where ours is >10% above owner', c.peelLayersOver ?? '-', c.peelLayersOver > 0],
+    ['Most tips on one support tree', c.maxTipsPerTrunk ?? 'n/a', false],
+    ['Trunk area / neck area', c.trunkToNeckArea ?? 'n/a', false],
+    ['Owner contacts', c.ownerContacts ?? '-', false],
+    ['Rim plane', c.middlePlane || '-', false],
+    ['Owner contacts, median distance to displayed model (mm)', c.ownerContactsMedianMm ?? '-', c.ownerContactsMedianMm != null && c.ownerContactsMedianMm > 1],
+    ['Owner area covered %', c.ownerAreaCoveredPct ?? '-', false],
+    ['Our area outside owner %', c.outsideOwnerAreaPct ?? '-', false],
+  );
   if (c.reason) rows.push(['Reason code', c.reason, true]);
   const explanation = document.getElementById('explanation');
   explanation.textContent = [c.reason ? explain(c) : '', c.orientationNote ?? ''].filter(Boolean).join(' ');
@@ -430,9 +700,33 @@ function facts(c) {
   document.getElementById('facts').replaceChildren(...factRows.flatMap(([k, v, bad]) => {
     const dt = document.createElement('dt'); dt.textContent = k;
     const dd = document.createElement('dd'); dd.textContent = String(v ?? '-'); if (bad) dd.className = 'bad';
+    if (k === 'Left-out reasons') dd.dataset.ui = 'review-fact-left-out-reasons';
     return [dt, dd];
   }));
   document.getElementById('source').textContent = c.source ?? '';
+  drawPeel(c);
+}
+
+// The peel chart: layer area of our print (red) and the owner's (ink) by height, from the case's -peel.json.
+async function drawPeel(c) {
+  const box = document.getElementById('peel');
+  const holder = document.getElementById('peel-chart');
+  const data = c.kind === 'denture' && c.peelFile ? await fetch(urlOf(c.peelFile)).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null;
+  if (caseNow !== c && caseNow?.case !== c.case) return;
+  box.hidden = !data;
+  holder.replaceChildren();
+  if (!data) return;
+  const W = 300, H = 120, L = 30, B = 16, T = 4, R = 4;
+  const { heightMm: xs, ours, owner } = data.chart;
+  const xmax = Math.max(...xs, 1e-6), ymax = Math.max(...ours, ...(owner ?? []), 1e-6);
+  const px = (x) => L + (x / xmax) * (W - L - R), py = (y) => H - B - (y / ymax) * (H - B - T);
+  const line = (ys, cls) => `<polyline class="${cls}" fill="none" stroke-width="1.5" points="${xs.map((x, k) => `${px(x).toFixed(1)},${py(ys[k]).toFixed(1)}`).join(' ')}"/>`;
+  holder.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Layer area by height" data-ui="review-peel-svg">
+    <line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="currentColor" opacity=".4"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="currentColor" opacity=".4"/>
+    <text x="${L - 3}" y="${T + 8}" text-anchor="end" font-size="9" fill="currentColor">${ymax.toFixed(0)}</text><text x="${L - 3}" y="${H - B}" text-anchor="end" font-size="9" fill="currentColor">0</text>
+    <text x="${W - R}" y="${H - 3}" text-anchor="end" font-size="9" fill="currentColor">${xmax.toFixed(0)} mm</text>
+    ${owner ? line(owner, 'peel-line-owner').replace('<polyline', '<polyline stroke="var(--ink)" data-ui="review-peel-line-owner"') : ''}
+    ${line(ours, 'peel-line-ours').replace('<polyline', '<polyline stroke="var(--danger)" data-ui="review-peel-line-ours"')}</svg>`;
 }
 
 function drawList() {

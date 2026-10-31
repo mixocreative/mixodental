@@ -25,7 +25,7 @@ export const DENTURE_PROFILE_FILES: Readonly<Record<string, unknown>> = {
       "flatnessMax": 0.5
     },
     "pose": {
-      "tiltRangeDeg": 24,
+      "tiltRangeDeg": 45,
       "tiltStepDeg": 2,
       "tiltMarginDeg": 2,
       "overhangAngleDeg": 45,
@@ -39,19 +39,31 @@ export const DENTURE_PROFILE_FILES: Readonly<Record<string, unknown>> = {
       "barThicknessMaxMm": 5,
       "minimumProminenceMm": 1.5,
       "tipMinFromUpDeg": 110,
-      "tipMinFromUpBarDeg": 150
+      "tipMinFromUpBarDeg": 150,
+      "hardEdgeDeg": 50,
+      "middleEdgeNearMm": 3,
+      "middleEdgeMinLengthMm": 10,
+      "downEdgeMaxDeg": 90,
+      "downBandMm": 6,
+      "downPitchMm": 2,
+      "rimBandMm": 2,
+      "lowRimBandMm": 5
     },
     "supports": {
-      "tipBallMm": 0.65,
+      "tipBallMm": 0.5,
       "frustumBaseMm": 1.1,
-      "frustumHeightMm": 0.55,
+      "frustumHeightMm": 2,
       "pillarDiameterMm": 1.1,
       "lattice": true,
       "raftLayersMm": [
         0.5,
         1
       ],
-      "liftHeightMm": 3.5
+      "liftHeightMm": 3.5,
+      "biteDepthMm": 0.3,
+      "upperDiameterMm": 0.3,
+      "minClearanceMm": 1.5,
+      "neckMaxShiftMm": 10.5
     },
     "stability": {
       "maxSlendernessUnbraced": 25,

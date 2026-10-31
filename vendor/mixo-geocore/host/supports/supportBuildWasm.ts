@@ -22,7 +22,7 @@ export const SETTINGS_ORDER = [
   'previewMode', 'autoSnap', 'lowPolyMode', 'resolution',
   'scatterSpacing', 'scatterAngle', 'scatterSafeDistance', 'scatterFacingDown', 'scatterIslands', 'scatterRidgeAngle',
   'scatterAutoTree', 'scatterMergeDistance', 'scatterBranchDescent', 'reinforceOverhangEdges',
-  'liftHeight', 'eraseRadius',
+  'liftHeight', 'eraseRadius', 'neckMaxShift', 'minClearance',
 ] as const satisfies readonly SettingKey[];
 
 /** Order of a per-contact shape override (Rust `SHAPE_LAYOUT`); the same order as `SHAPE_KEYS`. */

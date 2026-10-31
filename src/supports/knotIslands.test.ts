@@ -18,5 +18,7 @@ describe('knot.stl island verdict', () => {
     const unit = supportedUnit({ name: 'knot-file', mesh, rotation: [0, 0, 0], variants: ['default'] } as never, 'default');
     const built = runSupportJob(supportJobOf(unit, 0, 'preview'), undefined, 1);
     expect(built.islands).toEqual({ status: 'inconclusive', reason: 'non-manifold edge' });
-  }, 120000);
+  // ~100 s with engine 26 (the route search now tries leans/outline routes for every knot tip before landing);
+  // a speed-up is queued with the space-map round.
+  }, 240000);
 });

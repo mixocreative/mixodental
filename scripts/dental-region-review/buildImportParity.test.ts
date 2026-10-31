@@ -27,17 +27,18 @@ describe('dental import and preview parity', () => {
     if (review.kind !== 'proposal') return;
     expect(review.supports.droppedByPath).toBeUndefined();
     const retained = new Set(review.supports.components.flatMap((part) => part.contactId ? [part.contactId] : []));
-    // 94 placed primaries (71 outer, 23 opening, evenly spaced; none closer than 0.6 mm): a tip whose
-    // face a support could not reach from below was moved to one it can before placement. At the
-    // profile's pose in this centred frame (measured, B2 with D20 and D21, Tree off): the repair
-    // leaves out only the crossing brace segments (D24, brace-pruned), moves 2 primaries to alternates and leaves 1
-    // crossing primary out, so 93 are built; every other brace stays. (At the confirmed print angle none is left out: the folder review.)
+    // 94 placed primaries (71 outer, 23 opening, evenly spaced; none closer than 0.6 mm). Since engine 26
+    // (routing: outline last resort, aligned cone, leans) every one of them is built where it was placed:
+    // none is moved to an alternate, none is left out, and no brace is pruned (no fallback). Before, at the
+    // profile's pose in this centred frame (B2 with D20 and D21, Tree off), 2 were moved, 1 crossing primary
+    // was left out (93 built) and the crossing brace segments were pruned (brace-pruned).
     const placed = new Set(review.placement.points.map((point) => point.id));
     expect(placed.size).toBe(94);
-    expect(retained.size).toBe(93);
-    expect([...retained].filter((id) => !placed.has(id))).toHaveLength(2);
-    expect(review.supports.dropped).toHaveLength(1);
-    expect(review.supports.dentalStructureFallback).toEqual(['brace-pruned']);
+    expect(retained.size).toBe(94);
+    expect([...retained].filter((id) => !placed.has(id))).toHaveLength(0);
+    expect([...placed].filter((id) => !retained.has(id))).toHaveLength(0);
+    expect(review.supports.dropped).toHaveLength(0);
+    expect(review.supports.dentalStructureFallback).toBeUndefined();
   }, 180000);
 
   it('keeps dental automatic contact IDs the same in preview and export', () => {

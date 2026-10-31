@@ -5,18 +5,23 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import type { JobTransform } from '@mixo-geocore/host/core/jobs';
 import type { OrientationLayer } from '../../src/dental/orientationEvidence';
 
+/** A review layer: triangles (unindexed when `indices` is empty), or with `lines` line segments (two points each). */
+export type ReviewLayer = OrientationLayer & { lines?: boolean };
+
 /**
  * The companion GLB of the evidence layers in `frame` (the review GLB's frame: its lift and pose
  * rotation, so both load into one scene). Names carry no file or patient data.
  */
-export async function orientationGlb(layers: OrientationLayer[], frame: JobTransform): Promise<ArrayBuffer> {
+export async function orientationGlb(layers: ReviewLayer[], frame: JobTransform): Promise<ArrayBuffer> {
   const scene = new THREE.Group();
   scene.name = 'Step 1 orientation evidence (review only)';
   for (const layer of layers) {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(layer.positions, 3));
     if (layer.indices.length > 0) geometry.setIndex(new THREE.BufferAttribute(layer.indices, 1));
-    const visual = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: layer.color, side: THREE.DoubleSide }));
+    const visual = layer.lines
+      ? new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: layer.color }))
+      : new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: layer.color, side: THREE.DoubleSide }));
     visual.name = layer.name;
     scene.add(visual);
   }
@@ -43,9 +48,9 @@ export async function orientationGlb(layers: OrientationLayer[], frame: JobTrans
   } finally {
     if (!prior) delete host.FileReader;
     scene.traverse((object) => {
-      if (object instanceof THREE.Mesh) {
+      if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) {
         object.geometry.dispose();
-        object.material.dispose();
+        (object.material as THREE.Material).dispose();
       }
     });
   }

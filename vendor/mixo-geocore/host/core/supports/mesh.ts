@@ -130,6 +130,8 @@ export interface GeneratedSupportMesh extends TriangleMesh {
   dropped: string[];
   /** Subset of dropped contacts rejected specifically by a no-support zone. */
   droppedByZones?: string[];
+  /** Contacts the build could not support, where each tip stands (plate frame, mm) and why: `build-omission`, `leave-out:pillar`, `leave-out:neck`, `all-manual`, ... (`generate`). */
+  leftOut?: { id: string; position: [number, number, number]; reason: string }[];
   /** Exact body-clearance verdict of the final mesh (`generate`); absent on a mesh not built by it. */
   verdict?: SupportVerdict;
   /** Revision of the request this mesh answers (`generate` echoes it); the host drops any other. */

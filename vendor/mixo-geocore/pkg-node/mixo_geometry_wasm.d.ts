@@ -208,6 +208,23 @@ export class DentalTiltScanResult {
 }
 
 /**
+ * Support-area comparison: per-face classes and the three areas (mm^2).
+ */
+export class DentureAreaResult {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Owner area, generated area, area in both (mm^2).
+     */
+    areas(): Float64Array;
+    /**
+     * Per face: 0 neither, 1 owner only, 2 generated only, 3 both.
+     */
+    mask(): Uint8Array;
+}
+
+/**
  * Step 1 result for a denture. Failed: `status() == 1` with `reason()`. Oriented: `status() == 0`.
  */
 export class DentureOrientResult {
@@ -236,6 +253,159 @@ export class DentureOrientResult {
      * the host reports it as needing a look).
      */
     teeth_decided(): boolean;
+}
+
+/**
+ * The review layers of the owner denture rules, flat numbers in the mesh frame (mm).
+ */
+export class DentureReviewResult {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Step 2, per face: 1 when a ray from the back origin reaches it first (ALLOWED; overrides no-support; tips stand only here), else 0.
+     */
+    allowed_mask(): Uint8Array;
+    /**
+     * Tight box: centre (3, the line-of-sight point), axes (9), half extents (3).
+     */
+    box_(): Float64Array;
+    /**
+     * Length (mm) of each chain.
+     */
+    chain_lengths(): Float64Array;
+    /**
+     * The continuous down-edge chains: `x y z` per point, chains back to back (sizes in `chain_sizes`).
+     */
+    chain_points(): Float64Array;
+    /**
+     * Point count of each chain.
+     */
+    chain_sizes(): Uint32Array;
+    /**
+     * The hard edges that face down in the oriented pose (before the print tilt), same layout.
+     */
+    down_edges(): Float64Array;
+    /**
+     * Overhang candidates, per face: 1 when within 60 degrees of straight down for the reviewed plate normal.
+     */
+    down_mask(): Uint8Array;
+    /**
+     * Every hard edge as segments `ax ay az bx by bz`.
+     */
+    hard_edges(): Float64Array;
+    /**
+     * Per face: 1 within 5 mm along the surface of a hole (support-allowed).
+     */
+    hole_band_mask(): Uint8Array;
+    /**
+     * Per hole: area (mm2), faces next to it.
+     */
+    hole_info(): Float64Array;
+    /**
+     * The hole outlines (hit points around each hole seen along the teeth axis), `x y z` points back to back.
+     */
+    hole_outlines(): Float64Array;
+    /**
+     * Point count of each hole outline.
+     */
+    hole_sizes(): Uint32Array;
+    /**
+     * Low points that got a tip (xyz each).
+     */
+    low_tip_points(): Float64Array;
+    /**
+     * Per low tip: 0 allowed, 1 outside the no-support zone, 2 within lowRimBandMm of the rim.
+     */
+    low_tip_reasons(): Uint8Array;
+    /**
+     * Low points outside the allowed area (left unsupported), `x y z` each.
+     */
+    lows_outside(): Float64Array;
+    /**
+     * The face of each `lows_outside` point.
+     */
+    lows_outside_faces(): Uint32Array;
+    /**
+     * Allowed low points no tip reaches, `x y z` each.
+     */
+    lows_unreached(): Float64Array;
+    /**
+     * The face of each `lows_unreached` point.
+     */
+    lows_unreached_faces(): Uint32Array;
+    /**
+     * The unit 45 degree no-support ray direction xyz.
+     */
+    no_support_dir(): Float64Array;
+    /**
+     * Step 1, per face: 1 when a 45 degree front-top parallel ray hits it first (NO_SUPPORT before the override), else 0.
+     */
+    no_support_mask(): Uint8Array;
+    /**
+     * Oral cavity ray origin xyz: on the rim plane, at the back edge of the tight box, on the symmetry plane (the allowed-area rays start here).
+     */
+    oral_cavity_ray(): Float64Array;
+    /**
+     * Pillar geometry inputs: contact ball diameter, frustum base diameter, neck length, pillar diameter, lift (mm).
+     */
+    pillar(): Float64Array;
+    /**
+     * Candidates released because their face is not an overhang for the plate normal.
+     */
+    released(): number;
+    /**
+     * Per face: 1 within the rim band of the rim line (support-allowed; overhanging band faces get rim tips).
+     */
+    rim_band_mask(): Uint8Array;
+    /**
+     * Per rim polyline: 1 when closed (the last edge joins the last point to the first).
+     */
+    rim_closed(): Uint8Array;
+    /**
+     * Mesh edge ids of the rim polylines, back to back (a closed line has as many edges as points, an open one one fewer).
+     */
+    rim_edges(): Uint32Array;
+    /**
+     * Total rim length (mm), line count, all the way around 0/1, largest empty stretch (deg); zeros without a rim.
+     */
+    rim_info(): Float64Array;
+    /**
+     * The rim (engine 20): one or more ordered polylines of mesh vertex positions, `x y z` each, back to back.
+     */
+    rim_loops(): Float64Array;
+    /**
+     * Rim plane: point xyz, unit normal xyz pointing to the top; empty without a rim.
+     */
+    rim_plane(): Float64Array;
+    /**
+     * Point count of each rim polyline.
+     */
+    rim_sizes(): Uint32Array;
+    /**
+     * Symmetry plane (splits the U left/right): point xyz, unit normal xyz.
+     */
+    symmetry_plane(): Float64Array;
+    /**
+     * The mesh face each tip stands on, in `tips` order.
+     */
+    tip_faces(): Uint32Array;
+    /**
+     * Generated tips, `x y z nx ny nz stream` each (0 low, 1 area, 4 rim, 5 hole).
+     */
+    tips(): Float64Array;
+    /**
+     * Tips on an overhang with no free path to the plate, same layout as `tips`; not built.
+     */
+    unsupportable(): Float64Array;
+    /**
+     * The oriented pose's plate normal (up) in the mesh frame, xyz.
+     */
+    up(): Float64Array;
+    /**
+     * The up decision (layout in `denture/review.rs` `up_decision_values`): T1b diagnostic (box axis, decided, flipped, medians, margin, hits), up xyz, arch frame up before xyz, slice votes (for, against, abstain), confidence, top xyz, teeth flipped, back xyz, front/back margin, cross-check agrees, end widths; empty for a mesh with no box.
+     */
+    up_decision(): Float64Array;
 }
 
 /**
@@ -294,6 +464,10 @@ export class Generation {
      * 0 clear, 1 blocked, 2 inconclusive.
      */
     status(): number;
+    /**
+     * The full sentence when the time rule stopped the build ("stopped: no progress for 30 s"); empty otherwise.
+     */
+    stop_reason(): string;
     take_contact_ids(): string[];
     take_dropped(): string[];
     take_dropped_by_zones(): string[];
@@ -313,6 +487,18 @@ export class Generation {
      * `ISSUE_STRIDE` u32 per crossing of the final mesh.
      */
     take_issues(): Uint32Array;
+    /**
+     * Left-out contacts with a reason: ids.
+     */
+    take_left_out_ids(): string[];
+    /**
+     * Left-out contacts: x y z of each tip (plate frame, mm).
+     */
+    take_left_out_points(): Float64Array;
+    /**
+     * Left-out contacts: the reason of each, `step` or `step:part` (build-omission, leave-out:pillar, leave-out:neck, all-manual, structures-off-leave-out, structure-fallback).
+     */
+    take_left_out_reasons(): string[];
     take_positions(): Float32Array;
     take_reach(): Float64Array;
     /**
@@ -399,6 +585,10 @@ export class GeometrySession {
      */
     dental_tilt_scan(model: number, profile: string, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, on_tilt?: Function | null): DentalTiltScanResult;
     /**
+     * Classes every face by whether it lies within `radius_mm` of the owner points, of the generated points, of both or neither.
+     */
+    denture_compare_areas(model: number, owner: Float64Array, generated: Float64Array, radius_mm: number): DentureAreaResult;
+    /**
      * The denture policy of a unit as a `PolicyResult` for `generate`: every face permitted, the
      * pose's tips as candidates (lowest points, bottom band, bars, light fill), pillars may land on
      * the model, Tree off, Brace by `brace`. `frame` is the unit's placement `[position xyz,
@@ -406,6 +596,10 @@ export class GeometrySession {
      * for); `manual_positions` the unit's manual tips (unit-local xyz triples) to keep clear of.
      */
     denture_policy(model: number, profile: string, frame: Float64Array, brace: boolean, manual_positions: Float64Array): PolicyHandle;
+    /**
+     * The review layers of the owner denture rules on a loaded mesh (independent of its import orientation) at the print tilt `tilt_deg` (0 = canonical).
+     */
+    denture_review(model: number, profile: string, tilt_deg: number): DentureReviewResult | undefined;
     /**
      * Print-angle search of a denture from upright over the profile's range, with the host's
      * current support settings; rows as `dental_tilt_scan` (fitting-side tips and rim gap are 0).
@@ -426,12 +620,16 @@ export class GeometrySession {
     diagnose_orientation(model: number, revision: number, profile: string): Diagnosis;
     /**
      * The support pipeline for a plate-space model: `contacts` and `shapes` as `build_supports`,
-     * `policy` the unit's policy as Rust made it (same frame as the model). `timeout_ms` > 0 ends the repair and checks early with
-     * an inconclusive verdict (never a clear one) once that much time has passed. `plate_y` is the
+     * `policy` the unit's policy as Rust made it (same frame as the model). `limits` overrides the time rule
+     * (`supports::time_limits::TimeRules::from_overrides`: base, per tip, per 100k triangles, stall, ceiling; ms; a missing or NaN
+     * entry keeps the default, an empty array keeps them all). The build gets a start allowance by size, is extended while it
+     * progresses, and stops with an inconclusive verdict (never a clear one) after the stall window or at the ceiling;
+     * `stop_reason()` then holds the sentence. `rules` overrides the planner's rules (`supports::rules::SupportRules::from_overrides`,
+     * one entry per name of `rule_names()`; a missing or NaN entry keeps Rust's default). `plate_y` is the
      * plate's height in the model's frame: 0 for a model placed on the plate; a lift change keeps the
      * placed model (and its caches) and moves the plate instead. Island heights are above the plate.
      */
-    generate(model: number, ids: string[], contacts: Float64Array, shapes: Float64Array, settings: Float64Array, mode: number, label_text: string, zones: Float64Array, policy: PolicyHandle, timeout_ms: number, revision: number, plate_y: number, frame: Float64Array): Generation;
+    generate(model: number, ids: string[], contacts: Float64Array, shapes: Float64Array, settings: Float64Array, mode: number, label_text: string, zones: Float64Array, policy: PolicyHandle, limits: Float64Array, rules: Float64Array, revision: number, plate_y: number, frame: Float64Array): Generation;
     /**
      * Automatic contacts of a loaded model (already in the frame they are wanted in).
      */
@@ -477,6 +675,12 @@ export class GeometrySession {
      */
     pick_pixels(handle: number, clip_to_local: Float64Array, width: number, height: number, pixels: Float64Array, near: number, far: number, side: number): Float64Array;
     /**
+     * Where the pillar of that support may stand (`skeleton::edit::pillar_reach`): a grid mask around the
+     * tip, `radius_mm` out at `grid_mm` a cell; `judged` false gives the cheap drop-map answer, true judges
+     * every cell's support. `take_pieces()` holds [x0, z0, cell, nx, nz, then nx*nz cells as 0/1, row by row].
+     */
+    pillar_reach(model: number, settings: Float64Array, rules: Float64Array, tip: Float64Array, normal: Float64Array, plate_y: number, radius_mm: number, grid_mm: number, judged: boolean): Reroute;
+    /**
      * Slots of the support bodies the brush stroke touches and can see (ascending). Occluders are
      * session meshes with the support-local to model-local matrices (16 f64 each) and sides.
      */
@@ -486,6 +690,15 @@ export class GeometrySession {
      */
     propose_dental_region(model: number, tuning: Float64Array, profile: string): DentalRegionResult;
     release_mesh(handle: number): void;
+    /**
+     * Live edit of one support (`skeleton::edit::reroute_support`): the tip at `tip` (xyz, plate frame)
+     * with outward `normal`, its pillar dragged to plan (`x`, `z`); `settings` and `rules` as `generate`'s
+     * (the capsule judge's margin comes from the rules). The result's `take_pieces()` is the skeleton, nine
+     * numbers per piece: kind (0 tip cone, 1 neck, 2 rod, 3 transition, 4 trunk, 5 joint, 6 brace, 7 foot),
+     * the piece's two points (xyz each; a joint or foot repeats its point) and its two radii (mm). Empty
+     * with `refusal()` naming the rule that refused (too far, under the floor, clearance).
+     */
+    reroute_support(model: number, settings: Float64Array, rules: Float64Array, tip: Float64Array, normal: Float64Array, x: number, z: number, plate_y: number): Reroute;
     /**
      * Recomputes the strip and contacts for accepted contours. `phase_fraction` (of the even step)
      * NaN keeps phase 0, the primaries; 0.5 samples halfway between them.
@@ -623,6 +836,23 @@ export class PolicyHandle {
      * Point xyz then normal xyz per suggested tip Add can snap to, painted or not (a dental policy only).
      */
     suggested_points(): Float64Array;
+}
+
+/**
+ * The answer of a live edit (`GeometrySession::reroute_support`, `pillar_reach`): a flat number array and, for a refused reroute, the reason.
+ */
+export class Reroute {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Why the reroute was refused; empty when it was taken.
+     */
+    refusal(): string;
+    /**
+     * The flat array (see the call that made it); taken once.
+     */
+    take_pieces(): Float64Array;
 }
 
 export class SupportBuild {
@@ -803,6 +1033,12 @@ export function remesh_cache_stats(): Uint32Array;
  * Removes collapsed triangles; the host reports the count.
  */
 export function remove_degenerate_triangles(positions: Float32Array, indices: Uint32Array): WeldResult;
+
+/**
+ * The names of the planner rules `generate`'s `rules` array overrides, in array order
+ * (`mixo_geometry_core::supports::rules::NAMES`): the host packs its overrides by these names.
+ */
+export function rule_names(): string[];
 
 /**
  * Flat order of the settings array (`SETTINGS_LAYOUT`), for the host packer to check against.

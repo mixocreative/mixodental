@@ -434,7 +434,7 @@
   "supportMesh": {
     "vertices": 7718,
     "triangles": 14680,
-    "hash": "271ef768",
+    "hash": "04b816d8",
     "parts": ["neck","pillar","foot","tree-trunk","tree-branch","raft","label"],
     "components": [
       ["neck","auto--794_-500_220",0,144],
@@ -632,11 +632,11 @@
   "exportMesh": {
     "vertices": 7718,
     "triangles": 14680,
-    "hash": "271ef768"
+    "hash": "04b816d8"
   },
   "stl": {
     "bytes": 735284,
-    "hash": "99ba794b"
+    "hash": "da4b77c3"
   },
   "check": {
     "allContacts": [],

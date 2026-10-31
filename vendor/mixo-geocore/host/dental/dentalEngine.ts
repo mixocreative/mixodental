@@ -59,6 +59,54 @@ export interface DentalTiltScanResultLike {
   band(): Uint32Array;
 }
 
+/** Result handle of `denture_compare_areas`; read it, then `free()`. */
+export interface DentureAreaResultLike {
+  mask(): Uint8Array;
+  areas(): Float64Array;
+  free(): void;
+}
+
+/** Result handle of `denture_review` (Rust `DentureReviewResult`); read it, then `free()`. */
+export interface DentureReviewResultLike {
+  no_support_mask(): Uint8Array;
+  allowed_mask(): Uint8Array;
+  hard_edges(): Float64Array;
+  down_edges(): Float64Array;
+  chain_points(): Float64Array;
+  chain_sizes(): Uint32Array;
+  chain_lengths(): Float64Array;
+  box_(): Float64Array;
+  oral_cavity_ray(): Float64Array;
+  no_support_dir(): Float64Array;
+  lows_outside(): Float64Array;
+  lows_outside_faces(): Uint32Array;
+  low_tip_points(): Float64Array;
+  low_tip_reasons(): Uint8Array;
+  lows_unreached(): Float64Array;
+  lows_unreached_faces(): Uint32Array;
+  down_mask(): Uint8Array;
+  unsupportable(): Float64Array;
+  released(): number;
+  rim_loops(): Float64Array;
+  rim_sizes(): Uint32Array;
+  rim_closed(): Uint8Array;
+  rim_edges(): Uint32Array;
+  rim_info(): Float64Array;
+  hole_outlines(): Float64Array;
+  hole_sizes(): Uint32Array;
+  hole_info(): Float64Array;
+  hole_band_mask(): Uint8Array;
+  rim_band_mask(): Uint8Array;
+  up_decision(): Float64Array;
+  rim_plane(): Float64Array;
+  symmetry_plane(): Float64Array;
+  up(): Float64Array;
+  tips(): Float64Array;
+  tip_faces(): Uint32Array;
+  pillar(): Float64Array;
+  free(): void;
+}
+
 /** Result handle of `orient_denture` (Rust `DentureOrientResult`; decoded by `dentureOrient.ts`); read it, then `free()`. */
 export interface DentureOrientResultLike {
   free(): void;
@@ -105,6 +153,10 @@ export interface DentalSession {
     onTilt?: (done: number, total: number) => void): DentalTiltScanResultLike;
   /** The denture policy for `generate` in `frame` (+Y the plate normal); `brace` is the lattice switch. */
   denture_policy(model: number, profile: string, frame: Float64Array, brace: boolean, manualPositions: Float64Array): PolicyHandle;
+  /** The owner-rule review layers of a denture (`dentureReview.ts` decodes them). */
+  denture_review(model: number, profile: string, tilt_deg: number): DentureReviewResultLike | undefined;
+  /** Support-area comparison of two xyz point lists (mesh frame) within `radiusMm`. */
+  denture_compare_areas(model: number, owner: Float64Array, generated: Float64Array, radiusMm: number): DentureAreaResultLike;
 }
 
 /** The dental calls of the engine module the browser build has (sessions, the overlay mask, the denture profile ids). */

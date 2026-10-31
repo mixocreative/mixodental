@@ -36,6 +36,16 @@ export interface DenturePlacement {
   barThicknessMaxMm: number;
   minimumProminenceMm: number;
   tipMinFromUpDeg: number;
+  hardEdgeDeg: number;
+  middleEdgeNearMm: number;
+  middleEdgeMinLengthMm: number;
+  downEdgeMaxDeg: number;
+  downBandMm: number;
+  downPitchMm: number;
+  /** Overhang faces within this distance (mm along the surface) of the rim line are support-allowed outside the oral cavity area. */
+  rimBandMm: number;
+  /** A lowest point outside the allowed area still gets a tip outside the no-support zone or within this distance (mm along the surface) of the rim line. */
+  lowRimBandMm: number;
   tipMinFromUpBarDeg: number;
 }
 
@@ -52,6 +62,14 @@ export interface DentureSupports {
   /** Raft layer thicknesses from the plate up. */
   raftLayersMm: readonly number[];
   liftHeightMm: number;
+  /** How far the thin contact cone sinks into the model, mm (the `pointDepth` setting). */
+  biteDepthMm: number;
+  /** Diameter of the narrowest part of the neck, mm (carried; the engine tapers straight from contact to pillar). */
+  upperDiameterMm: number;
+  /** Gap (mm) pillars, angled necks and branches keep from the model (the `minClearance` setting). */
+  minClearanceMm: number;
+  /** Farthest sideways shift (mm) of a pillar top from its tip (the `neckMaxShift` setting). */
+  neckMaxShiftMm: number;
 }
 
 /** One denture profile file as the host reads it. */
@@ -74,8 +92,8 @@ const TOP_KEYS = ['id', 'name', 'description', 'card', 'upright', 'pose', 'place
 const UPRIGHT_KEYS: readonly (keyof DentureUpright)[] = ['endBandFraction', 'legsGapMinRatio', 'teethBandFraction', 'teethOffsetMinMm', 'flatnessMax'];
 const POSE_KEYS: readonly (keyof DenturePose)[] = ['tiltRangeDeg', 'tiltStepDeg', 'tiltMarginDeg', 'overhangAngleDeg', 'overhangTieFraction'];
 const PLACEMENT_KEYS: readonly (keyof DenturePlacement)[] = ['tipPitchMm', 'barPitchMultiplier', 'lightPitchMultiplier', 'bottomBandMm', 'barThicknessMaxMm',
-  'minimumProminenceMm', 'tipMinFromUpDeg', 'tipMinFromUpBarDeg'];
-const SUPPORT_NUMBERS = ['tipBallMm', 'frustumBaseMm', 'frustumHeightMm', 'pillarDiameterMm', 'liftHeightMm'] as const;
+  'minimumProminenceMm', 'tipMinFromUpDeg', 'tipMinFromUpBarDeg', 'hardEdgeDeg', 'middleEdgeNearMm', 'middleEdgeMinLengthMm', 'downEdgeMaxDeg', 'downBandMm', 'downPitchMm', 'rimBandMm', 'lowRimBandMm'];
+const SUPPORT_NUMBERS = ['tipBallMm', 'frustumBaseMm', 'frustumHeightMm', 'pillarDiameterMm', 'liftHeightMm', 'biteDepthMm', 'upperDiameterMm', 'minClearanceMm', 'neckMaxShiftMm'] as const;
 const STABILITY_KEYS = ['maxSlendernessUnbraced', 'maxSlendernessBraced'] as const;
 
 function object(value: unknown, keys: readonly string[], where: string): Record<string, unknown> {
@@ -150,18 +168,19 @@ export function dentureProfileData(id: string): DentureProfileData {
 }
 
 /**
- * The profile's support defaults as the host's settings: a Contact-shape ball of `tipBallMm` on a
- * tapered tip whose end (`touchDiameter`) is the frustum base and whose neck is the frustum
- * height; the pillar diameter; braces for the lattice (Tree off); a raft whose floor is the sum
+ * The profile's support defaults as the host's settings: the thin contact cone (shape NONE: the tip
+ * end of `tipBallMm` touches the model and sinks `biteDepthMm`) on a tapered tip widening over the
+ * frustum height to the pillar; the pillar diameter; braces for the lattice (Tree off); a raft whose floor is the sum
  * of the layers; the lift. The operator can change every one afterwards.
  */
 export function dentureSupportPreset(profile: DentureProfileData): Partial<LiveSupportSettings> {
   const s = profile.supports;
   return {
-    contactShape: 'SPHERE',
-    pointDiameter: s.tipBallMm,
+    contactShape: 'NONE',
+    // tipBallMm is the diameter AT the surface: the tip end below it is narrower by the cone's slope over the bite depth.
+    pointDiameter: 2 * Math.max(0.05, s.tipBallMm / 2 - ((s.pillarDiameterMm / 2 - s.tipBallMm / 2) * s.biteDepthMm) / s.frustumHeightMm),
+    pointDepth: s.biteDepthMm,
     tipProfile: 'TAPERED',
-    touchDiameter: s.frustumBaseMm,
     neckLength: s.frustumHeightMm,
     pillarDiameter: s.pillarDiameterMm,
     trussEnabled: s.lattice,
@@ -170,6 +189,8 @@ export function dentureSupportPreset(profile: DentureProfileData): Partial<LiveS
     raftEnabled: true,
     raftFloorThickness: s.raftLayersMm.reduce((sum, layer) => sum + layer, 0),
     liftHeight: s.liftHeightMm,
+    minClearance: s.minClearanceMm,
+    neckMaxShift: s.neckMaxShiftMm,
     roofMode: 'OFF',
   };
 }

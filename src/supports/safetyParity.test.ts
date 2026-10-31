@@ -86,6 +86,7 @@ function parity(name: string, model: TriangleMesh, contacts: SupportContact[], s
   expectGolden(slug(name), { ...summary(mesh), indices: exactArray(mesh.indices, 'u32'), positions: approxArray(mesh.positions, mesh.positions.length > 30000 ? 41 : 1) });
   seen.builds += 1;
   seen.dropped += mesh.dropped.length;
+  // Any non-tree fallback counts: engine 26 reports 'brace-pruned' (crossing braces are pruned, the rest stay) where it used to report 'brace' (all braces switched off).
   seen.braceFallback += mesh.dentalStructureFallback?.some((f) => f !== 'tree') ? 1 : 0;
   seen.treeBuilt += mesh.components.some((c) => c.part === 'tree-branch') ? 1 : 0;
   return { ts: mesh, out };
@@ -94,10 +95,11 @@ function parity(name: string, model: TriangleMesh, contacts: SupportContact[], s
 describe('generate against the TS safety flow: synthetic models', () => {
   const walls = boxes([[-5, 20, -5], [5, 24, 5]], [[-20, 0, -5], [-0.3, 12, 5]], [[0.3, 0, -5], [20, 12, 5]]);
 
-  it('two walls: a crossing automatic contact is left out, a manual one is kept (the verdict names it)', () => {
+  it('two walls: a contact between the walls is routed out past the wall ends (engine 26) instead of left out, a manual one is kept (the verdict names it)', () => {
     const contacts = [contact(walls, 'auto-a', [0, 20, 0.5]), contact(walls, 'manual-b', [3, 20, 0.5], 'manual'), contact(walls, 'auto-c', [-3, 20, 3])];
     const { ts, out } = parity('two-walls', walls, contacts, lowPoly());
-    expect(ts.dropped).toContain('auto-a');
+    expect(ts.dropped).toEqual([]);
+    expect(ts.components.some((c) => c.contactId === 'auto-a' && c.part === 'foot')).toBe(true);
     expect(ts.components.some((c) => c.contactId === 'manual-b')).toBe(true);
     expect(out.mesh.verdict?.status).toBeDefined();
   });

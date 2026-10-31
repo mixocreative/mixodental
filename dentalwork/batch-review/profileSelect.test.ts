@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -39,13 +39,16 @@ describe('kind in the review row', () => {
 });
 
 // Customer scan: local only, skipped when the fixture is absent (never copied or committed).
-const dentureScan = resolve('dentalwork/fixtures/case-denture/case-1.stl');
+const dentureDir = resolve('dentalwork/fixtures/case-denture');
+// The first scan by name (case #1); file names are customer data and never written in code.
+const dentureScan = existsSync(dentureDir) ? (readdirSync(dentureDir).filter((f) => f.toLowerCase().endsWith('.stl') && !f.includes('-sup')).sort().map((f) => join(dentureDir, f))[0] ?? '') : '';
 describe.skipIf(!existsSync(dentureScan))('denture path (local fixture)', () => {
   it('builds with tips and a review GLB', async () => {
     const row = await reviewCase(dentureScan, 'case-001', scratch, 'denture');
     expect(row.reason).not.toMatch(/^denture-/);
     expect(row.result).toBe('built');
     expect(row.kind).toBe('denture');
+    // Engine 16 (vendored) places tips on this scan (56 placed in the 2026-10-30 denture batch).
     expect(row.tipsPlaced).toBeGreaterThan(0);
     expect(row.printAngleDeg).not.toBeNull();
     expect(readFileSync(join(scratch, 'case-001.glb')).toString('latin1', 0, 4)).toBe('glTF');
