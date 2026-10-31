@@ -209,8 +209,10 @@ const GROUPS = [
     ['Oral cavity ray', 'Oral cavity ray (rim plane, back edge)', 'Marker: on the rim plane, at the back edge of the tight box, on the symmetry plane; the rays that find the allowed area start here.', true],
     ['MARK support crosses', 'Support crosses the aligner', 'Aligner: a support cuts through the model (red).', true],
     ['MARK crossing that', 'Crossing that could not be judged', 'Aligner: a crossing with no face to judge against (amber).', true],
-    ['MARK low point with', 'Low point with no support', 'Inside the allowed area, no tip reaches it (purple).', true],
-    ['MARK low point outside', 'Low point outside the allowed area', 'Outside the allowed area: left unsupported (orange).', true],
+    ['ISLAND NOT resolved', 'Islands NOT resolved', 'Denture, engine island report: the lowest point of a region that starts mid-air and no built tip serves (tip left out, below min size, in the no-support zone or outside the allowed area). Reason in the facts list (amber).', true],
+    ['ISLAND resolved', 'Islands resolved', 'Denture, engine island report: the lowest point is served by a built tip, its own or one nearby (green).', false],
+    ['MARK low point with', 'Rule check: low point in the allowed area, no tip within reach', 'Older rule layer (aligner: the generate island check; denture: low points the review rule found). Not the engine island report (purple).', true],
+    ['MARK low point outside', 'Rule check: low point outside the allowed area', 'Older rule layer, for information (orange).', true],
   ]],
   ['Diagnostic (off by default)', [
     ['VIOLET', 'Outer strip, opening side', 'Aligner: sample strip beside the outer edge.', false],
@@ -237,6 +239,7 @@ const SWATCH_VAR = {
   'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing',
   'DOWN-FACING': '--layer-down-edges', 'TIGHT BOX': '--layer-tight-box', 'RIM PLANE': '--layer-middle-plane', 'SYMMETRY PLANE': '--layer-symmetry-plane', 'Oral cavity ray': '--layer-ray-origin',
   'MARK low point outside': '--layer-low-outside', 'MARK low point with': '--layer-low-unsupported',
+  'ISLAND NOT resolved': '--layer-island-unresolved', 'ISLAND resolved': '--layer-island-resolved',
   'Rim edge (continuous': '--layer-rim-edge', 'Hole outlines': '--layer-hole-edge', 'Hole band': '--layer-hole-band',
   'Tips: rim': '--layer-source-rim', 'Tips: hole': '--layer-source-hole', 'Tips: area': '--layer-source-area', 'Tips: low': '--layer-source-low',
   'Tips that cannot reach': '--layer-unsupportable-tips', 'Tips left out': '--layer-tips-left-out', 'SUPPORT PILLARS': '--layer-pillars', 'YOUR SUPPORTS': '--layer-owner',
@@ -253,7 +256,7 @@ const DENTURE_STEPS = [
   ['4. Oral cavity ray', 'On the rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
   ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
   ['6. Print tilt', 'The build plate at the print angle the build chose.', ['Print tilt']],
-  ['7. Overhangs and low points', 'Faces within 60 degrees of straight down, the down-facing edges, and low points: orange outside the allowed area, purple inside it with no support.', ['Down-facing area', 'DOWN-FACING', 'MARK low point outside', 'MARK low point with']],
+  ['7. Overhangs and low points', 'Faces within 60 degrees of straight down, the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
   ['8. Tips', 'Tips by source: rim, hole, area, low. Black cones: overhang tips with no free path to the plate (not built). Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
   ['9. Supports', 'Our pillars (plastic), the braces and the base.', ['SUPPORT PILLARS']],
   ['10. Compare with owner', 'Your -sup supports (off by default) and contacts, and the area each covers against ours.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
@@ -514,7 +517,7 @@ async function show(row) {
     for (const gltf of loaded) model.add(gltf.scene);
     model.traverse((object) => {
       // Markers draw over everything, so a crossing inside a support body still shows.
-      if (object.isMesh && plain(object.parent?.name).startsWith('MARK')) {
+      if (object.isMesh && plain(object.parent?.name).startsWith('MARK') || plain(object.parent?.name).startsWith('ISLAND')) {
         object.material.depthTest = false;
         object.renderOrder = 10;
       }
@@ -650,7 +653,7 @@ function printAngleText(c) {
 function facts(c) {
   // A denture reads only the rows that apply to it; the aligner-only rows (arch, cross-checks, gaps, edge
   // coverage, support crossings) would show "not oriented" and similar in red for a case that has none.
-  const DENTURE_ROWS = ['Kind', 'Shape check', 'Result', 'Safety check', 'Low points with no support', 'Print angle', 'Up decision', 'Tips by source', 'Unsupportable tips', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Scan clean-up', 'Time (s)',
+  const DENTURE_ROWS = ['Kind', 'Shape check', 'Result', 'Safety check', 'Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Print angle', 'Up decision', 'Tips by source', 'Unsupportable tips', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Scan clean-up', 'Time (s)',
     'Rim plane', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
   const rows = [
     ['Kind', c.kind || 'aligner', !!c.shapeNote],
@@ -659,8 +662,16 @@ function facts(c) {
     ['Safety check', c.verdict || '-', c.verdict && c.verdict !== 'clear'],
     ['Supports crossing the aligner', c.crossings, c.crossings > 0],
     ['Crossings not judged', c.uncertain, c.uncertain > 0],
-    ['Low points with no support', c.islandsUnresolved, c.islandsUnresolved > 0],
-    ['Low points outside the area', c.islandsOutsideArea, false],
+    // Denture: the engine island report (the amber marks and these rows are the same list). Aligner: the generate island check.
+    ...(c.kind === 'denture' ? [
+      ['Islands not resolved', c.islandsUnresolved, c.islandsUnresolved > 0],
+      ['Unresolved islands', c.unresolvedIslands || '-', c.islandsUnresolved > 0],
+      ['Islands resolved', c.islandsResolved ?? '-', false],
+      ['Islands outside the allowed area', c.islandsOutsideArea, false],
+    ] : [
+      ['Low points with no support', c.islandsUnresolved, c.islandsUnresolved > 0],
+      ['Low points outside the area', c.islandsOutsideArea, false],
+    ]),
     ['Print angle', printAngleText(c), false],
     // Step 1 (orientation by the trim): how the arch was read and whether the floor rule agrees on up/down.
     ['Arch', c.archKind === 'open' ? 'open arch (trim decided)' : c.archKind === 'ring' ? 'ring (floor rule decided)' : c.archKind == null ? '-' : 'not oriented', c.archKind === ''],
@@ -701,6 +712,7 @@ function facts(c) {
     const dt = document.createElement('dt'); dt.textContent = k;
     const dd = document.createElement('dd'); dd.textContent = String(v ?? '-'); if (bad) dd.className = 'bad';
     if (k === 'Left-out reasons') dd.dataset.ui = 'review-fact-left-out-reasons';
+    if (k === 'Unresolved islands') dd.dataset.ui = 'review-fact-unresolved-islands';
     return [dt, dd];
   }));
   document.getElementById('source').textContent = c.source ?? '';

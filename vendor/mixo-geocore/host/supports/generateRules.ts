@@ -98,6 +98,18 @@ export interface GenerateRules {
   tipTimeMs?: number;
   /** 1 (default): tree merge and trunk legs run only for exact-contact (denture) builds; generic builds keep their Auto Trees and truss. 0: for every build. */
   treesForExactContactOnly?: number;
+  /** Denture tilt scan: among tilts that pass the safety rules the pick prefers the fewest lowest points no support can reach. 0 turns the preference off; any positive value keeps it on (default 1). */
+  boxedInTiltWeight?: number;
+  /** Denture policy and review: 1 (default) puts one tip at the lowest vertex of every island of the posed model (source "island"), unless a tip already stands within `islandReuseMm`; 0 turns it off. Booleans are sent as 1 or 0. */
+  islandTips?: number | boolean;
+  /** Islands whose footprint (the area, seen from above, of their lowest `islandSlabMm` of surface) is smaller than this get no tip (mm2, default 0.05). */
+  islandMinAreaMm2?: number;
+  /** Where a low or island tip may stand outside the allowed area: 0 nowhere (only inside the allowed area or within the profile's lowRimBandMm of the rim), 1 anywhere except the no-support zone (default, the behaviour before engine 28), 2 everywhere. */
+  lowOutsideAllowed?: number;
+  /** A tip already planned within this distance (mm, default 0.5) of an island's lowest point serves it; also the radius of the report's resolved. */
+  islandReuseMm?: number;
+  /** Thickness (mm, default 0.2) of the lowest slab whose footprint is an island's size. */
+  islandSlabMm?: number;
 }
 
 /** The override array's layout; mirrors Rust `supports::rules::NAMES` exactly (a test checks it against the wasm's `rule_names()`). */
@@ -109,7 +121,8 @@ export const RULE_NAMES: readonly string[] = [
   'capsuleMarginMm',
   'mergeSpacingDiameters', 'mergeMaxAngleDeg', 'mergeRodMaxMm', 'mergePasses', 'mergeDeeperNodes',
   'legOverHeightMm', 'legOverBranches', 'legMaxAngleDeg', 'legMaxMm', 'legAttachBelowTopMm', 'legDirections', 'legSpacingDiameters', 'legDeeperAttach',
-  'neckRampSlope', 'neckGapMm', 'neckLiftTries', 'neckGapTargetMm', 'tipTimeMs', 'treesForExactContactOnly',
+  'neckRampSlope', 'neckGapMm', 'neckLiftTries', 'neckGapTargetMm', 'tipTimeMs', 'treesForExactContactOnly', 'boxedInTiltWeight',
+  'islandTips', 'islandMinAreaMm2', 'lowOutsideAllowed', 'islandReuseMm', 'islandSlabMm',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */

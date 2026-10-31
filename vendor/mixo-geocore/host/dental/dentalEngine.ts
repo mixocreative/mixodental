@@ -57,6 +57,12 @@ export interface DentalTiltScanResultLike {
   order(): Uint32Array;
   pick_reason(): number;
   band(): Uint32Array;
+  /** Denture scan only (engine 27): per row, lowest points no support can reach; empty when the rule is off. Optional so test doubles may omit them. */
+  boxed_counts?(): Uint32Array;
+  /** The picked row's boxed-in lowest points, x y z each (mesh frame, mm). */
+  boxed_points?(): Float64Array;
+  /** Why each of `boxed_points()` is boxed in. */
+  boxed_reasons?(): string[];
 }
 
 /** Result handle of `denture_compare_areas`; read it, then `free()`. */
@@ -102,6 +108,10 @@ export interface DentureReviewResultLike {
   symmetry_plane(): Float64Array;
   up(): Float64Array;
   tips(): Float64Array;
+  /** The islands of the reviewed pose, `ISLAND_STRIDE` numbers each (`dentureIslands.ts`); empty with the rule `islandTips` off. */
+  islands(): Float64Array;
+  /** Why the islands could not be told; empty when they could. */
+  islands_note(): string;
   tip_faces(): Uint32Array;
   pillar(): Float64Array;
   free(): void;
@@ -148,13 +158,20 @@ export interface DentalSession {
   // Denture calls (`crates/geometry-wasm/src/denture.rs`); `profile` is a denture profile id.
   /** Step 1 for a denture: the upright frame and its rotation. */
   orient_denture(model: number, profile: string): DentureOrientResultLike;
-  /** Denture print-angle search from upright; rows as `dental_tilt_scan`. */
+  /** Denture print-angle search from upright; rows as `dental_tilt_scan`. Default support rules. */
   denture_tilt_scan(model: number, profile: string, neckLengthMm: number, pillarDiameterMm: number, liftMm: number, braced: boolean,
     onTilt?: (done: number, total: number) => void): DentalTiltScanResultLike;
+  /** `denture_tilt_scan` with the support-rule overrides (engine 27; `rules` in `rule_names()` order, NaN keeps the default). */
+  denture_tilt_scan_ruled(model: number, profile: string, neckLengthMm: number, pillarDiameterMm: number, liftMm: number, braced: boolean,
+    rules: Float64Array, onTilt?: (done: number, total: number) => void): DentalTiltScanResultLike;
   /** The denture policy for `generate` in `frame` (+Y the plate normal); `brace` is the lattice switch. */
   denture_policy(model: number, profile: string, frame: Float64Array, brace: boolean, manualPositions: Float64Array): PolicyHandle;
+  /** `denture_policy` with the support-rule overrides (engine 28; `rules` in `rule_names()` order, NaN keeps the default): island tips and the low-tip admission. */
+  denture_policy_ruled(model: number, profile: string, frame: Float64Array, brace: boolean, manualPositions: Float64Array, rules: Float64Array): PolicyHandle;
   /** The owner-rule review layers of a denture (`dentureReview.ts` decodes them). */
   denture_review(model: number, profile: string, tilt_deg: number): DentureReviewResultLike | undefined;
+  /** `denture_review` with the support-rule overrides (engine 28). */
+  denture_review_ruled(model: number, profile: string, tilt_deg: number, rules: Float64Array): DentureReviewResultLike | undefined;
   /** Support-area comparison of two xyz point lists (mesh frame) within `radiusMm`. */
   denture_compare_areas(model: number, owner: Float64Array, generated: Float64Array, radiusMm: number): DentureAreaResultLike;
 }

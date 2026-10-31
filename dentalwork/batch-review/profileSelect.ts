@@ -56,6 +56,8 @@ export type DentureReview =
     frame: JobTransform; placement: PlacementResult; supports: GeneratedSupportMesh;
     /** The tips the supports were built from, in unit-local coordinates (the same contacts as `supports`). */
     placed: Array<{ position: Vector; normal: Vector }>;
+    /** The policy's candidate ids in order (an island's `tipIndex` indexes them) and the tips the build left out, for `settleIslands`. */
+    candidateIds: string[]; leftOut: Array<{ id: string; reason: string }>;
     /** The contacts the build left out (no support built, any source), unit-local, each with the engine's reason. */
     leftOutTips: Array<{ position: Vector; normal: Vector; reason: string }>;
     /** Extra lift (mm over the profile's) of the kept build and every attempt of the extra-lift retry (+2.5, +5 mm when tips are left out). */
@@ -107,7 +109,8 @@ export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfile
   const reasons = new Map((out.mesh.leftOut ?? []).map((entry) => [entry.id, entry.reason]));
   const leftOutTips = contacts.filter((contact) => leftOut.has(contact.id))
     .map((contact) => ({ position: inverseTransformPoint(frame, contact.position), normal: inverseTransformDirection(frame, contact.normal), reason: reasons.get(contact.id) ?? 'dropped (policy, landing rule or no-support zone)' }));
-  return { kind: 'built', orientation, scan, index, frame, placement, supports: supportMeshToUnitLocal(out.mesh, frame), placed, leftOutTips, extraLiftMm: 0, liftAttempts: [{ extraLiftMm: 0, leftOut: out.mesh.leftOut?.length ?? out.mesh.dropped.length }] };
+  return { kind: 'built', orientation, scan, index, frame, placement, supports: supportMeshToUnitLocal(out.mesh, frame), placed, leftOutTips,
+    candidateIds: contacts.map((contact) => contact.id), leftOut: (out.mesh.leftOut ?? []).map(({ id, reason }) => ({ id, reason })), extraLiftMm: 0, liftAttempts: [{ extraLiftMm: 0, leftOut: out.mesh.leftOut?.length ?? out.mesh.dropped.length }] };
 }
 
 /** Review layers of a built denture, in the unit-local frame (the GLB node carries `review.frame`): model, supports, upright (arch) plane. */

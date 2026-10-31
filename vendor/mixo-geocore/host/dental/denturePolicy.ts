@@ -2,8 +2,10 @@ import type { PlacementResult, SupportPoint, TriangleMesh } from '../core/analys
 import type { JobTransform } from '../core/jobs';
 import { orientationOnly } from '../core/jobs';
 import { positionIds } from '../supports/contactEdits';
+import { packRules, type GenerateRules } from '../supports/generateRules';
 import { frameArray, type MakePolicy, type PolicyHandle } from '../supports/generateSupports';
 import { withDentalMesh, type DentalSession } from './dentalEngine';
+import { decodeIslands, type DentureIsland } from './dentureIslands';
 
 /*
  * Host side of the denture policy (Rust `dental::denture::policy` through `denture_policy`): the
@@ -28,16 +30,21 @@ export function defaultDenturePolicy(profileId: string, lattice = true): Denture
 /**
  * The unit's denture policy made in Rust, expressed in `frame` (its +Y is the plate normal the
  * tips are placed for). `manual` are the unit's manual tips (unit-local): no automatic tip within
- * the pitch of one.
+ * the pitch of one. `rules` (absent: the engine's defaults) are the planner rules the denture policy reads: `islandTips`,
+ * `islandMinAreaMm2`, `lowOutsideAllowed`, `islandReuseMm`, `islandSlabMm` (see `GenerateRules`). The handle reports the
+ * pose's islands (`policyIslands`).
  */
-export function makeDenturePolicy(session: Pick<DentalSession, 'denture_policy'>, model: number, policy: DenturePolicy, frame: JobTransform,
-  manual: readonly Pick<SupportPoint, 'position'>[] = []): PolicyHandle {
-  return session.denture_policy(model, policy.profileId, frameArray(frame), policy.lattice, Float64Array.from(manual.flatMap((point) => point.position)));
+export function makeDenturePolicy(session: Pick<DentalSession, 'denture_policy_ruled'>, model: number, policy: DenturePolicy, frame: JobTransform,
+  manual: readonly Pick<SupportPoint, 'position'>[] = [], rules?: GenerateRules): PolicyHandle {
+  return session.denture_policy_ruled(model, policy.profileId, frameArray(frame), policy.lattice, Float64Array.from(manual.flatMap((point) => point.position)), packRules(rules));
 }
 
+/** The islands a denture policy handle reports (before the build); `settleIslands` adds the build's left-out tips. */
+export const policyIslands = (handle: Pick<PolicyHandle, 'island_facts'>): DentureIsland[] => decodeIslands(handle.island_facts());
+
 /** `makeDenturePolicy` for `generateSupports`. */
-export const denturePolicy = (policy: DenturePolicy, frame: JobTransform, manual: readonly Pick<SupportPoint, 'position'>[] = []): MakePolicy =>
-  (session, model) => makeDenturePolicy(session as unknown as Pick<DentalSession, 'denture_policy'>, model, policy, frame, manual);
+export const denturePolicy = (policy: DenturePolicy, frame: JobTransform, manual: readonly Pick<SupportPoint, 'position'>[] = [], rules?: GenerateRules): MakePolicy =>
+  (session, model) => makeDenturePolicy(session as unknown as Pick<DentalSession, 'denture_policy_ruled'>, model, policy, frame, manual, rules);
 
 /** Points (xyz then normal xyz each) with position ids. */
 function pointsOf(flat: Float64Array): SupportPoint[] {
@@ -53,9 +60,9 @@ function pointsOf(flat: Float64Array): SupportPoint[] {
  * bar undersides, light fill). The batch and the app call this where the aligner flow calls
  * `filterDentalPlacement`.
  */
-export function denturePlacement(mesh: TriangleMesh, policy: DenturePolicy, orientation: JobTransform, manual: readonly SupportPoint[] = []): PlacementResult {
+export function denturePlacement(mesh: TriangleMesh, policy: DenturePolicy, orientation: JobTransform, manual: readonly SupportPoint[] = [], rules?: GenerateRules): PlacementResult {
   const candidates = withDentalMesh(mesh, (session, model) => {
-    const handle = makeDenturePolicy(session, model, policy, orientationOnly(orientation), manual);
+    const handle = makeDenturePolicy(session, model, policy, orientationOnly(orientation), manual, rules);
     try {
       return handle.candidate_points();
     } finally {

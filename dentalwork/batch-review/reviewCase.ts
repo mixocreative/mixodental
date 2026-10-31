@@ -38,7 +38,7 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   case: string; source: string; result: 'built' | 'inconclusive' | 'error'; reason: string;
   /** `reason` in plain words with what to do next (empty when there is no reason). */
   explanation: string; seconds: number;
-  verdict: string; crossings: number; uncertain: number; islandsUnresolved: number; islandsOutsideArea: number;
+  verdict: string; crossings: number; uncertain: number; islandsUnresolved: number; islandsOutsideArea: number; islandsResolved: number;
   tipsPlaced: number; tipsLeftOut: number; outerGapMm: number | null; openingGapMm: number | null;
   rimNeedsReview: boolean; needsLook: boolean; glb: string;
   /** The print angle the app's Step 1 chose (degrees), its stable band, and whether the confirm held. */
@@ -59,6 +59,8 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   unsupportableTips: number;
   /** Left-out tips per engine reason, e.g. 'leave-out:pillar 3' ('' when none). */
   tipsLeftOutReasons: string;
+  /** Denture: the engine's island report after the build. Resolved = a built tip serves the lowest point; the facts row lists the unresolved ones (height, size, reason). */
+  unresolvedIslands: string;
   /** Denture only: peel report (peelReport.ts). Largest layer area (mm²) above the raft, ours / the owner print, our max's height, layers where ours is >10% above the owner, most tips on one support tree, trunk/neck area ratio; null when not computed. */
   peelMaxOurs: number | null; peelMaxOursAtMm: number | null; peelMaxOwner: number | null; peelMaxOwnerAtMm: number | null; peelRaftTopMm: number | null; peelModelOnlyRatio: number | null; peelLayersOver: number | null; maxTipsPerTrunk: number | null; trunkToNeckArea: number | null;
   /** The per-layer chart data file (`case-001-peel.json`) beside the GLB, or ''; and why the report is missing, if it is. */
@@ -70,7 +72,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
   const started = performance.now();
   const { rotation: _unused, ...noEvidence } = NO_EVIDENCE;
   const row: CaseRow = { kind, shapeNote: '', case: name, source: file, result: 'error', reason: '', explanation: '', seconds: 0, verdict: '', crossings: 0, uncertain: 0,
-    islandsUnresolved: 0, islandsOutsideArea: 0, tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
+    islandsUnresolved: 0, islandsOutsideArea: 0, islandsResolved: 0, unresolvedIslands: '', tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
     ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, middlePlane: '',
     upDecision: '', tipsBySource: '', unsupportableTips: 0, tipsLeftOutReasons: '',
@@ -162,7 +164,7 @@ function finish(row: CaseRow, started: number, mesh: TriangleMesh | undefined): 
 }
 
 /** Layer-name prefixes of the client GLB (`client/<case>.glb`): the result without the debug layers. */
-const CLIENT_LAYERS = ['TEAL denture model', 'SUPPORT PILLARS (ours)', 'Allowed area', 'Rim edge', 'MARK low point outside', 'MARK low point with no support'];
+const CLIENT_LAYERS = ['TEAL denture model', 'SUPPORT PILLARS (ours)', 'Allowed area', 'Rim edge', 'ISLAND NOT resolved', 'ISLAND resolved'];
 
 /** The denture path (profileSelect.ts): upright, print angle, tips, supports; the GLB holds the model, supports and the upright plane. */
 async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out: string, row: CaseRow, centre: Vector): Promise<void> {
@@ -173,10 +175,9 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
   }
   const { supports, scan, index } = review;
   const issues = supports.verdict?.issues ?? [];
-  const islands = supports.islands?.status === 'ok' ? supports.islands.islands : [];
   // The host's denture review layers (faces, edges, box, middle plane), our placed tips and pillars, and the owner's
   // contacts, -sup supports and area comparison: all one GLB under the review frame.
-  const detail = dentureReviewDetail(file, mesh, centre, review.frame, review.placed, reviewProfileId('denture'), scan.rows[index]!.tiltDeg, review.leftOutTips);
+  const detail = dentureReviewDetail(file, mesh, centre, review.frame, review.placed, reviewProfileId('denture'), scan.rows[index]!.tiltDeg, review.leftOutTips, { candidateIds: review.candidateIds, leftOut: review.leftOut });
   const allLayers = [...dentureLayers(mesh, review), ...detail.layers];
   const glb = Buffer.from(await orientationGlb(allLayers, review.frame));
   writeFileSync(join(out, `${name}.glb`), glb);
@@ -199,7 +200,9 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
   Object.assign(row, {
     result: 'built', reason: supports.verdict?.reason ?? (supports.islands?.status === 'inconclusive' ? `islands: ${supports.islands.reason}` : ''),
     verdict: supports.verdict?.status ?? 'none', crossings: issues.filter((i) => i.blocked).length, uncertain: issues.filter((i) => !i.blocked).length,
-    islandsUnresolved: islands.filter((i) => i.status === 'unresolved').length, islandsOutsideArea: islands.filter((i) => i.status === 'outside-policy').length,
+    // Denture: the engine's island report (settled with the build) is the one source of the count, the marks and the facts row.
+    islandsUnresolved: detail.islands?.unresolved.length ?? 0, islandsOutsideArea: detail.islands?.outsideAllowed ?? 0, islandsResolved: detail.islands?.resolved.length ?? 0,
+    unresolvedIslands: detail.unresolvedIslands,
     tipsPlaced: review.placement.points.length - supports.dropped.length, tipsLeftOut: supports.dropped.length, glb: `${name}.glb`,
     printAngleDeg: Number(tiltLabel(scan.rows[index]!.tiltDeg)), angleReason: scan.reason, angleConfirmed: false,
     stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none',

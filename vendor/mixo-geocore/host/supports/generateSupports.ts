@@ -35,6 +35,10 @@ export interface PolicyHandle {
   ring_count(): number;
   reproduced(): boolean;
   profile_id(): string;
+  /** A denture policy's islands, `ISLAND_STRIDE` numbers each (`dental/dentureIslands.ts` decodes them); empty for any other policy. */
+  island_facts(): Float64Array;
+  /** Why a denture policy could not tell its islands; empty when it could. */
+  islands_note(): string;
   free(): void;
 }
 

@@ -68,6 +68,8 @@
   --layer-no-support: #c0392b;
   --layer-low-outside: #ff7f11;
   --layer-low-unsupported: #8e44ad;
+  --layer-island-resolved: var(--success);
+  --layer-island-unresolved: var(--warning);
   --layer-our-tips: #f1c40f;
   --layer-unsupportable-tips: #1f1f1f;
   --layer-tips-left-out: #ff1744;

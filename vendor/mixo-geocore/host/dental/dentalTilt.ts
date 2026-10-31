@@ -32,12 +32,28 @@ export interface TiltRow {
 /** Why the pick was made: a robust tilt exists, only a passing one, or no tilt passes. */
 export type TiltPickReason = 'robust' | 'passing' | 'failing';
 
+/** A lowest point no support can reach at the picked tilt (denture scan): where it is (mesh frame, mm) and why. */
+export interface BoxedPoint {
+  point: Vector;
+  reason: string;
+}
+
+/**
+ * What the denture scan's boxed-in check found (Rust `dental::denture::tilt_reach`): per row, the number of lowest points no
+ * support can reach at that tilt, and the picked row's points so the review can mark them. Both empty for the aligner scan
+ * and when the rule `boxedInTiltWeight` is 0.
+ */
+export interface BoxedReport {
+  counts: number[];
+  picked: BoxedPoint[];
+}
+
 /**
  * The decoded scan: rows, `order` (row indices in pick order, the pick first), the pick reason and
  * `band` (first and last row index of the robust run containing the pick), or why it failed.
  */
 export type TiltScan =
-  | { kind: 'scan'; startDeg: number; rows: TiltRow[]; order: number[]; reason: TiltPickReason; band: [number, number] | undefined }
+  | { kind: 'scan'; startDeg: number; rows: TiltRow[]; order: number[]; reason: TiltPickReason; band: [number, number] | undefined; boxed: BoxedReport }
   | { kind: 'failed'; reason: string };
 
 /** The host's current support settings the rules read. */
@@ -46,6 +62,8 @@ export interface TiltScanSettings {
   pillarDiameterMm: number;
   liftMm: number;
   braced: boolean;
+  /** The support-rule overrides (`packRules`, `RULE_NAMES` order) for the denture scan; absent keeps the engine's defaults. */
+  rules?: Float64Array;
 }
 
 // Row layout (f64 x ROW): 0 tilt deg, 1 step, 2 failed-rule bits (TILT_RULES order), 3 fitting-side
@@ -53,6 +71,15 @@ export interface TiltScanSettings {
 // 9-11 rotation (Euler XYZ radians). `failing()` holds 4 strings per row, one per rule bit.
 const ROW = 12;
 const REASONS: readonly TiltPickReason[] = ['robust', 'passing', 'failing'];
+
+function decodeBoxed(result: DentalTiltScanResultLike): BoxedReport {
+  const counts = result.boxed_counts ? [...result.boxed_counts()] : [];
+  const flat = result.boxed_points ? result.boxed_points() : new Float64Array();
+  const reasons = result.boxed_reasons ? result.boxed_reasons() : [];
+  const picked: BoxedPoint[] = [];
+  for (let at = 0; at * 3 < flat.length; at++) picked.push({ point: [flat[at * 3]!, flat[at * 3 + 1]!, flat[at * 3 + 2]!], reason: reasons[at] ?? '' });
+  return { counts, picked };
+}
 
 /** Decodes and frees a `dental_tilt_scan` result. */
 export function decodeTiltScan(result: DentalTiltScanResultLike): TiltScan {
@@ -72,7 +99,7 @@ export function decodeTiltScan(result: DentalTiltScanResultLike): TiltScan {
     }
     const band = result.band();
     return { kind: 'scan', startDeg: result.start_deg(), rows, order: [...result.order()], reason: REASONS[result.pick_reason()] ?? 'failing',
-      band: band.length === 2 ? [band[0]!, band[1]!] : undefined };
+      band: band.length === 2 ? [band[0]!, band[1]!] : undefined, boxed: decodeBoxed(result) };
   } finally {
     result.free();
   }

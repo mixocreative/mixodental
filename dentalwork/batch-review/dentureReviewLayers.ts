@@ -25,6 +25,7 @@ import { parseStl } from '../../scripts/node-engine';
 import { distancesToSurface, readGlbWorldMeshes } from './glbWorld';
 import type { ReviewLayer } from './orientationEvidenceGlb';
 import { LAYER_COLOURS as C } from './layerColours';
+import { describeUnresolved, islandPoints, summariseIslands, type IslandSettle, type IslandSummary } from './islandReport';
 
 export const CONTACTS_FORMAT = 'mixo-sup-contacts/1';
 /** The largest median distance (mm) from an owner contact to the displayed scan that the mapping may have. */
@@ -69,6 +70,10 @@ export interface DentureDetail {
   unsupportableTips: number;
   /** Left-out tips per engine reason, e.g. 'leave-out:pillar 3 / build-omission 1' ('' when none). */
   tipsLeftOutReasons: string;
+  /** The engine's island report after the build (`settleIslands`), or undefined when the review or its island report is not available. */
+  islands: IslandSummary | undefined;
+  /** Facts row: the unresolved islands with height, size and reason ('none', or why the report is missing). */
+  unresolvedIslands: string;
 }
 
 /** The up decision as one plain line (the rim's, from up_decision). */
@@ -328,8 +333,9 @@ function rayArrows(points: Vector[], direction: Vector, length: number): Array<[
  * our placed tips in unit-local coordinates (the contacts the supports were built from). `tiltDeg` is the
  * print angle the case chose: the review is run at that tilt.
  */
-export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Vector, frame: JobTransform, placed: PlacedTip[], profile: string, tiltDeg: number, leftOutTips: LeftOutTip[] = []): DentureDetail {
+export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Vector, frame: JobTransform, placed: PlacedTip[], profile: string, tiltDeg: number, leftOutTips: LeftOutTip[] = [], settle?: IslandSettle): DentureDetail {
   const review = reviewDenture(mesh, profile, tiltDeg);
+  const islands = review && !review.islandsNote ? summariseIslands(review.islands, settle) : undefined;
   const layers: ReviewLayer[] = [];
   const sign = outwardSign(mesh);
   if (review) {
@@ -406,6 +412,11 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     };
     markers(review.lowsOutside.map((low) => low.position), 'MARK low point outside the allowed area', C.lowOutside);
     markers(review.lowsUnreached.map((low) => low.position), 'MARK low point with no support (inside the allowed area)', C.lowUnsupported);
+    // Islands (engine report, after the build): one marker at each island's lowest point; the same list the count and the facts row use.
+    if (islands) {
+      markers(islandPoints(islands.resolved), 'ISLAND resolved (a built tip serves the lowest point)', C.islandResolved);
+      markers(islandPoints(islands.unresolved), 'ISLAND NOT resolved (no built tip serves the lowest point)', C.islandUnresolved);
+    }
     // Step 7: tips on an overhang with no free path to the plate: black cones, not built.
     if (review.unsupportable.length > 0) {
       layers.push({ name: 'Tips that cannot reach the plate', color: C.unsupportableTips, positions: coneTriangles(review.unsupportable, 1.5, 0.35), indices: new Uint32Array(0) });
@@ -483,6 +494,8 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     tipsBySource,
     unsupportableTips: review?.unsupportable.length ?? 0,
     tipsLeftOutReasons: [...byReason].map(([reason, count]) => `${reason} ${count}`).join(' / '),
+    islands,
+    unresolvedIslands: islands ? describeUnresolved(islands.unresolved) : review?.islandsNote ? `island report not available: ${review.islandsNote}` : 'island report not available',
   };
 }
 

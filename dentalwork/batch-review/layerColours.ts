@@ -10,6 +10,9 @@ export const LAYER_COLOURS = {
   /** Low points: outside the allowed area (orange) and inside it but with no support (purple). */
   lowOutside: 0xff7f11,
   lowUnsupported: 0x8e44ad,
+  /** Engine islands (the lowest point of a region that starts mid-air): served by a built tip (calm, --success) and not served (warning, --warning; not the left-out red, purple or orange). */
+  islandResolved: 0x4a6b3a,
+  islandUnresolved: 0xb07a12,
   /** Our tips (yellow cones, the default for a tip stream with no colour of its own); tips that cannot reach the plate (black cones, not built). */
   ourTips: 0xf1c40f,
   unsupportableTips: 0x1f1f1f,

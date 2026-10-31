@@ -470,6 +470,36 @@ export class DentalTiltScanResult {
         return v1;
     }
     /**
+     * Denture scan: per row, how many lowest points no support can reach at that tilt; empty for the aligner scan or with the rule off.
+     * @returns {Uint32Array}
+     */
+    boxed_counts() {
+        const ret = wasm.dentaltiltscanresult_boxed_counts(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Denture scan: the picked row's boxed-in lowest points, x y z each (mesh frame, mm).
+     * @returns {Float64Array}
+     */
+    boxed_points() {
+        const ret = wasm.dentaltiltscanresult_boxed_points(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Denture scan: why each of `boxed_points()` is boxed in, same order.
+     * @returns {string[]}
+     */
+    boxed_reasons() {
+        const ret = wasm.dentaltiltscanresult_boxed_reasons(this.__wbg_ptr);
+        var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * Per row and rule (4 per row): the first failing vertex id (resin trap) or tip id, or "".
      * @returns {string[]}
      */
@@ -811,6 +841,32 @@ export class DentureReviewResult {
         return v1;
     }
     /**
+     * The islands of the reviewed pose, 9 numbers each (layout as `PolicyHandle::island_facts`; the serving tip index counts into `tips`). Empty with the rule `islandTips` off.
+     * @returns {Float64Array}
+     */
+    islands() {
+        const ret = wasm.denturereviewresult_islands(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Why the islands could not be told; empty when they could.
+     * @returns {string}
+     */
+    islands_note() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.denturereviewresult_islands_note(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
      * Low points that got a tip (xyz each).
      * @returns {Float64Array}
      */
@@ -821,7 +877,7 @@ export class DentureReviewResult {
         return v1;
     }
     /**
-     * Per low tip: 0 allowed, 1 outside the no-support zone, 2 within lowRimBandMm of the rim.
+     * Per low tip: 0 allowed, 1 outside the no-support zone, 2 within lowRimBandMm of the rim, 3 anywhere (lowOutsideAllowed 2).
      * @returns {Uint8Array}
      */
     low_tip_reasons() {
@@ -1009,7 +1065,7 @@ export class DentureReviewResult {
         return v1;
     }
     /**
-     * Generated tips, `x y z nx ny nz stream` each (0 low, 1 area, 4 rim, 5 hole).
+     * Generated tips, `x y z nx ny nz stream` each (0 low, 1 area, 4 rim, 5 hole, 6 island).
      * @returns {Float64Array}
      */
     tips() {
@@ -1760,6 +1816,34 @@ export class GeometrySession {
         return PolicyHandle.__wrap(ret[0]);
     }
     /**
+     * [`denture_policy`] with the host's rule overrides (`rules`, one entry per name of `rule_names()`; a missing or NaN entry keeps
+     * Rust's default). The rules `islandTips`, `islandMinAreaMm2`, `lowOutsideAllowed`, `islandReuseMm` and `islandSlabMm` apply: an
+     * island tip (candidate source "island") stands at the lowest vertex of each island of the pose, and the handle's
+     * `island_facts()` reports every island.
+     * @param {number} model
+     * @param {string} profile
+     * @param {Float64Array} frame
+     * @param {boolean} brace
+     * @param {Float64Array} manual_positions
+     * @param {Float64Array} rules
+     * @returns {PolicyHandle}
+     */
+    denture_policy_ruled(model, profile, frame, brace, manual_positions, rules) {
+        const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF64ToWasm0(frame, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passArrayF64ToWasm0(manual_positions, wasm.__wbindgen_malloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_denture_policy_ruled(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, brace, ptr2, len2, ptr3, len3);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return PolicyHandle.__wrap(ret[0]);
+    }
+    /**
      * The review layers of the owner denture rules on a loaded mesh (independent of its import orientation) at the print tilt `tilt_deg` (0 = canonical).
      * @param {number} model
      * @param {string} profile
@@ -1776,9 +1860,29 @@ export class GeometrySession {
         return ret[0] === 0 ? undefined : DentureReviewResult.__wrap(ret[0]);
     }
     /**
+     * [`denture_review`] with the host's rule overrides (`rules`, `rule_names()` order; empty keeps the defaults): the island tips and the low-tip admission (`lowOutsideAllowed`) apply.
+     * @param {number} model
+     * @param {string} profile
+     * @param {number} tilt_deg
+     * @param {Float64Array} rules
+     * @returns {DentureReviewResult | undefined}
+     */
+    denture_review_ruled(model, profile, tilt_deg, rules) {
+        const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_denture_review_ruled(this.__wbg_ptr, model, ptr0, len0, tilt_deg, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return ret[0] === 0 ? undefined : DentureReviewResult.__wrap(ret[0]);
+    }
+    /**
      * Print-angle search of a denture from upright over the profile's range, with the host's
      * current support settings; rows as `dental_tilt_scan` (fitting-side tips and rim gap are 0).
-     * `on_tilt(done, total)`, when given, is called after each scanned tilt.
+     * `on_tilt(done, total)`, when given, is called after each scanned tilt. The default support
+     * rules apply (`denture_tilt_scan_ruled` takes the host's).
      * @param {number} model
      * @param {string} profile
      * @param {number} neck_length_mm
@@ -1792,6 +1896,32 @@ export class GeometrySession {
         const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         const ret = wasm.geometrysession_denture_tilt_scan(this.__wbg_ptr, model, ptr0, len0, neck_length_mm, pillar_diameter_mm, lift_mm, braced, isLikeNone(on_tilt) ? 0 : addToExternrefTable0(on_tilt));
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return DentalTiltScanResult.__wrap(ret[0]);
+    }
+    /**
+     * [`denture_tilt_scan`] with the host's support-rule overrides (`rules`, one entry per name of `rule_names()`; a missing or NaN
+     * entry keeps Rust's default). The rule `boxedInTiltWeight` (default 1) makes the pick prefer the tilt with the fewest lowest
+     * points no support can reach; 0 turns that off. The result then also carries `boxed_counts()` (per row), `boxed_points()` and
+     * `boxed_reasons()` (the picked row's boxed-in points).
+     * @param {number} model
+     * @param {string} profile
+     * @param {number} neck_length_mm
+     * @param {number} pillar_diameter_mm
+     * @param {number} lift_mm
+     * @param {boolean} braced
+     * @param {Float64Array} rules
+     * @param {Function | null} [on_tilt]
+     * @returns {DentalTiltScanResult}
+     */
+    denture_tilt_scan_ruled(model, profile, neck_length_mm, pillar_diameter_mm, lift_mm, braced, rules, on_tilt) {
+        const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_denture_tilt_scan_ruled(this.__wbg_ptr, model, ptr0, len0, neck_length_mm, pillar_diameter_mm, lift_mm, braced, ptr1, len1, isLikeNone(on_tilt) ? 0 : addToExternrefTable0(on_tilt));
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -2592,6 +2722,32 @@ export class PolicyHandle {
         var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
         return v1;
+    }
+    /**
+     * A denture policy's islands, 9 numbers each (x y z, height above the pose's lowest vertex mm, footprint mm2, distance to the nearest planned tip mm or -1, state 0 tipped / 1 served by a tip nearby / 2 below min size / 3 in no-support zone / 4 outside allowed area / 5 no usable face, index of the serving candidate or -1, face or -1). Empty for any other policy or with the rule `islandTips` off.
+     * @returns {Float64Array}
+     */
+    island_facts() {
+        const ret = wasm.policyhandle_island_facts(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Why a denture policy could not tell its islands (the surface is not a clean manifold...); empty when it could.
+     * @returns {string}
+     */
+    islands_note() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.policyhandle_islands_note(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
     }
     /**
      * @returns {boolean}

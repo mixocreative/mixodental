@@ -1,6 +1,9 @@
 import type { TriangleMesh } from '../core/analysis/types';
 import type { Vector } from '../core/vec3';
+import type { GenerateRules } from '../supports/generateRules';
+import { packRules } from '../supports/generateRules';
 import { withDentalMesh, type DentureReviewResultLike } from './dentalEngine';
+import { decodeIslands, type DentureIsland } from './dentureIslands';
 
 /*
  * Review layers of the owner denture rules (Rust `dental::denture::review` through
@@ -10,8 +13,8 @@ import { withDentalMesh, type DentureReviewResultLike } from './dentalEngine';
  */
 
 /** Stream codes of a tip's `stream`. */
-/** Source tags: `low` low point, `area` down-facing area grid, `rim` along the rim, `hole` around a hole loop (`bar`, `light` are the old streams). */
-export const TIP_STREAM = ['low', 'area', 'bar', 'light', 'rim', 'hole'] as const;
+/** Source tags: `low` low point, `area` down-facing area grid, `rim` along the rim, `hole` around a hole loop, `island` the lowest vertex of an island (`bar`, `light` are the old streams). */
+export const TIP_STREAM = ['low', 'area', 'bar', 'light', 'rim', 'hole', 'island'] as const;
 
 /** One line segment. */
 export type Segment = [Vector, Vector];
@@ -39,12 +42,16 @@ export interface DentureReview {
   unsupportable: { position: Vector; normal: Vector; stream: (typeof TIP_STREAM)[number]; face: number }[];
   /** Low points after the tilt outside the allowed area (left unsupported), with the face each sits on. */
   lowsOutside: { position: Vector; face: number }[];
-  /** Lowest points that got a tip and the clause that admitted each (`lowTipReason`): in the allowed area, outside the no-support zone, or within profile `lowRimBandMm` of the rim. A low point in the no-support zone and farther from the rim gets none and stays in `lowsOutside`. */
-  lowTips: { position: Vector; lowTipReason: 'allowed' | 'outsideNoSupport' | 'rimBand' }[];
+  /** Lowest points that got a tip and the clause that admitted each (`lowTipReason`): in the allowed area, outside the no-support zone, or within profile `lowRimBandMm` of the rim; `anywhere` only under rule `lowOutsideAllowed` 2 (even in the no-support zone). Under the default rule a low point in the no-support zone and farther from the rim gets none and stays in `lowsOutside`. */
+  lowTips: { position: Vector; lowTipReason: 'allowed' | 'outsideNoSupport' | 'rimBand' | 'anywhere' }[];
   /** Allowed low points no tip reaches. */
   lowsUnreached: { position: Vector; face: number }[];
   /** Candidates released because their face is not an overhang for the plate normal. */
   released: number;
+  /** The islands of the reviewed pose (regions that start mid-air) with the tip that serves each or the reason it has none; `tipIndex` indexes `tips`. Empty with rule `islandTips` off. */
+  islands: DentureIsland[];
+  /** Why the islands could not be told (the surface is not a clean manifold...); empty when they could. */
+  islandsNote: string;
   /** Rim plane (least squares through the rim loop points, normal to the top), absent without a rim. */
   rimPlane?: { point: Vector; normal: Vector };
   /** Symmetry plane: the upright plane that splits the U left/right (normal = the left-right axis). */
@@ -160,7 +167,7 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
       lowTips: (() => {
         const flat = result.low_tip_points();
         const reasons = result.low_tip_reasons();
-        return Array.from(reasons, (reason, k) => ({ position: triple(flat, k * 3), lowTipReason: reason === 0 ? 'allowed' as const : reason === 1 ? 'outsideNoSupport' as const : 'rimBand' as const }));
+        return Array.from(reasons, (reason, k) => ({ position: triple(flat, k * 3), lowTipReason: reason === 0 ? 'allowed' as const : reason === 1 ? 'outsideNoSupport' as const : reason === 2 ? 'rimBand' as const : 'anywhere' as const }));
       })(),
       lowsUnreached: lows(result.lows_unreached(), result.lows_unreached_faces()),
       downMask: result.down_mask(),
@@ -169,6 +176,8 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
         return Array.from({ length: u.length / 7 }, (_, k) => ({ position: triple(u, k * 7), normal: triple(u, k * 7 + 3), stream: TIP_STREAM[u[k * 7 + 6]!]!, face: -1 }));
       })(),
       released: result.released(),
+      islands: decodeIslands(result.islands()),
+      islandsNote: result.islands_note(),
       rimPlane: rimPlane.length === 6 ? { point: triple(rimPlane, 0), normal: triple(rimPlane, 3) } : undefined,
       symmetryPlane: { point: triple(symmetry, 0), normal: triple(symmetry, 3) },
       up: triple(result.up(), 0),
@@ -180,10 +189,10 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
   }
 }
 
-/** The review of `mesh` (unit-local) for the denture type `profile`, or `undefined` for a mesh too small to have a box. */
-export function reviewDenture(mesh: TriangleMesh, profile: string, tiltDeg = 0): DentureReview | undefined {
+/** The review of `mesh` (unit-local) for the denture type `profile`, or `undefined` for a mesh too small to have a box. `rules` (absent: the engine's defaults) are the planner rules the review reads (island tips, `lowOutsideAllowed`). */
+export function reviewDenture(mesh: TriangleMesh, profile: string, tiltDeg = 0, rules?: GenerateRules): DentureReview | undefined {
   return withDentalMesh(mesh, (session, model) => {
-    const result = session.denture_review(model, profile, tiltDeg);
+    const result = session.denture_review_ruled(model, profile, tiltDeg, packRules(rules));
     return result ? decodeDentureReview(result) : undefined;
   });
 }

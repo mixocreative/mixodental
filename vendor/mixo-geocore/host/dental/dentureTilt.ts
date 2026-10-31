@@ -7,12 +7,15 @@ import type { TriangleMesh } from '../core/analysis/types';
  * profile's range, leaning the teeth side up by the tilt, judged by the crossing and slenderness
  * rules and scored by the overhang area. The result is the aligner scan's shape (`TiltScan`), so
  * the decoder is shared; `fittingSideTips` and `largestGapMm` are always 0 for a denture, the
- * rules `resin-trap` and `rim-gap` never fail, and `startDeg` is 0 (upright).
+ * rules `resin-trap` and `rim-gap` never fail, and `startDeg` is 0 (upright). Among tilts that pass
+ * the rules the pick prefers the fewest lowest points no support can reach (rule `boxedInTiltWeight`,
+ * on by default; `settings.rules` overrides it); `boxed` on the result holds the counts per tilt and
+ * the picked tilt's boxed-in points.
  */
 
 /** Scans `mesh` (unit-local) for the denture type `profile`; `onTilt(done, total)` after each tilt. */
 export function scanDentureTilts(mesh: TriangleMesh, profile: string, settings: TiltScanSettings,
   onTilt?: (done: number, total: number) => void): TiltScan {
-  return withDentalMesh(mesh, (session, model) => decodeTiltScan(session.denture_tilt_scan(model, profile,
-    settings.neckLengthMm, settings.pillarDiameterMm, settings.liftMm, settings.braced, onTilt)));
+  return withDentalMesh(mesh, (session, model) => decodeTiltScan(session.denture_tilt_scan_ruled(model, profile,
+    settings.neckLengthMm, settings.pillarDiameterMm, settings.liftMm, settings.braced, settings.rules ?? new Float64Array(), onTilt)));
 }

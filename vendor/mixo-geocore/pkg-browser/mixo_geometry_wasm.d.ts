@@ -130,6 +130,18 @@ export class DentalTiltScanResult {
      */
     band(): Uint32Array;
     /**
+     * Denture scan: per row, how many lowest points no support can reach at that tilt; empty for the aligner scan or with the rule off.
+     */
+    boxed_counts(): Uint32Array;
+    /**
+     * Denture scan: the picked row's boxed-in lowest points, x y z each (mesh frame, mm).
+     */
+    boxed_points(): Float64Array;
+    /**
+     * Denture scan: why each of `boxed_points()` is boxed in, same order.
+     */
+    boxed_reasons(): string[];
+    /**
      * Per row and rule (4 per row): the first failing vertex id (resin trap) or tip id, or "".
      */
     failing(): string[];
@@ -259,11 +271,19 @@ export class DentureReviewResult {
      */
     hole_sizes(): Uint32Array;
     /**
+     * The islands of the reviewed pose, 9 numbers each (layout as `PolicyHandle::island_facts`; the serving tip index counts into `tips`). Empty with the rule `islandTips` off.
+     */
+    islands(): Float64Array;
+    /**
+     * Why the islands could not be told; empty when they could.
+     */
+    islands_note(): string;
+    /**
      * Low points that got a tip (xyz each).
      */
     low_tip_points(): Float64Array;
     /**
-     * Per low tip: 0 allowed, 1 outside the no-support zone, 2 within lowRimBandMm of the rim.
+     * Per low tip: 0 allowed, 1 outside the no-support zone, 2 within lowRimBandMm of the rim, 3 anywhere (lowOutsideAllowed 2).
      */
     low_tip_reasons(): Uint8Array;
     /**
@@ -339,7 +359,7 @@ export class DentureReviewResult {
      */
     tip_faces(): Uint32Array;
     /**
-     * Generated tips, `x y z nx ny nz stream` each (0 low, 1 area, 4 rim, 5 hole).
+     * Generated tips, `x y z nx ny nz stream` each (0 low, 1 area, 4 rim, 5 hole, 6 island).
      */
     tips(): Float64Array;
     /**
@@ -531,15 +551,34 @@ export class GeometrySession {
      */
     denture_policy(model: number, profile: string, frame: Float64Array, brace: boolean, manual_positions: Float64Array): PolicyHandle;
     /**
+     * [`denture_policy`] with the host's rule overrides (`rules`, one entry per name of `rule_names()`; a missing or NaN entry keeps
+     * Rust's default). The rules `islandTips`, `islandMinAreaMm2`, `lowOutsideAllowed`, `islandReuseMm` and `islandSlabMm` apply: an
+     * island tip (candidate source "island") stands at the lowest vertex of each island of the pose, and the handle's
+     * `island_facts()` reports every island.
+     */
+    denture_policy_ruled(model: number, profile: string, frame: Float64Array, brace: boolean, manual_positions: Float64Array, rules: Float64Array): PolicyHandle;
+    /**
      * The review layers of the owner denture rules on a loaded mesh (independent of its import orientation) at the print tilt `tilt_deg` (0 = canonical).
      */
     denture_review(model: number, profile: string, tilt_deg: number): DentureReviewResult | undefined;
     /**
+     * [`denture_review`] with the host's rule overrides (`rules`, `rule_names()` order; empty keeps the defaults): the island tips and the low-tip admission (`lowOutsideAllowed`) apply.
+     */
+    denture_review_ruled(model: number, profile: string, tilt_deg: number, rules: Float64Array): DentureReviewResult | undefined;
+    /**
      * Print-angle search of a denture from upright over the profile's range, with the host's
      * current support settings; rows as `dental_tilt_scan` (fitting-side tips and rim gap are 0).
-     * `on_tilt(done, total)`, when given, is called after each scanned tilt.
+     * `on_tilt(done, total)`, when given, is called after each scanned tilt. The default support
+     * rules apply (`denture_tilt_scan_ruled` takes the host's).
      */
     denture_tilt_scan(model: number, profile: string, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, on_tilt?: Function | null): DentalTiltScanResult;
+    /**
+     * [`denture_tilt_scan`] with the host's support-rule overrides (`rules`, one entry per name of `rule_names()`; a missing or NaN
+     * entry keeps Rust's default). The rule `boxedInTiltWeight` (default 1) makes the pick prefer the tilt with the fewest lowest
+     * points no support can reach; 0 turns that off. The result then also carries `boxed_counts()` (per row), `boxed_points()` and
+     * `boxed_reasons()` (the picked row's boxed-in points).
+     */
+    denture_tilt_scan_ruled(model: number, profile: string, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, rules: Float64Array, on_tilt?: Function | null): DentalTiltScanResult;
     /**
      * Review layers of a loaded aligner: the contact strip, the contours and, when given, the
      * diagnostic strips (`bands`: four masks of one byte per face, or empty), the sampled
@@ -727,6 +766,14 @@ export class PolicyHandle {
      * Point xyz then normal xyz per candidate (the frame the policy was made in).
      */
     candidate_points(): Float64Array;
+    /**
+     * A denture policy's islands, 9 numbers each (x y z, height above the pose's lowest vertex mm, footprint mm2, distance to the nearest planned tip mm or -1, state 0 tipped / 1 served by a tip nearby / 2 below min size / 3 in no-support zone / 4 outside allowed area / 5 no usable face, index of the serving candidate or -1, face or -1). Empty for any other policy or with the rule `islandTips` off.
+     */
+    island_facts(): Float64Array;
+    /**
+     * Why a denture policy could not tell its islands (the surface is not a clean manifold...); empty when it could.
+     */
+    islands_note(): string;
     islands_outside_permitted(): boolean;
     /**
      * 1 when secondary landings are limited to the permitted faces.
@@ -989,6 +1036,9 @@ export interface InitOutput {
     readonly dentalregionresult_take_outer_edges: (a: number) => [number, number];
     readonly dentalregionresult_take_outer_ridge_edges: (a: number) => [number, number];
     readonly dentaltiltscanresult_band: (a: number) => [number, number];
+    readonly dentaltiltscanresult_boxed_counts: (a: number) => [number, number];
+    readonly dentaltiltscanresult_boxed_points: (a: number) => [number, number];
+    readonly dentaltiltscanresult_boxed_reasons: (a: number) => [number, number];
     readonly dentaltiltscanresult_failing: (a: number) => [number, number];
     readonly dentaltiltscanresult_ok: (a: number) => number;
     readonly dentaltiltscanresult_order: (a: number) => [number, number];
@@ -1017,6 +1067,8 @@ export interface InitOutput {
     readonly denturereviewresult_hole_info: (a: number) => [number, number];
     readonly denturereviewresult_hole_outlines: (a: number) => [number, number];
     readonly denturereviewresult_hole_sizes: (a: number) => [number, number];
+    readonly denturereviewresult_islands: (a: number) => [number, number];
+    readonly denturereviewresult_islands_note: (a: number) => [number, number];
     readonly denturereviewresult_low_tip_points: (a: number) => [number, number];
     readonly denturereviewresult_low_tip_reasons: (a: number) => [number, number];
     readonly denturereviewresult_lows_outside: (a: number) => [number, number];
@@ -1094,8 +1146,11 @@ export interface InitOutput {
     readonly geometrysession_dental_tilt_scan: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number];
     readonly geometrysession_denture_compare_areas: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number];
     readonly geometrysession_denture_policy: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number];
+    readonly geometrysession_denture_policy_ruled: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => [number, number, number];
     readonly geometrysession_denture_review: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
+    readonly geometrysession_denture_review_ruled: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number];
     readonly geometrysession_denture_tilt_scan: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number];
+    readonly geometrysession_denture_tilt_scan_ruled: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => [number, number, number];
     readonly geometrysession_diagnose: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number, y: number) => [number, number, number];
     readonly geometrysession_diagnose_orientation: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly geometrysession_generate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number) => [number, number, number];
@@ -1140,6 +1195,8 @@ export interface InitOutput {
     readonly policyhandle_candidate_faces: (a: number) => [number, number];
     readonly policyhandle_candidate_ids: (a: number) => [number, number];
     readonly policyhandle_candidate_points: (a: number) => [number, number];
+    readonly policyhandle_island_facts: (a: number) => [number, number];
+    readonly policyhandle_islands_note: (a: number) => [number, number];
     readonly policyhandle_islands_outside_permitted: (a: number) => number;
     readonly policyhandle_landing_rule: (a: number) => number;
     readonly policyhandle_permitted_faces: (a: number) => [number, number];

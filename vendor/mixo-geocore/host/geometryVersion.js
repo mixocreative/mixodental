@@ -4,6 +4,8 @@
 // up/down cross-check, the rim scalars its front (22 values), and `diagnose_orientation` exists; now
 // 14: the denture profile - `orient_denture`, `denture_tilt_scan`, `denture_policy`, `denture_profile_ids`).
 // 19: denture review rim loop, hole loops + band, up decision; tip source tags low/area/rim/hole.
+// 28: denture island tips: `denture_policy_ruled` / `denture_review_ruled` take `rules` (rule names islandTips, islandMinAreaMm2, lowOutsideAllowed, islandReuseMm, islandSlabMm: 50 rule names); tip source `island` (stream 6); `PolicyHandle.island_facts()` / `islands_note()` and the review's `islands()` / `islands_note()`; low-tip reason 3 (lowOutsideAllowed 2).
+// 27: denture tilt scan prefers tilts whose lowest points a support can reach: `denture_tilt_scan_ruled` (takes `rules`), result `boxed_counts()` / `boxed_points()` / `boxed_reasons()`; rule `boxedInTiltWeight` (45 rule names).
 // 26: `generate` takes `rules` (planner rule overrides, Float64Array in `rule_names()` order) after `limits`; `rule_names()`, `reroute_support`, `pillar_reach` exist.
 // 25: `generate` takes `limits` (time-rule overrides, Float64Array) in place of `timeout_ms`; the result has `stop_reason()`.
 // 24: denture rim band (profile placement.rimBandMm, review rim_band_mask): overhang faces within 2 mm of the rim line are support-allowed.
@@ -13,7 +15,7 @@
 // 20: denture review rim = low points joined over the mesh (rim_loops/rim_sizes/rim_closed/rim_edges/rim_info), holes by an axis ray grid (hole_outlines/hole_sizes/hole_info/hole_band_mask); rim_loop, rim_bridged, hole_loops, hole_edges removed.
 
 /** Must equal the Rust `engine_version()`; both change together on any ABI change. */
-export const HOST_GEOMETRY_VERSION = 26;
+export const HOST_GEOMETRY_VERSION = 28;
 
 /** Thrown when the loaded engine's `engine_version()` is not `HOST_GEOMETRY_VERSION` (code 'geometry-version-mismatch'). */
 export class GeometryVersionMismatch extends Error {
