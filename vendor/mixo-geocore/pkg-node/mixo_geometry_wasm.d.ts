@@ -715,7 +715,7 @@ export class GeometrySession {
     pick_pixels(handle: number, clip_to_local: Float64Array, width: number, height: number, pixels: Float64Array, near: number, far: number, side: number): Float64Array;
     /**
      * Where the pillar of that support may stand (`skeleton::edit::pillar_reach`): a grid mask around the
-     * tip, `radius_mm` out at `grid_mm` a cell; `judged` false gives the cheap drop-map answer, true judges
+     * tip, `radius_mm` out at `grid_mm` a cell; `judged` false gives the cheap space-map answer, true judges
      * every cell's support. `take_pieces()` holds [x0, z0, cell, nx, nz, then nx*nz cells as 0/1, row by row].
      */
     pillar_reach(model: number, settings: Float64Array, rules: Float64Array, tip: Float64Array, normal: Float64Array, plate_y: number, radius_mm: number, grid_mm: number, judged: boolean): Reroute;

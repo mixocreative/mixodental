@@ -42,6 +42,10 @@ export interface DenturePlacement {
   downEdgeMaxDeg: number;
   downBandMm: number;
   downPitchMm: number;
+  /** Tip spacing (mm) along the dental rim line and over the rim band; absent inherits `downPitchMm`. */
+  dentalRimPitchMm?: number;
+  /** Tip spacing (mm) over the hole band; absent inherits `downPitchMm`. */
+  holePitchMm?: number;
   /** Overhang faces within this distance (mm along the surface) of the rim line are support-allowed outside the oral cavity area. */
   rimBandMm: number;
   /** A lowest point outside the allowed area still gets a tip outside the no-support zone or within this distance (mm along the surface) of the rim line. */
@@ -91,22 +95,23 @@ const LANGS: readonly Lang[] = ['en', 'ja', 'zh-Hant'];
 const TOP_KEYS = ['id', 'name', 'description', 'card', 'upright', 'pose', 'placement', 'supports', 'stability', 'engine'];
 const UPRIGHT_KEYS: readonly (keyof DentureUpright)[] = ['endBandFraction', 'legsGapMinRatio', 'teethBandFraction', 'teethOffsetMinMm', 'flatnessMax'];
 const POSE_KEYS: readonly (keyof DenturePose)[] = ['tiltRangeDeg', 'tiltStepDeg', 'tiltMarginDeg', 'overhangAngleDeg', 'overhangTieFraction'];
+const PLACEMENT_OPTIONAL = ['dentalRimPitchMm', 'holePitchMm'] as const;
 const PLACEMENT_KEYS: readonly (keyof DenturePlacement)[] = ['tipPitchMm', 'barPitchMultiplier', 'lightPitchMultiplier', 'bottomBandMm', 'barThicknessMaxMm',
   'minimumProminenceMm', 'tipMinFromUpDeg', 'tipMinFromUpBarDeg', 'hardEdgeDeg', 'middleEdgeNearMm', 'middleEdgeMinLengthMm', 'downEdgeMaxDeg', 'downBandMm', 'downPitchMm', 'rimBandMm', 'lowRimBandMm'];
 const SUPPORT_NUMBERS = ['tipBallMm', 'frustumBaseMm', 'frustumHeightMm', 'pillarDiameterMm', 'liftHeightMm', 'biteDepthMm', 'upperDiameterMm', 'minClearanceMm', 'neckMaxShiftMm'] as const;
 const STABILITY_KEYS = ['maxSlendernessUnbraced', 'maxSlendernessBraced'] as const;
 
-function object(value: unknown, keys: readonly string[], where: string): Record<string, unknown> {
+function object(value: unknown, keys: readonly string[], where: string, optional: readonly string[] = []): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new TypeError(`${where} must be an object`);
   const record = value as Record<string, unknown>;
-  for (const key of Object.keys(record)) if (!keys.includes(key)) throw new TypeError(`${where}: unknown key '${key}'`);
+  for (const key of Object.keys(record)) if (!keys.includes(key) && !optional.includes(key)) throw new TypeError(`${where}: unknown key '${key}'`);
   for (const key of keys) if (!(key in record)) throw new TypeError(`${where}: missing key '${key}'`);
   return record;
 }
 
-function numbers<K extends string>(value: unknown, keys: readonly K[], where: string): Record<K, number> {
-  const record = object(value, keys, where);
-  for (const key of keys) if (typeof record[key] !== 'number' || !Number.isFinite(record[key])) throw new TypeError(`${where}.${key} must be a number`);
+function numbers<K extends string>(value: unknown, keys: readonly K[], where: string, optional: readonly string[] = []): Record<K, number> {
+  const record = object(value, keys, where, optional);
+  for (const key of [...keys, ...optional.filter((k) => k in record)]) if (typeof record[key] !== 'number' || !Number.isFinite(record[key])) throw new TypeError(`${where}.${key} must be a number`);
   return record as Record<K, number>;
 }
 
@@ -138,7 +143,7 @@ export function parseDentureProfile(value: unknown, where = 'denture profile'): 
     name: texts(record.name, `${where}.name`), description: texts(record.description, `${where}.description`),
     upright: numbers(record.upright, UPRIGHT_KEYS, `${where}.upright`),
     pose: numbers(record.pose, POSE_KEYS, `${where}.pose`),
-    placement: numbers(record.placement, PLACEMENT_KEYS, `${where}.placement`),
+    placement: numbers(record.placement, PLACEMENT_KEYS, `${where}.placement`, PLACEMENT_OPTIONAL) as DenturePlacement,
     supports: supports(record.supports, `${where}.supports`),
     stability: numbers(record.stability, STABILITY_KEYS, `${where}.stability`),
     engine: { repairBudget: engine.repairBudget },

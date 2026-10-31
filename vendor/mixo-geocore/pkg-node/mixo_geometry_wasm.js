@@ -2554,7 +2554,7 @@ class GeometrySession {
     }
     /**
      * Where the pillar of that support may stand (`skeleton::edit::pillar_reach`): a grid mask around the
-     * tip, `radius_mm` out at `grid_mm` a cell; `judged` false gives the cheap drop-map answer, true judges
+     * tip, `radius_mm` out at `grid_mm` a cell; `judged` false gives the cheap space-map answer, true judges
      * every cell's support. `take_pieces()` holds [x0, z0, cell, nx, nz, then nx*nz cells as 0/1, row by row].
      * @param {number} model
      * @param {Float64Array} settings

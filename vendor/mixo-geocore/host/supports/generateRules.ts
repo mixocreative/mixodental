@@ -48,8 +48,6 @@ export interface GenerateRules {
   outlineBracedOverMm?: number;
   /** Steepest lean from vertical (degrees) of an outline rod or brace. */
   outlineMaxAngleDeg?: number;
-  /** Edge (mm) of a footprint cell; also the pillar spots' pitch. */
-  outlineGridMm?: number;
   /** Extra radius (mm) the rod and brace tests give the tube, so a rod that passes also passes the judge's test of the built column. */
   outlineRodMarginMm?: number;
   /** Centres of two pillars (outline pillars, feet, trunks) are at least this far apart (mm). */
@@ -124,6 +122,10 @@ export interface GenerateRules {
   outlineRodCapMm?: number;
   /** Denture builds only: longest rod (mm, default 8) of the helper stage, a new pillar beside a tip that has no own route, tried before any branch; a rod over outlineBracedOverMm is braced. 0 turns the stage off. */
   helperRodMaxMm?: number;
+  /** Edge (mm) of a cell of the space map (default 0.5): the plan grid every placement question reads; also the outline's pillar-spot pitch. */
+  spaceCellMm?: number;
+  /** Least free border (mm, default 6) the space map keeps around the model's plan bounds. */
+  spaceMarginMm?: number;
 }
 
 /** The override array's layout; mirrors Rust `supports::rules::NAMES` exactly (a test checks it against the wasm's `rule_names()`). */
@@ -131,7 +133,7 @@ export const RULE_NAMES: readonly string[] = [
   'routeMaxBends', 'routeFineDirections', 'routeCoarseDirections', 'routeShiftStepMm', 'routeBranchMaxMm', 'routeJoinBelowTopMm', 'routeJoinBelowTipMm',
   'tipsPerPillar', 'jointGapMm', 'routeDeeperJoins', 'thickOverBranches', 'thickFactor', 'capsuleJudge', 'neckPretest',
   'lowMinTipHeightMm', 'lowMinNodeHeightMm',
-  'outlineRodMaxMm', 'outlineBracedOverMm', 'outlineMaxAngleDeg', 'outlineGridMm', 'outlineRodMarginMm', 'outlinePillarSpacingMm', 'outlineDeeperJoints', 'outlineDeeperBraces',
+  'outlineRodMaxMm', 'outlineBracedOverMm', 'outlineMaxAngleDeg', 'spaceCellMm', 'outlineRodMarginMm', 'outlinePillarSpacingMm', 'outlineDeeperJoints', 'outlineDeeperBraces',
   'capsuleMarginMm',
   'mergeSpacingDiameters', 'mergeMaxAngleDeg', 'mergeRodMaxMm', 'mergePasses', 'mergeDeeperNodes',
   'trunkSupportOverMm', 'trunkSupportOverTips', 'trunkNeckAngleDeg', 'trunkNeckMm', 'trunkSupportBelowJointMm', 'trunkDirections', 'trunkSpacingDiameters', 'trunkDeeperSupport',
@@ -139,6 +141,7 @@ export const RULE_NAMES: readonly string[] = [
   'islandTips', 'islandMinAreaMm2', 'lowOutsideAllowed', 'islandReuseMm', 'islandSlabMm',
   'trunkSecondHelperOverMm', 'trunkSupportMaxFrac', 'trunkBraceStepMm', 'trunkSupportMinMm',
   'branchRodMaxMm', 'outlineRodCapMm', 'helperRodMaxMm',
+  'spaceMarginMm',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */
