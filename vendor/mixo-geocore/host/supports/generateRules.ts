@@ -20,17 +20,17 @@ export interface GenerateRules {
   routeShiftStepMm?: number;
   /** Longest branch (mm), neck end to join: the longest leaning segment; the join braces it. */
   routeBranchMaxMm?: number;
-  /** A branch joins at least this far (mm) under the trunk's pillar top, clear of its bend. Also the merge node and leg attach distance. */
+  /** A branch joins at least this far (mm) under the trunk's pillar top, clear of its bend. Also the merge node distance. */
   routeJoinBelowTopMm?: number;
   /** A branch joins at least this far (mm) under the trunk's own contact, never beside its tip. */
   routeJoinBelowTipMm?: number;
   /** Most tips one pillar carries, its own included. One value for route, outline and merge. */
   tipsPerPillar?: number;
-  /** Joints on one pillar are either one shared node or at least this far apart (mm, along the pillar). One value for route, outline, merge and legs. */
+  /** Joints on one pillar are either one shared node or at least this far apart (mm, along the pillar). One value for route, outline, merge and trunk support. */
   jointGapMm?: number;
   /** Lower joins tried on a trunk (each jointGapMm lower) after the highest the lean limit allows. */
   routeDeeperJoins?: number;
-  /** A trunk carrying more branches than this is built thicker (thickFactor); also the branch count above which a trunk gets a leg. */
+  /** A trunk carrying more branches than this is built thicker (thickFactor). */
   thickOverBranches?: number;
   /** Pillar diameter factor of a trunk carrying more than thickOverBranches branches. */
   thickFactor?: number;
@@ -70,22 +70,22 @@ export interface GenerateRules {
   mergePasses?: number;
   /** Lower merge nodes tried (each jointGapMm lower) when the highest node the lean allows is taken by a joint. */
   mergeDeeperNodes?: number;
-  /** A trunk whose pillar top stands higher than this above the foot top (mm) gets a leg. */
-  legOverHeightMm?: number;
-  /** A trunk carrying more branches than this gets a leg. */
-  legOverBranches?: number;
-  /** Steepest lean from vertical (degrees) of a leg or X-brace. */
-  legMaxAngleDeg?: number;
-  /** Longest leg (mm). */
-  legMaxMm?: number;
-  /** The leg attaches at least this far (mm) under the pillar top, clear of its bend. */
-  legAttachBelowTopMm?: number;
-  /** Directions tried around the trunk for the leg's foot. */
-  legDirections?: number;
-  /** A leg's foot stands at least this far from every other pillar, in pillar diameters (default 3). */
-  legSpacingDiameters?: number;
-  /** Lower leg attach points tried (each jointGapMm lower) when the highest one is taken by a joint. */
-  legDeeperAttach?: number;
+  /** Trunk support (engine 29, replacing the long trunk legs): a trunk gets a helper pillar beside it only when it stands higher than this above the foot top (mm) ... */
+  trunkSupportOverMm?: number;
+  /** ... AND carries more tips than this (its own included, default 3). */
+  trunkSupportOverTips?: number;
+  /** Steepest lean from vertical (degrees) of the helper's neck and braces (default 45). */
+  trunkNeckAngleDeg?: number;
+  /** Free length (mm) of the short thin neck between the helper and the trunk (default 2.5: the helper stands about 2.9 mm from the trunk). */
+  trunkNeckMm?: number;
+  /** The support point on the trunk lies at least this far (mm) under the trunk's lowest joint (default 2). */
+  trunkSupportBelowJointMm?: number;
+  /** Directions tried around the trunk for the helper (the side with the most room first). */
+  trunkDirections?: number;
+  /** The helper stands at least this far from every other pillar, in pillar diameters (default 3). */
+  trunkSpacingDiameters?: number;
+  /** Support points tried: at most this many steps (each jointGapMm) down from the highest allowed, the lowest that works wins (default 6). */
+  trunkDeeperSupport?: number;
   /** Slope of the neck's clearance ramp (mm of gap per mm past the bite patch). */
   neckRampSlope?: number;
   /** The neck gap (mm) a neck keeps from faces it runs along (default 1.0). */
@@ -110,6 +110,20 @@ export interface GenerateRules {
   islandReuseMm?: number;
   /** Thickness (mm, default 0.2) of the lowest slab whose footprint is an island's size. */
   islandSlabMm?: number;
+  /** A helper taller than this (mm, default 25) gets a second helper on the opposite side of the trunk. */
+  trunkSecondHelperOverMm?: number;
+  /** The support point lies at most this fraction of the trunk's height above the foot top (default 2/3) ... */
+  trunkSupportMaxFrac?: number;
+  /** ... and the helper's brace to the trunk comes every this many mm of height (default 8; 0 none). With the truss on the ordinary brace pass braces the helper to its neighbours and this is not used. */
+  trunkBraceStepMm?: number;
+  /** ... and at least this far (mm, default 10) above the foot top, so a helper is a pillar and not a stub. */
+  trunkSupportMinMm?: number;
+  /** Denture builds only: longest branch onto a trunk and longest merge rod (mm, default 8); the smaller of this and routeBranchMaxMm / mergeRodMaxMm applies. A tip whose only trunk is farther is left out, and the reason says the cap. Aligner builds are not capped. */
+  branchRodMaxMm?: number;
+  /** Denture builds only: longest last-resort outline rod (mm, default 15); the smaller of this and outlineRodMaxMm applies. */
+  outlineRodCapMm?: number;
+  /** Denture builds only: longest rod (mm, default 8) of the helper stage, a new pillar beside a tip that has no own route, tried before any branch; a rod over outlineBracedOverMm is braced. 0 turns the stage off. */
+  helperRodMaxMm?: number;
 }
 
 /** The override array's layout; mirrors Rust `supports::rules::NAMES` exactly (a test checks it against the wasm's `rule_names()`). */
@@ -120,9 +134,11 @@ export const RULE_NAMES: readonly string[] = [
   'outlineRodMaxMm', 'outlineBracedOverMm', 'outlineMaxAngleDeg', 'outlineGridMm', 'outlineRodMarginMm', 'outlinePillarSpacingMm', 'outlineDeeperJoints', 'outlineDeeperBraces',
   'capsuleMarginMm',
   'mergeSpacingDiameters', 'mergeMaxAngleDeg', 'mergeRodMaxMm', 'mergePasses', 'mergeDeeperNodes',
-  'legOverHeightMm', 'legOverBranches', 'legMaxAngleDeg', 'legMaxMm', 'legAttachBelowTopMm', 'legDirections', 'legSpacingDiameters', 'legDeeperAttach',
+  'trunkSupportOverMm', 'trunkSupportOverTips', 'trunkNeckAngleDeg', 'trunkNeckMm', 'trunkSupportBelowJointMm', 'trunkDirections', 'trunkSpacingDiameters', 'trunkDeeperSupport',
   'neckRampSlope', 'neckGapMm', 'neckLiftTries', 'neckGapTargetMm', 'tipTimeMs', 'treesForExactContactOnly', 'boxedInTiltWeight',
   'islandTips', 'islandMinAreaMm2', 'lowOutsideAllowed', 'islandReuseMm', 'islandSlabMm',
+  'trunkSecondHelperOverMm', 'trunkSupportMaxFrac', 'trunkBraceStepMm', 'trunkSupportMinMm',
+  'branchRodMaxMm', 'outlineRodCapMm', 'helperRodMaxMm',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */
