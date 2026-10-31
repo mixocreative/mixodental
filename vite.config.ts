@@ -19,10 +19,11 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    setupFiles: ['scripts/test-support/useNodeEngine.ts', 'src/dental/editingMode.ts'],
+    setupFiles: ['scripts/test-support/tolerateRpcAckTimeout.ts', 'scripts/test-support/useNodeEngine.ts', 'src/dental/editingMode.ts'],
     // Heavy aligner fixtures and first WASM engine load exceed the 5 s default under load.
     testTimeout: 60000,
     // Worker threads drop onTaskUpdate RPCs under heavy WASM load; forks do not.
+    // A >60 s CPU-bound test makes vitest's fixed RPC ack time out; see the setup file.
     pool: 'forks',
     // Agent worktrees live under .claude/worktrees; their copies are not this checkout's tests.
     exclude: [...configDefaults.exclude, '.claude/**'],
