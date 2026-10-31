@@ -132,6 +132,8 @@ export interface GeneratedSupportMesh extends TriangleMesh {
   droppedByZones?: string[];
   /** Contacts the build could not support, where each tip stands (plate frame, mm) and why: `build-omission`, `leave-out:pillar`, `leave-out:neck`, `all-manual`, ... (`generate`). */
   leftOut?: { id: string; position: [number, number, number]; reason: string }[];
+  /** Denture builds: tips the last-resort tier placed (`lastResortPlaced` is the length): tier 1 relaxed the outline lean limit, tier 2 also stepped the pillar clearance down; `clearanceMm` is what each was judged and verified at. Absent on other builds. */
+  lastResort?: { id: string; tier: 1 | 2; clearanceMm: number }[];
   /** Exact body-clearance verdict of the final mesh (`generate`); absent on a mesh not built by it. */
   verdict?: SupportVerdict;
   /** Revision of the request this mesh answers (`generate` echoes it); the host drops any other. */

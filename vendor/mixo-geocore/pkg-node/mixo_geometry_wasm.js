@@ -1235,6 +1235,14 @@ class DentureReviewResult {
         return v1;
     }
     /**
+     * Local lows of the dental rim line whose face points up: no tip (rule `rimLowNeedsOverhang`); not "left out".
+     * @returns {number}
+     */
+    rim_lows_facing_up() {
+        const ret = wasm.denturereviewresult_rim_lows_facing_up(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
      * Rim plane: point xyz, unit normal xyz pointing to the top; empty without a rim.
      * @returns {Float64Array}
      */
@@ -1620,6 +1628,36 @@ class Generation {
         const ret = wasm.generation_take_issues(this.__wbg_ptr);
         var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Last-resort tips: the pillar clearance (mm) each was judged and verified at.
+     * @returns {Float64Array}
+     */
+    take_last_resort_clearances() {
+        const ret = wasm.generation_take_last_resort_clearances(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Tips the last-resort tier placed (denture builds): ids.
+     * @returns {string[]}
+     */
+    take_last_resort_ids() {
+        const ret = wasm.generation_take_last_resort_ids(this.__wbg_ptr);
+        var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Last-resort tips: the tier of each (1 the outline lean limit relaxed, 2 the clearance stepped down as well).
+     * @returns {Uint8Array}
+     */
+    take_last_resort_tiers() {
+        const ret = wasm.generation_take_last_resort_tiers(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
         return v1;
     }
     /**
@@ -3100,6 +3138,14 @@ class PolicyHandle {
     reproduced() {
         const ret = wasm.policyhandle_reproduced(this.__wbg_ptr);
         return ret !== 0;
+    }
+    /**
+     * Local lows of the dental rim line whose face points up: no tip (rule `rimLowNeedsOverhang`), counted apart from the left-out tips; 0 for any other policy.
+     * @returns {number}
+     */
+    rim_lows_facing_up() {
+        const ret = wasm.policyhandle_rim_lows_facing_up(this.__wbg_ptr);
+        return ret >>> 0;
     }
     /**
      * @returns {number}

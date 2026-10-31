@@ -126,6 +126,16 @@ export interface GenerateRules {
   spaceCellMm?: number;
   /** Least free border (mm, default 6) the space map keeps around the model's plan bounds. */
   spaceMarginMm?: number;
+  /** Denture last resort for a tip still left out (dentures only, default on): one more attempt with limits relaxed for that tip's route alone. */
+  lastResort?: boolean;
+  /** Last resort tier 1: the outline route's steepest lean from vertical, degrees (default 60; the normal limit is `outlineMaxAngleDeg`). */
+  lastResortOutlineAngleDeg?: number;
+  /** Last resort tier 2: the lowest pillar/rod clearance a tip may get, mm (default 1.0, the floor; the largest that fits is kept). */
+  lastResortClearanceMm?: number;
+  /** Dental rim lows (default on): a local low of the dental rim line is forced past the overhang test only when its face is an overhang; one facing up gets no tip and is counted (`rimLowsFacingUp`). */
+  rimLowNeedsOverhang?: boolean;
+  /** Last resort tier 2: how far the clearance steps down from the build's at each try, mm (default 0.25: 1.25 then 1.0). */
+  lastResortClearanceStepMm?: number;
 }
 
 /** The override array's layout; mirrors Rust `supports::rules::NAMES` exactly (a test checks it against the wasm's `rule_names()`). */
@@ -142,6 +152,7 @@ export const RULE_NAMES: readonly string[] = [
   'trunkSecondHelperOverMm', 'trunkSupportMaxFrac', 'trunkBraceStepMm', 'trunkSupportMinMm',
   'branchRodMaxMm', 'outlineRodCapMm', 'helperRodMaxMm',
   'spaceMarginMm',
+  'lastResort', 'lastResortOutlineAngleDeg', 'lastResortClearanceMm', 'rimLowNeedsOverhang', 'lastResortClearanceStepMm',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */

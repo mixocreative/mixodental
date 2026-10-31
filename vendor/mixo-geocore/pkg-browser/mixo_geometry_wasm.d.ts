@@ -343,6 +343,10 @@ export class DentureReviewResult {
      */
     rim_loops(): Float64Array;
     /**
+     * Local lows of the dental rim line whose face points up: no tip (rule `rimLowNeedsOverhang`); not "left out".
+     */
+    rim_lows_facing_up(): number;
+    /**
      * Rim plane: point xyz, unit normal xyz pointing to the top; empty without a rim.
      */
     rim_plane(): Float64Array;
@@ -455,6 +459,18 @@ export class Generation {
      * `ISSUE_STRIDE` u32 per crossing of the final mesh.
      */
     take_issues(): Uint32Array;
+    /**
+     * Last-resort tips: the pillar clearance (mm) each was judged and verified at.
+     */
+    take_last_resort_clearances(): Float64Array;
+    /**
+     * Tips the last-resort tier placed (denture builds): ids.
+     */
+    take_last_resort_ids(): string[];
+    /**
+     * Last-resort tips: the tier of each (1 the outline lean limit relaxed, 2 the clearance stepped down as well).
+     */
+    take_last_resort_tiers(): Uint8Array;
     /**
      * Left-out contacts with a reason: ids.
      */
@@ -792,6 +808,10 @@ export class PolicyHandle {
      * False when a saved dental area could not be reproduced from the mesh (no automatic support).
      */
     reproduced(): boolean;
+    /**
+     * Local lows of the dental rim line whose face points up: no tip (rule `rimLowNeedsOverhang`), counted apart from the left-out tips; 0 for any other policy.
+     */
+    rim_lows_facing_up(): number;
     ring_count(): number;
     /**
      * pillar, tree, brace, roof, cage, raft (1 = allowed).
@@ -1085,6 +1105,7 @@ export interface InitOutput {
     readonly denturereviewresult_rim_edges: (a: number) => [number, number];
     readonly denturereviewresult_rim_info: (a: number) => [number, number];
     readonly denturereviewresult_rim_loops: (a: number) => [number, number];
+    readonly denturereviewresult_rim_lows_facing_up: (a: number) => number;
     readonly denturereviewresult_rim_plane: (a: number) => [number, number];
     readonly denturereviewresult_rim_sizes: (a: number) => [number, number];
     readonly denturereviewresult_symmetry_plane: (a: number) => [number, number];
@@ -1119,6 +1140,9 @@ export interface InitOutput {
     readonly generation_take_island_status: (a: number) => [number, number];
     readonly generation_take_island_vertices: (a: number) => [number, number];
     readonly generation_take_issues: (a: number) => [number, number];
+    readonly generation_take_last_resort_clearances: (a: number) => [number, number];
+    readonly generation_take_last_resort_ids: (a: number) => [number, number];
+    readonly generation_take_last_resort_tiers: (a: number) => [number, number];
     readonly generation_take_left_out_ids: (a: number) => [number, number];
     readonly generation_take_left_out_points: (a: number) => [number, number];
     readonly generation_take_left_out_reasons: (a: number) => [number, number];
@@ -1203,6 +1227,7 @@ export interface InitOutput {
     readonly policyhandle_profile_id: (a: number) => [number, number];
     readonly policyhandle_repair_budget: (a: number) => number;
     readonly policyhandle_reproduced: (a: number) => number;
+    readonly policyhandle_rim_lows_facing_up: (a: number) => number;
     readonly policyhandle_ring_count: (a: number) => number;
     readonly policyhandle_structures: (a: number) => [number, number];
     readonly policyhandle_suggested_points: (a: number) => [number, number];

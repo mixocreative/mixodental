@@ -48,6 +48,8 @@ export interface DentureReview {
   lowsUnreached: { position: Vector; face: number }[];
   /** Candidates released because their face is not an overhang for the plate normal. */
   released: number;
+  /** Local lows of the dental rim line whose face points up: not forced, no tip (rule `rimLowNeedsOverhang`); counted apart from the left-out tips. */
+  rimLowsFacingUp: number;
   /** The islands of the reviewed pose (regions that start mid-air) with the tip that serves each or the reason it has none; `tipIndex` indexes `tips`. Empty with rule `islandTips` off. */
   islands: DentureIsland[];
   /** Why the islands could not be told (the surface is not a clean manifold...); empty when they could. */
@@ -176,6 +178,7 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
         return Array.from({ length: u.length / 7 }, (_, k) => ({ position: triple(u, k * 7), normal: triple(u, k * 7 + 3), stream: TIP_STREAM[u[k * 7 + 6]!]!, face: -1 }));
       })(),
       released: result.released(),
+      rimLowsFacingUp: result.rim_lows_facing_up(),
       islands: decodeIslands(result.islands()),
       islandsNote: result.islands_note(),
       rimPlane: rimPlane.length === 6 ? { point: triple(rimPlane, 0), normal: triple(rimPlane, 3) } : undefined,

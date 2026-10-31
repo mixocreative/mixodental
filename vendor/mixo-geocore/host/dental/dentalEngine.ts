@@ -93,6 +93,8 @@ export interface DentureReviewResultLike {
   down_mask(): Uint8Array;
   unsupportable(): Float64Array;
   released(): number;
+  /** Local lows of the dental rim line whose face points up: no tip (rule `rimLowNeedsOverhang`); not left out. */
+  rim_lows_facing_up(): number;
   rim_loops(): Float64Array;
   rim_sizes(): Uint32Array;
   rim_closed(): Uint8Array;

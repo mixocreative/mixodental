@@ -39,6 +39,8 @@ export interface PolicyHandle {
   island_facts(): Float64Array;
   /** Why a denture policy could not tell its islands; empty when it could. */
   islands_note(): string;
+  /** A denture policy's dental rim lows that face up and got no tip (rule `rimLowNeedsOverhang`); 0 for any other policy. */
+  rim_lows_facing_up(): number;
   free(): void;
 }
 
@@ -141,6 +143,7 @@ interface Generation {
   take_reach(): Float64Array; take_intents(): Float64Array; take_contact_ids(): string[];
   take_dropped(): string[]; take_dropped_by_zones(): string[]; take_fallback(): Uint8Array;
   take_left_out_ids(): string[]; take_left_out_points(): Float64Array; take_left_out_reasons(): string[];
+  take_last_resort_ids(): string[]; take_last_resort_tiers(): Uint8Array; take_last_resort_clearances(): Float64Array;
   status(): number; reason(): string; stop_reason(): string; take_issues(): Uint32Array;
   take_island_heights(): Float64Array; take_island_vertices(): Uint32Array; take_island_status(): Uint8Array; island_reason(): string;
   take_rings(): Float64Array; trials(): number; revision(): number; free(): void;
@@ -240,6 +243,12 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
         revision,
         positions: result.take_positions(), indices: result.take_indices(), parts, components,
         dropped: result.take_dropped(), droppedByZones: result.take_dropped_by_zones(), verdict, islands,
+        lastResort: (() => {
+          const ids = result.take_last_resort_ids();
+          const tiers = result.take_last_resort_tiers();
+          const clearances = result.take_last_resort_clearances();
+          return ids.map((id, k) => ({ id, tier: (tiers[k] === 1 ? 1 : 2) as 1 | 2, clearanceMm: clearances[k]! }));
+        })(),
         leftOut: (() => {
           const ids = result.take_left_out_ids();
           const points = result.take_left_out_points();
