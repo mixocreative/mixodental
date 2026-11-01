@@ -21,5 +21,5 @@ export function footprintSettings(tuning: DentalTuning = referenceTuning, profil
 /** The reach-from-below rule the policy applies for a frame whose plate normal is `up` in the mesh frame (`footprint::Facing::of`). */
 export function fromBelow(up: [number, number, number] = [0, 1, 0], profile = REFERENCE_PROFILE): NonNullable<DentalContactFootprintSettings['fromBelow']> {
   const { defaults } = profileData(profile);
-  return { up, maxUp: Math.cos(defaults.tipMinFromUpDeg * Math.PI / 180), moveMm: defaults.tipMoveMaxMm };
+  return { up, maxUp: Math.cos((180 - defaults.overhangAngleDeg) * Math.PI / 180), moveMm: defaults.tipMoveMaxMm };
 }

@@ -198,7 +198,7 @@ const LAYER_TABLE = [
   ['No-support zone', 'No-support zone', 'Faces the parallel 45-degree rays (R1, and R1b when on) from the front-top hit first. The allowed area overrides it.', true, 'zones'],
   ['Allowed area (seen', 'Allowed area', 'Tips may stand on these faces: the oral cavity ray (R2) reaches them first. Overrides the no-support zone.', true, 'zones'],
   ['Hole band', 'Hole band', 'Faces within 5 mm of a hole edge; tips may stand here if they overhang.', true, 'zones'],
-  ['Down-facing area', 'Down-facing area', 'Faces within 60 degrees of straight down in the print pose: the support candidates.', false, 'zones'],
+  ['Down-facing area', 'Down-facing area', 'Faces whose slope from horizontal is under the overhang angle in the print pose (0 = flat ceiling, 90 = vertical wall; global 45, rim band 60): the support candidates.', false, 'zones'],
   ['Self-supporting overhangs', 'Self-supporting overhangs (no tips needed)', 'Overhang patches (faces joined by edges) that need no open-area tips: no island or lowest point inside, projected area under the minimum (4 mm2), flattest face not within 19 degrees of horizontal, and reach under 3 mm from where they join the model. Only with the rule overhangSelfSupport on. Rim, hole, island and low-point tips are never dropped.', true, 'zones'],
 
   ['Sockets (no support)', 'Sockets (no support)', 'Tooth sockets: blind hollows on the teeth side, found once before tilt by filling the teeth-side depth map like water (at least 1 mm deep, rule socketMinDepthMm). Faces the oral cavity ray (R2) sees are not sockets. With rule socketNoSupport on (default) no rim, hole or area tip stands here; islands still get support.', true, 'zones'],
@@ -295,7 +295,7 @@ const DENTURE_STEPS = [
   ['4. Oral cavity ray', 'On the dental rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
   ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
   ['6. Print tilt', 'The build plate at the print angle the build chose.', ['Print tilt']],
-  ['7. Overhangs and low points', 'Faces within 60 degrees of straight down, the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'Suction cups', 'Drain / clean', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
+  ['7. Overhangs and low points', 'Faces whose slope from horizontal is under the overhang angle (global 45, rim 60; 0 = flat ceiling, 90 = vertical wall), the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'Suction cups', 'Drain / clean', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
   ['8. Tips', 'Tips by source: dental rim, hole, area, low. Black cones: overhang tips with no free path to the plate (not built). Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
   ['9. Supports', 'Our pillars (plastic), the braces and the base.', ['SUPPORT PILLARS']],
   ['10. Compare with owner', 'Your -sup supports (off by default) and contacts, and the area each covers against ours.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
@@ -599,7 +599,7 @@ function describeHit(hit) {
       const apex = pts.find((v) => key(v) === apexKey);
       if (apex) {
         const axis = pts.reduce((a, v) => a.add(v), new THREE.Vector3()).divideScalar(pts.length).sub(apex).normalize();
-        facts.push(`Faces ${THREE.MathUtils.radToDeg(Math.acos(Math.max(-1, Math.min(1, -axis.y)))).toFixed(1)}° from straight down (print pose)`);
+        facts.push(`Tip face slope ${THREE.MathUtils.radToDeg(Math.acos(Math.max(-1, Math.min(1, -axis.y)))).toFixed(1)}° slope from horizontal (print pose; 0 = flat ceiling, 90 = vertical wall)`);
       }
       facts.push(reason);
     }

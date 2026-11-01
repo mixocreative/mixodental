@@ -21,7 +21,7 @@ export const isBareIsland = (id: string): boolean => id.startsWith('island-');
 
 /**
  * An island the engine refused a tip (engine 54, after the click put it on the allow list): its lowest point faces sideways
- * (past `islandMaxFromDownDeg`) or has no usable face. The engine's reason says so; a further click cannot help.
+ * (its slope is past `islandOverhangAngleDeg`) or has no usable face. The engine's reason says so; a further click cannot help.
  */
 export const isRefusedIsland = (point: Pick<UnresolvedPoint, 'kind' | 'reason'>): boolean => point.kind === 'island' && point.reason.startsWith("island's lowest point");
 

@@ -3,11 +3,18 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { parseKind, reviewProfileId } from './profileSelect';
+import { currentRuleNames, parseKind, reviewProfileId } from './profileSelect';
 import { reviewCase } from './reviewCase';
 
 const scratch = mkdtempSync(join(tmpdir(), 'profile-select-test-'));
 afterAll(() => rmSync(scratch, { recursive: true, force: true }));
+
+describe('rule names of engine 56', () => {
+  it('maps the two removed overhang names to the engine 57 rules and keeps the others', () => {
+    expect(currentRuleNames({ tipMaxFromDownDeg: 50, islandMaxFromDownDeg: 55, areaDensity: true })).toEqual({ overhangAngleDeg: 50, islandOverhangAngleDeg: 55, areaDensity: true });
+    expect(currentRuleNames({ tipMaxFromDownDeg: 50, overhangAngleDeg: 40 })).toEqual({ overhangAngleDeg: 40 });
+  });
+});
 
 describe('kind selection', () => {
   it('defaults to aligner and accepts the two kinds', () => {

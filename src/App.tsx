@@ -814,7 +814,7 @@ export default function App() {
     const plan = planAddTip({
       point: local, normal: inverseTransformDirection(unit.transform, normal), worldNormal: normal, reach,
       candidates: [...preview.localPoints, ...preview.localSuggested], removed: gone,
-      minFromUpDeg: unit.dental ? profileData(unit.dental.profileId).defaults.tipMinFromUpDeg : 0,
+      overhangAngleDeg: unit.dental ? profileData(unit.dental.profileId).defaults.overhangAngleDeg : 180,
       createId: () => `manual-${crypto.randomUUID()}`,
     });
     dispatch({ type: 'batch', commands: [{ type: 'manual/add', unitId: unit.id, point: plan.contact }, ...(plan.removeId ? [{ type: 'deletion/add' as const, unitId: unit.id, pointIds: [plan.removeId] }] : [])] });

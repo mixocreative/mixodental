@@ -30,16 +30,27 @@ export type { DentalKind };
 /** Batch experiment switch: MIXO_STEEP_NO_SUPPORT=67.5 adds R1b, the steep no-support ray (rule noSupportSteepDeg), to the tilt scan, the policy, the build and the review layers. */
 export const steepRule = (): { noSupportSteepDeg?: number } => (Number(process.env.MIXO_STEEP_NO_SUPPORT) > 0 ? { noSupportSteepDeg: Number(process.env.MIXO_STEEP_NO_SUPPORT) } : {});
 
+/** The engine 56 rule names that engine 57 replaced, for a MIXO_RULES saved before: same number, new name (both were degrees of slope from horizontal: from straight down X = slope X). */
+export const LEGACY_RULE_NAMES: Readonly<Record<string, string>> = { tipMaxFromDownDeg: 'overhangAngleDeg', islandMaxFromDownDeg: 'islandOverhangAngleDeg' };
+
+/** `rules` with each removed name renamed to its replacement (a value already given under the new name wins). */
+export function currentRuleNames<T extends Record<string, unknown>>(rules: T): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [name, value] of Object.entries(rules)) if (!(name in LEGACY_RULE_NAMES) || !(LEGACY_RULE_NAMES[name]! in rules)) out[LEGACY_RULE_NAMES[name] ?? name] = value;
+  return out;
+}
+
 /** Batch experiment switch: MIXO_SELF_SUPPORT=1 turns on the self-supporting overhang rule (rule overhangSelfSupport); MIXO_SELF_AREA / MIXO_SELF_REACH / MIXO_SELF_ANGLE override the thresholds. Read by the tilt scan, the policy, the build and the review. */
-export const selfSupportRule = (): { overhangSelfSupport?: boolean; overhangMinAreaMm2?: number; overhangMaxReachMm?: number; overhangMinAngleDeg?: number; overhangSelfSupportStreams?: boolean; rimRespectsNoSupport?: boolean; socketNoSupport?: boolean; tipMaxFromDownDeg?: number } => {
+export const selfSupportRule = (): { overhangSelfSupport?: boolean; overhangMinAreaMm2?: number; overhangMaxReachMm?: number; overhangMinAngleDeg?: number; overhangSelfSupportStreams?: boolean; rimRespectsNoSupport?: boolean; socketNoSupport?: boolean; overhangAngleDeg?: number } => {
   // MIXO_SELF_STREAMS=1 (rule overhangSelfSupportStreams: the self-support test also filters rim and hole-band tips, needs MIXO_SELF_SUPPORT) and MIXO_RIM_NO_SUPPORT=1 (rule rimRespectsNoSupport) are independent switches.
   const streams = {
     ...(process.env.MIXO_SELF_STREAMS ? { overhangSelfSupportStreams: true } : {}),
     ...(process.env.MIXO_RIM_NO_SUPPORT ? { rimRespectsNoSupport: true } : {}),
     ...(process.env.MIXO_SOCKETS ? { socketNoSupport: true } : {}),
-    ...(Number(process.env.MIXO_TIP_MAX) > 0 ? { tipMaxFromDownDeg: Number(process.env.MIXO_TIP_MAX) } : {}),
-    // MIXO_RULES='{"areaDensity":true,"contactFit":true}': any engine rules by name, for one-off experiments.
-    ...(process.env.MIXO_RULES ? (JSON.parse(process.env.MIXO_RULES) as Record<string, never>) : {}),
+    // MIXO_OVERHANG_ANGLE=45: the one Overhang angle rule (rule overhangAngleDeg, slope from horizontal; engine 57, was MIXO_TIP_MAX = tipMaxFromDownDeg).
+    ...(Number(process.env.MIXO_OVERHANG_ANGLE) > 0 ? { overhangAngleDeg: Number(process.env.MIXO_OVERHANG_ANGLE) } : {}),
+    // MIXO_RULES='{"areaDensity":true,"contactFit":true}': any engine rules by name, for one-off experiments. A removed engine 56 name is mapped to its engine 57 one.
+    ...(process.env.MIXO_RULES ? currentRuleNames(JSON.parse(process.env.MIXO_RULES) as Record<string, never>) : {}),
   };
   if (!process.env.MIXO_SELF_SUPPORT) return streams;
   const num = (v: string | undefined) => (v !== undefined && v !== '' && Number.isFinite(Number(v)) ? Number(v) : undefined);
@@ -98,7 +109,7 @@ export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfile
   const settings = { ...defaultSupportSettings, ...dentureSupportPreset(dentureProfileData(profileId)), contactShape: 'NONE' as const, roofSeededModes: [] };
   // MIXO_LANDING=1 picks the tilt by the landing-circle path score (rule landingTiltWeight); unset keeps the old pick.
   // TEMP experiment envs (not committed): MIXO_TILT_ALLOWED=1 -> tiltAllowedLowsOnly, MIXO_TILT_ORDER=1 -> tiltPickOrder 1.
-  const rules = process.env.MIXO_LANDING || process.env.MIXO_TILT_ALLOWED || process.env.MIXO_TILT_ORDER || process.env.MIXO_STEEP_NO_SUPPORT || process.env.MIXO_SELF_SUPPORT || process.env.MIXO_SELF_STREAMS || process.env.MIXO_RIM_NO_SUPPORT || process.env.MIXO_SOCKETS || process.env.MIXO_TIP_MAX || process.env.MIXO_RULES
+  const rules = process.env.MIXO_LANDING || process.env.MIXO_TILT_ALLOWED || process.env.MIXO_TILT_ORDER || process.env.MIXO_STEEP_NO_SUPPORT || process.env.MIXO_SELF_SUPPORT || process.env.MIXO_SELF_STREAMS || process.env.MIXO_RIM_NO_SUPPORT || process.env.MIXO_SOCKETS || process.env.MIXO_OVERHANG_ANGLE || process.env.MIXO_RULES
     ? packRules({ ...steepRule(), ...selfSupportRule(), ...(process.env.MIXO_LANDING ? { landingTiltWeight: 1 } : {}), ...(process.env.MIXO_TILT_ALLOWED ? { tiltAllowedLowsOnly: true } : {}), ...(process.env.MIXO_TILT_ORDER ? { tiltPickOrder: 1 as const } : {}) })
     : undefined;
   const scanStarted = performance.now();
@@ -137,7 +148,7 @@ export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfile
       const out = generateSupports(contacts, settings, () => { throw new Error('policy is supplied by the site'); },
         { mode: 'export', model: mesh, frame, plateY: 0, labelText: '', zones: [], limits: GENERATE_LIMITS,
           // MIXO_MODEL_LANDING=1|2 tries the dental model-surface landing (rule dentalModelLanding); unset keeps plate-only.
-          ...(process.env.MIXO_MODEL_LANDING || process.env.MIXO_STEEP_NO_SUPPORT || process.env.MIXO_SELF_SUPPORT || process.env.MIXO_SELF_STREAMS || process.env.MIXO_RIM_NO_SUPPORT || process.env.MIXO_SOCKETS || process.env.MIXO_TIP_MAX || process.env.MIXO_RULES ? { rules: { ...steepRule(), ...selfSupportRule(), ...(process.env.MIXO_MODEL_LANDING ? { dentalModelLanding: Number(process.env.MIXO_MODEL_LANDING) } : {}) } } : {}),
+          ...(process.env.MIXO_MODEL_LANDING || process.env.MIXO_STEEP_NO_SUPPORT || process.env.MIXO_SELF_SUPPORT || process.env.MIXO_SELF_STREAMS || process.env.MIXO_RIM_NO_SUPPORT || process.env.MIXO_SOCKETS || process.env.MIXO_OVERHANG_ANGLE || process.env.MIXO_RULES ? { rules: { ...steepRule(), ...selfSupportRule(), ...(process.env.MIXO_MODEL_LANDING ? { dentalModelLanding: Number(process.env.MIXO_MODEL_LANDING) } : {}) } } : {}),
           site: { session: site.session, source: site.source, placed: site.placed, policy: () => ({ handle, release() { /* the caller frees the one handle */ } }) } });
       const generateSeconds = lap(generateStarted);
       // Our placed tips: the build's contacts that the repair did not leave out, back in unit-local coordinates

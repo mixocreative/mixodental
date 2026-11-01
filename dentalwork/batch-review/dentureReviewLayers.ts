@@ -387,7 +387,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     // Downward-facing faces (the overhang candidates) and the hard edges that face down.
     const downFaces = facesWhere(review.downMask, (value) => value === 1);
     if (downFaces.length > 0) {
-      layers.push({ name: 'Down-facing area (≤60° from down)', color: C.downFacing, positions: patchPositions(mesh, downFaces, DOWN_LIFT_MM, sign), indices: new Uint32Array(0) });
+      layers.push({ name: 'Down-facing area (slope under the overhang angle)', color: C.downFacing, positions: patchPositions(mesh, downFaces, DOWN_LIFT_MM, sign), indices: new Uint32Array(0) });
     }
     // The self-supporting overhang regions (rule overhangSelfSupport): small, gentle, short patches that need no open-area tips.
     // Engine 42 basins: tooth sockets (no tips when rule socketNoSupport is on) and the fitting surface seen as a basin (cross-check, changes no tip).

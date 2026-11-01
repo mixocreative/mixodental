@@ -22,7 +22,7 @@ describe('final dental rim coverage', () => {
     // Opening spacing 4 mm (profile): 23 opening tips. One stretch of the rim's outer side faces up in
     // the print pose (normal y 0.84-0.98): tips there used to cross the aligner and were left out (13,
     // a 56 mm gap). Now each such tip moves to the nearest face within 1 mm of the area, across the
-    // edge, that faces at least 20 degrees below horizontal (profile `tipMinFromUpDeg` 110,
+    // edge, that faces at least 20 degrees below horizontal (profile `overhangAngleDeg` 70, was `tipMinFromUpDeg` 110,
     // `tipMoveMaxMm` 1), so all 23 are built and the largest gap is one even step (L / 23, B2). The
     // outer rim keeps every tip; its gap of two even steps (2 L / 72) is the distal hairpin.
     const rim = review.supports.dentalRimCoverage!;
