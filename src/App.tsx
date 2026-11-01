@@ -42,6 +42,7 @@ import { useDentureJob } from './denture/useDentureJob';
 import { isDentureJob } from './denture/jobKind';
 import { LiveTipSummary } from './denture/steps/orient/LiveTipSummary';
 import { DentureSupportsBlocks } from './denture/steps/supports/DentureSupportsBlocks';
+import { dentureAddOnTint } from './denture/parts/addOnTint';
 import type { UnresolvedPoint } from '@mixo-geocore/host/core/supports/mesh';
 import { useFreeTransform } from './components/useFreeTransform';
 import type { DentalFreeControls } from './components/OrientationBar';
@@ -1157,6 +1158,8 @@ export default function App() {
     selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalStage: session.dentalStage, dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: orientFlow.tilt?.unitId === activeUnit?.id && (orientFlow.tilt?.status === 'scanning' || (orientFlow.tilt?.status === 'ready' && orientFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal) || (denture.active && denture.orient.proposed), dentalKind: denture.active ? 'denture' : 'aligner', dentureResolvable: activeMesh?.unresolved?.filter(denture.supports.resolvable).length ?? 0, canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
   };
   const command = (id: CommandId) => resolve(id, ui);
+  // Denture Step 2: the add-on parts of a multi-part file, tinted on the model (src/denture/parts).
+  const addOnTint = denture.active && activeUnit?.denture ? dentureAddOnTint(activeUnit.source, currentBuild(activeUnit, built.get(activeUnit.id))) : undefined;
   // Dental Step 3's settings, findings and the answer to Back (see components/DentalSupports).
   const reviewTuning = dentalTuning.tuning;
   const verdictEntry = activeUnit ? problems.get(activeUnit.id) : undefined;
@@ -1303,6 +1306,7 @@ export default function App() {
           gizmoMode={gizmoMode}
           plate={plate.printer.plate}
           rotationGizmo={orienting && free.free}
+          {...(denture.active && activeUnit && session.dentalStage === 'review' && addOnTint ? { unitOverlay: { unitId: activeUnit.id, node: addOnTint } } : {})}
           {...(denture.active && activeUnit?.denture && editMode === 'dental' && session.dentalStage === 'review' ? { bubbleResolve: { unitId: activeUnit.id, resolvable: denture.supports.resolvable, onResolve: (point: UnresolvedPoint) => denture.supports.resolve(activeUnit.id, point) } } : {})}
           modelVisible={modelVisible}
           wireframe={wireframe}

@@ -859,4 +859,13 @@ export const zhHant: Dictionary = {
   "Low tips outside the allowed area": "低點支撐頭可在允許區域外",
   "Last-resort clearance": "最後手段間隙",
   "The smallest gap a support keeps from the model when nothing else routes": "無其他路徑時，支撐與模型保持的最小間隙",
+  "Parts": "零件",
+  "{target} target, {addOn} add-on, {debris} debris": "主體 {target}・附件 {addOn}・碎片 {debris}",
+  "{v} mm³": "{v} mm³",
+  "1 tip": "1 個支撐頭",
+  "{n} tips": "{n} 個支撐頭",
+  "Target": "主體",
+  "Add-on": "附件",
+  "Debris": "碎片",
+  "no supports": "無支撐",
 };

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { BubbleResolve } from './UnresolvedBubbles';
 import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
 import type { SupportPoint } from '@mixo-geocore/host/core/analysis/types';
@@ -38,6 +39,8 @@ export interface ObjectViewportProps {
   rotationGizmo?: boolean;
   /** Denture Step 2: the active unit's resolvable bubbles are buttons (support from the model surface). */
   bubbleResolve?: { unitId: string } & BubbleResolve;
+  /** A unit's own see-through layer, drawn in its space (the denture's add-on part tint). */
+  unitOverlay?: { unitId: string; node: ReactNode };
   modelVisible: boolean;
   wireframe: boolean;
   onSelect: (unitId: string | null, additive: boolean) => void;

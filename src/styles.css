@@ -29,6 +29,8 @@
   --tip-path: var(--success);
   --tip-fallback: var(--warning);
   --tip-none: var(--danger);
+  /* Denture Step 2: the subtle tint of add-on parts (hooks, attachments) on the model and in the parts list. */
+  --part-addon: var(--blue);
   font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
   color: var(--ink);
   background: var(--paper);
@@ -310,6 +312,13 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
 .tip-swatch--none { background: var(--tip-none); }
 /* Denture Step 2: the denture settings block. */
 .denture-landing { display: grid; gap: 4px; }
+.denture-parts-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 12px; }
+.denture-part { display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 6px; }
+.denture-part-size, .denture-part-tips { color: var(--muted); font-variant-numeric: tabular-nums; }
+.part-swatch { width: 9px; height: 9px; border-radius: 2px; border: 1px solid var(--line-strong); }
+.part-swatch--target { background: var(--surface); }
+.part-swatch--addOn { background: var(--part-addon); opacity: .5; }
+.part-swatch--debris { background: transparent; border-style: dashed; }
 .denture-landing-select { height: 30px; padding: 0 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: var(--radius); font: inherit; font-size: 12px; }
 .orient-confirm { display: grid; gap: 8px; white-space: normal; }
 .orient-confirm p { margin: 0; }

@@ -43,3 +43,6 @@ Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dia
 | `settings/dentureRules.ts` | Maps the denture settings onto engine rules (`dentalModelLanding`, `lowOutsideAllowed`, `lastResortClearanceMm`); only non-defaults are sent. |
 | `settings/DentureSettingsSection.tsx` | The settings block: model-surface support default, low tips outside the area, clearance floor. |
 | `steps/supports/DentureSupportsBlocks.tsx` | The denture blocks of the shared supports panel, in order. |
+| `parts/partRoles.ts` | Orders the engine's part list (target, add-on, debris) and finds the add-on faces. |
+| `parts/PartsList.tsx` | The parts list of a multi-part file (hidden for one part). |
+| `parts/addOnTint.tsx` | The add-on tint of a unit's current build (shared `components/viewport/FaceTintLayer.tsx`, token `--part-addon`), or none. |

@@ -134,6 +134,7 @@ export default function ObjectViewport(props: ObjectViewportProps) {
         ? <group key={`unresolved:${unit.id}`} position={unit.transform.position} rotation={unit.transform.rotation}><UnresolvedBubbles mesh={mesh} frame={generationTransform(unit)} resolve={props.bubbleResolve?.unitId === unit.id ? props.bubbleResolve : undefined} /></group>
         : null;
     })}
+    {props.unitOverlay ? scene.units.filter((unit) => unit.id === props.unitOverlay!.unitId).map((unit) => <group key={`overlay:${unit.id}`} position={unit.transform.position} rotation={unit.transform.rotation}>{props.unitOverlay!.node}</group>) : null}
     {activeId && activeGroup?.unitId === activeId && gizmo && <UnitTransformControls
       mode={gizmo}
       object={activeGroup.group}

@@ -855,4 +855,13 @@ export const ja: Dictionary = {
   "Low tips outside the allowed area": "許可エリア外にも低い点の先端",
   "Last-resort clearance": "最終手段のクリアランス",
   "The smallest gap a support keeps from the model when nothing else routes": "他にルートがない場合にサポートがモデルから保つ最小ギャップ",
+  "Parts": "パーツ",
+  "{target} target, {addOn} add-on, {debris} debris": "本体 {target}・付属 {addOn}・破片 {debris}",
+  "{v} mm³": "{v} mm³",
+  "1 tip": "先端 1 個",
+  "{n} tips": "先端 {n} 個",
+  "Target": "本体",
+  "Add-on": "付属パーツ",
+  "Debris": "破片",
+  "no supports": "サポートなし",
 };
