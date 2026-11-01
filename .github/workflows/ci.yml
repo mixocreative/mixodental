@@ -3,11 +3,13 @@
 name: CI
 
 on:
+  # Milestones only (owner 2026-11-02): push a tag milestone-<name>, or run it by hand (Actions > CI > Run workflow).
+  # Every day-to-day push is checked locally with the full test set instead.
   push:
-    branches:
-      - main
-  pull_request:
+    tags:
+      - 'milestone-*'
   workflow_dispatch:
+
 
 permissions:
   contents: read
