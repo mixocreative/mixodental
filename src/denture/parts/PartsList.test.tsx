@@ -18,6 +18,18 @@ describe('PartsList', () => {
     expect(html).toContain('part-swatch--addOn');
   });
 
+  it('lists an aligner with fused attachments under its own names', () => {
+    const html = renderToStaticMarkup(<PartsList kind="aligner" parts={{ parts: [part(2, 'fused', 250, 3), part(0, 'target', 3000, 70), part(1, 'fused', 660, 0)], faceParts: new Uint32Array() }} />);
+    expect(html).toContain('data-ui="aligner-parts"');
+    expect(html).toContain('data-ui="aligner-part-row"');
+    expect(html).toContain('data-ui="aligner-parts-fused-note"');
+    expect(html).not.toContain('data-ui="denture-parts"');
+    expect(html).toContain('1 target, 2 fused, 0 add-on, 0 debris');
+    expect(html.indexOf('data-role="target"')).toBeLessThan(html.indexOf('data-role="fused"'));
+    expect(html).toContain('3 tips');
+    expect(html).toContain('part-swatch--fused');
+  });
+
   it('renders nothing for a one-part file', () => {
     expect(renderToStaticMarkup(<PartsList parts={{ parts: [part(0, 'target', 1, 1)], faceParts: new Uint32Array() }} />)).toBe('');
     expect(renderToStaticMarkup(<PartsList parts={undefined} />)).toBe('');

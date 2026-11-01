@@ -147,7 +147,7 @@ function withPlate(mesh: TriangleMesh, extra: TriangleMesh): TriangleMesh {
   return { positions, indices };
 }
 
-describe('synthetic aligners without a decidable central opening abstain', () => {
+describe('synthetic aligners: a cube abstains, a separate plate over the opening is another part', () => {
   const frame = () => {
     const mesh = reference();
     const found = proposeDentalOrientation(mesh, REFERENCE_PROFILE);
@@ -156,25 +156,21 @@ describe('synthetic aligners without a decidable central opening abstain', () =>
     return { mesh, rim, min: rim.visibilityMin, max: rim.visibilityMax };
   };
 
-  it('a covered opening is absent: Step 1 reports absent and no region is proposed', () => {
+  // Engine 56 (aligner parts): a plate written as its own shell over the opening is another part of the file. The aligner is
+  // read on its own, so a covering plate or a bar across the opening no longer hides it (before: absent / ambiguous, no region).
+  it('a separate plate covering the opening is another part: the aligner keeps its opening and its region', () => {
     const { mesh, rim, min, max } = frame();
     const covered = withPlate(mesh, plate(rim, [min[0] - 1, max[0] + 1], [min[1] - 1, max[1] + 1], 0.4));
-    expect(orientDentalAligner(covered, REFERENCE_PROFILE)).toMatchObject({ kind: 'oriented', opening: 'absent' });
-    // Engine 12 (geocore 2facbe7) accepts an absent opening (open arches), so a plate over the
-    // reference's opening is now stopped one step later: its surface region is not isolated.
-    expect(proposeDentalSupportRegion(covered, referenceTuning, REFERENCE_PROFILE)).toEqual({ kind: 'inconclusive', reason: 'surface-region-not-isolated' });
+    expect(orientDentalAligner(covered, REFERENCE_PROFILE)).toMatchObject({ kind: 'oriented', opening: 'present' });
+    expect(proposeDentalSupportRegion(covered, referenceTuning, REFERENCE_PROFILE).kind).toBe('proposal');
   }, 120000);
 
-  it('a bar that splits the opening is ambiguous, never absent, and no region is proposed', () => {
+  it('a separate bar across the opening is another part: the aligner keeps its opening and its region', () => {
     const { mesh, rim, min, max } = frame();
     const middle = (min[0] + max[0]) / 2;
     const split = withPlate(mesh, plate(rim, [middle - 1.5, middle + 1.5], [min[1] - 1, max[1] + 1], 0.4));
-    const oriented = orientDentalAligner(split, REFERENCE_PROFILE);
-    expect(oriented).toMatchObject({ kind: 'oriented', meshOk: true });
-    if (oriented.kind === 'oriented') expect(oriented.opening).not.toBe('absent');
-    const region = proposeDentalSupportRegion(split, referenceTuning, REFERENCE_PROFILE);
-    expect(region.kind).toBe('inconclusive');
-    if (region.kind === 'inconclusive') expect(region.reason).not.toBe('central-opening-absent');
+    expect(orientDentalAligner(split, REFERENCE_PROFILE)).toMatchObject({ kind: 'oriented', meshOk: true, opening: 'present' });
+    expect(proposeDentalSupportRegion(split, referenceTuning, REFERENCE_PROFILE).kind).toBe('proposal');
   }, 120000);
 
   it('a cube has no cavity and abstains', () => {

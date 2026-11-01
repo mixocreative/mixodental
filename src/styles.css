@@ -318,6 +318,7 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
 .part-swatch { width: 9px; height: 9px; border-radius: 2px; border: 1px solid var(--line-strong); }
 .part-swatch--target { background: var(--surface); }
 .part-swatch--addOn { background: var(--part-addon); opacity: .5; }
+.part-swatch--fused { background: var(--part-addon); opacity: .3; }
 .part-swatch--debris { background: transparent; border-style: dashed; }
 .denture-landing-select { height: 30px; padding: 0 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: var(--radius); font: inherit; font-size: 12px; }
 .orient-confirm { display: grid; gap: 8px; white-space: normal; }

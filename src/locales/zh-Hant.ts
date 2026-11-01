@@ -867,6 +867,9 @@ export const zhHant: Dictionary = {
   "Target": "主體",
   "Add-on": "附件",
   "Debris": "碎片",
+  "Fused": "一體化",
+  "{target} target, {fused} fused, {addOn} add-on, {debris} debris": "主體 {target}・一體化 {fused}・附件 {addOn}・碎片 {debris}",
+  "A fused part overlaps the target and prints with it: only its exposed overhangs get supports.": "一體化零件與主體重疊，會一起列印：只有外露的懸空面會加上支撐。",
   "no supports": "無支撐",
   // Round D: denture wording and island bubbles
   "Drop a denture STL, or choose one. It is stood upright automatically; turn it with Free transform if needed, then press Next.": "拖放假牙 STL 或選擇一個檔案。系統會自動直立擺放；需要時可用「自由變換」轉動，然後按「下一步」。",

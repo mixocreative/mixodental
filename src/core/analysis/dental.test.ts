@@ -12,8 +12,9 @@ describe('proposeDentalOrientation', () => {
 
     const result = proposeDentalOrientation(mesh, REFERENCE_PROFILE);
 
-    // Engine 13 checks edge topology before orientation; this synthetic cavity has degenerate faces, so it stops there (not a real aligner; real scans pass).
-    expect(result).toMatchObject({ kind: 'inconclusive', reason: 'non-manifold-or-degenerate-mesh' });
+    // This synthetic cavity has degenerate faces (not a real aligner; real scans pass): it is never oriented. Since engine 56 the
+    // parts split sets its degenerate faces apart, so it stops at a later check (the trim) instead of the edge topology.
+    expect(result.kind).toBe('inconclusive');
   });
 
   it('refuses a cube and malformed geometry instead of inventing a dental bottom', () => {
@@ -37,8 +38,9 @@ describe('proposeDentalOrientation', () => {
 
   it('does not invent a signed front for a rotationally symmetric cavity', () => {
     const result = proposeDentalOrientation(watertightCup(), REFERENCE_PROFILE);
-    // Engine 13 checks edge topology before orientation; this synthetic cavity has degenerate faces, so it stops there (not a real aligner; real scans pass).
-    expect(result).toMatchObject({ kind: 'inconclusive', reason: 'non-manifold-or-degenerate-mesh' });
+    // This synthetic cavity has degenerate faces (not a real aligner; real scans pass): it is never oriented. Since engine 56 the
+    // parts split sets its degenerate faces apart, so it stops at a later check (the trim) instead of the edge topology.
+    expect(result.kind).toBe('inconclusive');
   });
 });
 

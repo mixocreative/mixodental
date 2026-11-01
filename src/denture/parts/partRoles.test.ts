@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DenturePart } from '@mixo-geocore/host/dental/dentureParts';
-import { addOnFaceMask, orderedParts, roleCounts, showsPartsList } from './partRoles';
+import { addOnFaceMask, orderedParts, placementParts, roleCounts, showsPartsList } from './partRoles';
 
 const part = (id: number, role: DenturePart['role'], volumeMm3: number): DenturePart => ({ id, role, triangles: 10, volumeMm3, areaMm2: 1, tips: 0 });
 const parts = [part(4, 'debris', 0.1), part(2, 'addOn', 12), part(0, 'target', 3400), part(7, 'addOn', 40)];
@@ -14,7 +14,19 @@ describe('partRoles', () => {
 
   it('orders target, add-ons (larger first), debris and counts the roles', () => {
     expect(orderedParts(parts).map((entry) => entry.id)).toEqual([0, 7, 2, 4]);
-    expect(roleCounts(parts)).toEqual({ target: 1, addOn: 2, debris: 1 });
+    expect(roleCounts(parts)).toEqual({ target: 1, fused: 0, addOn: 2, debris: 1 });
+  });
+
+  it('puts fused parts right after the target, tints them with the add-ons, and reads the parts of an aligner placement', () => {
+    const withFused = [...parts, part(5, 'fused', 600)];
+    expect(orderedParts(withFused).map((entry) => entry.id)).toEqual([0, 5, 7, 2, 4]);
+    expect(roleCounts(withFused).fused).toBe(1);
+    expect([...addOnFaceMask({ parts: withFused, faceParts: Uint32Array.of(0, 5, 2) }, 3)!]).toEqual([0, 1, 1]);
+    const reported = { parts: withFused, faceParts: Uint32Array.of(0) };
+    const empty = { points: [], regions: [], contactPositions: new Float32Array(), contactNormals: new Float32Array() };
+    expect(placementParts({ ...empty, parts: reported })).toBe(reported);
+    expect(placementParts(empty)).toBeUndefined();
+    expect(placementParts(undefined)).toBeUndefined();
   });
 
   it('marks the faces of add-on parts only', () => {

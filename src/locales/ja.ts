@@ -863,6 +863,9 @@ export const ja: Dictionary = {
   "Target": "本体",
   "Add-on": "付属パーツ",
   "Debris": "破片",
+  "Fused": "一体化",
+  "{target} target, {fused} fused, {addOn} add-on, {debris} debris": "本体 {target}・一体化 {fused}・付属 {addOn}・破片 {debris}",
+  "A fused part overlaps the target and prints with it: only its exposed overhangs get supports.": "一体化パーツは本体と重なり、一緒に造形されます。露出したオーバーハングにだけサポートが付きます。",
   "no supports": "サポートなし",
   // Round D: denture wording and island bubbles
   "Drop a denture STL, or choose one. It is stood upright automatically; turn it with Free transform if needed, then press Next.": "義歯の STL をドロップするか、ファイルを選んでください。自動で立てた向きに置かれます。必要なら「自由変換」で回してから「次へ」を押してください。",

@@ -25,7 +25,7 @@ const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
 /** Dental Auto Generate chrome: review the detector first, then mark only permitted support area. */
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
   lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, onTuningChange,
-  review, clickReach, tilt, onTilt, free, orientExtra, reviewExtra, risks, onShowRisk, send, run }: {
+  review, clickReach, tilt, onTilt, free, orientExtra, reviewExtra, areaExtra, risks, onShowRisk, send, run }: {
   gesture: Extract<Gesture, { kind: 'dental-type' | 'dental-aligner' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
   /** Step 1: the object selected on the plate, offered as the aligner without a drop. */
@@ -56,6 +56,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   orientExtra?: ReactNode;
   /** The supports step: the job's own blocks in the side panel (the denture's unresolved points, settings, parts). */
   reviewExtra?: ReactNode;
+  /** Step 2: the job's own blocks above Back | Next (the aligner's parts list of a multi-part file). */
+  areaExtra?: ReactNode;
   /** Step 2: overhang low points outside the permitted area (the blue spots), listed with Show me. */
   risks?: readonly AreaRisk[];
   onShowRisk?: (risk: AreaRisk) => void;
@@ -151,6 +153,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         ? 'Could not preview safe support tips. Adjust the area or retry.'
         : previewStatus === 'ready' ? 'No safe support tips were found. Automatic placement is paused.'
           : 'Finding safe support tips…')}</p> : null}
+      {areaExtra}
       <div className="edit-row">
         <CommandButton command={resolve('dental.back', ui)} run={run} />
         <CommandButton command={resolve('dental.generate', tuningBusy ? { ...ui, dentalPreviewReady: false } : ui)} run={run} />
