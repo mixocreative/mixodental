@@ -647,6 +647,88 @@ export class DentureAreaResult {
 if (Symbol.dispose) DentureAreaResult.prototype[Symbol.dispose] = DentureAreaResult.prototype.free;
 
 /**
+ * One mesh's live tilt view. Failed to prepare (the mesh cannot be oriented): `ok() == false` with `reason()`.
+ */
+export class DentureLiveTilt {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        DentureLiveTiltFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_denturelivetilt_free(ptr, 0);
+    }
+    /**
+     * Does the per-model work for `positions` / `indices` (moved in) under the denture profile `profile`, with the scan settings and
+     * the rule overrides (`rules` in `rule_names()` order, NaN keeps the default) `denture_tilt_paths` takes.
+     * @param {Float32Array} positions
+     * @param {Uint32Array} indices
+     * @param {string} profile
+     * @param {number} neck_length_mm
+     * @param {number} pillar_diameter_mm
+     * @param {number} lift_mm
+     * @param {boolean} braced
+     * @param {Float64Array} rules
+     */
+    constructor(positions, indices, profile, neck_length_mm, pillar_diameter_mm, lift_mm, braced, rules) {
+        const ptr0 = passArrayF32ToWasm0(positions, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArray32ToWasm0(indices, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ptr3 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+        const len3 = WASM_VECTOR_LEN;
+        const ret = wasm.denturelivetilt_new(ptr0, len0, ptr1, len1, ptr2, len2, neck_length_mm, pillar_diameter_mm, lift_mm, braced, ptr3, len3);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0];
+        DentureLiveTiltFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * False when the per-model work failed (see `reason`); `paths` then answers failed for every tilt.
+     * @returns {boolean}
+     */
+    ok() {
+        const ret = wasm.denturelivetilt_ok(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * The tips and path states at `tilt_deg` (degrees from upright), as `denture_tilt_paths` gives them.
+     * @param {number} tilt_deg
+     * @returns {DentureTiltPaths}
+     */
+    paths(tilt_deg) {
+        const ret = wasm.denturelivetilt_paths(this.__wbg_ptr, tilt_deg);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return DentureTiltPaths.__wrap(ret[0]);
+    }
+    /**
+     * Why the per-model work failed (`orientation-...`); empty when ok.
+     * @returns {string}
+     */
+    reason() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.denturelivetilt_reason(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+}
+if (Symbol.dispose) DentureLiveTilt.prototype[Symbol.dispose] = DentureLiveTilt.prototype.free;
+
+/**
  * Step 1 result for a denture. Failed: `status() == 1` with `reason()`. Oriented: `status() == 0`.
  */
 export class DentureOrientResult {
@@ -1703,6 +1785,17 @@ export class Generation {
         return v1;
     }
     /**
+     * The case's footprint on the plate (engine 53, `supports::plate::footprint`), as `arrange_plate` reads one case: the loop count,
+     * then per loop its point count and x z per point (plate plan, mm, largest loop first); `[0]` without a model.
+     * @returns {Float64Array}
+     */
+    take_footprint() {
+        const ret = wasm.generation_take_footprint(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
      * @returns {Uint32Array}
      */
     take_indices() {
@@ -1906,11 +1999,31 @@ export class Generation {
         return v1;
     }
     /**
+     * Unresolved report (engine 51): what each entry is, `island`, `lowest` (a lowest-point tip left out, or a lowest point with no tip) or `tip`.
+     * @returns {string[]}
+     */
+    take_unresolved_kinds() {
+        const ret = wasm.generation_take_unresolved_kinds(this.__wbg_ptr);
+        var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * Unresolved report: the gap (mm) the build needs, per entry.
      * @returns {Float64Array}
      */
     take_unresolved_needed() {
         const ret = wasm.generation_take_unresolved_needed(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Unresolved report (engine 51): the outward surface normal per entry, xyz (plate frame; an island: straight down), for `reroute_support`.
+     * @returns {Float64Array}
+     */
+    take_unresolved_normals() {
+        const ret = wasm.generation_take_unresolved_normals(this.__wbg_ptr);
         var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
         return v1;
@@ -3150,6 +3263,69 @@ export class PickIndex {
 if (Symbol.dispose) PickIndex.prototype[Symbol.dispose] = PickIndex.prototype.free;
 
 /**
+ * The layout: a new plan offset per case and which cases moved, fit nowhere, or overlap while frozen.
+ */
+export class PlateArrangement {
+    static __wrap(ptr) {
+        const obj = Object.create(PlateArrangement.prototype);
+        obj.__wbg_ptr = ptr;
+        PlateArrangementFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        PlateArrangementFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_platearrangement_free(ptr, 0);
+    }
+    /**
+     * Indices of the frozen cases that overlap an earlier frozen case or leave the plate.
+     * @returns {Uint32Array}
+     */
+    conflicts() {
+        const ret = wasm.platearrangement_conflicts(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Indices of the cases that moved.
+     * @returns {Uint32Array}
+     */
+    moved() {
+        const ret = wasm.platearrangement_moved(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * x z per case (plan, mm), input order.
+     * @returns {Float64Array}
+     */
+    offsets() {
+        const ret = wasm.platearrangement_offsets(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Indices of the unfrozen cases that fit nowhere (left where they were).
+     * @returns {Uint32Array}
+     */
+    unplaced() {
+        const ret = wasm.platearrangement_unplaced(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+}
+if (Symbol.dispose) PlateArrangement.prototype[Symbol.dispose] = PlateArrangement.prototype.free;
+
+/**
  * A `PolicyResult` made in Rust (`GeometrySession.dental_policy` / `generic_policy`) and handed
  * straight to `generate`. The host never assembles one; it can only read what it needs to show.
  */
@@ -3359,6 +3535,8 @@ export class PolicyHandle {
     /**
      * The dental model-landing allow list (tip ids): those tips may be supported from the model's own surface even when the rule
      * `dentalModelLanding` is 0 (denture builds only; replaces the earlier list). The UI bubble "support from model surface" fills it.
+     * An id of a lowest point the policy placed no tip on (`denture-low-unreached-<k>`, the unresolved report's `lowest` entries with
+     * no tip) also makes that point a candidate (engine 51, `dental::denture::model_landing::admit`).
      * @param {string[]} ids
      */
     set_model_landing_allow(ids) {
@@ -3534,6 +3712,35 @@ export class WeldResult {
     }
 }
 if (Symbol.dispose) WeldResult.prototype[Symbol.dispose] = WeldResult.prototype.free;
+
+/**
+ * Packs the cases on a `width_mm` x `depth_mm` plate centred on the origin. `loops` per case: the loop count, then per loop its point
+ * count and x z per point (relative to the case's offset); `offsets` x z per case; `frozen` one 0/1 per case. `full` re-packs every
+ * unfrozen case; otherwise only those that do not fit where they are move. `rules` in `rule_names()` order (`plateGapMm`).
+ * @param {number} width_mm
+ * @param {number} depth_mm
+ * @param {Float64Array} rules
+ * @param {Float64Array} loops
+ * @param {Float64Array} offsets
+ * @param {Uint8Array} frozen
+ * @param {boolean} full
+ * @returns {PlateArrangement}
+ */
+export function arrange_plate(width_mm, depth_mm, rules, loops, offsets, frozen, full) {
+    const ptr0 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArrayF64ToWasm0(loops, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passArrayF64ToWasm0(offsets, wasm.__wbindgen_malloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passArray8ToWasm0(frozen, wasm.__wbindgen_malloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ret = wasm.arrange_plate(width_mm, depth_mm, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, full);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return PlateArrangement.__wrap(ret[0]);
+}
 
 /**
  * Support bodies as axis segments; component `k` covers `indices[start[k] .. start[k] + count[k]]`
@@ -4207,6 +4414,9 @@ const DentalTiltScanResultFinalization = (typeof FinalizationRegistry === 'undef
 const DentureAreaResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_denturearearesult_free(ptr, 1));
+const DentureLiveTiltFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_denturelivetilt_free(ptr, 1));
 const DentureOrientResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_dentureorientresult_free(ptr, 1));
@@ -4243,6 +4453,9 @@ const LegacyFillFinalization = (typeof FinalizationRegistry === 'undefined')
 const PickIndexFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_pickindex_free(ptr, 1));
+const PlateArrangementFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_platearrangement_free(ptr, 1));
 const PolicyHandleFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_policyhandle_free(ptr, 1));

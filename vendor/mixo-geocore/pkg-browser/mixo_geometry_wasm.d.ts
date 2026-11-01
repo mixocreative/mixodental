@@ -198,6 +198,31 @@ export class DentureAreaResult {
 }
 
 /**
+ * One mesh's live tilt view. Failed to prepare (the mesh cannot be oriented): `ok() == false` with `reason()`.
+ */
+export class DentureLiveTilt {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Does the per-model work for `positions` / `indices` (moved in) under the denture profile `profile`, with the scan settings and
+     * the rule overrides (`rules` in `rule_names()` order, NaN keeps the default) `denture_tilt_paths` takes.
+     */
+    constructor(positions: Float32Array, indices: Uint32Array, profile: string, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, rules: Float64Array);
+    /**
+     * False when the per-model work failed (see `reason`); `paths` then answers failed for every tilt.
+     */
+    ok(): boolean;
+    /**
+     * The tips and path states at `tilt_deg` (degrees from upright), as `denture_tilt_paths` gives them.
+     */
+    paths(tilt_deg: number): DentureTiltPaths;
+    /**
+     * Why the per-model work failed (`orientation-...`); empty when ok.
+     */
+    reason(): string;
+}
+
+/**
  * Step 1 result for a denture. Failed: `status() == 1` with `reason()`. Oriented: `status() == 0`.
  */
 export class DentureOrientResult {
@@ -582,6 +607,11 @@ export class Generation {
      * Structures the repair switched off: 1 tree, 2 brace, 3 only the crossing brace segments.
      */
     take_fallback(): Uint8Array;
+    /**
+     * The case's footprint on the plate (engine 53, `supports::plate::footprint`), as `arrange_plate` reads one case: the loop count,
+     * then per loop its point count and x z per point (plate plan, mm, largest loop first); `[0]` without a model.
+     */
+    take_footprint(): Float64Array;
     take_indices(): Uint32Array;
     take_intents(): Float64Array;
     take_island_heights(): Float64Array;
@@ -646,9 +676,17 @@ export class Generation {
      */
     take_unresolved_ids(): string[];
     /**
+     * Unresolved report (engine 51): what each entry is, `island`, `lowest` (a lowest-point tip left out, or a lowest point with no tip) or `tip`.
+     */
+    take_unresolved_kinds(): string[];
+    /**
      * Unresolved report: the gap (mm) the build needs, per entry.
      */
     take_unresolved_needed(): Float64Array;
+    /**
+     * Unresolved report (engine 51): the outward surface normal per entry, xyz (plate frame; an island: straight down), for `reroute_support`.
+     */
+    take_unresolved_normals(): Float64Array;
     /**
      * Unresolved report: x y z of each (plate frame, mm; the height above the plate is y minus the plate's).
      */
@@ -932,6 +970,31 @@ export class PickIndex {
 }
 
 /**
+ * The layout: a new plan offset per case and which cases moved, fit nowhere, or overlap while frozen.
+ */
+export class PlateArrangement {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Indices of the frozen cases that overlap an earlier frozen case or leave the plate.
+     */
+    conflicts(): Uint32Array;
+    /**
+     * Indices of the cases that moved.
+     */
+    moved(): Uint32Array;
+    /**
+     * x z per case (plan, mm), input order.
+     */
+    offsets(): Float64Array;
+    /**
+     * Indices of the unfrozen cases that fit nowhere (left where they were).
+     */
+    unplaced(): Uint32Array;
+}
+
+/**
  * A `PolicyResult` made in Rust (`GeometrySession.dental_policy` / `generic_policy`) and handed
  * straight to `generate`. The host never assembles one; it can only read what it needs to show.
  */
@@ -1010,6 +1073,8 @@ export class PolicyHandle {
     /**
      * The dental model-landing allow list (tip ids): those tips may be supported from the model's own surface even when the rule
      * `dentalModelLanding` is 0 (denture builds only; replaces the earlier list). The UI bubble "support from model surface" fills it.
+     * An id of a lowest point the policy placed no tip on (`denture-low-unreached-<k>`, the unresolved report's `lowest` entries with
+     * no tip) also makes that point a candidate (engine 51, `dental::denture::model_landing::admit`).
      */
     set_model_landing_allow(ids: string[]): void;
     /**
@@ -1065,6 +1130,13 @@ export class WeldResult {
     take_indices(): Uint32Array;
     take_positions(): Float32Array;
 }
+
+/**
+ * Packs the cases on a `width_mm` x `depth_mm` plate centred on the origin. `loops` per case: the loop count, then per loop its point
+ * count and x z per point (relative to the case's offset); `offsets` x z per case; `frozen` one 0/1 per case. `full` re-packs every
+ * unfrozen case; otherwise only those that do not fit where they are move. `rules` in `rule_names()` order (`plateGapMm`).
+ */
+export function arrange_plate(width_mm: number, depth_mm: number, rules: Float64Array, loops: Float64Array, offsets: Float64Array, frozen: Uint8Array, full: boolean): PlateArrangement;
 
 /**
  * Support bodies as axis segments; component `k` covers `indices[start[k] .. start[k] + count[k]]`
@@ -1205,6 +1277,7 @@ export interface InitOutput {
     readonly __wbg_dentalregionresult_free: (a: number, b: number) => void;
     readonly __wbg_dentaltiltscanresult_free: (a: number, b: number) => void;
     readonly __wbg_denturearearesult_free: (a: number, b: number) => void;
+    readonly __wbg_denturelivetilt_free: (a: number, b: number) => void;
     readonly __wbg_dentureorientresult_free: (a: number, b: number) => void;
     readonly __wbg_denturereviewresult_free: (a: number, b: number) => void;
     readonly __wbg_denturetiltpaths_free: (a: number, b: number) => void;
@@ -1217,10 +1290,12 @@ export interface InitOutput {
     readonly __wbg_handwork_free: (a: number, b: number) => void;
     readonly __wbg_legacyfill_free: (a: number, b: number) => void;
     readonly __wbg_pickindex_free: (a: number, b: number) => void;
+    readonly __wbg_platearrangement_free: (a: number, b: number) => void;
     readonly __wbg_policyhandle_free: (a: number, b: number) => void;
     readonly __wbg_reroute_free: (a: number, b: number) => void;
     readonly __wbg_supportproblems_free: (a: number, b: number) => void;
     readonly __wbg_weldresult_free: (a: number, b: number) => void;
+    readonly arrange_plate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => [number, number, number];
     readonly asciistlsession_finish: (a: number) => [number, number, number];
     readonly asciistlsession_new: (a: number) => [number, number, number];
     readonly asciistlsession_push: (a: number, b: number, c: number) => [number, number];
@@ -1280,6 +1355,10 @@ export interface InitOutput {
     readonly denture_profile_ids: () => [number, number];
     readonly denturearearesult_areas: (a: number) => [number, number];
     readonly denturearearesult_mask: (a: number) => [number, number];
+    readonly denturelivetilt_new: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number, number];
+    readonly denturelivetilt_ok: (a: number) => number;
+    readonly denturelivetilt_paths: (a: number, b: number) => [number, number, number];
+    readonly denturelivetilt_reason: (a: number) => [number, number];
     readonly dentureorientresult_diagnostics: (a: number) => [number, number];
     readonly dentureorientresult_frame: (a: number) => [number, number];
     readonly dentureorientresult_reason: (a: number) => [number, number];
@@ -1374,6 +1453,7 @@ export interface InitOutput {
     readonly generation_take_dropped: (a: number) => [number, number];
     readonly generation_take_dropped_by_zones: (a: number) => [number, number];
     readonly generation_take_fallback: (a: number) => [number, number];
+    readonly generation_take_footprint: (a: number) => [number, number];
     readonly generation_take_indices: (a: number) => [number, number];
     readonly generation_take_intents: (a: number) => [number, number];
     readonly generation_take_island_heights: (a: number) => [number, number];
@@ -1395,7 +1475,9 @@ export interface InitOutput {
     readonly generation_take_tags: (a: number) => [number, number];
     readonly generation_take_unresolved_best_gaps: (a: number) => [number, number];
     readonly generation_take_unresolved_ids: (a: number) => [number, number];
+    readonly generation_take_unresolved_kinds: (a: number) => [number, number];
     readonly generation_take_unresolved_needed: (a: number) => [number, number];
+    readonly generation_take_unresolved_normals: (a: number) => [number, number];
     readonly generation_take_unresolved_points: (a: number) => [number, number];
     readonly generation_take_unresolved_reasons: (a: number) => [number, number];
     readonly generation_take_unresolved_streams: (a: number) => [number, number];
@@ -1463,6 +1545,10 @@ export interface InitOutput {
     readonly pickindex_take_links: (a: number) => [number, number];
     readonly pickindex_take_order: (a: number) => [number, number];
     readonly placement_matrix: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+    readonly platearrangement_conflicts: (a: number) => [number, number];
+    readonly platearrangement_moved: (a: number) => [number, number];
+    readonly platearrangement_offsets: (a: number) => [number, number];
+    readonly platearrangement_unplaced: (a: number) => [number, number];
     readonly policyhandle_alternate_faces: (a: number) => [number, number];
     readonly policyhandle_alternate_owners: (a: number) => [number, number];
     readonly policyhandle_alternate_points: (a: number) => [number, number];

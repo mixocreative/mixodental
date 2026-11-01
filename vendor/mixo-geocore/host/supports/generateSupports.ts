@@ -3,7 +3,7 @@ import { packRules, type GenerateRules } from './generateRules';
 import { PROGRESS_STAGE } from '../core/progress';
 import type { ProgressCallback, TriangleMesh } from '../core/analysis/types';
 import type { JobTransform } from '../core/jobs';
-import type { GeneratedSupportMesh, SupportContact, SupportIssue, SupportPart, SupportVerdict, UnresolvedPoint } from '../core/supports/mesh';
+import type { GeneratedSupportMesh, SupportContact, SupportIssue, SupportPart, SupportVerdict, UnresolvedKind, UnresolvedPoint } from '../core/supports/mesh';
 import type { LiveSupportSettings } from '../core/supports/settings';
 import type { ZoneStamp } from '../core/supports/zones';
 import { decodeComponents, packContacts, packSettings, packZones, type ColumnInput } from './supportBuildWasm';
@@ -45,6 +45,8 @@ export interface PolicyHandle {
   part_list?(): Float64Array;
   /** A denture policy's part id of every face of the file; empty for any other policy. */
   face_parts?(): Uint32Array;
+  /** The dental model-landing allow list (tip ids; engine 33, unplaced lowest points become candidates since engine 51). Optional so test doubles may omit it. */
+  set_model_landing_allow?(ids: string[]): void;
   free(): void;
 }
 
@@ -152,6 +154,10 @@ interface Generation {
   take_model_landed_ids(): string[]; take_model_landed_tiers(): Uint8Array; take_model_landed_points(): Float64Array;
   take_unresolved_ids(): string[]; take_unresolved_streams(): string[]; take_unresolved_points(): Float64Array; take_unresolved_reasons(): string[];
   take_unresolved_best_gaps(): Float64Array; take_unresolved_needed(): Float64Array;
+  /** Engine 51; optional so test doubles may omit them. */
+  take_unresolved_kinds?(): string[]; take_unresolved_normals?(): Float64Array;
+  /** Engine 53; optional so test doubles may omit it. */
+  take_footprint?(): Float64Array;
   status(): number; reason(): string; stop_reason(): string; take_issues(): Uint32Array;
   take_island_heights(): Float64Array; take_island_vertices(): Uint32Array; take_island_status(): Uint8Array; island_reason(): string;
   take_rings(): Float64Array; trials(): number; revision(): number; free(): void;
@@ -180,6 +186,26 @@ const ISSUE_STRIDE = 5;
 const ISSUE_ORIGIN = ['auto', 'manual', 'structural'] as const;
 const LANDING_TIERS = [undefined, 'allowed', 'other', 'no-support'] as const;
 const ISLAND_STATUS = ['resolved', 'unresolved', 'manual-only', 'outside-policy'] as const;
+
+/** A flat footprint (`take_footprint`) as loops relative to the unit's plate position `origin` (plan x, z). */
+export function unpackFootprint(flat: Float64Array, origin: readonly [number, number]): Array<Array<[number, number]>> {
+  const loops: Array<Array<[number, number]>> = [];
+  let at = 1;
+  for (let l = 0; l < (flat[0] ?? 0); l++) {
+    const n = flat[at++]!;
+    const loop: Array<[number, number]> = [];
+    for (let k = 0; k < n; k++, at += 2) loop.push([flat[at]! - origin[0], flat[at + 1]! - origin[1]]);
+    loops.push(loop);
+  }
+  return loops;
+}
+
+/** The kind of an unresolved entry: the engine's word (engine 51), else read from the id and stream as engine 50 named them. */
+export function unresolvedKind(word: string | undefined, id: string, stream: string): UnresolvedKind {
+  if (word === 'island' || word === 'lowest' || word === 'tip') return word;
+  if (id.startsWith('island-') || stream === 'island') return 'island';
+  return stream === 'low' ? 'lowest' : 'tip';
+}
 
 /** A placement as the session calls take it: position xyz then rotation xyz. */
 export const frameArray = (frame: JobTransform): Float64Array => Float64Array.of(...frame.position, ...frame.rotation);
@@ -268,6 +294,7 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
           const points = result.take_model_landed_points();
           return ids.map((id, k) => ({ id, tier: LANDING_TIERS[tiers[k]!] ?? 'other', position: [points[k * 3]!, points[k * 3 + 1]!, points[k * 3 + 2]!] as [number, number, number] }));
         })(),
+        footprint: unpackFootprint(result.take_footprint?.() ?? new Float64Array(), options.frame ? [options.frame.position[0], options.frame.position[2]] : [0, 0]),
         unresolved: (() => {
           const ids = result.take_unresolved_ids();
           const streams = result.take_unresolved_streams();
@@ -275,8 +302,12 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
           const reasons = result.take_unresolved_reasons();
           const gaps = result.take_unresolved_best_gaps();
           const needed = result.take_unresolved_needed();
+          const kinds = result.take_unresolved_kinds?.() ?? [];
+          const normals = result.take_unresolved_normals?.() ?? new Float64Array();
           return ids.map((id, k): UnresolvedPoint => ({
-            id, stream: streams[k]!, position: [points[k * 3]!, points[k * 3 + 1]!, points[k * 3 + 2]!], heightMm: points[k * 3 + 1]! - (options.plateY ?? 0),
+            id, kind: unresolvedKind(kinds[k], id, streams[k]!), stream: streams[k]!, position: [points[k * 3]!, points[k * 3 + 1]!, points[k * 3 + 2]!],
+            normal: normals.length >= k * 3 + 3 ? [normals[k * 3]!, normals[k * 3 + 1]!, normals[k * 3 + 2]!] : [0, -1, 0],
+            heightMm: points[k * 3 + 1]! - (options.plateY ?? 0),
             reason: reasons[k]!, bestGapMm: Number.isNaN(gaps[k]!) ? null : gaps[k]!, neededMm: needed[k]!,
           }));
         })(),

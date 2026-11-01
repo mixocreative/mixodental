@@ -122,14 +122,21 @@ export interface DentalRimCoverage {
  * A built support mesh with its component tags and verdicts. Plate space as `generate` returns it;
  * `supports/jobRunner.runSupportJob` hands it back in unit-local space.
  */
+/** What an unresolved point is: an island, a lowest point (a lowest-point tip left out, or a lowest point the policy put no tip on), or another tip left out. */
+export type UnresolvedKind = 'island' | 'lowest' | 'tip';
+
 /** A tip or island that still has no support (`GeneratedSupportMesh.unresolved`), as the bubble tooltip shows it. */
 export interface UnresolvedPoint {
-  /** The tip's contact id, or `island-<vertex>` for an island with no tip of its own. */
+  /** The tip's contact id, a lowest point's id with no tip (`denture-low-unreached-<k>`: put it on the allow list to resolve it), or `island-<vertex>` for an island with no tip of its own. */
   id: string;
+  /** Island, lowest point or tip (engine 51). */
+  kind: UnresolvedKind;
   /** The tip's stream (`low`, `area`, `bar`, `light`, `rim`, `hole`, `island`); empty for a tip of another policy. */
   stream: string;
   /** Plate frame, mm. */
   position: [number, number, number];
+  /** The outward surface normal there (plate frame; an island: straight down): the tip normal for the one-tip edit `rerouteSupport`. */
+  normal: [number, number, number];
   /** Height above the plate, mm (the position's y minus the plate's). */
   heightMm: number;
   /** Why, in words. */
@@ -158,6 +165,8 @@ export interface GeneratedSupportMesh extends TriangleMesh {
   modelLanded?: { id: string; tier: 'allowed' | 'other' | 'no-support'; position: [number, number, number] }[];
   /** Every tip still left out and every island no support reaches: where, which stream, why, and the best gap found (the largest clearance, mm, at which a route from the plate still exists; `null`: none found or not searched) against the gap the build needs. What the UI bubble's tooltip shows. */
   unresolved?: UnresolvedPoint[];
+  /** The case's footprint on the plate (engine 53): the space-map raft outline (model shadow joined with the foot discs, grown by the raft expand), closed loops in plan (x, z) mm relative to the unit's plate position at build time. What plate auto-arrange packs (`editing/arrange.ts arrangeOnPlate`). */
+  footprint?: Array<Array<[number, number]>>;
   /** Exact body-clearance verdict of the final mesh (`generate`); absent on a mesh not built by it. */
   verdict?: SupportVerdict;
   /** Revision of the request this mesh answers (`generate` echoes it); the host drops any other. */

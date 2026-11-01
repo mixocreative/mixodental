@@ -84,6 +84,16 @@ export interface DentureTiltPathsLike {
   overhang_mm2(): number;
 }
 
+/** The live tilt handle (Rust `DentureLiveTilt`, engine 52): one mesh's per-model work, then one `paths(tiltDeg)` per tilt; `free()` when done. */
+export interface DentureLiveTiltLike {
+  free(): void;
+  /** False when the per-model work failed (the mesh cannot be oriented); `reason()` says why. */
+  ok(): boolean;
+  reason(): string;
+  /** The tips and path states at `tiltDeg` (degrees from upright), as `denture_tilt_paths` gives them. */
+  paths(tiltDeg: number): DentureTiltPathsLike;
+}
+
 /** Result handle of `denture_compare_areas`; read it, then `free()`. */
 export interface DentureAreaResultLike {
   mask(): Uint8Array;
@@ -232,6 +242,9 @@ export interface DentalSession {
 /** The dental calls of the engine module the browser build has (sessions, the overlay mask, the denture profile ids). */
 export interface DentalEngine {
   GeometrySession: new (maxBytes: number) => unknown;
+  /** The live tilt handle (engine 52): owns a copy of the mesh; `rules` in `rule_names()` order, NaN keeps the default. */
+  DentureLiveTilt: new (positions: Float32Array, indices: Uint32Array, profile: string, neckLengthMm: number, pillarDiameterMm: number, liftMm: number,
+    braced: boolean, rules: Float64Array) => DentureLiveTiltLike;
   /** Ids of the embedded denture profiles (production ABI; the aligner ids are a test-abi call). */
   denture_profile_ids(): string[];
   dental_allowed_vertices(positions: Float32Array, indices: Uint32Array, normals: Float32Array, rim: Float64Array, visibilityMask: Uint8Array,

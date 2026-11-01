@@ -250,6 +250,31 @@ export class DentureAreaResult {
 }
 
 /**
+ * One mesh's live tilt view. Failed to prepare (the mesh cannot be oriented): `ok() == false` with `reason()`.
+ */
+export class DentureLiveTilt {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Does the per-model work for `positions` / `indices` (moved in) under the denture profile `profile`, with the scan settings and
+     * the rule overrides (`rules` in `rule_names()` order, NaN keeps the default) `denture_tilt_paths` takes.
+     */
+    constructor(positions: Float32Array, indices: Uint32Array, profile: string, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, rules: Float64Array);
+    /**
+     * False when the per-model work failed (see `reason`); `paths` then answers failed for every tilt.
+     */
+    ok(): boolean;
+    /**
+     * The tips and path states at `tilt_deg` (degrees from upright), as `denture_tilt_paths` gives them.
+     */
+    paths(tilt_deg: number): DentureTiltPaths;
+    /**
+     * Why the per-model work failed (`orientation-...`); empty when ok.
+     */
+    reason(): string;
+}
+
+/**
  * Step 1 result for a denture. Failed: `status() == 1` with `reason()`. Oriented: `status() == 0`.
  */
 export class DentureOrientResult {
@@ -634,6 +659,11 @@ export class Generation {
      * Structures the repair switched off: 1 tree, 2 brace, 3 only the crossing brace segments.
      */
     take_fallback(): Uint8Array;
+    /**
+     * The case's footprint on the plate (engine 53, `supports::plate::footprint`), as `arrange_plate` reads one case: the loop count,
+     * then per loop its point count and x z per point (plate plan, mm, largest loop first); `[0]` without a model.
+     */
+    take_footprint(): Float64Array;
     take_indices(): Uint32Array;
     take_intents(): Float64Array;
     take_island_heights(): Float64Array;
@@ -698,9 +728,17 @@ export class Generation {
      */
     take_unresolved_ids(): string[];
     /**
+     * Unresolved report (engine 51): what each entry is, `island`, `lowest` (a lowest-point tip left out, or a lowest point with no tip) or `tip`.
+     */
+    take_unresolved_kinds(): string[];
+    /**
      * Unresolved report: the gap (mm) the build needs, per entry.
      */
     take_unresolved_needed(): Float64Array;
+    /**
+     * Unresolved report (engine 51): the outward surface normal per entry, xyz (plate frame; an island: straight down), for `reroute_support`.
+     */
+    take_unresolved_normals(): Float64Array;
     /**
      * Unresolved report: x y z of each (plate frame, mm; the height above the plate is y minus the plate's).
      */
@@ -998,6 +1036,31 @@ export class PickIndex {
 }
 
 /**
+ * The layout: a new plan offset per case and which cases moved, fit nowhere, or overlap while frozen.
+ */
+export class PlateArrangement {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Indices of the frozen cases that overlap an earlier frozen case or leave the plate.
+     */
+    conflicts(): Uint32Array;
+    /**
+     * Indices of the cases that moved.
+     */
+    moved(): Uint32Array;
+    /**
+     * x z per case (plan, mm), input order.
+     */
+    offsets(): Float64Array;
+    /**
+     * Indices of the unfrozen cases that fit nowhere (left where they were).
+     */
+    unplaced(): Uint32Array;
+}
+
+/**
  * A `PolicyResult` made in Rust (`GeometrySession.dental_policy` / `generic_policy`) and handed
  * straight to `generate`. The host never assembles one; it can only read what it needs to show.
  */
@@ -1084,6 +1147,8 @@ export class PolicyHandle {
     /**
      * The dental model-landing allow list (tip ids): those tips may be supported from the model's own surface even when the rule
      * `dentalModelLanding` is 0 (denture builds only; replaces the earlier list). The UI bubble "support from model surface" fills it.
+     * An id of a lowest point the policy placed no tip on (`denture-low-unreached-<k>`, the unresolved report's `lowest` entries with
+     * no tip) also makes that point a candidate (engine 51, `dental::denture::model_landing::admit`).
      */
     set_model_landing_allow(ids: string[]): void;
     /**
@@ -1160,6 +1225,13 @@ export class WeldResult {
     take_indices(): Uint32Array;
     take_positions(): Float32Array;
 }
+
+/**
+ * Packs the cases on a `width_mm` x `depth_mm` plate centred on the origin. `loops` per case: the loop count, then per loop its point
+ * count and x z per point (relative to the case's offset); `offsets` x z per case; `frozen` one 0/1 per case. `full` re-packs every
+ * unfrozen case; otherwise only those that do not fit where they are move. `rules` in `rule_names()` order (`plateGapMm`).
+ */
+export function arrange_plate(width_mm: number, depth_mm: number, rules: Float64Array, loops: Float64Array, offsets: Float64Array, frozen: Uint8Array, full: boolean): PlateArrangement;
 
 /**
  * Support bodies as axis segments; component `k` covers `indices[start[k] .. start[k] + count[k]]`

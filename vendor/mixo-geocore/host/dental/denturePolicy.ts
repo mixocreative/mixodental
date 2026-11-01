@@ -21,6 +21,12 @@ export interface DenturePolicy {
   profileId: string;
   /** Lattice bracing between pillars (the profile default unless the operator switched it). */
   lattice: boolean;
+  /**
+   * Tips the operator chose to support from the model's own surface, one by one (the bubble "support from model surface"; engine 33,
+   * Round C engine 51): their ids, as the build's unresolved report names them (`UnresolvedPoint.id`, a lowest point with no tip included).
+   * The build tries the plate first, then the model surface (allowed area, other surface, no-support zone). Absent or empty: none.
+   */
+  modelLandingAllow?: readonly string[];
 }
 
 /** A unit's policy from its profile, lattice on as the profile says. */
@@ -37,7 +43,9 @@ export function defaultDenturePolicy(profileId: string, lattice = true): Denture
  */
 export function makeDenturePolicy(session: Pick<DentalSession, 'denture_policy_ruled'>, model: number, policy: DenturePolicy, frame: JobTransform,
   manual: readonly Pick<SupportPoint, 'position'>[] = [], rules?: GenerateRules): PolicyHandle {
-  return session.denture_policy_ruled(model, policy.profileId, frameArray(frame), policy.lattice, Float64Array.from(manual.flatMap((point) => point.position)), packRules(rules));
+  const handle = session.denture_policy_ruled(model, policy.profileId, frameArray(frame), policy.lattice, Float64Array.from(manual.flatMap((point) => point.position)), packRules(rules));
+  if (policy.modelLandingAllow?.length) handle.set_model_landing_allow?.([...policy.modelLandingAllow]);
+  return handle;
 }
 
 /** The islands a denture policy handle reports (before the build); `settleIslands` adds the build's left-out tips. */
