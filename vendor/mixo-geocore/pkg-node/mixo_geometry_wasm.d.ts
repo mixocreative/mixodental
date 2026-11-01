@@ -292,6 +292,10 @@ export class DentureReviewResult {
      */
     allowed_mask(): Uint8Array;
     /**
+     * Per open-area region `[projected mm2, steepness, height mm, pitch mm, faces, tips]`, six values each (engine 45, rule `areaDensity`); empty with the rule off.
+     */
+    area_regions(): Float64Array;
+    /**
      * Tight box: centre (3, the line-of-sight point), axes (9), half extents (3).
      */
     box_(): Float64Array;
@@ -594,6 +598,10 @@ export class Generation {
     private constructor();
     free(): void;
     [Symbol.dispose](): void;
+    /**
+     * Rule `contactFit` (engine 45): the built contact ends by fit state `[fitted, seat, unconverged]`; zeros with the rule off.
+     */
+    contact_fits(): Uint32Array;
     /**
      * Non-empty when the islands could not be judged (no island is then called resolved).
      */

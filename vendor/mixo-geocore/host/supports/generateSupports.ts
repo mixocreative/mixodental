@@ -144,6 +144,7 @@ interface Generation {
   take_dropped(): string[]; take_dropped_by_zones(): string[]; take_fallback(): Uint8Array;
   take_left_out_ids(): string[]; take_left_out_points(): Float64Array; take_left_out_reasons(): string[];
   take_last_resort_ids(): string[]; take_last_resort_tiers(): Uint8Array; take_last_resort_clearances(): Float64Array;
+  contact_fits(): Uint32Array;
   take_model_landed_ids(): string[]; take_model_landed_tiers(): Uint8Array; take_model_landed_points(): Float64Array;
   take_unresolved_ids(): string[]; take_unresolved_streams(): string[]; take_unresolved_points(): Float64Array; take_unresolved_reasons(): string[];
   take_unresolved_best_gaps(): Float64Array; take_unresolved_needed(): Float64Array;
@@ -252,6 +253,10 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
           const tiers = result.take_last_resort_tiers();
           const clearances = result.take_last_resort_clearances();
           return ids.map((id, k) => ({ id, tier: (tiers[k] === 1 ? 1 : 2) as 1 | 2, clearanceMm: clearances[k]! }));
+        })(),
+        contactFits: (() => {
+          const f = result.contact_fits();
+          return { fitted: f[0] ?? 0, seat: f[1] ?? 0, unconverged: f[2] ?? 0 };
         })(),
         modelLanded: (() => {
           const ids = result.take_model_landed_ids();

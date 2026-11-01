@@ -212,6 +212,28 @@ export interface GenerateRules {
   drainVolumeMm3?: number;
   /** Drain / clean: a tooth socket (socketMinDepthMm, R2's faces removed) at least this deep is reported hard to clean, mm (default 3: a socket is a few mm wide, so past 3 mm it is deeper than wide and a brush does not reach the floor, where uncured resin weakens the tooth's bond). */
   drainSocketDepthMm?: number;
+  /** Denture tips by overhang area (engine 45, default false; true on): the open-area overhang faces (outside the rim band and the hole band) are joined into connected regions and each region's grid pitch is downPitchMm x f(A) x g(c), clamped to areaMinPitchMm..areaMaxPitchMm, where A is the region's projected area (what the vat film sees) and c its mean steepness: a large flat face-down area peels or sags, so its tips stand closer. f(A) = 1 up to areaRefMm2, else max(areaDenseFloor, sqrt(areaRefMm2 / A)); g(c) = 1 + areaSteepLighten x (1 - c) / 0.5. The rim line, rim band and hole band keep their fixed pitches (dentalRimPitchMm, holePitchMm). The review lists every region (area, steepness, height, pitch, tips). Off: every region takes downPitchMm, as before. */
+  areaDensity?: boolean;
+  /** Tips by area: regions up to this projected area keep the base pitch, mm2 (default 50). */
+  areaRefMm2?: number;
+  /** Tips by area: the smallest factor on the base pitch for a huge region (default 0.6: 2 mm becomes 1.2 mm; 0 < value <= 1). */
+  areaDenseFloor?: number;
+  /** Tips by area: how much a steep region lightens its pitch (default 0: steepness ignored; 0.5: a region lying 60 degrees from straight down gets 1.5 x the pitch). */
+  areaSteepLighten?: number;
+  /** Tips by area: the hard floor of a region's pitch, mm (default 1.0, two contact diameters). */
+  areaMinPitchMm?: number;
+  /** Tips by area: the hard ceiling of a region's pitch, mm (default 3.0). */
+  areaMaxPitchMm?: number;
+  /** Contact fit (engine 45, exact-contact builds only, default false; true on): the controlled contact loop. Each tip's real contact patch is measured, not assumed: contactFitRays straight lines of the cone surface run up from the cone's end and where each crosses the model near the contact is a point of the real ring (the faces near every contact are copied once per build); the bite (how far the cone's end sits below the contact along its axis) is bisected until the ring's area-equivalent diameter is within contactFitTolMm of the nominal contact diameter (tipBallMm), so on a curved surface or a turned neck the contact stays the same size and breaks clean. The route planner judges the same end the builder builds. A ring that hangs off an edge (more than a quarter of the lines miss) or does not converge keeps the analytic end; no tip is moved or dropped. Off: the analytic end, as before. */
+  contactFit?: boolean;
+  /** Contact fit: accept a ring whose equivalent diameter is within this of the nominal diameter, mm (default 0.03). */
+  contactFitTolMm?: number;
+  /** Contact fit: lines of the cone surface per ring (default 16, at least 3). */
+  contactFitRays?: number;
+  /** Contact fit: bisection steps (default 6: 0.6 mm halved six times is 0.01 mm). */
+  contactFitMaxIters?: number;
+  /** Contact fit: the deepest bite searched, as a multiple of biteDepthMm (default 2.0). */
+  contactFitMaxBiteFactor?: number;
   /** Tip check, outside the solid (engine 41, default true; false off): every support path, of every tip and every route stage, manual live edits included, leaves the surface outward (within 90 degrees of the tip's averaged normal) and its centre line, from tipInsideSkipMm past the contact through every bend, never runs inside the model (ray parity, and no crossing of the surface). This holds inside the radius the verdict's reach rule exempts around a contact, which let a neck pass through the far side of a thin lip. A refused path makes the route search try the next one; a tip with no acceptable path is left out with the reason tip-check:inside or tip-check:neck-inward (hand-placed ones too: they are never built inside the model). */
   tipInsideCheck?: boolean;
   /** Tip check: how far past the contact along the neck the centre line starts to count, mm (default 0.1): the tip itself sits in the surface. */
@@ -266,6 +288,8 @@ export const RULE_NAMES: readonly string[] = [
   'tipInsideCheck', 'tipInsideSkipMm', 'islandMaxFromDownDeg', 'tipSkinFromMm',
   'socketNoSupport', 'socketMinDepthMm', 'socketTunnelMaxMm2',
   'trapCheck', 'trapMinDepthMm', 'trapVentMaxMm2', 'suctionAreaMm2', 'suctionVolumeMm3', 'drainAspectRatio', 'drainVolumeMm3', 'drainSocketDepthMm',
+  'areaDensity', 'areaRefMm2', 'areaDenseFloor', 'areaSteepLighten', 'areaMinPitchMm', 'areaMaxPitchMm',
+  'contactFit', 'contactFitTolMm', 'contactFitRays', 'contactFitMaxIters', 'contactFitMaxBiteFactor',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */

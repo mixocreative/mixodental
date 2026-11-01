@@ -240,6 +240,10 @@ export class DentureReviewResult {
      */
     allowed_mask(): Uint8Array;
     /**
+     * Per open-area region `[projected mm2, steepness, height mm, pitch mm, faces, tips]`, six values each (engine 45, rule `areaDensity`); empty with the rule off.
+     */
+    area_regions(): Float64Array;
+    /**
      * Tight box: centre (3, the line-of-sight point), axes (9), half extents (3).
      */
     box_(): Float64Array;
@@ -542,6 +546,10 @@ export class Generation {
     private constructor();
     free(): void;
     [Symbol.dispose](): void;
+    /**
+     * Rule `contactFit` (engine 45): the built contact ends by fit state `[fitted, seat, unconverged]`; zeros with the rule off.
+     */
+    contact_fits(): Uint32Array;
     /**
      * Non-empty when the islands could not be judged (no island is then called resolved).
      */
@@ -1261,6 +1269,7 @@ export interface InitOutput {
     readonly dentureorientresult_status: (a: number) => number;
     readonly dentureorientresult_teeth_decided: (a: number) => number;
     readonly denturereviewresult_allowed_mask: (a: number) => [number, number];
+    readonly denturereviewresult_area_regions: (a: number) => [number, number];
     readonly denturereviewresult_box_: (a: number) => [number, number];
     readonly denturereviewresult_chain_lengths: (a: number) => [number, number];
     readonly denturereviewresult_chain_points: (a: number) => [number, number];
@@ -1335,6 +1344,7 @@ export interface InitOutput {
     readonly face_mask_overlay: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
     readonly faceoverlay_take_normals: (a: number) => [number, number];
     readonly faceoverlay_take_positions: (a: number) => [number, number];
+    readonly generation_contact_fits: (a: number) => [number, number];
     readonly generation_island_reason: (a: number) => [number, number];
     readonly generation_reason: (a: number) => [number, number];
     readonly generation_revision: (a: number) => number;

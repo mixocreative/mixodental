@@ -106,6 +106,8 @@ export interface DentureReview {
   lowsNotDownFacing: Vector[];
   /** Self-supporting overhang regions (rule `overhangSelfSupport`): their face ids (no open-area tips there) and the counts. Empty / zeros with the rule off. */
   selfSupport: { faces: Uint32Array; regions: number; selfSupporting: number; tipsSaved: number };
+  /** Rule areaDensity (engine 45): every open-area region with its projected area (mm2), mean steepness, mean height (mm), grid pitch (mm), face count and tips; empty with the rule off. */
+  areaRegions: Array<{ projectedMm2: number; steepness: number; heightMm: number; pitchMm: number; faces: number; tips: number }>;
   /** The islands of the reviewed pose (regions that start mid-air) with the tip that serves each or the reason it has none; `tipIndex` indexes `tips`. Empty with rule `islandTips` off. */
   islands: DentureIsland[];
   /** Why the islands could not be told (the surface is not a clean manifold...); empty when they could. */
@@ -300,6 +302,10 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
       selfSupport: (() => {
         const info = result.self_support_info();
         return { faces: result.self_support_faces(), regions: info[0] ?? 0, selfSupporting: info[1] ?? 0, tipsSaved: info[2] ?? 0 };
+      })(),
+      areaRegions: (() => {
+        const r = result.area_regions();
+        return Array.from({ length: Math.floor(r.length / 6) }, (_, k) => ({ projectedMm2: r[k * 6]!, steepness: r[k * 6 + 1]!, heightMm: r[k * 6 + 2]!, pitchMm: r[k * 6 + 3]!, faces: r[k * 6 + 4]!, tips: r[k * 6 + 5]! }));
       })(),
       islands: decodeIslands(result.islands()),
       islandsNote: result.islands_note(),

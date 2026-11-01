@@ -972,6 +972,16 @@ class DentureReviewResult {
         return v1;
     }
     /**
+     * Per open-area region `[projected mm2, steepness, height mm, pitch mm, faces, tips]`, six values each (engine 45, rule `areaDensity`); empty with the rule off.
+     * @returns {Float64Array}
+     */
+    area_regions() {
+        const ret = wasm.denturereviewresult_area_regions(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
      * Tight box: centre (3, the line-of-sight point), axes (9), half extents (3).
      * @returns {Float64Array}
      */
@@ -1775,6 +1785,16 @@ class Generation {
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_generation_free(ptr, 0);
+    }
+    /**
+     * Rule `contactFit` (engine 45): the built contact ends by fit state `[fitted, seat, unconverged]`; zeros with the rule off.
+     * @returns {Uint32Array}
+     */
+    contact_fits() {
+        const ret = wasm.generation_contact_fits(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
     }
     /**
      * Non-empty when the islands could not be judged (no island is then called resolved).

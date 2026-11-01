@@ -126,6 +126,8 @@ export interface DentureReviewResultLike {
   lows_not_down_facing(): Float64Array;
   /** [overhang regions, self-supporting regions, open-area tips saved]. */
   self_support_info(): Float64Array;
+  /** Engine 45 (rule areaDensity): per open-area region [projected mm2, steepness, height mm, pitch mm, faces, tips]; empty with the rule off. */
+  area_regions(): Float64Array;
   rim_loops(): Float64Array;
   rim_sizes(): Uint32Array;
   rim_closed(): Uint8Array;

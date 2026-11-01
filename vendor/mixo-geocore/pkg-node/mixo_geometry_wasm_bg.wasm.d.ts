@@ -113,6 +113,7 @@ export const dentureorientresult_rotation: (a: number) => [number, number];
 export const dentureorientresult_status: (a: number) => number;
 export const dentureorientresult_teeth_decided: (a: number) => number;
 export const denturereviewresult_allowed_mask: (a: number) => [number, number];
+export const denturereviewresult_area_regions: (a: number) => [number, number];
 export const denturereviewresult_box_: (a: number) => [number, number];
 export const denturereviewresult_chain_lengths: (a: number) => [number, number];
 export const denturereviewresult_chain_points: (a: number) => [number, number];
@@ -187,6 +188,7 @@ export const face_mask_contour_segments: (a: number, b: number, c: number, d: nu
 export const face_mask_overlay: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
 export const faceoverlay_take_normals: (a: number) => [number, number];
 export const faceoverlay_take_positions: (a: number) => [number, number];
+export const generation_contact_fits: (a: number) => [number, number];
 export const generation_island_reason: (a: number) => [number, number];
 export const generation_reason: (a: number) => [number, number];
 export const generation_revision: (a: number) => number;

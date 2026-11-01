@@ -152,6 +152,8 @@ export interface GeneratedSupportMesh extends TriangleMesh {
   leftOut?: { id: string; position: [number, number, number]; reason: string }[];
   /** Denture builds: tips the last-resort tier placed (`lastResortPlaced` is the length): tier 1 relaxed the outline lean limit, tier 2 also stepped the pillar clearance down; `clearanceMm` is what each was judged and verified at. Absent on other builds. */
   lastResort?: { id: string; tier: 1 | 2; clearanceMm: number }[];
+  /** Rule contactFit (engine 45): the built contact ends by fit state (fitted: measured and within tolerance; seat: an edge or ridge under the contact, analytic end; unconverged: analytic end); all zero with the rule off. */
+  contactFits?: { fitted: number; seat: number; unconverged: number };
   /** Denture builds with the dental model landing (`dentalModelLanding` or the allow list): tips supported from the model's own surface, with the landing tier (allowed area, other surface, no-support zone) and the landing point (plate frame, mm). Empty when off. */
   modelLanded?: { id: string; tier: 'allowed' | 'other' | 'no-support'; position: [number, number, number] }[];
   /** Every tip still left out and every island no support reaches: where, which stream, why, and the best gap found (the largest clearance, mm, at which a route from the plate still exists; `null`: none found or not searched) against the gap the build needs. What the UI bubble's tooltip shows. */
