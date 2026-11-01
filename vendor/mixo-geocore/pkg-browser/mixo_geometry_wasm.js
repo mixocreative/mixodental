@@ -500,6 +500,16 @@ export class DentalTiltScanResult {
         return v1;
     }
     /**
+     * Denture scan (engine 35): per row, how many lowest points the tilt pick counted; empty with no lowest-point score on.
+     * @returns {Uint32Array}
+     */
+    counted_lows() {
+        const ret = wasm.dentaltiltscanresult_counted_lows(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * Per row and rule (4 per row): the first failing vertex id (resin trap) or tip id, or "".
      * @returns {string[]}
      */
@@ -579,6 +589,16 @@ export class DentalTiltScanResult {
     start_deg() {
         const ret = wasm.dentaltiltscanresult_start_deg(this.__wbg_ptr);
         return ret;
+    }
+    /**
+     * Denture scan with rule `tiltPickOrder` 1 (engine 35): per row 2 numbers, tips needed, tips in unwanted areas; empty otherwise.
+     * @returns {Uint32Array}
+     */
+    tip_counts() {
+        const ret = wasm.dentaltiltscanresult_tip_counts(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
     }
 }
 if (Symbol.dispose) DentalTiltScanResult.prototype[Symbol.dispose] = DentalTiltScanResult.prototype.free;
@@ -802,6 +822,26 @@ export class DentureReviewResult {
         return v1;
     }
     /**
+     * The fitting basin against the zones, face counts: fitting, fitting and allowed, fitting and no-support, fitting and neither, allowed but not fitting.
+     * @returns {Uint32Array}
+     */
+    fitting_check() {
+        const ret = wasm.denturereviewresult_fitting_check(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Per face: 1 on the fitting surface seen as a basin from the tissue side (a cross-check layer; it changes no tip).
+     * @returns {Uint8Array}
+     */
+    fitting_mask() {
+        const ret = wasm.denturereviewresult_fitting_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
      * Every hard edge as segments `ax ay az bx by bz`.
      * @returns {Float64Array}
      */
@@ -898,6 +938,26 @@ export class DentureReviewResult {
         return v1;
     }
     /**
+     * The island and lowest-point tips standing on a socket (kept), xyz each.
+     * @returns {Float64Array}
+     */
+    lows_in_sockets() {
+        const ret = wasm.denturereviewresult_lows_in_sockets(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Island and lowest-point tips on a face that is not down-facing, xyz triples (engine 39).
+     * @returns {Float64Array}
+     */
+    lows_not_down_facing() {
+        const ret = wasm.denturereviewresult_lows_not_down_facing(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
      * Low points outside the allowed area (left unsupported), `x y z` each.
      * @returns {Float64Array}
      */
@@ -953,6 +1013,24 @@ export class DentureReviewResult {
      */
     no_support_mask() {
         const ret = wasm.denturereviewresult_no_support_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * The R1b angle in degrees, 0 when off (engine 36).
+     * @returns {number}
+     */
+    no_support_steep_deg() {
+        const ret = wasm.denturereviewresult_no_support_steep_deg(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Per face: 1 when only R1b (the steep no-support ray, rule `noSupportSteepDeg`) hits it first, not R1; a subset of `no_support_mask`; all 0 with R1b off (engine 36).
+     * @returns {Uint8Array}
+     */
+    no_support_steep_mask() {
+        const ret = wasm.denturereviewresult_no_support_steep_mask(this.__wbg_ptr);
         var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
         return v1;
@@ -1064,6 +1142,44 @@ export class DentureReviewResult {
         return v1;
     }
     /**
+     * Faces of the self-supporting overhang regions (rule `overhangSelfSupport`, engine 38): they get no open-area tips; empty with the rule off.
+     * @returns {Uint32Array}
+     */
+    self_support_faces() {
+        const ret = wasm.denturereviewresult_self_support_faces(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * `[overhang regions, self-supporting regions, open-area tips saved]` (engine 38); zeros with the rule off.
+     * @returns {Float64Array}
+     */
+    self_support_info() {
+        const ret = wasm.denturereviewresult_self_support_info(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Per face: 1 on a tooth socket (`dental/denture/sockets.rs`, rule `socketMinDepthMm`), shown whether or not `socketNoSupport` is on.
+     * @returns {Uint8Array}
+     */
+    socket_mask() {
+        const ret = wasm.denturereviewresult_socket_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Basin faces the oral cavity ray R2 sees, so not sockets (R2 cancels the socket mask).
+     * @returns {number}
+     */
+    sockets_cancelled_by_r2() {
+        const ret = wasm.denturereviewresult_sockets_cancelled_by_r2(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
      * Symmetry plane (splits the U left/right): point xyz, unit normal xyz.
      * @returns {Float64Array}
      */
@@ -1091,6 +1207,36 @@ export class DentureReviewResult {
         const ret = wasm.denturereviewresult_tips(this.__wbg_ptr);
         var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Tips the final guard refused (`tipMaxFromDownDeg`, engine 39), `[rim, hole, area, other]`.
+     * @returns {Uint32Array}
+     */
+    tips_dropped_facing_up() {
+        const ret = wasm.denturereviewresult_tips_dropped_facing_up(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * `socketNoSupport`: tips kept off sockets [rim, hole, area, other].
+     * @returns {Uint32Array}
+     */
+    tips_dropped_socket() {
+        const ret = wasm.denturereviewresult_tips_dropped_socket(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Tips skipped for a knife-sharp fold or a neck that would enter the material behind a nearby face (engine 39), `[rim, hole, area, other]`.
+     * @returns {Uint32Array}
+     */
+    tips_skipped_fold() {
+        const ret = wasm.denturereviewresult_tips_skipped_fold(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
         return v1;
     }
     /**

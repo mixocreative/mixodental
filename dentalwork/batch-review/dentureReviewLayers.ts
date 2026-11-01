@@ -20,11 +20,13 @@ import * as THREE from 'three';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { JobTransform } from '@mixo-geocore/host/core/jobs';
+import { selfSupportRule, steepRule } from './profileSelect';
 import { AREA_CLASS, compareDentureAreas, reviewDenture, type DentureAreaComparison, type DentureReview } from '@mixo-geocore/host/dental/dentureReview';
 import { parseStl } from '../../scripts/node-engine';
 import { distancesToSurface, readGlbWorldMeshes } from './glbWorld';
 import type { ReviewLayer } from './orientationEvidenceGlb';
 import { LAYER_COLOURS as C } from './layerColours';
+import { rayLayers } from './rayLayers';
 import { describeUnresolved, islandPoints, summariseIslands, type IslandSettle, type IslandSummary } from './islandReport';
 
 export const CONTACTS_FORMAT = 'mixo-sup-contacts/1';
@@ -66,6 +68,8 @@ export interface DentureDetail {
   upDecision: string;
   /** Tips per source, e.g. 'rim 12 / hole 3 / area 40 / low 2' ('' without a review). */
   tipsBySource: string;
+  /** The self-supporting overhang rule: 'regions 12 / self-supporting 5 / open-area tips saved 18' ('' with the rule off or without a review). */
+  selfSupport: string;
   /** Tips on an overhang with no free path to the plate (not built). */
   unsupportableTips: number;
   /** Left-out tips per engine reason, e.g. 'leave-out:pillar 3 / build-omission 1' ('' when none). */
@@ -311,21 +315,32 @@ function boxEdges(box: { centre: Vector; axes: [Vector, Vector, Vector]; half: V
   return edges;
 }
 
-/** Arrowed segments (shaft + two barbs) for parallel rays along `direction`, tails `length` mm before the given points. */
-function rayArrows(points: Vector[], direction: Vector, length: number): Array<[Vector, Vector]> {
-  const d = unit(direction);
-  const [u] = planeBasis(d);
-  const head = length * 0.15;
-  const out: Array<[Vector, Vector]> = [];
-  for (const p of points) {
-    const tail: Vector = [0, 1, 2].map((i) => p[i]! - d[i]! * length) as Vector;
-    out.push([tail, p]);
-    for (const side of [1, -1]) {
-      const barb: Vector = [0, 1, 2].map((i) => p[i]! - d[i]! * head + side * u[i]! * head * 0.5) as Vector;
-      out.push([p, barb]);
-    }
-  }
-  return out;
+/** TEMP experiment (not committed): one STEEPSTAT line per case comparing the zone of R1 alone with R1 + R1b (MIXO_STEEP_NO_SUPPORT or MIXO_STEEP_STAT, degrees). */
+function steepStats(mesh: TriangleMesh, profile: string, tiltDeg: number, run: DentureReview | undefined): void {
+  const deg = Number(process.env.MIXO_STEEP_STAT || process.env.MIXO_STEEP_NO_SUPPORT);
+  if (!(deg > 0) || !run) return;
+  const both = reviewDenture(mesh, profile, tiltDeg, { noSupportSteepDeg: deg });
+  const plain = reviewDenture(mesh, profile, tiltDeg, {});
+  if (!both || !plain) return;
+  const steep = both.noSupportSteepMask;
+  const zone = both.noSupportMask;
+  const r1 = (f: number) => zone[f] === 1 && steep[f] === 0;
+  const faces = (r: DentureReview) => r.tips.map((t) => t.face);
+  const count = (list: number[], pick: (f: number) => boolean) => list.filter(pick).length;
+  const area = (pick: (f: number) => boolean) => { let n = 0; for (let f = 0; f < zone.length; f++) if (pick(f)) n++; return n; };
+  const open = (r: DentureReview) => r.islands.filter((i) => !i.resolved);
+  console.log('STEEPSTAT', JSON.stringify({
+    tiltDeg, deg, faces: zone.length, zoneFacesR1: area(r1), zoneFacesR1b: area((f) => steep[f] === 1),
+    tipsRun: run.tips.length, tipsPlain: plain.tips.length, tipsWithSteep: both.tips.length,
+    plainTipsInZoneR1: count(faces(plain), r1), plainTipsInZoneR1b: count(faces(plain), (f) => steep[f] === 1),
+    steepTipsInZoneR1: count(faces(both), r1), steepTipsInZoneR1b: count(faces(both), (f) => steep[f] === 1),
+    lowsOutsidePlain: plain.lowsOutside.length, lowsOutsideSteep: both.lowsOutside.length,
+    lowsOutsideInR1b: both.lowsOutside.filter((l) => steep[l.face] === 1).length,
+    unreachedInR1b: both.lowsUnreached.filter((l) => steep[l.face] === 1).length,
+    islandsOpenPlain: open(plain).length, islandsOpenSteep: open(both).length,
+    islandsInZoneSteep: open(both).filter((i) => i.state === 'noSupportZone').length,
+    islandsInR1bOnly: open(both).filter((i) => i.face !== undefined && steep[i.face] === 1).length,
+  }));
 }
 
 /**
@@ -334,7 +349,8 @@ function rayArrows(points: Vector[], direction: Vector, length: number): Array<[
  * print angle the case chose: the review is run at that tilt.
  */
 export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Vector, frame: JobTransform, placed: PlacedTip[], profile: string, tiltDeg: number, leftOutTips: LeftOutTip[] = [], settle?: IslandSettle): DentureDetail {
-  const review = reviewDenture(mesh, profile, tiltDeg);
+  const review = reviewDenture(mesh, profile, tiltDeg, { ...steepRule(), ...selfSupportRule() });
+  steepStats(mesh, profile, tiltDeg, review);
   const islands = review && !review.islandsNote ? summariseIslands(review.islands, settle) : undefined;
   const layers: ReviewLayer[] = [];
   const sign = outwardSign(mesh);
@@ -359,25 +375,26 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     if (holeBand.length > 0) layers.push({ name: 'Hole band (5 mm, allowed if overhang)', color: C.holeBand, positions: patchPositions(mesh, holeBand, BAND_LIFT_MM, sign), indices: new Uint32Array(0) });
     // Step 2: the no-support zone (red), before the override. Step 4: the allowed area (green) lifted above it.
     const noSupport = facesWhere(review.noSupportMask, (value) => value === 1);
-    if (noSupport.length > 0) layers.push({ name: 'No-support zone (hit by 45° rays)', color: C.noSupport, positions: patchPositions(mesh, noSupport, FACE_LIFT_MM, sign), indices: new Uint32Array(0) });
+    if (noSupport.length > 0) layers.push({ name: review.noSupportSteepDeg > 0 ? `No-support zone (R1 45° + R1b ${review.noSupportSteepDeg}° rays)` : 'No-support zone (hit by 45° rays)', color: C.noSupport, positions: patchPositions(mesh, noSupport, FACE_LIFT_MM, sign), indices: new Uint32Array(0) });
     const allowed = facesWhere(review.allowedMask, (value) => value === 1);
     if (allowed.length > 0) layers.push({ name: 'Allowed area (seen from the oral cavity ray)', color: C.allowed, positions: patchPositions(mesh, allowed, ALLOWED_LIFT_MM, sign), indices: new Uint32Array(0) });
-    // Step 2: a few arrows for the parallel 45-degree rays: a 3x3 grid on the front-top side of the box,
-    // tips where the rays enter the box, so the arrows show where the rays come from and where they go.
     const origin = review.oralCavityRay;
-    const direction = review.noSupportDir;
-    const d = unit(direction);
-    const [bu, bw] = planeBasis(d);
-    const spread = Math.max(...review.box.half);
-    const grid: Vector[] = [];
-    for (const a of [-0.6, 0, 0.6]) for (const b of [-0.6, 0, 0.6]) {
-      grid.push([0, 1, 2].map((i) => review.box.centre[i]! - d[i]! * spread + a * spread * bu[i]! + b * spread * bw[i]!) as Vector);
-    }
-    edgesLayer(layers, rayArrows(grid, direction, spread * 1.5), 'Ray directions (45°, parallel)', C.noSupport);
+    // The R1 arrows (the parallel 45-degree rays, with a run-up) are drawn by rayLayers.ts with the other rays.
     // Downward-facing faces (the overhang candidates) and the hard edges that face down.
     const downFaces = facesWhere(review.downMask, (value) => value === 1);
     if (downFaces.length > 0) {
       layers.push({ name: 'Down-facing area (≤60° from down)', color: C.downFacing, positions: patchPositions(mesh, downFaces, DOWN_LIFT_MM, sign), indices: new Uint32Array(0) });
+    }
+    // The self-supporting overhang regions (rule overhangSelfSupport): small, gentle, short patches that need no open-area tips.
+    // Engine 42 basins: tooth sockets (no tips when rule socketNoSupport is on) and the fitting surface seen as a basin (cross-check, changes no tip).
+    const maskFaces = (mask: Uint8Array | undefined) => (mask ? Array.from(mask.keys()).filter((f) => mask[f] === 1) : []);
+    const socketFaces = maskFaces(review.socketMask);
+    if (socketFaces.length > 0) layers.push({ name: 'Sockets (no support)', color: C.sockets, positions: patchPositions(mesh, socketFaces, DOWN_LIFT_MM * 2, sign), indices: new Uint32Array(0) });
+    const fittingFaces = maskFaces(review.fittingMask);
+    if (fittingFaces.length > 0) layers.push({ name: 'Fitting (basin)', color: C.fitting, positions: patchPositions(mesh, fittingFaces, DOWN_LIFT_MM * 2.5, sign), indices: new Uint32Array(0) });
+    const selfFaces = Array.from(review.selfSupport.faces);
+    if (selfFaces.length > 0) {
+      layers.push({ name: 'Self-supporting overhangs (no tips needed)', color: C.selfSupporting, positions: patchPositions(mesh, selfFaces, DOWN_LIFT_MM * 1.5, sign), indices: new Uint32Array(0) });
     }
     edgesLayer(layers, review.downEdges, 'DOWN-FACING hard edges', C.downEdges);
     edgesLayer(layers, review.hardEdges, 'ALL hard edges (thin)', 0x222222);
@@ -417,6 +434,8 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
       markers(islandPoints(islands.resolved), 'ISLAND resolved (a built tip serves the lowest point)', C.islandResolved);
       markers(islandPoints(islands.unresolved), 'ISLAND NOT resolved (no built tip serves the lowest point)', C.islandUnresolved);
     }
+    // One arrow layer per named ray R1..R8 (rayLayers.ts).
+    layers.push(...rayLayers({ mesh, review, leftOut: leftOutTips, placed }));
     // Step 7: tips on an overhang with no free path to the plate: black cones, not built.
     if (review.unsupportable.length > 0) {
       layers.push({ name: 'Tips that cannot reach the plate', color: C.unsupportableTips, positions: coneTriangles(review.unsupportable, 1.5, 0.35), indices: new Uint32Array(0) });
@@ -469,14 +488,18 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     tipsByStream.set(tip.stream, [...(tipsByStream.get(tip.stream) ?? []), tip]);
   }
   for (const [stream, tips] of tipsByStream) {
-    layers.push({ name: `Tips: ${stream}`, color: SOURCE_COLOUR[stream] ?? C.ourTips, positions: coneTriangles(tips, 1.5, 0.35), indices: new Uint32Array(0) });
+    // info: per cone, its id within the source and its position, so the owner can name an exact tip.
+    // The angle from straight down is measured by the viewer on the posed cone (these normals are in the mesh frame, not the print pose).
+    const reasons = tips.map((tip, k) => `${stream}-${k} at [${tip.position.map((v) => v.toFixed(2)).join(', ')}] (mesh frame)`);
+    layers.push({ name: `Tips: ${stream}`, color: SOURCE_COLOUR[stream] ?? C.ourTips, positions: coneTriangles(tips, 1.5, 0.35), indices: new Uint32Array(0), info: { reasons, trianglesPerItem: 24 } });
   }
   const rank = (stream: string) => (SOURCE_ORDER.includes(stream) ? SOURCE_ORDER.indexOf(stream) : SOURCE_ORDER.length);
   const ordered = [...tipsByStream.keys()].sort((a, b) => rank(a) - rank(b));
   const tipsBySource = ordered.map((stream) => `${stream} ${tipsByStream.get(stream)!.length}`).join(' / ');
   // Tips left out (no support built, any source): one warning colour. Empty = every tip is supported.
   if (leftOutTips.length > 0) {
-    layers.push({ name: 'Tips left out', color: C.tipsLeftOut, positions: coneTriangles(leftOutTips, 1.5, 0.35), indices: new Uint32Array(0) });
+    // info: one reason per cone, 24 triangles per cone (coneTriangles), so the viewer's hover tooltip names the reason of the cone under the pointer.
+    layers.push({ name: 'Tips left out', color: C.tipsLeftOut, positions: coneTriangles(leftOutTips, 1.5, 0.35), indices: new Uint32Array(0), info: { reasons: leftOutTips.map((tip) => tip.reason), trianglesPerItem: 24 } });
   }
   const byReason = new Map<string, number>();
   for (const tip of leftOutTips) byReason.set(tip.reason, (byReason.get(tip.reason) ?? 0) + 1);
@@ -492,6 +515,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     middlePlane: review ? (review.rimPlane ? 'Rim plane fitted' : 'none (no rim)') : 'not computed',
     upDecision: review ? (review.upDecision ? describeUp(review.upDecision) : 'no box, so no up decision') : '',
     tipsBySource,
+    selfSupport: review && review.selfSupport.regions > 0 ? `regions ${review.selfSupport.regions} / self-supporting ${review.selfSupport.selfSupporting} / open-area tips saved ${review.selfSupport.tipsSaved}` : '',
     unsupportableTips: review?.unsupportable.length ?? 0,
     tipsLeftOutReasons: [...byReason].map(([reason, count]) => `${reason} ${count}`).join(' / '),
     islands,

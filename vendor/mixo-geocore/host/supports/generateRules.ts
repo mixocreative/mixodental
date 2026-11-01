@@ -78,9 +78,9 @@ export interface GenerateRules {
   mergePasses?: number;
   /** Lower merge nodes tried (each jointGapMm lower) when the highest node the lean allows is taken by a joint. */
   mergeDeeperNodes?: number;
-  /** Trunk support (engine 29, replacing the long trunk legs): a trunk gets a helper pillar beside it only when it stands higher than this above the foot top (mm) ... */
+  /** Trunk support (engine 29, replacing the long trunk legs): a trunk gets a helper pillar beside it only when it stands higher than this above the foot top (mm) AND carries more tips than trunkSupportOverTips. */
   trunkSupportOverMm?: number;
-  /** ... AND carries more tips than this (its own included, default 3). */
+  /** Trunk support: a trunk gets a helper only when it carries more tips than this (its own included, default 3) and stands higher than trunkSupportOverMm. */
   trunkSupportOverTips?: number;
   /** Steepest lean from vertical (degrees) of the helper's neck and braces (default 45). */
   trunkNeckAngleDeg?: number;
@@ -120,11 +120,11 @@ export interface GenerateRules {
   islandSlabMm?: number;
   /** A helper taller than this (mm, default 25) gets a second helper on the opposite side of the trunk. */
   trunkSecondHelperOverMm?: number;
-  /** The support point lies at most this fraction of the trunk's height above the foot top (default 2/3) ... */
+  /** Trunk support: the support point on the trunk lies at most this fraction of the trunk's height above the foot top (default 2/3). */
   trunkSupportMaxFrac?: number;
-  /** ... and the helper's brace to the trunk comes every this many mm of height (default 8; 0 none). With the truss on the ordinary brace pass braces the helper to its neighbours and this is not used. */
+  /** Trunk support: the helper's brace to the trunk comes every this many mm of height (default 8; 0 none). With the truss on the ordinary brace pass braces the helper to its neighbours and this is not used. */
   trunkBraceStepMm?: number;
-  /** ... and at least this far (mm, default 10) above the foot top, so a helper is a pillar and not a stub. */
+  /** Trunk support: the support point lies at least this far (mm, default 10) above the foot top, so a helper is a pillar and not a stub. */
   trunkSupportMinMm?: number;
   /** Denture builds only: longest branch onto a trunk and longest merge rod (mm, default 8); the smaller of this and routeBranchMaxMm / mergeRodMaxMm applies. A tip whose only trunk is farther is left out, and the reason says the cap. Aligner builds are not capped. */
   branchRodMaxMm?: number;
@@ -148,6 +148,62 @@ export interface GenerateRules {
   lastResortClearanceStepMm?: number;
   /** Denture tilt scan (default 0 = off, the old pick): above 0 the pick prefers the tilt whose tips have a way down by the landing circle (fewest lowest points without a path, then tips without, then tips with only a fallback), ahead of the boxed-in count and never over the safety tiers. */
   landingTiltWeight?: number;
+  /** Denture tilt scan (default off): only lowest points whose face is in the allowed area count for the tilt pick, in both the boxed-in check and the landing score; lows and islands on other faces do not. */
+  tiltAllowedLowsOnly?: boolean;
+  /** Denture tilt scan pick order: 0 (default) the old pick; 1 = inside the safety tier the tilt needing the fewest tips overall, ties to the fewest tips in unwanted areas, then the old order; unreachable lows do not move the angle. */
+  tiltPickOrder?: 0 | 1;
+  /** Tips of difference that still count as a tie for tiltPickOrder 1 (default 5). */
+  tiltTipCountSlack?: number;
+  /** Denture no-support zone (default 0 = off): above 45 and below 90 adds R1b, a second parallel no-support ray turned this many degrees from the back toward straight down from the teeth side (67.5 is the owner's value). The zone is the first hits of R1 (45) and R1b together; the allowed area still overrides it. Applies to the tilt scan, the policy and the review. */
+  noSupportSteepDeg?: number;
+  /** Raft (default false): build the raft as a peel grid (solid 0.5 mm bottom; 1 mm top layer of 45 degree ribs, a solid rim and solid pads under every foot and the label) instead of the classic floor and rim. */
+  raftGrid?: boolean;
+  /** Plate outline (default false): trace the raft outline from the space map (shadow plus a disc under every foot, grown by the raft expand distance) instead of the voxel trace. A roof or cage always uses the voxel trace. */
+  raftMapOutline?: boolean;
+  /** Grid raft: solid bottom layer, mm (default 0.5). */
+  raftGridBottomMm?: number;
+  /** Grid raft: rib layer on top of it, mm (default 1). */
+  raftGridTopMm?: number;
+  /** Grid raft: rib width, mm (default 1). */
+  raftRibMm?: number;
+  /** Grid raft: distance between rib centre lines, mm (default 3.5, about half solid). */
+  raftRibPitchMm?: number;
+  /** Grid raft: solid rim band along the outline, mm (default 2). */
+  raftRimMm?: number;
+  /** Grid raft: a foot pad reaches this far past the foot radius, mm (default 0.5). */
+  raftPadMarginMm?: number;
+  /** Denture self-supporting overhangs (default false): an overhang region (faces joined by edges) that is small, gentle and short gets no open-area grid tips, like a slicer's min-area / min-angle / max-reach rules. Island, lowest-point, rim, rim-band and hole-band tips are kept. */
+  overhangSelfSupport?: boolean;
+  /** Self-supporting overhangs: a region with this much projected area (mm2) or more keeps its tips (default 4). */
+  overhangMinAreaMm2?: number;
+  /** Self-supporting overhangs: a region reaching this far (mm, in plan) or more from where it joins the model keeps its tips (default 3). */
+  overhangMaxReachMm?: number;
+  /** Self-supporting overhangs: a region whose flattest face is within this many degrees of horizontal keeps its tips (default 19). */
+  overhangMinAngleDeg?: number;
+  /** Tip facing guard (default 60 since engine 43, was 45; 0 off): after the print tilt, a tip stands only where its averaged outward normal (tipNormalRadiusMm) is within this many degrees of straight down. The denture placement drops rim, hole-band and area tips that fail (counted per stream, never silent). Since engine 41 the denture placement and the generate step hold EVERY automatic tip of every policy to it (generic, aligner, denture lowest-point tips included; island tips to islandMaxFromDownDeg): one that fails, or stands on a knife-sharp fold, is left out with the reason tip-check:facing (or tip-check:fold). Hand-placed tips are exempt from this rule only (supports::tip_check). */
+  tipMaxFromDownDeg?: number;
+  /** Denture rim tips (engine 39, default true): a rim, hole-band or area tip is skipped when its neck (along the tip's averaged normal, tipNormalRadiusMm) would enter the material behind a face within that radius (a knife-edge lip); a local low that is a true model lowest point is kept. Needs tipNormalRadiusMm above 0. */
+  rimApproachOutside?: boolean;
+  /** Tip direction (default 0.5 mm; 0 off): a tip's direction is the area-weighted average of the source-mesh face normals within this radius of its point (never the single most-downward adjacent face); the position never moves (supports::tip_orient). Dentures since engine 39; since engine 41 also every generic and aligner face or edge tip (in place of the remesh normal). Since engine 41 a face turned away from the face the tip stands on (the far side of a lip thinner than the radius, reached round its edge) does not vote. An average that is nearly zero gets no tip, counted in the review. */
+  tipNormalRadiusMm?: number;
+  /** Denture self-supporting overhangs, rim and hole streams (engine 40, default false; needs overhangSelfSupport): the dental-rim line, rim-band and hole-band tips are also dropped on a self-supporting region. A tip within a rim pitch of a true lowest point, and island tips, are always kept. */
+  overhangSelfSupportStreams?: boolean;
+  /** Denture rim tips respect the no-support zone (engine 40, default false): dental-rim line, rim-band and hole-band tips are not placed on faces of the no-support zone (R1, with R1b when on) that the oral cavity ray (R2) does not see, so the fitting surface keeps its tips. A tip within a rim pitch of a true lowest point, and island tips, are kept. */
+  rimRespectsNoSupport?: boolean;
+  /** Denture tooth sockets (engine 42; default true since engine 43): blind craters on the teeth side, found once per model in the upright pose from the teeth-axis ray grid (basins of its depth map at least socketMinDepthMm deep, grown up their walls and inner lip), are a no-support zone for the rim, area and hole-band tips. Faces the oral cavity ray (R2) sees are never sockets: R2 cancels the mask as it overrides R1. Island and lowest-point tips are never dropped; they are listed. The review shows the sockets either way (socket_mask, sockets_cancelled_by_r2). */
+  socketNoSupport?: boolean;
+  /** Denture tooth sockets: the least depth a teeth-side basin holds to be a socket, mm (default 1). */
+  socketMinDepthMm?: number;
+  /** Denture tooth sockets: a through-hole of at most this area (mm2, seen along the teeth axis) at the bottom of a teeth-side crater is plugged, so the crater still counts as a socket (default 25; 0: every through-hole drains its crater). Larger through-holes always drain. */
+  socketTunnelMaxMm2?: number;
+  /** Tip check, outside the solid (engine 41, default true; false off): every support path, of every tip and every route stage, manual live edits included, leaves the surface outward (within 90 degrees of the tip's averaged normal) and its centre line, from tipInsideSkipMm past the contact through every bend, never runs inside the model (ray parity, and no crossing of the surface). This holds inside the radius the verdict's reach rule exempts around a contact, which let a neck pass through the far side of a thin lip. A refused path makes the route search try the next one; a tip with no acceptable path is left out with the reason tip-check:inside or tip-check:neck-inward (hand-placed ones too: they are never built inside the model). */
+  tipInsideCheck?: boolean;
+  /** Tip check: how far past the contact along the neck the centre line starts to count, mm (default 0.1): the tip itself sits in the surface. */
+  tipInsideSkipMm?: number;
+  /** Island tips' facing limit (engine 41, default 60 since engine 43, was 50; 0 off): an island tip (an island's lowest point, denture or generic) stands only where its averaged normal is within this many degrees of straight down; past it the tip is not placed (the denture counts it, generate leaves it out as tip-check:facing) and the island is reported unsupported. Lowest-point tips are held to tipMaxFromDownDeg. */
+  islandMaxFromDownDeg?: number;
+  /** Tip check, the cone's flank (engine 41, default 0.3 mm; 0 off): from this distance along the neck to the neck's end, points round the neck cone at its radius stay outside the model, so a neck leaning far from the surface normal never cuts its flank into the surface beside the tip; the route search leans it less or reroutes, else the tip is left out (tip-check:cone). */
+  tipSkinFromMm?: number;
   /** Landing circle: steepest lean that still counts as a normal path, degrees from vertical (default 45; the fallback tier uses lastResortOutlineAngleDeg). */
   landingRodMaxDeg?: number;
   /** Landing circle: spacing of the sideways shifts tried along each direction, mm (default 1). */
@@ -185,6 +241,14 @@ export const RULE_NAMES: readonly string[] = [
   'dentalModelLanding',
   'capsuleFilter', 'judgeAgreement', 'capsuleFilterMarginMm',
   'landingDirections', 'landingLeans',
+  'tiltAllowedLowsOnly', 'tiltPickOrder', 'tiltTipCountSlack',
+  'noSupportSteepDeg',
+  'raftGrid', 'raftMapOutline', 'raftGridBottomMm', 'raftGridTopMm', 'raftRibMm', 'raftRibPitchMm', 'raftRimMm', 'raftPadMarginMm',
+  'overhangSelfSupport', 'overhangMinAreaMm2', 'overhangMaxReachMm', 'overhangMinAngleDeg',
+  'tipMaxFromDownDeg', 'rimApproachOutside', 'tipNormalRadiusMm',
+  'overhangSelfSupportStreams', 'rimRespectsNoSupport',
+  'tipInsideCheck', 'tipInsideSkipMm', 'islandMaxFromDownDeg', 'tipSkinFromMm',
+  'socketNoSupport', 'socketMinDepthMm', 'socketTunnelMaxMm2',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */

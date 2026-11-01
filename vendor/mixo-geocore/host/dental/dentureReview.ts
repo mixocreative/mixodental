@@ -22,6 +22,10 @@ export type Segment = [Vector, Vector];
 export interface DentureReview {
   /** Step 1, per face: 1 when a 45 degree front-top parallel ray hits it first (NO_SUPPORT before the override), else 0. */
   noSupportMask: Uint8Array;
+  /** Per face: 1 when only R1b (the steep no-support ray, rule `noSupportSteepDeg`) hits it first, not R1; a subset of `noSupportMask`; all 0 with R1b off. */
+  noSupportSteepMask: Uint8Array;
+  /** The R1b angle in degrees, 0 when off. */
+  noSupportSteepDeg: number;
   /** Step 2, per face: 1 when a ray from the back origin reaches it first (ALLOWED; overrides no-support; tips stand only here), else 0. */
   allowedMask: Uint8Array;
   /** Every hard edge. */
@@ -50,6 +54,13 @@ export interface DentureReview {
   released: number;
   /** Local lows of the dental rim line whose face points up: not forced, no tip (rule `rimLowNeedsOverhang`); counted apart from the left-out tips. */
   rimLowsFacingUp: number;
+  /** The final guard (rule tipMaxFromDownDeg, engine 39): tips refused for standing on a face not within the limit of straight down, per source, and the island / lowest-point tips on a face that is not down-facing (misidentified lows). */
+  tipsDroppedFacingUp: { rim: number; hole: number; area: number; other: number; total: number };
+  /** Tips skipped for a knife-sharp fold (averaged normal nearly zero) or a neck that would enter the material behind a nearby face (engine 39). */
+  tipsSkippedFold: { rim: number; hole: number; area: number; other: number; total: number };
+  lowsNotDownFacing: Vector[];
+  /** Self-supporting overhang regions (rule `overhangSelfSupport`): their face ids (no open-area tips there) and the counts. Empty / zeros with the rule off. */
+  selfSupport: { faces: Uint32Array; regions: number; selfSupporting: number; tipsSaved: number };
   /** The islands of the reviewed pose (regions that start mid-air) with the tip that serves each or the reason it has none; `tipIndex` indexes `tips`. Empty with rule `islandTips` off. */
   islands: DentureIsland[];
   /** Why the islands could not be told (the surface is not a clean manifold...); empty when they could. */
@@ -68,6 +79,18 @@ export interface DentureReview {
   holeOutlines: { points: Vector[]; areaMm2: number; faceCount: number }[];
   /** Per face: 1 within 5 mm along the surface of a hole (support-allowed). */
   holeBandMask: Uint8Array;
+  /** Per face: 1 on a tooth socket (engine 42, rule socketMinDepthMm), whether or not socketNoSupport keeps tips off it: the layer "Sockets (no support)". */
+  socketMask: Uint8Array;
+  /** Basin faces the oral cavity ray R2 sees, so not sockets (R2 cancels the socket mask, engine 43). */
+  socketsCancelledByR2: number;
+  /** Per face: 1 on the fitting surface seen as a basin from the tissue side: the cross-check layer "Fitting (basin)" (changes no tip). */
+  fittingMask: Uint8Array;
+  /** The fitting basin against the zones, face counts: fitting, fitting and allowed, fitting and no-support, fitting and neither, allowed but not fitting. */
+  fittingCheck: Uint32Array;
+  /** socketNoSupport: tips kept off sockets [rim, hole, area, other]. */
+  tipsDroppedSocket: Uint32Array;
+  /** Island and lowest-point tips standing on a socket (kept), xyz each. */
+  lowsInSockets: Float64Array;
   /** Per face: 1 within the rim band (profile `rimBandMm`) of the rim line: support-allowed outside the oral cavity area. */
   rimBandMask: Uint8Array;
   /** The ray test's up decision (absent for a mesh with no box): the median travel before the first hit near the + and the - end of the up axis (the end whose rays reach farther is the top), their margin, and the arch frame's up before it. */
@@ -137,6 +160,12 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
         });
       })(),
       holeBandMask: result.hole_band_mask(),
+      socketMask: result.socket_mask(),
+      socketsCancelledByR2: result.sockets_cancelled_by_r2(),
+      fittingMask: result.fitting_mask(),
+      fittingCheck: result.fitting_check(),
+      tipsDroppedSocket: result.tips_dropped_socket(),
+      lowsInSockets: result.lows_in_sockets(),
       rimBandMask: result.rim_band_mask(),
       upDecision: decision.length === 0 ? undefined : {
         axis: decision[0]!, decided: decision[1] === 1, flipped: decision[2] === 1, medianMm: [decision[3]!, decision[4]!], marginMm: decision[5]!,
@@ -148,6 +177,8 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
         },
       },
       noSupportMask: result.no_support_mask(),
+      noSupportSteepMask: result.no_support_steep_mask(),
+      noSupportSteepDeg: result.no_support_steep_deg(),
       allowedMask: result.allowed_mask(),
       hardEdges: segments(result.hard_edges()),
       downEdges: segments(result.down_edges()),
@@ -179,6 +210,22 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
       })(),
       released: result.released(),
       rimLowsFacingUp: result.rim_lows_facing_up(),
+      tipsDroppedFacingUp: (() => {
+        const d = result.tips_dropped_facing_up();
+        return { rim: d[0] ?? 0, hole: d[1] ?? 0, area: d[2] ?? 0, other: d[3] ?? 0, total: (d[0] ?? 0) + (d[1] ?? 0) + (d[2] ?? 0) + (d[3] ?? 0) };
+      })(),
+      tipsSkippedFold: (() => {
+        const d = result.tips_skipped_fold();
+        return { rim: d[0] ?? 0, hole: d[1] ?? 0, area: d[2] ?? 0, other: d[3] ?? 0, total: (d[0] ?? 0) + (d[1] ?? 0) + (d[2] ?? 0) + (d[3] ?? 0) };
+      })(),
+      lowsNotDownFacing: (() => {
+        const l = result.lows_not_down_facing();
+        return Array.from({ length: l.length / 3 }, (_, k) => triple(l, k * 3));
+      })(),
+      selfSupport: (() => {
+        const info = result.self_support_info();
+        return { faces: result.self_support_faces(), regions: info[0] ?? 0, selfSupporting: info[1] ?? 0, tipsSaved: info[2] ?? 0 };
+      })(),
       islands: decodeIslands(result.islands()),
       islandsNote: result.islands_note(),
       rimPlane: rimPlane.length === 6 ? { point: triple(rimPlane, 0), normal: triple(rimPlane, 3) } : undefined,

@@ -5,8 +5,8 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import type { JobTransform } from '@mixo-geocore/host/core/jobs';
 import type { OrientationLayer } from '../../src/dental/orientationEvidence';
 
-/** A review layer: triangles (unindexed when `indices` is empty), or with `lines` line segments (two points each). */
-export type ReviewLayer = OrientationLayer & { lines?: boolean };
+/** A review layer: triangles (unindexed when `indices` is empty), or with `lines` line segments (two points each). `info` rides in the GLB node extras for the viewer's hover tooltip. */
+export type ReviewLayer = OrientationLayer & { lines?: boolean; info?: Record<string, unknown> };
 
 /**
  * The companion GLB of the evidence layers in `frame` (the review GLB's frame: its lift and pose
@@ -23,6 +23,8 @@ export async function orientationGlb(layers: ReviewLayer[], frame: JobTransform)
       ? new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: layer.color }))
       : new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: layer.color, side: THREE.DoubleSide }));
     visual.name = layer.name;
+    // GLTFExporter writes userData to the node extras; the viewer's GLTFLoader reads them back for the hover tooltip.
+    if (layer.info) visual.userData = { ...layer.info };
     scene.add(visual);
   }
   scene.position.set(...frame.position);

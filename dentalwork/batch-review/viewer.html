@@ -35,7 +35,7 @@
   .stage canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
   .views { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
   .steps { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; }
-  .note { position: absolute; top: 8px; left: 8px; max-width: 60%; color: var(--muted); font-size: var(--fs-sm); }
+  .note { position: absolute; top: 44px; left: 8px; max-width: 60%; color: var(--muted); font-size: var(--fs-sm); }
   .list li { cursor: pointer; }
   .list li .badge { font-size: var(--fs-xs); }
   .list li.look .badge { border-color: var(--danger); color: var(--danger); }
@@ -43,33 +43,43 @@
   .list li:has(small.why) { height: auto; flex-wrap: wrap; row-gap: 2px; padding: 6px 4px; }
   .list li > span:not(.badge) { white-space: nowrap; }
   .list li small.why { flex: 1 1 100%; margin-left: 26px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; line-height: 1.35; color: var(--danger); }
-  dl { display: grid; grid-template-columns: minmax(0, 45%) minmax(0, 1fr); gap: 4px 8px; margin: 0; }
-  dt { color: var(--muted); }
-  dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: break-word; min-width: 0; }
-  dd.bad { color: var(--danger); }
-  .peel-report { margin: 8px 0; }
-  .peel-title { margin: 0 0 4px; font-size: var(--fs-sm); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  /* Facts: compact collapsible groups (case result, tilt, islands, tips, ...), label left, value right. */
+  .fact-list { display: grid; grid-template-columns: minmax(0, 46%) minmax(0, 1fr); gap: 1px 8px; margin: 0; line-height: 1.35; }
+  .fact-list dt { color: var(--muted); }
+  .fact-list dt[data-tip] { cursor: help; }
+  .fact-list dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: break-word; min-width: 0; }
+  .fact-list dd.bad { color: var(--danger); }
+  .fact-group { margin-top: var(--gap); }
+  .peel-report { margin-top: var(--gap); }
   .peel-chart svg { width: 100%; height: auto; display: block; }
   .peel-legend { margin: 2px 0 0; font-size: var(--fs-sm); }
   .peel-key.ours { color: var(--danger); } .peel-key.owner { color: var(--ink); }
   .source { color: var(--muted); font-size: var(--fs-sm); overflow-wrap: anywhere; margin: 0 0 6px; }
-  .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
-  .check { align-items: flex-start; }
-  .check > span { flex: 1; min-width: 0; }
-  .check small { display: block; color: var(--muted); font-size: var(--fs-sm); line-height: 1.3; }
-  .layers h4 { margin: 10px 0 4px; font-size: var(--fs-sm); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-  .layers h4:first-child { margin-top: 0; }
-  /* Denture steps: numbered headings in the review's order, a one-line note, then that step's layers. */
-  .layers h4.step { margin: 0; font-size: var(--fs-md); font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink); }
-  .step-block + .step-block { margin-top: 12px; }
-  .step-block.later { opacity: .45; }
-  .step-note { margin: 2px 0 4px; color: var(--muted); font-size: var(--fs-sm); line-height: 1.35; }
-  .step-line { margin: 0 0 4px; font-size: var(--fs-sm); overflow-wrap: anywhere; }
-  .stepper { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0 4px; }
-  .stepper .muted { flex-basis: 100%; font-size: var(--fs-sm); }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; border: 1px solid rgba(0, 0, 0, .18); }
+  /* Layer groups: the base.css collapsible band; the count (on / total) stays regular weight. */
+  .layer-group > summary .count { margin-left: auto; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .layer-group .legend-row { min-height: calc(var(--row) - 2px); gap: 6px; padding-left: 4px; }
+  .legend-row .legend-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .legend-row.later { opacity: .45; }
+  .stepper { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 0 0 4px; }
+  .stepper .step-where { flex-basis: 100%; font-size: var(--fs-sm); cursor: help; }
+  /* The print tilt, prominent, top-left over the 3D view. */
+  .tilt-chip { position: absolute; top: 8px; left: 8px; display: flex; align-items: baseline; gap: 6px; padding: 3px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); cursor: help; }
+  .tilt-chip[hidden] { display: none; }
+  .tilt-chip .tilt-angle { font-size: var(--fs-xl); font-weight: 700; letter-spacing: .02em; }
+  .tilt-chip .tilt-band { font-size: var(--fs-sm); color: var(--muted); }
+  .tilt-chip.unconfirmed { border-color: var(--danger); }
+  .tilt-chip.unconfirmed .tilt-angle { color: var(--danger); }
   /* The box centre's label, pinned to its sphere each frame. */
   .marker-label { position: absolute; left: 0; top: 0; transform: translate(10px, -26px); padding: 1px 6px; border-radius: 3px; background: var(--surface); border: 1px solid var(--line-strong); font-size: var(--fs-sm); white-space: nowrap; pointer-events: none; }
   .marker-label[hidden] { display: none; }
+  /* Hover tooltip (3D objects and panel labels): flat, hairline, never takes the pointer. */
+  .hover-tip { position: fixed; z-index: 30; max-width: 280px; padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); font-size: var(--fs-sm); line-height: 1.35; pointer-events: none; }
+  .hover-tip[hidden] { display: none; }
+  .hover-tip .hover-tip-title { font-weight: 700; }
+  .hover-tip .hover-tip-title:empty { display: none; }
+  .hover-tip .hover-tip-fact { font-variant-numeric: tabular-nums; }
+  .hover-tip .hover-tip-note { margin-top: 2px; color: var(--muted); }
   .segmented { margin-bottom: 6px; }
   .open { display: flex; gap: 4px; }
   .open input { display: none; }
@@ -82,7 +92,6 @@
   .nocase .result { margin: 0 0 10px; color: var(--danger); }
   .nocase p { margin: 0 0 8px; line-height: 1.45; }
   .nocase code { color: var(--muted); font-size: var(--fs-sm); overflow-wrap: anywhere; }
-  .explanation { margin: 8px 0 0; line-height: 1.45; }
 </style>
 <script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
 </head>
@@ -105,7 +114,11 @@
     <ul class="list" id="cases"></ul>
   </div>
   <div class="stage" id="stage">
-    <div class="note" id="note"></div>
+    <div class="note" id="note" data-ui="review-note"></div>
+    <div class="tilt-chip" id="tilt-chip" data-ui="review-tilt-chip" hidden>
+      <span class="tilt-angle" data-ui="review-tilt-angle"></span>
+      <span class="tilt-band" data-ui="review-tilt-band"></span>
+    </div>
     <div class="marker-label" id="box-label" hidden>Oral cavity ray</div>
     <div class="nocase" id="nocase" hidden><div>
       <h2 id="nocase-name"></h2>
@@ -125,24 +138,28 @@
       <button id="next">Next</button>
     </div>
   </div>
-  <div class="panel right">
-    <section>
+  <div class="panel right" data-ui="review-panel-right">
+    <section data-ui="review-case">
       <h3>Case</h3>
-      <p class="source" id="source"></p>
-      <dl id="facts"></dl>
-      <div class="peel-report" data-ui="review-peel-report" id="peel" hidden>
-        <h4 class="peel-title" data-ui="review-peel-title">Peel and strength</h4>
+      <p class="source" id="source" data-ui="review-source"></p>
+      <div id="facts" class="facts" data-ui="review-facts"></div>
+      <details class="fact-group peel-report" data-ui="review-peel-report" id="peel" open hidden>
+        <summary class="peel-title" data-ui="review-peel-title">Peel and strength</summary>
         <div class="peel-chart" data-ui="review-peel-chart" id="peel-chart"></div>
         <p class="peel-legend" data-ui="review-peel-legend"><span class="peel-key ours">ours</span> <span class="peel-key owner">owner (Chitubox)</span> <span class="muted">layer area (mm²) by height (mm)</span></p>
-      </div>
-      <p class="explanation" id="explanation" hidden></p>
+      </details>
     </section>
-    <section>
+    <section data-ui="review-layers-section">
       <h3>Layers</h3>
-      <div id="layers"></div>
+      <div id="layers" data-ui="review-layers"></div>
     </section>
   </div>
 </main>
+<div class="hover-tip" id="hover-tip" data-ui="review-hover-tip" hidden>
+  <div class="hover-tip-title" data-ui="review-hover-tip-title"></div>
+  <div class="hover-tip-facts" data-ui="review-hover-tip-facts"></div>
+  <div class="hover-tip-note" data-ui="review-hover-tip-note" hidden></div>
+</div>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -150,93 +167,107 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
-// Layers, in groups. Each entry: [GLB name prefix, plain-language name, one-line legend, shown by default].
+// Layers, in collapsible groups. Each entry: [GLB name prefix, short label, hover text (the long explanation), shown by default, group id].
 // Only the layers a file actually has are listed (a group with none is not shown). GLTFLoader turns spaces
 // in node names into underscores; `plain` puts them back before matching.
-const GROUPS = [
-  ['Model', [
-    ['DENTURE', 'Denture model', 'The scan in the print pose shown.', true],
-    ['NEUTRAL', 'Rest of the aligner', 'The aligner body outside the support area.', true],
-  ]],
-  ['Support area', [
-    // Only a denture's own mesh (named TEAL by the engine) maps to DENTURE: see keyOf. For an aligner TEAL is the support area.
-    ['TEAL', 'Support area (where tips may go)', 'Aligner: the faces where tips may go.', true],
-    ['No-support zone', 'No-support zone (hit by 45° rays)', 'Faces the parallel 45-degree rays from the front-top hit first. The allowed area overrides it.', true],
-    ['Ray directions', 'Ray directions (45°, parallel)', 'The parallel rays that define the no-support zone.', true],
-    ['Allowed area (seen', 'Allowed area (seen from the oral cavity ray)', 'Tips may stand on these faces: rays from the oral cavity ray origin reach them. Overrides the no-support zone.', true],
-    ['Down-facing area', 'Down-facing area (≤60° from down)', 'Faces within 60 degrees of straight down in the print pose: the support candidates.', false],
-  ]],
-  ['Supports', [
-    ['SUPPORT PILLARS', 'Support pillars (ours)', 'The pillars and braces our build made for the placed tips.', true],
-    ['Tips: rim', 'Tips: rim', 'Tips generated along the rim.', true],
-    ['Tips: hole', 'Tips: hole', 'Tips generated round a hole.', true],
-    ['Tips: area', 'Tips: area', 'Tips from the down-facing area grid.', true],
-    ['Tips: low', 'Tips: low', 'Tips at low points.', true],
-    ['Tips that cannot reach', 'Tips that cannot reach the plate', 'Overhang tips with no free path to the plate: not built.', true],
-    ['Tips left out', 'Tips left out', 'Tips with no support built (any source). Empty = every tip is supported.', true],
-    ['GOLD', 'Supports', 'Aligner: pillars, braces and raft.', true],
-    ['ORANGE', 'Support tips', 'Aligner: the tip cones.', true],
-  ]],
-  ['Your supports and contacts (-sup file)', [
-    ['YOUR SUPPORTS', 'Your supports (from -sup file)', 'The -sup STL you sent, placed on this scan.', false],
-    ['YOUR CONTACTS', 'Your contacts (dots)', 'Contact points from the -sup file, on the displayed scan.', true],
-  ]],
-  ['Compare', [
-    ['AREA both', 'Area compare: both', 'Faces near both your contacts and our tips (within 2 mm).', true],
-    ['AREA owner only', 'Area compare: yours only', 'Faces near your contacts but not our tips: we do not cover them.', true],
-    ['AREA ours only', 'Area compare: ours only', 'Faces near our tips but not your contacts.', true],
-  ]],
-  ['Edges and planes', [
-    ['TIGHT BOX', 'Tight box (oriented, around the model)', 'The oriented box the review works in; the oral cavity ray sits on its back edge.', true],
-    ['Print tilt', 'Print tilt: build plate', 'The build plate at the chosen print angle (its normal is up).', true],
-    ['DOWN-FACING', 'Down-facing hard edges', 'Hard edges of the bottom chains.', false],
-    ['ALL hard', 'All hard edges (thin)', 'Every hard edge the review found.', false],
-    ['Rim edge (continuous', 'Rim edge (continuous hard edge)', 'The rim as thick continuous line(s); the count and closed/open state are in the name.', true],
-    ['Hole outlines', 'Hole outlines (thick, around each hole)', 'A thick line round each hole.', true],
-    ['Hole band', 'Hole band (5 mm, allowed if overhang)', 'Faces within 5 mm of a hole edge; tips may stand here if they overhang.', true],
-    ['RIM PLANE', 'Rim plane (level fit through the rim)', 'The level plane fitted through the rim loop; the oral cavity ray sits on it.', true],
-    ['SYMMETRY PLANE', 'Symmetry plane (left / right split)', 'The upright plane that splits the U into left and right; the oral cavity ray sits on it.', true],
-    ['UPRIGHT PLANE', 'Upright arch plane', 'The upright plane; its teeth side is its normal.', false],
-    ['TRIM', 'Step 1: trim chains detected', 'Aligner: the sharp trim edges the orientation fitted to.', true],
-    ['UEND', 'Step 1: the two U ends', 'Aligner: the two distal ends of the U.', true],
-    ['BACK', 'Step 1: back arrow (open side of the U)', 'Aligner: points out of the back of the arch.', true],
-    ['PLANE', 'Step 1: bottom plane fitted to the trim', 'Aligner: the plane the orientation fitted.', false],
-    ['BLUE', 'Outer edge, detected', 'Aligner: the detected outer rim.', true],
-    ['GREEN', 'Outer edge, joining paths', 'Aligner: the paths that join the outer rim.', true],
-    ['RED', 'Inner opening edge, detected', 'Aligner: the detected opening edge.', true],
-  ]],
-  ['Markers', [
-    ['Oral cavity ray', 'Oral cavity ray (rim plane, back edge)', 'Marker: on the rim plane, at the back edge of the tight box, on the symmetry plane; the rays that find the allowed area start here.', true],
-    ['MARK support crosses', 'Support crosses the aligner', 'Aligner: a support cuts through the model (red).', true],
-    ['MARK crossing that', 'Crossing that could not be judged', 'Aligner: a crossing with no face to judge against (amber).', true],
-    ['ISLAND NOT resolved', 'Islands NOT resolved', 'Denture, engine island report: the lowest point of a region that starts mid-air and no built tip serves (tip left out, below min size, in the no-support zone or outside the allowed area). Reason in the facts list (amber).', true],
-    ['ISLAND resolved', 'Islands resolved', 'Denture, engine island report: the lowest point is served by a built tip, its own or one nearby (green).', false],
-    ['MARK low point with', 'Rule check: low point in the allowed area, no tip within reach', 'Older rule layer (aligner: the generate island check; denture: low points the review rule found). Not the engine island report (purple).', true],
-    ['MARK low point outside', 'Rule check: low point outside the allowed area', 'Older rule layer, for information (orange).', true],
-  ]],
-  ['Diagnostic (off by default)', [
-    ['VIOLET', 'Outer strip, opening side', 'Aligner: sample strip beside the outer edge.', false],
-    ['AMBER', 'Outer strip, other side', 'Aligner: sample strip beside the outer edge.', false],
-    ['CYAN', 'Inner strip, opening side', 'Aligner: sample strip beside the opening edge.', false],
-    ['MAGENTA', 'Inner strip, other side', 'Aligner: sample strip beside the opening edge.', false],
-    ['LIME', 'Outer sample points', 'Aligner: points used to find the outer edge.', false],
-    ['PINK', 'Inner sample points', 'Aligner: points used to find the opening edge.', false],
-  ]],
+// Group definitions: [id, title, open by default].
+const GROUP_DEFS = [
+  ['model', 'Model', true],
+  ['supports', 'Supports', true],
+  ['zones', 'Zones', true],
+  ['problems', 'Tips & problems', true],
+  ['rays', 'Rays', false],
+  ['reference', 'Reference', false],
+  ['owner', 'Owner file (-sup)', false],
+  ['diagnostic', 'Diagnostic', false],
 ];
-const LAYERS = GROUPS.flatMap(([, items]) => items);
+const LAYER_TABLE = [
+  ['DENTURE', 'Denture', 'The scan in the print pose shown.', true, 'model'],
+  ['NEUTRAL', 'Rest of aligner', 'The aligner body outside the support area.', true, 'model'],
+
+  // Only a denture's own mesh (named TEAL by the engine) maps to DENTURE: see keyOf. For an aligner TEAL is the support area.
+  ['SUPPORT PILLARS', 'Pillars', 'The pillars and braces our build made for the placed tips (dull plastic yellow).', true, 'supports'],
+  ['Tips: rim', 'Tips: rim', 'Tips generated along the rim.', true, 'supports'],
+  ['Tips: hole', 'Tips: hole', 'Tips generated round a hole.', true, 'supports'],
+  ['Tips: area', 'Tips: area', 'Tips from the down-facing area grid.', true, 'supports'],
+  ['Tips: low', 'Tips: low', 'Tips at low points.', true, 'supports'],
+  ['GOLD', 'Supports (aligner)', 'Aligner: pillars, braces and raft.', true, 'supports'],
+  ['ORANGE', 'Support tips (aligner)', 'Aligner: the tip cones.', true, 'supports'],
+
+  ['TEAL', 'Support area', 'Aligner: the faces where tips may go.', true, 'zones'],
+  ['No-support zone', 'No-support zone', 'Faces the parallel 45-degree rays (R1, and R1b when on) from the front-top hit first. The allowed area overrides it.', true, 'zones'],
+  ['Allowed area (seen', 'Allowed area', 'Tips may stand on these faces: the oral cavity ray (R2) reaches them first. Overrides the no-support zone.', true, 'zones'],
+  ['Hole band', 'Hole band', 'Faces within 5 mm of a hole edge; tips may stand here if they overhang.', true, 'zones'],
+  ['Down-facing area', 'Down-facing area', 'Faces within 60 degrees of straight down in the print pose: the support candidates.', false, 'zones'],
+  ['Self-supporting overhangs', 'Self-supporting overhangs (no tips needed)', 'Overhang patches (faces joined by edges) that need no open-area tips: no island or lowest point inside, projected area under the minimum (4 mm2), flattest face not within 19 degrees of horizontal, and reach under 3 mm from where they join the model. Only with the rule overhangSelfSupport on. Rim, hole, island and low-point tips are never dropped.', true, 'zones'],
+
+  ['Tips that cannot reach', 'Cannot reach plate', 'Overhang tips with no free path to the plate: not built (black cones).', true, 'problems'],
+  ['Tips left out', 'Tips left out', 'Tips with no support built (any source). Empty = every tip is supported.', true, 'problems'],
+  ['ISLAND NOT resolved', 'Islands not served', 'Engine island report: the lowest point of a region that starts mid-air and no built tip serves (tip left out, below min size, in the no-support zone or outside the allowed area). Reason in the facts.', true, 'problems'],
+  ['ISLAND resolved', 'Islands served', 'Engine island report: the lowest point is served by a built tip, its own or one nearby.', false, 'problems'],
+  ['MARK low point with', 'Low point: no tip', 'Older rule check: a low point in the allowed area with no tip within reach (aligner: the generate island check). Not the engine island report.', true, 'problems'],
+  ['MARK low point outside', 'Low point: outside', 'Older rule check, for information: a low point outside the allowed area.', true, 'problems'],
+  ['MARK support crosses', 'Support crosses', 'Aligner: a support cuts through the model.', true, 'problems'],
+  ['MARK crossing that', 'Crossing not judged', 'Aligner: a crossing with no face to judge against.', true, 'problems'],
+
+  ['R1 no-support', 'R1 no-support', 'R1 no-support ray: parallel rays from the front-top toward the back-bottom; the first face each hits is the no-support zone. Each starts well outside the model and ends at the hit.', true, 'rays'],
+  ['R1b steep', 'R1b steep no-support', 'R1b steep no-support ray: only when rule noSupportSteepDeg is on; the same parallel rays turned steeper (dashed lines).', true, 'rays'],
+  ['R2 oral', 'R2 oral cavity', 'R2 oral cavity ray: from the oral cavity ray origin to faces it reaches first (the allowed area).', true, 'rays'],
+  ['R3 hole', 'R3 hole', 'R3 hole ray: along the teeth axis; through the holes (miss) and one through solid material (hit).', true, 'rays'],
+  ['R4 up-check', 'R4 up-check', 'R4 up-check ray (diagnostic): its travel through the model along the teeth axis; reported only, decides nothing.', true, 'rays'],
+  ['R5 thickness', 'R5 thickness', 'R5 thickness ray: at bar-underside tips, inward along the reversed normal to the far side.', true, 'rays'],
+  ['R6 corridor', 'R6 corridor', 'R6 corridor rays: at each left-out tip, a centre ray and a ring straight down to the first hit or the plate.', true, 'rays'],
+  ['R7 plate-drop', 'R7 plate-drop', 'R7 plate-drop ray (space map): one sample cell, plate up to the model underside and from above down to the top.', true, 'rays'],
+  ['R8 landing', 'R8 landing', 'R8 landing ray: from a pillar top straight down to where it lands.', true, 'rays'],
+  ['Oral cavity ray', 'R2 origin', 'The oral cavity ray origin: on the rim plane, at the back edge of the tight box, on the symmetry plane.', true, 'rays'],
+
+  ['TIGHT BOX', 'Tight box', 'The oriented box the review works in; the oral cavity ray sits on its back edge.', true, 'reference'],
+  ['Print tilt', 'Build plate', 'The build plate at the chosen print angle (its normal is up).', true, 'reference'],
+  ['Rim edge (continuous', 'Rim edge', 'The rim as thick continuous line(s); the count and closed/open state are in the name.', true, 'reference'],
+  ['Hole outlines', 'Hole outlines', 'A thick line round each hole.', true, 'reference'],
+  ['RIM PLANE', 'Rim plane', 'The level plane fitted through the rim loop; the oral cavity ray sits on it.', true, 'reference'],
+  ['SYMMETRY PLANE', 'Symmetry plane', 'The upright plane that splits the U into left and right; the oral cavity ray sits on it.', true, 'reference'],
+  ['UPRIGHT PLANE', 'Arch plane', 'The upright plane; its teeth side is its normal.', false, 'reference'],
+  ['DOWN-FACING', 'Down-facing edges', 'Hard edges of the bottom chains.', false, 'reference'],
+  ['ALL hard', 'All hard edges', 'Every hard edge the review found (thin).', false, 'reference'],
+  ['TRIM', 'Trim chains', 'Aligner step 1: the sharp trim edges the orientation fitted to.', true, 'reference'],
+  ['UEND', 'U ends', 'Aligner step 1: the two distal ends of the U.', true, 'reference'],
+  ['BACK', 'Back arrow', 'Aligner step 1: points out of the back of the arch (the open side of the U).', true, 'reference'],
+  ['PLANE', 'Trim plane', 'Aligner step 1: the bottom plane fitted to the trim.', false, 'reference'],
+  ['BLUE', 'Outer edge', 'Aligner: the detected outer rim.', true, 'reference'],
+  ['GREEN', 'Joining paths', 'Aligner: the paths that join the outer rim.', true, 'reference'],
+  ['RED', 'Opening edge', 'Aligner: the detected opening edge.', true, 'reference'],
+
+  ['YOUR SUPPORTS', 'Supports', 'The -sup STL you sent, placed on this scan.', false, 'owner'],
+  ['YOUR CONTACTS', 'Contacts', 'Contact points from the -sup file, on the displayed scan.', true, 'owner'],
+  ['AREA both', 'Area: both', 'Faces near both your contacts and our tips (within 2 mm).', true, 'owner'],
+  ['AREA owner only', 'Area: yours only', 'Faces near your contacts but not our tips: we do not cover them.', true, 'owner'],
+  ['AREA ours only', 'Area: ours only', 'Faces near our tips but not your contacts.', true, 'owner'],
+
+  ['VIOLET', 'Outer strip, opening side', 'Aligner: sample strip beside the outer edge.', false, 'diagnostic'],
+  ['AMBER', 'Outer strip, other side', 'Aligner: sample strip beside the outer edge.', false, 'diagnostic'],
+  ['CYAN', 'Inner strip, opening side', 'Aligner: sample strip beside the opening edge.', false, 'diagnostic'],
+  ['MAGENTA', 'Inner strip, other side', 'Aligner: sample strip beside the opening edge.', false, 'diagnostic'],
+  ['LIME', 'Outer sample points', 'Aligner: points used to find the outer edge.', false, 'diagnostic'],
+  ['PINK', 'Inner sample points', 'Aligner: points used to find the opening edge.', false, 'diagnostic'],
+];
+const LAYERS = LAYER_TABLE;
 // GLTFLoader turns spaces in node names into underscores; compare with them put back.
 const plain = (name) => (name ?? '').replace(/_/g, ' ');
+// GLTFLoader also drops : . [ ] / from node names ("Tips: rim" arrives as "Tips rim"): compare without them.
+const bare = (text) => text.replace(/[:.\[\]\/]/g, '');
 // The kind of the case on screen. A denture's one mesh is named TEAL by the engine, and its support-
 // permitted faces are nearly the whole denture: for a denture that mesh is the model, not a support area.
 let kindNow = 'aligner';
 const keyOf = (name) => {
-  const key = LAYERS.find(([prefix]) => plain(name).startsWith(prefix))?.[0];
+  const key = LAYERS.find(([prefix]) => bare(plain(name)).startsWith(bare(prefix)))?.[0];
   return key === 'TEAL' && kindNow === 'denture' ? 'DENTURE' : key;
 };
+const entryOf = (key) => LAYERS.find(([prefix]) => prefix === key);
 const DENTURE_COLOUR = new THREE.Color('#d6cfbf');
-// Layer prefix -> the shared colour token (tokens.css; the GLB writers use layerColours.ts, the same values).
+// Layer prefix -> the shared colour token (tokens.css; the GLB writers use layerColours.ts, the same values). Rays take the colour of the area they decide.
 const SWATCH_VAR = {
-  'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing',
+  'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing', 'Self-supporting overhangs': '--layer-self-supporting', 'Sockets (no support)': '--layer-sockets', 'Fitting (basin)': '--layer-fitting',
   'DOWN-FACING': '--layer-down-edges', 'TIGHT BOX': '--layer-tight-box', 'RIM PLANE': '--layer-middle-plane', 'SYMMETRY PLANE': '--layer-symmetry-plane', 'Oral cavity ray': '--layer-ray-origin',
   'MARK low point outside': '--layer-low-outside', 'MARK low point with': '--layer-low-unsupported',
   'ISLAND NOT resolved': '--layer-island-unresolved', 'ISLAND resolved': '--layer-island-resolved',
@@ -244,6 +275,9 @@ const SWATCH_VAR = {
   'Tips: rim': '--layer-source-rim', 'Tips: hole': '--layer-source-hole', 'Tips: area': '--layer-source-area', 'Tips: low': '--layer-source-low',
   'Tips that cannot reach': '--layer-unsupportable-tips', 'Tips left out': '--layer-tips-left-out', 'SUPPORT PILLARS': '--layer-pillars', 'YOUR SUPPORTS': '--layer-owner',
   'YOUR CONTACTS': '--layer-owner', 'AREA both': '--layer-compare-both', 'AREA owner only': '--layer-compare-owner-only', 'AREA ours only': '--layer-compare-ours-only',
+  'Print tilt': '--layer-ray-r7',
+  'R1 no-support': '--layer-ray-r1', 'R1b steep': '--layer-ray-r1b', 'R2 oral': '--layer-ray-r2', 'R3 hole': '--layer-ray-r3', 'R4 up-check': '--layer-ray-r4',
+  'R5 thickness': '--layer-ray-r5', 'R6 corridor': '--layer-ray-r6', 'R7 plate-drop': '--layer-ray-r7', 'R8 landing': '--layer-ray-r8',
 };
 const visible = new Map(LAYERS.map(([prefix, , , on]) => [prefix, on]));
 
@@ -252,11 +286,11 @@ const visible = new Map(LAYERS.map(([prefix, , , on]) => [prefix, on]));
 const DENTURE_STEPS = [
   ['1. Orient', 'Up decision first (back-face rays: the side whose rays reach farther is the teeth top), then the tight box, rim plane and symmetry plane, before the print tilt.', ['TIGHT BOX', 'RIM PLANE', 'SYMMETRY PLANE']],
   ['2. Rim edge', 'The rim as thick continuous line(s), each closed or open (the count is in the name). Holes: a thick outline round each, and a 5 mm band.', ['Rim edge (continuous', 'Hole outlines', 'Hole band']],
-  ['3. No-support zone', 'Faces the parallel 45-degree rays from the front-top hit first, with a few arrows showing the rays.', ['No-support zone', 'Ray directions']],
+  ['3. No-support zone', 'Faces the parallel 45-degree rays from the front-top hit first, (the R1 arrows are in the Rays group).', ['No-support zone']],
   ['4. Oral cavity ray', 'On the rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
   ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
   ['6. Print tilt', 'The build plate at the print angle the build chose.', ['Print tilt']],
-  ['7. Overhangs and low points', 'Faces within 60 degrees of straight down, the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
+  ['7. Overhangs and low points', 'Faces within 60 degrees of straight down, the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
   ['8. Tips', 'Tips by source: rim, hole, area, low. Black cones: overhang tips with no free path to the plate (not built). Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
   ['9. Supports', 'Our pillars (plastic), the braces and the base.', ['SUPPORT PILLARS']],
   ['10. Compare with owner', 'Your -sup supports (off by default) and contacts, and the area each covers against ours.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
@@ -297,8 +331,9 @@ const PILLAR_KEYS = ['GOLD', 'SUPPORT PILLARS', 'YOUR SUPPORTS'];
 // The denture box centre's label, pinned to the sphere (set in show()).
 const boxLabel = document.getElementById('box-label');
 let boxAnchor = null;
-const PLASTIC = new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, metalness: 0, roughness: 0.45,
-  clearcoat: 0.3, clearcoatRoughness: 0.4, side: THREE.DoubleSide });
+// Matte, low specular: resin/ABS supports, not glossy.
+const PLASTIC = new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, metalness: 0, roughness: 0.85,
+  clearcoat: 0, specularIntensity: 0.15, envMapIntensity: 0.3, side: THREE.DoubleSide });
 const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 5000);
 scene.add(camera, new THREE.HemisphereLight(0xffffff, 0x8a847a, 1.6));
 const light = new THREE.DirectionalLight(0xffffff, 1.4);
@@ -357,31 +392,85 @@ function applyVisibility() {
   });
 }
 
-// The layer panel: groups with a heading, then each layer that the file has: a checkbox, its colour, its name and a one-line legend.
-// One layer's checkbox row: its colour, plain name and one-line legend.
+// Hover tooltip: one small box for the 3D view and for panel labels (data-tip). Text only (textContent), never HTML.
+const hoverTip = document.getElementById('hover-tip');
+const tipTitle = hoverTip.querySelector('[data-ui="review-hover-tip-title"]');
+const tipFacts = hoverTip.querySelector('[data-ui="review-hover-tip-facts"]');
+const tipNote = hoverTip.querySelector('[data-ui="review-hover-tip-note"]');
+function showTip({ title, facts = [], note = '' }, x, y) {
+  tipTitle.textContent = title;
+  tipFacts.replaceChildren(...facts.map((line) => Object.assign(document.createElement('div'), { className: 'hover-tip-fact', textContent: line })));
+  tipNote.textContent = note;
+  tipNote.hidden = !note;
+  hoverTip.hidden = false;
+  const { offsetWidth: w, offsetHeight: h } = hoverTip;
+  hoverTip.style.left = `${Math.max(4, Math.min(innerWidth - w - 4, x + 14))}px`;
+  hoverTip.style.top = `${Math.max(4, Math.min(innerHeight - h - 4, y + 16))}px`;
+}
+const hideTip = () => { hoverTip.hidden = true; };
+// Panel labels: any element with data-tip (and optional data-tip-title) shows its text here.
+document.addEventListener('pointerover', (event) => {
+  const from = event.target.closest?.('[data-tip]');
+  if (from) showTip({ title: from.dataset.tipTitle || '', note: from.dataset.tip }, event.clientX, event.clientY);
+  else if (!event.target.closest?.('canvas')) hideTip();
+});
+document.addEventListener('pointermove', (event) => {
+  const from = event.target.closest?.('[data-tip]');
+  if (from) showTip({ title: from.dataset.tipTitle || '', note: from.dataset.tip }, event.clientX, event.clientY);
+});
+
+// One layer's checkbox row: its colour and short label; the long explanation is the hover text of the label.
 function layerRow([prefix, label, legend]) {
   const row = document.createElement('label');
   row.className = 'check legend-row';
   row.dataset.ui = `review-legend-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+  row.dataset.layer = prefix;
+  row.dataset.tipTitle = label;
+  row.dataset.tip = legend;
+  if (stepAt !== null && stepOf(prefix) > stepAt) row.classList.add('later');
   const input = Object.assign(document.createElement('input'), { type: 'checkbox', checked: visible.get(prefix) });
-  input.addEventListener('change', () => { visible.set(prefix, input.checked); applyVisibility(); placeBoxLabel(); });
+  input.addEventListener('change', () => { visible.set(prefix, input.checked); applyVisibility(); placeBoxLabel(); refreshGroupCounts(); });
   const swatch = document.createElement('i');
   swatch.className = 'swatch';
   let colour = '#ccc';
   const token = SWATCH_VAR[prefix];
   model.traverse((object) => { if (object.material && (keyOf(object.name) === prefix || keyOf(object.parent?.name) === prefix)) colour = '#' + (object.userData.colour ?? object.material.color).getHexString(); });
   swatch.style.background = token ? `var(${token})` : colour;
-  const text = document.createElement('span');
-  const name = document.createElement('strong');
-  // Rim and hole layers name their own counts in the GLB (lines closed or open, holes): show that name.
+  const name = document.createElement('span');
+  name.className = 'legend-label';
+  // Rim and hole layers name their own counts in the GLB (lines closed or open, holes): show that name, shortened.
   let shown = label;
-  if (['Rim edge (continuous', 'Hole outlines'].includes(prefix)) model.traverse((object) => { if (object.name && keyOf(object.name) === prefix) shown = plain(object.name); });
+  if (['Rim edge (continuous', 'Hole outlines'].includes(prefix)) model.traverse((object) => { if (object.name && keyOf(object.name) === prefix) shown = plain(object.name).replace('(continuous hard edge)', '').replace(/\s+:/, ':'); });
   name.textContent = shown;
-  const note = document.createElement('small');
-  note.textContent = legend;
-  text.append(name, note);
-  row.append(input, swatch, text);
+  row.append(input, swatch, name);
   return row;
+}
+
+// Group headers show "on / total" for the layers a case has; refreshed when a checkbox flips.
+function refreshGroupCounts() {
+  document.querySelectorAll('#layers details[data-group]').forEach((group) => {
+    const members = JSON.parse(group.dataset.members);
+    group.querySelector('.count').textContent = `${members.filter((prefix) => visible.get(prefix)).length}/${members.length}`;
+  });
+}
+
+// Which groups are open survives a redraw (new case, step buttons).
+const openState = new Map(GROUP_DEFS.map(([id, , open]) => [id, open]));
+function collapsible(id, title, members, body, dataUi, openMap = openState) {
+  const group = document.createElement('details');
+  group.className = 'layer-group';
+  group.dataset.group = id;
+  group.dataset.ui = dataUi;
+  group.dataset.members = JSON.stringify(members);
+  group.open = openMap.get(id) ?? false;
+  group.addEventListener('toggle', () => openMap.set(id, group.open));
+  const summary = document.createElement('summary');
+  const text = document.createElement('span');
+  text.textContent = title;
+  const count = Object.assign(document.createElement('span'), { className: 'count' });
+  summary.append(text, count);
+  group.append(summary, ...body);
+  return group;
 }
 
 // Denture step-by-step: move to a step (0 = model only); null turns it off, and the checkboxes rule again.
@@ -392,89 +481,170 @@ function setStep(at) {
   drawLayers();
 }
 
-// The layer panel: groups with a heading, then each layer that the file has: a checkbox, its colour, its name and a one-line legend.
-// A denture instead lists the model, the step-by-step controls, then the numbered steps, then Other.
+// The layer panel: collapsible groups, each with the layers the file has (a checkbox, its colour, a short label).
+// A denture also gets the step-by-step controls on top.
 function drawLayers() {
   const present = new Set();
   model?.traverse((object) => { const key = object.name && keyOf(object.name); if (key) present.add(key); });
   const box = document.getElementById('layers');
   box.className = 'layers';
-  const group = ([heading, items]) => {
-    const here = items.filter(([prefix]) => present.has(prefix));
+  const groups = GROUP_DEFS.flatMap(([id, title]) => {
+    const here = LAYER_TABLE.filter(([prefix, , , , group]) => group === id && present.has(prefix));
     if (here.length === 0) return [];
-    const title = document.createElement('h4');
-    title.textContent = heading;
-    return [title, ...here.map(layerRow)];
-  };
-  if (kindNow !== 'denture') {
-    box.replaceChildren(...GROUPS.flatMap(group));
-    return;
-  }
-  const modelGroup = GROUPS.find(([heading]) => heading === 'Model');
-  const placed = new Set(DENTURE_STEPS.flatMap(([, , keys]) => keys));
-  const other = LAYERS.filter(([prefix]) => present.has(prefix) && !MODEL_KEYS.includes(prefix) && !placed.has(prefix));
-  const last = DENTURE_STEPS.length;
-
-  const stepper = document.createElement('div');
-  stepper.className = 'stepper';
-  const toggle = document.createElement('button');
-  toggle.textContent = 'Step-by-step';
-  toggle.setAttribute('aria-pressed', String(stepAt !== null));
-  toggle.addEventListener('click', () => setStep(stepAt === null ? 0 : null));
-  stepper.append(toggle);
-  if (stepAt !== null) {
-    const prev = Object.assign(document.createElement('button'), { textContent: 'Prev step', disabled: stepAt === 0 });
-    prev.addEventListener('click', () => setStep(stepAt - 1));
-    const next = Object.assign(document.createElement('button'), { textContent: 'Next step', disabled: stepAt === last });
-    next.addEventListener('click', () => setStep(stepAt + 1));
-    const where = document.createElement('span');
-    where.className = 'muted';
-    where.textContent = stepAt === 0 ? 'Model only (step 0)' : `Step ${stepAt} of ${last}: ${DENTURE_STEPS[stepAt - 1][0].replace(/^\d+\.\s*/, '')}`;
-    stepper.append(prev, next, where);
-  }
-
-  const blocks = DENTURE_STEPS.map(([title, text, keys], index) => {
-    const n = index + 1;
-    const block = document.createElement('div');
-    block.className = `step-block${stepAt !== null && n > stepAt ? ' later' : ''}`;
-    const heading = document.createElement('h4');
-    heading.className = 'step';
-    heading.textContent = title;
-    const note = document.createElement('p');
-    note.className = 'step-note';
-    note.textContent = text;
-    const rows = keys.filter((prefix) => present.has(prefix)).map((prefix) => layerRow(LAYERS.find(([p]) => p === prefix)));
-    // Plain text lines (no layer): the up decision in step 1, the print angle in step 6.
-    if (n === 1) {
-      const line = document.createElement('p');
-      line.className = 'step-line';
-      line.textContent = `Up: ${caseNow?.upDecision || '-'}`;
-      rows.push(line);
-    }
-    if (n === 6) {
-      const line = document.createElement('p');
-      line.className = 'step-line';
-      line.textContent = `Print angle: ${printAngleText(caseNow ?? {})}`;
-      rows.push(line);
-    }
-    if (rows.length === 0) {
-      const none = document.createElement('p');
-      none.className = 'step-note';
-      none.textContent = 'Nothing drawn for this step in this case.';
-      rows.push(none);
-    }
-    block.append(heading, note, ...rows);
-    return block;
+    return [collapsible(id, title, here.map(([prefix]) => prefix), here.map(layerRow), `review-group-${id}`)];
   });
-  const otherBlock = other.length === 0 ? [] : [Object.assign(document.createElement('div'), { className: `step-block${stepAt !== null && last > stepAt ? ' later' : ''}` })];
-  if (otherBlock.length) {
-    const heading = document.createElement('h4');
-    heading.className = 'step';
-    heading.textContent = 'Other';
-    otherBlock[0].append(heading, ...other.map(layerRow));
+  const parts = [];
+  if (kindNow === 'denture') {
+    const last = DENTURE_STEPS.length;
+    const stepper = document.createElement('div');
+    stepper.className = 'stepper';
+    stepper.dataset.ui = 'review-stepper';
+    const toggle = document.createElement('button');
+    toggle.textContent = 'Step-by-step';
+    toggle.dataset.ui = 'review-step-toggle';
+    toggle.dataset.tipTitle = 'Step-by-step';
+    toggle.dataset.tip = 'Show the layers in the order the review ran its ten steps: model first, then one step at a time.';
+    toggle.setAttribute('aria-pressed', String(stepAt !== null));
+    toggle.addEventListener('click', () => setStep(stepAt === null ? 0 : null));
+    stepper.append(toggle);
+    if (stepAt !== null) {
+      const prev = Object.assign(document.createElement('button'), { textContent: 'Prev', disabled: stepAt === 0 });
+      prev.dataset.ui = 'review-step-prev';
+      prev.addEventListener('click', () => setStep(stepAt - 1));
+      const next = Object.assign(document.createElement('button'), { textContent: 'Next', disabled: stepAt === last });
+      next.dataset.ui = 'review-step-next';
+      next.addEventListener('click', () => setStep(stepAt + 1));
+      const where = document.createElement('span');
+      where.className = 'muted step-where';
+      where.dataset.ui = 'review-step-where';
+      where.textContent = stepAt === 0 ? 'Model only' : `${stepAt}/${last} ${DENTURE_STEPS[stepAt - 1][0].replace(/^\d+\.\s*/, '')}`;
+      if (stepAt > 0) { where.dataset.tipTitle = DENTURE_STEPS[stepAt - 1][0]; where.dataset.tip = DENTURE_STEPS[stepAt - 1][1]; }
+      stepper.append(prev, next, where);
+    }
+    parts.push(stepper);
   }
-  box.replaceChildren(...(modelGroup ? group(modelGroup) : []), stepper, ...blocks, ...otherBlock);
+  box.replaceChildren(...parts, ...groups);
+  refreshGroupCounts();
 }
+
+// ---- Hover picking ----------------------------------------------------------------------------------
+// The scene is picked with a THREE.Raycaster from the pointer. The first visible hit (a line hit wins over a surface it
+// lies on) is described by describeHit(): the layer's plain name, key facts that are cheap to read from the picked
+// geometry (ray length, tip reason, pillar height, face count) and the layer's explanation.
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const worldPoint = (position, index, object) => new THREE.Vector3().fromBufferAttribute(position, index).applyMatrix4(object.matrixWorld);
+const mm = (value) => `${value.toFixed(value < 10 ? 2 : 1)} mm`;
+const visibleDeep = (object) => { for (let o = object; o; o = o.parent) if (!o.visible) return false; return true; };
+
+// Connected parts of a welded mesh (union-find over the index), with each part's world-space height; built on first hover, cached on the object.
+function partsOf(object) {
+  if (object.userData.parts) return object.userData.parts;
+  const geometry = object.geometry;
+  const count = geometry.attributes.position.count;
+  const parent = Int32Array.from({ length: count }, (_, i) => i);
+  const find = (i) => { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+  const index = geometry.index.array;
+  for (let i = 0; i < index.length; i += 3) { const a = find(index[i]); parent[find(index[i + 1])] = a; parent[find(index[i + 2])] = a; }
+  const low = new Map(), high = new Map();
+  object.updateMatrixWorld(true);
+  for (let i = 0; i < count; i++) {
+    const root = find(i), y = worldPoint(geometry.attributes.position, i, object).y;
+    low.set(root, Math.min(low.get(root) ?? Infinity, y));
+    high.set(root, Math.max(high.get(root) ?? -Infinity, y));
+  }
+  object.userData.parts = { find, height: (vertex) => high.get(find(vertex)) - low.get(find(vertex)), count: new Set(Array.from({ length: count }, (_, i) => find(i))).size };
+  return object.userData.parts;
+}
+
+function describeHit(hit) {
+  const object = hit.object;
+  const key = keyOf(object.name) ?? keyOf(object.parent?.name);
+  const entry = key && entryOf(key);
+  if (!entry) return { title: plain(object.name || object.parent?.name) || 'Object' };
+  const [, label, legend] = entry;
+  const geometry = object.geometry;
+  const facts = [];
+  let title = label;
+  if (/^R\d/.test(key)) {
+    // Each arrow is 6 vertices (shaft + two head strokes; R1b 2 * dashes + 4, from the layer's extras): the first is its start, the shaft's last its end.
+    const position = geometry.attributes.position;
+    const per = object.userData.verticesPerArrow ?? 6, endAt = object.userData.shaftEndVertex ?? 1;
+    const arrow = Math.floor(hit.index / per);
+    const from = worldPoint(position, arrow * per, object), to = worldPoint(position, arrow * per + endAt, object);
+    facts.push(`Length ${mm(from.distanceTo(to))}`, `Arrow ${arrow + 1} of ${position.count / per}`);
+  } else if (key === 'Tips left out') {
+    const tip = Math.floor(hit.faceIndex / (object.userData.trianglesPerItem ?? 24));
+    const reasons = object.userData.reasons ?? [];
+    const reason = reasons[tip];
+    title = 'Tip left out';
+    if (reason !== undefined) facts.push(`Reason: ${REASONS.find(([prefix]) => reason.startsWith(prefix))?.[1] ?? reason}`, `Code: ${reason}`);
+    facts.push(`Tip ${tip + 1} of ${reasons.length || '?'}`);
+  } else if (key.startsWith('Tips:')) {
+    title = `Tip (${key.slice(6)})`;
+    const per = object.userData.trianglesPerItem ?? 24, item = Math.floor(hit.faceIndex / per);
+    const reason = (object.userData.reasons ?? [])[item];
+    if (reason !== undefined) {
+      // The cone's axis in world space (the print pose, +Y up): apex = the vertex repeated most, axis = vertex mean minus apex.
+      const pos = geometry.attributes.position, pts = [];
+      for (let i = item * per * 3; i < (item + 1) * per * 3 && i < pos.count; i++) pts.push(worldPoint(pos, i, object));
+      const key = (v) => `${v.x.toFixed(4)},${v.y.toFixed(4)},${v.z.toFixed(4)}`, count = new Map();
+      for (const v of pts) count.set(key(v), (count.get(key(v)) ?? 0) + 1);
+      const apexKey = [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+      const apex = pts.find((v) => key(v) === apexKey);
+      if (apex) {
+        const axis = pts.reduce((a, v) => a.add(v), new THREE.Vector3()).divideScalar(pts.length).sub(apex).normalize();
+        facts.push(`Faces ${THREE.MathUtils.radToDeg(Math.acos(Math.max(-1, Math.min(1, -axis.y)))).toFixed(1)}° from straight down (print pose)`);
+      }
+      facts.push(reason);
+    }
+    else facts.push(`Tip ${Math.floor(hit.faceIndex / 24) + 1} of ${geometry.index ? Math.round(geometry.index.count / 72) : '?'}`);
+  } else if (key === 'Tips that cannot reach') {
+    title = 'Tip that cannot reach the plate';
+  } else if (['SUPPORT PILLARS', 'GOLD', 'YOUR SUPPORTS'].includes(key) && geometry.index) {
+    const parts = partsOf(object);
+    title = key === 'GOLD' ? 'Support (aligner)' : key === 'YOUR SUPPORTS' ? 'Your support (-sup)' : 'Support pillar';
+    facts.push(`Height ${mm(parts.height(geometry.index.array[hit.faceIndex * 3]))}`, `${parts.count} parts in this layer`);
+  } else if (['DENTURE', 'NEUTRAL', 'TEAL'].includes(key)) {
+    facts.push(`${Math.round((geometry.index ? geometry.index.count : geometry.attributes.position.count) / 3).toLocaleString()} triangles`);
+  } else if (!geometry.index && geometry.attributes.position.count % 3 === 0 && !object.isLine) {
+    facts.push(`${Math.round(geometry.attributes.position.count / 3).toLocaleString()} faces in this layer`);
+  }
+  const shownName = ['Rim edge (continuous', 'Hole outlines'].includes(key) ? plain(object.name).replace('(continuous hard edge)', '') : '';
+  return { title: shownName || title, facts, note: legend };
+}
+
+function pick(clientX, clientY) {
+  if (!model) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const threshold = Math.max(0.15, camera.position.distanceTo(controls.target) * 0.004);
+  raycaster.params.Line.threshold = threshold;
+  const hits = raycaster.intersectObject(model, true).filter((h) => (h.object.isMesh || h.object.isLine) && visibleDeep(h.object));
+  const first = hits[0];
+  if (!first) { hideTip(); return; }
+  // A thin line lying on a surface would always lose to it: a line hit close behind the first hit wins.
+  const line = first.object.isLine ? first : hits.find((h) => h.object.isLine && h.distance <= first.distance + threshold * 4);
+  showTip(describeHit(line ?? first), clientX, clientY);
+}
+
+let pickTimer = 0;
+const canvas = renderer.domElement;
+canvas.addEventListener('pointermove', (event) => {
+  if (event.buttons || event.pointerType === 'touch') { hideTip(); return; }
+  const { clientX, clientY } = event;
+  clearTimeout(pickTimer);
+  pickTimer = setTimeout(() => pick(clientX, clientY), 50);
+});
+canvas.addEventListener('pointerleave', () => { clearTimeout(pickTimer); hideTip(); });
+// Touch has no hover: a tap (no drag) shows the tooltip.
+let tapAt = null;
+canvas.addEventListener('pointerdown', (event) => { hideTip(); tapAt = event.pointerType === 'touch' ? [event.clientX, event.clientY] : null; });
+canvas.addEventListener('pointerup', (event) => {
+  if (tapAt && Math.hypot(event.clientX - tapAt[0], event.clientY - tapAt[1]) < 6) pick(event.clientX, event.clientY);
+  tapAt = null;
+});
 
 // Plain words for the reason codes (reasons.json beside this page, first matching prefix wins), so
 // runs made before summary.json carried `explanation` read the same.
@@ -645,11 +815,49 @@ for (const id of ['pick-folder', 'pick-files']) {
 const shown = () => (onlyLook ? cases.filter((c) => c.needsLook) : cases);
 
 const status = (c) => (c.result !== 'built' ? c.result : c.verdict);
-// The print angle in words, from the case facts (the denture's step 8 line and its facts row share it).
+// The print angle in words, from the case facts (the facts row and the tilt chip share it).
 function printAngleText(c) {
   if (c.printAngleDeg == null) return '-';
   return `${c.printAngleDeg}° (stable ${c.stableBand || 'none'})${c.angleConfirmed ? ', confirm build passed' : ', confirm build did not pass'}`;
 }
+// "0-44" -> "0–44°"; 'none' or '' -> 'no stable band'.
+const bandText = (band) => {
+  const m = /^(-?[\d.]+)-(-?[\d.]+)$/.exec(band ?? '');
+  return m ? `stable ${m[1]}–${m[2]}°` : 'no stable band';
+};
+// The tilt chip over the 3D view: "Tilt 8° (stable 0–44°)".
+function drawTilt(c) {
+  const chip = document.getElementById('tilt-chip');
+  chip.hidden = c.printAngleDeg == null;
+  if (chip.hidden) return;
+  chip.querySelector('[data-ui="review-tilt-angle"]').textContent = `Tilt ${c.printAngleDeg}°`;
+  chip.querySelector('[data-ui="review-tilt-band"]').textContent = `(${bandText(c.stableBand)})`;
+  chip.classList.toggle('unconfirmed', !c.angleConfirmed);
+  chip.dataset.tipTitle = 'Print tilt';
+  chip.dataset.tip = [`Print angle ${c.printAngleDeg}° from upright. ${c.stableBand && c.stableBand !== 'none' ? `Every angle from ${c.stableBand.replace(/^(-?[\d.]+)-(-?[\d.]+)$/, '$1° to $2°')} gives the same decision (the stable band).` : 'No stable band was found.'}`,
+    c.angleConfirmed ? 'The confirm build passed.' : 'The confirm build did not pass.', c.angleReason || ''].filter(Boolean).join(' ');
+}
+
+// Fact groups of the right panel: [id, title, open by default, the row names in it]. A row not listed lands in "More".
+const FACT_GROUPS = [
+  ['result', 'Case result', true, ['Kind', 'Shape check', 'Result', 'Safety check', 'Reason code', 'Supports crossing the aligner', 'Crossings not judged']],
+  ['tilt', 'Tilt and orientation', true, ['Print angle', 'Up decision', 'Rim plane', 'Arch', 'Up/down cross-check', 'Floor offset ratio']],
+  ['islands', 'Islands', true, ['Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Low points with no support', 'Low points outside the area']],
+  ['tips', 'Tips', true, ['Tips by source', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Unsupportable tips', 'Structures left out', 'Largest gap, outer edge (mm)', 'Largest gap, opening (mm)', 'Edge coverage needs review']],
+  ['peelfacts', 'Peel and supports', false, ['Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area']],
+  ['ownerfacts', 'Owner file', false, ['Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %']],
+  ['timing', 'Timing and clean-up', false, ['Time (s)', 'Scan clean-up']],
+];
+const factOpen = new Map(FACT_GROUPS.map(([id, , open]) => [id, open]).concat([['more', false]]));
+// Short row labels (the full wording is the hover text of the label).
+const FACT_SHORT = {
+  'Supports crossing the aligner': 'Crossings', 'Crossings not judged': 'Not judged', 'Islands not resolved': 'Not served', 'Unresolved islands': 'Not served list',
+  'Islands resolved': 'Served', 'Islands outside the allowed area': 'Outside area', 'Low points with no support': 'Low, no support', 'Low points outside the area': 'Low, outside',
+  'Peel: largest layer, ours (mm²)': 'Peak layer, ours', 'Peel: largest layer, owner (mm²)': 'Peak layer, owner', 'Peel: layers where ours is >10% above owner': 'Layers over owner',
+  'Most tips on one support tree': 'Max tips / tree', 'Trunk area / neck area': 'Trunk / neck', 'Owner contacts, median distance to displayed model (mm)': 'Contacts distance (mm)',
+  'Owner area covered %': 'Owner area covered %', 'Our area outside owner %': 'Ours outside owner %', 'Largest gap, outer edge (mm)': 'Gap, outer (mm)', 'Largest gap, opening (mm)': 'Gap, opening (mm)',
+  'Edge coverage needs review': 'Edge review', 'Unsupportable tips': 'Cannot reach', 'Left-out reasons': 'Left-out reasons', 'Tips by source': 'By source',
+};
 function facts(c) {
   // A denture reads only the rows that apply to it; the aligner-only rows (arch, cross-checks, gaps, edge
   // coverage, support crossings) would show "not oriented" and similar in red for a case that has none.
@@ -704,18 +912,46 @@ function facts(c) {
     ['Our area outside owner %', c.outsideOwnerAreaPct ?? '-', false],
   );
   if (c.reason) rows.push(['Reason code', c.reason, true]);
-  const explanation = document.getElementById('explanation');
-  explanation.textContent = [c.reason ? explain(c) : '', c.orientationNote ?? ''].filter(Boolean).join(' ');
-  explanation.hidden = !explanation.textContent;
+  // The long explanation (plain-words reason, orientation note) is the hover text of the Result and Reason rows.
+  const explanation = [c.reason ? explain(c) : '', c.orientationNote ?? ''].filter(Boolean).join(' ');
+  const FACT_HELP = {
+    'Result': explanation, 'Reason code': explanation, 'Print angle': c.angleReason || 'The print tilt the build chose.',
+    'Unresolved islands': 'Lowest points of regions that start mid-air that no built tip serves, with height, size and reason.',
+    'Left-out reasons': 'Why tips were not built, with counts.', 'Up decision': 'How the teeth-top side was decided.',
+  };
   const factRows = c.kind === 'denture' ? rows.filter(([k]) => DENTURE_ROWS.includes(k) || k === 'Reason code') : rows;
-  document.getElementById('facts').replaceChildren(...factRows.flatMap(([k, v, bad]) => {
-    const dt = document.createElement('dt'); dt.textContent = k;
+  const byName = new Map(factRows.map((row) => [row[0], row]));
+  const used = new Set();
+  const line = ([k, v, bad]) => {
+    used.add(k);
+    const dt = document.createElement('dt'); dt.textContent = FACT_SHORT[k] ?? k;
+    dt.dataset.tipTitle = k;
+    if (FACT_HELP[k] || FACT_SHORT[k]) dt.dataset.tip = FACT_HELP[k] || k;
+    else delete dt.dataset.tipTitle;
     const dd = document.createElement('dd'); dd.textContent = String(v ?? '-'); if (bad) dd.className = 'bad';
+    dd.dataset.ui = `review-fact-${k.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
     if (k === 'Left-out reasons') dd.dataset.ui = 'review-fact-left-out-reasons';
     if (k === 'Unresolved islands') dd.dataset.ui = 'review-fact-unresolved-islands';
     return [dt, dd];
-  }));
+  };
+  const groupBlock = (id, title, names) => {
+    const mine = names.filter((n) => byName.has(n)).map((n) => byName.get(n));
+    if (mine.length === 0) return [];
+    const list = document.createElement('dl');
+    list.className = 'fact-list';
+    list.dataset.ui = `review-facts-list-${id}`;
+    list.append(...mine.flatMap(line));
+    const group = collapsible(id, title, [], [list], `review-facts-${id}`, factOpen);
+    group.classList.add('fact-group');
+    // Counts belong to the layer groups only.
+    group.querySelector('.count').remove();
+    return [group];
+  };
+  const groups = FACT_GROUPS.flatMap(([id, title, , names]) => groupBlock(id, title, names));
+  const rest = factRows.map(([k]) => k).filter((k) => !used.has(k));
+  document.getElementById('facts').replaceChildren(...groups, ...groupBlock('more', 'More', rest));
   document.getElementById('source').textContent = c.source ?? '';
+  drawTilt(c);
   drawPeel(c);
 }
 

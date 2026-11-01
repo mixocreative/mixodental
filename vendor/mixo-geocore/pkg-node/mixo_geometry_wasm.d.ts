@@ -194,6 +194,10 @@ export class DentalTiltScanResult {
      */
     boxed_reasons(): string[];
     /**
+     * Denture scan (engine 35): per row, how many lowest points the tilt pick counted; empty with no lowest-point score on.
+     */
+    counted_lows(): Uint32Array;
+    /**
      * Per row and rule (4 per row): the first failing vertex id (resin trap) or tip id, or "".
      */
     failing(): string[];
@@ -222,6 +226,10 @@ export class DentalTiltScanResult {
      * The start tilt (degrees).
      */
     start_deg(): number;
+    /**
+     * Denture scan with rule `tiltPickOrder` 1 (engine 35): per row 2 numbers, tips needed, tips in unwanted areas; empty otherwise.
+     */
+    tip_counts(): Uint32Array;
 }
 
 /**
@@ -308,6 +316,14 @@ export class DentureReviewResult {
      */
     down_mask(): Uint8Array;
     /**
+     * The fitting basin against the zones, face counts: fitting, fitting and allowed, fitting and no-support, fitting and neither, allowed but not fitting.
+     */
+    fitting_check(): Uint32Array;
+    /**
+     * Per face: 1 on the fitting surface seen as a basin from the tissue side (a cross-check layer; it changes no tip).
+     */
+    fitting_mask(): Uint8Array;
+    /**
      * Every hard edge as segments `ax ay az bx by bz`.
      */
     hard_edges(): Float64Array;
@@ -344,6 +360,14 @@ export class DentureReviewResult {
      */
     low_tip_reasons(): Uint8Array;
     /**
+     * The island and lowest-point tips standing on a socket (kept), xyz each.
+     */
+    lows_in_sockets(): Float64Array;
+    /**
+     * Island and lowest-point tips on a face that is not down-facing, xyz triples (engine 39).
+     */
+    lows_not_down_facing(): Float64Array;
+    /**
      * Low points outside the allowed area (left unsupported), `x y z` each.
      */
     lows_outside(): Float64Array;
@@ -367,6 +391,14 @@ export class DentureReviewResult {
      * Step 1, per face: 1 when a 45 degree front-top parallel ray hits it first (NO_SUPPORT before the override), else 0.
      */
     no_support_mask(): Uint8Array;
+    /**
+     * The R1b angle in degrees, 0 when off (engine 36).
+     */
+    no_support_steep_deg(): number;
+    /**
+     * Per face: 1 when only R1b (the steep no-support ray, rule `noSupportSteepDeg`) hits it first, not R1; a subset of `no_support_mask`; all 0 with R1b off (engine 36).
+     */
+    no_support_steep_mask(): Uint8Array;
     /**
      * Oral cavity ray origin xyz: on the rim plane, at the back edge of the tight box, on the symmetry plane (the allowed-area rays start here).
      */
@@ -412,6 +444,22 @@ export class DentureReviewResult {
      */
     rim_sizes(): Uint32Array;
     /**
+     * Faces of the self-supporting overhang regions (rule `overhangSelfSupport`, engine 38): they get no open-area tips; empty with the rule off.
+     */
+    self_support_faces(): Uint32Array;
+    /**
+     * `[overhang regions, self-supporting regions, open-area tips saved]` (engine 38); zeros with the rule off.
+     */
+    self_support_info(): Float64Array;
+    /**
+     * Per face: 1 on a tooth socket (`dental/denture/sockets.rs`, rule `socketMinDepthMm`), shown whether or not `socketNoSupport` is on.
+     */
+    socket_mask(): Uint8Array;
+    /**
+     * Basin faces the oral cavity ray R2 sees, so not sockets (R2 cancels the socket mask).
+     */
+    sockets_cancelled_by_r2(): number;
+    /**
      * Symmetry plane (splits the U left/right): point xyz, unit normal xyz.
      */
     symmetry_plane(): Float64Array;
@@ -423,6 +471,18 @@ export class DentureReviewResult {
      * Generated tips, `x y z nx ny nz stream` each (0 low, 1 area, 4 rim, 5 hole, 6 island).
      */
     tips(): Float64Array;
+    /**
+     * Tips the final guard refused (`tipMaxFromDownDeg`, engine 39), `[rim, hole, area, other]`.
+     */
+    tips_dropped_facing_up(): Uint32Array;
+    /**
+     * `socketNoSupport`: tips kept off sockets [rim, hole, area, other].
+     */
+    tips_dropped_socket(): Uint32Array;
+    /**
+     * Tips skipped for a knife-sharp fold or a neck that would enter the material behind a nearby face (engine 39), `[rim, hole, area, other]`.
+     */
+    tips_skipped_fold(): Uint32Array;
     /**
      * Tips on an overhang with no free path to the plate, same layout as `tips`; not built.
      */

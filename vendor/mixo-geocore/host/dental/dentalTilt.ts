@@ -47,6 +47,10 @@ export interface BoxedReport {
   counts: number[];
   picked: BoxedPoint[];
   /** Per row, only when the rule `landingTiltWeight` is above 0 (engine 32): lowest points without a path, tips without a path, tips with only a fallback path, tips. */
+  /** Per row, how many lowest points the tilt pick counted (engine 35; empty when no lowest-point score is on). */
+  lows: number[];
+  /** Per row [tips needed, tips in unwanted areas], flat; only with the rule tiltPickOrder 1 (engine 35). */
+  tips: number[];
   paths: Array<{ lowsWithout: number; without: number; fallbacks: number; tips: number }>;
 }
 
@@ -83,7 +87,9 @@ function decodeBoxed(result: DentalTiltScanResultLike): BoxedReport {
   const flatPaths = result.path_counts ? result.path_counts() : new Uint32Array();
   const paths: BoxedReport['paths'] = [];
   for (let at = 0; at * 4 < flatPaths.length; at++) paths.push({ lowsWithout: flatPaths[at * 4]!, without: flatPaths[at * 4 + 1]!, fallbacks: flatPaths[at * 4 + 2]!, tips: flatPaths[at * 4 + 3]! });
-  return { counts, picked, paths };
+  const lows = result.counted_lows ? Array.from(result.counted_lows()) : [];
+  const tips = result.tip_counts ? Array.from(result.tip_counts()) : [];
+  return { counts, picked, paths, lows, tips };
 }
 
 /** Decodes and frees a `dental_tilt_scan` result. */

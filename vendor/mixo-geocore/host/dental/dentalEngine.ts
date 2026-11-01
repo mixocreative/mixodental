@@ -61,6 +61,8 @@ export interface DentalTiltScanResultLike {
   boxed_counts?(): Uint32Array;
   /** Denture scan with `landingTiltWeight` above 0 (engine 32): 4 numbers per row (lowest points without a path, tips without, fallbacks, tips). */
   path_counts?(): Uint32Array;
+  counted_lows?(): Uint32Array;
+  tip_counts?(): Uint32Array;
   /** The picked row's boxed-in lowest points, x y z each (mesh frame, mm). */
   boxed_points?(): Float64Array;
   /** Why each of `boxed_points()` is boxed in. */
@@ -92,6 +94,8 @@ export interface DentureAreaResultLike {
 /** Result handle of `denture_review` (Rust `DentureReviewResult`); read it, then `free()`. */
 export interface DentureReviewResultLike {
   no_support_mask(): Uint8Array;
+  no_support_steep_mask(): Uint8Array;
+  no_support_steep_deg(): number;
   allowed_mask(): Uint8Array;
   hard_edges(): Float64Array;
   down_edges(): Float64Array;
@@ -112,6 +116,16 @@ export interface DentureReviewResultLike {
   released(): number;
   /** Local lows of the dental rim line whose face points up: no tip (rule `rimLowNeedsOverhang`); not left out. */
   rim_lows_facing_up(): number;
+  /** Faces of the self-supporting overhang regions (rule overhangSelfSupport, engine 38); empty with the rule off. */
+  self_support_faces(): Uint32Array;
+  /** Tips the final guard refused (tipMaxFromDownDeg, engine 39): [rim, hole, area, other]. */
+  tips_dropped_facing_up(): Uint32Array;
+  /** Tips skipped for a knife-sharp fold or a neck behind a nearby face (engine 39): [rim, hole, area, other]. */
+  tips_skipped_fold(): Uint32Array;
+  /** Island and lowest-point tips on a face that is not down-facing (engine 39): xyz triples. */
+  lows_not_down_facing(): Float64Array;
+  /** [overhang regions, self-supporting regions, open-area tips saved]. */
+  self_support_info(): Float64Array;
   rim_loops(): Float64Array;
   rim_sizes(): Uint32Array;
   rim_closed(): Uint8Array;
@@ -121,6 +135,12 @@ export interface DentureReviewResultLike {
   hole_sizes(): Uint32Array;
   hole_info(): Float64Array;
   hole_band_mask(): Uint8Array;
+  socket_mask(): Uint8Array;
+  sockets_cancelled_by_r2(): number;
+  fitting_mask(): Uint8Array;
+  fitting_check(): Uint32Array;
+  tips_dropped_socket(): Uint32Array;
+  lows_in_sockets(): Float64Array;
   rim_band_mask(): Uint8Array;
   up_decision(): Float64Array;
   rim_plane(): Float64Array;
