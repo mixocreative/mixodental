@@ -1074,7 +1074,9 @@ export class PolicyHandle {
      * The dental model-landing allow list (tip ids): those tips may be supported from the model's own surface even when the rule
      * `dentalModelLanding` is 0 (denture builds only; replaces the earlier list). The UI bubble "support from model surface" fills it.
      * An id of a lowest point the policy placed no tip on (`denture-low-unreached-<k>`, the unresolved report's `lowest` entries with
-     * no tip) also makes that point a candidate (engine 51, `dental::denture::model_landing::admit`).
+     * no tip) also makes that point a candidate (engine 51, `dental::denture::model_landing::admit`). An island id (`island-<vertex>`, the
+     * report's bare islands) makes `generate` put a tip at that island's lowest vertex when it faces within `islandMaxFromDownDeg` of
+     * straight down (engine 54, `supports::generate::island_admit`).
      */
     set_model_landing_allow(ids: string[]): void;
     /**

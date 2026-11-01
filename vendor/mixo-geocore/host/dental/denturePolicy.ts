@@ -23,7 +23,8 @@ export interface DenturePolicy {
   lattice: boolean;
   /**
    * Tips the operator chose to support from the model's own surface, one by one (the bubble "support from model surface"; engine 33,
-   * Round C engine 51): their ids, as the build's unresolved report names them (`UnresolvedPoint.id`, a lowest point with no tip included).
+   * Round C engine 51): their ids, as the build's unresolved report names them (`UnresolvedPoint.id`, a lowest point with no tip included, and
+   * since engine 54 an island with no tip, `island-<vertex>`: its lowest point gets a tip when it faces within `islandMaxFromDownDeg` of down).
    * The build tries the plate first, then the model surface (allowed area, other surface, no-support zone). Absent or empty: none.
    */
   modelLandingAllow?: readonly string[];

@@ -45,7 +45,7 @@ export interface PolicyHandle {
   part_list?(): Float64Array;
   /** A denture policy's part id of every face of the file; empty for any other policy. */
   face_parts?(): Uint32Array;
-  /** The dental model-landing allow list (tip ids; engine 33, unplaced lowest points become candidates since engine 51). Optional so test doubles may omit it. */
+  /** The dental model-landing allow list (tip ids; engine 33, unplaced lowest points become candidates since engine 51, an island id `island-<vertex>` gets a tip at its lowest point since engine 54). Optional so test doubles may omit it. */
   set_model_landing_allow?(ids: string[]): void;
   free(): void;
 }
