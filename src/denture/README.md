@@ -8,6 +8,7 @@ Engine calls go through `engine/` only.
 | Module | Purpose |
 |---|---|
 | `jobKind.ts` | The job kind of a profile id (`denture` / `aligner`) and the reference denture profile id. |
+| `kindText.ts` | The dental lines that name the job's object: the denture line of every aligner sentence, once (status, commands, hints). |
 | `steps/start/DentureChoice.tsx` | The start screen's "Denture supports" card. |
 | `steps/start/startText.ts` | The file step's words per job kind. |
 | `engine/dentureCore.ts` | The denture pipeline on one thread: orient + tilt scan, lifted frame, placement, build with hand work, one-point model-landing check. |
@@ -28,21 +29,17 @@ Engine calls go through `engine/` only.
 | `useDentureJob.ts` | App entry: owns the client, wires each step's hook. |
 | `engine/dentureExport.ts` | Export of a plate with dentures: builds every unit (dentures with their own pipeline) and writes the STL files. |
 | `state/dentureCommands.ts` | The denture rows in the shared command registry ("Resolve all") and the undo hint of a denture change. |
-| `settings/dentureRules.ts` | The engine rules every denture call reads (one place to map the denture settings onto). |
+| `settings/dentureRules.ts` | Maps the denture settings onto engine rules (`dentalModelLanding`, `lowOutsideAllowed`, `lastResortClearanceMm`); only non-defaults are sent. |
 | `steps/supports/dentureBuildJob.ts` | A denture unit as a build job (frame, plate, policy, settings, rules, hand work). |
 | `steps/supports/useDentureSupports.ts` | Step 2: builds and exports in the denture worker, click-to-resolve and Resolve all, the lattice switch. |
-| `steps/supports/resolvePoint.ts` | Which points a click resolves and the undoable allow-list command. |
-| `steps/supports/ResolveSection.tsx` | The panel block: unresolved points, islands, model-landed supports, Resolve all. |
-
-Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dial, Back / Next), `components/DentalSupports.tsx`
-(Step 2 panel, `kind="denture"`), `components/viewport/UnresolvedBubbles.tsx` (bubble, `resolve` makes it a button).
-
-| Module (Step 4) | Purpose |
-|---|---|
+| `steps/supports/resolvePoint.ts` | Which points a click resolves (tips, lowest points, bare islands) and the undoable allow-list command. |
+| `steps/supports/ResolveSection.tsx` | The panel block: unresolved points (islands included), islands that face sideways, model-landed supports, Resolve all. |
 | `settings/dentureOptions.ts` | The denture settings, their defaults and limits (stored in `PrintUnit.denture.options`). |
-| `settings/dentureRules.ts` | Maps the denture settings onto engine rules (`dentalModelLanding`, `lowOutsideAllowed`, `lastResortClearanceMm`); only non-defaults are sent. |
 | `settings/DentureSettingsSection.tsx` | The settings block: model-surface support default, low tips outside the area, clearance floor. |
 | `steps/supports/DentureSupportsBlocks.tsx` | The denture blocks of the shared supports panel, in order. |
 | `parts/partRoles.ts` | Orders the engine's part list (target, add-on, debris) and finds the add-on faces. |
 | `parts/PartsList.tsx` | The parts list of a multi-part file (hidden for one part). |
 | `parts/addOnTint.tsx` | The add-on tint of a unit's current build (shared `components/viewport/FaceTintLayer.tsx`, token `--part-addon`), or none. |
+
+Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dial, Back / Next), `components/DentalSupports.tsx`
+(Step 2 panel, `kind="denture"`), `components/viewport/UnresolvedBubbles.tsx` (bubble, `resolve` makes it a button).

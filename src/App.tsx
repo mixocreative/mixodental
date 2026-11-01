@@ -39,7 +39,10 @@ import { useDentalTuning } from './components/useDentalTuning';
 import { useAreaRisks } from './components/useAreaRisks';
 import { useDentalFlow } from './components/useDentalFlow';
 import { useDentureJob } from './denture/useDentureJob';
-import { isDentureJob } from './denture/jobKind';
+import { isDentureJob, jobKindOf } from './denture/jobKind';
+import { kindMessage, kindText } from './denture/kindText';
+import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
+import { fileStepText } from './denture/steps/start/startText';
 import { LiveTipSummary } from './denture/steps/orient/LiveTipSummary';
 import { DentureSupportsBlocks } from './denture/steps/supports/DentureSupportsBlocks';
 import { dentureAddOnTint } from './denture/parts/addOnTint';
@@ -115,7 +118,7 @@ const NO_CONTACTS: readonly SupportContact[] = [];
 
 /** Settings edits come in bursts (typing a value); a unit's preview rebuild waits this long. */
 /** The footer line of each start screen (i18n keys). */
-const START_HINT: Record<StartScreenId, string> = { task: 'Choose what to make supports for.', type: 'Choose the aligner type.', file: 'Open or drop the aligner STL.' };
+const START_HINT: Record<Exclude<StartScreenId, 'file'>, string> = { task: 'Choose what to make supports for.', type: 'Choose the aligner type.' };
 const BUILD_DELAY_MS = 120;
 
 /** The Export STL commands (editing/commands): `export.` and the kind. */
@@ -1113,9 +1116,10 @@ export default function App() {
   }, [analysis, checkSupports, chooseProject, saveProject, clearActiveZones, clearManual, clearSelection, deleteSelected, deleteUnits, dentalPreview, dispatch, generate, generateDental, removeSupports, requestView, resetSelected, runExport, selectCustomised, send, setStatus, undo, unitName]);
 
   /** A start screen was reached. Back goes one step and removes nothing: the loaded aligner stays on the plate. */
-  const goStart = (next: StartScreenId) => setStartScreen(next);
-  // The footer says what each start screen asks for.
-  useEffect(() => { if (startScreen !== null) setStatusMessage({ key: START_HINT[startScreen] }); }, [startScreen]);
+  const [startKind, setStartKind] = useState<DentalKind>('aligner');
+  const goStart = (next: StartScreenId, kind: DentalKind = 'aligner') => { setStartKind(kind); setStartScreen(next); };
+  // The footer says what each start screen asks for (the file step in the job kind's words).
+  useEffect(() => { if (startScreen !== null) setStatusMessage({ key: startScreen === 'file' ? fileStepText(startKind).status : START_HINT[startScreen] }); }, [startScreen, startKind]);
   const startDental = (profile: string, file?: File) => {
     freshStart.current = file !== undefined;
     setStartScreen(null);
@@ -1347,7 +1351,7 @@ export default function App() {
         <div className="undo-toast-region" role="status" aria-live="polite">
           {toast && <UndoToast key={toast.id} toast={toast} onUndo={undoToastAction} onClose={closeToast} />}
           {doneHint !== undefined && editMode === 'off' && <div className="dental-done" role="status">
-            <span>{plural(doneHint, '{n} aligner finished and ready on the plate. Export STL (right panel) or Save project to keep your work.', '{n} aligners finished and ready on the plate. Export STL (right panel) or Save project to keep your work.')}</span>
+            <span>{plural(doneHint, kindText('{n} aligner finished and ready on the plate. Export STL (right panel) or Save project to keep your work.', jobKindOf(session.dentalProfile)), kindText('{n} aligners finished and ready on the plate. Export STL (right panel) or Save project to keep your work.', jobKindOf(session.dentalProfile)))}</span>
             <button type="button" onClick={() => setDoneHint(undefined)} {...hint('Close this note')}>{t('Dismiss')}</button>
           </div>}
         </div>
@@ -1390,7 +1394,7 @@ export default function App() {
       {activeUnit && <span>{t('{n} triangles', { n: (activeUnit.source.indices.length / 3).toLocaleString() })}</span>}
       {contactCounts && <span className={building(activeUnit!) ? 'building' : undefined} aria-busy={building(activeUnit!) || undefined} {...hint('Automatic supports you removed by hand. Clear manual edits brings them back')}>{t('{auto} automatic, {manual} manual, {removed} removed', contactCounts)}</span>}
       {/* Announced to screen readers, so errors and step results are heard too. */}
-      <strong role="status" aria-live="polite">{translateMessage(status)}</strong>
+      <strong role="status" aria-live="polite">{translateMessage(kindMessage(status, jobKindOf(session.dentalProfile)))}</strong>
       <button type="button" className="link-button" onClick={() => setTermsOpen(true)} {...hint('Read the terms of use')}>{t('Terms')}</button>
     </footer>
     {termsOpen && <TermsDialog lang={lang} onClose={() => setTermsOpen(false)} />}

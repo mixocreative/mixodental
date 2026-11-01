@@ -3,6 +3,7 @@ import type { EditGesture } from '@mixo-geocore/editing/gesture';
 import type { SessionEvent } from '@mixo-geocore/editing/session';
 import { settingLimits } from '@mixo-geocore/host/core/supports/settings';
 import { t } from '../i18n';
+import { kindText } from '../denture/kindText';
 import { CommandButton } from './CommandButton';
 import { KeyCaps } from './KeyCaps';
 import { NumberField } from './NumberField';
@@ -77,7 +78,7 @@ export function EditTools({ gesture, ui, clickReach, send, run, children, engage
       ]} />
       {gesture.kind !== 'add' && <SelectStyleSwitch gesture={gesture} ui={ui} send={send} run={run} />}
     </div>
-    {engaged && <p className="tool-engaged" role="status"><strong>{gesture.kind === 'add' ? t('Adding supports:') : t('Selecting supports:')}</strong> {gesture.kind === 'add' ? t('click the aligner to add one; right-click or Ctrl+click removes.') : t('click or drag over supports, then press Delete.')}</p>}
+    {engaged && <p className="tool-engaged" role="status"><strong>{gesture.kind === 'add' ? t('Adding supports:') : t('Selecting supports:')}</strong> {gesture.kind === 'add' ? t(kindText('click the aligner to add one; right-click or Ctrl+click removes.', ui.dentalKind)) : t('click or drag over supports, then press Delete.')}</p>}
     {gesture.kind === 'add' && <div className="edit-row">
       <Segmented label={t('What a click does')} value={ui.addAction} onChange={(action) => run(action === 'add' ? 'edit.add' : 'edit.remove')} options={(['edit.add', 'edit.remove'] as const).map((id) => {
         const { label, hint: text } = resolve(id, ui);

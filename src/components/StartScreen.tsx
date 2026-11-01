@@ -5,6 +5,7 @@ import { DentalTypeStep } from './DentalSteps';
 import { DentureChoice } from '../denture/steps/start/DentureChoice';
 import { fileStepText } from '../denture/steps/start/startText';
 import { DENTURE_PROFILE_ID, jobKindOf } from '../denture/jobKind';
+import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
 
 /** The three full-screen start screens: the task, the aligner type, the aligner file (docs/ROADMAP.md ST). */
 export type StartScreenId = 'task' | 'type' | 'file';
@@ -21,7 +22,8 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
   /** The aligner type chosen before (kept pressed when the screen is reached again). */
   profile: string | undefined;
   lang: Lang;
-  onScreen: (screen: StartScreenId) => void;
+  /** `kind`: the job kind the file step is for (its status line); absent: the aligner. */
+  onScreen: (screen: StartScreenId, kind?: DentalKind) => void;
   onAnyModel: () => void;
   onOpenProject: () => void;
   onProjectFile: (file: File) => void;
@@ -48,7 +50,7 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
   const choose = (id: string) => {
     setChosen(id);
     if (held) onStart(id, held);
-    else onScreen('file');
+    else onScreen('file', jobKindOf(id));
   };
   const drop = (event: React.DragEvent<HTMLElement>) => {
     event.preventDefault();

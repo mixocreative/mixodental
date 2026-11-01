@@ -8,6 +8,7 @@ import { TiltDial } from '../ui/parts/TiltDial';
 import { Icon } from '../ui/Icon';
 import { tiltStepOf } from '../denture/jobKind';
 import { fileStepText } from '../denture/steps/start/startText';
+import { kindMessage, kindText } from '../denture/kindText';
 import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
 import { tiltLabel, type TiltRow, type TiltRule } from '@mixo-geocore/host/dental/dentalTilt';
 import type { DentalTiltState } from './useDentalFlow';
@@ -39,10 +40,10 @@ function ProfileArt({ profile }: { profile: AlignerProfile }) {
   return name ? <Icon name={name} className="dental-card-art" /> : null;
 }
 
-/** The message of one notice, in the words of Step 1 and Step 2. */
-export function noticeText(notice: DentalNotice): string {
+/** The message of one notice, in the words of Step 1 and Step 2 (a refused file in the words of the job `kind`). */
+export function noticeText(notice: DentalNotice, kind?: DentalKind): string {
   switch (notice.kind) {
-    case 'bad-file': return translateMessage(notice.message);
+    case 'bad-file': return translateMessage(kindMessage(notice.message, kind));
     case 'failed': return t('The aligner could not be oriented automatically. It stays as dropped: rotate it with the gizmo, then press Next.');
     case 'denture-failed': return t('The denture could not be stood upright automatically. It stays as dropped: use Free transform to turn it, then press Next.');
     case 'uncertain': return t('Automatic orientation is uncertain. The aligner stays as dropped: adjust it with the rotation gizmo, then press Next.');
@@ -86,20 +87,20 @@ export function DentalAlignerPrompt({ phase, notices, selectedName, onFiles, onU
 }) {
   const input = useRef<HTMLInputElement>(null);
   if (phase === 'loading') return <div className="dental-stage" role="status" aria-busy="true">
-    <h2>{t(kind === 'denture' ? 'Checking and orienting the denture…' : 'Checking and orienting the aligner…')}</h2>
+    <h2>{t(kindText('Checking and orienting the aligner…', kind))}</h2>
   </div>;
   const bad = notices.find((notice) => notice.kind === 'bad-file');
   return <div className="dental-stage">
     <div className="dental-drop">
       <h2>{t(fileStepText(kind).drop)}</h2>
-      <p>{t(kind === 'denture' ? 'The denture is checked and stood upright automatically.' : 'The aligner is checked and turned the right way up automatically.')}</p>
+      <p>{t(kindText('The aligner is checked and turned the right way up automatically.', kind))}</p>
       <input ref={input} type="file" accept=".stl,.glb,.gltf" aria-label={t(fileStepText(kind).input)} hidden
         onChange={(event) => { onFiles([...(event.target.files ?? [])]); event.target.value = ''; }} />
       <div className="edit-row">
         <button type="button" className="primary" onClick={() => input.current?.click()}>{t('Choose STL file')}</button>
         {selectedName ? <button type="button" onClick={onUseSelected}>{t('Use the selected model')}</button> : null}
       </div>
-      {bad ? <p className="dental-problem" role="alert">{noticeText(bad)}</p> : null}
+      {bad ? <p className="dental-problem" role="alert">{noticeText(bad, kind)}</p> : null}
     </div>
   </div>;
 }

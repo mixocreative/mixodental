@@ -6,12 +6,12 @@ import { resolveSettings, supportJobOf } from '@mixo-geocore/host/supports/unitS
 import type { JobLabel } from '@mixo-geocore/host/workers/jobActivity';
 import type { ExportResult } from '@mixo-geocore/host/workers/meshClient';
 import type { PrintScene, PrintUnit, SceneCommand, SupportSettings } from '../../../state/project';
-import { LANDING_TIER_TEXT } from '../../../supports/unresolved/unresolvedText';
 import type { DentureClient } from '../../engine/dentureClient';
 import type { DentureMesh } from '../../engine/dentureCore';
 import { dentureRulesOf } from '../../settings/dentureRules';
 import type { DentureOptions } from '../../settings/dentureOptions';
 import { dentureJobOf } from './dentureBuildJob';
+import { isBareIsland, LANDING_TIER_TEXT } from '../../../supports/unresolved/unresolvedText';
 import { checksLandingFirst, isResolvable, resolvableIds, resolveCommand } from './resolvePoint';
 
 /*
@@ -53,12 +53,12 @@ export function useDentureSupports({ client, dispatch, sceneRef, setStatus }: De
     return command !== undefined;
   }, [dispatch, unitNow]);
 
-  /** A bubble click: check the one point on the edit path, then allow it (a tipless lowest point goes straight on the list). */
+  /** A bubble click: check the one point on the edit path, then allow it (a tipless lowest point or island goes straight on the list). */
   const resolve = useCallback((unitId: string, point: UnresolvedPoint) => {
     const unit = unitNow(unitId);
     if (!unit || !isResolvable(point)) return;
     if (!checksLandingFirst(point)) {
-      if (allow(unitId, [point.id])) setStatus('Lowest point allowed on the model surface. Rebuilding the supports…');
+      if (allow(unitId, [point.id])) setStatus(isBareIsland(point.id) ? 'Island allowed on the model surface. Rebuilding the supports…' : 'Lowest point allowed on the model surface. Rebuilding the supports…');
       return;
     }
     const job = dentureJobOf(unit, 'preview', dentureRulesOf(unit));

@@ -9,13 +9,27 @@ const unit: PrintUnit = { id: 'u', name: 'd', source: { positions: new Float32Ar
   denture: { policy: { kind: 'denture', profileId: 'reference-denture', lattice: true } } };
 
 describe('resolvePoint', () => {
-  it('resolves tips and lowest points, not bare islands', () => {
-    expect(isResolvable({ id: 'denture-rim-44', kind: 'tip' })).toBe(true);
-    expect(isResolvable({ id: 'denture-low-unreached-2', kind: 'lowest' })).toBe(true);
-    expect(isResolvable({ id: 'island-7821', kind: 'island' })).toBe(false);
+  it('resolves tips, lowest points and bare islands, not an island the engine refused (it faces sideways)', () => {
+    const sideways = "island's lowest point faces sideways: 82 degrees from straight down (60 allowed), no tip can stand there";
+    expect(isResolvable({ kind: 'tip', reason: 'x' })).toBe(true);
+    expect(isResolvable({ kind: 'lowest', reason: 'x' })).toBe(true);
+    expect(isResolvable({ kind: 'island', reason: 'no support from the plate reaches this island' })).toBe(true);
+    expect(isResolvable({ kind: 'island', reason: sideways })).toBe(false);
+    // A point with no tip yet (unplaced lowest point, bare island) goes on the list without the edit-path check.
     expect(checksLandingFirst({ id: 'denture-low-unreached-2' })).toBe(false);
+    expect(checksLandingFirst({ id: 'island-7821' })).toBe(false);
     expect(checksLandingFirst({ id: 'denture-low-3' })).toBe(true);
-    expect(resolvableIds([{ id: 'a', kind: 'tip' }, { id: 'island-1', kind: 'island' }, { id: 'b', kind: 'lowest' }])).toEqual(['a', 'b']);
+    expect(checksLandingFirst({ id: 'denture-island-3' })).toBe(true);
+    expect(resolvableIds([{ id: 'a', kind: 'tip', reason: 'x' }, { id: 'island-1', kind: 'island', reason: 'x' }, { id: 'island-2', kind: 'island', reason: sideways }, { id: 'b', kind: 'lowest', reason: 'x' }]))
+      .toEqual(['a', 'island-1', 'b']);
+  });
+
+  it('resolves a bare island with the same undoable command', () => {
+    let history = createSceneHistory({ ...emptyScene, units: [unit] });
+    history = withSceneCommand(history, resolveCommand(unit, ['island-7821'])!);
+    expect(history.present.units[0]!.denture!.policy.modelLandingAllow).toEqual(['island-7821']);
+    history = undoScene(history);
+    expect(history.present.units[0]!.denture!.policy.modelLandingAllow).toBeUndefined();
   });
 
   it('is one undoable step that adds the ids to the allow list, and redo puts it back', () => {

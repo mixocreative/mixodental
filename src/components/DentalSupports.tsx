@@ -7,6 +7,7 @@ import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportChe
 import { settingLimits, type LiveSupportSettings, type SettingKey } from '@mixo-geocore/host/core/supports/settings';
 import { DENTAL_LABEL_MAX, DEFAULT_DENTAL_LABEL, filterDentalLabel } from '@mixo-geocore/host/dental/label';
 import { t } from '../i18n';
+import { kindText } from '../denture/kindText';
 import { CommandButton } from './CommandButton';
 import { EditTools } from './EditBar';
 import { hint } from './hint';
@@ -91,13 +92,13 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind
     {!ready && <p className="edit-note" role="status">{t('Building supports…')}</p>}
     <section className="dental-block" aria-label={t('Support settings')}>
       <h3>{t('Support settings')}</h3>
-      <RangeField layout="stack" label="Tip size" unit="{n} mm" hint="Diameter of each support tip where it touches the aligner"
+      <RangeField layout="stack" label="Tip size" unit="{n} mm" hint={kindText('Diameter of each support tip where it touches the aligner', kind)}
         min={0.1} max={1} step={0.05} value={Number(settings[tipKey].toFixed(2))}
         onChange={(value) => onSetting(tipKey, value, `dental-${tipKey}`)} onAdjust={setAdjusting} />
       <RangeField layout="stack" label="Pillar size" unit="{n} mm" hint="Diameter of each support pillar"
         min={0.8} max={2.5} step={0.1} value={settings.pillarDiameter}
         onChange={(v) => onSetting('pillarDiameter', v, 'dental-pillarDiameter')} onAdjust={setAdjusting} />
-      <RangeField layout="stack" label="Lift height" unit="{n} mm" hint="How high the aligner stands above the plate. Supports are placed again"
+      <RangeField layout="stack" label="Lift height" unit="{n} mm" hint={kindText('How high the aligner stands above the plate. Supports are placed again', kind)}
         min={settingLimits.liftHeight.min} max={15} step={0.5} value={settings.liftHeight}
         onChange={(value) => onSetting('liftHeight', value, 'dental-lift')} onAdjust={setAdjusting} />
       <label className="check" {...hint('Build a raft under the supports. The ID label needs it')}>
@@ -127,7 +128,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind
     </div>
     <div className="dental-footer">
     <section className="dental-block" aria-label={t('ID label')}>
-      <label className="field-row" {...hint('Letters, digits and "-" only, up to 8. Embossed on the raft so printed aligners can be told apart')}>
+      <label className="field-row" {...hint(kindText('Letters, digits and "-" only, up to 8. Embossed on the raft so printed aligners can be told apart', kind))}>
         <span>{t('ID label')}</span>
         <input className="text dental-label" type="text" inputMode="text" autoComplete="off" spellCheck={false} value={settings.labelText}
           placeholder={DEFAULT_DENTAL_LABEL} aria-label={t('ID label')} data-max={DENTAL_LABEL_MAX}
@@ -142,7 +143,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind
         <button type="button" className="danger" onClick={review.onBackConfirm}>{t('Discard and go back')}</button>
       </div>
     </section> : <section className="dental-block dental-finish">
-      {review.finishedCount > 0 && <p className="help">{t('Aligners finished so far: {n}', { n: review.finishedCount })}</p>}
+      {review.finishedCount > 0 && <p className="help">{t(kindText('Aligners finished so far: {n}', kind), { n: review.finishedCount })}</p>}
       <div className="edit-row">
         <CommandButton command={resolve('dental.back', ui)} run={run} />
       </div>

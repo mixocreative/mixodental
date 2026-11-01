@@ -16,6 +16,18 @@ export const gapText = (mm: number): string => mm.toFixed(1);
 /** A lowest point the placement found but put no tip on (`denture-low-unreached-<k>`, engine 51). */
 export const isUnreachedLow = (id: string): boolean => id.startsWith('denture-low-unreached-');
 
+/** An island no tip serves, named by its own lowest vertex (`island-<vertex>`). */
+export const isBareIsland = (id: string): boolean => id.startsWith('island-');
+
+/**
+ * An island the engine refused a tip (engine 54, after the click put it on the allow list): its lowest point faces sideways
+ * (past `islandMaxFromDownDeg`) or has no usable face. The engine's reason says so; a further click cannot help.
+ */
+export const isRefusedIsland = (point: Pick<UnresolvedPoint, 'kind' | 'reason'>): boolean => point.kind === 'island' && point.reason.startsWith("island's lowest point");
+
+/** The tooltip of a refused island. */
+export const REFUSED_ISLAND_SENTENCE = 'Island {h} mm up: its lowest point faces sideways, so no support tip can stand there.';
+
 const SENTENCES = {
   lowest: { gap: 'Lowest point {h} mm up: no route from the plate, best gap {gap} mm ({need} needed).', none: 'Lowest point {h} mm up: no route from the plate found ({need} mm gap needed).' },
   island: { gap: 'Island {h} mm up: no route from the plate, best gap {gap} mm ({need} needed).', none: 'Island {h} mm up: no route from the plate found ({need} mm gap needed).' },
@@ -26,9 +38,10 @@ const SENTENCES = {
 export const RESOLVE_SENTENCE = 'Click to support it from the model surface.';
 
 /** The bubble's tooltip for `point`; `resolvable`: a click supports it from the model surface (the dental model landing). */
-export function unresolvedMessage(point: Pick<UnresolvedPoint, 'id' | 'kind' | 'heightMm' | 'bestGapMm' | 'neededMm'>, resolvable: boolean): Message {
+export function unresolvedMessage(point: Pick<UnresolvedPoint, 'id' | 'kind' | 'heightMm' | 'bestGapMm' | 'neededMm' | 'reason'>, resolvable: boolean): Message {
   const h = heightText(point.heightMm);
-  const first: Message = point.kind === 'lowest' && isUnreachedLow(point.id)
+  const first: Message = isRefusedIsland(point) ? { key: REFUSED_ISLAND_SENTENCE, vars: { h } }
+    : point.kind === 'lowest' && isUnreachedLow(point.id)
     ? { key: 'Lowest point {h} mm up: no support tip could be placed there.', vars: { h } }
     : point.bestGapMm === null
       ? { key: SENTENCES[point.kind].none, vars: { h, need: gapText(point.neededMm) } }
@@ -39,7 +52,7 @@ export function unresolvedMessage(point: Pick<UnresolvedPoint, 'id' | 'kind' | '
 /** Every sentence key the tooltip can use (the i18n test checks each has a translation). */
 export const UNRESOLVED_KEYS: readonly string[] = [
   ...Object.values(SENTENCES).flatMap((pair) => [pair.gap, pair.none]),
-  'Lowest point {h} mm up: no support tip could be placed there.', RESOLVE_SENTENCE,
+  'Lowest point {h} mm up: no support tip could be placed there.', RESOLVE_SENTENCE, REFUSED_ISLAND_SENTENCE,
 ];
 
 /** The hover text of a resolved mark, by the landing tier the engine reports (`modelLanded[].tier`). */

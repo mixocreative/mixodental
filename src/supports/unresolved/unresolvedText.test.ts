@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { setLanguage, translateMessage } from '../../i18n';
-import { gapText, heightText, unresolvedMessage, UNRESOLVED_KEYS } from './unresolvedText';
+import { gapText, heightText, isBareIsland, isRefusedIsland, unresolvedMessage, UNRESOLVED_KEYS } from './unresolvedText';
 
-const point = { id: 'denture-low-3', kind: 'lowest' as const, heightMm: 16.2, bestGapMm: 0.8, neededMm: 1 };
+const point = { id: 'denture-low-3', kind: 'lowest' as const, heightMm: 16.2, bestGapMm: 0.8, neededMm: 1, reason: 'x' };
 
 describe('unresolved-point tooltip text', () => {
   afterEach(() => setLanguage('en'));
@@ -26,6 +26,14 @@ describe('unresolved-point tooltip text', () => {
   it('a lowest point that got no tip says so instead of a gap', () => {
     expect(translateMessage(unresolvedMessage({ ...point, id: 'denture-low-unreached-2', bestGapMm: null }, false)))
       .toBe('Lowest point 16 mm up: no support tip could be placed there.');
+  });
+
+  it('an island the engine refused a tip says it faces sideways (engine 54), and no click is offered', () => {
+    const sideways = { ...point, id: 'island-12', kind: 'island' as const, heightMm: 22, bestGapMm: null, reason: "island's lowest point faces sideways: 82 degrees from straight down (60 allowed), no tip can stand there" };
+    expect(isRefusedIsland(sideways)).toBe(true);
+    expect(isRefusedIsland({ kind: 'island', reason: 'no support from the plate reaches this island' })).toBe(false);
+    expect(isBareIsland('island-12') && !isBareIsland('denture-island-2')).toBe(true);
+    expect(translateMessage(unresolvedMessage(sideways, false))).toBe('Island 22 mm up: its lowest point faces sideways, so no support tip can stand there.');
   });
 
   it('formats heights and gaps for the tooltip', () => {

@@ -7,6 +7,7 @@ import type { EditTool, StatusMessage } from '@mixo-geocore/editing/types';
 import type { DentalProposal } from '@mixo-geocore/host/dental/dental';
 import { stageAfterOrientation, stageBeforeSupports } from '../denture/state/dentureStages';
 import '../denture/state/dentureCommands';
+import { kindText } from '../denture/kindText';
 
 /*
  * The dental flow as an app mode of the shared editor (mixo-geocore editing/modes.ts): its session
@@ -290,14 +291,14 @@ registerCommands({
     disabledReason: (s) => (s.generating ? generatingReason : s.mode !== 'off' ? entryReason(s) : undefined),
   },
   'dental.useDetected': {
-    role: 'primary', label: () => 'Auto orientation', hint: () => 'Rotate the aligner to the proposed orientation again',
+    role: 'primary', label: () => 'Auto orientation', hint: (s) => kindText('Rotate the aligner to the proposed orientation again', s.dentalKind),
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner', enabled: (s) => Boolean(s.dentalProposed),
-    disabledReason: (s) => (s.dentalProposed ? undefined : { key: 'No orientation was proposed for this aligner.' }),
+    disabledReason: (s) => (s.dentalProposed ? undefined : { key: kindText('No orientation was proposed for this aligner.', s.dentalKind) }),
   },
   'dental.next': {
     role: 'primary', label: () => 'Next', hint: () => 'Keep the current orientation and review the proposed support area',
     visible: (s) => s.mode === 'dental', enabled: (s) => Boolean(s.dentalAlignerReady) && !s.dentalTiltBusy,
-    disabledReason: (s) => (!s.dentalAlignerReady ? { key: 'Add an aligner first.' } : s.dentalTiltBusy ? { key: 'Wait until the print angles are checked.' } : undefined),
+    disabledReason: (s) => (!s.dentalAlignerReady ? { key: kindText('Add an aligner first.', s.dentalKind) } : s.dentalTiltBusy ? { key: 'Wait until the print angles are checked.' } : undefined),
   },
   'dental.generate': {
     role: 'primary', label: () => 'Next',
@@ -310,17 +311,17 @@ registerCommands({
     visible: (s) => s.mode === 'dental' && s.dentalStage !== 'type', enabled: always, disabledReason: never,
   },
   'dental.exit': {
-    role: 'secondary', label: () => 'Exit', hint: () => 'Leave the dental flow. The aligner stays on the plate without supports',
+    role: 'secondary', label: () => 'Exit', hint: (s) => kindText('Leave the dental flow. The aligner stays on the plate without supports', s.dentalKind),
     visible: (s) => s.mode === 'dental', enabled: always, disabledReason: never,
   },
   'dental.finish': {
-    role: 'primary', label: () => 'OK', hint: (s) => (s.dentalKind === 'denture' ? 'Finish this denture. It stays on the plate with its supports' : 'Finish this aligner. It stays on the plate with its supports'),
+    role: 'primary', label: () => 'OK', hint: (s) => kindText('Finish this aligner. It stays on the plate with its supports', s.dentalKind),
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'review', enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating,
     disabledReason: (s) => (s.generating ? generatingReason : s.dentalReviewReady ? undefined : { key: 'Wait until the supports are built.' }),
   },
   'dental.addAnother': {
-    role: 'secondary', label: (s) => (s.dentalKind === 'denture' ? 'Add another denture' : 'Add another aligner'),
-    hint: (s) => (s.dentalKind === 'denture' ? 'Finish this denture and add the next one' : 'Finish this aligner and add the next one of the same type'),
+    role: 'secondary', label: (s) => kindText('Add another aligner', s.dentalKind),
+    hint: (s) => kindText('Finish this aligner and add the next one of the same type', s.dentalKind),
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'review', enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating,
     disabledReason: (s) => (s.generating ? generatingReason : s.dentalReviewReady ? undefined : { key: 'Wait until the supports are built.' }),
   },
