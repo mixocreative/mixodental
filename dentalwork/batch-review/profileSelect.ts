@@ -112,6 +112,8 @@ export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfile
       const generateStarted = performance.now();
       const out = generateSupports(contacts, settings, () => { throw new Error('policy is supplied by the site'); },
         { mode: 'export', model: mesh, frame, plateY: 0, labelText: '', zones: [], limits: GENERATE_LIMITS,
+          // MIXO_MODEL_LANDING=1|2 tries the dental model-surface landing (rule dentalModelLanding); unset keeps plate-only.
+          ...(process.env.MIXO_MODEL_LANDING ? { rules: { dentalModelLanding: Number(process.env.MIXO_MODEL_LANDING) } } : {}),
           site: { session: site.session, source: site.source, placed: site.placed, policy: () => ({ handle, release() { /* the caller frees the one handle */ } }) } });
       const generateSeconds = lap(generateStarted);
       // Our placed tips: the build's contacts that the repair did not leave out, back in unit-local coordinates

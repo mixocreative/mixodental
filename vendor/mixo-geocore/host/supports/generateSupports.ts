@@ -3,7 +3,7 @@ import { packRules, type GenerateRules } from './generateRules';
 import { PROGRESS_STAGE } from '../core/progress';
 import type { ProgressCallback, TriangleMesh } from '../core/analysis/types';
 import type { JobTransform } from '../core/jobs';
-import type { GeneratedSupportMesh, SupportContact, SupportIssue, SupportPart, SupportVerdict } from '../core/supports/mesh';
+import type { GeneratedSupportMesh, SupportContact, SupportIssue, SupportPart, SupportVerdict, UnresolvedPoint } from '../core/supports/mesh';
 import type { LiveSupportSettings } from '../core/supports/settings';
 import type { ZoneStamp } from '../core/supports/zones';
 import { decodeComponents, packContacts, packSettings, packZones, type ColumnInput } from './supportBuildWasm';
@@ -144,6 +144,9 @@ interface Generation {
   take_dropped(): string[]; take_dropped_by_zones(): string[]; take_fallback(): Uint8Array;
   take_left_out_ids(): string[]; take_left_out_points(): Float64Array; take_left_out_reasons(): string[];
   take_last_resort_ids(): string[]; take_last_resort_tiers(): Uint8Array; take_last_resort_clearances(): Float64Array;
+  take_model_landed_ids(): string[]; take_model_landed_tiers(): Uint8Array; take_model_landed_points(): Float64Array;
+  take_unresolved_ids(): string[]; take_unresolved_streams(): string[]; take_unresolved_points(): Float64Array; take_unresolved_reasons(): string[];
+  take_unresolved_best_gaps(): Float64Array; take_unresolved_needed(): Float64Array;
   status(): number; reason(): string; stop_reason(): string; take_issues(): Uint32Array;
   take_island_heights(): Float64Array; take_island_vertices(): Uint32Array; take_island_status(): Uint8Array; island_reason(): string;
   take_rings(): Float64Array; trials(): number; revision(): number; free(): void;
@@ -170,6 +173,7 @@ const NO_CONTACT = 0xffffffff;
 // blocked 0/1, origin code (ISSUE_ORIGIN). Status / island codes index STATUS / ISLAND_STATUS.
 const ISSUE_STRIDE = 5;
 const ISSUE_ORIGIN = ['auto', 'manual', 'structural'] as const;
+const LANDING_TIERS = [undefined, 'allowed', 'other', 'no-support'] as const;
 const ISLAND_STATUS = ['resolved', 'unresolved', 'manual-only', 'outside-policy'] as const;
 
 /** A placement as the session calls take it: position xyz then rotation xyz. */
@@ -248,6 +252,24 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
           const tiers = result.take_last_resort_tiers();
           const clearances = result.take_last_resort_clearances();
           return ids.map((id, k) => ({ id, tier: (tiers[k] === 1 ? 1 : 2) as 1 | 2, clearanceMm: clearances[k]! }));
+        })(),
+        modelLanded: (() => {
+          const ids = result.take_model_landed_ids();
+          const tiers = result.take_model_landed_tiers();
+          const points = result.take_model_landed_points();
+          return ids.map((id, k) => ({ id, tier: LANDING_TIERS[tiers[k]!] ?? 'other', position: [points[k * 3]!, points[k * 3 + 1]!, points[k * 3 + 2]!] as [number, number, number] }));
+        })(),
+        unresolved: (() => {
+          const ids = result.take_unresolved_ids();
+          const streams = result.take_unresolved_streams();
+          const points = result.take_unresolved_points();
+          const reasons = result.take_unresolved_reasons();
+          const gaps = result.take_unresolved_best_gaps();
+          const needed = result.take_unresolved_needed();
+          return ids.map((id, k): UnresolvedPoint => ({
+            id, stream: streams[k]!, position: [points[k * 3]!, points[k * 3 + 1]!, points[k * 3 + 2]!], heightMm: points[k * 3 + 1]! - (options.plateY ?? 0),
+            reason: reasons[k]!, bestGapMm: Number.isNaN(gaps[k]!) ? null : gaps[k]!, neededMm: needed[k]!,
+          }));
         })(),
         leftOut: (() => {
           const ids = result.take_left_out_ids();

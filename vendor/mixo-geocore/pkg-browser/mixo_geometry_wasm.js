@@ -1583,6 +1583,36 @@ export class Generation {
         return v1;
     }
     /**
+     * Tips supported from the model's own surface (dental option `dentalModelLanding` / the allow list): ids.
+     * @returns {string[]}
+     */
+    take_model_landed_ids() {
+        const ret = wasm.generation_take_model_landed_ids(this.__wbg_ptr);
+        var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Model-landed tips: x y z of each landing point (plate frame, mm).
+     * @returns {Float64Array}
+     */
+    take_model_landed_points() {
+        const ret = wasm.generation_take_model_landed_points(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Model-landed tips: the landing tier of each (1 allowed area, 2 other surface, 3 no-support zone).
+     * @returns {Uint8Array}
+     */
+    take_model_landed_tiers() {
+        const ret = wasm.generation_take_model_landed_tiers(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
      * @returns {Float32Array}
      */
     take_positions() {
@@ -1616,6 +1646,66 @@ export class Generation {
     take_tags() {
         const ret = wasm.generation_take_tags(this.__wbg_ptr);
         var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Unresolved report: the best gap (mm) at which a route from the plate was found, NaN when none was found or searched.
+     * @returns {Float64Array}
+     */
+    take_unresolved_best_gaps() {
+        const ret = wasm.generation_take_unresolved_best_gaps(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Unresolved report (every tip still left out and every island no support reaches): ids (`island-<vertex>` for an island with no tip).
+     * @returns {string[]}
+     */
+    take_unresolved_ids() {
+        const ret = wasm.generation_take_unresolved_ids(this.__wbg_ptr);
+        var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Unresolved report: the gap (mm) the build needs, per entry.
+     * @returns {Float64Array}
+     */
+    take_unresolved_needed() {
+        const ret = wasm.generation_take_unresolved_needed(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Unresolved report: x y z of each (plate frame, mm; the height above the plate is y minus the plate's).
+     * @returns {Float64Array}
+     */
+    take_unresolved_points() {
+        const ret = wasm.generation_take_unresolved_points(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Unresolved report: why, in words.
+     * @returns {string[]}
+     */
+    take_unresolved_reasons() {
+        const ret = wasm.generation_take_unresolved_reasons(this.__wbg_ptr);
+        var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Unresolved report: the stream of each (low, area, bar, light, rim, hole, island; empty for a tip of another policy).
+     * @returns {string[]}
+     */
+    take_unresolved_streams() {
+        const ret = wasm.generation_take_unresolved_streams(this.__wbg_ptr);
+        var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
         wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
         return v1;
     }
@@ -2162,6 +2252,14 @@ export class GeometrySession {
         return Diagnosis.__wrap(ret[0]);
     }
     /**
+     * A policy with nothing in it, for a live edit call that does not use the policy (`reroute_support` with `allow_model_landing` false).
+     * @returns {PolicyHandle}
+     */
+    empty_policy() {
+        const ret = wasm.geometrysession_empty_policy(this.__wbg_ptr);
+        return PolicyHandle.__wrap(ret);
+    }
+    /**
      * The support pipeline for a plate-space model: `contacts` and `shapes` as `build_supports`,
      * `policy` the unit's policy as Rust made it (same frame as the model). `limits` overrides the time rule
      * (`supports::time_limits::TimeRules::from_overrides`: base, per tip, per 100k triangles, stall, ceiling; ms; a missing or NaN
@@ -2555,7 +2653,10 @@ export class GeometrySession {
      * (the capsule judge's margin comes from the rules). The result's `take_pieces()` is the skeleton, nine
      * numbers per piece: kind (0 tip cone, 1 neck, 2 rod, 3 transition, 4 trunk, 5 joint, 6 brace, 7 foot),
      * the piece's two points (xyz each; a joint or foot repeats its point) and its two radii (mm). Empty
-     * with `refusal()` naming the rule that refused (too far, under the floor, clearance).
+     * with `refusal()` naming the rule that refused (too far, under the floor, clearance). With `allow_model_landing` (dental option) a spot the plate
+     * route refuses, or no spot (`x` or `z` NaN), falls to a column that ends on the model's own surface (best tier first: allowed area, other surface,
+     * no-support zone): `landing_tier()` is then 1, 2 or 3 and `landing_point()` holds the landing; `policy` supplies the tier masks and `zones`
+     * (`packZones`) the painted no-support stamps. Otherwise `policy` and `zones` are ignored (`empty_policy()`, an empty array).
      * @param {number} model
      * @param {Float64Array} settings
      * @param {Float64Array} rules
@@ -2564,9 +2665,12 @@ export class GeometrySession {
      * @param {number} x
      * @param {number} z
      * @param {number} plate_y
+     * @param {boolean} allow_model_landing
+     * @param {PolicyHandle} policy
+     * @param {Float64Array} zones
      * @returns {Reroute}
      */
-    reroute_support(model, settings, rules, tip, normal, x, z, plate_y) {
+    reroute_support(model, settings, rules, tip, normal, x, z, plate_y, allow_model_landing, policy, zones) {
         const ptr0 = passArrayF64ToWasm0(settings, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
@@ -2575,7 +2679,10 @@ export class GeometrySession {
         const len2 = WASM_VECTOR_LEN;
         const ptr3 = passArrayF64ToWasm0(normal, wasm.__wbindgen_malloc);
         const len3 = WASM_VECTOR_LEN;
-        const ret = wasm.geometrysession_reroute_support(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, x, z, plate_y);
+        _assertClass(policy, PolicyHandle);
+        const ptr4 = passArrayF64ToWasm0(zones, wasm.__wbindgen_malloc);
+        const len4 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_reroute_support(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, x, z, plate_y, allow_model_landing, policy.__wbg_ptr, ptr4, len4);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -2989,6 +3096,16 @@ export class PolicyHandle {
         return ret >>> 0;
     }
     /**
+     * The dental model-landing allow list (tip ids): those tips may be supported from the model's own surface even when the rule
+     * `dentalModelLanding` is 0 (denture builds only; replaces the earlier list). The UI bubble "support from model surface" fills it.
+     * @param {string[]} ids
+     */
+    set_model_landing_allow(ids) {
+        const ptr0 = passArrayJsValueToWasm0(ids, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.policyhandle_set_model_landing_allow(this.__wbg_ptr, ptr0, len0);
+    }
+    /**
      * pillar, tree, brace, roof, cage, raft (1 = allowed).
      * @returns {Uint8Array}
      */
@@ -3030,6 +3147,24 @@ export class Reroute {
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_reroute_free(ptr, 0);
+    }
+    /**
+     * x y z of the landing on the model (plate frame, mm); empty when the support reaches the plate.
+     * @returns {Float64Array}
+     */
+    landing_point() {
+        const ret = wasm.reroute_landing_point(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * 0 the support reaches the plate; 1, 2, 3 it lands on the model (allowed area, other surface, no-support zone).
+     * @returns {number}
+     */
+    landing_tier() {
+        const ret = wasm.reroute_landing_tier(this.__wbg_ptr);
+        return ret;
     }
     /**
      * Why the reroute was refused; empty when it was taken.

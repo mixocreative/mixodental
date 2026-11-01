@@ -122,6 +122,24 @@ export interface DentalRimCoverage {
  * A built support mesh with its component tags and verdicts. Plate space as `generate` returns it;
  * `supports/jobRunner.runSupportJob` hands it back in unit-local space.
  */
+/** A tip or island that still has no support (`GeneratedSupportMesh.unresolved`), as the bubble tooltip shows it. */
+export interface UnresolvedPoint {
+  /** The tip's contact id, or `island-<vertex>` for an island with no tip of its own. */
+  id: string;
+  /** The tip's stream (`low`, `area`, `bar`, `light`, `rim`, `hole`, `island`); empty for a tip of another policy. */
+  stream: string;
+  /** Plate frame, mm. */
+  position: [number, number, number];
+  /** Height above the plate, mm (the position's y minus the plate's). */
+  heightMm: number;
+  /** Why, in words. */
+  reason: string;
+  /** The largest clearance (mm) at which a route from the plate was found; `null`: none found or not searched. */
+  bestGapMm: number | null;
+  /** The clearance (mm) the build needs. */
+  neededMm: number;
+}
+
 export interface GeneratedSupportMesh extends TriangleMesh {
   /** Every part kind present, in first-seen order. */
   parts: SupportPart[];
@@ -134,6 +152,10 @@ export interface GeneratedSupportMesh extends TriangleMesh {
   leftOut?: { id: string; position: [number, number, number]; reason: string }[];
   /** Denture builds: tips the last-resort tier placed (`lastResortPlaced` is the length): tier 1 relaxed the outline lean limit, tier 2 also stepped the pillar clearance down; `clearanceMm` is what each was judged and verified at. Absent on other builds. */
   lastResort?: { id: string; tier: 1 | 2; clearanceMm: number }[];
+  /** Denture builds with the dental model landing (`dentalModelLanding` or the allow list): tips supported from the model's own surface, with the landing tier (allowed area, other surface, no-support zone) and the landing point (plate frame, mm). Empty when off. */
+  modelLanded?: { id: string; tier: 'allowed' | 'other' | 'no-support'; position: [number, number, number] }[];
+  /** Every tip still left out and every island no support reaches: where, which stream, why, and the best gap found (the largest clearance, mm, at which a route from the plate still exists; `null`: none found or not searched) against the gap the build needs. What the UI bubble's tooltip shows. */
+  unresolved?: UnresolvedPoint[];
   /** Exact body-clearance verdict of the final mesh (`generate`); absent on a mesh not built by it. */
   verdict?: SupportVerdict;
   /** Revision of the request this mesh answers (`generate` echoes it); the host drops any other. */

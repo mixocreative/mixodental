@@ -144,6 +144,12 @@ export interface GenerateRules {
   landingCellStepMm?: number;
   /** Landing circle: spacing of the height tests along a rod, mm (default 0.5). */
   landingRodSampleMm?: number;
+  /**
+   * Dental-only option (dentures only, default 0 = off): support a tip from the model's own surface, used only when the plate route and the
+   * last-resort tier both failed. 0 off, 1 lowest points and islands only, 2 any left-out tip. The landing order is allowed area, other
+   * surface, no-support zone. A per-tip allow list (`PolicyHandle.set_model_landing_allow`) admits single tips whatever the value is.
+   */
+  dentalModelLanding?: 0 | 1 | 2;
 }
 
 /** The override array's layout; mirrors Rust `supports::rules::NAMES` exactly (a test checks it against the wasm's `rule_names()`). */
@@ -162,6 +168,7 @@ export const RULE_NAMES: readonly string[] = [
   'spaceMarginMm',
   'lastResort', 'lastResortOutlineAngleDeg', 'lastResortClearanceMm', 'rimLowNeedsOverhang', 'lastResortClearanceStepMm',
   'landingTiltWeight', 'landingRodMaxDeg', 'landingCellStepMm', 'landingRodSampleMm',
+  'dentalModelLanding',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */

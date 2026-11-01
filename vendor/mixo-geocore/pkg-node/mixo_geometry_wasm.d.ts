@@ -574,6 +574,18 @@ export class Generation {
      * Left-out contacts: the reason of each, `step` or `step:part` (build-omission, leave-out:pillar, leave-out:neck, all-manual, structures-off-leave-out, structure-fallback).
      */
     take_left_out_reasons(): string[];
+    /**
+     * Tips supported from the model's own surface (dental option `dentalModelLanding` / the allow list): ids.
+     */
+    take_model_landed_ids(): string[];
+    /**
+     * Model-landed tips: x y z of each landing point (plate frame, mm).
+     */
+    take_model_landed_points(): Float64Array;
+    /**
+     * Model-landed tips: the landing tier of each (1 allowed area, 2 other surface, 3 no-support zone).
+     */
+    take_model_landed_tiers(): Uint8Array;
     take_positions(): Float32Array;
     take_reach(): Float64Array;
     /**
@@ -581,6 +593,30 @@ export class Generation {
      */
     take_rings(): Float64Array;
     take_tags(): Uint32Array;
+    /**
+     * Unresolved report: the best gap (mm) at which a route from the plate was found, NaN when none was found or searched.
+     */
+    take_unresolved_best_gaps(): Float64Array;
+    /**
+     * Unresolved report (every tip still left out and every island no support reaches): ids (`island-<vertex>` for an island with no tip).
+     */
+    take_unresolved_ids(): string[];
+    /**
+     * Unresolved report: the gap (mm) the build needs, per entry.
+     */
+    take_unresolved_needed(): Float64Array;
+    /**
+     * Unresolved report: x y z of each (plate frame, mm; the height above the plate is y minus the plate's).
+     */
+    take_unresolved_points(): Float64Array;
+    /**
+     * Unresolved report: why, in words.
+     */
+    take_unresolved_reasons(): string[];
+    /**
+     * Unresolved report: the stream of each (low, area, bar, light, rim, hole, island; empty for a tip of another policy).
+     */
+    take_unresolved_streams(): string[];
     trials(): number;
 }
 
@@ -719,6 +755,10 @@ export class GeometrySession {
      */
     diagnose_orientation(model: number, revision: number, profile: string): Diagnosis;
     /**
+     * A policy with nothing in it, for a live edit call that does not use the policy (`reroute_support` with `allow_model_landing` false).
+     */
+    empty_policy(): PolicyHandle;
+    /**
      * The support pipeline for a plate-space model: `contacts` and `shapes` as `build_supports`,
      * `policy` the unit's policy as Rust made it (same frame as the model). `limits` overrides the time rule
      * (`supports::time_limits::TimeRules::from_overrides`: base, per tip, per 100k triangles, stall, ceiling; ms; a missing or NaN
@@ -796,9 +836,12 @@ export class GeometrySession {
      * (the capsule judge's margin comes from the rules). The result's `take_pieces()` is the skeleton, nine
      * numbers per piece: kind (0 tip cone, 1 neck, 2 rod, 3 transition, 4 trunk, 5 joint, 6 brace, 7 foot),
      * the piece's two points (xyz each; a joint or foot repeats its point) and its two radii (mm). Empty
-     * with `refusal()` naming the rule that refused (too far, under the floor, clearance).
+     * with `refusal()` naming the rule that refused (too far, under the floor, clearance). With `allow_model_landing` (dental option) a spot the plate
+     * route refuses, or no spot (`x` or `z` NaN), falls to a column that ends on the model's own surface (best tier first: allowed area, other surface,
+     * no-support zone): `landing_tier()` is then 1, 2 or 3 and `landing_point()` holds the landing; `policy` supplies the tier masks and `zones`
+     * (`packZones`) the painted no-support stamps. Otherwise `policy` and `zones` are ignored (`empty_policy()`, an empty array).
      */
-    reroute_support(model: number, settings: Float64Array, rules: Float64Array, tip: Float64Array, normal: Float64Array, x: number, z: number, plate_y: number): Reroute;
+    reroute_support(model: number, settings: Float64Array, rules: Float64Array, tip: Float64Array, normal: Float64Array, x: number, z: number, plate_y: number, allow_model_landing: boolean, policy: PolicyHandle, zones: Float64Array): Reroute;
     /**
      * Recomputes the strip and contacts for accepted contours. `phase_fraction` (of the even step)
      * NaN keeps phase 0, the primaries; 0.5 samples halfway between them.
@@ -933,6 +976,11 @@ export class PolicyHandle {
      */
     set_candidates(ids: string[], values: Float64Array): void;
     /**
+     * The dental model-landing allow list (tip ids): those tips may be supported from the model's own surface even when the rule
+     * `dentalModelLanding` is 0 (denture builds only; replaces the earlier list). The UI bubble "support from model surface" fills it.
+     */
+    set_model_landing_allow(ids: string[]): void;
+    /**
      * One 0/1 byte per source face.
      */
     set_permitted_faces(mask: Uint8Array): void;
@@ -957,6 +1005,14 @@ export class Reroute {
     private constructor();
     free(): void;
     [Symbol.dispose](): void;
+    /**
+     * x y z of the landing on the model (plate frame, mm); empty when the support reaches the plate.
+     */
+    landing_point(): Float64Array;
+    /**
+     * 0 the support reaches the plate; 1, 2, 3 it lands on the model (allowed area, other surface, no-support zone).
+     */
+    landing_tier(): number;
     /**
      * Why the reroute was refused; empty when it was taken.
      */
