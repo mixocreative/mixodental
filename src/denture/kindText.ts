@@ -36,6 +36,9 @@ const DENTURE: Readonly<Record<string, string>> = {
     'This denture has too many triangles ({n}) for the dental flow. Simplify the file and drop it again.',
   'Checking and orienting the aligner…': 'Checking and orienting the denture…',
   'The aligner is checked and turned the right way up automatically.': 'The denture is checked and stood upright automatically.',
+  // Problem list `outside` entries: only an aligner policy reports islands outside its area today; the denture line keeps a mixed plate honest.
+  '1 low point lies outside the dental support area and is left to the aligner shape.': '1 low point lies outside the allowed support area and is left to the denture shape.',
+  '{n} low points lie outside the dental support area and are left to the aligner shape.': '{n} low points lie outside the allowed support area and are left to the denture shape.',
 };
 
 /** The line `key` (an aligner sentence) in the words of `kind`; the key itself for the aligner, an unknown kind or a key with no denture line. */

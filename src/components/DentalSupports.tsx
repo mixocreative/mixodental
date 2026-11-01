@@ -122,7 +122,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind
       {notes.length > 0 && <ul className="problems">
         {notes.map((note) => <NoteProblem key={note.key} text={note.text} onShow={review.onShowRim} onFix={fixHere} />)}
       </ul>}
-      <ProblemList problems={review.problems} outOfDate={review.outOfDate} rechecking={review.rechecking} unitName={review.unitName} onShow={review.onShow} onFix={review.onFix} />
+      <ProblemList problems={review.problems} outOfDate={review.outOfDate} rechecking={review.rechecking} unitName={review.unitName} kindOf={() => kind} onShow={review.onShow} onFix={review.onFix} />
       {notes.length === 0 && review.problems.length === 0 && <p className="help">{t('No problems listed. Press Check supports to look for islands and overhangs.')}</p>}
     </section>
     </div>

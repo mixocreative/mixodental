@@ -322,6 +322,8 @@ export default function App() {
     const unit = sceneRef.current.units[index];
     return unit ? `${resolveSettings(unit.settings).labelText || labelForIndex(index)} ${unit.name}` : 'unit';
   }, []);
+  /** A unit's dental kind for the kind-aware problem lines: a denture unit says so, any other unit keeps the aligner words. */
+  const unitKind = useCallback((unitId: string): DentalKind | undefined => (sceneRef.current.units.find((unit) => unit.id === unitId)?.denture ? 'denture' : undefined), []);
 
   // Step 1 Free transform (PD.11 S6): confirm marks the rotation as the operator's; Auto orient restores the stored pose.
   const free = useFreeTransform(`${session.dentalStage}:${session.dentalUnitId}`);
@@ -1289,7 +1291,7 @@ export default function App() {
         <section className="support-check" {...(locked('check') ? { inert: '' } : {})}>
           <h3>{t('Check supports')}</h3>
           <CommandButton command={command('check.run')} run={runCommand} />
-          <ProblemList problems={listedProblems} outOfDate={outOfDate} rechecking={isRechecking} unitName={unitName} onShow={showProblem} onFix={fixProblem} />
+          <ProblemList problems={listedProblems} outOfDate={outOfDate} rechecking={isRechecking} unitName={unitName} kindOf={unitKind} onShow={showProblem} onFix={fixProblem} />
           <p className="help">{t('Finds islands and overhangs no contact reaches, before you print.')}</p>
         </section>
       </aside> : null}
