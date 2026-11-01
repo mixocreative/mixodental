@@ -280,6 +280,10 @@ export class DentureReviewResult {
      */
     drain_sockets(): Float64Array;
     /**
+     * The part id of every face of the file (engine 50; the layer "Parts"); every review runs on the target part.
+     */
+    face_parts(): Uint32Array;
+    /**
      * The fitting basin against the zones, face counts: fitting, fitting and allowed, fitting and no-support, fitting and neither, allowed but not fitting.
      */
     fitting_check(): Uint32Array;
@@ -367,6 +371,10 @@ export class DentureReviewResult {
      * Oral cavity ray origin xyz: on the rim plane, at the back edge of the tight box, on the symmetry plane (the allowed-area rays start here).
      */
     oral_cavity_ray(): Float64Array;
+    /**
+     * The file's parts, 6 numbers each: id, role (0 target, 1 add-on, 2 debris), triangles, volume mm3, area mm2, review tips on it.
+     */
+    part_list(): Float64Array;
     /**
      * Pillar geometry inputs: contact ball diameter, frustum base diameter, neck length, pillar diameter, lift (mm).
      */
@@ -960,6 +968,10 @@ export class PolicyHandle {
      */
     candidate_points(): Float64Array;
     /**
+     * A denture policy's part id of every face of the file (the layer "Parts"); empty for any other policy.
+     */
+    face_parts(): Uint32Array;
+    /**
      * A denture policy's islands, 9 numbers each (x y z, height above the pose's lowest vertex mm, footprint mm2, distance to the nearest planned tip mm or -1, state 0 tipped / 1 served by a tip nearby / 2 below min size / 3 in no-support zone / 4 outside allowed area / 5 no usable face, index of the serving candidate or -1, face or -1). Empty for any other policy or with the rule `islandTips` off.
      */
     island_facts(): Float64Array;
@@ -972,6 +984,11 @@ export class PolicyHandle {
      * 1 when secondary landings are limited to the permitted faces.
      */
     landing_rule(): number;
+    /**
+     * A denture policy's parts (engine 50), 6 numbers each: part id, role (0 target: the dental tips; 1 add-on: generic tips on its
+     * own faces; 2 debris: no tips), triangles, volume mm3, area mm2, candidates placed on it. Empty for any other policy.
+     */
+    part_list(): Float64Array;
     /**
      * One 0/1 byte per source face.
      */
@@ -1280,6 +1297,7 @@ export interface InitOutput {
     readonly denturereviewresult_drain_mask: (a: number) => [number, number];
     readonly denturereviewresult_drain_pockets: (a: number) => [number, number];
     readonly denturereviewresult_drain_sockets: (a: number) => [number, number];
+    readonly denturereviewresult_face_parts: (a: number) => [number, number];
     readonly denturereviewresult_fitting_check: (a: number) => [number, number];
     readonly denturereviewresult_fitting_mask: (a: number) => [number, number];
     readonly denturereviewresult_hard_edges: (a: number) => [number, number];
@@ -1302,6 +1320,7 @@ export interface InitOutput {
     readonly denturereviewresult_no_support_steep_deg: (a: number) => number;
     readonly denturereviewresult_no_support_steep_mask: (a: number) => [number, number];
     readonly denturereviewresult_oral_cavity_ray: (a: number) => [number, number];
+    readonly denturereviewresult_part_list: (a: number) => [number, number];
     readonly denturereviewresult_pillar: (a: number) => [number, number];
     readonly denturereviewresult_released: (a: number) => number;
     readonly denturereviewresult_rim_band_mask: (a: number) => [number, number];
@@ -1451,10 +1470,12 @@ export interface InitOutput {
     readonly policyhandle_candidate_faces: (a: number) => [number, number];
     readonly policyhandle_candidate_ids: (a: number) => [number, number];
     readonly policyhandle_candidate_points: (a: number) => [number, number];
+    readonly policyhandle_face_parts: (a: number) => [number, number];
     readonly policyhandle_island_facts: (a: number) => [number, number];
     readonly policyhandle_islands_note: (a: number) => [number, number];
     readonly policyhandle_islands_outside_permitted: (a: number) => number;
     readonly policyhandle_landing_rule: (a: number) => number;
+    readonly policyhandle_part_list: (a: number) => [number, number];
     readonly policyhandle_permitted_faces: (a: number) => [number, number];
     readonly policyhandle_profile_id: (a: number) => [number, number];
     readonly policyhandle_repair_budget: (a: number) => number;

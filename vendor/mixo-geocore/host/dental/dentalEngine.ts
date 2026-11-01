@@ -158,6 +158,10 @@ export interface DentureReviewResultLike {
   islands(): Float64Array;
   /** Why the islands could not be told; empty when they could. */
   islands_note(): string;
+  /** The file's parts (engine 50), `PART_STRIDE` numbers each (`dentureParts.ts`); the review runs on the target part. */
+  part_list?(): Float64Array;
+  /** The part id of every face of the file (the layer "Parts"). */
+  face_parts?(): Uint32Array;
   tip_faces(): Uint32Array;
   pillar(): Float64Array;
   free(): void;

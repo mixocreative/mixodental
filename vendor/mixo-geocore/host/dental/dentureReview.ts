@@ -4,6 +4,7 @@ import type { GenerateRules } from '../supports/generateRules';
 import { packRules } from '../supports/generateRules';
 import { withDentalMesh, type DentureReviewResultLike } from './dentalEngine';
 import { decodeIslands, type DentureIsland } from './dentureIslands';
+import { partsOf, type DenturePart } from './dentureParts';
 
 /*
  * Review layers of the owner denture rules (Rust `dental::denture::review` through
@@ -112,6 +113,10 @@ export interface DentureReview {
   islands: DentureIsland[];
   /** Why the islands could not be told (the surface is not a clean manifold...); empty when they could. */
   islandsNote: string;
+  /** The file's parts (engine 50; `dentureParts.ts`): the review runs on the target, every mask and face id is the file's. */
+  parts: DenturePart[];
+  /** The part id of every face of the file (the layer "Parts"); empty from an engine before 50. */
+  faceParts: Uint32Array;
   /** Rim plane (least squares through the rim loop points, normal to the top), absent without a rim. */
   rimPlane?: { point: Vector; normal: Vector };
   /** Symmetry plane: the upright plane that splits the U left/right (normal = the left-right axis). */
@@ -309,6 +314,7 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
       })(),
       islands: decodeIslands(result.islands()),
       islandsNote: result.islands_note(),
+      ...partsOf(result),
       rimPlane: rimPlane.length === 6 ? { point: triple(rimPlane, 0), normal: triple(rimPlane, 3) } : undefined,
       symmetryPlane: { point: triple(symmetry, 0), normal: triple(symmetry, 3) },
       up: triple(result.up(), 0),

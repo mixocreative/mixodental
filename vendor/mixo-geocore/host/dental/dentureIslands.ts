@@ -13,9 +13,9 @@ import type { Vector } from '../core/vec3';
 export const ISLAND_STRIDE = 9;
 
 /** How an island stands. `leftOut` is set by `settleIslands`, never by the engine's plan. */
-export type IslandState = 'tipped' | 'servedNearby' | 'belowMinSize' | 'noSupportZone' | 'outsideAllowed' | 'noFace' | 'leftOut';
+export type IslandState = 'tipped' | 'servedNearby' | 'belowMinSize' | 'noSupportZone' | 'outsideAllowed' | 'noFace' | 'touchesPart' | 'leftOut';
 
-const STATES: readonly IslandState[] = ['tipped', 'servedNearby', 'belowMinSize', 'noSupportZone', 'outsideAllowed', 'noFace'];
+const STATES: readonly IslandState[] = ['tipped', 'servedNearby', 'belowMinSize', 'noSupportZone', 'outsideAllowed', 'noFace', 'touchesPart'];
 const REASONS: Record<IslandState, string> = {
   tipped: 'own tip at the lowest point',
   servedNearby: 'served by a tip nearby',
@@ -23,6 +23,7 @@ const REASONS: Record<IslandState, string> = {
   noSupportZone: 'in no-support zone',
   outsideAllowed: 'outside allowed area',
   noFace: 'no usable face',
+  touchesPart: 'touches another part',
   leftOut: 'left out',
 };
 

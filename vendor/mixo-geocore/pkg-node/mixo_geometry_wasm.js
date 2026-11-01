@@ -1072,6 +1072,16 @@ class DentureReviewResult {
         return v1;
     }
     /**
+     * The part id of every face of the file (engine 50; the layer "Parts"); every review runs on the target part.
+     * @returns {Uint32Array}
+     */
+    face_parts() {
+        const ret = wasm.denturereviewresult_face_parts(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * The fitting basin against the zones, face counts: fitting, fitting and allowed, fitting and no-support, fitting and neither, allowed but not fitting.
      * @returns {Uint32Array}
      */
@@ -1291,6 +1301,16 @@ class DentureReviewResult {
      */
     oral_cavity_ray() {
         const ret = wasm.denturereviewresult_oral_cavity_ray(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The file's parts, 6 numbers each: id, role (0 target, 1 add-on, 2 debris), triangles, volume mm3, area mm2, review tips on it.
+     * @returns {Float64Array}
+     */
+    part_list() {
+        const ret = wasm.denturereviewresult_part_list(this.__wbg_ptr);
         var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
         return v1;
@@ -3499,6 +3519,16 @@ class PolicyHandle {
         return v1;
     }
     /**
+     * A denture policy's part id of every face of the file (the layer "Parts"); empty for any other policy.
+     * @returns {Uint32Array}
+     */
+    face_parts() {
+        const ret = wasm.policyhandle_face_parts(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * A denture policy's islands, 9 numbers each (x y z, height above the pose's lowest vertex mm, footprint mm2, distance to the nearest planned tip mm or -1, state 0 tipped / 1 served by a tip nearby / 2 below min size / 3 in no-support zone / 4 outside allowed area / 5 no usable face, index of the serving candidate or -1, face or -1). Empty for any other policy or with the rule `islandTips` off.
      * @returns {Float64Array}
      */
@@ -3555,6 +3585,17 @@ class PolicyHandle {
         this.__wbg_ptr = ret[0];
         PolicyHandleFinalization.register(this, this.__wbg_ptr, this);
         return this;
+    }
+    /**
+     * A denture policy's parts (engine 50), 6 numbers each: part id, role (0 target: the dental tips; 1 add-on: generic tips on its
+     * own faces; 2 debris: no tips), triangles, volume mm3, area mm2, candidates placed on it. Empty for any other policy.
+     * @returns {Float64Array}
+     */
+    part_list() {
+        const ret = wasm.policyhandle_part_list(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
     }
     /**
      * One 0/1 byte per source face.

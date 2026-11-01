@@ -6,6 +6,7 @@ import { packRules, type GenerateRules } from '../supports/generateRules';
 import { frameArray, type MakePolicy, type PolicyHandle } from '../supports/generateSupports';
 import { withDentalMesh, type DentalSession } from './dentalEngine';
 import { decodeIslands, type DentureIsland } from './dentureIslands';
+import { partsOf, type DenturePart } from './dentureParts';
 
 /*
  * Host side of the denture policy (Rust `dental::denture::policy` through `denture_policy`): the
@@ -41,6 +42,9 @@ export function makeDenturePolicy(session: Pick<DentalSession, 'denture_policy_r
 
 /** The islands a denture policy handle reports (before the build); `settleIslands` adds the build's left-out tips. */
 export const policyIslands = (handle: Pick<PolicyHandle, 'island_facts'>): DentureIsland[] => decodeIslands(handle.island_facts());
+
+/** The file's parts a denture policy handle reports (engine 50): the part list with the tips placed on each, and the part id of every face. */
+export const policyParts = (handle: Pick<PolicyHandle, 'part_list' | 'face_parts'>): { parts: DenturePart[]; faceParts: Uint32Array } => partsOf(handle);
 
 /** `makeDenturePolicy` for `generateSupports`. */
 export const denturePolicy = (policy: DenturePolicy, frame: JobTransform, manual: readonly Pick<SupportPoint, 'position'>[] = [], rules?: GenerateRules): MakePolicy =>

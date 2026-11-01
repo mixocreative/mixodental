@@ -176,6 +176,8 @@ export interface GenerateRules {
   raftRibTopMm?: number;
   /** Grid raft: lean of the edge band's outer wall, degrees from vertical as raftWallAngle counts it (default 50 = 40 degrees from the plate); the top reaches past the footprint, the footprint is kept. */
   raftGridWallAngle?: number;
+  /** Parts of a denture file (engine 50; default 1 mm): the file is split into its parts before anything else (faces joined by their edges; shells that only touch stay apart, nothing is welded or merged); the largest part by volume (by area when a part is open) gets the dental tips, a smaller part (hook, attachment) gets generic tips on its own faces with the denture spacing, and a part whose bounding box is less than this across is debris: listed, no tips. Every part is an obstacle to every support, and no tip is placed within 0.05 mm of another part or inside it. 0 makes every smaller part an add-on. */
+  partDebrisMm?: number;
   /** Denture self-supporting overhangs (default false): an overhang region (faces joined by edges) that is small, gentle and short gets no open-area grid tips, like a slicer's min-area / min-angle / max-reach rules. Island, lowest-point, rim, dental rim band and hole-band tips are kept. */
   overhangSelfSupport?: boolean;
   /** Self-supporting overhangs: a region with this much projected area (mm2) or more keeps its tips (default 4). */
@@ -302,6 +304,7 @@ export const RULE_NAMES: readonly string[] = [
   'contactFit', 'contactFitTolMm', 'contactFitRays', 'contactFitMaxIters', 'contactFitMaxBiteFactor',
   'edgeCornerDeg', 'edgeCornerSpanMm', 'genericEdgePitchMm',
   'raftRibTopMm', 'raftGridWallAngle',
+  'partDebrisMm',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */
