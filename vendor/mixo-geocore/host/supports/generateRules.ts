@@ -156,22 +156,26 @@ export interface GenerateRules {
   tiltTipCountSlack?: number;
   /** Denture no-support zone (default 0 = off): above 45 and below 90 adds R1b, a second parallel no-support ray turned this many degrees from the back toward straight down from the teeth side (67.5 is the owner's value). The zone is the first hits of R1 (45) and R1b together; the allowed area still overrides it. Applies to the tilt scan, the policy and the review. */
   noSupportSteepDeg?: number;
-  /** Raft (default false): build the raft as a peel grid (solid 0.5 mm bottom; 1 mm top layer of 45 degree ribs, a solid rim and solid pads under every foot and the label) instead of the classic floor and rim. */
+  /** Raft (default false): build the raft as a peel grid instead of the classic floor and rim: 2 mm tall (solid 0.5 mm bottom, 1.5 mm of ribs), a triangle grid of ridges in three directions 60 degrees apart, turned away from the outline's longest edges; a solid edge band whose outer wall leans out 40 degrees from the plate; a solid pad under every foot and under the label. Every piece stands on the plate. */
   raftGrid?: boolean;
   /** Plate outline (default false): trace the raft outline from the space map (shadow plus a disc under every foot, grown by the raft expand distance) instead of the voxel trace. A roof or cage always uses the voxel trace. */
   raftMapOutline?: boolean;
   /** Grid raft: solid bottom layer, mm (default 0.5). */
   raftGridBottomMm?: number;
-  /** Grid raft: rib layer on top of it, mm (default 1). */
+  /** Grid raft: rib layer on top of the bottom, mm (default 1.5; bottom + top = 2 mm, the Formlabs Full Raft height). */
   raftGridTopMm?: number;
-  /** Grid raft: rib width, mm (default 1). */
+  /** Grid raft: rib width at the base of the ridge (the top of the bottom layer), mm (default 1). */
   raftRibMm?: number;
-  /** Grid raft: distance between rib centre lines, mm (default 3.5, about half solid). */
+  /** Grid raft: side of the equilateral triangles the three rib directions form, mm (default 3.5). */
   raftRibPitchMm?: number;
-  /** Grid raft: solid rim band along the outline, mm (default 2). */
+  /** Grid raft: solid edge band along the outline, full height, mm (default 2). */
   raftRimMm?: number;
   /** Grid raft: a foot pad reaches this far past the foot radius, mm (default 0.5). */
   raftPadMarginMm?: number;
+  /** Grid raft: width of the rib's flat top, mm (default 0.3); the ridge narrows straight from raftRibMm to it. */
+  raftRibTopMm?: number;
+  /** Grid raft: lean of the edge band's outer wall, degrees from vertical as raftWallAngle counts it (default 50 = 40 degrees from the plate); the top reaches past the footprint, the footprint is kept. */
+  raftGridWallAngle?: number;
   /** Denture self-supporting overhangs (default false): an overhang region (faces joined by edges) that is small, gentle and short gets no open-area grid tips, like a slicer's min-area / min-angle / max-reach rules. Island, lowest-point, rim, dental rim band and hole-band tips are kept. */
   overhangSelfSupport?: boolean;
   /** Self-supporting overhangs: a region with this much projected area (mm2) or more keeps its tips (default 4). */
@@ -297,6 +301,7 @@ export const RULE_NAMES: readonly string[] = [
   'areaDensity', 'areaRefMm2', 'areaDenseFloor', 'areaSteepLighten', 'areaMinPitchMm', 'areaMaxPitchMm',
   'contactFit', 'contactFitTolMm', 'contactFitRays', 'contactFitMaxIters', 'contactFitMaxBiteFactor',
   'edgeCornerDeg', 'edgeCornerSpanMm', 'genericEdgePitchMm',
+  'raftRibTopMm', 'raftGridWallAngle',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */
