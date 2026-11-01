@@ -1,7 +1,7 @@
 {
   "repo": "mixocreative/mixo-geocore",
-  "commit": "3cd17a09fdb093e7c197e40cf5e0f8da0d12c22a",
-  "committed": "2026-11-01T12:14:23+08:00",
+  "commit": "d779a2249f5a774250ee5b816b91690d39c6496a",
+  "committed": "2026-11-01T12:20:10+08:00",
   "engineVersion": 33,
   "sha256": {
     "pkg-browser/mixo_geometry_wasm.js": "e48bbf1b73c27921bf6dcfb101fc41a2ab80e28af54bc7ff62d15ec8ae1ff963",
