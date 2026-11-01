@@ -23,6 +23,9 @@ export const LAYER_COLOURS = {
   /** Tooth sockets (blind craters on the teeth side, engine 42): a muted plum. Fitting surface found as a basin from the tissue side (cross-check only): a steel blue. */
   sockets: 0x7d5a8c,
   fitting: 0x7fa7c9,
+  /** Traps at the chosen tilt (engine 44): suction cups a warm amber, drain / clean pockets a muted teal-grey. */
+  suction: 0xd08a2e,
+  drain: 0x5f8f8a,
   /** Our tips (yellow cones, the default for a tip stream with no colour of its own); tips that cannot reach the plate (black cones, not built). */
   ourTips: 0xf1c40f,
   unsupportableTips: 0x1f1f1f,

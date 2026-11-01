@@ -21,7 +21,7 @@ import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { JobTransform } from '@mixo-geocore/host/core/jobs';
 import { selfSupportRule, steepRule } from './profileSelect';
-import { AREA_CLASS, compareDentureAreas, reviewDenture, type DentureAreaComparison, type DentureReview } from '@mixo-geocore/host/dental/dentureReview';
+import { AREA_CLASS, compareDentureAreas, reviewDenture, TRAP_LEVEL, type DentureAreaComparison, type DentureReview } from '@mixo-geocore/host/dental/dentureReview';
 import { parseStl } from '../../scripts/node-engine';
 import { distancesToSurface, readGlbWorldMeshes } from './glbWorld';
 import type { ReviewLayer } from './orientationEvidenceGlb';
@@ -70,6 +70,8 @@ export interface DentureDetail {
   tipsBySource: string;
   /** The self-supporting overhang rule: 'regions 12 / self-supporting 5 / open-area tips saved 18' ('' with the rule off or without a review). */
   selfSupport: string;
+  /** Traps at the chosen tilt (engine 44): 'cups 1 (low) / pockets 1 / deep sockets 3' ('' without a review or with nothing found). */
+  traps: string;
   /** Tips on an overhang with no free path to the plate (not built). */
   unsupportableTips: number;
   /** Left-out tips per engine reason, e.g. 'leave-out:pillar 3 / build-omission 1' ('' when none). */
@@ -392,6 +394,12 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     if (socketFaces.length > 0) layers.push({ name: 'Sockets (no support)', color: C.sockets, positions: patchPositions(mesh, socketFaces, DOWN_LIFT_MM * 2, sign), indices: new Uint32Array(0) });
     const fittingFaces = maskFaces(review.fittingMask);
     if (fittingFaces.length > 0) layers.push({ name: 'Fitting (basin)', color: C.fitting, positions: patchPositions(mesh, fittingFaces, DOWN_LIFT_MM * 2.5, sign), indices: new Uint32Array(0) });
+    // Engine 44 traps at the chosen tilt (review only, no tip moves): suction cups (hollows facing the plate) and drain / clean (resin pockets, deep sockets).
+    // The trap masks hold a level code per face (TRAP_LEVEL: 0 none, 1 vented, 2 low, 3 medium, 4 high, 5 deep socket), not 0/1.
+    const suctionFaces = Array.from(review.suctionMask?.keys() ?? []).filter((f) => (review.suctionMask![f] ?? 0) > 0);
+    if (suctionFaces.length > 0) layers.push({ name: 'Suction cups (hollows facing the plate)', color: C.suction, positions: patchPositions(mesh, suctionFaces, DOWN_LIFT_MM * 3, sign), indices: new Uint32Array(0) });
+    const drainFaces = Array.from(review.drainMask?.keys() ?? []).filter((f) => (review.drainMask![f] ?? 0) > 0);
+    if (drainFaces.length > 0) layers.push({ name: 'Drain / clean (resin pockets, deep sockets)', color: C.drain, positions: patchPositions(mesh, drainFaces, DOWN_LIFT_MM * 3.5, sign), indices: new Uint32Array(0) });
     const selfFaces = Array.from(review.selfSupport.faces);
     if (selfFaces.length > 0) {
       layers.push({ name: 'Self-supporting overhangs (no tips needed)', color: C.selfSupporting, positions: patchPositions(mesh, selfFaces, DOWN_LIFT_MM * 1.5, sign), indices: new Uint32Array(0) });
@@ -515,6 +523,9 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     middlePlane: review ? (review.rimPlane ? 'Rim plane fitted' : 'none (no rim)') : 'not computed',
     upDecision: review ? (review.upDecision ? describeUp(review.upDecision) : 'no box, so no up decision') : '',
     tipsBySource,
+    traps: review && (review.suctionCups.length + review.drainPockets.length + review.deepSockets.length) > 0
+      ? `cups ${review.suctionCups.length}${review.suctionCups.length ? ` (${review.suctionCups.map((c) => `${TRAP_LEVEL[c.level]} ${c.areaMm2.toFixed(0)} mm²`).join(', ')})` : ''} / resin pockets ${review.drainPockets.length} / deep sockets ${review.deepSockets.length}${review.deepSockets.length ? ` (${review.deepSockets.map((s) => `${s.depthMm.toFixed(1)} mm`).join(', ')})` : ''}`
+      : '',
     selfSupport: review && review.selfSupport.regions > 0 ? `regions ${review.selfSupport.regions} / self-supporting ${review.selfSupport.selfSupporting} / open-area tips saved ${review.selfSupport.tipsSaved}` : '',
     unsupportableTips: review?.unsupportable.length ?? 0,
     tipsLeftOutReasons: [...byReason].map(([reason, count]) => `${reason} ${count}`).join(' / '),

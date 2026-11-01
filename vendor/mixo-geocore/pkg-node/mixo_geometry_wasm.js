@@ -1032,6 +1032,36 @@ class DentureReviewResult {
         return v1;
     }
     /**
+     * Per face: the pocket level (1..4), 5 on a hard-to-clean socket, 0 elsewhere: the layer "Drain / clean". Empty with `trapCheck` off.
+     * @returns {Uint8Array}
+     */
+    drain_mask() {
+        const ret = wasm.denturereviewresult_drain_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * Pockets that hold resin after printing (engine 44): 10 numbers each: volume mm3, depth mm, opening width mm, aspect (depth / width), area mm2, vented 0/1, level (1 drains, 2 low, 3 medium, 4 high), floor x y z.
+     * @returns {Float64Array}
+     */
+    drain_pockets() {
+        const ret = wasm.denturereviewresult_drain_pockets(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Tooth sockets at least `drainSocketDepthMm` deep (hard to clean): 6 numbers each: depth mm, area mm2, width mm, floor x y z.
+     * @returns {Float64Array}
+     */
+    drain_sockets() {
+        const ret = wasm.denturereviewresult_drain_sockets(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
      * The fitting basin against the zones, face counts: fitting, fitting and allowed, fitting and no-support, fitting and neither, allowed but not fitting.
      * @returns {Uint32Array}
      */
@@ -1388,6 +1418,26 @@ class DentureReviewResult {
     sockets_cancelled_by_r2() {
         const ret = wasm.denturereviewresult_sockets_cancelled_by_r2(this.__wbg_ptr);
         return ret >>> 0;
+    }
+    /**
+     * Suction cups at the reviewed tilt (engine 44, rule `trapCheck`): 10 numbers each: area mm2 (projected on the plate), volume mm3, depth mm, rim min and max height mm (above the model's lowest point along the print up), vented 0/1, level (1 vented, 2 low, 3 medium, 4 high), floor x y z. Empty with `trapCheck` off.
+     * @returns {Float64Array}
+     */
+    suction_cups() {
+        const ret = wasm.denturereviewresult_suction_cups(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Per face: the level of the suction cup it belongs to (0 none): the layer "Suction cups". Empty with `trapCheck` off.
+     * @returns {Uint8Array}
+     */
+    suction_mask() {
+        const ret = wasm.denturereviewresult_suction_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
     }
     /**
      * Symmetry plane (splits the U left/right): point xyz, unit normal xyz.

@@ -22,6 +22,7 @@
 // 20: denture review rim = low points joined over the mesh (rim_loops/rim_sizes/rim_closed/rim_edges/rim_info), holes by an axis ray grid (hole_outlines/hole_sizes/hole_info/hole_band_mask); rim_loop, rim_bridged, hole_loops, hole_edges removed.
 
 /** Must equal the Rust `engine_version()`; both change together on any ABI change. */
+// 44: resin-trap checks at the chosen print tilt, once per review (dental/denture/print_basins.rs, suction.rs, drain.rs; surface/view_grid.rs): rules trapCheck, trapMinDepthMm, trapVentMaxMm2, suctionAreaMm2, suctionVolumeMm3, drainAspectRatio, drainVolumeMm3, drainSocketDepthMm (appended: 109 rule names); the review result has `suction_cups()`, `suction_mask()`, `drain_pockets()`, `drain_sockets()`, `drain_mask()`. No tip or tilt changes.
 // 43: owner defaults: tipMaxFromDownDeg 60 (was 45), islandMaxFromDownDeg 60 (was 50), socketNoSupport ON; the oral cavity ray R2 cancels the socket mask (the review result has `sockets_cancelled_by_r2()`).
 // 42: basins seen along the teeth axis (surface::basins, dental/denture/sockets.rs), once per model before any tilt: tooth sockets (rules socketNoSupport opt-in, socketMinDepthMm 1, socketTunnelMaxMm2 25; appended: 101 rule names) keep rim, area and hole-band tips off when on; the review result has `socket_mask()`, `fitting_mask()` (the fitting surface as a tissue-side basin, a cross-check), `fitting_check()`, `tips_dropped_socket()`, `lows_in_sockets()`.
 // 41: the owner's hard tip rules for every tip (supports::tip_orient, supports::tip_check; rules tipInsideCheck, tipInsideSkipMm, islandMaxFromDownDeg, tipSkinFromMm appended: 98 rule names): every path leaves the surface outward and its centre line and neck-cone flank stay outside the model (route stages, model landing, live edit); generate leaves out automatic tips that do not face down (island tips within 50 degrees) and hand-placed tips whose path would enter the model; generic and aligner face/edge tips take the averaged normal; the far side of a thin lip no longer votes in the average. `left_out` names the rule (tip-check:facing / fold / neck-inward / inside / cone).
@@ -30,7 +31,7 @@
 // 38: the self-supporting overhang rule (rules overhangSelfSupport, overhangMinAreaMm2, overhangMaxReachMm, overhangMinAngleDeg, appended: 89 rule names); off by default, so a build without it is unchanged; the review result has `self_support_faces()` and `self_support_info()`; the tilt scan honours it.
 // 37: the plate outline and the grid raft (rules raftGrid, raftMapOutline, raftGridBottomMm, raftGridTopMm, raftRibMm, raftRibPitchMm, raftRimMm, raftPadMarginMm, appended: 85 rule names); both switches default off, so a build without them is unchanged.
 // 36: opt-in R1b, the steep no-support ray (rule noSupportSteepDeg, appended: 77 rule names; the review result has `no_support_steep_mask()` and `no_support_steep_deg()`).
-export const HOST_GEOMETRY_VERSION = 43;
+export const HOST_GEOMETRY_VERSION = 44;
 
 /** Thrown when the loaded engine's `engine_version()` is not `HOST_GEOMETRY_VERSION` (code 'geometry-version-mismatch'). */
 export class GeometryVersionMismatch extends Error {

@@ -19,6 +19,51 @@ export const TIP_STREAM = ['low', 'area', 'bar', 'light', 'rim', 'hole', 'island
 /** One line segment. */
 export type Segment = [Vector, Vector];
 
+/** A resin trap's level, the same numbers in every list and mask (engine 44): 1 vented / drains (found, harmless), 2 low, 3 medium, 4 high; 0 in a mask is "not a trap", 5 in `drainMask` a hard-to-clean socket. */
+export const TRAP_LEVEL = ['none', 'vented', 'low', 'medium', 'high', 'socket'] as const;
+
+/** A suction cup at the reviewed tilt: a hollow facing the plate whose rim closes all round as seen from the plate (engine 44, rules suctionAreaMm2 / suctionVolumeMm3). */
+export interface SuctionCup {
+  /** Opening area projected on the plate, mm2. */
+  areaMm2: number;
+  /** Trapped resin, mm3. */
+  volumeMm3: number;
+  /** Deepest resin, mm. */
+  depthMm: number;
+  /** The rim's least and greatest height above the model's lowest point along the print up, mm (the least is where it spills). */
+  rimMm: [number, number];
+  /** A through-hole (at most trapVentMaxMm2) in it: no suction. */
+  vented: boolean;
+  /** 1 vented, 2 low, 3 medium, 4 high (`TRAP_LEVEL`). */
+  level: number;
+  /** Its deepest floor point, for a label. */
+  floor: Vector;
+}
+
+/** A pocket that holds uncured resin after printing: a hollow facing the plate, so open upward during the lift (engine 44, rules drainAspectRatio / drainVolumeMm3). */
+export interface DrainPocket {
+  volumeMm3: number;
+  depthMm: number;
+  /** The widest disc that fits its opening, mm. */
+  widthMm: number;
+  /** depthMm / widthMm. */
+  aspect: number;
+  areaMm2: number;
+  /** A through-hole in its floor drains it. */
+  vented: boolean;
+  /** 1 drains, 2 low, 3 medium, 4 high (`TRAP_LEVEL`). */
+  level: number;
+  floor: Vector;
+}
+
+/** A tooth socket at least drainSocketDepthMm deep: hard to clean (engine 44). */
+export interface DeepSocket {
+  depthMm: number;
+  areaMm2: number;
+  widthMm: number;
+  floor: Vector;
+}
+
 export interface DentureReview {
   /** Step 1, per face: 1 when a 45 degree front-top parallel ray hits it first (NO_SUPPORT before the override), else 0. */
   noSupportMask: Uint8Array;
@@ -91,6 +136,16 @@ export interface DentureReview {
   tipsDroppedSocket: Uint32Array;
   /** Island and lowest-point tips standing on a socket (kept), xyz each. */
   lowsInSockets: Float64Array;
+  /** Suction cups at the reviewed tilt (engine 44; empty with trapCheck off). */
+  suctionCups: SuctionCup[];
+  /** Per face: the level of the suction cup it belongs to (0 none): the layer "Suction cups"; empty with trapCheck off. */
+  suctionMask: Uint8Array;
+  /** Pockets that hold resin after printing (engine 44). */
+  drainPockets: DrainPocket[];
+  /** Tooth sockets deeper than drainSocketDepthMm (hard to clean). */
+  deepSockets: DeepSocket[];
+  /** Per face: the pocket level (1..4), 5 on a hard-to-clean socket, 0 elsewhere: the layer "Drain / clean"; empty with trapCheck off. */
+  drainMask: Uint8Array;
   /** Per face: 1 within the rim band (profile `rimBandMm`) of the rim line: support-allowed outside the oral cavity area. */
   rimBandMask: Uint8Array;
   /** The ray test's up decision (absent for a mesh with no box): the median travel before the first hit near the + and the - end of the up axis (the end whose rays reach farther is the top), their margin, and the arch frame's up before it. */
@@ -116,6 +171,21 @@ export interface DentureReview {
 
 const triple = (a: ArrayLike<number>, at: number): Vector => [a[at]!, a[at + 1]!, a[at + 2]!];
 const lows = (flat: ArrayLike<number>, faces: ArrayLike<number>) => Array.from({ length: faces.length }, (_, k) => ({ position: triple(flat, k * 3), face: faces[k]! }));
+/** The review's `suction_cups()`, 10 numbers each. */
+export const decodeCups = (f: ArrayLike<number>): SuctionCup[] => Array.from({ length: Math.floor(f.length / 10) }, (_, k) => {
+  const a = k * 10;
+  return { areaMm2: f[a]!, volumeMm3: f[a + 1]!, depthMm: f[a + 2]!, rimMm: [f[a + 3]!, f[a + 4]!], vented: f[a + 5] === 1, level: f[a + 6]!, floor: triple(f, a + 7) };
+});
+/** The review's `drain_pockets()`, 10 numbers each. */
+export const decodePockets = (f: ArrayLike<number>): DrainPocket[] => Array.from({ length: Math.floor(f.length / 10) }, (_, k) => {
+  const a = k * 10;
+  return { volumeMm3: f[a]!, depthMm: f[a + 1]!, widthMm: f[a + 2]!, aspect: f[a + 3]!, areaMm2: f[a + 4]!, vented: f[a + 5] === 1, level: f[a + 6]!, floor: triple(f, a + 7) };
+});
+/** The review's `drain_sockets()`, 6 numbers each. */
+export const decodeDeepSockets = (f: ArrayLike<number>): DeepSocket[] => Array.from({ length: Math.floor(f.length / 6) }, (_, k) => {
+  const a = k * 6;
+  return { depthMm: f[a]!, areaMm2: f[a + 1]!, widthMm: f[a + 2]!, floor: triple(f, a + 3) };
+});
 const segments = (flat: ArrayLike<number>): Segment[] => Array.from({ length: flat.length / 6 }, (_, k) => [triple(flat, k * 6), triple(flat, k * 6 + 3)]);
 
 /** Decodes and frees a `denture_review` result. */
@@ -166,6 +236,11 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
       fittingCheck: result.fitting_check(),
       tipsDroppedSocket: result.tips_dropped_socket(),
       lowsInSockets: result.lows_in_sockets(),
+      suctionCups: decodeCups(result.suction_cups()),
+      suctionMask: result.suction_mask(),
+      drainPockets: decodePockets(result.drain_pockets()),
+      deepSockets: decodeDeepSockets(result.drain_sockets()),
+      drainMask: result.drain_mask(),
       rimBandMask: result.rim_band_mask(),
       upDecision: decision.length === 0 ? undefined : {
         axis: decision[0]!, decided: decision[1] === 1, flipped: decision[2] === 1, medianMm: [decision[3]!, decision[4]!], marginMm: decision[5]!,

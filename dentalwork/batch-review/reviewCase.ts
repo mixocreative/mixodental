@@ -57,6 +57,7 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   tipsBySource: string;
   /** Denture only: the self-supporting overhang rule's counts ('' with the rule off). */
   selfSupport: string;
+  traps: string;
   /** Denture only: tips on an overhang with no free path to the plate (not built). */
   unsupportableTips: number;
   /** Left-out tips per engine reason, e.g. 'leave-out:pillar 3' ('' when none). */
@@ -79,7 +80,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
     islandsUnresolved: 0, islandsOutsideArea: 0, islandsResolved: 0, unresolvedIslands: '', tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
     ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, middlePlane: '',
-    upDecision: '', tipsBySource: '', selfSupport: '', unsupportableTips: 0, tipsLeftOutReasons: '',
+    upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
     peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', stageTimes: '',
     ...noEvidence, orientationGlb: '' };
   let shapeMesh: TriangleMesh | undefined;
@@ -214,6 +215,6 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
     ownerContacts: detail.ownerContacts, ownerContactsMedianMm: row.ownerContactsMedianMm ?? detail.ownerContactsMedianMm,
     ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, middlePlane: detail.middlePlane,
     stageTimes: process.env.MIXO_TIMERS ? `scan ${review.stageSeconds.scan} / policy ${review.stageSeconds.policy} / generate ${review.stageSeconds.generate} / flow ${review.stageSeconds.total}` : '',
-    upDecision: detail.upDecision, tipsBySource: detail.tipsBySource, selfSupport: detail.selfSupport, unsupportableTips: detail.unsupportableTips, tipsLeftOutReasons: detail.tipsLeftOutReasons,
+    upDecision: detail.upDecision, tipsBySource: detail.tipsBySource, selfSupport: detail.selfSupport, traps: detail.traps, unsupportableTips: detail.unsupportableTips, tipsLeftOutReasons: detail.tipsLeftOutReasons,
   });
 }

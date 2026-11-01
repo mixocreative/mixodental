@@ -141,6 +141,11 @@ export interface DentureReviewResultLike {
   fitting_check(): Uint32Array;
   tips_dropped_socket(): Uint32Array;
   lows_in_sockets(): Float64Array;
+  suction_cups(): Float64Array;
+  suction_mask(): Uint8Array;
+  drain_pockets(): Float64Array;
+  drain_sockets(): Float64Array;
+  drain_mask(): Uint8Array;
   rim_band_mask(): Uint8Array;
   up_decision(): Float64Array;
   rim_plane(): Float64Array;

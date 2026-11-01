@@ -196,6 +196,22 @@ export interface GenerateRules {
   socketMinDepthMm?: number;
   /** Denture tooth sockets: a through-hole of at most this area (mm2, seen along the teeth axis) at the bottom of a teeth-side crater is plugged, so the crater still counts as a socket (default 25; 0: every through-hole drains its crater). Larger through-holes always drain. */
   socketTunnelMaxMm2?: number;
+  /** Denture resin-trap checks (engine 44, default true; false off): once per review at the chosen print tilt (never inside the tilt scan), the model is seen from the plate (a 0.4 mm ray grid along the print up) and every hollow whose opening faces the plate is measured: as a suction cup (the review's suction_cups / suction_mask, layer "Suction cups") and as a pocket that holds resin after printing (drain_pockets / drain_mask, layer "Drain / clean"; the model hangs from the plate, so such a hollow opens upward during the lift), with the tooth sockets deeper than drainSocketDepthMm (drain_sockets). Review-only: no tip and no tilt changes. Levels in every list and mask: 1 vented / drains, 2 low, 3 medium, 4 high (5 in drain_mask: a hard-to-clean socket). */
+  trapCheck?: boolean;
+  /** Resin traps: the least depth of resin a plate-facing hollow holds to be a cup or pocket, mm (default 0.5: shallower is surface texture, stipple and rugae run 0.2-0.4 mm; 0.5 mm is ten 0.05 mm layers). */
+  trapMinDepthMm?: number;
+  /** Resin traps: a through-hole of at most this area (mm2, seen from the plate; default 20, about 5 mm across) inside a hollow is its vent: the hollow is still found, marked vented (level 1: no suction, it drains). A larger opening makes the shape a tube, not a cup. 0: every through-hole drains its hollow away (not found). */
+  trapVentMaxMm2?: number;
+  /** Suction cups: the opening area (mm2, projected on the plate) from which a sealed cup counts (default 50, a cup about 8 mm across, where resin printers start to show cupping: the peel pull grows with the opening). Area and volume both reached: high; one: medium; neither: low. */
+  suctionAreaMm2?: number;
+  /** Suction cups: the trapped volume (mm3) from which a sealed cup counts (default 100, 0.1 ml: the 50 mm2 opening about 2 mm deep; the resin each lift must draw back in). A full upper denture's fitting surface face-down is thousands of both. */
+  suctionVolumeMm3?: number;
+  /** Drain / clean: the depth to opening-width ratio from which a pocket counts (default 1: deeper than wide, the rinse and a brush do not reach its floor). The width is the widest disc that fits the opening, so a long slot is as narrow as it is wide. Aspect and volume both reached: high; one: medium; neither: low. */
+  drainAspectRatio?: number;
+  /** Drain / clean: the resin volume (mm3) from which a pocket counts (default 20: enough uncured resin to pool and cure as a blob in the post-cure). */
+  drainVolumeMm3?: number;
+  /** Drain / clean: a tooth socket (socketMinDepthMm, R2's faces removed) at least this deep is reported hard to clean, mm (default 3: a socket is a few mm wide, so past 3 mm it is deeper than wide and a brush does not reach the floor, where uncured resin weakens the tooth's bond). */
+  drainSocketDepthMm?: number;
   /** Tip check, outside the solid (engine 41, default true; false off): every support path, of every tip and every route stage, manual live edits included, leaves the surface outward (within 90 degrees of the tip's averaged normal) and its centre line, from tipInsideSkipMm past the contact through every bend, never runs inside the model (ray parity, and no crossing of the surface). This holds inside the radius the verdict's reach rule exempts around a contact, which let a neck pass through the far side of a thin lip. A refused path makes the route search try the next one; a tip with no acceptable path is left out with the reason tip-check:inside or tip-check:neck-inward (hand-placed ones too: they are never built inside the model). */
   tipInsideCheck?: boolean;
   /** Tip check: how far past the contact along the neck the centre line starts to count, mm (default 0.1): the tip itself sits in the surface. */
@@ -249,6 +265,7 @@ export const RULE_NAMES: readonly string[] = [
   'overhangSelfSupportStreams', 'rimRespectsNoSupport',
   'tipInsideCheck', 'tipInsideSkipMm', 'islandMaxFromDownDeg', 'tipSkinFromMm',
   'socketNoSupport', 'socketMinDepthMm', 'socketTunnelMaxMm2',
+  'trapCheck', 'trapMinDepthMm', 'trapVentMaxMm2', 'suctionAreaMm2', 'suctionVolumeMm3', 'drainAspectRatio', 'drainVolumeMm3', 'drainSocketDepthMm',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */

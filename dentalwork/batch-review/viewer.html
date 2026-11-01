@@ -201,6 +201,11 @@ const LAYER_TABLE = [
   ['Down-facing area', 'Down-facing area', 'Faces within 60 degrees of straight down in the print pose: the support candidates.', false, 'zones'],
   ['Self-supporting overhangs', 'Self-supporting overhangs (no tips needed)', 'Overhang patches (faces joined by edges) that need no open-area tips: no island or lowest point inside, projected area under the minimum (4 mm2), flattest face not within 19 degrees of horizontal, and reach under 3 mm from where they join the model. Only with the rule overhangSelfSupport on. Rim, hole, island and low-point tips are never dropped.', true, 'zones'],
 
+  ['Sockets (no support)', 'Sockets (no support)', 'Tooth sockets: blind hollows on the teeth side, found once before tilt by filling the teeth-side depth map like water (at least 1 mm deep, rule socketMinDepthMm). Faces the oral cavity ray (R2) sees are not sockets. With rule socketNoSupport on (default) no rim, hole or area tip stands here; islands still get support.', true, 'zones'],
+  ['Fitting (basin)', 'Fitting (basin)', 'Cross-check only: the fitting surface found as the basin seen from the tissue side, inside the dental rim. Changes no tip.', false, 'zones'],
+  ['Suction cups', 'Suction cups', 'At the chosen tilt: hollows whose opening faces the plate. Each lift pulls a vacuum in them. Risk by opening area (rule suctionAreaMm2) and trapped volume (suctionVolumeMm3); a small through-hole vents it. Report only, no tip moves.', true, 'problems'],
+  ['Drain / clean', 'Drain / clean', 'At the chosen tilt: pockets that hold uncured resin (deep for their width, rule drainAspectRatio) and sockets deeper than 3 mm (drainSocketDepthMm) that are hard to wash. Report only, no tip moves.', true, 'problems'],
+
   ['Tips that cannot reach', 'Cannot reach plate', 'Overhang tips with no free path to the plate: not built (black cones).', true, 'problems'],
   ['Tips left out', 'Tips left out', 'Tips with no support built (any source). Empty = every tip is supported.', true, 'problems'],
   ['ISLAND NOT resolved', 'Islands not served', 'Engine island report: the lowest point of a region that starts mid-air and no built tip serves (tip left out, below min size, in the no-support zone or outside the allowed area). Reason in the facts.', true, 'problems'],
@@ -267,7 +272,7 @@ const entryOf = (key) => LAYERS.find(([prefix]) => prefix === key);
 const DENTURE_COLOUR = new THREE.Color('#d6cfbf');
 // Layer prefix -> the shared colour token (tokens.css; the GLB writers use layerColours.ts, the same values). Rays take the colour of the area they decide.
 const SWATCH_VAR = {
-  'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing', 'Self-supporting overhangs': '--layer-self-supporting', 'Sockets (no support)': '--layer-sockets', 'Fitting (basin)': '--layer-fitting',
+  'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing', 'Self-supporting overhangs': '--layer-self-supporting', 'Sockets (no support)': '--layer-sockets', 'Fitting (basin)': '--layer-fitting', 'Suction cups': '--layer-suction', 'Drain / clean': '--layer-drain',
   'DOWN-FACING': '--layer-down-edges', 'TIGHT BOX': '--layer-tight-box', 'RIM PLANE': '--layer-middle-plane', 'SYMMETRY PLANE': '--layer-symmetry-plane', 'Oral cavity ray': '--layer-ray-origin',
   'MARK low point outside': '--layer-low-outside', 'MARK low point with': '--layer-low-unsupported',
   'ISLAND NOT resolved': '--layer-island-unresolved', 'ISLAND resolved': '--layer-island-resolved',
@@ -290,7 +295,7 @@ const DENTURE_STEPS = [
   ['4. Oral cavity ray', 'On the rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
   ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
   ['6. Print tilt', 'The build plate at the print angle the build chose.', ['Print tilt']],
-  ['7. Overhangs and low points', 'Faces within 60 degrees of straight down, the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
+  ['7. Overhangs and low points', 'Faces within 60 degrees of straight down, the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'Suction cups', 'Drain / clean', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
   ['8. Tips', 'Tips by source: rim, hole, area, low. Black cones: overhang tips with no free path to the plate (not built). Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
   ['9. Supports', 'Our pillars (plastic), the braces and the base.', ['SUPPORT PILLARS']],
   ['10. Compare with owner', 'Your -sup supports (off by default) and contacts, and the area each covers against ours.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
@@ -898,6 +903,7 @@ function facts(c) {
   if (c.kind === 'denture') rows.push(
     ['Up decision', c.upDecision || '-', false],
     ['Tips by source', c.tipsBySource || '-', false],
+    ['Suction and drain', c.traps || 'none found', false],
     ['Unsupportable tips', c.unsupportableTips ?? '-', false],
     ['Left-out reasons', c.tipsLeftOutReasons || '-', false],
     ['Peel: largest layer, ours (mm²)', c.peelMaxOurs == null ? (c.peelNote || '-') : `${c.peelMaxOurs} at ${c.peelMaxOursAtMm} mm (above the raft${c.peelRaftTopMm ? `, top ${c.peelRaftTopMm} mm` : ''})`, false],

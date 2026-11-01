@@ -316,6 +316,18 @@ export class DentureReviewResult {
      */
     down_mask(): Uint8Array;
     /**
+     * Per face: the pocket level (1..4), 5 on a hard-to-clean socket, 0 elsewhere: the layer "Drain / clean". Empty with `trapCheck` off.
+     */
+    drain_mask(): Uint8Array;
+    /**
+     * Pockets that hold resin after printing (engine 44): 10 numbers each: volume mm3, depth mm, opening width mm, aspect (depth / width), area mm2, vented 0/1, level (1 drains, 2 low, 3 medium, 4 high), floor x y z.
+     */
+    drain_pockets(): Float64Array;
+    /**
+     * Tooth sockets at least `drainSocketDepthMm` deep (hard to clean): 6 numbers each: depth mm, area mm2, width mm, floor x y z.
+     */
+    drain_sockets(): Float64Array;
+    /**
      * The fitting basin against the zones, face counts: fitting, fitting and allowed, fitting and no-support, fitting and neither, allowed but not fitting.
      */
     fitting_check(): Uint32Array;
@@ -459,6 +471,14 @@ export class DentureReviewResult {
      * Basin faces the oral cavity ray R2 sees, so not sockets (R2 cancels the socket mask).
      */
     sockets_cancelled_by_r2(): number;
+    /**
+     * Suction cups at the reviewed tilt (engine 44, rule `trapCheck`): 10 numbers each: area mm2 (projected on the plate), volume mm3, depth mm, rim min and max height mm (above the model's lowest point along the print up), vented 0/1, level (1 vented, 2 low, 3 medium, 4 high), floor x y z. Empty with `trapCheck` off.
+     */
+    suction_cups(): Float64Array;
+    /**
+     * Per face: the level of the suction cup it belongs to (0 none): the layer "Suction cups". Empty with `trapCheck` off.
+     */
+    suction_mask(): Uint8Array;
     /**
      * Symmetry plane (splits the U left/right): point xyz, unit normal xyz.
      */
