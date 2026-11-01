@@ -29,14 +29,14 @@ export const LAYER_COLOURS = {
   /** Our tips (yellow cones, the default for a tip stream with no colour of its own); tips that cannot reach the plate (black cones, not built). */
   ourTips: 0xf1c40f,
   unsupportableTips: 0x1f1f1f,
-  /** Tips left out (no support built, any source): one warning red-magenta, distinct from the rim pink and the purple mark. */
+  /** Tips left out (no support built, any source): one warning red-magenta, distinct from the dental rim pink and the purple mark. */
   tipsLeftOut: LEFT_OUT,
-  /** Rim: thick continuous line(s), closed or open. Hole: a thick outline round each hole, and its 5 mm band. */
+  /** Dental rim: thick continuous line(s), closed or open. Hole: a thick outline round each hole, and its 5 mm band. */
   rimEdge: 0xd81b60,
   rimEdgeBridged: 0xf48fb1,
   holeEdge: 0x00acc1,
   holeBand: HOLE_BAND,
-  /** Tips by source, one palette shared with the viewer (--layer-source-*): rim, hole, area, low. */
+  /** Tips by source, one palette shared with the viewer (--layer-source-*): dental rim, hole, area, low. */
   sourceRim: 0xd81b60,
   sourceHole: 0x00acc1,
   sourceArea: 0x7cb342,

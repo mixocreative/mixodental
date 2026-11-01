@@ -715,7 +715,7 @@ export const ja: Dictionary = {
   'Diameter of each support pillar': '各サポート支柱の直径です。',
   'Higher density places support tips closer together. Your manual edits are kept where they still fit': '密度を上げるとサポート先端の間隔が狭くなります。手動の編集は、まだ合う場所では保持されます。',
   'How high the aligner stands above the plate. Supports are placed again': 'プレートからアライナーまでの高さです。サポートは再配置されます。',
-  'Build a raft under the supports. The label needs it': 'サポートの下にラフトを作ります。ラベルにはラフトが必要です。',
+  'Build a raft under the supports. The ID label needs it': 'サポートの下にラフトを作ります。IDラベルにはラフトが必要です。',
   'Problems': '問題',
   'Add a support by hand where one is missing': 'サポートが足りない場所に手動で追加します。',
   'No problems listed. Press Check supports to look for islands and overhangs.': '問題はありません。「サポートを確認」でアイランドとオーバーハングを調べられます。',

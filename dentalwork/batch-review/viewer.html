@@ -187,7 +187,7 @@ const LAYER_TABLE = [
 
   // Only a denture's own mesh (named TEAL by the engine) maps to DENTURE: see keyOf. For an aligner TEAL is the support area.
   ['SUPPORT PILLARS', 'Pillars', 'The pillars and braces our build made for the placed tips (dull plastic yellow).', true, 'supports'],
-  ['Tips: rim', 'Tips: rim', 'Tips generated along the rim.', true, 'supports'],
+  ['Tips: dental rim', 'Tips: dental rim', 'Tips generated along the dental rim.', true, 'supports'],
   ['Tips: hole', 'Tips: hole', 'Tips generated round a hole.', true, 'supports'],
   ['Tips: area', 'Tips: area', 'Tips from the down-facing area grid.', true, 'supports'],
   ['Tips: low', 'Tips: low', 'Tips at low points.', true, 'supports'],
@@ -224,13 +224,13 @@ const LAYER_TABLE = [
   ['R6 corridor', 'R6 corridor', 'R6 corridor rays: at each left-out tip, a centre ray and a ring straight down to the first hit or the plate.', true, 'rays'],
   ['R7 plate-drop', 'R7 plate-drop', 'R7 plate-drop ray (space map): one sample cell, plate up to the model underside and from above down to the top.', true, 'rays'],
   ['R8 landing', 'R8 landing', 'R8 landing ray: from a pillar top straight down to where it lands.', true, 'rays'],
-  ['Oral cavity ray', 'R2 origin', 'The oral cavity ray origin: on the rim plane, at the back edge of the tight box, on the symmetry plane.', true, 'rays'],
+  ['Oral cavity ray', 'R2 origin', 'The oral cavity ray origin: on the dental rim plane, at the back edge of the tight box, on the symmetry plane.', true, 'rays'],
 
   ['TIGHT BOX', 'Tight box', 'The oriented box the review works in; the oral cavity ray sits on its back edge.', true, 'reference'],
   ['Print tilt', 'Build plate', 'The build plate at the chosen print angle (its normal is up).', true, 'reference'],
-  ['Rim edge (continuous', 'Rim edge', 'The rim as thick continuous line(s); the count and closed/open state are in the name.', true, 'reference'],
+  ['Dental rim (continuous', 'Dental rim', 'The dental rim as thick continuous line(s); the count and closed/open state are in the name.', true, 'reference'],
   ['Hole outlines', 'Hole outlines', 'A thick line round each hole.', true, 'reference'],
-  ['RIM PLANE', 'Rim plane', 'The level plane fitted through the rim loop; the oral cavity ray sits on it.', true, 'reference'],
+  ['RIM PLANE', 'Dental rim plane', 'The level plane fitted through the dental rim loop; the oral cavity ray sits on it.', true, 'reference'],
   ['SYMMETRY PLANE', 'Symmetry plane', 'The upright plane that splits the U into left and right; the oral cavity ray sits on it.', true, 'reference'],
   ['UPRIGHT PLANE', 'Arch plane', 'The upright plane; its teeth side is its normal.', false, 'reference'],
   ['DOWN-FACING', 'Down-facing edges', 'Hard edges of the bottom chains.', false, 'reference'],
@@ -259,7 +259,7 @@ const LAYER_TABLE = [
 const LAYERS = LAYER_TABLE;
 // GLTFLoader turns spaces in node names into underscores; compare with them put back.
 const plain = (name) => (name ?? '').replace(/_/g, ' ');
-// GLTFLoader also drops : . [ ] / from node names ("Tips: rim" arrives as "Tips rim"): compare without them.
+// GLTFLoader also drops : . [ ] / from node names ("Tips: dental rim" arrives as "Tips dental rim"): compare without them.
 const bare = (text) => text.replace(/[:.\[\]\/]/g, '');
 // The kind of the case on screen. A denture's one mesh is named TEAL by the engine, and its support-
 // permitted faces are nearly the whole denture: for a denture that mesh is the model, not a support area.
@@ -276,8 +276,8 @@ const SWATCH_VAR = {
   'DOWN-FACING': '--layer-down-edges', 'TIGHT BOX': '--layer-tight-box', 'RIM PLANE': '--layer-middle-plane', 'SYMMETRY PLANE': '--layer-symmetry-plane', 'Oral cavity ray': '--layer-ray-origin',
   'MARK low point outside': '--layer-low-outside', 'MARK low point with': '--layer-low-unsupported',
   'ISLAND NOT resolved': '--layer-island-unresolved', 'ISLAND resolved': '--layer-island-resolved',
-  'Rim edge (continuous': '--layer-rim-edge', 'Hole outlines': '--layer-hole-edge', 'Hole band': '--layer-hole-band',
-  'Tips: rim': '--layer-source-rim', 'Tips: hole': '--layer-source-hole', 'Tips: area': '--layer-source-area', 'Tips: low': '--layer-source-low',
+  'Dental rim (continuous': '--layer-rim-edge', 'Hole outlines': '--layer-hole-edge', 'Hole band': '--layer-hole-band',
+  'Tips: dental rim': '--layer-source-rim', 'Tips: hole': '--layer-source-hole', 'Tips: area': '--layer-source-area', 'Tips: low': '--layer-source-low',
   'Tips that cannot reach': '--layer-unsupportable-tips', 'Tips left out': '--layer-tips-left-out', 'SUPPORT PILLARS': '--layer-pillars', 'YOUR SUPPORTS': '--layer-owner',
   'YOUR CONTACTS': '--layer-owner', 'AREA both': '--layer-compare-both', 'AREA owner only': '--layer-compare-owner-only', 'AREA ours only': '--layer-compare-ours-only',
   'Print tilt': '--layer-ray-r7',
@@ -289,14 +289,14 @@ const visible = new Map(LAYERS.map(([prefix, , , on]) => [prefix, on]));
 // Denture only: the layers in the order the review ran its steps. Each step: heading, one-line note, the layer
 // prefixes it draws (the print tilt has no layer: its line comes from the case facts). Other layers come after step 10.
 const DENTURE_STEPS = [
-  ['1. Orient', 'Up decision first (back-face rays: the side whose rays reach farther is the teeth top), then the tight box, rim plane and symmetry plane, before the print tilt.', ['TIGHT BOX', 'RIM PLANE', 'SYMMETRY PLANE']],
-  ['2. Rim edge', 'The rim as thick continuous line(s), each closed or open (the count is in the name). Holes: a thick outline round each, and a 5 mm band.', ['Rim edge (continuous', 'Hole outlines', 'Hole band']],
+  ['1. Orient', 'Up decision first (back-face rays: the side whose rays reach farther is the teeth top), then the tight box, dental rim plane and symmetry plane, before the print tilt.', ['TIGHT BOX', 'RIM PLANE', 'SYMMETRY PLANE']],
+  ['2. Dental rim', 'The dental rim as thick continuous line(s), each closed or open (the count is in the name). Holes: a thick outline round each, and a 5 mm band.', ['Dental rim (continuous', 'Hole outlines', 'Hole band']],
   ['3. No-support zone', 'Faces the parallel 45-degree rays from the front-top hit first, (the R1 arrows are in the Rays group).', ['No-support zone']],
-  ['4. Oral cavity ray', 'On the rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
+  ['4. Oral cavity ray', 'On the dental rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
   ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
   ['6. Print tilt', 'The build plate at the print angle the build chose.', ['Print tilt']],
   ['7. Overhangs and low points', 'Faces within 60 degrees of straight down, the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'Suction cups', 'Drain / clean', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
-  ['8. Tips', 'Tips by source: rim, hole, area, low. Black cones: overhang tips with no free path to the plate (not built). Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
+  ['8. Tips', 'Tips by source: dental rim, hole, area, low. Black cones: overhang tips with no free path to the plate (not built). Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
   ['9. Supports', 'Our pillars (plastic), the braces and the base.', ['SUPPORT PILLARS']],
   ['10. Compare with owner', 'Your -sup supports (off by default) and contacts, and the area each covers against ours.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
 ];
@@ -330,7 +330,7 @@ pmrem.dispose();
 // One plastic for every support layer: the aligner's GOLD (pillars, braces, raft) and ORANGE (tips), and the
 // denture's own pillars, our tip cones and the owner's supports. Each keeps its colour through a vertex colour
 // attribute set in show(), so the material is shared.
-const SUPPORT_KEYS = ['GOLD', 'ORANGE', 'SUPPORT PILLARS', 'Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out', 'YOUR SUPPORTS'];
+const SUPPORT_KEYS = ['GOLD', 'ORANGE', 'SUPPORT PILLARS', 'Tips: dental rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out', 'YOUR SUPPORTS'];
 // The pillar layers: they hide below the floor (under the raft); tips stay.
 const PILLAR_KEYS = ['GOLD', 'SUPPORT PILLARS', 'YOUR SUPPORTS'];
 // The denture box centre's label, pinned to the sphere (set in show()).
@@ -443,9 +443,9 @@ function layerRow([prefix, label, legend]) {
   swatch.style.background = token ? `var(${token})` : colour;
   const name = document.createElement('span');
   name.className = 'legend-label';
-  // Rim and hole layers name their own counts in the GLB (lines closed or open, holes): show that name, shortened.
+  // Dental rim and hole layers name their own counts in the GLB (lines closed or open, holes): show that name, shortened.
   let shown = label;
-  if (['Rim edge (continuous', 'Hole outlines'].includes(prefix)) model.traverse((object) => { if (object.name && keyOf(object.name) === prefix) shown = plain(object.name).replace('(continuous hard edge)', '').replace(/\s+:/, ':'); });
+  if (['Dental rim (continuous', 'Hole outlines'].includes(prefix)) model.traverse((object) => { if (object.name && keyOf(object.name) === prefix) shown = plain(object.name).replace('(continuous hard edge)', '').replace(/\s+:/, ':'); });
   name.textContent = shown;
   row.append(input, swatch, name);
   return row;
@@ -615,7 +615,7 @@ function describeHit(hit) {
   } else if (!geometry.index && geometry.attributes.position.count % 3 === 0 && !object.isLine) {
     facts.push(`${Math.round(geometry.attributes.position.count / 3).toLocaleString()} faces in this layer`);
   }
-  const shownName = ['Rim edge (continuous', 'Hole outlines'].includes(key) ? plain(object.name).replace('(continuous hard edge)', '') : '';
+  const shownName = ['Dental rim (continuous', 'Hole outlines'].includes(key) ? plain(object.name).replace('(continuous hard edge)', '') : '';
   return { title: shownName || title, facts, note: legend };
 }
 
@@ -846,7 +846,7 @@ function drawTilt(c) {
 // Fact groups of the right panel: [id, title, open by default, the row names in it]. A row not listed lands in "More".
 const FACT_GROUPS = [
   ['result', 'Case result', true, ['Kind', 'Shape check', 'Result', 'Safety check', 'Reason code', 'Supports crossing the aligner', 'Crossings not judged']],
-  ['tilt', 'Tilt and orientation', true, ['Print angle', 'Up decision', 'Rim plane', 'Arch', 'Up/down cross-check', 'Floor offset ratio']],
+  ['tilt', 'Tilt and orientation', true, ['Print angle', 'Up decision', 'Dental rim plane', 'Arch', 'Up/down cross-check', 'Floor offset ratio']],
   ['islands', 'Islands', true, ['Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Low points with no support', 'Low points outside the area']],
   ['tips', 'Tips', true, ['Tips by source', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Unsupportable tips', 'Structures left out', 'Largest gap, outer edge (mm)', 'Largest gap, opening (mm)', 'Edge coverage needs review']],
   ['peelfacts', 'Peel and supports', false, ['Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area']],
@@ -867,7 +867,7 @@ function facts(c) {
   // A denture reads only the rows that apply to it; the aligner-only rows (arch, cross-checks, gaps, edge
   // coverage, support crossings) would show "not oriented" and similar in red for a case that has none.
   const DENTURE_ROWS = ['Kind', 'Shape check', 'Result', 'Safety check', 'Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Print angle', 'Up decision', 'Tips by source', 'Unsupportable tips', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Scan clean-up', 'Time (s)',
-    'Rim plane', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
+    'Dental rim plane', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
   const rows = [
     ['Kind', c.kind || 'aligner', !!c.shapeNote],
     ['Shape check', c.shapeNote || 'ok', !!c.shapeNote],
@@ -912,7 +912,7 @@ function facts(c) {
     ['Most tips on one support tree', c.maxTipsPerTrunk ?? 'n/a', false],
     ['Trunk area / neck area', c.trunkToNeckArea ?? 'n/a', false],
     ['Owner contacts', c.ownerContacts ?? '-', false],
-    ['Rim plane', c.middlePlane || '-', false],
+    ['Dental rim plane', c.middlePlane || '-', false],
     ['Owner contacts, median distance to displayed model (mm)', c.ownerContactsMedianMm ?? '-', c.ownerContactsMedianMm != null && c.ownerContactsMedianMm > 1],
     ['Owner area covered %', c.ownerAreaCoveredPct ?? '-', false],
     ['Our area outside owner %', c.outsideOwnerAreaPct ?? '-', false],

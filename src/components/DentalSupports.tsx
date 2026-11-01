@@ -95,7 +95,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run }: {
       <RangeField layout="stack" label="Lift height" unit="{n} mm" hint="How high the aligner stands above the plate. Supports are placed again"
         min={settingLimits.liftHeight.min} max={15} step={0.5} value={settings.liftHeight}
         onChange={(value) => onSetting('liftHeight', value, 'dental-lift')} onAdjust={setAdjusting} />
-      <label className="check" {...hint('Build a raft under the supports. The label needs it')}>
+      <label className="check" {...hint('Build a raft under the supports. The ID label needs it')}>
         <input type="checkbox" checked={settings.raftEnabled} onChange={(event) => onSetting('raftEnabled', event.target.checked)} />{t('Raft')}
       </label>
       <label className="check"><input type="checkbox" checked={review.structure.treeEnabled}

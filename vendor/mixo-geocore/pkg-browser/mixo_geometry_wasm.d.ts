@@ -376,7 +376,7 @@ export class DentureReviewResult {
      */
     released(): number;
     /**
-     * Per face: 1 within the rim band of the rim line (support-allowed; overhanging band faces get rim tips).
+     * Per face: 1 within the dental rim band of the dental rim (support-allowed; overhanging band faces get dental rim tips).
      */
     rim_band_mask(): Uint8Array;
     /**
@@ -396,7 +396,7 @@ export class DentureReviewResult {
      */
     rim_loops(): Float64Array;
     /**
-     * Local lows of the dental rim line whose face points up: no tip (rule `rimLowNeedsOverhang`); not "left out".
+     * Local lows of the dental rim whose face points up: no tip (rule `rimLowNeedsOverhang`); not "left out".
      */
     rim_lows_facing_up(): number;
     /**
@@ -986,7 +986,7 @@ export class PolicyHandle {
      */
     reproduced(): boolean;
     /**
-     * Local lows of the dental rim line whose face points up: no tip (rule `rimLowNeedsOverhang`), counted apart from the left-out tips; 0 for any other policy.
+     * Local lows of the dental rim whose face points up: no tip (rule `rimLowNeedsOverhang`), counted apart from the left-out tips; 0 for any other policy.
      */
     rim_lows_facing_up(): number;
     ring_count(): number;

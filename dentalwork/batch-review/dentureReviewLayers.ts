@@ -38,13 +38,15 @@ const ALLOWED_LIFT_MM = 0.1;
 const DOWN_LIFT_MM = 0.08;
 const AREA_LIFT_MM = 0.12;
 const BAND_LIFT_MM = 0.11;
-/** Radius (mm) of the thick rim and hole lines (tubes, not 1 px GL lines). */
+/** Radius (mm) of the thick dental rim and hole lines (tubes, not 1 px GL lines). */
 const RIM_TUBE_MM = 0.3;
 const HOLE_TUBE_MM = 0.25;
 /** Tip stream -> the shared source colour (layerColours.ts); other streams draw in the tip colour. */
 const SOURCE_COLOUR: Record<string, number> = { rim: C.sourceRim, hole: C.sourceHole, area: C.sourceArea, low: C.sourceLow };
 /** Tip streams in the order the facts line lists them. */
 const SOURCE_ORDER = ['rim', 'hole', 'area', 'low'];
+/** The source tag as shown to people: the tag `rim` is the dental rim (data and ids keep `rim`). */
+const sourceName = (stream: string): string => (stream === 'rim' ? 'dental rim' : stream);
 /** Vertices per owner-contact marker (markerPositions: 8 octants x 3 corners); their mean is the contact. */
 const MARKER_VERTICES = 24;
 
@@ -64,9 +66,9 @@ export interface DentureDetail {
   outsideOwnerAreaPct: number | null;
   /** The middle plane's state for the facts rows. */
   middlePlane: string;
-  /** Step 1 text: the up decision from the rim ('' when there is no review or no rim). */
+  /** Step 1 text: the up decision from the dental rim ('' when there is no review or no dental rim). */
   upDecision: string;
-  /** Tips per source, e.g. 'rim 12 / hole 3 / area 40 / low 2' ('' without a review). */
+  /** Tips per source, e.g. 'dental rim 12 / hole 3 / area 40 / low 2' ('' without a review). */
   tipsBySource: string;
   /** The self-supporting overhang rule: 'regions 12 / self-supporting 5 / open-area tips saved 18' ('' with the rule off or without a review). */
   selfSupport: string;
@@ -82,7 +84,7 @@ export interface DentureDetail {
   unresolvedIslands: string;
 }
 
-/** The up decision as one plain line (the rim's, from up_decision). */
+/** The up decision as one plain line (the dental rim's, from up_decision). */
 function describeUp(decision: NonNullable<DentureReview['upDecision']>): string {
   const v = decision.sliceVotes;
   const fb = decision.frontBack ? `back from U opening (margin ${decision.frontBack.widthMargin.toFixed(2)}${decision.frontBack.crossCheckAgrees ? ', cross-check agrees' : ', cross-check DISAGREES'}); ` : '';
@@ -357,14 +359,14 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
   const layers: ReviewLayer[] = [];
   const sign = outwardSign(mesh);
   if (review) {
-    // Rim edge (ABI 20): each rim polyline as one thick continuous line, closed when the rim closes on itself. The
+    // Dental rim (ABI 20): each dental rim polyline as one thick continuous line, closed when the dental rim closes on itself. The
     // layer name says how many lines there are and how many are closed (the viewer shows it). Hole outlines: a thick
     // loop round each hole. Hole band: the 5 mm face band (allowed where it overhangs).
-    const rimLines = (review.rimLoops?.lines ?? []).filter((line) => line.points.length > 1);
-    if (rimLines.length > 0) {
-      const closedCount = rimLines.filter((line) => line.closed).length;
-      const rimSegments = rimLines.flatMap((line) => polylineSegments(line.points, line.closed));
-      const name = `Rim edge (continuous hard edge): ${rimLines.length} ${rimLines.length === 1 ? 'line' : 'lines'}, ${closedCount} closed, ${rimLines.length - closedCount} open`;
+    const rimPolylines = (review.rimLoops?.lines ?? []).filter((line) => line.points.length > 1);
+    if (rimPolylines.length > 0) {
+      const closedCount = rimPolylines.filter((line) => line.closed).length;
+      const rimSegments = rimPolylines.flatMap((line) => polylineSegments(line.points, line.closed));
+      const name = `Dental rim (continuous hard edge): ${rimPolylines.length} ${rimPolylines.length === 1 ? 'line' : 'lines'}, ${closedCount} closed, ${rimPolylines.length - closedCount} open`;
       layers.push({ name, color: C.rimEdge, positions: tubePositions(rimSegments, RIM_TUBE_MM), indices: new Uint32Array(0) });
     }
     const holeLoops = review.holeOutlines.filter((loop) => loop.points.length > 1);
@@ -417,7 +419,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
       const [c0, c1, c2, c3] = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)];
       edgesLayer(layers, [[c0, c1], [c1, c2], [c2, c3], [c3, c0]], name, color);
     };
-    if (review.rimPlane) planeLayer(review.rimPlane, 'RIM PLANE (level fit through the rim)', C.middlePlane);
+    if (review.rimPlane) planeLayer(review.rimPlane, 'RIM PLANE (level fit through the dental rim)', C.middlePlane);
     planeLayer(review.symmetryPlane, 'SYMMETRY PLANE (left / right split)', C.symmetryPlane);
     // Step 5: the print tilt, as the build plate (a square lying on the plate, normal = the plate's normal `up`).
     {
@@ -430,7 +432,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     }
     // Step 3: the oral cavity ray origin: on the rim plane, at the back edge of the box, on the symmetry plane.
     const originSphere = sphereMesh(origin, 0.7);
-    layers.push({ name: 'Oral cavity ray (rim plane, back edge)', color: C.rayOrigin, positions: originSphere.positions, indices: originSphere.indices });
+    layers.push({ name: 'Oral cavity ray (dental rim plane, back edge)', color: C.rayOrigin, positions: originSphere.positions, indices: originSphere.indices });
     // Step 6: low points outside the allowed area (orange) and inside it with no tip reaching them (purple).
     const markers = (points: Vector[], name: string, color: number) => {
       if (points.length > 0) layers.push({ name, color, positions: markerPositions(points, 0.45), indices: new Uint32Array(0) });
@@ -490,7 +492,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     }
   }
 
-  // Tips by source (the review's tips, each tagged rim / hole / area / low): a cone each in that source's colour.
+  // Tips by source (the review's tips, each tagged rim (the dental rim) / hole / area / low): a cone each in that source's colour.
   const tipsByStream = new Map<string, Array<{ position: Vector; normal: Vector }>>();
   for (const tip of review?.tips ?? []) {
     tipsByStream.set(tip.stream, [...(tipsByStream.get(tip.stream) ?? []), tip]);
@@ -499,11 +501,11 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     // info: per cone, its id within the source and its position, so the owner can name an exact tip.
     // The angle from straight down is measured by the viewer on the posed cone (these normals are in the mesh frame, not the print pose).
     const reasons = tips.map((tip, k) => `${stream}-${k} at [${tip.position.map((v) => v.toFixed(2)).join(', ')}] (mesh frame)`);
-    layers.push({ name: `Tips: ${stream}`, color: SOURCE_COLOUR[stream] ?? C.ourTips, positions: coneTriangles(tips, 1.5, 0.35), indices: new Uint32Array(0), info: { reasons, trianglesPerItem: 24 } });
+    layers.push({ name: `Tips: ${sourceName(stream)}`, color: SOURCE_COLOUR[stream] ?? C.ourTips, positions: coneTriangles(tips, 1.5, 0.35), indices: new Uint32Array(0), info: { reasons, trianglesPerItem: 24 } });
   }
   const rank = (stream: string) => (SOURCE_ORDER.includes(stream) ? SOURCE_ORDER.indexOf(stream) : SOURCE_ORDER.length);
   const ordered = [...tipsByStream.keys()].sort((a, b) => rank(a) - rank(b));
-  const tipsBySource = ordered.map((stream) => `${stream} ${tipsByStream.get(stream)!.length}`).join(' / ');
+  const tipsBySource = ordered.map((stream) => `${sourceName(stream)} ${tipsByStream.get(stream)!.length}`).join(' / ');
   // Tips left out (no support built, any source): one warning colour. Empty = every tip is supported.
   if (leftOutTips.length > 0) {
     // info: one reason per cone, 24 triangles per cone (coneTriangles), so the viewer's hover tooltip names the reason of the cone under the pointer.
@@ -520,7 +522,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     ownerContactsMedianMm: medianMm === undefined ? null : Math.round(medianMm * 100) / 100,
     ownerAreaCoveredPct: comparison ? pct(comparison.coverage) : null,
     outsideOwnerAreaPct: comparison ? pct(comparison.extra) : null,
-    middlePlane: review ? (review.rimPlane ? 'Rim plane fitted' : 'none (no rim)') : 'not computed',
+    middlePlane: review ? (review.rimPlane ? 'Dental rim plane fitted' : 'none (no dental rim)') : 'not computed',
     upDecision: review ? (review.upDecision ? describeUp(review.upDecision) : 'no box, so no up decision') : '',
     tipsBySource,
     traps: review && (review.suctionCups.length + review.drainPockets.length + review.deepSockets.length) > 0

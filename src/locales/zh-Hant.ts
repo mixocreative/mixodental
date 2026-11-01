@@ -719,7 +719,7 @@ export const zhHant: Dictionary = {
   'Diameter of each support pillar': '每根支撐柱的直徑',
   'Higher density places support tips closer together. Your manual edits are kept where they still fit': '密度越高，支撐頭距離越近。在仍適用的位置會保留您的手動編輯',
   'How high the aligner stands above the plate. Supports are placed again': '牙套高出底板的高度。將會重新產生支撐',
-  'Build a raft under the supports. The label needs it': '在支撐下方建立底筏。標籤需要底筏',
+  'Build a raft under the supports. The ID label needs it': '在支撐下方建立底筏。ID標籤需要底筏',
   'Problems': '問題',
   'Add a support by hand where one is missing': '在缺少支撐的地方手動新增支撐',
   'No problems listed. Press Check supports to look for islands and overhangs.': '未列出任何問題。按下「檢查支撐」以尋找孤島與懸空。',

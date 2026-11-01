@@ -120,7 +120,7 @@ export function DentalRiskLayer({ mesh, risks, opacity }: { mesh: TriangleMesh; 
 }
 
 /** The proven lower-edge loop, held just above the model so the permitted area has a clear boundary. */
-export function DentalRimLine({ rim }: { rim: DentalRim }) {
+export function DentalRimOutline({ rim }: { rim: DentalRim }) {
   const geometry = useMemo(() => {
     const line = new THREE.BufferGeometry();
     line.setAttribute('position', new THREE.BufferAttribute(rim.points.slice(), 3));

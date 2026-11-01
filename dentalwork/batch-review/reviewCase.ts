@@ -169,7 +169,7 @@ function finish(row: CaseRow, started: number, mesh: TriangleMesh | undefined): 
 }
 
 /** Layer-name prefixes of the client GLB (`client/<case>.glb`): the result without the debug layers. */
-const CLIENT_LAYERS = ['TEAL denture model', 'SUPPORT PILLARS (ours)', 'Allowed area', 'Rim edge', 'ISLAND NOT resolved', 'ISLAND resolved'];
+const CLIENT_LAYERS = ['TEAL denture model', 'SUPPORT PILLARS (ours)', 'Allowed area', 'Dental rim', 'ISLAND NOT resolved', 'ISLAND resolved'];
 
 /** The denture path (profileSelect.ts): upright, print angle, tips, supports; the GLB holds the model, supports and the upright plane. */
 async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out: string, row: CaseRow, centre: Vector): Promise<void> {
@@ -195,7 +195,7 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
   } catch (error) {
     row.peelNote = error instanceof Error ? error.message : String(error);
   }
-  // The client copy: only the model, the allowed area, the rim edge, the low-point marks and our supports.
+  // The client copy: only the model, the allowed area, the dental rim, the low-point marks and our supports.
   mkdirSync(join(out, 'client'), { recursive: true });
   writeFileSync(join(out, 'client', `${name}.glb`), Buffer.from(await orientationGlb(allLayers.filter((layer) => CLIENT_LAYERS.some((prefix) => layer.name.startsWith(prefix))), review.frame)));
   // The mapping as the viewer will show it: the contacts' median distance to the displayed scan, read back from the GLB.

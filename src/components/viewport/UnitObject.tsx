@@ -23,7 +23,7 @@ import { type Hover, EditPreview, SupportBodies, ZoneLayer, useDoomed, useWarmZo
 import type { AreaRisk } from '../../dental/areaRisk';
 import type { OrientationLayer } from '../../dental/orientationEvidence';
 import { DebugLayerMeshes } from './DebugLayerMeshes';
-import { DentalFaceLayer, DentalPaintLayer, DentalRiskLayer, DentalRegionLines, DentalRimLine, DentalStampLayer, DentalTipMarkers, type TipMark } from './dentalLayers';
+import { DentalFaceLayer, DentalPaintLayer, DentalRiskLayer, DentalRegionLines, DentalRimOutline, DentalStampLayer, DentalTipMarkers, type TipMark } from './dentalLayers';
 import type { ObjectViewportProps } from './types';
 import { MODEL_MESH, SUPPORT_MESH, useScreenBrush } from './useScreenBrush';
 
@@ -311,7 +311,7 @@ export function UnitObject(props: UnitObjectProps) {
             <DentalPaintLayer mesh={unit.source} geometry={model} stamps={dentalStamps ?? unit.dental.stamps} opacity={0.7} />}
           <DentalRegionLines mesh={unit.source} policy={unit.dental} /></>
         : <><DentalStampLayer mesh={unit.source} geometry={model} policy={{ ...unit.dental, stamps: dentalStamps ?? unit.dental.stamps }} opacity={0.7} />
-          <DentalRimLine rim={unit.dental.rim} /></>}
+          <DentalRimOutline rim={unit.dental.rim} /></>}
     </group>}
     {areaShown && props.dentalRisks && props.dentalRisks.length > 0 && shown === unit.source && <group visible={props.modelVisible}>
       <DentalRiskLayer mesh={unit.source} risks={props.dentalRisks} opacity={0.85} />

@@ -114,7 +114,7 @@ export interface DentureReviewResultLike {
   down_mask(): Uint8Array;
   unsupportable(): Float64Array;
   released(): number;
-  /** Local lows of the dental rim line whose face points up: no tip (rule `rimLowNeedsOverhang`); not left out. */
+  /** Local lows of the dental rim whose face points up: no tip (rule `rimLowNeedsOverhang`); not left out. */
   rim_lows_facing_up(): number;
   /** Faces of the self-supporting overhang regions (rule overhangSelfSupport, engine 38); empty with the rule off. */
   self_support_faces(): Uint32Array;

@@ -97,7 +97,7 @@ export interface DentureReview {
   lowsUnreached: { position: Vector; face: number }[];
   /** Candidates released because their face is not an overhang for the plate normal. */
   released: number;
-  /** Local lows of the dental rim line whose face points up: not forced, no tip (rule `rimLowNeedsOverhang`); counted apart from the left-out tips. */
+  /** Local lows of the dental rim whose face points up: not forced, no tip (rule `rimLowNeedsOverhang`); counted apart from the left-out tips. */
   rimLowsFacingUp: number;
   /** The final guard (rule tipMaxFromDownDeg, engine 39): tips refused for standing on a face not within the limit of straight down, per source, and the island / lowest-point tips on a face that is not down-facing (misidentified lows). */
   tipsDroppedFacingUp: { rim: number; hole: number; area: number; other: number; total: number };
@@ -148,7 +148,7 @@ export interface DentureReview {
   deepSockets: DeepSocket[];
   /** Per face: the pocket level (1..4), 5 on a hard-to-clean socket, 0 elsewhere: the layer "Drain / clean"; empty with trapCheck off. */
   drainMask: Uint8Array;
-  /** Per face: 1 within the rim band (profile `rimBandMm`) of the rim line: support-allowed outside the oral cavity area. */
+  /** Per face: 1 within the dental rim band (profile `rimBandMm`) of the dental rim: support-allowed outside the oral cavity area. */
   rimBandMask: Uint8Array;
   /** The ray test's up decision (absent for a mesh with no box): the median travel before the first hit near the + and the - end of the up axis (the end whose rays reach farther is the top), their margin, and the arch frame's up before it. */
   upDecision?: {
