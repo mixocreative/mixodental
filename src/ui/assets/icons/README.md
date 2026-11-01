@@ -10,6 +10,7 @@ Every icon in the app is one SVG file in this folder. To change an icon, replace
 | `tool-pointer.svg` | Edit bar, "How to select" switch: **Click** (pick one support at a time) |
 | `tool-brush.svg` | Edit bar, "How to select" switch: **Drag over** (paint many supports at once) |
 | `orient.svg` | Orientation bar, Auto orientation button (the box with a turn arrow) |
+| `warning.svg` | Viewport, unresolved-point bubble: a support tip, lowest point or island that still has no support (the warning triangle) |
 
 ## Rules for a replacement
 

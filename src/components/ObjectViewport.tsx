@@ -10,6 +10,9 @@ import { ViewCamera, PlateSide, FocusCamera } from './viewport/cameras';
 import type { GizmoMode, ObjectViewportProps } from './viewport/types';
 import { canvasCursor } from './viewport/style';
 import { UnitObject } from './viewport/UnitObject';
+import { PlateOutline } from './viewport/PlateOutline';
+import { UnresolvedBubbles } from './viewport/UnresolvedBubbles';
+import { generationTransform } from '@mixo-geocore/host/supports/unitSupports';
 
 export function acceptModelFile(file: File): boolean {
   return /\.(stl|glb|gltf)$/i.test(file.name);
@@ -87,6 +90,7 @@ export default function ObjectViewport(props: ObjectViewportProps) {
     <directionalLight position={[40, 80, 30]} intensity={1.4} />
     <directionalLight position={[-50, 30, -40]} intensity={0.45} />
     <Grid args={[240, 240]} cellSize={5} cellThickness={0.5} cellColor="#d3cdc2" sectionSize={25} sectionThickness={0.9} sectionColor="#b9b1a3" fadeDistance={400} fadeStrength={1.5} infiniteGrid />
+    {props.plate ? <PlateOutline plate={props.plate} /> : null}
     <OrbitControls makeDefault enabled={!dragging} />
     <FocusCamera focus={props.focus} />
     <PlateSide onChange={props.onBelowPlate} />
@@ -123,6 +127,13 @@ export default function ObjectViewport(props: ObjectViewportProps) {
       problems={props.problems.filter((problem) => problem.unitId === unit.id)}
       {...(unit.id === activeId ? { onGroup: setActiveGroup, onBrushOver: setOverBrush } : {})}
     />)}
+    {/* Unresolved points and model-landed supports (Round C), wherever support bodies are drawn. */}
+    {props.dentalArea ? null : scene.units.map((unit) => {
+      const mesh = props.supportMeshes.get(unit.id);
+      return mesh && unit.supports && (mesh.unresolved?.length || mesh.modelLanded?.length)
+        ? <group key={`unresolved:${unit.id}`} position={unit.transform.position} rotation={unit.transform.rotation}><UnresolvedBubbles mesh={mesh} frame={generationTransform(unit)} /></group>
+        : null;
+    })}
     {activeId && activeGroup?.unitId === activeId && gizmo && <UnitTransformControls
       mode={gizmo}
       object={activeGroup.group}

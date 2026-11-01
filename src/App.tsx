@@ -25,6 +25,8 @@ import { DentalBar } from './components/DentalBar';
 import { CommandButton } from './components/CommandButton';
 import { ModeSections } from './components/ModeEntry';
 import { ObjectList } from './components/ObjectList';
+import { PlatePanel } from './components/PlatePanel';
+import { usePlateArrange } from './components/usePlateArrange';
 import { ProblemList } from './components/ProblemList';
 import { ZonesBar } from './components/ZonesBar';
 import { Segmented } from './components/Segmented';
@@ -291,6 +293,8 @@ export default function App() {
   }, []);
   /** Whether the unit changed since its shown supports were built (counts follow once the build returns). */
   const building = (unit: PrintUnit) => unit.supports !== undefined && !buildSettled(unit);
+  // Build plate (Round C): the printer's plate, "Arrange plate" and the re-pack of an edited case.
+  const plate = usePlateArrange({ units: scene.units, built, dispatch, setStatus, idle: editMode === 'off', redoPending: history.future.length > 0 });
   const activeMesh = activeUnit ? built.get(activeUnit.id)?.mesh : undefined;
   const dentalRimGap = activeUnit?.dental?.kind === 'two-contour' && built.get(activeUnit.id)?.unit === activeUnit
     ? activeMesh?.dentalRimCoverage?.needsReview
@@ -1231,6 +1235,9 @@ export default function App() {
           locked={locked('objects')}
           run={runCommand}
         />
+        <PlatePanel printer={plate.printer} cases={scene.units.length} locked={locked('objects')}
+          unplaced={plate.unplaced.map((id) => ({ id, name: unitName(id) }))}
+          onPrinter={plate.choosePrinter} onArrange={plate.arrange} onSelect={(unitId) => onSelect(unitId, false)} />
         <section {...(locked('transform') ? { inert: '' } : {})}>
           <h3>{t('Transform')}</h3>
           <Segmented value={gizmoMode} onChange={setGizmoMode} disabled={!command('transform.move').enabled} options={([['none', 'transform.select'], ['translate', 'transform.move'], ['rotate', 'transform.rotate']] as const).map(([value, id]) => {
@@ -1268,6 +1275,7 @@ export default function App() {
           onPickTip={onPickTip}
           gesture={canvasGesture(press)}
           gizmoMode={gizmoMode}
+          plate={plate.printer.plate}
           rotationGizmo={orienting && free.free}
           modelVisible={modelVisible}
           wireframe={wireframe}

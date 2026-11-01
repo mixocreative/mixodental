@@ -22,6 +22,9 @@
   "maxMath": 3,
   "why": "three.js raycast/hover normals for the viewport (render only)"
  },
+ "src/components/viewport/UnresolvedBubbles.tsx": {
+  "label": "host-adapter"
+ },
  "src/components/viewport/cameras.tsx": {
   "label": "host-adapter"
  },

@@ -11,6 +11,7 @@ import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import type { AddedAt } from './AddFlash';
 import type { AreaRisk } from '../../dental/areaRisk';
 import type { OrientationLayer } from '../../dental/orientationEvidence';
+import type { PlateSize } from '@mixo-geocore/editing/arrange';
 
 export type GizmoMode = 'none' | 'translate' | 'rotate';
 
@@ -30,6 +31,8 @@ export interface ObjectViewportProps {
   /** What a press or drag does now (editing/gesture): the mode, the tool and its brush. */
   gesture: Gesture;
   gizmoMode: GizmoMode;
+  /** The chosen printer's build plate, drawn as an outline on the floor (Round C plate arrange). */
+  plate?: PlateSize;
   /** Step 1 Free transform is on: the active object shows a rotation-only gizmo (PD.11 S6). */
   rotationGizmo?: boolean;
   modelVisible: boolean;
