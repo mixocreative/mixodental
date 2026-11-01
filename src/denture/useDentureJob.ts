@@ -6,6 +6,7 @@ import { createDentureWorker } from '../workers/factories';
 import { DentureClient } from './engine/dentureClient';
 import { isDentureJob } from './jobKind';
 import { useDentureOrient } from './steps/orient/useDentureOrient';
+import { useDentureSupports } from './steps/supports/useDentureSupports';
 
 /*
  * The denture job's entry for App (src/denture): it owns the denture worker client and wires each step's hook.
@@ -19,7 +20,7 @@ export interface DentureJobHost {
   sessionRef: MutableRefObject<EditSession>;
   session: EditSession;
   freeTransform: boolean;
-  setStatus: (key: string, vars?: Record<string, string | number>) => void;
+  setStatus: (key: string, vars?: Record<string, string | number>, other?: string) => void;
   requestView: (kind: ViewRequest['kind']) => void;
 }
 
@@ -28,5 +29,6 @@ export function useDentureJob(host: DentureJobHost) {
   const client = useCallback(() => (clientRef.current ??= new DentureClient(createDentureWorker)), []);
   useEffect(() => () => clientRef.current?.dispose(), []);
   const orient = useDentureOrient({ ...host, client });
-  return { active: isDentureJob(host.session.dentalProfile), client, orient };
+  const supports = useDentureSupports({ client, dispatch: host.dispatch, sceneRef: host.sceneRef, setStatus: host.setStatus });
+  return { active: isDentureJob(host.session.dentalProfile), client, orient, supports };
 }

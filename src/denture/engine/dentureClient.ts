@@ -8,6 +8,9 @@ import { WorkerTask, type WorkerLike } from '@mixo-geocore/host/workers/WorkerTa
 import type { DentureJob, DentureMesh, DentureParts } from './dentureCore';
 import type { DentureLandingJob, DenturePlaceJob, DentureResult, DentureTask } from './dentureProtocol';
 import { KeyedQueue } from './keyedQueue';
+import type { ExportUnitJob } from './dentureExport';
+import type { ExportFilePlan } from '@mixo-geocore/host/supports/export';
+import type { ExportResult } from '@mixo-geocore/host/workers/meshClient';
 
 /** A support build on the biggest dentures takes tens of seconds; past this the worker is restarted and the job fails. */
 const DENTURE_TIMEOUT_MS = 10 * 60_000;
@@ -31,7 +34,8 @@ export class DentureClient {
 
   private run(key: string, task: DentureTask, label: JobLabel | undefined, onProgress?: (fraction: number) => void): Promise<DentureResult | undefined> {
     const transfer = 'mesh' in task ? [task.mesh.positions.buffer, task.mesh.indices.buffer]
-      : 'job' in task ? [task.job.mesh.positions.buffer, task.job.mesh.indices.buffer] : [];
+      : 'job' in task ? [task.job.mesh.positions.buffer, task.job.mesh.indices.buffer]
+        : task.kind === 'export' ? task.units.flatMap((unit) => { const mesh = (unit.denture ?? unit.generic)!.mesh; return [mesh.positions.buffer, mesh.indices.buffer]; }) : [];
     return this.queue.push(key, () => this.runner.run(task, {
       transfer, ...(label ? { label } : {}),
       ...(onProgress ? { onProgress: (fields) => { if (typeof fields.fraction === 'number') onProgress(fields.fraction); } } : {}),
@@ -77,6 +81,16 @@ export class DentureClient {
   checkLanding(unitId: string, job: DentureLandingJob, label: JobLabel): Promise<RerouteResult | undefined> {
     return this.run(`landing:${unitId}:${job.tip.join(',')}`, { kind: 'check-landing', job: { ...job, mesh: copyOf(job.mesh) } }, label)
       .then((result) => (result?.kind === 'landing' ? result.result : undefined));
+  }
+
+  private exports = 0;
+
+  /** Full-resolution supports and the STL files of an export that holds dentures (each unit carries its own copy of the model). */
+  exportFiles(units: readonly ExportUnitJob[], files: ExportFilePlan[], label: JobLabel): Promise<ExportResult> {
+    const revision = ++this.exports;
+    const copied = units.map((unit) => (unit.denture ? { ...unit, denture: { ...unit.denture, mesh: copyOf(unit.denture.mesh) } } : { ...unit, generic: { ...unit.generic!, mesh: copyOf(unit.generic!.mesh) } }));
+    return this.run(`export:${revision}`, { kind: 'export', units: copied, files, revision }, label)
+      .then((result) => (result?.kind === 'files' ? { revision, files: result.files, units: result.units } : { revision, files: [], units: [] }));
   }
 
   dispose(): void {

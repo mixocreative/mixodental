@@ -858,6 +858,8 @@ dialog.terms .terms-item > span { flex: none; }
   border-top: 7px solid var(--unresolved);
 }
 .unresolved-bubble:hover, .unresolved-bubble:focus-visible { background: var(--sunken); outline: 0; }
+/* A bubble a click resolves (denture Step 2): a button, same look, a pointer. */
+.unresolved-bubble--resolvable { padding: 0; min-height: 0; font: inherit; cursor: pointer; }
 .unresolved-bubble-sign { width: 14px; height: 14px; }
 .landing-mark {
   transform: translate(-50%, -50%);

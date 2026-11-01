@@ -6,6 +6,7 @@ import type { EditSession, SessionEvent } from '@mixo-geocore/editing/session';
 import type { EditTool, StatusMessage } from '@mixo-geocore/editing/types';
 import type { DentalProposal } from '@mixo-geocore/host/dental/dental';
 import { stageAfterOrientation, stageBeforeSupports } from '../denture/state/dentureStages';
+import '../denture/state/dentureCommands';
 
 /*
  * The dental flow as an app mode of the shared editor (mixo-geocore editing/modes.ts): its session
@@ -313,12 +314,13 @@ registerCommands({
     visible: (s) => s.mode === 'dental', enabled: always, disabledReason: never,
   },
   'dental.finish': {
-    role: 'primary', label: () => 'OK', hint: () => 'Finish this aligner. It stays on the plate with its supports',
+    role: 'primary', label: () => 'OK', hint: (s) => (s.dentalKind === 'denture' ? 'Finish this denture. It stays on the plate with its supports' : 'Finish this aligner. It stays on the plate with its supports'),
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'review', enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating,
     disabledReason: (s) => (s.generating ? generatingReason : s.dentalReviewReady ? undefined : { key: 'Wait until the supports are built.' }),
   },
   'dental.addAnother': {
-    role: 'secondary', label: () => 'Add another aligner', hint: () => 'Finish this aligner and add the next one of the same type',
+    role: 'secondary', label: (s) => (s.dentalKind === 'denture' ? 'Add another denture' : 'Add another aligner'),
+    hint: (s) => (s.dentalKind === 'denture' ? 'Finish this denture and add the next one' : 'Finish this aligner and add the next one of the same type'),
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'review', enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating,
     disabledReason: (s) => (s.generating ? generatingReason : s.dentalReviewReady ? undefined : { key: 'Wait until the supports are built.' }),
   },

@@ -25,7 +25,7 @@ const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
 /** Dental Auto Generate chrome: review the detector first, then mark only permitted support area. */
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
   lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, onTuningChange,
-  review, clickReach, tilt, onTilt, free, orientExtra, risks, onShowRisk, send, run }: {
+  review, clickReach, tilt, onTilt, free, orientExtra, reviewExtra, risks, onShowRisk, send, run }: {
   gesture: Extract<Gesture, { kind: 'dental-type' | 'dental-aligner' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
   /** Step 1: the object selected on the plate, offered as the aligner without a drop. */
@@ -54,6 +54,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   free?: DentalFreeControls;
   /** Step 1: the job's own lines under the dial (the denture's live tip legend). */
   orientExtra?: ReactNode;
+  /** The supports step: the job's own blocks in the side panel (the denture's unresolved points, settings, parts). */
+  reviewExtra?: ReactNode;
   /** Step 2: overhang low points outside the permitted area (the blue spots), listed with Show me. */
   risks?: readonly AreaRisk[];
   onShowRisk?: (risk: AreaRisk) => void;
@@ -89,14 +91,17 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       </>}
   </>;
   }
-  if (gesture.kind === 'dental-review') return <>
+  if (gesture.kind === 'dental-review') {
+    const kind = ui.dentalKind ?? 'aligner';
+    return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      {t('Step 3 · Supports')}<span>{unitName}</span>
+      {t(kind === 'denture' ? 'Step 2 · Supports' : 'Step 3 · Supports')}<span>{unitName}</span>
       <b>{t('Review the supports, adjust the settings, then press OK.')}</b>
     </div>
-    {review ? <DentalSupportsStep gesture={gesture.edit} ui={ui} review={review} ready={reviewReady} send={send} run={run} /> : null}
+    {review ? <DentalSupportsStep gesture={gesture.edit} ui={ui} review={review} ready={reviewReady} send={send} run={run} kind={kind}>{reviewExtra}</DentalSupportsStep> : null}
   </>;
+  }
   return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">

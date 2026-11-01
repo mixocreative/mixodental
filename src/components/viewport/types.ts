@@ -1,3 +1,4 @@
+import type { BubbleResolve } from './UnresolvedBubbles';
 import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
 import type { SupportPoint } from '@mixo-geocore/host/core/analysis/types';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
@@ -35,6 +36,8 @@ export interface ObjectViewportProps {
   plate?: PlateSize;
   /** Step 1 Free transform is on: the active object shows a rotation-only gizmo (PD.11 S6). */
   rotationGizmo?: boolean;
+  /** Denture Step 2: the active unit's resolvable bubbles are buttons (support from the model surface). */
+  bubbleResolve?: { unitId: string } & BubbleResolve;
   modelVisible: boolean;
   wireframe: boolean;
   onSelect: (unitId: string | null, additive: boolean) => void;

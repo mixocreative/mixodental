@@ -131,7 +131,7 @@ export default function ObjectViewport(props: ObjectViewportProps) {
     {props.dentalArea ? null : scene.units.map((unit) => {
       const mesh = props.supportMeshes.get(unit.id);
       return mesh && unit.supports && (mesh.unresolved?.length || mesh.modelLanded?.length)
-        ? <group key={`unresolved:${unit.id}`} position={unit.transform.position} rotation={unit.transform.rotation}><UnresolvedBubbles mesh={mesh} frame={generationTransform(unit)} /></group>
+        ? <group key={`unresolved:${unit.id}`} position={unit.transform.position} rotation={unit.transform.rotation}><UnresolvedBubbles mesh={mesh} frame={generationTransform(unit)} resolve={props.bubbleResolve?.unitId === unit.id ? props.bubbleResolve : undefined} /></group>
         : null;
     })}
     {activeId && activeGroup?.unitId === activeId && gizmo && <UnitTransformControls

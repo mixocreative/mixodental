@@ -5,6 +5,8 @@ import { runAfterGeometryReady } from '@mixo-geocore/host/geometryVersion.js';
 import { openLiveTilt, type LiveTilt } from '@mixo-geocore/host/dental/dentureTilt';
 import { buildDenture, checkModelLanding, orientAndScan, placeDenture } from './dentureCore';
 import type { DentureResult, DentureTask } from './dentureProtocol';
+import { exportFiles } from './dentureExport';
+import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
 
 /*
  * The denture worker: Step 1's orientation and tilt scan, the live-tilt handle (kept here between calls, so a
@@ -56,6 +58,10 @@ serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeom
       const mesh = buildDenture(task.job, (fraction, stage) => progress(fraction, stage));
       const buffers: Transferable[] = [mesh.positions.buffer, mesh.indices.buffer, ...(mesh.dentureParts ? [mesh.dentureParts.faceParts.buffer] : [])];
       return transferable<DentureResult>({ kind: 'built', mesh }, buffers);
+    }
+    case 'export': {
+      const out = exportFiles(task.units, task.files, task.revision, (fraction) => progress(fraction, PROGRESS_STAGE.writingStl));
+      return transferable<DentureResult>({ kind: 'files', ...out }, out.files.map((file) => file.buffer));
     }
     case 'check-landing': {
       const { tip, normal, ...job } = task.job;

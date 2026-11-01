@@ -6,7 +6,9 @@ import type { PrintScene, PrintUnit } from '../state/project';
 import { exportUnits, planExport, type ExportKind } from '@mixo-geocore/host/supports/export';
 import { exportRefusal } from '@mixo-geocore/host/supports/exportGate';
 import { currentBuilds, supportJobOf, unitContacts, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
-import type { SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
+import type { ExportResult, SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
+import type { ExportFilePlan } from '@mixo-geocore/host/supports/export';
+import type { JobLabel } from '@mixo-geocore/host/workers/jobActivity';
 import { codedJobError } from '../workers/jobErrors';
 import { isAbort, type SetStatus } from './appShared';
 
@@ -23,11 +25,13 @@ export function useExport(host: {
   sceneRef: MutableRefObject<PrintScene>;
   builtRef: MutableRefObject<ReadonlyMap<string, UnitBuild>>;
   exporter: () => SupportMeshClient;
+  /** An export that holds a denture runs in the denture worker (src/denture), every unit built there. */
+  dentureExport?: (units: readonly (readonly [PrintUnit, number])[], files: ExportFilePlan[], label: JobLabel) => Promise<ExportResult>;
   runCheck: (units: readonly PrintUnit[]) => Promise<CheckTally>;
   setStatus: SetStatus;
   setStatusMessage: (message: Message) => void;
 }) {
-  const { sceneRef, builtRef, exporter, runCheck, setStatus, setStatusMessage } = host;
+  const { sceneRef, builtRef, exporter, dentureExport, runCheck, setStatus, setStatusMessage } = host;
   const [exporting, setExporting] = useState(false);
   const runExport = useCallback(async (kind: ExportKind) => {
     const current = sceneRef.current;
@@ -49,7 +53,7 @@ export function useExport(host: {
     const label = { key: files.length === 1 ? 'Exporting {name}' : 'Exporting {n} files', vars: { name: files[0]!.fileName, n: files.length } };
     try {
       const jobs = units.map(([unit, index]) => ({ unitId: unit.id, job: supportJobOf(unit, index, 'export'), transform: unit.transform }));
-      const outcome = await exporter().exportFiles(jobs, files, label, () => {});
+      const outcome = dentureExport && units.some(([unit]) => (unit as PrintUnit).denture) ? await dentureExport(units as [PrintUnit, number][], files, label) : await exporter().exportFiles(jobs, files, label, () => {});
       const written = outcome.files;
       // Nothing came back (every file was empty, or the job was dropped): never report success.
       if (written.length === 0) return setStatus('Nothing to export for this mode.');
@@ -80,6 +84,6 @@ export function useExport(host: {
     } finally {
       setExporting(false);
     }
-  }, [builtRef, exporter, runCheck, sceneRef, setStatus, setStatusMessage]);
+  }, [builtRef, dentureExport, exporter, runCheck, sceneRef, setStatus, setStatusMessage]);
   return { exporting, runExport };
 }

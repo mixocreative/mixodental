@@ -26,3 +26,13 @@ Engine calls go through `engine/` only.
 | `steps/orient/LiveTipSummary.tsx` | The legend under the dial: tips per path state. |
 | `steps/orient/stepOneText.ts` | Step 1 badge words per job kind. |
 | `useDentureJob.ts` | App entry: owns the client, wires each step's hook. |
+| `engine/dentureExport.ts` | Export of a plate with dentures: builds every unit (dentures with their own pipeline) and writes the STL files. |
+| `state/dentureCommands.ts` | The denture rows in the shared command registry ("Resolve all") and the undo hint of a denture change. |
+| `settings/dentureRules.ts` | The engine rules every denture call reads (one place to map the denture settings onto). |
+| `steps/supports/dentureBuildJob.ts` | A denture unit as a build job (frame, plate, policy, settings, rules, hand work). |
+| `steps/supports/useDentureSupports.ts` | Step 2: builds and exports in the denture worker, click-to-resolve and Resolve all, the lattice switch. |
+| `steps/supports/resolvePoint.ts` | Which points a click resolves and the undoable allow-list command. |
+| `steps/supports/ResolveSection.tsx` | The panel block: unresolved points, islands, model-landed supports, Resolve all. |
+
+Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dial, Back / Next), `components/DentalSupports.tsx`
+(Step 2 panel, `kind="denture"`), `components/viewport/UnresolvedBubbles.tsx` (bubble, `resolve` makes it a button).

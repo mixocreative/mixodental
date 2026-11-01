@@ -50,6 +50,8 @@ export interface DentureJob {
   hand: Omit<ContactInputs, 'points'>;
   labelText: string;
   mode: 'preview' | 'export';
+  /** The request's revision: `generate` echoes it so an export can tell a stale build (see `exportRefusal`). */
+  revision?: number;
 }
 
 /** Step 1 in one job: the upright frame, then the print-angle search (`onTilt(done, total)` per tilt). */
@@ -127,6 +129,7 @@ export function buildDenture(job: DentureJob, onProgress?: ProgressCallback): De
     const zones = job.hand.zones.map((stamp) => ({ ...stamp, center: transformPoint(frame, stamp.center), normal: transformDirection(frame, stamp.normal) }));
     const out = generateSupports(contacts, job.settings, () => handle, {
       mode: job.mode, model: job.mesh, frame, plateY: job.plateY, labelText: job.labelText, zones, limits: GENERATE_LIMITS, rules: job.rules,
+      ...(job.revision === undefined ? {} : { revision: job.revision }),
       site: { session: site.session, source: site.source, placed: site.placed, policy: () => ({ handle, release() { /* withPolicy frees it */ } }) },
       ...(onProgress ? { onProgress } : {}),
     });

@@ -4,7 +4,9 @@ import type { TiltPaths } from '@mixo-geocore/host/dental/dentureTilt';
 import type { TiltScan, TiltScanSettings } from '@mixo-geocore/host/dental/dentalTilt';
 import type { RerouteResult } from '@mixo-geocore/host/supports/editSupport';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
+import type { ExportFilePlan } from '@mixo-geocore/host/supports/export';
 import type { DentureJob, DentureMesh, DentureParts } from './dentureCore';
+import type { ExportedFiles, ExportUnitJob } from './dentureExport';
 
 /*
  * Messages between the denture client (main thread) and the denture worker. Each job carries its own
@@ -24,7 +26,8 @@ export type DentureTask =
   | { kind: 'live-close'; key: string }
   | { kind: 'place'; job: DenturePlaceJob }
   | { kind: 'build'; job: DentureJob }
-  | { kind: 'check-landing'; job: DentureLandingJob };
+  | { kind: 'check-landing'; job: DentureLandingJob }
+  | { kind: 'export'; units: ExportUnitJob[]; files: ExportFilePlan[]; revision: number };
 
 export type DentureResult =
   | { kind: 'oriented'; orientation: DentureOrientation; scan: TiltScan }
@@ -33,4 +36,5 @@ export type DentureResult =
   | { kind: 'live-closed' }
   | { kind: 'placed'; points: SupportPoint[]; parts: DentureParts }
   | { kind: 'built'; mesh: DentureMesh }
-  | { kind: 'landing'; result: RerouteResult };
+  | { kind: 'landing'; result: RerouteResult }
+  | ({ kind: 'files' } & ExportedFiles);

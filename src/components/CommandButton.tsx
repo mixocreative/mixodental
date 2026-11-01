@@ -9,11 +9,13 @@ import { hint } from './hint';
  * enabled state come from the row, and a press runs the command the row names. `locked`: the
  * control sits in a locked region, inert, so a click falls through to the panel's lock note.
  */
-export function CommandButton({ command, run, className, locked = false, children }: {
+export function CommandButton({ command, run, className, locked = false, uiName, children }: {
   command: ResolvedCommand;
   run: (id: CommandId) => void;
   className?: string;
   locked?: boolean;
+  /** The stable `data-ui` name designers style it by. */
+  uiName?: string;
   children?: ReactNode;
 }) {
   const reason = command.enabled ? undefined : command.disabledReason;
@@ -21,6 +23,7 @@ export function CommandButton({ command, run, className, locked = false, childre
   return <button
     {...(classes ? { className: classes } : {})}
     {...(locked ? { inert: '' } : {})}
+    {...(uiName ? { 'data-ui': uiName } : {})}
     aria-pressed={command.pressed}
     onClick={() => run(command.runs)}
     disabled={!command.enabled}

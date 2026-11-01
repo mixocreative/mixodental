@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import type { EditGesture } from '@mixo-geocore/editing/gesture';
 import { FIX_TOOL_EVENTS, type SessionEvent } from '@mixo-geocore/editing/session';
@@ -57,16 +57,21 @@ function NoteProblem({ text, onShow, onFix }: { text: string; onShow: () => void
 /**
  * Dental Step 3: the supports as built, their key settings, the Support Edit Mode tools, the
  * problem list, the label, and the two ways to finish. Settings are the active aligner's own.
+ * A denture (`kind`) shows it as its Step 2, without Tree branches (Cross-braces is its lattice);
+ * `children` (the job's own blocks) sit between the settings and the edit tools.
  */
-export function DentalSupportsStep({ gesture, ui, review, ready, send, run }: {
+export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind = 'aligner', children }: {
   gesture: EditGesture;
   ui: UiState;
   review: DentalReview;
   ready: boolean;
   send: (event: SessionEvent) => void;
   run: (id: CommandId) => void;
+  kind?: 'aligner' | 'denture';
+  children?: ReactNode;
 }) {
   const { settings, onSetting } = review;
+  const denture = kind === 'denture';
   const [adjusting, setAdjusting] = useState(false);
   const stale = adjusting || review.verdictPending;
   const tipKey: 'pointDiameter' | 'touchDiameter' = settings.contactShape === 'SPHERE' ? 'touchDiameter' : 'pointDiameter';
@@ -81,7 +86,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run }: {
     ...(review.structureFallback?.includes('brace-pruned') ? [{ key: 'brace-pruned', text: t('Some cross-braces were left out where they crossed the model. Review the supports before finishing.') }] : []),
   ];
   const finishing = resolve('dental.finish', ui);
-  return <aside className="dental-side" aria-label={t('Step 3 · Supports')}>
+  return <aside className="dental-side" data-ui={denture ? 'denture-supports-panel' : 'dental-supports-panel'} aria-label={t(denture ? 'Step 2 · Supports' : 'Step 3 · Supports')}>
     <div className="dental-scroll">
     {!ready && <p className="edit-note" role="status">{t('Building supports…')}</p>}
     <section className="dental-block" aria-label={t('Support settings')}>
@@ -98,11 +103,12 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run }: {
       <label className="check" {...hint('Build a raft under the supports. The ID label needs it')}>
         <input type="checkbox" checked={settings.raftEnabled} onChange={(event) => onSetting('raftEnabled', event.target.checked)} />{t('Raft')}
       </label>
-      <label className="check"><input type="checkbox" checked={review.structure.treeEnabled}
-        onChange={(event) => review.onStructure({ ...review.structure, treeEnabled: event.target.checked })} />{t('Tree branches')}</label>
+      {denture ? null : <label className="check"><input type="checkbox" checked={review.structure.treeEnabled}
+        onChange={(event) => review.onStructure({ ...review.structure, treeEnabled: event.target.checked })} />{t('Tree branches')}</label>}
       <label className="check"><input type="checkbox" checked={review.structure.bracesEnabled}
         onChange={(event) => review.onStructure({ ...review.structure, bracesEnabled: event.target.checked })} />{t('Cross-braces')}</label>
     </section>
+    {children}
     <section className="dental-block" aria-label={t('Edit supports')}>
       <h3>{t('Edit supports')}</h3>
       <div className="dental-tools">
