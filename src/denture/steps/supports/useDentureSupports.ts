@@ -10,6 +10,7 @@ import { LANDING_TIER_TEXT } from '../../../supports/unresolved/unresolvedText';
 import type { DentureClient } from '../../engine/dentureClient';
 import type { DentureMesh } from '../../engine/dentureCore';
 import { dentureRulesOf } from '../../settings/dentureRules';
+import type { DentureOptions } from '../../settings/dentureOptions';
 import { dentureJobOf } from './dentureBuildJob';
 import { checksLandingFirst, isResolvable, resolvableIds, resolveCommand } from './resolvePoint';
 
@@ -87,5 +88,11 @@ export function useDentureSupports({ client, dispatch, sceneRef, setStatus }: De
     ] });
   }, [dispatch, unitNow]);
 
-  return { build, exportFiles, resolve, resolveAll, setLattice, resolvable: isResolvable };
+  /** A denture setting changed: the unit's options, one undo step; the rebuild follows. */
+  const setOptions = useCallback((unitId: string, options: DentureOptions) => {
+    const unit = unitNow(unitId);
+    if (unit?.denture) dispatch({ type: 'denture/set', unitId, denture: { ...unit.denture, options } });
+  }, [dispatch, unitNow]);
+
+  return { build, exportFiles, resolve, resolveAll, setLattice, setOptions, resolvable: isResolvable };
 }

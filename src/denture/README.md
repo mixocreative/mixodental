@@ -36,3 +36,10 @@ Engine calls go through `engine/` only.
 
 Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dial, Back / Next), `components/DentalSupports.tsx`
 (Step 2 panel, `kind="denture"`), `components/viewport/UnresolvedBubbles.tsx` (bubble, `resolve` makes it a button).
+
+| Module (Step 4) | Purpose |
+|---|---|
+| `settings/dentureOptions.ts` | The denture settings, their defaults and limits (stored in `PrintUnit.denture.options`). |
+| `settings/dentureRules.ts` | Maps the denture settings onto engine rules (`dentalModelLanding`, `lowOutsideAllowed`, `lastResortClearanceMm`); only non-defaults are sent. |
+| `settings/DentureSettingsSection.tsx` | The settings block: model-surface support default, low tips outside the area, clearance floor. |
+| `steps/supports/DentureSupportsBlocks.tsx` | The denture blocks of the shared supports panel, in order. |

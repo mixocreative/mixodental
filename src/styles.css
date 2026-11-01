@@ -308,6 +308,9 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
 .tip-swatch--path { background: var(--tip-path); }
 .tip-swatch--fallback { background: var(--tip-fallback); }
 .tip-swatch--none { background: var(--tip-none); }
+/* Denture Step 2: the denture settings block. */
+.denture-landing { display: grid; gap: 4px; }
+.denture-landing-select { height: 30px; padding: 0 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: var(--radius); font: inherit; font-size: 12px; }
 .orient-confirm { display: grid; gap: 8px; white-space: normal; }
 .orient-confirm p { margin: 0; }
 .orient-confirm .orient-row button { flex: 1 1 0; }

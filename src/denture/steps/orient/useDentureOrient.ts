@@ -14,6 +14,8 @@ import type { DentureClient } from '../../engine/dentureClient';
 import { liftedFrame, scanSettingsOf } from '../../engine/dentureCore';
 import { liveTiltThrottle, type LiveTiltThrottle } from '../../engine/liveTilt';
 import { dentureSupportSettings } from '../../settings/dentureSupportSettings';
+import { dentureRulesOf } from '../../settings/dentureRules';
+import { packRules } from '@mixo-geocore/host/supports/generateRules';
 import { acceptCommands } from './acceptCommands';
 import { liveTipLayers, tipCounts } from './liveTipLayers';
 import { tipColours } from './tipColours';
@@ -89,7 +91,9 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     const failed = () => send({ type: 'dentalOrientFailed', notices: [{ kind: 'denture-failed' }] });
     if (!profile) return failed();
     const settings = unit.denture?.policy.profileId === profile ? resolveSettings(unit.settings) : dentureSupportSettings(profile, resolveSettings(unit.settings));
-    const scanSettings = scanSettingsOf(settings, undefined);
+    // The unit's denture settings (a denture seen before) shape the scan, the live tips and the placement too.
+    const rules = dentureRulesOf(unit);
+    const scanSettings = scanSettingsOf(settings, Object.keys(rules).length > 0 ? packRules(rules) : undefined);
     // The denture scan runs from upright (0) to the profile's range (Rust `denture::tilt`).
     const { tiltRangeDeg, tiltStepDeg } = dentureProfileData(profile).pose;
     const total = Math.floor(tiltRangeDeg / tiltStepDeg + 1e-9) + 1;
@@ -160,12 +164,13 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     const settings = own ? resolveSettings(unit.settings) : dentureSupportSettings(profile, resolveSettings(unit.settings));
     const frame = liftedFrame(unit.source, unit.transform.rotation, settings.liftHeight, [unit.transform.position[0], unit.transform.position[2]]);
     const policy = defaultDenturePolicy(profile, settings.trussEnabled);
+    const rules = dentureRulesOf(unit);
     setStatus('Placing the denture support tips…');
-    void client().place(unit.id, { mesh: unit.source, policy, frame, rules: {}, hand: { manual: unit.manual, deleted: unit.deleted, zones: unit.zones, contactSettings: unit.contactSettings } },
+    void client().place(unit.id, { mesh: unit.source, policy, frame, rules, hand: { manual: unit.manual, deleted: unit.deleted, zones: unit.zones, contactSettings: unit.contactSettings } },
       { key: 'Placing support tips on {name}', vars: { name: unit.name } }).then((placed) => {
       if (seq.current !== token || unitOf(unit.id) !== unit || sessionRef.current.dentalStage !== 'aligner') return;
       if (!placed) return setStatus('The denture support tips could not be placed. Turn the denture, then press Next again.');
-      dispatch({ type: 'batch', commands: acceptCommands(unit, { frame, points: placed.points, settings, denture: { policy } }) });
+      dispatch({ type: 'batch', commands: acceptCommands(unit, { frame, points: placed.points, settings, denture: { policy, ...(unit.denture?.options ? { options: unit.denture.options } : {}) } }) });
       closeLive();
       send({ type: 'acceptDentalOrientation' });
       requestView('fit');
