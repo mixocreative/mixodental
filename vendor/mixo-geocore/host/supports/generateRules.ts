@@ -58,6 +58,16 @@ export interface GenerateRules {
   outlineDeeperBraces?: number;
   /** Added to every radius (mm) before the capsule clearance test, so the capsule verdict is never looser than the mesh verdict. */
   capsuleMarginMm?: number;
+  /**
+   * Route search: ask the quick capsule judge first and the real (mesh) judge only for what it takes; a candidate the capsule refuses is skipped.
+   * The mesh judge keeps the last word, so results do not change (measured on the three denture cases: the capsule never refuses what the mesh
+   * takes). Default 1 for dentures, always 0 for other builds.
+   */
+  capsuleFilter?: boolean;
+  /** Measuring only: judge every candidate with both judges, follow the mesh, count where they differ (slow). Default 0. */
+  judgeAgreement?: boolean;
+  /** The capsule's margin (mm, negative: the capsule shrinks) while it only filters. Unset: derived from the tube's facets (about -0.03 for a 1.1 mm pillar). */
+  capsuleFilterMarginMm?: number;
   /** Two pillars nearer than this in plan merge into a tree, in pillar diameters (the engine multiplies by the pillar diameter; default 3). */
   mergeSpacingDiameters?: number;
   /** Steepest lean from vertical (degrees) of the rod from the merged column's top to the node. */
@@ -138,12 +148,16 @@ export interface GenerateRules {
   lastResortClearanceStepMm?: number;
   /** Denture tilt scan (default 0 = off, the old pick): above 0 the pick prefers the tilt whose tips have a way down by the landing circle (fewest lowest points without a path, then tips without, then tips with only a fallback), ahead of the boxed-in count and never over the safety tiers. */
   landingTiltWeight?: number;
-  /** Landing circle: steepest rod, degrees from vertical (default 45). */
+  /** Landing circle: steepest lean that still counts as a normal path, degrees from vertical (default 45; the fallback tier uses lastResortOutlineAngleDeg). */
   landingRodMaxDeg?: number;
-  /** Landing circle: spacing of the plate cells tried inside the circle, mm (default 1). */
+  /** Landing circle: spacing of the sideways shifts tried along each direction, mm (default 1). */
   landingCellStepMm?: number;
   /** Landing circle: spacing of the height tests along a rod, mm (default 0.5). */
   landingRodSampleMm?: number;
+  /** Landing circle: directions tried around the tip (default 16). */
+  landingDirections?: number;
+  /** Landing circle: 1 = straight and one lean, 2 = also a first lean and a second lean (default 2). */
+  landingLeans?: 1 | 2;
   /**
    * Dental-only option (dentures only, default 0 = off): support a tip from the model's own surface, used only when the plate route and the
    * last-resort tier both failed. 0 off, 1 lowest points and islands only, 2 any left-out tip. The landing order is allowed area, other
@@ -169,6 +183,8 @@ export const RULE_NAMES: readonly string[] = [
   'lastResort', 'lastResortOutlineAngleDeg', 'lastResortClearanceMm', 'rimLowNeedsOverhang', 'lastResortClearanceStepMm',
   'landingTiltWeight', 'landingRodMaxDeg', 'landingCellStepMm', 'landingRodSampleMm',
   'dentalModelLanding',
+  'capsuleFilter', 'judgeAgreement', 'capsuleFilterMarginMm',
+  'landingDirections', 'landingLeans',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */
