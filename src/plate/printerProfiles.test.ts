@@ -10,8 +10,19 @@ describe('printer profiles (src/config/printers.json)', () => {
     const first = printerById(undefined);
     expect(first.id).toBe('elegoo-saturn-4-ultra-16k');
     expect(first.plate).toEqual({ widthMm: 211.68, depthMm: 118.37 });
-    expect(PRINTERS.printers.length).toBeGreaterThan(3);
     expect(new Set(PRINTERS.printers.map((printer) => printer.id)).size).toBe(PRINTERS.printers.length);
+  });
+
+  it('ships only the printers whose plates are verified (owner 2026-11-02)', () => {
+    expect(PRINTERS.printers.map((printer) => [printer.name, printer.plate.widthMm, printer.plate.depthMm])).toEqual([
+      ['Elegoo Saturn 4 Ultra 16K', 211.68, 118.37],
+      ['Elegoo Saturn 4 Ultra 12K', 218.88, 122.88],
+      ['Formlabs Form 4', 200, 125],
+      ['Formlabs Form 3B', 145, 145],
+    ]);
+    // A user who had chosen a removed printer gets the default plate.
+    expect(printerById('elegoo-mars-4-ultra').id).toBe('elegoo-saturn-4-ultra-16k');
+    expect(printerById('anycubic-photon-mono-m5s').id).toBe('elegoo-saturn-4-ultra-16k');
   });
 
   it('rejects a broken config instead of inventing a plate', () => {

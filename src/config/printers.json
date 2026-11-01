@@ -3,9 +3,7 @@
   "default": "elegoo-saturn-4-ultra-16k",
   "printers": [
     { "id": "elegoo-saturn-4-ultra-16k", "name": "Elegoo Saturn 4 Ultra 16K", "process": "resin", "plate": { "widthMm": 211.68, "depthMm": 118.37 } },
-    { "id": "elegoo-saturn-4-ultra", "name": "Elegoo Saturn 4 Ultra", "process": "resin", "plate": { "widthMm": 218.88, "depthMm": 122.88 } },
-    { "id": "elegoo-mars-4-ultra", "name": "Elegoo Mars 4 Ultra", "process": "resin", "plate": { "widthMm": 153.36, "depthMm": 77.76 } },
-    { "id": "anycubic-photon-mono-m5s", "name": "Anycubic Photon Mono M5s", "process": "resin", "plate": { "widthMm": 218.88, "depthMm": 122.88 } },
+    { "id": "elegoo-saturn-4-ultra", "name": "Elegoo Saturn 4 Ultra 12K", "process": "resin", "plate": { "widthMm": 218.88, "depthMm": 122.88 } },
     { "id": "formlabs-form-4", "name": "Formlabs Form 4", "process": "resin", "plate": { "widthMm": 200, "depthMm": 125 } },
     { "id": "formlabs-form-3b", "name": "Formlabs Form 3B", "process": "resin", "plate": { "widthMm": 145, "depthMm": 145 } }
   ]
