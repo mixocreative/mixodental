@@ -59,10 +59,27 @@ export interface DentalTiltScanResultLike {
   band(): Uint32Array;
   /** Denture scan only (engine 27): per row, lowest points no support can reach; empty when the rule is off. Optional so test doubles may omit them. */
   boxed_counts?(): Uint32Array;
+  /** Denture scan with `landingTiltWeight` above 0 (engine 32): 4 numbers per row (lowest points without a path, tips without, fallbacks, tips). */
+  path_counts?(): Uint32Array;
   /** The picked row's boxed-in lowest points, x y z each (mesh frame, mm). */
   boxed_points?(): Float64Array;
   /** Why each of `boxed_points()` is boxed in. */
   boxed_reasons?(): string[];
+}
+
+/** Result handle of `denture_tilt_paths` (Rust `DentureTiltPaths`); read it, then `free()`. */
+export interface DentureTiltPathsLike {
+  free(): void;
+  ok(): boolean;
+  reason(): string;
+  rotation(): Float64Array;
+  /** x y z nx ny nz stream per tip (mesh frame). */
+  tips(): Float64Array;
+  /** Per tip: 0 path, 1 fallback, 2 none. */
+  states(): Uint8Array;
+  /** Lowest points without a path, tips without a path, tips with only a fallback path, tips. */
+  counts(): Uint32Array;
+  overhang_mm2(): number;
 }
 
 /** Result handle of `denture_compare_areas`; read it, then `free()`. */
@@ -166,6 +183,9 @@ export interface DentalSession {
   /** `denture_tilt_scan` with the support-rule overrides (engine 27; `rules` in `rule_names()` order, NaN keeps the default). */
   denture_tilt_scan_ruled(model: number, profile: string, neckLengthMm: number, pillarDiameterMm: number, liftMm: number, braced: boolean,
     rules: Float64Array, onTilt?: (done: number, total: number) => void): DentalTiltScanResultLike;
+  /** The live tilt view (engine 32): the tips of one print tilt with a path state each; no supports built. */
+  denture_tilt_paths(model: number, profile: string, tiltDeg: number, neckLengthMm: number, pillarDiameterMm: number, liftMm: number, braced: boolean,
+    rules: Float64Array): DentureTiltPathsLike;
   /** The denture policy for `generate` in `frame` (+Y the plate normal); `brace` is the lattice switch. */
   denture_policy(model: number, profile: string, frame: Float64Array, brace: boolean, manualPositions: Float64Array): PolicyHandle;
   /** `denture_policy` with the support-rule overrides (engine 28; `rules` in `rule_names()` order, NaN keeps the default): island tips and the low-tip admission. */

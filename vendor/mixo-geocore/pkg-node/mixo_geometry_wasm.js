@@ -734,6 +734,17 @@ class DentalTiltScanResult {
         return v1;
     }
     /**
+     * Denture scan with rule `landingTiltWeight` above 0 (engine 32): per row 4 numbers, lowest points without a path, tips without a path,
+     * tips with only a fallback path, tips; empty otherwise.
+     * @returns {Uint32Array}
+     */
+    path_counts() {
+        const ret = wasm.dentaltiltscanresult_path_counts(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
      * 0 robust, 1 passing (no tilt is robust), 2 failing (no tilt passes).
      * @returns {number}
      */
@@ -1325,6 +1336,101 @@ class DentureReviewResult {
 }
 if (Symbol.dispose) DentureReviewResult.prototype[Symbol.dispose] = DentureReviewResult.prototype.free;
 exports.DentureReviewResult = DentureReviewResult;
+
+/**
+ * One tilt's tips with their path states. Failed: `ok() == false` with `reason()`.
+ */
+class DentureTiltPaths {
+    static __wrap(ptr) {
+        const obj = Object.create(DentureTiltPaths.prototype);
+        obj.__wbg_ptr = ptr;
+        DentureTiltPathsFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        DentureTiltPathsFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_denturetiltpaths_free(ptr, 0);
+    }
+    /**
+     * Lowest points without a path, tips without a path, tips with only a fallback path, tips.
+     * @returns {Uint32Array}
+     */
+    counts() {
+        const ret = wasm.denturetiltpaths_counts(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * @returns {boolean}
+     */
+    ok() {
+        const ret = wasm.denturetiltpaths_ok(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Area (mm2) of the faces steeper than the overhang angle at this tilt.
+     * @returns {number}
+     */
+    overhang_mm2() {
+        const ret = wasm.denturetiltpaths_overhang_mm2(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * Why the call could not run (`invalid-scan-input` or an upright reason `orientation-...`); empty when ok.
+     * @returns {string}
+     */
+    reason() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.denturetiltpaths_reason(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Euler XYZ (radians) turning the mesh into this print pose.
+     * @returns {Float64Array}
+     */
+    rotation() {
+        const ret = wasm.denturetiltpaths_rotation(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Per tip, same order: 0 path, 1 fallback, 2 none.
+     * @returns {Uint8Array}
+     */
+    states() {
+        const ret = wasm.denturetiltpaths_states(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * The tips (mesh frame): `x y z nx ny nz stream` each (stream 0 low, 1 area, 4 rim, 5 hole, 6 island).
+     * @returns {Float64Array}
+     */
+    tips() {
+        const ret = wasm.denturetiltpaths_tips(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+}
+if (Symbol.dispose) DentureTiltPaths.prototype[Symbol.dispose] = DentureTiltPaths.prototype.free;
+exports.DentureTiltPaths = DentureTiltPaths;
 
 /**
  * The review GLB data of `diagnose`: coloured layers, one per role (docs/SHIP-PLAN.md ABI).
@@ -2190,6 +2296,31 @@ class GeometrySession {
             throw takeFromExternrefTable0(ret[1]);
         }
         return ret[0] === 0 ? undefined : DentureReviewResult.__wrap(ret[0]);
+    }
+    /**
+     * The live tilt view (engine 32): the tips of one print tilt with, per tip, whether a support has a way down by the landing circle
+     * (`path` 0, `fallback` 1, `none` 2), and no supports built. The per-model work (rim, holes, masks, ray index, upright frame) is
+     * cached by the engine per model, so after the first call a tilt costs tens of milliseconds. `rules` as `denture_tilt_scan_ruled`.
+     * @param {number} model
+     * @param {string} profile
+     * @param {number} tilt_deg
+     * @param {number} neck_length_mm
+     * @param {number} pillar_diameter_mm
+     * @param {number} lift_mm
+     * @param {boolean} braced
+     * @param {Float64Array} rules
+     * @returns {DentureTiltPaths}
+     */
+    denture_tilt_paths(model, profile, tilt_deg, neck_length_mm, pillar_diameter_mm, lift_mm, braced, rules) {
+        const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_denture_tilt_paths(this.__wbg_ptr, model, ptr0, len0, tilt_deg, neck_length_mm, pillar_diameter_mm, lift_mm, braced, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return DentureTiltPaths.__wrap(ret[0]);
     }
     /**
      * Print-angle search of a denture from upright over the profile's range, with the host's
@@ -4422,6 +4553,9 @@ const DentureOrientResultFinalization = (typeof FinalizationRegistry === 'undefi
 const DentureReviewResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_denturereviewresult_free(ptr, 1));
+const DentureTiltPathsFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_denturetiltpaths_free(ptr, 1));
 const DiagnosisFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_diagnosis_free(ptr, 1));

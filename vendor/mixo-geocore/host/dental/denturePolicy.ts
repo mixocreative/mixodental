@@ -54,6 +54,14 @@ function pointsOf(flat: Float64Array): SupportPoint[] {
   return Array.from({ length: count }, (_, k) => ({ id: ids[k]!, regionId: -1, position: at(k, 0), normal: at(k, 3), source: 'interior' as const }));
 }
 
+/** A placement result from a policy handle's `candidate_points()` (xyz then normal xyz per tip): the accept flow builds the policy once and reads the placement from it. */
+export function placementOfCandidates(flat: Float64Array): PlacementResult {
+  const points = pointsOf(flat);
+  return { points, regions: [],
+    contactPositions: new Float32Array(points.flatMap((point) => point.position)),
+    contactNormals: new Float32Array(points.flatMap((point) => point.normal)) };
+}
+
 /**
  * Automatic contacts of a denture unit in the frame of the turned model (`orientation`'s rotation,
  * no translation), as a placement result: the policy's own candidates (lowest points, bottom band,
@@ -69,8 +77,5 @@ export function denturePlacement(mesh: TriangleMesh, policy: DenturePolicy, orie
       handle.free();
     }
   });
-  const points = pointsOf(candidates);
-  return { points, regions: [],
-    contactPositions: new Float32Array(points.flatMap((point) => point.position)),
-    contactNormals: new Float32Array(points.flatMap((point) => point.normal)) };
+  return placementOfCandidates(candidates);
 }

@@ -14,10 +14,11 @@ import { proposeDentalOrientation } from '@mixo-geocore/host/dental/dental';
 import { dentureProfileData, dentureSupportPreset } from '@mixo-geocore/host/dental/dentureProfiles';
 import { orientDenture, type DentureOrientation } from '@mixo-geocore/host/dental/dentureOrient';
 import { scanDentureTilts } from '@mixo-geocore/host/dental/dentureTilt';
-import { withDentalMesh } from '@mixo-geocore/host/dental/dentalEngine';
-import { defaultDenturePolicy, denturePlacement, denturePolicy, makeDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
+import type { DentalSession } from '@mixo-geocore/host/dental/dentalEngine';
+import { defaultDenturePolicy, makeDenturePolicy, placementOfCandidates } from '@mixo-geocore/host/dental/denturePolicy';
 import { GENERATE_LIMITS } from '@mixo-geocore/host/supports/generateLimits';
-import { generateSupports, type MakePolicy } from '@mixo-geocore/host/supports/generateSupports';
+import { generateSupports, withOneShotSite } from '@mixo-geocore/host/supports/generateSupports';
+import { packRules } from '@mixo-geocore/host/supports/generateRules';
 import type { LiftAttempt } from '@mixo-geocore/host/dental/dentureGenerate';
 import { supportMeshToUnitLocal } from '@mixo-geocore/host/supports/supportFrame';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
@@ -58,6 +59,8 @@ export type DentureReview =
     placed: Array<{ position: Vector; normal: Vector }>;
     /** The policy's candidate ids in order (an island's `tipIndex` indexes them) and the tips the build left out, for `settleIslands`. */
     candidateIds: string[]; leftOut: Array<{ id: string; reason: string }>;
+    /** Seconds per stage of this flow (tilt scan, policy, generate, total), always measured; the row reports them when MIXO_TIMERS is set. */
+    stageSeconds: { scan: number; policy: number; generate: number; total: number };
     /** The contacts the build left out (no support built, any source), unit-local, each with the engine's reason. */
     leftOutTips: Array<{ position: Vector; normal: Vector; reason: string }>;
     /** Extra lift (mm over the profile's) of the kept build and every attempt of the extra-lift retry (+2.5, +5 mm when tips are left out). */
@@ -66,13 +69,19 @@ export type DentureReview =
 
 /** The denture flow on a centred `mesh`: upright, print angle, tips, supports (one pipeline, no UI). */
 export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfileId('denture')): DentureReview {
+  const started = performance.now();
+  const lap = (from: number) => +((performance.now() - from) / 1000).toFixed(2);
   const orientation = orientDenture(mesh, profileId);
   if (orientation.kind !== 'oriented') return { kind: 'inconclusive', reason: `denture-orient-${orientation.reason}` };
   // Engine 14 finding: with the preset's contactShape SPHERE the denture build drops every tip (149 of 149 on the
   // reference scan, empty support mesh), so the review builds with the preset's other values and no contact ball.
   const settings = { ...defaultSupportSettings, ...dentureSupportPreset(dentureProfileData(profileId)), contactShape: 'NONE' as const, roofSeededModes: [] };
+  // MIXO_LANDING=1 picks the tilt by the landing-circle path score (rule landingTiltWeight); unset keeps the old pick.
+  const rules = process.env.MIXO_LANDING ? packRules({ landingTiltWeight: 1 }) : undefined;
+  const scanStarted = performance.now();
   const scan = scanDentureTilts(mesh, profileId, { neckLengthMm: settings.neckLength, pillarDiameterMm: settings.pillarDiameter,
-    liftMm: settings.liftHeight, braced: settings.trussEnabled });
+    liftMm: settings.liftHeight, braced: settings.trussEnabled, ...(rules ? { rules } : {}) });
+  const scanSeconds = lap(scanStarted);
   if (scan.kind !== 'scan') return { kind: 'inconclusive', reason: `denture-tilt-scan-${scan.reason}` };
   const index = scan.order[0]!;
   const rotation = scan.rows[index]!.rotation as Vector;
@@ -83,34 +92,43 @@ export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfile
   if (!Number.isFinite(lowestY)) return { kind: 'inconclusive', reason: 'empty-or-invalid-mesh' };
   const frame: JobTransform = { position: [0, settings.liftHeight - lowestY, 0], rotation };
   const policy = defaultDenturePolicy(profileId, settings.trussEnabled);
-  const placement = denturePlacement(mesh, policy, turnedOnly);
-  if (placement.points.length === 0) return { kind: 'inconclusive', reason: 'no-proposed-dental-tips' };
-  // The policy names its candidates 'denture-min-0'...; `generate` keeps a contact only under that id, at the
-  // policy's own position in the build frame. So the contacts are the policy's candidates as `frame` sees them.
-  const contacts = withDentalMesh(mesh, (session, model) => {
-    const handle = makeDenturePolicy(session, model, policy, frame);
+  // Accept: the policy is made ONCE (its per-model part comes from the engine's cache) and that one handle gives the placement, the
+  // contacts and the policy `generate` reads. The policy names its candidates 'denture-min-0'...; `generate` keeps a contact only under
+  // that id, at the policy's own position in the build frame, so the contacts are the policy's candidates as `frame` sees them.
+  return withOneShotSite(mesh, (site) => {
+    const policyStarted = performance.now();
+    const handle = makeDenturePolicy(site.session as unknown as Pick<DentalSession, 'denture_policy_ruled'>, site.source, policy, frame);
     try {
       const ids = handle.candidate_ids();
       const flat = handle.candidate_points();
-      return ids.map((id, k) => ({ id, origin: 'auto' as const, position: [flat[k * 6]!, flat[k * 6 + 1]!, flat[k * 6 + 2]!] as Vector,
+      const contacts = ids.map((id, k) => ({ id, origin: 'auto' as const, position: [flat[k * 6]!, flat[k * 6 + 1]!, flat[k * 6 + 2]!] as Vector,
         normal: [flat[k * 6 + 3]!, flat[k * 6 + 4]!, flat[k * 6 + 5]!] as Vector }));
+      // The placement result of the turned model (no lift): the same tips with the frame's lift taken off.
+      const lift = frame.position;
+      const placement = placementOfCandidates(Float64Array.from({ length: flat.length }, (_, k) => (k % 6 < 3 ? flat[k]! - lift[k % 3]! : flat[k]!)));
+      if (placement.points.length === 0) return { kind: 'inconclusive', reason: 'no-proposed-dental-tips' } as DentureReview;
+      const policySeconds = lap(policyStarted);
+      // One build at the profile lift. The extra-lift retry (`dentureGenerate.ts`) measured no gain on any case (2026-10-30) and tripled the build time.
+      const generateStarted = performance.now();
+      const out = generateSupports(contacts, settings, () => { throw new Error('policy is supplied by the site'); },
+        { mode: 'export', model: mesh, frame, plateY: 0, labelText: '', zones: [], limits: GENERATE_LIMITS,
+          site: { session: site.session, source: site.source, placed: site.placed, policy: () => ({ handle, release() { /* the caller frees the one handle */ } }) } });
+      const generateSeconds = lap(generateStarted);
+      // Our placed tips: the build's contacts that the repair did not leave out, back in unit-local coordinates
+      // (the frame the supports and the review layers are drawn in). A left-out tip has no pillar, so no cone.
+      const leftOut = new Set(out.mesh.dropped);
+      const placed = contacts.filter((contact) => !leftOut.has(contact.id))
+        .map((contact) => ({ position: inverseTransformPoint(frame, contact.position), normal: inverseTransformDirection(frame, contact.normal) }));
+      const reasons = new Map((out.mesh.leftOut ?? []).map((entry) => [entry.id, entry.reason]));
+      const leftOutTips = contacts.filter((contact) => leftOut.has(contact.id))
+        .map((contact) => ({ position: inverseTransformPoint(frame, contact.position), normal: inverseTransformDirection(frame, contact.normal), reason: reasons.get(contact.id) ?? 'dropped (policy, landing rule or no-support zone)' }));
+      return { kind: 'built', orientation, scan, index, frame, placement, supports: supportMeshToUnitLocal(out.mesh, frame), placed, leftOutTips,
+        candidateIds: contacts.map((contact) => contact.id), leftOut: (out.mesh.leftOut ?? []).map(({ id, reason }) => ({ id, reason })), extraLiftMm: 0, liftAttempts: [{ extraLiftMm: 0, leftOut: out.mesh.leftOut?.length ?? out.mesh.dropped.length }],
+        stageSeconds: { scan: scanSeconds, policy: policySeconds, generate: generateSeconds, total: lap(started) } } as DentureReview;
     } finally {
       handle.free();
     }
   });
-  const make: MakePolicy = denturePolicy(policy, frame);
-  // One build at the profile lift. The extra-lift retry (`dentureGenerate.ts`) measured no gain on any case (2026-10-30) and tripled the build time.
-  const out = generateSupports(contacts, settings, make, { mode: 'export', model: mesh, frame, plateY: 0, labelText: '', zones: [], limits: GENERATE_LIMITS });
-  // Our placed tips: the build's contacts that the repair did not leave out, back in unit-local coordinates
-  // (the frame the supports and the review layers are drawn in). A left-out tip has no pillar, so no cone.
-  const leftOut = new Set(out.mesh.dropped);
-  const placed = contacts.filter((contact) => !leftOut.has(contact.id))
-    .map((contact) => ({ position: inverseTransformPoint(frame, contact.position), normal: inverseTransformDirection(frame, contact.normal) }));
-  const reasons = new Map((out.mesh.leftOut ?? []).map((entry) => [entry.id, entry.reason]));
-  const leftOutTips = contacts.filter((contact) => leftOut.has(contact.id))
-    .map((contact) => ({ position: inverseTransformPoint(frame, contact.position), normal: inverseTransformDirection(frame, contact.normal), reason: reasons.get(contact.id) ?? 'dropped (policy, landing rule or no-support zone)' }));
-  return { kind: 'built', orientation, scan, index, frame, placement, supports: supportMeshToUnitLocal(out.mesh, frame), placed, leftOutTips,
-    candidateIds: contacts.map((contact) => contact.id), leftOut: (out.mesh.leftOut ?? []).map(({ id, reason }) => ({ id, reason })), extraLiftMm: 0, liftAttempts: [{ extraLiftMm: 0, leftOut: out.mesh.leftOut?.length ?? out.mesh.dropped.length }] };
 }
 
 /** Review layers of a built denture, in the unit-local frame (the GLB node carries `review.frame`): model, supports, upright (arch) plane. */

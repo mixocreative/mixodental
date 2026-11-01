@@ -65,6 +65,8 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   peelMaxOurs: number | null; peelMaxOursAtMm: number | null; peelMaxOwner: number | null; peelMaxOwnerAtMm: number | null; peelRaftTopMm: number | null; peelModelOnlyRatio: number | null; peelLayersOver: number | null; maxTipsPerTrunk: number | null; trunkToNeckArea: number | null;
   /** The per-layer chart data file (`case-001-peel.json`) beside the GLB, or ''; and why the report is missing, if it is. */
   peelFile: string; peelNote: string;
+  /** Denture only, when MIXO_TIMERS is set: seconds per stage of the flow ('scan 3.1 / policy 0.4 / generate 20 / flow 24'); '' otherwise. */
+  stageTimes: string;
 };
 
 /** Runs one STL through the pipeline; writes `<name>.glb` into `out` when it builds. Never throws: errors land in `row.reason`. */
@@ -76,7 +78,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
     ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, middlePlane: '',
     upDecision: '', tipsBySource: '', unsupportableTips: 0, tipsLeftOutReasons: '',
-    peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '',
+    peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', stageTimes: '',
     ...noEvidence, orientationGlb: '' };
   let shapeMesh: TriangleMesh | undefined;
   try {
@@ -209,6 +211,7 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
     structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
     ownerContacts: detail.ownerContacts, ownerContactsMedianMm: row.ownerContactsMedianMm ?? detail.ownerContactsMedianMm,
     ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, middlePlane: detail.middlePlane,
+    stageTimes: process.env.MIXO_TIMERS ? `scan ${review.stageSeconds.scan} / policy ${review.stageSeconds.policy} / generate ${review.stageSeconds.generate} / flow ${review.stageSeconds.total}` : '',
     upDecision: detail.upDecision, tipsBySource: detail.tipsBySource, unsupportableTips: detail.unsupportableTips, tipsLeftOutReasons: detail.tipsLeftOutReasons,
   });
 }

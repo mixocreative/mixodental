@@ -203,6 +203,11 @@ export class DentalTiltScanResult {
      */
     order(): Uint32Array;
     /**
+     * Denture scan with rule `landingTiltWeight` above 0 (engine 32): per row 4 numbers, lowest points without a path, tips without a path,
+     * tips with only a fallback path, tips; empty otherwise.
+     */
+    path_counts(): Uint32Array;
+    /**
      * 0 robust, 1 passing (no tilt is robust), 2 failing (no tilt passes).
      */
     pick_reason(): number;
@@ -433,6 +438,40 @@ export class DentureReviewResult {
 }
 
 /**
+ * One tilt's tips with their path states. Failed: `ok() == false` with `reason()`.
+ */
+export class DentureTiltPaths {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Lowest points without a path, tips without a path, tips with only a fallback path, tips.
+     */
+    counts(): Uint32Array;
+    ok(): boolean;
+    /**
+     * Area (mm2) of the faces steeper than the overhang angle at this tilt.
+     */
+    overhang_mm2(): number;
+    /**
+     * Why the call could not run (`invalid-scan-input` or an upright reason `orientation-...`); empty when ok.
+     */
+    reason(): string;
+    /**
+     * Euler XYZ (radians) turning the mesh into this print pose.
+     */
+    rotation(): Float64Array;
+    /**
+     * Per tip, same order: 0 path, 1 fallback, 2 none.
+     */
+    states(): Uint8Array;
+    /**
+     * The tips (mesh frame): `x y z nx ny nz stream` each (stream 0 low, 1 area, 4 rim, 5 hole, 6 island).
+     */
+    tips(): Float64Array;
+}
+
+/**
  * The review GLB data of `diagnose`: coloured layers, one per role (docs/SHIP-PLAN.md ABI).
  */
 export class Diagnosis {
@@ -647,6 +686,12 @@ export class GeometrySession {
      * [`denture_review`] with the host's rule overrides (`rules`, `rule_names()` order; empty keeps the defaults): the island tips and the low-tip admission (`lowOutsideAllowed`) apply.
      */
     denture_review_ruled(model: number, profile: string, tilt_deg: number, rules: Float64Array): DentureReviewResult | undefined;
+    /**
+     * The live tilt view (engine 32): the tips of one print tilt with, per tip, whether a support has a way down by the landing circle
+     * (`path` 0, `fallback` 1, `none` 2), and no supports built. The per-model work (rim, holes, masks, ray index, upright frame) is
+     * cached by the engine per model, so after the first call a tilt costs tens of milliseconds. `rules` as `denture_tilt_scan_ruled`.
+     */
+    denture_tilt_paths(model: number, profile: string, tilt_deg: number, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, rules: Float64Array): DentureTiltPaths;
     /**
      * Print-angle search of a denture from upright over the profile's range, with the host's
      * current support settings; rows as `dental_tilt_scan` (fitting-side tips and rim gap are 0).

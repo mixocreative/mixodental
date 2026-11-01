@@ -136,6 +136,14 @@ export interface GenerateRules {
   rimLowNeedsOverhang?: boolean;
   /** Last resort tier 2: how far the clearance steps down from the build's at each try, mm (default 0.25: 1.25 then 1.0). */
   lastResortClearanceStepMm?: number;
+  /** Denture tilt scan (default 0 = off, the old pick): above 0 the pick prefers the tilt whose tips have a way down by the landing circle (fewest lowest points without a path, then tips without, then tips with only a fallback), ahead of the boxed-in count and never over the safety tiers. */
+  landingTiltWeight?: number;
+  /** Landing circle: steepest rod, degrees from vertical (default 45). */
+  landingRodMaxDeg?: number;
+  /** Landing circle: spacing of the plate cells tried inside the circle, mm (default 1). */
+  landingCellStepMm?: number;
+  /** Landing circle: spacing of the height tests along a rod, mm (default 0.5). */
+  landingRodSampleMm?: number;
 }
 
 /** The override array's layout; mirrors Rust `supports::rules::NAMES` exactly (a test checks it against the wasm's `rule_names()`). */
@@ -153,6 +161,7 @@ export const RULE_NAMES: readonly string[] = [
   'branchRodMaxMm', 'outlineRodCapMm', 'helperRodMaxMm',
   'spaceMarginMm',
   'lastResort', 'lastResortOutlineAngleDeg', 'lastResortClearanceMm', 'rimLowNeedsOverhang', 'lastResortClearanceStepMm',
+  'landingTiltWeight', 'landingRodMaxDeg', 'landingCellStepMm', 'landingRodSampleMm',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */

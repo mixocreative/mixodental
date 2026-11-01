@@ -4,6 +4,7 @@
 // up/down cross-check, the rim scalars its front (22 values), and `diagnose_orientation` exists; now
 // 14: the denture profile - `orient_denture`, `denture_tilt_scan`, `denture_policy`, `denture_profile_ids`).
 // 19: denture review rim loop, hole loops + band, up decision; tip source tags low/area/rim/hole.
+// 32: denture speed round: `denture_tilt_paths` (the live tilt view: tips of one tilt with a path state each, by the landing circle), the scan result's `path_counts()`, rules landingTiltWeight / landingRodMaxDeg / landingCellStepMm / landingRodSampleMm (67 rule names); the per-model analysis is cached by the engine; the dental crease midlines are computed once per edge (same results).
 // 31: dentures: the last-resort tier for tips left out (rules lastResort, lastResortOutlineAngleDeg, lastResortClearanceMm, lastResortClearanceStepMm; the generate result lists them: take_last_resort_ids/tiers/clearances) and the dental rim low rule rimLowNeedsOverhang (denture policy/review report rim_lows_facing_up): 63 rule names.
 // 30: the space map (supports/skeleton/space.rs) replaces the route drop map and the outline footprint raster: rule outlineGridMm is now spaceCellMm (same slot, the map's cell edge), new spaceMarginMm (58 rule names); support placement is meant to stay equal.
 // 29: support rules - the trunk legs are replaced by the trunk support (helper pillar + short neck + braces): rule names legOverHeightMm..legDeeperAttach are now trunkSupportOverMm, trunkSupportOverTips, trunkNeckAngleDeg, trunkNeckMm, trunkSupportBelowJointMm, trunkDirections, trunkSpacingDiameters, trunkDeeperSupport (same slots); new trunkSecondHelperOverMm, trunkSupportMaxFrac, trunkBraceStepMm, trunkSupportMinMm, branchRodMaxMm, outlineRodCapMm, helperRodMaxMm (57 rule names); denture builds cap branch/merge rods at 8 mm and the outline rod at 15 mm and run the helper stage.
@@ -18,7 +19,7 @@
 // 20: denture review rim = low points joined over the mesh (rim_loops/rim_sizes/rim_closed/rim_edges/rim_info), holes by an axis ray grid (hole_outlines/hole_sizes/hole_info/hole_band_mask); rim_loop, rim_bridged, hole_loops, hole_edges removed.
 
 /** Must equal the Rust `engine_version()`; both change together on any ABI change. */
-export const HOST_GEOMETRY_VERSION = 31;
+export const HOST_GEOMETRY_VERSION = 32;
 
 /** Thrown when the loaded engine's `engine_version()` is not `HOST_GEOMETRY_VERSION` (code 'geometry-version-mismatch'). */
 export class GeometryVersionMismatch extends Error {

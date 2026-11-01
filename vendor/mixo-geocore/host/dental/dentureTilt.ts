@@ -1,4 +1,5 @@
 import { withDentalMesh } from './dentalEngine';
+import type { Vector } from '../core/vec3';
 import { decodeTiltScan, type TiltScan, type TiltScanSettings } from './dentalTilt';
 import type { TriangleMesh } from '../core/analysis/types';
 
@@ -18,4 +19,39 @@ export function scanDentureTilts(mesh: TriangleMesh, profile: string, settings: 
   onTilt?: (done: number, total: number) => void): TiltScan {
   return withDentalMesh(mesh, (session, model) => decodeTiltScan(session.denture_tilt_scan_ruled(model, profile,
     settings.neckLengthMm, settings.pillarDiameterMm, settings.liftMm, settings.braced, settings.rules ?? new Float64Array(), onTilt)));
+}
+
+/** How a tip fares in the landing-circle check: a rod to the plate at the normal clearance, only at the last-resort clearance, or none. */
+export type TipPathState = 'path' | 'fallback' | 'none';
+const PATH_STATES: readonly TipPathState[] = ['path', 'fallback', 'none'];
+
+/** One tilt for the live view: where its tips stand, how each fares, and the tilt's rotation. */
+export type TiltPaths =
+  | { kind: 'paths'; tiltDeg: number; rotation: Vector; tips: Array<{ position: Vector; normal: Vector; stream: number; state: TipPathState }>;
+    counts: { lowsWithout: number; without: number; fallbacks: number; tips: number }; overhangMm2: number }
+  | { kind: 'failed'; reason: string };
+
+/**
+ * The live tilt view (Rust `dental::denture::tilt_paths`): the tips of the print tilt `tiltDeg` (degrees from upright) with a path state each,
+ * no supports built. The engine caches the per-model work (rim, holes, masks, ray index), so after the first call a tilt takes tens of
+ * milliseconds. Tips are in the unit-local mesh frame; `rotation` turns the mesh into that pose. `settings.rules` as for the scan.
+ */
+export function denturePaths(mesh: TriangleMesh, profile: string, tiltDeg: number, settings: TiltScanSettings): TiltPaths {
+  return withDentalMesh(mesh, (session, model) => {
+    const r = session.denture_tilt_paths(model, profile, tiltDeg, settings.neckLengthMm, settings.pillarDiameterMm, settings.liftMm, settings.braced, settings.rules ?? new Float64Array());
+    try {
+      if (!r.ok()) return { kind: 'failed', reason: r.reason() };
+      const flat = r.tips();
+      const states = r.states();
+      const c = r.counts();
+      const rotation = r.rotation();
+      const tips = Array.from({ length: states.length }, (_, k) => ({
+        position: [flat[k * 7]!, flat[k * 7 + 1]!, flat[k * 7 + 2]!] as Vector, normal: [flat[k * 7 + 3]!, flat[k * 7 + 4]!, flat[k * 7 + 5]!] as Vector,
+        stream: flat[k * 7 + 6]!, state: PATH_STATES[states[k]!] ?? 'none',
+      }));
+      return { kind: 'paths', tiltDeg, rotation: [rotation[0]!, rotation[1]!, rotation[2]!], tips, counts: { lowsWithout: c[0]!, without: c[1]!, fallbacks: c[2]!, tips: c[3]! }, overhangMm2: r.overhang_mm2() };
+    } finally {
+      r.free();
+    }
+  });
 }
