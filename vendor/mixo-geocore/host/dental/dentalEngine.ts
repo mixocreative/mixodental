@@ -128,7 +128,7 @@ export interface DentureReviewResultLike {
   rim_lows_facing_up(): number;
   /** Faces of the self-supporting overhang regions (rule overhangSelfSupport, engine 38); empty with the rule off. */
   self_support_faces(): Uint32Array;
-  /** Tips the final guard refused (tipMaxFromDownDeg, engine 39): [rim, hole, area, other]. */
+  /** Tips the final guard refused (overhangAngleDeg, engine 39): [rim, hole, area, other]. */
   tips_dropped_facing_up(): Uint32Array;
   /** Tips skipped for a knife-sharp fold or a neck behind a nearby face (engine 39): [rim, hole, area, other]. */
   tips_skipped_fold(): Uint32Array;

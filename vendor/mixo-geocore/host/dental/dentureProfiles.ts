@@ -35,7 +35,6 @@ export interface DenturePlacement {
   bottomBandMm: number;
   barThicknessMaxMm: number;
   minimumProminenceMm: number;
-  tipMinFromUpDeg: number;
   hardEdgeDeg: number;
   middleEdgeNearMm: number;
   middleEdgeMinLengthMm: number;
@@ -97,7 +96,7 @@ const UPRIGHT_KEYS: readonly (keyof DentureUpright)[] = ['endBandFraction', 'leg
 const POSE_KEYS: readonly (keyof DenturePose)[] = ['tiltRangeDeg', 'tiltStepDeg', 'tiltMarginDeg', 'overhangAngleDeg', 'overhangTieFraction'];
 const PLACEMENT_OPTIONAL = ['dentalRimPitchMm', 'holePitchMm'] as const;
 const PLACEMENT_KEYS: readonly (keyof DenturePlacement)[] = ['tipPitchMm', 'barPitchMultiplier', 'lightPitchMultiplier', 'bottomBandMm', 'barThicknessMaxMm',
-  'minimumProminenceMm', 'tipMinFromUpDeg', 'tipMinFromUpBarDeg', 'hardEdgeDeg', 'middleEdgeNearMm', 'middleEdgeMinLengthMm', 'downEdgeMaxDeg', 'downBandMm', 'downPitchMm', 'rimBandMm', 'lowRimBandMm'];
+  'minimumProminenceMm', 'tipMinFromUpBarDeg', 'hardEdgeDeg', 'middleEdgeNearMm', 'middleEdgeMinLengthMm', 'downEdgeMaxDeg', 'downBandMm', 'downPitchMm', 'rimBandMm', 'lowRimBandMm'];
 const SUPPORT_NUMBERS = ['tipBallMm', 'frustumBaseMm', 'frustumHeightMm', 'pillarDiameterMm', 'liftHeightMm', 'biteDepthMm', 'upperDiameterMm', 'minClearanceMm', 'neckMaxShiftMm'] as const;
 const STABILITY_KEYS = ['maxSlendernessUnbraced', 'maxSlendernessBraced'] as const;
 

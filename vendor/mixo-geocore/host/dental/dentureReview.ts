@@ -100,7 +100,7 @@ export interface DentureReview {
   released: number;
   /** Local lows of the dental rim whose face points up: not forced, no tip (rule `rimLowNeedsOverhang`); counted apart from the left-out tips. */
   rimLowsFacingUp: number;
-  /** The final guard (rule tipMaxFromDownDeg, engine 39): tips refused for standing on a face not within the limit of straight down, per source, and the island / lowest-point tips on a face that is not down-facing (misidentified lows). */
+  /** The final guard (rule overhangAngleDeg, engine 39): tips refused for standing on a face not within the limit of straight down, per source, and the island / lowest-point tips on a face that is not down-facing (misidentified lows). */
   tipsDroppedFacingUp: { rim: number; hole: number; area: number; other: number; total: number };
   /** Tips skipped for a knife-sharp fold (averaged normal nearly zero) or a neck that would enter the material behind a nearby face (engine 39). */
   tipsSkippedFold: { rim: number; hole: number; area: number; other: number; total: number };

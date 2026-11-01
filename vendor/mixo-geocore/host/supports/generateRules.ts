@@ -188,8 +188,10 @@ export interface GenerateRules {
   overhangMaxReachMm?: number;
   /** Self-supporting overhangs: a region whose flattest face is within this many degrees of horizontal keeps its tips (default 19). */
   overhangMinAngleDeg?: number;
-  /** Tip facing guard (default 60 since engine 43, was 45; 0 off): after the print tilt, a tip stands only where its averaged outward normal (tipNormalRadiusMm) is within this many degrees of straight down. The denture placement drops rim, hole-band and area tips that fail (counted per stream, never silent). Since engine 41 the denture placement and the generate step hold EVERY automatic tip of every policy to it (generic, aligner, denture lowest-point tips included; island tips to islandMaxFromDownDeg): one that fails, or stands on a knife-sharp fold, is left out with the reason tip-check:facing (or tip-check:fold). Hand-placed tips are exempt from this rule only (supports::tip_check). */
-  tipMaxFromDownDeg?: number;
+  /** Overhang angle (engine 57, default 45; replaces tipMaxFromDownDeg): the slope of a surface measured from horizontal, degrees (industry convention: 0 = a flat ceiling facing straight down, 90 = a vertical wall). A face needs support, and a tip may stand on it, when it points downward and its slope is BELOW this angle (flatter than the limit). It is the global value: the denture open-area and hole-band tips inherit it (generic units are placed by their scatterAngle setting, labelled Overhang angle in the apps, the same convention; the final guard judges exact-contact denture tips only); dentalRimOverhangAngleDeg and islandOverhangAngleDeg override it for their streams. Judged after the print tilt on the tip's averaged outward normal (tipNormalRadiusMm): the denture placement drops tips that fail (counted per stream, never silent), and the generate step holds every automatic exact-contact (denture) tip to it: one that fails, or stands on a knife-sharp fold, is left out with the reason tip-check:facing (or tip-check:fold). Hand-placed tips are exempt from this rule only (supports::tip_check). Range 0 to 90. */
+  overhangAngleDeg?: number;
+  /** Dental rim overhang angle (engine 57, default 60): overhangAngleDeg for the dental rim line and rim band tips (slope from horizontal, 0 = flat ceiling, 90 = vertical wall; a tip needs a face flatter than it). Range 0 to 90. */
+  dentalRimOverhangAngleDeg?: number;
   /** Dental rim  (engine 39, default true): a rim, hole-band or area tip is skipped when its neck (along the tip's averaged normal, tipNormalRadiusMm) would enter the material behind a face within that radius (a knife-edge lip); a local low that is a true model lowest point is kept. Needs tipNormalRadiusMm above 0. */
   rimApproachOutside?: boolean;
   /** Tip direction (default 0.5 mm; 0 off): a tip's direction is the area-weighted average of the source-mesh face normals within this radius of its point (never the single most-downward adjacent face); the position never moves (supports::tip_orient). Dentures since engine 39; since engine 41 also every generic and aligner face or edge tip (in place of the remesh normal). Since engine 41 a face turned away from the face the tip stands on (the far side of a lip thinner than the radius, reached round its edge) does not vote. An average that is nearly zero gets no tip, counted in the review. */
@@ -252,8 +254,8 @@ export interface GenerateRules {
   tipInsideCheck?: boolean;
   /** Tip check: how far past the contact along the neck the centre line starts to count, mm (default 0.1): the tip itself sits in the surface. */
   tipInsideSkipMm?: number;
-  /** Island tips' facing limit (engine 41, default 60 since engine 43, was 50; 0 off): an island tip (an island's lowest point, denture or generic) stands only where its averaged normal is within this many degrees of straight down; past it the tip is not placed (the denture counts it, generate leaves it out as tip-check:facing) and the island is reported unsupported. Lowest-point tips are held to tipMaxFromDownDeg. */
-  islandMaxFromDownDeg?: number;
+  /** Island and lowest-point overhang angle (engine 57, default 60; replaces islandMaxFromDownDeg): overhangAngleDeg for island tips (an island's lowest point, denture or generic) and denture lowest-point tips, slope from horizontal (0 = flat ceiling, 90 = vertical wall). A tip stands only where its averaged normal has a slope below it; past it the tip is not placed (the denture counts it, generate leaves it out as tip-check:facing) and the island is reported unsupported. Range 0 to 90. */
+  islandOverhangAngleDeg?: number;
   /** Tip check, the cone's flank (engine 41, default 0.3 mm; 0 off): from this distance along the neck to the neck's end, points round the neck cone at its radius stay outside the model, so a neck leaning far from the surface normal never cuts its flank into the surface beside the tip; the route search leans it less or reroutes, else the tip is left out (tip-check:cone). */
   tipSkinFromMm?: number;
   /** Landing circle: steepest lean that still counts as a normal path, degrees from vertical (default 45; the fallback tier uses lastResortOutlineAngleDeg). */
@@ -297,9 +299,9 @@ export const RULE_NAMES: readonly string[] = [
   'noSupportSteepDeg',
   'raftGrid', 'raftMapOutline', 'raftGridBottomMm', 'raftGridTopMm', 'raftRibMm', 'raftRibPitchMm', 'raftRimMm', 'raftPadMarginMm',
   'overhangSelfSupport', 'overhangMinAreaMm2', 'overhangMaxReachMm', 'overhangMinAngleDeg',
-  'tipMaxFromDownDeg', 'rimApproachOutside', 'tipNormalRadiusMm',
+  'overhangAngleDeg', 'rimApproachOutside', 'tipNormalRadiusMm',
   'overhangSelfSupportStreams', 'rimRespectsNoSupport',
-  'tipInsideCheck', 'tipInsideSkipMm', 'islandMaxFromDownDeg', 'tipSkinFromMm',
+  'tipInsideCheck', 'tipInsideSkipMm', 'islandOverhangAngleDeg', 'tipSkinFromMm',
   'socketNoSupport', 'socketMinDepthMm', 'socketTunnelMaxMm2',
   'trapCheck', 'trapMinDepthMm', 'trapVentMaxMm2', 'suctionAreaMm2', 'suctionVolumeMm3', 'drainAspectRatio', 'drainVolumeMm3', 'drainSocketDepthMm',
   'areaDensity', 'areaRefMm2', 'areaDenseFloor', 'areaSteepLighten', 'areaMinPitchMm', 'areaMaxPitchMm',
@@ -308,6 +310,7 @@ export const RULE_NAMES: readonly string[] = [
   'raftRibTopMm', 'raftGridWallAngle',
   'partDebrisMm',
   'plateGapMm',
+  'dentalRimOverhangAngleDeg',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */

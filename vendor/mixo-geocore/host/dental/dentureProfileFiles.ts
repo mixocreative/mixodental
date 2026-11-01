@@ -38,7 +38,6 @@ export const DENTURE_PROFILE_FILES: Readonly<Record<string, unknown>> = {
       "bottomBandMm": 6,
       "barThicknessMaxMm": 5,
       "minimumProminenceMm": 1.5,
-      "tipMinFromUpDeg": 110,
       "tipMinFromUpBarDeg": 150,
       "hardEdgeDeg": 50,
       "middleEdgeNearMm": 3,

@@ -1372,7 +1372,7 @@ export class DentureReviewResult {
         return v1;
     }
     /**
-     * Tips the final guard refused (`tipMaxFromDownDeg`, engine 39), `[rim, hole, area, other]`.
+     * Tips the final guard refused (`overhangAngleDeg`, engine 39), `[rim, hole, area, other]`.
      * @returns {Uint32Array}
      */
     tips_dropped_facing_up() {
@@ -3538,7 +3538,7 @@ export class PolicyHandle {
      * `dentalModelLanding` is 0 (denture builds only; replaces the earlier list). The UI bubble "support from model surface" fills it.
      * An id of a lowest point the policy placed no tip on (`denture-low-unreached-<k>`, the unresolved report's `lowest` entries with
      * no tip) also makes that point a candidate (engine 51, `dental::denture::model_landing::admit`). An island id (`island-<vertex>`, the
-     * report's bare islands) makes `generate` put a tip at that island's lowest vertex when it faces within `islandMaxFromDownDeg` of
+     * report's bare islands) makes `generate` put a tip at that island's lowest vertex when it faces within `islandOverhangAngleDeg` of
      * straight down (engine 54, `supports::generate::island_admit`).
      * @param {string[]} ids
      */
