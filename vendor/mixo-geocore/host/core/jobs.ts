@@ -62,6 +62,8 @@ export interface PlacementJob {
   mesh: TriangleMesh;
   orientation: JobTransform;
   settings: PlacementSettings;
+  /** Overrides of the engine's planner rules the placement reads (engine 47: `areaDensity`, the edge rules; absent: `GENERATE_RULES`, then the engine's defaults). */
+  rules?: GenerateRules;
 }
 
 /** Dental (host/dental): automatic placement restricted to an accepted, unit-local dental support policy. */

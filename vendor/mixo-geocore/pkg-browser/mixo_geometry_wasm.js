@@ -2528,15 +2528,19 @@ export class GeometrySession {
         return Generation.__wrap(ret[0]);
     }
     /**
-     * Automatic contacts of a loaded model (already in the frame they are wanted in).
+     * Automatic contacts of a loaded model (already in the frame they are wanted in). `rules` (optional, engine 47): the
+     * `supports::rules::NAMES` override array (`areaDensity`, the edge rules); absent or NaN entries keep the engine defaults.
      * @param {number} model
      * @param {Float64Array} settings
+     * @param {Float64Array | null} [rules]
      * @returns {GenericPlacement}
      */
-    generic_place(model, settings) {
+    generic_place(model, settings, rules) {
         const ptr0 = passArrayF64ToWasm0(settings, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
-        const ret = wasm.geometrysession_generic_place(this.__wbg_ptr, model, ptr0, len0);
+        var ptr1 = isLikeNone(rules) ? 0 : passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+        var len1 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_generic_place(this.__wbg_ptr, model, ptr0, len0, ptr1, len1);
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }

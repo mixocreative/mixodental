@@ -859,9 +859,10 @@ export class GeometrySession {
      */
     generate(model: number, ids: string[], contacts: Float64Array, shapes: Float64Array, settings: Float64Array, mode: number, label_text: string, zones: Float64Array, policy: PolicyHandle, limits: Float64Array, rules: Float64Array, revision: number, plate_y: number, frame: Float64Array): Generation;
     /**
-     * Automatic contacts of a loaded model (already in the frame they are wanted in).
+     * Automatic contacts of a loaded model (already in the frame they are wanted in). `rules` (optional, engine 47): the
+     * `supports::rules::NAMES` override array (`areaDensity`, the edge rules); absent or NaN entries keep the engine defaults.
      */
-    generic_place(model: number, settings: Float64Array): GenericPlacement;
+    generic_place(model: number, settings: Float64Array, rules?: Float64Array | null): GenericPlacement;
     /**
      * The generic policy of a unit as a `PolicyHandle` for `generate`: its contacts (automatic
      * minus deleted and zoned, plus manual; unit-local), every face of `model` permitted, the

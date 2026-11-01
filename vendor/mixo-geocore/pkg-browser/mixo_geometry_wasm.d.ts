@@ -793,9 +793,10 @@ export class GeometrySession {
      */
     generate(model: number, ids: string[], contacts: Float64Array, shapes: Float64Array, settings: Float64Array, mode: number, label_text: string, zones: Float64Array, policy: PolicyHandle, limits: Float64Array, rules: Float64Array, revision: number, plate_y: number, frame: Float64Array): Generation;
     /**
-     * Automatic contacts of a loaded model (already in the frame they are wanted in).
+     * Automatic contacts of a loaded model (already in the frame they are wanted in). `rules` (optional, engine 47): the
+     * `supports::rules::NAMES` override array (`areaDensity`, the edge rules); absent or NaN entries keep the engine defaults.
      */
-    generic_place(model: number, settings: Float64Array): GenericPlacement;
+    generic_place(model: number, settings: Float64Array, rules?: Float64Array | null): GenericPlacement;
     /**
      * The generic policy of a unit as a `PolicyHandle` for `generate`: its contacts (automatic
      * minus deleted and zoned, plus manual; unit-local), every face of `model` permitted, the
@@ -1409,7 +1410,7 @@ export interface InitOutput {
     readonly geometrysession_diagnose_orientation: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly geometrysession_empty_policy: (a: number) => number;
     readonly geometrysession_generate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number) => [number, number, number];
-    readonly geometrysession_generic_place: (a: number, b: number, c: number, d: number) => [number, number, number];
+    readonly geometrysession_generic_place: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
     readonly geometrysession_generic_policy: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number, x: number, y: number) => [number, number, number];
     readonly geometrysession_load_mesh: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
     readonly geometrysession_load_mesh_indexed: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => [number, number, number];

@@ -212,7 +212,7 @@ export interface GenerateRules {
   drainVolumeMm3?: number;
   /** Drain / clean: a tooth socket (socketMinDepthMm, R2's faces removed) at least this deep is reported hard to clean, mm (default 3: a socket is a few mm wide, so past 3 mm it is deeper than wide and a brush does not reach the floor, where uncured resin weakens the tooth's bond). */
   drainSocketDepthMm?: number;
-  /** Denture tips by overhang area (engine 45, default false; true on): the open-area overhang faces (outside the rim band and the hole band) are joined into connected regions and each region's grid pitch is downPitchMm x f(A) x g(c), clamped to areaMinPitchMm..areaMaxPitchMm, where A is the region's projected area (what the vat film sees) and c its mean steepness: a large flat face-down area peels or sags, so its tips stand closer. f(A) = 1 up to areaRefMm2, else max(areaDenseFloor, sqrt(areaRefMm2 / A)); g(c) = 1 + areaSteepLighten x (1 - c) / 0.5. The rim line, rim band and hole band keep their fixed pitches (dentalRimPitchMm, holePitchMm). The review lists every region (area, steepness, height, pitch, tips). Off: every region takes downPitchMm, as before. */
+  /** Tips by overhang area (engine 45; opt-in, default false: the area spacing is global, downPitchMm for dentures and Spacing for generic; on by default in engine 47 only): with true the open-area overhang faces (dentures: outside the rim band and the hole band; generic since engine 47: the Poisson field's overhang faces) are joined into connected regions and each region's pitch is base x f(A) x g(c), clamped to areaMinPitchMm..areaMaxPitchMm (widened to include the base), where the base is downPitchMm or Spacing, A is the region's projected area (what the vat film sees) and c its mean steepness: a large flat face-down area peels or sags, so its tips stand closer. f(A) = 1 up to areaRefMm2, else max(areaDenseFloor, sqrt(areaRefMm2 / A)); g(c) = 1 + areaSteepLighten x (1 - c) / 0.5. The edge streams never take these pitches (they keep the global spacing). Island and lowest-point tips are never moved or dropped by it. The review lists every region (area, steepness, height, pitch, tips). Aligners are not affected. */
   areaDensity?: boolean;
   /** Tips by area: regions up to this projected area keep the base pitch, mm2 (default 50). */
   areaRefMm2?: number;
@@ -224,6 +224,12 @@ export interface GenerateRules {
   areaMinPitchMm?: number;
   /** Tips by area: the hard ceiling of a region's pitch, mm (default 3.0). */
   areaMaxPitchMm?: number;
+  /** Edge corners (engine 47; default 45 degrees; 0 off): every turn of an edge line (a denture rim stretch, a generic region border or ridge) sharper than this gets a tip exactly at it (generic: inset into the face by edgeInset like every anchor), and between two corners (or the ends of a stretch) the edge holds a whole number of equal gaps no longer than its pitch: the global spacing (downPitchMm, Spacing) unless dentalRimPitchMm / genericEdgePitchMm is set. The denture rim line is first cut into the stretches where a tip may stand (the averaged tip direction overhangs within tipMaxFromDownDeg, no knife-sharp fold or inward neck, and not dropped by socketNoSupport, rimRespectsNoSupport or overhangSelfSupportStreams when on); a lowest-point or island tip on the line ends a stretch a rim pitch before it; a stretch shorter than half its pitch gets one tip at its lowest point. Corner tips pass the same hard rules (facing, path) as every edge tip. */
+  edgeCornerDeg?: number;
+  /** Edge corners: the edge length either side (mm, default 1.0) over which a turn is measured, so a scan line's zigzag along its triangles is no corner; within one span only the sharpest turn counts. */
+  edgeCornerSpanMm?: number;
+  /** Generic edge pitch (engine 47; default unset = the global Spacing): when set (mm, > 0) the generic border and ridge anchors are spaced at this value. */
+  genericEdgePitchMm?: number;
   /** Contact fit (engine 45, exact-contact builds only, default false; true on): the controlled contact loop. Each tip's real contact patch is measured, not assumed: contactFitRays straight lines of the cone surface run up from the cone's end and where each crosses the model near the contact is a point of the real ring (the faces near every contact are copied once per build); the bite (how far the cone's end sits below the contact along its axis) is bisected until the ring's area-equivalent diameter is within contactFitTolMm of the nominal contact diameter (tipBallMm), so on a curved surface or a turned neck the contact stays the same size and breaks clean. The route planner judges the same end the builder builds. A ring that hangs off an edge (more than a quarter of the lines miss) or does not converge keeps the analytic end; no tip is moved or dropped. Off: the analytic end, as before. */
   contactFit?: boolean;
   /** Contact fit: accept a ring whose equivalent diameter is within this of the nominal diameter, mm (default 0.03). */
@@ -290,6 +296,7 @@ export const RULE_NAMES: readonly string[] = [
   'trapCheck', 'trapMinDepthMm', 'trapVentMaxMm2', 'suctionAreaMm2', 'suctionVolumeMm3', 'drainAspectRatio', 'drainVolumeMm3', 'drainSocketDepthMm',
   'areaDensity', 'areaRefMm2', 'areaDenseFloor', 'areaSteepLighten', 'areaMinPitchMm', 'areaMaxPitchMm',
   'contactFit', 'contactFitTolMm', 'contactFitRays', 'contactFitMaxIters', 'contactFitMaxBiteFactor',
+  'edgeCornerDeg', 'edgeCornerSpanMm', 'genericEdgePitchMm',
 ];
 
 /** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */
