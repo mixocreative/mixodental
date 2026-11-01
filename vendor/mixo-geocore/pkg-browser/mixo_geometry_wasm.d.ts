@@ -1031,7 +1031,7 @@ export class PolicyHandle {
      */
     candidate_points(): Float64Array;
     /**
-     * A denture policy's part id of every face of the file (the layer "Parts"); empty for any other policy.
+     * A dental policy's part id of every face of the file (the layer "Parts"); empty for any other policy.
      */
     face_parts(): Uint32Array;
     /**
@@ -1048,8 +1048,9 @@ export class PolicyHandle {
      */
     landing_rule(): number;
     /**
-     * A denture policy's parts (engine 50), 6 numbers each: part id, role (0 target: the dental tips; 1 add-on: generic tips on its
-     * own faces; 2 debris: no tips), triangles, volume mm3, area mm2, candidates placed on it. Empty for any other policy.
+     * A dental policy's parts (dentures engine 50, aligners engine 56), 6 numbers each: part id, role (0 target: the dental tips;
+     * 1 add-on: generic tips on its own faces; 2 debris: no tips; 3 fused: joined to the target, printed with it, generic tips
+     * on its exposed faces only), triangles, volume mm3, area mm2, candidates placed on it. Empty for any other policy.
      */
     part_list(): Float64Array;
     /**

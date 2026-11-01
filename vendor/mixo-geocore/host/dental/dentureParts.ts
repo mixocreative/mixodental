@@ -4,14 +4,23 @@
  * the target and gets the dental tips, a smaller part (hook, attachment) is an add-on and gets generic tips on its own faces,
  * a part smaller across than the rule `partDebrisMm` is debris and gets none. Every part is an obstacle to every support.
  * The policy handle (`part_list()`, `face_parts()`) and the review (`part_list()`, `face_parts()`) carry them; this decodes them.
+ * Engine 56 (aligners too, Rust `dental::aligner_parts`, and dentures): a part that overlaps or touches the target is `fused`
+ * (the slicer prints the two as one solid; still its own shell and an obstacle): its faces inside or against another part get no
+ * tips, its exposed faces get generic tips where they overhang. The aligner policy handle carries the list (`placement.ts`).
  */
 
 /** Numbers per part in the flat list (Rust `FileParts::list`). */
 export const PART_STRIDE = 6;
 
-export type PartRole = 'target' | 'addOn' | 'debris';
+export type PartRole = 'target' | 'addOn' | 'debris' | 'fused';
 
-const ROLES: readonly PartRole[] = ['target', 'addOn', 'debris'];
+const ROLES: readonly PartRole[] = ['target', 'addOn', 'debris', 'fused'];
+
+/** The parts of a file as a policy or review reports them: the part list and the part id of every face. */
+export interface FileParts {
+  parts: DenturePart[];
+  faceParts: Uint32Array;
+}
 
 /** One part of a file. */
 export interface DenturePart {
@@ -35,6 +44,6 @@ export function decodeParts(flat: ArrayLike<number>): DenturePart[] {
 }
 
 /** The parts a handle or review result reports, with the part id of every face (`faceParts`, the layer "Parts"); empty before engine 50. */
-export function partsOf(source: { part_list?(): Float64Array; face_parts?(): Uint32Array }): { parts: DenturePart[]; faceParts: Uint32Array } {
+export function partsOf(source: { part_list?(): Float64Array; face_parts?(): Uint32Array }): FileParts {
   return { parts: decodeParts(source.part_list?.() ?? new Float64Array()), faceParts: source.face_parts?.() ?? new Uint32Array() };
 }
