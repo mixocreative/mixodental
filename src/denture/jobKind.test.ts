@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DENTURE_PROFILE_ID, isDentureJob, jobKindOf } from './jobKind';
+import { DENTURE_PROFILE_ID, isDentureJob, jobKindOf, tiltStepOf } from './jobKind';
 
 describe('jobKind', () => {
   it('starts a denture job on the reference denture profile', () => {
@@ -12,5 +12,10 @@ describe('jobKind', () => {
     expect(jobKindOf('reference-aligner')).toBe('aligner');
     expect(jobKindOf(undefined)).toBe('aligner');
     expect(isDentureJob('no-such-profile')).toBe(false);
+  });
+
+  it('reads the dial step from the profile family of the job', () => {
+    expect(tiltStepOf(DENTURE_PROFILE_ID)).toBe(2);
+    expect(tiltStepOf('reference-aligner')).toBeGreaterThan(0);
   });
 });

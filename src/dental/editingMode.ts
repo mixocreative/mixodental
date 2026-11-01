@@ -5,6 +5,7 @@ import { registerEditMode, type SessionKit } from '@mixo-geocore/editing/modes';
 import type { EditSession, SessionEvent } from '@mixo-geocore/editing/session';
 import type { EditTool, StatusMessage } from '@mixo-geocore/editing/types';
 import type { DentalProposal } from '@mixo-geocore/host/dental/dental';
+import { stageAfterOrientation, stageBeforeSupports } from '../denture/state/dentureStages';
 
 /*
  * The dental flow as an app mode of the shared editor (mixo-geocore editing/modes.ts): its session
@@ -20,7 +21,7 @@ export type DentalAligner = 'prompt' | 'loading' | 'ready';
 /** A message the dental bar shows in a step; `bad-file` carries the import error line. */
 export type DentalNotice =
   | { kind: 'bad-file'; message: StatusMessage }
-  | { kind: 'failed' } | { kind: 'uncertain' } | { kind: 'holes' } | { kind: 'mismatch' } | { kind: 'no-area' }
+  | { kind: 'failed' } | { kind: 'denture-failed' } | { kind: 'uncertain' } | { kind: 'holes' } | { kind: 'mismatch' } | { kind: 'no-area' }
   /** Step 2: the print-angle confirm moved the automatic pick to this tilt (degrees, shown to 0.1). */
   | { kind: 'angle-moved'; deg: number };
 
@@ -36,6 +37,8 @@ export type DentalEvent =
   | { type: 'dentalLoading'; unitId?: string }
   | { type: 'dentalOriented'; proposal: Proposal; notices: readonly DentalNotice[] }
   | { type: 'dentalOrientFailed'; notices: readonly DentalNotice[] }
+  /** A denture is upright and its print angles are scanned (it has no aligner proposal). */
+  | { type: 'dentureOriented'; notices?: readonly DentalNotice[] }
   | { type: 'dentalBadFile'; message: StatusMessage }
   | { type: 'dismissDentalNotice'; kind: DentalNotice['kind'] }
   | { type: 'acceptDentalOrientation'; noArea?: boolean; angleMovedDeg?: number }
@@ -110,7 +113,7 @@ declare module '@mixo-geocore/editing/commands' {
 
 const isDentalEvent = (event: SessionEvent): event is DentalEvent => DENTAL_EVENTS.has(event.type);
 const DENTAL_EVENTS = new Set<string>(['enterDental', 'chooseDentalProfile', 'startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
-  'dentalOrientFailed', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
+  'dentalOrientFailed', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
   'addAnotherDental', 'backDental', 'setDentalRadius']);
 
 const finished = (state: EditSession, unitId: string): readonly string[] => (state.dentalFinished.includes(unitId) ? state.dentalFinished : [...state.dentalFinished, unitId]);
@@ -146,6 +149,10 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'loading'
         ? { ...state, dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: event.notices }
         : state;
+    case 'dentureOriented':
+      return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'loading'
+        ? { ...state, dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: event.notices ?? [] }
+        : state;
     case 'dentalBadFile':
       return state.mode === 'dental' && state.dentalStage === 'aligner'
         ? { ...state, dentalAligner: 'prompt', dentalProposal: undefined, dentalNotices: [{ kind: 'bad-file', message: event.message }] }
@@ -155,6 +162,10 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
         ? { ...state, dentalNotices: state.dentalNotices.filter((notice) => notice.kind !== event.kind) }
         : state;
     case 'acceptDentalOrientation':
+      // A denture goes straight to its supports (no support-area step), on Add like Step 3 of an aligner.
+      if (state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready' && stageAfterOrientation(state.dentalProfile) === 'review') {
+        return { ...state, dentalStage: 'review', dentalNotices: [], tool: 'add', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION };
+      }
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready'
         ? { ...state, dentalStage: 'area', tool: 'paint', addAction: 'add', selection: NO_SELECTION, dentalNotices: [...(event.noArea ? [{ kind: 'no-area' as const }] : []), ...(event.angleMovedDeg === undefined ? [] : [{ kind: 'angle-moved' as const, deg: event.angleMovedDeg }])] }
         : state;
@@ -174,7 +185,9 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
     case 'backDental':
       if (state.mode !== 'dental') return state;
       switch (state.dentalStage) {
-        case 'review': return { ...state, dentalStage: 'area', tool: 'paint', selection: NO_SELECTION, shiftHeld: false };
+        case 'review': return stageBeforeSupports(state.dentalProfile) === 'aligner'
+          ? { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalNotices: [], selection: NO_SELECTION, shiftHeld: false }
+          : { ...state, dentalStage: 'area', tool: 'paint', selection: NO_SELECTION, shiftHeld: false };
         case 'area': return { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalNotices: [] };
         case 'aligner': return { ...state, dentalStage: 'type', dentalAligner: 'prompt', dentalProposal: undefined, dentalNotices: [], dentalUnitId: undefined };
         case 'type': return state;

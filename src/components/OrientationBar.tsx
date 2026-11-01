@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import type { SessionEvent } from '@mixo-geocore/editing/session';
 import { profileById, profilesWithoutOpening } from '@mixo-geocore/host/dental/alignerProfiles';
@@ -27,8 +28,9 @@ export interface DentalFreeControls {
  * orientation, the print-angle range and dial, Free transform, the notices with their type-mismatch
  * choice, and Back | Next as one full-width row. Exit lives in the nav bar. `tilt` and `onTilt` are
  * the live print-angle search and its turn-the-model callback. `free` is absent outside Free transform.
+ * `children` (a job's own lines, e.g. the denture's live tip legend) sit under the dial, hidden in Free transform.
  */
-export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, onTilt, free }: {
+export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, onTilt, free, children }: {
   notices: readonly DentalNotice[];
   profile: string | undefined;
   lang: Lang;
@@ -38,6 +40,7 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
   tilt?: DentalTiltState | undefined;
   onTilt?: (index: number) => void;
   free?: DentalFreeControls;
+  children?: ReactNode;
 }) {
   const current = profileById(profile);
   const alternatives = profilesWithoutOpening();
@@ -60,6 +63,7 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
       {tilt && profile ? <div className="orient-row">
         <PrintAngleField tilt={tilt} profile={profile} onChoose={(index) => onTilt?.(index)} />
       </div> : null}
+      {children ? <div className="orient-row orient-extra" data-ui="orient-extra">{children}</div> : null}
       <div className="orient-row orient-free">
         <button type="button" className="orient-free-btn" onClick={() => free?.ask()}>{t('Free transform')}</button>
       </div>

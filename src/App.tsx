@@ -38,6 +38,9 @@ import { currentDentalPreview, shownDentalPreview, useDentalPreview } from './co
 import { useDentalTuning } from './components/useDentalTuning';
 import { useAreaRisks } from './components/useAreaRisks';
 import { useDentalFlow } from './components/useDentalFlow';
+import { useDentureJob } from './denture/useDentureJob';
+import { isDentureJob } from './denture/jobKind';
+import { LiveTipSummary } from './denture/steps/orient/LiveTipSummary';
 import { useFreeTransform } from './components/useFreeTransform';
 import type { DentalFreeControls } from './components/OrientationBar';
 import { useProjectFile } from './components/useProjectFile';
@@ -544,9 +547,15 @@ export default function App() {
   const dentalFlow = useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, session, setStatus, requestView, setGizmoMode, unitName });
   // Step 1 Free transform (PD.11 S6): confirm marks the rotation as the operator's; Auto orient restores the stored pose.
   const free = useFreeTransform(`${session.dentalStage}:${session.dentalUnitId}`);
+  // The denture job (src/denture) runs Step 1 in its own worker; `orientFlow` is the flow of the job in the step.
+  const denture = useDentureJob({ dispatch, send, sceneRef, sessionRef, session, freeTransform: free.free, setStatus, requestView });
+  const orientFlow = denture.active ? denture.orient : dentalFlow;
+  const orientRef = useRef(orientFlow);
+  orientRef.current = orientFlow;
   const dentalFree: DentalFreeControls = { on: free.free, asking: free.asking, ask: free.ask, cancel: free.cancel,
-    confirm: () => { dentalFlow.markHand(); free.confirm(); }, autoOrient: () => { dentalFlow.useDetected(); free.leave(); } };
-  const startDentalAligner = dentalFlow.startAligner;
+    confirm: () => { orientFlow.markHand(); free.confirm(); }, autoOrient: () => { orientFlow.useDetected(); free.leave(); } };
+  // Read at call time: the start screen sends the job and its file in one step, before a render.
+  const startDentalAligner = useCallback((unit: PrintUnit) => (isDentureJob(sessionRef.current.dentalProfile) ? denture.orient.start(unit) : dentalFlow.startAligner(unit)), [denture.orient.start, dentalFlow.startAligner]);
 
   // ---- Import --------------------------------------------------------------------------
   const importFiles = useCallback(async (files: readonly File[]) => {
@@ -994,8 +1003,8 @@ export default function App() {
       case 'transform.rotate': return setGizmoMode('rotate');
       case 'supports.generate': return generate();
       case 'supports.dentalAuto': return send({ type: 'enterDental' });
-      case 'dental.useDetected': return dentalFlow.useDetected();
-      case 'dental.next': return dentalFlow.next();
+      case 'dental.useDetected': return orientRef.current.useDetected();
+      case 'dental.next': return orientRef.current.next();
       case 'dental.generate': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
         if (!unit || sessionRef.current.mode !== 'dental' || sessionRef.current.dentalStage !== 'area') return;
@@ -1015,15 +1024,18 @@ export default function App() {
         // Back at Step 1 returns to the start's aligner type; the loaded aligner stays on the plate.
         if (sessionRef.current.dentalStage === 'aligner') {
           dentalFlow.invalidate();
+          denture.orient.invalidate();
           setBackAsk(false);
+          const kindScreen = denture.active ? 'task' : 'type';
           send({ type: 'exit' });
-          return setStartScreen('type');
+          return setStartScreen(kindScreen);
         }
         return send({ type: 'backDental' });
       }
       case 'dental.exit': {
         // Whatever Step 1 or Step 2 still reads or detects is dropped.
         dentalFlow.invalidate();
+        denture.orient.invalidate();
         // The aligner being worked on goes back to a normal model without supports; finished aligners stay as they are.
         const { dentalUnitId, dentalFinished } = sessionRef.current;
         const current = sceneRef.current.units.find((candidate) => candidate.id === dentalUnitId);
@@ -1131,7 +1143,7 @@ export default function App() {
   // What the registry's rules read (editing/commands); Undo stops at the mode's floor.
   const ui: UiState = {
     mode: editMode, activeName: activeUnit?.name, supported: scene.units.some((unit) => unit.supports), zones: activeUnit?.zones.length ?? 0, exporting, active: Boolean(activeUnit), heavy: activeHeavy, units: scene.units.length, selectedObjects: selectedCount, tool: session.tool, addAction: session.addAction, method: session.selectStyle, dragAction: effectiveBrushMode(session.brushMode, session.shiftHeld),
-    selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalStage: session.dentalStage, dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: dentalFlow.tilt?.unitId === activeUnit?.id && (dentalFlow.tilt?.status === 'scanning' || (dentalFlow.tilt?.status === 'ready' && dentalFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal), canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
+    selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalStage: session.dentalStage, dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: orientFlow.tilt?.unitId === activeUnit?.id && (orientFlow.tilt?.status === 'scanning' || (orientFlow.tilt?.status === 'ready' && orientFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal) || (denture.active && denture.orient.proposed), canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
   };
   const command = (id: CommandId) => resolve(id, ui);
   // Dental Step 3's settings, findings and the answer to Back (see components/DentalSupports).
@@ -1299,7 +1311,7 @@ export default function App() {
           {...(viewRequest ? { viewRequest } : {})}
           tipsView={tipsOnly.shown}
           onBelowPlate={onBelowPlate}
-          {...(activeUnit && debugShown.length > 0 ? { debugLayers: { unitId: activeUnit.id, layers: debugShown } } : {})}
+          {...(activeUnit && debugShown.length + (denture.orient.tipLayers?.layers.length ?? 0) > 0 ? { debugLayers: { unitId: activeUnit.id, layers: [...debugShown, ...(denture.orient.tipLayers?.unitId === activeUnit.id ? denture.orient.tipLayers.layers : [])] } } : {})}
         />
         {activeUnit && session.mode === 'dental' && session.dentalProfile ? <DebugSection open={debug.open} onOpenChange={debug.setOpen} status={debug.status} layers={debug.layers} visible={debug.visible} onToggle={debug.toggle} /> : null}
         {orienting ? null : (
@@ -1325,7 +1337,7 @@ export default function App() {
           <div className="viewport-note">{t('Millimetres. Build plate at zero.')}</div>
         </> : press.kind === 'zones'
           ? <ZonesBar brush={press.brush} unitName={activeUnit?.name} belowPlate={tips.below} hidden={zonesHidden} ui={ui} send={send} run={runCommand} />
-          : press.kind === 'dental-type' || press.kind === 'dental-aligner' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} onTuningChange={dentalTuning.change} tilt={dentalFlow.tilt?.unitId === activeUnit?.id ? dentalFlow.tilt : undefined} onTilt={dentalFlow.chooseTilt} free={dentalFree} send={send} run={runCommand} />
+          : press.kind === 'dental-type' || press.kind === 'dental-aligner' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} onTuningChange={dentalTuning.change} tilt={orientFlow.tilt?.unitId === activeUnit?.id ? orientFlow.tilt : undefined} onTilt={orientFlow.chooseTilt} free={dentalFree} orientExtra={denture.active ? <LiveTipSummary counts={denture.orient.counts} /> : undefined} send={send} run={runCommand} />
           : <EditBar gesture={press} unitName={activeUnit?.name} ui={ui} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} send={send} run={runCommand} />}
       </section>
       {editMode !== 'dental' ? <aside className="panel right" onClick={blockedClick('right')}>

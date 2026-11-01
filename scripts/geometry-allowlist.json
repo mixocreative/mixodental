@@ -48,6 +48,15 @@
  "src/dental/confirmTilt.ts": {
   "label": "host-adapter"
  },
+ "src/denture/engine/dentureCore.ts": {
+  "label": "host-adapter"
+ },
+ "src/denture/engine/dentureProtocol.ts": {
+  "label": "host-adapter"
+ },
+ "src/denture/steps/orient/useDentureOrient.ts": {
+  "label": "host-adapter"
+ },
  "src/state/import.ts": {
   "label": "host-adapter"
  },

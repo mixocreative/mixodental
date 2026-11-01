@@ -1,4 +1,6 @@
 import { defaultProfileId, kindOfProfile, type DentalKind } from '@mixo-geocore/host/dental/dentalKind';
+import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
+import { dentureProfileData } from '@mixo-geocore/host/dental/dentureProfiles';
 
 /*
  * The dental job kind of a run (PD.6): the caller chooses it once (the start screen's card), and the
@@ -16,3 +18,7 @@ export function jobKindOf(profileId: string | undefined): DentalKind {
 
 /** Whether the dental flow runs the denture pipeline for this profile id. */
 export const isDentureJob = (profileId: string | undefined): boolean => jobKindOf(profileId) === 'denture';
+
+/** The print-angle scan's step (degrees) of either family's profile: the dial snaps to it. */
+export const tiltStepOf = (profileId: string): number =>
+  (isDentureJob(profileId) ? dentureProfileData(profileId).pose.tiltStepDeg : profileData(profileId).pose.tiltStepDeg);

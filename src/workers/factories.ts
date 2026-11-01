@@ -13,3 +13,4 @@ export const createImportWorker = hasWorker ? () => new Worker(new URL('./import
 export const createProjectWorker = hasWorker ? () => new Worker(new URL('./projectWorker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike : null;
 export const createAnalysisWorker = hasWorker ? () => new Worker(new URL('./analysisWorker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike : null;
 export const createMeshWorker = hasWorker ? () => new Worker(new URL('./meshWorker.entry.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike : null;
+export const createDentureWorker = hasWorker ? () => new Worker(new URL('../denture/engine/dentureWorker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike : null;

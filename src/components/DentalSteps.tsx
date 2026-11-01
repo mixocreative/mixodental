@@ -6,7 +6,9 @@ import { ALIGNER_PROFILES, type AlignerProfile } from '@mixo-geocore/host/dental
 import { t, translateMessage, type Lang } from '../i18n';
 import { TiltDial } from '../ui/parts/TiltDial';
 import { Icon } from '../ui/Icon';
-import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
+import { tiltStepOf } from '../denture/jobKind';
+import { fileStepText } from '../denture/steps/start/startText';
+import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
 import { tiltLabel, type TiltRow, type TiltRule } from '@mixo-geocore/host/dental/dentalTilt';
 import type { DentalTiltState } from './useDentalFlow';
 
@@ -42,6 +44,7 @@ export function noticeText(notice: DentalNotice): string {
   switch (notice.kind) {
     case 'bad-file': return translateMessage(notice.message);
     case 'failed': return t('The aligner could not be oriented automatically. It stays as dropped: rotate it with the gizmo, then press Next.');
+    case 'denture-failed': return t('The denture could not be stood upright automatically. It stays as dropped: use Free transform to turn it, then press Next.');
     case 'uncertain': return t('Automatic orientation is uncertain. The aligner stays as dropped: adjust it with the rotation gizmo, then press Next.');
     case 'holes': return t('This file has holes or non-manifold geometry. Detection may be unreliable: check the result before you continue.');
     case 'mismatch': return t('This looks like a different aligner type: no central opening was found.');
@@ -72,8 +75,10 @@ export function DentalTypeStep({ profile, lang, send, onChoose }: {
 }
 
 /** Step 1 before an aligner is oriented: the drop zone and upload button, or the loading line. */
-export function DentalAlignerPrompt({ phase, notices, selectedName, onFiles, onUseSelected }: {
+export function DentalAlignerPrompt({ phase, notices, selectedName, onFiles, onUseSelected, kind = 'aligner' }: {
   phase: Extract<Gesture, { kind: 'dental-aligner' }>['phase'];
+  /** The job kind: its own words for the file and the loading line. */
+  kind?: DentalKind;
   notices: readonly DentalNotice[];
   selectedName: string | undefined;
   onFiles: (files: File[]) => void;
@@ -81,14 +86,14 @@ export function DentalAlignerPrompt({ phase, notices, selectedName, onFiles, onU
 }) {
   const input = useRef<HTMLInputElement>(null);
   if (phase === 'loading') return <div className="dental-stage" role="status" aria-busy="true">
-    <h2>{t('Checking and orienting the aligner…')}</h2>
+    <h2>{t(kind === 'denture' ? 'Checking and orienting the denture…' : 'Checking and orienting the aligner…')}</h2>
   </div>;
   const bad = notices.find((notice) => notice.kind === 'bad-file');
   return <div className="dental-stage">
     <div className="dental-drop">
-      <h2>{t('Drop the aligner STL here')}</h2>
-      <p>{t('The aligner is checked and turned the right way up automatically.')}</p>
-      <input ref={input} type="file" accept=".stl,.glb,.gltf" aria-label={t('Choose aligner file')} hidden
+      <h2>{t(fileStepText(kind).drop)}</h2>
+      <p>{t(kind === 'denture' ? 'The denture is checked and stood upright automatically.' : 'The aligner is checked and turned the right way up automatically.')}</p>
+      <input ref={input} type="file" accept=".stl,.glb,.gltf" aria-label={t(fileStepText(kind).input)} hidden
         onChange={(event) => { onFiles([...(event.target.files ?? [])]); event.target.value = ''; }} />
       <div className="edit-row">
         <button type="button" className="primary" onClick={() => input.current?.click()}>{t('Choose STL file')}</button>
@@ -111,7 +116,7 @@ export function PrintAngleField({ tilt, profile, onChoose }: {
   if (tilt.status === 'scanning') return <p className="edit-note" role="status">{t('Scanning print angles {i}/{n}', { i: tilt.done, n: tilt.total })}</p>;
   if (tilt.status === 'failed') return <p className="edit-note" role="alert">{t('The print angles could not be scanned. The detected angle is kept.')}</p>;
   const { scan, index } = tilt;
-  const { tiltStepDeg } = profileData(profile).pose;
+  const tiltStepDeg = tiltStepOf(profile);
   const row = scan.rows[index]!;
   const band = scan.band ? [scan.rows[scan.band[0]]!.tiltDeg, scan.rows[scan.band[1]]!.tiltDeg] as const : undefined;
   const flags = tiltFlags(row);

@@ -25,6 +25,10 @@
   --landing-allowed: var(--success);
   --landing-other: var(--warning);
   --landing-no-support: var(--blue);
+  /* Denture Step 1 live tips by path state: a route to the plate, only the fallback clearance, none. */
+  --tip-path: var(--success);
+  --tip-fallback: var(--warning);
+  --tip-none: var(--danger);
   font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
   color: var(--ink);
   background: var(--paper);
@@ -297,6 +301,13 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
 .orient-auto svg { width: 18px; height: 18px; }
 /* PD.11 S6: Free transform button and its confirm prompt. */
 .orient-free-btn { width: 100%; }
+/* Denture Step 1: the live tip legend under the dial. */
+.live-tips { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+.live-tips li { display: flex; align-items: center; gap: 6px; }
+.tip-swatch { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.tip-swatch--path { background: var(--tip-path); }
+.tip-swatch--fallback { background: var(--tip-fallback); }
+.tip-swatch--none { background: var(--tip-none); }
 .orient-confirm { display: grid; gap: 8px; white-space: normal; }
 .orient-confirm p { margin: 0; }
 .orient-confirm .orient-row button { flex: 1 1 0; }

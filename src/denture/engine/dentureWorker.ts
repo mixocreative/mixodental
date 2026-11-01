@@ -1,0 +1,65 @@
+import '../../workers/engineSource';
+import { geometryReady } from '@mixo-geocore/host/workers/geometryClient';
+import { serveTask, transferable } from '@mixo-geocore/host/workers/serveTask';
+import { runAfterGeometryReady } from '@mixo-geocore/host/geometryVersion.js';
+import { openLiveTilt, type LiveTilt } from '@mixo-geocore/host/dental/dentureTilt';
+import { buildDenture, checkModelLanding, orientAndScan, placeDenture } from './dentureCore';
+import type { DentureResult, DentureTask } from './dentureProtocol';
+
+/*
+ * The denture worker: Step 1's orientation and tilt scan, the live-tilt handle (kept here between calls, so a
+ * tilt costs tens of milliseconds), the accepted pose's tips, the support build and the one-point model-surface
+ * check. One job at a time; the engine's per-model caches stay warm between the scan and the live tilt.
+ */
+
+const PROGRESS_INTERVAL_MS = 60;
+const live = new Map<string, LiveTilt>();
+
+function close(key: string): void {
+  live.get(key)?.free();
+  live.delete(key);
+}
+
+serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeometryReady(geometryReady, () => {
+  let last = 0;
+  const progress = (fraction: number, stage: string) => {
+    const now = performance.now();
+    if (now - last < PROGRESS_INTERVAL_MS && fraction < 1) return;
+    last = now;
+    post({ fraction, stage });
+  };
+  switch (task.kind) {
+    case 'orient': {
+      progress(0, 'Checking and orienting the denture');
+      const { orientation, scan } = orientAndScan(task.mesh, task.profileId, task.scan, (done, total) => progress(done / total, 'Scanning print angles'));
+      return { kind: 'oriented', orientation, scan };
+    }
+    case 'live-open': {
+      close(task.key);
+      const handle = openLiveTilt(task.mesh, task.profileId, task.scan);
+      live.set(task.key, handle);
+      return { kind: 'live-opened', ok: handle.ok, reason: handle.reason };
+    }
+    case 'live-at': {
+      const handle = live.get(task.key);
+      return { kind: 'live-paths', paths: handle ? handle.at(task.tiltDeg) : { kind: 'failed', reason: 'closed' } };
+    }
+    case 'live-close':
+      close(task.key);
+      return { kind: 'live-closed' };
+    case 'place': {
+      progress(0, 'Placing denture tips');
+      const { points, parts } = placeDenture(task.job);
+      return { kind: 'placed', points, parts };
+    }
+    case 'build': {
+      const mesh = buildDenture(task.job, (fraction, stage) => progress(fraction, stage));
+      const buffers: Transferable[] = [mesh.positions.buffer, mesh.indices.buffer, ...(mesh.dentureParts ? [mesh.dentureParts.faceParts.buffer] : [])];
+      return transferable<DentureResult>({ kind: 'built', mesh }, buffers);
+    }
+    case 'check-landing': {
+      const { tip, normal, ...job } = task.job;
+      return { kind: 'landing', result: checkModelLanding(job, tip, normal) };
+    }
+  }
+}));

@@ -21,11 +21,12 @@ export function discardManualCommands(unit: Pick<PrintUnit, 'id' | 'manual' | 'd
  * Exit leaves the aligner being worked on as a normal model: the dental policy and the supports
  * go. An aligner already finished (OK, or Add another aligner) is kept as it is.
  */
-export function exitCommands(unit: Pick<PrintUnit, 'id' | 'dental' | 'supports' | 'manual' | 'deleted' | 'contactSettings'> | undefined, finished: readonly string[]): SceneCommand[] {
+export function exitCommands(unit: Pick<PrintUnit, 'id' | 'dental' | 'denture' | 'supports' | 'manual' | 'deleted' | 'contactSettings'> | undefined, finished: readonly string[]): SceneCommand[] {
   if (!unit || finished.includes(unit.id)) return [];
   const commands: SceneCommand[] = [];
   if (unit.supports) commands.push({ type: 'supports/remove', unitId: unit.id });
   if (backNeedsConfirm(unit)) commands.push({ type: 'supports/clear-manual', unitId: unit.id });
   if (unit.dental) commands.push({ type: 'dental/clear', unitId: unit.id });
+  if (unit.denture) commands.push({ type: 'denture/clear', unitId: unit.id });
   return commands;
 }

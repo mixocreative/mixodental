@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react';
 import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import type { Gesture } from '@mixo-geocore/editing/gesture';
 import type { SessionEvent } from '@mixo-geocore/editing/session';
-import { profileById } from '@mixo-geocore/host/dental/alignerProfiles';
+import { stepOneText } from '../denture/steps/orient/stepOneText';
+import { jobKindOf } from '../denture/jobKind';
 import { t, type Lang } from '../i18n';
 import type { DentalTuning } from '@mixo-geocore/host/dental/dentalTuning';
 import type { ProfileDefaults } from '@mixo-geocore/host/dental/alignerProfiles';
@@ -23,7 +25,7 @@ const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
 /** Dental Auto Generate chrome: review the detector first, then mark only permitted support area. */
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
   lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, onTuningChange,
-  review, clickReach, tilt, onTilt, free, risks, onShowRisk, send, run }: {
+  review, clickReach, tilt, onTilt, free, orientExtra, risks, onShowRisk, send, run }: {
   gesture: Extract<Gesture, { kind: 'dental-type' | 'dental-aligner' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
   /** Step 1: the object selected on the plate, offered as the aligner without a drop. */
@@ -50,6 +52,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   onTilt?: (index: number) => void;
   /** Step 1: Free transform (PD.11 S6); the big print-angle number is hidden while it is on. */
   free?: DentalFreeControls;
+  /** Step 1: the job's own lines under the dial (the denture's live tip legend). */
+  orientExtra?: ReactNode;
   /** Step 2: overhang low points outside the permitted area (the blue spots), listed with Show me. */
   risks?: readonly AreaRisk[];
   onShowRisk?: (risk: AreaRisk) => void;
@@ -64,24 +68,27 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     </div>
     <DentalTypeStep profile={gesture.profile} lang={lang} send={send} />
   </>;
-  if (gesture.kind === 'dental-aligner') return <>
+  if (gesture.kind === 'dental-aligner') {
+    const words = stepOneText(gesture.profile, lang);
+    return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      {t('Step 1 · Aligner')}<span>{gesture.phase === 'ready' ? unitName : profileById(gesture.profile)?.name[lang]}</span>
-      <b>{gesture.phase === 'ready' ? t('Review the orientation. Turn the aligner with the gizmo if needed.') : t('Add the aligner STL.')}</b>
+      {t(words.title)}<span>{gesture.phase === 'ready' ? unitName : words.profileName}</span>
+      <b>{gesture.phase === 'ready' ? t(words.ready) : t(words.waiting)}</b>
     </div>
     {tilt?.status === 'ready' && !free?.on ? <TiltReadout deg={tilt.scan.rows[tilt.index]!.tiltDeg} /> : null}
     {gesture.phase === 'ready'
       ? <OrientationBar notices={gesture.notices} profile={gesture.profile} lang={lang} ui={ui} send={send} run={run}
-        tilt={tilt} onTilt={onTilt} free={free} />
+        tilt={tilt} onTilt={onTilt} free={free}>{orientExtra}</OrientationBar>
       : <>
         <div className="edit-bar"><div className="edit-row">
           <CommandButton command={resolve('dental.back', ui)} run={run} />
         </div></div>
-        <DentalAlignerPrompt phase={gesture.phase} notices={gesture.notices} selectedName={selectedName}
+        <DentalAlignerPrompt phase={gesture.phase} notices={gesture.notices} selectedName={selectedName} kind={jobKindOf(gesture.profile)}
           onFiles={(files) => onFiles?.(files)} onUseSelected={() => onUseSelected?.()} />
       </>}
   </>;
+  }
   if (gesture.kind === 'dental-review') return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">

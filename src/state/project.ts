@@ -6,6 +6,7 @@ import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/d
 import { UNSAVED_TUNING, parseDentalTuning } from '@mixo-geocore/host/dental/tuning';
 import { DEFAULT_PROFILE_ID, profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
+import { normalizeDentureState, type DentureState } from '../denture/state/dentureState';
 
 export { identityTransform } from '@mixo-geocore/host/state/transform';
 
@@ -41,6 +42,8 @@ export interface PrintUnit {
   zones: ZoneStamp[];
   /** Accepted local dental footprint and its ordered allow/erase edits; absent until the workflow is approved. */
   dental?: DentalPolicy;
+  /** A denture unit's accepted policy (src/denture/state/dentureState.ts); absent on any other unit. */
+  denture?: DentureState;
   /**
    * Per-support settings by exact contact id (automatic or manual): only the keys the user set.
    * A support without an entry follows `settings`; adding a support creates none.
@@ -82,6 +85,9 @@ export type SceneCommand =
   | { type: 'dental/set'; unitId: string; policy: DentalPolicy }
   | { type: 'dental/stamps/add'; unitId: string; stamps: DentalAllowStamp[] }
   | { type: 'dental/clear'; unitId: string }
+  /** A denture unit's policy (Step 1 accept, the model-landing allow list, the denture settings). */
+  | { type: 'denture/set'; unitId: string; denture: DentureState }
+  | { type: 'denture/clear'; unitId: string }
   /** Gives each named support the patch's keys on top of its own (one history step for all of them). */
   | { type: 'contactSettings/set'; unitId: string; contactIds: string[]; patch: ShapeOverride }
   /** The named supports follow the object's settings again. */
@@ -154,6 +160,10 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
         : { ...unit, dental: { ...unit.dental, stamps: [...unit.dental.stamps, ...command.stamps.map(cloneDentalStamp)] } });
     case 'dental/clear':
       return updateUnit(scene, command.unitId, ({ dental: _dental, ...unit }) => unit);
+    case 'denture/set':
+      return updateUnit(scene, command.unitId, (unit) => ({ ...unit, denture: normalizeDentureState(command.denture) }));
+    case 'denture/clear':
+      return updateUnit(scene, command.unitId, ({ denture: _denture, ...unit }) => unit);
     case 'contactSettings/set': {
       const patch = parseShapeOverride(command.patch);
       const unit = scene.units.find((candidate) => candidate.id === command.unitId);
@@ -276,6 +286,7 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
     deleted: cloneJsonValue(unit.deleted ?? []) as string[],
     zones: cloneJsonValue(unit.zones ?? []) as unknown as ZoneStamp[],
     ...(unit.dental === undefined ? {} : { dental: cloneDentalPolicy(unit.dental, unit.source) }),
+    ...(unit.denture === undefined ? {} : { denture: normalizeDentureState(unit.denture) }),
     contactSettings: normalizeContactSettings(unit.contactSettings),
   });
 }
