@@ -803,4 +803,8 @@ export const zhHant: Dictionary = {
   "Supported from the model surface, in the allowed area.": "從模型表面支撐，落在允許區域內。",
   "Supported from the model surface, outside the allowed area.": "從模型表面支撐，落在允許區域外。",
   "Supported from the model surface, in a no-support zone.": "從模型表面支撐，落在免支撐區內。",
+  "Denture supports": "假牙支撐",
+  "Open the denture STL": "開啟假牙 STL 檔",
+  "Drop the denture STL here": "拖放假牙 STL 到這裡",
+  "Choose denture file": "選擇假牙檔案",
 };

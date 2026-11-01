@@ -799,4 +799,8 @@ export const ja: Dictionary = {
   "Supported from the model surface, in the allowed area.": "モデルの表面からサポート（許可エリア内）。",
   "Supported from the model surface, outside the allowed area.": "モデルの表面からサポート（許可エリア外）。",
   "Supported from the model surface, in a no-support zone.": "モデルの表面からサポート（サポート禁止エリア内）。",
+  "Denture supports": "義歯のサポート",
+  "Open the denture STL": "義歯の STL を開く",
+  "Drop the denture STL here": "ここに義歯の STL をドロップ",
+  "Choose denture file": "義歯のファイルを選択",
 };

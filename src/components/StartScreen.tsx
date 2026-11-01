@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { isProjectFile } from '../state/projectFile';
 import { t, type Lang } from '../i18n';
 import { DentalTypeStep } from './DentalSteps';
+import { DentureChoice } from '../denture/steps/start/DentureChoice';
+import { fileStepText } from '../denture/steps/start/startText';
+import { DENTURE_PROFILE_ID, jobKindOf } from '../denture/jobKind';
 
 /** The three full-screen start screens: the task, the aligner type, the aligner file (docs/ROADMAP.md ST). */
 export type StartScreenId = 'task' | 'type' | 'file';
@@ -38,6 +41,10 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     if (next === 'task') setHeld(undefined);
     onScreen(next);
   };
+  // A denture job has one type: its file step comes straight from the task screen, and Back returns there.
+  const kind = jobKindOf(chosen);
+  const text = fileStepText(screen === 'file' ? kind : 'aligner');
+  const back = (): StartScreenId => (screen === 'file' && kind === 'aligner' ? 'type' : 'task');
   const choose = (id: string) => {
     setChosen(id);
     if (held) onStart(id, held);
@@ -57,15 +64,16 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
   };
 
   return <section ref={root} className={`start-screen${over ? ' start-screen--dropping' : ''}`}
-    onKeyDown={(event) => { if (event.key === 'Escape' && screen !== 'task') go(screen === 'file' ? 'type' : 'task'); }}
+    onKeyDown={(event) => { if (event.key === 'Escape' && screen !== 'task') go(back()); }}
     onDragOver={(event) => { event.preventDefault(); setOver(true); }}
     onDragLeave={(event) => { if (event.currentTarget === event.target) setOver(false); }}
     onDrop={drop}>
-    {screen !== 'task' ? <button type="button" className="start-back" onClick={() => go(screen === 'file' ? 'type' : 'task')}>{t('Back')}</button> : null}
+    {screen !== 'task' ? <button type="button" className="start-back" onClick={() => go(back())}>{t('Back')}</button> : null}
     {screen === 'task' ? <div className="start-task">
       <h2 className="start-heading">{t('What would you like to support?')}</h2>
       <div className="start-choices">
         <button type="button" className="primary start-big" onClick={() => onScreen('type')}>{t('Aligner supports')}</button>
+        <DentureChoice onChoose={() => choose(DENTURE_PROFILE_ID)} />
         <button type="button" className="start-big" onClick={onAnyModel}>{t('Any model')}</button>
       </div>
       <button type="button" className="link-button" onClick={onOpenProject}>{t('Open a saved project')}</button>
@@ -73,9 +81,9 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     {screen === 'type' ? <DentalTypeStep profile={chosen} lang={lang} send={() => undefined} onChoose={choose} /> : null}
     {screen === 'file' ? <div className="dental-stage">
       <div className="dental-drop">
-        <h2>{t('Open the aligner STL')}</h2>
-        <p>{t('Drop the aligner STL here')}</p>
-        <input ref={input} type="file" accept=".stl" aria-label={t('Choose aligner file')} hidden
+        <h2>{t(text.heading)}</h2>
+        <p>{t(text.drop)}</p>
+        <input ref={input} type="file" accept=".stl" aria-label={t(text.input)} hidden
           onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file && chosen) onStart(chosen, file); }} />
         <div className="edit-row">
           <button type="button" className="primary" onClick={() => input.current?.click()}>{t('Choose STL file')}</button>
