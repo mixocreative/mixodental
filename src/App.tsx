@@ -92,7 +92,7 @@ import { acceptsDentalDrop } from './dental/editingMode';
 import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type StartScreenId } from './components/StartScreen';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
-import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts } from './dental/flow';
+import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import type { DentalReview } from './components/DentalSupports';
 import { BUILDING_STATUS, busyStatus, heavyStatus, importRefusal, importStatus, missStatus, sessionStatus } from '@mixo-geocore/editing/status';
@@ -212,6 +212,10 @@ export default function App() {
   historyRef.current = history;
   /** The scene the mode was entered with (a snapshot, so it survives the history cap). */
   const undoFloor = useRef<PrintScene | undefined>(undefined);
+  /** A dental step began and its floor waits for the render that holds the step's opening commands (src/dental/flow.ts). */
+  const stepFloorDue = useRef(false);
+  /** Renders Undo again once a step's floor is set (the floor is a ref). */
+  const [, setFloorSet] = useState(0);
   const send = useCallback((event: SessionEvent) => {
     const previous = sessionRef.current;
     const next = reduceSession(previous, event);
@@ -221,6 +225,8 @@ export default function App() {
       return;
     }
     if (startsEditing(previous, next)) undoFloor.current = historyRef.current.present;
+    // A dental step began: its floor is the scene once this event's commands have landed (the effect below).
+    if (startsDentalStep(previous, next)) stepFloorDue.current = true;
     sessionRef.current = next;
     setSession(next);
     // A new dental step starts clean: the last step's undo toast and notices do not follow.
@@ -233,6 +239,12 @@ export default function App() {
     const message = sessionStatus(previous, next, event);
     if (message) setStatusMessage(message);
   }, []);
+  useEffect(() => {
+    if (!stepFloorDue.current) return;
+    stepFloorDue.current = false;
+    undoFloor.current = history.present;
+    setFloorSet((count) => count + 1);
+  }, [history, session]);
   const canUndo = historyCanUndo(history, editMode === 'off' ? undefined : undoFloor.current);
   const undoStep = canUndo ? stepKind(history.past.at(-1), history.present) : undefined;
   const redoStep = stepKind(history.present, history.future[0]);

@@ -30,3 +30,17 @@ export function exitCommands(unit: Pick<PrintUnit, 'id' | 'dental' | 'denture' |
   if (unit.denture) commands.push({ type: 'denture/clear', unitId: unit.id });
   return commands;
 }
+
+/** The session fields a dental step is told apart by. */
+type StepFields = { mode: string; dentalStage?: string | undefined; dentalAligner?: string | undefined; dentalUnitId?: string | undefined };
+
+/**
+ * A dental step began: the flow was entered, its stage changed, or Step 1 took a new object or finished loading it.
+ * Undo inside the step stops at the scene the step began with (App's undo floor), so Undo never takes back the
+ * import, the pose Next accepted or the supports a step built while the screen stays on a later step; Back is the
+ * way to an earlier step.
+ */
+export function startsDentalStep(previous: StepFields, next: StepFields): boolean {
+  if (next.mode !== 'dental') return false;
+  return previous.mode !== 'dental' || next.dentalStage !== previous.dentalStage || next.dentalAligner !== previous.dentalAligner || next.dentalUnitId !== previous.dentalUnitId;
+}

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { PrintUnit } from '../state/project';
-import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts } from './flow';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { initialSession, reduceSession, startsEditing, type EditSession, type SessionEvent } from '@mixo-geocore/editing/session';
+import { emptyScene, identityTransform, type PrintScene, type PrintUnit, type SceneCommand } from '../state/project';
+import { canUndo, createSceneHistory, undoScene, withSceneCommand, type SceneHistory } from '../state/history';
+import { acceptCommands } from '../denture/steps/orient/acceptCommands';
+import { DENTURE_PROFILE_ID } from '../denture/jobKind';
+import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
+import { DEFAULT_DENTURE_OPTIONS } from '../denture/settings/dentureOptions';
+import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts, startsDentalStep } from './flow';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u1', manual: [], deleted: [], contactSettings: {}, ...over }) as unknown as PrintUnit;
 
@@ -33,5 +40,74 @@ describe('dental flow rules', () => {
     const finished = unit({ supports: { kind: 'live', data: {} }, dental: { kind: 'two-contour' } as never });
     expect(exitCommands(finished, ['u1'])).toEqual([]);
     expect(exitCommands(undefined, [])).toEqual([]);
+  });
+});
+
+/**
+ * The denture flow as App runs it: each user action is a batch of scene commands and session events, and the undo
+ * floor moves where App moves it (a mode entered from outside, a dental step begun). Returns what Undo can reach.
+ */
+function denturePlay(floorOnSteps: boolean) {
+  let history: SceneHistory = createSceneHistory(emptyScene);
+  let session: EditSession = initialSession;
+  let floor: PrintScene | undefined;
+  const act = (commands: SceneCommand[], ...events: SessionEvent[]) => {
+    for (const command of commands) history = withSceneCommand(history, command);
+    for (const event of events) {
+      const next = reduceSession(session, event);
+      if (startsEditing(session, next) || (floorOnSteps && startsDentalStep(session, next))) floor = history.present;
+      session = next;
+    }
+  };
+  const source: TriangleMesh = { positions: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]), indices: new Uint32Array([0, 1, 2]) };
+  const denture: PrintUnit = { id: 'd1', name: 'D', source, transform: identityTransform, settings: {}, manual: [], deleted: [], zones: [], contactSettings: {} };
+  // Start screen: Denture supports, then the file (the import lands, Step 1 loads it).
+  act([], { type: 'startDental', profile: DENTURE_PROFILE_ID });
+  act([{ type: 'unit/add', unit: denture }, { type: 'selection/set', unitIds: ['d1'], activeUnitId: 'd1' }], { type: 'dentalLoading', unitId: 'd1' });
+  // The scan's pick turns the denture; the dial turns it once more.
+  act([{ type: 'transform/set', unitId: 'd1', transform: { position: [0, 0, 0], rotation: [0.2, 0, 0] } }], { type: 'dentureOriented' });
+  act([{ type: 'transform/set', unitId: 'd1', transform: { position: [0, 0, 0], rotation: [0.3, 0, 0] } }]);
+  // Next: the accepted pose, tips, settings and policy in one batch, then Step 2.
+  const policy = defaultDenturePolicy(DENTURE_PROFILE_ID, false);
+  act([{ type: 'batch', commands: acceptCommands(denture, { frame: { position: [0, 5, 0], rotation: [0.3, 0, 0] }, points: [], settings: {} as never, denture: { policy } }) }], { type: 'acceptDentalOrientation' });
+  // Step 2: one denture setting change.
+  act([{ type: 'denture/set', unitId: 'd1', denture: { policy, options: { ...DEFAULT_DENTURE_OPTIONS, modelLanding: 'any' } } }]);
+  expect(session).toMatchObject({ mode: 'dental', dentalStage: 'review' });
+  const undos: PrintScene[] = [];
+  while (canUndo(history, floor) && undos.length < 10) {
+    history = undoScene(history);
+    undos.push(history.present);
+  }
+  return undos;
+}
+
+describe('undo inside the denture steps (audit 2026-11-02 #1)', () => {
+  it('a step begins when the flow is entered, its stage changes, or Step 1 loads or finishes loading its object', () => {
+    const run = (state: EditSession, ...events: SessionEvent[]) => events.reduce(reduceSession, state);
+    const started = run(initialSession, { type: 'startDental', profile: DENTURE_PROFILE_ID });
+    expect(startsDentalStep(initialSession, started)).toBe(true);
+    const loading = reduceSession(started, { type: 'dentalLoading', unitId: 'd1' });
+    expect(startsDentalStep(started, loading)).toBe(true);
+    const ready = reduceSession(loading, { type: 'dentureOriented' });
+    expect(startsDentalStep(loading, ready)).toBe(true);
+    const review = reduceSession(ready, { type: 'acceptDentalOrientation' });
+    expect(startsDentalStep(ready, review)).toBe(true);
+    // A tool change inside the step is not a new step; leaving the flow is not one either.
+    expect(startsDentalStep(review, reduceSession(review, { type: 'setTool', tool: 'select' }))).toBe(false);
+    expect(startsDentalStep(review, reduceSession(review, { type: 'exit' }))).toBe(false);
+  });
+
+  it('Undo in Step 2 takes back the Step 2 edit and stops: the accepted pose, the supports and the import stay', () => {
+    const undos = denturePlay(true);
+    expect(undos).toHaveLength(1);
+    const unit = undos[0]!.units[0]!;
+    expect(unit.supports).toBeDefined();
+    expect(unit.denture?.options).toBeUndefined();
+  });
+
+  it('without the step floor, Undo in Step 2 removed the supports and then the imported denture itself', () => {
+    const undos = denturePlay(false);
+    expect(undos.some((scene) => scene.units[0] && !scene.units[0].supports)).toBe(true);
+    expect(undos.at(-1)!.units).toHaveLength(0);
   });
 });
