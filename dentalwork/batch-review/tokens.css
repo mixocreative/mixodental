@@ -64,7 +64,7 @@
 :root:lang(zh-Hant), [lang="zh-Hant"] { font-family: var(--font-sans-tw); }
 
 /* Batch-review layer colours: the ONE place they are set. The viewer reads them here, and layerColours.ts reads
-   this file for the GLB writers, so there is nothing to keep in step. An alias (var(--x)) is followed. */
+   this file for the GLB writers, so there is nothing to keep in step. An alias to another token is followed. */
 :root {
   --layer-allowed: #2e9e5b;
   --layer-no-support: #c0392b;
