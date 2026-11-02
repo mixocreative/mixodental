@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as THREE from 'three';
-import DebugSection from './DebugSection';
+import DebugSection, { swatchColor } from './DebugSection';
 import { layerId, toggleLayer, visibleLayers } from './useDebugLayers';
 import { debugMeshes } from './viewport/DebugLayerMeshes';
 import type { OrientationLayer } from '../dental/orientationEvidence';
@@ -20,7 +20,7 @@ describe('Debug section', () => {
     const open = renderToStaticMarkup(<DebugSection open status="ready" onOpenChange={() => {}} layers={layers} visible={new Set()} onToggle={() => {}} />);
     expect(open).toMatch(/<details[^>]*\sopen/);
     expect(open.match(/type="checkbox"/g)).toHaveLength(2);
-    expect(open).toContain('background:#d62828');
+    expect(open).toContain(`background:${swatchColor(layers[0]!.color)}`);
   });
 
   it('toggling a layer adds its mesh to the scene and removing it takes the mesh away', () => {

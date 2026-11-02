@@ -3,7 +3,6 @@
  * replace the icon; no code changes. The file's root `<svg>` is rendered inline, so `currentColor`
  * follows the CSS `color` of the place the icon sits in. Size comes from CSS (width/height/font-size).
  */
-import type { CSSProperties } from 'react';
 
 const FILES = import.meta.glob('./assets/icons/*.svg', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
@@ -31,11 +30,11 @@ const ICONS = new Map<string, Parsed>(
 );
 
 /** Renders the named icon, or nothing (with a dev warning) when no file has that name. */
-export function Icon({ name, className, style }: { name: string; className?: string; style?: CSSProperties }) {
+export function Icon({ name, className }: { name: string; className?: string }) {
   const icon = ICONS.get(name);
   if (!icon) {
     if (import.meta.env.DEV) console.warn(`Icon "${name}" has no file in src/ui/assets/icons/`);
     return null;
   }
-  return <svg {...icon.props} className={className} style={style} aria-hidden="true" focusable="false" dangerouslySetInnerHTML={{ __html: icon.body }} />;
+  return <svg {...icon.props} className={className} aria-hidden="true" focusable="false" dangerouslySetInnerHTML={{ __html: icon.body }} />;
 }
