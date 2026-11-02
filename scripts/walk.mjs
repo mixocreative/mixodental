@@ -1304,7 +1304,7 @@ async function walk(url, scratch, dentalFixture) {
         `automatic ${dentalSupports.auto}, mesh triangles ${placed.tris}, drawn ${placed.drawn}, forbidden secondary landings dropped ${placed.dropped}, dropped still drawn ${placed.droppedDrawn}, tuned review gap ${placed.dentalReviewGap}`);
       const rimWarning = await page.locator('.dental-side').getByText(/Automatic dental rim gaps/).innerText();
       check('l4 final dental rim gap is disclosed before Done',
-        /Automatic rim gaps: outer [\d.]+ mm, opening [\d.]+ mm/.test(rimWarning) && /Review the rim/.test(rimWarning),
+        /Automatic dental rim gaps: outer [\d.]+ mm, opening [\d.]+ mm/.test(rimWarning) && /Review the rim/.test(rimWarning),
         `warning "${rimWarning}"`);
     }
 
