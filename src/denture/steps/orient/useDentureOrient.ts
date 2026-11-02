@@ -19,6 +19,7 @@ import { packRules } from '@mixo-geocore/host/supports/generateRules';
 import { acceptCommands } from './acceptCommands';
 import { liveTipLayers, tipCounts } from './liveTipLayers';
 import { tipColours } from './tipColours';
+import { dialFollowsPose } from './dialSync';
 import { scanOutcome, type ScanSettled } from './scanOutcome';
 import { stepPanelInset } from '../../../dental/stepPanelInset';
 import { isAbort } from '../../../components/appShared';
@@ -40,6 +41,8 @@ interface DentureOrientHost {
   session: EditSession;
   /** Free transform is on: the operator owns the pose, so the tips of no scanned tilt are shown. */
   freeTransform: boolean;
+  /** The active unit's rotation: Undo, Redo and Restore step move it, and the dial follows (dialSync.ts). */
+  rotation?: Vector | undefined;
   setStatus: (key: string, vars?: Record<string, string | number>) => void;
   requestView: (kind: ViewRequest['kind'], rightInset?: number) => void;
 }
@@ -47,7 +50,7 @@ interface DentureOrientHost {
 /** The live tips of the tilt shown (unit-local), or none. */
 type LiveTips = { unitId: string; tiltDeg: number; paths: Extract<TiltPaths, { kind: 'paths' }> } | undefined;
 
-export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef, session, freeTransform, setStatus, requestView }: DentureOrientHost) {
+export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef, session, freeTransform, rotation, setStatus, requestView }: DentureOrientHost) {
   const seq = useRef(0);
   const [tilt, setTiltState] = useState<DentalTiltState | undefined>(undefined);
   const tiltRef = useRef<DentalTiltState | undefined>(undefined);
@@ -207,6 +210,16 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     if (!inStep || (throttle.current && throttle.current.unitId !== unitInStep)) closeLive();
   }, [closeLive, inStep, unitInStep]);
   useEffect(() => () => closeLive(), [closeLive]);
+
+  // Undo, Redo or Restore step turned the denture without the dial: the dial goes to the row of the pose now shown.
+  useEffect(() => {
+    const current = tiltRef.current;
+    if (!inStep || freeTransform || !rotation || current?.status !== 'ready' || current.unitId !== unitInStep) return;
+    const synced = dialFollowsPose(current, rotation);
+    if (synced === current) return;
+    setTilt(synced);
+    showTips(synced);
+  }, [freeTransform, inStep, rotation, setTilt, showTips, unitInStep]);
 
   const showLive = inStep && !freeTransform && live !== undefined && tilt?.status === 'ready' && tilt.unitId === live.unitId && tilt.scan.rows[tilt.index]!.tiltDeg === live.tiltDeg;
   const tipLayers = useMemo<{ unitId: string; layers: OrientationLayer[] } | undefined>(

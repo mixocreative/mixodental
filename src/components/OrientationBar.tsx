@@ -8,6 +8,7 @@ import { CommandButton } from './CommandButton';
 import { PrintAngleField, noticeText } from './DentalSteps';
 import { Icon } from '../ui/Icon';
 import type { DentalTiltState } from './useDentalFlow';
+import { RestoreStepButton, type StepRestore } from './RestoreStepButton';
 
 /**
  * Step 1's Free transform controls, as DentalBar passes them (PD.11 S6). `on`: the rotation-only
@@ -30,7 +31,7 @@ export interface DentalFreeControls {
  * the live print-angle search and its turn-the-model callback. `free` is absent outside Free transform.
  * `children` (a job's own lines, e.g. the denture's live tip legend) sit under the dial, hidden in Free transform.
  */
-export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, onTilt, free, children }: {
+export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, onTilt, free, restore, children }: {
   notices: readonly DentalNotice[];
   profile: string | undefined;
   lang: Lang;
@@ -40,6 +41,7 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
   tilt?: DentalTiltState | undefined;
   onTilt?: (index: number) => void;
   free?: DentalFreeControls;
+  restore?: StepRestore | undefined;
   children?: ReactNode;
 }) {
   const current = profileById(profile);
@@ -67,6 +69,9 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
       <div className="orient-row orient-free">
         <button type="button" className="orient-free-btn" onClick={() => free?.ask()}>{t('Free transform')}</button>
       </div>
+      {restore ? <div className="orient-row">
+        <RestoreStepButton restore={restore} unique="restore-step-1" />
+      </div> : null}
     </>}
     {freeOn ? null : notices.map((notice) => <div key={notice.kind} className="dental-notice">
       <p className="edit-note" role="alert">{noticeText(notice)}</p>

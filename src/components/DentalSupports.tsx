@@ -13,6 +13,7 @@ import { EditTools } from './EditBar';
 import { hint } from './hint';
 import { ProblemList } from './ProblemList';
 import { RangeField } from './RangeField';
+import { RestoreStepButton, type StepRestore } from './RestoreStepButton';
 
 /** Rim coverage as the support build reports it, or `unavailable` when it could not be measured. */
 export type RimGap = { outerMm: number; openingMm: number } | 'unavailable';
@@ -61,7 +62,7 @@ function NoteProblem({ text, onShow, onFix }: { text: string; onShow: () => void
  * A denture (`kind`) shows it as its Step 2, without Tree branches (Cross-braces is its lattice);
  * `children` (the job's own blocks) sit between the settings and the edit tools.
  */
-export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind = 'aligner', children }: {
+export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind = 'aligner', restore, children }: {
   gesture: EditGesture;
   ui: UiState;
   review: DentalReview;
@@ -69,6 +70,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind
   send: (event: SessionEvent) => void;
   run: (id: CommandId) => void;
   kind?: 'aligner' | 'denture';
+  restore?: StepRestore | undefined;
   children?: ReactNode;
 }) {
   const { settings, onSetting } = review;
@@ -144,6 +146,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind
       </div>
     </section> : <section className="dental-block dental-finish">
       {review.finishedCount > 0 && <p className="help">{t(kindText('Aligners finished so far: {n}', kind), { n: review.finishedCount })}</p>}
+      {restore ? <RestoreStepButton restore={restore} unique="restore-step-2" /> : null}
       <div className="edit-row">
         <CommandButton command={resolve('dental.back', ui)} run={run} />
       </div>

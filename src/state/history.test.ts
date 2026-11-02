@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Object3D } from 'three';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
-import { cancelSceneEdit, canUndo, createSceneHistory, deserializeSceneHistory, HISTORY_LIMIT, redoScene, serializeSceneHistory, undoScene, withSceneCommand } from './history';
+import { cancelSceneEdit, canUndo, createSceneHistory, deserializeSceneHistory, HISTORY_LIMIT, redoScene, restoreScene, serializeSceneHistory, undoScene, withSceneCommand } from './history';
 import { emptyScene, identityTransform, type PrintUnit } from './project';
 
 const source: TriangleMesh = { positions: new Float32Array([0, 0, 0]), indices: new Uint32Array() };
@@ -181,5 +181,25 @@ describe('coalesced edits', () => {
     expect(canUndo(cancelled)).toBe(canUndo(withPoint));
     expect(cancelled.past).toHaveLength(withPoint.past.length);
     expect(cancelSceneEdit(typed, 'other')).toBe(typed);
+  });
+});
+
+describe('Restore step', () => {
+  const start = withSceneCommand(createSceneHistory(emptyScene), { type: 'unit/add', unit });
+  const floor = start.present;
+  const moved = (rotation: number) => withSceneCommand(start, { type: 'transform/set', unitId: 'unit-a', transform: { position: [0, 0, 0], rotation: [rotation, 0, 0] } });
+
+  it('brings the scene the step began with back as one step; Undo takes the restore back', () => {
+    const edited = withSceneCommand(moved(0.5), { type: 'transform/set', unitId: 'unit-a', transform: { position: [0, 0, 0], rotation: [0.9, 0, 0] } });
+    const restored = restoreScene(edited, floor);
+    expect(restored.present).toEqual(floor);
+    expect(restored.past.length).toBe(edited.past.length + 1);
+    // Undo is still allowed at the floor's data (the restore is the step), and it brings the edits back.
+    expect(canUndo(restored, floor)).toBe(true);
+    expect(undoScene(restored).present).toBe(edited.present);
+    expect(restoreScene(redoScene(undoScene(restored)), floor).present).toEqual(floor);
+  });
+  it('does nothing when the step is unchanged', () => {
+    expect(restoreScene(start, floor)).toBe(start);
   });
 });

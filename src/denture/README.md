@@ -23,6 +23,7 @@ Engine calls go through `engine/` only.
 | `steps/orient/useDentureOrient.ts` | Step 1: upright, tilt scan, live tips while tilting, Auto orient, Next (placement), handle freed on leave. |
 | `steps/orient/scanOutcome.ts` | How Step 1's scan ended (pick, no pick, failure, crash, cancel): every ending leaves "scanning". |
 | `steps/orient/acceptCommands.ts` | Step 1 Next as one undo step: settings, lifted pose, tips, policy. |
+| `steps/orient/dialSync.ts` | The dial follows the pose after Undo, Redo or Restore step turned the denture (the row whose rotation is shown; a hand pose marks the dial as by hand). |
 | `steps/orient/liveTipLayers.ts` | Live tips as coloured marks by path state. |
 | `steps/orient/tipColours.ts` | The path-state colours from the CSS tokens. |
 | `steps/orient/LiveTipSummary.tsx` | The legend under the dial: tips per path state. |
@@ -44,6 +45,8 @@ Engine calls go through `engine/` only.
 | `parts/partRoles.ts` | Orders the engine's part list (target, add-on, debris) and finds the add-on faces. |
 | `parts/PartsList.tsx` | The parts list of a multi-part file (hidden for one part). |
 | `parts/addOnTint.tsx` | The add-on tint of a unit's current build (shared `components/viewport/FaceTintLayer.tsx`, token `--part-addon`), or none. |
+
+Restore step (P7b): `components/RestoreStepButton.tsx` (the quiet secondary button of Step 1 and Step 2) runs App's `restoreStep`, which puts the scene the step began with (App's undo floor) back as one undo step (`state/history.restoreScene`). The Step 2 panel docks right from 721 px (`dental/stepPanelInset.ts`).
 
 Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dial, Back / Next), `components/DentalSupports.tsx`
 (Step 2 panel, `kind="denture"`), `components/viewport/UnresolvedBubbles.tsx` (bubble, `resolve` makes it a button).

@@ -16,7 +16,7 @@ export function createSceneHistory(scene: PrintScene): SceneHistory {
 export const HISTORY_LIMIT = 100;
 
 /** Structural equality of scene data, short-cutting on shared references (unchanged units and meshes). */
-function sameData(a: unknown, b: unknown): boolean {
+export function sameData(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
   if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
   if (Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false;
@@ -72,6 +72,16 @@ export function canUndo(history: SceneHistory, floor?: PrintScene): boolean {
 /** Opening a project: its (already normalised) scene replaces the present as one step, and Undo brings the previous one back. */
 export function replaceScene(history: SceneHistory, scene: PrintScene): SceneHistory {
   return { past: [...history.past, history.present].slice(-HISTORY_LIMIT), present: scene, future: [] };
+}
+
+/**
+ * Restore step: the present becomes a copy of `scene` (the scene a dental step began with) as one undoable step.
+ * The copy is a new object on purpose: the step's undo floor is `scene` itself, and Undo of the restore must
+ * still be allowed from here. Nothing to restore when the present already holds the same data.
+ */
+export function restoreScene(history: SceneHistory, scene: PrintScene): SceneHistory {
+  if (sameData(history.present, scene)) return history;
+  return { past: [...history.past, history.present].slice(-HISTORY_LIMIT), present: { ...scene }, future: [] };
 }
 
 export function undoScene(history: SceneHistory): SceneHistory {

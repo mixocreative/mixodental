@@ -57,7 +57,7 @@ import { isProjectFile } from './state/projectFile';
 import { hint } from './components/hint';
 import { isOrientationStep, NO_SUPPORT_MESHES } from './dental/step1View';
 import { LanguageSelect } from './components/LanguageSelect';
-import { cancelSceneEdit, canUndo as historyCanUndo, createSceneHistory, redoScene, replaceScene, undoScene, withSceneCommand, type SceneHistory } from './state/history';
+import { cancelSceneEdit, canUndo as historyCanUndo, createSceneHistory, redoScene, replaceScene, restoreScene, sameData, undoScene, withSceneCommand, type SceneHistory } from './state/history';
 import { gltfRawMeshes, placeImportedUnits } from './state/import';
 import { setDisplayMesh } from './state/meshExtras';
 import { memoryInfo } from './state/runtime';
@@ -107,12 +107,13 @@ import TermsDialog from './components/TermsDialog';
 import type { BrushMode } from '@mixo-geocore/editing/types';
 import { detectLanguage, plural, setLanguage, t, translateMessage, type Lang, type Message } from './i18n';
 
-type HistoryAction = { type: 'command'; command: SceneCommand; edit?: string } | { type: 'cancelEdit'; edit: string } | { type: 'undo' } | { type: 'redo' } | { type: 'replace'; scene: PrintScene };
+type HistoryAction = { type: 'command'; command: SceneCommand; edit?: string } | { type: 'cancelEdit'; edit: string } | { type: 'undo' } | { type: 'redo' } | { type: 'replace'; scene: PrintScene } | { type: 'restore'; scene: PrintScene };
 
 function historyReducer(history: SceneHistory, action: HistoryAction): SceneHistory {
   if (action.type === 'undo') return undoScene(history);
   if (action.type === 'redo') return redoScene(history);
   if (action.type === 'replace') return replaceScene(history, action.scene);
+  if (action.type === 'restore') return restoreScene(history, action.scene);
   if (action.type === 'cancelEdit') return cancelSceneEdit(history, action.edit);
   return withSceneCommand(history, action.command, action.edit);
 }
@@ -249,6 +250,15 @@ export default function App() {
     dispatchHistory({ type: 'undo' });
     return true;
   }, []);
+  /** Restore step: the step is changed from the way it began (its floor), so there is something to put back. */
+  const stepRestorable = session.mode === 'dental' && undoFloor.current !== undefined && !sameData(history.present, undoFloor.current);
+  /** Returns the current dental step to the exact scene it began with, as one undo step. */
+  const restoreStep = useCallback(() => {
+    const floor = undoFloor.current;
+    if (sessionRef.current.mode !== 'dental' || !floor) return;
+    dispatchHistory({ type: 'restore', scene: floor });
+    setStatus('Step restored. Undo brings your changes back.');
+  }, [setStatus]);
   // Destructive actions run at once and offer Undo on a toast (editing/toast) instead of asking first.
   const [toast, setToast] = useState<UndoToastState>();
   /** Back from Step 3 is waiting for the answer: it would discard hand work. */
@@ -337,7 +347,7 @@ export default function App() {
   // Step 1 Free transform (PD.11 S6): confirm marks the rotation as the operator's; Auto orient restores the stored pose.
   const free = useFreeTransform(`${session.dentalStage}:${session.dentalUnitId}`);
   // The denture job (src/denture) runs its steps, builds and exports in its own worker.
-  const denture = useDentureJob({ dispatch, send, sceneRef, sessionRef, session, freeTransform: free.free, setStatus, requestView });
+  const denture = useDentureJob({ dispatch, send, sceneRef, sessionRef, session, freeTransform: free.free, rotation: activeUnit?.transform.rotation, setStatus, requestView });
 
   // ---- Background work -----------------------------------------------------------------
   // Heavy work runs in workers by role: preview supports, export (full-resolution supports and
@@ -1374,7 +1384,7 @@ export default function App() {
           <div className="viewport-note">{t('Millimetres. Build plate at zero.')}</div>
         </> : press.kind === 'zones'
           ? <ZonesBar brush={press.brush} unitName={activeUnit?.name} belowPlate={tips.below} hidden={zonesHidden} ui={ui} send={send} run={runCommand} />
-          : press.kind === 'dental-type' || press.kind === 'dental-aligner' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} onTuningChange={dentalTuning.change} tilt={orientFlow.tilt?.unitId === activeUnit?.id ? orientFlow.tilt : undefined} onTilt={orientFlow.chooseTilt} free={dentalFree} orientExtra={denture.active ? <LiveTipSummary counts={denture.orient.counts} /> : undefined} areaExtra={denture.active ? undefined : <PartsList kind="aligner" parts={placementParts(dentalPreview?.result)} />} reviewExtra={denture.active && activeUnit?.denture ? <DentureSupportsBlocks mesh={currentBuild(activeUnit, built.get(activeUnit.id))} options={activeUnit.denture.options} onOptions={(options) => denture.supports.setOptions(activeUnit.id, options)} ui={ui} run={runCommand} /> : undefined} send={send} run={runCommand} />
+          : press.kind === 'dental-type' || press.kind === 'dental-aligner' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} onTuningChange={dentalTuning.change} tilt={orientFlow.tilt?.unitId === activeUnit?.id ? orientFlow.tilt : undefined} onTilt={orientFlow.chooseTilt} free={dentalFree} restore={{ can: stepRestorable, run: restoreStep }} orientExtra={denture.active ? <LiveTipSummary counts={denture.orient.counts} /> : undefined} areaExtra={denture.active ? undefined : <PartsList kind="aligner" parts={placementParts(dentalPreview?.result)} />} reviewExtra={denture.active && activeUnit?.denture ? <DentureSupportsBlocks mesh={currentBuild(activeUnit, built.get(activeUnit.id))} options={activeUnit.denture.options} onOptions={(options) => denture.supports.setOptions(activeUnit.id, options)} ui={ui} run={runCommand} /> : undefined} send={send} run={runCommand} />
           : <EditBar gesture={press} unitName={activeUnit?.name} ui={ui} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} send={send} run={runCommand} />}
       </section>
       {editMode !== 'dental' ? <aside className="panel right" onClick={blockedClick('right')}>

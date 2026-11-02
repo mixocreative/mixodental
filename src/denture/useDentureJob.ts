@@ -20,6 +20,7 @@ export interface DentureJobHost {
   sessionRef: MutableRefObject<EditSession>;
   session: EditSession;
   freeTransform: boolean;
+  rotation?: [number, number, number] | undefined;
   setStatus: (key: string, vars?: Record<string, string | number>, other?: string) => void;
   requestView: (kind: ViewRequest['kind'], rightInset?: number) => void;
 }

@@ -18,6 +18,7 @@ import { Segmented } from './Segmented';
 import type { DentalTiltState } from './useDentalFlow';
 import type { AreaRisk } from '../dental/areaRisk';
 import { hint } from './hint';
+import type { StepRestore } from './RestoreStepButton';
 
 /** Step 2's tools, in the order of their keys. */
 const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
@@ -25,7 +26,7 @@ const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
 /** Dental Auto Generate chrome: review the detector first, then mark only permitted support area. */
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
   lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, onTuningChange,
-  review, clickReach, tilt, onTilt, free, orientExtra, reviewExtra, areaExtra, risks, onShowRisk, send, run }: {
+  review, clickReach, tilt, onTilt, free, restore, orientExtra, reviewExtra, areaExtra, risks, onShowRisk, send, run }: {
   gesture: Extract<Gesture, { kind: 'dental-type' | 'dental-aligner' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
   /** Step 1: the object selected on the plate, offered as the aligner without a drop. */
@@ -52,6 +53,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   onTilt?: (index: number) => void;
   /** Step 1: Free transform (PD.11 S6); the big print-angle number is hidden while it is on. */
   free?: DentalFreeControls;
+  /** The step's Restore action (back to the way the step began); absent where a step has none. */
+  restore?: StepRestore;
   /** Step 1: the job's own lines under the dial (the denture's live tip legend). */
   orientExtra?: ReactNode;
   /** The supports step: the job's own blocks in the side panel (the denture's unresolved points, settings, parts). */
@@ -83,7 +86,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     {tilt?.status === 'ready' && !free?.on ? <TiltReadout deg={tilt.scan.rows[tilt.index]!.tiltDeg} /> : null}
     {gesture.phase === 'ready'
       ? <OrientationBar notices={gesture.notices} profile={gesture.profile} lang={lang} ui={ui} send={send} run={run}
-        tilt={tilt} onTilt={onTilt} free={free}>{orientExtra}</OrientationBar>
+        tilt={tilt} onTilt={onTilt} free={free} restore={restore}>{orientExtra}</OrientationBar>
       : <>
         <div className="edit-bar"><div className="edit-row">
           <CommandButton command={resolve('dental.back', ui)} run={run} />
@@ -101,7 +104,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       {t(kind === 'denture' ? 'Step 2 · Supports' : 'Step 3 · Supports')}<span>{unitName}</span>
       <b>{t('Review the supports, adjust the settings, then press OK.')}</b>
     </div>
-    {review ? <DentalSupportsStep gesture={gesture.edit} ui={ui} review={review} ready={reviewReady} send={send} run={run} kind={kind}>{reviewExtra}</DentalSupportsStep> : null}
+    {review ? <DentalSupportsStep gesture={gesture.edit} ui={ui} review={review} ready={reviewReady} send={send} run={run} kind={kind} restore={restore}>{reviewExtra}</DentalSupportsStep> : null}
   </>;
   }
   return <>
