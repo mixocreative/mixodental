@@ -1,3 +1,5 @@
+import { DEFAULT_DENTAL_LABEL } from '@mixo-geocore/host/dental/label';
+import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import type { PrintUnit } from '../../../state/project';
 
 /*
@@ -33,14 +35,38 @@ export function turnsAboutVertical(before: Euler, after: Euler): boolean {
  * the same object, the height is unchanged, and the turn (if any) is about the vertical.
  */
 export function isRigidPlateMove(before: PrintUnit, after: PrintUnit): boolean {
-  if (before === after || !before.denture || !before.supports || before.transform === after.transform) return false;
+  return keepsBuild(before, after) && before.transform !== after.transform;
+}
+
+/**
+ * Whether the build of `before` is also the build of `after`: the denture and its finished supports are the same,
+ * every field but the transform and the settings is the same object, the transform only slid or turned the unit
+ * about the vertical, and the settings differ at most in an ID label that builds the same (empty is the default
+ * label: OK writes it out, and the build already used it).
+ */
+export function keepsBuild(before: PrintUnit, after: PrintUnit): boolean {
+  if (before === after || !before.denture || !before.supports) return false;
   const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
   for (const key of keys) {
-    if (key === 'transform') continue;
+    if (key === 'transform' || key === 'settings') continue;
     if ((before as unknown as Record<string, unknown>)[key] !== (after as unknown as Record<string, unknown>)[key]) return false;
   }
+  if (!sameBuildSettings(before, after)) return false;
   if (Math.abs(before.transform.position[1] - after.transform.position[1]) > TOLERANCE) return false;
   return turnsAboutVertical(before.transform.rotation, after.transform.rotation);
+}
+
+/** The settings of both units build the same: equal, or equal but for a label that is the same text once the default is filled in. */
+function sameBuildSettings(before: PrintUnit, after: PrintUnit): boolean {
+  if (before.settings === after.settings) return true;
+  const a = resolveSettings(before.settings) as unknown as Record<string, unknown>;
+  const b = resolveSettings(after.settings) as unknown as Record<string, unknown>;
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (key === 'labelText') continue;
+    if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) return false;
+  }
+  return (a.labelText || DEFAULT_DENTAL_LABEL) === (b.labelText || DEFAULT_DENTAL_LABEL);
 }
 
 /**
@@ -49,6 +75,6 @@ export function isRigidPlateMove(before: PrintUnit, after: PrintUnit): boolean {
  * and the unit is built again. The mesh is unit-local, so the same mesh is right for the unit where it now stands.
  */
 export function keptBuild<M>(previous: PrintUnit | undefined, unit: PrintUnit, built: { unit: PrintUnit; mesh: M } | undefined): { unit: PrintUnit; mesh: M } | undefined {
-  if (!previous || !built || built.unit !== previous || !isRigidPlateMove(previous, unit)) return undefined;
+  if (!previous || !built || built.unit !== previous || !keepsBuild(previous, unit)) return undefined;
   return { unit, mesh: built.mesh };
 }

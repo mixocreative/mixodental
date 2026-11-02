@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PrintUnit } from '../../../state/project';
-import { isRigidPlateMove, keptBuild, turnsAboutVertical } from './rigidMove';
+import { isRigidPlateMove, keepsBuild, keptBuild, turnsAboutVertical } from './rigidMove';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u', name: 'U', source: {}, transform: { position: [0, 3, 0], rotation: [0.3, 0.2, 0.1] }, settings: {}, manual: [], deleted: [], zones: [], contactSettings: {},
   denture: { policy: {} }, supports: { kind: 'live', data: {} }, ...over }) as unknown as PrintUnit;
@@ -18,6 +18,13 @@ describe('isRigidPlateMove', () => {
     const before = unit();
     expect(isRigidPlateMove(before, { ...before, transform: { position: [5, 3, 0], rotation: [...before.transform.rotation] }, settings: { raftEnabled: false } })).toBe(false);
     expect(isRigidPlateMove(before, { ...before, transform: { position: [5, 3, 0], rotation: [...before.transform.rotation] }, deleted: ['a'] })).toBe(false);
+  });
+  it('writing out the default ID label is not a change to the build; another label is', () => {
+    const before = unit({ settings: { labelText: '' } as never });
+    const same = { ...before, settings: { labelText: 'X' } } as PrintUnit;
+    expect(keepsBuild(before, same)).toBe(true);
+    expect(keepsBuild(before, { ...before, settings: { labelText: 'AB' } } as PrintUnit)).toBe(false);
+    expect(keepsBuild(before, { ...before, settings: { labelText: 'X', raftEnabled: false } } as PrintUnit)).toBe(false);
   });
   it('a unit without built supports or a denture policy is not', () => {
     const bare = unit({ supports: undefined as never });

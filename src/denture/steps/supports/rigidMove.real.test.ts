@@ -12,7 +12,7 @@ import { exportFiles } from '../../engine/dentureExport';
 import { dentureSupportSettings } from '../../settings/dentureSupportSettings';
 import { acceptCommands } from '../orient/acceptCommands';
 import { dentureJobOf } from './dentureBuildJob';
-import { isRigidPlateMove } from './rigidMove';
+import { isRigidPlateMove, keepsBuild } from './rigidMove';
 
 /*
  * The proof behind keep-and-move (P7b item 2). On the real denture scan #1 (dentalwork/fixtures/case-denture, read
@@ -63,6 +63,17 @@ describe.skipIf(!SCAN)('keep-and-move equals rebuild-after-move (real denture sc
     const after = moved.units[0]!;
     expect(after.transform).not.toEqual(before.transform);
     expect(isRigidPlateMove(before, after)).toBe(true);
+
+    // OK also writes the default label out ('' becomes 'X'): the build used it already, so the job is the same.
+    const labelled = reduceScene(moved, { type: 'settings/set', unitId: 'd1', settings: { ...resolveSettings(after.settings), labelText: 'X' } as never }).units[0]!;
+    expect(keepsBuild(before, labelled)).toBe(true);
+    {
+      const plain = buildDenture(dentureJobOf(before, 'preview', {})!);
+      const written = buildDenture(dentureJobOf(labelled, 'preview', {})!);
+      expect(written.indices.length).toBe(plain.indices.length);
+      expect(Array.from(written.indices)).toEqual(Array.from(plain.indices));
+      expect(written.positions.every((value, k) => Math.abs(value - plain.positions[k]!) < 1e-5)).toBe(true);
+    }
 
     for (const mode of ['preview', 'export'] as const) {
       const jobBefore = dentureJobOf(before, mode, {})!;
