@@ -866,6 +866,26 @@ dialog.terms .terms-item > span { flex: none; }
   border-radius: var(--radius);
   font-size: 12px;
 }
+/* P7c denture Step 2, laid out like the tilt step: one status line, Details and Fix, one folded Adjust, then Restore,
+   Add another and Back | OK. Docked right, the panel is as tall as its content. */
+@media (min-width: 721px) { .dental-side.denture-review { bottom: auto; max-height: calc(100% - 70px); } }
+.denture-review-summary { display: grid; gap: 8px; }
+.denture-review-summary.is-stale .denture-review-line { opacity: .55; }
+.denture-review-line { display: flex; gap: 8px; align-items: baseline; margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink); white-space: normal; }
+.denture-review-line::before { content: ''; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); transform: translateY(-1px); }
+.denture-review-summary.is-ready .denture-review-line::before { background: var(--success); }
+.denture-review-summary.is-fix .denture-review-line::before { background: var(--unresolved); }
+.denture-review-summary.is-look .denture-review-line::before { background: var(--warning); }
+.denture-review-summary.is-failed .denture-review-line::before { background: var(--danger); }
+.denture-review-actions button { flex: 1 1 0; }
+.denture-review-details { display: grid; gap: 8px; padding-top: 4px; }
+/* A folded section (components/Fold.tsx): a quiet header that opens its blocks. */
+.fold { display: grid; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line); }
+.fold-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 2px; background: transparent; border: 0; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-align: left; }
+.fold-toggle:hover:not(:disabled) { background: transparent; border: 0; text-decoration: underline; }
+.fold-chevron { width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur); }
+.fold.is-open .fold-chevron { transform: rotate(45deg); }
+.fold-body { display: grid; gap: 10px; }
 /* Step 3's panel covers the bottom right: the view buttons sit just left of it (above it when it docks at the bottom). */
 .viewport--step3 .viewport-view { right: 342px; }
 /* From 721 px up the panel stays on the right (a tablet-wide window too): it never covers the bottom half of the view. */

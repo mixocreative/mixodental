@@ -36,6 +36,14 @@ const DENTURE: Readonly<Record<string, string>> = {
     'This denture has too many triangles ({n}) for the dental flow. Simplify the file and drop it again.',
   'Checking and orienting the aligner…': 'Checking and orienting the denture…',
   'The aligner is checked and turned the right way up automatically.': 'The denture is checked and stood upright automatically.',
+  // Step 2 (P7c): one short line, and the support settings in plain words.
+  'Review the supports, adjust the settings, then press OK.': 'Check the supports, then press OK.',
+  'Review the supports: change the settings, add or delete supports, fix the problems, then press OK.': 'Check the supports, then press OK.',
+  'Pillar size': 'Support thickness',
+  'Lift height': 'Lift from plate',
+  'Cross-braces': 'Extra bracing',
+  'Cross-braces were omitted because they crossed the model. Review the supports before finishing.': 'Extra bracing was left out because it crossed the denture. Check the supports before you finish.',
+  'Some cross-braces were left out where they crossed the model. Review the supports before finishing.': 'Some extra bracing was left out where it crossed the denture. Check the supports before you finish.',
   // Problem list `outside` entries: only an aligner policy reports islands outside its area today; the denture line keeps a mixed plate honest.
   '1 low point lies outside the dental support area and is left to the aligner shape.': '1 low point lies outside the allowed support area and is left to the denture shape.',
   '{n} low points lie outside the dental support area and are left to the aligner shape.': '{n} low points lie outside the allowed support area and are left to the denture shape.',

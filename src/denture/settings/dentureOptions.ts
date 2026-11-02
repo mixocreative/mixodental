@@ -4,7 +4,7 @@
  * engine rules; nothing here knows a rule name.
  */
 
-/** "Allow support from model surface" as a default for every build: off (only bubbles clicked), lowest points and islands, any left-out tip. */
+/** "Supports may touch the denture" as a default for every build: off (only bubbles clicked), lowest points and islands, any left-out tip. */
 export type ModelLandingDefault = 'off' | 'lows' | 'any';
 
 export interface DentureOptions {

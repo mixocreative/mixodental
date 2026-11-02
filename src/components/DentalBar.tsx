@@ -19,6 +19,8 @@ import type { DentalTiltState } from './useDentalFlow';
 import type { AreaRisk } from '../dental/areaRisk';
 import { hint } from './hint';
 import type { StepRestore } from './RestoreStepButton';
+import { DentureReviewPanel, type DentureReviewInput } from '../denture/steps/supports/DentureReviewPanel';
+import { kindText } from '../denture/kindText';
 
 /** Step 2's tools, in the order of their keys. */
 const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
@@ -26,7 +28,7 @@ const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
 /** Dental Auto Generate chrome: review the detector first, then mark only permitted support area. */
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
   lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, onTuningChange,
-  review, clickReach, tilt, onTilt, free, restore, orientExtra, reviewExtra, areaExtra, risks, onShowRisk, send, run }: {
+  review, clickReach, tilt, onTilt, free, restore, orientExtra, dentureReview, areaExtra, risks, onShowRisk, send, run }: {
   gesture: Extract<Gesture, { kind: 'dental-type' | 'dental-aligner' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
   /** Step 1: the object selected on the plate, offered as the aligner without a drop. */
@@ -57,8 +59,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   restore?: StepRestore;
   /** Step 1: the job's own lines under the dial (the denture's live tip legend). */
   orientExtra?: ReactNode;
-  /** The supports step: the job's own blocks in the side panel (the denture's unresolved points, settings, parts). */
-  reviewExtra?: ReactNode;
+  /** The denture's supports step: its build, settings and their change (its own panel, `DentureReviewPanel`). */
+  dentureReview?: DentureReviewInput | undefined;
   /** Step 2: the job's own blocks above Back | Next (the aligner's parts list of a multi-part file). */
   areaExtra?: ReactNode;
   /** Step 2: overhang low points outside the permitted area (the blue spots), listed with Show me. */
@@ -102,9 +104,11 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
       {t(kind === 'denture' ? 'Step 2 · Supports' : 'Step 3 · Supports')}<span>{unitName}</span>
-      <b>{t('Review the supports, adjust the settings, then press OK.')}</b>
+      <b>{t(kindText('Review the supports, adjust the settings, then press OK.', kind))}</b>
     </div>
-    {review ? <DentalSupportsStep gesture={gesture.edit} ui={ui} review={review} ready={reviewReady} send={send} run={run} kind={kind} restore={restore}>{reviewExtra}</DentalSupportsStep> : null}
+    {review && kind === 'denture' && dentureReview
+      ? <DentureReviewPanel gesture={gesture.edit} ui={ui} review={review} ready={reviewReady} send={send} run={run} restore={restore} denture={dentureReview} />
+      : review ? <DentalSupportsStep gesture={gesture.edit} ui={ui} review={review} ready={reviewReady} send={send} run={run} restore={restore} /> : null}
   </>;
   }
   return <>

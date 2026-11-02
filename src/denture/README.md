@@ -36,25 +36,31 @@ Engine calls go through `engine/` only.
 | `state/dentureCommands.ts` | The denture rows in the shared command registry ("Resolve all") and the undo hint of a denture change. |
 | `settings/dentureRules.ts` | Maps the denture settings onto engine rules (`dentalModelLanding`, `lowOutsideAllowed`, `lastResortClearanceMm`) and the unit's one Overhang angle (`scatterAngle`) onto `overhangAngleDeg`; only non-defaults are sent. |
 | `steps/supports/dentureBuildJob.ts` | A denture unit as a build job (frame, plate, policy, settings, rules, hand work). |
-| `steps/supports/useDentureSupports.ts` | Step 2: builds and exports in the denture worker, click-to-resolve and Resolve all, the lattice switch; Exit stops the unit's builds (`leave`). |
+| `steps/supports/useDentureSupports.ts` | Step 2: builds and exports in the denture worker, click-to-resolve and Fix (resolve all), the lattice switch; Exit stops the unit's builds (`leave`). |
 | `steps/supports/rigidMove.ts` | Whether a scene change only slides the denture over the plate or turns it about the vertical (OK's arrangement): then its finished build is kept and moved with it, not rebuilt. Proved on the real scan by `rigidMove.real.test.ts`. |
 | `steps/supports/resolvePoint.ts` | Which points a click resolves (tips, lowest points, bare islands) and the undoable allow-list command. |
-| `steps/supports/ResolveSection.tsx` | The panel block: unresolved points (islands included), islands that face sideways, model-landed supports, Resolve all. |
+| `steps/supports/ResolveSection.tsx` | The Details block: unresolved points (islands included), islands that face sideways, model-landed supports; `unresolvedCounts` for the status line. |
+| `steps/supports/DentureReviewPanel.tsx` | Step 2's side panel (P7c), laid out like the aligner's tilt step: one status line with Fix and Details, one folded Adjust (support settings, denture settings, edit tools, ID label), Restore step and Add another denture, Back \| OK. |
+| `steps/supports/reviewLineText.ts` | The status line's sentence: building, failed, "n spots need a support" (with Fix), "n things to look at", or "Supports ready". Spots accepted by rule never count. |
+| `steps/supports/adjustMemory.ts` | Whether Adjust is open, remembered for the browser session (closed by default). |
 | `check/ruleSpots.ts` | The denture rules' verdict on the support check's spots (worker): a spot on a face the engine's review masks leave unsupported on purpose has a reason (outside the allowed area, no-support side, rim), else it is a real problem. |
 | `check/acceptedSpots.ts` | Groups the accepted spots, one row per reason, and keeps the real problems. |
 | `check/dentureSpots.ts` | Asks the denture worker for the verdict; a failed or cancelled question leaves every spot a problem. |
 | `check/ruleText.ts` | The plain-words reason of each rule. |
 | `settings/dentureOptions.ts` | The denture settings, their defaults and limits (stored in `PrintUnit.denture.options`). |
-| `settings/DentureSettingsSection.tsx` | The settings block: model-surface support default, low tips outside the area, clearance floor. |
-| `steps/supports/DentureSupportsBlocks.tsx` | The denture blocks of the shared supports panel, in order. |
+| `settings/DentureSettingsSection.tsx` | The settings block (under Adjust): "Supports may touch the denture" (model-surface support default), low tips outside the area, clearance floor. |
 | `parts/partRoles.ts` | Orders the engine's part list (target, add-on, debris) and finds the add-on faces. |
 | `parts/PartsList.tsx` | The parts list of a multi-part file (hidden for one part). |
 | `parts/addOnTint.tsx` | The add-on tint of a unit's current build (shared `components/viewport/FaceTintLayer.tsx`, token `--part-addon`), or none. |
 
 Restore step (P7b): `components/RestoreStepButton.tsx` (the quiet secondary button of Step 1 and Step 2) runs App's `restoreStep`, which puts the scene the step began with (App's undo floor) back as one undo step (`state/history.restoreScene`). The Step 2 panel docks right from 721 px (`dental/stepPanelInset.ts`).
 
-Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dial, Back / Next), `components/DentalSupports.tsx`
-(Step 2 panel, `kind="denture"`), `components/viewport/UnresolvedBubbles.tsx` (bubble, `resolve` makes it a button).
+Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dial, Back / Next), `components/DentalReviewBlocks.tsx`
+(the supports step's blocks: settings, edit tools, problems, ID label, Back question; the aligner's Step 3 shows them all open in
+`components/DentalSupports.tsx`), `components/Fold.tsx` (Adjust), `components/viewport/UnresolvedBubbles.tsx` (bubble, `resolve` makes it a button).
+
+Step 2 words (P7c): the denture's plain labels come from `kindText.ts` (Pillar size: "Support thickness", Lift height: "Lift from
+plate", Cross-braces: "Extra bracing", the one-sentence status line), so the aligner keeps its own.
 
 Staged progress (P8): the engine posts one stage in a build (`samplingNormals`, as its single generate call begins) and the
 scan's tilt fraction; the worker code around the engine calls posts the others (`dentureCore.buildDenture`, `orientAndScan`).

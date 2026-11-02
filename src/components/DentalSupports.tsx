@@ -1,158 +1,49 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import type { EditGesture } from '@mixo-geocore/editing/gesture';
-import { FIX_TOOL_EVENTS, type SessionEvent } from '@mixo-geocore/editing/session';
-import type { DentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
-import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
-import { settingLimits, type LiveSupportSettings, type SettingKey } from '@mixo-geocore/host/core/supports/settings';
-import { DENTAL_LABEL_MAX, DEFAULT_DENTAL_LABEL, filterDentalLabel } from '@mixo-geocore/host/dental/label';
+import type { SessionEvent } from '@mixo-geocore/editing/session';
 import { t } from '../i18n';
 import { kindText } from '../denture/kindText';
 import { CommandButton } from './CommandButton';
-import { EditTools } from './EditBar';
-import { hint } from './hint';
-import { ProblemList } from './ProblemList';
-import { RangeField } from './RangeField';
+import { BackAskBlock, EditSupportsBlock, IdLabelBlock, ProblemsBlock, SupportSettingsBlock, type DentalReview } from './DentalReviewBlocks';
 import { RestoreStepButton, type StepRestore } from './RestoreStepButton';
 
-/** Rim coverage as the support build reports it, or `unavailable` when it could not be measured. */
-export type RimGap = { outerMm: number; openingMm: number } | 'unavailable';
-
-type Problem = SupportProblem & { unitId: string; inZone: boolean };
-
-/** What Step 3 needs from the host: the active aligner's settings, results and the actions on them. */
-export interface DentalReview {
-  settings: Readonly<LiveSupportSettings>;
-  onSetting: <K extends SettingKey>(key: K, value: LiveSupportSettings[K], edit?: string) => void;
-  structure: Readonly<DentalStructure>;
-  onStructure: (structure: DentalStructure) => void;
-  clickReach: { value: number; onChange: (value: number, edit?: string) => void };
-  /** A change is on its way to a new verdict (rebuild, re-check, retune): the Problems section shows stale. */
-  verdictPending: boolean;
-  rimGap: RimGap | undefined;
-  structureFallback: readonly ('tree' | 'brace' | 'brace-pruned')[] | undefined;
-  problems: readonly Problem[];
-  outOfDate: boolean;
-  rechecking: (problem: Problem) => boolean;
-  unitName: (unitId: string) => string;
-  onShow: (problem: Problem) => void;
-  onFix: (problem: Problem) => void;
-  onShowRim: () => void;
-  /** Finished aligners already on the plate, for the Add another aligner line. */
-  finishedCount: number;
-  /** Back would discard hand work: what it would throw away, until the user answers. */
-  backAsk: { added: number; removed: number; customised: number } | undefined;
-  onBackConfirm: () => void;
-  onBackCancel: () => void;
-}
-
-/** One finding of the rim or the structure, listed with the check's findings: Show frames the rim, Fix opens Add supports. */
-function NoteProblem({ text, onShow, onFix }: { text: string; onShow: () => void; onFix: () => void }) {
-  return <li className="dental-problem-row">
-    <span className="problem-kind overhang" aria-hidden="true" />
-    <span className="problem-text">{text}</span>
-    <button type="button" onClick={onShow} {...hint('Frame the camera on this spot')}>{t('Show me')}</button>
-    <button type="button" onClick={onFix} {...hint('Add a support by hand where one is missing')}>{t('Fix')}</button>
-  </li>;
-}
+export type { DentalReview, RimGap } from './DentalReviewBlocks';
 
 /**
- * Dental Step 3: the supports as built, their key settings, the Support Edit Mode tools, the
- * problem list, the label, and the two ways to finish. Settings are the active aligner's own.
- * A denture (`kind`) shows it as its Step 2, without Tree branches (Cross-braces is its lattice);
- * `children` (the job's own blocks) sit between the settings and the edit tools.
+ * The aligner's Step 3: the supports as built, their key settings, the Support Edit Mode tools, the problem list, the
+ * label, and the two ways to finish, every block open. Settings are the active aligner's own. The blocks are shared
+ * (`DentalReviewBlocks.tsx`); the denture's Step 2 folds them behind Details and Adjust (`denture/steps/supports/DentureReviewPanel.tsx`).
  */
-export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind = 'aligner', restore, children }: {
+export function DentalSupportsStep({ gesture, ui, review, ready, send, run, restore }: {
   gesture: EditGesture;
   ui: UiState;
   review: DentalReview;
   ready: boolean;
   send: (event: SessionEvent) => void;
   run: (id: CommandId) => void;
-  kind?: 'aligner' | 'denture';
   restore?: StepRestore | undefined;
-  children?: ReactNode;
 }) {
-  const { settings, onSetting } = review;
-  const denture = kind === 'denture';
   const [adjusting, setAdjusting] = useState(false);
   const stale = adjusting || review.verdictPending;
-  const tipKey: 'pointDiameter' | 'touchDiameter' = settings.contactShape === 'SPHERE' ? 'touchDiameter' : 'pointDiameter';
-  const rimNote = review.rimGap === 'unavailable'
-    ? t('Rim coverage could not be verified. Review the rim and supports before finishing.')
-    : review.rimGap ? t('Automatic dental rim gaps: outer {outer} mm, opening {opening} mm. Review the rim; omitted contacts were not forced.', { outer: review.rimGap.outerMm.toFixed(1), opening: review.rimGap.openingMm.toFixed(1) }) : undefined;
-  const fixHere = () => FIX_TOOL_EVENTS.forEach(send);
-  const notes: { key: string; text: string }[] = [
-    ...(rimNote ? [{ key: 'rim', text: rimNote }] : []),
-    ...(review.structureFallback?.includes('tree') ? [{ key: 'tree', text: t('Tree branches were omitted because they crossed the model. Review the supports before finishing.') }] : []),
-    ...(review.structureFallback?.includes('brace') ? [{ key: 'brace', text: t('Cross-braces were omitted because they crossed the model. Review the supports before finishing.') }] : []),
-    ...(review.structureFallback?.includes('brace-pruned') ? [{ key: 'brace-pruned', text: t('Some cross-braces were left out where they crossed the model. Review the supports before finishing.') }] : []),
-  ];
-  const finishing = resolve('dental.finish', ui);
-  return <aside className="dental-side" data-ui={denture ? 'denture-supports-panel' : 'dental-supports-panel'} aria-label={t(denture ? 'Step 2 · Supports' : 'Step 3 · Supports')}>
+  return <aside className="dental-side" data-ui="dental-supports-panel" aria-label={t('Step 3 · Supports')}>
     <div className="dental-scroll">
     {!ready && <p className="edit-note" role="status">{t('Building supports…')}</p>}
-    <section className="dental-block" aria-label={t('Support settings')}>
-      <h3>{t('Support settings')}</h3>
-      <RangeField layout="stack" label="Tip size" unit="{n} mm" hint={kindText('Diameter of each support tip where it touches the aligner', kind)}
-        min={0.1} max={1} step={0.05} value={Number(settings[tipKey].toFixed(2))}
-        onChange={(value) => onSetting(tipKey, value, `dental-${tipKey}`)} onAdjust={setAdjusting} />
-      <RangeField layout="stack" label="Pillar size" unit="{n} mm" hint="Diameter of each support pillar"
-        min={0.8} max={2.5} step={0.1} value={settings.pillarDiameter}
-        onChange={(v) => onSetting('pillarDiameter', v, 'dental-pillarDiameter')} onAdjust={setAdjusting} />
-      <RangeField layout="stack" label="Lift height" unit="{n} mm" hint={kindText('How high the aligner stands above the plate. Supports are placed again', kind)}
-        min={settingLimits.liftHeight.min} max={15} step={0.5} value={settings.liftHeight}
-        onChange={(value) => onSetting('liftHeight', value, 'dental-lift')} onAdjust={setAdjusting} />
-      <label className="check" {...hint('Build a raft under the supports. The ID label needs it')}>
-        <input type="checkbox" checked={settings.raftEnabled} onChange={(event) => onSetting('raftEnabled', event.target.checked)} />{t('Raft')}
-      </label>
-      {denture ? null : <label className="check"><input type="checkbox" checked={review.structure.treeEnabled}
-        onChange={(event) => review.onStructure({ ...review.structure, treeEnabled: event.target.checked })} />{t('Tree branches')}</label>}
-      <label className="check"><input type="checkbox" checked={review.structure.bracesEnabled}
-        onChange={(event) => review.onStructure({ ...review.structure, bracesEnabled: event.target.checked })} />{t('Cross-braces')}</label>
-    </section>
-    {children}
-    <section className="dental-block" aria-label={t('Edit supports')}>
-      <h3>{t('Edit supports')}</h3>
-      <div className="dental-tools">
-        <EditTools gesture={gesture} ui={ui} clickReach={review.clickReach} send={send} run={run} engaged />
-      </div>
-    </section>
-    <section className={stale ? 'dental-block is-stale' : 'dental-block'} aria-label={t('Problems')} aria-busy={stale}>
-      <h3>{t('Problems')}</h3>
-      <CommandButton command={resolve('check.run', ui)} run={run} />
-      {notes.length > 0 && <ul className="problems">
-        {notes.map((note) => <NoteProblem key={note.key} text={note.text} onShow={review.onShowRim} onFix={fixHere} />)}
-      </ul>}
-      <ProblemList problems={review.problems} outOfDate={review.outOfDate} rechecking={review.rechecking} unitName={review.unitName} kindOf={() => kind} onShow={review.onShow} onFix={review.onFix} />
-      {notes.length === 0 && review.problems.length === 0 && <p className="help">{t('No problems listed. Press Check supports to look for islands and overhangs.')}</p>}
-    </section>
+    <SupportSettingsBlock review={review} kind="aligner" onAdjust={setAdjusting} />
+    <EditSupportsBlock gesture={gesture} ui={ui} review={review} send={send} run={run} kind="aligner" />
+    <ProblemsBlock review={review} ui={ui} send={send} run={run} kind="aligner" stale={stale} />
     </div>
     <div className="dental-footer">
-    <section className="dental-block" aria-label={t('ID label')}>
-      <label className="field-row" {...hint(kindText('Letters, digits and "-" only, up to 8. Embossed on the raft so printed aligners can be told apart', kind))}>
-        <span>{t('Text')}</span>
-        <input className="text dental-label" type="text" inputMode="text" autoComplete="off" spellCheck={false} value={settings.labelText}
-          placeholder={DEFAULT_DENTAL_LABEL} aria-label={t('ID label')} data-max={DENTAL_LABEL_MAX}
-          onChange={(event) => onSetting('labelText', filterDentalLabel(event.target.value), 'dental-label')} />
-      </label>
-      {!settings.raftEnabled && <p className="help" role="note">{t('The ID label is embossed on the raft. Turn the raft on to print it.')}</p>}
-    </section>
-    {review.backAsk ? <section className="dental-block dental-confirm" role="alertdialog" aria-label={t('Go back?')}>
-      <p className="edit-note" role="alert">{t('Going back discards your manual support edits ({added} added, {removed} removed, {customised} with own settings). Continue?', review.backAsk)}</p>
-      <div className="edit-row">
-        <button type="button" onClick={review.onBackCancel}>{t('Stay')}</button>
-        <button type="button" className="danger" onClick={review.onBackConfirm}>{t('Discard and go back')}</button>
-      </div>
-    </section> : <section className="dental-block dental-finish">
-      {review.finishedCount > 0 && <p className="help">{t(kindText('Aligners finished so far: {n}', kind), { n: review.finishedCount })}</p>}
+    <IdLabelBlock review={review} kind="aligner" />
+    {review.backAsk ? <BackAskBlock review={review} /> : <section className="dental-block dental-finish">
+      {review.finishedCount > 0 && <p className="help">{t(kindText('Aligners finished so far: {n}', 'aligner'), { n: review.finishedCount })}</p>}
       {restore ? <RestoreStepButton restore={restore} unique="restore-step-2" /> : null}
       <div className="edit-row">
         <CommandButton command={resolve('dental.back', ui)} run={run} />
       </div>
       <div className="edit-row">
         <CommandButton command={resolve('dental.addAnother', ui)} run={run} />
-        <CommandButton command={finishing} run={run} />
+        <CommandButton command={resolve('dental.finish', ui)} run={run} />
       </div>
     </section>}
     </div>
