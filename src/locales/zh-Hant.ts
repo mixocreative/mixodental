@@ -737,6 +737,7 @@ export const zhHant: Dictionary = {
   'Aligners finished so far: {n}': '目前已完成的牙套：{n}',
   'OK': '確定',
   'Finish this aligner. It stays on the plate with its supports': '完成此牙套。它會與其支撐一起留在底板上',
+  'The supports could not be built. Change a setting to build them again, or press Back.': '無法建立支撐。變更任一設定即可重新建立，或按「返回」。',
   'Wait until the supports are built.': '請等待支撐建立完成。',
   'Add another aligner': '新增另一個牙套',
   'Finish this aligner and add the next one of the same type': '完成此牙套並新增下一個同類型的牙套',

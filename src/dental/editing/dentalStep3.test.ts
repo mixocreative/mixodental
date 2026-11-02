@@ -33,6 +33,13 @@ describe('dental Step 3 commands', () => {
     expect(resolve('dental.finish', ui({})).label).toBe('OK');
     expect(resolve('dental.addAnother', ui({})).label).toBe('Add another aligner');
   });
+  it('after a failed or cancelled build OK says what to do, not to wait for a build that is not coming (audit 2026-11-02 #4)', () => {
+    for (const id of ['dental.finish', 'dental.addAnother'] as const) {
+      expect(resolve(id, ui({ dentalReviewReady: false, dentalBuildFailed: true })).disabledReason?.key).toBe('The supports could not be built. Change a setting to build them again, or press Back.');
+      expect(resolve(id, ui({ dentalReviewReady: false })).disabledReason?.key).toBe('Wait until the supports are built.');
+      expect(resolve(id, ui({ dentalReviewReady: true, dentalBuildFailed: false })).enabled).toBe(true);
+    }
+  });
   it('the Support Edit Mode tools are offered inside Step 3', () => {
     expect(resolve('edit.deleteSelection', ui({ selection: 1 })).visible).toBe(true);
     expect(resolve('edit.add', ui({ tool: 'add' })).visible).toBe(true);

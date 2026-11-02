@@ -110,6 +110,8 @@ declare module '@mixo-geocore/editing/commands' {
     dentalStage?: DentalStage;
     /** Dental Step 3: the supports are built for the current model and settings, so the aligner can be finished. */
     dentalReviewReady?: boolean;
+    /** Dental Step 3: the last build of the current model and settings failed or was cancelled; no build is coming until a change. */
+    dentalBuildFailed?: boolean;
   }
 }
 
@@ -284,6 +286,11 @@ function areaTool(tool: EditTool, label: string, hint: string, shortcut: string)
   };
 }
 
+/** Why OK and Add another are off in Step 3: a build running, a failed build (nothing is coming until a change), or one not landed yet. */
+const reviewReason = (s: UiState) => (s.generating ? generatingReason : s.dentalReviewReady ? undefined
+  : s.dentalBuildFailed ? { key: 'The supports could not be built. Change a setting to build them again, or press Back.' }
+    : { key: 'Wait until the supports are built.' });
+
 registerCommands({
   'supports.dentalAuto': {
     role: 'secondary', label: () => 'Aligner Support Production', hint: () => 'Detect an aligner lower opening, review orientation, then limit supports to its approved lower area',
@@ -317,13 +324,13 @@ registerCommands({
   'dental.finish': {
     role: 'primary', label: () => 'OK', hint: (s) => kindText('Finish this aligner. It stays on the plate with its supports', s.dentalKind),
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'review', enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating,
-    disabledReason: (s) => (s.generating ? generatingReason : s.dentalReviewReady ? undefined : { key: 'Wait until the supports are built.' }),
+    disabledReason: reviewReason,
   },
   'dental.addAnother': {
     role: 'secondary', label: (s) => kindText('Add another aligner', s.dentalKind),
     hint: (s) => kindText('Finish this aligner and add the next one of the same type', s.dentalKind),
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'review', enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating,
-    disabledReason: (s) => (s.generating ? generatingReason : s.dentalReviewReady ? undefined : { key: 'Wait until the supports are built.' }),
+    disabledReason: reviewReason,
   },
   'dental.tool.paint': areaTool('paint', 'Paint', 'Paint dental support area anywhere on the aligner', 'P'),
   'dental.tool.erase': areaTool('erase', 'Erase', 'Erase dental support area and its tips anywhere on the aligner', 'E'),

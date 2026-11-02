@@ -733,6 +733,7 @@ export const ja: Dictionary = {
   'Aligners finished so far: {n}': '完了したアライナー：{n}',
   'OK': 'OK',
   'Finish this aligner. It stays on the plate with its supports': 'このアライナーを完了します。サポート付きでプレートに残ります。',
+  'The supports could not be built. Change a setting to build them again, or press Back.': 'サポートを作成できませんでした。設定を変更すると再度作成します。または「戻る」を押してください。',
   'Wait until the supports are built.': 'サポートの作成が終わるまでお待ちください。',
   'Add another aligner': 'アライナーをもう一つ追加',
   'Finish this aligner and add the next one of the same type': 'このアライナーを完了し、同じタイプの次のアライナーを追加します。',
