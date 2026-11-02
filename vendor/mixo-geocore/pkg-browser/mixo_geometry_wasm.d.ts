@@ -453,7 +453,7 @@ export class DentureReviewResult {
      */
     socket_mask(): Uint8Array;
     /**
-     * Basin faces the oral cavity ray R2 sees, so not sockets (R2 cancels the socket mask).
+     * Basin faces the allowed area covers (R2 and the hole band), so not sockets (the allowed area cancels the socket mask, engine 59).
      */
     sockets_cancelled_by_r2(): number;
     /**

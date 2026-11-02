@@ -133,7 +133,7 @@ export interface DentureReview {
   holeBandMask: Uint8Array;
   /** Per face: 1 on a tooth socket (engine 42, rule socketMinDepthMm), whether or not socketNoSupport keeps tips off it: the layer "Sockets (no support)". */
   socketMask: Uint8Array;
-  /** Basin faces the oral cavity ray R2 sees, so not sockets (R2 cancels the socket mask, engine 43). */
+  /** Basin faces the allowed area covers (R2 and the hole band), so not sockets (the allowed area cancels the socket mask, engine 59). */
   socketsCancelledByR2: number;
   /** Per face: 1 on the fitting surface seen as a basin from the tissue side: the cross-check layer "Fitting (basin)" (changes no tip). */
   fittingMask: Uint8Array;
