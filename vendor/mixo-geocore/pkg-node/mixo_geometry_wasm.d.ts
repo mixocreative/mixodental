@@ -902,8 +902,11 @@ export class GeometrySession {
      * one entry per name of `rule_names()`; a missing or NaN entry keeps Rust's default). `plate_y` is the
      * plate's height in the model's frame: 0 for a model placed on the plate; a lift change keeps the
      * placed model (and its caches) and moves the plate instead. Island heights are above the plate.
+     * `on_phase` (optional, engine 60) is called as `(phase, done, total)` at each phase of the build (`supports::phase::Phase::name`: preparing,
+     * routing, placing, bracing, raft, checking, judging, finishing, writing); `total` is 0 at a phase's entry and the tips counted in routing and placing;
+     * a repair round can repeat the build phases. It changes nothing in the result.
      */
-    generate(model: number, ids: string[], contacts: Float64Array, shapes: Float64Array, settings: Float64Array, mode: number, label_text: string, zones: Float64Array, policy: PolicyHandle, limits: Float64Array, rules: Float64Array, revision: number, plate_y: number, frame: Float64Array): Generation;
+    generate(model: number, ids: string[], contacts: Float64Array, shapes: Float64Array, settings: Float64Array, mode: number, label_text: string, zones: Float64Array, policy: PolicyHandle, limits: Float64Array, rules: Float64Array, revision: number, plate_y: number, frame: Float64Array, on_phase?: Function | null): Generation;
     /**
      * Automatic contacts of a loaded model (already in the frame they are wanted in). `rules` (optional, engine 47): the
      * `supports::rules::NAMES` override array (`areaDensity`, the edge rules); absent or NaN entries keep the engine defaults.

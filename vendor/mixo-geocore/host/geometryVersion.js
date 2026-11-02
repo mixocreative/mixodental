@@ -22,6 +22,7 @@
 // 20: denture review rim = low points joined over the mesh (rim_loops/rim_sizes/rim_closed/rim_edges/rim_info), holes by an axis ray grid (hole_outlines/hole_sizes/hole_info/hole_band_mask); rim_loop, rim_bridged, hole_loops, hole_edges removed.
 
 /** Must equal the Rust `engine_version()`; both change together on any ABI change. */
+// 60: `generate` takes an optional last argument `on_phase(name, done, total)` (engine phase events for a staged progress bar: preparing, routing, placing, bracing, raft, checking, judging, finishing, writing); results unchanged. Host: `GENERATE_PHASES` in host/core/progress.ts.
 // 59: the allowed area (R2 and the hole band) ALWAYS cancels the socket mask (owner 2026-11-02, plan P3, option A): a socket face inside it is no socket, so rim, hole-band and area tips stand there; before, only R2 cancelled it. No ABI change.
 // 58: ONE overhang angle setting (owner 2026-11-02, plan P1b): the generic `scatterAngle` default is 45 (was 50), the same value as the global `overhangAngleDeg` rule; hosts show one Overhang angle control and send it as both. No ABI change.
 // 57: ONE overhang angle rule (owner 2026-11-02, plan P1): `overhangAngleDeg` (45, slope of the surface from horizontal: 0 = flat ceiling, 90 = vertical wall; a tip needs a face flatter than it), overrides `dentalRimOverhangAngleDeg` (60) and `islandOverhangAngleDeg` (60, islands and lowest points); replace tipMaxFromDownDeg, islandMaxFromDownDeg (rule names appended: 128), the denture profile's tipMinFromUpDeg and DOWN_DEG; the aligner profile's tipMinFromUpDeg becomes overhangAngleDeg (70 = 180 - 110).
@@ -46,7 +47,7 @@
 // 38: the self-supporting overhang rule (rules overhangSelfSupport, overhangMinAreaMm2, overhangMaxReachMm, overhangMinAngleDeg, appended: 89 rule names); off by default, so a build without it is unchanged; the review result has `self_support_faces()` and `self_support_info()`; the tilt scan honours it.
 // 37: the plate outline and the grid raft (rules raftGrid, raftMapOutline, raftGridBottomMm, raftGridTopMm, raftRibMm, raftRibPitchMm, raftRimMm, raftPadMarginMm, appended: 85 rule names); both switches default off, so a build without them is unchanged.
 // 36: opt-in R1b, the steep no-support ray (rule noSupportSteepDeg, appended: 77 rule names; the review result has `no_support_steep_mask()` and `no_support_steep_deg()`).
-export const HOST_GEOMETRY_VERSION = 59;
+export const HOST_GEOMETRY_VERSION = 60;
 
 /** Thrown when the loaded engine's `engine_version()` is not `HOST_GEOMETRY_VERSION` (code 'geometry-version-mismatch'). */
 export class GeometryVersionMismatch extends Error {

@@ -2895,6 +2895,9 @@ class GeometrySession {
      * one entry per name of `rule_names()`; a missing or NaN entry keeps Rust's default). `plate_y` is the
      * plate's height in the model's frame: 0 for a model placed on the plate; a lift change keeps the
      * placed model (and its caches) and moves the plate instead. Island heights are above the plate.
+     * `on_phase` (optional, engine 60) is called as `(phase, done, total)` at each phase of the build (`supports::phase::Phase::name`: preparing,
+     * routing, placing, bracing, raft, checking, judging, finishing, writing); `total` is 0 at a phase's entry and the tips counted in routing and placing;
+     * a repair round can repeat the build phases. It changes nothing in the result.
      * @param {number} model
      * @param {string[]} ids
      * @param {Float64Array} contacts
@@ -2909,9 +2912,10 @@ class GeometrySession {
      * @param {number} revision
      * @param {number} plate_y
      * @param {Float64Array} frame
+     * @param {Function | null} [on_phase]
      * @returns {Generation}
      */
-    generate(model, ids, contacts, shapes, settings, mode, label_text, zones, policy, limits, rules, revision, plate_y, frame) {
+    generate(model, ids, contacts, shapes, settings, mode, label_text, zones, policy, limits, rules, revision, plate_y, frame, on_phase) {
         const ptr0 = passArrayJsValueToWasm0(ids, wasm.__wbindgen_malloc);
         const len0 = WASM_VECTOR_LEN;
         const ptr1 = passArrayF64ToWasm0(contacts, wasm.__wbindgen_malloc);
@@ -2931,7 +2935,7 @@ class GeometrySession {
         const len7 = WASM_VECTOR_LEN;
         const ptr8 = passArrayF64ToWasm0(frame, wasm.__wbindgen_malloc);
         const len8 = WASM_VECTOR_LEN;
-        const ret = wasm.geometrysession_generate(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, mode, ptr4, len4, ptr5, len5, policy.__wbg_ptr, ptr6, len6, ptr7, len7, revision, plate_y, ptr8, len8);
+        const ret = wasm.geometrysession_generate(this.__wbg_ptr, model, ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, mode, ptr4, len4, ptr5, len5, policy.__wbg_ptr, ptr6, len6, ptr7, len7, revision, plate_y, ptr8, len8, isLikeNone(on_phase) ? 0 : addToExternrefTable0(on_phase));
         if (ret[2]) {
             throw takeFromExternrefTable0(ret[1]);
         }
@@ -5086,6 +5090,10 @@ function __wbg_get_imports() {
         },
         __wbg_call_1875a20c43a36133: function() { return handleError(function (arg0, arg1, arg2, arg3) {
             const ret = arg0.call(arg1, arg2, arg3);
+            return ret;
+        }, arguments); },
+        __wbg_call_939a2607c4484b0b: function() { return handleError(function (arg0, arg1, arg2, arg3, arg4) {
+            const ret = arg0.call(arg1, arg2, arg3, arg4);
             return ret;
         }, arguments); },
         __wbg_new_343a093a3c2ffb4e: function(arg0, arg1) {

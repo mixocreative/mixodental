@@ -1,6 +1,6 @@
 import { packLimits, type GenerateTimeLimits } from './generateLimits';
 import { packRules, type GenerateRules } from './generateRules';
-import { PROGRESS_STAGE } from '../core/progress';
+import { GENERATE_PHASES, PROGRESS_STAGE, type GeneratePhase, type GeneratePhaseCallback } from '../core/progress';
 import type { ProgressCallback, TriangleMesh } from '../core/analysis/types';
 import type { JobTransform } from '../core/jobs';
 import type { GeneratedSupportMesh, SupportContact, SupportIssue, SupportPart, SupportVerdict, UnresolvedKind, UnresolvedPoint } from '../core/supports/mesh';
@@ -133,6 +133,8 @@ export interface GenerateOptions {
   /** The request's revision: the engine echoes it so the host can drop a result that is not the newest. */
   revision?: number;
   onProgress?: ProgressCallback;
+  /** The engine's phases while it builds (see `GENERATE_PHASES`), for a staged progress bar; the result is the same with or without it. */
+  onPhase?: GeneratePhaseCallback;
 }
 
 /** What `generateSupports` returns: the mesh with its verdicts, dental ring coverage, structure fallbacks and repair trials spent. */
@@ -172,7 +174,8 @@ export interface GenerateSession extends PolicySession {
   release_mesh(handle: number): void;
   load_placed(model: number, frame: Float64Array): number;
   generate(model: number, ids: string[], contacts: Float64Array, shapes: Float64Array, settings: Float64Array, mode: number,
-    labelText: string, zones: Float64Array, policy: PolicyHandle, limits: Float64Array, rules: Float64Array, revision: number, plateY: number, frame: Float64Array): Generation;
+    labelText: string, zones: Float64Array, policy: PolicyHandle, limits: Float64Array, rules: Float64Array, revision: number, plateY: number, frame: Float64Array,
+    onPhase?: (phase: string, done: number, total: number) => void): Generation;
 }
 
 const PARTS: readonly SupportPart[] = [
@@ -198,6 +201,14 @@ export function unpackFootprint(flat: Float64Array, origin: readonly [number, nu
     loops.push(loop);
   }
   return loops;
+}
+
+/** The engine's phase names are checked here, so a phase it adds without a host update never reaches the app untyped. */
+const isPhase = (name: string): name is GeneratePhase => (GENERATE_PHASES as readonly string[]).includes(name);
+
+/** The wasm callback for an `onPhase` (undefined without one: the engine then reports nothing). */
+function phaseListener(onPhase: GeneratePhaseCallback | undefined): ((name: string, done: number, total: number) => void) | undefined {
+  return onPhase && ((name, done, total) => { if (isPhase(name)) onPhase(name, done, total); });
 }
 
 /** The kind of an unresolved entry: the engine's word (engine 51), else read from the id and stream as engine 50 named them. */
@@ -239,7 +250,7 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
     try {
       result = wasm.generate(handle, inputs.map((c) => c.id), packed.contacts, packed.shapes, packSettings(settings), options.mode === 'export' ? 1 : 0,
         options.labelText ?? '', packZones(options.zones ?? []), data.handle, packLimits(options.limits), packRules(options.rules), options.revision ?? 0, options.plateY ?? 0,
-        options.frame ? frameArray(options.frame) : new Float64Array());
+        options.frame ? frameArray(options.frame) : new Float64Array(), phaseListener(options.onPhase));
     } finally {
       data.release();
     }

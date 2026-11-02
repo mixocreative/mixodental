@@ -1,4 +1,4 @@
-import { PROGRESS_STAGE } from '../core/progress';
+import { PROGRESS_STAGE, type GeneratePhaseCallback } from '../core/progress';
 import type { SupportProblem } from '../core/analysis/supportCheck';
 import type { PlacementResult, ProgressCallback } from '../core/analysis/types';
 import { orientationOnly, type CheckJob, type PlacementJob, type SupportJob } from '../core/jobs';
@@ -31,7 +31,7 @@ const EMPTY_MESH: GeneratedSupportMesh = { positions: new Float32Array(), indice
  * the automatic contacts it left out (`dropped`: policy, landing rule, zones, safety repair), the
  * body-clearance `verdict` and the `islands` verdict.
  */
-export function runSupportJob(job: SupportJob, onProgress?: ProgressCallback, revision = 0, site?: BuildSite): GeneratedSupportMesh {
+export function runSupportJob(job: SupportJob, onProgress?: ProgressCallback, revision = 0, site?: BuildSite, onPhase?: GeneratePhaseCallback): GeneratedSupportMesh {
   const { frame } = job;
   if (frame === null) return { ...EMPTY_MESH, revision };
   const contacts = jobContacts(job.contacts).map((contact) => ({
@@ -46,6 +46,7 @@ export function runSupportJob(job: SupportJob, onProgress?: ProgressCallback, re
   const out = generateSupports(contacts, job.settings, policy, {
     mode: job.mode, model: job.mesh, frame, plateY: job.plate ?? 0, labelText: job.labelText, zones, limits: job.limits ?? GENERATE_LIMITS, rules: job.rules ?? GENERATE_RULES, revision, ...(site ? { site } : {}),
     ...(onProgress ? { onProgress } : {}),
+    ...(onPhase ? { onPhase } : {}),
   });
   const mesh = out.mesh;
   if (dental && out.fallback.length > 0) mesh.dentalStructureFallback = out.fallback;
