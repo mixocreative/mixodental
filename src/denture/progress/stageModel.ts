@@ -4,7 +4,8 @@ import type { StagePlan } from './stagePlans';
  * The staged progress of one job as a pure model (P8): which stage runs, how far the bar is, how long the job has run.
  * The bar advances by stage, each weighted by its typical share. Inside a stage it eases toward the stage's end with
  * time (or follows the real fraction the worker posts) but never reaches the next stage's boundary until the worker
- * enters that stage; it never goes back; `finish` fills it, `fail` and `cancel` freeze it. No clock, no DOM: callers
+ * enters that stage; it never goes back (a repair round, which re-enters earlier work, only sets `repairing`, and the running
+ * stage's own string, posted when the repair ends, clears it); `finish` fills it, `fail` and `cancel` freeze it. No clock, no DOM: callers
  * pass `now` (ms).
  */
 
@@ -20,6 +21,8 @@ export interface StageState {
   readonly stageStartedAt: number;
   /** The real fraction (0..1) of the running stage, when the worker posts one; else 0. */
   readonly inner: number;
+  /** A repair round is running: the engine went back to routing, but the bar holds its place. */
+  readonly repairing: boolean;
   /** The bar so far (0..1), only ever raised. */
   readonly fraction: number;
 }
@@ -39,6 +42,8 @@ export interface StageView {
   labelKey: string;
   /** The bar, 0..1. */
   fraction: number;
+  /** A repair round is running (show "Repairing"; the bar does not move back). */
+  repairing: boolean;
   elapsedMs: number;
 }
 
@@ -53,7 +58,7 @@ const weightBefore = (plan: StagePlan, index: number): number => plan.stages.sli
 
 /** A job that has just begun, in its first stage. */
 export function startProgress(plan: StagePlan, now: number): StageState {
-  return { plan, status: 'running', startedAt: now, endedAt: null, stage: 0, stageStartedAt: now, inner: 0, fraction: 0 };
+  return { plan, status: 'running', startedAt: now, endedAt: null, stage: 0, stageStartedAt: now, inner: 0, repairing: false, fraction: 0 };
 }
 
 /** The share of the running stage reached at `now`: the real fraction if there is one, else the time easing. */
@@ -71,9 +76,11 @@ function stageShare(state: StageState, now: number): number {
 export function observe(state: StageState, report: StageReport, now: number): StageState {
   if (state.status !== 'running') return state;
   let next = state;
+  if (report.stage && report.stage === state.plan.repairedBy) next = { ...next, repairing: true };
+  else if (report.stage && state.repairing && state.plan.stages.some((stage, index) => index >= state.stage && stage.enteredBy === report.stage)) next = { ...next, repairing: false };
   const entered = report.stage ? state.plan.stages.findIndex((stage) => stage.enteredBy === report.stage) : -1;
   if (entered > state.stage) next = { ...next, stage: entered, stageStartedAt: now, inner: 0 };
-  if (typeof report.fraction === 'number' && Number.isFinite(report.fraction)) next = { ...next, inner: Math.max(next.inner, clamp01(report.fraction)) };
+  if (!next.repairing && typeof report.fraction === 'number' && Number.isFinite(report.fraction)) next = { ...next, inner: Math.max(next.inner, clamp01(report.fraction)) };
   const { plan } = next;
   const total = totalWeight(plan);
   const boundary = (weightBefore(plan, next.stage) + plan.stages[next.stage]!.weight) / total;
@@ -108,6 +115,7 @@ export function view(state: StageState, now: number): StageView {
     stageId: stage.id,
     labelKey: stage.labelKey,
     fraction: state.fraction,
+    repairing: state.repairing,
     elapsedMs: Math.max(0, (state.endedAt ?? now) - state.startedAt),
   };
 }

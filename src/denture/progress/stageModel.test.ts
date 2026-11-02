@@ -31,10 +31,34 @@ describe('stage plans', () => {
   });
 });
 
+describe('repair rounds', () => {
+  const routing = observe(startProgress(BUILD_PLAN, 0), { stage: DENTURE_STAGE.checking }, 100);
+
+  it('shows "repairing" without moving the bar back, and clears it when the running stage is posted again', () => {
+    const repairing = observe(routing, { stage: DENTURE_STAGE.repairing, fraction: 0.3 }, 200);
+    expect(view(repairing, 200)).toMatchObject({ repairing: true, stageId: 'checking' });
+    expect(repairing.fraction).toBeGreaterThanOrEqual(routing.fraction);
+    expect(repairing.inner).toBe(routing.inner);
+    const done = observe(repairing, { stage: DENTURE_STAGE.checking }, 300);
+    expect(view(done, 300).repairing).toBe(false);
+    expect(done.fraction).toBeGreaterThanOrEqual(repairing.fraction);
+  });
+
+  it('ignores an unknown stage string', () => {
+    const same = observe(routing, { stage: 'Not a stage' }, 200);
+    expect(same.stage).toBe(routing.stage);
+    expect(same.repairing).toBe(false);
+  });
+
+  it('a plan without repairs never repairs', () => {
+    expect(observe(startProgress(SCAN_PLAN, 0), { stage: DENTURE_STAGE.repairing }, 5).repairing).toBe(false);
+  });
+});
+
 describe('stage model', () => {
   it('starts at step 1 with an empty bar', () => {
     const shown = view(startProgress(BUILD_PLAN, 1000), 1000);
-    expect(shown).toMatchObject({ status: 'running', step: 1, steps: 4, stageId: 'preparing', fraction: 0, elapsedMs: 0 });
+    expect(shown).toMatchObject({ status: 'running', step: 1, steps: 5, stageId: 'placing', fraction: 0, elapsedMs: 0 });
   });
 
   it('eases inside a stage with time and stays under the next boundary', () => {
@@ -59,6 +83,8 @@ describe('stage model', () => {
     expect(shown.fraction).toBeLessThan(boundary(BUILD_PLAN, 2));
     state = observe(state, {}, 60_000);
     expect(state.fraction).toBeGreaterThan(boundary(BUILD_PLAN, 1));
+    const counted = observe(observe(startProgress(BUILD_PLAN, 0), { stage: DENTURE_STAGE.routing }, 10), { fraction: 0.5 }, 20);
+    expect(counted.fraction).toBeCloseTo(0.09 + 0.5 * 0.5, 2);
   });
 
   it('never goes back: an earlier or unknown stage string and a smaller fraction change nothing', () => {
@@ -87,7 +113,7 @@ describe('stage model', () => {
   it('is monotonic over a whole run, whatever the order of reports', () => {
     let state = startProgress(BUILD_PLAN, 0);
     let last = 0;
-    const reports = [{}, { stage: DENTURE_STAGE.placing }, { stage: DENTURE_STAGE.preparing }, {}, { stage: DENTURE_STAGE.routing }, { fraction: 0.2 }, {}, { stage: DENTURE_STAGE.finishing }, { fraction: 0 }, {}];
+    const reports = [{}, { stage: DENTURE_STAGE.preparing }, { stage: DENTURE_STAGE.placing }, {}, { stage: DENTURE_STAGE.routing }, { fraction: 0.2 }, {}, { stage: DENTURE_STAGE.checking }, { fraction: 0 }, {}];
     reports.forEach((report, at) => {
       state = observe(state, report, at * 5000);
       expect(state.fraction).toBeGreaterThanOrEqual(last);
@@ -102,10 +128,10 @@ describe('stage model', () => {
   });
 
   it('freezes on cancel and on failure, and ignores later reports', () => {
-    const running = observe(startProgress(BUILD_PLAN, 0), { stage: DENTURE_STAGE.placing }, 3000);
+    const running = observe(startProgress(BUILD_PLAN, 0), { stage: DENTURE_STAGE.preparing }, 3000);
     for (const [end, status] of [[cancel, 'cancelled'], [fail, 'failed']] as const) {
       const stopped = end(running, 4000);
-      expect(observe(stopped, { stage: DENTURE_STAGE.finishing }, 9000)).toBe(stopped);
+      expect(observe(stopped, { stage: DENTURE_STAGE.checking }, 9000)).toBe(stopped);
       expect(finish(stopped, 9000)).toBe(stopped);
       expect(view(stopped, 9000)).toMatchObject({ status, step: 2, fraction: running.fraction, elapsedMs: 4000 });
     }

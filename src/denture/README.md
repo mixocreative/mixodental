@@ -29,6 +29,7 @@ Engine calls go through `engine/` only.
 | `steps/orient/LiveTipSummary.tsx` | The legend under the dial: tips per path state. |
 | `steps/orient/stepOneText.ts` | Step 1 badge words per job kind. |
 | `progress/stagePlans.ts` | The stages of the Step 1 scan and the support build: stage strings the worker posts, names, weights, typical times. |
+| `progress/phaseStages.ts` | Folds the engine's build phases into the build stages (routing's done/total is its fraction); a repair round posts the repair string. |
 | `progress/stageModel.ts` | The pure staged-progress model: advance by stage, ease inside it, never pass the next boundary, monotonic, finish / fail / cancel / reset. |
 | `progress/StagedProgress.tsx` | The staged bar in a job's row of the background-work list: "Step n of N", stage name, elapsed time, bar (Cancel stays the row's). |
 | `useDentureJob.ts` | App entry: owns the client, wires each step's hook. |
@@ -63,7 +64,10 @@ Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dia
 Step 2 words (P7c): the denture's plain labels come from `kindText.ts` (Pillar size: "Support thickness", Lift height: "Lift from
 plate", Cross-braces: "Extra bracing", the one-sentence status line), so the aligner keeps its own.
 
-Staged progress (P8): the engine posts one stage in a build (`samplingNormals`, as its single generate call begins) and the
-scan's tilt fraction; the worker code around the engine calls posts the others (`dentureCore.buildDenture`, `orientAndScan`).
-To split the long "Routing supports" stage (35 to 50 s) the engine's generate call would have to post its phases
-(routing, raft, checking); until it does, the bar eases inside that stage.
+Staged progress (P8, engine 60): the engine's generate call reports its phases (`onPhase`, `GENERATE_PHASES`), and
+`progress/phaseStages.ts` folds them into the build plan's five stages (`progress/stagePlans.ts`, weights = the measured shares of
+a build on case #1): Placing tips (app side, before generate, 3), Preparing the model (preparing, 6), Routing supports (routing,
+counted done/total is the stage's real fraction, 50), Bracing and raft (placing + bracing + raft, 7), Checking the supports
+(checking + judging + finishing + writing, 34). A repair round re-enters routing..checking: the mapper then posts the repair string,
+the stage model sets `repairing` (a "Repairing" sub-label in the row, bar neither moves back nor fills), and `judging` ends it.
+The scan's tilt fraction is still posted by `orientAndScan`. Unknown phases and stage strings change nothing.

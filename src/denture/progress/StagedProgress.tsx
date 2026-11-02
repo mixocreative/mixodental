@@ -34,6 +34,7 @@ function StagedBar({ row, plan }: { row: JobRow; plan: StagePlan }) {
     <div className="staged-progress-head" data-ui="staged-progress-head">
       <span className="staged-progress-step" data-ui="staged-progress-step">{t('Step {n} of {total}', { n: shown.step, total: shown.steps })}</span>
       <span className="staged-progress-stage" data-ui="staged-progress-stage">{row.cancelling && !ended ? t('Cancelling…') : t(shown.labelKey)}</span>
+      {shown.repairing && shown.status === 'running' && !row.cancelling ? <span className="staged-progress-repair" data-ui="staged-progress-repair">{t('Repairing')}</span> : null}
       <span className="staged-progress-time" data-ui="staged-progress-time">{formatTime(shown.elapsedMs)}</span>
     </div>
     <div className="progress-track staged-progress-track" data-ui="staged-progress-track" role="progressbar" aria-label={t(shown.labelKey)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}

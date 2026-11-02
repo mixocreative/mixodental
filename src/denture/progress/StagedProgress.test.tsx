@@ -22,7 +22,7 @@ describe('stagedJobBar', () => {
     const out = html({ stage: DENTURE_STAGE.routing });
     expect(out).toContain('data-ui="staged-progress"');
     expect(out).toContain('data-stage="routing"');
-    expect(out).toMatch(/data-ui="staged-progress-step">Step 3 of 4</);
+    expect(out).toMatch(/data-ui="staged-progress-step">Step 3 of 5</);
     expect(out).toMatch(/data-ui="staged-progress-stage">Routing supports</);
     expect(out).toMatch(/data-ui="staged-progress-time">12 s</);
     expect(out).toContain('role="progressbar"');
@@ -30,14 +30,23 @@ describe('stagedJobBar', () => {
 
   it('says it in Japanese and Taiwan Chinese', () => {
     setLanguage('ja');
-    expect(html({ stage: DENTURE_STAGE.placing })).toContain('ステップ 2 / 4');
+    expect(html({ stage: DENTURE_STAGE.preparing })).toContain('ステップ 2 / 5');
     setLanguage('zh-Hant');
-    expect(html({ stage: DENTURE_STAGE.placing })).toContain('步驟 2／4');
+    expect(html({ stage: DENTURE_STAGE.preparing })).toContain('步驟 2／5');
   });
 
   it('freezes a failed job where it stopped and fills a finished one', () => {
     expect(html({ stage: DENTURE_STAGE.placing, state: 'failed' })).toContain('data-status="failed"');
-    expect(html({ stage: DENTURE_STAGE.finishing, state: 'done' })).toContain('aria-valuenow="100"');
+    expect(html({ stage: DENTURE_STAGE.checking, state: 'done' })).toContain('aria-valuenow="100"');
+  });
+
+  it('names the repair round beside the stage, in all three languages', () => {
+    expect(html({ stage: DENTURE_STAGE.checking })).not.toContain('staged-progress-repair');
+    expect(html({ stage: DENTURE_STAGE.repairing })).toMatch(/data-ui="staged-progress-repair">Repairing</);
+    setLanguage('ja');
+    expect(html({ stage: DENTURE_STAGE.repairing })).toContain('>修復中<');
+    setLanguage('zh-Hant');
+    expect(html({ stage: DENTURE_STAGE.repairing })).toContain('>修復中<');
   });
 
   it('tells a cancel in progress', () => {

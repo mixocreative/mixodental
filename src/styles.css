@@ -426,6 +426,7 @@ kbd {
 .staged-progress-head { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
 .staged-progress-step { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
 .staged-progress-stage { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.staged-progress-repair { flex: none; color: var(--muted); }
 .staged-progress-time { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
 .staged-progress .staged-progress-track { margin-top: 4px; height: 3px; background: var(--progress-staged-track); }
 .staged-progress-fill { background: var(--progress-staged-fill); transition: width .4s linear; }
