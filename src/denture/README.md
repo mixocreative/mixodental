@@ -27,6 +27,9 @@ Engine calls go through `engine/` only.
 | `steps/orient/tipColours.ts` | The path-state colours from the CSS tokens. |
 | `steps/orient/LiveTipSummary.tsx` | The legend under the dial: tips per path state. |
 | `steps/orient/stepOneText.ts` | Step 1 badge words per job kind. |
+| `progress/stagePlans.ts` | The stages of the Step 1 scan and the support build: stage strings the worker posts, names, weights, typical times. |
+| `progress/stageModel.ts` | The pure staged-progress model: advance by stage, ease inside it, never pass the next boundary, monotonic, finish / fail / cancel / reset. |
+| `progress/StagedProgress.tsx` | The staged bar in a job's row of the background-work list: "Step n of N", stage name, elapsed time, bar (Cancel stays the row's). |
 | `useDentureJob.ts` | App entry: owns the client, wires each step's hook. |
 | `engine/dentureExport.ts` | Export of a plate with dentures: builds every unit (dentures with their own pipeline) and writes the STL files. |
 | `state/dentureCommands.ts` | The denture rows in the shared command registry ("Resolve all") and the undo hint of a denture change. |
@@ -44,3 +47,8 @@ Engine calls go through `engine/` only.
 
 Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dial, Back / Next), `components/DentalSupports.tsx`
 (Step 2 panel, `kind="denture"`), `components/viewport/UnresolvedBubbles.tsx` (bubble, `resolve` makes it a button).
+
+Staged progress (P8): the engine posts one stage in a build (`samplingNormals`, as its single generate call begins) and the
+scan's tilt fraction; the worker code around the engine calls posts the others (`dentureCore.buildDenture`, `orientAndScan`).
+To split the long "Routing supports" stage (35 to 50 s) the engine's generate call would have to post its phases
+(routing, raft, checking); until it does, the bar eases inside that stage.

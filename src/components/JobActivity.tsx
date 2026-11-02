@@ -1,17 +1,13 @@
-import { useEffect, useReducer, useRef } from 'react';
+import { useEffect, useReducer, useRef, type ReactNode } from 'react';
 import { ERROR_CONTEXTS, errorStatus, type ErrorContext } from '@mixo-geocore/editing/errors';
 import { t, translateMessage } from '../i18n';
 import { jobActivity, type JobActivity, type JobRow } from '@mixo-geocore/host/workers/jobActivity';
 import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
 import { rebuiltJobError } from '../workers/jobErrors';
+import { formatTime } from './formatTime';
 
 /** Re-render this often while jobs are listed: the show delay, linger and times are time-driven. */
 const TICK_MS = 250;
-
-function formatTime(ms: number): string {
-  const seconds = Math.max(1, Math.round(ms / 1000));
-  return seconds < 60 ? t('{n} s', { n: seconds }) : t('{m} min {s} s', { m: Math.floor(seconds / 60), s: seconds % 60 });
-}
 
 /**
  * A failure in plain words with the next step, in the user's language: the same message the status
@@ -55,7 +51,7 @@ export function rowText(row: JobRow): { label: string; meta: string } {
  * the next step. Non-blocking (the viewport stays usable), except a job that changes what the user
  * edits (an import): a veil over the viewport, with Cancel, while it shows.
  */
-export default function JobActivityPanel({ activity = jobActivity }: { activity?: JobActivity }) {
+export default function JobActivityPanel({ activity = jobActivity, stagedBar }: { activity?: JobActivity; stagedBar?: (row: JobRow) => ReactNode }) {
   const [, rerender] = useReducer((count: number) => count + 1, 0);
   useEffect(() => activity.subscribe(rerender), [activity]);
   const busy = activity.hasJobs();
@@ -87,14 +83,17 @@ export default function JobActivityPanel({ activity = jobActivity }: { activity?
           const ended = row.state === 'failed' || row.state === 'cancelled';
           const determinate = row.state === 'determinate' || row.state === 'done';
           const percent = row.state === 'done' ? 100 : row.percent ?? 0;
+          // A job with its own stages (denture scan and build) shows them in place of the plain bar and its numbers.
+          const staged = stagedBar?.(row) ?? null;
           return <li key={row.id} className="job-row" data-state={row.state}>
             <div className="job-head">
-              <span className="job-label" title={text.label}>{text.label}</span>
-              {text.meta && <span className="job-meta">{text.meta}</span>}
+              <span className="job-label" title={text.label}>{staged && !ended ? translateMessage(row.label) : text.label}</span>
+              {text.meta && !staged && <span className="job-meta">{text.meta}</span>}
               {row.cancellable && !ended && <button onClick={() => activity.cancel(row.id)} aria-label={t('Cancel {label}', { label: translateMessage(row.label) })}>{t('Cancel')}</button>}
               {row.state === 'failed' && <button onClick={() => activity.dismiss(row.id)} aria-label={t('Dismiss {label}', { label: translateMessage(row.label) })}>{t('Dismiss')}</button>}
             </div>
-            {!ended && <div
+            {staged}
+            {!staged && !ended && <div
               className={`progress-track${determinate ? '' : ' progress-track--indeterminate'}`}
               role="progressbar"
               aria-label={translateMessage(row.label)}

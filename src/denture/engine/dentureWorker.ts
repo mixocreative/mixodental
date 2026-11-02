@@ -6,6 +6,7 @@ import { openLiveTilt, type LiveTilt } from '@mixo-geocore/host/dental/dentureTi
 import { buildDenture, checkModelLanding, orientAndScan, placeDenture } from './dentureCore';
 import type { DentureResult, DentureTask } from './dentureProtocol';
 import { exportFiles } from './dentureExport';
+import { DENTURE_STAGE } from '../progress/stagePlans';
 import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
 
 /*
@@ -24,16 +25,19 @@ function close(key: string): void {
 
 serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeometryReady(geometryReady, () => {
   let last = 0;
+  let lastStage = '';
   const progress = (fraction: number, stage: string) => {
     const now = performance.now();
-    if (now - last < PROGRESS_INTERVAL_MS && fraction < 1) return;
+    // A new stage always goes through (the staged bar moves by stage); only the fractions inside one are thinned.
+    if (now - last < PROGRESS_INTERVAL_MS && fraction < 1 && stage === lastStage) return;
     last = now;
+    lastStage = stage;
     post({ fraction, stage });
   };
   switch (task.kind) {
     case 'orient': {
-      progress(0, 'Checking and orienting the denture');
-      const { orientation, scan } = orientAndScan(task.mesh, task.profileId, task.scan, (done, total) => progress(done / total, 'Scanning print angles'));
+      progress(0, DENTURE_STAGE.reading);
+      const { orientation, scan } = orientAndScan(task.mesh, task.profileId, task.scan, (done, total) => progress(done / total, DENTURE_STAGE.scanning), () => progress(0, DENTURE_STAGE.scanning));
       return { kind: 'oriented', orientation, scan };
     }
     case 'live-open': {

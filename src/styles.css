@@ -31,6 +31,8 @@
   --tip-none: var(--danger);
   /* Denture Step 2: the subtle tint of add-on parts (hooks, attachments) on the model and in the parts list. */
   --part-addon: var(--blue);
+  --progress-staged-fill: var(--red);
+  --progress-staged-track: var(--line);
   /* ---- 3D scene (read at run time by src/ui/tokenColour.ts; change one and the viewport follows) ---- */
   /* Scene: background, the hemisphere light's sky and ground, the floor grid. */
   --scene-bg: #e9e6df;
@@ -419,12 +421,21 @@ kbd {
 .progress-fill { height: 100%; background: var(--red); transition: width .25s ease-out; }
 /* No percent known: a short segment travels the track; still and full-width when motion is reduced. */
 .progress-track--indeterminate .progress-fill { width: 30%; animation: job-travel 1.2s ease-in-out infinite; }
+/* The staged bar of a denture scan or build (denture/progress): step, stage, elapsed time over a bar that moves by stage. */
+.staged-progress { margin-top: 4px; }
+.staged-progress-head { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+.staged-progress-step { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+.staged-progress-stage { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.staged-progress-time { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+.staged-progress .staged-progress-track { margin-top: 4px; height: 3px; background: var(--progress-staged-track); }
+.staged-progress-fill { background: var(--progress-staged-fill); transition: width .4s linear; }
+.staged-progress[data-status='failed'] .staged-progress-fill, .staged-progress[data-status='cancelled'] .staged-progress-fill { opacity: .45; }
 @keyframes job-travel { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
 /* An import changes what is edited: the viewport takes no input while it shows (Cancel stays reachable). */
 .job-veil { position: absolute; inset: 0; z-index: 4; background: color-mix(in srgb, var(--paper) 55%, transparent); cursor: progress; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
-  .progress-fill { transition: none; }
+  .progress-fill, .staged-progress-fill { transition: none; }
   .progress-track--indeterminate .progress-fill { animation: none; width: 100%; opacity: .45; }
 }
 

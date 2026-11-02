@@ -14,6 +14,8 @@ import { jobContacts } from '@mixo-geocore/host/supports/genericPolicy';
 import { generateSupports, withOneShotSite, type BuildSite, type PolicyHandle } from '@mixo-geocore/host/supports/generateSupports';
 import type { GenerateRules } from '@mixo-geocore/host/supports/generateRules';
 import { GENERATE_LIMITS } from '@mixo-geocore/host/supports/generateLimits';
+import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
+import { DENTURE_STAGE } from '../progress/stagePlans';
 import { rerouteSupport, type EditSession, type RerouteResult } from '@mixo-geocore/host/supports/editSupport';
 import { supportMeshToUnitLocal } from '@mixo-geocore/host/supports/supportFrame';
 import { inverseTransformDirection, inverseTransformPoint, transformDirection, transformPoint, transformedMinY } from '@mixo-geocore/host/state/transform';
@@ -55,9 +57,10 @@ export interface DentureJob {
 }
 
 /** Step 1 in one job: the upright frame, then the print-angle search (`onTilt(done, total)` per tilt). */
-export function orientAndScan(mesh: TriangleMesh, profileId: string, settings: TiltScanSettings, onTilt?: (done: number, total: number) => void): { orientation: DentureOrientation; scan: TiltScan } {
+export function orientAndScan(mesh: TriangleMesh, profileId: string, settings: TiltScanSettings, onTilt?: (done: number, total: number) => void, onScanStart?: () => void): { orientation: DentureOrientation; scan: TiltScan } {
   const orientation = orientDenture(mesh, profileId);
   if (orientation.kind !== 'oriented') return { orientation, scan: { kind: 'failed', reason: orientation.reason } };
+  onScanStart?.();
   return { orientation, scan: scanDentureTilts(mesh, profileId, settings, onTilt) };
 }
 
@@ -121,7 +124,9 @@ export function withUnitIds(mesh: GeneratedSupportMesh, unitIdOf: ReadonlyMap<st
  */
 export function buildDenture(job: DentureJob, onProgress?: ProgressCallback): DentureMesh {
   const { frame } = job;
+  onProgress?.(0, DENTURE_STAGE.preparing);
   return withPolicy(job, (site, handle) => {
+    onProgress?.(0, DENTURE_STAGE.placing);
     const { points, policyIds } = candidatesOf(handle, frame);
     const contacts = jobContacts({ ...job.hand, points }, job.settings).map((contact) => ({
       ...contact, id: policyIds.get(contact.id) ?? contact.id, position: transformPoint(frame, contact.position), normal: transformDirection(frame, contact.normal),
@@ -131,8 +136,10 @@ export function buildDenture(job: DentureJob, onProgress?: ProgressCallback): De
       mode: job.mode, model: job.mesh, frame, plateY: job.plateY, labelText: job.labelText, zones, limits: GENERATE_LIMITS, rules: job.rules,
       ...(job.revision === undefined ? {} : { revision: job.revision }),
       site: { session: site.session, source: site.source, placed: site.placed, policy: () => ({ handle, release() { /* withPolicy frees it */ } }) },
-      ...(onProgress ? { onProgress } : {}),
+      // The engine posts one stage, as its single generate call begins: that is where the supports are routed.
+      ...(onProgress ? { onProgress: (fraction: number, stage: string) => (stage === PROGRESS_STAGE.samplingNormals ? onProgress(0, DENTURE_STAGE.routing) : onProgress(fraction, stage)) } : {}),
     });
+    onProgress?.(0, DENTURE_STAGE.finishing);
     const unitIdOf = new Map([...policyIds].map(([local, policy]) => [policy, local]));
     return { ...supportMeshToUnitLocal(withUnitIds(out.mesh, unitIdOf), frame), dentureParts: policyParts(handle) };
   });

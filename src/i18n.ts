@@ -75,7 +75,7 @@ export function translateMessage(message: Message): string {
 
 /** Progress stages posted by the workers (translated where they are shown). */
 export const STAGE_KEYS = [
-  'Checking and orienting the denture', 'Placing denture tips',
+  'Checking and orienting the denture', 'Placing denture tips', 'Preparing the model', 'Placing tips', 'Routing supports', 'Finishing the supports',
   'Queued', 'Done', 'Finding overhangs', 'Remeshing the model', 'Scattering contacts', 'Finding lowest points',
   'Reinforcing edges', 'Collecting contacts', 'Sampling surface normals', 'Laying out trees', 'Building trees',
   'Building columns', 'Building raft and bracing', 'Finding unsupported islands', 'Checking overhang coverage',

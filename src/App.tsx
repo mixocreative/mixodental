@@ -6,6 +6,7 @@ import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportChe
 import type { PlacementResult, SupportPoint } from '@mixo-geocore/host/core/analysis/types';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import JobActivityPanel from './components/JobActivity';
+import { stagedJobBar } from './denture/progress/StagedProgress';
 import { AnalysisClient } from './workers/analysisClient';
 import { ImportClient } from './workers/importClient';
 import { createAnalysisWorker, createImportWorker, createMeshWorker } from './workers/factories';
@@ -1366,7 +1367,7 @@ export default function App() {
         )}
         <CirclePreview gesture={canvasGesture(press)} />
         {isDraggingOver && <div className="viewport-drop-overlay">{t('Drop to import')}</div>}
-        <JobActivityPanel />
+        <JobActivityPanel stagedBar={stagedJobBar} />
         <div className="undo-toast-region" role="status" aria-live="polite">
           {toast && <UndoToast key={toast.id} toast={toast} onUndo={undoToastAction} onClose={closeToast} />}
           {doneHint !== undefined && editMode === 'off' && <div className="dental-done" role="status">
