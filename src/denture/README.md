@@ -21,6 +21,7 @@ Engine calls go through `engine/` only.
 | `state/dentureStages.ts` | Step order of a denture inside the dental mode (no support-area step). |
 | `settings/dentureSupportSettings.ts` | The support settings a new denture starts with: profile preset plus the solid raft (2 mm floor, edge 40 degrees from the plate, no rim). |
 | `steps/orient/useDentureOrient.ts` | Step 1: upright, tilt scan, live tips while tilting, Auto orient, Next (placement), handle freed on leave. |
+| `steps/orient/scanOutcome.ts` | How Step 1's scan ended (pick, no pick, failure, crash, cancel): every ending leaves "scanning". |
 | `steps/orient/acceptCommands.ts` | Step 1 Next as one undo step: settings, lifted pose, tips, policy. |
 | `steps/orient/liveTipLayers.ts` | Live tips as coloured marks by path state. |
 | `steps/orient/tipColours.ts` | The path-state colours from the CSS tokens. |

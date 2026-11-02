@@ -19,6 +19,7 @@ import { packRules } from '@mixo-geocore/host/supports/generateRules';
 import { acceptCommands } from './acceptCommands';
 import { liveTipLayers, tipCounts } from './liveTipLayers';
 import { tipColours } from './tipColours';
+import { scanOutcome, type ScanSettled } from './scanOutcome';
 
 /*
  * Step 1 of the denture job (Round D): stand the dropped denture upright and search its print angle in the
@@ -101,15 +102,18 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     void client().orient(unit.id, unit.source, profile, scanSettings, { key: 'Orienting {name}', vars: { name: unit.name } }, (fraction) => {
       const current = tiltRef.current;
       if (!stale() && current?.status === 'scanning') setTilt({ ...current, done: Math.round(fraction * total) });
-    }).then((result) => {
+    }).then((result): ScanSettled => ({ result }), (error: unknown): ScanSettled => ({ error })).then((settled) => {
       if (stale()) return;
-      if (!result || result.orientation.kind !== 'oriented' || result.scan.kind !== 'scan') {
-        setTilt(result?.scan.kind === 'failed' ? { status: 'failed', unitId: unit.id, reason: result.scan.reason } : undefined);
-        return failed();
+      // Every ending leaves "scanning" (scanOutcome.ts): a crash, timeout or cancel never keeps Next waiting.
+      const outcome = scanOutcome(unit.id, settled);
+      if (outcome.kind === 'failed') {
+        setTilt(outcome.tilt);
+        failed();
+        if (outcome.cancelled) setStatus('Orientation cancelled. Turn the denture with Free transform, then press Next.');
+        return;
       }
-      const { scan } = result;
-      const index = scan.order[0]!;
-      const ready: DentalTiltState = { status: 'ready', unitId: unit.id, scan, index, hand: false, confirming: false };
+      const ready = outcome.tilt;
+      const { scan, index } = ready;
       setTilt(ready);
       detected.current = { unitId: unit.id, rotation: scan.rows[index]!.rotation };
       turnTo(unit.id, scan.rows[index]!.rotation);
@@ -123,7 +127,7 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
       void client().liveOpen(unit.id, unit.source, profile, scanSettings).then((ok) => {
         if (ok && throttle.current?.throttle === handle) showTips(tiltRef.current);
       }, () => undefined);
-    }, () => { if (!stale()) failed(); });
+    });
   }, [client, closeLive, requestView, sceneRef, send, sessionRef, setStatus, setTilt, showTips, turnTo]);
 
   /** The dial: the row at `index`, chosen by hand; the model turns and its tips are asked for. */
