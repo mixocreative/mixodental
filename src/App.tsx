@@ -93,6 +93,7 @@ import { acceptsDentalDrop } from './dental/editingMode';
 import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type StartScreenId } from './components/StartScreen';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
+import { splitDentureSpots } from './denture/check/dentureSpots';
 import { keptBuild } from './denture/steps/supports/rigidMove';
 import { stepPanelInset } from './dental/stepPanelInset';
 import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts, startsDentalStep } from './dental/flow';
@@ -505,6 +506,7 @@ export default function App() {
    * Checks the units' current contacts; resolves with the spots found outside and inside no-support
    * zones, and how many units' checks did not finish (replaced by a newer check of a changed unit).
    */
+  const dentureClient = denture.client;
   const runCheck = useCallback(async (units: readonly PrintUnit[]): Promise<CheckTally> => {
     const checked = await Promise.all(units.filter((unit) => unit.supports).map(async (unit) => {
       const orientation = orientationOf(unit);
@@ -516,15 +518,18 @@ export default function App() {
         if (!found) return undefined;
         // Spots face down on the plate: plate down in unit-local space keeps a zone on the far side of a thin floor out.
         const down = inverseTransformDirection(orientation, [0, -1, 0]);
-        const overhangs = found.map((problem) => {
+        const located = found.map((problem) => {
           const position = inverseTransformPoint(orientation, problem.position);
           return { ...problem, unitId: unit.id, position, inZone: problemInZone(unit.zones, position, down) };
         });
+        // A denture follows its own rules: spots they leave unsupported on purpose are listed grey, not as problems.
+        const { real: overhangs, accepted } = await splitDentureSpots(dentureClient(), unit, located, { key: 'Checking the denture rules on {name}', vars: { name: unitName(unit.id) } });
+        const acceptedRows = accepted.map(({ reason, points }) => ({ kind: 'outside' as const, area: 0, position: points[0]!, points, rule: reason, unitId: unit.id, inZone: false }));
         // Islands are the Rust verdict of the build, already in the unit frame (a vertex of the unit mesh).
         const islands = islandProblems(mesh?.islands, unit.source.positions).map((problem) => ({
           ...problem, unitId: unit.id, inZone: problem.kind === 'island' && problemInZone(unit.zones, problem.position, down),
         }));
-        const items = [...islands, ...omittedProblems(unitContacts(unit, undefined), mesh).map((problem) => ({ ...problem, unitId: unit.id, inZone: false })), ...overhangs];
+        const items = [...islands, ...omittedProblems(unitContacts(unit, undefined), mesh).map((problem) => ({ ...problem, unitId: unit.id, inZone: false })), ...acceptedRows, ...overhangs];
         setProblems((current) => new Map(current).set(unit.id, { unit, mesh, items }));
         // No current build: the island verdict is not known yet, so this check is not complete (never clean);
         // the re-check below runs once the build lands and lists what it finds.
@@ -537,7 +542,7 @@ export default function App() {
       }
     }));
     return tallyChecks(checked);
-  }, [analysis, unitName]);
+  }, [analysis, dentureClient, unitName]);
 
   /**
    * The findings listed: those of units and builds unchanged since their check, and, for a unit

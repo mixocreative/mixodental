@@ -6,6 +6,8 @@ import type { RerouteResult } from '@mixo-geocore/host/supports/editSupport';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { ExportFilePlan } from '@mixo-geocore/host/supports/export';
 import type { DentureJob, DentureMesh, DentureParts } from './dentureCore';
+import type { GenerateRules } from '@mixo-geocore/host/supports/generateRules';
+import type { RuleReason } from '../check/ruleSpots';
 import type { ExportedFiles, ExportUnitJob } from './dentureExport';
 
 /*
@@ -27,6 +29,7 @@ export type DentureTask =
   | { kind: 'place'; job: DenturePlaceJob }
   | { kind: 'build'; job: DentureJob }
   | { kind: 'check-landing'; job: DentureLandingJob }
+  | { kind: 'classify-spots'; mesh: TriangleMesh; profileId: string; points: Vector[]; rules: GenerateRules }
   | { kind: 'export'; units: ExportUnitJob[]; files: ExportFilePlan[]; revision: number };
 
 export type DentureResult =
@@ -37,4 +40,5 @@ export type DentureResult =
   | { kind: 'placed'; points: SupportPoint[]; parts: DentureParts }
   | { kind: 'built'; mesh: DentureMesh }
   | { kind: 'landing'; result: RerouteResult }
+  | { kind: 'spot-reasons'; reasons: (RuleReason | null)[] }
   | ({ kind: 'files' } & ExportedFiles);

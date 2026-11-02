@@ -5,6 +5,7 @@ import { runAfterGeometryReady } from '@mixo-geocore/host/geometryVersion.js';
 import { openLiveTilt, type LiveTilt } from '@mixo-geocore/host/dental/dentureTilt';
 import { buildDenture, checkModelLanding, orientAndScan, placeDenture } from './dentureCore';
 import type { DentureResult, DentureTask } from './dentureProtocol';
+import { ruleReasons } from '../check/ruleSpots';
 import { exportFiles } from './dentureExport';
 import { DENTURE_STAGE } from '../progress/stagePlans';
 import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
@@ -12,7 +13,7 @@ import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
 /*
  * The denture worker: Step 1's orientation and tilt scan, the live-tilt handle (kept here between calls, so a
  * tilt costs tens of milliseconds), the accepted pose's tips, the support build and the one-point model-surface
- * check. One job at a time; the engine's per-model caches stay warm between the scan and the live tilt.
+ * check and the rule verdict on the support check's spots. One job at a time; the engine's per-model caches stay warm between the scan and the live tilt.
  */
 
 const PROGRESS_INTERVAL_MS = 60;
@@ -67,6 +68,8 @@ serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeom
       const out = exportFiles(task.units, task.files, task.revision, (fraction) => progress(fraction, PROGRESS_STAGE.writingStl));
       return transferable<DentureResult>({ kind: 'files', ...out }, out.files.map((file) => file.buffer));
     }
+    case 'classify-spots':
+      return { kind: 'spot-reasons', reasons: ruleReasons(task.mesh, task.profileId, task.points, task.rules) };
     case 'check-landing': {
       const { tip, normal, ...job } = task.job;
       return { kind: 'landing', result: checkModelLanding(job, tip, normal) };

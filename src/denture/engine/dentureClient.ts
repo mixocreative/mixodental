@@ -9,6 +9,9 @@ import type { ErrorContext } from '@mixo-geocore/editing/errors';
 import type { DentureJob, DentureMesh, DentureParts } from './dentureCore';
 import type { DentureLandingJob, DenturePlaceJob, DentureResult, DentureTask } from './dentureProtocol';
 import { KeyedQueue } from './keyedQueue';
+import type { GenerateRules } from '@mixo-geocore/host/supports/generateRules';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
+import type { RuleReason } from '../check/ruleSpots';
 import type { ExportUnitJob } from './dentureExport';
 import type { ExportFilePlan } from '@mixo-geocore/host/supports/export';
 import type { ExportResult } from '@mixo-geocore/host/workers/meshClient';
@@ -28,6 +31,7 @@ const JOB_KIND: Record<DentureTask['kind'], { cancellable: boolean; context: Err
   place: { cancellable: true, context: 'place' },
   build: { cancellable: true, context: 'build' },
   'check-landing': { cancellable: true, context: 'build' },
+  'classify-spots': { cancellable: true, context: 'check' },
   export: { cancellable: true, context: 'export' },
 };
 
@@ -38,7 +42,7 @@ const copyOf = (mesh: TriangleMesh): TriangleMesh => ({ positions: mesh.position
  * The only way the app reaches the denture engine (src/denture/engine): one worker, one job at a time, a newer
  * job of the same key replacing a queued one (`undefined` answers a replaced job). Keys: `orient:<unit>`,
  * `live:<unit>` (open, the tilts and close of one handle share the worker's handle key), `place:<unit>`,
- * `build:<unit>:<mode>`, `landing:<unit>`.
+ * `build:<unit>:<mode>`, `landing:<unit>`, `classify:<unit>`.
  */
 export class DentureClient {
   private readonly runner: WorkerTask<DentureTask, DentureResult>;
@@ -113,6 +117,12 @@ export class DentureClient {
   checkLanding(unitId: string, job: DentureLandingJob, label: JobLabel): Promise<RerouteResult | undefined> {
     return this.run(`landing:${unitId}:${job.tip.join(',')}`, { kind: 'check-landing', job: { ...job, mesh: copyOf(job.mesh) } }, label)
       .then((result) => (result?.kind === 'landing' ? result.result : undefined));
+  }
+
+  /** Which of the support check's spots (unit-local) the denture rules leave unsupported on purpose, and why (null: a real problem). */
+  classifySpots(unitId: string, mesh: TriangleMesh, profileId: string, points: Vector[], rules: GenerateRules, label: JobLabel): Promise<(RuleReason | null)[] | undefined> {
+    return this.run(`classify:${unitId}`, { kind: 'classify-spots', mesh: copyOf(mesh), profileId, points, rules }, label)
+      .then((result) => (result?.kind === 'spot-reasons' ? result.reasons : undefined));
   }
 
   private exports = 0;
