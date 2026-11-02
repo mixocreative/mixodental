@@ -139,6 +139,7 @@ Style by `[data-ui="name"]`. `{kind}` is `denture` or `aligner`; in `problem-ite
 | Step 2, denture settings (under Adjust) | `denture-settings`, `denture-model-landing`, `denture-model-landing-select`, `denture-low-outside`, `denture-clearance-floor` |
 | Denture Step 2, footer | `denture-review-footer`, `denture-finished-count`, `restore-step-2`, `denture-add-another`, `denture-review-nav`, `denture-review-back`, `denture-review-ok` |
 | Aligner Step 3 blocks | `aligner-support-settings`, `aligner-edit-supports`, `aligner-problems`, `aligner-check-run`, `aligner-id-label`, `restore-step-2` |
+| Restore step | `restore-step-1` (Step 1), `restore-step-area` (aligner area step), `restore-step-2` (supports step) |
 | Step 2, parts list | `{kind}-parts`, `{kind}-parts-summary`, `{kind}-parts-fused-note`, `{kind}-parts-list`, `{kind}-part-row` |
 | Plate | `plate-panel`, `plate-printer`, `plate-printer-select`, `plate-size`, `plate-arrange`, `plate-unplaced`, `plate-unplaced-item` |
 | Viewport | `unresolved-bubble`, `landing-mark` |

@@ -54,6 +54,10 @@ describe('DentalBar', () => {
     expect(html).toContain('No support area was detected');
     expect(html).toContain('>Back<');
     expect(html).not.toContain('>Exit<');
+    expect(html).not.toContain('restore-step-area');
+    const restorable = renderToStaticMarkup(<DentalBar gesture={area} unitName="sample" ui={{ mode: 'dental', dentalStage: 'area' } as UiState} send={() => {}} run={() => {}} tipCount={0} previewStatus="idle" restore={{ can: true, run: () => {} }} />);
+    expect(restorable).toMatch(/data-ui="restore-step-area"[^>]*>Restore step</);
+    expect(restorable.indexOf('restore-step-area')).toBeLessThan(restorable.indexOf('>Back<'));
   });
 
   it('shows Next without Done in Step 2, then Done only in Step 3', () => {

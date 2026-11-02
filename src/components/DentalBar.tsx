@@ -18,7 +18,7 @@ import { Segmented } from './Segmented';
 import type { DentalTiltState } from './useDentalFlow';
 import type { AreaRisk } from '../dental/areaRisk';
 import { hint } from './hint';
-import type { StepRestore } from './RestoreStepButton';
+import { RestoreStepButton, type StepRestore } from './RestoreStepButton';
 import { DentureReviewPanel, type DentureReviewInput } from '../denture/steps/supports/DentureReviewPanel';
 import { kindText } from '../denture/kindText';
 
@@ -162,6 +162,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
           : 'Finding safe support tips…')}</p> : null}
       {areaExtra}
       <div className="edit-row">
+        {restore ? <RestoreStepButton restore={restore} unique="restore-step-area" /> : null}
         <CommandButton command={resolve('dental.back', ui)} run={run} />
         <CommandButton command={resolve('dental.generate', tuningBusy ? { ...ui, dentalPreviewReady: false } : ui)} run={run} />
       </div>

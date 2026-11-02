@@ -54,7 +54,7 @@ Engine calls go through `engine/` only.
 | `parts/PartsList.tsx` | The parts list of a multi-part file (hidden for one part). |
 | `parts/addOnTint.tsx` | The add-on tint of a unit's current build (shared `components/viewport/FaceTintLayer.tsx`, token `--part-addon`), or none. |
 
-Restore step (P7b): `components/RestoreStepButton.tsx` (the quiet secondary button of Step 1 and Step 2) runs App's `restoreStep`, which puts the scene the step began with (App's undo floor) back as one undo step (`state/history.restoreScene`). The Step 2 panel docks right from 721 px (`dental/stepPanelInset.ts`).
+Restore step (P7b): `components/RestoreStepButton.tsx` (the quiet secondary button of Step 1, Step 2 and the aligner's area step) runs App's `restoreStep`, which puts the scene the step began with (App's undo floor) back as one undo step (`state/history.restoreScene`). The Step 2 panel docks right from 721 px (`dental/stepPanelInset.ts`).
 
 Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dial, Back / Next), `components/DentalReviewBlocks.tsx`
 (the supports step's blocks: settings, edit tools, problems, ID label, Back question; the aligner's Step 3 shows them all open in

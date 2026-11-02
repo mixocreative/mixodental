@@ -886,6 +886,8 @@ dialog.terms .terms-item > span { flex: none; }
 .fold-chevron { width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur); }
 .fold.is-open .fold-chevron { transform: rotate(45deg); }
 .fold-body { display: grid; gap: 10px; }
+/* Restore step in a horizontal edit bar (the aligner's area step) sits at its own width, before Back | Next. */
+.edit-row > .restore-step { width: auto; }
 /* Step 3's panel covers the bottom right: the view buttons sit just left of it (above it when it docks at the bottom). */
 .viewport--step3 .viewport-view { right: 342px; }
 /* From 721 px up the panel stays on the right (a tablet-wide window too): it never covers the bottom half of the view. */
