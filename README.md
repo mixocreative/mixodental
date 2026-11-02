@@ -78,6 +78,8 @@ The interface picks up your browser language and remembers your choice. Switch b
 
 ## For developers
 
+Designers: start with [docs/designer-guide.md](docs/designer-guide.md); open UI work is in [docs/handoff/ui-handoff.md](docs/handoff/ui-handoff.md).
+
 React, Three.js (react-three-fiber), TypeScript, Vite and Web Workers, with three-mesh-bvh for picking.
 
 ```bash
