@@ -28,6 +28,10 @@ mixoDental builds supports for dental aligners. This folder explains how that wo
 
 `batch-review/run-batch-review.bat` (Windows): double-click it and choose a folder, or drag one or more folders of STL files onto it. Every STL in the folder and its subfolders goes through the same steps as the app (orientation, support area, supports, safety and island checks). The results are written to `dentalwork/output/batch-<date-time>/` and a viewer opens in your browser. It lists the cases that need a look first, shows each one in 3D with the detected edges, the support area, the supports and markers where a support crosses the aligner, and gives the counts beside it. `batch-review/view-batch-review.bat` reopens the newest result, or the one you drop onto it. No AI is involved; it runs on this computer only. See [batch-review/README.md](batch-review/README.md).
 
+## Real-scan gate
+
+`npm run gate:real` (see the root README) re-runs every local real scan and diffs it against `dentalwork/baselines/real-scan-baseline.json`. Run it after any engine change or vendor bump.
+
 ## Running the review script for one file
 
 `run-review.bat` (Windows) asks for the path to an STL and writes one review GLB under `dentalwork/output`, then selects it in File Explorer. `dentalwork/output` is ignored by Git because an STL or a GLB made from it can contain patient geometry. Do not commit a new patient STL or its GLB without the owner's approval.

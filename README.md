@@ -87,6 +87,8 @@ npm test         # Vitest suite, including the Blender parity tests
 npm run build    # type-check and production build into dist/
 ```
 
+**Real-scan gate (local only, never CI).** `npm run gate:real` runs every local real scan (dentures, aligners, multi-part files in `dentalwork/fixtures/case-*`, `-sup` files skipped, one scan at a time) through the folder-review batch and compares tips placed and left out, tips by source, unresolved islands, print angle, verdict and the SHA-256 of every GLB and peel file with `dentalwork/baselines/real-scan-baseline.json`. It exits non-zero on any difference; `-- --kinds denture,aligner,multipart` runs a subset; `-- --update` writes a new baseline (only when a change is meant, and say so in the commit). Required after any engine change, including every `vendor:geometry` bump. It is too slow for `npm test`. Without local scans it prints "skipped" and exits 0. The baseline holds numbers and hashes only, keyed by kind plus a truncated hash of the scan's bytes (no file names).
+
 CI (`.github/workflows/ci.yml`) runs on every push and pull request: Rust tests, app tests, the production build and the browser walk. A push to `main` is deployed to GitHub Pages only after the tests and the walk pass. Dependabot (`.github/dependabot.yml`) opens one pull request a month when a CI action has a new version.
 
 ### Browser walk

@@ -13,7 +13,8 @@
     "host-example": "node scripts/host-example.mjs",
     "test": "vitest run",
     "walk": "node scripts/walk.mjs",
-    "check:duplicates": "node scripts/check-no-duplicates.mjs"
+    "check:duplicates": "node scripts/check-no-duplicates.mjs",
+    "gate:real": "node scripts/real-scan-gate.mjs"
   },
   "devDependencies": {
     "@fontsource/zen-kaku-gothic-new": "^5.3.1",

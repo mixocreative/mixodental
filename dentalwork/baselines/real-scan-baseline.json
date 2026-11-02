@@ -1,0 +1,242 @@
+{
+  "note": "Numbers and hashes only; keyed by kind + SHA-256 of the scan bytes. Written by npm run gate:real -- --update.",
+  "nondeterministic": {},
+  "cases": {
+    "denture-1b6a4e0c5656": {
+      "kind": "denture",
+      "record": {
+        "tipsPlaced": 168,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 8,
+        "tipsBySource": "dental rim 102 / hole 36 / area 12 / low 2 / island 16",
+        "unresolvedIslands": "none",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-peel.json": "6534fd8ea6fb5567500e4722202a43759c864c029f0c01aed3d708046bfa61e5",
+          "case-001.glb": "2a012ec1a3be38b0f28f8fed969d58e40655b9eeff2c510b4ca216a1919a5cb7",
+          "client/case-001.glb": "a3996fd5fa67adb010e43c78163afa78975a5c49fdb701a0820ca1589a371077"
+        }
+      }
+    },
+    "denture-aafea2257bf5": {
+      "kind": "denture",
+      "record": {
+        "tipsPlaced": 99,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 0,
+        "tipsBySource": "dental rim 87 / low 4 / island 8",
+        "unresolvedIslands": "none",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-peel.json": "2befcb09893c0b5527808fe83ad679a25b8d2f016a4db4f2f59a7cd71932c025",
+          "case-001.glb": "b055e8a8c969b54cb35cba6345f326f2f905f3b2ccc5d90d88f0daa006398f48",
+          "client/case-001.glb": "b4f4182f44a5ac6684aaf406179491b8b1ee10ce483296eb15ca05216869504b"
+        }
+      }
+    },
+    "denture-3cbc9a768182": {
+      "kind": "denture",
+      "record": {
+        "tipsPlaced": 76,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 18,
+        "tipsBySource": "dental rim 62 / area 7 / low 2 / island 5",
+        "unresolvedIslands": "none",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-peel.json": "64aa1258af12c0f8404e25aeedba6da7fefd8e2717dd99db2d4b6ecccfd84440",
+          "case-001.glb": "d84a0aa30b76d9593d2344843a3bc529b69ab90c22eeef3cab708f9976cd4828",
+          "client/case-001.glb": "b324399ab8d8428c675925b7b4db570ba55777e9c66e8024eca220fc58237e62"
+        }
+      }
+    },
+    "aligner-006a279ebb7d": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 81,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 36.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "79a03d5176fce22111639b3af277462e254736d454ee3203e2ad0b5cf76b2744",
+          "case-001.glb": "b1b6a657c8866ce197f476c4cb1ec67b641f322cf1d8bbfdab4fa576a977cb44"
+        }
+      }
+    },
+    "aligner-ff7c3fb64a9b": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 71,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 29.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "db50524b232f06a22e5886e3525182bf5fac74e6d95704f617518cc2ca53e55d",
+          "case-001.glb": "0fa6024c4bd49aa80f38310680ea67eac6ded9e7265976fb2c5b45cc935f0ab9"
+        }
+      }
+    },
+    "aligner-c69dfade9be3": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 73,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 26.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "68b9236b22839018a90d11eb0ee9173b4af92b3717e0d49f7263f5c79c20fbd9",
+          "case-001.glb": "f8fcabeec5cafbaa0928c7f5372b6e813518866f8beceb51abdbc54459c653ce"
+        }
+      }
+    },
+    "aligner-92442c71053e": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 71,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 33.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "258a9251aa29e722fe71ebbf7adfd60d771be8eb14d12c8f422f3daa12fb4103",
+          "case-001.glb": "a8e4cb40fda440a74f8d5d2cbfcfdb8f060c045f113ead68f259c47da523ee55"
+        }
+      }
+    },
+    "aligner-538308737e23": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 68,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 27.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "608bbb374dea68e255bded14b79a96a6cdfabe7b81fe8a661c791ab1aaead507",
+          "case-001.glb": "dd7796c7fe86160ba72f97406ec77681bb299e40f34cc8752f786cbe987d2af7"
+        }
+      }
+    },
+    "aligner-e73af178b9b0": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 86,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 29.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "0727e1876e223e9d14c16125042d54f1d751a3330209ee389efbaafd7efb78ea",
+          "case-001.glb": "b3280465ac8350d75c9c44bce831dd966c484b2ced63d7ec87804e133b39f9b2"
+        }
+      }
+    },
+    "aligner-6969105a32ea": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 73,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 33.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "91896de77a514401983e63c48c8dfe082603f37362d696958f5bc130b0ced4f9",
+          "case-001.glb": "ad218d50f1bfb8246410f5772474a63d242eb0ba9330bb3dca9867c8af39e51f"
+        }
+      }
+    },
+    "aligner-479d20d1a73d": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 75,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 27.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "d511ec8a5e253a17f4fb10cfa0cf23c0b2aeb27e05fcf3e2e3558819e9294800",
+          "case-001.glb": "938447e389b49fd4a6036d2ce98e755b2a6fc4211e711f8d4981f415098d0d00"
+        }
+      }
+    },
+    "multipart-10f40a069c2f": {
+      "kind": "multipart",
+      "record": {
+        "tipsPlaced": 0,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 26.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "",
+        "result": "inconclusive",
+        "reason": "diagnostic-band-invalid-face-graph",
+        "hashes": {
+          "case-001-orientation.glb": "ec4c726e5ad01ec60a63c8a24c7eaf95732a9279e2186575288c15899378eddf"
+        }
+      }
+    },
+    "multipart-76ec63fbbedb": {
+      "kind": "multipart",
+      "record": {
+        "tipsPlaced": 92,
+        "tipsLeftOut": 10,
+        "islandsUnresolved": 1,
+        "printAngleDeg": 46.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "ad44132ea19fe08ce553487c987ed49274e9f4cbd986df6d1f2129924d143189",
+          "case-001.glb": "df91a81416fbbd3f0761250a2e321b550c1296c9080cfcab0d7b2fa3f3a7fbf7"
+        }
+      }
+    }
+  }
+}
