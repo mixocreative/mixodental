@@ -7,7 +7,9 @@
   --paper:   #f4f2ed;   /* app + panel background */
   --surface: #fbfaf7;   /* raised: buttons, segmented trough, popovers */
   --sunken:  #ebe8e1;   /* hover, selected row */
-  --viewport-bg: #e9e6df;
+  --scene-bg: #e9e6df;                  /* same name and value as the app (src/styles.css) */
+  --scene-light-sky: #ffffff;           /* hemisphere light of the viewer: sky and ground */
+  --scene-light-ground: var(--muted);
 
   /* Lines */
   --line:        #dcd7cd;
@@ -61,8 +63,8 @@
 /* Traditional Chinese: Taiwan glyph forms; the Japanese face would draw kanji forms. */
 :root:lang(zh-Hant), [lang="zh-Hant"] { font-family: var(--font-sans-tw); }
 
-/* Batch-review layer colours. dentalwork/batch-review/layerColours.ts holds the same values for the GLB
-   writers: the two MUST match (change both together). */
+/* Batch-review layer colours: the ONE place they are set. The viewer reads them here, and layerColours.ts reads
+   this file for the GLB writers, so there is nothing to keep in step. An alias (var(--x)) is followed. */
 :root {
   --layer-allowed: #2e9e5b;
   --layer-no-support: #c0392b;
@@ -106,4 +108,13 @@
   --layer-source-hole: #00acc1;
   --layer-source-area: #7cb342;
   --layer-source-low: #fdd835;
+  /* Layers the GLB writers colour that have no legend row of their own. */
+  --layer-denture-model: #d6cfbf;
+  --layer-profile-model: #2aa198;
+  --layer-hard-edges: #222222;
+  --layer-crossing-blocked: #ff0033;
+  --layer-crossing-unjudged: #ffaa00;
+  --layer-vertex-base: #ffffff;         /* neutral under per-vertex colours */
+  --swatch-fallback: #cccccc;
+  --swatch-border: rgba(0, 0, 0, .18);
 }

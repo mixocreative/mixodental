@@ -407,7 +407,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
       layers.push({ name: 'Self-supporting overhangs (no tips needed)', color: C.selfSupporting, positions: patchPositions(mesh, selfFaces, DOWN_LIFT_MM * 1.5, sign), indices: new Uint32Array(0) });
     }
     edgesLayer(layers, review.downEdges, 'DOWN-FACING hard edges', C.downEdges);
-    edgesLayer(layers, review.hardEdges, 'ALL hard edges (thin)', 0x222222);
+    edgesLayer(layers, review.hardEdges, 'ALL hard edges (thin)', C.hardEdges);
     // Step 1: the tight oriented box around the model, and the middle plane fitted to the hard edges.
     edgesLayer(layers, boxEdges(review.box), 'TIGHT BOX (oriented, around the model)', C.tightBox);
     const planeLayer = (plane: { point: Vector; normal: Vector }, name: string, color: number) => {

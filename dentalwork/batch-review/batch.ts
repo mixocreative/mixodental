@@ -13,6 +13,7 @@ import { mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { reviewCase, type CaseRow } from './reviewCase';
 import { parseKind } from './profileSelect';
+import { RULE_DEFAULTS } from './ruleDefaults';
 
 async function main(): Promise<void> {
 const args = process.argv.slice(2);
@@ -57,7 +58,7 @@ if (failed > 0) throw new Error(`${failed} file(s) could not be read or built (s
 }
 
 function writeSummary(rows: CaseRow[], out: string): void {
-  writeFileSync(join(out, 'summary.json'), JSON.stringify({ created: new Date().toISOString(), cases: rows }, null, 2));
+  writeFileSync(join(out, 'summary.json'), JSON.stringify({ created: new Date().toISOString(), ruleDefaults: RULE_DEFAULTS, cases: rows }, null, 2));
   const columns = Object.keys(rows[0]!) as Array<keyof CaseRow>;
   const cell = (value: unknown) => /[",\n]/.test(String(value ?? '')) ? `"${String(value).replace(/"/g, '""')}"` : String(value ?? '');
   writeFileSync(join(out, 'summary.csv'), [columns.join(','), ...rows.map((row) => columns.map((c) => cell(row[c])).join(','))].join('\r\n'));

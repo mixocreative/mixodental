@@ -19,6 +19,10 @@ const TSX = Object.keys(FILES).filter((path) => path.endsWith('.tsx'));
 const VIEWPORT_DIRS = ['src/components/viewport', 'src/denture/steps/orient', 'src/denture/parts', 'src/ui'];
 const VIEWPORT_FILES = ['src/components/ObjectViewport.tsx'];
 const VIEWPORT = Object.keys(FILES).filter((name) => VIEWPORT_DIRS.some((dir) => name.startsWith(`${dir}/`)) || VIEWPORT_FILES.includes(name));
+/** The batch-review viewer and its GLB writers: colours come from dentalwork/batch-review/tokens.css only. */
+const BATCH = Object.entries(import.meta.glob<string>('../../dentalwork/batch-review/*.{ts,html}', { query: '?raw', import: 'default', eager: true }))
+  .map(([path, text]) => [path.replace(/^\.\.\/\.\.\//, ''), text] as const)
+  .filter(([path]) => !/\.test\.ts$/.test(path));
 /** Tests may name a colour they assert on; the ban is about source. */
 const isTest = (path: string) => /\.test\.tsx?$/.test(path);
 
@@ -59,6 +63,14 @@ describe('no colour literals outside the token files', () => {
     expect(offenders(source, RGB)).toEqual([]);
     // tokenColour.ts holds the one neutral fallback grey; it is not a design colour.
     expect(offenders(source.filter((path) => rel(path) !== 'src/ui/tokenColour.ts'), NUMBER_COLOUR)).toEqual([]);
+  });
+
+  it('has no colour literal in the batch-review viewer or its GLB writers', () => {
+    expect(BATCH.map(([path]) => path)).toEqual(expect.arrayContaining(['dentalwork/batch-review/viewer.html', 'dentalwork/batch-review/layerColours.ts']));
+    for (const [path, text] of BATCH) {
+      const lines = text.split(String.fromCharCode(10));
+      for (const pattern of [HEX, RGB, NUMBER_COLOUR]) expect(lines.filter((line) => pattern.test(line)).map((line) => `${path}: ${line.trim().slice(0, 80)}`)).toEqual([]);
+    }
   });
 
   it('has no inline style= in TSX, except the listed dynamic values', () => {

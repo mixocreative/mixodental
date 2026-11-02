@@ -179,8 +179,8 @@ export function dentureLayers(mesh: TriangleMesh, review: Extract<DentureReview,
   const plane = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)].flat();
   const { supports } = review;
   return [
-    { name: 'TEAL denture model', color: 0x2aa198, positions: Float32Array.from(mesh.positions), indices: Uint32Array.from(mesh.indices) },
+    { name: 'TEAL denture model', color: LAYER_COLOURS.profileModel, positions: Float32Array.from(mesh.positions), indices: Uint32Array.from(mesh.indices) },
     { name: 'SUPPORT PILLARS (ours)', color: LAYER_COLOURS.pillars, positions: Float32Array.from(supports.positions), indices: Uint32Array.from(supports.indices) },
-    { name: 'UPRIGHT PLANE (arch; teeth side is its normal)', color: 0x6c7a89, positions: Float32Array.from(plane), indices: Uint32Array.of(0, 1, 2, 0, 2, 3) },
+    { name: 'UPRIGHT PLANE (arch; teeth side is its normal)', color: LAYER_COLOURS.middlePlane, positions: Float32Array.from(plane), indices: Uint32Array.of(0, 1, 2, 0, 2, 3) },
   ];
 }

@@ -136,8 +136,8 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
         { supports, frame: review.frame, bands: review.bands, diagnosticContacts: review.diagnosticContacts,
           proposedTips: review.placement.points.length, droppedTips: supports.dropped.length },
         [
-          { name: 'MARK support crosses the model', color: 0xff0033, points: issues.filter((i) => i.blocked).flatMap((i) => faceVertex(i.modelFace)) },
-          { name: 'MARK crossing that could not be judged', color: 0xffaa00, points: issues.filter((i) => !i.blocked).flatMap((i) => faceVertex(i.modelFace)) },
+          { name: 'MARK support crosses the model', color: LAYER_COLOURS.crossingBlocked, points: issues.filter((i) => i.blocked).flatMap((i) => faceVertex(i.modelFace)) },
+          { name: 'MARK crossing that could not be judged', color: LAYER_COLOURS.crossingUnjudged, points: issues.filter((i) => !i.blocked).flatMap((i) => faceVertex(i.modelFace)) },
           { name: 'MARK low point with no support', color: LAYER_COLOURS.lowUnsupported, points: islands.filter((i) => i.status === 'unresolved').flatMap((i) => vertex(i.vertex)) },
           { name: 'MARK low point outside the area', color: LAYER_COLOURS.lowOutside, points: islands.filter((i) => i.status === 'outside-policy').flatMap((i) => vertex(i.vertex)) },
         ]);

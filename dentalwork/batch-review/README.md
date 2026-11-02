@@ -90,3 +90,7 @@ For each file, write down whether the edges and the support area are right, wron
 | `serve.mjs` | Serves the viewer, three.js and the run's files (if a run folder is given) on 127.0.0.1 only |
 | `viewer.html` | The viewer |
 | `tokens.css`, `base.css` | Mixo app style, copied unchanged from the `mixo-app-style` skill |
+
+## Colours and rule numbers
+
+Every colour of the viewer and of the GLB layers is a CSS token in `tokens.css` (`--layer-*`, `--scene-*`); `layerColours.ts` reads that file for the GLB writers, so a colour is changed in one place. The overhang numbers quoted in the viewer's texts (global and dental rim angle) are the rule defaults the run was made with: `batch.ts` writes them to `summary.json` (`ruleDefaults`, from `ruleDefaults.ts`) and the viewer fills them in. See `docs/ui-styling.md`.

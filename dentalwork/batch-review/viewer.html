@@ -31,7 +31,7 @@
   .panel { border-right: 1px solid var(--line); min-height: 0; }
   .panel.right { border-right: 0; border-left: 1px solid var(--line); }
   /* The stage is sized by the grid, never by its canvas: the canvas is absolutely placed, so its pixel size cannot push the page taller. */
-  .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--viewport-bg); }
+  .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--scene-bg); }
   .stage canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
   .views { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
   .steps { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; }
@@ -55,7 +55,7 @@
   .peel-legend { margin: 2px 0 0; font-size: var(--fs-sm); }
   .peel-key.ours { color: var(--danger); } .peel-key.owner { color: var(--ink); }
   .source { color: var(--muted); font-size: var(--fs-sm); overflow-wrap: anywhere; margin: 0 0 6px; }
-  .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; border: 1px solid rgba(0, 0, 0, .18); }
+  .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; border: 1px solid var(--swatch-border); }
   /* Layer groups: the base.css collapsible band; the count (on / total) stays regular weight. */
   .layer-group > summary .count { margin-left: auto; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
   .layer-group .legend-row { min-height: calc(var(--row) - 2px); gap: 6px; padding-left: 4px; }
@@ -167,6 +167,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
+// Every colour comes from a token in tokens.css; nothing in this file is a colour value.
+const cssToken = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
 // Layers, in collapsible groups. Each entry: [GLB name prefix, short label, hover text (the long explanation), shown by default, group id].
 // Only the layers a file actually has are listed (a group with none is not shown). GLTFLoader turns spaces
 // in node names into underscores; `plain` puts them back before matching.
@@ -198,7 +201,7 @@ const LAYER_TABLE = [
   ['No-support zone', 'No-support zone', 'Faces the parallel 45-degree rays (R1, and R1b when on) from the front-top hit first. The allowed area overrides it.', true, 'zones'],
   ['Allowed area (seen', 'Allowed area', 'Tips may stand on these faces: the oral cavity ray (R2) reaches them first. Overrides the no-support zone.', true, 'zones'],
   ['Hole band', 'Hole band', 'Faces within 5 mm of a hole edge; tips may stand here if they overhang.', true, 'zones'],
-  ['Down-facing area', 'Down-facing area', 'Faces whose slope from horizontal is under the overhang angle in the print pose (0 = flat ceiling, 90 = vertical wall; global 45, rim band 60): the support candidates.', false, 'zones'],
+  ['Down-facing area', 'Down-facing area', 'Faces whose slope from horizontal is under the overhang angle in the print pose (0 = flat ceiling, 90 = vertical wall; global {globalOverhang}, rim band {rimOverhang}): the support candidates.', false, 'zones'],
   ['Self-supporting overhangs', 'Self-supporting overhangs (no tips needed)', 'Overhang patches (faces joined by edges) that need no open-area tips: no island or lowest point inside, projected area under the minimum (4 mm2), flattest face not within 19 degrees of horizontal, and reach under 3 mm from where they join the model. Only with the rule overhangSelfSupport on. Rim, hole, island and low-point tips are never dropped.', true, 'zones'],
 
   ['Sockets (no support)', 'Sockets (no support)', 'Tooth sockets: blind hollows on the teeth side, found once before tilt by filling the teeth-side depth map like water (at least 1 mm deep, rule socketMinDepthMm). Faces the oral cavity ray (R2) sees are not sockets. With rule socketNoSupport on (default) no rim, hole or area tip stands here; islands still get support.', true, 'zones'],
@@ -257,6 +260,10 @@ const LAYER_TABLE = [
   ['PINK', 'Inner sample points', 'Aligner: points used to find the opening edge.', false, 'diagnostic'],
 ];
 const LAYERS = LAYER_TABLE;
+// The overhang numbers in the texts below ({globalOverhang}, {rimOverhang}) are the rule defaults the run was made with
+// (summary.json `ruleDefaults`, written by batch.ts from ruleDefaults.ts), so the words cannot drift from the engine.
+let RULES = {};
+const ruleText = (text) => text.replace(/\{globalOverhang\}/g, RULES.overhangAngleDeg ?? '?').replace(/\{rimOverhang\}/g, RULES.dentalRimOverhangAngleDeg ?? '?');
 // GLTFLoader turns spaces in node names into underscores; compare with them put back.
 const plain = (name) => (name ?? '').replace(/_/g, ' ');
 // GLTFLoader also drops : . [ ] / from node names ("Tips: dental rim" arrives as "Tips dental rim"): compare without them.
@@ -269,8 +276,8 @@ const keyOf = (name) => {
   return key === 'TEAL' && kindNow === 'denture' ? 'DENTURE' : key;
 };
 const entryOf = (key) => LAYERS.find(([prefix]) => prefix === key);
-const DENTURE_COLOUR = new THREE.Color('#d6cfbf');
-// Layer prefix -> the shared colour token (tokens.css; the GLB writers use layerColours.ts, the same values). Rays take the colour of the area they decide.
+const DENTURE_COLOUR = new THREE.Color(cssToken('--layer-denture-model'));
+// Layer prefix -> the shared colour token (tokens.css; the GLB writers read the same file through layerColours.ts). Rays take the colour of the area they decide.
 const SWATCH_VAR = {
   'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing', 'Self-supporting overhangs': '--layer-self-supporting', 'Sockets (no support)': '--layer-sockets', 'Fitting (basin)': '--layer-fitting', 'Suction cups': '--layer-suction', 'Drain / clean': '--layer-drain',
   'DOWN-FACING': '--layer-down-edges', 'TIGHT BOX': '--layer-tight-box', 'RIM PLANE': '--layer-middle-plane', 'SYMMETRY PLANE': '--layer-symmetry-plane', 'Oral cavity ray': '--layer-ray-origin',
@@ -295,7 +302,7 @@ const DENTURE_STEPS = [
   ['4. Oral cavity ray', 'On the dental rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
   ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
   ['6. Print tilt', 'The build plate at the print angle the build chose.', ['Print tilt']],
-  ['7. Overhangs and low points', 'Faces whose slope from horizontal is under the overhang angle (global 45, rim 60; 0 = flat ceiling, 90 = vertical wall), the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'Suction cups', 'Drain / clean', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
+  ['7. Overhangs and low points', 'Faces whose slope from horizontal is under the overhang angle (global {globalOverhang}, rim {rimOverhang}; 0 = flat ceiling, 90 = vertical wall), the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'Suction cups', 'Drain / clean', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
   ['8. Tips', 'Tips by source: dental rim, hole, area, low. Black cones: overhang tips with no free path to the plate (not built). Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
   ['9. Supports', 'Our pillars (plastic), the braces and the base.', ['SUPPORT PILLARS']],
   ['10. Compare with owner', 'Your -sup supports (off by default) and contacts, and the area each covers against ours.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
@@ -322,7 +329,7 @@ renderer.toneMappingExposure = 0.9;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 stage.prepend(renderer.domElement);
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(getComputedStyle(document.body).getPropertyValue('--viewport-bg').trim() || '#e9e6df');
+scene.background = new THREE.Color(cssToken('--scene-bg'));
 // A soft room environment gives the PBR materials something to reflect; the lights below stay as they were.
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -337,11 +344,11 @@ const PILLAR_KEYS = ['GOLD', 'SUPPORT PILLARS', 'YOUR SUPPORTS'];
 const boxLabel = document.getElementById('box-label');
 let boxAnchor = null;
 // Matte, low specular: resin/ABS supports, not glossy.
-const PLASTIC = new THREE.MeshPhysicalMaterial({ color: 0xffffff, vertexColors: true, metalness: 0, roughness: 0.85,
+const PLASTIC = new THREE.MeshPhysicalMaterial({ color: cssToken('--layer-vertex-base'), vertexColors: true, metalness: 0, roughness: 0.85,
   clearcoat: 0, specularIntensity: 0.15, envMapIntensity: 0.3, side: THREE.DoubleSide });
 const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 5000);
-scene.add(camera, new THREE.HemisphereLight(0xffffff, 0x8a847a, 1.6));
-const light = new THREE.DirectionalLight(0xffffff, 1.4);
+scene.add(camera, new THREE.HemisphereLight(cssToken('--scene-light-sky'), cssToken('--scene-light-ground'), 1.6));
+const light = new THREE.DirectionalLight(cssToken('--scene-light-sky'), 1.4);
 light.position.set(1, 2, 3);
 camera.add(light);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -431,13 +438,13 @@ function layerRow([prefix, label, legend]) {
   row.dataset.ui = `review-legend-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
   row.dataset.layer = prefix;
   row.dataset.tipTitle = label;
-  row.dataset.tip = legend;
+  row.dataset.tip = ruleText(legend);
   if (stepAt !== null && stepOf(prefix) > stepAt) row.classList.add('later');
   const input = Object.assign(document.createElement('input'), { type: 'checkbox', checked: visible.get(prefix) });
   input.addEventListener('change', () => { visible.set(prefix, input.checked); applyVisibility(); placeBoxLabel(); refreshGroupCounts(); });
   const swatch = document.createElement('i');
   swatch.className = 'swatch';
-  let colour = '#ccc';
+  let colour = cssToken('--swatch-fallback');
   const token = SWATCH_VAR[prefix];
   model.traverse((object) => { if (object.material && (keyOf(object.name) === prefix || keyOf(object.parent?.name) === prefix)) colour = '#' + (object.userData.colour ?? object.material.color).getHexString(); });
   swatch.style.background = token ? `var(${token})` : colour;
@@ -523,7 +530,7 @@ function drawLayers() {
       where.className = 'muted step-where';
       where.dataset.ui = 'review-step-where';
       where.textContent = stepAt === 0 ? 'Model only' : `${stepAt}/${last} ${DENTURE_STEPS[stepAt - 1][0].replace(/^\d+\.\s*/, '')}`;
-      if (stepAt > 0) { where.dataset.tipTitle = DENTURE_STEPS[stepAt - 1][0]; where.dataset.tip = DENTURE_STEPS[stepAt - 1][1]; }
+      if (stepAt > 0) { where.dataset.tipTitle = DENTURE_STEPS[stepAt - 1][0]; where.dataset.tip = ruleText(DENTURE_STEPS[stepAt - 1][1]); }
       stepper.append(prev, next, where);
     }
     parts.push(stepper);
@@ -616,7 +623,7 @@ function describeHit(hit) {
     facts.push(`${Math.round(geometry.attributes.position.count / 3).toLocaleString()} faces in this layer`);
   }
   const shownName = ['Dental rim (continuous', 'Hole outlines'].includes(key) ? plain(object.name).replace('(continuous hard edge)', '') : '';
-  return { title: shownName || title, facts, note: legend };
+  return { title: shownName || title, facts, note: ruleText(legend) };
 }
 
 function pick(clientX, clientY) {
@@ -745,6 +752,7 @@ let current = 0;
 
 function openRun(summary, glbUrl, csvUrl) {
   cases = summary.cases;
+  RULES = summary.ruleDefaults ?? {};
   urlOf = glbUrl;
   const needing = cases.filter((c) => c.needsLook);
   const built = cases.filter((c) => c.result === 'built').length;
