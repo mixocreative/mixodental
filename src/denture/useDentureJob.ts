@@ -21,7 +21,7 @@ export interface DentureJobHost {
   session: EditSession;
   freeTransform: boolean;
   setStatus: (key: string, vars?: Record<string, string | number>, other?: string) => void;
-  requestView: (kind: ViewRequest['kind']) => void;
+  requestView: (kind: ViewRequest['kind'], rightInset?: number) => void;
 }
 
 export function useDentureJob(host: DentureJobHost) {

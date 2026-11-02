@@ -20,6 +20,7 @@ import { acceptCommands } from './acceptCommands';
 import { liveTipLayers, tipCounts } from './liveTipLayers';
 import { tipColours } from './tipColours';
 import { scanOutcome, type ScanSettled } from './scanOutcome';
+import { stepPanelInset } from '../../../dental/stepPanelInset';
 import { isAbort } from '../../../components/appShared';
 
 /*
@@ -40,7 +41,7 @@ interface DentureOrientHost {
   /** Free transform is on: the operator owns the pose, so the tips of no scanned tilt are shown. */
   freeTransform: boolean;
   setStatus: (key: string, vars?: Record<string, string | number>) => void;
-  requestView: (kind: ViewRequest['kind']) => void;
+  requestView: (kind: ViewRequest['kind'], rightInset?: number) => void;
 }
 
 /** The live tips of the tilt shown (unit-local), or none. */
@@ -181,7 +182,8 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
       dispatch({ type: 'batch', commands: acceptCommands(unit, { frame, points: placed.points, settings, denture: { policy, ...(unit.denture?.options ? { options: unit.denture.options } : {}) } }) });
       closeLive();
       send({ type: 'acceptDentalOrientation' });
-      requestView('fit');
+      // Step 2's panel docks on the right: the denture is framed in the area left of it.
+      requestView('fit', stepPanelInset({ mode: 'dental', dentalStage: 'review' }));
     }, (error: unknown) => {
       if (seq.current !== token) return;
       setStatus(isAbort(error) ? 'Placing the denture support tips was cancelled. Press Next again.' : 'The denture support tips could not be placed. Turn the denture, then press Next again.');

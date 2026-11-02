@@ -93,6 +93,7 @@ import { acceptsDentalDrop } from './dental/editingMode';
 import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type StartScreenId } from './components/StartScreen';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
+import { stepPanelInset } from './dental/stepPanelInset';
 import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import type { DentalReview } from './components/DentalSupports';
@@ -165,13 +166,6 @@ async function estimateHeadBytes(file: File): Promise<number> {
     if (20 + json <= GLB_JSON_ESTIMATE_BYTES) return Math.min(file.size, 20 + json);
   }
   return ESTIMATE_HEAD_BYTES;
-}
-
-
-/** Px of the viewport Step 3's side panel covers (300 wide plus its margins); none when it docks at the bottom of a narrow window. */
-function stepPanelInset(session: { mode: string; dentalStage?: string | undefined }): number {
-  if (session.mode !== 'dental' || session.dentalStage !== 'review') return 0;
-  return typeof window !== 'undefined' && window.matchMedia('(max-width: 1100px)').matches ? 0 : 328;
 }
 
 export default function App() {

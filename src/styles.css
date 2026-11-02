@@ -868,7 +868,12 @@ dialog.terms .terms-item > span { flex: none; }
 }
 /* Step 3's panel covers the bottom right: the view buttons sit just left of it (above it when it docks at the bottom). */
 .viewport--step3 .viewport-view { right: 342px; }
-@media (max-width: 1100px) {
+/* From 721 px up the panel stays on the right (a tablet-wide window too): it never covers the bottom half of the view. */
+@media (min-width: 721px) and (max-width: 1100px) {
+  .viewport--step3 .undo-toast-region { top: auto; bottom: 44px; max-width: calc(100% - 370px); }
+  .viewport--step3 .job-activity { top: auto; bottom: 14px; width: min(420px, calc(100% - 370px)); }
+}
+@media (max-width: 720px) {
   .viewport--step3 .viewport-view { right: 14px; top: 56px; bottom: auto; }
   .dental-side { top: auto; left: 14px; right: 14px; bottom: 12px; width: auto; max-height: 55%; max-width: none; }
 }
