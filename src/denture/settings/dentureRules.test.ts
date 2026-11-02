@@ -19,6 +19,14 @@ describe('denture settings to engine rules', () => {
     expect(() => packRules(rulesOfOptions({ modelLanding: 'any', lowOutsideAllowed: false, lastResortClearanceMm: 0.75 }))).not.toThrow();
   });
 
+  it('sends one Overhang angle as the global rule, only when it is not the default', () => {
+    const denture = { policy: { kind: 'denture', profileId: 'reference-denture', lattice: true } } as const;
+    expect(dentureRulesOf({ denture, settings: { scatterAngle: 45 } })).toEqual({});
+    expect(dentureRulesOf({ denture, settings: {} })).toEqual({});
+    expect(dentureRulesOf({ denture, settings: { scatterAngle: 38 } })).toEqual({ overhangAngleDeg: 38 });
+    expect(() => packRules(dentureRulesOf({ denture, settings: { scatterAngle: 38 } }))).not.toThrow();
+  });
+
   it('reads saved options strictly, a missing value as its default', () => {
     expect(normalizeDentureOptions({ modelLanding: 'any' })).toEqual({ ...DEFAULT_DENTURE_OPTIONS, modelLanding: 'any' });
     expect(() => normalizeDentureOptions({ modelLanding: 'all' as never })).toThrow();

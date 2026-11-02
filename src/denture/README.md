@@ -29,7 +29,7 @@ Engine calls go through `engine/` only.
 | `useDentureJob.ts` | App entry: owns the client, wires each step's hook. |
 | `engine/dentureExport.ts` | Export of a plate with dentures: builds every unit (dentures with their own pipeline) and writes the STL files. |
 | `state/dentureCommands.ts` | The denture rows in the shared command registry ("Resolve all") and the undo hint of a denture change. |
-| `settings/dentureRules.ts` | Maps the denture settings onto engine rules (`dentalModelLanding`, `lowOutsideAllowed`, `lastResortClearanceMm`); only non-defaults are sent. |
+| `settings/dentureRules.ts` | Maps the denture settings onto engine rules (`dentalModelLanding`, `lowOutsideAllowed`, `lastResortClearanceMm`) and the unit's one Overhang angle (`scatterAngle`) onto `overhangAngleDeg`; only non-defaults are sent. |
 | `steps/supports/dentureBuildJob.ts` | A denture unit as a build job (frame, plate, policy, settings, rules, hand work). |
 | `steps/supports/useDentureSupports.ts` | Step 2: builds and exports in the denture worker, click-to-resolve and Resolve all, the lattice switch. |
 | `steps/supports/resolvePoint.ts` | Which points a click resolves (tips, lowest points, bare islands) and the undoable allow-list command. |

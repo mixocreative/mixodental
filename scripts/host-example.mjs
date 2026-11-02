@@ -31,7 +31,7 @@ const SETTINGS = {
   diagonalEnabled: false, diagonalDiameter: 1, braceConcentric: 3, braceThickness: 1, braceAngle: 40, storeyFloorThickness: 1.5, storeyEncloseCeiling: true,
   labelEnabled: true, labelSize: 5, labelHeight: 0.6, labelMargin: 0, labelOffsetX: 0, labelOffsetY: 0,
   previewMode: 'FULL', autoSnap: false, lowPolyMode: false, resolution: 12,
-  scatterSpacing: 2, scatterAngle: 50, scatterSafeDistance: 0, scatterFacingDown: true, scatterIslands: true, scatterRidgeAngle: 45,
+  scatterSpacing: 2, scatterAngle: 45, scatterSafeDistance: 0, scatterFacingDown: true, scatterIslands: true, scatterRidgeAngle: 45,
   scatterAutoTree: false, scatterMergeDistance: 2, scatterBranchDescent: 2, reinforceOverhangEdges: true,
   liftHeight: 3.5, eraseRadius: 1.5,
 };

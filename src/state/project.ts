@@ -1,6 +1,7 @@
 import type { PlacementResult, Region, SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { contactsHiddenByMarkers, rekeyPoints, remapDeleted } from '@mixo-geocore/host/supports/contactEdits';
 import { defaultSupportSettings, parseShapeOverride, type ShapeOverride } from '@mixo-geocore/host/core/supports/settings';
+import { migrateOverhangAngle } from './overhangMigration';
 import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
 import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { UNSAVED_TUNING, parseDentalTuning } from '@mixo-geocore/host/dental/tuning';
@@ -279,7 +280,7 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
     id: normalizeString(unit.id, 'unit id'),
     name: normalizeString(unit.name, 'unit name'),
     transform: cloneTransform(unit.transform),
-    settings: normalizeJsonObject(unit.settings) as SupportSettings,
+    settings: migrateOverhangAngle(normalizeJsonObject(unit.settings) as SupportSettings),
     ...(unit.supports === undefined ? {} : { supports: normalizeSupportMesh(unit.supports) }),
     ...(unit.placement === undefined ? {} : { placement: normalizePlacement(unit.placement) }),
     manual: cloneJsonValue(unit.manual ?? []) as unknown as SupportPoint[],
