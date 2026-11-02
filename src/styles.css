@@ -662,9 +662,17 @@ footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
   .problems button { min-height: 36px; }
 }
 
-/* The edit bar takes the bottom of the viewport on tablets and phones: the undo toast goes above. */
+/* The edit bar takes the bottom of the viewport on tablets and phones: the undo toast goes above, and so does the
+   background-work list, which otherwise lies over the bar's Back and Add another (audit 2026-11-02 #5). */
 @media (max-width: 1100px) {
   .viewport--editing .undo-toast-region { bottom: auto; top: 56px; }
+  .viewport--editing .job-activity { bottom: auto; top: 64px; }
+  /* The dental steps have no panels below the viewport: it takes the window's height, not 58 % of it. */
+  .workspace--dental { grid-template-rows: max(calc(100vh - 140px), 520px); }
+}
+/* A tablet-wide window keeps Step 1's bar on the right, below the step badge, so the model it orients stays in view. */
+@media (min-width: 721px) and (max-width: 1100px) {
+  .edit-bar--orient { left: auto; right: 14px; top: 64px; bottom: auto; width: 232px; }
 }
 
 /* Drag over: the screen-space selection circle that follows the pointer (ObjectViewport useScreenBrush). */
