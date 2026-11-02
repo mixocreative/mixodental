@@ -16,7 +16,8 @@ import { displayMesh } from '../../state/meshExtras';
 import type { PrintUnit } from '../../state/project';
 import { resolveSettings, unitContacts } from '@mixo-geocore/host/supports/unitSupports';
 import { AddFlash, type AddedAt } from './AddFlash';
-import { PREVIEW, ZONE_OPACITY, SEE_THROUGH } from './style';
+import { ZONE_OPACITY, SEE_THROUGH } from './style';
+import { useViewportColours } from './sceneColours';
 import { useGeometry } from './geometry';
 import { rustRaycast } from './rustRaycast';
 import { type Hover, EditPreview, SupportBodies, ZoneLayer, useDoomed, useWarmZoneOverlay, ProblemMarkers, CustomisedMarks, useSelectionColors } from './supportLayers';
@@ -142,7 +143,8 @@ export function UnitObject(props: UnitObjectProps) {
   };
   const groupRef = useRef<THREE.Group | null>(null);
   const { onGroup, onBrushOver } = props;
-  const supportColor = props.selected ? '#b59f78' : '#c8b896';
+  const { preview: marks, model: modelColours, support: supportColours } = useViewportColours();
+  const supportColor = props.selected ? supportColours.selectedObject : supportColours.idle;
   const setGroup = useCallback((group: THREE.Group | null) => {
     groupRef.current = group;
     onGroup?.(group && { unitId: props.unit.id, group });
@@ -292,8 +294,8 @@ export function UnitObject(props: UnitObjectProps) {
       {...(editing ? { onPointerDown: startStroke, onPointerMove: hoverModel, onPointerOut: leave } : {})}
     >
       <meshStandardMaterial
-        color={props.active ? '#f6f3ec' : props.selected ? '#e6e1d7' : '#cdc8bf'}
-        emissive={props.active ? '#7f0019' : '#000000'}
+        color={props.active ? modelColours.active : props.selected ? modelColours.selected : modelColours.idle}
+        emissive={props.active ? modelColours.activeGlow : modelColours.glowOff}
         emissiveIntensity={props.active ? 0.06 : 0}
         metalness={0}
         roughness={0.85}
@@ -333,15 +335,15 @@ export function UnitObject(props: UnitObjectProps) {
     >
       {/* Edited: per-vertex colour carries the selection (`useSelectionColors`); white lets it through. */}
       {/* Keyed: three compiles vertex colours into the shader, so turning them on needs a new material. */}
-      <meshStandardMaterial key={selectionColored ? 'selection' : 'plain'} color={selectionColored ? '#ffffff' : supportColor} vertexColors={selectionColored} metalness={0} roughness={0.9} />
+      <meshStandardMaterial key={selectionColored ? 'selection' : 'plain'} color={selectionColored ? modelColours.vertexBase : supportColor} vertexColors={selectionColored} metalness={0} roughness={0.9} />
     </mesh>}
     {editing && hover && !brush && <EditPreview hover={hover} unit={unit} contacts={contacts} {...(zoneBrush || dentalBrush
-      ? { brush: { radius: (zoneBrush ?? dentalBrush)!.radius, color: zoneBrush?.kind === 'paint' ? PREVIEW.zone : dentalBrush?.kind === 'allow' ? PREVIEW.areaPermitted : PREVIEW.ring } }
+      ? { brush: { radius: (zoneBrush ?? dentalBrush)!.radius, color: zoneBrush?.kind === 'paint' ? marks.zone : dentalBrush?.kind === 'allow' ? marks.areaPermitted : marks.ring } }
       : {})} />}
     {editing && !surfacePainting && supports && supportGeometry && <>
       <SupportBodies supports={supports} geometry={supportGeometry} ids={doomed} opacity={1} />
       {pointed && !props.selection.has(pointed) && <SupportBodies supports={supports} geometry={supportGeometry} ids={[pointed]} opacity={SEE_THROUGH} />}
-      <SupportBodies supports={supports} geometry={supportGeometry} ids={preview.ghost} opacity={SEE_THROUGH} color={PREVIEW[preview.ghostTone]} />
+      <SupportBodies supports={supports} geometry={supportGeometry} ids={preview.ghost} opacity={SEE_THROUGH} color={marks[preview.ghostTone]} />
     </>}
     {editing && !surfacePainting && <CustomisedMarks unit={unit} contacts={contacts} />}
     {props.added && <AddFlash key={props.added.seq} at={props.added} radius={Math.max(2, resolveSettings(unit.settings).eraseRadius)} />}

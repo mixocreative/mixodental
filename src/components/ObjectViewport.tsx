@@ -9,6 +9,7 @@ import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { ViewCamera, PlateSide, FocusCamera } from './viewport/cameras';
 import type { GizmoMode, ObjectViewportProps } from './viewport/types';
 import { canvasCursor } from './viewport/style';
+import { useViewportColours } from './viewport/sceneColours';
 import { UnitObject } from './viewport/UnitObject';
 import { PlateOutline } from './viewport/PlateOutline';
 import { UnresolvedBubbles } from './viewport/UnresolvedBubbles';
@@ -67,6 +68,7 @@ export default function ObjectViewport(props: ObjectViewportProps) {
   const [overBrush, setOverBrush] = useState(false);
   const [activeGroup, setActiveGroup] = useState<{ unitId: string; group: THREE.Group } | null>(null);
   const { scene } = props;
+  const colours = useViewportColours();
   const selected = new Set(scene.selectedUnitIds);
   const activeId = scene.activeUnitId;
   const gizmo = gizmoShown(props.gesture, props.gizmoMode, props.rotationGizmo === true);
@@ -85,11 +87,11 @@ export default function ObjectViewport(props: ObjectViewportProps) {
     }}
     onContextMenu={(event) => event.preventDefault()}
   >
-    <color attach="background" args={['#e9e6df']} />
-    <hemisphereLight args={['#fbfaf7', '#cfc8bb', 1.3]} />
+    <color attach="background" args={[colours.scene.background]} />
+    <hemisphereLight args={[colours.scene.lightSky, colours.scene.lightGround, 1.3]} />
     <directionalLight position={[40, 80, 30]} intensity={1.4} />
     <directionalLight position={[-50, 30, -40]} intensity={0.45} />
-    <Grid args={[240, 240]} cellSize={5} cellThickness={0.5} cellColor="#d3cdc2" sectionSize={25} sectionThickness={0.9} sectionColor="#b9b1a3" fadeDistance={400} fadeStrength={1.5} infiniteGrid />
+    <Grid args={[240, 240]} cellSize={5} cellThickness={0.5} cellColor={colours.scene.gridCell} sectionSize={25} sectionThickness={0.9} sectionColor={colours.scene.gridSection} fadeDistance={400} fadeStrength={1.5} infiniteGrid />
     {props.plate ? <PlateOutline plate={props.plate} /> : null}
     <OrbitControls makeDefault enabled={!dragging} />
     <FocusCamera focus={props.focus} />

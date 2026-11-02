@@ -12,7 +12,9 @@ import { contactToRemove } from '@mixo-geocore/editing/removal';
 import { contactVertexRuns, selectionDelta } from '@mixo-geocore/editing/selectionHighlight';
 import type { PrintUnit } from '../../state/project';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
-import { PREVIEW } from './style';
+import { usePreviewColours } from './sceneColours';
+import { tokenCss } from '../../ui/tokenColour';
+import { useTokenRevision } from '../../ui/useTokenRevision';
 import { toGeometry } from './geometry';
 import { ringMaterial } from './warmMaterials';
 
@@ -30,6 +32,7 @@ export interface Hover {
  * brush) the brush ring alone in its colour.
  */
 export function EditPreview({ hover, unit, contacts, brush }: { hover: Hover; unit: PrintUnit; contacts: readonly SupportContact[]; brush?: { radius: number; color: string } }) {
+  const preview = usePreviewColours();
   const settings = useMemo(() => resolveSettings(unit.settings), [unit.settings]);
   const points = useMemo(() => contacts.map((contact) => new THREE.Vector3(...contact.position)), [contacts]);
   const ringTurn = useMemo(() => new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), hover.normal), [hover.normal]);
@@ -38,18 +41,18 @@ export function EditPreview({ hover, unit, contacts, brush }: { hover: Hover; un
   const hit = hover.remove && !brush ? contactToRemove(contacts, hover.point.toArray(), radius) : undefined;
   const doomed = hit ? [points[contacts.indexOf(hit)]!] : [];
   const length = settings.neckLength;
-  const color = brush ? brush.color : hover.remove ? PREVIEW.remove : PREVIEW.ring;
+  const color = brush ? brush.color : hover.remove ? preview.remove : preview.ring;
   return <group>
     <mesh position={hover.point} quaternion={ringTurn} renderOrder={20} material={ringMaterial(color)}>
       <torusGeometry args={[radius, Math.max(0.03, radius * 0.025), 6, 48]} />
     </mesh>
     {!hover.remove && !brush && <mesh position={hover.point.clone().addScaledVector(hover.normal, length / 2)} quaternion={tipTurn} renderOrder={19}>
       <coneGeometry args={[settings.pillarDiameter / 2, length, 16]} />
-      <meshBasicMaterial color={PREVIEW.add} transparent opacity={0.55} depthWrite={false} />
+      <meshBasicMaterial color={preview.add} transparent opacity={0.55} depthWrite={false} />
     </mesh>}
     {doomed.map((contact, index) => <mesh key={index} position={contact} renderOrder={21}>
       <sphereGeometry args={[Math.max(0.25, settings.pillarDiameter * 0.45), 12, 8]} />
-      <meshBasicMaterial color={PREVIEW.remove} depthTest={false} transparent opacity={0.9} />
+      <meshBasicMaterial color={preview.remove} depthTest={false} transparent opacity={0.9} />
     </mesh>)}
   </group>;
 }
@@ -59,7 +62,9 @@ export function EditPreview({ hover, unit, contacts, brush }: { hover: Hover; un
  * supports themselves in `color` (red by default): solid at `opacity` 1, see-through below it. Shares the support
  * geometry's vertices.
  */
-export function SupportBodies({ supports, geometry, ids, opacity, color = PREVIEW.remove }: { supports: GeneratedSupportMesh; geometry: THREE.BufferGeometry; ids: readonly string[]; opacity: number; color?: string }) {
+export function SupportBodies({ supports, geometry, ids, opacity, color }: { supports: GeneratedSupportMesh; geometry: THREE.BufferGeometry; ids: readonly string[]; opacity: number; color?: string }) {
+  const preview = usePreviewColours();
+  const body = color ?? preview.remove;
   const key = ids.join(',');
   // Built in the effect, not memoised: the cleanup strips the shared attributes, so a geometry
   // must never outlive its effect (StrictMode runs mount, cleanup, mount on the same render).
@@ -93,7 +98,7 @@ export function SupportBodies({ supports, geometry, ids, opacity, color = PREVIE
   const seeThrough = opacity < 1;
   // Drawn over the support it covers (polygon offset) and never pickable.
   return <mesh geometry={bodies} raycast={() => undefined} renderOrder={seeThrough ? 18 : 17}>
-    <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.35} metalness={0} roughness={0.8} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} transparent={seeThrough} opacity={opacity} depthWrite={!seeThrough} />
+    <meshStandardMaterial color={body} emissive={body} emissiveIntensity={0.35} metalness={0} roughness={0.8} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} transparent={seeThrough} opacity={opacity} depthWrite={!seeThrough} />
   </mesh>;
 }
 
@@ -221,7 +226,8 @@ export function SurfaceStampLayer({ mesh, geometry, stamps, filledKind, color, o
 }
 
 export function ZoneLayer({ mesh, geometry, zones, opacity }: { mesh: TriangleMesh; geometry: THREE.BufferGeometry; zones: readonly ZoneStamp[]; opacity: number }) {
-  return <SurfaceStampLayer mesh={mesh} geometry={geometry} stamps={zones} filledKind="paint" color={PREVIEW.zone} opacity={opacity} />;
+  const preview = usePreviewColours();
+  return <SurfaceStampLayer mesh={mesh} geometry={geometry} stamps={zones} filledKind="paint" color={preview.zone} opacity={opacity} />;
 }
 
 /** Contact ids a remove click at a unit-local point takes: the one nearest within Click reach. */
@@ -238,6 +244,7 @@ export function useDoomed(unit: PrintUnit, contacts: readonly SupportContact[], 
  * hue, so it reads in grey scale and stays beside the selected red. One draw call for all of them.
  */
 export function CustomisedMarks({ unit, contacts }: { unit: PrintUnit; contacts: readonly SupportContact[] }) {
+  const preview = usePreviewColours();
   const settings = useMemo(() => resolveSettings(unit.settings), [unit.settings]);
   const marked = useMemo(() => contacts.filter((contact) => unit.contactSettings[contact.id] !== undefined), [contacts, unit.contactSettings]);
   const ref = useRef<THREE.InstancedMesh>(null);
@@ -257,27 +264,26 @@ export function CustomisedMarks({ unit, contacts }: { unit: PrintUnit; contacts:
   // Keyed by count: an instanced mesh cannot grow. Drawn through the model like the check markers; never pickable.
   return <instancedMesh key={marked.length} ref={ref} args={[undefined, undefined, marked.length]} raycast={() => undefined} frustumCulled={false} renderOrder={22}>
     <torusGeometry args={[1, 0.09, 6, 28]} />
-    <meshBasicMaterial color={PREVIEW.ring} depthTest={false} transparent opacity={0.9} />
+    <meshBasicMaterial color={preview.ring} depthTest={false} transparent opacity={0.9} />
   </instancedMesh>;
 }
 
 /** Support check findings, drawn through the model so hidden spots still show. */
 export function ProblemMarkers({ problems }: { problems: readonly SupportProblem[] }) {
+  const preview = usePreviewColours();
   return <group>
     {problems.map((problem, index) => problem.kind === 'unjudged' ? null : problem.kind === 'outside' || problem.kind === 'omitted' ? <group key={index}>
       {(problem.points ?? []).map((point, k) => <mesh key={k} position={point} renderOrder={18}>
         <sphereGeometry args={[0.7, 16, 12]} />
-        <meshBasicMaterial color={PREVIEW.outside} depthTest={false} transparent opacity={0.55} />
+        <meshBasicMaterial color={preview.outside} depthTest={false} transparent opacity={0.55} />
       </mesh>)}
     </group> : <mesh key={index} position={problem.position} renderOrder={18}>
       <sphereGeometry args={[Math.min(2.5, 0.7 + Math.sqrt(problem.area) / 10), 16, 12]} />
-      <meshBasicMaterial color={problem.kind === 'island' ? PREVIEW.island : PREVIEW.overhang} depthTest={false} transparent opacity={0.55} />
+      <meshBasicMaterial color={problem.kind === 'island' ? preview.island : preview.overhang} depthTest={false} transparent opacity={0.55} />
     </mesh>)}
   </group>;
 }
 
-/** Selected supports' colour in the vertex-colour highlight (stands in for red plus its glow). */
-const SELECTED_COLOR = '#a8243c';
 /** Above this many changed ranges a whole re-upload is cheaper than many small ones. */
 const MAX_RANGES = 512;
 
@@ -295,7 +301,9 @@ function linearBytes(css: string): [number, number, number] {
  */
 export function useSelectionColors(geometry: THREE.BufferGeometry | undefined, supports: GeneratedSupportMesh | undefined, on: boolean, solid: ReadonlySet<string>, baseColor: string): boolean {
   const runs = useMemo(() => (on && supports ? contactVertexRuns(supports) : undefined), [on, supports]);
-  const drawn = useRef<{ geometry?: THREE.BufferGeometry; base: string; ids: ReadonlySet<string> }>({ base: '', ids: new Set() });
+  // A token edit repaints every vertex: the revision is part of what the drawn colours were made from.
+  const revision = useTokenRevision();
+  const drawn = useRef<{ geometry?: THREE.BufferGeometry; base: string; revision: number; ids: ReadonlySet<string> }>({ base: '', revision: -1, ids: new Set() });
   useLayoutEffect(() => {
     if (!geometry || !runs) return;
     const count = geometry.getAttribute('position').count;
@@ -307,7 +315,7 @@ export function useSelectionColors(geometry: THREE.BufferGeometry | undefined, s
     }
     const array = colors.array as Uint8Array;
     const base = linearBytes(baseColor);
-    const red = linearBytes(SELECTED_COLOR);
+    const red = linearBytes(tokenCss('--support-picked'));
     const paint = (id: string, rgb: [number, number, number], ranges?: [number, number][]) => {
       for (const [start, end] of runs.get(id) ?? []) {
         for (let v = start; v < end; v++) array.set(rgb, v * 3);
@@ -315,7 +323,7 @@ export function useSelectionColors(geometry: THREE.BufferGeometry | undefined, s
       }
     };
     const last = drawn.current;
-    const delta = fresh || last.geometry !== geometry || last.base !== baseColor ? undefined : selectionDelta(last.ids, solid);
+    const delta = fresh || last.geometry !== geometry || last.base !== baseColor || last.revision !== revision ? undefined : selectionDelta(last.ids, solid);
     if (delta && delta.on.length === 0 && delta.off.length === 0) return;
     const ranges: [number, number][] = [];
     if (delta) {
@@ -328,7 +336,7 @@ export function useSelectionColors(geometry: THREE.BufferGeometry | undefined, s
     colors.clearUpdateRanges();
     if (delta && ranges.length <= MAX_RANGES) for (const [start, end] of ranges) colors.addUpdateRange(start * 3, (end - start) * 3);
     colors.needsUpdate = true;
-    drawn.current = { geometry, base: baseColor, ids: solid };
-  }, [geometry, runs, solid, baseColor]);
+    drawn.current = { geometry, base: baseColor, revision, ids: solid };
+  }, [geometry, runs, solid, baseColor, revision]);
   return Boolean(geometry && runs);
 }

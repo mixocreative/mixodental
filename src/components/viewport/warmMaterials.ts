@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PREVIEW } from './style';
+import type { PreviewColours } from './sceneColours';
 
 /*
  * Materials of overlays that come and go with the pointer or with each tip preview (the brush ring,
@@ -10,7 +10,19 @@ import { PREVIEW } from './style';
  */
 
 export const TIP_MARKER_GEOMETRY = new THREE.SphereGeometry(1, 7, 5);
-export const TIP_MARKER_MATERIAL = new THREE.MeshStandardMaterial({ color: PREVIEW.dental, roughness: 0.65 });
+const TIP_MATERIALS = {
+  plain: new THREE.MeshStandardMaterial({ roughness: 0.65 }),
+  remove: new THREE.MeshStandardMaterial({ roughness: 0.65 }),
+  ring: new THREE.MeshStandardMaterial({ roughness: 0.65 }),
+};
+
+/** The tip markers' shared materials (plain, solid red, grey), coloured from the current preview tokens so a token edit shows at once. */
+export function tipMarkerMaterials(preview: PreviewColours): typeof TIP_MATERIALS {
+  TIP_MATERIALS.plain.color.set(preview.dental);
+  TIP_MATERIALS.remove.color.set(preview.remove);
+  TIP_MATERIALS.ring.color.set(preview.ring);
+  return TIP_MATERIALS;
+}
 
 const rings = new Map<string, THREE.MeshBasicMaterial>();
 
