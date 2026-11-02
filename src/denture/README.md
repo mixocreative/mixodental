@@ -37,6 +37,7 @@ Engine calls go through `engine/` only.
 | `settings/dentureRules.ts` | Maps the denture settings onto engine rules (`dentalModelLanding`, `lowOutsideAllowed`, `lastResortClearanceMm`) and the unit's one Overhang angle (`scatterAngle`) onto `overhangAngleDeg`; only non-defaults are sent. |
 | `steps/supports/dentureBuildJob.ts` | A denture unit as a build job (frame, plate, policy, settings, rules, hand work). |
 | `steps/supports/useDentureSupports.ts` | Step 2: builds and exports in the denture worker, click-to-resolve and Resolve all, the lattice switch; Exit stops the unit's builds (`leave`). |
+| `steps/supports/rigidMove.ts` | Whether a scene change only slides the denture over the plate or turns it about the vertical (OK's arrangement): then its finished build is kept and moved with it, not rebuilt. Proved on the real scan by `rigidMove.real.test.ts`. |
 | `steps/supports/resolvePoint.ts` | Which points a click resolves (tips, lowest points, bare islands) and the undoable allow-list command. |
 | `steps/supports/ResolveSection.tsx` | The panel block: unresolved points (islands included), islands that face sideways, model-landed supports, Resolve all. |
 | `settings/dentureOptions.ts` | The denture settings, their defaults and limits (stored in `PrintUnit.denture.options`). |

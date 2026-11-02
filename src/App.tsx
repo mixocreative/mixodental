@@ -93,6 +93,7 @@ import { acceptsDentalDrop } from './dental/editingMode';
 import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type StartScreenId } from './components/StartScreen';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
+import { keptBuild } from './denture/steps/supports/rigidMove';
 import { stepPanelInset } from './dental/stepPanelInset';
 import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
@@ -468,6 +469,12 @@ export default function App() {
       if (previous && previous.unit === unit && previous.index === index) return;
       requested.current.set(unit.id, { unit, index });
       window.clearTimeout(buildTimers.current.get(unit.id));
+      // A denture only slid over the plate (OK's arrangement) keeps its build: it is unit-local and the job is unchanged.
+      const kept = unit.denture && index === previous?.index ? keptBuild(previous?.unit, unit, builtRef.current.get(unit.id)) : undefined;
+      if (kept) {
+        setBuilt((current) => new Map(current).set(unit.id, kept));
+        return;
+      }
       if (unit.supports === undefined) {
         const empty = unitSupportMesh(unit, index);
         setBuilt((current) => new Map(current).set(unit.id, { unit, mesh: empty }));
