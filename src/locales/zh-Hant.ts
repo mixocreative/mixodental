@@ -530,6 +530,8 @@ export const zhHant: Dictionary = {
   'Deleted {n} objects.': '已刪除 {n} 個物件。',
   'Remove the supports of the selected objects. Models and manual edits are kept. Undo brings them back': '移除選取物件的支撐。將保留模型與手動編輯內容。執行「復原」即可找回。',
   '{label}: cancelled. Supports unchanged.': '{label}：已取消。支撐保持不變。',
+  'Placing the denture support tips was cancelled. Press Next again.': '已取消放置假牙支撐頭。請再次按下「下一步」。',
+  'Support build of {name} cancelled. Change a setting to build it again.': '已取消建立 {name} 的支撐。變更任一設定即可重新建立。',
   'Support check cancelled. Supports unchanged.': '支撐檢查已取消。支撐保持不變。',
   'Undo the import': '復原匯入',
   'Redo the import': '重做匯入',

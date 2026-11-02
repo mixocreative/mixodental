@@ -1,6 +1,7 @@
 import type { DentureOrientation } from '@mixo-geocore/host/dental/dentureOrient';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
 import type { DentalTiltState } from '../../../components/useDentalFlow';
+import { isAbort } from '../../../components/appShared';
 
 /*
  * How Step 1's orientation and print-angle scan ended, as the step shows it (audit 2026-11-02 #2). Every ending
@@ -17,8 +18,6 @@ export type ScanOutcome =
   | { kind: 'ready'; tilt: Extract<DentalTiltState, { status: 'ready' }> }
   /** `tilt` is the step's new tilt state (a failed scan keeps its reason; anything else shows no dial); `cancelled` when the operator stopped it. */
   | { kind: 'failed'; tilt: DentalTiltState | undefined; cancelled: boolean };
-
-const isAbort = (error: unknown) => error instanceof Error && error.name === 'AbortError';
 
 export function scanOutcome(unitId: string, settled: ScanSettled): ScanOutcome {
   if ('error' in settled) return { kind: 'failed', tilt: undefined, cancelled: isAbort(settled.error) };

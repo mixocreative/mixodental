@@ -20,6 +20,7 @@ import { acceptCommands } from './acceptCommands';
 import { liveTipLayers, tipCounts } from './liveTipLayers';
 import { tipColours } from './tipColours';
 import { scanOutcome, type ScanSettled } from './scanOutcome';
+import { isAbort } from '../../../components/appShared';
 
 /*
  * Step 1 of the denture job (Round D): stand the dropped denture upright and search its print angle in the
@@ -87,6 +88,9 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     const token = ++seq.current;
     const profile = sessionRef.current.dentalProfile;
     closeLive();
+    // A scan or placement still running for the object this one replaces stops: the worker is free for this scan.
+    client().cancel('orient:');
+    client().cancel('place:');
     send({ type: 'dentalLoading', unitId: unit.id });
     const stale = () => seq.current !== token || sceneRef.current.activeUnitId !== unit.id;
     const failed = () => send({ type: 'dentalOrientFailed', notices: [{ kind: 'denture-failed' }] });
@@ -178,15 +182,21 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
       closeLive();
       send({ type: 'acceptDentalOrientation' });
       requestView('fit');
-    }, () => { if (seq.current === token) setStatus('The denture support tips could not be placed. Turn the denture, then press Next again.'); });
+    }, (error: unknown) => {
+      if (seq.current !== token) return;
+      setStatus(isAbort(error) ? 'Placing the denture support tips was cancelled. Press Next again.' : 'The denture support tips could not be placed. Turn the denture, then press Next again.');
+    });
   }, [client, closeLive, dispatch, requestView, send, sessionRef, setStatus, unitOf]);
 
   /** Exit, Back or a new file: what Step 1 still reads is dropped and the handle is freed. */
   const invalidate = useCallback(() => {
     seq.current += 1;
     closeLive();
+    // Leaving Step 1 stops its scan and placement: nothing reads them, and the next job would wait behind them.
+    client().cancel('orient:');
+    client().cancel('place:');
     if (tiltRef.current?.status === 'scanning') setTilt(undefined);
-  }, [closeLive, setTilt]);
+  }, [client, closeLive, setTilt]);
 
   // Leaving Step 1 (Next, Back, Exit, another unit) frees the handle.
   const inStep = session.mode === 'dental' && session.dentalStage === 'aligner';

@@ -110,5 +110,12 @@ export function useDentureSupports({ client, dispatch, sceneRef, setStatus }: De
     if (unit?.denture) dispatch({ type: 'denture/set', unitId, denture: { ...unit.denture, options } });
   }, [dispatch, unitNow]);
 
-  return { build, exportFiles, resolve, resolveAll, setLattice, setOptions, resolvable: isResolvable };
+  /** Exit left the unit's Step 2: its builds and landing checks stop (nothing reads them) and its waiting status line goes. */
+  const leave = useCallback((unitId: string) => {
+    if (pending.current?.unitId === unitId) pending.current = undefined;
+    client().cancel(`build:${unitId}:`);
+    client().cancel(`landing:${unitId}:`);
+  }, [client]);
+
+  return { build, exportFiles, resolve, resolveAll, setLattice, setOptions, leave, resolvable: isResolvable };
 }

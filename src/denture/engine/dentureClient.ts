@@ -4,7 +4,8 @@ import type { TiltPaths } from '@mixo-geocore/host/dental/dentureTilt';
 import type { TiltScan, TiltScanSettings } from '@mixo-geocore/host/dental/dentalTilt';
 import type { RerouteResult } from '@mixo-geocore/host/supports/editSupport';
 import type { JobLabel } from '@mixo-geocore/host/workers/jobActivity';
-import { WorkerTask, type WorkerLike } from '@mixo-geocore/host/workers/WorkerTask';
+import { REPLACED, WorkerTask, type WorkerLike } from '@mixo-geocore/host/workers/WorkerTask';
+import type { ErrorContext } from '@mixo-geocore/editing/errors';
 import type { DentureJob, DentureMesh, DentureParts } from './dentureCore';
 import type { DentureLandingJob, DenturePlaceJob, DentureResult, DentureTask } from './dentureProtocol';
 import { KeyedQueue } from './keyedQueue';
@@ -14,6 +15,21 @@ import type { ExportResult } from '@mixo-geocore/host/workers/meshClient';
 
 /** A support build on the biggest dentures takes tens of seconds; past this the worker is restarted and the job fails. */
 const DENTURE_TIMEOUT_MS = 10 * 60_000;
+
+/**
+ * The jobs the operator can cancel from the activity list (the long ones; a live tilt or a handle answers in
+ * milliseconds), and the context each failure is worded in (the activity list and the status line say the same).
+ */
+const JOB_KIND: Record<DentureTask['kind'], { cancellable: boolean; context: ErrorContext }> = {
+  orient: { cancellable: true, context: 'place' },
+  'live-open': { cancellable: false, context: 'place' },
+  'live-at': { cancellable: false, context: 'place' },
+  'live-close': { cancellable: false, context: 'place' },
+  place: { cancellable: true, context: 'place' },
+  build: { cancellable: true, context: 'build' },
+  'check-landing': { cancellable: true, context: 'build' },
+  export: { cancellable: true, context: 'export' },
+};
 
 /** A copy of the model whose buffers can move to the worker (the scene keeps its own). */
 const copyOf = (mesh: TriangleMesh): TriangleMesh => ({ positions: mesh.positions.slice(), indices: mesh.indices.slice() });
@@ -27,6 +43,8 @@ const copyOf = (mesh: TriangleMesh): TriangleMesh => ({ positions: mesh.position
 export class DentureClient {
   private readonly runner: WorkerTask<DentureTask, DentureResult>;
   private readonly queue = new KeyedQueue();
+  /** The running job's stop, by key (one at a time; `cancel` uses it). */
+  private readonly running = new Map<string, AbortController>();
 
   constructor(create: (() => WorkerLike) | null) {
     this.runner = new WorkerTask({ create, name: 'Denture engine', timeoutMs: DENTURE_TIMEOUT_MS, concurrency: 'serial' });
@@ -36,10 +54,24 @@ export class DentureClient {
     const transfer = 'mesh' in task ? [task.mesh.positions.buffer, task.mesh.indices.buffer]
       : 'job' in task ? [task.job.mesh.positions.buffer, task.job.mesh.indices.buffer]
         : task.kind === 'export' ? task.units.flatMap((unit) => { const mesh = (unit.denture ?? unit.generic)!.mesh; return [mesh.positions.buffer, mesh.indices.buffer]; }) : [];
-    return this.queue.push(key, () => this.runner.run(task, {
-      transfer, ...(label ? { label } : {}),
-      ...(onProgress ? { onProgress: (fields) => { if (typeof fields.fraction === 'number') onProgress(fields.fraction); } } : {}),
-    }));
+    return this.queue.push(key, () => {
+      const controller = new AbortController();
+      this.running.set(key, controller);
+      return this.runner.run(task, {
+        transfer, signal: controller.signal, ...JOB_KIND[task.kind], ...(label ? { label } : {}),
+        ...(onProgress ? { onProgress: (fields) => { if (typeof fields.fraction === 'number') onProgress(fields.fraction); } } : {}),
+      }).finally(() => { if (this.running.get(key) === controller) this.running.delete(key); });
+    });
+  }
+
+  /**
+   * Stops the jobs whose key starts with `prefix` (`orient:`, `build:<unit>:`…): queued ones resolve `undefined`,
+   * a running one rejects with an AbortError and leaves the activity list quietly. The step that asked for them
+   * was left, so the worker is freed for the next job instead of finishing work nobody reads.
+   */
+  cancel(prefix: string): void {
+    this.queue.drop(prefix);
+    for (const [key, controller] of this.running) if (key.startsWith(prefix)) controller.abort(REPLACED);
   }
 
   /** Step 1: the upright frame and the print-angle search (progress: tilts done / total). */

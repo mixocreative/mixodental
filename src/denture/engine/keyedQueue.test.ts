@@ -23,4 +23,16 @@ describe('KeyedQueue', () => {
     await expect(failing).rejects.toThrow('boom');
     expect(await next).toBe(2);
   });
+
+  it('drops the waiting jobs of a key prefix (they resolve undefined) and keeps the running one and the rest', async () => {
+    const queue = new KeyedQueue();
+    const ran: string[] = [];
+    const job = (name: string) => () => { ran.push(name); return later(name); };
+    const running = queue.push('build:u1:preview', job('running'));
+    const dropped = queue.push('build:u1:export', job('dropped'));
+    const kept = queue.push('build:u2:preview', job('kept'));
+    queue.drop('build:u1:');
+    expect(await Promise.all([running, dropped, kept])).toEqual(['running', undefined, 'kept']);
+    expect(ran).toEqual(['running', 'kept']);
+  });
 });

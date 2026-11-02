@@ -24,6 +24,13 @@ export class KeyedQueue {
     });
   }
 
+  /** Drops every waiting job whose key starts with `prefix` (each resolves `undefined`); the running job is its runner's to stop. */
+  drop(prefix: string): void {
+    for (let at = this.waiting.length - 1; at >= 0; at -= 1) {
+      if (this.waiting[at]!.key.startsWith(prefix)) this.waiting.splice(at, 1)[0]!.settle(undefined);
+    }
+  }
+
   /** Jobs waiting (not the running one). */
   get size(): number {
     return this.waiting.length;

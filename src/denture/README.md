@@ -14,8 +14,8 @@ Engine calls go through `engine/` only.
 | `engine/dentureCore.ts` | The denture pipeline on one thread: orient + tilt scan, lifted frame, placement, build with hand work, one-point model-landing check. |
 | `engine/dentureProtocol.ts` | Messages between the denture client and worker. |
 | `engine/dentureWorker.ts` | The denture worker: runs the core and keeps the live-tilt handles. |
-| `engine/dentureClient.ts` | The only way the app reaches the denture engine (keyed, one job at a time). |
-| `engine/keyedQueue.ts` | One-at-a-time queue where a newer job of a key replaces a queued one. |
+| `engine/dentureClient.ts` | The only way the app reaches the denture engine (keyed, one job at a time); long jobs offer Cancel, and `cancel(prefix)` stops a left step's jobs. |
+| `engine/keyedQueue.ts` | One-at-a-time queue where a newer job of a key replaces a queued one; `drop(prefix)` removes waiting jobs. |
 | `engine/liveTilt.ts` | The live-tilt throttle: one engine call per animation frame, skip while busy, newest wins. |
 | `state/dentureState.ts` | What a denture unit stores (`PrintUnit.denture`): the denture policy. |
 | `state/dentureStages.ts` | Step order of a denture inside the dental mode (no support-area step). |
@@ -32,7 +32,7 @@ Engine calls go through `engine/` only.
 | `state/dentureCommands.ts` | The denture rows in the shared command registry ("Resolve all") and the undo hint of a denture change. |
 | `settings/dentureRules.ts` | Maps the denture settings onto engine rules (`dentalModelLanding`, `lowOutsideAllowed`, `lastResortClearanceMm`) and the unit's one Overhang angle (`scatterAngle`) onto `overhangAngleDeg`; only non-defaults are sent. |
 | `steps/supports/dentureBuildJob.ts` | A denture unit as a build job (frame, plate, policy, settings, rules, hand work). |
-| `steps/supports/useDentureSupports.ts` | Step 2: builds and exports in the denture worker, click-to-resolve and Resolve all, the lattice switch. |
+| `steps/supports/useDentureSupports.ts` | Step 2: builds and exports in the denture worker, click-to-resolve and Resolve all, the lattice switch; Exit stops the unit's builds (`leave`). |
 | `steps/supports/resolvePoint.ts` | Which points a click resolves (tips, lowest points, bare islands) and the undoable allow-list command. |
 | `steps/supports/ResolveSection.tsx` | The panel block: unresolved points (islands included), islands that face sideways, model-landed supports, Resolve all. |
 | `settings/dentureOptions.ts` | The denture settings, their defaults and limits (stored in `PrintUnit.denture.options`). |

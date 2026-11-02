@@ -477,7 +477,9 @@ export default function App() {
           if (!mesh || requested.current.get(unit.id)?.unit !== unit) return;
           setBuilt((current) => new Map(current).set(unit.id, { unit, mesh }));
         }, (error: unknown) => {
-          setStatusMessage(errorStatus('build', codedJobError(error), { name: unit.name }));
+          // A build of a version the scene no longer holds says nothing: its unit changed or left, a newer build follows.
+          if (requested.current.get(unit.id)?.unit !== unit) return;
+          setStatusMessage(isAbort(error) ? { key: 'Support build of {name} cancelled. Change a setting to build it again.', vars: { name: unit.name } } : errorStatus('build', codedJobError(error), { name: unit.name }));
           setFailedBuilds((current) => new Map(current).set(unit.id, unit));
         });
       }, BUILD_DELAY_MS));
@@ -1070,6 +1072,7 @@ export default function App() {
         // The aligner being worked on goes back to a normal model without supports; finished aligners stay as they are.
         const { dentalUnitId, dentalFinished } = sessionRef.current;
         const current = sceneRef.current.units.find((candidate) => candidate.id === dentalUnitId);
+        if (current && !dentalFinished.includes(current.id)) denture.supports.leave(current.id);
         const cleanup = exitCommands(current, dentalFinished);
         if (cleanup.length > 0) dispatch({ type: 'batch', commands: cleanup });
         setBackAsk(false);
