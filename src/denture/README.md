@@ -43,6 +43,7 @@ Engine calls go through `engine/` only.
 | `steps/supports/DentureReviewPanel.tsx` | Step 2's side panel (P7c), laid out like the aligner's tilt step: one status line with Fix and Details, one folded Adjust (support settings, denture settings, edit tools, ID label), Restore step and Add another denture, Back \| OK. |
 | `steps/supports/reviewLineText.ts` | The status line's sentence: building, failed, "n spots need a support" (with Fix), "n things to look at", or "Supports ready". Spots accepted by rule never count. |
 | `steps/supports/adjustMemory.ts` | Whether Adjust is open, remembered for the browser session (closed by default). |
+| `steps/supports/useAutoCheck.ts` | Runs the support check once per finished build, so the status line counts the problems without a Check press. |
 | `check/ruleSpots.ts` | The denture rules' verdict on the support check's spots (worker): a spot on a face the engine's review masks leave unsupported on purpose has a reason (outside the allowed area, no-support side, rim), else it is a real problem. |
 | `check/acceptedSpots.ts` | Groups the accepted spots, one row per reason, and keeps the real problems. |
 | `check/dentureSpots.ts` | Asks the denture worker for the verdict; a failed or cancelled question leaves every spot a problem. |

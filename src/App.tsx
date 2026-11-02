@@ -45,6 +45,7 @@ import { kindMessage, kindText } from './denture/kindText';
 import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
 import { fileStepText } from './denture/steps/start/startText';
 import { LiveTipSummary } from './denture/steps/orient/LiveTipSummary';
+import { useAutoCheck } from './denture/steps/supports/useAutoCheck';
 import { dentureAddOnTint } from './denture/parts/addOnTint';
 import { PartsList } from './denture/parts/PartsList';
 import { placementParts } from './denture/parts/partRoles';
@@ -1227,6 +1228,9 @@ export default function App() {
     onBackConfirm: () => { setBackAsk(false); const commands = discardManualCommands(activeUnit); if (commands.length > 0) dispatch({ type: 'batch', commands }); send({ type: 'backDental' }); },
     onBackCancel: () => setBackAsk(false),
   } : undefined;
+  // Denture Step 2 checks each finished build by itself: its status line counts the problems.
+  const dentureBuild = denture.active && session.mode === 'dental' && session.dentalStage === 'review' && activeUnit?.denture && ui.dentalReviewReady ? currentBuild(activeUnit, built.get(activeUnit.id)) : undefined;
+  useAutoCheck({ build: dentureBuild, checked: Boolean(dentureBuild && verdictEntry?.unit === activeUnit && verdictEntry?.mesh === dentureBuild), canRun: command('check.run').enabled && !generating, run: () => runCommand('check.run') });
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const action = keyAction({
