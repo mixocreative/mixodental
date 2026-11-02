@@ -87,6 +87,7 @@ describe('DentalBar', () => {
     const gapHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
       review={{ ...base, rimGap: { outerMm: 4.2, openingMm: 8 } }} send={() => {}} run={() => {}} />);
     expect(gapHtml).toContain('8.0 mm');
+    expect(gapHtml).toContain('Automatic dental rim gaps');
     expect(gapHtml).toContain('Review the rim');
     expect(gapHtml).toContain('Show me');
     const fallbackHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady

@@ -78,7 +78,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind
   const tipKey: 'pointDiameter' | 'touchDiameter' = settings.contactShape === 'SPHERE' ? 'touchDiameter' : 'pointDiameter';
   const rimNote = review.rimGap === 'unavailable'
     ? t('Rim coverage could not be verified. Review the rim and supports before finishing.')
-    : review.rimGap ? t('Automatic rim gaps: outer {outer} mm, opening {opening} mm. Review the rim; omitted contacts were not forced.', { outer: review.rimGap.outerMm.toFixed(1), opening: review.rimGap.openingMm.toFixed(1) }) : undefined;
+    : review.rimGap ? t('Automatic dental rim gaps: outer {outer} mm, opening {opening} mm. Review the rim; omitted contacts were not forced.', { outer: review.rimGap.outerMm.toFixed(1), opening: review.rimGap.openingMm.toFixed(1) }) : undefined;
   const fixHere = () => FIX_TOOL_EVENTS.forEach(send);
   const notes: { key: string; text: string }[] = [
     ...(rimNote ? [{ key: 'rim', text: rimNote }] : []),
@@ -129,7 +129,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, kind
     <div className="dental-footer">
     <section className="dental-block" aria-label={t('ID label')}>
       <label className="field-row" {...hint(kindText('Letters, digits and "-" only, up to 8. Embossed on the raft so printed aligners can be told apart', kind))}>
-        <span>{t('ID label')}</span>
+        <span>{t('Text')}</span>
         <input className="text dental-label" type="text" inputMode="text" autoComplete="off" spellCheck={false} value={settings.labelText}
           placeholder={DEFAULT_DENTAL_LABEL} aria-label={t('ID label')} data-max={DENTAL_LABEL_MAX}
           onChange={(event) => onSetting('labelText', filterDentalLabel(event.target.value), 'dental-label')} />
