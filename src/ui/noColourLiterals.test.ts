@@ -43,6 +43,7 @@ const INLINE_STYLE_EXCEPTIONS: Record<string, string> = {
   'src/components/JobActivity.tsx': 'progress bar width is the job percentage',
   'src/denture/progress/StagedProgress.tsx': 'the staged bar width is the job percentage (same exception as JobActivity)',
   'src/components/RangeField.tsx': 'the allowed band is positioned from the field range',
+  'src/ui/parts/TiltDial.tsx': 'each tick and the knob dot are turned by an angle computed from the value and range (--tick-angle, --knob-angle); colours and sizes stay in styles.css',
   'src/components/viewport/CirclePreview.tsx': 'the brush circle size is the brush radius in pixels',
   'src/components/ObjectViewport.tsx': 'the canvas cursor changes with the gesture (its colours are tokens, read in style.ts)',
 };

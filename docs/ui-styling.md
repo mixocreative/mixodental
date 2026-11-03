@@ -67,6 +67,35 @@ Colours with a meaning. Each is an alias of a UI token by default; give it a col
 | `--progress-staged-fill` | `var(--red)` | Fill of the staged bar | The bar of a denture scan or support build in the background-work list |
 | `--progress-staged-track` | `var(--line)` | Track behind the staged bar | Same bar, the part not yet reached |
 
+### Print-angle dial (Step 1)
+
+The soft knob of `src/ui/parts/TiltDial.tsx` (aligner Step 1 and denture Step 1). Change `--dial-size` and the whole dial (knob, ticks, dot, labels, shadows) grows or shrinks with it. The colours are in `:root`; the part sizes are set in the `.tilt-dial` rule as fractions of `--dial-size`, so change a fraction there to change one part's proportion. Try them live on the catalogue page (`/mixodental/kit.html`, see `docs/designer-guide.md`).
+
+| Token | Value | What it colours or sizes | Where it shows |
+| --- | --- | --- | --- |
+| `--dial-size` | `168px` | The one size of the whole dial | Width and height of `tilt-dial`; every part below derives from it |
+| `--dial-face` | `var(--surface)` | Knob face, lit side | Top left of the gradient on `tilt-dial-knob` |
+| `--dial-face-shade` | `var(--sunken)` | Knob face, shaded side | Bottom right of the gradient on `tilt-dial-knob` |
+| `--dial-shadow-dark` | `rgba(59, 54, 49, .22)` | Soft shadow below right of the knob | `tilt-dial-knob` box-shadow |
+| `--dial-shadow-light` | `rgba(255, 255, 255, .95)` | Soft highlight above left of the knob and in the dot's rim | `tilt-dial-knob`, `tilt-dial-dot` |
+| `--dial-tick` | `var(--line-strong)` | A tick outside the stable range | `tilt-dial-ticks` |
+| `--dial-tick-on` | `var(--red)` | A tick inside the stable range (class `is-on`) | `tilt-dial-ticks` |
+| `--dial-dot` | `var(--sunken)` | The recessed indicator dot | `tilt-dial-dot` |
+| `--dial-dot-shadow` | `rgba(59, 54, 49, .30)` | Inner shadow that makes the dot look pressed in | `tilt-dial-dot` |
+| `--dial-label` | `var(--muted)` | The range-end labels | `tilt-dial-label-min`, `tilt-dial-label-max` |
+| `--dial-knob-size` | `calc(var(--dial-size) * .58)` | Knob diameter (set in `.tilt-dial`) | `tilt-dial-knob` |
+| `--dial-tick-radius` | `calc(var(--dial-size) * .42)` | Distance of the tick ring from the centre | `tilt-dial-ticks` |
+| `--dial-tick-length` | `calc(var(--dial-size) * .07)` | Tick length | `tilt-dial-ticks` |
+| `--dial-tick-width` | `max(1px, calc(var(--dial-size) * .012))` | Tick thickness | `tilt-dial-ticks` |
+| `--dial-dot-size` | `calc(var(--dial-size) * .085)` | Dot diameter | `tilt-dial-dot` |
+| `--dial-dot-radius` | `calc(var(--dial-knob-size) / 2 - var(--dial-dot-size))` | Distance of the dot from the knob centre | `tilt-dial-dot` |
+| `--dial-shadow-offset` | `calc(var(--dial-size) * .035)` | How far the knob's two shadows fall | `tilt-dial-knob` |
+| `--dial-shadow-blur` | `calc(var(--dial-size) * .09)` | How soft the knob's shadows are | `tilt-dial-knob` |
+| `--dial-label-size` | `calc(var(--dial-size) * .062)` | Font size of the end labels | `tilt-dial-label-min`, `tilt-dial-label-max` |
+| `--tick-angle` | set by the code per tick | Angle of one tick on the arc (-120deg to 120deg) | Inline on each tick; do not set it in CSS |
+| `--knob-angle` | set by the code | Angle the dot points at (the value) | Inline on `tilt-dial-knob`; do not set it in CSS |
+
+
 ### 3D scene (background, light, grid, plate, model)
 
 Read at run time by `src/ui/tokenColour.ts` through `src/components/viewport/sceneColours.ts`.
@@ -131,7 +160,7 @@ Style by `[data-ui="name"]`. `{kind}` is `denture` or `aligner`; in `problem-ite
 | Screen or step | data-ui names |
 | --- | --- |
 | Start | `start-denture` |
-| Step 1, orientation | `orient-extra`, `denture-live-tips`, `denture-live-tips-path`, `denture-live-tips-fallback`, `denture-live-tips-none` |
+| Step 1, orientation | `tilt-dial` (class `is-disabled` when off), `tilt-dial-ticks` (each tick `.tilt-dial-tick`, class `is-on` in the stable range), `tilt-dial-knob`, `tilt-dial-dot`, `tilt-dial-label-min`, `tilt-dial-label-max`, `orient-extra`, `denture-live-tips`, `denture-live-tips-path`, `denture-live-tips-fallback`, `denture-live-tips-none` |
 | Step 2, supports (the side panel) | `denture-supports-panel`, `dental-supports-panel`, `problem-list`, `problem-item-{kind}` |
 | Denture Step 2, status line | `denture-review-summary` (class `is-building`, `is-failed`, `is-fix`, `is-look` or `is-ready` colours its dot), `denture-review-line`, `denture-resolve-all` (Fix), `denture-review-details-toggle`, `denture-review-details` |
 | Denture Step 2, Details | `denture-resolve`, `denture-resolve-none`, `denture-resolve-count`, `denture-resolve-islands-sideways`, `denture-resolve-landed`, `denture-problems`, `denture-check-run` |

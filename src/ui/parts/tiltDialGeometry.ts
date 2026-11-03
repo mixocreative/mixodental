@@ -46,3 +46,29 @@ export function valueFromPointer(rect: { left: number; top: number; width: numbe
   const snapped = step > 0 ? min + Math.round((raw - min) / step) * step : raw;
   return Math.min(max, Math.max(min, snapped));
 }
+
+/** How many tick marks ring the dial by default: one every 10 degrees of the 240-degree arc. */
+export const DIAL_TICK_COUNT = 25;
+
+/** One tick of the dial's ring: its angle (degrees, as `valueToAngle`), the value it stands for, and whether it is in the band. */
+export interface DialTick {
+  angle: number;
+  value: number;
+  on: boolean;
+}
+
+/**
+ * The ring of `count` ticks evenly spread over the arc from `min` to `max`. A tick is `on` when its value lies in
+ * `band` (`[from, to]`, either order, ends included); with no band every tick is off. A flat range gives one tick.
+ */
+export function dialTicks(min: number, max: number, band: readonly [number, number] | undefined, count = DIAL_TICK_COUNT): DialTick[] {
+  const n = max > min ? Math.max(2, Math.round(count)) : 1;
+  const lo = band ? Math.min(band[0], band[1]) : 0;
+  const hi = band ? Math.max(band[0], band[1]) : 0;
+  // A sliver of one tick spacing absorbs float rounding, so a band end that falls on a tick includes that tick.
+  const slack = n > 1 ? ((max - min) / (n - 1)) * 1e-6 : 0;
+  return Array.from({ length: n }, (_, at) => {
+    const value = n > 1 ? min + ((max - min) * at) / (n - 1) : min;
+    return { angle: valueToAngle(value, min, max), value, on: band !== undefined && value >= lo - slack && value <= hi + slack };
+  });
+}
