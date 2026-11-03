@@ -1233,6 +1233,9 @@ export default function App() {
   useAutoCheck({ build: dentureBuild, checked: Boolean(dentureBuild && verdictEntry?.unit === activeUnit && verdictEntry?.mesh === dentureBuild), canRun: command('check.run').enabled && !generating, run: () => runCommand('check.run') });
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      // A modal dialog owns the keyboard while it is open: Escape has to close it, and an editor shortcut
+      // that calls preventDefault() behind it would stop the browser doing so.
+      if (document.querySelector('dialog[open]')) return;
       const action = keyAction({
         key: event.key,
         ctrl: event.ctrlKey || event.metaKey,

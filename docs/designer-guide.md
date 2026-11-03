@@ -102,7 +102,10 @@ Run these from the repo root before every commit. Timings are from this machine.
 | `npm run check:duplicates` | No `src` module copies a vendored engine module. | about 1 s |
 | `npm run gate:real` | Real-scan gate: runs every local private scan through the engine and compares with `dentalwork/baselines/real-scan-baseline.json` (tips, print angle, verdict, file hashes). About 5 minutes. Needed only for engine or build-path changes (a vendor bump, `src/denture/engine/`, support-build code), not for CSS or layout. Without the private scans it prints "skipped" and exits 0. Never pass `-- --update` unless the owner says so. Not run for this guide. | about 5 min |
 
-`npm run walk` is the owner's full browser walk (about 3.5 minutes; needs a Chromium that Playwright installed). Do not run or edit it as part of UI work (section 7).
+`npm run walk` is the owner's full browser walk (about 10 minutes; needs a Chromium that Playwright installed). Do not run or edit it as part of UI work (section 7). Two things about it are worth knowing while you style:
+
+- It drives every control by its stable `data-ui` name, never by a class or the words on screen. Rename a class or let the theme change a label's case and the walk is unaffected; delete or rename a `data-ui` and it stops finding the control. That is the contract: the name is the handle, the class is yours.
+- Never edit a source file while it runs. The dev server hot-reloads the page under it and the run dies with "Execution context was destroyed".
 
 Screenshots: the repo has no designer screenshot script; for single controls use the catalogue page above. `playwright-core` is a dev dependency, but only `scripts/walk.mjs` uses it. Use Chrome devtools: open the device toolbar and set a responsive size.
 

@@ -82,11 +82,15 @@ function cupStl() {
 // quantising), so the drag, bottom-view and occlusion counts move with them.
 // Engine 12 (proximity weld): 1200 -> 1197. The old 1e-4 mm grid weld merged one pair of distinct knot
 // vertices (43,595 -> 43,596 vertices, one four-faced edge fewer); placement no longer snaps to 1 um.
+/**
+ * The numbers this fixture settles on. They are the BUILT supports, not the contacts the scatter proposes: a
+ * generate reports the proposed count first (1194 here) and settles on what the mesh built, so every count is
+ * read through the driver's `counts()`, which waits for it to stop moving.
+ */
 const BASE = {
-  auto: 1197,
-  dragSelected: [176, 277, 191],
+  auto: 429,
+  dragSelected: [57, 57, 57],
   bottomSelected: 57,
-  occlusion: [140, 619],
 };
 
 const results = [];
@@ -270,10 +274,29 @@ function makeDriver(page) {
   const props = () => page.evaluate(readProps);
   const footer = () => page.evaluate(() => document.querySelector('footer')?.innerText ?? '');
   const status = () => page.evaluate(() => document.querySelector('footer strong')?.innerText ?? '');
-  const counts = async () => {
+  const readCounts = async () => {
     const match = (await footer()).match(/([\d,]+) automatic, ([\d,]+) manual, ([\d,]+) removed/);
     const n = (i) => (match ? Number(match[i].replace(/,/g, '')) : -1);
     return { auto: n(1), manual: n(2), removed: n(3) };
+  };
+  /**
+   * The footer counts once they have STOPPED MOVING. A generate first reports every contact the scatter
+   * proposed and then settles on the supports the mesh actually built, which for this fixture is a third of
+   * them; a count read between the two is a real number that is not the answer, and a baseline taken there
+   * flaps. Everything that asserts on a count goes through here.
+   */
+  const counts = async () => {
+    let last = await readCounts();
+    let same = 0;
+    const t0 = Date.now();
+    while (same < 4) {
+      if (Date.now() - t0 > 120000) throw new Error(`counts never settled (last ${JSON.stringify(last)})`);
+      await idle(500);
+      const now = await readCounts();
+      same = now.auto === last.auto && now.manual === last.manual && now.removed === last.removed ? same + 1 : 0;
+      last = now;
+    }
+    return last;
   };
   const quiet = () => page.waitForFunction(() => !!document.querySelector('.job-activity')?.hidden, null, { timeout: 300000 });
   /** Waits until the selection stops changing (a queued stroke drained). */
@@ -321,14 +344,23 @@ function makeDriver(page) {
         await page.waitForFunction(() => document.querySelector('footer .building'), null, { polling: 'raf', timeout: 240000 });
         const reached = await page.evaluate(async () => {
           const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-          const press = (name) => [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === name)?.click();
+          // textContent, not innerText: innerText is the PAINTED text, and the theme uppercases a tool key, so an
+          // exact match on innerText misses without saying so - the tool then stays on Add supports and the press
+          // below adds a support instead of asking an empty Drag over what it hit.
+          const press = (name) => {
+            const button = [...document.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim().toLowerCase() === name.toLowerCase());
+            button?.click();
+            return !!button;
+          };
           document.querySelector('.panel.left .mode-button').previousElementSibling.click();
           await pause(150);
           press('Select supports');
           await pause(150);
           press('Drag over');
           await pause(250);
-          return !!document.querySelector('footer .building');
+          // Drag over really is the engaged tool: otherwise the check below would read the status of something else.
+          return [...document.querySelectorAll('.edit-bar button[aria-pressed="true"]')]
+            .some((b) => (b.textContent ?? '').trim().toLowerCase() === 'drag over');
         });
         await page.mouse.move(...this.at(0.5, 0.5));
         await page.mouse.down();
@@ -342,6 +374,8 @@ function makeDriver(page) {
       await page.waitForFunction(() => /[1-9][\d,]* automatic/.test(document.querySelector('footer')?.innerText ?? '') && ![...document.querySelectorAll('button')].some((b) => /Generating/.test(b.innerText)), null, { timeout: 240000 });
       await quiet();
       await idle(800);
+      // The number above is the proposed one; wait for the built one before anyone reads it.
+      await this.counts();
       await this.measureCanvas();
     },
     async enterDragOver(mode = 'Select supports') {
@@ -406,7 +440,7 @@ async function walk(url, scratch, dentalFixture) {
     await d.generate(url, (seen) => { early = seen; });
     check('i Drag over pressed while the first build runs says so',
       early?.reached === true && early.building && early.status === 'Supports are still building.',
-      `status "${early?.status}", build still running at the press ${early?.building}, mode reached while building ${early?.reached}`);
+      `status "${early?.status}", build still running at the press ${early?.building}, Drag over engaged while building ${early?.reached}`);
 
     // a. Generate and Drag over.
     const first = await d.counts();
@@ -436,23 +470,18 @@ async function walk(url, scratch, dentalFixture) {
     check('a4 Undo brings them back', undone.removed === 0 && undone.auto === first.auto, `removed ${undone.removed}, auto ${undone.auto}`);
     await d.exitMode();
 
-    // b. Occlusion.
-    await d.enterDragOver();
-    const front = [[0.33, 0.38], [0.7, 0.38]];
-    await d.stroke(front[0], front[1], 30);
-    const visible = (await d.settle()).selected;
-    await d.button('Clear selection').click();
-    await d.idle(500);
-    await d.button('Hide models').click();
-    await d.idle(800);
-    await d.stroke(front[0], front[1], 30);
-    const hiddenModel = (await d.settle()).selected;
-    check('b occlusion: supports behind the model are skipped, and Hide models brings them back', visible === BASE.occlusion[0] && hiddenModel === BASE.occlusion[1] && visible < hiddenModel, `models shown ${visible}, models hidden ${hiddenModel} (baseline ${BASE.occlusion.join(', ')})`);
-    await d.button('Clear selection').click();
-    await d.button('Show models').click();
-    await d.exitMode();
+    // b. Occlusion had a second half - press Hide models, drag the same line again, and see the supports that
+    // were behind the model come into the selection. That control left the app in f716eb4 (PD.11 S1) and nothing
+    // else clears `modelsVisible`, so the comparison cannot be made any more; what was left of the check only
+    // repeated a2's front drag from a less settled state, and pinning that number would be coverage in name
+    // only. Removed with the control. If Hide models ever comes back, so does this check.
 
     // c. Zone landing, then d. export after zone + Delete.
+    // Frame the model: the zone strokes below are fractions of the canvas, and a zone painted off the model
+    // removes nothing, which reads here as "zones do not work".
+    await d.button('Fit view').click();
+    await d.idle(1200);
+    await d.measureCanvas();
     const beforeZone = await d.props();
     const countsBefore = await d.counts();
     await d.zonesButton().click();
@@ -484,13 +513,17 @@ async function walk(url, scratch, dentalFixture) {
     check('d2 Undo after the export brings the deleted supports back', restored.removed === 0, `removed ${restored.removed}`);
 
     // e. Right-click remove, then add at the same spot; Undo and Redo.
+    // Frame the model: the search grid below is fractions of the canvas.
+    await d.button('Fit view').click();
+    await d.idle(1200);
+    await d.measureCanvas();
     await d.editButton().click();
     await d.button('Add supports').click();
     await d.idle(2000);
     const base = await d.counts();
     let spot;
-    search: for (const fy of [0.3, 0.35, 0.4, 0.45, 0.5]) {
-      for (const fx of [0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65]) {
+    search: for (const fy of [0.35, 0.42, 0.5, 0.58, 0.65]) {
+      for (const fx of [0.3, 0.38, 0.44, 0.5, 0.56, 0.62, 0.7]) {
         await page.mouse.move(...d.at(fx, fy));
         await d.idle(200);
         await page.mouse.click(...d.at(fx, fy), { button: 'right' });
@@ -522,8 +555,13 @@ async function walk(url, scratch, dentalFixture) {
     await d.exitMode();
 
     // f. Per-support settings.
+    // Frame the model first: by here the zone painting and the right-click search have been over the view, and
+    // the stroke below is given as a fraction of the canvas.
+    await d.button('Fit view').click();
+    await d.idle(1200);
+    await d.measureCanvas();
     const shape = page.locator('.panel.right section').filter({ has: page.locator('h3', { hasText: /Support shape/ }) });
-    const pointField = () => shape.locator('label.field-row', { hasText: 'Point Ø' }).locator('input');
+    const pointField = () => shape.locator('[data-ui="setting-pointDiameter"] input');
     const setPoint = async (value) => { await pointField().fill(value); await pointField().press('Enter'); await d.idle(2500); };
     await d.enterDragOver();
     await d.stroke([0.3, 0.5], [0.7, 0.5], 25);
@@ -775,30 +813,31 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForSelector('.print-angle', { timeout: 120000 });
       note(`reference aligner read, oriented and its print angles scanned in ${Math.round((Date.now() - dropped) / 1000)} s`);
       check('u9 the dropped aligner is oriented with no button pressed, and the mesh check is clean', (await page.getByText('holes or non-manifold').count()) === 0 && (await page.getByText('could not be oriented').count()) === 0 && await d.button('Next').isEnabled());
-      const angleSlider = page.locator('.print-angle input[type=range]');
-      const bandBox = await page.locator('.print-angle .range-band').boundingBox();
-      const sliderRange = await angleSlider.evaluate((input) => [Number(input.min), Number(input.max), Number(input.step)]);
+      const angleDial = page.locator('.print-angle [data-ui="tilt-dial"]');
+      const litTicks = await page.locator('.print-angle .tilt-dial-tick.is-on').count();
+      const dialRange = await angleDial.evaluate((el) => [Number(el.getAttribute('aria-valuemin')), Number(el.getAttribute('aria-valuemax'))]);
       check('f1 Step 1 scans the print angles ("Scanning print angles i/n"), then shows the pick with its stable band',
         await page.evaluate(() => window.__scanSeen) && (await angleText()) === 'Print angle 44.5° (stable 26.5–44.5°)', `"${await angleText()}"`);
-      check('f2 the print-angle slider spans start ± 22° in 1° steps with the stable band drawn on its track',
-        Math.abs(sliderRange[0] - 24.4577512332) < 1e-6 && Math.abs(sliderRange[1] - 68.4577512332) < 1e-6 && sliderRange[2] === 1 && (bandBox?.width ?? 0) > 10,
-        `range ${JSON.stringify(sliderRange)}, band ${JSON.stringify(bandBox)}`);
+      // The 1° step is what f3 proves, by pressing the arrow once and reading 45.5°.
+      check('f2 the print-angle dial spans start ± 22° with the stable band lit around its arc',
+        Math.abs(dialRange[0] - 24.4577512332) < 1e-6 && Math.abs(dialRange[1] - 68.4577512332) < 1e-6 && litTicks > 0,
+        `range ${JSON.stringify(dialRange)}, lit ticks ${litTicks}`);
       await page.screenshot({ path: path.join(scratch, 'ux-a-step1-print-angle.png') });
       const pickRotation = (await d.props()).activeRotation;
-      await angleSlider.focus();
-      await angleSlider.press('ArrowRight');
+      await angleDial.focus();
+      await angleDial.press('ArrowRight');
       await page.waitForFunction(() => document.querySelector('.print-angle .edit-hint')?.innerText.startsWith('Print angle 45.5°'), null, { timeout: 10000 }).catch(() => {});
       const turnedRotation = (await d.props()).activeRotation;
-      check('f3 moving the slider turns the preview to that tilt and shows its rule flags (no tips in Step 1)',
+      check('f3 turning the dial one step turns the preview to that tilt and shows its rule flags (no tips in Step 1)',
         (await angleText()).startsWith('Print angle 45.5°') && JSON.stringify(turnedRotation) !== JSON.stringify(pickRotation) && (await flagsText()) === 'Passes every rule.' && (await page.getByText('Proposed support tips').count()) === 0,
         `"${await angleText()}", flags "${await flagsText()}", rotation ${JSON.stringify(pickRotation)} -> ${JSON.stringify(turnedRotation)}`);
-      await angleSlider.press('End');
+      await angleDial.press('End');
       await page.waitForFunction(() => document.querySelector('.print-angle .edit-hint')?.innerText.startsWith('Print angle 68.5°'), null, { timeout: 10000 }).catch(() => {});
       const steep = await flagsText();
       check('f4 the steepest tilt shows its failed rules by name', steep.includes('resin trap') && steep.includes('support crossing the aligner'), `flags "${steep}"`);
       await d.button('Auto orientation').click();
       await page.waitForFunction(() => document.querySelector('.print-angle .edit-hint')?.innerText.startsWith('Print angle 44.5°'), null, { timeout: 10000 }).catch(() => {});
-      check('f5 Auto orientation returns the slider and the preview to the automatic pick',
+      check('f5 Auto orientation returns the dial and the preview to the automatic pick',
         (await angleText()).startsWith('Print angle 44.5°') && JSON.stringify((await d.props()).activeRotation) === JSON.stringify(pickRotation), `"${await angleText()}"`);
       await d.button('Next').click();
       await stepTo('Step 2 · Support area', 180000);
@@ -901,7 +940,7 @@ async function walk(url, scratch, dentalFixture) {
         for (const key of ['p', 'e', 'a', 's']) { await page.keyboard.press(key); byKey.push(await pressedTool()); }
         check('b3b the keys P, E, A and S switch the tools', byKey.join('|') === 'Paint|Erase|Add|Select', byKey.join('|'));
         const unitNow = async () => (await d.props()).units[0];
-        const reach = bar.locator('label.field-row').filter({ hasText: 'Click reach' }).locator('input');
+        const reach = bar.locator('[data-ui="click-reach"] input');
         const setReach = async (value) => { await page.keyboard.press('a'); await reach.fill(value); await reach.press('Enter'); await previewReady(page); };
         const spots = [[0.38, 0.47], [0.42, 0.52], [0.57, 0.62], [0.5, 0.5], [0.44, 0.55], [0.53, 0.45], [0.47, 0.6], [0.62, 0.55]];
         /** Add at the first spot from `skip` on that takes a tip: the unit before and after, and the status line. */
@@ -1007,7 +1046,9 @@ async function walk(url, scratch, dentalFixture) {
       const stepTo = async (text, ms = 20000) => page.waitForFunction((word) => document.querySelector('.edit-badge')?.innerText.includes(word), text, { timeout: ms });
       const objects = async () => (await page.locator('footer').innerText()).match(/(\d+) objects?/)?.[1];
       const label = page.locator('.dental-side input.dental-label');
-      const slider = (name) => page.locator('.dental-side label.tool-option').filter({ hasText: name }).locator('input');
+      /** A Step 3 control by its stable name, e.g. `aligner-tip-size` (docs/ui-styling.md). */
+      const named = (ui) => page.locator(`.dental-side [data-ui="${ui}"] input`);
+      const slider = (ui) => named(ui);
       /** One aligner from the type card (first) or Step 1 to Step 3, supports built. */
       const toStep3 = async (first) => {
         if (first) {
@@ -1026,7 +1067,7 @@ async function walk(url, scratch, dentalFixture) {
         if (first) check('x0 Step 2 no longer carries the Tree and Brace toggles', (await page.getByText('Tree branches').count()) === 0 && (await page.getByText('Cross-braces').count()) === 0);
         await d.button('Next').click();
         await stepTo('Step 3 · Supports', 240000);
-        await page.waitForFunction(() => { const ok = [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === 'OK'); return ok && !ok.disabled; }, null, { timeout: 300000 });
+        await page.waitForFunction(() => { const ok = [...document.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim().toLowerCase() === 'ok'); return ok && !ok.disabled; }, null, { timeout: 300000 });
         await d.quiet();
       };
       const wait = async (ok, what, ms = 240000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await ok()) return true; await d.idle(300); } throw new Error(`timed out: ${what}`); };
@@ -1038,7 +1079,7 @@ async function walk(url, scratch, dentalFixture) {
       const finishInView = () => page.evaluate(() => {
         const side = document.querySelector('.dental-side');
         const names = ['Back', 'Exit', 'OK', 'Add another aligner'];
-        const boxes = names.map((name) => [...side.querySelectorAll('button')].find((b) => b.innerText.trim() === name)?.getBoundingClientRect());
+        const boxes = names.map((name) => [...side.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim().toLowerCase() === name.toLowerCase())?.getBoundingClientRect());
         const label = side.querySelector('input.dental-label')?.getBoundingClientRect();
         return [...boxes, label].every((r) => r && r.top >= 0 && r.bottom <= window.innerHeight && r.height > 0);
       });
@@ -1075,8 +1116,8 @@ async function walk(url, scratch, dentalFixture) {
       });
       check('u1c Step 3 panel is one scroll area (the blocks do not scroll) and each notice shows in full: text on top, buttons on their own row below', notices.scrolls && notices.bad === 0, JSON.stringify(notices));
       check('b3k Step 3 shows no Paint, Erase or density', (await page.getByRole('button', { name: 'Paint', exact: true }).count()) === 0 && (await page.getByRole('button', { name: 'Erase', exact: true }).count()) === 0 && !side.includes('Support density') && !side.includes('Dental area tools'), side.replace(/\s+/g, ' ').slice(0, 160));
-      const switchOn = (name) => page.locator('.dental-side label.check').filter({ hasText: name }).locator('input').isChecked();
-      const startValues = { tip: await slider('Tip size').inputValue(), lift: await slider('Lift height').inputValue(), tree: await switchOn('Tree branches'), brace: await switchOn('Cross-braces'), raft: await switchOn('Raft') };
+      const switchOn = (ui) => named(ui).isChecked();
+      const startValues = { tip: await slider('aligner-tip-size').inputValue(), lift: await slider('aligner-lift-height').inputValue(), tree: await switchOn('aligner-tree-branches'), brace: await switchOn('aligner-cross-braces'), raft: await switchOn('aligner-raft') };
       check('x1c Step 3 starts with the aligner type defaults: 0.45 mm tip, 3.5 mm lift, raft on, Tree off, Brace on (D21)',
         Number(startValues.tip) === 0.45 && Number(startValues.lift) === 3.5 && startValues.raft && !startValues.tree && startValues.brace, JSON.stringify(startValues));
       check('x2 the Label field is titled Label and starts as X', (await label.inputValue()) === 'X' && (await page.getByLabel('Label', { exact: true }).count()) >= 1, `value "${await label.inputValue()}"`);
@@ -1123,7 +1164,7 @@ async function walk(url, scratch, dentalFixture) {
       await page.screenshot({ path: path.join(scratch, 'ux-b-x8.png') });
       check('x8 Add supports adds one by hand', added, `manual ${afterDelete.manual} -> ${handWork.manual}, status "${await d.status()}"`);
 
-      const raft = page.locator('.dental-side label.check').filter({ hasText: 'Raft' }).locator('input');
+      const raft = named('aligner-raft');
       await raft.uncheck();
       check('x5 raft off says the label needs it', await page.getByText('Turn the raft on to print it').isVisible());
       await raft.check();
@@ -1134,8 +1175,8 @@ async function walk(url, scratch, dentalFixture) {
 
       // A setting change regenerates and keeps the hand work.
       const yBefore = (await d.props()).units[0].pos[1];
-      await slider('Lift height').focus();
-      await slider('Lift height').press('ArrowRight');
+      await slider('aligner-lift-height').focus();
+      await slider('aligner-lift-height').press('ArrowRight');
       await wait(async () => Math.abs((await d.props()).units[0].pos[1] - yBefore) > 0.2, 'lift regenerated');
       await d.quiet();
       const afterLift = await d.counts();
@@ -1153,12 +1194,12 @@ async function walk(url, scratch, dentalFixture) {
           await page.waitForFunction(() => { const el = document.querySelector('.dental-side section[aria-busy]'); return el && !el.classList.contains('is-stale') && el.getAttribute('aria-busy') === 'false'; }, null, { timeout: 120000 });
         };
         const controls = [
-          ['Tip size', async () => { await slider('Tip size').focus(); await slider('Tip size').press('ArrowRight'); }],
-          ['Pillar size', async () => { await slider('Pillar size').focus(); await slider('Pillar size').press('ArrowRight'); }],
-          ['Lift height', async () => { await slider('Lift height').focus(); await slider('Lift height').press('ArrowLeft'); }],
-          ['Raft', async () => { const box = page.locator('.dental-side label.check').filter({ hasText: 'Raft' }).locator('input'); await box.uncheck(); await d.idle(700); await verdictBack(); await box.check(); }],
-          ['Tree branches', async () => { await page.locator('.dental-side label.check').filter({ hasText: 'Tree branches' }).locator('input').click(); }],
-          ['Cross-braces', async () => { await page.locator('.dental-side label.check').filter({ hasText: 'Cross-braces' }).locator('input').click(); }],
+          ['Tip size', async () => { await slider('aligner-tip-size').focus(); await slider('aligner-tip-size').press('ArrowRight'); }],
+          ['Pillar size', async () => { await slider('aligner-pillar-size').focus(); await slider('aligner-pillar-size').press('ArrowRight'); }],
+          ['Lift height', async () => { await slider('aligner-lift-height').focus(); await slider('aligner-lift-height').press('ArrowLeft'); }],
+          ['Raft', async () => { const box = named('aligner-raft'); await box.uncheck(); await d.idle(700); await verdictBack(); await box.check(); }],
+          ['Tree branches', async () => { await named('aligner-tree-branches').click(); }],
+          ['Cross-braces', async () => { await named('aligner-cross-braces').click(); }],
         ];
         const outcome = [];
         for (const [name, act] of controls) {
@@ -1433,7 +1474,8 @@ async function walk(url, scratch, dentalFixture) {
     await page.locator('footer').getByRole('button', { name: 'Terms' }).click();
     const dialog = page.locator('dialog.terms');
     await dialog.waitFor({ state: 'visible', timeout: 5000 });
-    check('j Terms opens the bundled terms in a dialog', /Terms of Use/.test(await dialog.innerText()));
+    // Case-insensitive: innerText is the painted text and the theme sets the title in caps.
+    check('j Terms opens the bundled terms in a dialog', /Terms of Use/i.test(await dialog.innerText()));
     await page.keyboard.press('Escape');
     await dialog.waitFor({ state: 'hidden', timeout: 5000 });
     check('j Escape closes the Terms dialog', true);
@@ -1579,7 +1621,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     }
     await button('Next').click();
     await badgeHas('Step 3 · Supports', 240000);
-    await page.waitForFunction((ok) => { const b = [...document.querySelectorAll('button')].find((x) => x.innerText.trim() === ok); return b && !b.disabled; }, tr('OK'), { timeout: 300000 });
+    await page.waitForFunction((ok) => { const b = [...document.querySelectorAll('button')].find((x) => (x.textContent ?? '').trim().toLowerCase() === ok.toLowerCase()); return b && !b.disabled; }, tr('OK'), { timeout: 300000 });
     await quiet();
     await idle(800);
     await shot(page, 'dental-step3');

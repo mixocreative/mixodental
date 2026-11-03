@@ -59,7 +59,7 @@ Restore step (P7b): `components/RestoreStepButton.tsx` (the quiet secondary butt
 
 Shared pieces used, not copied: `components/OrientationBar.tsx` (Step 1 bar, dial, Back / Next), `components/DentalReviewBlocks.tsx`
 (the supports step's blocks: settings, edit tools, problems, ID label, Back question; the aligner's Step 3 shows them all open in
-`components/DentalSupports.tsx`), `components/Fold.tsx` (Adjust), `components/viewport/UnresolvedBubbles.tsx` (bubble, `resolve` makes it a button).
+`components/DentalSupports.tsx`), `components/Panel.tsx` (Adjust), `components/viewport/UnresolvedBubbles.tsx` (bubble, `resolve` makes it a button).
 
 Step 2 words (P7c): the denture's plain labels come from `kindText.ts` (Pillar size: "Support thickness", Lift height: "Lift from
 plate", Cross-braces: "Extra bracing", the one-sentence status line), so the aligner keeps its own.

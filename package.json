@@ -13,6 +13,7 @@
     "wasm:test": "node scripts/vendor-geometry.mjs --check && node scripts/geometry-wasm-smoke.mjs",
     "host-example": "node scripts/host-example.mjs",
     "test": "vitest run",
+    "screens": "vite-node scripts/step-screens.mjs",
     "walk": "node scripts/walk.mjs",
     "check:duplicates": "node scripts/check-no-duplicates.mjs",
     "gate:real": "node scripts/real-scan-gate.mjs"

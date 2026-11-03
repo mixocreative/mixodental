@@ -96,14 +96,27 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request: Rust tests,
 ### Browser walk
 
 ```bash
-npm run walk     # about 3.5 minutes, exit code 1 on any FAIL
+npm run walk     # about 10 minutes, exit code 1 on any FAIL
 ```
+
+```bash
+npm run screens  # a few seconds, writes .stitch/screens/*.html
+```
+
+`scripts/step-screens.mjs` renders every dental step x state to a standalone HTML file from **fake data**: the real components and the real stylesheets, with no model, no engine, no dev server and **no patient scan**. A clinic's scan never leaves the machine, so these are the screens that are safe to look at, to capture and to upload to a design tool. Run it through `vite-node` (the npm script does), because it resolves the engine aliases and compiles the .tsx the way the app does.
 
 `scripts/walk.mjs` starts Vite itself on a free port (from 5260, strict), drives headless Chromium with `playwright-core` through the editor on `scripts/fixtures/knot.stl`, prints one PASS or FAIL line per check with its numbers, and always stops Vite. No AI is involved. It needs a Chromium that Playwright installed; if it says none was found, run `npx playwright-core install chromium` once (the script never downloads anything).
 
-It checks that: Generate gives the same automatic count and Drag over strokes give fixed selection counts (Delete and Undo included, and a stroke from Bottom view); a Drag over stroke skips supports hidden behind the model, and Hide models brings them back; a zone painted where columns land removes those supports from the count and from the drawn mesh together; the exported supports-only STL has as many triangles as the build on screen after a zone and a Delete; a right-click remove followed by an add at the same spot keeps the manual support through Undo and Redo; per-support Point Ø, a changed default, Reset and Undo behave; switching Select to Unselect mid-queue (CPU throttled) ends where the two steps one after the other do; Drag over pressed while the first build is still running says so; and the console stays free of errors and warnings.
+It checks that: Generate gives the same automatic count and Drag over strokes give fixed selection counts (Delete and Undo included, and a stroke from Bottom view); a zone painted where columns land removes those supports from the count and from the drawn mesh together; the exported supports-only STL has as many triangles as the build on screen after a zone and a Delete; a right-click remove followed by an add at the same spot keeps the manual support through Undo and Redo; per-support Point Ø, a changed default, Reset and Undo behave; switching Select to Unselect mid-queue (CPU throttled) ends where the two steps one after the other do; Drag over pressed while the first build is still running says so; Terms opens and Escape closes it; and the console stays free of errors and warnings.
 
 The counts are baselines measured at 1440x900 with software GL (`BASE` in the script). Update them in the same commit as any change that moves the generator or the brush on purpose.
+
+Two rules that keep those numbers meaningful:
+
+- **They are the BUILT supports, not the proposed ones.** A generate reports every contact the scatter proposed (1194 on this fixture) and then settles on the supports the mesh actually built (429). The driver's `counts()` waits for the number to stop moving, so a baseline is never read from the moment in between.
+- **The walk drives every control by its `data-ui` name**, never by a CSS class or the words on screen, and it fits the view before any gesture given as a fraction of the canvas. Rename a class or restyle a label and the walk is unaffected.
+
+Never edit a source file while the walk runs: the dev server hot-reloads the page under it and the run dies with "Execution context was destroyed".
 
 
 | Path | What lives there |

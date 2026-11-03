@@ -120,15 +120,15 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1793601143.780306,
-    "seen": 1793602138.9986343,
-    "ast_hash": "0e8f3a08f13d16d96bb617105973c7ab",
+    "mtime": 1793729398.4913032,
+    "seen": 1793729411.4480815,
+    "ast_hash": "076ea99d8ee3cc24a6b350c370cfa8e4",
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1793603324.7078323,
-    "seen": 1793604156.8317516,
-    "ast_hash": "8ea63e671aa8a01417c9fa4474d49280",
+    "mtime": 1793728216.1392417,
+    "seen": 1793728245.8719254,
+    "ast_hash": "76cb66fccc547c76cba41205e62554ee",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -252,10 +252,10 @@
     "semantic_hash": ""
   },
   "src/components/TermsDialog.tsx": {
-    "mtime": 1792679095.323092,
-    "seen": 1793011338.7059238,
-    "ast_hash": "f0b76903559c54a09dff244b66073f94",
-    "semantic_hash": "f0b76903559c54a09dff244b66073f94"
+    "mtime": 1793728216.1382394,
+    "seen": 1793728245.8719254,
+    "ast_hash": "d0b3239a1e05625859a81ec3b294d91c",
+    "semantic_hash": ""
   },
   "src/components/UndoToast.tsx": {
     "mtime": 1793268306.3164315,
@@ -4087,27 +4087,27 @@
     "semantic_hash": ""
   },
   "src/ui/parts/tiltDialGeometry.test.ts": {
-    "mtime": 1793307946.366987,
-    "seen": 1793307966.7047136,
-    "ast_hash": "3cc027b4f4d9346c42a02c0761aea155",
+    "mtime": 1793729385.2581992,
+    "seen": 1793729411.4480815,
+    "ast_hash": "3aa935d363a78e4f4d6a2a6167fbaeb8",
     "semantic_hash": ""
   },
   "src/ui/parts/tiltDialGeometry.ts": {
-    "mtime": 1793709065.0578973,
-    "seen": 1793709082.1696837,
-    "ast_hash": "064d9e23d86f6eff59d44d79fcdf7694",
+    "mtime": 1793729385.2400599,
+    "seen": 1793729411.4480815,
+    "ast_hash": "a74707dff056b9c1a1db7eb5ad8f6931",
     "semantic_hash": ""
   },
   "src/ui/parts/TiltDial.test.tsx": {
-    "mtime": 1793709152.8739972,
-    "seen": 1793709155.520953,
+    "mtime": 1793729405.3965666,
+    "seen": 1793729411.4480815,
     "ast_hash": "0cc0201a68977ba9aa708f3d95cf9a81",
     "semantic_hash": ""
   },
   "src/ui/parts/TiltDial.tsx": {
-    "mtime": 1793711938.529736,
-    "seen": 1793711949.7712033,
-    "ast_hash": "ec05e98d44a4ae0f6461d478566bdcd0",
+    "mtime": 1793729385.2571962,
+    "seen": 1793729411.4480815,
+    "ast_hash": "55bde0d0ed89a26dd97108ddcb23f710",
     "semantic_hash": ""
   },
   "src/components/useFreeTransform.test.ts": {

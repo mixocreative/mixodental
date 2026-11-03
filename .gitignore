@@ -13,3 +13,6 @@ __pycache__/
 # snapshots are rebuilt by `graphify update .` and would add ~100 MB to a public repo.
 graphify-out/cache/
 graphify-out/20*/
+
+# Stitch capture scratch (the project binding in .stitch.json IS committed)
+.stitch/

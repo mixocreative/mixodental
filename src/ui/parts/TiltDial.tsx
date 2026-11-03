@@ -1,5 +1,5 @@
 import { useRef, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
-import { dialTicks, valueFromPointer, valueToAngle, DIAL_TICK_COUNT } from './tiltDialGeometry';
+import { DIAL_TICK_COUNT, dialTicks, keyValue, valueFromPointer, valueToAngle } from './tiltDialGeometry';
 
 /** A value to one decimal (a number, so it needs no translation). */
 const oneDecimal = (value: number): string => `${Math.round(value * 10) / 10}`;
@@ -59,10 +59,10 @@ export function TiltDial({ min, max, step, value, band, label, disabled = false,
   };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (disabled) return;
-    const direction = event.key === 'ArrowRight' || event.key === 'ArrowUp' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? -1 : 0;
-    if (direction === 0) return;
+    const next = keyValue(event.key, { value, min, max, step });
+    if (next === undefined) return;
     event.preventDefault();
-    onChange(Math.min(max, Math.max(min, value + direction * step)));
+    onChange(next);
   };
 
   return <div className={disabled ? 'tilt-dial is-disabled' : 'tilt-dial'} data-ui="tilt-dial" role="slider" tabIndex={disabled ? -1 : 0} aria-label={label}

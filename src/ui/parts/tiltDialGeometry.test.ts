@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { angleToValue, arcPath, polar, valueFromPointer, valueToAngle } from './tiltDialGeometry';
+import { angleToValue, arcPath, keyValue, polar, valueFromPointer, valueToAngle } from './tiltDialGeometry';
 
 describe('tiltDialGeometry', () => {
   it('maps the range onto a 240-degree arc and back', () => {
@@ -40,5 +40,27 @@ describe('tiltDialGeometry', () => {
     expect(valueFromPointer(rect, 60, 200, 0, 100, 1)).toBeCloseTo(100, 9);
     // Straight left is -90 degrees: 12.5 on 0..100, snapped to 13.
     expect(valueFromPointer(rect, 0, 60, 0, 100, 1)).toBe(13);
+  });
+});
+
+describe('keyValue', () => {
+  const at = (value: number) => ({ value, min: 20, max: 60, step: 1 });
+
+  it('steps by one on either arrow, in both orientations', () => {
+    expect(keyValue('ArrowRight', at(44))).toBe(45);
+    expect(keyValue('ArrowUp', at(44))).toBe(45);
+    expect(keyValue('ArrowLeft', at(44))).toBe(43);
+    expect(keyValue('ArrowDown', at(44))).toBe(43);
+  });
+
+  it('jumps to the ends on Home and End, as a slider does', () => {
+    expect(keyValue('End', at(44))).toBe(60);
+    expect(keyValue('Home', at(44))).toBe(20);
+  });
+
+  it('holds the range and takes no other key', () => {
+    expect(keyValue('ArrowRight', at(60))).toBe(60);
+    expect(keyValue('ArrowLeft', at(20))).toBe(20);
+    for (const key of ['Enter', 'Escape', 'a', 'PageUp', ' ']) expect(keyValue(key, at(44))).toBeUndefined();
   });
 });

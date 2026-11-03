@@ -72,3 +72,16 @@ export function dialTicks(min: number, max: number, band: readonly [number, numb
     return { angle: valueToAngle(value, min, max), value, on: band !== undefined && value >= lo - slack && value <= hi + slack };
   });
 }
+
+/**
+ * The value a key press moves the dial to, or undefined for a key the dial does not take. Arrows step by
+ * `step` and hold the range; Home and End jump to its ends, as they do on any slider - the dial replaced a
+ * range input, and a reader who drives it from the keyboard should not have to hold an arrow down to cross
+ * the whole arc.
+ */
+export function keyValue(key: string, { value, min, max, step }: { value: number; min: number; max: number; step: number }): number | undefined {
+  if (key === 'Home') return min;
+  if (key === 'End') return max;
+  const direction = key === 'ArrowRight' || key === 'ArrowUp' ? 1 : key === 'ArrowLeft' || key === 'ArrowDown' ? -1 : 0;
+  return direction === 0 ? undefined : Math.min(max, Math.max(min, value + direction * step));
+}

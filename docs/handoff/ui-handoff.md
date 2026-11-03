@@ -14,7 +14,7 @@ Each item has a RECOMMENDED answer so a designer can continue without asking. It
 
 Today the aligner Step 3 (`src/components/DentalSupports.tsx`) shows every block open. The denture Step 2 (`src/denture/steps/supports/DentureReviewPanel.tsx`) shows one status line with Fix and Details, a folded Adjust, Restore step, Back | OK.
 
-Recommended: yes, do it. Reuse the shared blocks in `src/components/DentalReviewBlocks.tsx` (both flows already use them); fold them the same way with `src/components/Fold.tsx`.
+Recommended: yes, do it. Reuse the shared blocks in `src/components/DentalReviewBlocks.tsx` (both flows already use them); fold them the same way with `src/components/Panel.tsx` (which replaced `Fold.tsx`).
 Cost: it breaks the owner's browser-walk checks x0, x1, x1b, x9b, x10 and x13 in `scripts/walk.mjs`, which look for the aligner Step 3 blocks. The owner must sign off, and the owner (not you) updates `walk.mjs`. Say which checks break in the commit message.
 
 ## (b) "Add another denture"
@@ -62,10 +62,11 @@ It is plain HTML + CSS (no SVG): each tick is a `<span>`, the knob a `<div>` wit
 - Colours in `:root`: `--dial-face`, `--dial-face-shade` (the knob's gradient), `--dial-shadow-dark`, `--dial-shadow-light`, `--dial-tick`, `--dial-tick-on` (stable range), `--dial-dot`, `--dial-dot-shadow`, `--dial-label`.
 - Proportions in the `.tilt-dial` rule, as fractions of `--dial-size`: `--dial-knob-size`, `--dial-tick-radius`, `--dial-tick-length`, `--dial-tick-width`, `--dial-dot-size`, `--dial-dot-radius`, `--dial-shadow-offset`, `--dial-shadow-blur`, `--dial-label-size`.
 - The number of ticks is the `ticks` prop (default 25, one every 10 degrees of the arc).
-- data-ui names: `tilt-dial`, `tilt-dial-ticks` (ticks `.tilt-dial-tick`, `.is-on` in range), `tilt-dial-knob`, `tilt-dial-dot`, `tilt-dial-label-min`, `tilt-dial-label-max`.
+- data-ui names: `tilt-dial`, `tilt-dial-ticks` (ticks `.tilt-dial-tick`, `.is-on` in range), `tilt-dial-knob`, `tilt-dial-dot`, `tilt-dial-value`, `tilt-dial-label-min`, `tilt-dial-label-max`.
+- Keys: the dial is a real ARIA slider. Arrows step by `step`, Home and End jump to the ends. The rules are the pure `keyValue` in `tiltDialGeometry.ts`, tested there.
 - Try changes on the catalogue page (`/mixodental/kit.html`), which shows the dial in and out of range, disabled and at two sizes.
 
-Open for the owner: the shadows go against mixo-app-style's "no shadows" rule (the owner asked for this look); the arc stays 240 degrees (the reference is about 270) so the drag mapping is unchanged. `scripts/walk.mjs` checks f1 to f5 still look for the slider the dial replaced in PD.11 S5 (`.print-angle input[type=range]`, `.range-band`, `.print-angle .edit-hint`); the owner updates them.
+Open for the owner: the shadows go against mixo-app-style's "no shadows" rule (the owner asked for this look); the arc stays 240 degrees (the reference is about 270) so the drag mapping is unchanged. `scripts/walk.mjs` checks f1 to f5 now drive the dial itself (`[data-ui="tilt-dial"]`, its `aria-valuemin`/`aria-valuemax`, and the lit `.tilt-dial-tick.is-on` run in place of the old `.range-band`); the slider they used to drive is gone.
 
 ## (i) One joint style with mixomesh, after both apps are published
 

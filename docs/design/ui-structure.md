@@ -1,5 +1,22 @@
 # mixoDental UI structure
 
+> **Read this first (2026-11-04).** This is the record of the 2026-10-22 design round, kept for the
+> reasoning behind the screens, the mode state machine, the command registry and the copy rules — all of
+> which still hold. It is **not** the current description of how the app looks. The theme, the typography
+> and the two widgets were all replaced in the week of 2026-11-03:
+>
+> | What this document says | What the app does now |
+> |---|---|
+> | Paper `#f4f2ed`, Mixo Red `#7f0019`, Zone Navy `#1d3461`, 2px radius | The **instrument** theme is the default: Pot Grey `#eef2f2`, Indigo `#17334e`, Dyed Teal `#2a8c99`, Signal Red `#c8372d` **for alerts only**, square (`--radius: 0`). The paper set is still underneath as the second theme. |
+> | Zen Kaku Gothic New, PingFang TC | **Atkinson Hyperlegible Next** and **Instrument Serif** are the only bundled faces; all CJK comes from the reader's own machine. |
+> | `<details>`/`<summary>` groups, `.field-row`, `.check`, `.number`, `.edit-size`, `.tool-option` | One `Panel` and one `Field`. None of those classes exist any more. |
+> | A print-angle **slider** with a band on its track | A print-angle **dial** (`TiltDial`), an ARIA slider with a lit tick band. |
+> | "Hide models" in the view controls | Removed in `f716eb4` (PD.11 S1). |
+>
+> Current and maintained: **`DESIGN.md`** (the design system), **`docs/ui-styling.md`** (every token, every
+> `data-ui` name), **`docs/designer-guide.md`** (how to change something safely). Section 7 below is kept
+> as written and is superseded by `DESIGN.md` section 2.
+
 Date: 2026-10-22. Status: implemented at `05d42c4` (see the status section below). Written as a design,
 with the owner decisions of 2026-10-22 encoded; revised after a four-model
 review and a behaviour audit (sections 12 and 13). Code baseline for every
@@ -860,6 +877,11 @@ App.tsx handlers.
 
 ## 7. Visual rules (mixo-app-style)
 
+> **Superseded.** The roles below still describe *how many* of each thing a view may have (one primary per
+> view, destructive never filled, one mode chrome) and that part holds. The *values* do not: the app's
+> default theme is the instrument theme. See `DESIGN.md` section 2 for the colours in use and
+> `docs/ui-styling.md` for the token table the tests enforce.
+
 ### 7.1 Colours by role
 
 | Role | Token / value | Used for |
@@ -1099,6 +1121,9 @@ PAGE STRUCTURE:
 
 Tokens line to append only when no design system is bound:
 `Colours: paper #f4f2ed, surface #fbfaf7, sunken #ebe8e1, lines #dcd7cd / #c4bdb0, ink #3b3631, muted #8a847a, primary dark red #7f0019, zones deep navy #1d3461, destructive outline #b3261e. Font Zen Kaku Gothic New (zh-Hant: PingFang TC / Noto Sans TC). 2 px radius, no shadows, 1 px hairlines.`
+
+> The prompt line above describes the paper theme. For a prompt against the app as it is, use the
+> component prompts in `DESIGN.md` section 6, which carry the instrument palette and the two bundled faces.
 
 ### 10.3 What must not be uploaded
 
