@@ -62,7 +62,10 @@
      (0 and O, 1 and l and I, 6 and 8) stay apart, which is what a dentist needs on a measurement. It has no kana or
      kanji, so a Japanese or Chinese word falls through to the face behind it, glyph by glyph. Both are self-hosted
      (src/fonts.css). Numbers keep the platform's machine face, which guarantees that a column of them lines up. */
+  /* One stack per language, so a designer changes the Japanese face without touching the others. The Latin face is
+     the same in all three; what changes behind it is the face that draws kana, kanji and Chinese characters. */
   --font-ui: 'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  --font-ui-ja: 'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
   --font-ui-zh: 'Atkinson Hyperlegible Next', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Zen Kaku Gothic New', system-ui, sans-serif;
   /* Numbers are the same face as the words. Atkinson Hyperlegible Next carries tabular figures, so a column of
      measurements still lines up under `font-variant-numeric: tabular-nums`, and no second face is needed. */
@@ -70,6 +73,7 @@
   /* The display face, for the large title and nothing else. Instrument Serif is self-hosted for Latin; Japanese and
      Traditional Chinese fall through to the platform's own mincho / song, which every machine has. */
   --font-title: 'Instrument Serif', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+  --font-title-ja: 'Instrument Serif', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
   --font-title-zh: 'Instrument Serif', 'Noto Serif TC', 'PMingLiU', 'Songti TC', serif;
 
   /* ---- The three text styles (docs/ui-styling.md "The three text styles") -------------------------------------
@@ -97,7 +101,11 @@
   color: var(--ink);
 }
 
-/* Traditional Chinese uses Taiwan glyph forms, so it names its own fallback; the Latin face in front is the same. */
+/* The language in use picks its stack. `document.documentElement.lang` is set by src/i18n.ts on every switch, and
+   `[lang=...]` catches a single element marked with a language of its own. Traditional Chinese uses Taiwan glyph
+   forms, which is why it cannot simply fall through the Japanese face. */
+:root[data-theme='instrument']:lang(ja),
+[data-theme='instrument'] [lang='ja'] { font-family: var(--font-ui-ja); }
 :root[data-theme='instrument']:lang(zh-Hant),
 [data-theme='instrument'] [lang='zh-Hant'] { font-family: var(--font-ui-zh); }
 
@@ -197,6 +205,9 @@
   line-height: 1.15;
   color: var(--ink);
 }
+[data-theme='instrument']:lang(ja) .title,
+[data-theme='instrument']:lang(ja) .start-heading,
+[data-theme='instrument']:lang(ja) .dental-stage h2 { font-family: var(--font-title-ja); }
 [data-theme='instrument']:lang(zh-Hant) .title,
 [data-theme='instrument']:lang(zh-Hant) .start-heading,
 [data-theme='instrument']:lang(zh-Hant) .dental-stage h2 { font-family: var(--font-title-zh); }

@@ -1,7 +1,7 @@
 # Graph Report - mixodental  (2026-11-03)
 
 ## Corpus Check
-- 815 files · ~721,694 words
+- 815 files · ~721,830 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 51 file(s) not represented in the graph (top: .stl 26, (none) 7, .css 5)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `cf421732`
+- Built from commit: `2b9a0a31`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1504,7 +1504,7 @@ Nodes (7): Candidate sharp-ridge connectors, Detected edge candidates on the neu
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `vitest` connect `vitest` to `App.tsx`, `threeBoundary.test.ts`, `imports.test.ts`, `islandReport.ts`, `flow.test.ts`, `liveTilt.test.ts`, `rigidMove.ts`, `buildImportParity.test.ts`, `Catalogue.tsx`, `real-scan-gate.mjs`, `StagedProgress.tsx`, `t`, `pipeline.ts`, `overlayMesh.test.ts`, `plateLayout.test.ts`, `SettingsPanel.tsx`, `session.ts`, `tokenColour.ts`, `printerProfiles.ts`, `probe-dental-edges.ts`, `dentureCore.ts`, `landing.test.ts`, `dentureClient.ts`, `dialSync.ts`, `useDentureOrient.ts`, `importOracleBoundary.test.ts`, `rustImport.ts`, `unitSupports.ts`, `meshClient.ts`, `plateLedger.ts`, `peelReport.ts`, `TriangleMesh`, `i18n.ts`, `useDentureSupports.ts`, `commands.ts`, `useFreeTransform.ts`, `check-no-duplicates.mjs`, `DentalSteps.tsx`, `Vector`, `projectFile.ts`, `KeyedQueue`, `unresolvedText.ts`, `ObjectViewport.tsx`, `partRoles.ts`, `glossary.test.ts`, `package.json`, `commands.ts`, `state/project.ts`, `uiStylingDoc.test.ts`, `status.ts`, `stlHeader.ts`, `noColourLiterals.test.ts`, `UnresolvedBubbles.tsx`, `probe-dental-orientation.ts`, `ProblemList.tsx`, `view.ts`, `style.ts`, `third-party-notices.mjs`, `stlSession.ts`, `projectClient.test.ts`, `TiltDial.tsx`, `projectFile.test.ts`, `legacyArea.test.ts`, `resultPath.test.ts`, `reviewCase.ts`, `prepareImport.ts`, `useDebugLayers.ts`, `useRegenerate.ts`, `geometry-guard.mjs`, `arrange.test.ts`, `stepPanelInset.ts`, `useScreenBrush.ts`, `dentureRules.ts`?**
-  _High betweenness centrality (0.115) - this node is a cross-community bridge._
+  _High betweenness centrality (0.112) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `App()` (e.g. with `Completed task log` and `historyReducer()`) actually correct?**
   _`App()` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `memory`, `__wbg_asciistlsession_free`, `__wbg_binarystlsession_free` to the rest of the system?**
@@ -1512,7 +1512,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `App.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.07088989441930618 - nodes in this community are weakly interconnected._
 - **Why does `TriangleMesh` connect `TriangleMesh` to `dentureReviewLayers.ts`, `flow.test.ts`, `pipeline.ts`, `landing.test.ts`, `plateLayout.test.ts`, `overlayMesh.test.ts`, `review.ts`, `probe-dental-edges.ts`, `dentureCore.ts`, `vitest`, `dentureClient.ts`, `Review Focus`, `fixtures.ts`, `rustImport.ts`, `unitSupports.ts`, `meshClient.ts`, `mixomesh performance audit — for mixoDental adoption`, `Vector`, `partRoles.ts`, `rayLayers.ts`, `legacyDecimate.ts`, `state/project.ts`, `status.ts`, `dentureReview.ts`, `probe-dental-orientation.ts`, `stlSession.ts`, `projectFile.test.ts`, `reviewCase.ts`, `geometryClient.ts`, `prepareImport.ts`, `useDebugLayers.ts`, `JobLabel`, `generateSupports.ts`, `legacyArea.test.ts`?**
-  _High betweenness centrality (0.050) - this node is a cross-community bridge._
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **Are the 8 inferred relationships involving `TriangleMesh` (e.g. with `1. Framework coupling (core)` and `2. Data formats and coordinate conventions`) actually correct?**
   _`TriangleMesh` has 8 INFERRED edges - model-reasoned connections that need verification._
 - **Should `passArrayF64ToWasm0` be split into smaller, more focused modules?**
