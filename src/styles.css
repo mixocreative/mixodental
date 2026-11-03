@@ -18,6 +18,12 @@
   /* Owner's call: Regenerate is deep blue so it never reads as the first Generate. */
   --blue: #1d3461;
   --blue-hover: #284579;
+  /* A panel's title bar (src/components/Panel.tsx). A title is a solid bar with its text in the opposite colour,
+     and a closed panel wears a plainly lighter bar than an open one, so open and closed are told apart at a glance. */
+  --panel-title-bg: var(--ink);
+  --panel-title-ink: var(--paper);
+  --panel-title-bg-closed: var(--sunken);
+  --panel-title-ink-closed: var(--ink);
   --radius: 2px;
   --dur: .15s;
   /* Round C marks in the viewport: an unresolved point, and a support landed on the model by tier. */
@@ -45,6 +51,8 @@
   --dial-dot: var(--sunken);
   --dial-dot-shadow: rgba(59, 54, 49, .30);
   --dial-label: var(--muted);
+  /* The value the dial is on, drawn large in the middle of the knob (P7e). */
+  --dial-value: var(--ink);
   /* ---- 3D scene (read at run time by src/ui/tokenColour.ts; change one and the viewport follows) ---- */
   /* Scene: background, the hemisphere light's sky and ground, the floor grid. */
   --scene-bg: #e9e6df;
@@ -655,10 +663,15 @@ footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
 }
 .tilt-dial-label-min { left: calc(var(--dial-size) * .14); }
 .tilt-dial-label-max { left: calc(var(--dial-size) * .86); }
+/* The value in the middle of the knob: one line, the degree sign smaller and set high beside the number, where a
+   degree sign belongs. Their tops line up (`flex-start`); on the baseline the small ring would hang far too low. */
+.tilt-dial-value {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none;
+  display: flex; align-items: flex-start; line-height: 1; color: var(--dial-value); font-variant-numeric: tabular-nums;
+}
+.tilt-dial-value-num { font-size: calc(var(--dial-size) * .15); font-weight: 600; letter-spacing: -.02em; }
+.tilt-dial-value-deg { font-size: calc(var(--dial-size) * .075); }
 @media (prefers-reduced-motion: reduce) { .tilt-dial-dot, .tilt-dial-tick { transition: none; } }
-.tilt-readout { position: absolute; top: 62px; left: 16px; z-index: 3; pointer-events: none; color: var(--ink); font-variant-numeric: tabular-nums; }
-.tilt-readout-num { font-size: 56px; font-weight: 500; line-height: 1; }
-.tilt-readout-deg { font-size: 28px; }
 .problem-kind.angle { background: var(--danger); }
 .edit-count { color: var(--muted); font-variant-numeric: tabular-nums; }
 /* The wide edit bar takes the top right; the view buttons move to the bottom right meanwhile. */
@@ -939,12 +952,52 @@ dialog.terms .terms-item > span { flex: none; }
 .denture-review-actions button { flex: 1 1 0; }
 .denture-review-details { display: grid; gap: 8px; padding-top: 4px; }
 /* A folded section (components/Fold.tsx): a quiet header that opens its blocks. */
-.fold { display: grid; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line); }
-.fold-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 2px; background: transparent; border: 0; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-align: left; }
-.fold-toggle:hover:not(:disabled) { background: transparent; border: 0; text-decoration: underline; }
-.fold-chevron { width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur); }
-.fold.is-open .fold-chevron { transform: rotate(45deg); }
-.fold-body { display: grid; gap: 10px; }
+/* The panel widget (src/components/Panel.tsx): the app's one titled block of controls, in its four shapes. The
+   title is an h3 when the panel does not collapse and a quiet button with a chevron when it does; the body is the
+   same either way. Nothing here is set per panel. */
+.panel-widget { display: grid; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line); }
+.panel-widget-title {
+  margin: 0; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 26px; padding: 5px 10px;
+  background: var(--panel-title-bg); color: var(--panel-title-ink); border: 0; border-radius: var(--radius);
+  font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-align: left;
+}
+/* Closed: a plainly lighter bar, and the chevron beside it points right instead of down. */
+.panel-widget:not(.is-open) > .panel-widget-title { background: var(--panel-title-bg-closed); color: var(--panel-title-ink-closed); }
+.panel-widget-title.is-toggle { cursor: pointer; transition: background-color var(--dur); }
+.panel-widget-title.is-toggle:hover:not(:disabled) { background: var(--panel-title-bg); color: var(--panel-title-ink); border: 0; }
+.panel-widget:not(.is-open) > .panel-widget-title.is-toggle:hover:not(:disabled) { background: var(--line-strong); color: var(--panel-title-ink-closed); }
+.panel-widget-chevron { width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur); }
+.panel-widget.is-open .panel-widget-chevron { transform: rotate(45deg); }
+.panel-widget-body { display: grid; gap: 10px; }
+/* Columns, where there is room: the panel is the container, so a narrow panel drops its body to one column and a
+   `row` field inside it stands its label on top. Neither needs a window width or a media query. */
+.panel-widget { container-type: inline-size; }
+.panel-widget-body[data-columns='2'] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.panel-widget-body[data-columns='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@container (max-width: 340px) {
+  .panel-widget-body[data-columns='2'], .panel-widget-body[data-columns='3'] { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---- Field: one control with its label (src/components/Field.tsx) -------- */
+/* `row`: label left, control right. `stack`: label on top. A row field stacks itself in a narrow panel. */
+.field { display: grid; gap: 4px 10px; align-items: center; margin: 0; font-size: var(--body-size, 12.5px); }
+.field--row { grid-template-columns: minmax(0, auto) minmax(0, 1fr); }
+.field--row > .field-control { justify-self: end; }
+.field--stack { grid-template-columns: minmax(0, 1fr); }
+.field-label { color: var(--ink); }
+.field--read-only > .field-control { color: var(--muted); font-variant-numeric: tabular-nums; }
+/* The control takes the width it is given and its readout stays beside it, so a slider or a segmented switch
+   never ends up a stub and a value never falls onto its own line. */
+.field-control { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.field-control > input[type='range'],
+.field-control > .range-track,
+.field-control > .segmented { flex: 1 1 auto; min-width: 0; width: auto; }
+.field-control > output,
+.field-control > small { flex: none; white-space: nowrap; }
+@container (max-width: 220px) {
+  .field--row { grid-template-columns: minmax(0, 1fr); }
+  .field--row > .field-control { justify-self: stretch; }
+}
 /* Restore step in a horizontal edit bar (the aligner's area step) sits at its own width, before Back | Next. */
 .edit-row > .restore-step { width: auto; }
 /* Step 3's panel covers the bottom right: the view buttons sit just left of it (above it when it docks at the bottom). */
@@ -970,12 +1023,32 @@ dialog.terms .terms-item > span { flex: none; }
 }
 .start-screen--dropping { outline: 1px solid var(--ink); outline-offset: -12px; }
 .start-back { position: absolute; top: 16px; left: 16px; z-index: 3; }
-.start-task { display: grid; justify-items: center; gap: 24px; }
-.start-heading { margin: 0; font-size: 18px; font-weight: 500; letter-spacing: .04em; }
-.start-choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
-.start-big { min-width: 260px; padding: 28px 24px; font-size: 16px; letter-spacing: .04em; }
+/* One column, pinned to the width it is given (`minmax(0, 1fr)`): without that the column grows to the choices'
+   max-content width and the whole screen scrolls sideways instead of the choices wrapping. */
+.start-task { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 24px; width: 100%; }
+.start-heading { margin: 0; max-width: 100%; font-size: 18px; font-weight: 500; letter-spacing: .04em; text-wrap: balance; }
+/* The three choices share one grid, so they are the same width and the same height at every window size: as many
+   columns as fit, and `grid-auto-rows: 1fr` keeps a choice whose word wraps onto two lines the same height as the
+   others. A flex row equalised them only while all three sat on one line. */
+.start-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 16px;
+  justify-self: stretch;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+}
+/* The three choices on the task screen are one component (src/components/StartChoice.tsx): the same key, the same
+   art box above the same word, whichever one is the filled main choice. Nothing here is set per choice. */
+.start-big {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  width: auto; min-height: 200px; padding: 28px 24px; text-align: center;
+}
+.start-big-art { width: 96px; height: 96px; flex: none; }
+.start-big-label { font-size: 15px; letter-spacing: .04em; }
 .start-screen .dental-stage { padding-top: 32px; background: transparent; }
-@media (max-width: 720px) { .start-big { width: 100%; min-width: 0; } }
 
 /* ---- Build plate (Round C) ------------------------------------------------- */
 .plate-printer { display: grid; gap: 4px; margin: 0 0 6px; font-size: 12px; color: var(--muted); }

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "postbuild": "node scripts/third-party-notices.mjs",
+    "fonts": "node scripts/gen-fonts-css.mjs",
     "vendor:geometry": "node scripts/vendor-geometry.mjs",
     "vendor:check": "node scripts/vendor-geometry.mjs --check",
     "wasm:test": "node scripts/vendor-geometry.mjs --check && node scripts/geometry-wasm-smoke.mjs",
@@ -17,6 +18,8 @@
     "gate:real": "node scripts/real-scan-gate.mjs"
   },
   "devDependencies": {
+    "@fontsource/atkinson-hyperlegible-next": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
     "@fontsource/zen-kaku-gothic-new": "^5.3.1",
     "@types/node": "^22.20.5",
     "@types/react": "^18.3.12",

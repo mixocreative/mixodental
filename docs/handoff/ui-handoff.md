@@ -54,7 +54,7 @@ Engine 60 shipped (vendor bump c62aaf7) and the staged bar (`src/denture/progres
 
 ## (h) Redesign the tilt dial: DONE (P7d), tweak by tokens
 
-The dial (`src/ui/parts/TiltDial.tsx`, in aligner Step 1 and denture Step 1) is now the soft neumorphic knob of the owner's reference: a raised disc with two soft shadows, a recessed dot that points at the angle, 25 ticks over the 240-degree arc (the ticks inside the stable range in the accent colour), and the range ends as small labels at both arc ends. The big number (`TiltReadout`) and the "Stable a–b°" line are unchanged; so are drag, the arrow keys, `aria`, snapping, Auto orientation, Restore and the live tilt.
+The dial (`src/ui/parts/TiltDial.tsx`, in aligner Step 1 and denture Step 1) is a knob with a pointer at the angle, 25 ticks over the 240-degree arc (the ticks inside the stable range in the accent colour), the range ends as small labels at both arc ends, and the angle itself as a large number in the middle of the knob (P7e; the separate big number that stood under the badge is gone, since it said the same thing twice). In the app's instrument theme the knob is flat indigo and the pointer a white triangle; the paper set keeps the soft raised knob and its recessed dot. The "Stable a–b°" line is unchanged; so are drag, the arrow keys, `aria`, snapping, Auto orientation, Restore and the live tilt.
 
 It is plain HTML + CSS (no SVG): each tick is a `<span>`, the knob a `<div>` with a `box-shadow`. What a designer tweaks, all in `src/styles.css` and listed in `docs/ui-styling.md` ("Print-angle dial"):
 

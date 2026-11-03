@@ -10,6 +10,8 @@
 .kit-card { display: grid; gap: 8px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .kit-card > .kit-caption { margin: 0; font-size: 11px; color: var(--muted); }
 .kit-row { display: flex; flex-wrap: wrap; gap: 6px; }
+/* A card that needs the width to show what it is about (a panel laid out in columns). */
+.kit-card--wide { grid-column: span 2; }
 /* Two dial sizes: the dial scales from this one token. */
 .kit-dial-small { --dial-size: 120px; }
 .kit-dial-large { --dial-size: 240px; }

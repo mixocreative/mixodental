@@ -1,10 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import type { JobRow } from '@mixo-geocore/host/workers/jobActivity';
 import { LANGS, setLanguage, t, plural, type Lang } from '../i18n';
+import { applyTheme, readTheme, THEMES, type Theme } from '../ui/theme';
 import { TiltDial } from '../ui/parts/TiltDial';
 import { RangeField } from '../components/RangeField';
 import { NumberField } from '../components/NumberField';
-import { Fold } from '../components/Fold';
+import { Panel } from '../components/Panel';
+import { Field } from '../components/Field';
 import { RestoreStepButton } from '../components/RestoreStepButton';
 import { stagedJobBar } from '../denture/progress/StagedProgress';
 import { reviewLine } from '../denture/steps/supports/reviewLineText';
@@ -16,8 +18,8 @@ import { reviewLine } from '../denture/steps/supports/reviewLineText';
  */
 
 /** A captioned box on the page. */
-function Card({ caption, children }: { caption: string; children: ReactNode }) {
-  return <div className="kit-card"><p className="kit-caption">{caption}</p>{children}</div>;
+function Card({ caption, wide = false, children }: { caption: string; wide?: boolean; children: ReactNode }) {
+  return <div className={wide ? 'kit-card kit-card--wide' : 'kit-card'}><p className="kit-caption">{caption}</p>{children}</div>;
 }
 
 function Section({ title, ui, children }: { title: string; ui: string; children: ReactNode }) {
@@ -53,8 +55,12 @@ function LiveDial({ start, band, size, disabled = false }: { start: number; band
   </div>;
 }
 
+/** What each theme is called on the page. The switch sets `data-theme`, so every control below changes at once. */
+const THEME_LABEL: Record<Theme, string> = { instrument: 'Instrument (app theme)', paper: 'Paper (set underneath)' };
+
 export function Catalogue() {
   const [lang, setLang] = useState<Lang>('en');
+  const [theme, setTheme] = useState<Theme>(readTheme);
   const [brush, setBrush] = useState(2.5);
   const [lift, setLift] = useState(5);
   const [raft, setRaft] = useState(true);
@@ -63,13 +69,17 @@ export function Catalogue() {
   const [details, setDetails] = useState(true);
   const [adjust, setAdjust] = useState(false);
   const choose = (next: Lang) => { setLanguage(next); setLang(next); };
+  const wear = (next: Theme) => { applyTheme(next); setTheme(next); };
   const raftBox = <label className="check"><input type="checkbox" checked={raft} onChange={(event) => setRaft(event.target.checked)} />{t('Raft')}</label>;
 
   // `key={lang}`: a language switch renders every control again, so each t() reads the new language.
   return <div className="kit-page" data-ui="kit-page" key={lang}>
     <header className="kit-head">
       <h1>mixoDental UI catalogue</h1>
-      <p>Edit src/styles.css, then refresh. Every control below is the real component with sample values.</p>
+      <p>Colours and sizes: src/styles/theme.css (the app theme) over src/styles.css (the set underneath). Every control below is the real component with sample values.</p>
+      <select className="lang-select" data-ui="kit-theme" aria-label="Theme" value={theme} onChange={(event) => wear(event.target.value as Theme)}>
+        {THEMES.map((name) => <option key={name} value={name}>{THEME_LABEL[name]}</option>)}
+      </select>
       <select className="lang-select" data-ui="kit-lang" aria-label="Language" value={lang} onChange={(event) => choose(event.target.value as Lang)}>
         {LANGS.map((entry) => <option key={entry.lang} value={entry.lang}>{entry.label}</option>)}
       </select>
@@ -151,7 +161,41 @@ export function Catalogue() {
           </div>
           {details ? <div className="denture-review-details"><p className="edit-note">{t('Passes every rule.')}</p></div> : null}
         </section>
-        <Fold uiName="kit-adjust" label={t('Adjust')} open={adjust} onToggle={setAdjust}>{raftBox}</Fold>
+        <Panel ui="kit-adjust" title={t('Adjust')} collapsible open={adjust} onToggle={setAdjust}>{raftBox}</Panel>
+      </Card>
+      <Card caption="Panel: does not collapse (a title and a body, always there)">
+        <Panel ui="kit-panel-plain" title={t('Raft')}>{raftBox}</Panel>
+      </Card>
+      <Card caption="Panel: collapsible, open by default (keeps its own state)">
+        <Panel ui="kit-panel-open" title={t('Adjust')} collapsible>{raftBox}</Panel>
+      </Card>
+      <Card caption="Panel: collapsible, closed by default (keeps its own state)">
+        <Panel ui="kit-panel-closed" title={t('Adjust')} collapsible defaultOpen={false}>{raftBox}</Panel>
+      </Card>
+      <Card caption="Panel in 2 columns, a field per control. The field carries the label, so the control inside it is bare. Narrow the window: two columns become one, then every label moves on top" wide>
+        <Panel ui="kit-panel-columns" title={t('Adjust')} columns={2}>
+          <Field label={t('Lift height')} ui="kit-field-number">
+            <input type="number" min={0} max={10} step={0.5} value={lift} aria-label={t('Lift height')} onChange={(event) => setLift(Number(event.target.value))} />
+            <small>mm</small>
+          </Field>
+          <Field label={t('Raft')} ui="kit-field-check">
+            <input type="checkbox" checked={raft} onChange={(event) => setRaft(event.target.checked)} />
+          </Field>
+          <Field label={t('Brush size')} ui="kit-field-slider" layout="stack">
+            <input type="range" min={0.5} max={10} step={0.5} value={brush} aria-label={t('Brush size')} onChange={(event) => setBrush(Number(event.target.value))} />
+            <output>{t('{n} mm', { n: brush })}</output>
+          </Field>
+          <Field label={t('How to select')} ui="kit-field-segmented" layout="stack">
+            <div className="segmented">
+              <button type="button" aria-pressed={tool === 'paint'} onClick={() => setTool('paint')}>{t('Paint')}</button>
+              <button type="button" aria-pressed={tool === 'erase'} onClick={() => setTool('erase')}>{t('Erase')}</button>
+            </div>
+          </Field>
+          <Field label={t('Print angle')} ui="kit-field-display" readOnly>44.5°</Field>
+          <Field label={t('Cross-braces')} ui="kit-field-braces">
+            <input type="checkbox" checked={braces} onChange={(event) => setBraces(event.target.checked)} />
+          </Field>
+        </Panel>
       </Card>
       <Card caption="Side panel (.panel section with its heading band)">
         <div className="panel"><section><h3>{t('Raft')}</h3>{raftBox}</section></div>

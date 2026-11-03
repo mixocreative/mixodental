@@ -1,0 +1,355 @@
+/*
+ * The app's own theme (P7e): the instrument theme.
+ *
+ * Shape comes from a small studio instrument — a light hardware body, white screens, dark ink, hairlines on a
+ * strict grid, tiny tracked uppercase caps on the keys, machine numerals for every number, square plates and one
+ * small round on the keys. Flat: nothing is raised or shaded.
+ *
+ * Colour comes from the owner's reference photograph (indigo-dyed peas in a steel pot): deep indigo ink, a teal
+ * accent, a soft turquoise for ranges, a cream note, and the single red speck in that photo, which is the only
+ * red in the app and means alert.
+ *
+ * Everything here is a token value or a token-driven rule; no component is restyled by hand. It is a layer on top
+ * of src/styles.css (the paper set), applied when <html data-theme="instrument"> is set. Remove the attribute and
+ * the app is the paper theme again, which is how the two are compared on the catalogue page.
+ *
+ * Colour roles (what a designer changes):
+ *   --primary   the one main action of a step (Next / OK). A filled indigo key.
+ *   --accent    engaged, active, in range, and every meter. Teal, on marks and fills.
+ *   --signal    alerts only: a problem, or an action that cannot be undone. Red, used for nothing else.
+ * The legacy names (--red, --kraft, --danger) are mapped to those roles at the bottom, so no component needs editing.
+ */
+:root[data-theme='instrument'] {
+  /* ---- Body, screens, ink ------------------------------------------------ */
+  /* The pot and the water: a pale cool grey body, white screens, indigo ink. */
+  --paper: #eef2f2;
+  --surface: #ffffff;
+  --sunken: #dde6e6;
+  --line: #cbd9da;
+  --line-strong: #93aaac;
+  --ink: #17334e;
+  --muted: #5a6f7c;
+
+  /* ---- The three roles --------------------------------------------------- */
+  /* The darkest pea: the one key you press to go on. White caps on it, which needs this depth to stay readable. */
+  --primary: #17334e;
+  --primary-hover: #214b6e;
+  --primary-ink: #ffffff;
+  /* The dyed teal: engaged, active, in range, meters. Marks and fills only. */
+  --accent: #2a8c99;
+  /* The same teal, deep enough to be read as a word (the rare accent text). */
+  --accent-strong: #1f6e79;
+  /* The palest peas: a wide, quiet range band, and ticks inside the stable band. */
+  --accent-soft: #7cc7c4;
+  /* The deep blue pea: a chosen row, a zone, the second action (Regenerate). */
+  --selected: #244e86;
+  /* The cream pea: the background of a note that explains why something is held. */
+  --note: #e8e2c8;
+  /* The one red speck in the photograph: alerts only. */
+  --signal: #c8372d;
+  /* THE BRAND TEAL. Not a working colour: it is the mark itself. Use it where the app says who it is - the
+     wordmark, and a moment the brand owns - and nowhere else. No control, status or 3D mark may wear it, or it
+     stops meaning anything. */
+  --brand: #0d6579;
+
+  /* Status words carry the meaning; these only tint their dot. */
+  --warning: #a96f12;
+  --success: #4f8f6b;
+  --info: var(--selected);
+
+  /* ---- Type -------------------------------------------------------------- */
+  /* Atkinson Hyperlegible Next reads the Latin alphabet: it is drawn so the letters and digits a reader can mix up
+     (0 and O, 1 and l and I, 6 and 8) stay apart, which is what a dentist needs on a measurement. It has no kana or
+     kanji, so a Japanese or Chinese word falls through to the face behind it, glyph by glyph. Both are self-hosted
+     (src/fonts.css). Numbers keep the platform's machine face, which guarantees that a column of them lines up. */
+  --font-ui: 'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  --font-ui-zh: 'Atkinson Hyperlegible Next', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Zen Kaku Gothic New', system-ui, sans-serif;
+  /* Numbers are the same face as the words. Atkinson Hyperlegible Next carries tabular figures, so a column of
+     measurements still lines up under `font-variant-numeric: tabular-nums`, and no second face is needed. */
+  --font-number: var(--font-ui);
+  /* The display face, for the large title and nothing else. Instrument Serif is self-hosted for Latin; Japanese and
+     Traditional Chinese fall through to the platform's own mincho / song, which every machine has. */
+  --font-title: 'Instrument Serif', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+  --font-title-zh: 'Instrument Serif', 'Noto Serif TC', 'PMingLiU', 'Songti TC', serif;
+
+  /* ---- The three text styles (docs/ui-styling.md "The three text styles") -------------------------------------
+     1. TITLE  - the one large line that names the screen. Serif, never uppercased, never tracked.
+     2. HEADER - four levels, sans, tracked uppercase caps: h1 the app, h2 a screen, h3 a group, label a field.
+     3. CONTENT - sans, sentence case: everything the user reads as a sentence, and the small print under it. */
+  --title-size: 30px;
+  --title-track: -.01em;
+  --h1-size: 13px;
+  --h2-size: 12px;
+  --h3-size: 11px;
+  --label-size: 10.5px;
+  --label-track: .14em;
+  --body-size: 12.5px;
+  --body-line: 1.65;
+  --small-size: 11.5px;
+
+  /* ---- Geometry ---------------------------------------------------------- */
+  --radius: 0px;      /* plates, panels, bands: square */
+  --radius-key: 3px;  /* keys and chips: the small round of an instrument key */
+  --dur: .12s;
+
+  font-family: var(--font-ui);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Traditional Chinese uses Taiwan glyph forms, so it names its own fallback; the Latin face in front is the same. */
+:root[data-theme='instrument']:lang(zh-Hant),
+[data-theme='instrument'] [lang='zh-Hant'] { font-family: var(--font-ui-zh); }
+
+/* ---- Dial: an indigo encoder with a white index line on a tick ring ------- */
+/* Flat, as the rest of the instrument is: the two soft shadows of the paper theme are turned off here. */
+:root[data-theme='instrument'] {
+  /* A turned metal knob: lit from the top left, a soft shadow under it, a thin highlight along its top edge. */
+  --dial-face: #22425f;
+  --dial-face-shade: #112942;
+  --dial-shadow-dark: rgba(17, 41, 66, .34);
+  --dial-shadow-light: rgba(255, 255, 255, .16);
+  --dial-tick: #b9cbcc;
+  --dial-tick-on: var(--accent);
+  --dial-dot: #ffffff;
+  --dial-dot-shadow: transparent;
+  --dial-label: var(--muted);
+  /* White, because the knob it sits on is indigo. */
+  --dial-value: #ffffff;
+}
+/* The knob is wider here than in the paper set: it carries the number, so it needs the room. */
+[data-theme='instrument'] .tilt-dial { --dial-knob-size: calc(var(--dial-size) * .64); }
+[data-theme='instrument'] .tilt-dial-knob {
+  background: radial-gradient(circle at 36% 28%, var(--dial-face), var(--dial-face-shade) 72%);
+  box-shadow: 0 calc(var(--dial-shadow-offset) * .5) calc(var(--dial-shadow-blur) * .7) var(--dial-shadow-dark),
+    inset 0 1px 0 var(--dial-shadow-light);
+}
+/* The indicator is a triangle pointing out at the tick it is on, sitting just inside the knob's edge. It turns
+   with the knob (the paper set turns its dot back upright so the light stays top left; a pointer must not). */
+[data-theme='instrument'] .tilt-dial-dot {
+  --dial-dot-radius: calc(var(--dial-knob-size) / 2 - var(--dial-dot-size) * .72);
+  box-shadow: none;
+  border-radius: 0;
+  width: calc(var(--dial-dot-size) * .82);
+  height: calc(var(--dial-dot-size) * .72);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  transform: translate(-50%, -50%) rotate(var(--knob-angle)) translateY(calc(-1 * var(--dial-dot-radius)));
+}
+/* The number in the middle: smaller than the paper set's, so the pointer never crowds it. */
+[data-theme='instrument'] .tilt-dial-value-num { font-size: calc(var(--dial-size) * .125); }
+[data-theme='instrument'] .tilt-dial-value-deg { font-size: calc(var(--dial-size) * .065); }
+[data-theme='instrument'] .tilt-dial:focus-visible { outline: 2px solid var(--accent); }
+[data-theme='instrument'] .tilt-dial-label { letter-spacing: var(--label-track); font-family: var(--font-number); }
+
+/* ---- Meters: the accent fills, the track is a hairline -------------------- */
+:root[data-theme='instrument'] {
+  --progress-staged-fill: var(--accent);
+  --progress-staged-track: var(--line);
+}
+[data-theme='instrument'] .progress-fill { background: var(--accent); }
+[data-theme='instrument'] .progress-track,
+[data-theme='instrument'] .staged-progress .staged-progress-track { background: var(--line); }
+
+/* ---- Keys ---------------------------------------------------------------- */
+/* A key is a hairline box with a tiny tracked cap. Data (a scan name, a part) is never uppercased, so the caps go
+   only on the keys that carry a command: the step bar, the nav row, segments, the mode and exit keys. */
+[data-theme='instrument'] button { border-radius: var(--radius-key); }
+/* `.primary:not(.start-big)`: the three big start choices are one set, so their word is styled once, on
+   `.start-big-label` below, whichever of them is the filled main choice. */
+[data-theme='instrument'] .primary:not(.start-big),
+[data-theme='instrument'] .start-big-label,
+[data-theme='instrument'] .orient-row button,
+[data-theme='instrument'] .orient-free-btn,
+[data-theme='instrument'] .orient-auto,
+[data-theme='instrument'] .segmented button,
+[data-theme='instrument'] .nav-exit,
+[data-theme='instrument'] .restore-step,
+[data-theme='instrument'] .mode-button,
+[data-theme='instrument'] .denture-review-actions button,
+[data-theme='instrument'] .dental-finish button {
+  text-transform: uppercase;
+  letter-spacing: var(--label-track);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+[data-theme='instrument'] .primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+[data-theme='instrument'] .primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+[data-theme='instrument'] button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+/* The engaged tool is the one place a key wears the accent: a 3 px underline, so the fill stays ink. */
+[data-theme='instrument'] .segmented button[aria-pressed='true'] { box-shadow: inset 0 -3px 0 var(--accent-soft); }
+[data-theme='instrument'] .danger { color: var(--signal); border-color: var(--signal); }
+[data-theme='instrument'] button:focus-visible,
+[data-theme='instrument'] input:focus-visible,
+[data-theme='instrument'] summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---- The three text styles ----------------------------------------------- */
+/* 1. TITLE: the one large line that names a full screen. The serif, sentence case, never tracked, never a caption
+   or a button. One per screen. New markup uses `.title`; the two stage headings already in the app are listed
+   with it so they are the same thing. */
+[data-theme='instrument'] .title,
+[data-theme='instrument'] .start-heading,
+[data-theme='instrument'] .dental-stage h2 {
+  font-family: var(--font-title);
+  font-size: var(--title-size);
+  font-weight: 400;
+  letter-spacing: var(--title-track);
+  text-transform: none;
+  line-height: 1.15;
+  color: var(--ink);
+}
+[data-theme='instrument']:lang(zh-Hant) .title,
+[data-theme='instrument']:lang(zh-Hant) .start-heading,
+[data-theme='instrument']:lang(zh-Hant) .dental-stage h2 { font-family: var(--font-title-zh); }
+
+/* 2. HEADER, four levels: the app, a screen, a group, a field. All sans, all tiny tracked caps, so a header never
+   competes with the title or with the content under it. */
+[data-theme='instrument'] h1 { font-size: var(--h1-size); }
+[data-theme='instrument'] h2 { font-size: var(--h2-size); }
+[data-theme='instrument'] h3,
+[data-theme='instrument'] .dental-block h3 { font-size: var(--h3-size); }
+[data-theme='instrument'] .panel-widget-title,
+[data-theme='instrument'] .dental-label,
+[data-theme='instrument'] .brand small,
+[data-theme='instrument'] .kit-section > h2 { font-size: var(--label-size); }
+[data-theme='instrument'] h1,
+[data-theme='instrument'] h2,
+[data-theme='instrument'] h3,
+[data-theme='instrument'] .dental-block h3,
+[data-theme='instrument'] .panel-widget-title,
+[data-theme='instrument'] .dental-label,
+[data-theme='instrument'] .brand small,
+[data-theme='instrument'] .kit-section > h2 {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+}
+/* A panel's title is a solid bar, the same bar whether or not the panel collapses; only the chevron in front of it
+   says it opens. The two shades come from the tokens in src/styles.css: an open panel's bar is the ink, a closed
+   one's is the sunken grey, which is the difference you see from across the room. */
+/* The generic h3 rule below makes a group heading a plain muted label; a panel title is not that, so it states
+   its own bar here (a non-collapsing panel's title IS an h3, and this has to outrank it). */
+[data-theme='instrument'] .panel-widget-title {
+  margin: 0 0 2px;
+  min-height: 26px;
+  padding: 5px 10px;
+  background: var(--panel-title-bg);
+  color: var(--panel-title-ink);
+  border: 0;
+  border-radius: var(--radius-key);
+}
+[data-theme='instrument'] .panel-widget:not(.is-open) > .panel-widget-title {
+  background: var(--panel-title-bg-closed);
+  color: var(--panel-title-ink-closed);
+}
+
+/* A group heading is a label on the body, not a filled band. */
+[data-theme='instrument'] h3 {
+  background: transparent;
+  min-height: 0;
+  margin-bottom: 8px;
+  padding: 0 0 5px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+
+/* 3. CONTENT: sentence case, sans, the line height a sentence needs. */
+[data-theme='instrument'] body,
+[data-theme='instrument'] p,
+[data-theme='instrument'] li,
+[data-theme='instrument'] label { font-size: var(--body-size); line-height: var(--body-line); }
+[data-theme='instrument'] small,
+[data-theme='instrument'] .edit-note { font-size: var(--small-size); line-height: var(--body-line); }
+
+/* ---- Numbers and IDs are machine type ------------------------------------ */
+[data-theme='instrument'] .tilt-dial-value,
+[data-theme='instrument'] .orient-range,
+[data-theme='instrument'] .job-meta,
+[data-theme='instrument'] .staged-progress-step,
+[data-theme='instrument'] .staged-progress-time,
+[data-theme='instrument'] .staged-progress-repair,
+[data-theme='instrument'] .edit-count,
+[data-theme='instrument'] .edit-size output,
+[data-theme='instrument'] .tool-option output,
+[data-theme='instrument'] .number input,
+[data-theme='instrument'] .unit small,
+[data-theme='instrument'] .shape-band,
+[data-theme='instrument'] .plate-size,
+[data-theme='instrument'] .denture-part-size,
+[data-theme='instrument'] .denture-part-tips,
+[data-theme='instrument'] h3 .count,
+[data-theme='instrument'] kbd { font-family: var(--font-number); font-variant-numeric: tabular-nums; }
+[data-theme='instrument'] .tilt-dial-value-num { font-weight: 700; }
+
+/* ---- Plates: panels, bars, the step badge and the held-panel note --------- */
+[data-theme='instrument'] header { background: var(--paper); border-bottom: 1px solid var(--line-strong); }
+/* The wordmark, and only the wordmark, is the brand teal. */
+[data-theme='instrument'] .app-logo { color: var(--brand); }
+[data-theme='instrument'] .panel { background: var(--paper); }
+[data-theme='instrument'] .edit-bar,
+[data-theme='instrument'] .debug-section,
+[data-theme='instrument'] .job-activity { border-radius: 0; }
+/* The step badge is a legend plate: ink block, white caps. */
+[data-theme='instrument'] .edit-badge {
+  background: var(--ink);
+  border-color: var(--ink);
+  border-radius: 0;
+  color: var(--surface);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+}
+[data-theme='instrument'] .edit-badge span { opacity: .65; }
+/* The note that says why a panel is held is the cream of the photograph, not an alarm. */
+[data-theme='instrument'] .lock-note { background: var(--note); border-color: var(--line-strong); color: var(--ink); }
+[data-theme='instrument'] .dental-card { border-radius: var(--radius-key); }
+[data-theme='instrument'] .dental-card[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+[data-theme='instrument'] .range-band { background: var(--accent-soft); border-radius: 0; }
+[data-theme='instrument'] .tool-engaged strong { color: var(--accent-strong); }
+[data-theme='instrument'] button.attention { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent); }
+
+/* ---- 3D scene: a pale room; the engine's own colours are untouched -------- */
+/* Fixed by the owner and NOT themed: the support area stays red, low points orange, tip cones yellow, and supports
+   are one plastic material. Only the neutral room and the model's plastic follow the theme. */
+:root[data-theme='instrument'] {
+  --scene-bg: #e3eaea;
+  --scene-light-sky: #ffffff;
+  --scene-light-ground: #c2cfcf;
+  --scene-grid-cell: #cfdadb;
+  --scene-grid-section: #a8b9ba;
+  --scene-plate: var(--muted);
+  --model-idle: #ccd6d6;
+  --model-selected: #e4ecec;
+  --model-active: #f4f8f8;
+  --model-active-glow: var(--accent);
+  --support-idle: #b7c4c4;
+  --support-selected-object: #d6e0e0;
+  --support-picked: var(--accent);
+  --mark-add: var(--accent);
+  --mark-ring: var(--ink);
+  --mark-zone: var(--selected);
+  --cursor-outline: var(--ink);
+  --cursor-fill: #ffffff;
+}
+[data-theme='instrument'] .viewport { background: var(--scene-bg); }
+
+/* ---- Legacy token names, mapped to the roles above ----------------------- */
+/* src/styles.css still names --red (the main action), --kraft (the band accent) and --danger (problems). They are
+   kept pointing at the roles so no component has to change; the rename is the next step of P7e. */
+:root[data-theme='instrument'] {
+  --red: var(--primary);
+  --red-hover: var(--primary-hover);
+  --kraft: var(--accent-soft);
+  --danger: var(--signal);
+  --blue: var(--selected);
+  --blue-hover: #2d5e9e;
+  --unresolved: var(--warning);
+  --landing-allowed: var(--success);
+  --landing-other: var(--warning);
+  --landing-no-support: var(--selected);
+  --tip-path: var(--success);
+  --tip-fallback: var(--warning);
+  --tip-none: var(--signal);
+  --part-addon: var(--selected);
+  --mark-remove: var(--signal);
+  --mark-island: var(--signal);
+}

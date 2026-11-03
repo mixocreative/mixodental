@@ -10,7 +10,6 @@ import type { ProfileDefaults } from '@mixo-geocore/host/dental/alignerProfiles'
 import { CommandButton } from './CommandButton';
 import { DentalAlignerPrompt, DentalTypeStep, noticeText } from './DentalSteps';
 import { OrientationBar, type DentalFreeControls } from './OrientationBar';
-import { TiltReadout } from './TiltReadout';
 import { DentalSupportsStep, type DentalReview } from './DentalSupports';
 import { RangeField } from './RangeField';
 import { ClickReachField, SelectStyleSwitch } from './EditBar';
@@ -85,7 +84,6 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       {t(words.title)}<span>{gesture.phase === 'ready' ? unitName : words.profileName}</span>
       <b>{gesture.phase === 'ready' ? t(words.ready) : t(words.waiting)}</b>
     </div>
-    {tilt?.status === 'ready' && !free?.on ? <TiltReadout deg={tilt.scan.rows[tilt.index]!.tiltDeg} /> : null}
     {gesture.phase === 'ready'
       ? <OrientationBar notices={gesture.notices} profile={gesture.profile} lang={lang} ui={ui} send={send} run={run}
         tilt={tilt} onTilt={onTilt} free={free} restore={restore}>{orientExtra}</OrientationBar>

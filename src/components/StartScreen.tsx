@@ -3,6 +3,7 @@ import { isProjectFile } from '../state/projectFile';
 import { t, type Lang } from '../i18n';
 import { DentalTypeStep } from './DentalSteps';
 import { DentureChoice } from '../denture/steps/start/DentureChoice';
+import { StartChoice } from './StartChoice';
 import { fileStepText } from '../denture/steps/start/startText';
 import { DENTURE_PROFILE_ID, jobKindOf } from '../denture/jobKind';
 import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
@@ -74,9 +75,9 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     {screen === 'task' ? <div className="start-task">
       <h2 className="start-heading">{t('What would you like to support?')}</h2>
       <div className="start-choices">
-        <button type="button" className="primary start-big" onClick={() => onScreen('type')}>{t('Aligner supports')}</button>
+        <StartChoice icon="aligner" label={t('Aligner supports')} ui="start-aligner" main onChoose={() => onScreen('type')} />
         <DentureChoice onChoose={() => choose(DENTURE_PROFILE_ID)} />
-        <button type="button" className="start-big" onClick={onAnyModel}>{t('Any model')}</button>
+        <StartChoice icon="generic" label={t('Any model')} ui="start-any-model" onChoose={onAnyModel} />
       </div>
       <button type="button" className="link-button" onClick={onOpenProject}>{t('Open a saved project')}</button>
     </div> : null}

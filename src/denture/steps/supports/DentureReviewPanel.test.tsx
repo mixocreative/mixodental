@@ -27,8 +27,8 @@ describe('DentureReviewPanel', () => {
     expect(html).toContain('data-ui="denture-supports-panel"');
     expect(html).toContain('Supports ready. Every point is held.');
     expect(html).toContain('data-ui="denture-review-details-toggle"');
-    expect(html).toContain('data-ui="denture-adjust-toggle"');
-    expect(html).toMatch(/data-ui="denture-adjust-toggle" aria-expanded="false"/);
+    expect(html).toContain('data-ui="denture-adjust-title"');
+    expect(html).toMatch(/data-ui="denture-adjust-title" aria-expanded="false"/);
     for (const hidden of ['Tip size', 'Support thickness', 'Supports may touch the denture', 'Add supports', 'ID label', 'Check for unsupported spots', 'Unresolved points']) expect(html).not.toContain(hidden);
     for (const name of ['restore-step-2', 'denture-add-another', 'denture-review-back', 'denture-review-ok']) expect(html).toContain(`data-ui="${name}"`);
     expect(html.indexOf('denture-review-back')).toBeLessThan(html.indexOf('denture-review-ok'));

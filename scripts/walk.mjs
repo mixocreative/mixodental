@@ -80,11 +80,13 @@ function cupStl() {
  */
 // Engine 10 (P5.14): 1167 -> 1200 automatic contacts (corner samples kept, geodesic insets, 1 um
 // quantising), so the drag, bottom-view and occlusion counts move with them.
+// Engine 12 (proximity weld): 1200 -> 1197. The old 1e-4 mm grid weld merged one pair of distinct knot
+// vertices (43,595 -> 43,596 vertices, one four-faced edge fewer); placement no longer snaps to 1 um.
 const BASE = {
-  auto: 1200,
-  dragSelected: [175, 279, 189],
+  auto: 1197,
+  dragSelected: [176, 277, 191],
   bottomSelected: 57,
-  occlusion: [140, 622],
+  occlusion: [140, 619],
 };
 
 const results = [];

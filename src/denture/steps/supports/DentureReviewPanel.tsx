@@ -4,7 +4,7 @@ import type { EditGesture } from '@mixo-geocore/editing/gesture';
 import type { SessionEvent } from '@mixo-geocore/editing/session';
 import { plural, t } from '../../../i18n';
 import { CommandButton } from '../../../components/CommandButton';
-import { Fold } from '../../../components/Fold';
+import { Panel } from '../../../components/Panel';
 import { RestoreStepButton, type StepRestore } from '../../../components/RestoreStepButton';
 import { BackAskBlock, EditSupportsBlock, IdLabelBlock, ProblemsBlock, SupportSettingsBlock, reviewNotes, type DentalReview } from '../../../components/DentalReviewBlocks';
 import type { DentureMesh } from '../../engine/dentureCore';
@@ -65,12 +65,12 @@ export function DentureReviewPanel({ gesture, ui, review, ready, send, run, rest
           <ProblemsBlock review={review} ui={ui} send={send} run={run} kind="denture" stale={stale} />
         </div> : null}
       </section>
-      <Fold uiName="denture-adjust" label={t('Adjust')} open={adjustOpen} onToggle={(open) => { rememberAdjust(open); setAdjustOpen(open); }}>
+      <Panel ui="denture-adjust" title={t('Adjust')} collapsible open={adjustOpen} onToggle={(open) => { rememberAdjust(open); setAdjustOpen(open); }}>
         <SupportSettingsBlock review={review} kind="denture" onAdjust={setAdjusting} />
         <DentureSettingsSection options={denture.options ?? DEFAULT_DENTURE_OPTIONS} onChange={denture.onOptions} />
         <EditSupportsBlock gesture={gesture} ui={ui} review={review} send={send} run={run} kind="denture" />
         <IdLabelBlock review={review} kind="denture" />
-      </Fold>
+      </Panel>
     </div>
     <div className="dental-footer denture-review-footer" data-ui="denture-review-footer">
       {review.backAsk ? <BackAskBlock review={review} /> : <>

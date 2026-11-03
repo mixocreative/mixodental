@@ -1,8 +1,11 @@
 import { useRef, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { dialTicks, valueFromPointer, valueToAngle, DIAL_TICK_COUNT } from './tiltDialGeometry';
 
-/** An end label: the value to one decimal with a degree sign (a number, so it needs no translation). */
-const degrees = (value: number): string => `${Math.round(value * 10) / 10}°`;
+/** A value to one decimal (a number, so it needs no translation). */
+const oneDecimal = (value: number): string => `${Math.round(value * 10) / 10}`;
+
+/** An end label: the value to one decimal with a degree sign. */
+const degrees = (value: number): string => `${oneDecimal(value)}°`;
 
 /**
  * A CSS custom property set from data. Inline `style=` is banned in TSX except for values computed at run time
@@ -12,11 +15,11 @@ const degrees = (value: number): string => `${Math.round(value * 10) / 10}°`;
 const angleVar = (name: '--tick-angle' | '--knob-angle', deg: number): CSSProperties => ({ [name]: `${deg}deg` }) as CSSProperties;
 
 /**
- * A round dial for one value in `[min, max]` (PD.11 S5, restyled P7d): a raised, soft knob whose indicator dot
- * points at the value, a ring of tick marks over a 240-degree arc open at the bottom, and the range ends as small
- * labels at both arc ends. Ticks inside the optional `band` (`[from, to]` in the same units, the stable range) carry
- * the class `is-on`. Drag or press the arrow keys; every change calls `onChange` with the new value, snapped to
- * `step`, so the caller can turn the model live.
+ * A round dial for one value in `[min, max]` (PD.11 S5, restyled P7d): a knob whose indicator points at the value
+ * and carries that value as a large number in its middle, a ring of tick marks over a 240-degree arc open at the
+ * bottom, and the range ends as small labels at both arc ends. Ticks inside the optional `band` (`[from, to]` in the
+ * same units, the stable range) carry the class `is-on`. Drag or press the arrow keys; every change calls `onChange`
+ * with the new value, snapped to `step`, so the caller can turn the model live.
  *
  * Built from plain HTML elements and CSS, not SVG: each tick is a `<span>` turned by `--tick-angle`, the knob is a
  * `<div>` with a `box-shadow`, so a designer can restyle every part with ordinary CSS (width, height, background,
@@ -72,6 +75,11 @@ export function TiltDial({ min, max, step, value, band, label, disabled = false,
     <div className="tilt-dial-knob" data-ui="tilt-dial-knob" aria-hidden="true" style={angleVar('--knob-angle', valueToAngle(value, min, max))}>
       <span className="tilt-dial-dot" data-ui="tilt-dial-dot" />
     </div>
+    {/* The value the dial is on, large, in the middle of the knob. The slider itself carries it for a screen
+        reader (aria-valuenow), so this is the sighted reading of the same number. */}
+    <span className="tilt-dial-value" data-ui="tilt-dial-value" aria-hidden="true">
+      <span className="tilt-dial-value-num">{oneDecimal(value)}</span><span className="tilt-dial-value-deg">°</span>
+    </span>
     <span className="tilt-dial-label tilt-dial-label-min" data-ui="tilt-dial-label-min" aria-hidden="true">{degrees(min)}</span>
     <span className="tilt-dial-label tilt-dial-label-max" data-ui="tilt-dial-label-max" aria-hidden="true">{degrees(max)}</span>
   </div>;

@@ -6,6 +6,9 @@ Every icon in the app is one SVG file in this folder. To change an icon, replace
 
 | File name | Where it appears |
 | --- | --- |
+| `aligner.svg` | Start screen, first big choice: **Aligner supports** |
+| `denture.svg` | Start screen, middle big choice: **Denture supports** |
+| `generic.svg` | Start screen, third big choice: **Any model** |
 | `aligner-standard.svg` | Step 0 "Choose the aligner type" card for the standard (reference) aligner: the U-shaped outline with its central opening |
 | `tool-pointer.svg` | Edit bar, "How to select" switch: **Click** (pick one support at a time) |
 | `tool-brush.svg` | Edit bar, "How to select" switch: **Drag over** (paint many supports at once) |
@@ -17,6 +20,8 @@ Every icon in the app is one SVG file in this folder. To change an icon, replace
 - Keep the same file name. The app finds the icon by name.
 - Keep a square-ish `viewBox` (for example `0 0 24 24`). The aligner card uses a wide `0 0 120 90` box, so keep its proportions too.
 - Draw with `stroke="currentColor"` and `fill="currentColor"` (or `fill="none"`). Never use a fixed colour. The app colours the icon from the text colour around it, so it turns paper-coloured on a pressed button.
+- A two-tone drawing (outline plus a soft fill) uses `fill: color-mix(in srgb, currentColor 14%, transparent)` for the fill, which is the same colour as the outline at a fraction of its strength, so it follows the button it sits on. The three start-screen icons are drawn that way.
+- The three start-screen icons share one `viewBox` (`0 0 300 300`) and one art size in the CSS (`.start-big-art`), so the three big choices look like one set. A replacement keeps that box.
 - Do not put `width` or `height` on the root `<svg>`. The size comes from the app's CSS.
 - No embedded bitmaps (no `<image>`, no base64 PNG or JPEG). Vector paths only.
 - One root `<svg>` per file. Comments are allowed.
