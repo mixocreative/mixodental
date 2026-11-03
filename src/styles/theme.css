@@ -62,16 +62,19 @@
      (0 and O, 1 and l and I, 6 and 8) stay apart, which is what a dentist needs on a measurement. It has no kana or
      kanji, so a Japanese or Chinese word falls through to the face behind it, glyph by glyph. Both are self-hosted
      (src/fonts.css). Numbers keep the platform's machine face, which guarantees that a column of them lines up. */
-  /* Six faces, one per cell of language x style, and nothing else: every stack names its Latin face, its CJK face
-     and a generic, never a platform font, so a screen looks the same on every machine. Atkinson Hyperlegible Next
-     is the Latin face of all three languages; the face behind it draws kana, kanji and Chinese characters.
-     Traditional Chinese never falls back to the Japanese face: the kanji forms are not the Taiwan ones. */
-  --font-ui: 'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', 'Noto Sans TC', sans-serif;
-  --font-ui-ja: 'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', sans-serif;
-  --font-ui-zh: 'Atkinson Hyperlegible Next', 'Noto Sans TC', sans-serif;
-  --font-title: 'Instrument Serif', 'Shippori Mincho B1', 'Noto Serif TC', serif;
-  --font-title-ja: 'Instrument Serif', 'Shippori Mincho B1', serif;
-  --font-title-zh: 'Instrument Serif', 'Noto Serif TC', serif;
+  /* TWO bundled faces, and only two: the Latin ones. Atkinson Hyperlegible Next leads every sans stack and draws
+     every Latin word and every number; Instrument Serif leads every serif stack and draws the title. They are the
+     part of the interface that is the same in every language, so they are bundled and look the same everywhere.
+     Kana, kanji and Chinese characters come from the reader's own machine: every CJK face worth having is tens of
+     megabytes, and the machine already has a good one. Japanese and Traditional Chinese name their own platform
+     faces in order, because their kanji forms differ - Chinese must never fall back to the Japanese face.
+     'Shippori Mincho B1' leads the Japanese serif: the owner's choice, used when the reader has it installed. */
+  --font-ui: 'Atkinson Hyperlegible Next', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Noto Sans JP', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  --font-ui-ja: 'Atkinson Hyperlegible Next', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Noto Sans JP', sans-serif;
+  --font-ui-zh: 'Atkinson Hyperlegible Next', 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
+  --font-title: 'Instrument Serif', 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', 'Noto Serif TC', serif;
+  --font-title-ja: 'Instrument Serif', 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+  --font-title-zh: 'Instrument Serif', 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif;
   /* Numbers are the same face as the words. Atkinson Hyperlegible Next carries tabular figures, so a column of
      measurements still lines up under `font-variant-numeric: tabular-nums`, and no second face is needed. */
   --font-number: var(--font-ui);

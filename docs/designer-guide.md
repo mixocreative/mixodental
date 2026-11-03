@@ -126,7 +126,7 @@ Window sizes to check every layout at: 900 x 700 (small laptop: panels and bars 
 
 - **Blank page or 404.** Use `/mixodental/` after the port.
 - **Port 5173 already used.** Vite moves to 5174 and up; use the URL it prints, and stop old servers by PID (section 2).
-- **Fonts do not load in a copied tree.** `src/fonts.css` points at files in `node_modules/@fontsource/` (Atkinson Hyperlegible Next, Zen Kaku Gothic New, Instrument Serif). A copy of the folder without `node_modules` (or before `npm install`) shows a fallback font. Run `npm install`. If `fonts.css` itself is stale, `npm run fonts` regenerates it.
+- **Fonts do not load in a copied tree.** `src/fonts.css` points at files in `node_modules/@fontsource/` (Atkinson Hyperlegible Next and Instrument Serif, the only two bundled; kana, kanji and Chinese characters come from your own machine). A copy of the folder without `node_modules` (or before `npm install`) shows a fallback font. Run `npm install`. If `fonts.css` itself is stale, `npm run fonts` regenerates it.
 - **Headless browser freezes when closing.** The app asks "leave this page?" (`beforeunload`) whenever the scene has unsaved work, and that prompt can freeze headless Chromium (noted in `docs/reviews/2026-11-02-cia-denture-flow.md`). In scripted runs, answer or avoid the dialog.
 - **Tests slow, or "RPC timeout".** The suite loads WebAssembly and is heavy. Run it alone with other dev servers closed. `vite.config.ts` already uses forks and a 60 s test timeout.
 - **`npm run build` leaves files in `dist/`.** Ignored by git; safe.

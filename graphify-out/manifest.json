@@ -1,8 +1,8 @@
 {
   "package.json": {
-    "mtime": 1793716149.0068007,
-    "seen": 1793716161.5330772,
-    "ast_hash": "a9aa5fdf06e955b4bc3fe09be507d462",
+    "mtime": 1793718534.6017084,
+    "seen": 1793718537.4747896,
+    "ast_hash": "e2798f4041d5947ba252a6721392c79e",
     "semantic_hash": ""
   },
   "scripts/dental-reference/compare_supported.py": {
@@ -60,9 +60,9 @@
     "semantic_hash": ""
   },
   "scripts/gen-fonts-css.mjs": {
-    "mtime": 1793716221.5025163,
-    "seen": 1793716223.6585732,
-    "ast_hash": "1b0bf36270266af332d26b67806c4fd0",
+    "mtime": 1793718547.7483299,
+    "seen": 1793718562.972046,
+    "ast_hash": "631b821f4cfcb52629a13c16b75d3a36",
     "semantic_hash": ""
   },
   "scripts/make-heavy-meshes.ts": {
@@ -186,8 +186,8 @@
     "semantic_hash": ""
   },
   "src/components/NumberField.tsx": {
-    "mtime": 1793268306.3134315,
-    "seen": 1793268328.171727,
+    "mtime": 1793718528.9414184,
+    "seen": 1793718537.4747896,
     "ast_hash": "a7cc51ad46dd1459f0e84df1a7d50719",
     "semantic_hash": ""
   },
@@ -1273,9 +1273,9 @@
     "semantic_hash": ""
   },
   "public/THIRD-PARTY-NOTICES.txt": {
-    "mtime": 1793712350.844489,
-    "seen": 1793712480.5108635,
-    "ast_hash": "15145fd717b90c56f8116c24e2372364",
+    "mtime": 1793718602.135852,
+    "seen": 1793718610.269943,
+    "ast_hash": "0636792483fa02fa2a5ceda5dcda983a",
     "semantic_hash": ""
   },
   "scripts/dental-region-review/README.md": {
@@ -4735,9 +4735,9 @@
     "semantic_hash": ""
   },
   "docs/ui-styling.md": {
-    "mtime": 1793715704.018209,
-    "seen": 1793715732.3379862,
-    "ast_hash": "cb7eb073b17aa7fdb3f93279cfd72336",
+    "mtime": 1793718655.0948448,
+    "seen": 1793718769.3725348,
+    "ast_hash": "bfcc01a0a1294ef7a7f1e267d58cadff",
     "semantic_hash": ""
   },
   "dentalwork/baselines/real-scan-baseline.json": {
@@ -4975,9 +4975,9 @@
     "semantic_hash": ""
   },
   "docs/designer-guide.md": {
-    "mtime": 1793713189.7685983,
-    "seen": 1793713191.9330528,
-    "ast_hash": "9c99895dc77dd3afabb4af0dac04f2b2",
+    "mtime": 1793718655.0958457,
+    "seen": 1793718769.3725348,
+    "ast_hash": "d31353ce208b20d9d8829a025650fb95",
     "semantic_hash": ""
   },
   "docs/handoff/ui-handoff.md": {
