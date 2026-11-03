@@ -87,15 +87,16 @@
   /* Brush cursor icon drawn on the canvas: its outline and fill. */
   --cursor-outline: #1f1b17;
   --cursor-fill: var(--surface);
-  font-family: 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+  font-family: 'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', 'Noto Sans TC', sans-serif;
   color: var(--ink);
   background: var(--paper);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Traditional Chinese uses Taiwan glyph forms; the Japanese face would draw kanji forms. */
+/* Traditional Chinese uses Taiwan glyph forms; the Japanese face would draw kanji forms, so it is not in this
+   stack at all. Only the app's own six faces are ever named (src/fonts.css, scripts/gen-fonts-css.mjs). */
 :root:lang(zh-Hant), [lang="zh-Hant"] {
-  font-family: 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Zen Kaku Gothic New', system-ui, sans-serif;
+  font-family: 'Atkinson Hyperlegible Next', 'Noto Sans TC', sans-serif;
 }
 
 * { box-sizing: border-box; }

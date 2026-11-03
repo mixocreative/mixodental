@@ -1,8 +1,8 @@
 {
   "package.json": {
-    "mtime": 1793712099.938443,
-    "seen": 1793712122.189858,
-    "ast_hash": "e4051c69145f59fbecaf90a067551cf5",
+    "mtime": 1793716149.0068007,
+    "seen": 1793716161.5330772,
+    "ast_hash": "a9aa5fdf06e955b4bc3fe09be507d462",
     "semantic_hash": ""
   },
   "scripts/dental-reference/compare_supported.py": {
@@ -60,9 +60,9 @@
     "semantic_hash": ""
   },
   "scripts/gen-fonts-css.mjs": {
-    "mtime": 1793712120.3993165,
-    "seen": 1793712122.2023652,
-    "ast_hash": "7c826d08572c49c9611320f3405773f7",
+    "mtime": 1793716221.5025163,
+    "seen": 1793716223.6585732,
+    "ast_hash": "1b0bf36270266af332d26b67806c4fd0",
     "semantic_hash": ""
   },
   "scripts/make-heavy-meshes.ts": {

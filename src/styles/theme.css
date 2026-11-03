@@ -62,19 +62,19 @@
      (0 and O, 1 and l and I, 6 and 8) stay apart, which is what a dentist needs on a measurement. It has no kana or
      kanji, so a Japanese or Chinese word falls through to the face behind it, glyph by glyph. Both are self-hosted
      (src/fonts.css). Numbers keep the platform's machine face, which guarantees that a column of them lines up. */
-  /* One stack per language, so a designer changes the Japanese face without touching the others. The Latin face is
-     the same in all three; what changes behind it is the face that draws kana, kanji and Chinese characters. */
-  --font-ui: 'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
-  --font-ui-ja: 'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
-  --font-ui-zh: 'Atkinson Hyperlegible Next', 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', 'Zen Kaku Gothic New', system-ui, sans-serif;
+  /* Six faces, one per cell of language x style, and nothing else: every stack names its Latin face, its CJK face
+     and a generic, never a platform font, so a screen looks the same on every machine. Atkinson Hyperlegible Next
+     is the Latin face of all three languages; the face behind it draws kana, kanji and Chinese characters.
+     Traditional Chinese never falls back to the Japanese face: the kanji forms are not the Taiwan ones. */
+  --font-ui: 'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', 'Noto Sans TC', sans-serif;
+  --font-ui-ja: 'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', sans-serif;
+  --font-ui-zh: 'Atkinson Hyperlegible Next', 'Noto Sans TC', sans-serif;
+  --font-title: 'Instrument Serif', 'Shippori Mincho B1', 'Noto Serif TC', serif;
+  --font-title-ja: 'Instrument Serif', 'Shippori Mincho B1', serif;
+  --font-title-zh: 'Instrument Serif', 'Noto Serif TC', serif;
   /* Numbers are the same face as the words. Atkinson Hyperlegible Next carries tabular figures, so a column of
      measurements still lines up under `font-variant-numeric: tabular-nums`, and no second face is needed. */
   --font-number: var(--font-ui);
-  /* The display face, for the large title and nothing else. Instrument Serif is self-hosted for Latin; Japanese and
-     Traditional Chinese fall through to the platform's own mincho / song, which every machine has. */
-  --font-title: 'Instrument Serif', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
-  --font-title-ja: 'Instrument Serif', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
-  --font-title-zh: 'Instrument Serif', 'Noto Serif TC', 'PMingLiU', 'Songti TC', serif;
 
   /* ---- The three text styles (docs/ui-styling.md "The three text styles") -------------------------------------
      1. TITLE  - the one large line that names the screen. Serif, never uppercased, never tracked.

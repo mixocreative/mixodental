@@ -57,13 +57,21 @@ Every word on screen is one of three things. A designer changes a size here, not
 
 **3. Content** - sans, sentence case: `p`, `li`, `label` and the small print (`small`, `.edit-note`).
 
-**One stack per language.** Each of the three languages names its own faces, so the Japanese face can be changed without touching English or Chinese: `--font-ui` / `--font-ui-ja` / `--font-ui-zh` for the sans, and `--font-title` / `--font-title-ja` / `--font-title-zh` for the serif. The Latin face in front is the same in all three; what changes behind it is the face that draws kana, kanji and Chinese characters. The stack follows `document.documentElement.lang`, which `src/i18n.ts` sets on every language switch, and `[lang="ja"]` / `[lang="zh-Hant"]` catch a single element marked with a language of its own.
+**Six faces, one per cell of language x style, and nothing else.** Every stack names its Latin face, its CJK face and a generic - never a platform font - so a screen looks the same on every machine. Atkinson Hyperlegible Next draws the Latin alphabet (and every number) in all three languages; the face behind it draws kana, kanji and Chinese characters. Traditional Chinese never falls back to the Japanese face, because its kanji forms are not the Taiwan ones.
+
+| | sans (headers, content, numbers) | serif (the title) |
+| --- | --- | --- |
+| Latin | Atkinson Hyperlegible Next | Instrument Serif |
+| Japanese | Zen Kaku Gothic New | Shippori Mincho B1 |
+| Traditional Chinese | Noto Sans TC | Noto Serif TC |
+
+The sans faces carry weights 400/500/700; the two serifs carry titles only, so they carry 400. All six are self-hosted and split by unicode-range, so a browser fetches only the few subsets the words on screen need. The stack follows `document.documentElement.lang`, which `src/i18n.ts` sets on every language switch, and `[lang="ja"]` / `[lang="zh-Hant"]` catch a single element marked with a language of its own. `npm run fonts` regenerates `src/fonts.css`; the list of families lives in `scripts/gen-fonts-css.mjs`, and each licence is an entry in `public/THIRD-PARTY-NOTICES.txt`.
 
 | Token | Value | What it sets |
 | --- | --- | --- |
-| `--font-title` | `'Instrument Serif', 'Hiragino Mincho ProN', …` | The display face of the title: the default, and English |
-| `--font-title-ja` | `'Instrument Serif', 'Hiragino Mincho ProN', …` | The same for Japanese, behind the platform's mincho |
-| `--font-title-zh` | `'Instrument Serif', 'Noto Serif TC', …` | The same for Traditional Chinese, behind a song face |
+| `--font-title` | `'Instrument Serif', 'Shippori Mincho B1', 'Noto Serif TC', serif` | The title face: the default, and English |
+| `--font-title-ja` | `'Instrument Serif', 'Shippori Mincho B1', serif` | The same for Japanese |
+| `--font-title-zh` | `'Instrument Serif', 'Noto Serif TC', serif` | The same for Traditional Chinese |
 | `--title-size` | `30px` | Title size |
 | `--title-track` | `-.01em` | Title letter spacing (slightly tight, as a serif display line wants) |
 | `--h1-size` | `13px` | Header level 1 (the app) |
@@ -79,9 +87,9 @@ Every word on screen is one of three things. A designer changes a size here, not
 
 | Token | Value | What it sets | Where it shows |
 | --- | --- | --- | --- |
-| `--font-ui` | `'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', …` | The text faces of headers and content: the default, and English | Every word that is not the title. Atkinson Hyperlegible Next draws the Latin alphabet (it tells apart the letters and digits a reader mixes up: 0 and O, 1 and l and I); it has no kana or kanji, so a Japanese or Chinese word falls through to Zen Kaku Gothic New, glyph by glyph. Self-hosted; `npm run fonts` regenerates `src/fonts.css` |
-| `--font-ui-ja` | `'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', …` | The same, for Japanese | Kana and kanji behind the same Latin face |
-| `--font-ui-zh` | `'Atkinson Hyperlegible Next', 'PingFang TC', …` | The same, for Traditional Chinese | Taiwan glyph forms behind the same Latin face |
+| `--font-ui` | `'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', 'Noto Sans TC', sans-serif` | The sans faces of headers and content: the default, and English | Every word that is not the title. Atkinson Hyperlegible Next draws the Latin alphabet (it tells apart the letters and digits a reader mixes up: 0 and O, 1 and l and I); it has no kana or kanji, so a Japanese or Chinese word falls through to Zen Kaku Gothic New, glyph by glyph. Self-hosted; `npm run fonts` regenerates `src/fonts.css` |
+| `--font-ui-ja` | `'Atkinson Hyperlegible Next', 'Zen Kaku Gothic New', sans-serif` | The same, for Japanese | Kana and kanji behind the same Latin face |
+| `--font-ui-zh` | `'Atkinson Hyperlegible Next', 'Noto Sans TC', sans-serif` | The same, for Traditional Chinese | Taiwan glyph forms behind the same Latin face |
 | `--font-number` | `var(--font-ui)` | The face of every number | Every number, time, count and ID. The same face as the words: Atkinson Hyperlegible Next carries tabular figures, so a column of measurements still lines up under `font-variant-numeric: tabular-nums`, and a digit is read by the face drawn to be read. No second face is loaded |
 | `--radius-key` | `3px` | Corner radius of a key | Buttons, cards (`--radius` is `0` here: plates and bands are square) |
 
