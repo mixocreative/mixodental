@@ -86,21 +86,32 @@ describe('DentalBar', () => {
     expect(reviewHtml).toContain('Step 3');
     // Density, Paint and Erase live in Step 2 only (D5).
     for (const word of ['Support density', 'Paint', 'Erase']) expect(reviewHtml).not.toContain(word);
-    for (const word of ['Tip size', 'Lift height', 'Raft', 'Tree branches', 'Cross-braces', 'Add supports', 'ID label', '>OK<', 'Add another aligner', 'Back']) expect(reviewHtml).toContain(word);
+    // Step 3 leads with the verdict and folds the settings behind Adjust, as denture Step 2 does: a reader
+    // opens the step to learn whether the build is sound, not to find a slider.
+    expect(reviewHtml).toContain('data-ui="aligner-review-line"');
+    expect(reviewHtml).toContain('Supports ready. Every point is held.');
+    expect(reviewHtml.indexOf('aligner-review-summary')).toBeLessThan(reviewHtml.indexOf('aligner-adjust'));
+    expect(reviewHtml).toMatch(/data-ui="aligner-adjust-title" aria-expanded="false"/);
+    for (const word of ['Tip size', 'Lift height', 'Tree branches', 'Cross-braces', 'Add supports', 'ID label']) expect(reviewHtml).not.toContain(word);
+    for (const word of ['>OK<', 'Add another aligner', 'Back']) expect(reviewHtml).toContain(word);
     expect(reviewHtml).not.toContain('Exit');
     const gapHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
       review={{ ...base, rimGap: { outerMm: 4.2, openingMm: 8 } }} send={() => {}} run={() => {}} />);
-    expect(gapHtml).toContain('8.0 mm');
-    expect(gapHtml).toContain('Automatic dental rim gaps');
-    expect(gapHtml).toContain('Review the rim');
-    expect(gapHtml).toContain('Show me');
+    // A rim gap is a note, so under the folded shape it reaches the reader as the verdict line; the wording
+    // itself is one click away, behind Details, with the rest of the check's findings.
+    expect(gapHtml).toContain('1 thing to look at.');
+    expect(gapHtml).toContain('review-summary is-look');
+    expect(gapHtml).toContain('data-ui="aligner-review-details-toggle"');
     const fallbackHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
       review={{ ...base, structureFallback: ['tree'] }} send={() => {}} run={() => {}} />);
-    expect(fallbackHtml).toContain('Tree branches were omitted');
+    expect(fallbackHtml).toContain('1 thing to look at.');
     const prunedHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
       review={{ ...base, structureFallback: ['brace-pruned'] }} send={() => {}} run={() => {}} />);
-    expect(prunedHtml).toContain('Some cross-braces were left out where they crossed the model');
-    expect(prunedHtml).not.toContain('Cross-braces were omitted');
+    expect(prunedHtml).toContain('1 thing to look at.');
+    // Two notes at once count as two things to look at, not one.
+    const bothHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
+      review={{ ...base, structureFallback: ['tree', 'brace-pruned'] }} send={() => {}} run={() => {}} />);
+    expect(bothHtml).toContain('2 things to look at.');
     const buildingHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={{ ...stepUi, dentalReviewReady: false } as UiState} reviewReady={false} review={base} send={() => {}} run={() => {}} />);
     expect(buildingHtml).toContain('Building supports');
     expect(buildingHtml).toMatch(/<button[^>]*disabled[^>]*>OK</);

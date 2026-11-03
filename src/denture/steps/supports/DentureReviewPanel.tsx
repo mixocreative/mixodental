@@ -12,7 +12,8 @@ import { PartsList } from '../../parts/PartsList';
 import { DentureSettingsSection } from '../../settings/DentureSettingsSection';
 import { DEFAULT_DENTURE_OPTIONS, type DentureOptions } from '../../settings/dentureOptions';
 import { kindText } from '../../kindText';
-import { adjustRemembered, rememberAdjust } from './adjustMemory';
+import { adjustRemembered, rememberAdjust } from '../../../dental/adjustMemory';
+import { ReviewSummary } from '../../../components/ReviewSummary';
 import { ResolveSection, unresolvedCounts } from './ResolveSection';
 import { reviewLine } from './reviewLineText';
 
@@ -41,7 +42,7 @@ export function DentureReviewPanel({ gesture, ui, review, ready, send, run, rest
   denture: DentureReviewInput;
 }) {
   const [adjusting, setAdjusting] = useState(false);
-  const [adjustOpen, setAdjustOpen] = useState(adjustRemembered);
+  const [adjustOpen, setAdjustOpen] = useState(() => adjustRemembered('denture'));
   const [detailsOpen, setDetailsOpen] = useState(false);
   const stale = adjusting || review.verdictPending;
   const { mesh } = denture;
@@ -52,20 +53,14 @@ export function DentureReviewPanel({ gesture, ui, review, ready, send, run, rest
   const line = reviewLine({ built, failed: Boolean(ui.dentalBuildFailed), resolvable, problems: refused + findings + reviewNotes(review, 'denture').length });
   return <aside className="dental-side denture-review" data-ui="denture-supports-panel" aria-label={t('Step 2 · Supports')}>
     <div className="dental-scroll">
-      <section className={`denture-review-summary is-${line.kind}${stale && built ? ' is-stale' : ''}`} data-ui="denture-review-summary" aria-busy={stale}>
-        <p className="denture-review-line" role="status" data-ui="denture-review-line">{line.other ? plural(line.n, line.key, line.other) : t(line.key)}</p>
-        {built ? <div className="orient-row denture-review-actions">
-          {line.kind === 'fix' ? <CommandButton command={resolve('denture.resolveAll', ui)} run={run} uiName="denture-resolve-all" /> : null}
-          <button type="button" className="denture-review-details-toggle" data-ui="denture-review-details-toggle" aria-expanded={detailsOpen}
-            onClick={() => setDetailsOpen(!detailsOpen)}>{t(detailsOpen ? 'Hide details' : 'Details')}</button>
-        </div> : null}
-        {built && detailsOpen ? <div className="denture-review-details" data-ui="denture-review-details">
-          <ResolveSection mesh={mesh} />
-          <PartsList parts={mesh?.dentureParts} />
-          <ProblemsBlock review={review} ui={ui} send={send} run={run} kind="denture" stale={stale} />
-        </div> : null}
-      </section>
-      <Panel ui="denture-adjust" title={t('Adjust')} collapsible open={adjustOpen} onToggle={(open) => { rememberAdjust(open); setAdjustOpen(open); }}>
+      <ReviewSummary kind="denture" tone={line.kind} stale={stale} line={line.other ? plural(line.n, line.key, line.other) : t(line.key)}
+        {...(built ? { open: detailsOpen, onToggle: setDetailsOpen } : {})}
+        action={line.kind === 'fix' ? <CommandButton command={resolve('denture.resolveAll', ui)} run={run} uiName="denture-resolve-all" /> : undefined}>
+        <ResolveSection mesh={mesh} />
+        <PartsList parts={mesh?.dentureParts} />
+        <ProblemsBlock review={review} ui={ui} send={send} run={run} kind="denture" stale={stale} />
+      </ReviewSummary>
+      <Panel ui="denture-adjust" title={t('Adjust')} collapsible open={adjustOpen} onToggle={(open) => { rememberAdjust('denture', open); setAdjustOpen(open); }}>
         <SupportSettingsBlock review={review} kind="denture" onAdjust={setAdjusting} />
         <DentureSettingsSection options={denture.options ?? DEFAULT_DENTURE_OPTIONS} onChange={denture.onOptions} />
         <EditSupportsBlock gesture={gesture} ui={ui} review={review} send={send} run={run} kind="denture" />

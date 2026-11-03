@@ -8,6 +8,10 @@ Design system for mixoDental, a resin 3D-print support editor for dental work (a
 attribute; the catalogue page switches between them. Everything below describes the instrument theme.
 Section 2 ends with the paper values, because a change to a shared token shows in both.
 
+Stitch Canvas project: https://stitch.google.com/projects/18208603500386223716 (`npm run screens` writes the
+step screens it holds). The CLI keeps its own binding in `.stitch/manifest.json`, which is git-ignored, so this
+link is where the project is recorded.
+
 Token source of truth is `src/styles/theme.css` over `src/styles.css`; every token is documented in
 `docs/ui-styling.md` and `src/ui/uiStylingDoc.test.ts` fails if one is not. Screen structure, the step
 flow and the command registry are in `docs/design/ui-structure.md`. Upload with
@@ -175,7 +179,8 @@ number, Back | Next):
 3. **Adjust** - folded, and it remembers whether it was open; the settings live in here
 4. the footer: Restore step, Add another, Back | OK
 
-Aligner Step 3 answers the same question in the opposite order: Support settings, then Edit supports, then
-Problems, then the footer. The verdict is third, under two blocks of controls, so a reader who opens the step
-to learn whether the build is sound reads the sliders first and has to scroll for the answer. Bringing it
-onto the denture Step 2 shape is an open design decision for the owner, not a bug.
+Aligner Step 3 used to answer the same question in the opposite order - Support settings, Edit supports, then
+Problems - so the verdict sat under two blocks of controls and a reader had to scroll for the answer. It was
+brought onto this shape on 2026-11-04, and both supports steps now share the same components
+(`ReviewSummary.tsx`, `DentalReviewBlocks.tsx`, `dental/adjustMemory.ts`), so they keep the shape by
+construction rather than by agreement. Each step remembers its own Adjust for the session.

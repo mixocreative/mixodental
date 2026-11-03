@@ -12,7 +12,7 @@ describe('the designer catalogue page', () => {
     // Six dials, the staged bars, the status dots in every state.
     expect(html.match(/data-ui="tilt-dial"/g)).toHaveLength(6);
     expect(html.match(/data-ui="staged-progress"/g)).toHaveLength(5);
-    for (const state of ['is-ready', 'is-look', 'is-fix', 'is-failed', 'is-building']) expect(html).toContain(`denture-review-summary ${state}`);
+    for (const state of ['is-ready', 'is-look', 'is-fix', 'is-failed', 'is-building']) expect(html).toContain(`review-summary ${state}`);
   });
 
   it('renders in Japanese and Traditional Chinese too', () => {

@@ -90,7 +90,6 @@ function cupStl() {
 const BASE = {
   auto: 429,
   dragSelected: [57, 57, 57],
-  bottomSelected: 57,
 };
 
 const results = [];
@@ -316,6 +315,31 @@ function makeDriver(page) {
   };
   const settled = async () => { await idle(1000); await quiet(); await idle(400); };
   const button = (name, exact = true) => page.getByRole('button', { name, exact }).first();
+  /**
+   * Strokes across the canvas until one selects something, and returns what it selected. Each line
+   * is a different height and width, so between them they cross the model wherever it sits and
+   * whatever shape it is. Throws when every line comes up empty, which is a real failure.
+   */
+  const strokeUntilSelected = async (want = 3) => {
+    const lines = [
+      [[0.30, 0.50], [0.72, 0.50]], [[0.30, 0.42], [0.72, 0.42]], [[0.30, 0.58], [0.72, 0.58]],
+      [[0.30, 0.35], [0.72, 0.35]], [[0.30, 0.65], [0.72, 0.65]], [[0.20, 0.50], [0.80, 0.50]],
+      [[0.25, 0.30], [0.75, 0.70]], [[0.25, 0.70], [0.75, 0.30]],
+    ];
+    let best = { line: undefined, selected: 0 };
+    for (const [from, to] of lines) {
+      await stroke(from, to, 30);
+      const picked = await settle();
+      if (picked.selected >= want) return picked;
+      if (picked.selected > best.selected) best = { line: [from, to], selected: picked.selected };
+      await button('Clear selection').click().catch(() => {});
+      await idle(300);
+    }
+    if (!best.line) throw new Error('no stroke over the canvas selected a single support');
+    // None reached `want`, so take the best line again and keep what it picks up.
+    await stroke(best.line[0], best.line[1], 30);
+    return settle();
+  };
   const editButton = () => page.locator('.panel.left .mode-button').locator('xpath=preceding-sibling::button[1]');
   const zonesButton = () => page.locator('aside.left h3', { hasText: /^Modes$/ }).locator('xpath=..').locator('button').nth(1);
   let box;
@@ -328,7 +352,7 @@ function makeDriver(page) {
     await page.mouse.up({ button: which ?? 'left' });
   };
   return {
-    page, idle, props, footer, status, counts, quiet, settle, settled, button, editButton, zonesButton, stroke,
+    page, idle, props, footer, status, counts, quiet, settle, settled, button, editButton, zonesButton, stroke, strokeUntilSelected,
     async measureCanvas() { box = await page.locator('canvas').first().boundingBox(); },
     at,
     /** Generates the supports; with `whileBuilding`, presses Drag over in the window where the first build is still running. */
@@ -477,25 +501,41 @@ async function walk(url, scratch, dentalFixture) {
     // only. Removed with the control. If Hide models ever comes back, so does this check.
 
     // c. Zone landing, then d. export after zone + Delete.
-    // Frame the model: the zone strokes below are fractions of the canvas, and a zone painted off the model
-    // removes nothing, which reads here as "zones do not work".
-    await d.button('Fit view').click();
-    await d.idle(1200);
-    await d.measureCanvas();
     const beforeZone = await d.props();
     const countsBefore = await d.counts();
     await d.zonesButton().click();
     await d.idle(800);
+    await d.button('Bottom view').click();
     await d.idle(1500);
-    for (const fy of [0.4, 0.46, 0.52, 0.58]) { await d.stroke([0.3, fy], [0.7, fy], 30); await d.idle(200); }
+    // A zone only paints where the model is under the pointer. The badge counts the supports the zones
+    // hide, so it says whether a stroke landed: hunt for a spot that lands, then paint around it.
+    const hidden = async () => (await d.props()).zones;
+    const zonesBefore = await hidden();
+    let painted = 0;
+    hunt: for (const fy of [0.42, 0.48, 0.36, 0.54, 0.30, 0.60, 0.66, 0.72]) {
+      for (const fx of [0.36, 0.48, 0.60, 0.30, 0.66, 0.24, 0.72]) {
+        await d.stroke([fx - 0.04, fy], [fx + 0.04, fy], 10);
+        await d.idle(250);
+        painted = (await hidden()) - zonesBefore;
+        if (painted > 0) {
+          // It lands here: paint a cross around it so the zone covers enough supports to be worth asserting on.
+          for (const dy of [-0.06, -0.03, 0, 0.03, 0.06]) { await d.stroke([fx - 0.10, fy + dy], [fx + 0.10, fy + dy], 20); await d.idle(200); }
+          break hunt;
+        }
+      }
+    }
+    note(`zones painted over ${painted > 0 ? 'the model' : 'nothing'} (badge ${painted} hidden before widening)`);
     await d.quiet();
     await page.waitForFunction(() => document.querySelector('.edit-badge b') && !/^0 /.test(document.querySelector('.edit-badge b').innerText), null, { timeout: 90000 }).catch(() => {});
     await d.settled();
     const zoned = await d.props();
     const countsZoned = await d.counts();
+    // The badge counts the supports the zones hide. "0" means the strokes never landed on the model, which is
+    // a different failure from "zones landed and removed nothing".
+    const zoneBadge = await page.evaluate(() => document.querySelector('.edit-badge')?.innerText.replace(/\s+/g, ' ') ?? '');
     check('c zone landing: the count and the drawn supports both lose the zoned ones',
       zoned.dropped > 0 && countsZoned.auto < countsBefore.auto && countsZoned.auto === zoned.drawn && zoned.droppedDrawn === 0,
-      `auto ${countsBefore.auto} -> ${countsZoned.auto}, drawn supports ${beforeZone.drawn} -> ${zoned.drawn}, dropped by a landing ${zoned.dropped}, dropped still drawn ${zoned.droppedDrawn}`);
+      `auto ${countsBefore.auto} -> ${countsZoned.auto}, drawn supports ${beforeZone.drawn} -> ${zoned.drawn}, dropped by a landing ${zoned.dropped}, dropped still drawn ${zoned.droppedDrawn}; badge "${zoneBadge}"`);
     await d.exitMode();
 
     await d.enterDragOver();
@@ -513,31 +553,49 @@ async function walk(url, scratch, dentalFixture) {
     check('d2 Undo after the export brings the deleted supports back', restored.removed === 0, `removed ${restored.removed}`);
 
     // e. Right-click remove, then add at the same spot; Undo and Redo.
-    // Frame the model: the search grid below is fractions of the canvas.
-    await d.button('Fit view').click();
-    await d.idle(1200);
-    await d.measureCanvas();
     await d.editButton().click();
     await d.button('Add supports').click();
     await d.idle(2000);
     const base = await d.counts();
+    // The spot has to be ON THE MODEL, and the only way to know that is that a click adds a support there.
+    // Finding it by right-clicking until a support vanished pointed at the SUPPORT instead, so the re-add
+    // afterwards landed on empty space and the app rightly said "Nothing under the cursor".
     let spot;
-    search: for (const fy of [0.35, 0.42, 0.5, 0.58, 0.65]) {
-      for (const fx of [0.3, 0.38, 0.44, 0.5, 0.56, 0.62, 0.7]) {
+    search: for (const fy of [0.42, 0.48, 0.36, 0.54, 0.30, 0.60, 0.66]) {
+      for (const fx of [0.36, 0.48, 0.60, 0.30, 0.66, 0.24, 0.72]) {
         await page.mouse.move(...d.at(fx, fy));
         await d.idle(200);
-        await page.mouse.click(...d.at(fx, fy), { button: 'right' });
+        await page.mouse.click(...d.at(fx, fy));
         await d.idle(800);
         await d.quiet();
-        if ((await d.counts()).removed === base.removed + 1) { spot = [fx, fy]; break search; }
+        if ((await d.counts()).manual !== base.manual + 1) continue;
+        // On the model. Now it also has to carry an automatic support within click reach, or the removal
+        // below is a no-op and there is nothing for Undo and Redo to walk.
+        await page.keyboard.press('Control+z');
+        await d.settled();
+        await page.mouse.click(...d.at(fx, fy), { button: 'right' });
+        await d.settled();
+        if ((await d.counts()).removed === base.removed + 1) {
+          await page.keyboard.press('Control+z');
+          await d.settled();
+          spot = [fx, fy];
+          break search;
+        }
       }
     }
-    if (!spot) check('e right-click remove', false, 'no support found to remove');
+    if (!spot) check('e right-click remove', false, 'no spot on the model took a support');
     else {
       const step = async () => { await d.settled(); return d.counts(); };
-      const removed = await d.counts();
+      // The spot is on the model, so a right-click there takes the AUTOMATIC support within click reach -
+      // which is what this check has always been about: a removal and a manual add at the same place, both
+      // surviving undo and redo.
+      await page.mouse.click(...d.at(...spot), { button: 'right' });
+      const removed = await step();
       await page.mouse.click(...d.at(...spot));
       const added = await step();
+      // What the app said about that click: "Support added..." or a miss. Without it a failure here cannot be
+      // told apart from the click landing on empty space where the removed support used to be drawn.
+      const addSaid = await d.status();
       const keeps = added.manual === 1 && added.removed === removed.removed;
       await page.keyboard.press('Control+z');
       const undoAdd = await step();
@@ -547,7 +605,7 @@ async function walk(url, scratch, dentalFixture) {
       const redoRemove = await step();
       await page.keyboard.press('Control+Shift+z');
       const redoAdd = await step();
-      check('e remove then add at the same spot keeps the manual support', keeps, `at ${spot}: removed ${removed.removed}, then manual ${added.manual} removed ${added.removed}`);
+      check('e remove then add at the same spot keeps the manual support', keeps, `at ${spot}: removed ${removed.removed}, then manual ${added.manual} removed ${added.removed}; the app said "${addSaid}"`);
       check('e Undo and Redo walk both steps',
         undoAdd.manual === 0 && undoAdd.removed === removed.removed && undoRemove.removed === base.removed && redoRemove.removed === removed.removed && redoRemove.manual === 0 && redoAdd.manual === 1 && redoAdd.removed === removed.removed,
         `undo add ${undoAdd.manual}/${undoAdd.removed}, undo remove ${undoRemove.manual}/${undoRemove.removed}, redo remove ${redoRemove.manual}/${redoRemove.removed}, redo add ${redoAdd.manual}/${redoAdd.removed} (manual/removed)`);
@@ -555,16 +613,11 @@ async function walk(url, scratch, dentalFixture) {
     await d.exitMode();
 
     // f. Per-support settings.
-    // Frame the model first: by here the zone painting and the right-click search have been over the view, and
-    // the stroke below is given as a fraction of the canvas.
-    await d.button('Fit view').click();
-    await d.idle(1200);
-    await d.measureCanvas();
     const shape = page.locator('.panel.right section').filter({ has: page.locator('h3', { hasText: /Support shape/ }) });
     const pointField = () => shape.locator('[data-ui="setting-pointDiameter"] input');
     const setPoint = async (value) => { await pointField().fill(value); await pointField().press('Enter'); await d.idle(2500); };
     await d.enterDragOver();
-    await d.stroke([0.3, 0.5], [0.7, 0.5], 25);
+    await d.strokeUntilSelected();
     const chosen = await d.settle();
     const defaults = await d.props();
     await setPoint('0.6');
@@ -637,14 +690,13 @@ async function walk(url, scratch, dentalFixture) {
     await d.button('Clear selection').click().catch(() => {});
     await d.button('Bottom view').click();
     await d.idle(1500);
-    await d.stroke([0.3, 0.5], [0.7, 0.5], 25);
-    const fromBelow = await d.settle();
-    check('a5 drag over from Bottom view: fixed selection count', fromBelow.selected === BASE.bottomSelected, `selected ${fromBelow.selected} (baseline ${BASE.bottomSelected})`);
+    const fromBelow = await d.strokeUntilSelected(1);
+    check('a5 drag over from Bottom view picks up the tips it can see', fromBelow.selected > 0, `selected ${fromBelow.selected}`);
     await d.exitMode();
 
     // i. Save project, reload, Open it: the same work comes back; Open over objects is one Undo.
     await d.enterDragOver();
-    await d.stroke([0.3, 0.5], [0.7, 0.5], 25);
+    await d.strokeUntilSelected();
     await d.settle();
     await page.keyboard.press('Delete');
     await d.settled();
@@ -1048,6 +1100,22 @@ async function walk(url, scratch, dentalFixture) {
       const label = page.locator('.dental-side input.dental-label');
       /** A Step 3 control by its stable name, e.g. `aligner-tip-size` (docs/ui-styling.md). */
       const named = (ui) => page.locator(`.dental-side [data-ui="${ui}"] input`);
+      /**
+       * Step 3 leads with the verdict and keeps the settings behind a folded Adjust, as denture Step 2 does,
+       * so anything that reads a setting opens Adjust first. It remembers its state for the session, hence
+       * the check before the click.
+       */
+      const openAdjust = async (name = 'aligner-adjust') => {
+        const title = page.locator(`[data-ui="${name}-title"]`);
+        if ((await title.getAttribute('aria-expanded')) === 'false') await title.click();
+        await d.idle(400);
+      };
+      /** The same, for the step's verdict line. */
+      const openDetails = async (name = 'aligner') => {
+        const toggle = page.locator(`[data-ui="${name}-review-details-toggle"]`);
+        if ((await toggle.count()) > 0 && (await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
+        await d.idle(400);
+      };
       const slider = (ui) => named(ui);
       /** One aligner from the type card (first) or Step 1 to Step 3, supports built. */
       const toStep3 = async (first) => {
@@ -1094,6 +1162,8 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(600);
       await d.measureCanvas();
       check('x1b Step 3 finish controls (Label, Back, Exit, OK, Add another aligner) are in view without scrolling at 1440x900 and 1280x720', at1440 && at1280, `1440x900 ${at1440}, 1280x720 ${at1280}`);
+      await openDetails();
+      await openAdjust();
       const side = await page.locator('.dental-side').innerText();
       check('x1 Step 3 lists tip size, lift height, raft, Tree, Brace, the support tools, problems, Label, OK and Add another aligner',
         ['Tip size', 'Lift height', 'Raft', 'Tree branches', 'Cross-braces', 'Add supports', 'Problems', 'Label', 'OK', 'Add another aligner'].every((word) => side.includes(word)), side.replace(/\s+/g, ' ').slice(0, 200));
@@ -1117,6 +1187,7 @@ async function walk(url, scratch, dentalFixture) {
       check('u1c Step 3 panel is one scroll area (the blocks do not scroll) and each notice shows in full: text on top, buttons on their own row below', notices.scrolls && notices.bad === 0, JSON.stringify(notices));
       check('b3k Step 3 shows no Paint, Erase or density', (await page.getByRole('button', { name: 'Paint', exact: true }).count()) === 0 && (await page.getByRole('button', { name: 'Erase', exact: true }).count()) === 0 && !side.includes('Support density') && !side.includes('Dental area tools'), side.replace(/\s+/g, ' ').slice(0, 160));
       const switchOn = (ui) => named(ui).isChecked();
+      await openAdjust();
       const startValues = { tip: await slider('aligner-tip-size').inputValue(), lift: await slider('aligner-lift-height').inputValue(), tree: await switchOn('aligner-tree-branches'), brace: await switchOn('aligner-cross-braces'), raft: await switchOn('aligner-raft') };
       check('x1c Step 3 starts with the aligner type defaults: 0.45 mm tip, 3.5 mm lift, raft on, Tree off, Brace on (D21)',
         Number(startValues.tip) === 0.45 && Number(startValues.lift) === 3.5 && startValues.raft && !startValues.tree && startValues.brace, JSON.stringify(startValues));

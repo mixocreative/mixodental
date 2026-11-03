@@ -11,7 +11,7 @@
 //
 // This is the first slice of the screens gallery (P7e): the states a designer cannot otherwise reach without
 // a real case and several minutes of building.
-import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import React from 'react';
@@ -19,6 +19,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { SupportSettingsBlock, EditSupportsBlock, ProblemsBlock, IdLabelBlock } from '../src/components/DentalReviewBlocks';
 import { Panel } from '../src/components/Panel';
+import { ReviewSummary } from '../src/components/ReviewSummary';
 import { ResolveSection } from '../src/denture/steps/supports/ResolveSection';
 import { DentureSettingsSection } from '../src/denture/settings/DentureSettingsSection';
 import { DEFAULT_DENTURE_OPTIONS } from '../src/denture/settings/dentureOptions';
@@ -53,32 +54,38 @@ const problem = (kind, unitId) => ({ kind, unitId, inZone: false, position: [0, 
 /** Every screen this script writes: a stable name, the words under it, and what it renders. */
 const SCREENS = [
   ['aligner-step3-settled', 'Aligner Step 3 - supports built, nothing to look at', () => [
-    h(SupportSettingsBlock, { key: 's', review: review(), kind: 'aligner', onAdjust: noop }),
-    h(EditSupportsBlock, { key: 'e', gesture: { kind: 'add' }, ui, review: review(), send: noop, run: noop, kind: 'aligner' }),
-    h(ProblemsBlock, { key: 'p', review: review(), ui, send: noop, run: noop, kind: 'aligner', stale: false }),
-    h(IdLabelBlock, { key: 'i', review: review(), kind: 'aligner' }),
+    h(ReviewSummary, { key: 'v', kind: 'aligner', tone: 'ready', line: 'Supports ready. Every point is held.', open: false, onToggle: noop }),
+    h(Panel, { key: 'a', title: 'Adjust', ui: 'aligner-adjust', collapsible: true, defaultOpen: false }, h('p', null, 'hidden')),
   ]],
-  ['aligner-step3-problems', 'Aligner Step 3 - three problems found', () => [
-    h(ProblemsBlock, { key: 'p', review: review({ problems: [problem('island', 'u1'), problem('overhang', 'u1'), problem('island', 'u2')] }), ui, send: noop, run: noop, kind: 'aligner', stale: false }),
-    h(SupportSettingsBlock, { key: 's', review: review(), kind: 'aligner', onAdjust: noop }),
+  ['aligner-step3-problems', 'Aligner Step 3 - three things to look at, Details open', () => [
+    h(ReviewSummary, { key: 'v', kind: 'aligner', tone: 'look', line: '3 things to look at.', open: true, onToggle: noop },
+      h(ProblemsBlock, { key: 'p', review: review({ problems: [problem('island', 'u1'), problem('overhang', 'u1'), problem('island', 'u2')] }), ui, send: noop, run: noop, kind: 'aligner', stale: false })),
+    h(Panel, { key: 'a', title: 'Adjust', ui: 'aligner-adjust', collapsible: true, defaultOpen: false }, h('p', null, 'hidden')),
   ]],
-  ['aligner-step3-rechecking', 'Aligner Step 3 - a verdict is on its way, so the block dims', () => [
-    h(ProblemsBlock, { key: 'p', review: review({ problems: [problem('island', 'u1')], outOfDate: true }), ui, send: noop, run: noop, kind: 'aligner', stale: true }),
+  ['aligner-step3-adjust-open', 'Aligner Step 3 - Adjust open, the settings behind it', () => [
+    h(ReviewSummary, { key: 'v', kind: 'aligner', tone: 'ready', line: 'Supports ready. Every point is held.', open: false, onToggle: noop }),
+    h(Panel, { key: 'a', title: 'Adjust', ui: 'aligner-adjust', collapsible: true, defaultOpen: true },
+      h(SupportSettingsBlock, { key: 's', review: review(), kind: 'aligner', onAdjust: noop }),
+      h(EditSupportsBlock, { key: 'e', gesture: { kind: 'add' }, ui, review: review(), send: noop, run: noop, kind: 'aligner' }),
+      h(IdLabelBlock, { key: 'i', review: review(), kind: 'aligner' })),
+  ]],
+  ['aligner-step3-building', 'Aligner Step 3 - still building, so there is nothing to open yet', () => [
+    h(ReviewSummary, { key: 'v', kind: 'aligner', tone: 'building', line: 'Building supports…' }),
+  ]],
+  ['denture-step2-quiet', 'Denture Step 2 - the quiet state, everything folded', () => [
+    h(ReviewSummary, { key: 'v', kind: 'denture', tone: 'ready', line: 'Supports ready. Every point is held.', open: false, onToggle: noop }),
+    h(Panel, { key: 'a', title: 'Adjust', ui: 'denture-adjust', collapsible: true, defaultOpen: false }, h('p', null, 'hidden')),
   ]],
   ['denture-step2-adjust-open', 'Denture Step 2 - Adjust open', () => [
+    h(ReviewSummary, { key: 'v', kind: 'denture', tone: 'ready', line: 'Supports ready. Every point is held.', open: false, onToggle: noop }),
     h(Panel, { key: 'a', title: 'Adjust', ui: 'denture-adjust', collapsible: true, defaultOpen: true },
       h(SupportSettingsBlock, { key: 's', review: review(), kind: 'denture', onAdjust: noop }),
       h(DentureSettingsSection, { key: 'd', options: DEFAULT_DENTURE_OPTIONS, onChange: noop })),
   ]],
-  ['denture-step2-quiet', 'Denture Step 2 - the quiet state, everything folded', () => [
-    h(Panel, { key: 'a', title: 'Details', ui: 'denture-details', collapsible: true, defaultOpen: false }, h('p', null, 'hidden')),
-    h(Panel, { key: 'b', title: 'Adjust', ui: 'denture-adjust', collapsible: true, defaultOpen: false }, h('p', null, 'hidden')),
-  ]],
-  ['denture-step2-unresolved', 'Denture Step 2 - points with no route from the plate', () => [
-    h(ResolveSection, { key: 'r', mesh: { unresolved: [point('a'), point('b')], modelLanded: ['x'] } }),
-  ]],
-  ['denture-step2-parts', 'Denture Step 2 - the parts list of a multi-part file', () => [
-    h(PartsList, { key: 'p', parts, kind: 'denture' }),
+  ['denture-step2-unresolved', 'Denture Step 2 - points with no route from the plate, Details open', () => [
+    h(ReviewSummary, { key: 'v', kind: 'denture', tone: 'fix', line: '2 spots need a support.', open: true, onToggle: noop },
+      h(ResolveSection, { key: 'r', mesh: { unresolved: [point('a'), point('b')], modelLanded: ['x'] } }),
+      h(PartsList, { key: 'p', parts, kind: 'denture' })),
   ]],
 ];
 
@@ -88,6 +95,8 @@ const css = ['src/fonts.css', 'src/styles.css', 'src/styles/theme.css']
   // is what a reader without the bundle sees anyway.
   .split('url(../node_modules').join('url(about:blank#');
 
+// Start clean: a screen dropped from the list above must not linger and be uploaded as if current.
+rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 for (const [name, caption, build] of SCREENS) {
   // The step as the app lays it out: the header strip, the viewport taking the width, and the step panel

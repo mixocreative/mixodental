@@ -176,7 +176,7 @@
 [data-theme='instrument'] .nav-exit,
 [data-theme='instrument'] .restore-step,
 [data-theme='instrument'] .mode-button,
-[data-theme='instrument'] .denture-review-actions button,
+[data-theme='instrument'] .review-actions button,
 [data-theme='instrument'] .dental-finish button {
   text-transform: uppercase;
   letter-spacing: var(--label-track);

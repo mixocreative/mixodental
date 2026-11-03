@@ -40,8 +40,8 @@ const DIAL = { min: 24.4577512332, max: 68.4577512332, step: 1, band: [26.457751
 /** The status line of denture Step 2 in one state, with its coloured dot. */
 function StatusLine({ resolvable = 0, problems = 0, built = true, failed = false }: { resolvable?: number; problems?: number; built?: boolean; failed?: boolean }) {
   const line = reviewLine({ built, failed, resolvable, problems });
-  return <section className={`denture-review-summary is-${line.kind}`}>
-    <p className="denture-review-line" role="status">{line.other ? plural(line.n, line.key, line.other) : t(line.key)}</p>
+  return <section className={`review-summary is-${line.kind}`}>
+    <p className="review-line" role="status">{line.other ? plural(line.n, line.key, line.other) : t(line.key)}</p>
   </section>;
 }
 
@@ -154,12 +154,12 @@ export function Catalogue() {
 
     <Section title="Panels, Details and Adjust" ui="kit-panels">
       <Card caption="Details (open) and Adjust (folded), as in denture Step 2">
-        <section className="denture-review-summary is-look">
-          <p className="denture-review-line" role="status">{plural(3, '1 thing to look at.', '{n} things to look at.')}</p>
+        <section className="review-summary is-look">
+          <p className="review-line" role="status">{plural(3, '1 thing to look at.', '{n} things to look at.')}</p>
           <div className="orient-row denture-review-actions">
             <button type="button" aria-expanded={details} onClick={() => setDetails(!details)}>{t(details ? 'Hide details' : 'Details')}</button>
           </div>
-          {details ? <div className="denture-review-details"><p className="edit-note">{t('Passes every rule.')}</p></div> : null}
+          {details ? <div className="review-details"><p className="edit-note">{t('Passes every rule.')}</p></div> : null}
         </section>
         <Panel ui="kit-adjust" title={t('Adjust')} collapsible open={adjust} onToggle={setAdjust}>{raftBox}</Panel>
       </Card>

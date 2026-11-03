@@ -14,5 +14,6 @@ __pycache__/
 graphify-out/cache/
 graphify-out/20*/
 
-# Stitch capture scratch (the project binding in .stitch.json IS committed)
+# Stitch: captures and the per-machine project binding. The project link lives in DESIGN.md.
 .stitch/
+.stitch.json

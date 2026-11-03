@@ -292,12 +292,14 @@ Style by `[data-ui="name"]`. `{kind}` is `denture` or `aligner`; in `problem-ite
 | Start | `start-denture` |
 | Step 1, orientation | `tilt-dial` (class `is-disabled` when off), `tilt-dial-ticks` (each tick `.tilt-dial-tick`, class `is-on` in the stable range), `tilt-dial-knob`, `tilt-dial-dot`, `tilt-dial-label-min`, `tilt-dial-label-max`, `orient-extra`, `denture-live-tips`, `denture-live-tips-path`, `denture-live-tips-fallback`, `denture-live-tips-none` |
 | Step 2, supports (the side panel) | `denture-supports-panel`, `dental-supports-panel`, `problem-list`, `problem-item-{kind}` |
-| Denture Step 2, status line | `denture-review-summary` (class `is-building`, `is-failed`, `is-fix`, `is-look` or `is-ready` colours its dot), `denture-review-line`, `denture-resolve-all` (Fix), `denture-review-details-toggle`, `denture-review-details` |
+| Denture Step 2, status line | `review-summary` (class `is-building`, `is-failed`, `is-fix`, `is-look` or `is-ready` colours its dot), `review-line`, `denture-resolve-all` (Fix), `review-details-toggle`, `review-details` |
 | Denture Step 2, Details | `denture-resolve`, `denture-resolve-none`, `denture-resolve-count`, `denture-resolve-islands-sideways`, `denture-resolve-landed`, `denture-problems`, `denture-check-run` |
 | Denture Step 2, Adjust (a collapsible panel, `components/Panel.tsx`) | `denture-adjust`, `denture-adjust-title`, `denture-adjust-body`, `denture-support-settings`, `denture-edit-supports`, `denture-id-label` |
 | Step 2, denture settings (under Adjust) | `denture-settings`, `denture-model-landing`, `denture-model-landing-select`, `denture-low-outside`, `denture-clearance-floor` |
 | Denture Step 2, footer | `denture-review-footer`, `denture-finished-count`, `restore-step-2`, `denture-add-another`, `denture-review-nav`, `denture-review-back`, `denture-review-ok` |
-| Aligner Step 3 blocks | `aligner-support-settings`, `aligner-edit-supports`, `aligner-problems`, `aligner-check-run`, `aligner-id-label`, `restore-step-2` |
+| Aligner Step 3, status line | `aligner-review-summary` (class `is-building`, `is-failed`, `is-fix`, `is-look` or `is-ready` colours its dot), `aligner-review-line`, `aligner-review-details-toggle`, `aligner-review-details` |
+| Aligner Step 3, Adjust (a collapsible panel) | `aligner-adjust`, `aligner-adjust-title`, `aligner-adjust-body`, `aligner-support-settings`, `aligner-edit-supports`, `aligner-id-label` |
+| Aligner Step 3, behind Details | `aligner-problems`, `aligner-check-run`, `restore-step-2` |
 | Restore step | `restore-step-1` (Step 1), `restore-step-area` (aligner area step), `restore-step-2` (supports step) |
 | Step 2, parts list | `{kind}-parts`, `{kind}-parts-summary`, `{kind}-parts-fused-note`, `{kind}-parts-list`, `{kind}-part-row` |
 | Supports step, the settings of a block | `{kind}-tip-size`, `{kind}-pillar-size`, `{kind}-lift-height`, `{kind}-raft`, `{kind}-tree-branches`, `{kind}-cross-braces`, `{kind}-id-label-text` |

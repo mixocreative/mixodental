@@ -865,16 +865,16 @@ dialog.terms .terms-item > span { flex: none; }
 /* P7c denture Step 2, laid out like the tilt step: one status line, Details and Fix, one folded Adjust, then Restore,
    Add another and Back | OK. Docked right, the panel is as tall as its content. */
 @media (min-width: 721px) { .dental-side.denture-review { bottom: auto; max-height: calc(100% - 70px); } }
-.denture-review-summary { display: grid; gap: 8px; }
-.denture-review-summary.is-stale .denture-review-line { opacity: .55; }
-.denture-review-line { display: flex; gap: 8px; align-items: baseline; margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink); white-space: normal; }
-.denture-review-line::before { content: ''; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); transform: translateY(-1px); }
-.denture-review-summary.is-ready .denture-review-line::before { background: var(--success); }
-.denture-review-summary.is-fix .denture-review-line::before { background: var(--unresolved); }
-.denture-review-summary.is-look .denture-review-line::before { background: var(--warning); }
-.denture-review-summary.is-failed .denture-review-line::before { background: var(--danger); }
-.denture-review-actions button { flex: 1 1 0; }
-.denture-review-details { display: grid; gap: 8px; padding-top: 4px; }
+.review-summary { display: grid; gap: 8px; }
+.review-summary.is-stale .review-line { opacity: .55; }
+.review-line { display: flex; gap: 8px; align-items: baseline; margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink); white-space: normal; }
+.review-line::before { content: ''; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--muted); transform: translateY(-1px); }
+.review-summary.is-ready .review-line::before { background: var(--success); }
+.review-summary.is-fix .review-line::before { background: var(--unresolved); }
+.review-summary.is-look .review-line::before { background: var(--warning); }
+.review-summary.is-failed .review-line::before { background: var(--danger); }
+.review-actions button { flex: 1 1 0; }
+.review-details { display: grid; gap: 8px; padding-top: 4px; }
 /* A folded section (components/Fold.tsx): a quiet header that opens its blocks. */
 /* The panel widget (src/components/Panel.tsx): the app's one titled block of controls, in its four shapes. The
    title is an h3 when the panel does not collapse and a quiet button with a chevron when it does; the body is the
