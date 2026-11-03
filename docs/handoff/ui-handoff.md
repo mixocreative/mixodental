@@ -48,31 +48,24 @@ Also open from the same audit, for the owner to decide: should Undo cross into t
 A count on 2026-11-02 found 13 lines with `#hex`, `rgb()` or `rgba()` outside the `:root` block, for example `#fff` (button hover, `.primary` text, `.dental-card:hover`), `#e9e6df` (`.viewport` background; the same colour as the token `--scene-bg`), the problem-kind dots (`#b3261e`, `#d97706`, `#6b7280`, `#1E50A2`; these equal `--danger`, `--mark-overhang`, `--mark-outside`, `--mark-risk-outside`) and the `rgba(...)` backdrops.
 Recommended: tokenise them. Replace each with the existing token where one has the same value; otherwise add a token to `:root` (for example `--on-red: #fff`, `--backdrop: rgba(0, 0, 0, .35)`, `--paper-veil: rgba(244, 242, 237, .86)`) and add its row to `docs/ui-styling.md`. Test `src/ui/uiStylingDoc.test.ts` will fail until the table is updated. Look at the result in the app after each change; the values must stay identical.
 
-## (g) The build progress bar follows the engine's phases
+## (g) The build progress bar follows the engine's phases: DONE
 
-The staged bar (`src/denture/progress/`) eases inside the long "Routing supports" stage (35 to 50 s) because the engine did not report its phases. The owner is bringing engine 60 (in progress when this was written; `vendor/mixo-geocore/VERSION` was 60 in the working tree, not yet committed) so that the engine posts routing, raft and checking.
-To do once engine 60 is committed: add the new stage names to `src/denture/progress/stagePlans.ts`, check weights and typical times, update the stage tests (`stageModel.test.ts`), and add the stage words to `ja.ts` and `zh-Hant.ts`. Check `git log -20` for a `chore(vendor): mixo-geocore engine 60` commit first. Never edit `vendor/` yourself.
+Engine 60 shipped (vendor bump c62aaf7) and the staged bar (`src/denture/progress/`) now follows the phases the engine posts (routing, raft, checking) instead of easing through one long "Routing supports" stage: commit eda8261. Nothing left to do. If a later engine posts new phase names, add them to `src/denture/progress/stagePlans.ts`, `stageModel.test.ts`, `ja.ts` and `zh-Hant.ts`; never edit `vendor/` yourself.
 
-## (h) Redesign the tilt dial (agent builds it first, you may finish or tweak)
+## (h) Redesign the tilt dial: DONE (P7d), tweak by tokens
 
-Current dial: `src/ui/parts/TiltDial.tsx`, used by `PrintAngleField` in `src/components/DentalSteps.tsx` inside Step 1's bar (`src/components/OrientationBar.tsx`). Its CSS is the `.tilt-dial*` block in `src/styles.css` (about line 593): a plain arc track, a kraft stable band and a red knob.
+The dial (`src/ui/parts/TiltDial.tsx`, in aligner Step 1 and denture Step 1) is now the soft neumorphic knob of the owner's reference: a raised disc with two soft shadows, a recessed dot that points at the angle, 25 ticks over the 240-degree arc (the ticks inside the stable range in the accent colour), and the range ends as small labels at both arc ends. The big number (`TiltReadout`) and the "Stable a–b°" line are unchanged; so are drag, the arrow keys, `aria`, snapping, Auto orientation, Restore and the live tilt.
 
-The owner wants a soft, neumorphic knob. The owner holds the reference image (a light-grey volume knob with tick marks and LIGHT/DARK end labels); ask them for it. In words:
+It is plain HTML + CSS (no SVG): each tick is a `<span>`, the knob a `<div>` with a `box-shadow`. What a designer tweaks, all in `src/styles.css` and listed in `docs/ui-styling.md` ("Print-angle dial"):
 
-- A raised round disc, as if pressed out of the paper: a soft light shadow on the upper left and a soft dark shadow on the lower right, no hard outline.
-- One small indicator dot on the disc near its rim; it moves round to show the current angle.
-- A ring of short tick marks around the disc, evenly spaced along the arc the dial can turn through. Ticks that fall inside the stable (allowed) range are highlighted; the others stay quiet.
-- Small text labels at both ends of the arc (the lowest and highest angle).
-- Keep what works today: drag and keyboard use, `aria` labels, `touch-action: none`, the focus ring, and the "Stable a-b degrees" line above.
+- `--dial-size` (168px): the one size; knob, ticks, dot, labels and shadows follow it.
+- Colours in `:root`: `--dial-face`, `--dial-face-shade` (the knob's gradient), `--dial-shadow-dark`, `--dial-shadow-light`, `--dial-tick`, `--dial-tick-on` (stable range), `--dial-dot`, `--dial-dot-shadow`, `--dial-label`.
+- Proportions in the `.tilt-dial` rule, as fractions of `--dial-size`: `--dial-knob-size`, `--dial-tick-radius`, `--dial-tick-length`, `--dial-tick-width`, `--dial-dot-size`, `--dial-dot-radius`, `--dial-shadow-offset`, `--dial-shadow-blur`, `--dial-label-size`.
+- The number of ticks is the `ticks` prop (default 25, one every 10 degrees of the arc).
+- data-ui names: `tilt-dial`, `tilt-dial-ticks` (ticks `.tilt-dial-tick`, `.is-on` in range), `tilt-dial-knob`, `tilt-dial-dot`, `tilt-dial-label-min`, `tilt-dial-label-max`.
+- Try changes on the catalogue page (`/mixodental/kit.html`), which shows the dial in and out of range, disabled and at two sizes.
 
-Rules for the build:
-
-- All colours and sizes are CSS tokens in `src/styles.css`; no hex in the TSX, no inline `style=` (section 5 of the guide). The shadows are CSS (`box-shadow` or SVG filter) using tokens, so the disc is two shadow tokens plus the surface colour.
-- One size token, `--dial-size`, scales the whole dial (disc, ticks, labels, indicator by ratio, for example with `em` or `calc(var(--dial-size) * ratio)`). Change it once and the dial grows or shrinks.
-- Suggested tokens: `--dial-size`, `--dial-disc` (surface), `--dial-shadow-light`, `--dial-shadow-dark`, `--dial-dot`, `--dial-tick`, `--dial-tick-on` (stable range), `--dial-label`. Document each in `docs/ui-styling.md`.
-- New data-ui names for the parts: for example `tilt-dial`, `tilt-dial-disc`, `tilt-dial-dot`, `tilt-dial-ticks`, `tilt-dial-label-min`, `tilt-dial-label-max`. Add them to the data-ui table.
-- End labels go through `t()` if they hold words; plain numbers with the degree sign do not need translation.
-- Check at 900 x 700 and 1280 x 800 and in all three languages. Step 1's bar must not grow past the viewport; `src/ui/narrowDentalLayout.test.ts` must still pass. The dial and `TiltReadout` (the big number) must agree after Undo (`dialSync.ts`).
+Open for the owner: the shadows go against mixo-app-style's "no shadows" rule (the owner asked for this look); the arc stays 240 degrees (the reference is about 270) so the drag mapping is unchanged. `scripts/walk.mjs` checks f1 to f5 still look for the slider the dial replaced in PD.11 S5 (`.print-angle input[type=range]`, `.range-band`, `.print-angle .edit-hint`); the owner updates them.
 
 ## (i) One joint style with mixomesh, after both apps are published
 
