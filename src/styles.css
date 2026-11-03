@@ -116,7 +116,7 @@ button {
 }
 button:hover:not(:disabled) { border-color: var(--line-strong); background: #fff; }
 button:disabled { color: var(--muted); opacity: .55; cursor: not-allowed; }
-button:focus-visible, input:focus-visible, summary:focus-visible, .drop:focus-within {
+button:focus-visible, input:focus-visible, .drop:focus-within {
   outline: 1px solid var(--ink);
   outline-offset: 2px;
 }
@@ -368,7 +368,6 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
 .tip-swatch--fallback { background: var(--tip-fallback); }
 .tip-swatch--none { background: var(--tip-none); }
 /* Denture Step 2: the denture settings block. */
-.denture-landing { display: grid; gap: 4px; }
 .denture-parts-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 12px; }
 .denture-part { display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 6px; }
 .denture-part-size, .denture-part-tips { color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -381,10 +380,6 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
 .orient-confirm { display: grid; gap: 8px; white-space: normal; }
 .orient-confirm p { margin: 0; }
 .orient-confirm .orient-row button { flex: 1 1 0; }
-.tool-option { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--ink); }
-.tool-option-head { display: flex; justify-content: space-between; gap: 8px; }
-.tool-option output { color: var(--muted); font-variant-numeric: tabular-nums; }
-.tool-option input[type='range'] { width: 100%; margin: 0; accent-color: var(--ink); }
 /* The circle at the centre of the view while its size slider moves. */
 .brush-circle.brush-circle--preview { left: 50%; top: 50%; transform: translate(-50%, -50%); }
 /* Dental Step 3: the engaged tool and what a click does, under the tool switch. */
@@ -462,67 +457,12 @@ kbd {
 }
 
 /* ---- Settings ------------------------------------------------------------ */
-.settings { border: 0; margin: 0; padding: 0; min-width: 0; }
+.settings { display: grid; gap: 10px; border: 0; margin: 0; padding: 0; min-width: 0; }
 .settings:disabled { opacity: .5; }
-.field-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; margin: 8px 0; font-size: 12.5px; }
-.field-row > span:first-child { flex: 1 0 auto; white-space: nowrap; }
-/* Longer labels (Japanese katakana) push the choice onto its own line instead of breaking words. */
-.field-row .segmented { flex: 1 0 64%; max-width: 100%; }
-.number { display: flex; align-items: center; gap: 6px; }
-.number input, .field-row .text {
-  width: 70px;
-  padding: 4px 6px;
-  border: 0;
-  border-bottom: 1px solid var(--line-strong);
-  border-radius: 0;
-  background: transparent;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-.number input:hover, .field-row .text:hover { border-bottom-color: var(--ink); }
-.number input:focus-visible, .field-row .text:focus-visible { outline: 0; border-bottom: 1px solid var(--red); }
-.number small { width: 16px; color: var(--muted); font-size: 11px; }
-.settings details { margin-top: 10px; }
-/* Collapsible group: the same heading band plus a chevron that turns when open. */
-.settings summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 26px;
-  padding: 0 8px;
-  background: var(--sunken);
-  border-radius: var(--radius);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  color: var(--ink);
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-}
-.settings summary:hover { background: var(--line); }
-.settings summary::-webkit-details-marker { display: none; }
-.settings summary::before {
-  content: '';
-  flex: none;
-  width: 5px;
-  height: 5px;
-  margin: 0 2px 0 1px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(-45deg);
-  transition: transform var(--dur, .15s);
-}
-.settings details[open] > summary::before { transform: rotate(45deg); }
-.settings details[open] > summary { margin-bottom: 6px; }
 /* Debug section of the 3D view: the Step 1 evidence layers, collapsed by default (display only). */
 .debug-section { position: absolute; left: 14px; bottom: 14px; z-index: 2; width: 240px; max-height: calc(100% - 28px); overflow: auto; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
-.debug-section details { margin-top: 0; }
-.debug-layer { margin: 6px 0; }
-.debug-swatch { display: inline-block; flex: none; width: 12px; height: 12px; border: 1px solid var(--line-strong); border-radius: 2px; }
-.check { display: flex; gap: 9px; align-items: center; margin: 10px 0; font-size: 12.5px; cursor: pointer; }
-.check input { accent-color: var(--ink); width: 14px; height: 14px; margin: 0; }
+.debug-swatch { flex: none; width: 12px; height: 12px; border: 1px solid var(--line-strong); border-radius: 2px; }
+.debug-section .field { font-size: 11.5px; }
 
 /* ---- Status bar ---------------------------------------------------------- */
 footer {
@@ -588,25 +528,9 @@ footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
 .edit-bar .segmented button { padding: 6px 10px; }
 .dental-brush .segmented button { min-width: 92px; min-height: 36px; font-weight: 500; }
 .dental-tuning { width: 100%; padding: 4px 0; border-top: 1px solid var(--line); }
-.dental-tuning details { position: relative; }
-.dental-tuning summary {
-  display: flex; align-items: center; gap: 8px; min-height: 26px; padding: 0 8px;
-  background: var(--sunken); border-radius: var(--radius); color: var(--ink);
-  font-size: 11.5px; font-weight: 700; letter-spacing: .06em; cursor: pointer; list-style: none;
-}
-.dental-tuning summary::-webkit-details-marker { display: none; }
-.dental-tuning summary::before {
-  content: ''; width: 5px; height: 5px; border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur);
-}
-.dental-tuning details[open] > summary::before { transform: rotate(45deg); }
-.dental-tuning details[open] > .edit-size { margin-top: 6px; }
 /* Tips only forced on while painting zones: it does nothing, yet it still reads as on; its title says why. */
 .viewport-view button[aria-pressed='true'][aria-disabled='true'] { opacity: 1; color: var(--paper); cursor: default; }
-.edit-size { display: flex; gap: 8px; align-items: center; }
 /* Viewport tool hit areas stay at least 24 px tall (NN/g, WCAG 2.5.8): the slider gets a full row. */
-.edit-size input { width: 96px; height: 24px; margin: 0; accent-color: var(--ink); }
-.edit-size output { min-width: 3.5em; font-variant-numeric: tabular-nums; }
 /* A slider with a highlighted run of its track (the print angle's stable band). */
 .range-track { position: relative; display: inline-flex; align-items: center; }
 .range-band { position: absolute; top: 50%; height: 6px; transform: translateY(-50%); background: var(--kraft); border-radius: var(--radius); pointer-events: none; }
@@ -897,14 +821,13 @@ dialog.terms .terms-item > span { flex: none; }
 .dental-footer .dental-block { padding-bottom: 0; border-bottom: 0; }
 .dental-block { display: grid; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 .dental-block:last-child { border-bottom: 0; padding-bottom: 0; }
-.dental-block.is-stale { opacity: .55; }
+.dental-block.is-stale, .panel-widget.is-stale { opacity: .55; }
 .dental-block h3 { margin: 0; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; }
-.dental-block .check { display: flex; gap: 8px; align-items: center; margin: 0; }
 .dental-block { gap: 6px; }
-.dental-block .edit-row { justify-content: flex-start; }
-.dental-block .edit-note { text-align: left; }
+.dental-side .edit-row { justify-content: flex-start; }
+.dental-side .edit-note { text-align: left; }
 .dental-tools .edit-row { justify-content: flex-start; }
-.dental-label { width: 9ch; text-transform: uppercase; letter-spacing: .08em; }
+.field-control > .dental-label { width: 9ch; text-transform: uppercase; letter-spacing: .08em; }
 .dental-problem-row {
   display: grid;
   grid-template-columns: 10px minmax(0, 1fr) auto auto;
@@ -956,7 +879,11 @@ dialog.terms .terms-item > span { flex: none; }
 /* The panel widget (src/components/Panel.tsx): the app's one titled block of controls, in its four shapes. The
    title is an h3 when the panel does not collapse and a quiet button with a chevron when it does; the body is the
    same either way. Nothing here is set per panel. */
-.panel-widget { display: grid; gap: 8px; padding-top: 6px; border-top: 1px solid var(--line); }
+/* The title bar is the panel's own separator, so a panel draws no rule above itself. Instead it stands
+   further from what is above it than its own rows stand from each other, so a title reads as the head of what
+   follows it and never as the last line of the panel before. */
+.panel-widget { display: grid; gap: 8px; margin-top: 8px; }
+.panel-widget:first-child { margin-top: 0; }
 .panel-widget-title {
   margin: 0; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 26px; padding: 5px 10px;
   background: var(--panel-title-bg); color: var(--panel-title-ink); border: 0; border-radius: var(--radius);
@@ -995,6 +922,31 @@ dialog.terms .terms-item > span { flex: none; }
 .field-control > .segmented { flex: 1 1 auto; min-width: 0; width: auto; }
 .field-control > output,
 .field-control > small { flex: none; white-space: nowrap; }
+.field-control > output { color: var(--muted); font-variant-numeric: tabular-nums; }
+.field-control > small { width: 16px; color: var(--muted); font-size: 11px; }
+/* A typed value: an underline, not a box, and right-aligned so a column of them lines up on the decimal point. */
+.field-control > input:not([type='range']):not([type='checkbox']) {
+  width: 70px;
+  padding: 4px 6px;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.field-control > input:not([type='range']):not([type='checkbox']):hover { border-bottom-color: var(--ink); }
+.field-control > input:not([type='range']):not([type='checkbox']):focus-visible { outline: 0; border-bottom: 1px solid var(--primary); }
+.field-control > input[type='checkbox'] { flex: none; width: 14px; height: 14px; margin: 0; accent-color: var(--ink); }
+.field-control > input[type='range'] { height: 24px; margin: 0; accent-color: var(--ink); }
+/* A slider beside its label takes a fixed width: the row is sized by its label, so there is nothing to grow into. */
+.field--row > .field-control > input[type='range'],
+.field--row > .field-control > .range-track { flex: none; width: 96px; }
+.field--stack > .field-control > input[type='range'],
+.field--stack > .field-control > .range-track { flex: 1 1 auto; }
+.field--stack > .field-control > output { min-width: 3.5em; text-align: right; }
+.field-control > select { max-width: 100%; }
 @container (max-width: 220px) {
   .field--row { grid-template-columns: minmax(0, 1fr); }
   .field--row > .field-control { justify-self: stretch; }

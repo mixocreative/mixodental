@@ -1,15 +1,20 @@
 import { t } from '../i18n';
 import { hint } from './hint';
+import { Field } from './Field';
 
 /**
- * A slider with its label and value. `row`: label, slider and value on one line (zones Brush
- * size); `stack`: label and value over the slider (Circle size, under its tool button). `label`,
- * `unit` and `hint` are i18n keys, `unit` shows the value as {n}. `onAdjust` hears the slider
- * being held or moved (true) and let go (false).
+ * A slider with its value: a `Field`, so it is the same row as every other control in the app. `row` puts the
+ * label beside the slider (zones Brush size), `stack` above it (Circle size, under its tool button); either way
+ * the value stays beside the track, where it is read while the slider moves.
+ *
+ * `label`, `unit` and `hint` are i18n keys, `unit` shows the value as {n}; `ui` is the field's stable name.
+ * `onAdjust` hears the slider being held or moved (true) and let go (false).
  */
-export function RangeField({ layout, label, unit, hint: hintKey, value, min, max, step, onChange, onAdjust, band, display }: {
+export function RangeField({ layout, label, ui, unit, hint: hintKey, value, min, max, step, onChange, onAdjust, band, display }: {
   layout: 'row' | 'stack';
   label: string;
+  /** The field's stable name, e.g. `aligner-tip-size`. */
+  ui: string;
   unit: string;
   hint: string;
   value: number;
@@ -23,7 +28,6 @@ export function RangeField({ layout, label, unit, hint: hintKey, value, min, max
   /** The value as shown (default: the value itself). */
   display?: string | number;
 }) {
-  const output = <output>{t(unit, { n: display ?? value })}</output>;
   const slider = <input
     type="range" min={min} max={max} step={step} value={value}
     onChange={(event) => { onChange(Number(event.target.value)); onAdjust?.(true); }}
@@ -34,13 +38,14 @@ export function RangeField({ layout, label, unit, hint: hintKey, value, min, max
     {...hint(hintKey)}
   />;
   const span = max - min;
-  const input = band && span > 0
+  const track = band && span > 0
     ? <span className="range-track">
       <span className="range-band" aria-hidden="true" style={{ left: `${((band[0] - min) / span) * 100}%`, width: `${((band[1] - band[0]) / span) * 100}%` }} />
       {slider}
     </span>
     : slider;
-  return layout === 'row'
-    ? <label className="edit-size">{t(label)}{input}{output}</label>
-    : <label className="tool-option"><span className="tool-option-head">{t(label)}{output}</span>{input}</label>;
+  return <Field label={t(label)} ui={ui} layout={layout} hint={t(hintKey)}>
+    {track}
+    <output>{t(unit, { n: display ?? value })}</output>
+  </Field>;
 }

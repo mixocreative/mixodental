@@ -1,4 +1,5 @@
 import { plural, t } from '../../i18n';
+import { Panel } from '../../components/Panel';
 import type { DentureParts } from '../engine/dentureCore';
 import { ROLE_LABEL, orderedParts, roleCounts, showsPartsList } from './partRoles';
 
@@ -14,8 +15,7 @@ export function PartsList({ parts, kind = 'denture' }: { parts: DentureParts | u
   const summary = counts.fused > 0
     ? t('{target} target, {fused} fused, {addOn} add-on, {debris} debris', { target: counts.target, fused: counts.fused, addOn: counts.addOn, debris: counts.debris })
     : t('{target} target, {addOn} add-on, {debris} debris', { target: counts.target, addOn: counts.addOn, debris: counts.debris });
-  return <section className={`dental-block denture-parts ${kind}-parts`} data-ui={`${kind}-parts`} aria-label={t('Parts')}>
-    <h3>{t('Parts')}</h3>
+  return <Panel title={t('Parts')} ui={`${kind}-parts`}>
     <p className="help" data-ui={`${kind}-parts-summary`}>{summary}</p>
     {counts.fused > 0 && <p className="help" data-ui={`${kind}-parts-fused-note`}>{t('A fused part overlaps the target and prints with it: only its exposed overhangs get supports.')}</p>}
     <ul className="denture-parts-list" data-ui={`${kind}-parts-list`}>
@@ -26,5 +26,5 @@ export function PartsList({ parts, kind = 'denture' }: { parts: DentureParts | u
         <span className="denture-part-tips">{part.role === 'debris' ? t('no supports') : plural(part.tips, '1 tip', '{n} tips')}</span>
       </li>)}
     </ul>
-  </section>;
+  </Panel>;
 }

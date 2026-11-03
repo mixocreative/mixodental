@@ -70,7 +70,7 @@ export function Catalogue() {
   const [adjust, setAdjust] = useState(false);
   const choose = (next: Lang) => { setLanguage(next); setLang(next); };
   const wear = (next: Theme) => { applyTheme(next); setTheme(next); };
-  const raftBox = <label className="check"><input type="checkbox" checked={raft} onChange={(event) => setRaft(event.target.checked)} />{t('Raft')}</label>;
+  const raftBox = <Field label={t('Raft')} ui="kit-raft"><input type="checkbox" checked={raft} onChange={(event) => setRaft(event.target.checked)} /></Field>;
 
   // `key={lang}`: a language switch renders every control again, so each t() reads the new language.
   return <div className="kit-page" data-ui="kit-page" key={lang}>
@@ -105,10 +105,10 @@ export function Catalogue() {
 
     <Section title="Sliders, toggles, checkboxes, fields" ui="kit-fields">
       <Card caption="RangeField, row layout">
-        <RangeField layout="row" label="Brush size" unit="{n} mm" hint="Radius of the surface brush" min={0.5} max={10} step={0.5} value={brush} onChange={setBrush} />
+        <RangeField layout="row" label="Brush size" ui="kit-brush-size" unit="{n} mm" hint="Radius of the surface brush" min={0.5} max={10} step={0.5} value={brush} onChange={setBrush} />
       </Card>
       <Card caption="RangeField, stack layout with a band">
-        <RangeField layout="stack" label="Lift height" unit="{n} mm" hint="How high the aligner stands above the plate. Supports are placed again" min={0} max={10} step={0.5} value={lift} band={[3, 6]} onChange={setLift} />
+        <RangeField layout="stack" label="Lift height" ui="kit-lift-band" unit="{n} mm" hint="How high the aligner stands above the plate. Supports are placed again" min={0} max={10} step={0.5} value={lift} band={[3, 6]} onChange={setLift} />
       </Card>
       <Card caption="Segmented toggle (pressed = ink fill)">
         <div className="segmented">
@@ -116,14 +116,14 @@ export function Catalogue() {
           <button type="button" aria-pressed={tool === 'erase'} onClick={() => setTool('erase')}>{t('Erase')}</button>
         </div>
       </Card>
-      <Card caption="Checkboxes (.check): on, off, disabled">
+      <Card caption="Checkboxes in a Field: on, off, disabled">
         {raftBox}
-        <label className="check"><input type="checkbox" checked={braces} onChange={(event) => setBraces(event.target.checked)} />{t('Cross-braces')}</label>
-        <label className="check"><input type="checkbox" checked disabled readOnly />{t('Raft')}</label>
+        <Field label={t('Cross-braces')} ui="kit-braces"><input type="checkbox" checked={braces} onChange={(event) => setBraces(event.target.checked)} /></Field>
+        <Field label={t('Raft')} ui="kit-raft-disabled"><input type="checkbox" checked disabled readOnly /></Field>
       </Card>
-      <Card caption="NumberField (.field-row .number): a value, mixed values">
-        <NumberField label={t('Lift height')} unit="mm" step={0.5} value={lift} limits={{ min: 0, max: 10 }} onChange={setLift} />
-        <NumberField label={t('Tip size')} unit="mm" step={0.1} value={undefined} limits={{ min: 0.1, max: 1 }} onChange={() => {}} />
+      <Card caption="NumberField (a Field holding a text input): a value, mixed values">
+        <NumberField label={t('Lift height')} ui="kit-lift-height" unit="mm" step={0.5} value={lift} limits={{ min: 0, max: 10 }} onChange={setLift} />
+        <NumberField label={t('Tip size')} ui="kit-tip-size" unit="mm" step={0.1} value={undefined} limits={{ min: 0.1, max: 1 }} onChange={() => {}} />
       </Card>
     </Section>
 
@@ -185,7 +185,7 @@ export function Catalogue() {
             <input type="range" min={0.5} max={10} step={0.5} value={brush} aria-label={t('Brush size')} onChange={(event) => setBrush(Number(event.target.value))} />
             <output>{t('{n} mm', { n: brush })}</output>
           </Field>
-          <Field label={t('How to select')} ui="kit-field-segmented" layout="stack">
+          <Field label={t('How to select')} ui="kit-field-segmented" layout="stack" grouped>
             <div className="segmented">
               <button type="button" aria-pressed={tool === 'paint'} onClick={() => setTool('paint')}>{t('Paint')}</button>
               <button type="button" aria-pressed={tool === 'erase'} onClick={() => setTool('erase')}>{t('Erase')}</button>

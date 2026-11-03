@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { enteredValue, escapeValue, formatNumber, readNumberInput, stepNumber, type NumberLimits } from '@mixo-geocore/editing/numberInput';
+import { Field } from './Field';
 
 let editCount = 0;
 
@@ -16,8 +17,10 @@ let editCount = 0;
  * `value` undefined means the values it stands for differ (several supports selected): the field
  * is empty with a dash, writes nothing until a value is typed and entered, and applies nothing
  * while typing.
+ *
+ * It is a `Field`, so it is the same row as every other control in the app; `ui` is its stable name.
  */
-export function NumberField({ label, unit, step, value, limits, hint, onChange, onCancel }: { label: string; unit?: string; step: number; value: number | undefined; limits: NumberLimits; hint?: string; onChange: (value: number, edit?: string) => void; onCancel?: (edit: string) => void }) {
+export function NumberField({ label, ui, unit, step, value, limits, hint, layout, onChange, onCancel }: { label: string; ui: string; unit?: string; step: number; value: number | undefined; limits: NumberLimits; hint?: string; layout?: 'row' | 'stack'; onChange: (value: number, edit?: string) => void; onCancel?: (edit: string) => void }) {
   const [text, setText] = useState<string>();
   /** The value when the field got focus, or was last entered with Enter: what Esc puts back. */
   const onFocus = useRef<number>();
@@ -33,41 +36,38 @@ export function NumberField({ label, unit, step, value, limits, hint, onChange, 
     setText(undefined);
     return next ?? value;
   };
-  return <label className="field-row" title={hint}>
-    <span>{label}</span>
-    <span className="number">
-      <input
-        type="text"
-        inputMode="decimal"
-        spellCheck={false}
-        value={shown}
-        placeholder={value === undefined ? '—' : undefined}
-        {...(hint ? { 'aria-description': hint } : {})}
-        onChange={(event) => {
-          setText(event.target.value);
-          const read = readNumberInput(event.target.value, limits);
-          if (value !== undefined && read && !read.clamped && read.value !== value) onChange(read.value, edit.current);
-        }}
-        onFocus={() => { onFocus.current = value; entered.current = false; edit.current = `edit-${++editCount}`; }}
-        onBlur={() => commit()}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') { onFocus.current = commit(); entered.current = true; }
-          else if (event.key === 'Escape') {
-            const original = value === undefined ? undefined : escapeValue(onFocus.current, value);
-            // Before any Enter the edit has nothing worth keeping: the host drops it whole, so a value another edit wrote (a support's own) comes back as it was.
-            if (onCancel && edit.current && !entered.current) onCancel(edit.current);
-            else if (original !== undefined) onChange(original, edit.current);
-            setText(undefined);
-          }
-          else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-            event.preventDefault();
-            const current = readNumberInput(shown, limits)?.value ?? value;
-            if (current !== undefined) onChange(stepNumber(current, step, event.key === 'ArrowUp' ? 1 : -1, limits));
-            setText(undefined);
-          }
-        }}
-      />
-      {unit && <small>{unit}</small>}
-    </span>
-  </label>;
+  return <Field label={label} ui={ui} hint={hint} layout={layout}>
+    <input
+      type="text"
+      inputMode="decimal"
+      spellCheck={false}
+      value={shown}
+      placeholder={value === undefined ? '—' : undefined}
+      {...(hint ? { 'aria-description': hint } : {})}
+      onChange={(event) => {
+        setText(event.target.value);
+        const read = readNumberInput(event.target.value, limits);
+        if (value !== undefined && read && !read.clamped && read.value !== value) onChange(read.value, edit.current);
+      }}
+      onFocus={() => { onFocus.current = value; entered.current = false; edit.current = `edit-${++editCount}`; }}
+      onBlur={() => commit()}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') { onFocus.current = commit(); entered.current = true; }
+        else if (event.key === 'Escape') {
+          const original = value === undefined ? undefined : escapeValue(onFocus.current, value);
+          // Before any Enter the edit has nothing worth keeping: the host drops it whole, so a value another edit wrote (a support's own) comes back as it was.
+          if (onCancel && edit.current && !entered.current) onCancel(edit.current);
+          else if (original !== undefined) onChange(original, edit.current);
+          setText(undefined);
+        }
+        else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+          event.preventDefault();
+          const current = readNumberInput(shown, limits)?.value ?? value;
+          if (current !== undefined) onChange(stepNumber(current, step, event.key === 'ArrowUp' ? 1 : -1, limits));
+          setText(undefined);
+        }
+      }}
+    />
+    {unit && <small>{unit}</small>}
+  </Field>;
 }

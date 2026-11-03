@@ -239,7 +239,9 @@ Previews, selection, the dental support area, check findings and the brush curso
 
 ## The two widgets every panel is built from
 
-New panels are built from these two, so every panel in the app behaves the same way and a designer styles them once.
+Every panel and every labelled control in the app is one of these two, so a designer styles them once and the
+whole app follows. There is no second way to draw a group of controls or a labelled row: the `<details>` group,
+`.field-row`, `.check`, `.number`, `.edit-size` and `.tool-option` of the older code are gone.
 
 ### Panel (`src/components/Panel.tsx`)
 
@@ -254,6 +256,10 @@ A titled block of controls. **Every panel has a title.** Four shapes, from two c
 
 `columns={2}` or `{3}` lays the body out in that many columns of equal width. The panel is a CSS container, so a narrow panel drops its body to one column by itself - no window width, no media query.
 
+`busy` dims the panel and marks it `aria-busy` while its contents are on their way (the supports check waiting for
+a verdict). `className` is for where a panel sits, never for how it looks. The section names itself from its own
+title (`aria-labelledby`), so the title words are the region's name and are never written twice.
+
 The title is a solid bar with its words in the opposite colour, and a closed panel's bar is plainly lighter than an open one's (`--panel-title-bg` / `--panel-title-bg-closed`), so open and closed are told apart at a glance. Classes `.panel-widget`, `.panel-widget-title` (`.is-toggle` when it collapses), `.panel-widget-chevron`, `.panel-widget-body`. Names `{ui}`, `{ui}-title`, `{ui}-body`. (`.panel` is something else: the app's left and right side panels.)
 
 ### Field (`src/components/Field.tsx`)
@@ -264,7 +270,16 @@ One control with its label, and it holds whatever the control is: a text or numb
 - `layout="stack"`: label on top. For a control that needs the width, or a label too long to sit beside one.
 - A `row` field stands its label on top by itself inside a narrow panel, so the layout never has to be picked for a width.
 
-The field carries the label, so the control inside it is bare - do not put a control that draws its own label (`NumberField`, a `.check` label) inside one, or the word appears twice. Classes `.field`, `.field--row`, `.field--stack`, `.field--read-only`, `.field-label`, `.field-control`. Names `{ui}`, `{ui}-label`, `{ui}-control`.
+- `grouped` for a control that is several controls (a segmented switch): the wrapper is a plain row too, since a
+  `<label>` may only reach one control, and the group names itself with its own `aria-label`.
+- `hint` is what the setting does, shown on hover; `className` is for where the field sits, never for how it looks.
+
+The field styles whatever is inside it, so the control is bare: a slider, a checkbox, a `<select>`, an `<output>`
+value and a unit `<small>` need no class of their own, and a typed value gets the underline and the right-aligned
+tabular figures from `.field-control > input`. Do not put a control that draws its own label inside a field, or the
+word appears twice - `NumberField` and `RangeField` **are** fields already, so use them directly.
+
+Classes `.field`, `.field--row`, `.field--stack`, `.field--read-only`, `.field-label`, `.field-control`. Names `{ui}`, `{ui}-label`, `{ui}-control`.
 
 All four panel shapes and a two-column panel holding every kind of control are on the catalogue page (`kit.html`).
 
@@ -285,6 +300,11 @@ Style by `[data-ui="name"]`. `{kind}` is `denture` or `aligner`; in `problem-ite
 | Aligner Step 3 blocks | `aligner-support-settings`, `aligner-edit-supports`, `aligner-problems`, `aligner-check-run`, `aligner-id-label`, `restore-step-2` |
 | Restore step | `restore-step-1` (Step 1), `restore-step-area` (aligner area step), `restore-step-2` (supports step) |
 | Step 2, parts list | `{kind}-parts`, `{kind}-parts-summary`, `{kind}-parts-fused-note`, `{kind}-parts-list`, `{kind}-part-row` |
+| Supports step, the settings of a block | `{kind}-tip-size`, `{kind}-pillar-size`, `{kind}-lift-height`, `{kind}-raft`, `{kind}-tree-branches`, `{kind}-cross-braces`, `{kind}-id-label-text` |
+| Right panel, every setting | `setting-{key}` for the setting of that name (`setting-liftHeight`, `setting-scatterSpacing`, `setting-contactShape`...), plus `setting-preset` and `setting-roof-mode` |
+| Right panel, the groups | `setting-group-{title}` from the group's English title: `setting-group-auto-placement`, `-tree-supports`, `-contact-tip`, `-pillar`, `-foot`, `-bracing`, `-raft`, `-roof`, `-cage`, `-id-label`, `-advanced` |
+| Edit bar and area tools | `dental-brush-size`, `dental-area-width`, `dental-area-position`, `dental-support-density`, `surface-brush-size`, `select-circle-size`, `click-reach` |
+| Debug layers (3D view) | `debug-layers`, `debug-layer-{id}` |
 | Plate | `plate-panel`, `plate-printer`, `plate-printer-select`, `plate-size`, `plate-arrange`, `plate-unplaced`, `plate-unplaced-item` |
 | Viewport | `unresolved-bubble`, `landing-mark` |
 

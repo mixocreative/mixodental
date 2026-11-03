@@ -5,7 +5,9 @@ import { settingLimits } from '@mixo-geocore/host/core/supports/settings';
 import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import { shapeHeading, type ShapeView } from '@mixo-geocore/editing/shapeEdit';
 import { CommandButton } from './CommandButton';
+import { Field } from './Field';
 import { NumberField } from './NumberField';
+import { Panel } from './Panel';
 import { t } from '../i18n';
 import { hint } from './hint';
 
@@ -13,7 +15,7 @@ type NumberKey = keyof typeof settingLimits;
 type BooleanKey = { [K in SettingKey]: LiveSupportSettings[K] extends boolean ? K : never }[SettingKey];
 type ChoiceKey = 'contactShape' | 'tipSection' | 'tipProfile';
 
-type Field = (
+type SettingRow = (
   | ({ kind: 'number'; key: NumberKey; unit?: 'mm' | '°' | '%'; step?: number } & ({ label: string; hint: string } | { command: CommandId }))
   | { kind: 'boolean'; key: BooleanKey; label: string; hint: string }
   | { kind: 'text'; key: 'labelText'; label: string; placeholder: string; hint: string }
@@ -26,7 +28,7 @@ type Field = (
 
 interface Group {
   title: string;
-  fields: Field[];
+  fields: SettingRow[];
   /** Only shown while this predicate holds (e.g. roof fields in Roof mode). */
   when?: (settings: LiveSupportSettings) => boolean;
   open?: boolean;
@@ -36,10 +38,10 @@ interface Group {
 
 // Every setting has a hint (shown on hover and read as its accessible description); the wording
 // follows the Blender add-on's tooltips where it has one.
-const mm = (key: NumberKey, label: string, step: number, hint: string): Field => ({ kind: 'number', key, label, unit: 'mm', step, hint });
-const deg = (key: NumberKey, label: string, hint: string): Field => ({ kind: 'number', key, label, unit: '°', step: 1, hint });
-const int = (key: NumberKey, label: string, hint: string): Field => ({ kind: 'number', key, label, step: 1, hint });
-const bool = (key: BooleanKey, label: string, hint: string): Field => ({ kind: 'boolean', key, label, hint });
+const mm = (key: NumberKey, label: string, step: number, hint: string): SettingRow => ({ kind: 'number', key, label, unit: 'mm', step, hint });
+const deg = (key: NumberKey, label: string, hint: string): SettingRow => ({ kind: 'number', key, label, unit: '°', step: 1, hint });
+const int = (key: NumberKey, label: string, hint: string): SettingRow => ({ kind: 'number', key, label, step: 1, hint });
+const bool = (key: BooleanKey, label: string, hint: string): SettingRow => ({ kind: 'boolean', key, label, hint });
 const sphere = (settings: LiveSupportSettings) => settings.contactShape === 'SPHERE';
 
 /** Field layout mirrors the Blender Resin UV "SLA Supports" panel. Titles, labels and hints are i18n keys. */
@@ -212,6 +214,9 @@ export interface SettingsPanelProps {
 const MIXED_CHOICES = { contactShape: ['NONE', 'SPHERE'], tipSection: ['ROUND', 'SQUARE', 'CROSS'] } as const;
 const MIXED_HINT = 'Selected supports have different values. Enter a value to set them all.';
 
+/** A group's stable name from its English title (the i18n key), e.g. `Auto placement` -> `setting-group-auto-placement`. */
+const groupUi = (title: string) => `setting-group-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+
 /** The note under a placement setting while a mode holds the supports still. */
 function DeferNote() {
   return <p className="help defer-note">{t('Applies on next Generate.')}</p>;
@@ -224,7 +229,7 @@ function DeferNote() {
  */
 export default function SettingsPanel({ settings, shape, ui, autoLabel, scope, disabled, locked = false, deferPlacement = false, placementPending = false, dentalMode = false, onChange, onCancelEdit, onPreset, onRoofMode }: SettingsPanelProps) {
   /** A field of the shape region is shown when its rule holds for the support or for any value a differing key could take. */
-  const shown = (field: Field, region: 'shape' | undefined) => {
+  const shown = (field: SettingRow, region: 'shape' | undefined) => {
     if (!field.when) return true;
     if (region !== 'shape') return field.when(settings);
     const variants = (['contactShape', 'tipSection'] as const).reduce<LiveSupportSettings[]>((all, key) => (shape.view[key] === undefined ? all.flatMap((rep) => MIXED_CHOICES[key].map((value) => ({ ...rep, [key]: value }))) : all), [shape.rep]);
@@ -233,33 +238,41 @@ export default function SettingsPanel({ settings, shape, ui, autoLabel, scope, d
   const mixed = shape.selected > 0;
   const groups = (region: 'shape' | undefined) => SETTING_GROUPS.filter((group) => group.region === region &&
     (!dentalMode || !['Auto placement', 'Tree supports', 'Bracing', 'Roof', 'Cage'].includes(group.title)) &&
-    (!group.when || group.when(region === 'shape' ? shape.rep : settings))).map((group) => <details key={group.title} open={group.open}>
-    <summary>{t(group.title)}</summary>
+    (!group.when || group.when(region === 'shape' ? shape.rep : settings))).map((group) => <Panel key={group.title} title={t(group.title)} ui={groupUi(group.title)} collapsible defaultOpen={group.open ?? false}>
     {deferPlacement && group.title === 'Auto placement' && <DeferNote />}
     {group.fields.filter((field) => shown(field, region)).map((field) => {
       const value = <K extends SettingKey>(key: K): LiveSupportSettings[K] | undefined => (region === 'shape' ? shape.view[key as ShapeKey] as LiveSupportSettings[K] | undefined : settings[key]);
       const change = region === 'shape' ? shape.onChange : onChange;
+      const name = `setting-${field.key}`;
       switch (field.kind) {
         case 'number': {
           const { label, hint: text } = 'command' in field ? resolve(field.command, ui) : field;
           const differs = region === 'shape' && value(field.key) === undefined;
-          return <NumberField key={field.key} label={t(label)} unit={field.unit} step={field.step ?? 0.1} limits={settingLimits[field.key]} value={value(field.key)} hint={t(differs ? MIXED_HINT : text)} onChange={(next, edit) => change(field.key, next, edit)} onCancel={onCancelEdit} />;
+          return <NumberField key={field.key} label={t(label)} ui={name} unit={field.unit} step={field.step ?? 0.1} limits={settingLimits[field.key]} value={value(field.key)} hint={t(differs ? MIXED_HINT : text)} onChange={(next, edit) => change(field.key, next, edit)} onCancel={onCancelEdit} />;
         }
         case 'boolean':
-          return <label key={field.key} className="check" title={t(field.hint)}><input type="checkbox" checked={settings[field.key]} aria-description={t(field.hint)} onChange={(event) => onChange(field.key, event.target.checked)} /> {t(field.label)}</label>;
+          return <Field key={field.key} label={t(field.label)} ui={name} hint={t(field.hint)}>
+            <input type="checkbox" checked={settings[field.key]} aria-description={t(field.hint)} onChange={(event) => onChange(field.key, event.target.checked)} />
+          </Field>;
         case 'text':
-          return <label key={field.key} className="field-row" title={t(field.hint)}><span>{t(field.label)}</span><input className="text" maxLength={4} value={settings.labelText} placeholder={`${t(field.placeholder)} (${autoLabel})`} aria-description={t(field.hint)} onChange={(event) => onChange('labelText', event.target.value.toUpperCase())} /></label>;
+          return <Field key={field.key} label={t(field.label)} ui={name} hint={t(field.hint)}>
+            <input type="text" maxLength={4} value={settings.labelText} placeholder={`${t(field.placeholder)} (${autoLabel})`} aria-description={t(field.hint)} onChange={(event) => onChange('labelText', event.target.value.toUpperCase())} />
+          </Field>;
         case 'choice':
-          return <div key={field.key} className="field-row" title={t(region === 'shape' && value(field.key) === undefined ? MIXED_HINT : field.hint)}><span>{t(field.label)}</span><div className="segmented" role="group" aria-label={t(field.label)} aria-description={t(field.hint)}>
-            {field.options.map((option) => <button key={option.value} type="button" aria-pressed={value(field.key) === option.value} onClick={() => change(field.key, option.value as LiveSupportSettings[ChoiceKey])}>{t(option.label)}</button>)}
-          </div></div>;
+          return <Field key={field.key} label={t(field.label)} ui={name} grouped layout="stack" hint={t(region === 'shape' && value(field.key) === undefined ? MIXED_HINT : field.hint)}>
+            <div className="segmented" role="group" aria-label={t(field.label)} aria-description={t(field.hint)}>
+              {field.options.map((option) => <button key={option.value} type="button" aria-pressed={value(field.key) === option.value} onClick={() => change(field.key, option.value as LiveSupportSettings[ChoiceKey])}>{t(option.label)}</button>)}
+            </div>
+          </Field>;
         case 'preview':
-          return <div key={field.key} className="field-row" title={t(field.hint)}><span>{t(field.label)}</span><div className="segmented" role="group" aria-label={t(field.label)} aria-description={t(field.hint)}>
-            {(['FULL', 'ONLY_TIP'] as const).map((mode) => <button key={mode} type="button" aria-pressed={settings.previewMode === mode} onClick={() => onChange('previewMode', mode)}>{t(mode === 'FULL' ? 'Full' : 'Only tip')}</button>)}
-          </div></div>;
+          return <Field key={field.key} label={t(field.label)} ui={name} grouped layout="stack" hint={t(field.hint)}>
+            <div className="segmented" role="group" aria-label={t(field.label)} aria-description={t(field.hint)}>
+              {(['FULL', 'ONLY_TIP'] as const).map((mode) => <button key={mode} type="button" aria-pressed={settings.previewMode === mode} onClick={() => onChange('previewMode', mode)}>{t(mode === 'FULL' ? 'Full' : 'Only tip')}</button>)}
+            </div>
+          </Field>;
       }
     })}
-  </details>);
+  </Panel>);
   const inert = locked ? { inert: '' } : {};
   const heading = shapeHeading(shape.selected);
   const objectRegion = (
@@ -267,22 +280,20 @@ export default function SettingsPanel({ settings, shape, ui, autoLabel, scope, d
       <h3>{t('Object: {scope}', { scope })}</h3>
       {placementPending && <p className="help pending-note" role="note">{t('Placement changed. Regenerate to apply.')}</p>}
       <fieldset className="settings" disabled={disabled}>
-        {!dentalMode && <div className="field-row" title={t('Support preset. Editing any value switches to Custom')}>
-          <span>{t('Preset')}</span>
-          <div className="segmented">
+        {!dentalMode && <Field label={t('Preset')} ui="setting-preset" grouped layout="stack" hint={t('Support preset. Editing any value switches to Custom')}>
+          <div className="segmented" role="group" aria-label={t('Preset')}>
             {(['LIGHT', 'MIDDLE', 'HEAVY'] as const).map((preset) => <button key={preset} type="button" aria-pressed={settings.preset === preset} onClick={() => onPreset(preset)} {...hint(PRESET_HINTS[preset])}>{t(PRESET_LABELS[preset])}</button>)}
             <button type="button" disabled className={settings.preset === 'CUSTOM' ? 'custom on' : 'custom'} {...hint('Values edited by hand')}>{t('Custom')}</button>
           </div>
-        </div>}
-        <NumberField label={t('Lift height')} unit="mm" step={0.5} limits={settingLimits.liftHeight} value={settings.liftHeight} onChange={(value, edit) => onChange('liftHeight', value, edit)} onCancel={onCancelEdit} hint={t('Lowest model point above the plate')} />
+        </Field>}
+        <NumberField label={t('Lift height')} ui="setting-liftHeight" unit="mm" step={0.5} limits={settingLimits.liftHeight} value={settings.liftHeight} onChange={(value, edit) => onChange('liftHeight', value, edit)} onCancel={onCancelEdit} hint={t('Lowest model point above the plate')} />
         {dentalMode && <p className="help" role="note">{t('Dental contact area is set in Step 2. Tip size, density, lift, raft, trees and braces are set in Step 3.')}</p>}
         {deferPlacement && <DeferNote />}
-        {!dentalMode && <div className="field-row" title={t('Structure above or around the model. Each mode gets its defaults the first time it is used')}>
-          <span>{t('Roof / cage')}</span>
-          <div className="segmented">
+        {!dentalMode && <Field label={t('Roof / cage')} ui="setting-roof-mode" grouped layout="stack" hint={t('Structure above or around the model. Each mode gets its defaults the first time it is used')}>
+          <div className="segmented" role="group" aria-label={t('Roof / cage')}>
             {(['OFF', 'ROOF', 'CAGE'] as const).map((mode) => <button key={mode} type="button" aria-pressed={settings.roofMode === mode} onClick={() => onRoofMode(mode)} {...hint(ROOF_HINTS[mode])}>{t(ROOF_LABELS[mode])}</button>)}
           </div>
-        </div>}
+        </Field>}
         {groups(undefined)}
       </fieldset>
     </section>

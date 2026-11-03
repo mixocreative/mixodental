@@ -115,7 +115,7 @@ export function SelectStyleSwitch({ gesture, ui, send, run }: {
             <DragActionSwitch ui={ui} run={run} />
             <span className="drag-shift-hint">{t(gesture.flipped ? (gesture.base === 'select' ? 'Release Shift to select' : 'Release Shift to unselect') : gesture.base === 'select' ? 'Hold Shift to unselect' : 'Hold Shift to select')}</span>
             <RangeField
-              layout="stack" label="Circle size" unit="{n} px" hint="Radius of the circle around the pointer, in screen pixels: supports it passes over are selected"
+              layout="stack" label="Circle size" ui="select-circle-size" unit="{n} px" hint="Radius of the circle around the pointer, in screen pixels: supports it passes over are selected"
               min={8} max={80} step={4} value={gesture.brush.radius}
               onChange={(radius) => send({ type: 'setBrushRadius', radius })}
               onAdjust={(sizing) => send({ type: 'setBrushSizing', sizing })}
@@ -138,5 +138,5 @@ export function DragActionSwitch({ ui, run }: { ui: UiState; run: (id: CommandId
 /** Click reach from the registry as a number field: the same control as the Advanced row of the right panel. */
 export function ClickReachField({ ui, value, onChange }: { ui: UiState; value: number; onChange: (value: number, edit?: string) => void }) {
   const { label, hint } = resolve('setting.clickReach', ui);
-  return <NumberField label={t(label)} unit="mm" step={0.1} limits={settingLimits.eraseRadius} value={value} hint={t(hint)} onChange={onChange} />;
+  return <NumberField label={t(label)} ui="click-reach" unit="mm" step={0.1} limits={settingLimits.eraseRadius} value={value} hint={t(hint)} onChange={onChange} />;
 }

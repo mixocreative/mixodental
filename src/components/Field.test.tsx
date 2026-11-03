@@ -25,6 +25,21 @@ describe('Field', () => {
     expect(html).toContain('94');
   });
 
+  it('is a plain row, not a label, when its control is several controls', () => {
+    const html = renderToStaticMarkup(<Field label="Preset" ui="preset" grouped>
+      <div className="segmented" role="group" aria-label="Preset"><button type="button">Light</button><button type="button">Heavy</button></div>
+    </Field>);
+    expect(html).toContain('<div class="field field--row" data-ui="preset">');
+    expect(html).not.toContain('<label');
+  });
+
+  it('shows what the setting does on hover, and takes a class for where it sits', () => {
+    const html = renderToStaticMarkup(<Field label="Lift height" ui="lift" hint="Lowest model point above the plate" className="denture-landing"><input type="number" /></Field>);
+    expect(html).toContain('class="field field--row denture-landing"');
+    expect(html).toContain('title="Lowest model point above the plate"');
+    expect(renderToStaticMarkup(<Field label="x" ui="x"><input /></Field>)).not.toContain('title');
+  });
+
   it('takes any control: a slider, a checkbox, a switch, a dropdown', () => {
     const controls = [
       <input key="r" type="range" />,

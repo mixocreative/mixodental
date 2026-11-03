@@ -1,5 +1,6 @@
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import { plural, t } from '../../../i18n';
+import { Panel } from '../../../components/Panel';
 import { isResolvable } from './resolvePoint';
 
 /**
@@ -13,8 +14,7 @@ export function ResolveSection({ mesh }: { mesh: Pick<GeneratedSupportMesh, 'unr
   const points = mesh?.unresolved ?? [];
   const { resolvable, refused } = unresolvedCounts(mesh);
   const landed = mesh?.modelLanded?.length ?? 0;
-  return <section className="dental-block denture-resolve" data-ui="denture-resolve" aria-label={t('Unresolved points')}>
-    <h3>{t('Unresolved points')}</h3>
+  return <Panel title={t('Unresolved points')} ui="denture-resolve">
     {!mesh ? <p className="help" role="status">{t('Building supports…')}</p>
       : points.length === 0 ? <p className="help" data-ui="denture-resolve-none">{t('Every tip and island has a support.')}</p>
         : <>
@@ -22,7 +22,7 @@ export function ResolveSection({ mesh }: { mesh: Pick<GeneratedSupportMesh, 'unr
           {refused > 0 ? <p className="edit-note" data-ui="denture-resolve-islands-sideways">{plural(refused, '1 island faces sideways: no support tip can stand on it.', '{n} islands face sideways: no support tip can stand on them.')}</p> : null}
         </>}
     {landed > 0 ? <p className="help" data-ui="denture-resolve-landed">{plural(landed, '1 support stands on the model surface (coloured dot).', '{n} supports stand on the model surface (coloured dots).')}</p> : null}
-  </section>;
+  </Panel>;
 }
 
 /** The unresolved points of `mesh` a click supports (`resolvable`) and the islands no tip can stand on (`refused`). */

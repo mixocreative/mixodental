@@ -14,7 +14,7 @@ import type { ReactNode } from 'react';
  *
  * Names: the field is `data-ui={ui}`, its label `{ui}-label`, its control `{ui}-control`.
  */
-export function Field({ label, ui, layout = 'row', readOnly = false, children }: {
+export function Field({ label, ui, layout = 'row', readOnly = false, grouped = false, hint, className, children }: {
   /** The label words, already translated. */
   label: string;
   /** The field's stable name, e.g. `lift-height`. */
@@ -25,14 +25,25 @@ export function Field({ label, ui, layout = 'row', readOnly = false, children }:
    * control would send a click nowhere and read as interactive to a screen reader.
    */
   readOnly?: boolean;
+  /**
+   * The control is several controls (a segmented switch, a pair of buttons). The wrapper is then a plain row
+   * too: a `<label>` may only reach one control, and the group names itself with its own `aria-label`.
+   */
+  grouped?: boolean;
+  /** What the setting does, already translated: shown on hover. The control itself carries it for a reader. */
+  hint?: string;
+  /** Extra classes for where the field sits, never for how it looks. */
+  className?: string;
   children: ReactNode;
 }) {
-  const className = `field field--${layout}${readOnly ? ' field--read-only' : ''}`;
+  const classes = ['field', `field--${layout}`, readOnly ? 'field--read-only' : '', className ?? ''].filter(Boolean).join(' ');
+  const plain = readOnly || grouped;
   const inside = <>
     <span className="field-label" data-ui={`${ui}-label`}>{label}</span>
     <span className="field-control" data-ui={`${ui}-control`}>{children}</span>
   </>;
-  return readOnly
-    ? <div className={className} data-ui={ui}>{inside}</div>
-    : <label className={className} data-ui={ui}>{inside}</label>;
+  const extra = { ...(hint ? { title: hint } : {}) };
+  return plain
+    ? <div className={classes} data-ui={ui} {...extra}>{inside}</div>
+    : <label className={classes} data-ui={ui} {...extra}>{inside}</label>;
 }

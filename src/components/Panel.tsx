@@ -13,10 +13,13 @@ import { useState, type ReactNode } from 'react';
  * `columns` lays the body out in 2 or 3 columns of equal width; the body falls back to one column by itself when
  * the panel is narrow (a container query), so a column count never has to be chosen for a particular width.
  *
+ * The section is a named region: `aria-labelledby` points at its own title, so the title words are the region's
+ * name and are never written twice.
+ *
  * Names: the section is `data-ui={ui}`, the title `{ui}-title`, the body `{ui}-body`, so a designer and the walk
  * can reach any part of any panel by one rule.
  */
-export function Panel({ title, ui, collapsible = false, defaultOpen = true, columns = 1, open, onToggle, children }: {
+export function Panel({ title, ui, collapsible = false, defaultOpen = true, columns = 1, className, busy, open, onToggle, children }: {
   /** The heading words, already translated. */
   title: string;
   /** The panel's stable name, e.g. `denture-adjust`. */
@@ -26,6 +29,10 @@ export function Panel({ title, ui, collapsible = false, defaultOpen = true, colu
   columns?: 1 | 2 | 3;
   /** Only for a collapsible panel that keeps its own state: which way it starts. */
   defaultOpen?: boolean;
+  /** Extra classes for where the panel sits, never for how it looks (e.g. `denture-parts`). */
+  className?: string;
+  /** The panel's contents are on their way: dimmed and `aria-busy`. */
+  busy?: boolean;
   /** Only for a collapsible panel the caller owns: pass both this and `onToggle`. */
   open?: boolean;
   onToggle?: (open: boolean) => void;
@@ -40,13 +47,15 @@ export function Panel({ title, ui, collapsible = false, defaultOpen = true, colu
   };
 
   const bodyId = `${ui}-body`;
+  const titleId = `${ui}-title`;
+  const classes = ['panel-widget', isOpen ? 'is-open' : '', busy ? 'is-stale' : '', className ?? ''].filter(Boolean).join(' ');
   const body = isOpen ? <div className="panel-widget-body" id={bodyId} data-ui={bodyId} data-columns={columns}>{children}</div> : null;
-  return <section className={isOpen ? 'panel-widget is-open' : 'panel-widget'} data-ui={ui}>
+  return <section className={classes} data-ui={ui} aria-labelledby={titleId} {...(busy ? { 'aria-busy': true } : {})}>
     {collapsible
-      ? <button type="button" className="panel-widget-title is-toggle" data-ui={`${ui}-title`} aria-expanded={isOpen} aria-controls={bodyId} onClick={toggle}>
+      ? <button type="button" className="panel-widget-title is-toggle" id={titleId} data-ui={titleId} aria-expanded={isOpen} aria-controls={bodyId} onClick={toggle}>
         <span className="panel-widget-chevron" aria-hidden="true" />{title}
       </button>
-      : <h3 className="panel-widget-title" data-ui={`${ui}-title`}>{title}</h3>}
+      : <h3 className="panel-widget-title" id={titleId} data-ui={titleId}>{title}</h3>}
     {body}
   </section>;
 }

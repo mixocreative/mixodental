@@ -122,7 +122,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
             const command = resolve(`dental.tool.${tool}`, ui);
             return { value: tool, label: t(command.label), hint: command.hint, ...(command.shortcut ? { shortcut: command.shortcut } : {}) };
           })} />
-        {gesture.brush && <RangeField layout="row" label="Brush size" unit="{n} mm" hint="Radius of the surface brush" min={0.5} max={10} step={0.5} value={gesture.brush.radius}
+        {gesture.brush && <RangeField layout="row" label="Brush size" ui="dental-brush-size" unit="{n} mm" hint="Radius of the surface brush" min={0.5} max={10} step={0.5} value={gesture.brush.radius}
           onChange={(radius) => send({ type: 'setDentalRadius', radius })} />}
         {gesture.edit && gesture.edit.kind !== 'add' && <SelectStyleSwitch gesture={gesture.edit} ui={ui} send={send} run={run} />}
         {gesture.edit && clickReach && (gesture.edit.kind === 'add' || gesture.edit.kind === 'pick') && <ClickReachField ui={ui} {...clickReach} />}
@@ -130,13 +130,13 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         {gesture.edit && ['edit.clearSelection', 'edit.deleteSelection'].map((id) => resolve(id as CommandId, ui)).filter((command) => command.visible).map((command) => <CommandButton key={command.id} command={command} run={run} />)}
       </div>
       {tuning && tuningLimits && <div className="edit-row dental-tuning" role="group" aria-label={t('Aligner contact strip')}>
-        <RangeField layout="row" label="Area width" unit="{n} mm" hint="Width of the support area along each edge"
+        <RangeField layout="row" label="Area width" ui="dental-area-width" unit="{n} mm" hint="Width of the support area along each edge"
           min={tuningLimits.stripWidthMinMm} max={tuningLimits.stripWidthMaxMm} step={0.1} value={tuning.stripWidthMm}
           onChange={(stripWidthMm) => onTuningChange?.({ ...tuning, stripWidthMm })} />
-        <RangeField layout="row" label="Area position" unit="{n} mm" hint="Higher moves the support area farther onto the outer surface; lower moves it toward and across the edge"
+        <RangeField layout="row" label="Area position" ui="dental-area-position" unit="{n} mm" hint="Higher moves the support area farther onto the outer surface; lower moves it toward and across the edge"
           min={tuningLimits.positionMinMm} max={tuningLimits.positionMaxMm} step={0.05} value={tuning.positionMm}
           onChange={(positionMm) => onTuningChange?.({ ...tuning, positionMm })} />
-        <RangeField layout="row" label="Support density" unit="{n}×" hint="Higher density places proposed tips closer together"
+        <RangeField layout="row" label="Support density" ui="dental-support-density" unit="{n}×" hint="Higher density places proposed tips closer together"
           min={tuningLimits.densityMin} max={tuningLimits.densityMax} step={0.1} value={tuning.density}
           onChange={(density) => onTuningChange?.({ ...tuning, density })} />
       </div>}

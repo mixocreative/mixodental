@@ -1,5 +1,6 @@
 import { t } from '../../i18n';
-import { hint } from '../../components/hint';
+import { Field } from '../../components/Field';
+import { Panel } from '../../components/Panel';
 import { RangeField } from '../../components/RangeField';
 import { CLEARANCE_FLOOR_LIMITS, type DentureOptions, type ModelLandingDefault } from './dentureOptions';
 
@@ -15,23 +16,20 @@ const LANDING_LABELS: Record<ModelLandingDefault, string> = {
  * (mm). Inputs: `options`, the unit's settings; `onChange` gets the whole new set (one undo step each change).
  */
 export function DentureSettingsSection({ options, onChange }: { options: Readonly<DentureOptions>; onChange: (options: DentureOptions) => void }) {
-  return <section className="dental-block denture-settings" data-ui="denture-settings" aria-label={t('Denture settings')}>
-    <h3>{t('Denture settings')}</h3>
-    <label className="field-row denture-landing" data-ui="denture-model-landing" {...hint('Where the build may support a tip from the model surface when the plate cannot reach it')}>
-      <span>{t('Supports may touch the denture')}</span>
+  return <Panel title={t('Denture settings')} ui="denture-settings">
+    <Field label={t('Supports may touch the denture')} ui="denture-model-landing" layout="stack"
+      hint={t('Where the build may support a tip from the model surface when the plate cannot reach it')}>
       <select className="denture-landing-select" data-ui="denture-model-landing-select" value={options.modelLanding}
         onChange={(event) => onChange({ ...options, modelLanding: event.target.value as ModelLandingDefault })}>
         {(Object.keys(LANDING_LABELS) as ModelLandingDefault[]).map((value) => <option key={value} value={value}>{t(LANDING_LABELS[value])}</option>)}
       </select>
-    </label>
-    <label className="check denture-low-outside" data-ui="denture-low-outside" {...hint('Off: lowest points and islands get tips only inside the allowed area or near the rim')}>
+    </Field>
+    <Field label={t('Low tips outside the allowed area')} ui="denture-low-outside"
+      hint={t('Off: lowest points and islands get tips only inside the allowed area or near the rim')}>
       <input type="checkbox" checked={options.lowOutsideAllowed} onChange={(event) => onChange({ ...options, lowOutsideAllowed: event.target.checked })} />
-      {t('Low tips outside the allowed area')}
-    </label>
-    <div data-ui="denture-clearance-floor">
-      <RangeField layout="stack" label="Last-resort clearance" unit="{n} mm" hint="The smallest gap a support keeps from the model when nothing else routes"
-        min={CLEARANCE_FLOOR_LIMITS.min} max={CLEARANCE_FLOOR_LIMITS.max} step={CLEARANCE_FLOOR_LIMITS.step} value={options.lastResortClearanceMm}
-        onChange={(value) => onChange({ ...options, lastResortClearanceMm: value })} />
-    </div>
-  </section>;
+    </Field>
+    <RangeField layout="stack" label="Last-resort clearance" ui="denture-clearance-floor" unit="{n} mm" hint="The smallest gap a support keeps from the model when nothing else routes"
+      min={CLEARANCE_FLOOR_LIMITS.min} max={CLEARANCE_FLOOR_LIMITS.max} step={CLEARANCE_FLOOR_LIMITS.step} value={options.lastResortClearanceMm}
+      onChange={(value) => onChange({ ...options, lastResortClearanceMm: value })} />
+  </Panel>;
 }

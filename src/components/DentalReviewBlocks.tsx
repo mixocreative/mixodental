@@ -11,7 +11,9 @@ import { kindText } from '../denture/kindText';
 import type { RuleReason } from '../denture/check/ruleSpots';
 import { CommandButton } from './CommandButton';
 import { EditTools } from './EditBar';
+import { Field } from './Field';
 import { hint } from './hint';
+import { Panel } from './Panel';
 import { ProblemList } from './ProblemList';
 import { RangeField } from './RangeField';
 
@@ -83,37 +85,37 @@ function NoteProblem({ text, onShow, onFix }: { text: string; onShow: () => void
 export function SupportSettingsBlock({ review, kind, onAdjust }: { review: DentalReview; kind: DentalKind; onAdjust: (adjusting: boolean) => void }) {
   const { settings, onSetting } = review;
   const tipKey: 'pointDiameter' | 'touchDiameter' = settings.contactShape === 'SPHERE' ? 'touchDiameter' : 'pointDiameter';
-  return <section className="dental-block" data-ui={`${kind}-support-settings`} aria-label={t('Support settings')}>
-    <h3>{t('Support settings')}</h3>
-    <RangeField layout="stack" label="Tip size" unit="{n} mm" hint={kindText('Diameter of each support tip where it touches the aligner', kind)}
+  return <Panel title={t('Support settings')} ui={`${kind}-support-settings`}>
+    <RangeField layout="stack" label="Tip size" ui={`${kind}-tip-size`} unit="{n} mm" hint={kindText('Diameter of each support tip where it touches the aligner', kind)}
       min={0.1} max={1} step={0.05} value={Number(settings[tipKey].toFixed(2))}
       onChange={(value) => onSetting(tipKey, value, `dental-${tipKey}`)} onAdjust={onAdjust} />
-    <RangeField layout="stack" label={kindText('Pillar size', kind)} unit="{n} mm" hint="Diameter of each support pillar"
+    <RangeField layout="stack" label={kindText('Pillar size', kind)} ui={`${kind}-pillar-size`} unit="{n} mm" hint="Diameter of each support pillar"
       min={0.8} max={2.5} step={0.1} value={settings.pillarDiameter}
       onChange={(v) => onSetting('pillarDiameter', v, 'dental-pillarDiameter')} onAdjust={onAdjust} />
-    <RangeField layout="stack" label={kindText('Lift height', kind)} unit="{n} mm" hint={kindText('How high the aligner stands above the plate. Supports are placed again', kind)}
+    <RangeField layout="stack" label={kindText('Lift height', kind)} ui={`${kind}-lift-height`} unit="{n} mm" hint={kindText('How high the aligner stands above the plate. Supports are placed again', kind)}
       min={settingLimits.liftHeight.min} max={15} step={0.5} value={settings.liftHeight}
       onChange={(value) => onSetting('liftHeight', value, 'dental-lift')} onAdjust={onAdjust} />
-    <label className="check" {...hint('Build a raft under the supports. The ID label needs it')}>
-      <input type="checkbox" checked={settings.raftEnabled} onChange={(event) => onSetting('raftEnabled', event.target.checked)} />{t('Raft')}
-    </label>
-    {kind === 'denture' ? null : <label className="check"><input type="checkbox" checked={review.structure.treeEnabled}
-      onChange={(event) => review.onStructure({ ...review.structure, treeEnabled: event.target.checked })} />{t('Tree branches')}</label>}
-    <label className="check"><input type="checkbox" checked={review.structure.bracesEnabled}
-      onChange={(event) => review.onStructure({ ...review.structure, bracesEnabled: event.target.checked })} />{t(kindText('Cross-braces', kind))}</label>
-  </section>;
+    <Field label={t('Raft')} ui={`${kind}-raft`} hint={t('Build a raft under the supports. The ID label needs it')}>
+      <input type="checkbox" checked={settings.raftEnabled} onChange={(event) => onSetting('raftEnabled', event.target.checked)} />
+    </Field>
+    {kind === 'denture' ? null : <Field label={t('Tree branches')} ui={`${kind}-tree-branches`}>
+      <input type="checkbox" checked={review.structure.treeEnabled} onChange={(event) => review.onStructure({ ...review.structure, treeEnabled: event.target.checked })} />
+    </Field>}
+    <Field label={t(kindText('Cross-braces', kind))} ui={`${kind}-cross-braces`}>
+      <input type="checkbox" checked={review.structure.bracesEnabled} onChange={(event) => review.onStructure({ ...review.structure, bracesEnabled: event.target.checked })} />
+    </Field>
+  </Panel>;
 }
 
 /** The Support Edit Mode tools (Add supports, Select supports and their options) inside the step. */
 export function EditSupportsBlock({ gesture, ui, review, send, run, kind }: {
   gesture: EditGesture; ui: UiState; review: DentalReview; send: (event: SessionEvent) => void; run: (id: CommandId) => void; kind: DentalKind;
 }) {
-  return <section className="dental-block" data-ui={`${kind}-edit-supports`} aria-label={t('Edit supports')}>
-    <h3>{t('Edit supports')}</h3>
+  return <Panel title={t('Edit supports')} ui={`${kind}-edit-supports`}>
     <div className="dental-tools">
       <EditTools gesture={gesture} ui={ui} clickReach={review.clickReach} send={send} run={run} engaged />
     </div>
-  </section>;
+  </Panel>;
 }
 
 /** The support check inside the step: Check, the build's notes, the findings with Show me and Fix. `stale` greys it while a verdict is on its way. */
@@ -122,29 +124,28 @@ export function ProblemsBlock({ review, ui, send, run, kind, stale }: {
 }) {
   const notes = reviewNotes(review, kind);
   const fixHere = () => FIX_TOOL_EVENTS.forEach(send);
-  return <section className={stale ? 'dental-block is-stale' : 'dental-block'} data-ui={`${kind}-problems`} aria-label={t('Problems')} aria-busy={stale}>
-    <h3>{t('Problems')}</h3>
+  return <Panel title={t('Problems')} ui={`${kind}-problems`} busy={stale}>
     <CommandButton command={resolve('check.run', ui)} run={run} uiName={`${kind}-check-run`} />
     {notes.length > 0 && <ul className="problems">
       {notes.map((note) => <NoteProblem key={note.key} text={note.text} onShow={review.onShowRim} onFix={fixHere} />)}
     </ul>}
     <ProblemList problems={review.problems} outOfDate={review.outOfDate} rechecking={review.rechecking} unitName={review.unitName} kindOf={() => kind} onShow={review.onShow} onFix={review.onFix} />
     {notes.length === 0 && review.problems.length === 0 && <p className="help">{t('No problems listed. Press Check supports to look for islands and overhangs.')}</p>}
-  </section>;
+  </Panel>;
 }
 
 /** The ID label embossed on the raft (letters, digits and "-", up to 8), with the note when the raft is off. */
 export function IdLabelBlock({ review, kind }: { review: DentalReview; kind: DentalKind }) {
   const { settings, onSetting } = review;
-  return <section className="dental-block" data-ui={`${kind}-id-label`} aria-label={t('ID label')}>
-    <label className="field-row" {...hint(kindText('Letters, digits and "-" only, up to 8. Embossed on the raft so printed aligners can be told apart', kind))}>
-      <span>{t('Text')}</span>
-      <input className="text dental-label" type="text" inputMode="text" autoComplete="off" spellCheck={false} value={settings.labelText}
+  return <Panel title={t('ID label')} ui={`${kind}-id-label`}>
+    <Field label={t('Text')} ui={`${kind}-id-label-text`}
+      hint={t(kindText('Letters, digits and "-" only, up to 8. Embossed on the raft so printed aligners can be told apart', kind))}>
+      <input className="dental-label" type="text" inputMode="text" autoComplete="off" spellCheck={false} value={settings.labelText}
         placeholder={DEFAULT_DENTAL_LABEL} aria-label={t('ID label')} data-max={DENTAL_LABEL_MAX}
         onChange={(event) => onSetting('labelText', filterDentalLabel(event.target.value), 'dental-label')} />
-    </label>
+    </Field>
     {!settings.raftEnabled && <p className="help" role="note">{t('The ID label is embossed on the raft. Turn the raft on to print it.')}</p>}
-  </section>;
+  </Panel>;
 }
 
 /** Back would discard hand work: the question, with Stay and Discard and go back. */

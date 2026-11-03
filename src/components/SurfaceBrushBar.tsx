@@ -25,7 +25,7 @@ export function SurfaceBrushBar<K extends string>({ className, label, kind, opti
   return <div className={['edit-bar', className].filter(Boolean).join(' ')}>
     <div className="edit-row">
       <Segmented label={t(label)} value={kind} onChange={onKindChange} options={options} />
-      <RangeField layout="row" label="Brush size" unit="{n} mm" hint="Radius of the surface brush" min={0.5} max={10} step={0.5} value={radius} onChange={onRadiusChange} />
+      <RangeField layout="row" label="Brush size" ui="surface-brush-size" unit="{n} mm" hint="Radius of the surface brush" min={0.5} max={10} step={0.5} value={radius} onChange={onRadiusChange} />
       {beforeActions}
     </div>
     {note}

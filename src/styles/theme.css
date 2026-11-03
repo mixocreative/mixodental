@@ -191,7 +191,6 @@
 [data-theme='instrument'] .danger { color: var(--signal); border-color: var(--signal); }
 [data-theme='instrument'] button:focus-visible,
 [data-theme='instrument'] input:focus-visible,
-[data-theme='instrument'] summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---- The three text styles ----------------------------------------------- */
 /* 1. TITLE: the one large line that names a full screen. The serif, sentence case, never tracked, never a caption
@@ -283,9 +282,8 @@
 [data-theme='instrument'] .staged-progress-time,
 [data-theme='instrument'] .staged-progress-repair,
 [data-theme='instrument'] .edit-count,
-[data-theme='instrument'] .edit-size output,
-[data-theme='instrument'] .tool-option output,
-[data-theme='instrument'] .number input,
+[data-theme='instrument'] .field-control output,
+[data-theme='instrument'] .field-control input,
 [data-theme='instrument'] .unit small,
 [data-theme='instrument'] .shape-band,
 [data-theme='instrument'] .plate-size,

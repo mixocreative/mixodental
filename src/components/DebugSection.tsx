@@ -1,4 +1,6 @@
 import { t } from '../i18n';
+import { Field } from './Field';
+import { Panel } from './Panel';
 import type { OrientationLayer } from '../dental/orientationEvidence';
 import { LAYER_LABELS, layerId, type DebugLayerStatus } from './useDebugLayers';
 
@@ -18,20 +20,18 @@ export function swatchColor(color: number): string {
 }
 
 export default function DebugSection({ open, onOpenChange, status, layers, visible, onToggle }: DebugSectionProps) {
-  return <div className="settings debug-section">
-    <details open={open} onToggle={(event) => onOpenChange(event.currentTarget.open)}>
-      <summary>{t('Debug')}</summary>
+  return <div className="debug-section">
+    <Panel title={t('Debug')} ui="debug-layers" collapsible open={open} onToggle={onOpenChange}>
       {status === 'busy' && <p className="help">{t('Computing layers…')}</p>}
       {status === 'failed' && <p className="help">{t('The layers could not be computed for this model.')}</p>}
       {status === 'ready' && layers.map((layer) => {
         const id = layerId(layer);
-        return <label key={id} className="check debug-layer">
-          <input type="checkbox" checked={visible.has(id)} onChange={() => onToggle(id)} />
+        return <Field key={id} label={t(LAYER_LABELS[id] ?? layer.name)} ui={`debug-layer-${id}`} className="debug-layer">
           <span className="debug-swatch" style={{ background: swatchColor(layer.color) }} aria-hidden="true" />
-          {t(LAYER_LABELS[id] ?? layer.name)}
-        </label>;
+          <input type="checkbox" checked={visible.has(id)} onChange={() => onToggle(id)} />
+        </Field>;
       })}
       <p className="help">{t('Step 1 evidence on the model. Display only; the export never reads it.')}</p>
-    </details>
+    </Panel>
   </div>;
 }

@@ -14,11 +14,12 @@ const layers: OrientationLayer[] = [
 describe('Debug section', () => {
   it('starts collapsed and lists the layers with their checkboxes', () => {
     const html = renderToStaticMarkup(<DebugSection open={false} onOpenChange={() => {}} status="ready" layers={layers} visible={new Set()} onToggle={() => {}} />);
-    expect(html).toContain('<details');
-    expect(html).not.toMatch(/<details[^>]*\sopen/);
+    expect(html).toContain('data-ui="debug-layers"');
+    expect(html).toContain('aria-expanded="false"');
     expect(html).toContain('>Debug<');
     const open = renderToStaticMarkup(<DebugSection open status="ready" onOpenChange={() => {}} layers={layers} visible={new Set()} onToggle={() => {}} />);
-    expect(open).toMatch(/<details[^>]*\sopen/);
+    expect(open).toContain('aria-expanded="true"');
+    expect(open).toContain('data-ui="debug-layer-TRIM"');
     expect(open.match(/type="checkbox"/g)).toHaveLength(2);
     expect(open).toContain(`background:${swatchColor(layers[0]!.color)}`);
   });
