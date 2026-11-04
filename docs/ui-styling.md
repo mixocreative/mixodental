@@ -267,6 +267,7 @@ Previews, selection, the dental support area, check findings and the brush curso
 | `--mark-remove` | `var(--red)` | Selected or about-to-be-removed support | Solid = selected, see-through = preview; the flash when a support is added; Select brush |
 | `--mark-ring` | `var(--ink)` | Pointer ring, tip markers, region outline | The ring under the pointer, grey tips, the outer region line, the Unselect and Erase brushes |
 | `--mark-zone` | `var(--blue)` | No-support zone paint | Zones layer and the Paint zones brush |
+| `--angle-mark` | `#17334e` | The print-angle mark drawn on the plate in Step 1 | The arc, its two lines and the reading beside them |
 | `--mark-dental` | `#2f6f5e` | Tip markers of the dental flow | Tips on the aligner in Step 2 |
 | `--mark-area-permitted` | `#e8566f` | The dental support area | Coloured faces and the rim outline where tips may stand |
 | `--mark-area-edge` | `#cc1f93` | Opening edge of the dental region | Line round the opening of a two-contour aligner |

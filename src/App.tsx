@@ -388,6 +388,20 @@ export default function App() {
   const areaRisks = useAreaRisks(activeUnit, editMode === 'dental' && session.dentalStage === 'area' && !dentalTuning.busy, analysis, unitName);
   const dentalPreview = dentalPreviewState.kind === 'ready' ? currentDentalPreview(activeUnit, dentalPreviewState.preview) : undefined;
 
+  /*
+   * STEPS 1 AND 2 OPEN AT THE SIDE VIEW. The print angle is an angle to the BUILD PLATE, and the only view
+   * that shows it as the angle it is, is the one where the plate is edge-on: from the front the tilt is a
+   * foreshortening the eye cannot measure. It is requested once as the step opens, not held, so the reader
+   * keeps whatever view they turn to afterwards.
+   */
+  const sideViewStage = editMode === 'dental' && session.dentalAligner === 'ready'
+    && (session.dentalStage === 'aligner' || session.dentalStage === 'area') ? session.dentalStage : undefined;
+  const openedAtSide = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (sideViewStage && sideViewStage !== openedAtSide.current) requestView('side', stepPanelInset(sessionRef.current));
+    openedAtSide.current = sideViewStage;
+  }, [sideViewStage, requestView]);
+
   // The tips that can be picked, deleted and counted: in Step 2 the tip preview's (with the unit's deletions and manual tips applied), else the build's.
   const inArea = editMode === 'dental' && session.dentalStage === 'area';
   // While a new preview loads, the last one's tips stay shown and pickable (a click in that window acts on them).
@@ -1347,6 +1361,9 @@ export default function App() {
           {...(shownPreview ? { dentalTips: { unitId: shownPreview.unitId, points: areaContacts } } : {})}
           {...(inArea ? { dentalArea: true } : {})}
           {...(inArea && activeUnit && areaRisks.length > 0 ? { dentalRisks: { unitId: activeUnit.id, risks: areaRisks } } : {})}
+          {...(editMode === 'dental' && session.dentalStage === 'aligner' && activeUnit && orientFlow.tilt?.unitId === activeUnit.id && orientFlow.tilt.status === 'ready'
+            ? { printAngle: { unitId: activeUnit.id, deg: orientFlow.tilt.scan.rows[orientFlow.tilt.index]!.tiltDeg } }
+            : {})}
           onPickTip={onPickTip}
           gesture={canvasGesture(press)}
           gizmoMode={gizmoMode}

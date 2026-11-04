@@ -25,10 +25,19 @@ export function ViewCamera({ view, unitIds }: { view?: ViewRequest; unitIds: rea
     }
     if (box.isEmpty()) return;
     // A panel over the right edge: the model is fitted into the width left of it, and sits in its middle.
-    const inset = view.kind === 'fit' ? Math.min(Math.max(view.rightInset ?? 0, 0), size.width * 0.6) : 0;
+    const inset = view.kind === 'fit' || view.kind === 'side' ? Math.min(Math.max(view.rightInset ?? 0, 0), size.width * 0.6) : 0;
     const sphere = boundsSphere({ min: box.min.toArray(), max: box.max.toArray() });
     const free = Math.max(size.width - inset, 1);
-    const framed = frameView({ ...sphere, radius: sphere.radius * Math.max(1, size.height / free) }, camera.fov, view.kind, { position: camera.position.toArray(), target: controls.target.toArray() });
+    const radius = sphere.radius * Math.max(1, size.height / free);
+    // SIDE: level with the model, so the build plate is edge-on and the print angle is read against it as the
+    // angle it is. It is its own case because `frameView` keeps the current direction for `fit`, and the whole
+    // point here is to LEAVE the current direction for a known one.
+    const framed = view.kind === 'side'
+      ? (() => {
+        const distance = Math.max(radius, 1) / Math.sin(camera.fov * (Math.PI / 180) / 2) * 1.25;
+        return { position: [sphere.center[0] + distance, sphere.center[1], sphere.center[2]] as [number, number, number], target: [...sphere.center] as [number, number, number] };
+      })()
+      : frameView({ ...sphere, radius }, camera.fov, view.kind, { position: camera.position.toArray(), target: controls.target.toArray() });
     camera.position.set(...framed.position);
     controls.target.set(...framed.target);
     controls.update();

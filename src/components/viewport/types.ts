@@ -24,6 +24,8 @@ export interface ObjectViewportProps {
   dentalTips?: { unitId: string; points: readonly Pick<SupportPoint, 'id' | 'position' | 'normal'>[] };
   /** Dental Step 2 is on (whichever tool): the area and tips show, no support bodies. */
   dentalArea?: boolean;
+  /** Step 1's print angle, drawn in the scene as an arc on the plate beside the model. */
+  printAngle?: { unitId: string; deg: number };
   /** Dental Step 2: the overhang low points outside the permitted area, drawn blue. */
   dentalRisks?: { unitId: string; risks: readonly AreaRisk[] };
   /** Debug section: the Step 1 evidence layers checked for the active object, in its own frame (drawn with its transform). */
@@ -84,4 +86,5 @@ export interface ObjectViewportProps {
 
 /** `bottom` looks straight up at the selection; `fit` frames it from the current angle. */
 /** `rightInset`: px of the canvas a panel covers on the right; a fit frames the model in the rest. */
-export interface ViewRequest { kind: 'bottom' | 'fit'; seq: number; rightInset?: number }
+/** `side`: level with the model, the plate edge-on, which is the view the print angle is judged in. */
+export interface ViewRequest { kind: 'bottom' | 'fit' | 'side'; seq: number; rightInset?: number }

@@ -81,6 +81,7 @@
   --mark-ring: var(--ink);
   --mark-zone: var(--blue);
   --mark-dental: #2f6f5e;
+  --angle-mark: #17334e;
   --mark-area-permitted: #e8566f;
   --mark-area-edge: #cc1f93;
   --mark-risk-outside: #1e50a2;
@@ -675,6 +676,20 @@ footer.on-scene button { pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) { .tilt-dial-dot, .tilt-dial-tick { transition: none; } }
 .problem-kind.angle { background: var(--danger); }
 .edit-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+/* THE PRINT ANGLE READ OFF THE SCENE: the app's own face, large, because it is the one number Step 1 is
+   about and it is read from across the bench. It is DOM over the canvas, so it stays sharp at any zoom. */
+.angle-reading {
+  font-family: var(--font-ui);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--angle-mark);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-shadow: 0 0 6px var(--scene-bg), 0 0 6px var(--scene-bg);
+}
+.angle-reading-deg { font-size: .6em; vertical-align: top; line-height: 1; }
+
 /* The note on the scene: a quiet bubble, not a panel. It never takes the pointer - the scene turns under it. */
 .scene-note {
   margin: 0;
