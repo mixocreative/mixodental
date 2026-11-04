@@ -177,7 +177,15 @@ h1 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: .08em; }
    the real answer was 143px, so every start screen scrolled 54px for no reason. A column cannot be wrong
    about its own parts. `min-height` and not `height`, so a screen taller than the window grows the page
    instead of overflowing it at both ends. */
-main { position: relative; display: flex; flex-direction: column; min-height: 100vh; }
+/* THE EDITOR IS EXACTLY AS TALL AS THE WINDOW, and this must be a DEFINITE height, not `min-height`.
+   `min-height` alone leaves the height indefinite, and `.workspace` below is `flex: 1`, which means
+   `flex-basis: 0%` - a PERCENTAGE basis. A percentage against an indefinite height cannot resolve, so the
+   browser falls back to sizing that item by its CONTENT. The workspace then took the full height of the
+   taller side panel, `main` grew to fit it, and the canvas filled all of it: measured at 1440x900, the
+   canvas came out 2063 px tall inside a 900 px window, with the page scrolling and most of the 3D view
+   below the fold. Pointer strokes aimed at the middle of the canvas landed off-screen entirely.
+   The stacked layout below 1100px wants the page to scroll instead, and sets `height: auto` back. */
+main { position: relative; display: flex; flex-direction: column; height: 100vh; min-height: 100vh; }
 
 .workspace {
   /* Takes what the header and footer leave. `min-height: 0` lets it SHRINK to that, so a tall panel scrolls
@@ -868,6 +876,9 @@ footer.on-scene button { pointer-events: auto; }
 /* ---- Tablet and phone: viewport on top, panels below, the page scrolls ---- */
 @media (max-width: 1100px) {
   header { height: auto; min-height: 56px; flex-wrap: wrap; gap: 10px; padding: 10px 16px; }
+  /* Here the panels stack UNDER the view and the page is meant to scroll, so the window-height lock comes
+     off again and `main` grows with its content. */
+  main { height: auto; }
   .header-actions { flex-wrap: wrap; gap: 10px; }
   .workspace { height: auto; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: max(58vh, 320px) auto; grid-template-areas: 'view view' 'left right'; }
   .workspace--dental { grid-template-columns: minmax(0, 1fr); grid-template-rows: max(58vh, 320px); grid-template-areas: 'view'; }

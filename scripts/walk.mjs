@@ -509,6 +509,24 @@ async function walk(url, scratch, dentalFixture) {
       early?.reached === true && early.building && early.status === 'Supports are still building.',
       `status "${early?.status}", build still running at the press ${early?.building}, Drag over engaged while building ${early?.reached}`);
 
+    /*
+     * a0. THE EDITOR FITS THE WINDOW. This is checked before anything strokes the canvas, because a canvas
+     * taller than the screen breaks every stroke at once and does it SILENTLY: the strokes below aim at
+     * fractions of the canvas box, so a canvas running past the bottom of the window sends them into empty
+     * space, no pointer event reaches the page, and five checks fail looking like five separate bugs.
+     *
+     * It happened: `main` had `min-height: 100vh` and no definite height, which left `.workspace`'s
+     * `flex-basis: 0%` unresolvable, so it sized to its tallest panel's content instead. At 1440x900 the
+     * canvas measured 2063 px inside a 900 px window with the page scrolling.
+     */
+    const fit = await d.page.evaluate(() => {
+      const box = document.querySelector('canvas').getBoundingClientRect();
+      return { height: Math.round(box.height), bottom: Math.round(box.bottom), page: document.documentElement.scrollHeight, window: window.innerHeight };
+    });
+    check('a0 the editor fits the window: the canvas does not run past the bottom of the screen',
+      fit.bottom <= fit.window + 1 && fit.page <= fit.window + 1,
+      `canvas ${fit.height} px tall, bottom at ${fit.bottom}, page ${fit.page}, window ${fit.window}`);
+
     // a. Generate and Drag over.
     const first = await d.counts();
     check('a1 generate: automatic count', first.auto === BASE.auto, `auto ${first.auto} (baseline ${BASE.auto}), manual ${first.manual}, removed ${first.removed}`);
@@ -794,8 +812,10 @@ async function walk(url, scratch, dentalFixture) {
     await d.button('Open project').click();
     await (await chooser2).setFiles(projectFile);
     await page.waitForFunction(() => document.querySelector('.undo-toast'), null, { timeout: 120000 });
-    // The toast counts down 6 s; hold it with the pointer while the plate settles (a slow machine outlasts it).
-    await page.locator('.undo-toast').hover();
+    // The toast counts down 6 s; hold it with the pointer while the plate settles. A slow machine outlasts
+    // it, and then there is nothing left to hover: that is not a failure, it is the toast doing its job, and
+    // the Undo below already falls back to the keyboard. Tolerated here exactly as it is tolerated there.
+    await page.locator('.undo-toast').hover({ timeout: 5000 }).catch(() => {});
     await d.settled();
     const over = await projectStats();
     await page.locator('.undo-toast').hover().catch(() => {});
