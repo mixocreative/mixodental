@@ -32,7 +32,7 @@ export function tiltProblems(row: TiltRow): string[] {
 }
 
 /** The Step 0 card art of each aligner type: the icon file that draws its top view. */
-const CARD_ICON: Record<string, string> = { 'reference-aligner': 'aligner-standard' };
+const CARD_ICON: Record<string, string> = { 'reference-aligner': 'aligner' };
 
 /** The top-view line art of one profile, in the card's ink colour (src/ui/assets/icons). */
 function ProfileArt({ profile }: { profile: AlignerProfile }) {

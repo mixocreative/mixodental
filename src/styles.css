@@ -778,7 +778,7 @@ dialog.terms .terms-item > span { flex: none; }
 .dental-card[aria-pressed='true'] { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
 .dental-card strong { font-size: 14px; font-weight: 500; letter-spacing: .04em; }
 .dental-card small { font-size: 11.5px; line-height: 1.7; color: var(--muted); }
-.dental-card-art { width: 150px; height: 112px; color: var(--ink); }
+.dental-card-art { width: 120px; height: 120px; color: var(--ink); }
 .dental-drop {
   display: grid;
   justify-items: center;
@@ -979,7 +979,25 @@ dialog.terms .terms-item > span { flex: none; }
   background: var(--paper);
 }
 .start-screen--dropping { outline: 1px solid var(--ink); outline-offset: -12px; }
-.start-back { position: absolute; top: 16px; left: 16px; z-index: 3; }
+/* The way back is chrome, not a card: a flat arrow in the very corner of the screen, with no box and no fill,
+   so the screen reads as a control surface rather than a page with a button on it. The target stays 44px square
+   while the arrow inside it stays small. */
+.start-back {
+  position: absolute; top: 0; left: 0; z-index: 3;
+  display: grid; place-items: center;
+  width: 44px; height: 44px;
+  min-height: 0; padding: 0;
+  border: 0; border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+}
+/* The generic button hover fills to white and firms its border. This one has neither to change, so the arrow
+   itself is the whole answer. */
+.start-back:hover:not(:disabled) { background: transparent; border-color: transparent; }
+/* The focus ring is drawn INSIDE: sitting in the very corner, a ring at a positive offset would be cut in half
+   by the edges of the window. */
+.start-back:focus-visible { outline-offset: -3px; }
+.start-back-art { width: 20px; height: 20px; transition: color var(--dur, .15s); }
 /* One column, pinned to the width it is given (`minmax(0, 1fr)`): without that the column grows to the choices'
    max-content width and the whole screen scrolls sideways instead of the choices wrapping. */
 .start-task { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 24px; width: 100%; }

@@ -4,6 +4,7 @@ import { t, type Lang } from '../i18n';
 import { DentalTypeStep } from './DentalSteps';
 import { DentureChoice } from '../denture/steps/start/DentureChoice';
 import { StartChoice } from './StartChoice';
+import { Icon } from '../ui/Icon';
 import { fileStepText } from '../denture/steps/start/startText';
 import { DENTURE_PROFILE_ID, jobKindOf } from '../denture/jobKind';
 import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
@@ -71,7 +72,9 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     onDragOver={(event) => { event.preventDefault(); setOver(true); }}
     onDragLeave={(event) => { if (event.currentTarget === event.target) setOver(false); }}
     onDrop={drop}>
-    {screen !== 'task' ? <button type="button" className="start-back" onClick={() => go(back())}>{t('Back')}</button> : null}
+    {screen !== 'task' ? <button type="button" className="start-back" data-ui="start-back" aria-label={t('Back')} title={t('Back')} onClick={() => go(back())}>
+      <Icon name="back" className="start-back-art" />
+    </button> : null}
     {screen === 'task' ? <div className="start-task">
       <h2 className="start-heading">{t('What would you like to support?')}</h2>
       <div className="start-choices">
