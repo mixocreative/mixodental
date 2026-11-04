@@ -72,7 +72,7 @@
   --model-glow-off: #000000;
   --model-vertex-base: #ffffff;
   /* Supports: the body of a support, plain and on a selected object; the vertex colour of a selected support. */
-  --support-idle: #d9a24a;
+  --support-idle: #4a8f93;
   --support-selected-object: var(--kraft);
   --support-picked: #a8243c;
   /* Edit marks: previews, selection, zones, the dental support area, check findings. */
@@ -380,8 +380,19 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
    its arrow alone - the word is still there for a screen reader and under the pointer as a tooltip - so the
    way on takes the room the word would have cost. In Step 3 the way on is OK rather than Next; it is the
    same block. */
-.step-nav { display: flex; flex-wrap: nowrap; gap: 0; }
+/* `align-items` is stated because Steps 2 and 3 carry this on an `.edit-row`, which centres its children:
+   centred, the arrow key keeps its own small height and stands shorter than the key beside it, and the block
+   stops reading as one block. Stretched, the two are the same height whatever is in them. */
+.step-nav { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 0; }
 .step-nav > button { flex: 1 1 0; }
+/* A BUTTON GROUP: the edges where the keys MEET are square and share one hairline, while the edges at the two
+   ends keep the key's own corner. Rounded inner corners would leave a notch between them and the pair would
+   read as two keys pushed together rather than as one block. The -1px pulls the second key onto the first's
+   border so the seam is one line and not two. */
+.step-nav > * + * { margin-left: -1px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.step-nav > :not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+/* The key under the pointer comes forward, or the one beside it covers the seam it just lit. */
+.step-nav > button:hover:not(:disabled), .step-nav > button:focus-visible { position: relative; z-index: 1; }
 .step-nav > .back-key--arrow { flex: 0 0 auto; width: 44px; padding: 0; }
 .orient-nav { margin-top: auto; }
 /* Auto orientation is the primary action: red, full width, the icon before its label (row-reverse, since the label comes first in the DOM). */

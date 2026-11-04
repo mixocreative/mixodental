@@ -187,6 +187,10 @@
   border-color: var(--accent-strong);
   color: var(--surface);
 }
+/* The group's inner edges are square. The theme rounds every button by an attribute-and-tag rule, which
+   outranks a plain class, so the group has to state its square edges again here. */
+[data-theme='instrument'] .step-nav > * + * { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+[data-theme='instrument'] .step-nav > :not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 /* A solid key DARKENS under the pointer. Lightening it to the plain accent moved the teal towards the white
    arrow on it - the two closer together exactly when the reader is looking at it. Darkening the same teal
    moves them apart instead, and keeps the hue, so the key does not change colour when it is touched. */
@@ -384,8 +388,8 @@
   --model-selected: #e4ecec;
   --model-active: #f4f8f8;
   --model-active-glow: var(--accent);
-  --support-idle: #d9a24a;
-  --support-selected-object: #f0b429;
+  --support-idle: #4a8f93;
+  --support-selected-object: #2fa3a8;
   --support-picked: var(--accent);
   --mark-add: var(--accent);
   --mark-ring: var(--ink);

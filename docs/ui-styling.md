@@ -253,7 +253,7 @@ The support structure itself, not the marks on it.
 
 | Token | Value | What it colours | Where it shows |
 | --- | --- | --- | --- |
-| `--support-idle` | `#d9a24a` | Support body | Supports of an object that is not selected |
+| `--support-idle` | `#4a8f93` | Support body | Supports of an object that is not selected |
 | `--support-selected-object` | `var(--kraft)` | Support body of a selected object | Supports of the selected object |
 | `--support-picked` | `#a8243c` | A support picked in Support Edit Mode | Per-vertex highlight of the picked support |
 

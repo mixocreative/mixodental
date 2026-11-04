@@ -293,13 +293,28 @@ export function UnitObject(props: UnitObjectProps) {
       onContextMenu={(event) => clickModel(event, true)}
       {...(editing ? { onPointerDown: startStroke, onPointerMove: hoverModel, onPointerOut: leave } : {})}
     >
-      <meshStandardMaterial
+      {/*
+        The aligner is the clear thermoformed plastic it is made of, so a technician reads its form and can see
+        a support standing under the shell.
+
+        TRANSMISSION IS OFF WHILE THE SUPPORT AREA IS SHOWN. three renders transmissive materials LAST, after
+        every transparent object, so the shell drew over the area layers - which are transparent at .7 - and the
+        painted band all but vanished. The supports survive it because they are OPAQUE, and opaque geometry IS
+        captured in the transmission pass. In Step 2 the reader is painting ON the surface, so the surface has to
+        take paint; the clear coat and the roughness stay, so it is the same plastic either way.
+      */}
+      <meshPhysicalMaterial
         color={props.active ? modelColours.active : props.selected ? modelColours.selected : modelColours.idle}
         emissive={props.active ? modelColours.activeGlow : modelColours.glowOff}
         emissiveIntensity={props.active ? 0.06 : 0}
         metalness={0}
-        roughness={0.85}
-        flatShading
+        roughness={0.32}
+        transmission={areaShown ? 0 : 0.42}
+        thickness={1.8}
+        ior={1.52}
+        clearcoat={1}
+        clearcoatRoughness={0.1}
+        transparent
         wireframe={props.wireframe}
       />
     </mesh>}
@@ -335,7 +350,8 @@ export function UnitObject(props: UnitObjectProps) {
     >
       {/* Edited: per-vertex colour carries the selection (`useSelectionColors`); white lets it through. */}
       {/* Keyed: three compiles vertex colours into the shader, so turning them on needs a new material. */}
-      <meshStandardMaterial key={selectionColored ? 'selection' : 'plain'} color={selectionColored ? modelColours.vertexBase : supportColor} vertexColors={selectionColored} metalness={0} roughness={0.9} />
+      <meshPhysicalMaterial key={selectionColored ? 'selection' : 'plain'} color={selectionColored ? modelColours.vertexBase : supportColor} vertexColors={selectionColored}
+        metalness={0} roughness={0.38} clearcoat={0.7} clearcoatRoughness={0.25} sheen={0} />
     </mesh>}
     {editing && hover && !brush && <EditPreview hover={hover} unit={unit} contacts={contacts} {...(zoneBrush || dentalBrush
       ? { brush: { radius: (zoneBrush ?? dentalBrush)!.radius, color: zoneBrush?.kind === 'paint' ? marks.zone : dentalBrush?.kind === 'allow' ? marks.areaPermitted : marks.ring } }
