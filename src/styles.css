@@ -510,6 +510,14 @@ footer.on-scene strong { margin-left: 0; flex-basis: auto; min-width: 0; overflo
    itself and the row turned into three narrow columns of broken words. */
 footer.on-scene > span { flex: none; white-space: nowrap; }
 footer.on-scene button { pointer-events: auto; }
+/* In the dental view the status lives in the SCENE's column, between the two docks. It is not inside the
+   viewport, so the grid cannot keep it off them - but these are the same two tracks, named by the same
+   variables, so it moves whenever they do. Without this it ran under both docks and the widgets at the foot
+   of the left one covered the counts. */
+.workspace--dental ~ footer.on-scene {
+  left: calc(var(--dock-left) + var(--dock-gap) * 2);
+  right: calc(var(--dock-right) + var(--dock-gap) * 2);
+}
 /* A count from the last build while the edited unit rebuilds (the job shows in the activity list). */
 .building { opacity: .55; }
 
@@ -838,6 +846,98 @@ dialog.terms .terms-item > span { flex: none; }
 .dental-block.is-stale, .panel-widget.is-stale { opacity: .55; }
 .dental-block h3 { margin: 0; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; }
 .dental-block { gap: 6px; }
+
+/* The three tracks of the 3D view's grid, named once. Changing how wide a dock is, or adding a column,
+   is this block and nothing else: no panel carries a measurement of its own. */
+:root {
+  --dock-gap: 14px;
+  --dock-left: 264px;
+  --dock-right: 300px;
+}
+
+/* ---- The docks (the 3D view's columns of chrome) ------------------------------------------------
+   The dental steps put the STEP TITLE and the widgets down the left of the scene, and the CONTROL
+   SETTINGS down the right. The scene lies under the whole thing.
+
+   THIS IS A GRID, and that is the whole point. Every panel used to be positioned absolutely with
+   coordinates of its own - Step 1's bar at `top: 56px; right: 14px` and 232px wide, Step 2's panel at
+   the same corner and 300px wide, the title a pill lying across the top-left, the debug widget alone
+   at `bottom: 14px` - so no panel knew any other existed. Overlap was not a bug that kept appearing;
+   it was guaranteed, and sharing a set of numbers between them only hides it until a word grows, a
+   window narrows or a sentence wraps. Two boxes in DIFFERENT GRID COLUMNS cannot overlap. The browser
+   will not let them, whatever they hold, in any language, at any size.
+
+   It is the grid that is flexible, not each panel. The three tracks are named once here, so changing
+   how wide a dock is, or adding a fourth column, is this one line. A panel says only WHICH DOCK IT IS
+   IN - and the title wraps inside its own column instead of reaching across the scene. */
+.workspace--dental .viewport {
+  display: grid;
+  grid-template-columns: var(--dock-left) minmax(0, 1fr) var(--dock-right);
+  /* The title takes the room it needs at the top, the widgets take theirs at the foot, the middle is
+     whatever is left - so a title of three lines pushes nothing off the screen. */
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+/* The scene is one item under all of them, so it stays whole: the docks are drawn on it, not beside it. */
+.workspace--dental .viewport > div:first-child { grid-area: 1 / 1 / -1 / -1; }
+
+/* LEFT: what the reader reads. The step's title at the top, the widgets at the foot. */
+.workspace--dental .edit-badge,
+.workspace--dental .viewport-object-status {
+  position: static;
+  grid-area: 1 / 1;
+  margin: var(--dock-gap);
+  width: auto;
+  max-width: none;
+}
+/* In a column the title is a block, not a line: the step, then what it is working on, then what to do. */
+.workspace--dental .edit-badge {
+  display: grid;
+  gap: 4px;
+  white-space: normal;
+  line-height: 1.35;
+}
+.workspace--dental .debug-section {
+  position: static;
+  grid-area: 3 / 1;
+  align-self: end;
+  margin: var(--dock-gap);
+  width: auto;
+  max-height: none;
+}
+
+/* RIGHT: what the reader operates. ALWAYS this column, every step, whatever the panel is called. */
+.workspace--dental .edit-bar,
+.workspace--dental .dental-side {
+  position: static;
+  grid-column: 3;
+  grid-row: 1 / -1;
+  /* As tall as its own content, and never taller than the dock, where it scrolls instead. Step 3's panel
+     used to be pinned to the dock's foot whatever it held, standing as an empty white column. */
+  align-self: start;
+  max-height: calc(100% - var(--dock-gap) * 2);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  margin: var(--dock-gap);
+  width: auto;
+  max-width: none;
+  align-items: stretch;
+}
+.workspace--dental .edit-row { justify-content: stretch; }
+
+/* The view keys belong to the scene, so they sit at the scene's own corner, inside the middle column. */
+.workspace--dental .viewport-view {
+  position: static;
+  grid-area: 1 / 2;
+  justify-self: end;
+  align-self: start;
+  margin: var(--dock-gap);
+}
+
+/* Step 2's four tools ask for 92px each, which is 368px of segments in a 300px dock, so the last one -
+   Select - was cut off the end and the reader could not reach it. In a dock a row of segments shares the
+   width it has. */
+.workspace--dental .dental-brush .segmented { width: 100%; }
+.workspace--dental .dental-brush .segmented button { min-width: 0; flex: 1 1 0; }
 .dental-side .edit-row { justify-content: flex-start; }
 .dental-side .edit-note { text-align: left; }
 .dental-tools .edit-row { justify-content: flex-start; }

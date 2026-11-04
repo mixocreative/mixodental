@@ -872,6 +872,24 @@ async function walk(url, scratch, dentalFixture) {
       await page.locator('.choice-key').click();
       await stepTo('Step 1 · Aligner');
       check('u2 one click on the card goes to Step 1, which asks for the aligner file', await page.getByText('Drop the aligner STL here').isVisible() && await d.button('Back').isVisible());
+
+      // The 3D view's chrome sits in grid columns, so two panels CANNOT overlap however their words wrap.
+      // This measures the real boxes rather than trusting the rules: the title block on the left, the
+      // controls on the right, the widgets at the foot and the status strip between them.
+      const docked = async () => page.evaluate(() => {
+        const box = (selector) => { const el = document.querySelector(selector); if (!el) return null; const r = el.getBoundingClientRect(); return r.width && r.height ? [r.left, r.top, r.right, r.bottom] : null; };
+        const parts = { title: box('.edit-badge'), controls: box('.dental-side') ?? box('.edit-bar'), widgets: box('.debug-section'), status: box('footer.on-scene'), views: box('.viewport-view') };
+        const hit = (a, b) => a && b && a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+        const names = Object.keys(parts), clashes = [];
+        for (let i = 0; i < names.length; i += 1) for (let j = i + 1; j < names.length; j += 1) if (hit(parts[names[i]], parts[names[j]])) clashes.push(`${names[i]} over ${names[j]}`);
+        const right = parts.controls, scene = document.querySelector('.viewport').getBoundingClientRect();
+        return { clashes, controlsOnTheRight: !!right && right[0] > scene.left + scene.width / 2, shown: Object.entries(parts).filter(([, at]) => at).map(([name]) => name) };
+      });
+      {
+        const seen = await docked();
+        check('u2b the 3D view is docked: nothing overlaps anything, and the controls are on the right',
+          seen.clashes.length === 0 && seen.controlsOnTheRight, `showing ${seen.shown.join(', ')}; ${seen.clashes.join(' | ') || 'no overlap'}`);
+      }
       await page.screenshot({ path: path.join(scratch, 'ux-a-step1-drop.png') });
 
       await drop(notModel);

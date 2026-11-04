@@ -133,6 +133,22 @@ Set the look of the DOM. They are the mixo-app-style tokens (paper, ink, hairlin
 | `--radius` | `2px` | Corner radius of every control | Buttons, cards, bands |
 | `--dur` | `.15s` | Duration of hover and chevron transitions | Buttons, collapsible chevrons |
 
+### The docks (the 3D view's grid)
+
+The dental steps lay their chrome out in a GRID across the 3D view, declared once on
+`.workspace--dental .viewport`: the step's title and the widgets in the left column, the control settings in
+the right one, the scene under all of it. Two boxes in different grid columns cannot overlap, whatever they
+hold, in any language, at any size - which is the point, because every panel used to carry coordinates of its
+own and collisions were guaranteed. A panel says which dock it is in; it never says where it is.
+
+These three tracks are the whole layout. Change a dock's width, or add a column, here and nowhere else.
+
+| Token | Value | What it sets | Where it shows |
+| --- | --- | --- | --- |
+| `--dock-gap` | `14px` | The gutter around and between the columns | Every panel's margin in the 3D view, and the inset of the status strip |
+| `--dock-left` | `264px` | The left column: the step title, then the widgets under it | `.edit-badge`, `.viewport-object-status`, `.debug-section` |
+| `--dock-right` | `300px` | The right column: the control settings of every step | `.edit-bar`, `.edit-bar--orient`, `.dental-side` |
+
 ### States (marks that tell the user where something stands)
 
 Colours with a meaning. Each is an alias of a UI token by default; give it a colour of its own to separate it.
