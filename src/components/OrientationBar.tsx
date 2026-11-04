@@ -5,10 +5,10 @@ import { profileById, profilesWithoutOpening } from '@mixo-geocore/host/dental/a
 import { t, type Lang } from '../i18n';
 import type { DentalNotice } from '../dental/editingMode';
 import { CommandButton } from './CommandButton';
-import { PrintAngleField, noticeText } from './DentalSteps';
+import { PrintAngleField, noticeText, tiltNote } from './DentalSteps';
 import { Icon } from '../ui/Icon';
 import type { DentalTiltState } from './useDentalFlow';
-import { RestoreStepButton, type StepRestore } from './RestoreStepButton';
+import type { StepRestore } from './RestoreStepButton';
 
 /**
  * Step 1's Free transform controls, as DentalBar passes them (PD.11 S6). `on`: the rotation-only
@@ -50,10 +50,10 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
   const asking = free?.asking === true;
   // Auto orient in Free transform restores the stored automatic pose; otherwise it is the command.
   const autoRun = freeOn && free ? () => free.autoOrient() : run;
-  return <div className="edit-bar edit-bar--orient">
-    {asking ? null : <div className="orient-row">
-      <CommandButton command={resolve('dental.useDetected', ui)} run={autoRun} className="orient-auto"><Icon name="orient" /></CommandButton>
-    </div>}
+  const note = freeOn || asking ? undefined : tilt ? tiltNote(tilt) : undefined;
+  return <>
+    <div className="edit-bar edit-bar--orient">
+
     {asking && free ? <div className="orient-confirm" role="alertdialog" aria-label={t('Free transform')}>
       <p>{t('You will orient it yourself. Continue?')}</p>
       <div className="orient-row">
@@ -63,15 +63,15 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
     </div> : null}
     {freeOn || asking ? null : <>
       {tilt && profile ? <div className="orient-row">
-        <PrintAngleField tilt={tilt} profile={profile} onChoose={(index) => onTilt?.(index)} />
+        <PrintAngleField tilt={tilt} profile={profile} onChoose={(index) => onTilt?.(index)} restore={restore} />
       </div> : null}
       {children ? <div className="orient-row orient-extra" data-ui="orient-extra">{children}</div> : null}
+      <div className="orient-row">
+        <CommandButton command={resolve('dental.useDetected', ui)} run={autoRun} className="orient-auto"><Icon name="orient" /></CommandButton>
+      </div>
       <div className="orient-row orient-free">
         <button type="button" className="orient-free-btn" onClick={() => free?.ask()}>{t('Free transform')}</button>
       </div>
-      {restore ? <div className="orient-row">
-        <RestoreStepButton restore={restore} unique="restore-step-1" />
-      </div> : null}
     </>}
     {freeOn ? null : notices.map((notice) => <div key={notice.kind} className="dental-notice">
       <p className="edit-note" role="alert">{noticeText(notice)}</p>
@@ -80,9 +80,15 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
         <button type="button" onClick={() => send({ type: 'dismissDentalNotice', kind: 'mismatch' })}>{t('Keep {name}', { name: current ? current.name[lang] : '' })}</button>
       </div> : null}
     </div>)}
+    {freeOn && free ? <div className="orient-row">
+      <CommandButton command={resolve('dental.useDetected', ui)} run={autoRun} className="orient-auto"><Icon name="orient" /></CommandButton>
+    </div> : null}
     <div className="orient-row orient-nav">
-      <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key"><Icon name="back" /></CommandButton>
+      <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key back-key--arrow" labelHidden><Icon name="back" /></CommandButton>
       <CommandButton command={resolve('dental.next', ui)} run={run} />
     </div>
-  </div>;
+    </div>
+    {/* How the angle stands is read ON THE SCENE, under the model it is about, not in the column of keys. */}
+    {note ? <p className="scene-note" role="note" data-ui="orient-note">{note}</p> : null}
+  </>;
 }

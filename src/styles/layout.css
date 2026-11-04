@@ -145,6 +145,19 @@
 .workspace--dental .job-activity,
 .workspace--dental .viewport-note { margin-bottom: var(--status-room); }
 
+/* HOW THINGS STAND is read on the scene, under the model it is about: the middle of the foot, above the
+   status strip and clear of the widgets' column, so the debug widget can open to its full height without
+   either of them touching the other. */
+.workspace--dental .scene-note {
+  position: static;
+  grid-column: var(--dock-scene-column);
+  grid-row: 2;
+  justify-self: center;
+  align-self: end;
+  margin: var(--dock-gap);
+  max-width: 100%;
+}
+
 /* A toast is transient and belongs over the scene, not in its foot row beside things that stay. */
 .workspace--dental .undo-toast-region {
   position: static;

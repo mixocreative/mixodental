@@ -72,7 +72,7 @@
   --model-glow-off: #000000;
   --model-vertex-base: #ffffff;
   /* Supports: the body of a support, plain and on a selected object; the vertex colour of a selected support. */
-  --support-idle: #c8b896;
+  --support-idle: #d9a24a;
   --support-selected-object: var(--kraft);
   --support-picked: #a8243c;
   /* Edit marks: previews, selection, zones, the dental support area, check findings. */
@@ -81,8 +81,8 @@
   --mark-ring: var(--ink);
   --mark-zone: var(--blue);
   --mark-dental: #2f6f5e;
-  --mark-area-permitted: #e83f25;
-  --mark-area-edge: #ee1938;
+  --mark-area-permitted: #e8566f;
+  --mark-area-edge: #cc1f93;
   --mark-risk-outside: #1e50a2;
   --mark-island: var(--danger);
   --mark-overhang: #d97706;
@@ -340,8 +340,17 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
   letter-spacing: .06em;
   pointer-events: none;
 }
-.edit-badge span { opacity: .8; letter-spacing: .02em; }
-.edit-badge b { font-weight: 500; letter-spacing: .02em; }
+/* The step's NAME leads the block, at a size that says which step this is from across the room. */
+.edit-badge strong, .edit-badge > :first-child { font-size: 17px; font-weight: 600; letter-spacing: .01em; }
+.edit-badge span { opacity: .8; letter-spacing: .02em; font-size: 11.5px; }
+/* WHAT TO DO NOW is a block of its own in the teal, the same teal the way back wears, so the one sentence the
+   reader must act on is not the same surface as the step's name above it. */
+.edit-badge b {
+  font-weight: 500; letter-spacing: .02em;
+  margin: 2px -12px -8px; padding: 8px 12px;
+  background: var(--accent-strong, var(--line-strong));
+  color: var(--surface);
+}
 /* Under the badge's row: the two-row bar is wider than the space beside the badge. */
 .edit-bar {
   position: absolute;
@@ -366,8 +375,12 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
 .edit-bar--orient { width: 232px; align-items: stretch; padding: 8px; }
 .orient-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .orient-row > * { flex: 1 1 auto; }
-.orient-nav { margin-top: auto; }
+/* Back and Next are ONE BLOCK with no seam between them: they are the two ends of the same move, and a gap
+   between them reads as two unrelated keys. Back is its arrow alone - the word is still there for a screen
+   reader and under the pointer as a tooltip - so Next takes the room the word would have cost. */
+.orient-nav { margin-top: auto; gap: 0; }
 .orient-nav button { flex: 1 1 0; }
+.back-key--arrow { flex: 0 0 auto; width: 44px; padding: 0; }
 /* Auto orientation is the primary action: red, full width, the icon before its label (row-reverse, since the label comes first in the DOM). */
 .orient-auto { display: flex; flex-direction: row-reverse; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 40px; }
 .orient-auto svg { width: 18px; height: 18px; }
@@ -570,6 +583,17 @@ footer.on-scene button { pointer-events: auto; }
 .range-track { position: relative; display: inline-flex; align-items: center; }
 .range-band { position: absolute; top: 50%; height: 6px; transform: translateY(-50%); background: var(--kraft); border-radius: var(--radius); pointer-events: none; }
 .range-track input { position: relative; background: transparent; }
+.print-angle { position: relative; }
+/* PUT BACK sits in the dial's bottom-right corner: a round key with a picture, the one control that is about
+   the step rather than about the angle, so it is beside the dial and not in the column of keys below it. */
+.restore-round {
+  position: absolute; right: 0; bottom: 0; z-index: 2;
+  display: grid; place-items: center;
+  width: 32px; height: 32px;
+  min-height: 0; padding: 0;
+  border-radius: 50%;
+}
+.restore-round > svg { width: 15px; height: 15px; }
 .print-angle .problems { margin-top: 4px; }
 /* PD.11 S5: the print-angle dial, its stable band and the big number under the Step 1 badge. */
 .orient-range { margin: 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -629,11 +653,27 @@ footer.on-scene button { pointer-events: auto; }
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none;
   display: flex; align-items: flex-start; line-height: 1; color: var(--dial-value); font-variant-numeric: tabular-nums;
 }
-.tilt-dial-value-num { font-size: calc(var(--dial-size) * .15); font-weight: 600; letter-spacing: -.02em; }
-.tilt-dial-value-deg { font-size: calc(var(--dial-size) * .075); }
+/* The reading is as large as the knob allows. It is the one number on this screen and nothing else sits
+   inside the knob with it, so it takes the room: the knob is .58 of the dial, and the number and its degree
+   sign together stay inside that. */
+.tilt-dial-value-num { font-size: calc(var(--dial-size) * .21); font-weight: 600; letter-spacing: -.03em; }
+.tilt-dial-value-deg { font-size: calc(var(--dial-size) * .1); }
 @media (prefers-reduced-motion: reduce) { .tilt-dial-dot, .tilt-dial-tick { transition: none; } }
 .problem-kind.angle { background: var(--danger); }
 .edit-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+/* The note on the scene: a quiet bubble, not a panel. It never takes the pointer - the scene turns under it. */
+.scene-note {
+  margin: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  pointer-events: none;
+}
 /* The wide edit bar takes the top right; the view buttons move to the bottom right meanwhile. */
 .viewport--editing .viewport-view { top: auto; bottom: 14px; }
 

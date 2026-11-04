@@ -6,6 +6,7 @@ import { ALIGNER_PROFILES } from '@mixo-geocore/host/dental/alignerProfiles';
 import { t, translateMessage, type Lang } from '../i18n';
 import { TiltDial } from '../ui/parts/TiltDial';
 import { ChoiceKey } from '../ui/ChoiceKey';
+import { RestoreStepButton, type StepRestore } from './RestoreStepButton';
 import { Icon } from '../ui/Icon';
 import { ScreenHeading } from '../ui/ScreenHeading';
 import { tiltStepOf } from '../denture/jobKind';
@@ -26,6 +27,13 @@ export const TILT_RULE_NAMES: Record<TiltRule, string> = {
 /** The rules a tilt fails, by name (empty when it passes every rule). */
 export function tiltFlags(row: TiltRow): string[] {
   return row.failed.map((failure) => t(TILT_RULE_NAMES[failure.rule]));
+}
+
+/** How the chosen print angle stands: its broken rules, or that it passes them all. Undefined while scanning. */
+export function tiltNote(tilt: DentalTiltState): string | undefined {
+  if (tilt.status !== 'ready') return undefined;
+  const flags = tiltFlags(tilt.scan.rows[tilt.index]!);
+  return flags.length > 0 ? flags.join(' · ') : t('Passes every rule.');
 }
 
 /** The problem-list entries of a pick when no tilt passes: per failed rule, the tilt and the first failing vertex or tip. */
@@ -102,10 +110,12 @@ export function DentalAlignerPrompt({ phase, notices, selectedName, onFiles, onU
  * Step 1's print angle (docs/ROADMAP.md F): the scan's progress, then the chosen angle with the
  * stable band, a slider over the type's tilt range (band highlighted) and that tilt's rule flags.
  */
-export function PrintAngleField({ tilt, profile, onChoose }: {
+export function PrintAngleField({ tilt, profile, onChoose, restore }: {
   tilt: DentalTiltState;
   profile: string;
   onChoose: (index: number) => void;
+  /** Put back, as a round key in the dial's bottom-right corner. */
+  restore?: StepRestore | undefined;
 }) {
   if (tilt.status === 'scanning') return <p className="edit-note" role="status">{t('Scanning print angles {i}/{n}', { i: tilt.done, n: tilt.total })}</p>;
   if (tilt.status === 'failed') return <p className="edit-note" role="alert">{t('The print angles could not be scanned. The detected angle is kept.')}</p>;
@@ -116,7 +126,9 @@ export function PrintAngleField({ tilt, profile, onChoose }: {
   const flags = tiltFlags(row);
   const pick = scan.rows[scan.order[0]!]!;
   return <div className="print-angle" role="group" aria-label={t('Print angle')}>
-    <p className="orient-range" role="status">{band
+    {/* The dial DRAWS the stable band, so the line that said it in words was saying it twice. It stays for a
+        screen reader, which cannot see the band. */}
+    <p className="orient-range visually-hidden" role="status">{band
       ? t('Stable {a}–{b}°', { a: tiltLabel(band[0]), b: tiltLabel(band[1]) })
       : t('No stable angle')}</p>
     <TiltDial min={scan.rows[0]!.tiltDeg} max={scan.rows.at(-1)!.tiltDeg} step={tiltStepDeg} value={row.tiltDeg} band={band} label={t('Print angle')}
@@ -124,7 +136,7 @@ export function PrintAngleField({ tilt, profile, onChoose }: {
         const nearest = scan.rows.reduce((best, candidate, at) => (Math.abs(candidate.tiltDeg - value) < Math.abs(scan.rows[best]!.tiltDeg - value) ? at : best), 0);
         if (nearest !== index) onChoose(nearest);
       }} />
-    <p className="edit-note tilt-flags" role="note">{flags.length > 0 ? flags.join(' · ') : t('Passes every rule.')}</p>
+    {restore ? <RestoreStepButton restore={restore} unique="restore-step-1" round /> : null}
     {scan.reason === 'failing' ? <ul className="problems" aria-label={t('No print angle passes every rule.')}>
       <li><span className="problem-kind angle" aria-hidden="true" /><span className="problem-text">{t('No print angle passes every rule.')}
         {tiltProblems(pick).map((line) => <small key={line}>{line}</small>)}</span></li>

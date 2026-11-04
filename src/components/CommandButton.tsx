@@ -9,11 +9,16 @@ import { hint } from './hint';
  * enabled state come from the row, and a press runs the command the row names. `locked`: the
  * control sits in a locked region, inert, so a click falls through to the panel's lock note.
  */
-export function CommandButton({ command, run, className, locked = false, uiName, children }: {
+export function CommandButton({ command, run, className, locked = false, labelHidden = false, uiName, children }: {
   command: ResolvedCommand;
   run: (id: CommandId) => void;
   className?: string;
   locked?: boolean;
+  /**
+   * The key shows its picture alone. The word is still THERE, for a screen reader and for the walk, and
+   * `hint` already puts it under the pointer as a tooltip - it is only taken off the screen.
+   */
+  labelHidden?: boolean;
   /** The stable `data-ui` name designers style it by. */
   uiName?: string;
   children?: ReactNode;
@@ -28,5 +33,5 @@ export function CommandButton({ command, run, className, locked = false, uiName,
     onClick={() => run(command.runs)}
     disabled={!command.enabled}
     {...hint(reason?.key ?? command.hint, reason ? reason.vars : command.hintVars, reason ? undefined : command.shortcut)}
-  >{t(command.label)}{children}</button>;
+  >{labelHidden ? <span className="visually-hidden">{t(command.label)}</span> : t(command.label)}{children}</button>;
 }

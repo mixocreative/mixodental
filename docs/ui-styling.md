@@ -253,7 +253,7 @@ The support structure itself, not the marks on it.
 
 | Token | Value | What it colours | Where it shows |
 | --- | --- | --- | --- |
-| `--support-idle` | `#c8b896` | Support body | Supports of an object that is not selected |
+| `--support-idle` | `#d9a24a` | Support body | Supports of an object that is not selected |
 | `--support-selected-object` | `var(--kraft)` | Support body of a selected object | Supports of the selected object |
 | `--support-picked` | `#a8243c` | A support picked in Support Edit Mode | Per-vertex highlight of the picked support |
 
@@ -268,8 +268,8 @@ Previews, selection, the dental support area, check findings and the brush curso
 | `--mark-ring` | `var(--ink)` | Pointer ring, tip markers, region outline | The ring under the pointer, grey tips, the outer region line, the Unselect and Erase brushes |
 | `--mark-zone` | `var(--blue)` | No-support zone paint | Zones layer and the Paint zones brush |
 | `--mark-dental` | `#2f6f5e` | Tip markers of the dental flow | Tips on the aligner in Step 2 |
-| `--mark-area-permitted` | `#e83f25` | The dental support area | Coloured faces and the rim outline where tips may stand |
-| `--mark-area-edge` | `#ee1938` | Opening edge of the dental region | Line round the opening of a two-contour aligner |
+| `--mark-area-permitted` | `#e8566f` | The dental support area | Coloured faces and the rim outline where tips may stand |
+| `--mark-area-edge` | `#cc1f93` | Opening edge of the dental region | Line round the opening of a two-contour aligner |
 | `--mark-risk-outside` | `#1e50a2` | A low point outside the permitted area | Discs on the model |
 | `--mark-island` | `var(--danger)` | Island finding | Sphere on an island with no support |
 | `--mark-overhang` | `#d97706` | Overhang finding | Sphere on an overhang that needs a support |

@@ -384,8 +384,8 @@
   --model-selected: #e4ecec;
   --model-active: #f4f8f8;
   --model-active-glow: var(--accent);
-  --support-idle: #b7c4c4;
-  --support-selected-object: #d6e0e0;
+  --support-idle: #d9a24a;
+  --support-selected-object: #f0b429;
   --support-picked: var(--accent);
   --mark-add: var(--accent);
   --mark-ring: var(--ink);
