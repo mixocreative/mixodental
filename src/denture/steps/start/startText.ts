@@ -6,17 +6,19 @@ import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
  */
 
 export interface FileStepText {
+  /** The big line: what to do. The drop box on the start screen and in Step 1 both show this one. */
   heading: string;
-  drop: string;
+  /** The small line under it: what the reader cannot see for themselves. */
+  hint: string;
   input: string;
   /** The status line while the step waits for the file. */
   status: string;
 }
 
 const TEXT: Record<DentalKind, FileStepText> = {
-  aligner: { heading: 'Open the aligner STL', drop: 'Drop the aligner STL here', input: 'Choose aligner file', status: 'Open or drop the aligner STL.' },
-  denture: { heading: 'Open the denture STL', drop: 'Drop the denture STL here', input: 'Choose denture file', status: 'Open or drop the denture STL.' },
+  aligner: { heading: 'Place the aligner file here', hint: 'Drag an STL here, or choose one below. It is checked and turned the right way up automatically.', input: 'Choose aligner file', status: 'Place the aligner STL, or choose it.' },
+  denture: { heading: 'Place the denture file here', hint: 'Drag an STL here, or choose one below. It is checked and stood upright automatically.', input: 'Choose denture file', status: 'Place the denture STL, or choose it.' },
 };
 
-/** The file step's heading, drop line, file-input label and status line for `kind`. */
+/** The file step's heading, hint, file-input label and status line for `kind`. */
 export const fileStepText = (kind: DentalKind): FileStepText => TEXT[kind];

@@ -801,13 +801,19 @@ dialog.terms .terms-item > span { flex: none; }
   display: grid;
   justify-items: center;
   gap: 12px;
-  width: min(460px, 100%);
-  padding: 36px 24px;
+  /* Wide enough to hold the screen's own heading at its own size without squeezing it into three lines, and
+     wide enough to be a target worth aiming a file at. */
+  width: min(640px, 100%);
+  padding: 40px 32px;
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius);
   background: var(--surface);
 }
-.dental-drop p { margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+.dental-drop p { margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted); max-width: 34ch; text-align: left; }
+/* A KEY THAT CARRIES A PICTURE: the picture before the word, on one line, the same size on every key. Any
+   key may wear this - the picture is part of the thing that acts, not an ornament standing over it. */
+.key-art { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.key-art > svg { width: 16px; height: 16px; flex: none; }
 .dental-problem, .dental-notice .edit-note { color: var(--danger); }
 .dental-notice { display: grid; gap: 6px; justify-items: end; }
 
@@ -1003,21 +1009,28 @@ dialog.terms .terms-item > span { flex: none; }
   background: var(--paper);
 }
 .start-screen--dropping { outline: 1px solid var(--ink); outline-offset: -12px; }
-/* The way back is chrome, not a card: a flat arrow in the very corner of the screen, with no box and no fill,
-   so the screen reads as a control surface rather than a page with a button on it. The target stays 44px square
-   while the arrow inside it stays small. */
-.start-back {
-  position: absolute; top: 0; left: 0; z-index: 3;
-  display: grid; place-items: center;
-  width: 44px; height: 44px;
-  min-height: 0; padding: 0;
-  border: 0; border-radius: 0;
-  background: transparent;
+/* THE WAY BACK IS ONE KEY, on every screen and in every step: a SOLID block with SQUARE corners and the
+   arrow before the word. On the start screens it is the arrow alone, in the very corner of the screen; in a
+   step it is the arrow and the word, in the row beside Next. It is deliberately NOT the primary's fill -
+   Next is the step's one main action and this must not read as another one - so it is the quiet solid, and
+   the two are told apart by weight rather than by one being a box and the other a ghost. */
+.back-key {
+  border-radius: 0;
+  background: var(--sunken);
+  border: 1px solid var(--line-strong);
   color: var(--ink);
 }
-/* The generic button hover fills to white and firms its border. This one has neither to change, so the arrow
-   itself is the whole answer. */
-.start-back:hover:not(:disabled) { background: transparent; border-color: transparent; }
+.back-key:hover:not(:disabled) { background: var(--line-strong); border-color: var(--ink); }
+/* The arrow sits before the word: `children` render after the label, so the key is laid out in reverse. */
+.back-key { display: inline-flex; flex-direction: row-reverse; align-items: center; justify-content: center; gap: 8px; }
+.back-key > svg { width: 16px; height: 16px; flex: none; }
+.start-back {
+  position: absolute; top: 0; left: 0; z-index: 3;
+  width: 44px; height: 44px;
+  min-height: 0; padding: 0;
+  gap: 0;
+}
+
 /* The focus ring is drawn INSIDE: sitting in the very corner, a ring at a positive offset would be cut in half
    by the edges of the window. */
 .start-back:focus-visible { outline-offset: -3px; }

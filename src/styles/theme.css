@@ -174,6 +174,27 @@
 /* A key is a hairline box with a tiny tracked cap. Data (a scan name, a part) is never uppercased, so the caps go
    only on the keys that carry a command: the step bar, the nav row, segments, the mode and exit keys. */
 [data-theme='instrument'] button { border-radius: var(--radius-key); }
+/* ...except the way back, which is square on every screen and in every step. The generic rule above is an
+   attribute and a tag, which outranks a plain class, so the back key has to state it again here. */
+/* THE WAY BACK WEARS THE DARK TEAL, with its arrow and its word in paper. It is the one solid that is not
+   the primary's indigo, so the step's main action (Next, OK) stays the only thing wearing that - and the two
+   keys sitting side by side are told apart by colour rather than by one being a box and the other a ghost.
+   `--brand` is the deeper teal and is deliberately NOT used here: that one is the wordmark's alone, and a
+   control wearing it would stop it meaning "this is who the app is". */
+[data-theme='instrument'] .back-key {
+  border-radius: 0;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: var(--surface);
+}
+/* A solid key DARKENS under the pointer. Lightening it to the plain accent moved the teal towards the white
+   arrow on it - the two closer together exactly when the reader is looking at it. Darkening the same teal
+   moves them apart instead, and keeps the hue, so the key does not change colour when it is touched. */
+[data-theme='instrument'] .back-key:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-strong) 82%, black);
+  border-color: color-mix(in srgb, var(--accent-strong) 82%, black);
+  color: var(--surface);
+}
 /* The choice keys are one set, drawn alike; their word is styled once, on `.choice-key-label`. */
 [data-theme='instrument'] .primary,
 [data-theme='instrument'] .choice-key-label,
@@ -336,8 +357,9 @@
 [data-theme='instrument'] .edit-badge span { opacity: .65; }
 /* The note that says why a panel is held is the cream of the photograph, not an alarm. */
 [data-theme='instrument'] .lock-note { background: var(--note); border-color: var(--line-strong); color: var(--ink); }
-/* The arrow answers in colour alone, like the rest of the theme's controls. */
-[data-theme='instrument'] .start-back:hover:not(:disabled) { color: var(--accent-strong); }
+/* (The way back used to be a flat arrow that answered a hover by turning the accent. It is a solid teal key
+   now, and that rule was painting a DARK TEAL ARROW ON A TEAL BUTTON - the two almost the same colour, so the
+   arrow all but vanished under the pointer. Its hover is with the rest of the back key, above.) */
 [data-theme='instrument'] .choice-key[aria-pressed='true'] {
   background: var(--surface);
   color: var(--ink);

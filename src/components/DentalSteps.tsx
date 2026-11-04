@@ -6,6 +6,7 @@ import { ALIGNER_PROFILES } from '@mixo-geocore/host/dental/alignerProfiles';
 import { t, translateMessage, type Lang } from '../i18n';
 import { TiltDial } from '../ui/parts/TiltDial';
 import { ChoiceKey } from '../ui/ChoiceKey';
+import { Icon } from '../ui/Icon';
 import { ScreenHeading } from '../ui/ScreenHeading';
 import { tiltStepOf } from '../denture/jobKind';
 import { fileStepText } from '../denture/steps/start/startText';
@@ -84,12 +85,12 @@ export function DentalAlignerPrompt({ phase, notices, selectedName, onFiles, onU
   const bad = notices.find((notice) => notice.kind === 'bad-file');
   return <div className="dental-stage">
     <div className="dental-drop">
-      <ScreenHeading>{t(fileStepText(kind).drop)}</ScreenHeading>
-      <p>{t(kindText('The aligner is checked and turned the right way up automatically.', kind))}</p>
+      <ScreenHeading>{t(fileStepText(kind).heading)}</ScreenHeading>
+      <p>{t(fileStepText(kind).hint)}</p>
       <input ref={input} type="file" accept=".stl,.glb,.gltf" aria-label={t(fileStepText(kind).input)} hidden
         onChange={(event) => { onFiles([...(event.target.files ?? [])]); event.target.value = ''; }} />
       <div className="edit-row">
-        <button type="button" className="primary" onClick={() => input.current?.click()}>{t('Choose STL file')}</button>
+        <button type="button" className="primary key-art" onClick={() => input.current?.click()}><Icon name="drop-file" />{t('Choose STL file')}</button>
         {selectedName ? <button type="button" onClick={onUseSelected}>{t('Use the selected model')}</button> : null}
       </div>
       {bad ? <p className="dental-problem" role="alert">{noticeText(bad, kind)}</p> : null}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Icon } from '../ui/Icon';
 import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import type { EditGesture } from '@mixo-geocore/editing/gesture';
 import type { SessionEvent } from '@mixo-geocore/editing/session';
@@ -56,7 +57,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, rest
       {review.finishedCount > 0 && <p className="help">{t(kindText('Aligners finished so far: {n}', 'aligner'), { n: review.finishedCount })}</p>}
       {restore ? <RestoreStepButton restore={restore} unique="restore-step-2" /> : null}
       <div className="edit-row">
-        <CommandButton command={resolve('dental.back', ui)} run={run} />
+        <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key"><Icon name="back" /></CommandButton>
       </div>
       <div className="edit-row">
         <CommandButton command={resolve('dental.addAnother', ui)} run={run} />

@@ -26,7 +26,7 @@ describe('DentalBar', () => {
     const ui = { mode: 'dental', dentalStage: 'aligner' } as UiState;
     const html = renderToStaticMarkup(<DentalBar gesture={prompt} unitName={undefined} ui={ui} send={() => {}} run={() => {}} />);
     expect(html).toContain('Step 1');
-    expect(html).toContain('Drop the aligner STL here');
+    expect(html).toContain('Place the aligner file here');
     expect(html).toContain('Choose STL file');
     expect(html).not.toContain('Use the selected model');
     expect(renderToStaticMarkup(<DentalBar gesture={prompt} selectedName="x" unitName="x" ui={ui} send={() => {}} run={() => {}} />)).toContain('Use the selected model');
@@ -35,7 +35,7 @@ describe('DentalBar', () => {
     const loading = { ...prompt, phase: 'loading' } as Gesture & { kind: 'dental-aligner' };
     const loadingHtml = renderToStaticMarkup(<DentalBar gesture={loading} unitName={undefined} ui={ui} send={() => {}} run={() => {}} />);
     expect(loadingHtml).toContain('aria-busy="true"');
-    expect(loadingHtml).not.toContain('Drop the aligner STL here');
+    expect(loadingHtml).not.toContain('Place the aligner file here');
   });
 
   it('Step 1 after orientation offers Auto orientation, Back and Next, no Exit, plus its notices', () => {

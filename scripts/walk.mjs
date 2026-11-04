@@ -871,7 +871,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Aligner Support Production').click();
       await page.locator('.choice-key').click();
       await stepTo('Step 1 · Aligner');
-      check('u2 one click on the card goes to Step 1, which asks for the aligner file', await page.getByText('Drop the aligner STL here').isVisible() && await d.button('Back').isVisible());
+      check('u2 one click on the card goes to Step 1, which asks for the aligner file', await page.getByText('Place the aligner file here').isVisible() && await d.button('Back').isVisible());
 
       // The 3D view's chrome sits in grid columns, so two panels CANNOT overlap however their words wrap.
       // This measures the real boxes rather than trusting the rules: the title block on the left, the
@@ -897,11 +897,11 @@ async function walk(url, scratch, dentalFixture) {
 
       await drop(notModel);
       await noticeShown('STL');
-      check('u3 a file that is no model is refused in place, Step 1 stays', (await badge()).includes('Step 1 · Aligner') && await page.getByText('Drop the aligner STL here').isVisible() && (await objects()) === '0', `status "${await d.status()}"`);
+      check('u3 a file that is no model is refused in place, Step 1 stays', (await badge()).includes('Step 1 · Aligner') && await page.getByText('Place the aligner file here').isVisible() && (await objects()) === '0', `status "${await d.status()}"`);
       await drop(badStl);
       await noticeShown('');
       await d.idle(1500);
-      check('u4 a broken STL is refused in place, Step 1 stays, nothing is added', (await badge()).includes('Step 1 · Aligner') && await page.getByText('Drop the aligner STL here').isVisible() && (await objects()) === '0', `status "${await d.status()}", objects ${await objects()}`);
+      check('u4 a broken STL is refused in place, Step 1 stays, nothing is added', (await badge()).includes('Step 1 · Aligner') && await page.getByText('Place the aligner file here').isVisible() && (await objects()) === '0', `status "${await d.status()}", objects ${await objects()}`);
 
       await drop(cube);
       await noticeShown('could not be oriented automatically');
@@ -1179,7 +1179,7 @@ async function walk(url, scratch, dentalFixture) {
       }
       await d.button('Back').click();
       await stepTo('Step 1 · Aligner');
-      check('u11 Back from Step 2 returns to Step 1 with the oriented aligner kept', await d.button('Next').isEnabled() && (await page.getByText('Drop the aligner STL here').count()) === 0);
+      check('u11 Back from Step 2 returns to Step 1 with the oriented aligner kept', await d.button('Next').isEnabled() && (await page.getByText('Place the aligner file here').count()) === 0);
       await d.button('Exit').click();
       await page.waitForFunction(() => !document.querySelector('.edit-badge'), null, { timeout: 5000 });
       const left = await d.counts();
@@ -1410,7 +1410,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Add another aligner').click();
       await stepTo('Step 1 · Aligner');
       check('x14 Add another aligner returns to Step 1 and asks for the next file, same type',
-        await page.getByText('Drop the aligner STL here').isVisible() && (await page.getByRole('button', { name: 'Use the selected model' }).count()) === 0 && (await objects()) === '1');
+        await page.getByText('Place the aligner file here').isVisible() && (await page.getByRole('button', { name: 'Use the selected model' }).count()) === 0 && (await objects()) === '1');
 
       // Second aligner.
       await toStep3(false);
@@ -1581,8 +1581,8 @@ async function walk(url, scratch, dentalFixture) {
       await supports().click();
       await page.locator('.choice-key').click();
       await onScreen('file');
-      check('s6 choosing the type opens the file screen: Open the aligner STL, a file button, a drop zone, Back',
-        await page.getByText('Open the aligner STL').isVisible() && await page.getByText('Drop the aligner STL here').isVisible() && await d.button('Choose STL file').isVisible() && await d.button('Back').isVisible());
+      check('s6 choosing the type opens the file screen: the instruction, its hint, a file button and Back',
+        await page.getByText('Place the aligner file here').isVisible() && await page.getByText('An STL. It is checked and turned the right way up automatically.').isVisible() && await d.button('Choose STL file').isVisible() && await d.button('Back').isVisible());
       await page.keyboard.press('Escape');
       await onScreen('type');
       check('s7 Escape on the file screen is Back to the type screen, which keeps the chosen type pressed', (await page.locator('.choice-key').getAttribute('aria-pressed')) === 'true');
@@ -1725,7 +1725,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     await page.waitForSelector('.start-screen .dental-drop');
     await shot(page, 'start-3-file');
     const fileTexts = await page.locator('.dental-drop').innerText();
-    check(tag('t3 the file screen is in the language'), fileTexts.includes(tr('Open the aligner STL')) && fileTexts.includes(tr('Drop the aligner STL here')) && fileTexts.includes(tr('Choose STL file')), fileTexts.replace(/\s+/g, ' '));
+    check(tag('t3 the file screen is in the language'), fileTexts.includes(tr('Place the aligner file here')) && fileTexts.includes(tr('An STL. It is checked and turned the right way up automatically.')) && fileTexts.includes(tr('Choose STL file')), fileTexts.replace(/\s+/g, ' '));
     await page.keyboard.press('Escape');
     await page.waitForSelector('.start-screen .choice-keys');
     await page.keyboard.press('Escape');

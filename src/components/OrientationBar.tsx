@@ -81,7 +81,7 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
       </div> : null}
     </div>)}
     <div className="orient-row orient-nav">
-      <CommandButton command={resolve('dental.back', ui)} run={run} />
+      <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key"><Icon name="back" /></CommandButton>
       <CommandButton command={resolve('dental.next', ui)} run={run} />
     </div>
   </div>;

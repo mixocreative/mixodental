@@ -73,7 +73,7 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     onDragOver={(event) => { event.preventDefault(); setOver(true); }}
     onDragLeave={(event) => { if (event.currentTarget === event.target) setOver(false); }}
     onDrop={drop}>
-    {screen !== 'task' ? <button type="button" className="start-back" data-ui="start-back" aria-label={t('Back')} title={t('Back')} onClick={() => go(back())}>
+    {screen !== 'task' ? <button type="button" className="start-back back-key" data-ui="start-back" aria-label={t('Back')} title={t('Back')} onClick={() => go(back())}>
       <Icon name="back" className="start-back-art" />
     </button> : null}
     {screen === 'task' ? <div className="start-task">
@@ -89,11 +89,11 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     {screen === 'file' ? <div className="dental-stage">
       <div className="dental-drop">
         <ScreenHeading>{t(text.heading)}</ScreenHeading>
-        <p>{t(text.drop)}</p>
+        <p>{t(text.hint)}</p>
         <input ref={input} type="file" accept=".stl" aria-label={t(text.input)} hidden
           onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file && chosen) onStart(chosen, file); }} />
         <div className="edit-row">
-          <button type="button" className="primary" onClick={() => input.current?.click()}>{t('Choose STL file')}</button>
+          <button type="button" className="primary key-art" onClick={() => input.current?.click()}><Icon name="drop-file" />{t('Choose STL file')}</button>
         </div>
       </div>
     </div> : null}
