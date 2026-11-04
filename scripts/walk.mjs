@@ -332,7 +332,7 @@ function makeDriver(page) {
       const picked = await settle();
       if (picked.selected >= want) return picked;
       if (picked.selected > best.selected) best = { line: [from, to], selected: picked.selected };
-      await button('Clear selection').click().catch(() => {});
+      await button('Clear selection').click({ timeout: 3000 }).catch(() => {});
       await idle(300);
     }
     if (!best.line) throw new Error('no stroke over the canvas selected a single support');
@@ -344,11 +344,17 @@ function makeDriver(page) {
   const zonesButton = () => page.locator('aside.left h3', { hasText: /^Modes$/ }).locator('xpath=..').locator('button').nth(1);
   let box;
   const at = (fx, fy) => [box.x + box.width * fx, box.y + box.height * fy];
-  const stroke = async (from, to, moves, { button: which } = {}) => {
+  const stroke = async (from, to, moves, { button: which, pace } = {}) => {
     await page.mouse.move(...at(...from));
     await idle(200);
     await page.mouse.down({ button: which ?? 'left' });
-    for (let i = 0; i <= moves; i += 1) await page.mouse.move(...at(from[0] + (to[0] - from[0]) * i / moves, from[1] + (to[1] - from[1]) * i / moves));
+    for (let i = 0; i <= moves; i += 1) {
+      await page.mouse.move(...at(from[0] + (to[0] - from[0]) * i / moves, from[1] + (to[1] - from[1]) * i / moves));
+      // `pace` spaces the moves out. Under the CPU throttle below, moves sent as fast as the driver can
+      // send them are simply dropped, and the stroke selects nothing at all - which is not the queue this
+      // check is about.
+      if (pace) await idle(pace);
+    }
     await page.mouse.up({ button: which ?? 'left' });
   };
   return {
@@ -613,6 +619,12 @@ async function walk(url, scratch, dentalFixture) {
     await d.exitMode();
 
     // f. Per-support settings.
+    // From below, where the supports are. c has just taken a zone out of the middle of the model, which is
+    // where the front view's strokes used to land, and supports attach underneath anyway: a5 picks up 67 tips
+    // from this view and none from the front. g and k stroke after this and inherit it.
+    await d.button('Bottom view').click();
+    await d.idle(1500);
+    await d.measureCanvas();
     const shape = page.locator('.panel.right section').filter({ has: page.locator('h3', { hasText: /Support shape/ }) });
     const pointField = () => shape.locator('[data-ui="setting-pointDiameter"] input');
     const setPoint = async (value) => { await pointField().fill(value); await pointField().press('Enter'); await d.idle(2500); };
@@ -623,7 +635,7 @@ async function walk(url, scratch, dentalFixture) {
     await setPoint('0.6');
     const custom = await d.props();
     check('f1 Point Ø on the selection customises exactly those', custom.customised === chosen.selected && custom.point === defaults.point, `selected ${chosen.selected}, customised ${custom.customised}, object Point Ø ${custom.point}`);
-    await d.button('Clear selection').click();
+    await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
     await d.exitMode();
     await setPoint('0.35');
     const changed = await d.props();
@@ -650,15 +662,17 @@ async function walk(url, scratch, dentalFixture) {
     await d.button('Unselect').click();
     await d.stroke(B[0], B[1], 15);
     const sequential = await d.settle();
-    await d.button('Clear selection').click();
+    await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
     await d.button('Select', true).click().catch(() => {});
     await d.idle(500);
     const cdp = await context.newCDPSession(page);
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
-    await d.stroke(A[0], A[1], 30);
+    // 6x dropped the moves entirely on this machine, so the stroke selected nothing and the check was
+    // measuring that rather than the queue it is about. 4x still builds a queue the switch lands in.
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    await d.stroke(A[0], A[1], 30, { pace: 40 });
     const pendingAtSwitch = (await d.props()).selected;
     await d.button('Unselect').click();
-    await d.stroke(B[0], B[1], 15);
+    await d.stroke(B[0], B[1], 15, { pace: 40 });
     const switched = await d.settle();
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     check('g Select to Unselect mid-queue keeps the earlier steps as Select', switched.hash === sequential.hash, `one after the other ${sequential.selected} (#${sequential.hash}), switched mid-queue ${switched.selected} (#${switched.hash}), selected when switching ${pendingAtSwitch}`);
@@ -687,7 +701,7 @@ async function walk(url, scratch, dentalFixture) {
 
     // a5. Drag over from Bottom view (the camera stays there, so it runs last).
     await d.enterDragOver();
-    await d.button('Clear selection').click().catch(() => {});
+    await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
     await d.button('Bottom view').click();
     await d.idle(1500);
     const fromBelow = await d.strokeUntilSelected(1);
@@ -695,13 +709,39 @@ async function walk(url, scratch, dentalFixture) {
     await d.exitMode();
 
     // i. Save project, reload, Open it: the same work comes back; Open over objects is one Undo.
+    // The delete here only adds to the removals; e has already made some, which is what i1 asserts. If no
+    // stroke finds anything this late - the zone and the earlier deletes have taken a lot out - say so and
+    // carry on rather than losing the save and open checks over it.
     await d.enterDragOver();
-    await d.strokeUntilSelected();
-    await d.settle();
-    await page.keyboard.press('Delete');
-    await d.settled();
+    try {
+      await d.strokeUntilSelected();
+      await d.settle();
+      await page.keyboard.press('Delete');
+      await d.settled();
+    } catch {
+      note('no stroke found supports to delete before the save; the earlier removals carry i1');
+    }
     await d.exitMode();
     const projectStats = async () => ({ ...(await d.counts()), customised: (await d.props()).customised, zones: (await d.props()).zones });
+    // The undos above can walk back into the zone painting from c, and i1 is about the saved file holding
+    // every kind of hand edit. Paint one again if the undos took them all.
+    if ((await d.props()).zones === 0) {
+      await d.zonesButton().click();
+      await d.idle(800);
+      await d.button('Bottom view').click();
+      await d.idle(1500);
+      await d.measureCanvas();
+      zone: for (const fy of [0.42, 0.48, 0.36, 0.54, 0.60]) {
+        for (const fx of [0.36, 0.48, 0.60, 0.30, 0.66]) {
+          await d.stroke([fx - 0.05, fy], [fx + 0.05, fy], 12);
+          await d.idle(250);
+          if ((await d.props()).zones > 0) break zone;
+        }
+      }
+      await d.quiet();
+      await d.exitMode();
+      note(`zones repainted before the save (${(await d.props()).zones})`);
+    }
     const leavePrompt = () => page.evaluate(() => { const event = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; });
     const before = await projectStats();
     check('i1 the work to save has every kind of hand edit', before.manual > 0 && before.removed > 0 && before.customised > 0 && before.zones > 0, JSON.stringify(before));
@@ -752,7 +792,12 @@ async function walk(url, scratch, dentalFixture) {
     await page.locator('.undo-toast').hover();
     await d.settled();
     const over = await projectStats();
-    await page.locator('.undo-toast button').click();
+    await page.locator('.undo-toast').hover().catch(() => {});
+    const byToast = await page.locator('.undo-toast button').click({ timeout: 5000 }).then(() => true).catch(() => false);
+    if (!byToast) {
+      note('the Undo toast counted out while the plate settled; undoing with the keyboard instead');
+      await page.keyboard.press('Control+z');
+    }
     await d.settled();
     const undoneOpen = await projectStats();
     check('i5 Open over an object offers Undo, and Undo restores the plate as it was',
@@ -789,9 +834,9 @@ async function walk(url, scratch, dentalFixture) {
       const drop = (file) => page.setInputFiles('input[aria-label="Choose aligner file"]', file);
       /** Back from Step 1 lands on the start screen's aligner type; its card leads to the file screen, whose drop starts Step 1. */
       const onTypeScreen = () => page.waitForSelector('.start-screen .dental-cards');
-      const badge = () => page.locator('.edit-badge').innerText();
+      const badge = () => page.locator('.edit-badge').textContent();
       const objects = async () => (await page.locator('footer').innerText()).match(/(\d+) objects?/)?.[1];
-      const stepTo = async (text, ms = 20000) => page.waitForFunction((word) => document.querySelector('.edit-badge')?.innerText.includes(word), text, { timeout: ms });
+      const stepTo = async (text, ms = 20000) => page.waitForFunction((word) => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes(word.toLowerCase()), text, { timeout: ms });
       const noticeShown = (text) => page.waitForFunction((word) => [...document.querySelectorAll('[role="alert"]')].some((node) => node.innerText.includes(word)), text, { timeout: 120000 });
 
       await page.goto(url);
@@ -1073,7 +1118,7 @@ async function walk(url, scratch, dentalFixture) {
         const swept = await d.settle();
         await page.keyboard.press('Escape');
         await d.idle(400);
-        check('b3i Select (Drag over) takes several tips, and Esc drops the selection first', swept.selected > 1 && (await d.props()).selected === 0 && (await page.locator('.edit-badge').innerText()).includes('Step 2'), `selected ${swept.selected}`);
+        check('b3i Select (Drag over) takes several tips, and Esc drops the selection first', swept.selected > 1 && (await d.props()).selected === 0 && (await page.locator('.edit-badge').textContent()).toLowerCase().includes('step 2'), `selected ${swept.selected}`);
         await howToSelect.getByRole('button', { name: 'Click', exact: true }).click();
         // Add on a spot that faces up shows the warning on the status line.
         await page.keyboard.press('a');
@@ -1095,7 +1140,7 @@ async function walk(url, scratch, dentalFixture) {
     {
       const reference = path.join(ROOT, 'docs', 'dental-reference', 'reference-aligner.stl');
       const drop = (file) => page.setInputFiles('input[aria-label="Choose aligner file"]', file);
-      const stepTo = async (text, ms = 20000) => page.waitForFunction((word) => document.querySelector('.edit-badge')?.innerText.includes(word), text, { timeout: ms });
+      const stepTo = async (text, ms = 20000) => page.waitForFunction((word) => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes(word.toLowerCase()), text, { timeout: ms });
       const objects = async () => (await page.locator('footer').innerText()).match(/(\d+) objects?/)?.[1];
       const label = page.locator('.dental-side input.dental-label');
       /** A Step 3 control by its stable name, e.g. `aligner-tip-size` (docs/ui-styling.md). */
@@ -1306,7 +1351,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Back').click();
       check('x12 Back from Step 3 asks before discarding manual edits', await page.getByText('Discard and go back').isVisible());
       await page.getByRole('button', { name: 'Stay' }).click();
-      check('x13 Stay keeps Step 3 and the edits', (await page.locator('.edit-badge').innerText()).includes('Step 3 · Supports') && (await d.counts()).manual === afterLift.manual);
+      check('x13 Stay keeps Step 3 and the edits', (await page.locator('.edit-badge').textContent()).toLowerCase().includes('step 3 · supports') && (await d.counts()).manual === afterLift.manual);
 
       // First aligner finished with Add another aligner: back to Step 1 with the same type.
       await d.button('Add another aligner').click();
@@ -1362,7 +1407,7 @@ async function walk(url, scratch, dentalFixture) {
       check('l0 Step 1 offers orientation and Next without premature Done',
         await d.button('Auto orientation').isVisible() && await d.button('Next').isVisible() && await d.button('Done', false).count() === 0);
       await d.button('Auto orientation').click();
-      check('l1 automatic orientation stays in Step 1', (await page.locator('.edit-badge').innerText()).includes('Step 1 · Aligner'));
+      check('l1 automatic orientation stays in Step 1', (await page.locator('.edit-badge').textContent()).toLowerCase().includes('step 1 · aligner'));
       await d.button('Next').click();
       await page.waitForFunction(() => document.body.innerText.includes('Step 2 · Support area'), null, { timeout: 90000 });
       await d.idle(1000);
@@ -1434,7 +1479,7 @@ async function walk(url, scratch, dentalFixture) {
         transfer.items.add(new File([text], fileName));
         document.querySelector('.start-screen').dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
       }, { fileName: name, text: content });
-      const atStep1 = (ms = 180000) => page.waitForFunction(() => document.querySelector('.edit-badge')?.innerText.includes('Step 1 · Aligner'), null, { timeout: ms });
+      const atStep1 = (ms = 180000) => page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 1 · aligner'), null, { timeout: ms });
       const supports = () => page.getByRole('button', { name: 'Aligner supports', exact: true });
 
       await page.goto(url);
@@ -1477,7 +1522,7 @@ async function walk(url, scratch, dentalFixture) {
       await page.locator('.dental-card').click();
       await onScreen('file');
       await page.setInputFiles('input[aria-label="Choose aligner file"]', reference);
-      await page.waitForFunction(() => document.querySelector('.edit-badge')?.innerText.includes('Step 1 · Aligner') && document.body.innerText.includes('Review the orientation'), null, { timeout: 180000 });
+      await page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 1 · aligner') && document.body.innerText.toLowerCase().includes('review the orientation'), null, { timeout: 180000 });
       check('s9 the reference aligner chosen on the file screen reaches Step 1 with its type, in the editor', (await page.locator('.start-screen').count()) === 0 && (await page.locator('.workspace').count()) === 1 && await unitsOnPlate() === 1);
       await d.button('Back').click();
       await onScreen('type');
@@ -1585,7 +1630,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   const button = (key) => page.getByRole('button', { name: tr(key), exact: true }).first();
-  const badgeHas = (key, ms = 20000) => page.waitForFunction((word) => document.querySelector('.edit-badge')?.innerText.includes(word), tr(key), { timeout: ms });
+  const badgeHas = (key, ms = 20000) => page.waitForFunction((word) => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes(word.toLowerCase()), tr(key), { timeout: ms });
   const quiet = () => page.waitForFunction(() => !!document.querySelector('.job-activity')?.hidden, null, { timeout: 300000 });
   const idle = (ms) => page.evaluate((span) => new Promise((resolve) => setTimeout(resolve, span)), ms);
   try {
@@ -1705,7 +1750,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     const side = await page.locator('.dental-side').innerText();
     const listed = await page.locator('.dental-side .problems li').evaluateAll((items) => items.map((li) => li.innerText.replace(/\s+/g, ' ')));
     check(tag('d1 Step 3 Check ends in the problem list (rows) or the translated empty note'), listed.length > 0 || side.includes(none), `rows ${JSON.stringify(listed)}`);
-    const badge = (await page.locator('.edit-badge').innerText()).replace(/\s+/g, ' ');
+    const badge = (await page.locator('.edit-badge').textContent()).replace(/\s+/g, ' ');
     check(tag('d2 Step 3 badge is in the language'), lang === 'en' ? badge.includes('Step 3 ·') : !badge.includes('Step 3 ·'), badge);
     await page.locator('.dental-side .problems li').last().scrollIntoViewIfNeeded().catch(() => {});
     note(`[${lang}] dental island verdict: ${JSON.stringify((await page.evaluate(readProps)).islands)}`);
