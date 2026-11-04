@@ -16,7 +16,9 @@ const RADIUS = 0.3;
  * between them, and the reading beside it.
  *
  * It stands beside the model rather than through it, so it never hides the shell it is about, and it is drawn
- * flat in the YZ plane - the plane a camera on the X axis looks straight at (`ViewRequest` kind `side`), which is the
+ * flat in the YZ plane - the plane a camera on the X axis looks straight at - and it opens TOWARDS -Z,
+ * which is screen-right from that camera (its right vector is world -Z), so the arc turns the same way the
+ * model rises. Opening it towards +Z put the angle on the left while the model leaned right (`ViewRequest` kind `side`), which is the
  * view the step opens in. From any other angle it foreshortens, exactly as a real angle does.
  *
  * The reading is DOM, not geometry (`Html` from drei), so it is set in the app's own face at the app's own
@@ -45,7 +47,7 @@ export function PrintAngleArc({ box, deg }: { box: THREE.Box3; deg: number }) {
     const steps = 48;
     const at = (i: number) => {
       const a = (turn * i) / steps;
-      return new THREE.Vector3(origin.x, origin.y + Math.sin(a) * radius, origin.z + Math.cos(a) * radius);
+      return new THREE.Vector3(origin.x, origin.y + Math.sin(a) * radius, origin.z - Math.cos(a) * radius);
     };
     const points: THREE.Vector3[] = [];
     for (let i = 0; i < steps; i += 1) { points.push(at(i), at(i + 1)); }
@@ -54,9 +56,9 @@ export function PrintAngleArc({ box, deg }: { box: THREE.Box3; deg: number }) {
       pivot: origin,
       arc: new THREE.BufferGeometry().setFromPoints(points),
       // The plate's own line, and the line the model stands at.
-      plateLine: new THREE.BufferGeometry().setFromPoints([origin, new THREE.Vector3(origin.x, origin.y, origin.z + radius * 1.25)]),
-      tiltLine: new THREE.BufferGeometry().setFromPoints([origin, new THREE.Vector3(origin.x, origin.y + Math.sin(turn) * radius * 1.25, origin.z + Math.cos(turn) * radius * 1.25)]),
-      labelAt: new THREE.Vector3(origin.x, origin.y + Math.sin(half) * radius * 1.35, origin.z + Math.cos(half) * radius * 1.35),
+      plateLine: new THREE.BufferGeometry().setFromPoints([origin, new THREE.Vector3(origin.x, origin.y, origin.z - radius * 1.25)]),
+      tiltLine: new THREE.BufferGeometry().setFromPoints([origin, new THREE.Vector3(origin.x, origin.y + Math.sin(turn) * radius * 1.25, origin.z - Math.cos(turn) * radius * 1.25)]),
+      labelAt: new THREE.Vector3(origin.x, origin.y + Math.sin(half) * radius * 1.35, origin.z - Math.cos(half) * radius * 1.35),
     };
   }, [box, deg]);
 
