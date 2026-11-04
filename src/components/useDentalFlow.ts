@@ -6,6 +6,7 @@ import type { PrintScene, PrintUnit, SceneCommand, SupportSettings } from '../st
 import type { EditSession, SessionEvent } from '@mixo-geocore/editing/session';
 import type { DentalNotice } from '../dental/editingMode';
 import type { AnalysisClient } from '../workers/analysisClient';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { manualAreaPolicy } from '../dental/manualArea';
 import { dentalStructureOf, dentalSupportSettings } from '../dental/supportPreset';
@@ -75,6 +76,19 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
   const [tilt, setTiltState] = useState<DentalTiltState | undefined>(undefined);
   const tiltRef = useRef<DentalTiltState | undefined>(undefined);
   const setTilt = useCallback((next: DentalTiltState | undefined) => { tiltRef.current = next; setTiltState(next); }, []);
+  /*
+   * STEP 1'S PREVIEW of the support area, held HERE AND NOT IN THE SCENE. Every `dispatch` pushes the scene
+   * onto the undo stack, so detecting the area in the background would leave an undo step for something the
+   * reader never did: press Undo on arriving at Step 1 and the area would vanish. The preview is drawn from
+   * this, and the scene learns about it only when the reader presses Next and the step is accepted.
+   */
+  const previewSeq = useRef(0);
+  const [areaPreview, setAreaPreview] = useState<{ unitId: string; profile: string; policy: Extract<DentalPolicy, { kind: 'two-contour' }> } | undefined>(undefined);
+  const areaPreviewRef = useRef<typeof areaPreview>(undefined);
+  const keepPreview = useCallback((next: typeof areaPreview) => { areaPreviewRef.current = next; setAreaPreview(next); }, []);
+  /** True while the area is being detected, for the overlay on the scene. */
+  const [detectingArea, setDetectingArea] = useState(false);
+
   /** One scan per file and aligner type: the source mesh it was made for. */
   const scanned = useRef<{ unitId: string; profile: string; source: PrintUnit['source']; tilt: DentalTiltState } | undefined>(undefined);
   const keepTilt = useCallback((next: DentalTiltState) => {
@@ -189,6 +203,39 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     if (current?.status === 'ready' && current.unitId === unit.id) keepTilt({ ...current, index: current.scan.order[0]!, hand: false });
   }, [dispatch, sceneRef, sessionRef, setStatus, keepTilt]);
 
+  /*
+   * STEP 1 SHOWS WHAT IT FOUND. The support area is detected as the step OPENS, not as it ends, so the
+   * reader judging the print angle can see the rim and the area the supports will grow in.
+   *
+   * It is detected ONCE per aligner and type, not per rotation: the detector takes the MESH and the PROFILE
+   * and nothing else, so the rim and the area are a property of the geometry and do not change when the
+   * model turns. (What does change with the angle is which supports are needed, which is Step 2's work.)
+   */
+  useEffect(() => {
+    if (session.mode !== 'dental' || session.dentalStage !== 'aligner' || session.dentalAligner !== 'ready') return;
+    const unitId = session.dentalUnitId;
+    const profile = session.dentalProfile;
+    const unit = unitId ? sceneRef.current.units.find((candidate) => candidate.id === unitId) : undefined;
+    if (!unit || !profile) return;
+    // Already held, or already in the scene from a step the reader has been through before.
+    const held = areaPreviewRef.current;
+    if (held?.unitId === unit.id && held.profile === profile) return;
+    if (unit.dental?.kind === 'two-contour' && unit.dental.profileId === profile) return;
+    const seq = ++previewSeq.current;
+    setDetectingArea(true);
+    void analysis().dentalRegion(`dental-region-preview:${unit.id}`, unit.source, profile,
+      { key: 'Detecting dental support area on {name}', vars: { name: unitName(unit.id) } }).then((region) => {
+      if (previewSeq.current !== seq) return;
+      setDetectingArea(false);
+      if (!region || region.kind !== 'proposal') return;
+      const proposal = sessionRef.current.dentalProposal;
+      if (!proposal) return;
+      const { structure } = alignerSettings(unit, profile);
+      keepPreview({ unitId: unit.id, profile, policy: { kind: 'two-contour', profileId: profile, rim: proposal.rim, region, stamps: [], tuning: defaultDentalTuning(profile), structure } });
+    }, () => { if (previewSeq.current === seq) setDetectingArea(false); });
+  }, [session.mode, session.dentalStage, session.dentalAligner, session.dentalUnitId, session.dentalProfile,
+    analysis, sceneRef, sessionRef, unitName, keepPreview]);
+
   /** Step 1 Next: detect the support area for the chosen type, or open Step 2 empty for painting. */
   const next = useCallback(() => {
     const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
@@ -197,9 +244,12 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     // Orientation failed: there is no opening to build the support area from.
     if (!proposal || !profile) return setStatus('No aligner opening was found, so no support area can be proposed. Go Back and choose another file, or Exit.');
     const detection = ++detectionSeq.current;
-    setStatus('Detecting the two dental contours and support area…');
-    void analysis().dentalRegion(`dental-region:${unit.id}`, unit.source, profile,
-      { key: 'Detecting dental support area on {name}', vars: { name: unitName(unit.id) } }).then((region) => {
+    // The preview already detected this aligner's area as the step opened; Next does not detect it twice.
+    const held = areaPreviewRef.current;
+    const ready = held?.unitId === unit.id && held.profile === profile ? held.policy.region : undefined;
+    if (!ready) setStatus('Detecting the two dental contours and support area…');
+    void (ready ? Promise.resolve(ready) : analysis().dentalRegion(`dental-region:${unit.id}`, unit.source, profile,
+      { key: 'Detecting dental support area on {name}', vars: { name: unitName(unit.id) } })).then((region) => {
       if (detectionSeq.current !== detection ||
         sceneRef.current.units.find((candidate) => candidate.id === unit.id) !== unit ||
         sessionRef.current.dentalStage !== 'aligner' || sessionRef.current.dentalProposal !== proposal) return;
@@ -253,9 +303,12 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     orientSeq.current += 1;
     detectionSeq.current += 1;
     scanSeq.current += 1;
+    previewSeq.current += 1;
+    setDetectingArea(false);
+    keepPreview(undefined);
     // A scan cut short is not kept: the aligner is scanned again when Step 1 sees it next.
     if (tiltRef.current?.status === 'scanning') setTilt(undefined);
-  }, [setTilt]);
+  }, [setTilt, keepPreview]);
 
   /** Free transform is confirmed: the operator's own rotation is kept, so Next does not turn the aligner back to the scanned row. */
   const markHand = useCallback(() => {
@@ -263,5 +316,5 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     if (current?.status === 'ready') keepTilt({ ...current, hand: true });
   }, [keepTilt]);
 
-  return { startAligner, useDetected, next, invalidate, tilt, chooseTilt, markHand };
+  return { startAligner, useDetected, next, invalidate, tilt, chooseTilt, markHand, areaPreview, detectingArea };
 }

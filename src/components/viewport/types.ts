@@ -4,7 +4,7 @@ import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportChe
 import type { SupportPoint } from '@mixo-geocore/host/core/analysis/types';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
-import type { DentalAllowStamp } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { Gesture } from '@mixo-geocore/editing/gesture';
 import type { AddAction, BrushMode, EditTool, SelectStyle } from '@mixo-geocore/editing/types';
@@ -24,6 +24,12 @@ export interface ObjectViewportProps {
   dentalTips?: { unitId: string; points: readonly Pick<SupportPoint, 'id' | 'position' | 'normal'>[] };
   /** Dental Step 2 is on (whichever tool): the area and tips show, no support bodies. */
   dentalArea?: boolean;
+  /**
+   * Step 1's support area BEFORE it is accepted: the step detects it as it opens so the reader can see what
+   * this aligner gives, but it is not in the scene yet (a background dispatch would leave an undo step for
+   * something the reader never did), so it is drawn from here instead.
+   */
+  dentalAreaPreview?: { unitId: string; policy: DentalPolicy };
   /** Step 1's print angle, drawn in the scene as an arc on the plate beside the model. */
   printAngle?: { unitId: string; deg: number };
   /** Dental Step 2: the overhang low points outside the permitted area, drawn blue. */

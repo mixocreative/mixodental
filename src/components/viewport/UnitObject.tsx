@@ -1,4 +1,5 @@
 import { useThree, type ThreeEvent } from '@react-three/fiber';
+import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
@@ -37,6 +38,8 @@ interface UnitObjectProps extends Pick<ObjectViewportProps,
   | 'gesture' | 'liveTool' | 'selection' | 'tipsView' | 'modelVisible' | 'wireframe'
   | 'onSelect' | 'onPickTip' | 'onAddContact' | 'onRemoveContact' | 'onErase' | 'onEditMiss' | 'onToggleContact' | 'onPaint' | 'onShift' | 'onZoneStroke' | 'onDentalStroke' | 'onNoBodies'> {
   problems: readonly SupportProblem[];
+  /** Step 1's detected area, drawn while the scene has none of its own (src/components/useDentalFlow.ts). */
+  dentalAreaPreview?: DentalPolicy;
   /** A support just added to this object: a ring flashes at its tip. */
   added?: AddedAt;
   unit: PrintUnit;
@@ -69,6 +72,8 @@ export function UnitObject(props: UnitObjectProps) {
    * the stroke handlers are off, so the model does not answer the pointer with a circle it cannot act on.
    */
   const stepOne = gesture.kind === 'dental-aligner';
+  /** What the area layers draw: the accepted policy, or Step 1's preview while there is none yet. */
+  const areaPolicy = unit.dental ?? props.dentalAreaPreview;
   /** The step takes strokes: Step 1 does not, and neither does a step with no editing gesture at all. */
   const takesEdits = editing && !stepOne;
   const supports = gesture.kind === 'dental-area' || stepTwo ? undefined : tips ?? props.supports;
@@ -329,14 +334,14 @@ export function UnitObject(props: UnitObjectProps) {
     {model && editing && shown === unit.source && zones.length > 0 && <group visible={props.modelVisible}>
       <ZoneLayer mesh={unit.source} geometry={model} zones={zones} opacity={ZONE_OPACITY[zoning ? 'full' : 'faint']} />
     </group>}
-    {model && areaShown && shown === unit.source && unit.dental && <group visible={props.modelVisible}>
-      {unit.dental.kind === 'two-contour'
-        ? <><DentalFaceLayer mesh={unit.source} policy={{ ...unit.dental, stamps: dentalStamps ?? unit.dental.stamps }} opacity={0.7} />
-          {(dentalStamps ?? unit.dental.stamps).some((stamp) => stamp.kind === 'allow') &&
-            <DentalPaintLayer mesh={unit.source} geometry={model} stamps={dentalStamps ?? unit.dental.stamps} opacity={0.7} />}
-          <DentalRegionLines mesh={unit.source} policy={unit.dental} /></>
-        : <><DentalStampLayer mesh={unit.source} geometry={model} policy={{ ...unit.dental, stamps: dentalStamps ?? unit.dental.stamps }} opacity={0.7} />
-          <DentalRimOutline rim={unit.dental.rim} /></>}
+    {model && areaShown && shown === unit.source && areaPolicy && <group visible={props.modelVisible}>
+      {areaPolicy.kind === 'two-contour'
+        ? <><DentalFaceLayer mesh={unit.source} policy={{ ...areaPolicy, stamps: dentalStamps ?? areaPolicy.stamps }} opacity={0.7} />
+          {(dentalStamps ?? areaPolicy.stamps).some((stamp) => stamp.kind === 'allow') &&
+            <DentalPaintLayer mesh={unit.source} geometry={model} stamps={dentalStamps ?? areaPolicy.stamps} opacity={0.7} />}
+          <DentalRegionLines mesh={unit.source} policy={areaPolicy} /></>
+        : <><DentalStampLayer mesh={unit.source} geometry={model} policy={{ ...areaPolicy, stamps: dentalStamps ?? areaPolicy.stamps }} opacity={0.7} />
+          <DentalRimOutline rim={areaPolicy.rim} /></>}
     </group>}
     {areaShown && props.dentalRisks && props.dentalRisks.length > 0 && shown === unit.source && <group visible={props.modelVisible}>
       <DentalRiskLayer mesh={unit.source} risks={props.dentalRisks} opacity={0.85} />

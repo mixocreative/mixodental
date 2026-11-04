@@ -103,6 +103,7 @@ export default function ObjectViewport(props: ObjectViewportProps) {
       unit={unit}
       supports={props.supportMeshes.get(unit.id)}
       {...(props.dentalTips?.unitId === unit.id ? { dentalTips: props.dentalTips.points } : {})}
+      {...(props.dentalAreaPreview?.unitId === unit.id ? { dentalAreaPreview: props.dentalAreaPreview.policy } : {})}
       {...(props.dentalRisks?.unitId === unit.id ? { dentalRisks: props.dentalRisks.risks } : {})}
       {...(props.debugLayers?.unitId === unit.id ? { debugLayers: props.debugLayers.layers } : {})}
       tipsView={props.tipsView}

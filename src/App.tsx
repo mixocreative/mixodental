@@ -1360,6 +1360,9 @@ export default function App() {
           supportMeshes={orienting ? NO_SUPPORT_MESHES : supportMeshes}
           {...(shownPreview ? { dentalTips: { unitId: shownPreview.unitId, points: areaContacts } } : {})}
           {...(inArea ? { dentalArea: true } : {})}
+          {...(editMode === 'dental' && session.dentalStage === 'aligner' && dentalFlow.areaPreview
+            ? { dentalAreaPreview: { unitId: dentalFlow.areaPreview.unitId, policy: dentalFlow.areaPreview.policy } }
+            : {})}
           {...(inArea && activeUnit && areaRisks.length > 0 ? { dentalRisks: { unitId: activeUnit.id, risks: areaRisks } } : {})}
           {...(editMode === 'dental' && session.dentalStage === 'aligner' && activeUnit && orientFlow.tilt?.unitId === activeUnit.id && orientFlow.tilt.status === 'ready'
             ? { printAngle: { unitId: activeUnit.id, deg: orientFlow.tilt.scan.rows[orientFlow.tilt.index]!.tiltDeg } }

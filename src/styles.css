@@ -684,15 +684,27 @@ footer.on-scene button { pointer-events: auto; }
    about and it is read from across the bench. It is DOM over the canvas, so it stays sharp at any zoom. */
 .angle-reading {
   font-family: var(--font-number);
-  font-size: 34px;
+  /* Three times the size it started at: this is the one number Step 1 exists to settle, and it is read from
+     across the bench while the reader turns the model, not leaned into. */
+  font-size: 102px;
   font-weight: 700;
   letter-spacing: -.02em;
   color: var(--angle-mark);
   font-family: var(--font-number); font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  text-shadow: 0 0 6px var(--scene-bg), 0 0 6px var(--scene-bg);
+  /* A drag across the scene turns the camera. Text over the canvas must not catch that drag and start
+     selecting itself instead, so nothing drawn on the scene takes the pointer OR the selection. */
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  display: inline-flex;
+  align-items: flex-start;
+  line-height: 1;
+  text-shadow: 0 0 10px var(--scene-bg), 0 0 10px var(--scene-bg), 0 0 10px var(--scene-bg);
 }
-.angle-reading-deg { font-size: .6em; vertical-align: top; line-height: 1; }
+/* The ring rides at the TOP of the number and close to it. At this size a baseline-aligned or
+   `vertical-align`-offset degree sign drifts a long way from the digits and reads as a separate mark. */
+.angle-reading-deg { font-size: .4em; line-height: 1.1; }
 
 /* WORK IN PROGRESS, over the model it is about. A percentage shows only when the job counts its own work;
    otherwise the bar runs on its own and says no number (src/components/SceneProgress.tsx). */
@@ -705,6 +717,8 @@ footer.on-scene button { pointer-events: auto; }
   border-radius: var(--radius);
   background: var(--surface);
   pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .scene-progress-words { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 11.5px; color: var(--muted); }
 .scene-progress-percent { font-family: var(--font-number); font-variant-numeric: tabular-nums; color: var(--ink); }
@@ -732,6 +746,8 @@ footer.on-scene button { pointer-events: auto; }
   line-height: 1.5;
   text-align: center;
   pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 /* The wide edit bar takes the top right; the view buttons move to the bottom right meanwhile. */
 .viewport--editing .viewport-view { top: auto; bottom: 14px; }

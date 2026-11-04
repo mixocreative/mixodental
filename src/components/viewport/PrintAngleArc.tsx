@@ -58,7 +58,7 @@ export function PrintAngleArc({ box, deg }: { box: THREE.Box3; deg: number }) {
       // The plate's own line, and the line the model stands at.
       plateLine: new THREE.BufferGeometry().setFromPoints([origin, new THREE.Vector3(origin.x, origin.y, origin.z - radius * 1.25)]),
       tiltLine: new THREE.BufferGeometry().setFromPoints([origin, new THREE.Vector3(origin.x, origin.y + Math.sin(turn) * radius * 1.25, origin.z - Math.cos(turn) * radius * 1.25)]),
-      labelAt: new THREE.Vector3(origin.x, origin.y + Math.sin(half) * radius * 1.35, origin.z - Math.cos(half) * radius * 1.35),
+      labelAt: new THREE.Vector3(origin.x, origin.y + Math.sin(half) * radius * 2.1, origin.z - Math.cos(half) * radius * 2.1),
     };
   }, [box, deg]);
 
