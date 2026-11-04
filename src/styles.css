@@ -968,10 +968,14 @@ dialog.terms .terms-item > span { flex: none; }
 /* ---- Full-screen start (docs/ROADMAP.md ST): task, aligner type, aligner file ---- */
 .start-screen {
   position: relative;
-  height: calc(100vh - 56px - 32px);
+  /* A MINIMUM, not a fixed height. With `align-items: center`, content taller than a fixed box overflows it
+     equally at BOTH ends, so the heading rose under the header on a short or narrow window. A minimum lets
+     the screen grow and the page scroll instead. The gutter keeps the keys off the edges of the page. */
+  min-height: calc(100vh - 56px - 32px);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 32px 16px;
   background: var(--paper);
 }
 .start-screen--dropping { outline: 1px solid var(--ink); outline-offset: -12px; }
@@ -980,27 +984,32 @@ dialog.terms .terms-item > span { flex: none; }
    max-content width and the whole screen scrolls sideways instead of the choices wrapping. */
 .start-task { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 24px; width: 100%; }
 .start-heading { margin: 0; max-width: 100%; font-size: 18px; font-weight: 500; letter-spacing: .04em; text-wrap: balance; }
-/* The three choices share one grid, so they are the same width and the same height at every window size: as many
-   columns as fit, and `grid-auto-rows: 1fr` keeps a choice whose word wraps onto two lines the same height as the
-   others. A flex row equalised them only while all three sat on one line. */
+/* The choices share one grid, so they are the same width and the same height at every window size, HOWEVER
+   MANY THERE ARE: `auto-fit` takes as many columns as fit and wraps the rest, and `grid-auto-rows: 1fr` keeps
+   a choice whose word wraps onto two lines the same height as the others. Adding a fourth or a fifth choice
+   needs no change here. A flex row equalised them only while they all sat on one line. */
 .start-choices {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  /* A key never grows past 220px, so a row that holds fewer of them does not stretch them out of shape, and
+     `justify-content: center` keeps a part-filled last row under the middle of the others instead of hanging
+     off the left. Four fit across before they wrap. */
+  grid-template-columns: repeat(auto-fit, minmax(168px, 220px));
   grid-auto-rows: 1fr;
+  justify-content: center;
   gap: 16px;
   justify-self: stretch;
   width: 100%;
-  max-width: 860px;
+  max-width: 760px;
   margin: 0 auto;
 }
-/* The three choices on the task screen are one component (src/components/StartChoice.tsx): the same key, the same
-   art box above the same word, whichever one is the filled main choice. Nothing here is set per choice. */
+/* The choices on the task screen are one component (src/components/StartChoice.tsx): the same key, the same art
+   box above the same word. There is no main one and nothing here is set per choice. */
 .start-big {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
-  width: auto; min-height: 200px; padding: 28px 24px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  width: auto; min-height: 164px; padding: 20px 16px; text-align: center;
 }
-.start-big-art { width: 96px; height: 96px; flex: none; transition: color var(--dur, .15s); }
-.start-big-label { font-size: 15px; letter-spacing: .04em; }
+.start-big-art { width: 72px; height: 72px; flex: none; transition: color var(--dur, .15s); }
+.start-big-label { font-size: 14px; letter-spacing: .04em; }
 /* The generic button hover goes to white, which is invisible on a key that is already white. The key itself
    does not move or fill: only its hairline firms up, and the theme adds the underline and the colour. */
 .start-big:hover:not(:disabled) { border-color: var(--line-strong); }
