@@ -43,6 +43,11 @@ describe('ReviewSummary', () => {
     expect(html.indexOf('>Fix<')).toBeLessThan(html.indexOf('>Details<'));
   });
 
+  it('always says whether it is waiting, so a watcher can see the verdict settle', () => {
+    expect(renderToStaticMarkup(<ReviewSummary kind="aligner" tone="look" line="x" stale {...open} />)).toContain('aria-busy="true"');
+    expect(renderToStaticMarkup(<ReviewSummary kind="aligner" tone="ready" line="x" {...open} />)).toContain('aria-busy="false"');
+  });
+
   it('dims while a verdict is on its way, but never while it is still building', () => {
     expect(renderToStaticMarkup(<ReviewSummary kind="aligner" tone="look" line="x" stale {...open} />)).toContain('is-look is-stale');
     expect(renderToStaticMarkup(<ReviewSummary kind="aligner" tone="building" line="x" stale />)).not.toContain('is-stale');

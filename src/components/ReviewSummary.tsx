@@ -29,7 +29,7 @@ export function ReviewSummary({ kind, tone, line, stale = false, open, onToggle,
   children?: ReactNode;
 }) {
   const settled = open !== undefined && onToggle !== undefined;
-  return <section className={`review-summary is-${tone}${stale && settled ? ' is-stale' : ''}`} data-ui={`${kind}-review-summary`} aria-busy={stale || undefined}>
+  return <section className={`review-summary is-${tone}${stale && settled ? ' is-stale' : ''}`} data-ui={`${kind}-review-summary`} aria-busy={stale}>
     <p className="review-line" role="status" data-ui={`${kind}-review-line`}>{line}</p>
     {settled ? <div className="orient-row review-actions">
       {action}

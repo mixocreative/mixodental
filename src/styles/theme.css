@@ -165,9 +165,8 @@
 /* A key is a hairline box with a tiny tracked cap. Data (a scan name, a part) is never uppercased, so the caps go
    only on the keys that carry a command: the step bar, the nav row, segments, the mode and exit keys. */
 [data-theme='instrument'] button { border-radius: var(--radius-key); }
-/* `.primary:not(.start-big)`: the three big start choices are one set, so their word is styled once, on
-   `.start-big-label` below, whichever of them is the filled main choice. */
-[data-theme='instrument'] .primary:not(.start-big),
+/* The three big start choices are one set, drawn alike; their word is styled once, on `.start-big-label`. */
+[data-theme='instrument'] .primary,
 [data-theme='instrument'] .start-big-label,
 [data-theme='instrument'] .orient-row button,
 [data-theme='instrument'] .orient-free-btn,
@@ -189,6 +188,14 @@
 /* The engaged tool is the one place a key wears the accent: a 3 px underline, so the fill stays ink. */
 [data-theme='instrument'] .segmented button[aria-pressed='true'] { box-shadow: inset 0 -3px 0 var(--accent-soft); }
 [data-theme='instrument'] .danger { color: var(--signal); border-color: var(--signal); }
+/* The start choices: all three alike, and a hover that reads at arm's length without the key itself moving
+   or filling - the art and the word take the accent, and the key wears the accent underline. */
+[data-theme='instrument'] .start-big { transition: border-color var(--dur), box-shadow var(--dur), color var(--dur); }
+[data-theme='instrument'] .start-big:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  box-shadow: inset 0 -4px 0 var(--accent);
+  color: var(--accent-strong);
+}
 [data-theme='instrument'] button:focus-visible,
 [data-theme='instrument'] input:focus-visible,
 
@@ -197,7 +204,6 @@
    or a button. One per screen. New markup uses `.title`; the two stage headings already in the app are listed
    with it so they are the same thing. */
 [data-theme='instrument'] .title,
-[data-theme='instrument'] .start-heading,
 [data-theme='instrument'] .dental-stage h2 {
   font-family: var(--font-title);
   font-size: var(--title-size);
@@ -208,10 +214,8 @@
   color: var(--ink);
 }
 [data-theme='instrument']:lang(ja) .title,
-[data-theme='instrument']:lang(ja) .start-heading,
 [data-theme='instrument']:lang(ja) .dental-stage h2 { font-family: var(--font-title-ja); }
 [data-theme='instrument']:lang(zh-Hant) .title,
-[data-theme='instrument']:lang(zh-Hant) .start-heading,
 [data-theme='instrument']:lang(zh-Hant) .dental-stage h2 { font-family: var(--font-title-zh); }
 
 /* 2. HEADER, four levels: the app, a screen, a group, a field. All sans, all tiny tracked caps, so a header never

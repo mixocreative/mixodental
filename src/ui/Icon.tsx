@@ -4,6 +4,8 @@
  * follows the CSS `color` of the place the icon sits in. Size comes from CSS (width/height/font-size).
  */
 
+import { scopeIcon } from './iconSvg';
+
 const FILES = import.meta.glob('./assets/icons/*.svg', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 type Parsed = { props: Record<string, string>; body: string };
@@ -26,7 +28,11 @@ function parse(text: string): Parsed {
 }
 
 const ICONS = new Map<string, Parsed>(
-  Object.entries(FILES).map(([path, text]) => [path.replace(/^.*\//, '').replace(/\.svg$/, ''), parse(text)]),
+  Object.entries(FILES).map(([path, text]) => {
+    const name = path.replace(/^.*\//, '').replace(/\.svg$/, '');
+    const icon = parse(text);
+    return [name, { ...icon, body: scopeIcon(name, icon.body, icon.props.viewBox) }];
+  }),
 );
 
 /** Renders the named icon, or nothing (with a dev warning) when no file has that name. */

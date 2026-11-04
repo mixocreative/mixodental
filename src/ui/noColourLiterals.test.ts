@@ -27,7 +27,7 @@ const BATCH = Object.entries(import.meta.glob<string>('../../dentalwork/batch-re
 const isTest = (path: string) => /\.test\.tsx?$/.test(path);
 
 const HEX = /#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3})\b/i;
-const RGB = /rgba?\(/;
+const RGB = /\brgba?\(/;
 const NUMBER_COLOUR = /\b0x[0-9a-f]{6}\b/i;
 
 function offenders(files: string[], pattern: RegExp): string[] {

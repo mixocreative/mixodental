@@ -39,8 +39,15 @@ describe('hover hints', () => {
   });
 
   it('every button that can be disabled comes from the registry, which says why it is off', () => {
+    // The real `disabled` attribute only: `aria-disabled` marks a button that stays focusable and explains
+    // itself, which is the opposite of the case this guards against.
+    // The one exception is the Custom preset chip, which is not an action at all: it is a read-only marker
+    // of the preset state, sitting inside the preset group and carrying its own hint.
+    const isCustomChip = (tag: string) => /Values edited by hand/.test(tag);
     const own = Object.entries(SOURCES).filter(([file]) => !/CommandButton|Segmented/.test(file))
-      .flatMap(([file, code]) => openingTags(code, 'button').filter((tag) => /disabled/.test(tag)).map((tag) => `${file}: ${tag.slice(0, 80)}`));
+      .flatMap(([file, code]) => openingTags(code, 'button')
+        .filter((tag) => /\sdisabled(?=[\s=>/])/.test(tag) && !isCustomChip(tag))
+        .map((tag) => `${file}: ${tag.slice(0, 80)}`));
     expect(own).toEqual([]);
   });
 

@@ -999,8 +999,11 @@ dialog.terms .terms-item > span { flex: none; }
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   width: auto; min-height: 200px; padding: 28px 24px; text-align: center;
 }
-.start-big-art { width: 96px; height: 96px; flex: none; }
+.start-big-art { width: 96px; height: 96px; flex: none; transition: color var(--dur, .15s); }
 .start-big-label { font-size: 15px; letter-spacing: .04em; }
+/* The generic button hover goes to white, which is invisible on a key that is already white. The key itself
+   does not move or fill: only its hairline firms up, and the theme adds the underline and the colour. */
+.start-big:hover:not(:disabled) { border-color: var(--line-strong); }
 .start-screen .dental-stage { padding-top: 32px; background: transparent; }
 
 /* ---- Build plate (Round C) ------------------------------------------------- */

@@ -3,7 +3,7 @@
   <defs>
     <style>
       .cls-1 {
-        fill: color-mix(in srgb, currentColor 14%, transparent);
+        fill: none;
         stroke-width: 12px;
       }
 
