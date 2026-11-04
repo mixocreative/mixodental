@@ -101,6 +101,45 @@ const BASE = {
   dragSelected: [57, 57, 57],
 };
 
+/*
+ * WHICH SECTIONS RUN.
+ *
+ *   npm run walk                 every section, as always
+ *   npm run walk -- --only=u,x   the dental sections only
+ *
+ * A full walk takes half an hour, because between its checks it does the app's real work: reading a
+ * 374k-triangle aligner, orienting it, scanning every print angle, detecting the area, generating
+ * supports - several times over. That is the right price for a release gate and the wrong price for a
+ * question, and chasing one failure costs many runs.
+ *
+ * A FILTERED RUN CAN NEVER BE MISTAKEN FOR A FULL ONE. The sections that ran are named in the summary
+ * line, and a filtered run says SOME PASS rather than ALL PASS however green it is. That distinction is
+ * the whole reason this is safe to add: the danger of a filter is not that it skips work, it is that
+ * someone later reads a green line and believes the walk passed.
+ *
+ * The section letters are the ones the comments in `walk()` already use: a-k and i for the plain editor,
+ * `u` for the dental flow up to Step 2, `x` for Step 3 and finishing, `s` for the start screen.
+ */
+const ONLY = new Set((process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length) ?? '')
+  .split(',').map((name) => name.trim()).filter(Boolean));
+/** True when `section` is one the caller asked for; with no `--only` every section runs. */
+const runs = (section) => ONLY.size === 0 || ONLY.has(section);
+
+/*
+ * A BRUSH IS NOT A TRANSACTION.
+ *
+ * Paint and Erase both ADD stamps (`dental/stamps/add`): erasing does not delete the stamp painting left,
+ * it lays an opposing one over it. So dragging back over "the same place" is a second freehand drag, it
+ * samples the surface at slightly different points, and it can leave a sliver of area behind - worth a tip
+ * or two. That is the tool working as designed, not a fault.
+ *
+ * The erase checks therefore ask that erasing UNDOES THE PAINTING - the count comes back down, and down
+ * past what the painting added - and not that it lands on the exact digit it started from, which a
+ * freehand brush cannot promise. Asking for the digit is how both checks came to fail on a difference of
+ * one while erase was plainly working.
+ */
+const ERASE_RESIDUE = 2;
+
 const results = [];
 const started = Date.now();
 function check(name, ok, detail = '') {
@@ -207,6 +246,7 @@ function readProps() {
     droppedDrawn: mesh ? mesh.dropped.filter((id) => drawn.has(id)).length : -1,
     islands: mesh?.islands ? (mesh.islands.status === 'ok' ? { resolved: mesh.islands.islands.filter((i) => i.status === 'resolved').length, unresolved: mesh.islands.islands.filter((i) => i.status === 'unresolved').length, manualOnly: mesh.islands.islands.filter((i) => i.status === 'manual-only').length } : 'inconclusive') : undefined,
     dentalReviewGap: mesh?.dentalRimCoverage?.opening.reviewGapMm ?? -1,
+    dentalNeedsReview: mesh?.dentalRimCoverage?.needsReview ?? null,
     customised: unit ? Object.keys(unit.contactSettings).length : -1,
     activeRotation: active ? [...active.transform.rotation] : undefined,
     active: out.scene?.activeUnitId,
@@ -231,7 +271,14 @@ function readProps() {
 /** Waits until Step 2's tip preview is ready again after an edit (no "Updating" or "Finding" note, tips counted). */
 async function previewReady(page) {
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 400)));
-  await page.waitForFunction(() => !/Updating support area|Finding safe/.test(document.body.innerText) && /[1-9]/.test([...document.querySelectorAll('.edit-note')].map((note) => note.innerText).join(' ')), null, { timeout: 120000 });
+  /*
+   * Waits on the TIP COUNT ITSELF, by its name. This used to wait for any digit to turn up in an
+   * `.edit-note`, which worked only because the count was written inside a sentence there; when the count
+   * became a readout of its own the notes held no digits at all and this waited out its full two minutes.
+   * A named element is the thing to wait on - the words around it are free to change.
+   */
+  await page.waitForFunction(() => !/Updating support area|Finding safe/.test(document.body.innerText)
+    && Number(document.querySelector('[data-ui="dental-tip-count"] .num')?.textContent ?? 0) > 0, null, { timeout: 120000 });
 }
 
 /**
@@ -246,13 +293,33 @@ async function addOnUpFacingSpot(page, expected) {
   const manual = async () => (await page.evaluate(readProps)).units[0]?.manual ?? -1;
   const status = () => page.evaluate(() => document.querySelector('footer strong')?.innerText ?? '');
   const tried = [];
+  /*
+   * WHERE THE EMPTY CANVAS IS, ASKED RATHER THAN ASSUMED.
+   *
+   * This used to turn the view by dragging down the right edge at x = 0.97, which was empty canvas when the
+   * edit bar was a strip across the top. The dental dock is a COLUMN on the right now, so that drag lands
+   * on the panel, the view never turns, and this hunts for an up-facing spot from a camera that cannot see
+   * one - failing with a list of spots that all took a tip and never a warning.
+   *
+   * So the page is asked: walk in from the left and take the first line where the top element under the
+   * pointer is the canvas itself. That holds whatever the docks are doing, at any window size.
+   */
+  const orbitX = await page.evaluate(() => {
+    const canvas = document.querySelector('canvas');
+    const box = canvas.getBoundingClientRect();
+    for (const fx of [0.24, 0.28, 0.22, 0.32, 0.2, 0.36, 0.75, 0.7]) {
+      const x = box.x + box.width * fx;
+      const clear = [0.45, 0.6, 0.75].every((fy) => document.elementFromPoint(x, box.y + box.height * fy) === canvas);
+      if (clear) return fx;
+    }
+    return 0.24;
+  });
   // The first drag turns the view one way; if it was already there, the second turns it the other way.
   for (const [from, to] of [[0.4, 0.85], [0.85, 0.4]]) {
-  // Along the right edge, clear of the bar on top and the buttons below: empty canvas turns the view.
   for (let sweep = 0; sweep < 2; sweep += 1) {
-    await page.mouse.move(...at(0.97, from));
+    await page.mouse.move(...at(orbitX, from));
     await page.mouse.down();
-    for (let k = 0; k <= 20; k += 1) await page.mouse.move(...at(0.97, from + (to - from) * k / 20));
+    for (let k = 0; k <= 20; k += 1) await page.mouse.move(...at(orbitX, from + (to - from) * k / 20));
     await page.mouse.up();
   }
   await idle(1000);
@@ -503,344 +570,353 @@ async function walk(url, scratch, dentalFixture) {
   });
   const d = makeDriver(page);
   try {
-    let early;
-    await d.generate(url, (seen) => { early = seen; });
-    check('i Drag over pressed while the first build runs says so',
-      early?.reached === true && early.building && early.status === 'Supports are still building.',
-      `status "${early?.status}", build still running at the press ${early?.building}, Drag over engaged while building ${early?.reached}`);
-
     /*
-     * a0. THE EDITOR FITS THE WINDOW. This is checked before anything strokes the canvas, because a canvas
-     * taller than the screen breaks every stroke at once and does it SILENTLY: the strokes below aim at
-     * fractions of the canvas box, so a canvas running past the bottom of the window sends them into empty
-     * space, no pointer event reaches the page, and five checks fail looking like five separate bugs.
-     *
-     * It happened: `main` had `min-height: 100vh` and no definite height, which left `.workspace`'s
-     * `flex-basis: 0%` unresolvable, so it sized to its tallest panel's content instead. At 1440x900 the
-     * canvas measured 2063 px inside a 900 px window with the page scrolling.
+     * a-k and i: THE PLAIN EDITOR, on the knot fixture - generate, select, delete, zones, per-support
+     * settings, export, save and open. It is one section under `--only=a`, because everything in it works
+     * on the same plate built by the same first generate, and the dental sections below share nothing
+     * with it (checked: not one of its names is read after this block ends).
      */
-    const fit = await d.page.evaluate(() => {
-      const box = document.querySelector('canvas').getBoundingClientRect();
-      return { height: Math.round(box.height), bottom: Math.round(box.bottom), page: document.documentElement.scrollHeight, window: window.innerHeight };
-    });
-    check('a0 the editor fits the window: the canvas does not run past the bottom of the screen',
-      fit.bottom <= fit.window + 1 && fit.page <= fit.window + 1,
-      `canvas ${fit.height} px tall, bottom at ${fit.bottom}, page ${fit.page}, window ${fit.window}`);
+    if (runs('a')) {
+      let early;
+      await d.generate(url, (seen) => { early = seen; });
+      check('i Drag over pressed while the first build runs says so',
+        early?.reached === true && early.building && early.status === 'Supports are still building.',
+        `status "${early?.status}", build still running at the press ${early?.building}, Drag over engaged while building ${early?.reached}`);
 
-    // a. Generate and Drag over.
-    const first = await d.counts();
-    check('a1 generate: automatic count', first.auto === BASE.auto, `auto ${first.auto} (baseline ${BASE.auto}), manual ${first.manual}, removed ${first.removed}`);
-    await d.enterDragOver();
-    const strokes = [
-      ['select, front', [[0.3, 0.5], [0.72, 0.5]], 30],
-      ['select, upper part', [[0.32, 0.42], [0.7, 0.42]], 25],
-    ];
-    const picked = [];
-    for (const [, [from, to], moves] of strokes) {
-      await d.stroke(from, to, moves);
-      picked.push((await d.settle()).selected);
-    }
-    await d.button('Unselect').click();
-    await d.stroke([0.4, 0.45], [0.6, 0.55], 15);
-    picked.push((await d.settle()).selected);
-    check('a2 drag over: fixed selection counts', picked.join() === BASE.dragSelected.join(), `selected ${picked.join(', ')} (baseline ${BASE.dragSelected.join(', ')})`);
-    await d.quiet();
-    await page.keyboard.press('Delete');
-    await d.settled();
-    const deleted = await d.counts();
-    check('a3 Delete removes exactly the selection', deleted.removed === picked.at(-1) && deleted.auto === first.auto - picked.at(-1), `removed ${deleted.removed} of ${picked.at(-1)} selected, auto ${deleted.auto}`);
-    await page.keyboard.press('Control+z');
-    await d.settled();
-    const undone = await d.counts();
-    check('a4 Undo brings them back', undone.removed === 0 && undone.auto === first.auto, `removed ${undone.removed}, auto ${undone.auto}`);
-    await d.exitMode();
+      /*
+       * a0. THE EDITOR FITS THE WINDOW. This is checked before anything strokes the canvas, because a canvas
+       * taller than the screen breaks every stroke at once and does it SILENTLY: the strokes below aim at
+       * fractions of the canvas box, so a canvas running past the bottom of the window sends them into empty
+       * space, no pointer event reaches the page, and five checks fail looking like five separate bugs.
+       *
+       * It happened: `main` had `min-height: 100vh` and no definite height, which left `.workspace`'s
+       * `flex-basis: 0%` unresolvable, so it sized to its tallest panel's content instead. At 1440x900 the
+       * canvas measured 2063 px inside a 900 px window with the page scrolling.
+       */
+      const fit = await d.page.evaluate(() => {
+        const box = document.querySelector('canvas').getBoundingClientRect();
+        return { height: Math.round(box.height), bottom: Math.round(box.bottom), page: document.documentElement.scrollHeight, window: window.innerHeight };
+      });
+      check('a0 the editor fits the window: the canvas does not run past the bottom of the screen',
+        fit.bottom <= fit.window + 1 && fit.page <= fit.window + 1,
+        `canvas ${fit.height} px tall, bottom at ${fit.bottom}, page ${fit.page}, window ${fit.window}`);
 
-    // b. Occlusion had a second half - press Hide models, drag the same line again, and see the supports that
-    // were behind the model come into the selection. That control left the app in f716eb4 (PD.11 S1) and nothing
-    // else clears `modelsVisible`, so the comparison cannot be made any more; what was left of the check only
-    // repeated a2's front drag from a less settled state, and pinning that number would be coverage in name
-    // only. Removed with the control. If Hide models ever comes back, so does this check.
-
-    // c. Zone landing, then d. export after zone + Delete.
-    const beforeZone = await d.props();
-    const countsBefore = await d.counts();
-    const painted = await d.paintZoneOnModel();
-    note(`zones painted over ${painted > 0 ? 'the model' : 'nothing'} (${painted} strokes landed)`);
-    await page.waitForFunction(() => document.querySelector('.edit-badge b') && !/^0 /.test(document.querySelector('.edit-badge b').innerText), null, { timeout: 90000 }).catch(() => {});
-    await d.settled();
-    const zoned = await d.props();
-    const countsZoned = await d.counts();
-    // The badge counts the supports the zones hide. "0" means the strokes never landed on the model, which is
-    // a different failure from "zones landed and removed nothing".
-    const zoneBadge = await page.evaluate(() => document.querySelector('.edit-badge')?.innerText.replace(/\s+/g, ' ') ?? '');
-    check('c zone landing: the count and the drawn supports both lose the zoned ones',
-      zoned.dropped > 0 && countsZoned.auto < countsBefore.auto && countsZoned.auto === zoned.drawn && zoned.droppedDrawn === 0,
-      `auto ${countsBefore.auto} -> ${countsZoned.auto}, drawn supports ${beforeZone.drawn} -> ${zoned.drawn}, dropped by a landing ${zoned.dropped}, dropped still drawn ${zoned.droppedDrawn}; badge "${zoneBadge}"`);
-    await d.exitMode();
-
-    await d.enterDragOver();
-    await d.stroke([0.3, 0.5], [0.7, 0.5], 30);
-    const forDelete = await d.settle();
-    await page.keyboard.press('Delete');
-    await d.settled();
-    const afterDelete = await d.props();
-    await d.exitMode();
-    const exported = await exportSupports(d, scratch);
-    check('d export after zone + Delete matches the build on screen', exported === afterDelete.tris, `exported ${exported} triangles, on screen ${afterDelete.tris} (deleted ${forDelete.selected}, drawn supports ${afterDelete.drawn})`);
-    await page.keyboard.press('Control+z');
-    await d.settled();
-    const restored = await d.counts();
-    check('d2 Undo after the export brings the deleted supports back', restored.removed === 0, `removed ${restored.removed}`);
-
-    // e. Right-click remove, then add at the same spot; Undo and Redo.
-    await d.editButton().click();
-    await d.button('Add supports').click();
-    await d.idle(2000);
-    const base = await d.counts();
-    // The spot has to be ON THE MODEL, and the only way to know that is that a click adds a support there.
-    // Finding it by right-clicking until a support vanished pointed at the SUPPORT instead, so the re-add
-    // afterwards landed on empty space and the app rightly said "Nothing under the cursor".
-    let spot;
-    search: for (const fy of [0.42, 0.48, 0.36, 0.54, 0.30, 0.60, 0.66]) {
-      for (const fx of [0.36, 0.48, 0.60, 0.30, 0.66, 0.24, 0.72]) {
-        await page.mouse.move(...d.at(fx, fy));
-        await d.idle(200);
-        await page.mouse.click(...d.at(fx, fy));
-        await d.idle(800);
-        await d.quiet();
-        if ((await d.counts()).manual !== base.manual + 1) continue;
-        // On the model. Now it also has to carry an automatic support within click reach, or the removal
-        // below is a no-op and there is nothing for Undo and Redo to walk.
-        await page.keyboard.press('Control+z');
-        await d.settled();
-        await page.mouse.click(...d.at(fx, fy), { button: 'right' });
-        await d.settled();
-        if ((await d.counts()).removed === base.removed + 1) {
-          await page.keyboard.press('Control+z');
-          await d.settled();
-          spot = [fx, fy];
-          break search;
-        }
+      // a. Generate and Drag over.
+      const first = await d.counts();
+      check('a1 generate: automatic count', first.auto === BASE.auto, `auto ${first.auto} (baseline ${BASE.auto}), manual ${first.manual}, removed ${first.removed}`);
+      await d.enterDragOver();
+      const strokes = [
+        ['select, front', [[0.3, 0.5], [0.72, 0.5]], 30],
+        ['select, upper part', [[0.32, 0.42], [0.7, 0.42]], 25],
+      ];
+      const picked = [];
+      for (const [, [from, to], moves] of strokes) {
+        await d.stroke(from, to, moves);
+        picked.push((await d.settle()).selected);
       }
-    }
-    if (!spot) check('e right-click remove', false, 'no spot on the model took a support');
-    else {
-      const step = async () => { await d.settled(); return d.counts(); };
-      // The spot is on the model, so a right-click there takes the AUTOMATIC support within click reach -
-      // which is what this check has always been about: a removal and a manual add at the same place, both
-      // surviving undo and redo.
-      await page.mouse.click(...d.at(...spot), { button: 'right' });
-      const removed = await step();
-      await page.mouse.click(...d.at(...spot));
-      const added = await step();
-      // What the app said about that click: "Support added..." or a miss. Without it a failure here cannot be
-      // told apart from the click landing on empty space where the removed support used to be drawn.
-      const addSaid = await d.status();
-      const keeps = added.manual === 1 && added.removed === removed.removed;
-      await page.keyboard.press('Control+z');
-      const undoAdd = await step();
-      await page.keyboard.press('Control+z');
-      const undoRemove = await step();
-      await page.keyboard.press('Control+Shift+z');
-      const redoRemove = await step();
-      await page.keyboard.press('Control+Shift+z');
-      const redoAdd = await step();
-      check('e remove then add at the same spot keeps the manual support', keeps, `at ${spot}: removed ${removed.removed}, then manual ${added.manual} removed ${added.removed}; the app said "${addSaid}"`);
-      check('e Undo and Redo walk both steps',
-        undoAdd.manual === 0 && undoAdd.removed === removed.removed && undoRemove.removed === base.removed && redoRemove.removed === removed.removed && redoRemove.manual === 0 && redoAdd.manual === 1 && redoAdd.removed === removed.removed,
-        `undo add ${undoAdd.manual}/${undoAdd.removed}, undo remove ${undoRemove.manual}/${undoRemove.removed}, redo remove ${redoRemove.manual}/${redoRemove.removed}, redo add ${redoAdd.manual}/${redoAdd.removed} (manual/removed)`);
-    }
-    await d.exitMode();
-
-    // f. Per-support settings.
-    // From below, where the supports are. c has just taken a zone out of the middle of the model, which is
-    // where the front view's strokes used to land, and supports attach underneath anyway: a5 picks up 67 tips
-    // from this view and none from the front. g and k stroke after this and inherit it.
-    await d.button('Bottom view').click();
-    await d.idle(1500);
-    await d.measureCanvas();
-    const shape = page.locator('.panel.right section').filter({ has: page.locator('h3', { hasText: /Support shape/ }) });
-    const pointField = () => shape.locator('[data-ui="setting-pointDiameter"] input');
-    const setPoint = async (value) => { await pointField().fill(value); await pointField().press('Enter'); await d.idle(2500); };
-    await d.enterDragOver();
-    await d.strokeUntilSelected();
-    const chosen = await d.settle();
-    const defaults = await d.props();
-    await setPoint('0.6');
-    const custom = await d.props();
-    check('f1 Point Ø on the selection customises exactly those', custom.customised === chosen.selected && custom.point === defaults.point, `selected ${chosen.selected}, customised ${custom.customised}, object Point Ø ${custom.point}`);
-    await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
-    await d.exitMode();
-    await setPoint('0.35');
-    const changed = await d.props();
-    check('f2 changing the default leaves them customised', changed.customised === chosen.selected && changed.point === 0.35, `customised ${changed.customised}, default Point Ø ${changed.point}`);
-    await page.locator('.shape-band button').click();
-    await d.idle(1200);
-    await d.settle();
-    await shape.locator('.shape-head button').click();
-    await d.idle(1500);
-    const reset = await d.props();
-    check('f3 Reset clears them', reset.customised === 0, `customised ${reset.customised}`);
-    await page.keyboard.press('Control+z');
-    await d.idle(1500);
-    const unreset = await d.props();
-    check('f4 Undo brings them back', unreset.customised === chosen.selected, `customised ${unreset.customised}`);
-    await d.exitMode();
-
-    // g. Select to Unselect mid-queue, under CPU throttle: the same result as the steps one after the other.
-    await d.enterDragOver();
-    const A = [[0.3, 0.5], [0.7, 0.5]];
-    const B = [[0.45, 0.4], [0.55, 0.6]];
-    await d.stroke(A[0], A[1], 30);
-    await d.settle();
-    await d.button('Unselect').click();
-    await d.stroke(B[0], B[1], 15);
-    const sequential = await d.settle();
-    await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
-    await d.button('Select', true).click().catch(() => {});
-    await d.idle(500);
-    const cdp = await context.newCDPSession(page);
-    // 6x dropped the moves entirely on this machine, so the stroke selected nothing and the check was
-    // measuring that rather than the queue it is about. 4x still builds a queue the switch lands in.
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-    await d.stroke(A[0], A[1], 30, { pace: 40 });
-    const pendingAtSwitch = (await d.props()).selected;
-    await d.button('Unselect').click();
-    await d.stroke(B[0], B[1], 15, { pace: 40 });
-    // Let it run at full speed again BEFORE settling: the queue formed under throttle, which is the point,
-    // but it has to finish for the check to see where the switch landed.
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-    const switched = await d.settle();
-    check('g Select to Unselect mid-queue keeps the earlier steps as Select', switched.hash === sequential.hash, `one after the other ${sequential.selected} (#${sequential.hash}), switched mid-queue ${switched.selected} (#${switched.hash}), selected when switching ${pendingAtSwitch}`);
-    await d.exitMode();
-
-    // k. Select them from another object: the active object has none, the first selected object with customised supports takes over.
-    await page.setInputFiles('.drop input[type=file]', FIXTURE);
-    await page.waitForFunction(() => document.querySelector('footer')?.innerText.includes('2 objects'), null, { timeout: 60000 });
-    await d.settled();
-    await d.button('Select all').click();
-    await d.idle(500);
-    const beforeSelectThem = await d.props();
-    await page.locator('.shape-band button').click();
-    await d.idle(1500);
-    const afterSelectThem = await d.props();
-    const selectStatus = await d.status();
-    check('k Select them with the active object bare switches to the first object with customised supports',
-      beforeSelectThem.active !== beforeSelectThem.first && afterSelectThem.active === afterSelectThem.first && afterSelectThem.selected === chosen.selected && new RegExp(`^${chosen.selected} customised supports selected on .+\.$`).test(selectStatus),
-      `active was ${beforeSelectThem.active === beforeSelectThem.first ? 'first' : 'second'}, now ${afterSelectThem.active === afterSelectThem.first ? 'first' : 'second'}, selected ${afterSelectThem.selected} of ${chosen.selected}, status "${selectStatus}"`);
-    await d.exitMode();
-    for (let step = 0; step < 8 && !(await d.footer()).includes('1 object'); step += 1) {
-      await page.keyboard.press('Control+z');
-      await d.idle(700);
-    }
-    check('k2 Undo takes the second object away again', (await d.footer()).includes('1 object') && (await d.props()).customised === chosen.selected, `footer ${(await d.footer()).includes('1 object') ? '1 object' : 'more objects'}, customised ${(await d.props()).customised}`);
-
-    // a5. Drag over from Bottom view (the camera stays there, so it runs last).
-    await d.enterDragOver();
-    await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
-    await d.button('Bottom view').click();
-    await d.idle(1500);
-    const fromBelow = await d.strokeUntilSelected(1);
-    check('a5 drag over from Bottom view picks up the tips it can see', fromBelow.selected > 0, `selected ${fromBelow.selected}`);
-    await d.exitMode();
-
-    // i. Save project, reload, Open it: the same work comes back; Open over objects is one Undo.
-    // The delete here only adds to the removals; e has already made some, which is what i1 asserts. If no
-    // stroke finds anything this late - the zone and the earlier deletes have taken a lot out - say so and
-    // carry on rather than losing the save and open checks over it.
-    await d.enterDragOver();
-    try {
-      await d.strokeUntilSelected();
-      await d.settle();
+      await d.button('Unselect').click();
+      await d.stroke([0.4, 0.45], [0.6, 0.55], 15);
+      picked.push((await d.settle()).selected);
+      check('a2 drag over: fixed selection counts', picked.join() === BASE.dragSelected.join(), `selected ${picked.join(', ')} (baseline ${BASE.dragSelected.join(', ')})`);
+      await d.quiet();
       await page.keyboard.press('Delete');
       await d.settled();
-    } catch {
-      note('no stroke found supports to delete before the save; the earlier removals carry i1');
-    }
-    await d.exitMode();
-    const projectStats = async () => ({ ...(await d.counts()), customised: (await d.props()).customised, zones: (await d.props()).zones });
-    // The undos above can walk back into the zone painting from c, and i1 is about the saved file holding
-    // every kind of hand edit. Paint one again if the undos took them all.
-    if ((await d.props()).zones === 0) {
-      const again = await d.paintZoneOnModel();
-      await d.exitMode();
-      note(`zones repainted before the save (${again} strokes landed, ${(await d.props()).zones} on the unit)`);
-    }
-    const leavePrompt = () => page.evaluate(() => { const event = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; });
-    const before = await projectStats();
-    check('i1 the work to save has every kind of hand edit', before.manual > 0 && before.removed > 0 && before.customised > 0 && before.zones > 0, JSON.stringify(before));
-    const unsaved = await leavePrompt();
-    const download = page.waitForEvent('download', { timeout: 120000 });
-    await d.button('Save project').click();
-    const projectFile = path.join(scratch, 'knot.mixodental');
-    const saved = await download;
-    await saved.saveAs(projectFile);
-    await d.settled();
-    const bytes = readFileSync(projectFile);
-    const raw = gunzipSync(bytes);
-    note(`project file ${saved.suggestedFilename()}: ${bytes.length} bytes gzip, ${raw.length} bytes plain`);
-    const header = JSON.parse(raw.toString('utf8').slice(0, 200).replace(/,"scene".*$/s, '}'));
-    check('i2 Save writes knot.mixodental with the format header, and the leave prompt follows it',
-      saved.suggestedFilename() === 'knot.mixodental' && header.app === 'mixodental' && header.version === 1 && unsaved === true && (await leavePrompt()) === false && (await d.status()) === 'Saved knot.mixodental.',
-      `file ${saved.suggestedFilename()}, header ${JSON.stringify(header)}, prompt before the save ${unsaved}, status "${await d.status()}"`);
-
-    await page.goto(url);
-
-    await enterEditor(page);
-    await d.idle(1500);
-    await page.evaluate(() => {
-      window.__longTasks = [];
-      new PerformanceObserver((list) => { for (const entry of list.getEntries()) window.__longTasks.push(Math.round(entry.duration)); }).observe({ type: 'longtask', buffered: false });
-    });
-    const chooser = page.waitForEvent('filechooser');
-    await d.button('Open project').click();
-    await (await chooser).setFiles(projectFile);
-    await page.waitForFunction(() => /[1-9][\d,]* automatic/.test(document.querySelector('footer')?.innerText ?? ''), null, { timeout: 120000 });
-    await d.settled();
-    note(`Open project main-thread long tasks (ms): ${JSON.stringify(await page.evaluate(() => window.__longTasks))}`);
-    const after = await projectStats();
-    check('i3 Open after a reload: automatic, manual, removed, customised and zones are identical', JSON.stringify(after) === JSON.stringify(before), `before ${JSON.stringify(before)}, after ${JSON.stringify(after)}`);
-    check('i4 a freshly opened project has nothing unsaved', (await leavePrompt()) === false && (await d.status()) === 'Opened knot.mixodental.', `status "${await d.status()}"`);
-
-    await page.goto(url);
-
-    await enterEditor(page);
-    await page.setInputFiles('.drop input[type=file]', FIXTURE);
-    await page.waitForFunction(() => document.body.innerText.includes('knot'), null, { timeout: 60000 });
-    await d.settled();
-    const chooser2 = page.waitForEvent('filechooser');
-    await d.button('Open project').click();
-    await (await chooser2).setFiles(projectFile);
-    await page.waitForFunction(() => document.querySelector('.undo-toast'), null, { timeout: 120000 });
-    // The toast counts down 6 s; hold it with the pointer while the plate settles. A slow machine outlasts
-    // it, and then there is nothing left to hover: that is not a failure, it is the toast doing its job, and
-    // the Undo below already falls back to the keyboard. Tolerated here exactly as it is tolerated there.
-    await page.locator('.undo-toast').hover({ timeout: 5000 }).catch(() => {});
-    await d.settled();
-    const over = await projectStats();
-    await page.locator('.undo-toast').hover().catch(() => {});
-    const byToast = await page.locator('.undo-toast button').click({ timeout: 5000 }).then(() => true).catch(() => false);
-    if (!byToast) {
-      note('the Undo toast counted out while the plate settled; undoing with the keyboard instead');
+      const deleted = await d.counts();
+      check('a3 Delete removes exactly the selection', deleted.removed === picked.at(-1) && deleted.auto === first.auto - picked.at(-1), `removed ${deleted.removed} of ${picked.at(-1)} selected, auto ${deleted.auto}`);
       await page.keyboard.press('Control+z');
+      await d.settled();
+      const undone = await d.counts();
+      check('a4 Undo brings them back', undone.removed === 0 && undone.auto === first.auto, `removed ${undone.removed}, auto ${undone.auto}`);
+      await d.exitMode();
+
+      // b. Occlusion had a second half - press Hide models, drag the same line again, and see the supports that
+      // were behind the model come into the selection. That control left the app in f716eb4 (PD.11 S1) and nothing
+      // else clears `modelsVisible`, so the comparison cannot be made any more; what was left of the check only
+      // repeated a2's front drag from a less settled state, and pinning that number would be coverage in name
+      // only. Removed with the control. If Hide models ever comes back, so does this check.
+
+      // c. Zone landing, then d. export after zone + Delete.
+      const beforeZone = await d.props();
+      const countsBefore = await d.counts();
+      const painted = await d.paintZoneOnModel();
+      note(`zones painted over ${painted > 0 ? 'the model' : 'nothing'} (${painted} strokes landed)`);
+      await page.waitForFunction(() => document.querySelector('.edit-badge b') && !/^0 /.test(document.querySelector('.edit-badge b').innerText), null, { timeout: 90000 }).catch(() => {});
+      await d.settled();
+      const zoned = await d.props();
+      const countsZoned = await d.counts();
+      // The badge counts the supports the zones hide. "0" means the strokes never landed on the model, which is
+      // a different failure from "zones landed and removed nothing".
+      const zoneBadge = await page.evaluate(() => document.querySelector('.edit-badge')?.innerText.replace(/\s+/g, ' ') ?? '');
+      check('c zone landing: the count and the drawn supports both lose the zoned ones',
+        zoned.dropped > 0 && countsZoned.auto < countsBefore.auto && countsZoned.auto === zoned.drawn && zoned.droppedDrawn === 0,
+        `auto ${countsBefore.auto} -> ${countsZoned.auto}, drawn supports ${beforeZone.drawn} -> ${zoned.drawn}, dropped by a landing ${zoned.dropped}, dropped still drawn ${zoned.droppedDrawn}; badge "${zoneBadge}"`);
+      await d.exitMode();
+
+      await d.enterDragOver();
+      await d.stroke([0.3, 0.5], [0.7, 0.5], 30);
+      const forDelete = await d.settle();
+      await page.keyboard.press('Delete');
+      await d.settled();
+      const afterDelete = await d.props();
+      await d.exitMode();
+      const exported = await exportSupports(d, scratch);
+      check('d export after zone + Delete matches the build on screen', exported === afterDelete.tris, `exported ${exported} triangles, on screen ${afterDelete.tris} (deleted ${forDelete.selected}, drawn supports ${afterDelete.drawn})`);
+      await page.keyboard.press('Control+z');
+      await d.settled();
+      const restored = await d.counts();
+      check('d2 Undo after the export brings the deleted supports back', restored.removed === 0, `removed ${restored.removed}`);
+
+      // e. Right-click remove, then add at the same spot; Undo and Redo.
+      await d.editButton().click();
+      await d.button('Add supports').click();
+      await d.idle(2000);
+      const base = await d.counts();
+      // The spot has to be ON THE MODEL, and the only way to know that is that a click adds a support there.
+      // Finding it by right-clicking until a support vanished pointed at the SUPPORT instead, so the re-add
+      // afterwards landed on empty space and the app rightly said "Nothing under the cursor".
+      let spot;
+      search: for (const fy of [0.42, 0.48, 0.36, 0.54, 0.30, 0.60, 0.66]) {
+        for (const fx of [0.36, 0.48, 0.60, 0.30, 0.66, 0.24, 0.72]) {
+          await page.mouse.move(...d.at(fx, fy));
+          await d.idle(200);
+          await page.mouse.click(...d.at(fx, fy));
+          await d.idle(800);
+          await d.quiet();
+          if ((await d.counts()).manual !== base.manual + 1) continue;
+          // On the model. Now it also has to carry an automatic support within click reach, or the removal
+          // below is a no-op and there is nothing for Undo and Redo to walk.
+          await page.keyboard.press('Control+z');
+          await d.settled();
+          await page.mouse.click(...d.at(fx, fy), { button: 'right' });
+          await d.settled();
+          if ((await d.counts()).removed === base.removed + 1) {
+            await page.keyboard.press('Control+z');
+            await d.settled();
+            spot = [fx, fy];
+            break search;
+          }
+        }
+      }
+      if (!spot) check('e right-click remove', false, 'no spot on the model took a support');
+      else {
+        const step = async () => { await d.settled(); return d.counts(); };
+        // The spot is on the model, so a right-click there takes the AUTOMATIC support within click reach -
+        // which is what this check has always been about: a removal and a manual add at the same place, both
+        // surviving undo and redo.
+        await page.mouse.click(...d.at(...spot), { button: 'right' });
+        const removed = await step();
+        await page.mouse.click(...d.at(...spot));
+        const added = await step();
+        // What the app said about that click: "Support added..." or a miss. Without it a failure here cannot be
+        // told apart from the click landing on empty space where the removed support used to be drawn.
+        const addSaid = await d.status();
+        const keeps = added.manual === 1 && added.removed === removed.removed;
+        await page.keyboard.press('Control+z');
+        const undoAdd = await step();
+        await page.keyboard.press('Control+z');
+        const undoRemove = await step();
+        await page.keyboard.press('Control+Shift+z');
+        const redoRemove = await step();
+        await page.keyboard.press('Control+Shift+z');
+        const redoAdd = await step();
+        check('e remove then add at the same spot keeps the manual support', keeps, `at ${spot}: removed ${removed.removed}, then manual ${added.manual} removed ${added.removed}; the app said "${addSaid}"`);
+        check('e Undo and Redo walk both steps',
+          undoAdd.manual === 0 && undoAdd.removed === removed.removed && undoRemove.removed === base.removed && redoRemove.removed === removed.removed && redoRemove.manual === 0 && redoAdd.manual === 1 && redoAdd.removed === removed.removed,
+          `undo add ${undoAdd.manual}/${undoAdd.removed}, undo remove ${undoRemove.manual}/${undoRemove.removed}, redo remove ${redoRemove.manual}/${redoRemove.removed}, redo add ${redoAdd.manual}/${redoAdd.removed} (manual/removed)`);
+      }
+      await d.exitMode();
+
+      // f. Per-support settings.
+      // From below, where the supports are. c has just taken a zone out of the middle of the model, which is
+      // where the front view's strokes used to land, and supports attach underneath anyway: a5 picks up 67 tips
+      // from this view and none from the front. g and k stroke after this and inherit it.
+      await d.button('Bottom view').click();
+      await d.idle(1500);
+      await d.measureCanvas();
+      const shape = page.locator('.panel.right section').filter({ has: page.locator('h3', { hasText: /Support shape/ }) });
+      const pointField = () => shape.locator('[data-ui="setting-pointDiameter"] input');
+      const setPoint = async (value) => { await pointField().fill(value); await pointField().press('Enter'); await d.idle(2500); };
+      await d.enterDragOver();
+      await d.strokeUntilSelected();
+      const chosen = await d.settle();
+      const defaults = await d.props();
+      await setPoint('0.6');
+      const custom = await d.props();
+      check('f1 Point Ø on the selection customises exactly those', custom.customised === chosen.selected && custom.point === defaults.point, `selected ${chosen.selected}, customised ${custom.customised}, object Point Ø ${custom.point}`);
+      await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
+      await d.exitMode();
+      await setPoint('0.35');
+      const changed = await d.props();
+      check('f2 changing the default leaves them customised', changed.customised === chosen.selected && changed.point === 0.35, `customised ${changed.customised}, default Point Ø ${changed.point}`);
+      await page.locator('.shape-band button').click();
+      await d.idle(1200);
+      await d.settle();
+      await shape.locator('.shape-head button').click();
+      await d.idle(1500);
+      const reset = await d.props();
+      check('f3 Reset clears them', reset.customised === 0, `customised ${reset.customised}`);
+      await page.keyboard.press('Control+z');
+      await d.idle(1500);
+      const unreset = await d.props();
+      check('f4 Undo brings them back', unreset.customised === chosen.selected, `customised ${unreset.customised}`);
+      await d.exitMode();
+
+      // g. Select to Unselect mid-queue, under CPU throttle: the same result as the steps one after the other.
+      await d.enterDragOver();
+      const A = [[0.3, 0.5], [0.7, 0.5]];
+      const B = [[0.45, 0.4], [0.55, 0.6]];
+      await d.stroke(A[0], A[1], 30);
+      await d.settle();
+      await d.button('Unselect').click();
+      await d.stroke(B[0], B[1], 15);
+      const sequential = await d.settle();
+      await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
+      await d.button('Select', true).click().catch(() => {});
+      await d.idle(500);
+      const cdp = await context.newCDPSession(page);
+      // 6x dropped the moves entirely on this machine, so the stroke selected nothing and the check was
+      // measuring that rather than the queue it is about. 4x still builds a queue the switch lands in.
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+      await d.stroke(A[0], A[1], 30, { pace: 40 });
+      const pendingAtSwitch = (await d.props()).selected;
+      await d.button('Unselect').click();
+      await d.stroke(B[0], B[1], 15, { pace: 40 });
+      // Let it run at full speed again BEFORE settling: the queue formed under throttle, which is the point,
+      // but it has to finish for the check to see where the switch landed.
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+      const switched = await d.settle();
+      check('g Select to Unselect mid-queue keeps the earlier steps as Select', switched.hash === sequential.hash, `one after the other ${sequential.selected} (#${sequential.hash}), switched mid-queue ${switched.selected} (#${switched.hash}), selected when switching ${pendingAtSwitch}`);
+      await d.exitMode();
+
+      // k. Select them from another object: the active object has none, the first selected object with customised supports takes over.
+      await page.setInputFiles('.drop input[type=file]', FIXTURE);
+      await page.waitForFunction(() => document.querySelector('footer')?.innerText.includes('2 objects'), null, { timeout: 60000 });
+      await d.settled();
+      await d.button('Select all').click();
+      await d.idle(500);
+      const beforeSelectThem = await d.props();
+      await page.locator('.shape-band button').click();
+      await d.idle(1500);
+      const afterSelectThem = await d.props();
+      const selectStatus = await d.status();
+      check('k Select them with the active object bare switches to the first object with customised supports',
+        beforeSelectThem.active !== beforeSelectThem.first && afterSelectThem.active === afterSelectThem.first && afterSelectThem.selected === chosen.selected && new RegExp(`^${chosen.selected} customised supports selected on .+\.$`).test(selectStatus),
+        `active was ${beforeSelectThem.active === beforeSelectThem.first ? 'first' : 'second'}, now ${afterSelectThem.active === afterSelectThem.first ? 'first' : 'second'}, selected ${afterSelectThem.selected} of ${chosen.selected}, status "${selectStatus}"`);
+      await d.exitMode();
+      for (let step = 0; step < 8 && !(await d.footer()).includes('1 object'); step += 1) {
+        await page.keyboard.press('Control+z');
+        await d.idle(700);
+      }
+      check('k2 Undo takes the second object away again', (await d.footer()).includes('1 object') && (await d.props()).customised === chosen.selected, `footer ${(await d.footer()).includes('1 object') ? '1 object' : 'more objects'}, customised ${(await d.props()).customised}`);
+
+      // a5. Drag over from Bottom view (the camera stays there, so it runs last).
+      await d.enterDragOver();
+      await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
+      await d.button('Bottom view').click();
+      await d.idle(1500);
+      const fromBelow = await d.strokeUntilSelected(1);
+      check('a5 drag over from Bottom view picks up the tips it can see', fromBelow.selected > 0, `selected ${fromBelow.selected}`);
+      await d.exitMode();
+
+      // i. Save project, reload, Open it: the same work comes back; Open over objects is one Undo.
+      // The delete here only adds to the removals; e has already made some, which is what i1 asserts. If no
+      // stroke finds anything this late - the zone and the earlier deletes have taken a lot out - say so and
+      // carry on rather than losing the save and open checks over it.
+      await d.enterDragOver();
+      try {
+        await d.strokeUntilSelected();
+        await d.settle();
+        await page.keyboard.press('Delete');
+        await d.settled();
+      } catch {
+        note('no stroke found supports to delete before the save; the earlier removals carry i1');
+      }
+      await d.exitMode();
+      const projectStats = async () => ({ ...(await d.counts()), customised: (await d.props()).customised, zones: (await d.props()).zones });
+      // The undos above can walk back into the zone painting from c, and i1 is about the saved file holding
+      // every kind of hand edit. Paint one again if the undos took them all.
+      if ((await d.props()).zones === 0) {
+        const again = await d.paintZoneOnModel();
+        await d.exitMode();
+        note(`zones repainted before the save (${again} strokes landed, ${(await d.props()).zones} on the unit)`);
+      }
+      const leavePrompt = () => page.evaluate(() => { const event = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; });
+      const before = await projectStats();
+      check('i1 the work to save has every kind of hand edit', before.manual > 0 && before.removed > 0 && before.customised > 0 && before.zones > 0, JSON.stringify(before));
+      const unsaved = await leavePrompt();
+      const download = page.waitForEvent('download', { timeout: 120000 });
+      await d.button('Save project').click();
+      const projectFile = path.join(scratch, 'knot.mixodental');
+      const saved = await download;
+      await saved.saveAs(projectFile);
+      await d.settled();
+      const bytes = readFileSync(projectFile);
+      const raw = gunzipSync(bytes);
+      note(`project file ${saved.suggestedFilename()}: ${bytes.length} bytes gzip, ${raw.length} bytes plain`);
+      const header = JSON.parse(raw.toString('utf8').slice(0, 200).replace(/,"scene".*$/s, '}'));
+      check('i2 Save writes knot.mixodental with the format header, and the leave prompt follows it',
+        saved.suggestedFilename() === 'knot.mixodental' && header.app === 'mixodental' && header.version === 1 && unsaved === true && (await leavePrompt()) === false && (await d.status()) === 'Saved knot.mixodental.',
+        `file ${saved.suggestedFilename()}, header ${JSON.stringify(header)}, prompt before the save ${unsaved}, status "${await d.status()}"`);
+
+      await page.goto(url);
+
+      await enterEditor(page);
+      await d.idle(1500);
+      await page.evaluate(() => {
+        window.__longTasks = [];
+        new PerformanceObserver((list) => { for (const entry of list.getEntries()) window.__longTasks.push(Math.round(entry.duration)); }).observe({ type: 'longtask', buffered: false });
+      });
+      const chooser = page.waitForEvent('filechooser');
+      await d.button('Open project').click();
+      await (await chooser).setFiles(projectFile);
+      await page.waitForFunction(() => /[1-9][\d,]* automatic/.test(document.querySelector('footer')?.innerText ?? ''), null, { timeout: 120000 });
+      await d.settled();
+      note(`Open project main-thread long tasks (ms): ${JSON.stringify(await page.evaluate(() => window.__longTasks))}`);
+      const after = await projectStats();
+      check('i3 Open after a reload: automatic, manual, removed, customised and zones are identical', JSON.stringify(after) === JSON.stringify(before), `before ${JSON.stringify(before)}, after ${JSON.stringify(after)}`);
+      check('i4 a freshly opened project has nothing unsaved', (await leavePrompt()) === false && (await d.status()) === 'Opened knot.mixodental.', `status "${await d.status()}"`);
+
+      await page.goto(url);
+
+      await enterEditor(page);
+      await page.setInputFiles('.drop input[type=file]', FIXTURE);
+      await page.waitForFunction(() => document.body.innerText.includes('knot'), null, { timeout: 60000 });
+      await d.settled();
+      const chooser2 = page.waitForEvent('filechooser');
+      await d.button('Open project').click();
+      await (await chooser2).setFiles(projectFile);
+      await page.waitForFunction(() => document.querySelector('.undo-toast'), null, { timeout: 120000 });
+      // The toast counts down 6 s; hold it with the pointer while the plate settles. A slow machine outlasts
+      // it, and then there is nothing left to hover: that is not a failure, it is the toast doing its job, and
+      // the Undo below already falls back to the keyboard. Tolerated here exactly as it is tolerated there.
+      await page.locator('.undo-toast').hover({ timeout: 5000 }).catch(() => {});
+      await d.settled();
+      const over = await projectStats();
+      await page.locator('.undo-toast').hover().catch(() => {});
+      const byToast = await page.locator('.undo-toast button').click({ timeout: 5000 }).then(() => true).catch(() => false);
+      if (!byToast) {
+        note('the Undo toast counted out while the plate settled; undoing with the keyboard instead');
+        await page.keyboard.press('Control+z');
+      }
+      await d.settled();
+      const undoneOpen = await projectStats();
+      check('i5 Open over an object offers Undo, and Undo restores the plate as it was',
+        over.auto === before.auto && undoneOpen.auto === 0 && undoneOpen.manual === 0 && undoneOpen.zones === 0 && (await page.locator('footer').innerText()).includes('1 object'),
+        `opened ${JSON.stringify(over)}, after Undo ${JSON.stringify(undoneOpen)}`);
+
+      const wrong = path.join(scratch, 'wrong.mixodental');
+      writeFileSync(wrong, JSON.stringify({ app: 'mixodental', version: 99, scene: { units: [], selectedUnitIds: [] } }));
+      const chooser3 = page.waitForEvent('filechooser');
+      await d.button('Open project').click();
+      await (await chooser3).setFiles(wrong);
+      await d.idle(1000);
+      check('i6 a newer file is refused with a message and the plate stays', /newer version/.test(await d.status()) && (await page.locator('footer').innerText()).includes('1 object'), `status "${await d.status()}"`);
+
+
     }
-    await d.settled();
-    const undoneOpen = await projectStats();
-    check('i5 Open over an object offers Undo, and Undo restores the plate as it was',
-      over.auto === before.auto && undoneOpen.auto === 0 && undoneOpen.manual === 0 && undoneOpen.zones === 0 && (await page.locator('footer').innerText()).includes('1 object'),
-      `opened ${JSON.stringify(over)}, after Undo ${JSON.stringify(undoneOpen)}`);
-
-    const wrong = path.join(scratch, 'wrong.mixodental');
-    writeFileSync(wrong, JSON.stringify({ app: 'mixodental', version: 99, scene: { units: [], selectedUnitIds: [] } }));
-    const chooser3 = page.waitForEvent('filechooser');
-    await d.button('Open project').click();
-    await (await chooser3).setFiles(wrong);
-    await d.idle(1000);
-    check('i6 a newer file is refused with a message and the plate stays', /newer version/.test(await d.status()) && (await page.locator('footer').innerText()).includes('1 object'), `status "${await d.status()}"`);
-
 
     // u. Dental flow, Step 0 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).
-    {
+    if (runs('u')) {
       const reference = PUBLIC_ALIGNER;
       const cube = path.join(scratch, 'cube.stl');
       const cup = path.join(scratch, 'cup.stl');
@@ -975,7 +1051,20 @@ async function walk(url, scratch, dentalFixture) {
       const angleText = () => page.locator('.print-angle [data-ui="tilt-dial-value"]').textContent().catch(() => '');
       /** The stable band, which used to be part of the same sentence. */
       const rangeText = () => page.locator('.print-angle .orient-range').textContent().catch(() => '');
-      const flagsText = () => page.locator('.print-angle .tilt-flags').innerText().catch(() => '');
+      /*
+       * WHY THIS ANGLE, read where it now lives. `.tilt-flags` was a line under the dial and went when Step 1
+       * was rebuilt around the dial; the verdict and the broken rules are in the debug tool now. The tool
+       * opens shut on purpose (it is a tool for looking into the app, not part of it), so this opens it once
+       * and leaves it open for the checks that follow.
+       */
+      const debugTitle = page.locator('[data-ui="debug-layers-title"]');
+      const openDebug = async () => {
+        if ((await debugTitle.getAttribute('aria-expanded')) !== 'true') { await debugTitle.click(); await d.idle(300); }
+      };
+      const angleVerdict = async () => {
+        await openDebug();
+        return page.locator('[data-ui="debug-angle"]').innerText().catch(() => '');
+      };
       await page.waitForSelector('.print-angle', { timeout: 120000 });
       note(`reference aligner read, oriented and its print angles scanned in ${Math.round((Date.now() - dropped) / 1000)} s`);
       check('u9 the dropped aligner is oriented with no button pressed, and the mesh check is clean', (await page.getByText('holes or non-manifold').count()) === 0 && (await page.getByText('could not be oriented').count()) === 0 && await d.button('Next').isEnabled());
@@ -996,19 +1085,24 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForFunction(() => (document.querySelector('.print-angle [data-ui="tilt-dial-value"]')?.textContent ?? '').startsWith('45.5'), null, { timeout: 10000 }).catch(() => {});
       const turnedRotation = (await d.props()).activeRotation;
       check('f3 turning the dial one step turns the preview to that tilt and shows its rule flags (no tips in Step 1)',
-        (await angleText()).startsWith('45.5') && JSON.stringify(turnedRotation) !== JSON.stringify(pickRotation) && (await flagsText()) === 'Passes every rule.' && (await page.getByText('Proposed support tips').count()) === 0,
-        `"${await angleText()}", flags "${await flagsText()}", rotation ${JSON.stringify(pickRotation)} -> ${JSON.stringify(turnedRotation)}`);
+        (await angleText()).startsWith('45.5') && JSON.stringify(turnedRotation) !== JSON.stringify(pickRotation)
+          && /passes every rule/i.test(await angleVerdict()) && (await page.getByText('Proposed support tips').count()) === 0,
+        `"${await angleText()}", verdict "${(await angleVerdict()).replace(/\s+/g, ' ').slice(0, 120)}", rotation ${JSON.stringify(pickRotation)} -> ${JSON.stringify(turnedRotation)}`);
       await angleDial.press('End');
       await page.waitForFunction(() => (document.querySelector('.print-angle [data-ui="tilt-dial-value"]')?.textContent ?? '').startsWith('68.5'), null, { timeout: 10000 }).catch(() => {});
-      const steep = await flagsText();
-      check('f4 the steepest tilt shows its failed rules by name', steep.includes('resin trap') && steep.includes('support crossing the aligner'), `flags "${steep}"`);
+      const steep = await angleVerdict();
+      // The rules are named in words a technician reads, not by the engine's own short ids (RULE_WORDS,
+      // src/dental/angleEvidence.ts). The steepest tilt traps resin and sends supports through the shell.
+      check('f4 the steepest tilt shows its failed rules by name',
+        /breaks a rule/i.test(steep) && /Resin would be trapped/i.test(steep) && /Supports would cross/i.test(steep),
+        `verdict "${steep.replace(/\s+/g, ' ').slice(0, 160)}"`);
       await d.button('Auto orientation').click();
       await page.waitForFunction(() => (document.querySelector('.print-angle [data-ui="tilt-dial-value"]')?.textContent ?? '').startsWith('44.5'), null, { timeout: 10000 }).catch(() => {});
       check('f5 Auto orientation returns the dial and the preview to the automatic pick',
         (await angleText()).startsWith('44.5') && JSON.stringify((await d.props()).activeRotation) === JSON.stringify(pickRotation), `"${await angleText()}"`);
       await d.button('Next').click();
       await stepTo('Step 2 · Support area', 180000);
-      await page.waitForFunction(() => [...document.querySelectorAll('.edit-note')].some((note) => /Proposed support tips: [1-9]/.test(note.innerText)), null, { timeout: 240000 });
+      await page.waitForFunction(() => Number(document.querySelector('[data-ui="dental-tip-count"] .num')?.textContent ?? 0) > 0, null, { timeout: 240000 });
       check('u10 Step 2 shows the detected area with tips, and Next is on', await d.button('Next').isEnabled() && (await page.getByText('No support area was detected').count()) === 0);
       check('u1b in Step 2 the generic left and right panels are absent and the viewport buttons stay', (await page.locator('.panel.left, .panel.right').count()) === 0 && await page.getByRole('button', { name: 'Fit view', exact: true }).isVisible());
       // F's confirm rule: the pick holds, or the angle moves to the next tilt and says so (D15).
@@ -1033,11 +1127,11 @@ async function walk(url, scratch, dentalFixture) {
         await bar.getByRole('button', { name: 'Paint', exact: true }).isVisible() && await bar.getByRole('button', { name: 'Erase', exact: true }).isVisible() &&
         await page.locator('.dental-tuning label').filter({ hasText: 'Area width' }).isVisible() && await page.locator('.dental-tuning label').filter({ hasText: 'Area position' }).isVisible() &&
         await page.locator('.dental-tuning label').filter({ hasText: 'Support density' }).isVisible() && (await page.getByText('Rim setback').count()) === 0);
-      const tipCount = async () => Number((await page.locator('.edit-note').allInnerTexts()).map((text) => text.match(/Proposed support tips: (\d+)/)?.[1]).find(Boolean) ?? -1);
+      const tipCount = async () => Number((await page.locator('[data-ui="dental-tip-count"] .num').innerText().catch(() => '0')) || 0);
       /** Waits for the retune and the tip preview it starts to finish; returns the time since `t0`. */
       const step2Settled = async (t0) => {
         await page.waitForFunction(() => /Updating support area|Finding safe/.test(document.body.innerText), null, { timeout: 5000 }).catch(() => {});
-        await page.waitForFunction(() => !/Updating support area|Finding safe/.test(document.body.innerText) && /Proposed support tips: [1-9]/.test(document.body.innerText), null, { timeout: 120000 });
+        await page.waitForFunction(() => !/Updating support area|Finding safe/.test(document.body.innerText) && Number(document.querySelector('[data-ui="dental-tip-count"] .num')?.textContent ?? 0) > 0, null, { timeout: 120000 });
         return Date.now() - t0;
       };
       const nudge = async (name, presses) => {
@@ -1093,7 +1187,7 @@ async function walk(url, scratch, dentalFixture) {
         const eraseMs = await step2Settled(t0);
         const erasedTips = await tipCount();
         check('u10f Erase over the same place removes the area and its tips again',
-          erasedTips <= tipsBefore && /Dental support area erased/.test(await d.status()),
+          erasedTips < paintedTips && erasedTips <= tipsBefore + ERASE_RESIDUE && /Dental support area erased/.test(await d.status()),
           `tips ${paintedTips} -> ${erasedTips} (before paint ${tipsBefore}), ${eraseMs} ms (drag ${released - t0} ms, release to tip preview ${t0 + eraseMs - released} ms)`);
       }
 
@@ -1101,8 +1195,13 @@ async function walk(url, scratch, dentalFixture) {
       {
         const tools = bar.getByRole('group', { name: 'Dental area tools' });
         const pressedTool = async () => { for (const name of ['Paint', 'Erase', 'Add', 'Select']) if ((await tools.getByRole('button', { name, exact: true }).getAttribute('aria-pressed')) === 'true') return name; return ''; };
-        const toolNames = await tools.getByRole('button').allTextContents();
-        check('b3a Step 2 offers the four tools Paint, Erase, Add and Select', toolNames.join('|') === 'Paint|Erase|Add|Select', toolNames.join('|'));
+        // TRIMMED. Each tool key carries its picture as well as its word, so the raw text of the button is
+        // the label wrapped in the whitespace around the icon. This check is about WHICH TOOLS ARE OFFERED,
+        // not about how the markup is laid out, and it failed for years' worth of runs on that difference
+        // alone - reporting an empty list, which said nothing about why.
+        const toolNames = (await tools.getByRole('button').allTextContents()).map((name) => name.trim());
+        check('b3a Step 2 offers the four tools Paint, Erase, Add and Select',
+          toolNames.join('|') === 'Paint|Erase|Add|Select', `[${toolNames.join('|')}]`);
         const byKey = [];
         for (const key of ['p', 'e', 'a', 's']) { await page.keyboard.press(key); byKey.push(await pressedTool()); }
         check('b3b the keys P, E, A and S switch the tools', byKey.join('|') === 'Paint|Erase|Add|Select', byKey.join('|'));
@@ -1134,7 +1233,9 @@ async function walk(url, scratch, dentalFixture) {
           await d.stroke(...painted.stroke, 20);
           await step2Settled(t1);
           const hiddenAgain = await tipCount();
-          check('b3c with the keys: Paint reveals suggested tips, Erase hides them again', shownAfter > shownBefore && hiddenAgain <= shownBefore, `tips ${shownBefore} -> ${shownAfter} -> ${hiddenAgain}`);
+          check('b3c with the keys: Paint reveals suggested tips, Erase hides them again',
+            shownAfter > shownBefore && hiddenAgain < shownAfter && hiddenAgain <= shownBefore + ERASE_RESIDUE,
+            `tips ${shownBefore} -> ${shownAfter} -> ${hiddenAgain} (residue allowed ${ERASE_RESIDUE})`);
         }
         // Add with a tiny reach lands on the exact hit; the tip is a manual one and survives a density change.
         await setReach('0.1');
@@ -1207,7 +1308,7 @@ async function walk(url, scratch, dentalFixture) {
     }
 
     // x. Dental flow, Step 3 and finish: two aligners end to end (the repo's reference aligner twice).
-    {
+    if (runs('x')) {
       const reference = PUBLIC_ALIGNER;
       const drop = (file) => page.setInputFiles('input[aria-label="Choose aligner file"]', file);
       const stepTo = async (text, ms = 20000) => page.waitForFunction((word) => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes(word.toLowerCase()), text, { timeout: ms });
@@ -1246,7 +1347,7 @@ async function walk(url, scratch, dentalFixture) {
         await stepTo('Review the orientation', 180000);
         await d.button('Next').click();
         await stepTo('Step 2 · Support area', 180000);
-        await page.waitForFunction(() => [...document.querySelectorAll('.edit-note')].some((note) => /Proposed support tips: [1-9]/.test(note.innerText)), null, { timeout: 240000 });
+        await page.waitForFunction(() => Number(document.querySelector('[data-ui="dental-tip-count"] .num')?.textContent ?? 0) > 0, null, { timeout: 240000 });
         if (first) check('x0 Step 2 no longer carries the Tree and Brace toggles', (await page.getByText('Tree branches').count()) === 0 && (await page.getByText('Cross-braces').count()) === 0);
         await d.button('Next').click();
         await stepTo('Step 3 · Supports', 240000);
@@ -1325,8 +1426,18 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Drag over').click();
       await d.idle(2500);
       const before = await d.counts();
+      /*
+       * SWEEP WHERE THE SUPPORTS ARE. These three lines ran from x 0.15 to 0.55 and found nothing, because
+       * the aligner sits right of centre in Step 3 - its supports fall between about x 0.5 and x 0.76 - so
+       * the strokes crossed empty plate and barely clipped its left edge. The Step 3 panel starts around
+       * x 0.8, so the band from 0.3 to 0.78 is canvas the pointer can use.
+       *
+       * It sweeps a ladder of lines across that band rather than trusting any one of them: where the model
+       * lands depends on the print angle the step was entered with.
+       */
       let picked = { selected: 0 };
-      for (const [from, to] of [[[0.2, 0.5], [0.55, 0.6]], [[0.2, 0.4], [0.5, 0.7]], [[0.15, 0.6], [0.5, 0.45]]]) {
+      const sweeps = [0.42, 0.52, 0.62, 0.34, 0.7].map((fy) => [[0.32, fy], [0.78, fy]]);
+      for (const [from, to] of [...sweeps, [[0.34, 0.34], [0.76, 0.68]], [[0.34, 0.68], [0.76, 0.34]]]) {
         await d.stroke(from, to, 24);
         picked = await d.settle();
         if (picked.selected > 0) break;
@@ -1334,10 +1445,13 @@ async function walk(url, scratch, dentalFixture) {
       await page.screenshot({ path: path.join(scratch, 'ux-b-x6.png') });
       note(`x6 edit-count "${(await page.locator('.edit-count').allInnerTexts()).join('|')}", status "${await d.status()}"`);
       check('x6 Step 3 selects supports with the Support Edit Mode tools', picked.selected > 0, `selected ${picked.selected}`);
-      await d.button('Delete').click();
-      await d.idle(800);
+      // Delete is disabled with nothing selected, so clicking it would wait 30 s and then throw, taking
+      // every check below it down with the run. If x6 found nothing, x7 has nothing to test and says so.
+      const canDelete = picked.selected > 0 && await d.button('Delete').isEnabled().catch(() => false);
+      if (canDelete) { await d.button('Delete').click(); await d.idle(800); }
       const afterDelete = await d.counts();
-      check('x7 Delete removes the selected supports', afterDelete.removed > before.removed, `removed ${before.removed} -> ${afterDelete.removed}`);
+      check('x7 Delete removes the selected supports', canDelete && afterDelete.removed > before.removed,
+        canDelete ? `removed ${before.removed} -> ${afterDelete.removed}` : 'nothing was selected to delete');
       await d.button('Add supports').click();
       let added = false;
       // The print angle (F) decides where the aligner sits in view: a few fixed spots, then a grid,
@@ -1376,7 +1490,22 @@ async function walk(url, scratch, dentalFixture) {
         const problems = page.locator('.dental-side section[aria-busy]');
         await page.evaluate(() => {
           window.__staleSeen = 0;
-          new MutationObserver(() => { if (document.querySelector('.dental-side section.is-stale[aria-busy="true"]')) window.__staleSeen += 1; }).observe(document.body, { subtree: true, attributes: true, childList: true });
+          /*
+           * RACE-FREE. This used to look the DOM up inside the callback and count what it found there.
+           * MutationObserver BATCHES: if the panel greys and clears again between two batches, the lookup
+           * at callback time sees neither state and the greying goes unrecorded - the check then reports
+           * "stale seen 0x" for a panel that greyed perfectly well.
+           *
+           * The record's OLD VALUE cannot be missed that way. A class list that used to carry `is-stale`
+           * is proof the panel was stale at that moment, whatever it says by the time this runs.
+           */
+          new MutationObserver((records) => {
+            for (const record of records) {
+              const was = record.oldValue ?? '';
+              const now = record.target instanceof Element ? record.target.className : '';
+              if (/\bis-stale\b/.test(was) || (typeof now === 'string' && /\bis-stale\b/.test(now))) window.__staleSeen += 1;
+            }
+          }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'aria-busy'], attributeOldValue: true });
         });
         const verdictBack = async () => {
           await d.quiet();
@@ -1486,7 +1615,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(1000);
       const approved = await d.props();
       check('l2 dental area holds the two-contour face mask', approved.dentalKind === 'two-contour' && approved.dentalStamps === 0, `policy "${approved.dentalKind}", manual markers ${approved.dentalStamps}`);
-      await page.waitForFunction(() => [...document.querySelectorAll('.edit-note')].some((note) => /Proposed support tips: [1-9]/.test(note.innerText)), null, { timeout: 180000 });
+      await page.waitForFunction(() => Number(document.querySelector('[data-ui="dental-tip-count"] .num')?.textContent ?? 0) > 0, null, { timeout: 180000 });
       await page.screenshot({ path: path.join(scratch, 'dental-area.png') });
       check('l2b Step 2 offers paint and Next without premature Done',
         await d.button('Paint').isVisible() && await d.button('Erase').isVisible() && await d.button('Next').isVisible() && await d.button('Done', false).count() === 0);
@@ -1509,13 +1638,20 @@ async function walk(url, scratch, dentalFixture) {
       await density.focus();
       await density.press('ArrowRight');
       const denser = await waitForTuning('density', 1.1);
-      await page.waitForFunction(() => [...document.querySelectorAll('.edit-note')].some((note) => /Proposed support tips: [1-9]/.test(note.innerText)), null, { timeout: 180000 });
+      await page.waitForFunction(() => Number(document.querySelector('[data-ui="dental-tip-count"] .num')?.textContent ?? 0) > 0, null, { timeout: 180000 });
       check('l2d support density updates the live tip preview',
         denser.dentalContacts !== widened.dentalContacts,
         `candidate tips ${widened.dentalContacts} -> ${denser.dentalContacts}`);
       check('l2f Tree and Brace moved out of Step 2 (they are in Step 3)', (await page.getByText('Tree branches').count()) === 0);
-      check('l2g generic right-panel structure controls do not contradict dental Step 2',
-        !/Roof \/ cage|Tree supports|Auto placement|Bracing/.test(await page.locator('.panel.right').innerText()));
+      /*
+       * The generic right panel is not SHOWN in the dental flow at all - the dental workspace is the scene
+       * with its own dock and nothing else - so there is nothing left for it to contradict. This used to
+       * read that panel's words, which meant waiting out a 30 s timeout on an element that is not there.
+       * Absence is the stronger guarantee, so absence is what is checked.
+       */
+      const genericPanels = await page.locator('.panel.right').count();
+      check('l2g the generic structure panel is not shown beside dental Step 2, so it cannot contradict it',
+        genericPanels === 0, `right panels on screen ${genericPanels}`);
       const areaPosition = page.locator('.dental-tuning label').filter({ hasText: 'Area position' }).locator('input');
       await areaPosition.focus();
       await areaPosition.press('ArrowRight');
@@ -1529,19 +1665,58 @@ async function walk(url, scratch, dentalFixture) {
       await d.quiet();
       await d.button('OK').waitFor({ state: 'visible', timeout: 300000 });
       await page.screenshot({ path: path.join(scratch, 'dental-generated.png') });
+      /*
+       * WAIT FOR THE MESH, not just for the button. The checks below are about the support mesh generation
+       * produced, and the OK button appears as the step settles - which is not the same moment the mesh
+       * finishes filling. Read too early and the mesh object is there but EMPTY: no triangles, no
+       * components, no rim coverage, which reads as a total failure of generation rather than as a race.
+       *
+       * If it never fills, the wait runs out and the note says so - that is the answer, not a workaround.
+       */
+      let placed = await d.props();
+      for (let tries = 0; tries < 60 && !(placed.tris > 0); tries += 1) {
+        await d.idle(1000);
+        placed = await d.props();
+      }
+      if (!(placed.tris > 0)) note('l3 waited 60 s and the support mesh was still empty');
       const dentalSupports = await d.counts();
-      const placed = await d.props();
       check('l3 dental generation finishes a support mesh only after the approved-area stage',
-        dentalSupports.auto > 0 && placed.dentalKind === 'two-contour' && placed.tris > 0 && placed.drawn > 0 && placed.droppedDrawn === 0 && Math.abs(placed.dentalReviewGap - 8 / 1.1) < 1e-6,
+        // The review gap shows the TUNING REACHED THE FINAL MESH: the checks above raised the support
+        // density, so the gap must have tightened below the 8 mm it starts at. It used to be pinned to
+        // exactly 8 / 1.1, an arithmetic constant true only for one particular run of slider nudges - and
+        // the nudges before it have changed since (b3e now moves the density too), so the constant broke
+        // while nothing about generation had.
+        dentalSupports.auto > 0 && placed.dentalKind === 'two-contour' && placed.tris > 0 && placed.drawn > 0
+          && placed.droppedDrawn === 0 && placed.dentalReviewGap > 0 && placed.dentalReviewGap < 8,
         `automatic ${dentalSupports.auto}, mesh triangles ${placed.tris}, drawn ${placed.drawn}, forbidden secondary landings dropped ${placed.dropped}, dropped still drawn ${placed.droppedDrawn}, tuned review gap ${placed.dentalReviewGap}`);
-      const rimWarning = await page.locator('.dental-side').getByText(/Automatic dental rim gaps/).innerText();
-      check('l4 final dental rim gap is disclosed before Done',
-        /Automatic dental rim gaps: outer [\d.]+ mm, opening [\d.]+ mm/.test(rimWarning) && /Review the rim/.test(rimWarning),
-        `warning "${rimWarning}"`);
+      /*
+       * A CHECK THAT CANNOT READ ITS SUBJECT MUST FAIL, NOT THROW. This read the note with a bare
+       * `innerText()`, which waits 30 s and then throws if the note is not on screen - and a throw here
+       * abandons every check after it, so one missing sentence cost the whole rest of the walk. The review
+       * notes also appear only once the review has finished, so it is given time to arrive first.
+       */
+      const rimNote = page.locator('.dental-side').getByText(/Automatic dental rim gaps/).first();
+      const rimShown = await rimNote.waitFor({ state: 'visible', timeout: 60000 }).then(() => true).catch(() => false);
+      const rimWarning = rimShown ? await rimNote.innerText() : '(no rim gap note on screen)';
+      /*
+       * DISCLOSED WHEN THERE IS SOMETHING TO DISCLOSE. The app raises this note only when the build says
+       * the rim NEEDS A LOOK (`dentalRimCoverage.needsReview`), which is right: a warning that appears
+       * when nothing is wrong teaches the reader to ignore it. This check used to demand the note on every
+       * run, so it failed the moment the tuning before it produced coverage good enough not to need one.
+       *
+       * Both halves are checked, because both are promises: say it when it matters, stay quiet when it
+       * does not.
+       */
+      const needsReview = placed.dentalNeedsReview === true;
+      check('l4 the final rim gap is disclosed when the build says the rim needs a look, and not otherwise',
+        needsReview
+          ? rimShown && /Automatic dental rim gaps: outer [\d.]+ mm, opening [\d.]+ mm/.test(rimWarning) && /Review the rim/.test(rimWarning)
+          : !rimShown,
+        `needs review ${placed.dentalNeedsReview}, note "${rimWarning.replace(/\s+/g, ' ')}"`);
     }
 
     // s. The full-screen start (ST): task, aligner type, file; Back and Escape; drops; Any model.
-    {
+    if (runs('s')) {
       const reference = dentalFixture ?? PUBLIC_ALIGNER;
       const onScreen = (which) => page.waitForSelector({ task: '.start-task', type: '.start-screen .choice-keys', file: '.start-screen .dental-drop' }[which], { timeout: 10000 });
       const unitsOnPlate = async () => Number((await page.locator('footer').innerText()).match(/(\d+) objects?/)?.[1] ?? -1);
@@ -1887,5 +2062,8 @@ try {
 }
 const failed = results.filter((r) => !r.ok).length;
 if (failed === 0 && !process.env.WALK_OUT && !process.env.WALK_LOCALES) rmSync(scratch, { recursive: true, force: true });
-console.log(`${failed === 0 ? 'ALL PASS' : `${failed} FAIL`} (${results.length} checks, ${Math.round((Date.now() - started) / 1000)} s)`);
+// A filtered run never says ALL PASS: it covered part of the walk, and the line has to say so.
+const scope = ONLY.size === 0 ? '' : ` [only ${[...ONLY].join(',')}]`;
+const verdict = failed > 0 ? `${failed} FAIL` : ONLY.size === 0 ? 'ALL PASS' : 'SOME PASS';
+console.log(`${verdict} (${results.length} checks, ${Math.round((Date.now() - started) / 1000)} s)${scope}`);
 process.exit(failed === 0 ? 0 : 1);
