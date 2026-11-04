@@ -14,6 +14,7 @@ import { DentalSupportsStep, type DentalReview } from './DentalSupports';
 import { RangeField } from './RangeField';
 import { ClickReachField, SelectStyleSwitch } from './EditBar';
 import { Segmented } from './Segmented';
+import { Icon } from '../ui/Icon';
 import type { DentalTiltState } from './useDentalFlow';
 import type { AreaRisk } from '../dental/areaRisk';
 import { hint } from './hint';
@@ -120,7 +121,9 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         <Segmented label={t('Dental area tools')} value={ui.tool} onChange={(tool) => run(`dental.tool.${tool}` as CommandId)}
           options={AREA_TOOLS.map((tool) => {
             const command = resolve(`dental.tool.${tool}`, ui);
-            return { value: tool, label: t(command.label), hint: command.hint, ...(command.shortcut ? { shortcut: command.shortcut } : {}) };
+            // Every tool key carries its picture. The icon file is named after the tool, so adding a tool
+            // adds `tool-<name>.svg` to src/ui/assets/icons and needs no change here.
+            return { value: tool, label: t(command.label), icon: <Icon name={`tool-${tool}`} className="tool-icon" />, hint: command.hint, ...(command.shortcut ? { shortcut: command.shortcut } : {}) };
           })} />
         {gesture.brush && <RangeField layout="row" label="Brush size" ui="dental-brush-size" unit="{n} mm" hint="Radius of the surface brush" min={0.5} max={10} step={0.5} value={gesture.brush.radius}
           onChange={(radius) => send({ type: 'setDentalRadius', radius })} />}

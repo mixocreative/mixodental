@@ -10,6 +10,10 @@ Every icon in the app is one SVG file in this folder. To change an icon, replace
 | `denture.svg` | Start screen, middle big choice: **Denture** |
 | `generic.svg` | Start screen, third big choice: **Any model** |
 | `back.svg` | Start screens, the way back: the arrow in the top-left corner |
+| `tool-paint.svg` | Step 2 area tools: **Paint** (lucide `paintbrush`) |
+| `tool-erase.svg` | Step 2 area tools: **Erase** (lucide `eraser`) |
+| `tool-add.svg` | Step 2 area tools: **Add** (lucide `circle-plus`) |
+| `tool-select.svg` | Step 2 area tools: **Select** (lucide `lasso-select`) |
 | `tool-pointer.svg` | Edit bar, "How to select" switch: **Click** (pick one support at a time) |
 | `tool-brush.svg` | Edit bar, "How to select" switch: **Drag over** (paint many supports at once) |
 | `orient.svg` | Orientation bar, Auto orientation button (the box with a turn arrow) |

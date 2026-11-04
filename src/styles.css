@@ -938,6 +938,9 @@ dialog.terms .terms-item > span { flex: none; }
    width it has. */
 .workspace--dental .dental-brush .segmented { width: 100%; }
 .workspace--dental .dental-brush .segmented button { min-width: 0; flex: 1 1 0; }
+/* A tool key is its picture over its word, so the row reads at a glance and still says what each one does. */
+.dental-brush .segmented button { display: grid; justify-items: center; gap: 3px; padding: 6px 4px; }
+.tool-icon { width: 18px; height: 18px; }
 .dental-side .edit-row { justify-content: flex-start; }
 .dental-side .edit-note { text-align: left; }
 .dental-tools .edit-row { justify-content: flex-start; }
