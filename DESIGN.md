@@ -83,7 +83,9 @@ identical in every language:
   that the characters a reader can confuse (0 and O, 1 and l and I, 6 and 8) stay apart, which is what a
   dentist needs on a measurement. It carries tabular figures, so a column of numbers lines up under
   `font-variant-numeric: tabular-nums` and no second face is needed.
-- **Instrument Serif** (400) — the title, the one place a serif appears.
+- **Noto Serif** (400/800) — the title, the one place a serif appears. The same family as the Noto Serif JP
+  and Noto Serif TC behind it, so a title is one face in all three languages, and it is drawn at every weight,
+  so a heavy title is a real bold and not a browser smearing one weight sideways.
 
 **Kana, kanji and Chinese characters come from the reader's own machine.** No CJK face is bundled: every
 one worth having is tens of megabytes, and a clinic's machine already has a good one. Japanese and

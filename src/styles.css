@@ -1,5 +1,8 @@
 /* Muji: unbleached paper, warm grey ink, hairlines, kraft, one red. Flat, no shadows. */
 :root {
+  /* The size of the line that names a screen: never below 28px, never above 76px, and in between it follows
+     the width of the window. */
+  --screen-heading-size: clamp(28px, 5.5vw, 76px);
   --paper: #f4f2ed;
   --surface: #fbfaf7;
   --sunken: #ebe8e1;
@@ -1024,7 +1027,31 @@ dialog.terms .terms-item > span { flex: none; }
 .start-task { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 24px; width: 100%; }
 /* ONE screen heading, on every screen (src/ui/ScreenHeading.tsx). Sentence case, the interface face, big
    enough to name the screen without becoming a title: the app has one title style and it is rare. */
-.screen-heading { margin: 0; max-width: 100%; font-size: 18px; font-weight: 500; letter-spacing: .04em; text-wrap: balance; }
+/* ONE screen heading, on every screen (src/ui/ScreenHeading.tsx). The line that names a screen is the
+   largest thing on it and it is set in the serif: it is read from across the room, and it is the one place
+   the app speaks rather than labels. It SCALES WITH THE WINDOW (`--screen-heading-size`) instead of being
+   set once, so it is the same weight of statement on a phone and on a studio display, in every language.
+   `text-wrap: balance` keeps the lines of a wrapped question even rather than leaving one word alone. */
+.screen-heading {
+  /* THE TEXT IS LEFT-ALIGNED AND THE BLOCK IS CENTRED, which is the house rule for any run of words: a
+     reader's eye returns to one left edge on every line, while centred text makes it hunt for where the next
+     line starts. Only buttons and labels - a word or two, read as a shape - are centred on themselves.
+     `fit-content` is what lets both be true at once: the box shrinks to its longest line after wrapping, so
+     `margin-inline: auto` centres the BLOCK while the lines inside it stay ranged left. */
+  margin: 0 auto;
+  width: fit-content;
+  max-width: min(100%, 18ch);
+  font-size: var(--screen-heading-size);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-align: left;
+  text-wrap: balance;
+  /* A translation may put a newline in its own words to say where the line turns. Each language wraps in a
+     different place, and only the person who wrote the sentence knows where it reads best - the balancer can
+     only guess. Everything else still wraps on its own. */
+  white-space: pre-line;
+}
 /* ONE grid for every "pick one of these" screen, HOWEVER MANY choices it holds: `auto-fit` takes as many
    columns as fit and wraps the rest, and `grid-auto-rows: 1fr` keeps a choice whose word wraps onto two lines
    the same height as the others. Adding a fourth or a fifth choice needs no change here. */

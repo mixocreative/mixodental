@@ -63,18 +63,27 @@
      kanji, so a Japanese or Chinese word falls through to the face behind it, glyph by glyph. Both are self-hosted
      (src/fonts.css). Numbers keep the platform's machine face, which guarantees that a column of them lines up. */
   /* TWO bundled faces, and only two: the Latin ones. Atkinson Hyperlegible Next leads every sans stack and draws
-     every Latin word and every number; Instrument Serif leads every serif stack and draws the title. They are the
+     every Latin word and every number; Noto Serif leads every serif stack and draws the title: it is the SAME family as the Noto Serif JP and
+     Noto Serif TC behind it, so a title is one face in all three languages, and it is drawn at every weight, so a
+     heavy title is a real bold rather than a browser smearing one weight sideways. They are the
      part of the interface that is the same in every language, so they are bundled and look the same everywhere.
      Kana, kanji and Chinese characters come from the reader's own machine: every CJK face worth having is tens of
      megabytes, and the machine already has a good one. Japanese and Traditional Chinese name their own platform
      faces in order, because their kanji forms differ - Chinese must never fall back to the Japanese face.
-     'Shippori Mincho B1' leads the Japanese serif: the owner's choice, used when the reader has it installed. */
+     THE ORDER OF THE JAPANESE SERIF IS NOT A RANKING OF BEAUTY - it is which faces can carry a WEIGHT. A font
+     stack cannot say "use this family only if it has the weight I asked for": the browser picks the family
+     first and then the nearest weight inside it, so one family with a single weight, sitting early, makes every
+     heading in that language light for ever. Measured on a Windows machine: 'Yu Mincho' and 'Noto Serif JP'
+     both resolve to a substitute with kana but ONE weight, so with either of them ahead of 'MS PMincho' the
+     Japanese title stayed at 400 however heavy it was asked to be (759px at weight 400 and at weight 800,
+     identically). 'MS PMincho' has a real bold and ships with Windows, so it goes ahead of them; Hiragino and
+     Shippori pass through cleanly and keep their place for the machines that have them. */
   --font-ui: 'Atkinson Hyperlegible Next', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Noto Sans JP', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
   --font-ui-ja: 'Atkinson Hyperlegible Next', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Noto Sans JP', sans-serif;
   --font-ui-zh: 'Atkinson Hyperlegible Next', 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
-  --font-title: 'Instrument Serif', 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', 'Noto Serif TC', serif;
-  --font-title-ja: 'Instrument Serif', 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
-  --font-title-zh: 'Instrument Serif', 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif;
+  --font-title: 'Noto Serif', 'Hiragino Mincho ProN', 'Shippori Mincho B1', 'MS PMincho', 'Yu Mincho', 'Noto Serif JP', 'Noto Serif TC', serif;
+  --font-title-ja: 'Noto Serif', 'Hiragino Mincho ProN', 'Shippori Mincho B1', 'MS PMincho', 'Yu Mincho', 'Noto Serif JP', serif;
+  --font-title-zh: 'Noto Serif', 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif;
   /* Numbers are the same face as the words. Atkinson Hyperlegible Next carries tabular figures, so a column of
      measurements still lines up under `font-variant-numeric: tabular-nums`, and no second face is needed. */
   --font-number: var(--font-ui);
@@ -213,6 +222,18 @@
 }
 [data-theme='instrument']:lang(ja) .title { font-family: var(--font-title-ja); }
 [data-theme='instrument']:lang(zh-Hant) .title { font-family: var(--font-title-zh); }
+/* A screen's own heading is the title's voice at the size the window allows: the same serif, per language. */
+[data-theme='instrument'] .screen-heading {
+  font-family: var(--font-title);
+  font-size: var(--screen-heading-size);
+  font-weight: 800;
+  letter-spacing: var(--title-track);
+  text-transform: none;
+  line-height: 1.15;
+  color: var(--ink);
+}
+[data-theme='instrument']:lang(ja) .screen-heading { font-family: var(--font-title-ja); }
+[data-theme='instrument']:lang(zh-Hant) .screen-heading { font-family: var(--font-title-zh); }
 
 /* 2. HEADER, four levels: the app, a screen, a group, a field. All sans, every one set in the words as they are
    written. A header is told apart by its size and its weight, never by shouting: caps cost a reader the shape of

@@ -701,7 +701,8 @@ export const zhHant: Dictionary = {
   'Choose what to make supports for.': '選擇要製作支撐的項目。',
   'Choose the aligner type.': '選擇牙套類型。',
   'Open or drop the aligner STL.': '開啟或拖放牙套 STL。',
-  'What would you like to support?': '您想要製作什麼的支撐？',
+  // The break is the owner's: the line reads 您想要製作 / 什麼支撐？ (`.screen-heading` keeps newlines).
+  'What would you like to support?': '您想要製作\n什麼支撐？',
   'Use the selected model': '使用選取的模型',
   'The aligner could not be oriented automatically. It stays as dropped: rotate it with the gizmo, then press Next.': '無法自動調整牙套方向。牙套維持拖放時的狀態：請使用旋轉控制器旋轉，然後按「下一步」。',
   'Automatic orientation is uncertain. The aligner stays as dropped: adjust it with the rotation gizmo, then press Next.': '自動方向調整無法確定。牙套維持拖放時的狀態：請使用旋轉控制器調整，然後按「下一步」。',

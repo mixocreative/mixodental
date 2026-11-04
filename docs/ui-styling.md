@@ -53,19 +53,23 @@ Every word on screen is one of three things. A designer changes a size here, not
 
 **1. Title** - the one large line that names a full screen ("What would you like to support?"). The **serif**, sentence case, never tracked, never uppercased, one per screen. Class `.title`. A screen's own heading is NOT this: it is `<ScreenHeading>` (`.screen-heading`), its own style, set out below.
 
+**The size of a screen heading** is `--screen-heading-size`, `clamp(28px, 5.5vw, 76px)`: never below 28px,
+never above 76px, and in between it follows the width of the window, so the line that names a screen is the
+same weight of statement on a phone and on a studio display, in every language.
+
 **2. Header** - four levels, all sans, every one set in the words as it is written, told apart by size and weight so a header never competes with the title above it or the sentence under it: `h1` the app, `h2` a screen or panel, `h3` a group, and the field and panel label (`.panel-widget-title`, `.dental-label`, `.brand small`).
 
 **3. Content** - sans, sentence case: `p`, `li`, `label` and the small print (`small`, `.edit-note`).
 
 **Two bundled faces, the Latin ones. Kana, kanji and Chinese characters come from the reader's own machine.**
 
-Atkinson Hyperlegible Next leads every sans stack and draws every Latin word and every number - it is drawn for legibility, so 0 and O, 1 and l and I stay apart, which matters on a measurement. Instrument Serif leads every serif stack and draws the title. These two are the part of the interface that is the same in every language, so they are bundled and look the same on every machine. Together they are about 100 KB.
+Atkinson Hyperlegible Next leads every sans stack and draws every Latin word and every number - it is drawn for legibility, so 0 and O, 1 and l and I stay apart, which matters on a measurement. Noto Serif leads every serif stack and draws the title: it is the same family as the Noto Serif JP and Noto Serif TC behind it, so a title is one face in all three languages, and it is drawn at every weight, so a heavy title is a real bold rather than a browser smearing one weight sideways. Only its Latin subsets are bundled. These two are the part of the interface that is the same in every language, so they are bundled and look the same on every machine. Together they are about 100 KB.
 
 No CJK face is bundled: every one worth having is tens of megabytes, and a clinic's machine already has a good one. Each stack names the platform faces in order instead - Japanese and Traditional Chinese separately, because their kanji forms differ, which is why **Chinese must never fall back to the Japanese face**.
 
 | | sans (headers, content, numbers) | serif (the title) |
 | --- | --- | --- |
-| Latin, bundled | Atkinson Hyperlegible Next (400/500/700) | Instrument Serif (400) |
+| Latin, bundled | Atkinson Hyperlegible Next (400/500/700) | Noto Serif (400/800) |
 | Japanese, from the system | Hiragino Sans, Yu Gothic UI, Yu Gothic, Meiryo, Noto Sans JP | Shippori Mincho B1, Hiragino Mincho ProN, Yu Mincho, Noto Serif JP |
 | Traditional Chinese, from the system | PingFang TC, Microsoft JhengHei, Noto Sans TC | Noto Serif TC, Songti TC, PMingLiU |
 
@@ -75,9 +79,9 @@ The bundled files are split by unicode-range, so a browser fetches only the few 
 
 | Token | Value | What it sets |
 | --- | --- | --- |
-| `--font-title` | `'Instrument Serif', 'Shippori Mincho B1', 'Hiragino Mincho ProN', …` | The title face: the default, and English |
-| `--font-title-ja` | `'Instrument Serif', 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif` | The same for Japanese |
-| `--font-title-zh` | `'Instrument Serif', 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif` | The same for Traditional Chinese |
+| `--font-title` | `'Noto Serif', 'Shippori Mincho B1', 'Hiragino Mincho ProN', …` | The title face: the default, and English |
+| `--font-title-ja` | `'Noto Serif', 'Shippori Mincho B1', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif` | The same for Japanese |
+| `--font-title-zh` | `'Noto Serif', 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif` | The same for Traditional Chinese |
 | `--title-size` | `30px` | Title size |
 | `--title-track` | `-.01em` | Title letter spacing (slightly tight, as a serif display line wants) |
 | `--h1-size` | `13px` | Header level 1 (the app) |

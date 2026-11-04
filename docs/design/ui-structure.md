@@ -8,7 +8,7 @@
 > | What this document says | What the app does now |
 > |---|---|
 > | Paper `#f4f2ed`, Mixo Red `#7f0019`, Zone Navy `#1d3461`, 2px radius | The **instrument** theme is the default: Pot Grey `#eef2f2`, Indigo `#17334e`, Dyed Teal `#2a8c99`, Signal Red `#c8372d` **for alerts only**, square (`--radius: 0`). The paper set is still underneath as the second theme. |
-> | Zen Kaku Gothic New, PingFang TC | **Atkinson Hyperlegible Next** and **Instrument Serif** are the only bundled faces; all CJK comes from the reader's own machine. |
+> | Zen Kaku Gothic New, PingFang TC | **Atkinson Hyperlegible Next** and **Noto Serif** are the only bundled faces; all CJK comes from the reader's own machine. |
 > | `<details>`/`<summary>` groups, `.field-row`, `.check`, `.number`, `.edit-size`, `.tool-option` | One `Panel` and one `Field`. None of those classes exist any more. |
 > | A print-angle **slider** with a band on its track | A print-angle **dial** (`TiltDial`), an ARIA slider with a lit tick band. |
 > | "Hide models" in the view controls | Removed in `f716eb4` (PD.11 S1). |
