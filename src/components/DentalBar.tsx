@@ -90,7 +90,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         tilt={tilt} onTilt={onTilt} free={free} restore={restore}>{orientExtra}</OrientationBar>
       : <>
         <div className="edit-bar"><div className="edit-row">
-          <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key"><Icon name="back" /></CommandButton>
+          <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key back-key--arrow" labelHidden><Icon name="back" /></CommandButton>
         </div></div>
         <DentalAlignerPrompt phase={gesture.phase} notices={gesture.notices} selectedName={selectedName} kind={jobKindOf(gesture.profile)}
           onFiles={(files) => onFiles?.(files)} onUseSelected={() => onUseSelected?.()} />
@@ -162,9 +162,9 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         : previewStatus === 'ready' ? 'No safe support tips were found. Automatic placement is paused.'
           : 'Finding safe support tips…')}</p> : null}
       {areaExtra}
-      <div className="edit-row">
-        {restore ? <RestoreStepButton restore={restore} unique="restore-step-area" /> : null}
-        <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key"><Icon name="back" /></CommandButton>
+      {restore ? <div className="edit-row"><RestoreStepButton restore={restore} unique="restore-step-area" /></div> : null}
+      <div className="edit-row step-nav">
+        <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key back-key--arrow" labelHidden><Icon name="back" /></CommandButton>
         <CommandButton command={resolve('dental.generate', tuningBusy ? { ...ui, dentalPreviewReady: false } : ui)} run={run} />
       </div>
     </div>

@@ -375,12 +375,15 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
 .edit-bar--orient { width: 232px; align-items: stretch; padding: 8px; }
 .orient-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .orient-row > * { flex: 1 1 auto; }
-/* Back and Next are ONE BLOCK with no seam between them: they are the two ends of the same move, and a gap
-   between them reads as two unrelated keys. Back is its arrow alone - the word is still there for a screen
-   reader and under the pointer as a tooltip - so Next takes the room the word would have cost. */
-.orient-nav { margin-top: auto; gap: 0; }
-.orient-nav button { flex: 1 1 0; }
-.back-key--arrow { flex: 0 0 auto; width: 44px; padding: 0; }
+/* THE STEP'S NAV, the same in every step: the way back and the way on as ONE BLOCK with no seam between
+   them. They are the two ends of the same move, and a gap between them reads as two unrelated keys. Back is
+   its arrow alone - the word is still there for a screen reader and under the pointer as a tooltip - so the
+   way on takes the room the word would have cost. In Step 3 the way on is OK rather than Next; it is the
+   same block. */
+.step-nav { display: flex; flex-wrap: nowrap; gap: 0; }
+.step-nav > button { flex: 1 1 0; }
+.step-nav > .back-key--arrow { flex: 0 0 auto; width: 44px; padding: 0; }
+.orient-nav { margin-top: auto; }
 /* Auto orientation is the primary action: red, full width, the icon before its label (row-reverse, since the label comes first in the DOM). */
 .orient-auto { display: flex; flex-direction: row-reverse; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 40px; }
 .orient-auto svg { width: 18px; height: 18px; }

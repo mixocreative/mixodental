@@ -57,10 +57,11 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, rest
       {review.finishedCount > 0 && <p className="help">{t(kindText('Aligners finished so far: {n}', 'aligner'), { n: review.finishedCount })}</p>}
       {restore ? <RestoreStepButton restore={restore} unique="restore-step-2" /> : null}
       <div className="edit-row">
-        <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key"><Icon name="back" /></CommandButton>
-      </div>
-      <div className="edit-row">
         <CommandButton command={resolve('dental.addAnother', ui)} run={run} />
+      </div>
+      {/* The way back and the way on, as one block: OK is this step's way on. */}
+      <div className="edit-row step-nav">
+        <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key back-key--arrow" labelHidden><Icon name="back" /></CommandButton>
         <CommandButton command={resolve('dental.finish', ui)} run={run} />
       </div>
     </section>}
