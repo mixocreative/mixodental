@@ -163,6 +163,7 @@ change that makes something collide is named rather than discovered later.
 | `--dock-controls-column` | `3` | Which column every step's controls sit in | `.edit-bar`, `.dental-side` |
 | `--status-inset-left` | `calc(--dock-left + --dock-gap * 2)` | How far the status strip starts from the left | `footer.on-scene` in the dental view |
 | `--status-inset-right` | `calc(--dock-right + --dock-gap * 2)` | The same on the right | `footer.on-scene` in the dental view |
+| `--status-room` | `46px` | The room the status strip takes at the foot, which the scene's foot row keeps clear of | `.job-activity`, `.viewport-note` |
 
 ### States (marks that tell the user where something stands)
 

@@ -50,6 +50,9 @@
      if you give `--dock-columns` widths of your own, set these to match. */
   --status-inset-left: calc(var(--dock-left) + var(--dock-gap) * 2);
   --status-inset-right: calc(var(--dock-right) + var(--dock-gap) * 2);
+  /* And the room it takes at the foot of the window, which the things in the scene's foot row keep clear of.
+     Raise it if the strip ever takes a second line. */
+  --status-room: 46px;
 }
 
 .workspace--dental .viewport {
@@ -118,6 +121,42 @@
   justify-self: end;
   align-self: start;
   margin: var(--dock-gap);
+}
+
+/* THE SCENE'S OWN FOOT. The background-work list and the units note are the last two things that floated
+   on raw coordinates: the list at `left: 18px; bottom: 14px`, where it lay under the widgets at the foot of
+   the left dock and across the status strip, and the note at `right: 18px`, under the controls. They share
+   the foot of the scene's column now, one at each end - and each is capped at half the column, so they
+   cannot meet in the middle however long their words run. */
+.workspace--dental .job-activity,
+.workspace--dental .viewport-note {
+  position: static;
+  grid-column: var(--dock-scene-column);
+  grid-row: 3;
+  align-self: end;
+  margin: var(--dock-gap);
+  max-width: calc(50% - var(--dock-gap));
+}
+.workspace--dental .job-activity { justify-self: start; width: min(420px, 100%); }
+.workspace--dental .viewport-note { justify-self: end; }
+/* They clear the status strip, which is the one thing at this end that is NOT in the grid (it is the app's
+   status bar, shown as a band on the first page), so the grid cannot hold them off it. Without this the
+   background-work list sat on top of the counts while a job ran. */
+.workspace--dental .job-activity,
+.workspace--dental .viewport-note { margin-bottom: var(--status-room); }
+
+/* A toast is transient and belongs over the scene, not in its foot row beside things that stay. */
+.workspace--dental .undo-toast-region {
+  position: static;
+  grid-column: var(--dock-scene-column);
+  grid-row: 2;
+  justify-self: center;
+  align-self: end;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  margin: var(--dock-gap);
+  max-width: 100%;
 }
 
 /* THE STATUS STRIP sits in the scene's column, between the docks (see `--status-inset-*` above). */

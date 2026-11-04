@@ -878,7 +878,10 @@ async function walk(url, scratch, dentalFixture) {
       // controls on the right, the widgets at the foot and the status strip between them.
       const docked = async () => page.evaluate(() => {
         const box = (selector) => { const el = document.querySelector(selector); if (!el) return null; const r = el.getBoundingClientRect(); return r.width && r.height ? [r.left, r.top, r.right, r.bottom] : null; };
-        const parts = { title: box('.edit-badge'), controls: box('.dental-side') ?? box('.edit-bar'), widgets: box('.debug-section'), status: box('footer.on-scene'), views: box('.viewport-view') };
+        // `.edit-frame` is left out on purpose: it is the decorative border around the whole view, drawn
+        // under everything, so it is meant to lie across all of them.
+        const parts = { title: box('.edit-badge'), controls: box('.dental-side') ?? box('.edit-bar'), widgets: box('.debug-section'),
+          status: box('footer.on-scene'), views: box('.viewport-view'), work: box('.job-activity'), note: box('.viewport-note'), toast: box('.undo-toast-region') };
         const hit = (a, b) => a && b && a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
         const names = Object.keys(parts), clashes = [];
         for (let i = 0; i < names.length; i += 1) for (let j = i + 1; j < names.length; j += 1) if (hit(parts[names[i]], parts[names[j]])) clashes.push(`${names[i]} over ${names[j]}`);
