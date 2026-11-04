@@ -81,12 +81,12 @@
   --font-ui: 'Atkinson Hyperlegible Next', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Noto Sans JP', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
   --font-ui-ja: 'Atkinson Hyperlegible Next', 'Hiragino Sans', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Noto Sans JP', sans-serif;
   --font-ui-zh: 'Atkinson Hyperlegible Next', 'PingFang TC', 'Microsoft JhengHei', 'Noto Sans TC', sans-serif;
-  --font-title: 'Noto Serif', 'Hiragino Mincho ProN', 'Shippori Mincho B1', 'MS PMincho', 'Yu Mincho', 'Noto Serif JP', 'Noto Serif TC', serif;
-  --font-title-ja: 'Noto Serif', 'Noto Serif JP', 'Hiragino Mincho ProN', 'Shippori Mincho B1', 'MS PMincho', 'Yu Mincho', serif;
-  --font-title-zh: 'Noto Serif', 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif;
+  --font-title: 'Roboto Mono', 'Noto Serif JP', 'Hiragino Mincho ProN', 'Shippori Mincho B1', 'MS PMincho', 'Noto Serif TC', monospace;
+  --font-title-ja: 'Roboto Mono', 'Noto Serif JP', 'Hiragino Mincho ProN', 'Shippori Mincho B1', 'MS PMincho', monospace;
+  --font-title-zh: 'Roboto Mono', 'Noto Serif TC', 'Songti TC', 'PMingLiU', monospace;
   /* Numbers are the same face as the words. Atkinson Hyperlegible Next carries tabular figures, so a column of
      measurements still lines up under `font-variant-numeric: tabular-nums`, and no second face is needed. */
-  --font-number: var(--font-ui);
+  --font-number: 'Roboto Mono', ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
 
   /* ---- The three text styles (docs/ui-styling.md "The three text styles") -------------------------------------
      1. TITLE  - the one large line that names the screen. Serif, never uppercased, never tracked.

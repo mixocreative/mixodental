@@ -2,6 +2,7 @@
 :root {
   /* The size of the line that names a screen: never below 28px, never above 76px, and in between it follows
      the width of the window. */
+  --font-number: 'Roboto Mono', ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
   --screen-heading-size: clamp(28px, 5.5vw, 76px);
   --paper: #f4f2ed;
   --surface: #fbfaf7;
@@ -276,10 +277,10 @@ button[aria-pressed='true']:not(.primary):hover:not(:disabled) { background: var
   line-height: 1;
 }
 .unit span { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.unit small { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.unit small { font-size: 11px; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .panel .unit.selected, .panel .unit.selected:hover:not(:disabled) { background: var(--sunken); border-left-color: var(--ink); }
 .panel .unit.active b { background: var(--red); border-color: var(--red); color: #fff; }
-h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 
 /* ---- Viewport: a quiet light room --------------------------------------- */
 .viewport { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #e9e6df; }
@@ -414,7 +415,7 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
 /* Denture Step 2: the denture settings block. */
 .denture-parts-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 12px; }
 .denture-part { display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 6px; }
-.denture-part-size, .denture-part-tips { color: var(--muted); font-variant-numeric: tabular-nums; }
+.denture-part-size, .denture-part-tips { color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .part-swatch { width: 9px; height: 9px; border-radius: 2px; border: 1px solid var(--line-strong); }
 .part-swatch--target { background: var(--surface); }
 .part-swatch--addOn { background: var(--part-addon); opacity: .5; }
@@ -474,7 +475,7 @@ kbd {
 .job-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .job-row[data-state='failed'] .job-label { white-space: normal; overflow-wrap: anywhere; color: var(--danger); }
 .job-row[data-state='cancelled'] .job-label { color: var(--muted); }
-.job-meta { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+.job-meta { flex: none; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .job-head button { flex: none; } /* the app's own button size */
 .job-row .progress-track { margin-top: 5px; }
 .progress-track { height: 2px; background: var(--line); overflow: hidden; }
@@ -484,10 +485,10 @@ kbd {
 /* The staged bar of a denture scan or build (denture/progress): step, stage, elapsed time over a bar that moves by stage. */
 .staged-progress { margin-top: 4px; }
 .staged-progress-head { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
-.staged-progress-step { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+.staged-progress-step { flex: none; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .staged-progress-stage { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .staged-progress-repair { flex: none; color: var(--muted); }
-.staged-progress-time { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
+.staged-progress-time { flex: none; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .staged-progress .staged-progress-track { margin-top: 4px; height: 3px; background: var(--progress-staged-track); }
 .staged-progress-fill { background: var(--progress-staged-fill); transition: width .4s linear; }
 .staged-progress[data-status='failed'] .staged-progress-fill, .staged-progress[data-status='cancelled'] .staged-progress-fill { opacity: .45; }
@@ -521,7 +522,7 @@ footer {
   color: var(--muted);
   font-size: 11.5px;
   letter-spacing: .02em;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-number); font-variant-numeric: tabular-nums;
 }
 footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
 /* IN THE WORKSPACE the status is an overlay ON the scene, not a band under it. The same element with the same
@@ -614,7 +615,7 @@ footer.on-scene button { pointer-events: auto; }
 .restore-round > svg { width: 15px; height: 15px; }
 .print-angle .problems { margin-top: 4px; }
 /* PD.11 S5: the print-angle dial, its stable band and the big number under the Step 1 badge. */
-.orient-range { margin: 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.orient-range { margin: 0; font-size: 12px; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 /* The dial (P7d): plain HTML + CSS so every part is ordinary CSS. Each tick is a <span> turned by its --tick-angle
    (set inline from data, the one exception) and pushed out to the ring; the dot is turned by --knob-angle and turned
    back so its recessed shading stays lit from the top left. All part sizes are fractions of --dial-size. */
@@ -661,7 +662,7 @@ footer.on-scene button { pointer-events: auto; }
 .tilt-dial-label {
   position: absolute; top: calc(var(--dial-size) * .8); transform: translateX(-50%); pointer-events: none;
   font-size: var(--dial-label-size); line-height: 1; letter-spacing: .04em;
-  color: var(--dial-label); font-variant-numeric: tabular-nums; white-space: nowrap;
+  color: var(--dial-label); font-family: var(--font-number); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .tilt-dial-label-min { left: calc(var(--dial-size) * .14); }
 .tilt-dial-label-max { left: calc(var(--dial-size) * .86); }
@@ -669,7 +670,7 @@ footer.on-scene button { pointer-events: auto; }
    degree sign belongs. Their tops line up (`flex-start`); on the baseline the small ring would hang far too low. */
 .tilt-dial-value {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none;
-  display: flex; align-items: flex-start; line-height: 1; color: var(--dial-value); font-variant-numeric: tabular-nums;
+  display: flex; align-items: flex-start; line-height: 1; color: var(--dial-value); font-family: var(--font-number); font-variant-numeric: tabular-nums;
 }
 /* The reading is as large as the knob allows. It is the one number on this screen and nothing else sits
    inside the knob with it, so it takes the room: the knob is .58 of the dial, and the number and its degree
@@ -678,16 +679,16 @@ footer.on-scene button { pointer-events: auto; }
 .tilt-dial-value-deg { font-size: calc(var(--dial-size) * .1); }
 @media (prefers-reduced-motion: reduce) { .tilt-dial-dot, .tilt-dial-tick { transition: none; } }
 .problem-kind.angle { background: var(--danger); }
-.edit-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.edit-count { color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 /* THE PRINT ANGLE READ OFF THE SCENE: the app's own face, large, because it is the one number Step 1 is
    about and it is read from across the bench. It is DOM over the canvas, so it stays sharp at any zoom. */
 .angle-reading {
-  font-family: var(--font-ui);
+  font-family: var(--font-number);
   font-size: 34px;
   font-weight: 700;
   letter-spacing: -.02em;
   color: var(--angle-mark);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-number); font-variant-numeric: tabular-nums;
   white-space: nowrap;
   text-shadow: 0 0 6px var(--scene-bg), 0 0 6px var(--scene-bg);
 }
@@ -838,7 +839,7 @@ button.attention { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--blue); }
 @keyframes attention-pulse { 50% { box-shadow: 0 0 0 2px var(--paper), 0 0 0 6px var(--blue); } }
 
 /* ---- Right panel: shape band and region header ---------------------------- */
-.shape-band { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.shape-band { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; font-size: 11.5px; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .shape-band button { width: auto; margin: 0; padding: 3px 10px; flex: none; white-space: nowrap; }
 .shape-head { display: flex; align-items: center; gap: 8px; }
 .shape-head h3 { flex: 1; min-width: 0; }
@@ -1015,7 +1016,7 @@ dialog.terms .terms-item > span { flex: none; }
 .field--row > .field-control { justify-self: end; }
 .field--stack { grid-template-columns: minmax(0, 1fr); }
 .field-label { color: var(--ink); }
-.field--read-only > .field-control { color: var(--muted); font-variant-numeric: tabular-nums; }
+.field--read-only > .field-control { color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 /* The control takes the width it is given and its readout stays beside it, so a slider or a segmented switch
    never ends up a stub and a value never falls onto its own line. */
 .field-control { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -1024,7 +1025,7 @@ dialog.terms .terms-item > span { flex: none; }
 .field-control > .segmented { flex: 1 1 auto; min-width: 0; width: auto; }
 .field-control > output,
 .field-control > small { flex: none; white-space: nowrap; }
-.field-control > output { color: var(--muted); font-variant-numeric: tabular-nums; }
+.field-control > output { color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .field-control > small { width: 16px; color: var(--muted); font-size: 11px; }
 /* A typed value: an underline, not a box, and right-aligned so a column of them lines up on the decimal point. */
 .field-control > input:not([type='range']):not([type='checkbox']) {
@@ -1035,7 +1036,7 @@ dialog.terms .terms-item > span { flex: none; }
   border-radius: 0;
   background: transparent;
   font-size: 13px;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-number); font-variant-numeric: tabular-nums;
   text-align: right;
 }
 .field-control > input:not([type='range']):not([type='checkbox']):hover { border-bottom-color: var(--ink); }
@@ -1182,7 +1183,7 @@ dialog.terms .terms-item > span { flex: none; }
 /* ---- Build plate (Round C) ------------------------------------------------- */
 .plate-printer { display: grid; gap: 4px; margin: 0 0 6px; font-size: 12px; color: var(--muted); }
 .plate-printer-select { height: 30px; padding: 0 8px; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); font: inherit; color: var(--ink); }
-.plate-size { margin: 0 0 6px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.plate-size { margin: 0 0 6px; font-size: 12px; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .plate-unplaced { margin-top: 8px; padding: 6px 8px; border: 1px solid var(--warning); border-radius: var(--radius); background: color-mix(in srgb, var(--warning) 10%, transparent); }
 .plate-unplaced p { margin: 0 0 4px; color: var(--warning); font-size: 12px; }
 .plate-unplaced ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }

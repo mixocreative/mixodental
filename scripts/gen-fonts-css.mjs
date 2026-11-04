@@ -33,6 +33,10 @@ const FAMILIES = [
   // alone is 128 KB for accented letters no heading in these three languages contains, and the rest of what the
   // package carries (Cyrillic, Greek, Vietnamese, maths) this app can never show.
   { pkg: 'noto-serif', weights: [400, 800], subsets: ['latin'], note: 'Noto Serif, SIL OFL 1.1' },
+  // EVERY NUMBER, and the Latin of every title. A mono face is drawn so each digit occupies the same width,
+  // so a measurement that ticks does not shuffle the words beside it, and a column of them lines up without
+  // asking for tabular figures. Latin only: it has no kana or kanji and is never asked for any.
+  { pkg: 'roboto-mono', weights: [400, 700], subsets: ['latin'], note: 'Roboto Mono, Apache-2.0' },
 ];
 
 /** The Japanese title face, cut to the characters src/locales/ja.ts contains. */
