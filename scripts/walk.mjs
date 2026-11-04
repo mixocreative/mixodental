@@ -117,8 +117,9 @@ const BASE = {
  * the whole reason this is safe to add: the danger of a filter is not that it skips work, it is that
  * someone later reads a green line and believes the walk passed.
  *
- * The section letters are the ones the comments in `walk()` already use: a-k and i for the plain editor,
- * `u` for the dental flow up to Step 2, `x` for Step 3 and finishing, `s` for the start screen.
+ * The section letters are the ones the comments in `walk()` already use: `a` for the plain editor (a-k
+ * and i), `u` for the dental flow up to Step 2 on the reference aligner, `x` for Step 3 and finishing,
+ * `l` for the same flow against the real case fixture where the machine has one, `s` for the start screen.
  */
 const ONLY = new Set((process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length) ?? '')
   .split(',').map((name) => name.trim()).filter(Boolean));
@@ -774,9 +775,21 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Select', true).click().catch(() => {});
       await d.idle(500);
       const cdp = await context.newCDPSession(page);
-      // 6x dropped the moves entirely on this machine, so the stroke selected nothing and the check was
-      // measuring that rather than the queue it is about. 4x still builds a queue the switch lands in.
-      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+      /*
+       * ONE throttled stroke, not a hunt for the right rate.
+       *
+       * This check needs the machine slowed enough for a queue of brush steps to form, so the tool switch
+       * has something to land in the middle of. Too slow and the pointer moves are dropped outright and
+       * the stroke selects nothing - which is how this failed on this machine at 4x, after already being
+       * lowered from 6x for the same reason.
+       *
+       * Trying several rates in turn looked like the answer and was worse: three 30-move strokes under
+       * heavy throttle exhausted the renderer and CRASHED the tab, which costs every check after it rather
+       * than one line of red. One attempt, and if no queue formed the check says so instead of blaming the
+       * app for the machine it ran on.
+       */
+      const throttle = 4;
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
       await d.stroke(A[0], A[1], 30, { pace: 40 });
       const pendingAtSwitch = (await d.props()).selected;
       await d.button('Unselect').click();
@@ -785,7 +798,11 @@ async function walk(url, scratch, dentalFixture) {
       // but it has to finish for the check to see where the switch landed.
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
       const switched = await d.settle();
-      check('g Select to Unselect mid-queue keeps the earlier steps as Select', switched.hash === sequential.hash, `one after the other ${sequential.selected} (#${sequential.hash}), switched mid-queue ${switched.selected} (#${switched.hash}), selected when switching ${pendingAtSwitch}`);
+      // A queue that never formed cannot answer the question, and saying so is better than a red line that
+      // blames the app for the machine.
+      check('g Select to Unselect mid-queue keeps the earlier steps as Select',
+        pendingAtSwitch > 0 && switched.hash === sequential.hash,
+        `one after the other ${sequential.selected} (#${sequential.hash}), switched mid-queue ${switched.selected} (#${switched.hash}), selected when switching ${pendingAtSwitch} at ${throttle}x`);
       await d.exitMode();
 
       // k. Select them from another object: the active object has none, the first selected object with customised supports takes over.
@@ -1596,7 +1613,9 @@ async function walk(url, scratch, dentalFixture) {
       check('x19 the two aligners sit apart on the plate', Math.abs(first.pos[0] - second.pos[0]) > 20 || Math.abs(first.pos[2] - second.pos[2]) > 20, `centres ${first.pos.map((v) => v.toFixed(0))} / ${second.pos.map((v) => v.toFixed(0))}`);
     }
 
-    if (dentalFixture) {
+    // l. The dental flow against the REAL case fixture, when this machine has one - a separate section from
+    // `u`, which runs the same flow on the reference aligner that ships with the repo.
+    if (runs('l') && dentalFixture) {
       // The Dental lane never checks a patient model into the repository: the fixture is read in place from
       // wherever it already lives (see PUBLIC_ALIGNER / CASE_01_ALIGNER at the top).
       await page.goto(url);
@@ -1732,12 +1751,25 @@ async function walk(url, scratch, dentalFixture) {
 
       await page.goto(url);
       await onScreen('task');
-      // textContent: the theme sets a key's word in caps, and this check is about the words, not the painting.
-      const names = await page.locator('.start-task button').allTextContents();
+      /*
+       * READ THE LABEL ELEMENT, not the button's whole text.
+       *
+       * `textContent` is used here rather than `innerText` on purpose - the theme sets a key's word in
+       * caps, and this check is about the WORDS, not the painting. But a choice key holds its icon as an
+       * inline SVG, and that SVG carries a `<style>` block: `textContent` scoops the CSS up with the word,
+       * so the names came back as stylesheet rules with "Aligner" stuck on the end.
+       *
+       * `.choice-key-label` is the element that holds exactly the word (src/ui/ChoiceKey.tsx), so it is
+       * read directly. "Open a saved project" is a plain button with no icon and is read as it always was.
+       */
+      const names = [
+        ...await page.locator('.start-task .choice-key-label').allTextContents(),
+        ...await page.locator('.start-task button:not(.choice-key)').allTextContents(),
+      ].map((name) => name.trim());
       check('s1 the app opens on the task screen: the three choices drawn alike, Open a saved project, and no workspace',
         names.join('|') === 'Aligner|Denture|Any model|Open a saved project' && (await page.locator('.start-task .primary').count()) === 0 && (await page.locator('.workspace').count()) === 0, names.join('|'));
       check('u1a on the task screen the header has no Undo, Redo, Hide models or Wireframe, the language switch stays, the heading is present, and the footer says what to choose',
-        (await page.locator('header').getByRole('button', { name: /^(Undo|Redo|Hide models|Wireframe)/ }).count()) === 0 && await page.locator('header .lang').isVisible() &&
+        (await page.locator('header').getByRole('button', { name: /^(Undo|Redo|Hide models|Wireframe)/ }).count()) === 0 && await page.locator('header').getByLabel('Language').isVisible() &&
         await page.getByRole('heading', { name: 'What would you like to support?' }).isVisible() && (await page.locator('footer strong').innerText()) === 'Choose what to make supports for.', await page.locator('footer strong').innerText());
       await supports().click();
       await onScreen('type');
@@ -1776,8 +1808,17 @@ async function walk(url, scratch, dentalFixture) {
       await supports().click();
       await page.locator('.choice-key').click();
       await onScreen('file');
+      /*
+       * The hint says the file can be DRAGGED here as well as chosen, which the old wording left out - so
+       * the sentence this asked for no longer exists. It is matched on its lasting half rather than word
+       * for word: that the file is checked and turned the right way up, and that dragging is offered.
+       */
+      const fileHint = await page.locator('.start-screen').innerText();
       check('s6 choosing the type opens the file screen: the instruction, its hint, a file button and Back',
-        await page.getByText('Place the aligner file here').isVisible() && await page.getByText('An STL. It is checked and turned the right way up automatically.').isVisible() && await d.button('Choose STL file').isVisible() && await d.button('Back').isVisible());
+        await page.getByText('Place the aligner file here').isVisible()
+          && /[Dd]rag an STL here/.test(fileHint) && /checked and turned the right way up/.test(fileHint)
+          && await d.button('Choose STL file').isVisible() && await d.button('Back').isVisible(),
+        fileHint.replace(/\s+/g, ' ').slice(0, 140));
       await page.keyboard.press('Escape');
       await onScreen('type');
       check('s7 Escape on the file screen is Back to the type screen, which keeps the chosen type pressed', (await page.locator('.choice-key').getAttribute('aria-pressed')) === 'true');
