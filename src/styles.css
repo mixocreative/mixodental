@@ -395,6 +395,9 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-varian
 /* The key under the pointer comes forward, or the one beside it covers the seam it just lit. */
 .step-nav > button:hover:not(:disabled), .step-nav > button:focus-visible { position: relative; z-index: 1; }
 .step-nav > .back-key--arrow { flex: 0 0 auto; width: 44px; padding: 0; }
+/* The way on carries its arrow AFTER the word, the way the reader is going. */
+.next-key { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.next-key > svg { width: 16px; height: 16px; flex: none; }
 .orient-nav { margin-top: auto; }
 /* Auto orientation is the primary action: red, full width, the icon before its label (row-reverse, since the label comes first in the DOM). */
 .orient-auto { display: flex; flex-direction: row-reverse; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 40px; }

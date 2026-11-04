@@ -63,6 +63,14 @@ export function UnitObject(props: UnitObjectProps) {
   // The tips view draws (and picks) only the contact tips of the built supports.
   const tips = useMemo(() => (props.tipsView && props.supports ? tipsOf(props.supports) : undefined), [props.tipsView, props.supports]);
   const stepTwo = props.dentalArea === true;
+  /*
+   * Step 1, where the reader is choosing the print angle. THE CANVAS TAKES NO EDITS HERE: the pointer turns
+   * the camera and nothing else, because there is nothing on this step to paint or pick. The hover marker and
+   * the stroke handlers are off, so the model does not answer the pointer with a circle it cannot act on.
+   */
+  const stepOne = gesture.kind === 'dental-aligner';
+  /** The step takes strokes: Step 1 does not, and neither does a step with no editing gesture at all. */
+  const takesEdits = editing && !stepOne;
   const supports = gesture.kind === 'dental-area' || stepTwo ? undefined : tips ?? props.supports;
   // A heavy model draws its simplified copy (it takes no hand edits); supports and export use the full one.
   const shown = displayMesh(unit.source);
@@ -72,7 +80,7 @@ export function UnitObject(props: UnitObjectProps) {
   const zoning = editing && gesture.kind === 'zones';
   const dentalPainting = editing && gesture.kind === 'dental-area';
   /** Step 2's area layers and tip markers show under every tool. */
-  const areaShown = editing && stepTwo;
+  const areaShown = editing && (stepTwo || stepOne);
   const surfacePainting = zoning || dentalPainting;
   const supportGeometry = useGeometry(supports);
   // Select supports: Click picks one support at a time; Drag over (the brush) owns the left button.
@@ -291,7 +299,7 @@ export function UnitObject(props: UnitObjectProps) {
       raycast={(gesture.kind === 'zones' || gesture.kind === 'dental-area' || stepTwo) && !props.active ? () => undefined : rustRaycast}
       onClick={(event) => clickModel(event, false)}
       onContextMenu={(event) => clickModel(event, true)}
-      {...(editing ? { onPointerDown: startStroke, onPointerMove: hoverModel, onPointerOut: leave } : {})}
+      {...(takesEdits ? { onPointerDown: startStroke, onPointerMove: hoverModel, onPointerOut: leave } : {})}
     >
       {/*
         The aligner is the clear thermoformed plastic it is made of, so a technician reads its form and can see
@@ -353,7 +361,7 @@ export function UnitObject(props: UnitObjectProps) {
       <meshPhysicalMaterial key={selectionColored ? 'selection' : 'plain'} color={selectionColored ? modelColours.vertexBase : supportColor} vertexColors={selectionColored}
         metalness={0} roughness={0.38} clearcoat={0.7} clearcoatRoughness={0.25} sheen={0} />
     </mesh>}
-    {editing && hover && !brush && <EditPreview hover={hover} unit={unit} contacts={contacts} {...(zoneBrush || dentalBrush
+    {takesEdits && hover && !brush && <EditPreview hover={hover} unit={unit} contacts={contacts} {...(zoneBrush || dentalBrush
       ? { brush: { radius: (zoneBrush ?? dentalBrush)!.radius, color: zoneBrush?.kind === 'paint' ? marks.zone : dentalBrush?.kind === 'allow' ? marks.areaPermitted : marks.ring } }
       : {})} />}
     {editing && !surfacePainting && supports && supportGeometry && <>

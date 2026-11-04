@@ -165,7 +165,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       {restore ? <div className="edit-row"><RestoreStepButton restore={restore} unique="restore-step-area" /></div> : null}
       <div className="edit-row step-nav">
         <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key back-key--arrow" labelHidden><Icon name="back" /></CommandButton>
-        <CommandButton command={resolve('dental.generate', tuningBusy ? { ...ui, dentalPreviewReady: false } : ui)} run={run} />
+        <CommandButton command={resolve('dental.generate', tuningBusy ? { ...ui, dentalPreviewReady: false } : ui)} run={run} className="next-key"><Icon name="next" /></CommandButton>
       </div>
     </div>
   </>;

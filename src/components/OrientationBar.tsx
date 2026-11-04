@@ -85,7 +85,7 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
     </div> : null}
     <div className="orient-row orient-nav step-nav">
       <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key back-key--arrow" labelHidden><Icon name="back" /></CommandButton>
-      <CommandButton command={resolve('dental.next', ui)} run={run} />
+      <CommandButton command={resolve('dental.next', ui)} run={run} className="next-key"><Icon name="next" /></CommandButton>
     </div>
     </div>
     {/* How the angle stands is read ON THE SCENE, under the model it is about, not in the column of keys. */}
