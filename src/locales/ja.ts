@@ -789,6 +789,7 @@ export const ja: Dictionary = {
   'Scanning print angles on {name}': '{name} の造形角度をスキャン中',
   'Checking the print angle of {name}': '{name} の造形角度を確認中',
   'Scanning print angles': '造形角度をスキャン中',
+  'Working…': '処理中…',
   'Checking the print angle': '造形角度を確認中',
   'Print angle checked': '造形角度を確認しました',
   'Orientation cancelled. Turn the denture with Free transform, then press Next.': '向きの確認をキャンセルしました。自由変換で義歯を回してから「次へ」を押してください。',

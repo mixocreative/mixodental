@@ -794,6 +794,7 @@ export const zhHant: Dictionary = {
   'Scanning print angles on {name}': '正在掃描 {name} 的列印角度',
   'Checking the print angle of {name}': '正在檢查 {name} 的列印角度',
   'Scanning print angles': '正在掃描列印角度',
+  'Working…': '處理中…',
   'Checking the print angle': '正在檢查列印角度',
   'Print angle checked': '已檢查列印角度',
   'Orientation cancelled. Turn the denture with Free transform, then press Next.': '已取消方向檢查。請用自由變換轉動假牙，再按「下一步」。',

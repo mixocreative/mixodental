@@ -158,6 +158,17 @@
   max-width: 100%;
 }
 
+/* Work in progress stands in the middle of the scene: it is about the model, and it is the one thing the
+   reader is waiting on, so it is not tucked into a corner. */
+.workspace--dental .scene-progress {
+  position: static;
+  grid-column: var(--dock-scene-column);
+  grid-row: 2;
+  justify-self: center;
+  align-self: center;
+  margin: var(--dock-gap);
+}
+
 /* A toast is transient and belongs over the scene, not in its foot row beside things that stay. */
 .workspace--dental .undo-toast-region {
   position: static;
