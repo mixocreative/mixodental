@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { SceneProgress } from './components/SceneProgress';
+import { SceneLegend } from './components/SceneLegend';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Object3D } from 'three';
 import { labelForIndex } from '@mixo-geocore/host/core/analysis/mesh';
@@ -1287,10 +1289,15 @@ export default function App() {
       <div className="header-actions">
         <LanguageSelect lang={lang} onChange={chooseLanguage} />
         {startScreen === null ? <>
-          <div className="toolbar-group">
+          {/*
+            NO UNDO IN STEP 1. There is nothing to undo there: the step changes no scene state of its own,
+            and the support area it detects is deliberately held outside the undo stack, so the two keys
+            would stand permanently dead. The step's own way back is Restore, in its panel.
+          */}
+          {editMode === 'dental' && session.dentalStage === 'aligner' ? null : <div className="toolbar-group">
             <CommandButton command={command('history.undo')} run={runCommand} />
             <CommandButton command={command('history.redo')} run={runCommand} />
-          </div>
+          </div>}
           <div className="toolbar-group">
             <CommandButton command={command('view.wireframe')} run={runCommand} />
           </div>
@@ -1409,7 +1416,14 @@ export default function App() {
         )}
         <CirclePreview gesture={canvasGesture(press)} />
         {isDraggingOver && <div className="viewport-drop-overlay">{t('Drop to import')}</div>}
+        {/* The legend is DOM: it is a sibling of the canvas, never a child of it - everything inside the
+            r3f Canvas has to be a THREE object. */}
+        {editMode === 'dental' && (session.dentalStage === 'aligner' || session.dentalStage === 'area' || session.dentalStage === 'review')
+          ? <SceneLegend supports={session.dentalStage === 'review'} /> : null}
         <JobActivityPanel stagedBar={stagedJobBar} />
+        {/* The area detector is ONE call into the core: it reports a start and an end and nothing between,
+            so this one paces and shows no number. See src/components/SceneProgress.tsx. */}
+        {dentalFlow.detectingArea ? <SceneProgress stage={t('Detecting the support area')} /> : null}
         <div className="undo-toast-region" role="status" aria-live="polite">
           {toast && <UndoToast key={toast.id} toast={toast} onUndo={undoToastAction} onClose={closeToast} />}
           {doneHint !== undefined && editMode === 'off' && <div className="dental-done" role="status">

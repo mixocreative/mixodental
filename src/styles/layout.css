@@ -82,6 +82,17 @@
   line-height: 1.35;
 }
 
+/* THE LEGEND sits above the widgets in the same column, so what the colours mean is beside the model they
+   are on, and the debug widget can still open to its full height under it. */
+.workspace--dental .scene-legend {
+  position: static;
+  grid-column: var(--dock-widgets-column);
+  grid-row: 2;
+  justify-self: start;
+  align-self: end;
+  margin: var(--dock-gap);
+}
+
 /* THE WIDGETS: the foot of their column. */
 .workspace--dental .debug-section {
   position: static;

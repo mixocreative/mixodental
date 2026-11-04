@@ -12,13 +12,14 @@ import { orientationLayers, type OrientationLayer } from '../dental/orientationE
 
 export const DEBUG_OPEN_KEY = 'mixodental.debugOpen';
 
-/** Collapsed unless the user opened it before. */
+/*
+ * ALWAYS COLLAPSED ON LOAD. It used to reopen itself if the reader had ever opened it, which meant a
+ * developer tool could be standing open in a clinic weeks after someone looked at it once. It is a tool for
+ * looking into the app, not a part of the app, so each session starts with it shut. What was open WITHIN it
+ * is still remembered, so opening it again shows the layers the reader last chose.
+ */
 export function readDebugOpen(): boolean {
-  try {
-    return localStorage.getItem(DEBUG_OPEN_KEY) === '1';
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 export function writeDebugOpen(open: boolean): void {
