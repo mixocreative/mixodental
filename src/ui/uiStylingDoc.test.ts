@@ -10,7 +10,7 @@ import doc from '../../docs/ui-styling.md?raw';
  */
 
 /** Stylesheets are read from disk (the test runner returns nothing for a `.css?raw`); every stylesheet of the app and the batch viewer is listed. */
-const STYLESHEETS = ['src/styles.css', 'src/styles/theme.css', 'src/fonts.css', 'src/kit/kit.css', 'dentalwork/batch-review/tokens.css', 'dentalwork/batch-review/base.css'];
+const STYLESHEETS = ['src/styles.css', 'src/styles/layout.css', 'src/styles/theme.css', 'src/fonts.css', 'src/kit/kit.css', 'dentalwork/batch-review/tokens.css', 'dentalwork/batch-review/base.css'];
 const SOURCES: Record<string, string> = {
   ...import.meta.glob<string>('../**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true }),
   ...Object.fromEntries(STYLESHEETS.map((path) => [path, new TextDecoder().decode(readFileSync(path))])),

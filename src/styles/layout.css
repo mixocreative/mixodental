@@ -1,0 +1,133 @@
+/* ============================================================================================
+   THE LAYOUT OF THE 3D VIEW
+
+   This is the whole layout, and this file is the only place to change it. Everything below reads
+   from the numbers in the first block, so a designer edits those and nothing else.
+
+   HOW IT WORKS. The dental steps lay their chrome out in a GRID across the 3D view: the step's
+   title and the widgets in one column, the control settings in another, the scene under all of
+   it. Two boxes in different grid columns CANNOT overlap - the browser will not allow it,
+   whatever they hold, in any language, at any size. Before this grid every panel was positioned
+   by hand with coordinates of its own, so no panel knew another existed and collisions were
+   guaranteed; they only looked like occasional bugs.
+
+   WHAT YOU CAN CHANGE, and what happens:
+
+     --dock-gap               the space around and between the columns.
+     --dock-left              how wide the title and widgets column is.
+     --dock-right             how wide the controls column is.
+     --dock-columns           THE COLUMNS THEMSELVES. Add one, drop one, reorder them. Whatever
+                              you write here is the grid, so `1fr` where you want the scene to
+                              take the room that is left.
+     --dock-rows              the same for rows: the title's row, the middle, the widgets' row.
+     --dock-*-column          WHICH column each thing sits in, counting from 1. Swapping the
+                              controls to the left is `--dock-controls-column: 1` and
+                              `--dock-title-column: 3` - no other change anywhere.
+
+   The walk's `u2b` check measures the real boxes on screen and fails if any two of them touch,
+   so if a change here makes two things collide, the walk says so by name.
+
+   Every token here is listed in docs/ui-styling.md, under "The docks".
+   ============================================================================================ */
+
+:root {
+  --dock-gap: 14px;
+  --dock-left: 264px;
+  --dock-right: 300px;
+
+  --dock-columns: var(--dock-left) minmax(0, 1fr) var(--dock-right);
+  /* The title takes the room it needs at the top, the widgets take theirs at the foot, the middle
+     is whatever is left - so a title of three lines pushes nothing off the screen. */
+  --dock-rows: auto minmax(0, 1fr) auto;
+
+  --dock-title-column: 1;
+  --dock-widgets-column: 1;
+  --dock-scene-column: 2;
+  --dock-controls-column: 3;
+
+  /* The status strip is not inside the grid (it is the app's status bar, which the first page shows
+     as a band), so it is held clear of the two docks by hand. These follow the dock widths above;
+     if you give `--dock-columns` widths of your own, set these to match. */
+  --status-inset-left: calc(var(--dock-left) + var(--dock-gap) * 2);
+  --status-inset-right: calc(var(--dock-right) + var(--dock-gap) * 2);
+}
+
+.workspace--dental .viewport {
+  display: grid;
+  grid-template-columns: var(--dock-columns);
+  grid-template-rows: var(--dock-rows);
+}
+
+/* The scene is one item under all of them, so it stays whole: the docks are drawn on it, not beside it. */
+.workspace--dental .viewport > div:first-child { grid-area: 1 / 1 / -1 / -1; }
+
+/* THE TITLE, and the object's name when no step is running: the top of its column. */
+.workspace--dental .edit-badge,
+.workspace--dental .viewport-object-status {
+  position: static;
+  grid-column: var(--dock-title-column);
+  grid-row: 1;
+  margin: var(--dock-gap);
+  width: auto;
+  max-width: none;
+}
+/* In a column the title is a block, not a line: the step, then what it is working on, then what to do. */
+.workspace--dental .edit-badge {
+  display: grid;
+  gap: 4px;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+/* THE WIDGETS: the foot of their column. */
+.workspace--dental .debug-section {
+  position: static;
+  grid-column: var(--dock-widgets-column);
+  grid-row: 3;
+  align-self: end;
+  margin: var(--dock-gap);
+  width: auto;
+  max-height: none;
+}
+
+/* THE CONTROLS: always their own column, every step, whatever the panel is called. */
+.workspace--dental .edit-bar,
+.workspace--dental .dental-side {
+  position: static;
+  grid-column: var(--dock-controls-column);
+  grid-row: 1 / -1;
+  /* ONE behaviour for every panel in the dock: as tall as its own content, and never taller than the
+     dock, where it scrolls instead. Step 3's panel used to be pinned to the dock's foot whatever it
+     held, so it stood as an empty white column beside the scene. */
+  align-self: start;
+  max-height: calc(100% - var(--dock-gap) * 2);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  margin: var(--dock-gap);
+  width: auto;
+  max-width: none;
+  align-items: stretch;
+}
+.workspace--dental .edit-row { justify-content: stretch; }
+
+/* THE VIEW KEYS belong to the scene, so they sit at the scene's own top corner. */
+.workspace--dental .viewport-view {
+  position: static;
+  grid-column: var(--dock-scene-column);
+  grid-row: 1;
+  justify-self: end;
+  align-self: start;
+  margin: var(--dock-gap);
+}
+
+/* THE STATUS STRIP sits in the scene's column, between the docks (see `--status-inset-*` above). */
+.workspace--dental ~ footer.on-scene {
+  left: var(--status-inset-left);
+  right: var(--status-inset-right);
+}
+
+/* A row of segments shares the width of its dock. Step 2's four tools ask for 92px each, which is
+   368px of segments in a 300px dock, so the last one - Select - was cut off the end of the row where
+   the reader could not reach it. */
+.workspace--dental .dental-brush .segmented { width: 100%; }
+.workspace--dental .dental-brush .segmented button { min-width: 0; flex: 1 1 0; }

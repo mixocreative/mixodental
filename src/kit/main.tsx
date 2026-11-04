@@ -4,6 +4,7 @@ import { Catalogue } from './Catalogue';
 import { startTheme } from '../ui/theme';
 import '../fonts.css';
 import '../styles.css';
+import '../styles/layout.css';
 import '../styles/theme.css';
 import './kit.css';
 

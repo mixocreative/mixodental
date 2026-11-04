@@ -135,19 +135,34 @@ Set the look of the DOM. They are the mixo-app-style tokens (paper, ink, hairlin
 
 ### The docks (the 3D view's grid)
 
-The dental steps lay their chrome out in a GRID across the 3D view, declared once on
-`.workspace--dental .viewport`: the step's title and the widgets in the left column, the control settings in
-the right one, the scene under all of it. Two boxes in different grid columns cannot overlap, whatever they
-hold, in any language, at any size - which is the point, because every panel used to carry coordinates of its
-own and collisions were guaranteed. A panel says which dock it is in; it never says where it is.
+**The whole layout is `src/styles/layout.css`, and that file is the only place to change it.** Everything in it
+reads from the tokens below, so a designer edits those and nothing else. Open it: each token says in plain words
+what happens when you change it.
 
-These three tracks are the whole layout. Change a dock's width, or add a column, here and nowhere else.
+The dental steps lay their chrome out in a GRID across the 3D view: the step's title and the widgets in one
+column, the control settings in another, the scene under all of it. Two boxes in different grid columns cannot
+overlap - the browser will not allow it, whatever they hold, in any language, at any size. That is why the
+layout is a grid and not a set of positions: before it, every panel carried coordinates of its own, so no panel
+knew another existed and collisions were guaranteed.
+
+Swapping the controls to the left side is two numbers (`--dock-controls-column: 1`, `--dock-title-column: 3`)
+and no other change anywhere. Adding a column is one line (`--dock-columns`) plus the column number of whatever
+goes in it. The walk's `u2b` check measures the real boxes on screen and fails if any two of them touch, so a
+change that makes something collide is named rather than discovered later.
 
 | Token | Value | What it sets | Where it shows |
 | --- | --- | --- | --- |
-| `--dock-gap` | `14px` | The gutter around and between the columns | Every panel's margin in the 3D view, and the inset of the status strip |
-| `--dock-left` | `264px` | The left column: the step title, then the widgets under it | `.edit-badge`, `.viewport-object-status`, `.debug-section` |
-| `--dock-right` | `300px` | The right column: the control settings of every step | `.edit-bar`, `.edit-bar--orient`, `.dental-side` |
+| `--dock-gap` | `14px` | The space around and between the columns | Every panel's margin in the 3D view |
+| `--dock-left` | `264px` | How wide the title-and-widgets column is | `.edit-badge`, `.viewport-object-status`, `.debug-section` |
+| `--dock-right` | `300px` | How wide the controls column is | `.edit-bar`, `.edit-bar--orient`, `.dental-side` |
+| `--dock-columns` | `var(--dock-left) minmax(0, 1fr) var(--dock-right)` | **The columns themselves.** Add one, drop one, reorder them; `1fr` is where the scene takes the room that is left | `.workspace--dental .viewport` |
+| `--dock-rows` | `auto minmax(0, 1fr) auto` | The rows: the title's, the middle, the widgets' | `.workspace--dental .viewport` |
+| `--dock-title-column` | `1` | Which column the step's title sits in | `.edit-badge`, `.viewport-object-status` |
+| `--dock-widgets-column` | `1` | Which column the widgets sit in, at its foot | `.debug-section` |
+| `--dock-scene-column` | `2` | Which column the scene's own keys sit in | `.viewport-view` |
+| `--dock-controls-column` | `3` | Which column every step's controls sit in | `.edit-bar`, `.dental-side` |
+| `--status-inset-left` | `calc(--dock-left + --dock-gap * 2)` | How far the status strip starts from the left | `footer.on-scene` in the dental view |
+| `--status-inset-right` | `calc(--dock-right + --dock-gap * 2)` | The same on the right | `footer.on-scene` in the dental view |
 
 ### States (marks that tell the user where something stands)
 

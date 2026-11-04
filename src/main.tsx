@@ -7,6 +7,7 @@ import { geometryReady } from '@mixo-geocore/host/workers/geometryClient';
 import { startTheme } from './ui/theme';
 import './fonts.css';
 import './styles.css';
+import './styles/layout.css';
 import './styles/theme.css';
 // The theme is worn before the first render, so no frame is drawn in the wrong colours.
 startTheme();
