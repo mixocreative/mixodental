@@ -10,6 +10,7 @@ import { SceneProgress } from './SceneProgress';
 import { Icon } from '../ui/Icon';
 import type { DentalTiltState } from './useDentalFlow';
 import type { StepRestore } from './RestoreStepButton';
+import { ConfirmModal } from './ConfirmModal';
 
 /**
  * Step 1's Free transform controls, as DentalBar passes them (PD.11 S6). `on`: the rotation-only
@@ -55,13 +56,13 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
   return <>
     <div className="edit-bar edit-bar--orient">
 
-    {asking && free ? <div className="orient-confirm" role="alertdialog" aria-label={t('Free transform')}>
-      <p>{t('You will orient it yourself. Continue?')}</p>
-      <div className="orient-row">
+    {asking && free ? <ConfirmModal label={t('Free transform')} onCancel={() => free.cancel()}>
+      <p className="confirm-modal-question">{t('You will orient it yourself. Continue?')}</p>
+      <div className="confirm-modal-row">
         <button type="button" onClick={() => free.cancel()}>{t('Cancel')}</button>
         <button type="button" className="primary" onClick={() => free.confirm()}>{t('Continue')}</button>
       </div>
-    </div> : null}
+    </ConfirmModal> : null}
     {freeOn || asking ? null : <>
       {tilt && profile ? <div className="orient-row">
         <PrintAngleField tilt={tilt} profile={profile} onChoose={(index) => onTilt?.(index)} restore={restore} />

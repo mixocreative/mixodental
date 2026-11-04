@@ -81,7 +81,9 @@
   --mark-remove: var(--red);
   --mark-ring: var(--ink);
   --mark-zone: var(--blue);
-  --mark-dental: #2f6f5e;
+  /* A SUPPORT, drawn on the model as the cone it is printed as. Orange-yellow so it reads against the pink
+     support area it stands in and the grey-white of the aligner itself. Named in the legend. */
+  --mark-support-tip: #eda428;
   --angle-mark: #17334e;
   --mark-area-permitted: #e8566f;
   --mark-area-edge: #cc1f93;
@@ -89,6 +91,15 @@
   --mark-island: var(--danger);
   --mark-overhang: #d97706;
   --mark-outside: #6b7280;
+  /* THE ROTATE GIZMO in Free transform. All three rings are the app's PRIMARY colour and are told apart by
+     pattern - the flat one unbroken, one dashed, one dotted - rather than by three different hues: the
+     scene's colours are already spoken for, and pattern survives a reader who cannot separate hues.
+     `hover` is the ring the pointer is on. (src/components/viewport/gizmoStyle.ts) */
+  --gizmo-ring: var(--primary);
+  /* The secondary colour, the same teal the Back key wears. three would otherwise mark the hovered ring by
+     washing it half way to white, which went pale and chalky; that wash is turned off in gizmoStyle.ts. */
+  --gizmo-ring-hover: var(--accent-strong);
+  --gizmo-free: #9aa3a8;
   /* Brush cursor icon drawn on the canvas: its outline and fill. */
   --cursor-outline: #1f1b17;
   --cursor-fill: var(--surface);
@@ -97,6 +108,13 @@
   background: var(--paper);
   -webkit-font-smoothing: antialiased;
 }
+
+/* ONE CLASS FOR A NUMBER. Every number in this app is set in Roboto Mono with tabular figures, so a column
+   of readings lines up and a changing value does not make the words beside it shuffle. Until now each place
+   that showed one repeated the same two declarations; new markup wears this class instead. The rules that
+   already set `--font-number` themselves are left as they are - this is where the next one goes, not a
+   sweep of the old ones. */
+.num { font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 
 /* Traditional Chinese uses Taiwan glyph forms; the Japanese face would draw kanji forms, so it is not in this
    stack at all. Only the Latin face is bundled (src/fonts.css); the rest is the reader's own machine. */
@@ -424,9 +442,24 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
 .part-swatch--fused { background: var(--part-addon); opacity: .3; }
 .part-swatch--debris { background: transparent; border-style: dashed; }
 .denture-landing-select { height: 30px; padding: 0 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: var(--radius); font: inherit; font-size: 12px; }
-.orient-confirm { display: grid; gap: 8px; white-space: normal; }
-.orient-confirm p { margin: 0; }
-.orient-confirm .orient-row button { flex: 1 1 0; }
+/* A QUESTION THAT STOPS EVERYTHING. A native <dialog> opened with showModal(): the browser supplies the
+   darkened backdrop, the focus trap and the inertness of everything behind it (src/components/ConfirmModal.tsx).
+   The dialog element itself is only the frame - its own padding is zero so the backdrop click lands on it
+   and not on the content. */
+.confirm-modal {
+  margin: auto;
+  padding: 0;
+  max-width: min(420px, calc(100vw - 32px));
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+}
+.confirm-modal::backdrop { background: rgb(14 20 24 / 55%); }
+.confirm-modal-body { display: grid; gap: 14px; padding: 18px 20px 16px; white-space: normal; }
+.confirm-modal-question { margin: 0; font-size: 14px; line-height: 1.45; }
+.confirm-modal-row { display: flex; gap: 8px; }
+.confirm-modal-row button { flex: 1 1 0; }
 /* The circle at the centre of the view while its size slider moves. */
 .brush-circle.brush-circle--preview { left: 50%; top: 50%; transform: translate(-50%, -50%); }
 /* Dental Step 3: the engaged tool and what a click does, under the tool switch. */
@@ -510,6 +543,18 @@ kbd {
 .debug-section { position: absolute; left: 14px; bottom: 40px; z-index: 2; width: 240px; max-height: calc(100% - 28px); overflow: auto; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .debug-swatch { flex: none; width: 12px; height: 12px; border: 1px solid var(--line-strong); border-radius: 2px; }
 .debug-section .field { font-size: 11.5px; }
+/* WHY THIS ANGLE: the verdict, then the measurements behind it. Every number is Roboto Mono (the `num`
+   class), so a reader can line the values up by eye as the dial moves through the angles. */
+.debug-angle { margin: 0 0 10px; padding: 0 0 10px; border-bottom: 1px solid var(--line); font-size: 11.5px; }
+.debug-angle-title { margin: 0 0 6px; font-size: 11.5px; }
+.debug-angle-verdict { margin: 0 0 6px; color: var(--ink); }
+.debug-angle-verdict .num { font-size: 13px; }
+.debug-angle-broken { margin: 0 0 6px; padding-left: 16px; color: var(--danger); }
+.debug-angle-facts { display: grid; gap: 2px; margin: 0; }
+.debug-angle-facts > div { display: flex; justify-content: space-between; gap: 10px; }
+.debug-angle-facts dt { color: var(--muted); }
+.debug-angle-facts dd { margin: 0; white-space: nowrap; }
+.debug-angle .help { margin: 6px 0 0; }
 
 /* ---- Status bar ---------------------------------------------------------- */
 footer {
@@ -687,8 +732,10 @@ footer.on-scene button { pointer-events: auto; }
 .angle-reading {
   font-family: var(--font-number);
   /* Three times the size it started at: this is the one number Step 1 exists to settle, and it is read from
-     across the bench while the reader turns the model, not leaned into. */
-  font-size: 102px;
+     across the bench while the reader turns the model, not leaned into. It is FLUID, because 102px is three
+     times the size on a wide bench monitor and most of the width of a narrow pane, where it crowded the
+     model and ran off the side. 102px stays the ceiling, so nothing is lost where there is room. */
+  font-size: clamp(44px, 16vw, 102px);
   font-weight: 700;
   letter-spacing: -.02em;
   color: var(--angle-mark);
@@ -731,7 +778,16 @@ footer.on-scene button { pointer-events: auto; }
 .scene-legend-swatch--area { background: var(--mark-area-permitted); }
 /* The rim is a LINE in the scene, so it is a line here too and not a block. */
 .scene-legend-swatch--rim { height: 3px; border-radius: 0; background: var(--mark-area-edge); }
-.scene-legend-swatch--support { background: var(--support-selected-object); border-radius: 50% 50% 2px 2px; }
+/* A support is a CONE in the scene, so the swatch is a triangle standing on its base, in the same token. */
+.scene-legend-swatch--support {
+  background: none;
+  border-radius: 0;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 12px solid var(--mark-support-tip);
+}
 
 /* WORK IN PROGRESS, over the model it is about. A percentage shows only when the job counts its own work;
    otherwise the bar runs on its own and says no number (src/components/SceneProgress.tsx). */

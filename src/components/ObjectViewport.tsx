@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { TransformControls as TransformControlsImpl } from 'three-stdlib';
+import { hoverRotateRing, styleRotateGizmo } from './viewport/gizmoStyle';
 import { gestureMode, type Gesture } from '@mixo-geocore/editing/gesture';
 import { missAction } from '@mixo-geocore/editing/pick';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
@@ -50,6 +51,26 @@ function UnitTransformControls({ mode, object, onDraggingChanged, onCommit }: {
   onCommit: (transform: ModelTransform) => void;
 }) {
   const controls = useRef<TransformControlsImpl>(null);
+  /*
+   * THE GIZMO IS PAINTED IN THE APP'S OWN COLOURS, and the screen-plane ring is taken off it. Both live in
+   * `gizmoStyle.ts` with the explanation of why three's gizmo resists each - it repaints its handles from a
+   * cache every frame, and it shares one material across the move, rotate and scale gizmos.
+   */
+  useEffect(() => { styleRotateGizmo(controls.current); }, []);
+  /*
+   * THE RING UNDER THE POINTER TAKES THE HOVER COLOUR. three announces what the pointer is over through an
+   * `axis-changed` event, and handles the GLOW itself - it forces the hovered handle's opacity to 1, which
+   * is exactly when the glow behind that ring should appear. Only the colour is ours to carry, because
+   * three's own hover treatment is to wash a handle towards white, and on three rings of ONE colour that
+   * wash would be the only thing separating the hovered one.
+   */
+  useEffect(() => {
+    const control = controls.current as unknown as THREE.EventDispatcher<{ 'axis-changed': { value: string | null } }> | null;
+    if (!control) return;
+    const hover = (event: { value: string | null }) => hoverRotateRing(controls.current, event.value);
+    control.addEventListener('axis-changed', hover);
+    return () => control.removeEventListener('axis-changed', hover);
+  }, []);
   useEffect(() => {
     const control = controls.current as unknown as THREE.EventDispatcher<{ 'dragging-changed': { value: boolean } }> | null;
     if (!control) return;
@@ -61,7 +82,16 @@ function UnitTransformControls({ mode, object, onDraggingChanged, onCommit }: {
     control.addEventListener('dragging-changed', handle);
     return () => control.removeEventListener('dragging-changed', handle);
   }, [object, onCommit, onDraggingChanged]);
-  return <TransformControls ref={controls} mode={mode} object={object} />;
+  /*
+   * `space="local"` - THE GIZMO TURNS WITH THE ALIGNER, NOT WITH THE WORLD. In world space the rings stay
+   * fixed to the plate's axes however the model is posed, so after one turn the ring a reader grabs no
+   * longer lines up with anything they can see on the part. In local space each ring stays bound to the
+   * aligner's own axes: the flat ring stays the one that spins it where it lies.
+   *
+   * A quarter larger than three's default: the rings sit clear of the model instead of cutting across it,
+   * and the grab knobs become a target for a finger rather than for a surgeon.
+   */
+  return <TransformControls ref={controls} mode={mode} object={object} size={1.25} space="local" />;
 }
 
 export default function ObjectViewport(props: ObjectViewportProps) {

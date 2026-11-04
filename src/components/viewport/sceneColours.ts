@@ -9,7 +9,7 @@ import { useTokenRevision } from '../../ui/useTokenRevision';
  */
 
 const PREVIEW_TOKENS = {
-  add: '--mark-add', remove: '--mark-remove', ring: '--mark-ring', zone: '--mark-zone', dental: '--mark-dental',
+  add: '--mark-add', remove: '--mark-remove', ring: '--mark-ring', zone: '--mark-zone', supportTip: '--mark-support-tip',
   areaPermitted: '--mark-area-permitted', areaEdge: '--mark-area-edge', riskOutside: '--mark-risk-outside', island: '--mark-island',
   overhang: '--mark-overhang', outside: '--mark-outside', plate: '--scene-plate',
 } as const;

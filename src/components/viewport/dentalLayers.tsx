@@ -150,6 +150,9 @@ export type TipMark = Pick<SupportPoint, 'id' | 'position' | 'normal'>;
 /** Tips shown selected (solid red), or previewed under Drag over (`ghost`, red to select or grey to unselect). */
 export interface TipMarks { solid: ReadonlySet<string>; ghost: readonly string[]; ghostTone: 'remove' | 'ring' }
 
+/** The axis the cone geometry's body runs along; every instance's turn is measured from it. */
+const UP = new THREE.Vector3(0, 1, 0);
+
 function TipInstances({ points, material, scale }: { points: readonly TipMark[]; material: THREE.Material; scale: number }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   useLayoutEffect(() => {
@@ -157,10 +160,22 @@ function TipInstances({ points, material, scale }: { points: readonly TipMark[];
     if (!mesh) return;
     const matrix = new THREE.Matrix4();
     const position = new THREE.Vector3();
+    const normal = new THREE.Vector3();
+    const turn = new THREE.Quaternion();
     const size = new THREE.Vector3(scale, scale, scale);
     points.forEach((point, index) => {
-      position.set(...point.position).addScaledVector(new THREE.Vector3(...point.normal), 0.08);
-      mesh.setMatrixAt(index, matrix.compose(position, new THREE.Quaternion(), size));
+      /*
+       * EACH CONE STANDS ON THE SURFACE IT TOUCHES. The geometry's apex is at its origin with the body along
+       * +Y (src/.../warmMaterials.ts), so turning +Y onto this contact's outward normal lays the cone the way
+       * the printed support would stand: tip on the model, body in the air. A sphere needed no turn, which is
+       * why this was an identity rotation before.
+       */
+      normal.set(...point.normal).normalize();
+      // A normal that came through as zero length leaves the cone upright rather than collapsing it.
+      if (normal.lengthSq() < 0.5) normal.set(0, 1, 0);
+      turn.setFromUnitVectors(UP, normal);
+      position.set(...point.position).addScaledVector(normal, 0.02);
+      mesh.setMatrixAt(index, matrix.compose(position, turn, size));
     });
     mesh.instanceMatrix.needsUpdate = true;
   }, [points, scale]);

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Html } from '@react-three/drei';
@@ -24,9 +24,38 @@ const RADIUS = 0.3;
  * The reading is DOM, not geometry (`Html` from drei), so it is set in the app's own face at the app's own
  * size and stays sharp at any zoom - a texture of a number would not.
  */
+/** How much clear space the reading keeps between itself and the edge of the view, in pixels. */
+const READING_EDGE = 14;
+
 export function PrintAngleArc({ box, deg }: { box: THREE.Box3; deg: number }) {
   useTokenRevision();
   const colour = tokenCss('--angle-mark');
+  const reading = useRef<HTMLSpanElement>(null);
+
+  /*
+   * THE READING NEVER LEAVES THE VIEW. Its anchor is a point in the scene, out beyond the arc, and a point
+   * in the scene can project anywhere - including off the side of the canvas, which in a tall narrow pane
+   * is where it landed: the one number the step exists to settle, sitting half off the screen.
+   *
+   * So the anchor still decides where the reading WANTS to be, and this clamps where it may actually go: the
+   * projected point, pulled back until the whole span is inside the canvas with a margin. It reads the
+   * span's own measured size each frame, so it holds for "7.5" and for "44.5" alike, in any language.
+   * When the view is too small to hold the reading at all, it is centred rather than jammed into a corner.
+   */
+  const place = useCallback((element: THREE.Object3D, camera: THREE.Camera, view: { width: number; height: number }) => {
+    const point = new THREE.Vector3().setFromMatrixPosition(element.matrixWorld).project(camera);
+    const span = reading.current;
+    const fit = (along: number, span2: number, limit: number) => {
+      const half = span2 / 2;
+      const low = READING_EDGE + half;
+      const high = limit - READING_EDGE - half;
+      return high < low ? limit / 2 : Math.min(Math.max(along, low), high);
+    };
+    return [
+      fit((point.x * 0.5 + 0.5) * view.width, span?.offsetWidth ?? 0, view.width),
+      fit((-point.y * 0.5 + 0.5) * view.height, span?.offsetHeight ?? 0, view.height),
+    ] as [number, number];
+  }, []);
 
   const { arc, plateLine, tiltLine, labelAt, pivot } = useMemo(() => {
     const size = new THREE.Vector3();
@@ -66,8 +95,8 @@ export function PrintAngleArc({ box, deg }: { box: THREE.Box3; deg: number }) {
     <lineSegments geometry={plateLine} raycast={() => undefined}><lineBasicMaterial color={colour} depthTest={false} depthWrite={false} transparent opacity={0.55} /></lineSegments>
     <lineSegments geometry={tiltLine} raycast={() => undefined}><lineBasicMaterial color={colour} depthTest={false} depthWrite={false} transparent opacity={0.55} /></lineSegments>
     <lineSegments geometry={arc} raycast={() => undefined}><lineBasicMaterial color={colour} depthTest={false} depthWrite={false} /></lineSegments>
-    <Html position={labelAt.toArray()} center zIndexRange={[5, 0]} pointerEvents="none" prepend>
-      <span className="angle-reading" data-ui="scene-print-angle">{deg.toFixed(1)}<span className="angle-reading-deg">°</span></span>
+    <Html position={labelAt.toArray()} center zIndexRange={[5, 0]} pointerEvents="none" prepend calculatePosition={place}>
+      <span ref={reading} className="angle-reading" data-ui="scene-print-angle">{deg.toFixed(1)}<span className="angle-reading-deg">°</span></span>
     </Html>
     <mesh position={pivot.toArray()} raycast={() => undefined}>
       <sphereGeometry args={[Math.max(box.getSize(new THREE.Vector3()).x, 1) * 0.008, 10, 10]} />

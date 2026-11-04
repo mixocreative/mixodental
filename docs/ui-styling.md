@@ -268,7 +268,10 @@ Previews, selection, the dental support area, check findings and the brush curso
 | `--mark-ring` | `var(--ink)` | Pointer ring, tip markers, region outline | The ring under the pointer, grey tips, the outer region line, the Unselect and Erase brushes |
 | `--mark-zone` | `var(--blue)` | No-support zone paint | Zones layer and the Paint zones brush |
 | `--angle-mark` | `#17334e` | The print-angle mark drawn on the plate in Step 1 | The arc, its two lines and the reading beside them |
-| `--mark-dental` | `#2f6f5e` | Tip markers of the dental flow | Tips on the aligner in Step 2 |
+| `--mark-support-tip` | `#eda428` | A support, drawn as the cone it is printed as | Cones on the aligner in Steps 1 and 2, and the legend's triangle |
+| `--gizmo-ring` | `var(--primary)` | All three rotate rings; they are told apart by pattern, not colour | Free transform's gizmo |
+| `--gizmo-ring-hover` | `var(--primary-hover)` | The ring the pointer is on | Free transform's gizmo |
+| `--gizmo-free` | `#9aa3a8` | Rotate gizmo, the turn-any-way circle | Free transform's gizmo |
 | `--mark-area-permitted` | `#e8566f` | The dental support area | Coloured faces and the rim outline where tips may stand |
 | `--mark-area-edge` | `#cc1f93` | Opening edge of the dental region | Line round the opening of a two-contour aligner |
 | `--mark-risk-outside` | `#1e50a2` | A low point outside the permitted area | Discs on the model |

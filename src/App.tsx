@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { SceneProgress } from './components/SceneProgress';
+import { useSlowJob } from './ui/useSlowJob';
+import { angleEvidence } from './dental/angleEvidence';
 import { SceneLegend } from './components/SceneLegend';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Object3D } from 'three';
@@ -617,6 +619,52 @@ export default function App() {
     confirm: () => { orientFlow.markHand(); free.confirm(); }, autoOrient: () => { orientFlow.useDetected(); free.leave(); } };
   // Read at call time: the start screen sends the job and its file in one step, before a render.
   const startDentalAligner = useCallback((unit: PrintUnit) => (isDentureJob(sessionRef.current.dentalProfile) ? denture.orient.start(unit) : dentalFlow.startAligner(unit)), [denture.orient.start, dentalFlow.startAligner]);
+
+  /*
+   * STEP 1 SHOWS THE SUPPORTS THE ANGLE WOULD NEED, AND PLACES THEM AGAIN EVERY TIME THE ALIGNER TURNS.
+   * Judging a print angle means judging the supports it calls for, and until now Step 1 showed none: the
+   * cones only appeared in Step 2, after the angle had already been accepted.
+   *
+   * The placement is the SAME job Step 2 runs, on the SAME hook, so there is no second placement path to
+   * keep in step. All it needed was a unit carrying the area Step 1 detected as a preview (held in the flow
+   * hook, deliberately out of the scene and so out of undo) in place of an accepted policy. The unit object
+   * is rebuilt whenever the aligner's rotation changes, which is what makes `useDentalPreview` run again -
+   * debounced by 180 ms there, so a drag places once when it settles and not once per frame, and the last
+   * placement stays on screen until the new one lands rather than blinking out.
+   */
+  const stepOneArea = editMode === 'dental' && session.dentalStage === 'aligner' && session.dentalAligner === 'ready'
+    ? dentalFlow.areaPreview : undefined;
+  const stepOneUnit = useMemo(() => (
+    activeUnit && stepOneArea?.unitId === activeUnit.id ? { ...activeUnit, dental: stepOneArea.policy } : undefined
+  ), [activeUnit, stepOneArea]);
+  const stepOnePreviewState = useDentalPreview(stepOneUnit, Boolean(stepOneUnit), analysis, unitName);
+  const stepOneTips = shownDentalPreview(stepOnePreviewState, stepOneUnit)?.localPoints;
+  // Only once the placement has outstayed a reader's patience: a bar flashing on every nudge of the dial
+  // would make a steady scene flicker. See src/ui/useSlowJob.ts.
+  const stepOnePlacing = useSlowJob(stepOnePreviewState.kind === 'loading');
+  /*
+   * WHY THIS ANGLE, for the debug tool: what the print-angle search measured at the row the dial is on.
+   * The scan is already in memory, so this reads it and runs nothing (src/dental/angleEvidence.ts).
+   */
+  const stepOneTilt = orientFlow.tilt;
+  const stepOneAngle = useMemo(() => (
+    editMode === 'dental' && session.dentalStage === 'aligner' && stepOneTilt?.status === 'ready'
+      ? angleEvidence(stepOneTilt.scan, stepOneTilt.index) : undefined
+  ), [editMode, session.dentalStage, stepOneTilt]);
+
+  /*
+   * THE ANGLE MARK IN THE SCENE - the arc, its two lines and the big reading - and WHEN IT IS OFF.
+   *
+   * It reads out the angle the SEARCH settled on. In Free transform the reader has taken the aligner off
+   * that pose and is turning it by hand with the gizmo, so a large number still standing in the scene would
+   * be reporting an angle that is no longer the one on screen - the worst kind of wrong, because it is
+   * drawn in the place the reader learned to trust. The dial hides in Free transform for exactly this
+   * reason; the reading now hides with it, from the moment the confirm prompt opens.
+   */
+  const sceneAngle = editMode === 'dental' && session.dentalStage === 'aligner' && !free.free && !free.asking
+    && activeUnit && orientFlow.tilt?.unitId === activeUnit.id && orientFlow.tilt.status === 'ready'
+    ? { unitId: activeUnit.id, deg: orientFlow.tilt.scan.rows[orientFlow.tilt.index]!.tiltDeg }
+    : undefined;
 
   // ---- Import --------------------------------------------------------------------------
   const importFiles = useCallback(async (files: readonly File[]) => {
@@ -1365,15 +1413,14 @@ export default function App() {
         <ObjectViewport
           scene={scene}
           supportMeshes={orienting ? NO_SUPPORT_MESHES : supportMeshes}
-          {...(shownPreview ? { dentalTips: { unitId: shownPreview.unitId, points: areaContacts } } : {})}
+          {...(shownPreview ? { dentalTips: { unitId: shownPreview.unitId, points: areaContacts } }
+            : stepOneUnit && stepOneTips ? { dentalTips: { unitId: stepOneUnit.id, points: stepOneTips } } : {})}
           {...(inArea ? { dentalArea: true } : {})}
           {...(editMode === 'dental' && session.dentalStage === 'aligner' && dentalFlow.areaPreview
             ? { dentalAreaPreview: { unitId: dentalFlow.areaPreview.unitId, policy: dentalFlow.areaPreview.policy } }
             : {})}
           {...(inArea && activeUnit && areaRisks.length > 0 ? { dentalRisks: { unitId: activeUnit.id, risks: areaRisks } } : {})}
-          {...(editMode === 'dental' && session.dentalStage === 'aligner' && activeUnit && orientFlow.tilt?.unitId === activeUnit.id && orientFlow.tilt.status === 'ready'
-            ? { printAngle: { unitId: activeUnit.id, deg: orientFlow.tilt.scan.rows[orientFlow.tilt.index]!.tiltDeg } }
-            : {})}
+          {...(sceneAngle ? { printAngle: sceneAngle } : {})}
           onPickTip={onPickTip}
           gesture={canvasGesture(press)}
           gizmoMode={gizmoMode}
@@ -1405,7 +1452,7 @@ export default function App() {
           onBelowPlate={onBelowPlate}
           {...(activeUnit && debugShown.length + (denture.orient.tipLayers?.layers.length ?? 0) > 0 ? { debugLayers: { unitId: activeUnit.id, layers: [...debugShown, ...(denture.orient.tipLayers?.unitId === activeUnit.id ? denture.orient.tipLayers.layers : [])] } } : {})}
         />
-        {activeUnit && session.mode === 'dental' && session.dentalProfile ? <DebugSection open={debug.open} onOpenChange={debug.setOpen} status={debug.status} layers={debug.layers} visible={debug.visible} onToggle={debug.toggle} /> : null}
+        {activeUnit && session.mode === 'dental' && session.dentalProfile ? <DebugSection open={debug.open} onOpenChange={debug.setOpen} status={debug.status} layers={debug.layers} visible={debug.visible} onToggle={debug.toggle} {...(stepOneAngle ? { angle: stepOneAngle } : {})} /> : null}
         {orienting ? null : (
           <div className="viewport-view" role="group" aria-label={t('View')}>
             {/* Forced by zones, the button stays focusable (its hint says why) but does nothing. */}
@@ -1419,11 +1466,12 @@ export default function App() {
         {/* The legend is DOM: it is a sibling of the canvas, never a child of it - everything inside the
             r3f Canvas has to be a THREE object. */}
         {editMode === 'dental' && (session.dentalStage === 'aligner' || session.dentalStage === 'area' || session.dentalStage === 'review')
-          ? <SceneLegend supports={session.dentalStage === 'review'} /> : null}
+          ? <SceneLegend supports={session.dentalStage !== 'aligner' || Boolean(stepOneTips)} /> : null}
         <JobActivityPanel stagedBar={stagedJobBar} />
         {/* The area detector is ONE call into the core: it reports a start and an end and nothing between,
             so this one paces and shows no number. See src/components/SceneProgress.tsx. */}
-        {dentalFlow.detectingArea ? <SceneProgress stage={t('Detecting the support area')} /> : null}
+        {dentalFlow.detectingArea ? <SceneProgress stage={t('Detecting the support area')} />
+          : stepOnePlacing ? <SceneProgress stage={t('Placing the supports this angle needs')} /> : null}
         <div className="undo-toast-region" role="status" aria-live="polite">
           {toast && <UndoToast key={toast.id} toast={toast} onUndo={undoToastAction} onClose={closeToast} />}
           {doneHint !== undefined && editMode === 'off' && <div className="dental-done" role="status">
