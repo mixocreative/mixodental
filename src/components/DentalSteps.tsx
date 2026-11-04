@@ -6,6 +6,7 @@ import { ALIGNER_PROFILES, type AlignerProfile } from '@mixo-geocore/host/dental
 import { t, translateMessage, type Lang } from '../i18n';
 import { TiltDial } from '../ui/parts/TiltDial';
 import { Icon } from '../ui/Icon';
+import { ScreenHeading } from '../ui/ScreenHeading';
 import { tiltStepOf } from '../denture/jobKind';
 import { fileStepText } from '../denture/steps/start/startText';
 import { kindMessage, kindText } from '../denture/kindText';
@@ -63,7 +64,7 @@ export function DentalTypeStep({ profile, lang, send, onChoose }: {
   onChoose?: (id: string) => void;
 }) {
   return <div className="dental-stage" role="group" aria-label={t('Aligner type')}>
-    <h2>{t('Choose the aligner type')}</h2>
+    <ScreenHeading>{t('Choose the aligner type')}</ScreenHeading>
     <div className="dental-cards">
       {ALIGNER_PROFILES.map((entry) => <button key={entry.id} type="button" className="dental-card" aria-pressed={profile === entry.id}
         data-profile={entry.id} onClick={() => (onChoose ? onChoose(entry.id) : send({ type: 'chooseDentalProfile', id: entry.id }))}>
@@ -87,12 +88,12 @@ export function DentalAlignerPrompt({ phase, notices, selectedName, onFiles, onU
 }) {
   const input = useRef<HTMLInputElement>(null);
   if (phase === 'loading') return <div className="dental-stage" role="status" aria-busy="true">
-    <h2>{t(kindText('Checking and orienting the aligner…', kind))}</h2>
+    <ScreenHeading>{t(kindText('Checking and orienting the aligner…', kind))}</ScreenHeading>
   </div>;
   const bad = notices.find((notice) => notice.kind === 'bad-file');
   return <div className="dental-stage">
     <div className="dental-drop">
-      <h2>{t(fileStepText(kind).drop)}</h2>
+      <ScreenHeading>{t(fileStepText(kind).drop)}</ScreenHeading>
       <p>{t(kindText('The aligner is checked and turned the right way up automatically.', kind))}</p>
       <input ref={input} type="file" accept=".stl,.glb,.gltf" aria-label={t(fileStepText(kind).input)} hidden
         onChange={(event) => { onFiles([...(event.target.files ?? [])]); event.target.value = ''; }} />

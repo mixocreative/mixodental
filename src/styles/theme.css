@@ -202,8 +202,7 @@
 /* 1. TITLE: the one large line that names a full screen. The serif, sentence case, never tracked, never a caption
    or a button. One per screen. New markup uses `.title`; the two stage headings already in the app are listed
    with it so they are the same thing. */
-[data-theme='instrument'] .title,
-[data-theme='instrument'] .dental-stage h2 {
+[data-theme='instrument'] .title {
   font-family: var(--font-title);
   font-size: var(--title-size);
   font-weight: 400;
@@ -212,17 +211,15 @@
   line-height: 1.15;
   color: var(--ink);
 }
-[data-theme='instrument']:lang(ja) .title,
-[data-theme='instrument']:lang(ja) .dental-stage h2 { font-family: var(--font-title-ja); }
-[data-theme='instrument']:lang(zh-Hant) .title,
-[data-theme='instrument']:lang(zh-Hant) .dental-stage h2 { font-family: var(--font-title-zh); }
+[data-theme='instrument']:lang(ja) .title { font-family: var(--font-title-ja); }
+[data-theme='instrument']:lang(zh-Hant) .title { font-family: var(--font-title-zh); }
 
 /* 2. HEADER, four levels: the app, a screen, a group, a field. All sans, every one set in the words as they are
    written. A header is told apart by its size and its weight, never by shouting: caps cost a reader the shape of
    the word they recognise it by. ONE thing in the app is still tracked caps, and it is stated on its own below:
    a widget's title bar. */
 [data-theme='instrument'] h1 { font-size: var(--h1-size); }
-[data-theme='instrument'] h2:not(.start-heading) { font-size: var(--h2-size); }
+[data-theme='instrument'] h2:not(.screen-heading) { font-size: var(--h2-size); }
 [data-theme='instrument'] h3,
 [data-theme='instrument'] .dental-block h3 { font-size: var(--h3-size); }
 [data-theme='instrument'] .panel-widget-title,
@@ -230,7 +227,7 @@
 [data-theme='instrument'] .brand small,
 [data-theme='instrument'] .kit-section > h2 { font-size: var(--label-size); }
 [data-theme='instrument'] h1,
-[data-theme='instrument'] h2:not(.start-heading),
+[data-theme='instrument'] h2:not(.screen-heading),
 [data-theme='instrument'] h3,
 [data-theme='instrument'] .dental-block h3,
 [data-theme='instrument'] .panel-widget-title,

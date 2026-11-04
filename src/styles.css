@@ -760,7 +760,6 @@ dialog.terms .terms-item > span { flex: none; }
   background: rgba(244, 242, 237, .9);
   text-align: center;
 }
-.dental-stage h2 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: .06em; }
 .dental-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
 .dental-card {
   display: grid;
@@ -1001,7 +1000,9 @@ dialog.terms .terms-item > span { flex: none; }
 /* One column, pinned to the width it is given (`minmax(0, 1fr)`): without that the column grows to the choices'
    max-content width and the whole screen scrolls sideways instead of the choices wrapping. */
 .start-task { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 24px; width: 100%; }
-.start-heading { margin: 0; max-width: 100%; font-size: 18px; font-weight: 500; letter-spacing: .04em; text-wrap: balance; }
+/* ONE screen heading, on every screen (src/ui/ScreenHeading.tsx). Sentence case, the interface face, big
+   enough to name the screen without becoming a title: the app has one title style and it is rare. */
+.screen-heading { margin: 0; max-width: 100%; font-size: 18px; font-weight: 500; letter-spacing: .04em; text-wrap: balance; }
 /* The choices share one grid, so they are the same width and the same height at every window size, HOWEVER
    MANY THERE ARE: `auto-fit` takes as many columns as fit and wraps the rest, and `grid-auto-rows: 1fr` keeps
    a choice whose word wraps onto two lines the same height as the others. Adding a fourth or a fifth choice

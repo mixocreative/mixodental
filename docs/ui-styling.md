@@ -51,7 +51,7 @@ The three colour **roles**. Every other colour token is one of these, or a neutr
 
 Every word on screen is one of three things. A designer changes a size here, not in a component.
 
-**1. Title** - the one large line that names a full screen ("What would you like to support?"). The **serif**, sentence case, never tracked, never uppercased, one per screen. Class `.title`; the stage headings (`.start-heading`, `.dental-stage h2`) are the same style.
+**1. Title** - the one large line that names a full screen ("What would you like to support?"). The **serif**, sentence case, never tracked, never uppercased, one per screen. Class `.title`. A screen's own heading is NOT this: it is `<ScreenHeading>` (`.screen-heading`), its own style, set out below.
 
 **2. Header** - four levels, all sans, every one set in the words as it is written, told apart by size and weight so a header never competes with the title above it or the sentence under it: `h1` the app, `h2` a screen or panel, `h3` a group, and the field and panel label (`.panel-widget-title`, `.dental-label`, `.brand small`).
 

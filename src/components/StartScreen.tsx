@@ -5,6 +5,7 @@ import { DentalTypeStep } from './DentalSteps';
 import { DentureChoice } from '../denture/steps/start/DentureChoice';
 import { StartChoice } from './StartChoice';
 import { Icon } from '../ui/Icon';
+import { ScreenHeading } from '../ui/ScreenHeading';
 import { fileStepText } from '../denture/steps/start/startText';
 import { DENTURE_PROFILE_ID, jobKindOf } from '../denture/jobKind';
 import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
@@ -76,7 +77,7 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
       <Icon name="back" className="start-back-art" />
     </button> : null}
     {screen === 'task' ? <div className="start-task">
-      <h2 className="start-heading">{t('What would you like to support?')}</h2>
+      <ScreenHeading>{t('What would you like to support?')}</ScreenHeading>
       <div className="start-choices">
         <StartChoice icon="aligner" label={t('Aligner')} ui="start-aligner" onChoose={() => onScreen('type')} />
         <DentureChoice onChoose={() => choose(DENTURE_PROFILE_ID)} />
@@ -87,7 +88,7 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     {screen === 'type' ? <DentalTypeStep profile={chosen} lang={lang} send={() => undefined} onChoose={choose} /> : null}
     {screen === 'file' ? <div className="dental-stage">
       <div className="dental-drop">
-        <h2>{t(text.heading)}</h2>
+        <ScreenHeading>{t(text.heading)}</ScreenHeading>
         <p>{t(text.drop)}</p>
         <input ref={input} type="file" accept=".stl" aria-label={t(text.input)} hidden
           onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file && chosen) onStart(chosen, file); }} />
