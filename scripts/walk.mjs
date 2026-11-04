@@ -1547,6 +1547,26 @@ async function walk(url, scratch, dentalFixture) {
       await supports().click();
       await onScreen('type');
       check('s2 Aligner supports shows the type cards full-screen with Back', (await page.locator('.start-screen .choice-key').count()) === 1 && await d.button('Back').isVisible() && (await page.locator('.workspace').count()) === 0);
+
+      // The screen's heading is ranged left inside a box that is centred - which only LOOKS centred while the
+      // box is exactly as wide as its longest line. No CSS width does that to wrapped text, so the component
+      // measures its own line boxes; this is what notices if that ever stops working. jsdom cannot see layout,
+      // so it cannot be a unit test.
+      {
+        const fit = await page.evaluate(async () => {
+          await document.fonts.ready;
+          const heading = document.querySelector('.screen-heading');
+          if (!heading) return null;
+          const box = heading.getBoundingClientRect();
+          const range = document.createRange();
+          range.selectNodeContents(heading);
+          const widest = Math.max(0, ...[...range.getClientRects()].map((line) => line.width));
+          return { box: Math.round(box.width), widest: Math.round(widest), offCentre: Math.abs((box.left + box.width / 2) - window.innerWidth / 2) };
+        });
+        check('s2b the screen heading is a box the width of its own longest line, centred',
+          !!fit && Math.abs(fit.box - fit.widest) <= 2 && fit.offCentre <= 2,
+          fit ? `box ${fit.box}px, longest line ${fit.widest}px, ${fit.offCentre.toFixed(1)}px off centre` : 'no heading');
+      }
       await page.keyboard.press('Escape');
       await onScreen('task');
       check('s3 Escape on the type screen is Back to the task screen', true);

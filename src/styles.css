@@ -1039,7 +1039,9 @@ dialog.terms .terms-item > span { flex: none; }
      `fit-content` is what lets both be true at once: the box shrinks to its longest line after wrapping, so
      `margin-inline: auto` centres the BLOCK while the lines inside it stay ranged left. */
   margin: 0 auto;
-  width: fit-content;
+  /* The width is set by the component after the words wrap (src/ui/ScreenHeading.tsx): no CSS width shrinks a
+     box to its WRAPPED text, and a block that is wider than its longest line looks off-centre however exactly
+     it is centred. This is only the measure the lines break at. */
   max-width: min(100%, 18ch);
   font-size: var(--screen-heading-size);
   font-weight: 800;
