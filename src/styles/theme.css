@@ -165,9 +165,9 @@
 /* A key is a hairline box with a tiny tracked cap. Data (a scan name, a part) is never uppercased, so the caps go
    only on the keys that carry a command: the step bar, the nav row, segments, the mode and exit keys. */
 [data-theme='instrument'] button { border-radius: var(--radius-key); }
-/* The three big start choices are one set, drawn alike; their word is styled once, on `.start-big-label`. */
+/* The choice keys are one set, drawn alike; their word is styled once, on `.choice-key-label`. */
 [data-theme='instrument'] .primary,
-[data-theme='instrument'] .start-big-label,
+[data-theme='instrument'] .choice-key-label,
 [data-theme='instrument'] .orient-row button,
 [data-theme='instrument'] .orient-free-btn,
 [data-theme='instrument'] .orient-auto,
@@ -187,10 +187,10 @@
 /* The engaged tool is the one place a key wears the accent: a 3 px underline, so the fill stays ink. */
 [data-theme='instrument'] .segmented button[aria-pressed='true'] { box-shadow: inset 0 -3px 0 var(--accent-soft); }
 [data-theme='instrument'] .danger { color: var(--signal); border-color: var(--signal); }
-/* The start choices: all three alike, and a hover that reads at arm's length without the key itself moving
-   or filling - the art and the word take the accent, and the key wears the accent underline. */
-[data-theme='instrument'] .start-big { transition: border-color var(--dur), box-shadow var(--dur), color var(--dur); }
-[data-theme='instrument'] .start-big:hover:not(:disabled) {
+/* The choice keys: all alike, and a hover that reads at arm's length without the key itself moving or
+   filling - the art and the word take the accent, and the key wears the accent underline. */
+[data-theme='instrument'] .choice-key { transition: border-color var(--dur), box-shadow var(--dur), color var(--dur); }
+[data-theme='instrument'] .choice-key:hover:not(:disabled) {
   border-color: var(--line-strong);
   box-shadow: inset 0 -4px 0 var(--accent);
   color: var(--accent-strong);
@@ -317,8 +317,12 @@
 [data-theme='instrument'] .lock-note { background: var(--note); border-color: var(--line-strong); color: var(--ink); }
 /* The arrow answers in colour alone, like the rest of the theme's controls. */
 [data-theme='instrument'] .start-back:hover:not(:disabled) { color: var(--accent-strong); }
-[data-theme='instrument'] .dental-card { border-radius: var(--radius-key); }
-[data-theme='instrument'] .dental-card[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+[data-theme='instrument'] .choice-key[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
 [data-theme='instrument'] .range-band { background: var(--accent-soft); border-radius: 0; }
 [data-theme='instrument'] .tool-engaged strong { color: var(--accent-strong); }
 [data-theme='instrument'] button.attention { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent); }

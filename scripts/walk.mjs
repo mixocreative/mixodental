@@ -839,7 +839,7 @@ async function walk(url, scratch, dentalFixture) {
       writeFileSync(holed, cut);
       const drop = (file) => page.setInputFiles('input[aria-label="Choose aligner file"]', file);
       /** Back from Step 1 lands on the start screen's aligner type; its card leads to the file screen, whose drop starts Step 1. */
-      const onTypeScreen = () => page.waitForSelector('.start-screen .dental-cards');
+      const onTypeScreen = () => page.waitForSelector('.start-screen .choice-keys');
       const badge = () => page.locator('.edit-badge').textContent();
       const objects = async () => (await page.locator('footer').innerText()).match(/(\d+) objects?/)?.[1];
       const stepTo = async (text, ms = 20000) => page.waitForFunction((word) => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes(word.toLowerCase()), text, { timeout: ms });
@@ -852,7 +852,7 @@ async function walk(url, scratch, dentalFixture) {
         await enterEditor(page);
         await d.button('Aligner Support Production').click();
         await stepTo('Step 0 · Aligner type');
-        await page.waitForSelector('.dental-card');
+        await page.waitForSelector('.choice-key');
       };
 
       await page.goto(url);
@@ -861,15 +861,15 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Aligner Support Production').click();
       await stepTo('Step 0 · Aligner type');
       const panelsShown = await page.locator('.panel.left, .panel.right').count();
-      check('u0 entering the dental flow shows no generic side panels (U1) and shows the type card', panelsShown === 0 && await page.locator('.dental-card').count() === 1 && /Reference aligner/.test(await page.locator('.dental-card').innerText()) && await page.locator('.dental-card svg').count() === 1,
-        `panels ${panelsShown}, cards ${await page.locator('.dental-card').count()}`);
+      check('u0 entering the dental flow shows no generic side panels (U1) and shows the type card', panelsShown === 0 && await page.locator('.choice-key').count() === 1 && /Reference aligner/.test(await page.locator('.choice-key').innerText()) && await page.locator('.choice-key svg').count() === 1,
+        `panels ${panelsShown}, cards ${await page.locator('.choice-key').count()}`);
       await page.screenshot({ path: path.join(scratch, 'ux-a-step0.png') });
       await d.button('Exit').click();
       await page.waitForFunction(() => !document.querySelector('.edit-badge'), null, { timeout: 5000 });
       check('u1 Exit at Step 0 leaves the flow with the plate untouched', (await objects()) === '0' && (await page.locator('.panel.left [inert]').count()) === 0, `objects ${await objects()}`);
 
       await d.button('Aligner Support Production').click();
-      await page.locator('.dental-card').click();
+      await page.locator('.choice-key').click();
       await stepTo('Step 1 · Aligner');
       check('u2 one click on the card goes to Step 1, which asks for the aligner file', await page.getByText('Drop the aligner STL here').isVisible() && await d.button('Back').isVisible());
       await page.screenshot({ path: path.join(scratch, 'ux-a-step1-drop.png') });
@@ -891,14 +891,14 @@ async function walk(url, scratch, dentalFixture) {
       check('u5b Next without a detected opening explains itself and stays in Step 1', (await badge()).includes('Step 1 · Aligner'), `status "${await d.status()}"`);
       await d.button('Back').click();
       await onTypeScreen();
-      await page.locator('.dental-card').click();
+      await page.locator('.choice-key').click();
 
       await drop(holed);
       await noticeShown('holes or non-manifold');
       check('u6 a mesh with holes is warned about before detection is trusted', await page.getByText('holes or non-manifold').isVisible());
       await d.button('Back').click();
       await onTypeScreen();
-      await page.locator('.dental-card').click();
+      await page.locator('.choice-key').click();
       await drop(cup);
       // The cup is a closed, manifold thick cup: a cavity opening but no CENTRAL opening, so the type that
       // insists on one should offer a switch. Its own scenario, and a failure here used to end the walk
@@ -924,7 +924,7 @@ async function walk(url, scratch, dentalFixture) {
         await backToTypeScreen();
       }
 
-      await page.locator('.dental-card').click();
+      await page.locator('.choice-key').click();
       const dropped = Date.now();
       // Step 1's print-angle search (F): record whether its progress line showed.
       await page.evaluate(() => { window.__scanSeen = false; new MutationObserver(() => { if (/Scanning print angles \d+\/\d+/.test(document.body.innerText)) window.__scanSeen = true; }).observe(document.body, { subtree: true, childList: true, characterData: true }); });
@@ -1198,7 +1198,7 @@ async function walk(url, scratch, dentalFixture) {
           await enterEditor(page);
           await d.button('Aligner Support Production').click();
           await stepTo('Step 0 · Aligner type');
-          await page.locator('.dental-card').click();
+          await page.locator('.choice-key').click();
         }
         await stepTo('Step 1 · Aligner');
         await drop(reference);
@@ -1432,7 +1432,7 @@ async function walk(url, scratch, dentalFixture) {
       await page.goto(url);
       await enterEditor(page);
       await d.button('Aligner Support Production').click();
-      await page.locator('.dental-card').click();
+      await page.locator('.choice-key').click();
       await page.setInputFiles('input[aria-label="Choose aligner file"]', dentalFixture);
       await page.waitForFunction(() => document.body.innerText.includes('Review the orientation'), null, { timeout: 180000 });
       await page.screenshot({ path: path.join(scratch, 'dental-orientation.png') });
@@ -1502,7 +1502,7 @@ async function walk(url, scratch, dentalFixture) {
     // s. The full-screen start (ST): task, aligner type, file; Back and Escape; drops; Any model.
     {
       const reference = dentalFixture ?? PUBLIC_ALIGNER;
-      const onScreen = (which) => page.waitForSelector({ task: '.start-task', type: '.start-screen .dental-cards', file: '.start-screen .dental-drop' }[which], { timeout: 10000 });
+      const onScreen = (which) => page.waitForSelector({ task: '.start-task', type: '.start-screen .choice-keys', file: '.start-screen .dental-drop' }[which], { timeout: 10000 });
       const unitsOnPlate = async () => Number((await page.locator('footer').innerText()).match(/(\d+) objects?/)?.[1] ?? -1);
       /** The footer count once the dropped file has been read onto the plate. */
       const plateHas = (n) => page.waitForFunction((count) => new RegExp(`(^|\\D)${count} objects?`).test(document.querySelector('footer')?.innerText ?? ''), n, { timeout: 60000 }).then(() => true, () => false);
@@ -1525,7 +1525,7 @@ async function walk(url, scratch, dentalFixture) {
         await page.getByRole('heading', { name: 'What would you like to support?' }).isVisible() && (await page.locator('footer strong').innerText()) === 'Choose what to make supports for.', await page.locator('footer strong').innerText());
       await supports().click();
       await onScreen('type');
-      check('s2 Aligner supports shows the type cards full-screen with Back', (await page.locator('.start-screen .dental-card').count()) === 1 && await d.button('Back').isVisible() && (await page.locator('.workspace').count()) === 0);
+      check('s2 Aligner supports shows the type cards full-screen with Back', (await page.locator('.start-screen .choice-key').count()) === 1 && await d.button('Back').isVisible() && (await page.locator('.workspace').count()) === 0);
       await page.keyboard.press('Escape');
       await onScreen('task');
       check('s3 Escape on the type screen is Back to the task screen', true);
@@ -1538,28 +1538,28 @@ async function walk(url, scratch, dentalFixture) {
       check('s5 Escape on the task screen does nothing', await page.locator('.start-task').isVisible());
 
       await supports().click();
-      await page.locator('.dental-card').click();
+      await page.locator('.choice-key').click();
       await onScreen('file');
       check('s6 choosing the type opens the file screen: Open the aligner STL, a file button, a drop zone, Back',
         await page.getByText('Open the aligner STL').isVisible() && await page.getByText('Drop the aligner STL here').isVisible() && await d.button('Choose STL file').isVisible() && await d.button('Back').isVisible());
       await page.keyboard.press('Escape');
       await onScreen('type');
-      check('s7 Escape on the file screen is Back to the type screen, which keeps the chosen type pressed', (await page.locator('.dental-card').getAttribute('aria-pressed')) === 'true');
-      await page.locator('.dental-card').click();
+      check('s7 Escape on the file screen is Back to the type screen, which keeps the chosen type pressed', (await page.locator('.choice-key').getAttribute('aria-pressed')) === 'true');
+      await page.locator('.choice-key').click();
       await onScreen('file');
       await d.button('Back').click();
       await onScreen('type');
       check('s8 Back on the file screen returns to the type screen', true);
 
       // The reference aligner chosen on the file screen enters Step 1.
-      await page.locator('.dental-card').click();
+      await page.locator('.choice-key').click();
       await onScreen('file');
       await page.setInputFiles('input[aria-label="Choose aligner file"]', reference);
       await page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 1 · aligner') && document.body.innerText.toLowerCase().includes('review the orientation'), null, { timeout: 180000 });
       check('s9 the reference aligner chosen on the file screen reaches Step 1 with its type, in the editor', (await page.locator('.start-screen').count()) === 0 && (await page.locator('.workspace').count()) === 1 && await unitsOnPlate() === 1);
       await d.button('Back').click();
       await onScreen('type');
-      check('s10 Back from Step 1 returns to the type screen (type kept pressed) and the aligner stays on the plate', (await page.locator('.dental-card').getAttribute('aria-pressed')) === 'true' && await unitsOnPlate() === 1 && (await page.locator('.workspace').count()) === 0);
+      check('s10 Back from Step 1 returns to the type screen (type kept pressed) and the aligner stays on the plate', (await page.locator('.choice-key').getAttribute('aria-pressed')) === 'true' && await unitsOnPlate() === 1 && (await page.locator('.workspace').count()) === 0);
       await page.keyboard.press('Escape');
       await onScreen('task');
       await page.getByRole('button', { name: 'Any model', exact: true }).click();
@@ -1586,8 +1586,8 @@ async function walk(url, scratch, dentalFixture) {
       check('s14 a non-STL dropped on the task screen is refused and the screen stays', await page.locator('.start-task').isVisible() && /Unsupported|not supported|file type|STL/i.test(await d.status()), `status "${await d.status()}"`);
       await dropOnStart('cube.stl', cubeStl());
       await onScreen('type');
-      check('s15 an STL dropped on the task screen is held and the type step follows', (await page.locator('.dental-card').count()) === 1);
-      await page.locator('.dental-card').click();
+      check('s15 an STL dropped on the task screen is held and the type step follows', (await page.locator('.choice-key').count()) === 1);
+      await page.locator('.choice-key').click();
       await atStep1();
       check('s16 choosing the type with a held file goes straight to Step 1', (await page.locator('.start-screen').count()) === 0 && await plateHas(1));
       await d.button('Back').click();
@@ -1601,12 +1601,12 @@ async function walk(url, scratch, dentalFixture) {
       await supports().click();
       await onScreen('type');
       await dropOnStart('cube.stl', cubeStl());
-      await page.locator('.dental-card').click();
+      await page.locator('.choice-key').click();
       await atStep1();
       check('s18 an STL dropped on the type screen is held and enters Step 1 with the chosen type', (await page.locator('.start-screen').count()) === 0);
       await d.button('Back').click();
       await onScreen('type');
-      await page.locator('.dental-card').click();
+      await page.locator('.choice-key').click();
       await onScreen('file');
       await dropOnStart('cube.stl', cubeStl());
       await atStep1();
@@ -1675,18 +1675,18 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     check(tag('t1 the task screen is in the language'), labels.join('|') === wanted.join('|') && (lang === 'en' || !labels.some((label) => wanted.indexOf(label) >= 0 && ['Aligner supports', 'Any model', 'Open a saved project'].includes(label))), labels.join('|'));
     await shot(page, 'start-1-task');
     await button('Aligner supports').click();
-    await page.waitForSelector('.start-screen .dental-cards');
+    await page.waitForSelector('.start-screen .choice-keys');
     await shot(page, 'start-2-type');
     const backLabel = await page.locator('.start-back').innerText();
     const heading = await page.locator('.dental-stage h2').innerText();
     check(tag('t2 the type screen is in the language'), backLabel === tr('Back') && heading === tr('Choose the aligner type'), `${backLabel} / ${heading}`);
-    await page.locator('.dental-card').click();
+    await page.locator('.choice-key').click();
     await page.waitForSelector('.start-screen .dental-drop');
     await shot(page, 'start-3-file');
     const fileTexts = await page.locator('.dental-drop').innerText();
     check(tag('t3 the file screen is in the language'), fileTexts.includes(tr('Open the aligner STL')) && fileTexts.includes(tr('Drop the aligner STL here')) && fileTexts.includes(tr('Choose STL file')), fileTexts.replace(/\s+/g, ' '));
     await page.keyboard.press('Escape');
-    await page.waitForSelector('.start-screen .dental-cards');
+    await page.waitForSelector('.start-screen .choice-keys');
     await page.keyboard.press('Escape');
     await page.waitForSelector('.start-task');
     await button('Any model').click();
@@ -1739,7 +1739,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     await button('Aligner Support Production').click();
     await badgeHas('Step 0 · Aligner type');
     await shot(page, 'dental-step0');
-    await page.locator('.dental-card').click();
+    await page.locator('.choice-key').click();
     await badgeHas('Step 1 · Aligner');
     await shot(page, 'dental-step1');
     await page.setInputFiles(`input[aria-label="${tr('Choose aligner file')}"]`, reference);

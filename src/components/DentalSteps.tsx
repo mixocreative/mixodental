@@ -2,10 +2,10 @@ import { useRef } from 'react';
 import type { Gesture } from '@mixo-geocore/editing/gesture';
 import type { SessionEvent } from '@mixo-geocore/editing/session';
 import type { DentalNotice } from '../dental/editingMode';
-import { ALIGNER_PROFILES, type AlignerProfile } from '@mixo-geocore/host/dental/alignerProfiles';
+import { ALIGNER_PROFILES } from '@mixo-geocore/host/dental/alignerProfiles';
 import { t, translateMessage, type Lang } from '../i18n';
 import { TiltDial } from '../ui/parts/TiltDial';
-import { Icon } from '../ui/Icon';
+import { ChoiceKey } from '../ui/ChoiceKey';
 import { ScreenHeading } from '../ui/ScreenHeading';
 import { tiltStepOf } from '../denture/jobKind';
 import { fileStepText } from '../denture/steps/start/startText';
@@ -35,12 +35,6 @@ export function tiltProblems(row: TiltRow): string[] {
 /** The Step 0 card art of each aligner type: the icon file that draws its top view. */
 const CARD_ICON: Record<string, string> = { 'reference-aligner': 'aligner' };
 
-/** The top-view line art of one profile, in the card's ink colour (src/ui/assets/icons). */
-function ProfileArt({ profile }: { profile: AlignerProfile }) {
-  const name = CARD_ICON[profile.id];
-  return name ? <Icon name={name} className="dental-card-art" /> : null;
-}
-
 /** The message of one notice, in the words of Step 1 and Step 2 (a refused file in the words of the job `kind`). */
 export function noticeText(notice: DentalNotice, kind?: DentalKind): string {
   switch (notice.kind) {
@@ -65,13 +59,10 @@ export function DentalTypeStep({ profile, lang, send, onChoose }: {
 }) {
   return <div className="dental-stage" role="group" aria-label={t('Aligner type')}>
     <ScreenHeading>{t('Choose the aligner type')}</ScreenHeading>
-    <div className="dental-cards">
-      {ALIGNER_PROFILES.map((entry) => <button key={entry.id} type="button" className="dental-card" aria-pressed={profile === entry.id}
-        data-profile={entry.id} onClick={() => (onChoose ? onChoose(entry.id) : send({ type: 'chooseDentalProfile', id: entry.id }))}>
-        <ProfileArt profile={entry} />
-        <strong>{entry.name[lang]}</strong>
-        <small>{entry.description[lang]}</small>
-      </button>)}
+    <div className="choice-keys">
+      {ALIGNER_PROFILES.map((entry) => <ChoiceKey key={entry.id} icon={CARD_ICON[entry.id] ?? 'generic'}
+        label={entry.name[lang]} note={entry.description[lang]} ui={`type-${entry.id}`} pressed={profile === entry.id}
+        onChoose={() => (onChoose ? onChoose(entry.id) : send({ type: 'chooseDentalProfile', id: entry.id }))} />)}
     </div>
   </div>;
 }

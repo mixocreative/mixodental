@@ -7,6 +7,6 @@ describe('DentureChoice', () => {
     const html = renderToStaticMarkup(<DentureChoice onChoose={() => {}} />);
     expect(html).toContain('data-ui="start-denture"');
     expect(html).toContain('Denture');
-    expect(html).toContain('start-big');
+    expect(html).toContain('choice-key');
   });
 });

@@ -21,7 +21,7 @@ Every icon in the app is one SVG file in this folder. To change an icon, replace
 - Keep a square-ish `viewBox` (for example `0 0 24 24`).
 - Draw with `stroke="currentColor"` and `fill="currentColor"` (or `fill="none"`). Never use a fixed colour. The app colours the icon from the text colour around it, so it turns paper-coloured on a pressed button.
 - Draw in outline only. The set is line art in one colour, and a filled shape beside outlined ones reads as a different kind of thing, so a fill is never used to single an icon out.
-- The three start-screen icons share one `viewBox` (`0 0 300 300`) and one art size in the CSS (`.start-big-art`), so the three big choices look like one set. A replacement keeps that box.
+- The choice-key icons share one `viewBox` (`0 0 300 300`) and one art size in the CSS (`.choice-key-art`), so every big choice looks like one set. A replacement keeps that box.
 - Do not put `width` or `height` on the root `<svg>`. The size comes from the app's CSS.
 - No embedded bitmaps (no `<image>`, no base64 PNG or JPEG). Vector paths only.
 - One root `<svg>` per file. Comments are allowed.

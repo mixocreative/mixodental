@@ -126,7 +126,7 @@ async function main() {
     await page.goto(url);
     await button('Aligner Support Production').click();
     await stepTo('Step 0');
-    await page.locator('.dental-card').click();
+    await page.locator('.choice-key').click();
     await stepTo('Step 1 · Aligner');
     await page.setInputFiles('input[aria-label="Choose aligner file"]', REFERENCE);
     await stepTo('Review the orientation');

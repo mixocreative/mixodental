@@ -3,7 +3,7 @@ import { isProjectFile } from '../state/projectFile';
 import { t, type Lang } from '../i18n';
 import { DentalTypeStep } from './DentalSteps';
 import { DentureChoice } from '../denture/steps/start/DentureChoice';
-import { StartChoice } from './StartChoice';
+import { ChoiceKey } from '../ui/ChoiceKey';
 import { Icon } from '../ui/Icon';
 import { ScreenHeading } from '../ui/ScreenHeading';
 import { fileStepText } from '../denture/steps/start/startText';
@@ -78,10 +78,10 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     </button> : null}
     {screen === 'task' ? <div className="start-task">
       <ScreenHeading>{t('What would you like to support?')}</ScreenHeading>
-      <div className="start-choices">
-        <StartChoice icon="aligner" label={t('Aligner')} ui="start-aligner" onChoose={() => onScreen('type')} />
+      <div className="choice-keys">
+        <ChoiceKey icon="aligner" label={t('Aligner')} ui="start-aligner" onChoose={() => onScreen('type')} />
         <DentureChoice onChoose={() => choose(DENTURE_PROFILE_ID)} />
-        <StartChoice icon="generic" label={t('Any model')} ui="start-any-model" onChoose={onAnyModel} />
+        <ChoiceKey icon="generic" label={t('Any model')} ui="start-any-model" onChoose={onAnyModel} />
       </div>
       <button type="button" className="link-button" onClick={onOpenProject}>{t('Open a saved project')}</button>
     </div> : null}
