@@ -8,5 +8,5 @@ import { t } from '../../../i18n';
  * arguments; the caller starts the denture job on the reference profile.
  */
 export function DentureChoice({ onChoose }: { onChoose: () => void }) {
-  return <StartChoice icon="denture" label={t('Denture supports')} ui="start-denture" onChoose={onChoose} />;
+  return <StartChoice icon="denture" label={t('Denture')} ui="start-denture" onChoose={onChoose} />;
 }

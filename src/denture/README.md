@@ -9,7 +9,7 @@ Engine calls go through `engine/` only.
 |---|---|
 | `jobKind.ts` | The job kind of a profile id (`denture` / `aligner`) and the reference denture profile id. |
 | `kindText.ts` | The dental lines that name the job's object: the denture line of every aligner sentence, once (status, commands, hints). |
-| `steps/start/DentureChoice.tsx` | The start screen's "Denture supports" card. |
+| `steps/start/DentureChoice.tsx` | The start screen's "Denture" card. |
 | `steps/start/startText.ts` | The file step's words per job kind. |
 | `engine/dentureCore.ts` | The denture pipeline on one thread: orient + tilt scan, lifted frame, placement, build with hand work, one-point model-landing check. |
 | `engine/dentureProtocol.ts` | Messages between the denture client and worker. |

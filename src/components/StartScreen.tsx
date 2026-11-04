@@ -75,7 +75,7 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     {screen === 'task' ? <div className="start-task">
       <h2 className="start-heading">{t('What would you like to support?')}</h2>
       <div className="start-choices">
-        <StartChoice icon="aligner" label={t('Aligner supports')} ui="start-aligner" onChoose={() => onScreen('type')} />
+        <StartChoice icon="aligner" label={t('Aligner')} ui="start-aligner" onChoose={() => onScreen('type')} />
         <DentureChoice onChoose={() => choose(DENTURE_PROFILE_ID)} />
         <StartChoice icon="generic" label={t('Any model')} ui="start-any-model" onChoose={onAnyModel} />
       </div>

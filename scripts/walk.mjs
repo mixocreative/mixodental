@@ -1512,13 +1512,14 @@ async function walk(url, scratch, dentalFixture) {
         document.querySelector('.start-screen').dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
       }, { fileName: name, text: content });
       const atStep1 = (ms = 180000) => page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 1 · aligner'), null, { timeout: ms });
-      const supports = () => page.getByRole('button', { name: 'Aligner supports', exact: true });
+      const supports = () => page.getByRole('button', { name: 'Aligner', exact: true });
 
       await page.goto(url);
       await onScreen('task');
-      const names = await page.locator('.start-task button').allInnerTexts();
-      check('s1 the app opens on the task screen: Aligner supports (primary), Any model, Open a saved project, and no workspace',
-        names.join('|') === 'Aligner supports|Any model|Open a saved project' && await page.locator('.start-task .primary').innerText() === 'Aligner supports' && (await page.locator('.workspace').count()) === 0, names.join('|'));
+      // textContent: the theme sets a key's word in caps, and this check is about the words, not the painting.
+      const names = await page.locator('.start-task button').allTextContents();
+      check('s1 the app opens on the task screen: the three choices drawn alike, Open a saved project, and no workspace',
+        names.join('|') === 'Aligner|Denture|Any model|Open a saved project' && (await page.locator('.start-task .primary').count()) === 0 && (await page.locator('.workspace').count()) === 0, names.join('|'));
       check('u1a on the task screen the header has no Undo, Redo, Hide models or Wireframe, the language switch stays, the heading is present, and the footer says what to choose',
         (await page.locator('header').getByRole('button', { name: /^(Undo|Redo|Hide models|Wireframe)/ }).count()) === 0 && await page.locator('header .lang').isVisible() &&
         await page.getByRole('heading', { name: 'What would you like to support?' }).isVisible() && (await page.locator('footer strong').innerText()) === 'Choose what to make supports for.', await page.locator('footer strong').innerText());

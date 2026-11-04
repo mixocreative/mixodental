@@ -6,7 +6,7 @@ describe('DentureChoice', () => {
   it('is one named start button', () => {
     const html = renderToStaticMarkup(<DentureChoice onChoose={() => {}} />);
     expect(html).toContain('data-ui="start-denture"');
-    expect(html).toContain('Denture supports');
+    expect(html).toContain('Denture');
     expect(html).toContain('start-big');
   });
 });

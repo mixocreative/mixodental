@@ -221,7 +221,7 @@
 /* 2. HEADER, four levels: the app, a screen, a group, a field. All sans, all tiny tracked caps, so a header never
    competes with the title or with the content under it. */
 [data-theme='instrument'] h1 { font-size: var(--h1-size); }
-[data-theme='instrument'] h2 { font-size: var(--h2-size); }
+[data-theme='instrument'] h2:not(.start-heading) { font-size: var(--h2-size); }
 [data-theme='instrument'] h3,
 [data-theme='instrument'] .dental-block h3 { font-size: var(--h3-size); }
 [data-theme='instrument'] .panel-widget-title,
@@ -229,7 +229,7 @@
 [data-theme='instrument'] .brand small,
 [data-theme='instrument'] .kit-section > h2 { font-size: var(--label-size); }
 [data-theme='instrument'] h1,
-[data-theme='instrument'] h2,
+[data-theme='instrument'] h2:not(.start-heading),
 [data-theme='instrument'] h3,
 [data-theme='instrument'] .dental-block h3,
 [data-theme='instrument'] .panel-widget-title,

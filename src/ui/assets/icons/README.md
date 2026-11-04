@@ -6,8 +6,8 @@ Every icon in the app is one SVG file in this folder. To change an icon, replace
 
 | File name | Where it appears |
 | --- | --- |
-| `aligner.svg` | Start screen, first big choice: **Aligner supports** |
-| `denture.svg` | Start screen, middle big choice: **Denture supports** |
+| `aligner.svg` | Start screen, first big choice: **Aligner** |
+| `denture.svg` | Start screen, middle big choice: **Denture** |
 | `generic.svg` | Start screen, third big choice: **Any model** |
 | `aligner-standard.svg` | Step 0 "Choose the aligner type" card for the standard (reference) aligner: the U-shaped outline with its central opening |
 | `tool-pointer.svg` | Edit bar, "How to select" switch: **Click** (pick one support at a time) |
