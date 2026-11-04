@@ -14,6 +14,8 @@ import { DentalSupportsStep, type DentalReview } from './DentalSupports';
 import { RangeField } from './RangeField';
 import { ClickReachField, SelectStyleSwitch } from './EditBar';
 import { Segmented } from './Segmented';
+import { Panel } from './Panel';
+import { Field } from './Field';
 import { Icon } from '../ui/Icon';
 import type { DentalTiltState } from './useDentalFlow';
 import type { AreaRisk } from '../dental/areaRisk';
@@ -117,6 +119,13 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       <b>{gesture.notices.some((notice) => notice.kind === 'no-area') ? t('No support area was detected. Mark it, then press Next.') : t('Support area is marked. Press Next, or paint to adjust.')}</b>
     </div>
     <div className="edit-bar dental-brush">
+      {/*
+        STEP 2 IS BUILT THE WAY STEP 1 IS: titled widgets down the dock, not a flat run of rows. Each widget
+        holds one idea - the tool in hand, then the shape of the area - so the reader can find the one thing
+        they came to change. `Panel` falls back to a single column on its own when the dock is narrow, which
+        is what makes the dock responsive without a width being chosen for it anywhere.
+      */}
+      <Panel title={t('Tool')} ui="dental-tool">
       <div className="edit-row">
         <Segmented label={t('Dental area tools')} value={ui.tool} onChange={(tool) => run(`dental.tool.${tool}` as CommandId)}
           options={AREA_TOOLS.map((tool) => {
@@ -132,7 +141,9 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         {gesture.edit && ui.selection > 0 && <span className="edit-count">{t('{n} selected', { n: ui.selection })}</span>}
         {gesture.edit && ['edit.clearSelection', 'edit.deleteSelection'].map((id) => resolve(id as CommandId, ui)).filter((command) => command.visible).map((command) => <CommandButton key={command.id} command={command} run={run} />)}
       </div>
-      {tuning && tuningLimits && <div className="edit-row dental-tuning" role="group" aria-label={t('Aligner contact strip')}>
+      </Panel>
+      {tuning && tuningLimits && <Panel title={t('Support area')} ui="dental-area-shape">
+      <div className="edit-row dental-tuning" role="group" aria-label={t('Aligner contact strip')}>
         <RangeField layout="row" label="Area width" ui="dental-area-width" unit="{n} mm" hint="Width of the support area along each edge"
           min={tuningLimits.stripWidthMinMm} max={tuningLimits.stripWidthMaxMm} step={0.1} value={tuning.stripWidthMm}
           onChange={(stripWidthMm) => onTuningChange?.({ ...tuning, stripWidthMm })} />
@@ -142,7 +153,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         <RangeField layout="row" label="Support density" ui="dental-support-density" unit="{n}×" hint="Higher density places proposed tips closer together"
           min={tuningLimits.densityMin} max={tuningLimits.densityMax} step={0.1} value={tuning.density}
           onChange={(density) => onTuningChange?.({ ...tuning, density })} />
-      </div>}
+      </div>
+      </Panel>}
       {tuningBusy && <p className="edit-note" role="status">{t('Updating support area and tips…')}</p>}
       {tuningError && <p className="edit-note" role="alert">{t('Could not update the support strip. The previous area is still active.')}</p>}
       {gesture.notices.map((notice) => <p key={notice.kind} className="edit-note" role="alert">{noticeText(notice)}</p>)}
@@ -156,13 +168,29 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
           </li>)}
         </ul>
       </>}
-      <p className="edit-note" role="note">{t('Drag on the model to paint; drag empty space to rotate the view. Proposed support tips: {n}. Final generation may exclude tips whose supports touch an unapproved face.', { n: tipCount })}</p>
+      {/*
+        THE ONE NUMBER THIS STEP IS ABOUT, read as a number. It used to sit in the middle of a sentence with
+        two other thoughts - how to paint, and a caveat about the final build - where it could not be set in
+        the app's figure face and could not be found at a glance. The sentence keeps the guidance; the count
+        is a readout, the way Step 1 gives the print angle its own face.
+      */}
+      <Field label={t('Proposed support tips')} ui="dental-tip-count" layout="row" className="dental-tip-count">
+        <span className="num">{tipCount}</span>
+      </Field>
+      <p className="edit-note" role="note">{t('Drag on the model to paint; drag empty space to rotate the view. The final generation may leave out tips whose supports touch an unapproved face.')}</p>
       {!gesture.notices.some((notice) => notice.kind === 'no-area') && (previewStatus !== 'ready' || tipCount === 0) ? <p className="edit-note" role="status">{t(previewStatus === 'error'
         ? 'Could not preview safe support tips. Adjust the area or retry.'
         : previewStatus === 'ready' ? 'No safe support tips were found. Automatic placement is paused.'
           : 'Finding safe support tips…')}</p> : null}
       {areaExtra}
-      {restore ? <div className="edit-row"><RestoreStepButton restore={restore} unique="restore-step-area" /></div> : null}
+
+      {/*
+        PUT IT BACK, as the same round key Step 1 uses rather than a full-width word, which read as a fifth
+        action competing with Back and Next. It sits in its own row and NOT inside a widget: the Support
+        area widget is only drawn when there is an area to shape, and the step that most needs a way back is
+        the one with no area at all.
+      */}
+      {restore ? <div className="edit-row restore-row"><RestoreStepButton restore={restore} unique="restore-step-area" round /></div> : null}
       <div className="edit-row step-nav">
         <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key back-key--arrow" labelHidden><Icon name="back" /></CommandButton>
         <CommandButton command={resolve('dental.generate', tuningBusy ? { ...ui, dentalPreviewReady: false } : ui)} run={run} className="next-key"><Icon name="next" /></CommandButton>

@@ -56,7 +56,9 @@ describe('DentalBar', () => {
     expect(html).not.toContain('>Exit<');
     expect(html).not.toContain('restore-step-area');
     const restorable = renderToStaticMarkup(<DentalBar gesture={area} unitName="sample" ui={{ mode: 'dental', dentalStage: 'area' } as UiState} send={() => {}} run={() => {}} tipCount={0} previewStatus="idle" restore={{ can: true, run: () => {} }} />);
-    expect(restorable).toMatch(/data-ui="restore-step-area"[^>]*>Restore step</);
+    // The round key carries the icon, with the words kept for a screen reader - as Step 1 does.
+    expect(restorable).toMatch(/data-ui="restore-step-area"[^>]*>.*Restore step</);
+    expect(restorable).toContain("restore-round");
     expect(restorable.indexOf('restore-step-area')).toBeLessThan(restorable.indexOf('>Back<'));
   });
 
@@ -67,7 +69,9 @@ describe('DentalBar', () => {
     expect(areaHtml).toContain('Step 2');
     expect(areaHtml).toContain('12');
     expect(areaHtml).toContain('Proposed support tips');
-    expect(areaHtml).toContain('Final generation may exclude tips');
+    // The count is its own readout now, so the guidance no longer carries it mid-sentence.
+    expect(areaHtml).toContain('may leave out tips');
+    expect(areaHtml).toContain('dental-tip-count');
     expect(areaHtml).toContain('Next');
     expect(areaHtml).not.toContain('Done');
     const emptyHtml = renderToStaticMarkup(<DentalBar gesture={area} unitName="sample" ui={{ mode: 'dental' } as UiState} send={() => {}} run={() => {}} tipCount={0} previewStatus="ready" />);

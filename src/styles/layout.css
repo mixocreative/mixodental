@@ -205,3 +205,23 @@
    the reader could not reach it. */
 .workspace--dental .dental-brush .segmented { width: 100%; }
 .workspace--dental .dental-brush .segmented button { min-width: 0; flex: 1 1 0; }
+
+
+/* PROSE IN THE DOCK IS RANGED LEFT. `.edit-note` is ranged RIGHT, which was right when the edit bar was a
+   horizontal strip and the note sat at its right end. In a narrow column it makes every line start in a
+   different place, which is the hardest shape of text to read and the one thing the house rule forbids:
+   range the words left, and centre the block if the block needs centring. */
+.workspace--dental .edit-note { text-align: left; }
+
+/* The widgets in the controls dock stack with the same gap as everything else in it, and the readout rows
+   inside them keep the label and its number on one line. */
+.workspace--dental .dental-side .panel-widget,
+.workspace--dental .edit-bar .panel-widget { width: 100%; }
+.workspace--dental .dental-tip-count .field-control { justify-content: flex-end; }
+.workspace--dental .dental-tip-count .num { font-size: 15px; color: var(--ink); }
+
+/* THE ROUND RESTORE KEY in a dock that is a column. `.restore-round` is positioned absolutely, for Step 1
+   where it hangs in the corner of the dial; here it stands in a row of its own, at the end of the row, so
+   it is taken out of the corner and put back in the flow. */
+.workspace--dental .edit-bar .restore-row { display: flex; justify-content: flex-end; }
+.workspace--dental .edit-bar .restore-row > .restore-round { position: static; }
