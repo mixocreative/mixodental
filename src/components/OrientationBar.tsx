@@ -92,7 +92,7 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
     {/* How the angle stands is read ON THE SCENE, under the model it is about, not in the column of keys. */}
     {note ? <p className="scene-note" role="note" data-ui="orient-note">{note}</p> : null}
     {/* The scan counts the tilts it has done, so this one shows a TRUE percentage. */}
-    {tilt?.status === 'scanning' && tilt.total > 0
+    {!freeOn && !asking && tilt?.status === 'scanning' && tilt.total > 0
       ? <SceneProgress stage={t('Scanning print angles')} fraction={tilt.done / tilt.total} />
       : null}
   </>;
