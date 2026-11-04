@@ -177,8 +177,7 @@
 [data-theme='instrument'] .mode-button,
 [data-theme='instrument'] .review-actions button,
 [data-theme='instrument'] .dental-finish button {
-  text-transform: uppercase;
-  letter-spacing: var(--label-track);
+  letter-spacing: .02em;
   font-size: 11.5px;
   font-weight: 600;
 }
@@ -218,8 +217,10 @@
 [data-theme='instrument']:lang(zh-Hant) .title,
 [data-theme='instrument']:lang(zh-Hant) .dental-stage h2 { font-family: var(--font-title-zh); }
 
-/* 2. HEADER, four levels: the app, a screen, a group, a field. All sans, all tiny tracked caps, so a header never
-   competes with the title or with the content under it. */
+/* 2. HEADER, four levels: the app, a screen, a group, a field. All sans, every one set in the words as they are
+   written. A header is told apart by its size and its weight, never by shouting: caps cost a reader the shape of
+   the word they recognise it by. ONE thing in the app is still tracked caps, and it is stated on its own below:
+   a widget's title bar. */
 [data-theme='instrument'] h1 { font-size: var(--h1-size); }
 [data-theme='instrument'] h2:not(.start-heading) { font-size: var(--h2-size); }
 [data-theme='instrument'] h3,
@@ -238,8 +239,7 @@
 [data-theme='instrument'] .kit-section > h2 {
   font-family: var(--font-ui);
   font-weight: 700;
-  letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  letter-spacing: .01em;
 }
 /* A panel's title is a solid bar, the same bar whether or not the panel collapses; only the chevron in front of it
    says it opens. The two shades come from the tokens in src/styles.css: an open panel's bar is the ink, a closed
@@ -247,6 +247,8 @@
 /* The generic h3 rule below makes a group heading a plain muted label; a panel title is not that, so it states
    its own bar here (a non-collapsing panel's title IS an h3, and this has to outrank it). */
 [data-theme='instrument'] .panel-widget-title {
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
   margin: 0 0 2px;
   min-height: 26px;
   padding: 5px 10px;
@@ -305,14 +307,13 @@
 [data-theme='instrument'] .edit-bar,
 [data-theme='instrument'] .debug-section,
 [data-theme='instrument'] .job-activity { border-radius: 0; }
-/* The step badge is a legend plate: ink block, white caps. */
+/* The step badge is a legend plate: an ink block, in the words as they are written. */
 [data-theme='instrument'] .edit-badge {
   background: var(--ink);
   border-color: var(--ink);
   border-radius: 0;
   color: var(--surface);
-  letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 [data-theme='instrument'] .edit-badge span { opacity: .65; }
 /* The note that says why a panel is held is the cream of the photograph, not an alarm. */

@@ -583,7 +583,7 @@ footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
 }
 .tilt-dial-label {
   position: absolute; top: calc(var(--dial-size) * .8); transform: translateX(-50%); pointer-events: none;
-  font-size: var(--dial-label-size); line-height: 1; letter-spacing: .06em; text-transform: uppercase;
+  font-size: var(--dial-label-size); line-height: 1; letter-spacing: .04em;
   color: var(--dial-label); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .tilt-dial-label-min { left: calc(var(--dial-size) * .14); }
@@ -827,7 +827,7 @@ dialog.terms .terms-item > span { flex: none; }
 .dental-side .edit-row { justify-content: flex-start; }
 .dental-side .edit-note { text-align: left; }
 .dental-tools .edit-row { justify-content: flex-start; }
-.field-control > .dental-label { width: 9ch; text-transform: uppercase; letter-spacing: .08em; }
+.field-control > .dental-label { width: 9ch; letter-spacing: .02em; }
 .dental-problem-row {
   display: grid;
   grid-template-columns: 10px minmax(0, 1fr) auto auto;

@@ -21,7 +21,7 @@ screen that shows a patient scan** — capture the public fixture or the screens
 ## 1. Visual Theme & Atmosphere
 
 A small studio instrument on a bench. Light hardware body, white screens, deep indigo ink, hairlines on a
-strict grid, tiny tracked uppercase caps on every key and heading, machine numerals on every number,
+strict grid, plainly set words on every key and heading, machine numerals on every number,
 square plates with one small round on the keys. **Flat**: nothing is raised, nothing is shaded, with one
 exception — the print-angle dial, which is a turned knob and is meant to read as hardware.
 
@@ -97,7 +97,7 @@ Six stacks: `--font-ui` / `-ja` / `-zh`, `--font-title` / `-ja` / `-zh`; `--font
 ### The three text styles
 1. **Title** — `--title-size` 30px, serif, weight 400, `--title-track` −.01em, sentence case, never
    tracked, never uppercased. **One per screen**, and it names the screen. Class `.title`.
-2. **Header** — four levels, sans, tracked uppercase caps: `--h1-size` 13px (the app), `--h2-size` 12px (a
+2. **Header** — four levels, sans, set in the words as written: `--h1-size` 13px (the app), `--h2-size` 12px (a
    screen), `--h3-size` 11px (a group), `--label-size` 10.5px at `--label-track` .14em (a field label).
 3. **Content** — sans, sentence case: `--body-size` 12.5px at `--body-line` 1.65, small print
    `--small-size` 11.5px.
@@ -120,10 +120,10 @@ draw either, so a change here reaches the whole app.
   a typed value gets an underline and right-aligned tabular figures, a slider and a segmented switch take
   the width, an `<output>` and a unit `<small>` stay beside them.
 - **Button** — square (`--radius` 0) except keys, which take `--radius-key` 3px. `.primary` is a filled
-  indigo key with white tracked caps, one per view. The default is quiet: a hairline on surface.
+  indigo key, one per view. The default is quiet: a hairline on surface.
   `.danger` is signal-red outline and text, never filled. A pressed toggle fills with ink; a pressed
   **segment** also takes a 3 px `--accent-soft` underline — the one place the accent sits under a key.
-- **Segmented** — joined segments inside a hairline box, uppercase tracked caps.
+- **Segmented** — joined segments inside a hairline box, set as written.
 - **Print-angle dial** (`src/ui/parts/TiltDial.tsx`) — the one piece of hardware. A turned indigo knob
   (`--dial-face` → `--dial-face-shade` gradient, two soft shadows) on a 240° tick ring; ticks inside the
   stable band light `--accent-soft`. The current angle is a large white number in the middle of the knob,
@@ -145,8 +145,8 @@ draw either, so a change here reaches the whole app.
 
 ## 6. Stitch Generation Notes
 
-**Atmosphere keywords**: studio instrument, bench tool, flat, hairline grid, square plates, tracked
-uppercase micro-caps, machine numerals, dense rows, light only, one accent, one alert colour.
+**Atmosphere keywords**: studio instrument, bench tool, flat, hairline grid, square plates, plainly set
+words, machine numerals, dense rows, light only, one accent, one alert colour.
 
 **Canonical colours**: Pot Grey `#eef2f2`, Screen White `#ffffff`, Sunken `#dde6e6`, Hairline `#cbd9da`,
 Indigo `#17334e`, Dyed Teal `#2a8c99`, Pale Pea `#7cc7c4`, Deep Blue Pea `#244e86`, Note Cream `#e8e2c8`,
@@ -163,7 +163,7 @@ Signal Red `#c8372d`, Brand Teal `#0d6579` (wordmark only), Muted `#5a6f7c`.
 - *Step screen*: "A full-width 3D viewport with one narrow panel docked right, 300px wide, 14px clear of the
   edge. The step names itself in a small badge over the viewport, not in the panel. The panel is a column of
   solid-bar blocks; its last block is pinned to the bottom and holds a quiet Back button and one filled
-  indigo key with uppercase micro-caps. Flat, light, dense, a single teal accent."
+  indigo key. Flat, light, dense, a single teal accent."
 
 ## 7. How a step is laid out, and the one place it is inconsistent
 

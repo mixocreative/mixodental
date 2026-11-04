@@ -1,6 +1,8 @@
 /**
  * mixoDental wordmark: the emblem and "mixo" from the MIXOMESH logo, then "Dental" as live text in the
- * logo's typeface when installed (Atkinson Hyperlegible Next Bold Italic), else a system sans. TODO: outline it like "mixo".
+ * logo's typeface when installed (Atkinson Hyperlegible Next Bold Italic), else a system sans. Its letters are
+ * WRITTEN OUT, not cased by CSS: the app sets every word as it is written, and a wordmark is not UI text to be
+ * restyled by that rule - it is the brand's own letters, and it keeps them whatever the interface does. TODO: outline it like "mixo".
  */
 export function BrandLogo() {
   return <span className="app-logo" role="img" aria-label="mixoDental">
@@ -10,7 +12,7 @@ export function BrandLogo() {
     <path d="M409.89,163.87l16.6-78.49h-14.84l3.9-18.35h38.85l-20.69,96.84h-23.82ZM447.18,50.05c-4.04,0-7.55-1.49-10.54-4.49-3-2.99-4.49-6.57-4.49-10.74s1.49-7.91,4.49-10.84c2.99-2.93,6.51-4.39,10.54-4.39,4.3,0,7.91,1.46,10.84,4.39s4.39,6.54,4.39,10.84-1.46,7.75-4.39,10.74c-2.93,3-6.54,4.49-10.84,4.49Z" />
     <path d="M448.15,163.87l46.66-50.76-23.62-46.08h24.4l14.84,28.9,26.16-28.9h27.72l-43.15,46.86,24.99,49.98h-24.4l-16.4-32.41-29.29,32.41h-27.92Z" />
     <path d="M602.58,166.21c-8.59,0-16.17-1.76-22.75-5.27-6.57-3.51-11.68-8.46-15.33-14.84-3.64-6.38-5.47-13.93-5.47-22.65,0-7.68,1.27-15.03,3.81-22.06,2.54-7.03,6.21-13.31,11.03-18.84,4.81-5.53,10.61-9.86,17.38-12.98,6.77-3.12,14.38-4.69,22.84-4.69s16.17,1.73,22.74,5.17c6.57,3.45,11.68,8.4,15.33,14.84,3.64,6.44,5.47,14.03,5.47,22.74,0,7.68-1.27,15.03-3.81,22.06-2.54,7.03-6.22,13.28-11.03,18.74-4.82,5.47-10.61,9.8-17.38,12.98-6.77,3.19-14.38,4.78-22.84,4.78ZM603.56,146.89c5.34,0,9.92-1.3,13.76-3.9,3.84-2.6,6.93-5.95,9.27-10.05,2.34-4.1,4.07-8.4,5.17-12.89,1.1-4.49,1.66-8.62,1.66-12.4,0-6.64-1.6-12.23-4.78-16.79-3.19-4.55-8.36-6.83-15.52-6.83-5.47,0-10.09,1.3-13.86,3.9-3.78,2.61-6.83,5.95-9.18,10.05s-4.07,8.4-5.17,12.89c-1.11,4.49-1.66,8.62-1.66,12.4,0,6.77,1.59,12.4,4.78,16.89,3.19,4.49,8.36,6.74,15.52,6.74Z" />
-    <text x="700" y="163.87" textLength="690" lengthAdjust="spacingAndGlyphs" fontFamily="'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif" fontSize="186" fontWeight="700" fontStyle="italic">Dental</text>
+    <text x="700" y="163.87" textLength="690" lengthAdjust="spacingAndGlyphs" fontFamily="'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, sans-serif" fontSize="186" fontWeight="700" fontStyle="italic">DENTAL</text>
     </svg>
   </span>;
 }

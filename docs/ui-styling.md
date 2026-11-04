@@ -22,7 +22,7 @@ Tests keep these rules: `src/ui/noColourLiterals.test.ts` (rules 1 and 2), `src/
 
 ## The two themes
 
-The app wears the **instrument theme** (`src/styles/theme.css`). Its shape comes from a small studio instrument: a light hardware body, white screens, dark ink, hairlines on a strict grid, tiny tracked uppercase caps on the keys, machine numerals for every number, square plates with one small round on the keys, and nothing raised or shaded. Its colour comes from the owner's reference photograph of indigo-dyed peas in a steel pot: indigo ink, a teal accent, a soft turquoise for ranges, a cream note, and the single red speck in that photograph, which is the only red in the app and means alert.
+The app wears the **instrument theme** (`src/styles/theme.css`). Its shape comes from a small studio instrument: a light hardware body, white screens, dark ink, hairlines on a strict grid, plainly set words on the keys, machine numerals for every number, square plates with one small round on the keys, and nothing raised or shaded. Its colour comes from the owner's reference photograph of indigo-dyed peas in a steel pot: indigo ink, a teal accent, a soft turquoise for ranges, a cream note, and the single red speck in that photograph, which is the only red in the app and means alert.
 
 Under it is the **paper theme** (`src/styles.css` on its own), which is kept only so the two can be compared.
 
@@ -53,7 +53,7 @@ Every word on screen is one of three things. A designer changes a size here, not
 
 **1. Title** - the one large line that names a full screen ("What would you like to support?"). The **serif**, sentence case, never tracked, never uppercased, one per screen. Class `.title`; the stage headings (`.start-heading`, `.dental-stage h2`) are the same style.
 
-**2. Header** - four levels, all sans, all small tracked uppercase caps, so a header never competes with the title above it or the sentence under it: `h1` the app, `h2` a screen or panel, `h3` a group, and the field and panel label (`.panel-widget-title`, `.dental-label`, `.brand small`).
+**2. Header** - four levels, all sans, every one set in the words as it is written, told apart by size and weight so a header never competes with the title above it or the sentence under it: `h1` the app, `h2` a screen or panel, `h3` a group, and the field and panel label (`.panel-widget-title`, `.dental-label`, `.brand small`).
 
 **3. Content** - sans, sentence case: `p`, `li`, `label` and the small print (`small`, `.edit-note`).
 
