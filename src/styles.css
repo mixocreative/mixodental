@@ -149,8 +149,18 @@ h1 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: .08em; }
 .toolbar-group + .toolbar-group { padding-left: 16px; border-left: 1px solid var(--line); }
 
 /* ---- Workspace ----------------------------------------------------------- */
+/* THE SHELL. The header and the footer are as tall as they are; whatever is between them takes the rest.
+   Nothing here guesses. Four rules used to subtract the chrome from `100vh` by hand - 88px, 140px, 64px - and
+   the real answer was 143px, so every start screen scrolled 54px for no reason. A column cannot be wrong
+   about its own parts. `min-height` and not `height`, so a screen taller than the window grows the page
+   instead of overflowing it at both ends. */
+main { position: relative; display: flex; flex-direction: column; min-height: 100vh; }
+
 .workspace {
-  height: calc(100vh - 56px - 32px);
+  /* Takes what the header and footer leave. `min-height: 0` lets it SHRINK to that, so a tall panel scrolls
+     inside the workspace instead of pushing the page down. */
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 268px 1fr 300px;
   /* One row the height of the window: panels scroll, the canvas never grows the page. */
@@ -460,12 +470,13 @@ kbd {
 .settings { display: grid; gap: 10px; border: 0; margin: 0; padding: 0; min-width: 0; }
 .settings:disabled { opacity: .5; }
 /* Debug section of the 3D view: the Step 1 evidence layers, collapsed by default (display only). */
-.debug-section { position: absolute; left: 14px; bottom: 14px; z-index: 2; width: 240px; max-height: calc(100% - 28px); overflow: auto; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.debug-section { position: absolute; left: 14px; bottom: 40px; z-index: 2; width: 240px; max-height: calc(100% - 28px); overflow: auto; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .debug-swatch { flex: none; width: 12px; height: 12px; border: 1px solid var(--line-strong); border-radius: 2px; }
 .debug-section .field { font-size: 11.5px; }
 
 /* ---- Status bar ---------------------------------------------------------- */
 footer {
+  flex: none;
   height: 32px;
   display: flex;
   align-items: center;
@@ -479,6 +490,26 @@ footer {
   font-variant-numeric: tabular-nums;
 }
 footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
+/* IN THE WORKSPACE the status is an overlay ON the scene, not a band under it. The same element with the same
+   words - the walk and a screen reader both still find one `footer` with one live region - but a band costs the
+   3D view its height (86px at a narrow window, where the status takes a line of its own) to say one line, and
+   the 3D view is the thing the reader came for. An overlay costs nothing. It does not take the pointer either,
+   so the scene turns under it; only its Terms key answers a click. */
+footer.on-scene {
+  position: absolute; left: 18px; right: 18px; bottom: 14px;
+  height: auto; padding: 0;
+  flex-wrap: nowrap; gap: 16px;
+  border-top: 0; background: transparent;
+  pointer-events: none;
+}
+/* ONE line, always. The narrow-window rule gives the status a line of its own, which is right for a band and
+   wrong for an overlay: a two-line overlay reaches up into the scene and collides with whatever sits in the
+   corner. The status takes the room the counts leave and shortens with an ellipsis rather than wrapping. */
+footer.on-scene strong { margin-left: 0; flex-basis: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The counts keep their own width; only the status gives room up. Left to shrink, each count wrapped inside
+   itself and the row turned into three narrow columns of broken words. */
+footer.on-scene > span { flex: none; white-space: nowrap; }
+footer.on-scene button { pointer-events: auto; }
 /* A count from the last build while the edited unit rebuilds (the job shows in the activity list). */
 .building { opacity: .55; }
 
@@ -675,8 +706,9 @@ footer strong { margin-left: auto; color: var(--ink); font-weight: 400; }
 @media (max-width: 1100px) {
   .viewport--editing .undo-toast-region { bottom: auto; top: 56px; }
   .viewport--editing .job-activity { bottom: auto; top: 64px; }
-  /* The dental steps have no panels below the viewport: it takes the window's height, not 58 % of it. */
-  .workspace--dental { grid-template-rows: max(calc(100vh - 140px), 520px); }
+  /* The dental steps have no panels below the viewport, so the row takes everything the shell gives it and
+     never drops under 520px. It no longer guesses the chrome's height: the shell measures that. */
+  .workspace--dental { grid-template-rows: minmax(520px, 1fr); }
 }
 /* A tablet-wide window keeps Step 1's bar on the right, below the step badge, so the model it orients stays in view. */
 @media (min-width: 721px) and (max-width: 1100px) {
@@ -950,10 +982,10 @@ dialog.terms .terms-item > span { flex: none; }
 /* ---- Full-screen start (docs/ROADMAP.md ST): task, aligner type, aligner file ---- */
 .start-screen {
   position: relative;
-  /* A MINIMUM, not a fixed height. With `align-items: center`, content taller than a fixed box overflows it
-     equally at BOTH ends, so the heading rose under the header on a short or narrow window. A minimum lets
-     the screen grow and the page scroll instead. The gutter keeps the keys off the edges of the page. */
-  min-height: calc(100vh - 56px - 32px);
+  /* Takes what the header and footer leave, and grows past it when the content is taller (`main` is a column
+     with a minimum height, so the page scrolls rather than the screen overflowing at both ends). The gutter
+     keeps the keys off the edges of the page. */
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;

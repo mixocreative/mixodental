@@ -15,6 +15,26 @@ Every icon in the app is one SVG file in this folder. To change an icon, replace
 | `orient.svg` | Orientation bar, Auto orientation button (the box with a turn arrow) |
 | `warning.svg` | Viewport, unresolved-point bubble: a support tip, lowest point or island that still has no support (the warning triangle) |
 
+## Where a new icon comes from
+
+Do not draw one by hand. Lucide is 2313 icons already drawn to this app's house style - `0 0 24 24`,
+`fill="none"`, `stroke="currentColor"`, round caps and joins - so take one from there:
+
+```
+npm run icons:add -- arrow-left back      # lucide's "arrow-left", saved here as back.svg
+npm run icons:add -- trash-2              # keeps lucide's own name
+```
+
+Browse the set at <https://lucide.dev/icons>. The script copies the file in and puts it in house style on the
+way: it takes `width` and `height` off the root (the size comes from the app's CSS) and sets the stroke to the
+house 1.7, so a Lucide icon sits beside the hand-drawn dental ones without looking heavier.
+
+`lucide-static` is a DEV dependency and nothing imports it, so the app ships only the icons it uses. The copy
+keeps Lucide's licence line (ISC). The dental icons - the aligner and the denture - are the owner's own
+drawings, because no icon set has those.
+
+`src/ui/icons.test.ts` holds this folder to the rules below.
+
 ## Rules for a replacement
 
 - Keep the same file name. The app finds the icon by name.

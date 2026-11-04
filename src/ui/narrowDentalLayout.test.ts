@@ -23,8 +23,19 @@ function rulesIn(query: string, selector: string): string {
 }
 
 describe('dental steps in a narrow window (900 x 700)', () => {
-  it('the dental viewport takes the window height, not 58 % of it', () => {
-    expect(rulesIn('(max-width: 1100px)', '.workspace--dental')).toMatch(/grid-template-rows: max\(calc\(100vh - \d+px\)/);
+  /*
+   * This used to be written as `max(calc(100vh - 140px), 520px)`: the window less a GUESS at the chrome. The
+   * guess was wrong - the chrome is 143px, and on this window the row came out 560px inside a 643px box, so
+   * some of the gap the audit found was still there. The shell is a column now (`main` in src/styles.css) and
+   * measures its own parts, so the row simply takes what it is given and never drops under its floor.
+   */
+  it('the dental viewport fills what the shell gives it, not 58 % of the window', () => {
+    // Two rules in this query set the rows: the narrow stacking rule (58 % of the window) and the dental
+    // override after it. The LAST one wins, and it must be the override.
+    const rule = rulesIn('(max-width: 1100px)', '.workspace--dental');
+    const rows = [...rule.matchAll(/grid-template-rows:\s*([^;]+)/g)].map((found) => found[1].trim());
+    expect(rows.at(-1)).toMatch(/^minmax\(\d+px, 1fr\)$/);
+    expect(rule).not.toContain('100vh');
   });
 
   it('the background-work list sits above the docked edit bar, not over its Back button', () => {

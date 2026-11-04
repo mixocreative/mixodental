@@ -1431,7 +1431,8 @@ export default function App() {
       </aside> : null}
     </section>
     </>}
-    <footer>
+    {/* A band under the first page, an overlay on the scene once the workspace is up (src/styles.css). */}
+    <footer className={startScreen === null ? 'on-scene' : undefined}>
       <span>{plural(scene.units.length, '1 object', '{n} objects')}</span>
       {activeUnit && <span>{t('{n} triangles', { n: (activeUnit.source.indices.length / 3).toLocaleString() })}</span>}
       {contactCounts && <span className={building(activeUnit!) ? 'building' : undefined} aria-busy={building(activeUnit!) || undefined} {...hint('Automatic supports you removed by hand. Clear manual edits brings them back')}>{t('{auto} automatic, {manual} manual, {removed} removed', contactCounts)}</span>}
