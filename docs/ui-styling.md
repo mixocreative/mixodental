@@ -63,7 +63,19 @@ same weight of statement on a phone and on a studio display, in every language.
 
 **Two bundled faces, the Latin ones. Kana, kanji and Chinese characters come from the reader's own machine.**
 
-Atkinson Hyperlegible Next leads every sans stack and draws every Latin word and every number - it is drawn for legibility, so 0 and O, 1 and l and I stay apart, which matters on a measurement. Noto Serif leads every serif stack and draws the title: it is the same family as the Noto Serif JP and Noto Serif TC behind it, so a title is one face in all three languages, and it is drawn at every weight, so a heavy title is a real bold rather than a browser smearing one weight sideways. Only its Latin subsets are bundled. These two are the part of the interface that is the same in every language, so they are bundled and look the same on every machine. Together they are about 100 KB.
+Atkinson Hyperlegible Next leads every sans stack and draws every Latin word and every number - it is drawn for legibility, so 0 and O, 1 and l and I stay apart, which matters on a measurement. Noto Serif leads every serif stack and draws the title: it is the same family as the Noto Serif JP and Noto Serif TC behind it, so a title is one face in all three languages, and it is drawn at every weight, so a heavy title is a real bold rather than a browser smearing one weight sideways. Only its `latin` subset is bundled.
+
+**Japanese is bundled too, but cut to size.** A CJK face is tens of megabytes, which is why this app used to
+bundle none - and that left the Japanese title at whatever weight the reader's machine happened to have, or at
+no weight at all on a machine with no Japanese serif installed. The Japanese here is a closed set, every word
+of it in `src/locales/ja.ts`, so **Noto Serif JP** is subset to exactly those characters: 610 glyphs out of
+some seventeen thousand, 115 kB a weight instead of 1.5 MB. It is the Japanese sibling of the Noto Serif that
+draws the Latin, so the two languages are one family. Nothing downloads it unless a Japanese word is on screen,
+and then only the weight that word is set in. Run `npm run fonts` after changing `ja.ts`;
+`japaneseSubset.test.ts` fails if the two fall out of step.
+
+Chinese is still the reader's own machine: `--font-title-zh` names the platform faces in order, and the
+Traditional Chinese kanji forms differ from the Japanese ones, so the two must never share a face. These two are the part of the interface that is the same in every language, so they are bundled and look the same on every machine. Together they are about 100 KB.
 
 No CJK face is bundled: every one worth having is tens of megabytes, and a clinic's machine already has a good one. Each stack names the platform faces in order instead - Japanese and Traditional Chinese separately, because their kanji forms differ, which is why **Chinese must never fall back to the Japanese face**.
 
