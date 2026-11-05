@@ -36,6 +36,55 @@ describe('dental Step 2 tools (B3)', () => {
     expect(canvasGesture(gesture(paint)).kind).toBe('dental-area');
   });
 
+  /*
+   * GOING BACK GOES OUT ONE LEVEL. The rungs, from the inside out: the tool in hand goes down, then the
+   * step, then the flow. Before this one Esc anywhere left the whole flow, which is a long way to travel
+   * for the key a drawing program uses to put the brush down.
+   */
+  it('picking a tool only ever ARMS it, however many times the same one is picked', () => {
+    const paint = run(area, { type: 'setDentalTool', tool: 'paint' });
+    expect(paint).toMatchObject({ tool: 'paint', dentalToolArmed: true });
+    /*
+     * NOT A TOGGLE, deliberately. P/E/A/S run this same path, so a toggle would make "press A to put Add
+     * in hand" depend on what was in hand before - the walk caught exactly that, pressing `a` before
+     * setting Click reach and having the field taken away. A pressed segment that unpresses on a second
+     * press is also a checkbox in a radio button's clothes, and a double-click would empty the hand.
+     */
+    expect(run(paint, { type: 'setDentalTool', tool: 'paint' })).toMatchObject({ tool: 'paint', dentalToolArmed: true });
+    expect(run(paint, { type: 'setDentalTool', tool: 'paint' }, { type: 'setDentalTool', tool: 'paint' })).toMatchObject({ dentalToolArmed: true });
+    expect(run(paint, { type: 'setDentalTool', tool: 'erase' })).toMatchObject({ tool: 'erase', dentalToolArmed: true });
+  });
+
+  it('puts the tool down on its own event, which is the only way back to an empty hand', () => {
+    const paint = run(area, { type: 'setDentalTool', tool: 'paint' });
+    const down = run(paint, { type: 'dropDentalTool' });
+    // The tool is still NAMED - the switch knows which one would come back - but nothing is in hand.
+    expect(down).toMatchObject({ tool: 'paint', dentalToolArmed: false });
+    expect(gesture(down)).toMatchObject({ kind: 'dental-area', brush: undefined, edit: undefined });
+    expect(run(down, { type: 'setDentalTool', tool: 'paint' })).toMatchObject({ tool: 'paint', dentalToolArmed: true });
+    // Nothing in hand: the event is inert rather than a new object for React to re-render on.
+    expect(run(area, { type: 'dropDentalTool' })).toBe(area);
+  });
+
+  it('stops advertising Esc on Put it down while a selection would take the press', () => {
+    expect(resolve('dental.toolDown', ui({ dentalToolArmed: true })).shortcut).toBe('Esc');
+    expect(resolve('dental.toolDown', ui({ dentalToolArmed: true, selection: 2 })).shortcut).toBeUndefined();
+    // And the press itself goes to the rung above: the selection, then the tool.
+    const press = (over: Partial<UiState>) => keyAction({ key: 'Escape', ctrl: false, shift: false, target: null, ui: ui(over) }).command;
+    expect(press({ dentalToolArmed: true, selection: 2 })).toBe('edit.clearSelection');
+    expect(press({ dentalToolArmed: true, selection: 0 })).toBe('dental.toolDown');
+  });
+
+  it('offers Put it down only while a tool IS in hand, in the steps that have tools', () => {
+    expect(resolve('dental.toolDown', ui({ dentalToolArmed: true })).visible).toBe(true);
+    expect(resolve('dental.toolDown', ui({ dentalToolArmed: true })).enabled).toBe(true);
+    expect(resolve('dental.toolDown', ui({})).visible).toBe(false);
+    expect(resolve('dental.toolDown', ui({ dentalStage: 'review', dentalToolArmed: true })).visible).toBe(true);
+    for (const dentalStage of ['type', 'aligner', 'rim'] as const) {
+      expect(resolve('dental.toolDown', ui({ dentalStage, dentalToolArmed: true })).visible, dentalStage).toBe(false);
+    }
+  });
+
   it('Add is forced to add in Step 2, even with Remove left on', () => {
     const remove = run(area, { type: 'setDentalTool', tool: 'add' }, { type: 'setAddAction', action: 'remove' });
     expect(canvasGesture(gesture(remove))).toEqual({ kind: 'add', remove: false });
@@ -80,6 +129,9 @@ describe('dental Step 2 tools (B3)', () => {
     expect(press('Delete', { selection: 2 })).toBe('edit.deleteSelection');
     expect(press('Backspace', { selection: 2 })).toBe('edit.deleteSelection');
     expect(press('Escape', { selection: 2 })).toBe('edit.clearSelection');
+    // Esc out of a tool, then out of the flow: a selection first, then the tool in hand, then the flow.
+    expect(press('Escape', { selection: 2, dentalToolArmed: true })).toBe('edit.clearSelection');
+    expect(press('Escape', { selection: 0, dentalToolArmed: true })).toBe('dental.toolDown');
     expect(press('Escape', { selection: 0 })).toBe('dental.exit');
     expect(press('Delete', { selection: 0 })).toBeUndefined();
   });

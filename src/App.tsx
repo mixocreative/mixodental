@@ -1195,6 +1195,8 @@ export default function App() {
       case 'dental.tool.erase': return send({ type: 'setDentalTool', tool: 'erase' });
       case 'dental.tool.add': return send({ type: 'setDentalTool', tool: 'add' });
       case 'dental.tool.select': return send({ type: 'setDentalTool', tool: 'select' });
+      // Going back out one level: the tool goes down and the step stays. Esc's first rung, and its key.
+      case 'dental.toolDown': return send({ type: 'dropDentalTool' });
       case 'edit.add': return send({ type: 'setAddAction', action: 'add' });
       case 'edit.remove': return send({ type: 'setAddAction', action: 'remove' });
       case 'edit.dragSelect': return send({ type: 'setBrushMode', mode: 'select' });

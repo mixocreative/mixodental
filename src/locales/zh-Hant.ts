@@ -715,6 +715,8 @@ export const zhHant: Dictionary = {
   '{name} is the only aligner type so far.': '{name} 是目前唯一的牙套類型。',
 
   'No tool in hand. Choose one above; dragging the model turns the view.': '未選取工具。請選擇上方工具；拖曳模型會旋轉視角。',
+  'Put it down': '放下工具',
+  'Put the tool down. The model goes inert and a drag turns the view': '放下工具。模型將停止回應，拖曳即可旋轉視角',
   // Step 1 rim define mode: the operator draws the rim detection could not find
   'Points': '點數',
   'Loop': '輪廓',
@@ -750,6 +752,7 @@ export const zhHant: Dictionary = {
   'Add an aligner first.': '請先新增牙套。',
   'Rotate the aligner to the proposed orientation again': '再次將牙套旋轉至建議方向',
   'Return to the previous step and keep your edits': '返回上一步並保留您的編輯',
+  'Leave rim define mode without a rim. Step 1 keeps the notice that sent you here': '在沒有邊緣的情況下離開定義邊緣模式。步驟 1 會保留引導您至此的提示',
   'Exit': '離開',
   'Leave the dental flow. The aligner stays on the plate without supports': '離開牙科流程。牙套會留在底板上，不加支撐',
   'Orienting {name}': '正在調整 {name} 的方向',

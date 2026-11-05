@@ -61,6 +61,12 @@ export type DentalEvent =
    */
   | { type: 'setDentalTool'; tool: EditTool }
   /**
+   * Puts the tool down without picking another: the step stays, the model goes inert and a drag turns the
+   * view again. This is the first rung of GOING BACK OUT ONE LEVEL - Esc, and the dock's own Put it down
+   * key - so that leaving a tool never also leaves the step, and leaving a step never also leaves the flow.
+   */
+  | { type: 'dropDentalTool' }
+  /**
    * Done in rim define mode: the drawn rim is the aligner's. Back to Step 1, and `dentalRimOwn` stays on,
    * which is what switches auto orientation OFF for this aligner - the operator's rim is not re-detected,
    * and there is no print-angle scan to run without a detected arch front.
@@ -138,7 +144,7 @@ declare module '@mixo-geocore/editing/commands' {
   interface ExtraCommandIds {
     'supports.dentalAuto': true;
     'dental.useDetected': true; 'dental.next': true; 'dental.generate': true; 'dental.back': true; 'dental.exit': true; 'dental.finish': true; 'dental.addAnother': true;
-    'dental.tool.paint': true; 'dental.tool.erase': true; 'dental.tool.add': true; 'dental.tool.select': true;
+    'dental.tool.paint': true; 'dental.tool.erase': true; 'dental.tool.add': true; 'dental.tool.select': true; 'dental.toolDown': true;
     'dental.rim.place': true; 'dental.rim.adjust': true; 'dental.rim.close': true; 'dental.rim.clear': true; 'dental.rim.done': true;
   }
   interface UiState {
@@ -179,7 +185,7 @@ declare module '@mixo-geocore/editing/commands' {
 
 const isDentalEvent = (event: SessionEvent): event is DentalEvent => DENTAL_EVENTS.has(event.type);
 const DENTAL_EVENTS = new Set<string>(['enterDental', 'chooseDentalProfile', 'startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
-  'dentalOrientFailed', 'dentalRimNeeded', 'setDentalRimTool', 'setDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
+  'dentalOrientFailed', 'dentalRimNeeded', 'setDentalRimTool', 'setDentalTool', 'dropDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
   'addAnotherDental', 'backDental', 'setDentalRadius']);
 
 const finished = (state: EditSession, unitId: string): readonly string[] => (state.dentalFinished.includes(unitId) ? state.dentalFinished : [...state.dentalFinished, unitId]);
@@ -225,7 +231,21 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
         ? { ...state, dentalStage: 'rim', dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: event.notices, dentalRimTool: 'place', dentalRimOwn: true }
         : state;
     case 'setDentalTool':
+      /*
+       * PICKING A TOOL ARMS IT, AND NEVER PUTS IT DOWN, however many times the same one is picked. It was
+       * briefly a toggle - press the pressed tool to clear the switch - and that was wrong twice over.
+       * The keys P/E/A/S run the same path, so "press A to make sure Add is in hand" stopped being true
+       * and started depending on what was in hand before; the walk caught it at once, by pressing `a`
+       * before setting Click reach and getting the field taken away instead. And a segment in a switch
+       * that is pressed to UNpress it is a checkbox wearing a radio button's clothes: a double-click,
+       * which operators do, would silently empty the operator's hand.
+       *
+       * The way out of a tool is therefore explicit and never ambiguous: Esc, or the Put it down key
+       * (`dental.toolDown`) that sits beside the switch while a tool is in hand.
+       */
       return state.mode === 'dental' ? { ...state, tool: event.tool, dentalToolArmed: true } : state;
+    case 'dropDentalTool':
+      return state.mode === 'dental' && state.dentalToolArmed ? { ...state, dentalToolArmed: false } : state;
     case 'setDentalRimTool':
       return state.mode === 'dental' && state.dentalStage === 'rim' ? { ...state, dentalRimTool: event.tool } : state;
     // Done: back to Step 1 with the operator's rim, and `dentalRimOwn` left on so nothing detects over it.
@@ -321,6 +341,8 @@ const reviewing = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dent
 const area = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' && s.dentalStage === 'area';
 /** Rim define mode: Step 1's detour where the operator draws the rim detection could not find. */
 const rim = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' && s.dentalStage === 'rim';
+/** A tool is in hand in one of the two steps that have tools, so there is something to put down. */
+const toolInHand = (s: UiState) => (area(s) || reviewing(s)) && Boolean(s.dentalToolArmed);
 
 registerEditMode({
   id: 'dental',
@@ -360,7 +382,15 @@ registerEditMode({
     if (inArea && !ctrl && lower === 's') return runKey('dental.tool.select');
     if ((inArea || inReview) && hasSelection && (key === 'Delete' || key === 'Backspace')) return runKey('edit.deleteSelection');
     if ((inArea || inReview) && hasSelection && key === 'Escape') return runKey('edit.clearSelection');
-    // The dental flow's lock note promises Esc: it leaves with the aligner on the plate and no supports.
+    /*
+     * ESC GOES BACK OUT ONE LEVEL, never further. Before this, one Esc anywhere in the flow left the whole
+     * flow - from inside a tool, or from inside rim define mode - which is a long way to travel for a key
+     * a drawing program uses to put the brush down. So: the tool in hand goes down first; from a mode, the
+     * mode is left; and only with nothing in hand and no mode to leave does Esc leave the flow, which is
+     * what the dental lock note promises (the aligner stays on the plate without supports).
+     */
+    if ((inArea || inReview) && key === 'Escape' && ui.dentalToolArmed) return runKey('dental.toolDown');
+    if (rim(ui) && key === 'Escape') return runKey('dental.back');
     if (key === 'Escape') return runKey('dental.exit');
     return undefined;
   },
@@ -408,9 +438,38 @@ registerCommands({
     visible: (s) => s.mode === 'dental', enabled: (s) => !s.generating && Boolean(s.dentalPreviewReady),
     disabledReason: (s) => (s.generating ? generatingReason : s.dentalPreviewReady ? undefined : { key: 'Wait for safe dental tips before continuing.' }),
   },
+  /*
+   * One control, two honest readings, because the flow holds two kinds of place. In a STEP it is step
+   * navigation: the arrow beside Next, back to the step before. In a MODE - rim define mode is the flow's
+   * one such detour - it is the way OUT OF THE MODE, the counterpart of that mode's Done, so it is worded
+   * Cancel, carries Esc, and says what leaving costs. The same key never means both at once: a mode is
+   * never on screen at the same time as the step dock that owns the arrow.
+   */
   'dental.back': {
-    role: 'secondary', label: () => 'Back', hint: () => 'Return to the previous step and keep your edits',
+    role: 'secondary',
+    shortcut: (s) => (rim(s) ? 'Esc' : undefined),
+    label: (s) => (rim(s) ? 'Cancel' : 'Back'),
+    hint: (s) => (rim(s)
+      ? 'Leave rim define mode without a rim. Step 1 keeps the notice that sent you here'
+      : 'Return to the previous step and keep your edits'),
     visible: (s) => s.mode === 'dental' && s.dentalStage !== 'type', enabled: always, disabledReason: never,
+  },
+  /*
+   * Put it down: the first rung of going back out one level. It is shown only while a tool IS in hand,
+   * beside the switch that picked it, which is the other way to the same place (press the pressed tool).
+   */
+  'dental.toolDown': {
+    role: 'secondary',
+    /*
+     * The cap goes AWAY while a selection is live, because then Esc clears the selection instead - it is
+     * the rung above this one. A key advertised on a button that the press would not reach is a lie, and
+     * the registry's own rule (commands.test: "does not advertise a key a command does not run on") is
+     * only checked over non-dental states, so this one has to be got right by hand.
+     */
+    shortcut: (s) => (s.selection > 0 ? undefined : 'Esc'),
+    label: () => 'Put it down',
+    hint: () => 'Put the tool down. The model goes inert and a drag turns the view',
+    visible: toolInHand, enabled: toolInHand, disabledReason: never,
   },
   'dental.exit': {
     role: 'secondary', label: () => 'Exit', hint: (s) => kindText('Leave the dental flow. The aligner stays on the plate without supports', s.dentalKind),

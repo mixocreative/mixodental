@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { gesture } from '@mixo-geocore/editing/gesture';
 import { resolve, type UiState } from '@mixo-geocore/editing/commands';
+import { keyAction } from '@mixo-geocore/editing/keys';
 import { initialSession, reduceSession, type EditSession, type SessionEvent } from '@mixo-geocore/editing/session';
 import { READY } from './uiFixture';
 import '../editingMode';
@@ -131,6 +132,29 @@ describe('rim define mode: its keys', () => {
     const ready = at({ dentalRimAnchors: 8, dentalRimClosed: true, dentalRimEngineReady: true });
     expect(resolve('dental.rim.done', ready).enabled).toBe(true);
     expect(resolve('dental.rim.done', ready).disabledReason).toBeUndefined();
+  });
+
+  /*
+   * THE WAY OUT OF A MODE IS OUT OF THE MODE. Rim define mode is the flow's one modal detour, so its back
+   * control is the counterpart of its Done - worded Cancel, carrying Esc, saying what leaving costs -
+   * rather than the step arrow, which in every other dock means "the step before this one". And Esc here
+   * leaves the MODE and nothing more: it used to leave the whole dental flow from inside a drawing.
+   */
+  it('wears the mode\'s own words on the way out, not the step arrow\'s', () => {
+    const back = resolve('dental.back', at({}));
+    expect(back).toMatchObject({ label: 'Cancel', shortcut: 'Esc', visible: true, enabled: true });
+    expect(back.hint).toBe('Leave rim define mode without a rim. Step 1 keeps the notice that sent you here');
+    // Everywhere else the same control is step navigation, and says so.
+    const inStep = resolve('dental.back', at({ dentalStage: 'area' }));
+    expect(inStep).toMatchObject({ label: 'Back', shortcut: undefined });
+    expect(inStep.hint).toBe('Return to the previous step and keep your edits');
+  });
+
+  it('leaves the mode on Esc, and does not leave the flow', () => {
+    const action = keyAction({ key: 'Escape', ctrl: false, shift: false, target: null, ui: at({ dentalRimAnchors: 6 }) });
+    expect(action.command).toBe('dental.back');
+    // The step it lands on is Step 1, the notice that sent the operator here included.
+    expect(run(drawing, { type: 'backDental' }).dentalStage).toBe('aligner');
   });
 
   it('keeps its keys out of every other step', () => {

@@ -1246,6 +1246,45 @@ async function walk(url, scratch, dentalFixture) {
         await d.stroke(bodyStrokes[0][1], bodyStrokes[0][0], 20);
         await d.idle(600);
         await d.measureCanvas();
+
+        /*
+         * GOING BACK GOES OUT ONE LEVEL. Esc used to leave the WHOLE dental flow from inside a tool, which
+         * is a long way to travel for the key a drawing program uses to put the brush down. Now the rungs
+         * run from the inside out: tool, step, flow. The badge check is the point of the whole case - if
+         * Esc took the flow with it, there would be no Step 2 badge left to read.
+         */
+        const stepBadge = async () => (await page.locator('.edit-badge').first().textContent()) ?? '';
+        const putDown = () => bar.getByRole('button', { name: 'Put it down', exact: true });
+
+        await bar.getByRole('button', { name: 'Paint', exact: true }).click();
+        check('u10i the way out of a tool is on screen only while a tool is in hand',
+          (await putDown().count()) === 1, `Put it down keys: ${await putDown().count()}`);
+        await page.keyboard.press('Escape');
+        await d.idle(300);
+        const afterEsc = await pressedNow();
+        check('u10j Esc puts the tool down and the step stays',
+          afterEsc === '' && /Step 2/i.test(await stepBadge()) && (await putDown().count()) === 0,
+          `pressed "${afterEsc}", badge "${(await stepBadge()).slice(0, 24)}"`);
+
+        /*
+         * The visible twin of Esc is the Put it down key, NOT a second press on the tool. Picking a tool
+         * only ever arms it: the keys P/E/A/S run the same path, so a toggle would make "press A to put
+         * Add in hand" depend on what was in hand before - which this walk caught, pressing `a` before
+         * setting Click reach and finding the field gone. Both halves are checked here.
+         */
+        await bar.getByRole('button', { name: 'Paint', exact: true }).click();
+        const armedAgain = await pressedNow();
+        await bar.getByRole('button', { name: 'Paint', exact: true }).click();
+        await d.idle(300);
+        const stillArmed = await pressedNow();
+        check('u10k picking the tool already in hand leaves it in hand, so its key stays idempotent',
+          armedAgain === 'Paint' && stillArmed === 'Paint', `armed "${armedAgain}" -> pressed "${stillArmed}"`);
+
+        await putDown().click();
+        await d.idle(300);
+        const afterKey = await pressedNow();
+        check('u10l the Put it down key empties the hand and takes itself away',
+          afterKey === '' && (await putDown().count()) === 0, `pressed "${afterKey}"`);
       }
 
       const paintStroke = async (kind) => {

@@ -87,7 +87,12 @@ export function EditTools({ gesture, ui, clickReach, send, run, children, engage
     </div>
     {/* With no tool in hand the step says so, in the same place it would name the tool that is. */}
     {engaged && gesture === undefined && <p className="tool-engaged" role="status">{t('No tool in hand. Choose one above; dragging the model turns the view.')}</p>}
-    {engaged && gesture !== undefined && <p className="tool-engaged" role="status"><strong>{gesture.kind === 'add' ? t('Adding supports:') : t('Selecting supports:')}</strong> {gesture.kind === 'add' ? t(kindText('click the aligner to add one; right-click or Ctrl+click removes.', ui.dentalKind)) : t('click or drag over supports, then press Delete.')}</p>}
+    {engaged && gesture !== undefined && <div className="edit-row tool-engaged-row">
+      <p className="tool-engaged" role="status"><strong>{gesture.kind === 'add' ? t('Adding supports:') : t('Selecting supports:')}</strong> {gesture.kind === 'add' ? t(kindText('click the aligner to add one; right-click or Ctrl+click removes.', ui.dentalKind)) : t('click or drag over supports, then press Delete.')}</p>
+      {/* Only the dental reading of these tools can be put down: Support Edit Mode's own tool is its mode. */}
+      {resolve('dental.toolDown', ui).visible
+        && <CommandButton command={resolve('dental.toolDown', ui)} run={run} uiName="dental-tool-down-review" />}
+    </div>}
     {gesture !== undefined && gesture.kind === 'add' && <div className="edit-row">
       <Segmented label={t('What a click does')} value={ui.addAction} onChange={(action) => run(action === 'add' ? 'edit.add' : 'edit.remove')} options={(['edit.add', 'edit.remove'] as const).map((id) => {
         const { label, hint: text } = resolve(id, ui);

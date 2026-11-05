@@ -424,6 +424,11 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
 /* The key under the pointer comes forward, or the one beside it covers the seam it just lit. */
 .step-nav > button:hover:not(:disabled), .step-nav > button:focus-visible { position: relative; z-index: 1; }
 .step-nav > .back-key--arrow { flex: 0 0 auto; width: 44px; padding: 0; }
+/* A MODE'S TWO WAYS OUT, both worded: leave it, or finish it. Deliberately NOT `.step-nav`'s seamless pair -
+   back and on are the two ends of one journey and belong in one block, while Cancel and Done are opposites,
+   and a seam between opposites invites the wrong one. Done sits last, where the eye ends, as the primary. */
+.mode-nav { flex-wrap: nowrap; align-items: stretch; gap: 6px; }
+.mode-nav > button { flex: 1 1 0; }
 /* The way on carries its arrow AFTER the word, the way the reader is going. */
 .next-key { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .next-key > svg { width: 16px; height: 16px; flex: none; }
@@ -470,7 +475,11 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
 .confirm-modal-row button { flex: 1 1 0; }
 /* The circle at the centre of the view while its size slider moves. */
 .brush-circle.brush-circle--preview { left: 50%; top: 50%; transform: translate(-50%, -50%); }
-/* Dental Step 3: the engaged tool and what a click does, under the tool switch. */
+/* Dental Step 3: the engaged tool and what a click does, under the tool switch, with the way to put it
+   down at the end of the line - the sentence says what the tool does, the key undoes having it. */
+.tool-engaged-row { flex-wrap: nowrap; gap: 8px; }
+.tool-engaged-row > .tool-engaged { flex: 1 1 auto; }
+.tool-engaged-row > button { flex: 0 0 auto; }
 .tool-engaged { margin: 0; font-size: 11.5px; color: var(--muted); }
 .tool-engaged strong { color: var(--red); font-weight: 600; }
 /* One-line guidance inside the edit bar (zones above the plate). */

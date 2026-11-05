@@ -151,6 +151,18 @@ rim anchors is neither. Two tools:
 - **Place** — click on the model adds an anchor at the surface hit.
 - **Adjust** — drag an existing anchor; it stays on the surface.
 
+### The two ways out: Cancel and Done
+
+This is a **mode**, not a step, so its footer is not the step dock's arrow-and-Next pair. The way out is
+worded, the same as the way on: **Cancel | Done**, with a gap rather than a seam, because the two are
+opposites and a seam between opposites invites the wrong press. Cancel carries **Esc** and says what
+leaving costs — Step 1 keeps the notice that sent the operator here, and `dentalRimOwn` is cleared, so
+leaving without finishing means there is no operator rim to protect from detection.
+
+Esc here leaves the **mode** and nothing more. See `docs/design/2026-11-05-back-out-one-level.md` for the
+rule this follows (a tool goes down, then a mode is left, then the flow) and why the step arrow is a
+different control from the mode's Cancel.
+
 ### Anchors, and the curve between them
 
 An **anchor** is what the operator places and can move: a unit-local surface point plus its surface normal.

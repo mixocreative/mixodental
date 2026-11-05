@@ -4,7 +4,6 @@ import { CommandButton } from '../../components/CommandButton';
 import { Panel } from '../../components/Panel';
 import { Field } from '../../components/Field';
 import { Segmented } from '../../components/Segmented';
-import { Icon } from '../../ui/Icon';
 import { t } from '../../i18n';
 import { rimDoneReason, rimLoopText } from './rimStepText';
 import type { DentalRimTool } from '../editingMode';
@@ -75,8 +74,13 @@ export function DentalRimStep({ ui, run }: { ui: UiState; run: (id: CommandId) =
 
     <div className="dental-footer">
       <section className="dental-block dental-finish">
-        <div className="edit-row step-nav">
-          <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key back-key--arrow" labelHidden><Icon name="back" /></CommandButton>
+        {/*
+          CANCEL AND DONE, not an arrow and Done. This is a mode, not a step: its two ways out are finish
+          it and leave it, so the way out wears a word like the way on, and neither pretends to be the
+          step arrow that would take the operator somewhere else entirely.
+        */}
+        <div className="edit-row mode-nav">
+          <CommandButton command={resolve('dental.back', ui)} run={run} uiName="rim-cancel" />
           <CommandButton command={resolve('dental.rim.done', ui)} run={run} />
         </div>
       </section>

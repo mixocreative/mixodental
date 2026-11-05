@@ -11,7 +11,7 @@ const step3 = run(initialSession, { type: 'enterDental' }, { type: 'chooseDental
 const ui = (over: Partial<UiState>): UiState => ({ ...READY, mode: 'dental', dentalStage: 'review', ...over });
 
 describe('dental Step 3 keys', () => {
-  const press = (key: string, selection: number) => keyAction({ key, ctrl: false, shift: false, target: null, ui: ui({ selection }) });
+  const press = (key: string, selection: number, over: Partial<UiState> = {}) => keyAction({ key, ctrl: false, shift: false, target: null, ui: ui({ selection, ...over }) });
   it('Delete removes the selected supports and the first Esc drops the selection', () => {
     expect(press('Delete', 2).command).toBe('edit.deleteSelection');
     expect(press('Escape', 2).command).toBe('edit.clearSelection');
@@ -19,6 +19,12 @@ describe('dental Step 3 keys', () => {
   it('with nothing selected Esc exits the flow and Delete does nothing', () => {
     expect(press('Escape', 0).command).toBe('dental.exit');
     expect(press('Delete', 0).command).toBeUndefined();
+  });
+
+  /* Step 3's tools are Support Edit Mode's, so they put down the same way Step 2's do: Esc, one level. */
+  it('Esc puts the tool down before it will leave the flow', () => {
+    expect(press('Escape', 0, { dentalToolArmed: true }).command).toBe('dental.toolDown');
+    expect(press('Escape', 2, { dentalToolArmed: true }).command).toBe('edit.clearSelection');
   });
 });
 

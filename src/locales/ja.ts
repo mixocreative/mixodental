@@ -710,6 +710,8 @@ export const ja: Dictionary = {
   '{name} is the only aligner type so far.': '{name} は現時点で唯一のアライナーの種類です。',
 
   'No tool in hand. Choose one above; dragging the model turns the view.': 'ツールが選択されていません。上のツールを選択してください。モデルをドラッグすると視点が回転します。',
+  'Put it down': 'ツールを置く',
+  'Put the tool down. The model goes inert and a drag turns the view': 'ツールを置きます。モデルは反応しなくなり、ドラッグでビューを回転できます',
   // Step 1 rim define mode: the operator draws the rim detection could not find
   'Points': 'ポイント数',
   'Loop': '輪郭',
@@ -745,6 +747,7 @@ export const ja: Dictionary = {
   'Add an aligner first.': '先にアライナーを追加してください。',
   'Rotate the aligner to the proposed orientation again': 'アライナーをもう一度提案された向きに回転します',
   'Return to the previous step and keep your edits': '編集内容を保ったまま前のステップに戻ります',
+  'Leave rim define mode without a rim. Step 1 keeps the notice that sent you here': '縁を決めずに縁の定義モードを終了します。ステップ 1 にはここへ案内した通知が残ります',
   'Exit': '終了',
   'Leave the dental flow. The aligner stays on the plate without supports': 'デンタルフローを終了します。アライナーはサポートなしでプレートに残ります',
   'Orienting {name}': '{name} の向きを調整中',

@@ -35,7 +35,9 @@ const h = React.createElement;
 const noop = () => {};
 
 const ui = {
-  mode: 'dental', dentalStage: 'review', dentalKind: 'aligner', dentalReviewReady: true, dentureResolvable: 0,
+  // `dentalToolArmed` goes with the `gesture` the blocks are handed: a screen that shows a tool pressed and
+  // no way to put it down would be a screen of a dock that does not exist.
+  mode: 'dental', dentalStage: 'review', dentalKind: 'aligner', dentalReviewReady: true, dentureResolvable: 0, dentalToolArmed: true,
   selection: 0, customisedActive: 0, addAction: 'add', tool: 'add', method: 'click', dragAction: 'select',
   canUndo: false, active: true, supported: true,
 };
@@ -72,6 +74,11 @@ const SCREENS = [
       h(SupportSettingsBlock, { key: 's', review: review(), kind: 'aligner', onAdjust: noop }),
       h(EditSupportsBlock, { key: 'e', gesture: { kind: 'add' }, ui, review: review(), send: noop, run: noop, kind: 'aligner' }),
       h(IdLabelBlock, { key: 'i', review: review(), kind: 'aligner' })),
+  ]],
+  ['aligner-step3-no-tool', 'Aligner Step 3 - Adjust open with NO tool in hand, the state a step opens in', () => [
+    h(ReviewSummary, { key: 'v', kind: 'aligner', tone: 'ready', line: 'Supports ready. Every point is held.', open: false, onToggle: noop }),
+    h(Panel, { key: 'a', title: 'Adjust', ui: 'aligner-adjust', collapsible: true, defaultOpen: true },
+      h(EditSupportsBlock, { key: 'e', gesture: undefined, ui: { ...ui, dentalToolArmed: false }, review: review(), send: noop, run: noop, kind: 'aligner' })),
   ]],
   ['aligner-step3-building', 'Aligner Step 3 - still building, so there is nothing to open yet', () => [
     h(ReviewSummary, { key: 'v', kind: 'aligner', tone: 'building', line: 'Building supports…' }),

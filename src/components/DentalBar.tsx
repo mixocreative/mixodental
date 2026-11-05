@@ -155,6 +155,9 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         {gesture.edit && clickReach && (gesture.edit.kind === 'add' || gesture.edit.kind === 'pick') && <ClickReachField ui={ui} {...clickReach} />}
         {gesture.edit && ui.selection > 0 && <span className="edit-count">{t('{n} selected', { n: ui.selection })}</span>}
         {gesture.edit && ['edit.clearSelection', 'edit.deleteSelection'].map((id) => resolve(id as CommandId, ui)).filter((command) => command.visible).map((command) => <CommandButton key={command.id} command={command} run={run} />)}
+        {/* The way out of the tool, at the row's end: the visible twin of Esc, shown only with one in hand. */}
+        {resolve('dental.toolDown', ui).visible
+          && <CommandButton command={resolve('dental.toolDown', ui)} run={run} uiName="dental-tool-down" />}
       </div>
       </Panel>
       {tuning && tuningLimits && <Panel title={t('Support area')} ui="dental-area-shape">
