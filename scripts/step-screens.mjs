@@ -24,6 +24,10 @@ import { ResolveSection } from '../src/denture/steps/supports/ResolveSection';
 import { DentureSettingsSection } from '../src/denture/settings/DentureSettingsSection';
 import { DEFAULT_DENTURE_OPTIONS } from '../src/denture/settings/dentureOptions';
 import { PartsList } from '../src/denture/parts/PartsList';
+import { DentalRimStep } from '../src/dental/rim/DentalRimStep';
+import { rimToolText } from '../src/dental/rim/rimStepText';
+// Registers the dental command rows, which the rim step resolves its keys and their reasons from.
+import '../src/dental/editingMode';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, '.stitch', 'screens');
@@ -89,7 +93,37 @@ const SCREENS = [
   ]],
 ];
 
-const css = ['src/fonts.css', 'src/styles.css', 'src/styles/theme.css']
+/** The ui the rim step reads: one drawing, at one moment. */
+const rimUi = (over = {}) => ({
+  mode: 'dental', dentalStage: 'rim', dentalKind: 'aligner', dentalRimTool: 'place', dentalRimAnchors: 0,
+  selection: 0, customisedActive: 0, addAction: 'add', tool: 'add', method: 'click', dragAction: 'select',
+  canUndo: false, active: true, supported: true, ...over,
+});
+
+/**
+ * Rim define mode, badge and all: Step 1's detour, where the operator draws the rim detection could not
+ * find. `whole: true` - these build their own dock.
+ */
+const RIM_SCREENS = [
+  ['aligner-step1-rim-empty', 'Rim define mode - just opened, nothing placed yet', rimUi()],
+  ['aligner-step1-rim-open', 'Rim define mode - seven points down, the loop still open', rimUi({ dentalRimAnchors: 7 })],
+  ['aligner-step1-rim-adjusting', 'Rim define mode - Adjust in hand, moving a point', rimUi({ dentalRimAnchors: 12, dentalRimTool: 'adjust' })],
+  ['aligner-step1-rim-crossing', 'Rim define mode - the loop is closed but crosses itself', rimUi({ dentalRimAnchors: 9, dentalRimClosed: true, dentalRimProblem: 'SELF_INTERSECTING' })],
+  ['aligner-step1-rim-blocked', 'Rim define mode - a sound rim the engine cannot use yet', rimUi({ dentalRimAnchors: 14, dentalRimClosed: true })],
+  ['aligner-step1-rim-ready', 'Rim define mode - a sound rim, Done on', rimUi({ dentalRimAnchors: 14, dentalRimClosed: true, dentalRimEngineReady: true })],
+].map(([name, caption, ui]) => [name, caption, () => ({
+  chrome: [
+    h('div', { key: 'f', className: 'edit-frame', 'aria-hidden': 'true' }),
+    h('div', { key: 'b', className: 'edit-badge', role: 'status' },
+      'Step 1 \u00b7 Define the rim', h('span', { key: 's' }, 'upper-7'), h('b', { key: 'w' }, rimToolText(ui.dentalRimTool))),
+  ],
+  dock: h(DentalRimStep, { key: 'p', ui, run: noop }),
+}), true]);
+
+SCREENS.push(...RIM_SCREENS);
+
+// The app's own order (src/main.tsx): layout.css is what makes the dental docks a grid, badge included.
+const css = ['src/fonts.css', 'src/styles.css', 'src/styles/layout.css', 'src/styles/theme.css']
   .map((file) => readFileSync(join(ROOT, file), 'utf8')).join('\n')
   // The faces live in node_modules; a standalone file cannot reach them, and the system stack behind them
   // is what a reader without the bundle sees anyway.
@@ -98,15 +132,18 @@ const css = ['src/fonts.css', 'src/styles.css', 'src/styles/theme.css']
 // Start clean: a screen dropped from the list above must not linger and be uploaded as if current.
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
-for (const [name, caption, build] of SCREENS) {
+for (const [name, caption, build, whole = false] of SCREENS) {
   // The step as the app lays it out: the header strip, the viewport taking the width, and the step panel
   // DOCKED RIGHT. `.dental-side` already says where it goes (absolute, top 56, right 14, bottom 14, 300px
   // wide), so nothing here overrides it - the shell below just gives it the app's own frame to sit in.
+  const built = build();
+  const label = h('span', { key: 'l', style: { position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', color: 'var(--muted)', fontSize: '12px', letterSpacing: '.14em', textTransform: 'uppercase' } }, '3D viewport');
   const body = renderToStaticMarkup(
     h('div', { className: 'workspace workspace--dental', style: { position: 'relative', width: '100%', height: '100%' } },
-      h('div', { className: 'viewport' },
-        h('span', { style: { position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', color: 'var(--muted)', fontSize: '12px', letterSpacing: '.14em', textTransform: 'uppercase' } }, '3D viewport')),
-      h('aside', { className: 'dental-side' }, h('div', { className: 'dental-scroll' }, build()))));
+      // The mode's frame and badge belong to the viewport grid, which is where the app puts them.
+      // The grid the badge is placed by needs the viewport to have a height; in the app the shell gives it one.
+      h('div', { className: 'viewport', style: { position: 'relative', height: '100%' } }, label,
+        ...(whole ? [...built.chrome, built.dock] : [h('aside', { key: 'd', className: 'dental-side' }, h('div', { className: 'dental-scroll' }, built))]))));
   writeFileSync(join(OUT, `${name}.html`), `<!doctype html><html lang="en" data-theme="instrument"><head><meta charset="utf-8">
 <title>${caption}</title><style>${css}
   html, body { height: 100%; margin: 0; }
