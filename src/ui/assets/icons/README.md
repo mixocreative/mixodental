@@ -50,6 +50,44 @@ drawings, because no icon set has those.
 - No embedded bitmaps (no `<image>`, no base64 PNG or JPEG). Vector paths only.
 - One root `<svg>` per file. Comments are allowed.
 
+## Drawing a new one
+
+Most icons here come from [lucide](https://lucide.dev) (`lucide-static`, already a dependency), and the
+table above names the lucide icon behind each. Reach for lucide first: it has the common concepts and
+they already agree with each other. These rules are for the ones it cannot supply, which here means the
+dental ones - an aligner, a denture, a print-orientation box.
+
+- **Pick a keyline and fill it.** Decide whether the icon is a circle, a square, a wide rectangle or a
+  tall one, and let the main body fill that shape in at least one direction. Without this a "document"
+  and a "globe" end up looking like different sizes even though both are 24x24.
+- **Organic shapes may overshoot by about a unit.** A cloud or a row of gear teeth reads smaller than a
+  square of the same bounds, so let it break the keyline slightly rather than look shrunken.
+- **Nothing smaller than about 2.4 units** (roughly 1.9px at 24px). A dot, a tick or a tiny marker below
+  that turns to mush: enlarge it, or leave it out.
+- **A gap is either zero or at least 2 units.** Anything in between reads as a rendering fault rather
+  than a deliberate space.
+- **The arrowhead is one solid triangle** over the end of its shaft, never several strokes meeting at a
+  point, which blurs at small sizes.
+- **Draw the object, not the idea.** A literal thing the eye recognises at once. No figurative metaphors
+  - do not run a clock backwards to mean "history".
+- **Check it beside its neighbours, at the size it is actually used.** Screenshot them together.
+
+### Stroke weight follows the RENDERED size, not the file
+
+The family is `stroke-width="1.7"` on a 24 grid, with round caps and joins. That is a rule about how
+thick the line LOOKS, so an icon drawn at a different size or shown at a different size needs a
+different number to match:
+
+| Icon | Grid | `stroke-width` | Shown at | On screen |
+| --- | --- | --- | --- | --- |
+| the tool icons | 24 | 1.7 | 18-19px | ~1.3px |
+| `warning.svg` | 24 | **2** | 14px | ~1.2px |
+| `aligner`, `denture`, `generic` | 300 | **10** | `.choice-key-art` | ~1.3px |
+
+So `warning.svg` is not an outlier to be tidied away: at 14px a 1.7 would come out near 1.0px and look
+thin and broken beside everything else. Same for the 300-grid choice icons. **Before changing a weight
+to match the table, work out what it renders at.**
+
 ## See your change
 
 1. Run `npm run dev` from the project folder.
