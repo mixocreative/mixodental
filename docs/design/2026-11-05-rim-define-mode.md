@@ -1,5 +1,16 @@
 # Rim define mode — the operator draws the rim when detection cannot
 
+> **BUILT AND SHIPPED, 2026-11-06.** Rim define mode works end to end: a shape with no findable rim
+> opens it, the operator places anchors, drags them, closes the loop and presses Done, and the drawing
+> becomes the aligner's rim. The blocker this document was written around — no engine entry point could
+> build a visibility mask from arbitrary points — was closed by **geocore engine 61**
+> (`dental_rim_from_points`, geocore `8bd2430`).
+>
+> The sections below are kept as the reasoning that got there, not as a to-do list. Two of their
+> recommendations were **overturned by measurement** and are marked where they appear: the
+> opening-sign rule, and the assumption that a drawn rim reproduces a detected one.
+
+
 When automatic rim detection fails, the aligner is a dead end today: Step 1 says it could not be oriented,
 and `Next` declines because Step 2's support area is built from a rim nobody found. The owner's answer
 (2026-11-05) is to give the operator the rim:
@@ -407,13 +418,12 @@ its mask; the drawing is not.
   transform, reach Step 2. Checks lean on `data-ui` names, never prose.
 - The real-scan gate, since this touches the dental engine path.
 
-## 6. Open for the owner
+## 6. Open for the owner — all answered
 
-1. **The geocore call is the blocker.** `dental_rim_from_points` has to exist before this flow can produce a
-   usable aligner. Does that land first, or does the UI get built against a stub so the two can be reviewed
-   separately? My recommendation: specify the call now, build the host-side geometry and the mode against
-   it, and keep Done refusing with a plain sentence until the engine answers — the UI is reviewable on its
-   own and the stub never pretends to work.
+1. **The geocore call was the blocker, and it landed.** ANSWERED as recommended: the mode was built
+   against a Done that refused in a plain sentence, the engine followed, and the refusal was deleted
+   rather than left as a flag set permanently true. The UI was reviewable on its own throughout and the
+   stub never pretended to work, which is what that recommendation was for.
 2. **Anchors to curve: projection or geodesic.** Recommended projection, as above.
 3. **The opening-direction sign**: inferred with a visible, flippable arrow, as above — or asked outright
    ("which side is the opening?") as one step of the mode.
@@ -435,10 +445,22 @@ Genuinely new, and the state of each:
 
 - **The anchors → surface-following curve geometry** — built and tested as `src/core/surfacePath/`, pure
   and portable, 39 tests.
-- **Draggable in-scene anchor handles** — not started. Nothing in the app is draggable except the
-  `TransformControls` gizmo, so this is the one genuinely new piece of interaction.
-- **The stage, its panel and its overlay** — not started. A well-trodden path, per the mechanics above.
-- **The opening-direction sign** — the geometry is in place (`facingNormal` turns the normal to a side the
-  caller names and refuses to guess); the arrow and its flip are not built.
-- **The geocore call for the visibility mask** — specified for the other repo in
-  `docs/handoff/geocore-rim-from-points.md`. Still the one that gates a usable aligner.
+- **Draggable in-scene anchor handles** — **done.** `UnitObject` picks up the anchor under the press,
+  moves it with the pointer and commits once on release, so one drag is one entry on the app history.
+  A press on bare surface picks up nothing and orbits, which is the house rule with the anchor as what
+  decides it. Walk `u5d`/`u5e` prove the drag moves an anchor rather than leaving a new one behind.
+- **The stage, its panel and its overlay** — **done.** `src/dental/rim/` and
+  `src/components/viewport/RimDraftLayer.tsx`.
+- **The opening-direction sign** — **decided in the engine, not here, and not the way this document
+  proposed.** See the correction in section 3. The host's part is to show the flip when the engine
+  reports `rim-side-uncertain`; today that is a sentence in the status line rather than an arrow,
+  which is honest but is the last piece of this feature still worth building.
+- **The geocore call for the visibility mask** — **done**, geocore engine 61, commit `8bd2430`.
+  `dental_rim_from_points(model, points, flip, profile)` returning a `DentalRimResult`.
+
+### What is left
+
+One thing, and it is a refinement rather than a gap: **the flip control**. When the engine cannot tell
+which way the opening faces it says so and the operator is told to check the aligner is the right way
+up. An arrow they could turn over would be better than a sentence. Everything else in this document is
+built, gated and shipped.

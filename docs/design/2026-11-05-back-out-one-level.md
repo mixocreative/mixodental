@@ -145,5 +145,9 @@ Step 3, because the switch already there carries it.
   goes back to Select **and the Step 2 badge is still there**; the tool keys stay idempotent; Select is
   the first segment and one is always pressed.
 
+Rim define mode's own ladder is checked by `u5`–`u5h`, which now draw a rim for real: place, adjust,
+clear, close, and Done. Cancel takes its own pass, because a second aligner is laid out beside the
+first and the drawing checks need a plate holding one object.
+
 That badge assertion is the point of the whole case. If Esc took the flow with it, there would be no badge
 left to read.

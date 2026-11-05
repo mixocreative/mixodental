@@ -1,5 +1,24 @@
 # Handoff to mixo-geocore: build a `DentalRim` from operator-drawn points
 
+> **DELIVERED, 2026-11-06 — geocore engine 61, commit `8bd2430`.** This ask is answered and the host is
+> wired to it (`src/dental/rim/drawnRim.ts`). Kept as the record of what was asked and why.
+>
+> **What came back differed from this document in two ways, both measured rather than argued:**
+> 1. **The opening sign** is decided by `orient::floor_offset`, the measure detection already uses —
+>    not by the two-way centroid raycast suggested here, which barely separates through a thin shell.
+>    Below the profile's threshold the engine returns `rim-side-uncertain` and leaves the flip to the host.
+> 2. **A drawn rim does not reproduce a detected one.** Feeding the reference aligner's own detected
+>    loop back gives an axis **5.60°** from detection's, because detection's axis is the shell's
+>    least-variance axis, not the plane of the loop it traced. The side agrees; the axis does not, and
+>    cannot. Masks 5104 cells against 5089, agreeing in 8919 of 9216 — all pinned in the engine's test.
+>
+> The delivered signature is
+> `dental_rim_from_points(model, points, flip, profile) -> DentalRimResult`, and the complete
+> `reason()` set the host branches on is `"rim-collinear"` (failure) and `"rim-side-uncertain"`
+> (success, side undecided). `"rim-too-few-points"` exists in the Rust enum but is unreachable through
+> the ABI; everything else throws.
+
+
 **For:** `mixocreative/mixo-geocore` (vendored here at engine 60, commit `d2754369`).
 **From:** mixoDental, 2026-11-05. Design: `docs/design/2026-11-05-rim-define-mode.md`.
 **Why:** mixoDental is adding a mode where the operator draws the rim by hand when detection cannot find
