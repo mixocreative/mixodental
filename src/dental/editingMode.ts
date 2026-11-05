@@ -467,17 +467,8 @@ registerCommands({
   },
   'dental.rim.adjust': {
     role: 'secondary', shortcut: 'A', label: () => 'Adjust', hint: () => 'Drag a point to move it along the model',
-    visible: rim,
-    /*
-     * OFF UNTIL DRAGGING IS BUILT. Place reaches the viewport; moving an anchor does not yet. A tool that
-     * can be picked up and then does nothing under the pointer is worse than one that says why it is not
-     * ready: the operator would conclude the drag is broken, or that an anchor cannot be moved at all.
-     * This is the same honesty Done keeps below, and it comes out the moment the drag lands.
-     */
-    enabled: () => false,
-    disabledReason: (s) => (rim(s) && (s.dentalRimAnchors ?? 0) === 0
-      ? { key: 'Place a point first.' }
-      : { key: 'Moving a point is not built yet. Clear the rim and draw it again to change it.' }),
+    visible: rim, enabled: (s) => rim(s) && (s.dentalRimAnchors ?? 0) > 0,
+    disabledReason: (s) => (rim(s) && (s.dentalRimAnchors ?? 0) === 0 ? { key: 'Place a point first.' } : undefined),
     pressed: (s) => s.dentalRimTool === 'adjust',
   },
   'dental.rim.close': {

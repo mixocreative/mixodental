@@ -171,7 +171,12 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
       * worker, are both "we could not look", not "this aligner has no rim" - neither opens a drawing
       * mode, because there is nothing to tell the operator about the shape in front of them.
       */
-      if (result.kind === 'failed') return send({ type: 'dentalRimNeeded', notices });
+      if (result.kind === 'failed') {
+        // The operator is about to draw ON this model, so frame it first. The oriented path fits the
+        // view too; without this the aligner can sit wherever the drop left it, half off screen.
+        requestView('fit');
+        return send({ type: 'dentalRimNeeded', notices });
+      }
       // Whether the opening fits the chosen type is the profile's call, made in Rust.
       if (!result.matchesProfile) notices.push({ kind: 'mismatch' });
       detected.current = { unitId: unit.id, profile, rotation: result.rotation };

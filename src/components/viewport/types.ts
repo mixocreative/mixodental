@@ -5,6 +5,7 @@ import type { SupportPoint } from '@mixo-geocore/host/core/analysis/types';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
 import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { SurfacePath } from '../../core/surfacePath/path';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { Gesture } from '@mixo-geocore/editing/gesture';
 import type { AddAction, BrushMode, EditTool, SelectStyle } from '@mixo-geocore/editing/types';
@@ -59,6 +60,11 @@ export interface ObjectViewportProps {
    * callback here. The app converts to unit-local, because only it knows the unit's transform.
    */
   onRimPoint: (unitId: string, point: Vector, normal: Vector) => void;
+  /**
+   * Rim define mode, Adjust: the drawing as it stands when a drag ENDS, unit-local and ready to store.
+   * One call per drag, not per pointer move, so one drag is one step on the history.
+   */
+  onRimPath: (unitId: string, path: SurfacePath) => void;
   onRemoveContact: (unitId: string, contactId: string) => void;
   onErase: (unitId: string, point: Vector) => void;
   /** A Support Edit Mode click that hit neither the model nor a support. */

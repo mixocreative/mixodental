@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
-import { RIM_ANCHOR_RADIUS_MM, RIM_DRAFT_LIFT_MM, anchorCentre, anchorCentres, chordPositions, closesLoop, nearestAnchor } from './rimDraftGeometry';
+import { RIM_ANCHOR_RADIUS_MM, RIM_DRAFT_LIFT_MM, RIM_GRAB_REACH_MM, anchorCentre, anchorCentres, chordPositions, closesLoop, grabAnchor, nearestAnchor } from './rimDraftGeometry';
 
 const at = (x: number, y: number, z: number, normal: readonly [number, number, number] = [0, 1, 0]): SurfaceAnchor =>
   ({ position: [x, y, z], normal: [...normal] });
@@ -50,6 +50,18 @@ describe('the drawn rim as geometry', () => {
     const three = path([at(0, 0, 0), at(10, 0, 0), at(0, 0, 10)]);
     expect(nearestAnchor(three, [9, 0, 0])).toEqual({ at: 1, distanceMm: 1 });
     expect(nearestAnchor(path([]), [0, 0, 0])).toBeUndefined();
+  });
+
+  it('picks up the anchor under the press, and nothing on bare surface', () => {
+    const three = path([at(0, 0, 0), at(10, 0, 0), at(0, 0, 10)]);
+    expect(grabAnchor(three, [10, 0, 0])).toBe(1);
+    // A little wide of the marker still counts: the operator aims at a sphere, not at its exact radius.
+    expect(grabAnchor(three, [10 - RIM_GRAB_REACH_MM * 0.9, 0, 0])).toBe(1);
+    // Bare surface picks up nothing, so the press belongs to whatever else wants it.
+    expect(grabAnchor(three, [5, 0, 0])).toBeUndefined();
+    expect(grabAnchor(path([]), [0, 0, 0])).toBeUndefined();
+    // The reach is wider than the marker, which is the whole point of having its own constant.
+    expect(RIM_GRAB_REACH_MM).toBeGreaterThan(RIM_ANCHOR_RADIUS_MM);
   });
 
   it('closes the loop only on the FIRST anchor, only when open, and only from three anchors', () => {

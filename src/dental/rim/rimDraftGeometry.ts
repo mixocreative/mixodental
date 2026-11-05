@@ -71,6 +71,22 @@ export function nearestAnchor(path: SurfacePath, point: readonly [number, number
 }
 
 /**
+ * How near a press must be to an anchor, in mm, to pick it up for a drag.
+ *
+ * A LITTLE WIDER than the marker itself: the operator aims at a sphere they can see, and asking them to
+ * hit its exact radius turns a drag into a test of aim. It is deliberately NOT a screen-pixel reach -
+ * that would mean anchors became easier to grab the further you zoomed in, and this way what can be
+ * grabbed is the same wherever the camera is. Zoomed far out it is small on screen; so is the anchor.
+ */
+export const RIM_GRAB_REACH_MM = RIM_ANCHOR_RADIUS_MM * 2;
+
+/** The anchor a press at `point` picks up, or undefined when the press is on bare surface. */
+export function grabAnchor(path: SurfacePath, point: readonly [number, number, number], reachMm = RIM_GRAB_REACH_MM): number | undefined {
+  const near = nearestAnchor(path, point);
+  return near && near.distanceMm <= reachMm ? near.at : undefined;
+}
+
+/**
  * Whether a click at `point` lands on the FIRST anchor, which is how a loop is closed by gesture.
  *
  * Only the first, and only while the path is open and has enough anchors to enclose anything. The reach

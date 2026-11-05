@@ -27,6 +27,8 @@ import type { OrientationLayer } from '../../dental/orientationEvidence';
 import { DebugLayerMeshes } from './DebugLayerMeshes';
 import { DentalFaceLayer, DentalPaintLayer, DentalRiskLayer, DentalRegionLines, DentalRimOutline, DentalStampLayer, DentalTipMarkers, type TipMark } from './dentalLayers';
 import { RimDraftLayer } from './RimDraftLayer';
+import { grabAnchor } from '../../dental/rim/rimDraftGeometry';
+import { moveAnchor, type SurfacePath } from '../../core/surfacePath/path';
 import type { ObjectViewportProps } from './types';
 import { MODEL_MESH, SUPPORT_MESH, useScreenBrush } from './useScreenBrush';
 
@@ -37,7 +39,7 @@ function toVector(vector: THREE.Vector3): Vector {
 /** The viewport settings and callbacks one object takes, plus its own unit, supports and state. */
 interface UnitObjectProps extends Pick<ObjectViewportProps,
   | 'gesture' | 'liveTool' | 'selection' | 'tipsView' | 'modelVisible' | 'wireframe'
-  | 'onSelect' | 'onPickTip' | 'onAddContact' | 'onRimPoint' | 'onRemoveContact' | 'onErase' | 'onEditMiss' | 'onToggleContact' | 'onPaint' | 'onShift' | 'onZoneStroke' | 'onDentalStroke' | 'onNoBodies'> {
+  | 'onSelect' | 'onPickTip' | 'onAddContact' | 'onRimPoint' | 'onRimPath' | 'onRemoveContact' | 'onErase' | 'onEditMiss' | 'onToggleContact' | 'onPaint' | 'onShift' | 'onZoneStroke' | 'onDentalStroke' | 'onNoBodies'> {
   problems: readonly SupportProblem[];
   /** Step 1's detected area, drawn while the scene has none of its own (src/components/useDentalFlow.ts). */
   dentalAreaPreview?: DentalPolicy;
@@ -113,6 +115,35 @@ export function UnitObject(props: UnitObjectProps) {
   // The contacts the shown build kept (its zoned landings dropped).
   const contacts = useMemo(() => unitContacts(unit, props.supports), [unit, props.supports]);
   const [hover, setHover] = useState<Hover | null>(null);
+  /*
+   * A rim anchor being dragged, and the drawing as it looks mid-drag.
+   *
+   * The moved path is kept HERE and not dispatched on every pointer move, so the whole drag is ONE
+   * entry on the app's history - a stroke of Adjust undoes the way a paint stroke does, in one press,
+   * instead of unwinding a hundred micro-moves. The scene keeps the drawing as it was until the drag
+   * ends, and this local copy is what gets drawn in the meantime.
+   */
+  const [rimDrag, setRimDrag] = useState<{ at: number; path: SurfacePath } | null>(null);
+  /*
+   * The release is listened for on the WINDOW, not on the mesh. A drag that ends with the pointer off
+   * the model - past the edge of the aligner, or outside the canvas - still has to end, and a mesh
+   * handler would never hear it: the anchor would stay glued to the pointer with no button held.
+   * The dispatch happens exactly once here, which is what makes one drag one step on the history.
+   */
+  const onRimPath = props.onRimPath;
+  useEffect(() => {
+    if (!rimDrag) return undefined;
+    const drop = () => {
+      onRimPath(unit.id, rimDrag.path);
+      setRimDrag(null);
+    };
+    window.addEventListener('pointerup', drop);
+    window.addEventListener('pointercancel', drop);
+    return () => {
+      window.removeEventListener('pointerup', drop);
+      window.removeEventListener('pointercancel', drop);
+    };
+  }, [rimDrag, onRimPath, unit.id]);
   /** Select supports → Click: the contact whose support is under the pointer. */
   const [pointed, setPointed] = useState<string | null>(null);
   const leave = () => {
@@ -216,6 +247,19 @@ export function UnitObject(props: UnitObjectProps) {
   };
   /** Zone strokes start on the model; Drag over strokes start on the model or a support (`useScreenBrush`). */
   const startStroke = (event: ThreeEvent<PointerEvent>) => {
+    /*
+     * ADJUST PICKS UP THE ANCHOR UNDER THE PRESS. A press on bare surface picks up nothing and is left
+     * alone, so it reaches the camera and the view orbits - the house rule that where the drag starts
+     * decides, with the anchor itself as the thing that decides it.
+     */
+    if (rimDrawing && gesture.kind === 'dental-rim' && gesture.tool === 'adjust' && unit.rimDraft) {
+      const local = event.object.worldToLocal(event.point.clone());
+      const at = grabAnchor(unit.rimDraft, [local.x, local.y, local.z]);
+      if (at === undefined) return;
+      event.stopPropagation();
+      setRimDrag({ at, path: unit.rimDraft });
+      return;
+    }
     if (brush) return event.stopPropagation();
     if (!zoneBrush && !dentalBrush || !brushStroke.begin(event.button)) return;
     event.stopPropagation();
@@ -226,6 +270,14 @@ export function UnitObject(props: UnitObjectProps) {
   const hoverModel = (event: ThreeEvent<PointerEvent>) => {
     if (!editing) return;
     event.stopPropagation();
+    // Mid-drag the pointer is carrying an anchor: every hit on the model is where that anchor now sits.
+    if (rimDrag) {
+      const local = event.object.worldToLocal(event.point.clone());
+      const normal = (event.face?.normal.clone() ?? new THREE.Vector3(0, -1, 0)).normalize();
+      const moved = moveAnchor(rimDrag.path, rimDrag.at, { position: [local.x, local.y, local.z], normal: [normal.x, normal.y, normal.z] });
+      if (moved) setRimDrag({ at: rimDrag.at, path: moved });
+      return;
+    }
     if (zoneBrush || dentalBrush) return paint(event);
     // Drag over previews through its own circle; the model under the pointer shows nothing.
     if (brush || zoning) return leave();
@@ -277,7 +329,15 @@ export function UnitObject(props: UnitObjectProps) {
      */
     if (rimDrawing) {
       event.stopPropagation();
-      if (!right) props.onRimPoint(unit.id, [event.point.x, event.point.y, event.point.z], surfaceNormal(event));
+      /*
+       * ONLY PLACE PLACES. In Adjust the click arrives at the END OF A DRAG - the browser fires it on
+       * release - so letting it through would drop a fresh anchor every time the operator finished
+       * moving one. A right click does nothing in either tool: this mode has no remove-by-right-click,
+       * and a menu-button press should not leave a point behind.
+       */
+      if (!right && gesture.kind === 'dental-rim' && gesture.tool === 'place') {
+        props.onRimPoint(unit.id, [event.point.x, event.point.y, event.point.z], surfaceNormal(event));
+      }
       return;
     }
     // Paint and Erase work through the stroke; the click that ends one is not an Add.
@@ -366,7 +426,8 @@ export function UnitObject(props: UnitObjectProps) {
       and hiding it would make Back into Step 1 look as though the work had been lost.
       The preview anchor appears only in Place, and only with the pointer on the model.
     */}
-    {unit.rimDraft && <RimDraftLayer path={unit.rimDraft}
+    {(rimDrag?.path ?? unit.rimDraft) && <RimDraftLayer path={rimDrag?.path ?? unit.rimDraft!}
+      {...(rimDrag ? { selected: rimDrag.at } : {})}
       {...(rimDrawing && gesture.kind === 'dental-rim' && gesture.tool === 'place' && hover
         ? { preview: { position: toVector(hover.point), normal: toVector(hover.normal.clone().normalize()) } }
         : {})} />}

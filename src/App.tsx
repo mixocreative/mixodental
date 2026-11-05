@@ -71,7 +71,7 @@ import { PlateLedger, type PlateScene } from './core/plateLedger';
 import { estimateTriangles, ESTIMATE_HEAD_BYTES } from './core/import/estimate';
 import { emptyScene, reduceScene, type ContactSettings, type PrintScene, type PrintUnit, type SceneCommand, type SupportSettings } from './state/project';
 import { applyTransform, inverseTransformDirection, inverseTransformPoint, transformPoint, type ModelTransform } from '@mixo-geocore/host/state/transform';
-import { appendAnchor, closePath, emptyPath, type SurfaceAnchor } from './core/surfacePath/path';
+import { appendAnchor, closePath, emptyPath, type SurfaceAnchor, type SurfacePath } from './core/surfacePath/path';
 import { closesLoop } from './dental/rim/rimDraftGeometry';
 import { pathProblems } from './core/surfacePath/validate';
 import type { ExportKind } from '@mixo-geocore/host/supports/export';
@@ -944,6 +944,13 @@ export default function App() {
     dispatch({ type: 'rim/set', unitId, path: next });
   }, [dispatch]);
 
+  /** Rim define mode, Adjust: the whole drawing as the drag left it, stored in one command and so undone in one. */
+  const onRimPath = useCallback((unitId: string, path: SurfacePath) => {
+    const session = sessionRef.current;
+    if (session.mode !== 'dental' || session.dentalStage !== 'rim') return;
+    dispatch({ type: 'rim/set', unitId, path });
+  }, [dispatch]);
+
   const onAddContact = useCallback((unitId: string, point: [number, number, number], normal: [number, number, number]) => {
     if (sessionRef.current.mode === 'zones') return; // supports take no edits while painting zones
     const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
@@ -1486,6 +1493,7 @@ export default function App() {
           onTransform={onTransform}
           onAddContact={onAddContact}
           onRimPoint={onRimPoint}
+          onRimPath={onRimPath}
           onRemoveContact={onRemoveContact}
           onErase={onErase}
           onEditMiss={onEditMiss}

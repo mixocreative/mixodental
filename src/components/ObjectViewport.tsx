@@ -148,6 +148,7 @@ export default function ObjectViewport(props: ObjectViewportProps) {
       {...(props.dentalArea ? { dentalArea: true } : {})}
       onAddContact={props.onAddContact}
       onRimPoint={props.onRimPoint}
+      onRimPath={props.onRimPath}
       onRemoveContact={props.onRemoveContact}
       onErase={props.onErase}
       onEditMiss={props.onEditMiss}

@@ -86,22 +86,15 @@ describe('rim define mode: the stage', () => {
 });
 
 describe('rim define mode: its keys', () => {
-  it('offers Place, and refuses Adjust in words until dragging is built', () => {
+  it('offers both tools, and Adjust only once there is a point to adjust', () => {
     const empty = at({ dentalRimAnchors: 0 });
     expect(resolve('dental.rim.place', empty).enabled).toBe(true);
+    // Nothing drawn: there is no anchor to pick up, and the reason says the thing to do about it.
     expect(resolve('dental.rim.adjust', empty).enabled).toBe(false);
-    // With no point, the reason is the one the operator can act on.
     expect(resolve('dental.rim.adjust', empty).disabledReason?.key).toBe('Place a point first.');
-    /*
-     * WITH points, Adjust is STILL off, and says a different thing: Place reaches the viewport and the
-     * drag does not yet. A tool that could be picked up and did nothing under the pointer would read as
-     * a broken drag, or as an anchor that cannot be moved at all. It is shown, so the step is honest
-     * about what it will eventually do, and it says why - the same way Done refuses.
-     */
     const drawn = at({ dentalRimAnchors: 4 });
-    expect(resolve('dental.rim.adjust', drawn).visible).toBe(true);
-    expect(resolve('dental.rim.adjust', drawn).enabled).toBe(false);
-    expect(resolve('dental.rim.adjust', drawn).disabledReason?.key).toContain('not built yet');
+    expect(resolve('dental.rim.adjust', drawn).enabled).toBe(true);
+    expect(resolve('dental.rim.adjust', drawn).disabledReason).toBeUndefined();
   });
 
   it('shows which tool is in hand', () => {

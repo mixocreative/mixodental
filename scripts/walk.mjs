@@ -1043,6 +1043,35 @@ async function walk(url, scratch, dentalFixture) {
       check('u5 a shape with no detectable rim hands over to rim define mode, and the dock says why',
         (await badge()).includes('Define the rim') && /could not find a rim/i.test(rimWhy),
         `badge "${(await badge()).slice(0, 30)}", why "${rimWhy.slice(0, 44)}"`);
+      /*
+       * DRAWING, FOR REAL. Three clicks on the model put three anchors down; then Adjust drags one of
+       * them somewhere else. The count is what both checks read, and on the drag it is the ENTIRE
+       * point: a browser fires a click when a drag releases, so a tool that did not tell the two apart
+       * would quietly leave a fourth anchor behind every time the operator moved one.
+       */
+      await d.measureCanvas();
+      const rimSpots = [[0.42, 0.44], [0.52, 0.44], [0.47, 0.54]];
+      for (const spot of rimSpots) { await d.stroke(spot, spot, 1); await d.idle(300); }
+      const rimPoints = async () => ((await page.locator('[data-ui="rim-point-count-control"]').innerText()) ?? '').trim();
+      check('u5c Place puts one anchor down per click on the model', (await rimPoints()) === '3', `points ${await rimPoints()}`);
+      await d.button('Adjust').click();
+      await d.stroke(rimSpots[0], [0.37, 0.38], 10);
+      await d.idle(500);
+      check('u5d a drag in Adjust adds nothing: the click the release fires is not a new anchor', (await rimPoints()) === '3', `points ${await rimPoints()}`);
+
+      /*
+       * AND THE ANCHOR REALLY LEFT. The count alone cannot show that - an anchor that never moved would
+       * also read 3 - so this asks the dock a question only a vacated spot can answer. Back in Place, a
+       * click where the first anchor USED to be either lands on it and closes the loop (if it is still
+       * sitting there) or finds bare surface and adds a fourth. Four points, still open, means it moved.
+       */
+      await d.button('Place').click();
+      await d.stroke(rimSpots[0], rimSpots[0], 1);
+      await d.idle(400);
+      const rimLoop = ((await page.locator('[data-ui="rim-loop-state-control"]').innerText()) ?? '').trim();
+      check('u5e the dragged anchor really left its old spot, which is now bare surface',
+        (await rimPoints()) === '4' && /open/i.test(rimLoop), `points ${await rimPoints()}, loop "${rimLoop}"`);
+
       // Cancel is the mode's way out, and it goes out ONE level: back to Step 1, not out of the flow.
       await d.button('Cancel').click();
       await page.waitForFunction(() => /Step 1 \u00b7 Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
