@@ -22,8 +22,13 @@ So: failure **dives** into the mode (it is not an option on a notice), the opera
 curve whose points lie on the model surface, and Done hands straight to Free transform with **no**
 re-detection and **no** print-angle scan.
 
-This document is the design. **Nothing here is implemented yet.** Read the engine section first, because it
-decides whether the rest can be built in this repo at all — it cannot.
+This document was the design, written before any of it existed. **It is now a record of what was built
+and why** — see the banner above. Where a section still reasons in the future tense it is preserved as
+written, because the reasoning is the point; where what shipped went a different way, the divergence is
+marked at the place the superseded claim appears.
+
+The engine section is still the one to read first, but for the opposite reason to the original: it
+explains why this could not be built in this repo at all, which is why there is a geocore call.
 
 ## 1. What a rim has to be
 
@@ -240,8 +245,14 @@ shape.
   rim agrees with a detected one *by construction* rather than by coincidence. Where the floor leans too
   little (below `profile.thresholds.floor_offset_ratio_min`) the engine still returns the rim, but with
   `reason = "rim-side-uncertain"` and the signed measure, so **the host shows the flip control instead of
-  the engine guessing quietly**. The operator's flip is a parameter of the call, and `facingNormal(frame,
-  facing)` in `core/surfacePath/frame.ts` applies it.
+  the engine guessing quietly**.
+
+  The operator's flip is a **boolean parameter of the call** (`dental_rim_from_points(model, points,
+  flip, profile)`), and the engine applies it and reports `flipped()` back. An earlier draft of this
+  correction said `facingNormal(frame, facing)` in `core/surfacePath/frame.ts` applies it; that is
+  wrong, and `facingNormal` has no production caller at all — the side is the engine's to decide, which
+  is the whole point of the paragraph above. The host's remaining part is to SHOW the flip, and today
+  that is a sentence in the status line rather than a control.
 
 ### Camera only — never the model
 
