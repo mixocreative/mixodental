@@ -106,8 +106,9 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   </>;
   }
   /*
-   * Rim define mode. Its badge names the mode and what the tool in hand does, as every tool mode's does,
-   * and it says WHY it opened: the operator did not choose this detour, orientation handed them it.
+   * Rim define mode. Its badge names the mode and what the tool in hand does, as every tool mode's does.
+   * WHY it opened is said in the dock, not here: the badge is one line over the viewport and the reason
+   * is a sentence, and the dock is where the operator is about to work anyway.
    */
   if (gesture.kind === 'dental-rim') return <>
     <div className="edit-frame" aria-hidden="true" />
@@ -115,7 +116,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       {t('Step 1 · Define the rim')}<span>{unitName}</span>
       <b>{t(rimToolText(gesture.tool))}</b>
     </div>
-    <DentalRimStep ui={ui} run={run} />
+    <DentalRimStep ui={ui} run={run} notices={gesture.notices} />
   </>;
   if (gesture.kind === 'dental-review') {
     const kind = ui.dentalKind ?? 'aligner';

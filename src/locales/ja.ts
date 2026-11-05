@@ -720,6 +720,7 @@ export const ja: Dictionary = {
   'Click along the rim; each click puts a point on the model': '縁に沿ってクリックします。クリックするごとにモデル上にポイントが配置されます',
   'Drag a point to move it along the model': 'ポイントをドラッグしてモデル上で移動します',
   'Moving a point is not built yet. Clear the rim and draw it again to change it.': 'ポイントの移動機能はまだ実装されていません。変更するには、縁を消去して再度描画してください。',
+  'Orientation could not find a rim on this aligner, so you draw it here.': '向きの調整でこのアライナーの縁が見つからなかったため、ここで描画します。',
   'Place a point first.': '最初にポイントを配置してください。',
   'Close loop': '線を閉じる',
   'Join the last point back to the first': '最後のポイントを最初のポイントに結合します',

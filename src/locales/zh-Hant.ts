@@ -725,6 +725,7 @@ export const zhHant: Dictionary = {
   'Click along the rim; each click puts a point on the model': '沿著邊緣點擊；每次點擊會在模型上放置一個點',
   'Drag a point to move it along the model': '拖曳點即可沿著模型移動',
   'Moving a point is not built yet. Clear the rim and draw it again to change it.': '尚未建立移動點的功能。若要變更，請清除邊緣並重新繪製。',
+  'Orientation could not find a rim on this aligner, so you draw it here.': '調整方向時無法在此牙套上找到邊緣，請在此繪製。',
   'Place a point first.': '請先放置一個點。',
   'Close loop': '閉合線條',
   'Join the last point back to the first': '將最後一點連回第一點',

@@ -1,4 +1,6 @@
 import type { CommandId, UiState } from '@mixo-geocore/editing/commands';
+import { noticeText } from '../../components/DentalSteps';
+import type { DentalNotice } from '../editingMode';
 import { resolve } from '@mixo-geocore/editing/commands';
 import { CommandButton } from '../../components/CommandButton';
 import { Panel } from '../../components/Panel';
@@ -22,7 +24,12 @@ import type { DentalRimTool } from '../editingMode';
 
 const RIM_TOOLS: readonly DentalRimTool[] = ['place', 'adjust'];
 
-export function DentalRimStep({ ui, run }: { ui: UiState; run: (id: CommandId) => void }) {
+export function DentalRimStep({ ui, run, notices = [] }: {
+  ui: UiState;
+  run: (id: CommandId) => void;
+  /** What orientation found on the way in; the mode opened because it found no rim. */
+  notices?: readonly DentalNotice[];
+}) {
   const anchors = ui.dentalRimAnchors ?? 0;
   const closed = ui.dentalRimClosed ?? false;
   // Why Done is off, said once here as well as on the key, because the reason is the step's whole state.
@@ -30,6 +37,15 @@ export function DentalRimStep({ ui, run }: { ui: UiState; run: (id: CommandId) =
 
   return <aside className="dental-side" data-ui="dental-rim-panel" aria-label={t('Define the rim')}>
     <div className="dental-scroll">
+      {/*
+        WHY THE OPERATOR IS HERE, first thing. They did not choose this detour - orientation handed it to
+        them - and a drawing dock appearing unannounced is the kind of thing that reads as a fault in the
+        app. Said once, in the dock they are about to use, rather than as a notice to dismiss before they
+        can start: dismissing it would cost a click and leave no trace of why the step exists.
+      */}
+      <p className="edit-note" data-ui="rim-why" role="status">{t('Orientation could not find a rim on this aligner, so you draw it here.')}</p>
+      {/* Anything else orientation found still applies to the shape being drawn on. */}
+      {notices.map((notice) => <p key={notice.kind} className="edit-note" data-ui="rim-notice" role="alert">{noticeText(notice)}</p>)}
       <Panel title={t('Tool')} ui="rim-tool">
         <div className="edit-row">
           <Segmented label={t('Rim tools')} value={ui.dentalRimTool ?? 'place'} onChange={(tool) => run(`dental.rim.${tool}` as CommandId)}

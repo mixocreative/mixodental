@@ -160,7 +160,18 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
       if (stale()) return;
       if (!result) return failed([{ kind: 'failed' }]);
       const notices: DentalNotice[] = result.meshOk ? [] : [{ kind: 'holes' }];
-      if (result.kind === 'failed') return failed([...notices, { kind: 'failed' }]);
+      /*
+      * DETECTION RAN AND FOUND NO RIM, so Step 1 hands over to rim define mode instead of stopping at a
+      * notice with no way on. The `failed` notice does NOT come along: the mode replaces it, and a line
+      * saying detection failed, sitting over a dock that asks the operator to draw, would be telling
+      * them off for arriving. Whatever else was found about the mesh (holes) does come, because it is
+      * still true and still bears on what they are about to draw.
+      *
+      * The two `failed(...)` calls above are NOT this. No profile chosen, and no result at all from the
+      * worker, are both "we could not look", not "this aligner has no rim" - neither opens a drawing
+      * mode, because there is nothing to tell the operator about the shape in front of them.
+      */
+      if (result.kind === 'failed') return send({ type: 'dentalRimNeeded', notices });
       // Whether the opening fits the chosen type is the profile's call, made in Rust.
       if (!result.matchesProfile) notices.push({ kind: 'mismatch' });
       detected.current = { unitId: unit.id, profile, rotation: result.rotation };

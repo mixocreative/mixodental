@@ -1008,6 +1008,17 @@ async function walk(url, scratch, dentalFixture) {
       }
       await page.screenshot({ path: path.join(scratch, 'ux-a-step1-drop.png') });
 
+      /*
+       * Out of rim define mode if the drop landed there. A mesh with no findable rim is handed to the
+       * mode now, and the mode's way out is Cancel - it has no Back, deliberately: Cancel and Done are a
+       * mode's two ends, while Back belongs to the steps. Fixtures that are not aligners hit this often.
+       */
+      const leaveRimIfOpen = async () => {
+        if ((await page.locator('[data-ui="rim-why"]').count()) === 0) return;
+        await d.button('Cancel').click();
+        await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
+      };
+
       await drop(notModel);
       await noticeShown('STL');
       check('u3 a file that is no model is refused in place, Step 1 stays', (await badge()).includes('Step 1 · Aligner') && await page.getByText('Place the aligner file here').isVisible() && (await objects()) === '0', `status "${await d.status()}"`);
@@ -1017,19 +1028,39 @@ async function walk(url, scratch, dentalFixture) {
       check('u4 a broken STL is refused in place, Step 1 stays, nothing is added', (await badge()).includes('Step 1 · Aligner') && await page.getByText('Place the aligner file here').isVisible() && (await objects()) === '0', `status "${await d.status()}", objects ${await objects()}`);
 
       await drop(cube);
-      await noticeShown('could not be oriented automatically');
-      check('u5 failed orientation says so, keeps the dropped pose, and Back, Exit and Next stay available',
-        await d.button('Next').isEnabled() && await d.button('Back').isVisible() && await d.button('Exit').isVisible() && (await badge()).includes('Step 1 · Aligner'));
-      await d.button('Next').click();
-      await page.waitForFunction(() => /No aligner opening was found/.test(document.querySelector('footer strong')?.innerText ?? ''), null, { timeout: 10000 });
-      check('u5b Next without a detected opening explains itself and stays in Step 1', (await badge()).includes('Step 1 · Aligner'), `status "${await d.status()}"`);
+      /*
+       * NO RIM FOUND IS NO LONGER A DEAD END. Step 1 used to stop at "could not be oriented
+       * automatically" and let Next refuse with "No aligner opening was found" - a notice with nowhere
+       * to go. It now hands over to rim define mode, where the operator draws the rim themselves.
+       *
+       * The notice is gone ON PURPOSE: the mode replaces it, and a line saying detection failed sitting
+       * over a dock that asks you to draw would be telling the operator off for arriving. So the dock
+       * has to carry the reason instead, and that line is the thing this check is really about - an
+       * unexplained drawing mode appearing by itself reads as a fault in the app.
+       */
+      await page.waitForFunction(() => /Define the rim/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 60000 });
+      const rimWhy = await page.locator('[data-ui="rim-why"]').innerText();
+      check('u5 a shape with no detectable rim hands over to rim define mode, and the dock says why',
+        (await badge()).includes('Define the rim') && /could not find a rim/i.test(rimWhy),
+        `badge "${(await badge()).slice(0, 30)}", why "${rimWhy.slice(0, 44)}"`);
+      // Cancel is the mode's way out, and it goes out ONE level: back to Step 1, not out of the flow.
+      await d.button('Cancel').click();
+      await page.waitForFunction(() => /Step 1 \u00b7 Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
+      check('u5b Cancel leaves rim define mode and lands back in Step 1, still in the flow',
+        (await badge()).includes('Step 1 · Aligner') && await d.button('Exit').isVisible(), `badge "${(await badge()).slice(0, 30)}"`);
       await d.button('Back').click();
       await onTypeScreen();
       await page.locator('.choice-key').click();
 
       await drop(holed);
       await noticeShown('holes or non-manifold');
+      /*
+       * The holes warning survives the handover. This mesh has no findable rim either, so it ends in rim
+       * define mode - and what orientation DID find about it still applies to the shape being drawn on,
+       * so the mode carries the notice in rather than dropping it on the way.
+       */
       check('u6 a mesh with holes is warned about before detection is trusted', await page.getByText('holes or non-manifold').isVisible());
+      await leaveRimIfOpen();
       await d.button('Back').click();
       await onTypeScreen();
       await page.locator('.choice-key').click();
@@ -1041,25 +1072,30 @@ async function walk(url, scratch, dentalFixture) {
       let u7Reported = false;
       try {
         /*
-         * TWO honest endings, not one. The engine either ORIENTS the cup and says the opening contradicts the
-         * chosen type (the mismatch notice, which Keep dismisses), or it FAILS to orient it at all. This used
-         * to wait for the mismatch wording alone, so the failing ending read as a broken app.
-         * What the check is really about is the same either way: Step 1 names the aligner TYPE as a way out
-         * instead of continuing as if nothing were wrong. It leans on the row's `data-ui` name, not on prose.
+         * TWO honest endings, not one. The engine either ORIENTS the cup and says the opening contradicts
+         * the chosen type (the mismatch notice, which Keep dismisses), or it cannot find a rim at all -
+         * and THAT ending is no longer a notice. It hands over to rim define mode, where the operator
+         * draws the rim themselves. The `orient-ways-failed` row is gone from this path with it.
+         *
+         * What the check is really about survives both endings, which is why it is written this way:
+         * Step 1 OFFERS A WAY OUT rather than continuing as if nothing were wrong. On the mismatch
+         * ending the way out is naming the aligner type; on the rim ending it is the mode itself.
          */
-        await page.waitForSelector('[data-ui="orient-ways-mismatch"], [data-ui="orient-ways-failed"]', { timeout: 30000 });
-        const ways = (await page.locator('[data-ui="orient-ways-mismatch"]').count()) > 0 ? 'mismatch' : 'failed';
+        await page.waitForSelector('[data-ui="orient-ways-mismatch"], [data-ui="rim-why"]', { timeout: 30000 });
+        const ways = (await page.locator('[data-ui="rim-why"]').count()) > 0 ? 'rim' : 'mismatch';
         // One profile is embedded and it insists on an opening, so the row explains itself instead of switching.
-        const offered = await page.locator('[data-ui="orient-ways-' + ways + '"] [data-ui="orient-only-type"], [data-ui="orient-ways-' + ways + '"] [data-ui^="orient-switch-"]').count();
-        check('u7 a model with no central opening names the aligner type as a way out instead of silently continuing', offered > 0, ways + ' notice, ' + offered + ' way(s) out');
+        const offered = ways === 'rim' ? 1
+          : await page.locator('[data-ui="orient-ways-mismatch"] [data-ui="orient-only-type"], [data-ui="orient-ways-mismatch"] [data-ui^="orient-switch-"]').count();
+        check('u7 a model with no central opening is offered a way out instead of silently continuing', offered > 0,
+          ways === 'rim' ? 'handed over to rim define mode' : 'mismatch notice, ' + offered + ' way(s) out');
         u7Reported = true;
         if (ways === 'mismatch') {
           await page.getByRole('button', { name: /^Keep / }).click();
           check('u7b Keep dismisses the type prompt', (await page.getByText('different aligner type').count()) === 0);
         } else {
-          // A failure is not an opinion to disagree with, so it carries no Keep: the way on is Next, as its words say.
+          // Rim define mode is not an opinion to disagree with, so it carries no Keep: the way on is to draw.
           check('u7b Keep dismisses the type prompt', (await page.locator('[data-ui="orient-keep-type"]').count()) === 0,
-            'the aligner could not be oriented at all, so there was no type prompt to keep');
+            'no rim was found, so the step handed over to drawing one and there was no type prompt to keep');
         }
         /*
          * u8 and u8b are about the ORIENTED ending. Step 2 opening empty needs a rim from the orientation
@@ -1077,18 +1113,16 @@ async function walk(url, scratch, dentalFixture) {
           await d.button('Back').click();
           await stepTo('Step 1 · Aligner');
         } else {
-          note('u8 / u8b skipped: both need the oriented ending (Step 2 builds its empty area from the orientation proposal), and this fixture failed to orient');
+          note('u8 / u8b skipped: both need the oriented ending (Step 2 builds its empty area from the orientation proposal), and this fixture was handed to rim define mode instead');
           /*
-           * NOT a check, because what the right behaviour is has not been decided. Pressing Next here cannot
-           * advance - correctly, since a support area needs an opening nobody found - yet the notice's own
-           * words say "rotate it with the gizmo, then press Next". One of the two has to give, and which one
-           * is the owner's call: reword the notice to name Back and Exit, or let a hand-turned aligner go on
-           * with a hand-marked area. Recorded so the run says it out loud either way.
+           * THE OLD DILEMMA HERE IS ANSWERED. This used to press Next against a failure notice whose own
+           * words said "rotate it with the gizmo, then press Next" while Next could not possibly advance,
+           * and recorded the contradiction for the owner to settle. The handover settles it: there is no
+           * notice to press Next on any more, so the step no longer tells the operator to do something it
+           * will refuse. What is left to check is that the mode's own way out works.
            */
-          await d.button('Next').click();
-          await d.idle(1500);
-          const stuck = (await page.getByText('Step 1 · Aligner').count()) > 0;
-          note(`u8 note: Next from the failed notice ${stuck ? 'did NOT advance' : 'advanced'} - the app said "${await d.status()}"`);
+          await d.button('Cancel').click();
+          await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
         }
         await d.button('Back').click();
         await onTypeScreen();
