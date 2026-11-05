@@ -28,6 +28,10 @@ conventions converts at its boundary: a left-handed host (Babylon.js by default)
 | `import/estimate.ts` | Triangle count before parsing: binary STL exact from size, ASCII STL sampled, glTF/GLB from the JSON |
 | `handedness.ts` | Mirror to and from a left-handed Y-up host (meshes, vectors, matrices) |
 | `transform.ts` | Placement matrix (Euler XYZ), inverse, point/direction/positions transforms (three.js-exact arithmetic) |
+| `surfacePath/path.ts` | A run of points the operator placed on a model's surface, open or closed: the anchor list and its pure edits (append, insert, move, remove, close, open), each returning a new path so one edit is one undo step |
+| `surfacePath/frame.ts` | A closed path's fitted plane and the 2D frame on it (centroid, normal, basis, plane-projected area, perimeter), and `facingNormal` to turn the normal to a side the CALLER names |
+| `surfacePath/validate.ts` | Why a drawn path cannot be used, as codes: `TOO_FEW_POINTS`, `COLLINEAR`, `DEGENERATE_AREA`, `SELF_INTERSECTING`. An open path is asked only for its two ends |
+| `surfacePath/resample.ts` | The dense curve between the anchors, following the model: samples each segment and puts them back on the surface through a projection the caller passes in (the app's pick; a known function in tests) |
 | `analysis/types.ts` | `TriangleMesh`, placement settings and results |
 | `analysis/mesh.ts` | Downward-face classification, overhang limits, regions, labels |
 | `analysis/placement.ts` | Automatic contact placement (remesh minima, islands, edge anchors) |

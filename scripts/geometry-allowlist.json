@@ -42,6 +42,19 @@
  "src/core/handedness.ts": {
   "label": "host-adapter"
  },
+ "src/core/surfacePath/frame.ts": {
+  "label": "host-math",
+  "maxMath": 17,
+  "why": "the fitted plane and 2D frame of a loop drawn on a surface (centroid, normal, basis, planar area): portable core geometry by design, no engine call and no renderer"
+ },
+ "src/core/surfacePath/path.ts": {
+  "label": "host-adapter"
+ },
+ "src/core/surfacePath/resample.ts": {
+  "label": "host-math",
+  "maxMath": 2,
+  "why": "walks a drawn path at a spacing and interpolates each sample and its normal; putting the sample back on the surface is the callers injected pick, not done here"
+ },
  "src/dental/areaRisk.ts": {
   "label": "host-adapter"
  },

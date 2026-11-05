@@ -298,20 +298,63 @@ branch in `DentalBar.tsx` (its early returns, `:74`–`:114`) and the panel chai
 mode's own commands in `registerCommands` (`editingMode.ts:294`) and keys (`:258`). `send()` already clears
 per-step notices on a stage change (`App.tsx:235`).
 
-## 4. Modularity
+## 4. Modularity — the loop is not aligner-only
 
-The owner's standing rules put each dental step in its own module with its own docs and tests, and keep the
-support-generation and edit UI portable to mixomesh. So rim define mode is its own module —
-`src/dental/steps/rim/` — holding the stage's panel, the anchor model, the curve resampling, the validation
-and the rim serialiser, with the viewport overlay beside the other dental layers. The geometry (anchors →
-loop → `DentalRim`) must be pure and testable without a browser: that is where the correctness lives, and it
-is the part mixomesh would reuse.
+The owner's refinement, and it changed where this lives:
+
+> Becuz this rim loop may need elsewhere too on other models or types … This time should be a close loop
+> drawing function on model but if we modulize it it can be an open loop function to reuse elsewhere
+
+So the drawing is **not** a dental feature with a reusable corner; it is a general capability whose first
+consumer is the dental rim. A closed run of anchors on a surface and an open one differ only in whether the
+last anchor leads back to the first, so they are one type with a `closed` flag — a rim loop, a measuring
+line, a trim line or a marked run on any model are the same list.
+
+**Built, tested and portable: `src/core/surfacePath/`.** `src/core` is the tree that must stay free of
+React, three.js, the DOM and app state — `src/core/imports.test.ts` enforces it — which is also what makes
+it the piece mixomesh can take. Four modules:
+
+| Module | Role |
+| --- | --- |
+| `path.ts` | `SurfaceAnchor`, `SurfacePath { anchors, closed }`, `segments`, and the pure edits: append, insert, move, remove, close, open. Every edit returns a **new** path, so one edit is one undo step. |
+| `frame.ts` | A closed path's fitted plane: centroid, normal, orthonormal basis, plane-projected area, perimeter — and `facingNormal`, which turns the normal to a side the **caller** names. |
+| `validate.ts` | `TOO_FEW_POINTS`, `COLLINEAR`, `DEGENERATE_AREA`, `SELF_INTERSECTING` as codes, not sentences, because this tree carries no i18n. |
+| `resample.ts` | The dense surface-following curve between anchors, projecting each sample through a callback the caller supplies. |
+
+Three decisions in there worth knowing, because each was a trap:
+
+- **The plane is not fitted by Newell's method**, the usual answer for a nearly planar polygon. Newell sums
+  *signed* areas, so a loop that crosses itself cancels: a symmetric bowtie gives an exactly zero normal,
+  the frame comes back undefined, and the loop gets reported `COLLINEAR` — the one diagnosis a reader
+  cannot act on, for the one shape they most need told about. The plane is instead spanned by the anchors
+  furthest apart, which no winding can cancel, and the area is measured separately in that plane. The
+  bowtie now reports `SELF_INTERSECTING` **and** `DEGENERATE_AREA`, and never `COLLINEAR`.
+- **An open path is asked only for its two ends.** It lies in no particular plane, encloses nothing, and
+  may legitimately double back — so none of the loop refusals apply. That is what lets one module serve
+  both shapes honestly rather than pretending a line is a degenerate loop.
+- **Projection is injected, not imported.** Putting a sample back on the surface needs the mesh, which this
+  tree cannot have. In the app the callback is the same pick the rest of the editor uses; in tests it is a
+  function with a known answer, which is why the resampling is testable at all.
+
+Removing an anchor from a closed path with three left is **refused** rather than silently reopening the
+loop: the operator said "this is a loop", and discarding that as a side effect of a delete would leave no
+sign it happened.
+
+### The dental half
+
+`src/dental/rim/` is then the consumer: it turns a closed `SurfacePath` into a `DentalRim` through the
+engine call, and owns the stage, its panel and its viewport overlay. The dental-specific part is the rim and
+its mask; the drawing is not.
 
 ## 5. Verification
 
-- Pure unit tests on the geometry: a known loop's centroid, plane and basis; the opening-direction sign
-  against a fixture whose answer is known; every validation refusal; the serialised rim round-tripping
-  through `rimScalars`/`rimOf` unchanged.
+- Pure unit tests on the geometry. **Done: 39 tests across `src/core/surfacePath/`**, covering the anchor
+  edits and their refusals, the fitted plane and its area (including the bowtie that Newell's method gets
+  wrong), every validation code, the sliver and near-line cases either side of both thresholds, and the
+  resampling with a projection that succeeds, one that always fails, and a bounded silly spacing.
+  `src/core/imports.test.ts` passes, so the module is portable.
+- Still to write: the opening-direction sign against a fixture whose answer is known, and the serialised rim
+  round-tripping through `rimScalars`/`rimOf` unchanged. Both need the engine call.
 - A golden comparison once the geocore call exists: draw a loop along the reference aligner's *own* detected
   rim points and check the returned mask against the detected one. That fixture makes the hand-drawn path
   checkable against ground truth, which is the strongest test available here.
@@ -343,7 +386,14 @@ Worth stating plainly, because it sets the size of the job. Already there and re
 gesture kind (`gizmoShown`), one-gesture-one-undo-entry plus a per-step undo floor, the rim polyline
 renderer (`DentalRimOutline`), and the whole pattern for adding a dental stage with its panel and commands.
 
-Genuinely new: **draggable in-scene anchor handles** (nothing in the app is draggable except the
-`TransformControls` gizmo), the **anchors → surface-following curve → `DentalRim`** geometry, the
-**opening-direction sign** decision, and the **geocore call for the visibility mask** — which is the one
-that gates everything else.
+Genuinely new, and the state of each:
+
+- **The anchors → surface-following curve geometry** — built and tested as `src/core/surfacePath/`, pure
+  and portable, 39 tests.
+- **Draggable in-scene anchor handles** — not started. Nothing in the app is draggable except the
+  `TransformControls` gizmo, so this is the one genuinely new piece of interaction.
+- **The stage, its panel and its overlay** — not started. A well-trodden path, per the mechanics above.
+- **The opening-direction sign** — the geometry is in place (`facingNormal` turns the normal to a side the
+  caller names and refuses to guess); the arrow and its flip are not built.
+- **The geocore call for the visibility mask** — specified for the other repo in
+  `docs/handoff/geocore-rim-from-points.md`. Still the one that gates a usable aligner.
