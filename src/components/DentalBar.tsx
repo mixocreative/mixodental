@@ -11,6 +11,8 @@ import { CommandButton } from './CommandButton';
 import { DentalAlignerPrompt, DentalTypeStep, noticeText } from './DentalSteps';
 import { OrientationBar, type DentalFreeControls } from './OrientationBar';
 import { DentalSupportsStep, type DentalReview } from './DentalSupports';
+import { DentalRimStep } from '../dental/rim/DentalRimStep';
+import { rimToolText } from '../dental/rim/rimStepText';
 import { RangeField } from './RangeField';
 import { ClickReachField, SelectStyleSwitch } from './EditBar';
 import { Segmented } from './Segmented';
@@ -31,7 +33,7 @@ const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
   lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, onTuningChange,
   review, clickReach, tilt, onTilt, free, restore, orientExtra, dentureReview, areaExtra, risks, onShowRisk, send, run }: {
-  gesture: Extract<Gesture, { kind: 'dental-type' | 'dental-aligner' | 'dental-area' | 'dental-review' }>;
+  gesture: Extract<Gesture, { kind: 'dental-type' | 'dental-aligner' | 'dental-rim' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
   /** Step 1: the object selected on the plate, offered as the aligner without a drop. */
   selectedName?: string;
@@ -99,6 +101,18 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       </>}
   </>;
   }
+  /*
+   * Rim define mode. Its badge names the mode and what the tool in hand does, as every tool mode's does,
+   * and it says WHY it opened: the operator did not choose this detour, orientation handed them it.
+   */
+  if (gesture.kind === 'dental-rim') return <>
+    <div className="edit-frame" aria-hidden="true" />
+    <div className="edit-badge" role="status">
+      {t('Step 1 · Define the rim')}<span>{unitName}</span>
+      <b>{t(rimToolText(gesture.tool))}</b>
+    </div>
+    <DentalRimStep ui={ui} run={run} />
+  </>;
   if (gesture.kind === 'dental-review') {
     const kind = ui.dentalKind ?? 'aligner';
     return <>

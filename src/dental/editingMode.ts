@@ -1,6 +1,7 @@
 import { entryReason, generatingReason, heavyReason, registerCommands, registerStepHints, type Command, type UiState } from '@mixo-geocore/editing/commands';
 import { editGesture, type EditGesture, type Gesture } from '@mixo-geocore/editing/gesture';
 import { runKey } from '@mixo-geocore/editing/keys';
+import { rimDoneReason } from './rim/rimStepText';
 import { registerEditMode, type SessionKit } from '@mixo-geocore/editing/modes';
 import type { EditSession, SessionEvent } from '@mixo-geocore/editing/session';
 import type { EditTool, StatusMessage } from '@mixo-geocore/editing/types';
@@ -16,8 +17,17 @@ import { kindText } from '../denture/kindText';
  * before the first session is made. The generic Support Edit Mode and zones come from the package.
  */
 
-/** The dental flow's steps: 0 aligner type, 1 aligner (drop, check, orient), 2 support area, 3 supports. */
-export type DentalStage = 'type' | 'aligner' | 'area' | 'review';
+/**
+ * The dental flow's steps: 0 aligner type, 1 aligner (drop, check, orient), 2 support area, 3 supports,
+ * plus `rim` - a detour out of Step 1 when detection finds no rim and the operator draws it by hand.
+ */
+export type DentalStage = 'type' | 'aligner' | 'rim' | 'area' | 'review';
+/**
+ * Rim define mode's two tools. Deliberately NOT called Paint or Select: those words belong to marking a
+ * surface and to picking objects, and reusing either for placing boundary points would tell a reader the
+ * wrong thing about what the drag does.
+ */
+export type DentalRimTool = 'place' | 'adjust';
 /** Step 1 itself: waiting for a file, reading and orienting it, or showing the oriented aligner. */
 export type DentalAligner = 'prompt' | 'loading' | 'ready';
 /** A message the dental bar shows in a step; `bad-file` carries the import error line. */
@@ -39,6 +49,18 @@ export type DentalEvent =
   | { type: 'dentalLoading'; unitId?: string }
   | { type: 'dentalOriented'; proposal: Proposal; notices: readonly DentalNotice[] }
   | { type: 'dentalOrientFailed'; notices: readonly DentalNotice[] }
+  /**
+   * Orientation could not find a rim, so Step 1 hands straight over to rim define mode rather than leaving
+   * a notice with no way on. The notices still travel, because the mode says in words why it opened.
+   */
+  | { type: 'dentalRimNeeded'; notices: readonly DentalNotice[] }
+  | { type: 'setDentalRimTool'; tool: DentalRimTool }
+  /**
+   * Done in rim define mode: the drawn rim is the aligner's. Back to Step 1, and `dentalRimOwn` stays on,
+   * which is what switches auto orientation OFF for this aligner - the operator's rim is not re-detected,
+   * and there is no print-angle scan to run without a detected arch front.
+   */
+  | { type: 'dentalRimDefined' }
   /** A denture is upright and its print angles are scanned (it has no aligner proposal). */
   | { type: 'dentureOriented'; notices?: readonly DentalNotice[] }
   | { type: 'dentalBadFile'; message: StatusMessage }
@@ -61,6 +83,8 @@ export type DentalGesture =
   | { kind: 'dental-type'; profile: string | undefined }
   | { kind: 'dental-aligner'; phase: DentalAligner; proposal: Proposal | undefined; notices: readonly DentalNotice[]; profile: string | undefined }
   | { kind: 'dental-area'; brush: { radius: number; kind: 'allow' | 'erase' } | undefined; edit: EditGesture | undefined; notices: readonly DentalNotice[] }
+  /** Rim define mode. The drawn path itself is scene state, so it reaches the panel as a prop, not through here. */
+  | { kind: 'dental-rim'; tool: DentalRimTool; notices: readonly DentalNotice[] }
   | { kind: 'dental-review'; edit: EditGesture };
 
 declare module '@mixo-geocore/editing/types' {
@@ -83,6 +107,13 @@ declare module '@mixo-geocore/editing/session' {
     dentalFinished: readonly string[];
     /** The aligner Steps 1 to 3 work on, once it is read (Exit clears only this one). */
     dentalUnitId: string | undefined;
+    /** Rim define mode's current tool. */
+    dentalRimTool: DentalRimTool;
+    /**
+     * The rim of this aligner was drawn by hand, by the operator. Auto orientation is off for it: no
+     * second detection, no print-angle scan, and nothing detected for "Use detected" to re-apply.
+     */
+    dentalRimOwn: boolean;
   }
   interface ExtraSessionEvents { dental: DentalEvent }
 }
@@ -96,6 +127,7 @@ declare module '@mixo-geocore/editing/commands' {
     'supports.dentalAuto': true;
     'dental.useDetected': true; 'dental.next': true; 'dental.generate': true; 'dental.back': true; 'dental.exit': true; 'dental.finish': true; 'dental.addAnother': true;
     'dental.tool.paint': true; 'dental.tool.erase': true; 'dental.tool.add': true; 'dental.tool.select': true;
+    'dental.rim.place': true; 'dental.rim.adjust': true; 'dental.rim.close': true; 'dental.rim.clear': true; 'dental.rim.done': true;
   }
   interface UiState {
     /** The reviewed dental contact placement matches the current model and paint. */
@@ -112,12 +144,28 @@ declare module '@mixo-geocore/editing/commands' {
     dentalReviewReady?: boolean;
     /** Dental Step 3: the last build of the current model and settings failed or was cancelled; no build is coming until a change. */
     dentalBuildFailed?: boolean;
+    /** Rim define mode: the tool in hand. */
+    dentalRimTool?: DentalRimTool;
+    /** Rim define mode: how many anchors the operator has placed. */
+    dentalRimAnchors?: number;
+    /** Rim define mode: the drawn path is a closed loop. */
+    dentalRimClosed?: boolean;
+    /**
+     * Rim define mode: why the drawn loop cannot be used yet (a `SurfacePathProblem` code), or absent when
+     * it can. Keeping the CODE, not a sentence, keeps the reason translatable where it is shown.
+     */
+    dentalRimProblem?: string;
+    /**
+     * Rim define mode: the engine can turn a drawn loop into a rim. False until geocore grows the call
+     * (docs/handoff/geocore-rim-from-points.md), which is why Done refuses rather than pretending.
+     */
+    dentalRimEngineReady?: boolean;
   }
 }
 
 const isDentalEvent = (event: SessionEvent): event is DentalEvent => DENTAL_EVENTS.has(event.type);
 const DENTAL_EVENTS = new Set<string>(['enterDental', 'chooseDentalProfile', 'startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
-  'dentalOrientFailed', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
+  'dentalOrientFailed', 'dentalRimNeeded', 'setDentalRimTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
   'addAnotherDental', 'backDental', 'setDentalRadius']);
 
 const finished = (state: EditSession, unitId: string): readonly string[] => (state.dentalFinished.includes(unitId) ? state.dentalFinished : [...state.dentalFinished, unitId]);
@@ -152,6 +200,22 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
     case 'dentalOrientFailed':
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'loading'
         ? { ...state, dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: event.notices }
+        : state;
+    /*
+      * Detection found no rim, so Step 1 does not stop at a notice with no way on: it hands over to rim
+      * define mode. `dentalRimOwn` goes on here rather than on Done, so that nothing re-detects this
+      * aligner while the operator is still drawing it.
+      */
+    case 'dentalRimNeeded':
+      return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'loading'
+        ? { ...state, dentalStage: 'rim', dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: event.notices, dentalRimTool: 'place', dentalRimOwn: true }
+        : state;
+    case 'setDentalRimTool':
+      return state.mode === 'dental' && state.dentalStage === 'rim' ? { ...state, dentalRimTool: event.tool } : state;
+    // Done: back to Step 1 with the operator's rim, and `dentalRimOwn` left on so nothing detects over it.
+    case 'dentalRimDefined':
+      return state.mode === 'dental' && state.dentalStage === 'rim'
+        ? { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalNotices: [] }
         : state;
     case 'dentureOriented':
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'loading'
@@ -193,6 +257,12 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
           ? { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalNotices: [], selection: NO_SELECTION, shiftHeld: false }
           : { ...state, dentalStage: 'area', tool: 'paint', selection: NO_SELECTION, shiftHeld: false };
         case 'area': return { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalNotices: [] };
+        /*
+         * Back out of rim define mode returns to Step 1 and its failure notice - the honest parent of this
+         * detour - with the aligner still on the plate, so the way on from there is Back again or Exit.
+         * `dentalRimOwn` is cleared: leaving the mode without finishing means there is no operator rim.
+         */
+        case 'rim': return { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalRimOwn: false };
         case 'aligner': return { ...state, dentalStage: 'type', dentalAligner: 'prompt', dentalProposal: undefined, dentalNotices: [], dentalUnitId: undefined };
         case 'type': return state;
       }
@@ -221,6 +291,7 @@ function dentalGesture(session: EditSession): Gesture {
   switch (session.dentalStage) {
     case 'type': return { kind: 'dental-type', profile: session.dentalProfile };
     case 'aligner': return { kind: 'dental-aligner', phase: session.dentalAligner, proposal: session.dentalProposal, notices: session.dentalNotices, profile: session.dentalProfile };
+    case 'rim': return { kind: 'dental-rim', tool: session.dentalRimTool, notices: session.dentalNotices };
     case 'area': return areaGesture(session);
     case 'review': return { kind: 'dental-review', edit: editGesture(session) };
   }
@@ -230,10 +301,12 @@ function dentalGesture(session: EditSession): Gesture {
 const reviewing = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' && s.dentalStage === 'review';
 /** Dental Step 2: the area and its suggested tips (its four tools). */
 const area = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' && s.dentalStage === 'area';
+/** Rim define mode: Step 1's detour where the operator draws the rim detection could not find. */
+const rim = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' && s.dentalStage === 'rim';
 
 registerEditMode({
   id: 'dental',
-  initial: { dentalStage: 'type', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined },
+  initial: { dentalStage: 'type', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimTool: 'place', dentalRimOwn: false },
   // Paint and Erase are Step 2's own tools: no other mode starts on one.
   tools: ['paint', 'erase'],
   reduce: (state, event, kit) => (isDentalEvent(event) ? reduceDental(state, event, kit) : undefined),
@@ -241,12 +314,13 @@ registerEditMode({
   // Tips can be selected in dental Step 2 (its tips, under Select).
   selectsTips: (s) => s.mode === 'dental' && s.dentalStage === 'area',
   gesture: dentalGesture,
-  gestureKinds: ['dental-type', 'dental-aligner', 'dental-area', 'dental-review'],
+  gestureKinds: ['dental-type', 'dental-aligner', 'dental-rim', 'dental-area', 'dental-review'],
   // Step 3, and Step 2 under Add or Select, hand the canvas a Support Edit Mode tool.
   canvasGesture: (press) => (press.kind === 'dental-area' ? press.edit ?? press : press.kind === 'dental-review' ? press.edit : undefined),
   gestureStatus: {
     'dental-type': 'Choose the aligner type to begin.',
     'dental-aligner': 'Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.',
+    'dental-rim': 'Click along the rim to place points; they land on the model. Close the loop, then press Done. Drag off the model to turn the view.',
     'dental-area': 'Paint where dental supports may grow, anywhere on the aligner; Erase takes area away. Drag on the model.',
     'dental-review': 'Review the supports: change the settings, add or delete supports, fix the problems, then press OK.',
   },
@@ -259,6 +333,9 @@ registerEditMode({
     // Dental Step 2 has four tools (P, E, A, S); Step 3 reuses the support tools. In both, Delete removes the selection and the first Esc drops it.
     const inArea = area(ui);
     const inReview = reviewing(ui);
+    // The two tools of rim define mode. Each of these also has a visible button in the bar.
+    if (rim(ui) && !ctrl && lower === 'p') return runKey('dental.rim.place');
+    if (rim(ui) && !ctrl && lower === 'a') return runKey('dental.rim.adjust');
     if (inArea && !ctrl && lower === 'p') return runKey('dental.tool.paint');
     if (inArea && !ctrl && lower === 'e') return runKey('dental.tool.erase');
     if (inArea && !ctrl && lower === 'a') return runKey('dental.tool.add');
@@ -331,6 +408,47 @@ registerCommands({
     hint: (s) => kindText('Finish this aligner and add the next one of the same type', s.dentalKind),
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'review', enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating,
     disabledReason: reviewReason,
+  },
+  /*
+   * Rim define mode. Two tools with two different words: Place and Adjust. Not Paint (which marks a
+   * surface) and not Select (which picks objects) - a reader who sees a familiar word expects the familiar
+   * gesture, and these are neither.
+   */
+  'dental.rim.place': {
+    role: 'secondary', shortcut: 'P', label: () => 'Place', hint: () => 'Click along the rim; each click puts a point on the model',
+    visible: rim, enabled: rim, disabledReason: never, pressed: (s) => s.dentalRimTool === 'place',
+  },
+  'dental.rim.adjust': {
+    role: 'secondary', shortcut: 'A', label: () => 'Adjust', hint: () => 'Drag a point to move it along the model',
+    visible: rim, enabled: (s) => rim(s) && (s.dentalRimAnchors ?? 0) > 0,
+    disabledReason: (s) => (rim(s) && (s.dentalRimAnchors ?? 0) === 0 ? { key: 'Place a point first.' } : undefined),
+    pressed: (s) => s.dentalRimTool === 'adjust',
+  },
+  'dental.rim.close': {
+    role: 'secondary', label: () => 'Close loop', hint: () => 'Join the last point back to the first',
+    // Shown only while there is a loop left to close: a key that can never apply again is noise.
+    visible: (s) => rim(s) && !s.dentalRimClosed,
+    enabled: (s) => rim(s) && !s.dentalRimClosed && (s.dentalRimAnchors ?? 0) >= 3,
+    disabledReason: (s) => (rim(s) && !s.dentalRimClosed && (s.dentalRimAnchors ?? 0) < 3 ? { key: 'A rim needs at least three points.' } : undefined),
+  },
+  'dental.rim.clear': {
+    role: 'secondary', label: () => 'Clear', hint: () => 'Take every point away and start the rim again',
+    visible: rim, enabled: (s) => rim(s) && (s.dentalRimAnchors ?? 0) > 0,
+    disabledReason: (s) => (rim(s) && (s.dentalRimAnchors ?? 0) === 0 ? { key: 'There are no points to clear.' } : undefined),
+  },
+  /*
+   * The mode's ONE primary, and the one that refuses honestly: a drawn loop becomes a rim only once the
+   * engine can fit its frame and rasterise the opening's visibility mask, which the host cannot compute.
+   * `rimDoneReason` says which of the three things is in the way, in the operator's own language.
+   */
+  'dental.rim.done': {
+    role: 'primary', label: () => 'Done', hint: () => 'Use this rim, then turn the aligner by hand',
+    visible: rim, enabled: (s) => rim(s) && rimDoneReason(s) === undefined,
+    disabledReason: (s) => {
+      if (!rim(s)) return undefined;
+      const reason = rimDoneReason(s);
+      return reason === undefined ? undefined : { key: reason };
+    },
   },
   'dental.tool.paint': areaTool('paint', 'Paint', 'Paint dental support area anywhere on the aligner', 'P'),
   'dental.tool.erase': areaTool('erase', 'Erase', 'Erase dental support area and its tips anywhere on the aligner', 'E'),

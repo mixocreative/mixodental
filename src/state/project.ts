@@ -8,6 +8,7 @@ import { UNSAVED_TUNING, parseDentalTuning } from '@mixo-geocore/host/dental/tun
 import { DEFAULT_PROFILE_ID, profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { normalizeDentureState, type DentureState } from '../denture/state/dentureState';
+import type { SurfaceAnchor, SurfacePath } from '../core/surfacePath/path';
 
 export { identityTransform } from '@mixo-geocore/host/state/transform';
 
@@ -45,6 +46,13 @@ export interface PrintUnit {
   dental?: DentalPolicy;
   /** A denture unit's accepted policy (src/denture/state/dentureState.ts); absent on any other unit. */
   denture?: DentureState;
+  /**
+   * The rim the operator is drawing by hand because detection found none (Step 1's rim define mode).
+   * Scene state, so the ordinary snapshot history undoes each anchor; NOT saved to the project file,
+   * because it is the working drawing, not an accepted result - what gets saved is the `dental` policy
+   * the finished rim goes into.
+   */
+  rimDraft?: SurfacePath;
   /**
    * Per-support settings by exact contact id (automatic or manual): only the keys the user set.
    * A support without an entry follows `settings`; adding a support creates none.
@@ -86,6 +94,13 @@ export type SceneCommand =
   | { type: 'dental/set'; unitId: string; policy: DentalPolicy }
   | { type: 'dental/stamps/add'; unitId: string; stamps: DentalAllowStamp[] }
   | { type: 'dental/clear'; unitId: string }
+  /**
+   * The whole drawn rim at once. One command for every edit - placing, moving, inserting, removing,
+   * closing, opening - because `src/core/surfacePath` has already worked out the new path and the scene
+   * only has to hold it. One edit is then one undo step by construction, with nothing to coalesce.
+   */
+  | { type: 'rim/set'; unitId: string; path: SurfacePath }
+  | { type: 'rim/clear'; unitId: string }
   /** A denture unit's policy (Step 1 accept, the model-landing allow list, the denture settings). */
   | { type: 'denture/set'; unitId: string; denture: DentureState }
   | { type: 'denture/clear'; unitId: string }
@@ -161,6 +176,14 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
         : { ...unit, dental: { ...unit.dental, stamps: [...unit.dental.stamps, ...command.stamps.map(cloneDentalStamp)] } });
     case 'dental/clear':
       return updateUnit(scene, command.unitId, ({ dental: _dental, ...unit }) => unit);
+    case 'rim/set': {
+      const path = cloneSurfacePath(command.path);
+      // An empty drawing is no drawing: holding one would leave the mode's keys enabled over nothing.
+      if (path.anchors.length === 0) return reduceScene(scene, { type: 'rim/clear', unitId: command.unitId });
+      return updateUnit(scene, command.unitId, (unit) => ({ ...unit, rimDraft: path }));
+    }
+    case 'rim/clear':
+      return updateUnit(scene, command.unitId, ({ rimDraft: _rimDraft, ...unit }) => unit);
     case 'denture/set':
       return updateUnit(scene, command.unitId, (unit) => ({ ...unit, denture: normalizeDentureState(command.denture) }));
     case 'denture/clear':
@@ -431,6 +454,21 @@ function cloneDentalPolicy(policy: DentalPolicy, mesh: TriangleMesh): DentalPoli
   if (policy.kind !== undefined && policy.kind !== 'legacy') throw new TypeError('unknown dental policy kind');
   if (policy.origin !== undefined && policy.origin !== 'manual-area') throw new TypeError('unknown dental policy origin');
   return policy.kind === 'legacy' ? { ...base, kind: 'legacy', ...(policy.origin ? { origin: policy.origin } : {}) } : base;
+}
+
+/**
+ * A drawn rim copied out of the caller's hands, every number checked. The scene never shares a mutable
+ * array with whoever dispatched the command, the same rule the stamps follow.
+ */
+function cloneSurfacePath(path: SurfacePath): SurfacePath {
+  if (typeof path !== 'object' || path === null || !Array.isArray(path.anchors)) throw new TypeError('a drawn rim must have a list of anchors');
+  if (typeof path.closed !== 'boolean') throw new TypeError('a drawn rim must say whether it is closed');
+  const anchors = path.anchors.map((anchor): SurfaceAnchor => ({
+    position: normalizeVector(anchor.position, 'rim anchor position'),
+    normal: normalizeVector(anchor.normal, 'rim anchor normal'),
+  }));
+  if (path.closed && anchors.length < 3) throw new TypeError('a closed rim needs three anchors');
+  return { anchors, closed: path.closed };
 }
 
 function cloneDentalStamp(stamp: DentalAllowStamp): DentalAllowStamp {
