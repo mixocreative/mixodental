@@ -12,7 +12,7 @@ const ui = { mode: 'dental', dentalStage: 'review', dentalKind: 'denture', denta
 const review = {
   settings: defaultSupportSettings, onSetting: () => {},
   structure: { treeEnabled: false, bracesEnabled: true }, onStructure: () => {}, clickReach: { value: 1, onChange: () => {} },
-  verdictPending: false, rimGap: undefined, structureFallback: undefined, problems: [], outOfDate: false, rechecking: () => false, unitName: () => 'sample',
+  verdictPending: false, buildLanded: true, rimGap: undefined, structureFallback: undefined, problems: [], outOfDate: false, rechecking: () => false, unitName: () => 'sample',
   onShow: () => {}, onFix: () => {}, onShowRim: () => {}, finishedCount: 0, backAsk: undefined, onBackConfirm: () => {}, onBackCancel: () => {},
 } satisfies DentalReview;
 const point = (id: string): UnresolvedPoint => ({ id, kind: 'tip', stream: '', position: [0, 0, 0], normal: [0, -1, 0], heightMm: 5, reason: 'x', bestGapMm: null, neededMm: 1.5 });
@@ -47,12 +47,31 @@ describe('DentureReviewPanel', () => {
   });
 
   it('says it is building, with OK off, and asks before Back throws hand work away', () => {
-    const building = render({}, undefined, { ...ui, dentalReviewReady: false } as UiState, false);
+    // The FIRST build, with no verdict behind it: that, and only that, is what "Building supports" is for.
+    const building = render({ buildLanded: false }, undefined, { ...ui, dentalReviewReady: false } as UiState, false);
     expect(building).toContain('Building supports');
     expect(building).not.toContain('denture-review-details-toggle');
     expect(building).toMatch(/<button[^>]*disabled[^>]*>OK</);
     const ask = render({ backAsk: { added: 2, removed: 1, customised: 0 } });
     expect(ask).toContain('Discard and go back');
     expect(ask).not.toContain('denture-review-ok');
+  });
+
+  /*
+   * x9b, this step's half of it. A setting change drops the build, and the verdict already read must then be
+   * DIMMED rather than replaced by "Building supports". Details still waits for a real build here: the
+   * denture's evidence is read off the mesh, which the change drops, so the fold would open empty.
+   */
+  it('dims the verdict it has rather than replacing it, while a setting change is on its way', () => {
+    const restale = render({ verdictPending: true }, undefined, { ...ui, dentalReviewReady: false } as UiState, false);
+    expect(restale).not.toContain('Building supports');
+    expect(restale).toContain('Supports ready. Every point is held.');
+    expect(restale).toContain('is-stale');
+    expect(restale).toContain('aria-busy="true"');
+    expect(restale).not.toContain('denture-review-details-toggle');
+    // A build that FAILED is not a verdict on its way: keeping the old sentence would read as sound supports.
+    const failed = render({ verdictPending: true }, undefined, { ...ui, dentalReviewReady: false, dentalBuildFailed: true } as UiState, false);
+    expect(failed).toContain('The supports could not be built.');
+    expect(failed).not.toContain('Supports ready. Every point is held.');
   });
 });

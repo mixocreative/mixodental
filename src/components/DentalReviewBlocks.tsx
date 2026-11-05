@@ -37,6 +37,13 @@ export interface DentalReview {
   clickReach: { value: number; onChange: (value: number, edit?: string) => void };
   /** A change is on its way to a new verdict (rebuild, re-check, retune): the Problems section shows stale. */
   verdictPending: boolean;
+  /**
+   * A support BUILD has landed for this object at least once, so the verdict line on screen is a real
+   * result worth keeping (dimmed) while its replacement is on the way - whether or not a check has run,
+   * since "Supports ready. Every point is held." is already a verdict before anyone presses Check.
+   * False only before the first build, where the line is "Building supports".
+   */
+  buildLanded: boolean;
   rimGap: RimGap | undefined;
   structureFallback: readonly ('tree' | 'brace' | 'brace-pruned')[] | undefined;
   problems: readonly ReviewProblem[];

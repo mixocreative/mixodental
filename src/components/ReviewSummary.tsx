@@ -12,6 +12,10 @@ import { t } from '../i18n';
  *
  * `tone` colours the dot (`ready`, `look`, `fix`, `failed`, `building`), `stale` dims the line while a
  * verdict is on its way, and `action` is the single command that resolves the line, where there is one.
+ *
+ * `stale` dims any real verdict, whatever put it on its way - a slider held, an arrow key, a checkbox - because
+ * the dimming says "this describes the supports as they WERE", which is true from the moment the setting changed.
+ * A `building` line is the exception: a first build has no previous verdict to dim, so it is never dimmed.
  */
 export function ReviewSummary({ kind, tone, line, stale = false, open, onToggle, action, children }: {
   /** `denture` or `aligner`: names the parts, nothing else. */
@@ -29,7 +33,7 @@ export function ReviewSummary({ kind, tone, line, stale = false, open, onToggle,
   children?: ReactNode;
 }) {
   const settled = open !== undefined && onToggle !== undefined;
-  return <section className={`review-summary is-${tone}${stale && settled ? ' is-stale' : ''}`} data-ui={`${kind}-review-summary`} aria-busy={stale}>
+  return <section className={`review-summary is-${tone}${stale && tone !== 'building' ? ' is-stale' : ''}`} data-ui={`${kind}-review-summary`} aria-busy={stale}>
     <p className="review-line" role="status" data-ui={`${kind}-review-line`}>{line}</p>
     {settled ? <div className="orient-row review-actions">
       {action}

@@ -77,9 +77,23 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
     </>}
     {freeOn ? null : notices.map((notice) => <div key={notice.kind} className="dental-notice">
       <p className="edit-note" role="alert">{noticeText(notice)}</p>
-      {notice.kind === 'mismatch' ? <div className="edit-row">
-        {alternatives.map((entry) => <button key={entry.id} type="button" onClick={() => send({ type: 'switchDentalProfile', id: entry.id })}>{t('Switch to {name}', { name: entry.name[lang] })}</button>)}
-        <button type="button" onClick={() => send({ type: 'dismissDentalNotice', kind: 'mismatch' })}>{t('Keep {name}', { name: current ? current.name[lang] : '' })}</button>
+      {/*
+        * u7. The way out of a WRONG type and the way out of NO orientation are the same way out - another type -
+        * so both notices offer it. A failure used to offer nothing at all, which left the one reader who had
+        * actually picked the wrong type with no way to say so.
+        *
+        * The one profile the engine embeds insists on a central opening, so `profilesWithoutOpening()` is empty
+        * today and there is nothing to switch TO. An empty row would answer nothing, so the row says WHY instead:
+        * a reader wondering whether they picked the wrong type learns that there is only one. The buttons come
+        * back on their own the day the engine embeds a second profile (its files are in the Rust core, not here).
+        */}
+      {notice.kind === 'mismatch' || notice.kind === 'failed' ? <div className="edit-row orient-notice-ways" data-ui={`orient-ways-${notice.kind}`}>
+        {alternatives.length > 0
+          ? alternatives.map((entry) => <button key={entry.id} type="button" data-ui={`orient-switch-${entry.id}`}
+            onClick={() => send({ type: 'switchDentalProfile', id: entry.id })}>{t('Switch to {name}', { name: entry.name[lang] })}</button>)
+          : <p className="help" data-ui="orient-only-type">{t('{name} is the only aligner type so far.', { name: current ? current.name[lang] : '' })}</p>}
+        {notice.kind === 'mismatch' ? <button type="button" data-ui="orient-keep-type"
+          onClick={() => send({ type: 'dismissDentalNotice', kind: 'mismatch' })}>{t('Keep {name}', { name: current ? current.name[lang] : '' })}</button> : null}
       </div> : null}
     </div>)}
     {freeOn && free ? <div className="orient-row">

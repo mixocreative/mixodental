@@ -44,13 +44,24 @@ export function DentureReviewPanel({ gesture, ui, review, ready, send, run, rest
   const [adjusting, setAdjusting] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(() => adjustRemembered('denture'));
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const stale = adjusting || review.verdictPending;
   const { mesh } = denture;
   const { resolvable, refused } = unresolvedCounts(mesh);
   // Grey "accepted by rule" spots are the denture rules' own choice: never counted as a problem.
   const findings = review.problems.filter((problem) => !problem.rule).length;
   const built = ready && mesh !== undefined;
-  const line = reviewLine({ built, failed: Boolean(ui.dentalBuildFailed), resolvable, problems: refused + findings + reviewNotes(review, 'denture').length });
+  /*
+   * The verdict LINE stays while its replacement is on the way, dimmed, the same way the aligner's Step 3
+   * does: a setting change must not swap a real verdict for "Building supports".
+   * DETAILS still waits for a real build here, and deliberately: the denture's evidence is read off `mesh`,
+   * which `currentBuild` drops the instant the object changes, so Resolve and the parts list would open EMPTY.
+   * The aligner's evidence is `review.problems`, which outlives the rebuild, so there it stays open.
+   */
+  const shown = built || review.buildLanded;
+  // `shown && !built`: a result is on screen and it is not the one this object would build now. See Step 3.
+  const stale = adjusting || review.verdictPending || (shown && !built);
+  // A build that FAILED outranks the verdict it was meant to replace: there is nothing sound to keep reading.
+  const failed = Boolean(ui.dentalBuildFailed);
+  const line = reviewLine({ built: shown && !failed, failed, resolvable, problems: refused + findings + reviewNotes(review, 'denture').length });
   return <aside className="dental-side denture-review" data-ui="denture-supports-panel" aria-label={t('Step 2 · Supports')}>
     <div className="dental-scroll">
       <ReviewSummary kind="denture" tone={line.kind} stale={stale} line={line.other ? plural(line.n, line.key, line.other) : t(line.key)}

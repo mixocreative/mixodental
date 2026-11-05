@@ -1024,7 +1024,14 @@ dialog.terms .terms-item > span { flex: none; }
 .key-art { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .key-art > svg { width: 16px; height: 16px; flex: none; }
 .dental-problem, .dental-notice .edit-note { color: var(--danger); }
-.dental-notice { display: grid; gap: 6px; justify-items: end; }
+/*
+ * A notice is a run of WORDS, so it is ranged left and its box fills the column - the same fix the supports
+ * dock had in d939c64, where `.edit-note` was ranged right. The keys under it stay right, where every other
+ * row of keys puts them.
+ */
+.dental-notice { display: grid; gap: 6px; justify-items: stretch; }
+.dental-notice .edit-note { text-align: left; }
+.orient-notice-ways .help { margin: 0; text-align: left; }
 
 
 /* ---- Dental Step 3: settings, tools, problems, label and the two finish buttons ---- */

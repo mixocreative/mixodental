@@ -712,6 +712,7 @@ export const zhHant: Dictionary = {
   'No support area was detected on this aligner. Mark where supports may go. Next stays off until some area is marked.': '在此牙套上未偵測到支撐區域。請標記可放置支撐的位置。在標記區域之前，「下一步」將保持停用。',
   'Switch to {name}': '切換至 {name}',
   'Keep {name}': '保留 {name}',
+  '{name} is the only aligner type so far.': '{name} 是目前唯一的牙套類型。',
   'Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.': '拖放牙套 STL 或選擇一個檔案。系統會自動調整方向；可使用旋轉控制器微調，然後按「下一步」。',
   'Left the aligner on the plate without supports.': '已將牙套留在底板上，未加支撐。',
   'No orientation was proposed for this aligner.': '未對此牙套提出建議方向。',

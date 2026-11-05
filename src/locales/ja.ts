@@ -707,6 +707,7 @@ export const ja: Dictionary = {
   'No support area was detected on this aligner. Mark where supports may go. Next stays off until some area is marked.': 'このアライナーではサポート領域が検出されませんでした。サポートを付けてよい場所を指定してください。領域を指定するまで「次へ」は押せません。',
   'Switch to {name}': '{name} に切り替える',
   'Keep {name}': '{name} のままにする',
+  '{name} is the only aligner type so far.': '{name} は現時点で唯一のアライナーの種類です。',
   'Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.': 'アライナーの STL をドロップするか、ファイルを選んでください。向きは自動調整されます。ギズモで調整してから「次へ」を押してください。',
   'Left the aligner on the plate without supports.': 'アライナーをサポートなしでプレートに残しました。',
   'No orientation was proposed for this aligner.': 'このアライナーには向きの提案がありません。',

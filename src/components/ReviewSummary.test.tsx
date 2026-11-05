@@ -52,4 +52,14 @@ describe('ReviewSummary', () => {
     expect(renderToStaticMarkup(<ReviewSummary kind="aligner" tone="look" line="x" stale {...open} />)).toContain('is-look is-stale');
     expect(renderToStaticMarkup(<ReviewSummary kind="aligner" tone="building" line="x" stale />)).not.toContain('is-stale');
   });
+
+  /*
+   * x9b. What dims a verdict is the verdict being out of date, not the Details fold being on offer. The dimming
+   * used to need `open`/`onToggle` as well, so a panel that showed a verdict and no fold could not say it was
+   * stale at all - which is how an arrow key on a Step 3 slider left no sign on screen.
+   */
+  it('dims a verdict that carries no Details fold', () => {
+    expect(renderToStaticMarkup(<ReviewSummary kind="aligner" tone="look" line="x" stale />)).toContain('is-look is-stale');
+    expect(renderToStaticMarkup(<ReviewSummary kind="aligner" tone="look" line="x" />)).not.toContain('is-stale');
+  });
 });

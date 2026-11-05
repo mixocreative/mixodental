@@ -83,7 +83,7 @@ describe('DentalBar', () => {
     const base = {
       settings: defaultSupportSettings, onSetting: () => {},
       structure: { treeEnabled: true, bracesEnabled: true }, onStructure: () => {}, clickReach: { value: 1, onChange: () => {} },
-      verdictPending: false, rimGap: undefined, structureFallback: undefined, problems: [], outOfDate: false, rechecking: () => false, unitName: () => 'sample',
+      verdictPending: false, buildLanded: true, rimGap: undefined, structureFallback: undefined, problems: [], outOfDate: false, rechecking: () => false, unitName: () => 'sample',
       onShow: () => {}, onFix: () => {}, onShowRim: () => {}, finishedCount: 0, backAsk: undefined, onBackConfirm: () => {}, onBackCancel: () => {},
     } satisfies DentalReview;
     const reviewHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady review={base} send={() => {}} run={() => {}} />);
@@ -116,9 +116,38 @@ describe('DentalBar', () => {
     const bothHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
       review={{ ...base, structureFallback: ['tree', 'brace-pruned'] }} send={() => {}} run={() => {}} />);
     expect(bothHtml).toContain('2 things to look at.');
-    const buildingHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={{ ...stepUi, dentalReviewReady: false } as UiState} reviewReady={false} review={base} send={() => {}} run={() => {}} />);
+    // The FIRST build has no verdict yet: that, and only that, is what "Building supports" is for.
+    const buildingHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={{ ...stepUi, dentalReviewReady: false } as UiState} reviewReady={false} review={{ ...base, buildLanded: false }} send={() => {}} run={() => {}} />);
     expect(buildingHtml).toContain('Building supports');
     expect(buildingHtml).toMatch(/<button[^>]*disabled[^>]*>OK</);
+    /*
+     * x9b. A setting change drops `reviewReady` at once (the build no longer belongs to the object as it is
+     * now), and the verdict on screen must then be DIMMED, not taken away: the reader keeps the sentence and
+     * the evidence behind Details, and is told it is on its way out of date.
+     */
+    const restaleHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={{ ...stepUi, dentalReviewReady: false } as UiState} reviewReady={false}
+      review={{ ...base, verdictPending: true, rimGap: { outerMm: 4.2, openingMm: 8 } }} send={() => {}} run={() => {}} />);
+    expect(restaleHtml).not.toContain('Building supports');
+    expect(restaleHtml).toContain('1 thing to look at.');
+    expect(restaleHtml).toContain('is-look is-stale');
+    expect(restaleHtml).toContain('aria-busy="true"');
+    expect(restaleHtml).toContain('data-ui="aligner-review-details-toggle"');
+    /*
+     * x9b, the case the first attempt at this missed. Step 3 shows a verdict BEFORE anyone presses Check, so
+     * at this point there is no stored check result: `verdictPending` is false, and leaning on it alone marked
+     * nothing stale. A landed build plus a build that is no longer current IS out of date, on its own.
+     */
+    const noCheckYet = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={{ ...stepUi, dentalReviewReady: false } as UiState} reviewReady={false}
+      review={{ ...base, verdictPending: false }} send={() => {}} run={() => {}} />);
+    expect(noCheckYet).toContain('Supports ready. Every point is held.');
+    expect(noCheckYet).toContain('is-stale');
+    expect(noCheckYet).toContain('aria-busy="true"');
+
+    // A build that FAILED is not a verdict on its way: keeping the old sentence would read as sound supports.
+    const failedHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={{ ...stepUi, dentalReviewReady: false, dentalBuildFailed: true } as UiState} reviewReady={false}
+      review={{ ...base, verdictPending: true }} send={() => {}} run={() => {}} />);
+    expect(failedHtml).toContain('The supports could not be built.');
+    expect(failedHtml).not.toContain('Supports ready. Every point is held.');
     const askHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
       review={{ ...base, backAsk: { added: 2, removed: 1, customised: 0 } }} send={() => {}} run={() => {}} />);
     expect(askHtml).toContain('2 added, 1 removed');

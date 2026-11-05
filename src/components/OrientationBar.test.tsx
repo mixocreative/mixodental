@@ -42,6 +42,29 @@ describe('OrientationBar', () => {
     expect(html).toContain('>Next<');
   });
 
+  /*
+   * u7. A failure and a type mismatch have the same way out - another aligner type - so both notices carry the
+   * same row. With one profile embedded, and that one insisting on a central opening, there is nothing to switch
+   * to: the row then says so rather than standing empty, since "is this the wrong type?" is the question the
+   * reader actually has. Only the mismatch can be dismissed; a failure is not an opinion to disagree with.
+   */
+  it('offers the aligner type as the way out of a failure as well as a mismatch', () => {
+    const failed = renderToStaticMarkup(<OrientationBar notices={[{ kind: 'failed' }]} profile="reference-aligner" lang="en" ui={ui} send={() => {}} run={() => {}} />);
+    expect(failed).toContain('could not be oriented automatically');
+    expect(failed).toContain('data-ui="orient-ways-failed"');
+    expect(failed).toContain('Reference aligner is the only aligner type so far.');
+    expect(failed).not.toContain('data-ui="orient-keep-type"');
+
+    const mismatch = renderToStaticMarkup(<OrientationBar notices={[{ kind: 'mismatch' }]} profile="reference-aligner" lang="en" ui={ui} send={() => {}} run={() => {}} />);
+    expect(mismatch).toContain('data-ui="orient-ways-mismatch"');
+    expect(mismatch).toContain('Reference aligner is the only aligner type so far.');
+    expect(mismatch).toContain('data-ui="orient-keep-type"');
+
+    // A notice with no second way out carries no row at all.
+    const holes = renderToStaticMarkup(<OrientationBar notices={[{ kind: 'holes' }]} profile="reference-aligner" lang="en" ui={ui} send={() => {}} run={() => {}} />);
+    expect(holes).not.toContain('data-ui="orient-only-type"');
+  });
+
   it('free transform: only Auto orientation and Next; no dial, no Free transform button, no notices', () => {
     const notices = [{ kind: 'holes' }] as const;
     const html = renderToStaticMarkup(<OrientationBar notices={notices} profile="reference-aligner" lang="en" ui={ui} send={() => {}} run={() => {}}

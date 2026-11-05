@@ -1278,6 +1278,12 @@ export default function App() {
     ...reviewStructure,
     clickReach: { value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) },
     verdictPending: generating || regenQueued || dentalTuning.busy || verdictBehind || building(activeUnit),
+    /*
+     * A build has landed for this object at some point. `built` keeps its entry when a settings change makes
+     * that entry stale, which is exactly the window the panels need to dim rather than blank; `problems` (the
+     * check's verdict) is the WRONG signal here, because Step 3 shows a verdict before anyone presses Check.
+     */
+    buildLanded: Boolean(activeUnit && built.get(activeUnit.id)),
     rimGap: dentalRimGap,
     structureFallback: activeMesh?.dentalStructureFallback,
     problems: listedProblems,
