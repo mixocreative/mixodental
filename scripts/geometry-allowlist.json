@@ -114,5 +114,10 @@
     "label": "host-adapter",
     "maxMath": 0,
     "why": "imports inverseTransformPoint/Direction to put a world-space pick into unit-local coordinates before storing it; no geometry of its own"
+  },
+  "src/supports/useSupportEdits.ts": {
+    "label": "host-adapter",
+    "maxMath": 0,
+    "why": "what a pointer does to supports: converts a world-space hit to unit-local and hands off to the shared planAddTip / contactToRemove. No geometry of its own; the snapping and the reach test are the engine host package"
   }
 }

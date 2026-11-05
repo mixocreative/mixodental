@@ -73,6 +73,7 @@ import { emptyScene, reduceScene, type ContactSettings, type PrintScene, type Pr
 import { applyTransform, inverseTransformDirection, inverseTransformPoint, transformPoint, type ModelTransform } from '@mixo-geocore/host/state/transform';
 import { closePath } from './core/surfacePath/path';
 import { useRimDrawing } from './dental/rim/useRimDrawing';
+import { useSupportEdits } from './supports/useSupportEdits';
 import { pathProblems } from './core/surfacePath/validate';
 import type { ExportKind } from '@mixo-geocore/host/supports/export';
 import type { GeneratedSupportMesh, SupportContact } from '@mixo-geocore/host/core/supports/mesh';
@@ -903,98 +904,22 @@ export default function App() {
    * reach (it takes that tip's point and normal, and that tip is deleted in the same step so the two never
    * stand together); otherwise at the exact hit. A spot that faces up gets a warning on the status line.
    */
-  const addTip = useCallback((unit: PrintUnit, point: [number, number, number], normal: [number, number, number]) => {
-    const preview = areaRef.current.dentalPreview;
-    if (!preview || preview.unitId !== unit.id) return setStatus('Finding safe support tips…');
-    const local = inverseTransformPoint(unit.transform, point);
-    const reach = resolveSettings(unit.settings).eraseRadius;
-    const gone = new Set(withRekeyedHandWork(unit, preview.localPoints).deleted);
-    // The shared add-tip snapping (mixo-geocore editing/addTip); a spot under the profile's smallest angle from up is flagged.
-    const plan = planAddTip({
-      point: local, normal: inverseTransformDirection(unit.transform, normal), worldNormal: normal, reach,
-      candidates: [...preview.localPoints, ...preview.localSuggested], removed: gone,
-      overhangAngleDeg: unit.dental ? profileData(unit.dental.profileId).defaults.overhangAngleDeg : 180,
-      createId: () => `manual-${crypto.randomUUID()}`,
-    });
-    dispatch({ type: 'batch', commands: [{ type: 'manual/add', unitId: unit.id, point: plan.contact }, ...(plan.removeId ? [{ type: 'deletion/add' as const, unitId: unit.id, pointIds: [plan.removeId] }] : [])] });
-    setStatus(plan.status === 'faces-up' ? 'This spot faces up, so a tip here may not hold.' : 'Support added.');
-  }, [dispatch, setStatus]);
-
   // The two edits of rim define mode; its own module owns them (src/dental/rim/useRimDrawing.ts).
   const { onRimPoint, onRimPath } = useRimDrawing({ session: sessionRef, scene: sceneRef, dispatch });
 
-  const onAddContact = useCallback((unitId: string, point: [number, number, number], normal: [number, number, number]) => {
-    if (sessionRef.current.mode === 'zones') return; // supports take no edits while painting zones
-    const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
-    if (!unit) return;
-    if (sessionRef.current.mode === 'dental' && sessionRef.current.dentalStage === 'area') return addTip(unit, point, normal);
-    const contact: SupportPoint = {
-      id: `manual-${crypto.randomUUID()}`,
-      regionId: -1,
-      position: inverseTransformPoint(unit.transform, point),
-      normal: inverseTransformDirection(unit.transform, normal),
-      source: 'interior',
-    };
-    const commands: SceneCommand[] = unit.supports ? [] : [{
-      type: 'supports/set', unitId, supports: { kind: 'live', data: { transform: { position: [...unit.transform.position], rotation: [...unit.transform.rotation] } } },
-    }];
-    dispatch({ type: 'batch', commands: [...commands, { type: 'manual/add', unitId, point: contact }] });
-    setAdded((current) => ({ unitId, point: contact.position, normal: contact.normal, seq: (current?.seq ?? 0) + 1 }));
-    if (!noteAdded(unitId, contact.position)) setStatus(normal[1] > 0 ? 'Support added on a top face: it grows from below.' : 'Support added.');
-  }, [addTip, dispatch, noteAdded, setStatus]);
-
-  // A removal is exact: the manual support itself, or the automatic contact's id. Click reach only decides which support a click on the model hits.
-  const removeOne = useCallback((unit: PrintUnit, contactId: string) => {
-    dispatch({ type: 'batch', commands: deleteCommands(unit, [contactId]) });
-    setStatus('Removed 1 support; removals persist through regeneration.', { n: 1 }, 'Removed {n} supports; removals persist through regeneration.');
-  }, [dispatch, setStatus]);
-
-  const eraseNear = useCallback((unit: PrintUnit, local: [number, number, number]) => {
-    const radius = resolveSettings(unit.settings).eraseRadius;
-    const hit = contactToRemove(contactsOf(unit), local, radius);
-    if (!hit) return setStatus('No support here: right-click a support, or the model within {radius} mm of one.', { radius });
-    removeOne(unit, hit.id);
-  }, [contactsOf, removeOne, setStatus]);
-
-  const onRemoveContact = useCallback((unitId: string, contactId: string) => {
-    if (sessionRef.current.mode === 'zones') return;
-    const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
-    if (unit && contactsOf(unit).some((candidate) => candidate.id === contactId)) removeOne(unit, contactId);
-  }, [contactsOf, removeOne]);
-
-  const onEditMiss = useCallback(() => {
-    const message = missStatus(sessionRef.current);
-    if (message) setStatusMessage(message);
-  }, []);
-
-  /** Step 2, Select → Click: the tip nearest the click within Click reach is picked (or unpicked). */
-  const onPickTip = useCallback((unitId: string, point: [number, number, number]) => {
-    const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
-    if (!selectsTips(sessionRef.current) || !unit || unit.id !== sceneRef.current.activeUnitId) return;
-    const local = inverseTransformPoint(unit.transform, point);
-    const hit = contactToRemove(contactsOf(unit), local, resolveSettings(unit.settings).eraseRadius);
-    if (!hit) return onEditMiss();
-    send({ type: 'toggleContact', id: hit.id });
-  }, [contactsOf, onEditMiss, send]);
+  /*
+   * What a pointer does to supports - add, remove, pick - in one module (src/supports/useSupportEdits.ts).
+   * The dependency list is long on purpose: it names what support editing actually reaches for, which
+   * was invisible while these nine callbacks sat loose among everything else in this file.
+   */
+  const { onAddContact, onRemoveContact, onEditMiss, onPickTip, onErase, onToggleContact } = useSupportEdits({
+    session: sessionRef, scene: sceneRef, area: areaRef, dispatch, send, setStatus, setStatusMessage, contactsOf, setAdded, noteAdded,
+  });
 
   /** A Drag over press with no support bodies to hit: while the object's supports are being built, say so. */
   const onNoBodies = () => {
     if (activeUnit && building(activeUnit)) setStatusMessage(BUILDING_STATUS);
   };
-
-  const onErase = useCallback((unitId: string, point: [number, number, number]) => {
-    if (sessionRef.current.mode === 'zones') return;
-    const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
-    if (unit) eraseNear(unit, inverseTransformPoint(unit.transform, point));
-  }, [eraseNear]);
-
-  const onToggleContact = useCallback((unitId: string, contactId: string) => {
-    if (!selectsTips(sessionRef.current) || unitId !== sceneRef.current.activeUnitId) return;
-    const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
-    // A support deleted a moment ago can still be under the cursor until the mesh rebuilds.
-    if (!unit || !contactsOf(unit).some((contact) => contact.id === contactId)) return;
-    send({ type: 'toggleContact', id: contactId });
-  }, [contactsOf, send]);
 
   const onShift = useCallback((held: boolean) => send({ type: 'shift', held }), [send]);
   const onPaint = useCallback((unitId: string, ids: readonly string[], mode: BrushMode) => {
