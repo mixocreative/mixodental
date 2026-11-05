@@ -724,6 +724,7 @@ export const zhHant: Dictionary = {
   'Place': '放置',
   'Click along the rim; each click puts a point on the model': '沿著邊緣點擊；每次點擊會在模型上放置一個點',
   'Drag a point to move it along the model': '拖曳點即可沿著模型移動',
+  'Moving a point is not built yet. Clear the rim and draw it again to change it.': '尚未建立移動點的功能。若要變更，請清除邊緣並重新繪製。',
   'Place a point first.': '請先放置一個點。',
   'Close loop': '閉合線條',
   'Join the last point back to the first': '將最後一點連回第一點',

@@ -26,6 +26,7 @@ import type { AreaRisk } from '../../dental/areaRisk';
 import type { OrientationLayer } from '../../dental/orientationEvidence';
 import { DebugLayerMeshes } from './DebugLayerMeshes';
 import { DentalFaceLayer, DentalPaintLayer, DentalRiskLayer, DentalRegionLines, DentalRimOutline, DentalStampLayer, DentalTipMarkers, type TipMark } from './dentalLayers';
+import { RimDraftLayer } from './RimDraftLayer';
 import type { ObjectViewportProps } from './types';
 import { MODEL_MESH, SUPPORT_MESH, useScreenBrush } from './useScreenBrush';
 
@@ -36,7 +37,7 @@ function toVector(vector: THREE.Vector3): Vector {
 /** The viewport settings and callbacks one object takes, plus its own unit, supports and state. */
 interface UnitObjectProps extends Pick<ObjectViewportProps,
   | 'gesture' | 'liveTool' | 'selection' | 'tipsView' | 'modelVisible' | 'wireframe'
-  | 'onSelect' | 'onPickTip' | 'onAddContact' | 'onRemoveContact' | 'onErase' | 'onEditMiss' | 'onToggleContact' | 'onPaint' | 'onShift' | 'onZoneStroke' | 'onDentalStroke' | 'onNoBodies'> {
+  | 'onSelect' | 'onPickTip' | 'onAddContact' | 'onRimPoint' | 'onRemoveContact' | 'onErase' | 'onEditMiss' | 'onToggleContact' | 'onPaint' | 'onShift' | 'onZoneStroke' | 'onDentalStroke' | 'onNoBodies'> {
   problems: readonly SupportProblem[];
   /** Step 1's detected area, drawn while the scene has none of its own (src/components/useDentalFlow.ts). */
   dentalAreaPreview?: DentalPolicy;
@@ -84,6 +85,8 @@ export function UnitObject(props: UnitObjectProps) {
   // Painting zones: supports are drawn but take no pointer events (presses reach the model).
   const zoning = editing && gesture.kind === 'zones';
   const dentalPainting = editing && gesture.kind === 'dental-area';
+  /** Rim define mode: the model is a surface to draw a loop on, and nothing else this object does applies. */
+  const rimDrawing = gesture.kind === 'dental-rim';
   /** Step 2's area layers and tip markers show under every tool. */
   const areaShown = editing && (stepTwo || stepOne);
   const surfacePainting = zoning || dentalPainting;
@@ -266,6 +269,17 @@ export function UnitObject(props: UnitObjectProps) {
   });
 
   const clickModel = (event: ThreeEvent<MouseEvent>, right: boolean) => {
+    /*
+     * RIM DEFINE MODE TAKES THE CLICK WHOLE. A left click on the model is an anchor; a right click is
+     * nothing, because this mode has no remove-by-right-click and a menu-button press should not place
+     * a point the operator did not mean. Returning before `pickFor` keeps every other reading of a click
+     * - select, erase, add a tip - out of a mode where none of them exists.
+     */
+    if (rimDrawing) {
+      event.stopPropagation();
+      if (!right) props.onRimPoint(unit.id, [event.point.x, event.point.y, event.point.z], surfaceNormal(event));
+      return;
+    }
     // Paint and Erase work through the stroke; the click that ends one is not an Add.
     if (dentalPainting) return;
     const action = pickFor(event, 'model', right, false);
@@ -346,6 +360,16 @@ export function UnitObject(props: UnitObjectProps) {
     {areaShown && props.dentalRisks && props.dentalRisks.length > 0 && shown === unit.source && <group visible={props.modelVisible}>
       <DentalRiskLayer mesh={unit.source} risks={props.dentalRisks} opacity={0.85} />
     </group>}
+    {/*
+      The rim being drawn, whenever the unit holds one - not only while the mode is open. Leaving the mode
+      by Cancel clears the drawing, so a draft that still exists is one the operator is in the middle of,
+      and hiding it would make Back into Step 1 look as though the work had been lost.
+      The preview anchor appears only in Place, and only with the pointer on the model.
+    */}
+    {unit.rimDraft && <RimDraftLayer path={unit.rimDraft}
+      {...(rimDrawing && gesture.kind === 'dental-rim' && gesture.tool === 'place' && hover
+        ? { preview: { position: toVector(hover.point), normal: toVector(hover.normal.clone().normalize()) } }
+        : {})} />}
     {props.debugLayers && props.debugLayers.length > 0 && <DebugLayerMeshes layers={props.debugLayers} />}
     {areaShown && props.dentalTips && <DentalTipMarkers points={props.dentalTips} {...(tipMarks ? { marks: tipMarks } : {})} />}
     {supportGeometry && <mesh

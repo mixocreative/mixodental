@@ -147,6 +147,7 @@ export default function ObjectViewport(props: ObjectViewportProps) {
       onPickTip={props.onPickTip}
       {...(props.dentalArea ? { dentalArea: true } : {})}
       onAddContact={props.onAddContact}
+      onRimPoint={props.onRimPoint}
       onRemoveContact={props.onRemoveContact}
       onErase={props.onErase}
       onEditMiss={props.onEditMiss}

@@ -54,6 +54,11 @@ export interface ObjectViewportProps {
   onSelect: (unitId: string | null, additive: boolean) => void;
   onTransform: (unitId: string, transform: ModelTransform) => void;
   onAddContact: (unitId: string, point: Vector, normal: Vector) => void;
+  /**
+   * Rim define mode, Place: a hit on the model that becomes an anchor, in WORLD space like every other
+   * callback here. The app converts to unit-local, because only it knows the unit's transform.
+   */
+  onRimPoint: (unitId: string, point: Vector, normal: Vector) => void;
   onRemoveContact: (unitId: string, contactId: string) => void;
   onErase: (unitId: string, point: Vector) => void;
   /** A Support Edit Mode click that hit neither the model nor a support. */

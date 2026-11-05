@@ -71,6 +71,9 @@ import { PlateLedger, type PlateScene } from './core/plateLedger';
 import { estimateTriangles, ESTIMATE_HEAD_BYTES } from './core/import/estimate';
 import { emptyScene, reduceScene, type ContactSettings, type PrintScene, type PrintUnit, type SceneCommand, type SupportSettings } from './state/project';
 import { applyTransform, inverseTransformDirection, inverseTransformPoint, transformPoint, type ModelTransform } from '@mixo-geocore/host/state/transform';
+import { appendAnchor, closePath, emptyPath, type SurfaceAnchor } from './core/surfacePath/path';
+import { closesLoop } from './dental/rim/rimDraftGeometry';
+import { pathProblems } from './core/surfacePath/validate';
 import type { ExportKind } from '@mixo-geocore/host/supports/export';
 import type { GeneratedSupportMesh, SupportContact } from '@mixo-geocore/host/core/supports/mesh';
 import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
@@ -917,6 +920,30 @@ export default function App() {
     setStatus(plan.status === 'faces-up' ? 'This spot faces up, so a tip here may not hold.' : 'Support added.');
   }, [dispatch, setStatus]);
 
+  /**
+   * Rim define mode, Place: one hit on the model becomes one anchor.
+   *
+   * A hit ON THE FIRST ANCHOR closes the loop instead of adding another, because that is the gesture
+   * every drawing program uses to finish a shape - and Close loop is the button beside it, as the house
+   * rule requires. A closed loop takes no more anchors: `appendAnchor` refuses, and refusing quietly is
+   * right, since the operator can see the loop is shut.
+   */
+  const onRimPoint = useCallback((unitId: string, point: [number, number, number], normal: [number, number, number]) => {
+    const session = sessionRef.current;
+    if (session.mode !== 'dental' || session.dentalStage !== 'rim') return;
+    const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
+    if (!unit) return;
+    // Unit-local, like every anchor: the drawing survives the model being moved or turned later.
+    const anchor: SurfaceAnchor = {
+      position: inverseTransformPoint(unit.transform, point),
+      normal: inverseTransformDirection(unit.transform, normal),
+    };
+    const path = unit.rimDraft ?? emptyPath();
+    const next = closesLoop(path, anchor.position) ? closePath(path) : appendAnchor(path, anchor);
+    if (!next) return;
+    dispatch({ type: 'rim/set', unitId, path: next });
+  }, [dispatch]);
+
   const onAddContact = useCallback((unitId: string, point: [number, number, number], normal: [number, number, number]) => {
     if (sessionRef.current.mode === 'zones') return; // supports take no edits while painting zones
     const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
@@ -1195,6 +1222,21 @@ export default function App() {
       case 'dental.tool.erase': return send({ type: 'setDentalTool', tool: 'erase' });
       case 'dental.tool.add': return send({ type: 'setDentalTool', tool: 'add' });
       case 'dental.tool.select': return send({ type: 'setDentalTool', tool: 'select' });
+      // Rim define mode. Place and Adjust only change what the next drag means; the drawing itself is
+      // scene state, so Close and Clear go through scene commands and the ordinary history undoes them.
+      case 'dental.rim.place': return send({ type: 'setDentalRimTool', tool: 'place' });
+      case 'dental.rim.adjust': return send({ type: 'setDentalRimTool', tool: 'adjust' });
+      case 'dental.rim.close': {
+        const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
+        const closed = unit?.rimDraft && closePath(unit.rimDraft);
+        if (unit && closed) dispatch({ type: 'rim/set', unitId: unit.id, path: closed });
+        return;
+      }
+      case 'dental.rim.clear': {
+        const unitId = sessionRef.current.dentalUnitId;
+        if (unitId) dispatch({ type: 'rim/clear', unitId });
+        return;
+      }
       case 'edit.add': return send({ type: 'setAddAction', action: 'add' });
       case 'edit.remove': return send({ type: 'setAddAction', action: 'remove' });
       case 'edit.dragSelect': return send({ type: 'setBrushMode', mode: 'select' });
@@ -1261,7 +1303,9 @@ export default function App() {
   // What the registry's rules read (editing/commands); Undo stops at the mode's floor.
   const ui: UiState = {
     mode: editMode, activeName: activeUnit?.name, supported: scene.units.some((unit) => unit.supports), zones: activeUnit?.zones.length ?? 0, exporting, active: Boolean(activeUnit), heavy: activeHeavy, units: scene.units.length, selectedObjects: selectedCount, tool: session.tool, addAction: session.addAction, method: session.selectStyle, dragAction: effectiveBrushMode(session.brushMode, session.shiftHeld),
-    selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalBuildFailed: Boolean(activeUnit && failedBuilds.get(activeUnit.id) === activeUnit), dentalStage: session.dentalStage, dentalRimTool: session.dentalRimTool, dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: orientFlow.tilt?.unitId === activeUnit?.id && (orientFlow.tilt?.status === 'scanning' || (orientFlow.tilt?.status === 'ready' && orientFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal) || (denture.active && denture.orient.proposed), dentalKind: denture.active ? 'denture' : 'aligner', dentureResolvable: activeMesh?.unresolved?.filter(denture.supports.resolvable).length ?? 0, canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
+    selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalBuildFailed: Boolean(activeUnit && failedBuilds.get(activeUnit.id) === activeUnit), dentalStage: session.dentalStage, dentalRimTool: session.dentalRimTool,
+    dentalRimAnchors: activeUnit?.rimDraft?.anchors.length ?? 0, dentalRimClosed: activeUnit?.rimDraft?.closed ?? false,
+    ...(activeUnit?.rimDraft && pathProblems(activeUnit.rimDraft)[0] ? { dentalRimProblem: pathProblems(activeUnit.rimDraft)[0] } : {}), dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: orientFlow.tilt?.unitId === activeUnit?.id && (orientFlow.tilt?.status === 'scanning' || (orientFlow.tilt?.status === 'ready' && orientFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal) || (denture.active && denture.orient.proposed), dentalKind: denture.active ? 'denture' : 'aligner', dentureResolvable: activeMesh?.unresolved?.filter(denture.supports.resolvable).length ?? 0, canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
   };
   const command = (id: CommandId) => resolve(id, ui);
   // Denture Step 2: the add-on parts of a multi-part file, tinted on the model (src/denture/parts).
@@ -1441,6 +1485,7 @@ export default function App() {
           onSelect={onSelect}
           onTransform={onTransform}
           onAddContact={onAddContact}
+          onRimPoint={onRimPoint}
           onRemoveContact={onRemoveContact}
           onErase={onErase}
           onEditMiss={onEditMiss}

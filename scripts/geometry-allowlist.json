@@ -1,103 +1,108 @@
 {
- "scripts/dental-region-review/build.ts": {
-  "label": "host-adapter"
- },
- "src/App.tsx": {
-  "label": "host-adapter"
- },
- "src/components/ObjectViewport.tsx": {
-  "label": "host-adapter"
- },
- "src/components/useDentalFlow.ts": {
-  "label": "host-adapter"
- },
- "src/components/useFixSpot.ts": {
-  "label": "host-adapter"
- },
- "src/components/viewport/AddFlash.tsx": {
-  "label": "host-adapter"
- },
- "src/components/viewport/UnitObject.tsx": {
-  "label": "host-math",
-  "maxMath": 3,
-  "why": "three.js raycast/hover normals for the viewport (render only)"
- },
- "src/components/viewport/UnresolvedBubbles.tsx": {
-  "label": "host-adapter"
- },
- "src/components/viewport/cameras.tsx": {
-  "label": "host-adapter"
- },
- "src/components/viewport/types.ts": {
-  "label": "host-adapter"
- },
- "src/components/viewport/useScreenBrush.ts": {
-  "label": "host-adapter"
- },
- "src/components/viewport/viewportPort.ts": {
-  "label": "host-math",
-  "maxMath": 1,
-  "why": "three.js camera projection for the ViewportPort seam, and the unit normal of one picked triangle (render-side picking answer)"
- },
- "src/core/handedness.ts": {
-  "label": "host-adapter"
- },
- "src/core/surfacePath/frame.ts": {
-  "label": "host-math",
-  "maxMath": 17,
-  "why": "the fitted plane and 2D frame of a loop drawn on a surface (centroid, normal, basis, planar area): portable core geometry by design, no engine call and no renderer"
- },
- "src/core/surfacePath/path.ts": {
-  "label": "host-adapter"
- },
- "src/core/surfacePath/resample.ts": {
-  "label": "host-math",
-  "maxMath": 2,
-  "why": "walks a drawn path at a spacing and interpolates each sample and its normal; putting the sample back on the surface is the callers injected pick, not done here"
- },
- "src/dental/areaRisk.ts": {
-  "label": "host-adapter"
- },
- "src/dental/confirmTilt.ts": {
-  "label": "host-adapter"
- },
- "src/denture/check/acceptedSpots.ts": {
-  "label": "host-adapter"
- },
- "src/denture/check/dentureSpots.ts": {
-  "label": "host-adapter"
- },
- "src/denture/check/ruleSpots.ts": {
-  "label": "host-adapter"
- },
- "src/denture/engine/dentureClient.ts": {
-  "label": "host-adapter"
- },
- "src/denture/engine/dentureCore.ts": {
-  "label": "host-adapter"
- },
- "src/denture/engine/dentureExport.ts": {
-  "label": "host-adapter"
- },
- "src/denture/engine/dentureProtocol.ts": {
-  "label": "host-adapter"
- },
- "src/denture/steps/orient/useDentureOrient.ts": {
-  "label": "host-adapter"
- },
- "src/denture/steps/supports/useDentureSupports.ts": {
-  "label": "host-adapter"
- },
- "src/state/import.ts": {
-  "label": "host-adapter"
- },
- "src/state/project.ts": {
-  "label": "host-adapter"
- },
- "src/workers/analysisClient.ts": {
-  "label": "host-adapter"
- },
- "src/workers/analysisProtocol.ts": {
-  "label": "host-adapter"
- }
+  "scripts/dental-region-review/build.ts": {
+    "label": "host-adapter"
+  },
+  "src/App.tsx": {
+    "label": "host-adapter"
+  },
+  "src/components/ObjectViewport.tsx": {
+    "label": "host-adapter"
+  },
+  "src/components/useDentalFlow.ts": {
+    "label": "host-adapter"
+  },
+  "src/components/useFixSpot.ts": {
+    "label": "host-adapter"
+  },
+  "src/components/viewport/AddFlash.tsx": {
+    "label": "host-adapter"
+  },
+  "src/components/viewport/UnitObject.tsx": {
+    "label": "host-math",
+    "maxMath": 4,
+    "why": "three.js raycast/hover normals for the viewport (render only)"
+  },
+  "src/components/viewport/UnresolvedBubbles.tsx": {
+    "label": "host-adapter"
+  },
+  "src/components/viewport/cameras.tsx": {
+    "label": "host-adapter"
+  },
+  "src/components/viewport/types.ts": {
+    "label": "host-adapter"
+  },
+  "src/components/viewport/useScreenBrush.ts": {
+    "label": "host-adapter"
+  },
+  "src/components/viewport/viewportPort.ts": {
+    "label": "host-math",
+    "maxMath": 1,
+    "why": "three.js camera projection for the ViewportPort seam, and the unit normal of one picked triangle (render-side picking answer)"
+  },
+  "src/core/handedness.ts": {
+    "label": "host-adapter"
+  },
+  "src/core/surfacePath/frame.ts": {
+    "label": "host-math",
+    "maxMath": 17,
+    "why": "the fitted plane and 2D frame of a loop drawn on a surface (centroid, normal, basis, planar area): portable core geometry by design, no engine call and no renderer"
+  },
+  "src/core/surfacePath/path.ts": {
+    "label": "host-adapter"
+  },
+  "src/core/surfacePath/resample.ts": {
+    "label": "host-math",
+    "maxMath": 2,
+    "why": "walks a drawn path at a spacing and interpolates each sample and its normal; putting the sample back on the surface is the callers injected pick, not done here"
+  },
+  "src/dental/areaRisk.ts": {
+    "label": "host-adapter"
+  },
+  "src/dental/confirmTilt.ts": {
+    "label": "host-adapter"
+  },
+  "src/denture/check/acceptedSpots.ts": {
+    "label": "host-adapter"
+  },
+  "src/denture/check/dentureSpots.ts": {
+    "label": "host-adapter"
+  },
+  "src/denture/check/ruleSpots.ts": {
+    "label": "host-adapter"
+  },
+  "src/denture/engine/dentureClient.ts": {
+    "label": "host-adapter"
+  },
+  "src/denture/engine/dentureCore.ts": {
+    "label": "host-adapter"
+  },
+  "src/denture/engine/dentureExport.ts": {
+    "label": "host-adapter"
+  },
+  "src/denture/engine/dentureProtocol.ts": {
+    "label": "host-adapter"
+  },
+  "src/denture/steps/orient/useDentureOrient.ts": {
+    "label": "host-adapter"
+  },
+  "src/denture/steps/supports/useDentureSupports.ts": {
+    "label": "host-adapter"
+  },
+  "src/state/import.ts": {
+    "label": "host-adapter"
+  },
+  "src/state/project.ts": {
+    "label": "host-adapter"
+  },
+  "src/workers/analysisClient.ts": {
+    "label": "host-adapter"
+  },
+  "src/workers/analysisProtocol.ts": {
+    "label": "host-adapter"
+  },
+  "src/dental/rim/rimDraftGeometry.ts": {
+    "label": "host-math",
+    "maxMath": 3,
+    "why": "where the drawn rim sits for the viewport: the lift off the surface along an anchor normal, and the two reach tests (nearest anchor, close-the-loop). Render and hit-testing only - the rim the ENGINE is given is resampled by core/surfacePath, not here"
+  }
 }

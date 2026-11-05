@@ -24,11 +24,7 @@ const UNWIRED: Partial<Record<CommandId, string>> = {
   // Rim define mode's drawing is not built yet: there is no viewport overlay to place or move an anchor
   // on, and no geocore call to turn a drawn loop into a rim (docs/handoff/geocore-rim-from-points.md).
   // The dock and its refusals are real; these five are the part still waiting on the engine.
-  'dental.rim.place': 'rim drawing not wired to the viewport yet',
-  'dental.rim.adjust': 'rim drawing not wired to the viewport yet',
-  'dental.rim.close': 'rim drawing not wired to the viewport yet',
-  'dental.rim.clear': 'rim drawing not wired to the viewport yet',
-  'dental.rim.done': 'rim drawing not wired to the viewport yet',
+  'dental.rim.done': 'a drawn loop cannot become a rim until geocore can build its visibility mask',
 };
 
 describe('command wiring', () => {
@@ -73,9 +69,12 @@ describe('command wiring', () => {
       const command = resolve(id, drawing);
       return command.visible && command.enabled;
     });
-    // Four, with four points down: Place, Adjust, Close loop and Clear. Only Done refuses, which is the
-    // one refusal that matters - it is the way OUT of the mode, and it will not let a rim leave unbuilt.
-    expect(live.sort()).toEqual(['dental.rim.adjust', 'dental.rim.clear', 'dental.rim.close', 'dental.rim.place']);
+    /*
+     * EMPTY, and it has to stay empty: nothing the operator can press is left without a handler. The two
+     * entries still in UNWIRED - Adjust and Done - are both OFF, and the loop below makes them say why.
+     * An unwired command that was live would be a key that looks ready and does nothing.
+     */
+    expect(live.sort()).toEqual([]);
     // And the ones that are off say why, in words, not as a grey key with a silent tooltip.
     for (const id of Object.keys(UNWIRED) as CommandId[]) {
       const command = resolve(id, drawing);
