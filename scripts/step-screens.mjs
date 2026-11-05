@@ -24,6 +24,8 @@ import { ResolveSection } from '../src/denture/steps/supports/ResolveSection';
 import { DentureSettingsSection } from '../src/denture/settings/DentureSettingsSection';
 import { DEFAULT_DENTURE_OPTIONS } from '../src/denture/settings/dentureOptions';
 import { PartsList } from '../src/denture/parts/PartsList';
+import { DentalBar } from '../src/components/DentalBar';
+import { DEFAULT_PROFILE_ID, profileById } from '@mixo-geocore/host/dental/alignerProfiles';
 import { DentalRimStep } from '../src/dental/rim/DentalRimStep';
 import { rimToolText } from '../src/dental/rim/rimStepText';
 // Registers the dental command rows, which the rim step resolves its keys and their reasons from.
@@ -126,6 +128,42 @@ const RIM_SCREENS = [
   ],
   dock: h(DentalRimStep, { key: 'p', ui, run: noop }),
 }), true]);
+
+/** The ui Step 2 reads. `dentalToolArmed` and `tool` together say what is actually in hand. */
+const areaUi = (over = {}) => ({
+  mode: 'dental', dentalStage: 'area', dentalKind: 'aligner', dentalToolArmed: true, tool: 'paint',
+  dentalRadius: 2, selection: 0, customisedActive: 0, addAction: 'add', method: 'click', selectStyle: 'click',
+  brushMode: 'select', dragAction: 'select', canUndo: false, active: true, supported: true, ...over,
+});
+
+/**
+ * STEP 2, THE SUPPORT AREA STEP, and the four tools it offers. The dock is the real `DentalBar`, so what
+ * each tool puts on screen - the brush size, Add's Click reach, Select's style switch and its selection
+ * actions - is decided by the component, not by this file. `whole: true`: it builds its own frame, badge
+ * and bar.
+ */
+const AREA_SCREENS = [
+  ['aligner-step2-no-tool', 'Aligner Step 2 - no tool in hand, the state the step opens in',
+    areaUi({ dentalToolArmed: false }), { brush: undefined, edit: undefined }],
+  ['aligner-step2-paint', 'Aligner Step 2 - Paint in hand, with its brush size and its way out',
+    areaUi({ tool: 'paint' }), { brush: { radius: 2, kind: 'allow' }, edit: undefined }],
+  ['aligner-step2-add', 'Aligner Step 2 - Add in hand: the add loop, with Click reach',
+    areaUi({ tool: 'add' }), { brush: undefined, edit: { kind: 'add', remove: false } }],
+  ['aligner-step2-select', 'Aligner Step 2 - Select in hand with three tips picked',
+    areaUi({ tool: 'select', selection: 3 }), { brush: undefined, edit: { kind: 'pick' } }],
+].map(([name, caption, ui, gesture]) => [name, caption, () => ({
+  chrome: [],
+  dock: h(DentalBar, {
+    key: 'p', ui, unitName: 'upper-7', send: noop, run: noop,
+    gesture: { kind: 'dental-area', notices: [], ...gesture },
+    tipCount: 72, previewStatus: 'ready',
+    tuning: { stripWidthMm: 3, positionMm: 0.25, density: 1 },
+    tuningLimits: profileById(DEFAULT_PROFILE_ID)?.defaults,
+    clickReach: { value: 1, onChange: noop },
+  }),
+}), true]);
+
+SCREENS.push(...AREA_SCREENS);
 
 SCREENS.push(...RIM_SCREENS);
 
