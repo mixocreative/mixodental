@@ -2,10 +2,11 @@ import type { CommandId, UiState } from '@mixo-geocore/editing/commands';
 import { resolve } from '@mixo-geocore/editing/commands';
 import { CommandButton } from '../../components/CommandButton';
 import { Panel } from '../../components/Panel';
+import { Field } from '../../components/Field';
 import { Segmented } from '../../components/Segmented';
 import { Icon } from '../../ui/Icon';
-import { plural, t } from '../../i18n';
-import { rimCountText, rimDoneReason } from './rimStepText';
+import { t } from '../../i18n';
+import { rimDoneReason, rimLoopText } from './rimStepText';
 import type { DentalRimTool } from '../editingMode';
 
 /*
@@ -25,7 +26,6 @@ const RIM_TOOLS: readonly DentalRimTool[] = ['place', 'adjust'];
 export function DentalRimStep({ ui, run }: { ui: UiState; run: (id: CommandId) => void }) {
   const anchors = ui.dentalRimAnchors ?? 0;
   const closed = ui.dentalRimClosed ?? false;
-  const count = rimCountText(anchors, closed);
   // Why Done is off, said once here as well as on the key, because the reason is the step's whole state.
   const blocked = rimDoneReason(ui);
 
@@ -47,8 +47,17 @@ export function DentalRimStep({ ui, run }: { ui: UiState; run: (id: CommandId) =
       </Panel>
 
       <Panel title={t('The rim')} ui="rim-shape">
-        {/* The count is a READOUT, in the mono face, like every other number the docks report. */}
-        <output className="edit-count" data-ui="rim-point-count">{plural(count.n, count.key, count.other ?? count.key)}</output>
+        {/*
+          The two facts an operator checks over and over, as two readouts rather than one sentence: how
+          many points are down, and whether the loop is joined. `dental-tip-count` is the same readout
+          Step 2 gives its tip count, so the number wears the app's own number face.
+        */}
+        <Field label={t('Points')} ui="rim-point-count" layout="row" className="dental-tip-count" readOnly>
+          <span className="num">{anchors}</span>
+        </Field>
+        <Field label={t('Loop')} ui="rim-loop-state" layout="row" readOnly>
+          <span>{t(rimLoopText(closed))}</span>
+        </Field>
         <div className="edit-row">
           {(['dental.rim.close', 'dental.rim.clear'] as const)
             .map((id) => resolve(id, ui))
@@ -56,10 +65,11 @@ export function DentalRimStep({ ui, run }: { ui: UiState; run: (id: CommandId) =
             .map((command) => <CommandButton key={command.id} command={command} run={run} />)}
         </div>
         {/*
-          The refusal, in words, where the reader is looking - not only as a tooltip on a greyed key. Prose
-          ranged left, as a run of words always is.
+          The refusal, in words, where the reader is looking - not only as a tooltip on a greyed key. It is
+          a tinted note, not muted help text: it is the reason the step cannot finish, so it should not
+          read as a footnote. Same shape as the plate's "not placed" note. Prose ranged left, as always.
         */}
-        {blocked ? <p className="help" data-ui="rim-blocked" role="status">{t(blocked)}</p> : null}
+        {blocked ? <p className="rim-blocked" data-ui="rim-blocked" role="status">{t(blocked)}</p> : null}
       </Panel>
     </div>
 

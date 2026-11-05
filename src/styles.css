@@ -1329,6 +1329,12 @@ dialog.terms .terms-item > span { flex: none; }
 .plate-size { margin: 0 0 6px; font-size: 12px; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .plate-unplaced { margin-top: 8px; padding: 6px 8px; border: 1px solid var(--warning); border-radius: var(--radius); background: color-mix(in srgb, var(--warning) 10%, transparent); }
 .plate-unplaced p { margin: 0 0 4px; color: var(--warning); font-size: 12px; }
+/* Why a step cannot finish: a tinted note, so it reads as the thing in the way and not as a caption. */
+.rim-blocked {
+  margin: 0; padding: 6px 8px; font-size: 11.5px; line-height: 1.5; text-align: left;
+  color: var(--warning); border: 1px solid var(--warning); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+}
 .plate-unplaced ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .plate-unplaced-item { width: 100%; text-align: left; padding: 3px 6px; font-size: 12px; }
 

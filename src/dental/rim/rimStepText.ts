@@ -49,8 +49,15 @@ export function rimToolText(tool: 'place' | 'adjust'): string {
     : 'Drag a point to move it along the model.';
 }
 
-/** The readout under the tools: how many points are placed, and whether the loop is joined. */
-export function rimCountText(anchors: number, closed: boolean): { key: string; other?: string; n: number } {
-  if (closed) return { key: 'Loop closed, {n} point', other: 'Loop closed, {n} points', n: anchors };
-  return { key: '{n} point', other: '{n} points', n: anchors };
+/**
+  * Whether the loop is joined, as a value in its own right.
+  *
+  * This used to be half of one sentence - "Loop closed, 14 points" - which buried the two facts an
+  * operator checks most often in a quiet line of prose. Stitch's refinement of this dock split them into
+  * a state and a count, and it was right to: they are read at a glance, over and over, and a sentence is
+  * the wrong shape for that. They are now two readouts, in the same label-and-value row the rest of the
+  * app reports numbers in.
+  */
+export function rimLoopText(closed: boolean): string {
+  return closed ? 'Closed' : 'Open';
 }

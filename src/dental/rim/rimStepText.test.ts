@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { setLanguage, t } from '../../i18n';
-import { rimCountText, rimDoneReason, rimProblemText, rimToolText } from './rimStepText';
+import { rimDoneReason, rimLoopText, rimProblemText, rimToolText } from './rimStepText';
 
 describe('rim define mode words', () => {
   /*
@@ -50,10 +50,13 @@ describe('rim define mode words', () => {
     expect(rimToolText('adjust')).toMatch(/Drag/);
   });
 
-  it('reads the count out, and says when the loop is joined', () => {
-    expect(rimCountText(1, false)).toMatchObject({ key: '{n} point', n: 1 });
-    expect(rimCountText(5, false)).toMatchObject({ n: 5 });
-    expect(rimCountText(5, true).key).toContain('Loop closed');
+  /*
+   * Two readouts, not one sentence. "Loop closed, 14 points" buried the two facts an operator checks most
+   * often in a line of prose; they are read at a glance, over and over, and a sentence is the wrong shape.
+   */
+  it('reports the loop state as a value of its own', () => {
+    expect(rimLoopText(true)).toBe('Closed');
+    expect(rimLoopText(false)).toBe('Open');
   });
 
   it('has all of it in Taiwan Chinese and Japanese', () => {
@@ -62,7 +65,7 @@ describe('rim define mode words', () => {
         setLanguage(lang);
         const keys = [
           rimProblemText('SELF_INTERSECTING'), rimProblemText('COLLINEAR'), rimProblemText('DEGENERATE_AREA'),
-          rimToolText('place'), rimToolText('adjust'),
+          rimToolText('place'), rimToolText('adjust'), rimLoopText(true), rimLoopText(false),
           rimDoneReason({ dentalRimClosed: true, dentalRimAnchors: 8, dentalRimEngineReady: false })!,
         ];
         for (const key of keys) expect(t(key), `${lang}: ${key}`).not.toBe(key);

@@ -715,6 +715,10 @@ export const zhHant: Dictionary = {
   '{name} is the only aligner type so far.': '{name} 是目前唯一的牙套類型。',
 
   // Step 1 rim define mode: the operator draws the rim detection could not find
+  'Points': '點數',
+  'Loop': '輪廓',
+  'Closed': '閉合',
+  'Open': '開放',
   'Step 1 · Define the rim': '步驟 1 · 定義邊緣',
   'Click along the rim to place points; they land on the model. Close the loop, then press Done. Drag off the model to turn the view.': '沿著邊緣點擊以放置點，點會落在模型上。形成封閉線後按「完成」。在模型外拖曳可旋轉視角。',
   'Place': '放置',
@@ -739,10 +743,6 @@ export const zhHant: Dictionary = {
   'This rim cannot be used yet: the engine does not build a rim from a drawn loop in this version.': '尚無法使用此邊緣：在此版本中，引擎無法從繪製的封閉線建立邊緣。',
   'Click along the rim to place points.': '沿著邊緣點擊以放置點。',
   'Drag a point to move it along the model.': '拖曳點即可沿著模型移動。',
-  'Loop closed, {n} point': '已形成封閉線，{n} 個點',
-  'Loop closed, {n} points': '已形成封閉線，{n} 個點',
-  '{n} point': '{n} 個點',
-  '{n} points': '{n} 個點',
   'Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.': '拖放牙套 STL 或選擇一個檔案。系統會自動調整方向；可使用旋轉控制器微調，然後按「下一步」。',
   'Left the aligner on the plate without supports.': '已將牙套留在底板上，未加支撐。',
   'No orientation was proposed for this aligner.': '未對此牙套提出建議方向。',

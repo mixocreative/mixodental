@@ -710,6 +710,10 @@ export const ja: Dictionary = {
   '{name} is the only aligner type so far.': '{name} は現時点で唯一のアライナーの種類です。',
 
   // Step 1 rim define mode: the operator draws the rim detection could not find
+  'Points': 'ポイント数',
+  'Loop': '輪郭',
+  'Closed': '閉じた',
+  'Open': '開いた',
   'Step 1 · Define the rim': 'ステップ 1 · 縁の定義',
   'Click along the rim to place points; they land on the model. Close the loop, then press Done. Drag off the model to turn the view.': '縁に沿ってクリックしてポイントを配置します（ポイントはモデル上に配置されます）。線を閉じてから「完了」を押してください。モデル外をドラッグすると視点を回転できます。',
   'Place': '配置',
@@ -734,10 +738,6 @@ export const ja: Dictionary = {
   'This rim cannot be used yet: the engine does not build a rim from a drawn loop in this version.': 'この縁はまだ使用できません。このバージョンでは描画された閉じた線から縁を構築する機能に対応していません。',
   'Click along the rim to place points.': '縁に沿ってクリックし、ポイントを配置します。',
   'Drag a point to move it along the model.': 'ポイントをドラッグしてモデル上を移動します。',
-  'Loop closed, {n} point': '線を取り閉じました（{n} ポイント）',
-  'Loop closed, {n} points': '線を取り閉じました（{n} ポイント）',
-  '{n} point': '{n} ポイント',
-  '{n} points': '{n} ポイント',
   'Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.': 'アライナーの STL をドロップするか、ファイルを選んでください。向きは自動調整されます。ギズモで調整してから「次へ」を押してください。',
   'Left the aligner on the plate without supports.': 'アライナーをサポートなしでプレートに残しました。',
   'No orientation was proposed for this aligner.': 'このアライナーには向きの提案がありません。',
