@@ -43,9 +43,17 @@ Recommended: keep it. The user should see one status line, not two.
 
 Also open from the same audit, for the owner to decide: should Undo cross into the previous step (a larger change), and should Step 2 dock its panel on the right at 900 x 700 (commit 98be857 did this from 721 px; confirm it is wanted).
 
-## (f) About 10 literal colours left in `src/styles.css` outside `:root`
+## (f) About 10 literal colours left in `src/styles.css` outside `:root`: DONE (`2ca4df3`)
 
 A count on 2026-11-02 found 13 lines with `#hex`, `rgb()` or `rgba()` outside the `:root` block, for example `#fff` (button hover, `.primary` text, `.dental-card:hover`), `#e9e6df` (`.viewport` background; the same colour as the token `--scene-bg`), the problem-kind dots (`#b3261e`, `#d97706`, `#6b7280`, `#1E50A2`; these equal `--danger`, `--mark-overhang`, `--mark-outside`, `--mark-risk-outside`) and the `rgba(...)` backdrops.
+Done: **zero literals outside `:root`**. Four new tokens hold exactly the value they replaced
+(`--raised`, `--on-red`, `--backdrop`, `--backdrop-soft`); the rest went to tokens that already had the
+same value. Two were real bugs, not untidiness: the paper veils were hardcoded to the DEFAULT theme's
+paper while the app ships on `instrument`, and the island legend dot was frozen at the default red
+while the 3D mark it labels follows `--mark-island`, which that theme moves. Both now follow the theme.
+The viewport's background was literal here and re-stated in `theme.css`; one token reference replaced
+both and the override is gone. Original note follows.
+
 Recommended: tokenise them. Replace each with the existing token where one has the same value; otherwise add a token to `:root` (for example `--on-red: #fff`, `--backdrop: rgba(0, 0, 0, .35)`, `--paper-veil: rgba(244, 242, 237, .86)`) and add its row to `docs/ui-styling.md`. Test `src/ui/uiStylingDoc.test.ts` will fail until the table is updated. Look at the result in the app after each change; the values must stay identical.
 
 ## (g) The build progress bar follows the engine's phases: DONE
