@@ -104,5 +104,10 @@
     "label": "host-math",
     "maxMath": 3,
     "why": "where the drawn rim sits for the viewport: the lift off the surface along an anchor normal, and the two reach tests (nearest anchor, close-the-loop). Render and hit-testing only - the rim the ENGINE is given is resampled by core/surfacePath, not here"
+  },
+  "src/dental/rim/drawnRim.ts": {
+    "label": "host-math",
+    "maxMath": 1,
+    "why": "normalises the anchor normal to aim one projection ray; the geometry that matters - the plane, the side and the visibility mask - is all the engine's, which is the entire reason this call exists"
   }
 }
