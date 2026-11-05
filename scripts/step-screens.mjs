@@ -37,9 +37,7 @@ const h = React.createElement;
 const noop = () => {};
 
 const ui = {
-  // `dentalToolArmed` goes with the `gesture` the blocks are handed: a screen that shows a tool pressed and
-  // no way to put it down would be a screen of a dock that does not exist.
-  mode: 'dental', dentalStage: 'review', dentalKind: 'aligner', dentalReviewReady: true, dentureResolvable: 0, dentalToolArmed: true,
+  mode: 'dental', dentalStage: 'review', dentalKind: 'aligner', dentalReviewReady: true, dentureResolvable: 0,
   selection: 0, customisedActive: 0, addAction: 'add', tool: 'add', method: 'click', dragAction: 'select',
   canUndo: false, active: true, supported: true,
 };
@@ -77,10 +75,10 @@ const SCREENS = [
       h(EditSupportsBlock, { key: 'e', gesture: { kind: 'add' }, ui, review: review(), send: noop, run: noop, kind: 'aligner' }),
       h(IdLabelBlock, { key: 'i', review: review(), kind: 'aligner' })),
   ]],
-  ['aligner-step3-no-tool', 'Aligner Step 3 - Adjust open with NO tool in hand, the state a step opens in', () => [
+  ['aligner-step3-select', 'Aligner Step 3 - Adjust open resting on Select, the state a step opens in', () => [
     h(ReviewSummary, { key: 'v', kind: 'aligner', tone: 'ready', line: 'Supports ready. Every point is held.', open: false, onToggle: noop }),
     h(Panel, { key: 'a', title: 'Adjust', ui: 'aligner-adjust', collapsible: true, defaultOpen: true },
-      h(EditSupportsBlock, { key: 'e', gesture: undefined, ui: { ...ui, dentalToolArmed: false }, review: review(), send: noop, run: noop, kind: 'aligner' })),
+      h(EditSupportsBlock, { key: 'e', gesture: { kind: 'pick' }, ui: { ...ui, tool: 'select' }, review: review(), send: noop, run: noop, kind: 'aligner' })),
   ]],
   ['aligner-step3-building', 'Aligner Step 3 - still building, so there is nothing to open yet', () => [
     h(ReviewSummary, { key: 'v', kind: 'aligner', tone: 'building', line: 'Building supports…' }),
@@ -129,9 +127,9 @@ const RIM_SCREENS = [
   dock: h(DentalRimStep, { key: 'p', ui, run: noop }),
 }), true]);
 
-/** The ui Step 2 reads. `dentalToolArmed` and `tool` together say what is actually in hand. */
+/** The ui Step 2 reads. `tool` alone says what is in hand: a step rests on Select, never on nothing. */
 const areaUi = (over = {}) => ({
-  mode: 'dental', dentalStage: 'area', dentalKind: 'aligner', dentalToolArmed: true, tool: 'paint',
+  mode: 'dental', dentalStage: 'area', dentalKind: 'aligner', tool: 'select',
   dentalRadius: 2, selection: 0, customisedActive: 0, addAction: 'add', method: 'click', selectStyle: 'click',
   brushMode: 'select', dragAction: 'select', canUndo: false, active: true, supported: true, ...over,
 });
@@ -143,13 +141,13 @@ const areaUi = (over = {}) => ({
  * and bar.
  */
 const AREA_SCREENS = [
-  ['aligner-step2-no-tool', 'Aligner Step 2 - no tool in hand, the state the step opens in',
-    areaUi({ dentalToolArmed: false }), { brush: undefined, edit: undefined }],
+  ['aligner-step2-select', 'Aligner Step 2 - resting on Select, the state the step opens in',
+    areaUi({ tool: 'select' }), { brush: undefined, edit: { kind: 'pick' } }],
   ['aligner-step2-paint', 'Aligner Step 2 - Paint in hand, with its brush size and its way out',
     areaUi({ tool: 'paint' }), { brush: { radius: 2, kind: 'allow' }, edit: undefined }],
   ['aligner-step2-add', 'Aligner Step 2 - Add in hand: the add loop, with Click reach',
     areaUi({ tool: 'add' }), { brush: undefined, edit: { kind: 'add', remove: false } }],
-  ['aligner-step2-select', 'Aligner Step 2 - Select in hand with three tips picked',
+  ['aligner-step2-picked', 'Aligner Step 2 - Select in hand with three tips picked',
     areaUi({ tool: 'select', selection: 3 }), { brush: undefined, edit: { kind: 'pick' } }],
 ].map(([name, caption, ui, gesture]) => [name, caption, () => ({
   chrome: [],

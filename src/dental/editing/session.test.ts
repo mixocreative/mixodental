@@ -68,7 +68,7 @@ describe('reduceSession: modes', () => {
     const area = reduceSession(ready, { type: 'acceptDentalOrientation' });
     expect(area).toMatchObject({ mode: 'dental', dentalStage: 'area' });
     // A step opens with NO tool in hand, so the model is inert; picking Paint arms it.
-    expect(gesture(area)).toMatchObject({ kind: 'dental-area', brush: undefined, edit: undefined });
+    expect(gesture(area)).toMatchObject({ kind: 'dental-area', brush: undefined, edit: { kind: 'pick' } });
     expect(gesture(reduceSession(area, { type: 'setDentalTool', tool: 'paint' }))).toMatchObject({ kind: 'dental-area', brush: { kind: 'allow', radius: 2 } });
     const review = reduceSession(area, { type: 'acceptDentalArea' });
     expect(gesture(review)).toMatchObject({ kind: 'dental-review' });
@@ -285,9 +285,9 @@ describe('reduceSession: dental Step 3 and finishing', () => {
     { type: 'dentalOriented', proposal, notices: [] }, { type: 'acceptDentalOrientation' }, { type: 'acceptDentalArea' });
 
   it('Step 3 reuses the Support Edit Mode tools: selecting works, the canvas gets the edit gesture', () => {
-    expect(step3).toMatchObject({ mode: 'dental', dentalStage: 'review', tool: 'add', addAction: 'add', selectStyle: 'click', dentalUnitId: 'u1', dentalToolArmed: false });
-    // Step 3 opens with nothing in hand too: the supports are there to be read before they are edited.
-    expect(gesture(step3)).toMatchObject({ kind: 'dental-review', edit: undefined });
+    expect(step3).toMatchObject({ mode: 'dental', dentalStage: 'review', tool: 'select', addAction: 'add', selectStyle: 'click', dentalUnitId: 'u1' });
+    // Step 3 opens on Select too: the supports are there to be read, and Select reads without changing.
+    expect(gesture(step3)).toMatchObject({ kind: 'dental-review', edit: { kind: 'pick' } });
     const adding = run(step3, { type: 'setDentalTool', tool: 'add' });
     expect(gesture(adding)).toMatchObject({ kind: 'dental-review', edit: { kind: 'add', remove: false } });
     const selecting = run(step3, { type: 'setDentalTool', tool: 'select' });

@@ -12,15 +12,15 @@ const ui = (over: Partial<UiState>): UiState => ({ ...READY, mode: 'dental', den
 
 describe('dental Step 2 tools (B3)', () => {
   /*
-    * A STEP OPENS WITH NO TOOL IN HAND, the way a drawing program does: the model is inert and a drag
-    * turns the view until the operator picks one. `tool` still names which tool WOULD be picked, so the
-    * dock can show a sensible default, but nothing is armed until `setDentalTool` says so.
+    * A STEP OPENS ON SELECT, the way a drawing program opens on the arrow. Select is the one tool that
+    * changes nothing until the operator asks it to, so it is the safe place to rest - and because it is
+    * a tool like any other, there is no empty hand anywhere in the flow and nothing to "put down".
     */
-  it('opens Step 2 with no tool in hand, so the model is inert until one is picked', () => {
-    expect(area).toMatchObject({ dentalStage: 'area', dentalToolArmed: false });
-    expect(gesture(area)).toMatchObject({ kind: 'dental-area', brush: undefined, edit: undefined });
-    // Nothing for the canvas to do with a press: it falls through and the view turns.
-    expect(canvasGesture(gesture(area))).toMatchObject({ kind: 'dental-area', brush: undefined, edit: undefined });
+  it('opens Step 2 on Select, the tool that changes nothing until it is asked to', () => {
+    expect(area).toMatchObject({ dentalStage: 'area', tool: 'select' });
+    expect(gesture(area)).toMatchObject({ kind: 'dental-area', brush: undefined });
+    // Select, click style: a click picks the nearest tip; it marks nothing.
+    expect(canvasGesture(gesture(area))).toEqual({ kind: 'pick' });
   });
 
   it('arms the tool the operator picks, and each one maps to its canvas gesture', () => {
@@ -43,46 +43,26 @@ describe('dental Step 2 tools (B3)', () => {
    */
   it('picking a tool only ever ARMS it, however many times the same one is picked', () => {
     const paint = run(area, { type: 'setDentalTool', tool: 'paint' });
-    expect(paint).toMatchObject({ tool: 'paint', dentalToolArmed: true });
+    expect(paint).toMatchObject({ tool: 'paint' });
     /*
      * NOT A TOGGLE, deliberately. P/E/A/S run this same path, so a toggle would make "press A to put Add
      * in hand" depend on what was in hand before - the walk caught exactly that, pressing `a` before
      * setting Click reach and having the field taken away. A pressed segment that unpresses on a second
      * press is also a checkbox in a radio button's clothes, and a double-click would empty the hand.
      */
-    expect(run(paint, { type: 'setDentalTool', tool: 'paint' })).toMatchObject({ tool: 'paint', dentalToolArmed: true });
-    expect(run(paint, { type: 'setDentalTool', tool: 'paint' }, { type: 'setDentalTool', tool: 'paint' })).toMatchObject({ dentalToolArmed: true });
-    expect(run(paint, { type: 'setDentalTool', tool: 'erase' })).toMatchObject({ tool: 'erase', dentalToolArmed: true });
+    expect(run(paint, { type: 'setDentalTool', tool: 'paint' })).toMatchObject({ tool: 'paint' });
+    expect(run(paint, { type: 'setDentalTool', tool: 'paint' }, { type: 'setDentalTool', tool: 'paint' })).toMatchObject({ tool: 'paint' });
+    expect(run(paint, { type: 'setDentalTool', tool: 'erase' })).toMatchObject({ tool: 'erase' });
   });
 
-  it('puts the tool down on its own event, which is the only way back to an empty hand', () => {
+  it('puts a brush down by picking Select up, which is the only way and needs no key of its own', () => {
     const paint = run(area, { type: 'setDentalTool', tool: 'paint' });
-    const down = run(paint, { type: 'dropDentalTool' });
-    // The tool is still NAMED - the switch knows which one would come back - but nothing is in hand.
-    expect(down).toMatchObject({ tool: 'paint', dentalToolArmed: false });
-    expect(gesture(down)).toMatchObject({ kind: 'dental-area', brush: undefined, edit: undefined });
-    expect(run(down, { type: 'setDentalTool', tool: 'paint' })).toMatchObject({ tool: 'paint', dentalToolArmed: true });
-    // Nothing in hand: the event is inert rather than a new object for React to re-render on.
-    expect(run(area, { type: 'dropDentalTool' })).toBe(area);
-  });
-
-  it('stops advertising Esc on Put it down while a selection would take the press', () => {
-    expect(resolve('dental.toolDown', ui({ dentalToolArmed: true })).shortcut).toBe('Esc');
-    expect(resolve('dental.toolDown', ui({ dentalToolArmed: true, selection: 2 })).shortcut).toBeUndefined();
-    // And the press itself goes to the rung above: the selection, then the tool.
-    const press = (over: Partial<UiState>) => keyAction({ key: 'Escape', ctrl: false, shift: false, target: null, ui: ui(over) }).command;
-    expect(press({ dentalToolArmed: true, selection: 2 })).toBe('edit.clearSelection');
-    expect(press({ dentalToolArmed: true, selection: 0 })).toBe('dental.toolDown');
-  });
-
-  it('offers Put it down only while a tool IS in hand, in the steps that have tools', () => {
-    expect(resolve('dental.toolDown', ui({ dentalToolArmed: true })).visible).toBe(true);
-    expect(resolve('dental.toolDown', ui({ dentalToolArmed: true })).enabled).toBe(true);
-    expect(resolve('dental.toolDown', ui({})).visible).toBe(false);
-    expect(resolve('dental.toolDown', ui({ dentalStage: 'review', dentalToolArmed: true })).visible).toBe(true);
-    for (const dentalStage of ['type', 'aligner', 'rim'] as const) {
-      expect(resolve('dental.toolDown', ui({ dentalStage, dentalToolArmed: true })).visible, dentalStage).toBe(false);
-    }
+    expect(gesture(paint)).toMatchObject({ kind: 'dental-area', brush: { kind: 'allow' }, edit: undefined });
+    const back = run(paint, { type: 'setDentalTool', tool: 'select' });
+    expect(back).toMatchObject({ tool: 'select' });
+    expect(gesture(back)).toMatchObject({ kind: 'dental-area', brush: undefined });
+    // No command is left that empties the hand: Select is on the switch, so Esc's twin is already there.
+    expect(commandIds()).not.toContain('dental.toolDown');
   });
 
   it('Add is forced to add in Step 2, even with Remove left on', () => {
@@ -90,32 +70,37 @@ describe('dental Step 2 tools (B3)', () => {
     expect(canvasGesture(gesture(remove))).toEqual({ kind: 'add', remove: false });
   });
 
-  it('Step 2 selects tips; Step 3 always starts on Add, whatever Step 2 left on', () => {
+  it('Step 2 selects tips; Step 3 always starts on Select, whatever Step 2 left on', () => {
     const picked = run(area, { type: 'setTool', tool: 'select' }, { type: 'toggleContact', id: 'a' });
     expect([...picked.selection]).toEqual(['a']);
-    expect(run(area, { type: 'acceptDentalArea' })).toMatchObject({ dentalStage: 'review', tool: 'add', addAction: 'add' });
-    expect(run(area, { type: 'setTool', tool: 'erase' }, { type: 'acceptDentalArea' })).toMatchObject({ tool: 'add', addAction: 'add' });
-    expect(run(area, { type: 'setTool', tool: 'select' }, { type: 'acceptDentalArea' })).toMatchObject({ tool: 'add', addAction: 'add' });
-    expect(run(area, { type: 'setTool', tool: 'add' }, { type: 'setAddAction', action: 'remove' }, { type: 'acceptDentalArea' })).toMatchObject({ tool: 'add', addAction: 'add' });
-    // Back into Step 2 offers Paint again, and again with nothing in hand.
-    expect(run(area, { type: 'setTool', tool: 'select' }, { type: 'acceptDentalArea' }, { type: 'backDental' })).toMatchObject({ dentalStage: 'area', tool: 'paint', dentalToolArmed: false });
+    // EVERY step opens on the tool that changes nothing, so a brush never carries across a step edge.
+    expect(run(area, { type: 'acceptDentalArea' })).toMatchObject({ dentalStage: 'review', tool: 'select', addAction: 'add' });
+    expect(run(area, { type: 'setTool', tool: 'erase' }, { type: 'acceptDentalArea' })).toMatchObject({ tool: 'select', addAction: 'add' });
+    expect(run(area, { type: 'setTool', tool: 'select' }, { type: 'acceptDentalArea' })).toMatchObject({ tool: 'select', addAction: 'add' });
+    expect(run(area, { type: 'setTool', tool: 'add' }, { type: 'setAddAction', action: 'remove' }, { type: 'acceptDentalArea' })).toMatchObject({ tool: 'select', addAction: 'add' });
+    // Back into Step 2 rests on Select too.
+    expect(run(area, { type: 'setTool', tool: 'select' }, { type: 'acceptDentalArea' }, { type: 'backDental' })).toMatchObject({ dentalStage: 'area', tool: 'select' });
   });
 
   it('no other mode starts on Paint or Erase', () => {
-    expect(run(area, { type: 'exit' }).tool).toBe('add');
-    expect(run(area, { type: 'setTool', tool: 'select' }, { type: 'exit' }).tool).toBe('select');
+    // Step 2 rests on Select, which every mode can hold, so leaving carries it out unchanged.
+    expect(run(area, { type: 'exit' }).tool).toBe('select');
+    // A brush is Step 2's alone: leaving on one falls back to Add, which the generic modes do have.
+    expect(run(area, { type: 'setDentalTool', tool: 'paint' }, { type: 'exit' }).tool).toBe('add');
+    expect(run(area, { type: 'setDentalTool', tool: 'erase' }, { type: 'exit' }).tool).toBe('add');
   });
 
   it('the four tool commands are live only in Step 2 and pressed with their tool', () => {
     for (const [tool, id] of [['paint', 'dental.tool.paint'], ['erase', 'dental.tool.erase'], ['add', 'dental.tool.add'], ['select', 'dental.tool.select']] as const) {
       expect(commandIds()).toContain(id);
       expect(resolve(id, ui({ tool })).enabled).toBe(true);
-      // Pressed means IN HAND, not merely named: a step opens with a default tool and none armed.
-      expect(resolve(id, ui({ tool })).pressed).toBe(false);
-      expect(resolve(id, ui({ tool, dentalToolArmed: true })).pressed).toBe(true);
-      expect(resolve(id, ui({ tool: tool === 'paint' ? 'erase' : 'paint', dentalToolArmed: true })).pressed).toBe(false);
+      // The tool named IS the tool in hand: there is no armed flag beside it any more.
+      expect(resolve(id, ui({ tool })).pressed).toBe(true);
+      expect(resolve(id, ui({ tool: tool === 'paint' ? 'erase' : 'paint' })).pressed).toBe(false);
+      // None of the four is SHOWN in Step 3, which has its own switch. Select alone is still ENABLED
+      // there, because Esc in Step 3 runs it to go back to Select and `keyAction` drops a disabled one.
       expect(resolve(id, ui({ dentalStage: 'review' })).visible).toBe(false);
-      expect(resolve(id, ui({ dentalStage: 'review' })).enabled).toBe(false);
+      expect(resolve(id, ui({ dentalStage: 'review' })).enabled).toBe(tool === 'select');
       expect(resolve(id, ui({ heavy: 1_600_000 })).enabled).toBe(false);
     }
   });
@@ -128,11 +113,15 @@ describe('dental Step 2 tools (B3)', () => {
     expect(press('p', { dentalStage: 'review' })).toBeUndefined();
     expect(press('Delete', { selection: 2 })).toBe('edit.deleteSelection');
     expect(press('Backspace', { selection: 2 })).toBe('edit.deleteSelection');
-    expect(press('Escape', { selection: 2 })).toBe('edit.clearSelection');
-    // Esc out of a tool, then out of the flow: a selection first, then the tool in hand, then the flow.
-    expect(press('Escape', { selection: 2, dentalToolArmed: true })).toBe('edit.clearSelection');
-    expect(press('Escape', { selection: 0, dentalToolArmed: true })).toBe('dental.toolDown');
-    expect(press('Escape', { selection: 0 })).toBe('dental.exit');
+    expect(press('Escape', { selection: 2, tool: 'select' })).toBe('edit.clearSelection');
+    /*
+     * ONE LEVEL PER PRESS: the selection, then back to Select, then the flow. The middle rung used to
+     * empty the hand; now it picks up the tool that changes nothing, which is where the step opened.
+     */
+    expect(press('Escape', { selection: 2, tool: 'paint' })).toBe('edit.clearSelection');
+    expect(press('Escape', { selection: 0, tool: 'paint' })).toBe('dental.tool.select');
+    expect(press('Escape', { selection: 0, tool: 'add' })).toBe('dental.tool.select');
+    expect(press('Escape', { selection: 0, tool: 'select' })).toBe('dental.exit');
     expect(press('Delete', { selection: 0 })).toBeUndefined();
   });
 });

@@ -26,8 +26,12 @@ import { RestoreStepButton, type StepRestore } from './RestoreStepButton';
 import { DentureReviewPanel, type DentureReviewInput } from '../denture/steps/supports/DentureReviewPanel';
 import { kindText } from '../denture/kindText';
 
-/** Step 2's tools, in the order of their keys. */
-const AREA_TOOLS = ['paint', 'erase', 'add', 'select'] as const;
+/*
+ * Step 2's tools. SELECT IS FIRST, and it is what a step opens on: it is the one tool that changes
+ * nothing until the operator asks it to, so it is the safe place to rest - the arrow every drawing
+ * program opens with. The three that mark the model follow it, in the order of their keys.
+ */
+const AREA_TOOLS = ['select', 'paint', 'erase', 'add'] as const;
 
 /** Dental Auto Generate chrome: review the detector first, then mark only permitted support area. */
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
@@ -141,8 +145,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       */}
       <Panel title={t('Tool')} ui="dental-tool">
       <div className="edit-row">
-        {/* Undefined until a tool is armed: `ui.tool` only names which one WOULD be picked. */}
-        <Segmented label={t('Dental area tools')} value={ui.dentalToolArmed ? ui.tool : undefined} onChange={(tool) => run(`dental.tool.${tool}` as CommandId)}
+        {/* There is always one chosen: a step rests on Select, so the switch is never empty. */}
+        <Segmented label={t('Dental area tools')} value={ui.tool} onChange={(tool) => run(`dental.tool.${tool}` as CommandId)}
           options={AREA_TOOLS.map((tool) => {
             const command = resolve(`dental.tool.${tool}`, ui);
             // Every tool key carries its picture. The icon file is named after the tool, so adding a tool
@@ -155,9 +159,11 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         {gesture.edit && clickReach && (gesture.edit.kind === 'add' || gesture.edit.kind === 'pick') && <ClickReachField ui={ui} {...clickReach} />}
         {gesture.edit && ui.selection > 0 && <span className="edit-count">{t('{n} selected', { n: ui.selection })}</span>}
         {gesture.edit && ['edit.clearSelection', 'edit.deleteSelection'].map((id) => resolve(id as CommandId, ui)).filter((command) => command.visible).map((command) => <CommandButton key={command.id} command={command} run={run} />)}
-        {/* The way out of the tool, at the row's end: the visible twin of Esc, shown only with one in hand. */}
-        {resolve('dental.toolDown', ui).visible
-          && <CommandButton command={resolve('dental.toolDown', ui)} run={run} uiName="dental-tool-down" />}
+        {/*
+          NO "put it down" KEY HERE. The way out of a tool is Select, which is the first segment of the
+          switch above and the thing Esc goes back to - so the key already has its visible twin, and the
+          row keeps a control it would otherwise spend on an idea no drawing program has.
+        */}
       </div>
       </Panel>
       {tuning && tuningLimits && <Panel title={t('Support area')} ui="dental-area-shape">

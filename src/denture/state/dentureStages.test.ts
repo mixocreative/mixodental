@@ -19,7 +19,8 @@ describe('denture stages', () => {
     expect(session.dentalAligner).toBe('ready');
     session = reduceSession(session, { type: 'acceptDentalOrientation' });
     expect(session.dentalStage).toBe('review');
-    expect(session.tool).toBe('add');
+    // A step opens on Select, the tool that changes nothing until it is asked to.
+    expect(session.tool).toBe('select');
     session = reduceSession(session, { type: 'backDental' });
     expect(session.dentalStage).toBe('aligner');
     expect(session.dentalAligner).toBe('ready');

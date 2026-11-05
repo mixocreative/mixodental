@@ -17,14 +17,15 @@ describe('dental Step 3 keys', () => {
     expect(press('Escape', 2).command).toBe('edit.clearSelection');
   });
   it('with nothing selected Esc exits the flow and Delete does nothing', () => {
-    expect(press('Escape', 0).command).toBe('dental.exit');
+    // Resting on Select already: there is no tool rung left, so Esc takes the last one.
+    expect(press('Escape', 0, { tool: 'select' }).command).toBe('dental.exit');
     expect(press('Delete', 0).command).toBeUndefined();
   });
 
-  /* Step 3's tools are Support Edit Mode's, so they put down the same way Step 2's do: Esc, one level. */
-  it('Esc puts the tool down before it will leave the flow', () => {
-    expect(press('Escape', 0, { dentalToolArmed: true }).command).toBe('dental.toolDown');
-    expect(press('Escape', 2, { dentalToolArmed: true }).command).toBe('edit.clearSelection');
+  /* Step 3's tools are Support Edit Mode's, so they rest the same way Step 2's do: Esc goes to Select. */
+  it('Esc goes back to Select before it will leave the flow', () => {
+    expect(press('Escape', 0, { tool: 'add' }).command).toBe('dental.tool.select');
+    expect(press('Escape', 2, { tool: 'add' }).command).toBe('edit.clearSelection');
   });
 });
 

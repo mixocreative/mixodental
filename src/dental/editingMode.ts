@@ -61,12 +61,6 @@ export type DentalEvent =
    */
   | { type: 'setDentalTool'; tool: EditTool }
   /**
-   * Puts the tool down without picking another: the step stays, the model goes inert and a drag turns the
-   * view again. This is the first rung of GOING BACK OUT ONE LEVEL - Esc, and the dock's own Put it down
-   * key - so that leaving a tool never also leaves the step, and leaving a step never also leaves the flow.
-   */
-  | { type: 'dropDentalTool' }
-  /**
    * Done in rim define mode: the drawn rim is the aligner's. Back to Step 1, and `dentalRimOwn` stays on,
    * which is what switches auto orientation OFF for this aligner - the operator's rim is not re-detected,
    * and there is no print-angle scan to run without a detected arch front.
@@ -96,7 +90,7 @@ export type DentalGesture =
   | { kind: 'dental-area'; brush: { radius: number; kind: 'allow' | 'erase' } | undefined; edit: EditGesture | undefined; notices: readonly DentalNotice[] }
   /** Rim define mode. The drawn path itself is scene state, so it reaches the panel as a prop, not through here. */
   | { kind: 'dental-rim'; tool: DentalRimTool; notices: readonly DentalNotice[] }
-  /** `edit` is absent until a tool is armed: a step opens with none in hand. */
+  /** Step 3 always has a tool in hand: it rests on Select, which changes nothing until asked. */
   | { kind: 'dental-review'; edit: EditGesture | undefined };
 
 declare module '@mixo-geocore/editing/types' {
@@ -122,12 +116,6 @@ declare module '@mixo-geocore/editing/session' {
     /** Rim define mode's current tool. */
     dentalRimTool: DentalRimTool;
     /**
-     * A tool is in hand in this dental step. False when a step opens: `tool` still names which tool WOULD
-     * be picked, but nothing is armed, so the model is inert and a drag turns the view. The operator arms
-     * one by choosing it, as they would in a drawing program.
-     */
-    dentalToolArmed: boolean;
-    /**
      * The rim of this aligner was drawn by hand, by the operator. Auto orientation is off for it: no
      * second detection, no print-angle scan, and nothing detected for "Use detected" to re-apply.
      */
@@ -144,7 +132,7 @@ declare module '@mixo-geocore/editing/commands' {
   interface ExtraCommandIds {
     'supports.dentalAuto': true;
     'dental.useDetected': true; 'dental.next': true; 'dental.generate': true; 'dental.back': true; 'dental.exit': true; 'dental.finish': true; 'dental.addAnother': true;
-    'dental.tool.paint': true; 'dental.tool.erase': true; 'dental.tool.add': true; 'dental.tool.select': true; 'dental.toolDown': true;
+    'dental.tool.paint': true; 'dental.tool.erase': true; 'dental.tool.add': true; 'dental.tool.select': true;
     'dental.rim.place': true; 'dental.rim.adjust': true; 'dental.rim.close': true; 'dental.rim.clear': true; 'dental.rim.done': true;
   }
   interface UiState {
@@ -164,8 +152,6 @@ declare module '@mixo-geocore/editing/commands' {
     dentalBuildFailed?: boolean;
     /** Rim define mode: the tool in hand. */
     dentalRimTool?: DentalRimTool;
-    /** A dental step has a tool in hand; false while the step is only being looked at. */
-    dentalToolArmed?: boolean;
     /** Rim define mode: how many anchors the operator has placed. */
     dentalRimAnchors?: number;
     /** Rim define mode: the drawn path is a closed loop. */
@@ -185,7 +171,7 @@ declare module '@mixo-geocore/editing/commands' {
 
 const isDentalEvent = (event: SessionEvent): event is DentalEvent => DENTAL_EVENTS.has(event.type);
 const DENTAL_EVENTS = new Set<string>(['enterDental', 'chooseDentalProfile', 'startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
-  'dentalOrientFailed', 'dentalRimNeeded', 'setDentalRimTool', 'setDentalTool', 'dropDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
+  'dentalOrientFailed', 'dentalRimNeeded', 'setDentalRimTool', 'setDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
   'addAnotherDental', 'backDental', 'setDentalRadius']);
 
 const finished = (state: EditSession, unitId: string): readonly string[] => (state.dentalFinished.includes(unitId) ? state.dentalFinished : [...state.dentalFinished, unitId]);
@@ -232,20 +218,17 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
         : state;
     case 'setDentalTool':
       /*
-       * PICKING A TOOL ARMS IT, AND NEVER PUTS IT DOWN, however many times the same one is picked. It was
-       * briefly a toggle - press the pressed tool to clear the switch - and that was wrong twice over.
-       * The keys P/E/A/S run the same path, so "press A to make sure Add is in hand" stopped being true
-       * and started depending on what was in hand before; the walk caught it at once, by pressing `a`
-       * before setting Click reach and getting the field taken away instead. And a segment in a switch
-       * that is pressed to UNpress it is a checkbox wearing a radio button's clothes: a double-click,
-       * which operators do, would silently empty the operator's hand.
+       * PICKING A TOOL ONLY EVER PICKS IT, however many times the same one is chosen. It was briefly a
+       * toggle - press the pressed tool to clear the switch - and that was wrong twice over. The keys
+       * P/E/A/S run this same path, so "press A to make sure Add is in hand" stopped being true and
+       * started depending on what was in hand before; the walk caught it at once. And a segment that is
+       * pressed to UNpress it is a checkbox wearing a radio button's clothes, and operators double-click.
        *
-       * The way out of a tool is therefore explicit and never ambiguous: Esc, or the Put it down key
-       * (`dental.toolDown`) that sits beside the switch while a tool is in hand.
+       * THERE IS NO EMPTY HAND TO RETURN TO. A step rests on Select, which changes nothing until the
+       * operator asks it to - the way every drawing program rests on the arrow - so the way out of a tool
+       * is to pick up the harmless one, not to empty the hand. Esc goes back to Select.
        */
-      return state.mode === 'dental' ? { ...state, tool: event.tool, dentalToolArmed: true } : state;
-    case 'dropDentalTool':
-      return state.mode === 'dental' && state.dentalToolArmed ? { ...state, dentalToolArmed: false } : state;
+      return state.mode === 'dental' ? { ...state, tool: event.tool } : state;
     case 'setDentalRimTool':
       return state.mode === 'dental' && state.dentalStage === 'rim' ? { ...state, dentalRimTool: event.tool } : state;
     // Done: back to Step 1 with the operator's rim, and `dentalRimOwn` left on so nothing detects over it.
@@ -268,15 +251,15 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
     case 'acceptDentalOrientation':
       // A denture goes straight to its supports (no support-area step), on Add like Step 3 of an aligner.
       if (state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready' && stageAfterOrientation(state.dentalProfile) === 'review') {
-        return { ...state, dentalStage: 'review', dentalNotices: [], tool: 'add', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION, dentalToolArmed: false };
+        return { ...state, dentalStage: 'review', dentalNotices: [], tool: 'select', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION };
       }
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready'
-        ? { ...state, dentalStage: 'area', tool: 'paint', addAction: 'add', selection: NO_SELECTION, dentalToolArmed: false, dentalNotices: [...(event.noArea ? [{ kind: 'no-area' as const }] : []), ...(event.angleMovedDeg === undefined ? [] : [{ kind: 'angle-moved' as const, deg: event.angleMovedDeg }])] }
+        ? { ...state, dentalStage: 'area', tool: 'select', addAction: 'add', selection: NO_SELECTION, dentalNotices: [...(event.noArea ? [{ kind: 'no-area' as const }] : []), ...(event.angleMovedDeg === undefined ? [] : [{ kind: 'angle-moved' as const, deg: event.angleMovedDeg }])] }
         : state;
     case 'acceptDentalArea':
       return state.mode === 'dental' && state.dentalStage === 'area'
-        // Step 3 always starts on Add (add action), whatever Step 2 left on.
-        ? { ...state, dentalStage: 'review', dentalNotices: [], tool: 'add', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION, dentalToolArmed: false }
+        // Step 3 rests on Select, whatever Step 2 left on: a step opens on the tool that changes nothing.
+        ? { ...state, dentalStage: 'review', dentalNotices: [], tool: 'select', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION }
         : state;
     case 'finishDental':
       return state.mode === 'dental' && state.dentalStage === 'review'
@@ -291,7 +274,7 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
       switch (state.dentalStage) {
         case 'review': return stageBeforeSupports(state.dentalProfile) === 'aligner'
           ? { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalNotices: [], selection: NO_SELECTION, shiftHeld: false }
-          : { ...state, dentalStage: 'area', tool: 'paint', selection: NO_SELECTION, shiftHeld: false, dentalToolArmed: false };
+          : { ...state, dentalStage: 'area', tool: 'select', selection: NO_SELECTION, shiftHeld: false };
         case 'area': return { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalNotices: [] };
         /*
          * Back out of rim define mode returns to Step 1 and its failure notice - the honest parent of this
@@ -313,8 +296,6 @@ export function acceptsDentalDrop(state: EditSession): boolean {
 }
 
 function areaGesture(session: EditSession): Gesture {
-  // No tool in hand: the step shows its dock and the model is inert, so a drag turns the view.
-  if (!session.dentalToolArmed) return { kind: 'dental-area', brush: undefined, edit: undefined, notices: session.dentalNotices };
   const brushing = session.tool === 'paint' || session.tool === 'erase';
   return {
     kind: 'dental-area',
@@ -331,7 +312,7 @@ function dentalGesture(session: EditSession): Gesture {
     case 'aligner': return { kind: 'dental-aligner', phase: session.dentalAligner, proposal: session.dentalProposal, notices: session.dentalNotices, profile: session.dentalProfile };
     case 'rim': return { kind: 'dental-rim', tool: session.dentalRimTool, notices: session.dentalNotices };
     case 'area': return areaGesture(session);
-    case 'review': return { kind: 'dental-review', edit: session.dentalToolArmed ? editGesture(session) : undefined };
+    case 'review': return { kind: 'dental-review', edit: editGesture(session) };
   }
 }
 
@@ -341,12 +322,10 @@ const reviewing = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dent
 const area = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' && s.dentalStage === 'area';
 /** Rim define mode: Step 1's detour where the operator draws the rim detection could not find. */
 const rim = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' && s.dentalStage === 'rim';
-/** A tool is in hand in one of the two steps that have tools, so there is something to put down. */
-const toolInHand = (s: UiState) => (area(s) || reviewing(s)) && Boolean(s.dentalToolArmed);
 
 registerEditMode({
   id: 'dental',
-  initial: { dentalStage: 'type', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimTool: 'place', dentalRimOwn: false, dentalToolArmed: false },
+  initial: { dentalStage: 'type', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimTool: 'place', dentalRimOwn: false },
   // Paint and Erase are Step 2's own tools: no other mode starts on one.
   tools: ['paint', 'erase'],
   reduce: (state, event, kit) => (isDentalEvent(event) ? reduceDental(state, event, kit) : undefined),
@@ -385,11 +364,12 @@ registerEditMode({
     /*
      * ESC GOES BACK OUT ONE LEVEL, never further. Before this, one Esc anywhere in the flow left the whole
      * flow - from inside a tool, or from inside rim define mode - which is a long way to travel for a key
-     * a drawing program uses to put the brush down. So: the tool in hand goes down first; from a mode, the
-     * mode is left; and only with nothing in hand and no mode to leave does Esc leave the flow, which is
-     * what the dental lock note promises (the aligner stays on the plate without supports).
+     * a drawing program uses to put the brush down. The rungs, innermost first: a live selection clears
+     * (above); a tool that is not Select goes BACK TO SELECT, which is where the step opened and where a
+     * drawing program rests; a mode is left; and only then does Esc leave the flow, which is what the
+     * dental lock note promises (the aligner stays on the plate without supports).
      */
-    if ((inArea || inReview) && key === 'Escape' && ui.dentalToolArmed) return runKey('dental.toolDown');
+    if ((inArea || inReview) && key === 'Escape' && ui.tool !== 'select') return runKey('dental.tool.select');
     if (rim(ui) && key === 'Escape') return runKey('dental.back');
     if (key === 'Escape') return runKey('dental.exit');
     return undefined;
@@ -402,12 +382,19 @@ const always = () => true;
 const never = () => undefined;
 
 /** One of Step 2's four tools: Paint, Erase, Add, Select (keys P, E, A, S). */
-function areaTool(tool: EditTool, label: string, hint: string, shortcut: string): Command {
+/*
+ * One of the four tool keys in Step 2. `alsoInStep3` belongs to Select alone. The switch stays Step 2
+ * only (Step 3 draws its own, carrying Add and Select), but Esc in Step 3 runs this command to go back
+ * to Select, and `keyAction` drops any command that is not ENABLED. So Select is enabled in both steps
+ * and shown in one: a key with no button of its own here, because the switch in Step 3 already has it.
+ */
+function areaTool(tool: EditTool, label: string, hint: string, shortcut: string, alsoInStep3 = false): Command {
+  const where = (s: Pick<UiState, 'mode' | 'dentalStage'>) => area(s) || (alsoInStep3 && reviewing(s));
   return {
     role: 'secondary', shortcut, label: () => label, hint: () => hint,
-    visible: area, enabled: (s) => area(s) && s.heavy === undefined,
-    disabledReason: (s) => (area(s) && s.heavy === undefined ? undefined : s.heavy !== undefined ? heavyReason(s) : undefined),
-    pressed: (s) => Boolean(s.dentalToolArmed) && s.tool === tool,
+    visible: area, enabled: (s) => where(s) && s.heavy === undefined,
+    disabledReason: (s) => (where(s) && s.heavy === undefined ? undefined : s.heavy !== undefined ? heavyReason(s) : undefined),
+    pressed: (s) => s.tool === tool,
   };
 }
 
@@ -453,23 +440,6 @@ registerCommands({
       ? 'Leave rim define mode without a rim. Step 1 keeps the notice that sent you here'
       : 'Return to the previous step and keep your edits'),
     visible: (s) => s.mode === 'dental' && s.dentalStage !== 'type', enabled: always, disabledReason: never,
-  },
-  /*
-   * Put it down: the first rung of going back out one level. It is shown only while a tool IS in hand,
-   * beside the switch that picked it, which is the other way to the same place (press the pressed tool).
-   */
-  'dental.toolDown': {
-    role: 'secondary',
-    /*
-     * The cap goes AWAY while a selection is live, because then Esc clears the selection instead - it is
-     * the rung above this one. A key advertised on a button that the press would not reach is a lie, and
-     * the registry's own rule (commands.test: "does not advertise a key a command does not run on") is
-     * only checked over non-dental states, so this one has to be got right by hand.
-     */
-    shortcut: (s) => (s.selection > 0 ? undefined : 'Esc'),
-    label: () => 'Put it down',
-    hint: () => 'Put the tool down. The model goes inert and a drag turns the view',
-    visible: toolInHand, enabled: toolInHand, disabledReason: never,
   },
   'dental.exit': {
     role: 'secondary', label: () => 'Exit', hint: (s) => kindText('Leave the dental flow. The aligner stays on the plate without supports', s.dentalKind),
@@ -530,7 +500,7 @@ registerCommands({
   'dental.tool.paint': areaTool('paint', 'Paint', 'Paint dental support area anywhere on the aligner', 'P'),
   'dental.tool.erase': areaTool('erase', 'Erase', 'Erase dental support area and its tips anywhere on the aligner', 'E'),
   'dental.tool.add': areaTool('add', 'Add', 'Click the model to add a tip by hand; it snaps to a nearby suggested tip', 'A'),
-  'dental.tool.select': areaTool('select', 'Select', 'Click or drag over tips to select them, then delete them', 'S'),
+  'dental.tool.select': areaTool('select', 'Select', 'Click or drag over tips to select them, then delete them', 'S', true),
 });
 
 registerStepHints({ dentalArea: { undo: 'Undo the support area change', redo: 'Redo the support area change' } });

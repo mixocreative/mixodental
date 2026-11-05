@@ -12,7 +12,12 @@ const unselectCursor = () => `url("data:image/svg+xml,${encodeURIComponent(`<svg
 /** Drag over (red tip, with its circle: `useScreenBrush`; grey tip and minus for Unselect), Paint zones (blue) and Erase zones (grey). Read when asked, so a token edit shows at the next cursor change. */
 const brushCursors = () => ({ select: brushCursor(tokenCss('--mark-remove')), unselect: unselectCursor(), paint: brushCursor(tokenCss('--mark-zone')), erase: brushCursor(tokenCss('--mark-ring')) });
 
-/** The canvas cursor: the brush icon while a brush is over the object, the arrow of Click, else crosshair in the edit modes (a hand over empty space in Drag over, where a drag orbits). */
+/**
+ * The canvas cursor: WHAT IS IN YOUR HAND, under the pointer, so the dock never has to be read to know
+ * it. The brush icon while a brush is over the object, a crosshair where a click would place something,
+ * the plain arrow for Select - and a grab hand off the model, because there a drag orbits whatever is
+ * in hand.
+ */
 export function canvasCursor(gesture: Gesture, overBrush: boolean): string {
   switch (gesture.kind) {
     case 'none': return '';
@@ -22,8 +27,16 @@ export function canvasCursor(gesture: Gesture, overBrush: boolean): string {
     case 'dental-type': case 'dental-aligner': return 'default';
     // Rim define mode: the ring shows only over the model, where a drag is the tool; off it a drag orbits.
     case 'dental-rim': return overBrush ? 'crosshair' : 'grab';
-    case 'dental-review': return gesture.edit === undefined ? 'default' : gesture.edit.kind === 'add' ? 'crosshair' : 'default';
-    case 'dental-area': return overBrush && gesture.brush ? brushCursors()[gesture.brush.kind === 'allow' ? 'paint' : 'erase'] : 'crosshair';
+    case 'dental-review': return gesture.edit?.kind === 'add' ? (overBrush ? 'crosshair' : 'grab') : 'default';
+    /*
+     * Step 2's four tools, each with its own pointer. This was one crosshair for all of them - and for
+     * no tool at all, which invited a click that could not do anything.
+     */
+    case 'dental-area':
+      if (gesture.brush) return overBrush ? brushCursors()[gesture.brush.kind === 'allow' ? 'paint' : 'erase'] : 'grab';
+      if (gesture.edit?.kind === 'add') return overBrush ? 'crosshair' : 'grab';
+      if (gesture.edit?.kind === 'drag') return overBrush ? brushCursors()[gesture.edit.brush.mode] : 'grab';
+      return 'default';
     case 'drag': return overBrush ? brushCursors()[gesture.brush.mode] : 'grab';
   }
 }

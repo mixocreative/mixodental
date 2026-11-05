@@ -1214,8 +1214,8 @@ async function walk(url, scratch, dentalFixture) {
       // Paint on the aligner body, well away from both edges (bottom view): new tips there; Erase the same stroke removes them.
       const bodyStrokes = [[[0.37, 0.47], [0.42, 0.52]], [[0.57, 0.62], [0.62, 0.55]], [[0.38, 0.42], [0.43, 0.47]]];
       /*
-       * A STEP OPENS WITH NO TOOL IN HAND, the way a drawing program does: until the operator picks one the
-       * model is inert, and a drag turns the view instead of marking it.
+       * A STEP OPENS ON SELECT, the way a drawing program opens on the arrow: Select reads the model
+       * without changing it, so until the operator picks a brush a drag marks nothing.
        *
        * This has to run HERE, at Step 2's own entry, before anything picks a tool - every other check in
        * this section clicks its tool first, which is exactly why the whole suite went on passing while the
@@ -1230,13 +1230,13 @@ async function walk(url, scratch, dentalFixture) {
           return '';
         };
         const opened = await pressedNow();
-        check('u10g Step 2 opens with no tool in hand', opened === '', `pressed "${opened}"`);
+        check('u10g Step 2 opens on Select, the tool that changes nothing', opened === 'Select', `pressed "${opened}"`);
         const quiet = (await d.props()).activeDental?.stamps ?? 0;
         await d.measureCanvas();
         await d.stroke(...bodyStrokes[0], 20);
         await d.idle(600);
         const inert = (await d.props()).activeDental?.stamps ?? 0;
-        check('u10h with no tool in hand a drag on the model marks nothing', inert === quiet, `stamps ${quiet} -> ${inert}`);
+        check('u10h resting on Select, a drag on the model marks nothing', inert === quiet, `stamps ${quiet} -> ${inert}`);
         /*
          * That drag TURNED THE VIEW, which is exactly what it is meant to do - and it leaves the model at a
          * new angle for everything below, which aims at the canvas by fraction. Drag the same stroke
@@ -1248,29 +1248,30 @@ async function walk(url, scratch, dentalFixture) {
         await d.measureCanvas();
 
         /*
-         * GOING BACK GOES OUT ONE LEVEL. Esc used to leave the WHOLE dental flow from inside a tool, which
-         * is a long way to travel for the key a drawing program uses to put the brush down. Now the rungs
-         * run from the inside out: tool, step, flow. The badge check is the point of the whole case - if
-         * Esc took the flow with it, there would be no Step 2 badge left to read.
+         * GOING BACK GOES OUT ONE LEVEL, AND THE STEP RESTS ON SELECT. Esc used to leave the WHOLE dental
+         * flow from inside a tool; then it emptied the hand, which is a state no drawing program has. Now
+         * it picks Select back up - the tool that changes nothing - and only leaves the flow from there.
+         * The badge check is the point of the whole case: if Esc took the flow with it, there would be no
+         * Step 2 badge left to read.
          */
         const stepBadge = async () => (await page.locator('.edit-badge').first().textContent()) ?? '';
         const putDown = () => bar.getByRole('button', { name: 'Put it down', exact: true });
 
+        check('u10i there is no separate way to put a tool down: Select is on the switch',
+          (await putDown().count()) === 0, `Put it down keys: ${await putDown().count()}`);
+
         await bar.getByRole('button', { name: 'Paint', exact: true }).click();
-        check('u10i the way out of a tool is on screen only while a tool is in hand',
-          (await putDown().count()) === 1, `Put it down keys: ${await putDown().count()}`);
         await page.keyboard.press('Escape');
         await d.idle(300);
         const afterEsc = await pressedNow();
-        check('u10j Esc puts the tool down and the step stays',
-          afterEsc === '' && /Step 2/i.test(await stepBadge()) && (await putDown().count()) === 0,
+        check('u10j Esc goes back to Select and the step stays',
+          afterEsc === 'Select' && /Step 2/i.test(await stepBadge()),
           `pressed "${afterEsc}", badge "${(await stepBadge()).slice(0, 24)}"`);
 
         /*
-         * The visible twin of Esc is the Put it down key, NOT a second press on the tool. Picking a tool
-         * only ever arms it: the keys P/E/A/S run the same path, so a toggle would make "press A to put
-         * Add in hand" depend on what was in hand before - which this walk caught, pressing `a` before
-         * setting Click reach and finding the field gone. Both halves are checked here.
+         * Picking a tool only ever picks it: the keys P/E/A/S run the same path, so a toggle would make
+         * "press A to put Add in hand" depend on what was in hand before - which this walk caught once,
+         * pressing `a` before setting Click reach and finding the field gone.
          */
         await bar.getByRole('button', { name: 'Paint', exact: true }).click();
         const armedAgain = await pressedNow();
@@ -1280,11 +1281,14 @@ async function walk(url, scratch, dentalFixture) {
         check('u10k picking the tool already in hand leaves it in hand, so its key stays idempotent',
           armedAgain === 'Paint' && stillArmed === 'Paint', `armed "${armedAgain}" -> pressed "${stillArmed}"`);
 
-        await putDown().click();
+        // Select is the first segment, and one of the four is always pressed: the switch is never empty.
+        const tools = bar.locator('[aria-label="Dental area tools"] button');
+        const first = ((await tools.first().textContent()) ?? '').trim();
+        await bar.getByRole('button', { name: 'Select', exact: true }).click();
         await d.idle(300);
         const afterKey = await pressedNow();
-        check('u10l the Put it down key empties the hand and takes itself away',
-          afterKey === '' && (await putDown().count()) === 0, `pressed "${afterKey}"`);
+        check('u10l Select comes first on the switch and the switch always has one pressed',
+          first === 'Select' && afterKey === 'Select', `first "${first}", pressed "${afterKey}"`);
       }
 
       const paintStroke = async (kind) => {
@@ -1333,8 +1337,9 @@ async function walk(url, scratch, dentalFixture) {
         // not about how the markup is laid out, and it failed for years' worth of runs on that difference
         // alone - reporting an empty list, which said nothing about why.
         const toolNames = (await tools.getByRole('button').allTextContents()).map((name) => name.trim());
-        check('b3a Step 2 offers the four tools Paint, Erase, Add and Select',
-          toolNames.join('|') === 'Paint|Erase|Add|Select', `[${toolNames.join('|')}]`);
+        // SELECT FIRST: the switch opens where a drawing program opens, on the tool that changes nothing.
+        check('b3a Step 2 offers the four tools, Select first, then Paint, Erase and Add',
+          toolNames.join('|') === 'Select|Paint|Erase|Add', `[${toolNames.join('|')}]`);
         const byKey = [];
         for (const key of ['p', 'e', 'a', 's']) { await page.keyboard.press(key); byKey.push(await pressedTool()); }
         check('b3b the keys P, E, A and S switch the tools', byKey.join('|') === 'Paint|Erase|Add|Select', byKey.join('|'));
