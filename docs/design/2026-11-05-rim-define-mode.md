@@ -99,6 +99,26 @@ surface is visible, not an independently segmented trim footprint"). Three ways,
 **The UI is the smaller half of this feature.** Until the geocore call exists, rim define mode can be built
 and demonstrated but cannot produce a usable aligner. That ordering is the main thing to decide.
 
+### A drawn rim agrees with a detected one on the SIDE, not on the axis — measured
+
+Worth stating plainly, because the obvious acceptance test does not close and it is not a bug. Feeding the
+reference aligner's **own detected rim loop** back through `dental_rim_from_points` does not reproduce
+detection's opening axis: the two sit **5.60° apart**.
+
+The reason is that detection's axis is not the plane of the loop it traced. It is the shell's
+least-variance axis from the floor rule; the loop comes afterwards. A drawn rim has only the loop, so the
+loop's plane is the only axis it can honestly claim — and its frame, its raster bounds and its mask are all
+that plane's throughout, which makes it self-consistent rather than approximate.
+
+What agrees is the part that decides safety: the **side**. On the reference, floor offset −0.2337, well past
+the profile's minimum. The masks come out 5104 cells set against detection's 5089, agreeing in 8919 of 9216
+and differing in 297 around the silhouette margin — exactly the 5.6° of projection tilt. Both numbers are
+pinned in the engine's reference test, so a change to either shows up as a failure rather than as drift.
+
+So the acceptance question is "does the drawn rim put supports on the right side of the shell", not "is it
+bit-identical to detection". The first is answered; the second was never achievable and should not be
+asked for.
+
 ## 2. The flow
 
 Orientation fails → **rim define** (automatic, no notice to dismiss) → operator draws and closes the loop →
@@ -194,10 +214,23 @@ shape.
   anchors not collinear, or the plane — and so `openingDirection` — is ill-conditioned.
 - The one genuinely ambiguous quantity is the **sign** of `openingDirection`: a plane normal has two
   directions and only one points out through the opening. Deciding it from the loop's winding as drawn would
-  silently depend on which side the camera happened to be on. Better: choose the direction with less mesh in
-  front of it (cast from the centroid both ways and compare hits), and *show* the choice as an arrow the
-  operator can flip, with the flip as a visible button. This is the detail most likely to produce a
-  confidently wrong rim, so it should not be inferred silently.
+  silently depend on which side the camera happened to be on. This is the detail most likely to produce a
+  confidently wrong rim, so it must not be inferred silently.
+
+  **SETTLED, and not the way this section first proposed.** The original suggestion here was to cast from
+  the centroid both ways and take the direction with less mesh in front of it. The engine work
+  (`mixo-geocore`, engine 61) rejected that with a reason worth keeping: through an aligner's *thin shell*
+  each direction hits one wall, so the two counts barely separate and the answer swings on wherever the
+  centroid happens to land.
+
+  What it does instead is reuse `orient::floor_offset` — the measure **detection already uses for this
+  exact question**. The axis-facing floor area, area-weighted at the 40/60 quantiles, leans toward the
+  closed end, and the cavity opens away from it. That is winding-free and camera-free, and it means a drawn
+  rim agrees with a detected one *by construction* rather than by coincidence. Where the floor leans too
+  little (below `profile.thresholds.floor_offset_ratio_min`) the engine still returns the rim, but with
+  `reason = "rim-side-uncertain"` and the signed measure, so **the host shows the flip control instead of
+  the engine guessing quietly**. The operator's flip is a parameter of the call, and `facingNormal(frame,
+  facing)` in `core/surfacePath/frame.ts` applies it.
 
 ### Camera only — never the model
 
