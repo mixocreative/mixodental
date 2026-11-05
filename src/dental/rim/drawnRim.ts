@@ -38,7 +38,13 @@ export const RIM_SAMPLE_SPACING_MM = 0.5;
  */
 const PROJECT_BACKOFF_MM = 2;
 
-/** `GeometrySession`, narrowed to the two calls this needs, so a test can stand in for the engine. */
+/*
+ * `GeometrySession`, narrowed to the two calls this needs, so a test can stand in for the engine.
+ *
+ * ONE id, not two. `pick`'s `handle` and `dental_rim_from_points`'s `model` are the same number -
+ * whatever `load_mesh` returned - and taking both would have let a caller pass two different meshes
+ * and get a rim rastered against one and projected onto another, with nothing to complain.
+ */
 export interface RimSession {
   pick(handle: number, rays: Float64Array, near: number, far: number, side: number): Float64Array;
   dental_rim_from_points(model: number, points: Float32Array, flip: boolean, profile: string):
@@ -68,7 +74,7 @@ export type DrawnRimOutcome =
  * concave stretch where the chord stands proud. A miss both ways returns undefined, and `resamplePath`
  * keeps the straight-line position and counts it, so one unreachable spot does not void the drawing.
  */
-export function projectOntoMesh(session: RimSession, handle: number): ProjectToSurface {
+export function projectOntoMesh(session: RimSession, mesh: number): ProjectToSurface {
   return (point, normal) => {
     const [nx, ny, nz] = normal;
     const length = Math.hypot(nx, ny, nz);
@@ -78,7 +84,7 @@ export function projectOntoMesh(session: RimSession, handle: number): ProjectToS
     const cast = (sign: number): [number, number, number] | undefined => {
       const origin = [px + ux * PROJECT_BACKOFF_MM * sign, py + uy * PROJECT_BACKOFF_MM * sign, pz + uz * PROJECT_BACKOFF_MM * sign];
       // Double-sided: a rim runs round a shell, and half of it is approached from the inside.
-      const hit = session.pick(handle, Float64Array.of(origin[0]!, origin[1]!, origin[2]!, -ux * sign, -uy * sign, -uz * sign), 0, PROJECT_BACKOFF_MM * 2, 2);
+      const hit = session.pick(mesh, Float64Array.of(origin[0]!, origin[1]!, origin[2]!, -ux * sign, -uy * sign, -uz * sign), 0, PROJECT_BACKOFF_MM * 2, 2);
       return hit[0] !== undefined && hit[0] >= 0 ? [hit[2]!, hit[3]!, hit[4]!] : undefined;
     };
     return cast(1) ?? cast(-1);
@@ -92,19 +98,19 @@ export function projectOntoMesh(session: RimSession, handle: number): ProjectToS
  * area) come back as codes the dock already has sentences for, in the operator's language. The engine
  * is asked only about the things only it can answer: the plane, the side, and the mask.
  */
-export function drawnRim(session: RimSession, handle: number, model: number, path: SurfacePath,
+export function drawnRim(session: RimSession, mesh: number, path: SurfacePath,
   profile: string, flip = false): DrawnRimOutcome {
   if (!path.closed || path.anchors.length < MIN_CLOSED_ANCHORS) return { kind: 'empty' };
   const problem = pathProblems(path)[0];
   if (problem) return { kind: 'unusable', problem };
 
-  const resampled = resamplePath(path, RIM_SAMPLE_SPACING_MM, projectOntoMesh(session, handle));
+  const resampled = resamplePath(path, RIM_SAMPLE_SPACING_MM, projectOntoMesh(session, mesh));
   if (!resampled) return { kind: 'empty' };
   const points = pathPointArray(resampled);
   // The ABI throws INVALID_LENGTH below six points rather than returning a reason; never let it.
   if (points.length < 6 * 3) return { kind: 'empty' };
 
-  const result = session.dental_rim_from_points(model, points, flip, profile);
+  const result = session.dental_rim_from_points(mesh, points, flip, profile);
   if (!result.ok()) return { kind: 'refused', reason: result.reason() };
   return {
     kind: 'rim',

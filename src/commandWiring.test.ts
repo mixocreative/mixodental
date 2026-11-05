@@ -20,11 +20,15 @@ const SOURCES = import.meta.glob<string>(['./App.tsx'], { query: '?raw', import:
  * Commands with no case in `App.runCommand`, each with the reason. The list only ever shrinks: a new
  * command that needs a line here needs a reason, and a command wired up later leaves.
  */
+/*
+ * EMPTY, and that is the state to keep it in. It held the five `dental.rim.*` commands while rim define
+ * mode was built ahead of the engine that finishes it; engine 61 and `drawnRim.ts` closed the last one.
+ * A new entry here needs a reason that says what is missing, not that the work is unfinished.
+ */
 const UNWIRED: Partial<Record<CommandId, string>> = {
   // Rim define mode's drawing is not built yet: there is no viewport overlay to place or move an anchor
   // on, and no geocore call to turn a drawn loop into a rim (docs/handoff/geocore-rim-from-points.md).
   // The dock and its refusals are real; these five are the part still waiting on the engine.
-  'dental.rim.done': 'a drawn loop cannot become a rim until geocore can build its visibility mask',
 };
 
 describe('command wiring', () => {

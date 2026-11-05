@@ -61,8 +61,13 @@ function alignerSettings(unit: PrintUnit, profile: string): { settings: LiveSupp
   return { settings, structure: kept ?? dentalStructureOf(profile) };
 }
 
-/** The type's Step 3 settings for a new aligner, or one whose type changed; otherwise the operator's are kept. */
-function presetCommands(unit: PrintUnit, profile: string): SceneCommand[] {
+/**
+ * The type's Step 3 settings for a new aligner, or one whose type changed; otherwise the operator's are kept.
+ *
+ * Exported because rim define mode's Done lands in the same place as a detected rim does and must set
+ * the same presets. A second copy would drift the moment one of them changed.
+ */
+export function presetCommands(unit: PrintUnit, profile: string): SceneCommand[] {
   if (unit.dental?.profileId === profile) return [];
   return [{ type: 'settings/set', unitId: unit.id, settings: dentalSupportSettings(profile, resolveSettings(unit.settings)) as SupportSettings }];
 }

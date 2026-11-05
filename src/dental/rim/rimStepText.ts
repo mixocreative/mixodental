@@ -23,7 +23,7 @@ export function rimProblemText(problem: SurfacePathProblem): string {
  * next: finish the loop, then fix it, and only then the one thing they cannot do anything about.
  */
 export function rimDoneReason(state: {
-  dentalRimClosed?: boolean; dentalRimAnchors?: number; dentalRimProblem?: string; dentalRimEngineReady?: boolean;
+  dentalRimClosed?: boolean; dentalRimAnchors?: number; dentalRimProblem?: string;
 }): string | undefined {
   if (!state.dentalRimClosed) {
     return (state.dentalRimAnchors ?? 0) >= 3
@@ -31,14 +31,7 @@ export function rimDoneReason(state: {
       : 'Place at least three points, then close the loop.';
   }
   if (state.dentalRimProblem) return rimProblemText(state.dentalRimProblem as SurfacePathProblem);
-  /*
-   * The honest refusal. A drawn loop becomes a rim only once the engine can fit its frame and rasterise
-   * the opening's visibility mask (docs/handoff/geocore-rim-from-points.md): the host cannot compute that
-   * mask, and a blank or filled one would either permit nothing at all or permit supports the opening
-   * cannot reach. So the mode lets the rim be drawn and checked, and says plainly that it cannot be used
-   * yet, rather than going on with a rim that would quietly be wrong.
-   */
-  if (!state.dentalRimEngineReady) return 'This rim cannot be used yet: the engine does not build a rim from a drawn loop in this version.';
+  // Nothing else stands in the way: engine 61 builds a rim from the drawn points (`drawnRim.ts`).
   return undefined;
 }
 

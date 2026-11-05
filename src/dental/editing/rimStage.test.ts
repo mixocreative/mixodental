@@ -120,21 +120,23 @@ describe('rim define mode: its keys', () => {
    * an engine that cannot build the rim would hand the operator an aligner with no supportable area and no
    * error to explain it.
    */
-  it('keeps Done off, with a reason, until the loop and the engine are both ready', () => {
+  it('keeps Done off, with a reason, until the loop itself is sound', () => {
     const open = at({ dentalRimAnchors: 4 });
     expect(resolve('dental.rim.done', open).enabled).toBe(false);
     expect(resolve('dental.rim.done', open).disabledReason).toBeTruthy();
 
-    const crossing = at({ dentalRimAnchors: 4, dentalRimClosed: true, dentalRimProblem: 'SELF_INTERSECTING', dentalRimEngineReady: true });
+    const crossing = at({ dentalRimAnchors: 4, dentalRimClosed: true, dentalRimProblem: 'SELF_INTERSECTING' });
     expect(resolve('dental.rim.done', crossing).enabled).toBe(false);
+    expect(resolve('dental.rim.done', crossing).disabledReason).toBeTruthy();
 
-    const noEngine = at({ dentalRimAnchors: 8, dentalRimClosed: true, dentalRimEngineReady: false });
-    expect(resolve('dental.rim.done', noEngine).enabled).toBe(false);
-    expect(resolve('dental.rim.done', noEngine).disabledReason).toBeTruthy();
-
-    const ready = at({ dentalRimAnchors: 8, dentalRimClosed: true, dentalRimEngineReady: true });
-    expect(resolve('dental.rim.done', ready).enabled).toBe(true);
-    expect(resolve('dental.rim.done', ready).disabledReason).toBeUndefined();
+    /*
+     * A SOUND LOOP IS NOW DONE. Until engine 61 this still refused, because nothing could build a
+     * rim's visibility mask from arbitrary points; `dental_rim_from_points` can, so the loop is the
+     * only thing left to be right about.
+     */
+    const sound = at({ dentalRimAnchors: 8, dentalRimClosed: true });
+    expect(resolve('dental.rim.done', sound).enabled).toBe(true);
+    expect(resolve('dental.rim.done', sound).disabledReason).toBeUndefined();
   });
 
   /*

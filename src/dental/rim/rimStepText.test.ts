@@ -26,22 +26,19 @@ describe('rim define mode words', () => {
     expect(rimDoneReason({ dentalRimAnchors: 0 })).toBe('Place at least three points, then close the loop.');
     expect(rimDoneReason({ dentalRimAnchors: 2 })).toBe('Place at least three points, then close the loop.');
     expect(rimDoneReason({ dentalRimAnchors: 3 })).toBe('Close the loop to finish the rim.');
-    // Closed but crossing: the shape fault, not the engine.
-    expect(rimDoneReason({ dentalRimClosed: true, dentalRimAnchors: 4, dentalRimProblem: 'SELF_INTERSECTING', dentalRimEngineReady: false }))
+    // Closed but crossing: the shape fault is the last thing in the way.
+    expect(rimDoneReason({ dentalRimClosed: true, dentalRimAnchors: 4, dentalRimProblem: 'SELF_INTERSECTING' }))
       .toBe(rimProblemText('SELF_INTERSECTING'));
   });
 
   /*
-   * The honest refusal, and the reason this mode can be built before the engine can finish it: a drawn loop
-   * becomes a rim only once the engine fits its frame and rasterises the opening's visibility mask. Done
-   * must SAY that rather than go on with a rim that would quietly be wrong.
+   * A SOUND LOOP IS DONE, with nothing left in the way. This used to refuse every sound loop, because
+   * no engine entry point could build a rim's visibility mask from arbitrary points - the mode shipped
+   * before the thing that finishes it. Engine 61 added `dental_rim_from_points`, so the refusal and the
+   * flag that carried it are gone rather than left permanently true.
    */
-  it('refuses a sound loop plainly while the engine cannot build a rim from one', () => {
-    const sound = { dentalRimClosed: true, dentalRimAnchors: 8 };
-    const refusal = rimDoneReason({ ...sound, dentalRimEngineReady: false });
-    expect(refusal).toContain('cannot be used yet');
-    // And it clears the moment the engine can: nothing else is in the way.
-    expect(rimDoneReason({ ...sound, dentalRimEngineReady: true })).toBeUndefined();
+  it('lets a sound loop through, with nothing left to say', () => {
+    expect(rimDoneReason({ dentalRimClosed: true, dentalRimAnchors: 8 })).toBeUndefined();
   });
 
   it('tells the two tools apart in words', () => {
@@ -66,7 +63,7 @@ describe('rim define mode words', () => {
         const keys = [
           rimProblemText('SELF_INTERSECTING'), rimProblemText('COLLINEAR'), rimProblemText('DEGENERATE_AREA'),
           rimToolText('place'), rimToolText('adjust'), rimLoopText(true), rimLoopText(false),
-          rimDoneReason({ dentalRimClosed: true, dentalRimAnchors: 8, dentalRimEngineReady: false })!,
+          rimDoneReason({ dentalRimAnchors: 0 })!, rimDoneReason({ dentalRimAnchors: 3 })!,
         ];
         for (const key of keys) expect(t(key), `${lang}: ${key}`).not.toBe(key);
       }

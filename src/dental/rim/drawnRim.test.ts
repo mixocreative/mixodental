@@ -31,8 +31,8 @@ function engine(over: Partial<RimSession> & { ok?: boolean; reason?: string; flo
 
 describe('a drawn loop becoming a rim', () => {
   it('refuses a loop that is not closed, or has too few anchors to enclose anything', () => {
-    expect(drawnRim(engine(), 1, 2, square(false), 'p').kind).toBe('empty');
-    expect(drawnRim(engine(), 1, 2, { anchors: [at(0, 0, 0), at(1, 0, 0)], closed: true }, 'p').kind).toBe('empty');
+    expect(drawnRim(engine(), 1, square(false), 'p').kind).toBe('empty');
+    expect(drawnRim(engine(), 1, { anchors: [at(0, 0, 0), at(1, 0, 0)], closed: true }, 'p').kind).toBe('empty');
   });
 
   it('answers our own refusals in our own words, without troubling the engine', () => {
@@ -44,7 +44,7 @@ describe('a drawn loop becoming a rim', () => {
     const bowtie: SurfacePath = { anchors: [at(0, 0, 0), at(10, 0, 10), at(10, 0, 0), at(0, 0, 10)], closed: true };
     const session = engine();
     const spy = vi.spyOn(session, 'dental_rim_from_points');
-    const out = drawnRim(session, 1, 2, bowtie, 'p');
+    const out = drawnRim(session, 1, bowtie, 'p');
     /*
      * DEGENERATE_AREA, not SELF_INTERSECTING, and the order is right: a bowtie's two halves cancel, so
      * it encloses nothing at all, which is a more fundamental thing to tell the operator than the
@@ -57,9 +57,10 @@ describe('a drawn loop becoming a rim', () => {
   it('hands the engine a DENSE curve, not the anchors', () => {
     const session = engine();
     const spy = vi.spyOn(session, 'dental_rim_from_points');
-    expect(drawnRim(session, 1, 7, square(), 'reference').kind).toBe('rim');
-    const [model, points, flip, profile] = spy.mock.calls[0]!;
-    expect([model, flip, profile]).toEqual([7, false, 'reference']);
+    expect(drawnRim(session, 7, square(), 'reference').kind).toBe('rim');
+    const [mesh, points, flip, profile] = spy.mock.calls[0]!;
+    // The SAME id reached both calls: the mesh it was projected onto is the mesh it was rastered against.
+    expect([mesh, flip, profile]).toEqual([7, false, 'reference']);
     // Four anchors, 40 mm round at 0.5 mm spacing: far more points than anchors, and whole triples.
     expect(points.length % 3).toBe(0);
     expect(points.length / 3).toBeGreaterThan(60);
@@ -67,14 +68,14 @@ describe('a drawn loop becoming a rim', () => {
   });
 
   it('reads the rim back, and says when the engine could not decide the side', () => {
-    const decided = drawnRim(engine(), 1, 2, square(), 'p');
+    const decided = drawnRim(engine(), 1, square(), 'p');
     expect(decided).toMatchObject({ kind: 'rim', sideUncertain: false, floorOffset: -0.23, flipped: false });
     /*
      * The uncertain case is a RIM, not a refusal: it is complete and usable, the floor just leaned too
      * little to say which way the opening faces. Treating it as a failure would throw away good work;
      * treating it as decided would put supports on the wrong side without anyone being asked.
      */
-    const unsure = drawnRim(engine({ reason: 'rim-side-uncertain', floor: -0.01 }), 1, 2, square(), 'p');
+    const unsure = drawnRim(engine({ reason: 'rim-side-uncertain', floor: -0.01 }), 1, square(), 'p');
     expect(unsure).toMatchObject({ kind: 'rim', sideUncertain: true, floorOffset: -0.01 });
     if (unsure.kind === 'rim') expect(unsure.rim.boundaryKind).toBe('projection-fallback');
   });
@@ -82,18 +83,18 @@ describe('a drawn loop becoming a rim', () => {
   it('passes the operator flip through and reports what the engine did with it', () => {
     const session = engine({ flipped: true });
     const spy = vi.spyOn(session, 'dental_rim_from_points');
-    expect(drawnRim(session, 1, 2, square(), 'p', true)).toMatchObject({ kind: 'rim', flipped: true });
+    expect(drawnRim(session, 1, square(), 'p', true)).toMatchObject({ kind: 'rim', flipped: true });
     expect(spy.mock.calls[0]![2]).toBe(true);
   });
 
   it('passes an engine refusal back with its reason rather than inventing one', () => {
-    expect(drawnRim(engine({ ok: false, reason: 'rim-collinear' }), 1, 2, square(), 'p'))
+    expect(drawnRim(engine({ ok: false, reason: 'rim-collinear' }), 1, square(), 'p'))
       .toEqual({ kind: 'refused', reason: 'rim-collinear' });
   });
 
   it('still produces a rim when the surface cannot be found under part of the curve', () => {
     // One unreachable stretch keeps its straight-line position rather than voiding the operator's work.
-    expect(drawnRim(engine({ pick: missing }), 1, 2, square(), 'p').kind).toBe('rim');
+    expect(drawnRim(engine({ pick: missing }), 1, square(), 'p').kind).toBe('rim');
   });
 });
 

@@ -116,8 +116,7 @@ const RIM_SCREENS = [
   ['aligner-step1-rim-open', 'Rim define mode - seven points down, the loop still open', rimUi({ dentalRimAnchors: 7 })],
   ['aligner-step1-rim-adjusting', 'Rim define mode - Adjust in hand, moving a point', rimUi({ dentalRimAnchors: 12, dentalRimTool: 'adjust' })],
   ['aligner-step1-rim-crossing', 'Rim define mode - the loop is closed but crosses itself', rimUi({ dentalRimAnchors: 9, dentalRimClosed: true, dentalRimProblem: 'SELF_INTERSECTING' })],
-  ['aligner-step1-rim-blocked', 'Rim define mode - a sound rim the engine cannot use yet', rimUi({ dentalRimAnchors: 14, dentalRimClosed: true })],
-  ['aligner-step1-rim-ready', 'Rim define mode - a sound rim, Done on', rimUi({ dentalRimAnchors: 14, dentalRimClosed: true, dentalRimEngineReady: true })],
+  ['aligner-step1-rim-ready', 'Rim define mode - a sound rim, Done on', rimUi({ dentalRimAnchors: 14, dentalRimClosed: true })],
 ].map(([name, caption, ui]) => [name, caption, () => ({
   chrome: [
     h('div', { key: 'f', className: 'edit-frame', 'aria-hidden': 'true' }),

@@ -1072,13 +1072,57 @@ async function walk(url, scratch, dentalFixture) {
       check('u5e the dragged anchor really left its old spot, which is now bare surface',
         (await rimPoints()) === '4' && /open/i.test(rimLoop), `points ${await rimPoints()}, loop "${rimLoop}"`);
 
-      // Cancel is the mode's way out, and it goes out ONE level: back to Step 1, not out of the flow.
-      await d.button('Cancel').click();
-      await page.waitForFunction(() => /Step 1 \u00b7 Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
-      check('u5b Cancel leaves rim define mode and lands back in Step 1, still in the flow',
-        (await badge()).includes('Step 1 · Aligner') && await d.button('Exit').isVisible(), `badge "${(await badge()).slice(0, 30)}"`);
+      /*
+       * AND THE WHOLE WAY THROUGH, on THIS first entry, while the cube is alone on the plate and the
+       * fit has it centred. Close the loop, press Done, and the drawing becomes the aligner's rim
+       * through `dental_rim_from_points` (engine 61). Until that landed Done refused every sound loop,
+       * so this is the check that could not be written before.
+       */
+      /*
+       * CLEAR FIRST, and draw a clean triangle. The loop left by the checks above is deliberately a
+       * mess - an anchor dragged outside and a fresh one dropped where it used to be - so it crosses
+       * itself, and Done refuses it CORRECTLY. Pressing Done there would have tested the refusal, not
+       * the rim. Clear is exercised on the way through.
+       */
+      await d.button('Clear').click();
+      await d.idle(300);
+      check('u5f0 Clear takes the whole drawing away', (await rimPoints()) === '0', `points ${await rimPoints()}`);
+      for (const spot of [[0.42, 0.42], [0.54, 0.44], [0.47, 0.55]]) { await d.stroke(spot, spot, 1); await d.idle(300); }
+
+      await d.button('Close loop').click();
+      await d.idle(300);
+      const closedLoop = ((await page.locator('[data-ui="rim-loop-state-control"]').innerText()) ?? '').trim();
+      check('u5f Close loop joins the last point back to the first', /closed/i.test(closedLoop), `loop "${closedLoop}"`);
+
+      const doneKey = d.button('Done');
+      check('u5g a sound loop lets Done through, with nothing left in the way', await doneKey.isEnabled());
+      await doneKey.click();
+      await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 60000 });
+      check('u5h Done turns the drawing into the rim and hands Step 1 back',
+        (await badge()).includes('Step 1 · Aligner') && /rim saved/i.test(await d.status()), `status "${await d.status()}"`);
+
       await d.button('Back').click();
       await onTypeScreen();
+      await page.locator('.choice-key').click();
+
+      /*
+       * Cancel gets its OWN entry and needs no anchors, which is why it goes second: a second cube is
+       * laid out BESIDE the first, so the fixed canvas fractions above would miss it. Drawing has to
+       * happen while the plate holds one object.
+       */
+      await drop(cube);
+      await page.waitForFunction(() => /Define the rim/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 60000 });
+      await d.button('Cancel').click();
+      await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
+      check('u5b Cancel leaves rim define mode and lands back in Step 1, still in the flow',
+        (await badge()).includes('Step 1 · Aligner') && await d.button('Exit').isVisible(), `badge "${(await badge()).slice(0, 30)}"`);
+
+      /*
+       * A CLEAN PLATE before the next fixture. Two cubes were dropped above - one kept its drawn rim,
+       * one was cancelled - and everything below assumes a plate holding a single object, because a
+       * second is laid out beside the first and every canvas fraction here is fixed.
+       */
+      await backToTypeScreen();
       await page.locator('.choice-key').click();
 
       await drop(holed);

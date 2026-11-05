@@ -165,7 +165,7 @@ declare module '@mixo-geocore/editing/commands' {
      * Rim define mode: the engine can turn a drawn loop into a rim. False until geocore grows the call
      * (docs/handoff/geocore-rim-from-points.md), which is why Done refuses rather than pretending.
      */
-    dentalRimEngineReady?: boolean;
+
   }
 }
 

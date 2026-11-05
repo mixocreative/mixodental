@@ -905,7 +905,7 @@ export default function App() {
    * stand together); otherwise at the exact hit. A spot that faces up gets a warning on the status line.
    */
   // The two edits of rim define mode; its own module owns them (src/dental/rim/useRimDrawing.ts).
-  const { onRimPoint, onRimPath } = useRimDrawing({ session: sessionRef, scene: sceneRef, dispatch });
+  const { onRimPoint, onRimPath, onRimDone } = useRimDrawing({ session: sessionRef, scene: sceneRef, dispatch, send, setStatus });
 
   /*
    * What a pointer does to supports - add, remove, pick - in one module (src/supports/useSupportEdits.ts).
@@ -1136,6 +1136,8 @@ export default function App() {
         if (unit && closed) dispatch({ type: 'rim/set', unitId: unit.id, path: closed });
         return;
       }
+      // Done: the drawing becomes the rim, and Step 1 takes it from there.
+      case 'dental.rim.done': return onRimDone();
       case 'dental.rim.clear': {
         const unitId = sessionRef.current.dentalUnitId;
         if (unitId) dispatch({ type: 'rim/clear', unitId });
