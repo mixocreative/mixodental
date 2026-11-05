@@ -260,8 +260,26 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
   /** Step 1 Next: detect the support area for the chosen type, or open Step 2 empty for painting. */
   const next = useCallback(() => {
     const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
-    const { dentalProposal: proposal, dentalProfile: profile } = sessionRef.current;
+    const { dentalProposal: proposal, dentalProfile: profile, dentalRimOwn } = sessionRef.current;
     if (!unit || sessionRef.current.dentalStage !== 'aligner' || sessionRef.current.dentalAligner !== 'ready') return;
+    /*
+     * A HAND-DRAWN RIM GOES STRAIGHT ON. There is no proposal - rim define mode cleared it, and Done
+     * does not fabricate one, because `DentalDiagnostics` are measurements a drawn rim has no honest
+     * value for. Done has already stored the rim as the unit's manual-area policy, so everything Next
+     * would otherwise compute is in place.
+     *
+     * Nothing re-detects over the operator's rim: that is what `dentalRimOwn` is for, and this is its
+     * one reader. Step 2 opens empty for them to paint, which is the same ending an aligner reaches
+     * when detection finds a rim but no area.
+     *
+     * Without this the mode moved the dead end one screen later - Done saved the rim and Next then
+     * said "no aligner opening was found, go Back or Exit". Walk `u5i` is why that cannot return.
+     */
+    if (!proposal && dentalRimOwn && profile && unit.dental) {
+      send({ type: 'acceptDentalOrientation', noArea: true });
+      requestView('bottom');
+      return;
+    }
     // Orientation failed: there is no opening to build the support area from.
     if (!proposal || !profile) return setStatus('No aligner opening was found, so no support area can be proposed. Go Back and choose another file, or Exit.');
     const detection = ++detectionSeq.current;

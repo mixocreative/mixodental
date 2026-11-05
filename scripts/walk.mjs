@@ -1101,6 +1101,18 @@ async function walk(url, scratch, dentalFixture) {
       check('u5h Done turns the drawing into the rim and hands Step 1 back',
         (await badge()).includes('Step 1 · Aligner') && /rim saved/i.test(await d.status()), `status "${await d.status()}"`);
 
+      /*
+       * AND THE OPERATOR CAN GO ON. This is the check the feature exists for: a hand-drawn rim has to
+       * reach Step 2, or the mode has only moved the dead end one screen later. The walk pressed Back
+       * here before and never found out.
+       */
+      await d.button('Next').click();
+      await stepTo('Step 2 · Support area', 120000);
+      check('u5i Next carries a hand-drawn rim through to Step 2',
+        (await badge()).includes('Step 2'), `badge "${(await badge()).slice(0, 34)}", status "${await d.status()}"`);
+      await d.button('Back').click();
+      await stepTo('Step 1 · Aligner');
+
       await d.button('Back').click();
       await onTypeScreen();
       await page.locator('.choice-key').click();
