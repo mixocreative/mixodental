@@ -21,7 +21,8 @@ export type SegmentedOption<V extends string> = {
  */
 export function Segmented<V extends string>({ options, value, onChange, label, className = 'segmented', disabled }: {
   options: readonly SegmentedOption<V>[];
-  value: V;
+  /** Undefined means NOTHING is chosen: no segment reads as pressed (a dental step before a tool is picked). */
+  value: V | undefined;
   onChange: (value: V) => void;
   label?: string;
   className?: string;

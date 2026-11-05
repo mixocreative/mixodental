@@ -714,6 +714,7 @@ export const zhHant: Dictionary = {
   'Keep {name}': '保留 {name}',
   '{name} is the only aligner type so far.': '{name} 是目前唯一的牙套類型。',
 
+  'No tool in hand. Choose one above; dragging the model turns the view.': '未選取工具。請選擇上方工具；拖曳模型會旋轉視角。',
   // Step 1 rim define mode: the operator draws the rim detection could not find
   'Points': '點數',
   'Loop': '輪廓',

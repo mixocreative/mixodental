@@ -25,7 +25,8 @@ export type { DentalReview, RimGap } from './DentalReviewBlocks';
  * supports steps keep the same shape by construction rather than by agreement.
  */
 export function DentalSupportsStep({ gesture, ui, review, ready, send, run, restore }: {
-  gesture: EditGesture;
+  /** The tool in hand, or undefined until one is picked: a step opens with none. */
+  gesture: EditGesture | undefined;
   ui: UiState;
   review: DentalReview;
   ready: boolean;

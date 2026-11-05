@@ -1213,6 +1213,41 @@ async function walk(url, scratch, dentalFixture) {
       note(`u10 live Step 2 updates (key press to tip preview, one debounce and one worker job included): width ${widthMs} ms, position ${positionMs} ms`);
       // Paint on the aligner body, well away from both edges (bottom view): new tips there; Erase the same stroke removes them.
       const bodyStrokes = [[[0.37, 0.47], [0.42, 0.52]], [[0.57, 0.62], [0.62, 0.55]], [[0.38, 0.42], [0.43, 0.47]]];
+      /*
+       * A STEP OPENS WITH NO TOOL IN HAND, the way a drawing program does: until the operator picks one the
+       * model is inert, and a drag turns the view instead of marking it.
+       *
+       * This has to run HERE, at Step 2's own entry, before anything picks a tool - every other check in
+       * this section clicks its tool first, which is exactly why the whole suite went on passing while the
+       * app still opened on Paint. Checking it anywhere later would mean re-entering a step, and entering
+       * Step 3 starts a support build just to read a button.
+       */
+      {
+        const pressedNow = async () => {
+          for (const name of ['Paint', 'Erase', 'Add', 'Select']) {
+            if ((await bar.getByRole('button', { name, exact: true }).getAttribute('aria-pressed')) === 'true') return name;
+          }
+          return '';
+        };
+        const opened = await pressedNow();
+        check('u10g Step 2 opens with no tool in hand', opened === '', `pressed "${opened}"`);
+        const quiet = (await d.props()).activeDental?.stamps ?? 0;
+        await d.measureCanvas();
+        await d.stroke(...bodyStrokes[0], 20);
+        await d.idle(600);
+        const inert = (await d.props()).activeDental?.stamps ?? 0;
+        check('u10h with no tool in hand a drag on the model marks nothing', inert === quiet, `stamps ${quiet} -> ${inert}`);
+        /*
+         * That drag TURNED THE VIEW, which is exactly what it is meant to do - and it leaves the model at a
+         * new angle for everything below, which aims at the canvas by fraction. Drag the same stroke
+         * BACKWARDS to put the camera where it was: the orbit follows the pointer, so the reverse undoes
+         * it. (A Fit view key would reframe rather than restore, and is not in this step's chrome.)
+         */
+        await d.stroke(bodyStrokes[0][1], bodyStrokes[0][0], 20);
+        await d.idle(600);
+        await d.measureCanvas();
+      }
+
       const paintStroke = async (kind) => {
         await bar.getByRole('button', { name: kind, exact: true }).click();
         await d.measureCanvas();
@@ -1253,6 +1288,7 @@ async function walk(url, scratch, dentalFixture) {
       {
         const tools = bar.getByRole('group', { name: 'Dental area tools' });
         const pressedTool = async () => { for (const name of ['Paint', 'Erase', 'Add', 'Select']) if ((await tools.getByRole('button', { name, exact: true }).getAttribute('aria-pressed')) === 'true') return name; return ''; };
+
         // TRIMMED. Each tool key carries its picture as well as its word, so the raw text of the button is
         // the label wrapped in the whitespace around the icon. This check is about WHICH TOOLS ARE OFFERED,
         // not about how the markup is laid out, and it failed for years' worth of runs on that difference

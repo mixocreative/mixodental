@@ -11,21 +11,33 @@ const area = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalP
 const ui = (over: Partial<UiState>): UiState => ({ ...READY, mode: 'dental', dentalStage: 'area', ...over });
 
 describe('dental Step 2 tools (B3)', () => {
-  it('entering Step 2 starts on Paint; the four tools map to the canvas gesture', () => {
-    expect(area).toMatchObject({ dentalStage: 'area', tool: 'paint' });
-    expect(gesture(area)).toMatchObject({ kind: 'dental-area', brush: { kind: 'allow', radius: 2 }, edit: undefined });
-    expect(gesture(run(area, { type: 'setTool', tool: 'erase' }))).toMatchObject({ kind: 'dental-area', brush: { kind: 'erase', radius: 2 } });
-    const add = run(area, { type: 'setTool', tool: 'add' });
+  /*
+    * A STEP OPENS WITH NO TOOL IN HAND, the way a drawing program does: the model is inert and a drag
+    * turns the view until the operator picks one. `tool` still names which tool WOULD be picked, so the
+    * dock can show a sensible default, but nothing is armed until `setDentalTool` says so.
+    */
+  it('opens Step 2 with no tool in hand, so the model is inert until one is picked', () => {
+    expect(area).toMatchObject({ dentalStage: 'area', dentalToolArmed: false });
+    expect(gesture(area)).toMatchObject({ kind: 'dental-area', brush: undefined, edit: undefined });
+    // Nothing for the canvas to do with a press: it falls through and the view turns.
+    expect(canvasGesture(gesture(area))).toMatchObject({ kind: 'dental-area', brush: undefined, edit: undefined });
+  });
+
+  it('arms the tool the operator picks, and each one maps to its canvas gesture', () => {
+    const paint = run(area, { type: 'setDentalTool', tool: 'paint' });
+    expect(gesture(paint)).toMatchObject({ kind: 'dental-area', brush: { kind: 'allow', radius: 2 }, edit: undefined });
+    expect(gesture(run(area, { type: 'setDentalTool', tool: 'erase' }))).toMatchObject({ kind: 'dental-area', brush: { kind: 'erase', radius: 2 } });
+    const add = run(area, { type: 'setDentalTool', tool: 'add' });
     expect(gesture(add)).toMatchObject({ kind: 'dental-area', brush: undefined, edit: { kind: 'add', remove: false } });
     expect(canvasGesture(gesture(add))).toEqual({ kind: 'add', remove: false });
-    const select = run(area, { type: 'setTool', tool: 'select' }, { type: 'setSelectStyle', style: 'brush' });
+    const select = run(area, { type: 'setDentalTool', tool: 'select' }, { type: 'setSelectStyle', style: 'brush' });
     expect(canvasGesture(gesture(select))).toMatchObject({ kind: 'drag' });
     // Paint and Erase paint: the canvas keeps the area gesture.
-    expect(canvasGesture(gesture(area)).kind).toBe('dental-area');
+    expect(canvasGesture(gesture(paint)).kind).toBe('dental-area');
   });
 
   it('Add is forced to add in Step 2, even with Remove left on', () => {
-    const remove = run(area, { type: 'setTool', tool: 'add' }, { type: 'setAddAction', action: 'remove' });
+    const remove = run(area, { type: 'setDentalTool', tool: 'add' }, { type: 'setAddAction', action: 'remove' });
     expect(canvasGesture(gesture(remove))).toEqual({ kind: 'add', remove: false });
   });
 
@@ -36,8 +48,8 @@ describe('dental Step 2 tools (B3)', () => {
     expect(run(area, { type: 'setTool', tool: 'erase' }, { type: 'acceptDentalArea' })).toMatchObject({ tool: 'add', addAction: 'add' });
     expect(run(area, { type: 'setTool', tool: 'select' }, { type: 'acceptDentalArea' })).toMatchObject({ tool: 'add', addAction: 'add' });
     expect(run(area, { type: 'setTool', tool: 'add' }, { type: 'setAddAction', action: 'remove' }, { type: 'acceptDentalArea' })).toMatchObject({ tool: 'add', addAction: 'add' });
-    // Back into Step 2 is a Paint start again.
-    expect(run(area, { type: 'setTool', tool: 'select' }, { type: 'acceptDentalArea' }, { type: 'backDental' })).toMatchObject({ dentalStage: 'area', tool: 'paint' });
+    // Back into Step 2 offers Paint again, and again with nothing in hand.
+    expect(run(area, { type: 'setTool', tool: 'select' }, { type: 'acceptDentalArea' }, { type: 'backDental' })).toMatchObject({ dentalStage: 'area', tool: 'paint', dentalToolArmed: false });
   });
 
   it('no other mode starts on Paint or Erase', () => {
@@ -49,8 +61,10 @@ describe('dental Step 2 tools (B3)', () => {
     for (const [tool, id] of [['paint', 'dental.tool.paint'], ['erase', 'dental.tool.erase'], ['add', 'dental.tool.add'], ['select', 'dental.tool.select']] as const) {
       expect(commandIds()).toContain(id);
       expect(resolve(id, ui({ tool })).enabled).toBe(true);
-      expect(resolve(id, ui({ tool })).pressed).toBe(true);
-      expect(resolve(id, ui({ tool: tool === 'paint' ? 'erase' : 'paint' })).pressed).toBe(false);
+      // Pressed means IN HAND, not merely named: a step opens with a default tool and none armed.
+      expect(resolve(id, ui({ tool })).pressed).toBe(false);
+      expect(resolve(id, ui({ tool, dentalToolArmed: true })).pressed).toBe(true);
+      expect(resolve(id, ui({ tool: tool === 'paint' ? 'erase' : 'paint', dentalToolArmed: true })).pressed).toBe(false);
       expect(resolve(id, ui({ dentalStage: 'review' })).visible).toBe(false);
       expect(resolve(id, ui({ dentalStage: 'review' })).enabled).toBe(false);
       expect(resolve(id, ui({ heavy: 1_600_000 })).enabled).toBe(false);

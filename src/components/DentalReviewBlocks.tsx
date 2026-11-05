@@ -116,11 +116,13 @@ export function SupportSettingsBlock({ review, kind, onAdjust }: { review: Denta
 
 /** The Support Edit Mode tools (Add supports, Select supports and their options) inside the step. */
 export function EditSupportsBlock({ gesture, ui, review, send, run, kind }: {
-  gesture: EditGesture; ui: UiState; review: DentalReview; send: (event: SessionEvent) => void; run: (id: CommandId) => void; kind: DentalKind;
+  /** Undefined until the operator picks a tool: a step opens with none in hand. */
+  gesture: EditGesture | undefined; ui: UiState; review: DentalReview; send: (event: SessionEvent) => void; run: (id: CommandId) => void; kind: DentalKind;
 }) {
   return <Panel title={t('Edit supports')} ui={`${kind}-edit-supports`}>
     <div className="dental-tools">
-      <EditTools gesture={gesture} ui={ui} clickReach={review.clickReach} send={send} run={run} engaged />
+      <EditTools gesture={gesture} ui={ui} clickReach={review.clickReach} send={send} run={run} engaged
+        onPickTool={(tool) => send({ type: 'setDentalTool', tool })} />
     </div>
   </Panel>;
 }

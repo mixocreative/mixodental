@@ -1190,10 +1190,11 @@ export default function App() {
       case 'edit.generate': return generate(sceneRef.current.activeUnitId ? [sceneRef.current.activeUnitId] : undefined);
       case 'mode.zones': return send({ type: 'enterZones' });
       case 'mode.exit': return send({ type: 'exit' });
-      case 'dental.tool.paint': return send({ type: 'setTool', tool: 'paint' });
-      case 'dental.tool.erase': return send({ type: 'setTool', tool: 'erase' });
-      case 'dental.tool.add': return send({ type: 'setTool', tool: 'add' });
-      case 'dental.tool.select': return send({ type: 'setTool', tool: 'select' });
+      // `setDentalTool`, not `setTool`: a dental step opens with no tool in hand, and choosing one ARMS it.
+      case 'dental.tool.paint': return send({ type: 'setDentalTool', tool: 'paint' });
+      case 'dental.tool.erase': return send({ type: 'setDentalTool', tool: 'erase' });
+      case 'dental.tool.add': return send({ type: 'setDentalTool', tool: 'add' });
+      case 'dental.tool.select': return send({ type: 'setDentalTool', tool: 'select' });
       case 'edit.add': return send({ type: 'setAddAction', action: 'add' });
       case 'edit.remove': return send({ type: 'setAddAction', action: 'remove' });
       case 'edit.dragSelect': return send({ type: 'setBrushMode', mode: 'select' });
@@ -1260,7 +1261,7 @@ export default function App() {
   // What the registry's rules read (editing/commands); Undo stops at the mode's floor.
   const ui: UiState = {
     mode: editMode, activeName: activeUnit?.name, supported: scene.units.some((unit) => unit.supports), zones: activeUnit?.zones.length ?? 0, exporting, active: Boolean(activeUnit), heavy: activeHeavy, units: scene.units.length, selectedObjects: selectedCount, tool: session.tool, addAction: session.addAction, method: session.selectStyle, dragAction: effectiveBrushMode(session.brushMode, session.shiftHeld),
-    selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalBuildFailed: Boolean(activeUnit && failedBuilds.get(activeUnit.id) === activeUnit), dentalStage: session.dentalStage, dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: orientFlow.tilt?.unitId === activeUnit?.id && (orientFlow.tilt?.status === 'scanning' || (orientFlow.tilt?.status === 'ready' && orientFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal) || (denture.active && denture.orient.proposed), dentalKind: denture.active ? 'denture' : 'aligner', dentureResolvable: activeMesh?.unresolved?.filter(denture.supports.resolvable).length ?? 0, canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
+    selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalBuildFailed: Boolean(activeUnit && failedBuilds.get(activeUnit.id) === activeUnit), dentalStage: session.dentalStage, dentalToolArmed: session.dentalToolArmed, dentalRimTool: session.dentalRimTool, dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: orientFlow.tilt?.unitId === activeUnit?.id && (orientFlow.tilt?.status === 'scanning' || (orientFlow.tilt?.status === 'ready' && orientFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal) || (denture.active && denture.orient.proposed), dentalKind: denture.active ? 'denture' : 'aligner', dentureResolvable: activeMesh?.unresolved?.filter(denture.supports.resolvable).length ?? 0, canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
   };
   const command = (id: CommandId) => resolve(id, ui);
   // Denture Step 2: the add-on parts of a multi-part file, tinted on the model (src/denture/parts).

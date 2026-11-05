@@ -56,6 +56,11 @@ export type DentalEvent =
   | { type: 'dentalRimNeeded'; notices: readonly DentalNotice[] }
   | { type: 'setDentalRimTool'; tool: DentalRimTool }
   /**
+   * Picks a tool in a dental step AND arms it. A step opens with no tool in hand, the way a drawing program
+   * does: until the operator chooses one, a drag on the model does nothing and the view turns instead.
+   */
+  | { type: 'setDentalTool'; tool: EditTool }
+  /**
    * Done in rim define mode: the drawn rim is the aligner's. Back to Step 1, and `dentalRimOwn` stays on,
    * which is what switches auto orientation OFF for this aligner - the operator's rim is not re-detected,
    * and there is no print-angle scan to run without a detected arch front.
@@ -85,7 +90,8 @@ export type DentalGesture =
   | { kind: 'dental-area'; brush: { radius: number; kind: 'allow' | 'erase' } | undefined; edit: EditGesture | undefined; notices: readonly DentalNotice[] }
   /** Rim define mode. The drawn path itself is scene state, so it reaches the panel as a prop, not through here. */
   | { kind: 'dental-rim'; tool: DentalRimTool; notices: readonly DentalNotice[] }
-  | { kind: 'dental-review'; edit: EditGesture };
+  /** `edit` is absent until a tool is armed: a step opens with none in hand. */
+  | { kind: 'dental-review'; edit: EditGesture | undefined };
 
 declare module '@mixo-geocore/editing/types' {
   interface ExtraEditModes { dental: true }
@@ -109,6 +115,12 @@ declare module '@mixo-geocore/editing/session' {
     dentalUnitId: string | undefined;
     /** Rim define mode's current tool. */
     dentalRimTool: DentalRimTool;
+    /**
+     * A tool is in hand in this dental step. False when a step opens: `tool` still names which tool WOULD
+     * be picked, but nothing is armed, so the model is inert and a drag turns the view. The operator arms
+     * one by choosing it, as they would in a drawing program.
+     */
+    dentalToolArmed: boolean;
     /**
      * The rim of this aligner was drawn by hand, by the operator. Auto orientation is off for it: no
      * second detection, no print-angle scan, and nothing detected for "Use detected" to re-apply.
@@ -146,6 +158,8 @@ declare module '@mixo-geocore/editing/commands' {
     dentalBuildFailed?: boolean;
     /** Rim define mode: the tool in hand. */
     dentalRimTool?: DentalRimTool;
+    /** A dental step has a tool in hand; false while the step is only being looked at. */
+    dentalToolArmed?: boolean;
     /** Rim define mode: how many anchors the operator has placed. */
     dentalRimAnchors?: number;
     /** Rim define mode: the drawn path is a closed loop. */
@@ -165,7 +179,7 @@ declare module '@mixo-geocore/editing/commands' {
 
 const isDentalEvent = (event: SessionEvent): event is DentalEvent => DENTAL_EVENTS.has(event.type);
 const DENTAL_EVENTS = new Set<string>(['enterDental', 'chooseDentalProfile', 'startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
-  'dentalOrientFailed', 'dentalRimNeeded', 'setDentalRimTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
+  'dentalOrientFailed', 'dentalRimNeeded', 'setDentalRimTool', 'setDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
   'addAnotherDental', 'backDental', 'setDentalRadius']);
 
 const finished = (state: EditSession, unitId: string): readonly string[] => (state.dentalFinished.includes(unitId) ? state.dentalFinished : [...state.dentalFinished, unitId]);
@@ -210,6 +224,8 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'loading'
         ? { ...state, dentalStage: 'rim', dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: event.notices, dentalRimTool: 'place', dentalRimOwn: true }
         : state;
+    case 'setDentalTool':
+      return state.mode === 'dental' ? { ...state, tool: event.tool, dentalToolArmed: true } : state;
     case 'setDentalRimTool':
       return state.mode === 'dental' && state.dentalStage === 'rim' ? { ...state, dentalRimTool: event.tool } : state;
     // Done: back to Step 1 with the operator's rim, and `dentalRimOwn` left on so nothing detects over it.
@@ -232,15 +248,15 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
     case 'acceptDentalOrientation':
       // A denture goes straight to its supports (no support-area step), on Add like Step 3 of an aligner.
       if (state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready' && stageAfterOrientation(state.dentalProfile) === 'review') {
-        return { ...state, dentalStage: 'review', dentalNotices: [], tool: 'add', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION };
+        return { ...state, dentalStage: 'review', dentalNotices: [], tool: 'add', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION, dentalToolArmed: false };
       }
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready'
-        ? { ...state, dentalStage: 'area', tool: 'paint', addAction: 'add', selection: NO_SELECTION, dentalNotices: [...(event.noArea ? [{ kind: 'no-area' as const }] : []), ...(event.angleMovedDeg === undefined ? [] : [{ kind: 'angle-moved' as const, deg: event.angleMovedDeg }])] }
+        ? { ...state, dentalStage: 'area', tool: 'paint', addAction: 'add', selection: NO_SELECTION, dentalToolArmed: false, dentalNotices: [...(event.noArea ? [{ kind: 'no-area' as const }] : []), ...(event.angleMovedDeg === undefined ? [] : [{ kind: 'angle-moved' as const, deg: event.angleMovedDeg }])] }
         : state;
     case 'acceptDentalArea':
       return state.mode === 'dental' && state.dentalStage === 'area'
         // Step 3 always starts on Add (add action), whatever Step 2 left on.
-        ? { ...state, dentalStage: 'review', dentalNotices: [], tool: 'add', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION }
+        ? { ...state, dentalStage: 'review', dentalNotices: [], tool: 'add', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION, dentalToolArmed: false }
         : state;
     case 'finishDental':
       return state.mode === 'dental' && state.dentalStage === 'review'
@@ -255,7 +271,7 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
       switch (state.dentalStage) {
         case 'review': return stageBeforeSupports(state.dentalProfile) === 'aligner'
           ? { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalNotices: [], selection: NO_SELECTION, shiftHeld: false }
-          : { ...state, dentalStage: 'area', tool: 'paint', selection: NO_SELECTION, shiftHeld: false };
+          : { ...state, dentalStage: 'area', tool: 'paint', selection: NO_SELECTION, shiftHeld: false, dentalToolArmed: false };
         case 'area': return { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalNotices: [] };
         /*
          * Back out of rim define mode returns to Step 1 and its failure notice - the honest parent of this
@@ -277,6 +293,8 @@ export function acceptsDentalDrop(state: EditSession): boolean {
 }
 
 function areaGesture(session: EditSession): Gesture {
+  // No tool in hand: the step shows its dock and the model is inert, so a drag turns the view.
+  if (!session.dentalToolArmed) return { kind: 'dental-area', brush: undefined, edit: undefined, notices: session.dentalNotices };
   const brushing = session.tool === 'paint' || session.tool === 'erase';
   return {
     kind: 'dental-area',
@@ -293,7 +311,7 @@ function dentalGesture(session: EditSession): Gesture {
     case 'aligner': return { kind: 'dental-aligner', phase: session.dentalAligner, proposal: session.dentalProposal, notices: session.dentalNotices, profile: session.dentalProfile };
     case 'rim': return { kind: 'dental-rim', tool: session.dentalRimTool, notices: session.dentalNotices };
     case 'area': return areaGesture(session);
-    case 'review': return { kind: 'dental-review', edit: editGesture(session) };
+    case 'review': return { kind: 'dental-review', edit: session.dentalToolArmed ? editGesture(session) : undefined };
   }
 }
 
@@ -306,7 +324,7 @@ const rim = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' &&
 
 registerEditMode({
   id: 'dental',
-  initial: { dentalStage: 'type', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimTool: 'place', dentalRimOwn: false },
+  initial: { dentalStage: 'type', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimTool: 'place', dentalRimOwn: false, dentalToolArmed: false },
   // Paint and Erase are Step 2's own tools: no other mode starts on one.
   tools: ['paint', 'erase'],
   reduce: (state, event, kit) => (isDentalEvent(event) ? reduceDental(state, event, kit) : undefined),
@@ -359,7 +377,7 @@ function areaTool(tool: EditTool, label: string, hint: string, shortcut: string)
     role: 'secondary', shortcut, label: () => label, hint: () => hint,
     visible: area, enabled: (s) => area(s) && s.heavy === undefined,
     disabledReason: (s) => (area(s) && s.heavy === undefined ? undefined : s.heavy !== undefined ? heavyReason(s) : undefined),
-    pressed: (s) => s.tool === tool,
+    pressed: (s) => Boolean(s.dentalToolArmed) && s.tool === tool,
   };
 }
 

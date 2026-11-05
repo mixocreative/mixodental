@@ -709,6 +709,7 @@ export const ja: Dictionary = {
   'Keep {name}': '{name} のままにする',
   '{name} is the only aligner type so far.': '{name} は現時点で唯一のアライナーの種類です。',
 
+  'No tool in hand. Choose one above; dragging the model turns the view.': 'ツールが選択されていません。上のツールを選択してください。モデルをドラッグすると視点が回転します。',
   // Step 1 rim define mode: the operator draws the rim detection could not find
   'Points': 'ポイント数',
   'Loop': '輪郭',

@@ -32,7 +32,8 @@ export interface DentureReviewInput {
  * blocks are `components/DentalReviewBlocks.tsx`, the commands the registry's.
  */
 export function DentureReviewPanel({ gesture, ui, review, ready, send, run, restore, denture }: {
-  gesture: EditGesture;
+  /** The tool in hand, or undefined until one is picked: a step opens with none. */
+  gesture: EditGesture | undefined;
   ui: UiState;
   review: DentalReview;
   ready: boolean;

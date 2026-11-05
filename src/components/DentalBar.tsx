@@ -141,7 +141,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       */}
       <Panel title={t('Tool')} ui="dental-tool">
       <div className="edit-row">
-        <Segmented label={t('Dental area tools')} value={ui.tool} onChange={(tool) => run(`dental.tool.${tool}` as CommandId)}
+        {/* Undefined until a tool is armed: `ui.tool` only names which one WOULD be picked. */}
+        <Segmented label={t('Dental area tools')} value={ui.dentalToolArmed ? ui.tool : undefined} onChange={(tool) => run(`dental.tool.${tool}` as CommandId)}
           options={AREA_TOOLS.map((tool) => {
             const command = resolve(`dental.tool.${tool}`, ui);
             // Every tool key carries its picture. The icon file is named after the tool, so adding a tool

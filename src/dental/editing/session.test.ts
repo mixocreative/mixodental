@@ -67,7 +67,9 @@ describe('reduceSession: modes', () => {
     expect(gesture(ready)).toMatchObject({ kind: 'dental-aligner', phase: 'ready', proposal });
     const area = reduceSession(ready, { type: 'acceptDentalOrientation' });
     expect(area).toMatchObject({ mode: 'dental', dentalStage: 'area' });
-    expect(gesture(area)).toMatchObject({ kind: 'dental-area', brush: { kind: 'allow', radius: 2 } });
+    // A step opens with NO tool in hand, so the model is inert; picking Paint arms it.
+    expect(gesture(area)).toMatchObject({ kind: 'dental-area', brush: undefined, edit: undefined });
+    expect(gesture(reduceSession(area, { type: 'setDentalTool', tool: 'paint' }))).toMatchObject({ kind: 'dental-area', brush: { kind: 'allow', radius: 2 } });
     const review = reduceSession(area, { type: 'acceptDentalArea' });
     expect(gesture(review)).toMatchObject({ kind: 'dental-review' });
     expect(reduceSession(review, { type: 'backDental' }).dentalStage).toBe('area');
@@ -283,13 +285,15 @@ describe('reduceSession: dental Step 3 and finishing', () => {
     { type: 'dentalOriented', proposal, notices: [] }, { type: 'acceptDentalOrientation' }, { type: 'acceptDentalArea' });
 
   it('Step 3 reuses the Support Edit Mode tools: selecting works, the canvas gets the edit gesture', () => {
-    expect(step3).toMatchObject({ mode: 'dental', dentalStage: 'review', tool: 'add', addAction: 'add', selectStyle: 'click', dentalUnitId: 'u1' });
-    expect(gesture(step3)).toMatchObject({ kind: 'dental-review', edit: { kind: 'add', remove: false } });
-    const selecting = run(step3, { type: 'setTool', tool: 'select' });
+    expect(step3).toMatchObject({ mode: 'dental', dentalStage: 'review', tool: 'add', addAction: 'add', selectStyle: 'click', dentalUnitId: 'u1', dentalToolArmed: false });
+    // Step 3 opens with nothing in hand too: the supports are there to be read before they are edited.
+    expect(gesture(step3)).toMatchObject({ kind: 'dental-review', edit: undefined });
+    const adding = run(step3, { type: 'setDentalTool', tool: 'add' });
+    expect(gesture(adding)).toMatchObject({ kind: 'dental-review', edit: { kind: 'add', remove: false } });
+    const selecting = run(step3, { type: 'setDentalTool', tool: 'select' });
     expect(gesture(selecting)).toMatchObject({ kind: 'dental-review', edit: { kind: 'pick' } });
     const picked = run(selecting, { type: 'toggleContact', id: 'a' }, { type: 'toggleContact', id: 'b' });
     expect([...picked.selection]).toEqual(['a', 'b']);
-    expect(gesture(run(step3, { type: 'setTool', tool: 'add' }))).toMatchObject({ kind: 'dental-review', edit: { kind: 'add', remove: false } });
     // Step 1 takes no tip picks (Step 2 does, under Select).
     const aligner = run(step3, { type: 'backDental' }, { type: 'backDental' });
     expect(aligner.dentalStage).toBe('aligner');

@@ -60,10 +60,16 @@ export function EditBar({ gesture, unitName, ui, clickReach, send, run }: {
  * The tools of Support Edit Mode without its frame, badge or Done: the tool switch, how to select,
  * what a click does, the selection's actions. Dental Step 3 reuses them; `children` end the last row.
  */
-export function EditTools({ gesture, ui, clickReach, send, run, children, engaged }: {
-  gesture: EditGesture;
+export function EditTools({ gesture, ui, clickReach, send, run, children, engaged, onPickTool }: {
+  /**
+   * The tool in hand, or undefined where there is none yet: a dental step opens with nothing picked, the
+   * way a drawing program does, and until one is picked the model is inert and a drag turns the view.
+   */
+  gesture: EditGesture | undefined;
   /** Name the engaged tool and what a click does, under the tool switch (dental Step 3). */
   engaged?: boolean;
+  /** How picking a tool is sent. Default sets it; a dental step ARMS it as well. */
+  onPickTool?: (tool: 'add' | 'select') => void;
   ui: UiState;
   clickReach: { value: number; onChange: (value: number, edit?: string) => void };
   send: (event: SessionEvent) => void;
@@ -72,14 +78,17 @@ export function EditTools({ gesture, ui, clickReach, send, run, children, engage
 }) {
   return <>
     <div className="edit-row">
-      <Segmented label={t('Edit tool')} value={gesture.kind === 'add' ? 'add' : 'select'} onChange={(tool) => send({ type: 'setTool', tool })} options={[
+      <Segmented label={t('Edit tool')} value={gesture === undefined ? undefined : gesture.kind === 'add' ? 'add' : 'select'}
+        onChange={(tool) => (onPickTool ? onPickTool(tool) : send({ type: 'setTool', tool }))} options={[
         { value: 'add', label: t('Add supports'), hint: 'Click the model to add a support; right-click or Ctrl+click a support to remove it' },
         { value: 'select', label: t('Select supports'), hint: 'Pick supports to delete several at once' },
       ]} />
-      {gesture.kind !== 'add' && <SelectStyleSwitch gesture={gesture} ui={ui} send={send} run={run} />}
+      {gesture !== undefined && gesture.kind !== 'add' && <SelectStyleSwitch gesture={gesture} ui={ui} send={send} run={run} />}
     </div>
-    {engaged && <p className="tool-engaged" role="status"><strong>{gesture.kind === 'add' ? t('Adding supports:') : t('Selecting supports:')}</strong> {gesture.kind === 'add' ? t(kindText('click the aligner to add one; right-click or Ctrl+click removes.', ui.dentalKind)) : t('click or drag over supports, then press Delete.')}</p>}
-    {gesture.kind === 'add' && <div className="edit-row">
+    {/* With no tool in hand the step says so, in the same place it would name the tool that is. */}
+    {engaged && gesture === undefined && <p className="tool-engaged" role="status">{t('No tool in hand. Choose one above; dragging the model turns the view.')}</p>}
+    {engaged && gesture !== undefined && <p className="tool-engaged" role="status"><strong>{gesture.kind === 'add' ? t('Adding supports:') : t('Selecting supports:')}</strong> {gesture.kind === 'add' ? t(kindText('click the aligner to add one; right-click or Ctrl+click removes.', ui.dentalKind)) : t('click or drag over supports, then press Delete.')}</p>}
+    {gesture !== undefined && gesture.kind === 'add' && <div className="edit-row">
       <Segmented label={t('What a click does')} value={ui.addAction} onChange={(action) => run(action === 'add' ? 'edit.add' : 'edit.remove')} options={(['edit.add', 'edit.remove'] as const).map((id) => {
         const { label, hint: text } = resolve(id, ui);
         return { value: id === 'edit.add' ? 'add' as const : 'remove' as const, label: t(label), hint: text };
@@ -88,7 +97,7 @@ export function EditTools({ gesture, ui, clickReach, send, run, children, engage
     </div>}
     <div className="edit-row">
       {/* Selecting: Ctrl+click selects like a plain click, so only right-click removes. */}
-      <span className="edit-hint"><kbd>{t('Right-click')}</kbd>{gesture.kind === 'add' && <> / <kbd>Ctrl</kbd>+<kbd>{t('Click')}</kbd></>} {t('remove')}</span>
+      <span className="edit-hint"><kbd>{t('Right-click')}</kbd>{gesture?.kind === 'add' && <> / <kbd>Ctrl</kbd>+<kbd>{t('Click')}</kbd></>} {t('remove')}</span>
       <span className="edit-hint"><KeyCaps shortcut={resolve('history.undo', ui).shortcut!} /> {t('undo')}</span>
       {ui.customisedActive > 0 && <span className="edit-hint">{t('Supports with their own settings carry a ring.')}</span>}
       {ui.selection > 0 && <span className="edit-count">{t('{n} selected', { n: ui.selection })}</span>}
