@@ -131,6 +131,10 @@ Set the look of the DOM. They are the mixo-app-style tokens (paper, ink, hairlin
 | `--sunken` | `#ebe8e1` | Hover and selected rows, group heading bands | `h3` bands, segmented hover, list rows |
 | `--line` | `#dcd7cd` | Hairlines | Borders of panels, buttons, rules between sections |
 | `--line-strong` | `#c4bdb0` | Stronger hairline | Border on hover, dashed drop zone |
+| `--raised` | `#fff` | A surface lifted above `--surface` | Background of a button under the pointer |
+| `--on-red` | `#fff` | What is legible on a red fill | Text of `.primary`, the active unit's badge |
+| `--backdrop` | `rgb(14 20 24 / 55%)` | Behind a modal that must be answered | `.confirm-modal::backdrop` |
+| `--backdrop-soft` | `rgba(0, 0, 0, .35)` | Behind a sheet that only needs separating | `dialog.terms::backdrop` |
 | `--ink` | `#3b3631` | Text and pressed fill | All body text, focus outline, pressed segment |
 | `--muted` | `#8a847a` | Captions, units, disabled text | Help text, `small`, disabled buttons |
 | `--kraft` | `#b59f78` | Warm detail | Add preview in the viewport, rare badges (also the 3D `--mark-add`) |

@@ -397,7 +397,6 @@
   --cursor-outline: var(--ink);
   --cursor-fill: #ffffff;
 }
-[data-theme='instrument'] .viewport { background: var(--scene-bg); }
 
 /* ---- Legacy token names, mapped to the roles above ----------------------- */
 /* src/styles.css still names --red (the main action), --kraft (the band accent) and --danger (problems). They are

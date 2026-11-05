@@ -57,6 +57,16 @@
   --dial-label: var(--muted);
   /* The value the dial is on, drawn large in the middle of the knob (P7e). */
   --dial-value: var(--ink);
+  /*
+   * White, named for the two different jobs it does, because they move apart in other themes: `--raised`
+   * is a surface lifted above `--surface` (a button under the pointer), `--on-red` is what is legible on
+   * a red fill. A theme that makes `--surface` white keeps the first and may still want the second.
+   */
+  --raised: #fff;
+  --on-red: #fff;
+  /* The two dialog backdrops: the confirm modal dims harder than the terms sheet, which only softens. */
+  --backdrop: rgb(14 20 24 / 55%);
+  --backdrop-soft: rgba(0, 0, 0, .35);
   /* ---- 3D scene (read at run time by src/ui/tokenColour.ts; change one and the viewport follows) ---- */
   /* Scene: background, the hemisphere light's sky and ground, the floor grid. */
   --scene-bg: #e9e6df;
@@ -137,15 +147,15 @@ button {
   cursor: pointer;
   transition: background-color .15s, border-color .15s;
 }
-button:hover:not(:disabled) { border-color: var(--line-strong); background: #fff; }
+button:hover:not(:disabled) { border-color: var(--line-strong); background: var(--raised); }
 button:disabled { color: var(--muted); opacity: .55; cursor: not-allowed; }
 button:focus-visible, input:focus-visible, .drop:focus-within {
   outline: 1px solid var(--ink);
   outline-offset: 2px;
 }
-.primary { background: var(--red); border-color: var(--red); color: #fff; font-weight: 500; }
+.primary { background: var(--red); border-color: var(--red); color: var(--on-red); font-weight: 500; }
 .primary:hover:not(:disabled) { background: var(--red-hover); border-color: var(--red-hover); }
-.primary:disabled { color: #fff; }
+.primary:disabled { color: var(--on-red); }
 .danger { color: var(--danger); border-color: var(--danger); background: transparent; } /* never a red fill */
 .danger:hover:not(:disabled) { border-color: var(--danger); background: var(--sunken); }
 .primary.regen { background: var(--blue); border-color: var(--blue); }
@@ -305,11 +315,11 @@ button[aria-pressed='true']:not(.primary):hover:not(:disabled) { background: var
 .unit span { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .unit small { font-size: 11px; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .panel .unit.selected, .panel .unit.selected:hover:not(:disabled) { background: var(--sunken); border-left-color: var(--ink); }
-.panel .unit.active b { background: var(--red); border-color: var(--red); color: #fff; }
+.panel .unit.active b { background: var(--red); border-color: var(--red); color: var(--on-red); }
 h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 
 /* ---- Viewport: a quiet light room --------------------------------------- */
-.viewport { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #e9e6df; }
+.viewport { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--scene-bg); }
 .viewport canvas { height: 100% !important; }
 .viewport--dropping { outline: 1px solid var(--ink); outline-offset: -12px; }
 .viewport-drop-overlay {
@@ -318,7 +328,8 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
   z-index: 2;
   display: grid;
   place-items: center;
-  background: rgba(244, 242, 237, .86);
+  /* Paper, see-through: `--paper` and not the literal, so a theme's own paper shows through its veils. */
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
   font-size: 15px;
   letter-spacing: .08em;
   pointer-events: none;
@@ -468,7 +479,7 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
   background: var(--surface);
   color: var(--ink);
 }
-.confirm-modal::backdrop { background: rgb(14 20 24 / 55%); }
+.confirm-modal::backdrop { background: var(--backdrop); }
 .confirm-modal-body { display: grid; gap: 14px; padding: 18px 20px 16px; white-space: normal; }
 .confirm-modal-question { margin: 0; font-size: 14px; line-height: 1.45; }
 .confirm-modal-row { display: flex; gap: 8px; }
@@ -643,10 +654,17 @@ footer.on-scene button { pointer-events: auto; }
 .problem-text { display: grid; min-width: 0; }
 .problem-text small { color: var(--muted); font-size: 11px; white-space: normal; overflow-wrap: anywhere; }
 .problem-kind { width: 10px; height: 10px; border-radius: 50%; }
-.problem-kind.island { background: #b3261e; }
-.problem-kind.overhang { background: #d97706; }
-.problem-kind.outside, .problem-kind.omitted { background: #6b7280; }
-.problem-kind.risk { background: #1E50A2; }
+/*
+ * THE LEGEND TAKES THE MARK'S OWN COLOUR. Each dot names a mark drawn in the 3D view, and those marks
+ * read their colour from these tokens at run time (`ui/tokenColour.ts`). Spelling the same colours
+ * again as literals meant the dot and the thing it labels could drift apart - and `--mark-island`
+ * already does move in the instrument theme, where it follows the theme's signal colour while this dot
+ * stayed on the default red. Now the key cannot disagree with the map.
+ */
+.problem-kind.island { background: var(--mark-island); }
+.problem-kind.overhang { background: var(--mark-overhang); }
+.problem-kind.outside, .problem-kind.omitted { background: var(--mark-outside); }
+.problem-kind.risk { background: var(--mark-risk-outside); }
 /* Step 2's low points sit over the viewport: two rows show, the rest scroll, so the panel never grows over the model. */
 .dental-side .problems.dental-risks, .edit-bar .problems.dental-risks { margin-top: 2px; max-height: 64px; overflow-y: auto; }
 .problems.dental-risks li { padding: 2px 0; }
@@ -991,7 +1009,7 @@ footer strong + .link-button { margin-left: 0; }
 .link-button { height: auto; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: inherit; text-decoration: underline; }
 .link-button:hover:not(:disabled) { background: transparent; color: var(--ink); }
 dialog.terms { max-width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); padding: 20px 24px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--paper); color: var(--ink); overflow: auto; }
-dialog.terms::backdrop { background: rgba(0, 0, 0, .35); }
+dialog.terms::backdrop { background: var(--backdrop-soft); }
 dialog.terms h2 { margin: 0 0 10px; }
 dialog.terms p { margin: 0 0 10px; font-size: 12.5px; line-height: 1.7; }
 dialog.terms .terms-item { display: flex; gap: 6px; }
@@ -1008,7 +1026,7 @@ dialog.terms .terms-item > span { flex: none; }
   justify-content: center;
   gap: 20px;
   padding: 96px 16px 32px;
-  background: rgba(244, 242, 237, .9);
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
   text-align: center;
 }
 
