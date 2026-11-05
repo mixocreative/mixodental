@@ -118,6 +118,53 @@ export class DentalRegionResult {
 }
 
 /**
+ * The rim built from a loop the operator drew on the surface. Deliberately NOT a
+ * `DentalOrientResult`: that result also carries `diagnostics`, `opening`, `arch` and
+ * `cross_check`, which are measurements of a detection that did not happen here, and a drawn rim
+ * has no honest value for any of them. The three rim getters keep the orient result's names and
+ * shapes, so the host reads either with one decoder.
+ */
+export class DentalRimResult {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Whether `flip` reversed the side the floor rule chose.
+     */
+    flipped(): boolean;
+    /**
+     * The side evidence: `orient::floor_offset` along the fitted plane normal before any flip, in
+     * [-1, 1]. Positive means the axis-facing floor area leans the way that normal points, so the
+     * opening was taken to face the other way. Near zero the floor decides nothing - that is what
+     * `rim-side-uncertain` reports.
+     */
+    floor_offset(): number;
+    /**
+     * False when the drawn points fit no plane (a normal result, not a throw); `reason` says why.
+     */
+    ok(): boolean;
+    /**
+     * `rim-collinear` when the points lie on a line; `rim-side-uncertain` on an otherwise good rim
+     * whose floor lean did not reach the profile's minimum, so the side needs the operator's eye
+     * (see `floor_offset`). Empty when the side is certain.
+     */
+    reason(): string;
+    /**
+     * As `DentalOrientResult::rim_scalars` (22 values, same layout); empty when not `ok`.
+     */
+    rim_scalars(): Float64Array;
+    /**
+     * The drawn loop points as f32 xyz triples, as given.
+     */
+    take_rim_points(): Float32Array;
+    /**
+     * The visibility footprint, `resolution * resolution` bytes, built by the engine's own
+     * rasteriser exactly as an orientation-derived rim's is.
+     */
+    take_visibility_mask(): Uint8Array;
+}
+
+/**
  * The print-angle search (`dental_tilt_scan`): one row per scanned tilt in step order, the pick
  * order (the pick first), the pick's reason and the stable band. Failed: `ok() == false` with `reason()`.
  */
@@ -759,6 +806,13 @@ export class GeometrySession {
      */
     dental_policy(model: number, profile: string, kind: number, tuning: Float64Array, stamps: Float64Array, saved_allowed_faces: Uint8Array, saved_contact_faces: Uint8Array, saved_outer_edges: Uint32Array, saved_opening_edges: Uint32Array, structure: Uint8Array, frame: Float64Array, manual_positions: Float64Array): PolicyHandle;
     /**
+     * The rim for a hand-drawn loop, for an aligner whose rim detection found none: the same
+     * scalars, loop points and 96 x 96 visibility mask an orient result carries, built by the same
+     * rasteriser. Which way the opening faces comes from the floor rule detection itself uses, not
+     * from the loop's winding, and `floor_offset()` reports the measurement behind it.
+     */
+    dental_rim_from_points(model: number, points: Float32Array, flip: boolean, profile: string): DentalRimResult;
+    /**
      * Print-angle search over the profile's tilt range (docs/ROADMAP.md F) with the host's current
      * support settings. `on_tilt(done, total)`, when given, is called after each scanned tilt.
      */
@@ -1281,6 +1335,7 @@ export interface InitOutput {
     readonly __wbg_bodysegmentsresult_free: (a: number, b: number) => void;
     readonly __wbg_dentalorientresult_free: (a: number, b: number) => void;
     readonly __wbg_dentalregionresult_free: (a: number, b: number) => void;
+    readonly __wbg_dentalrimresult_free: (a: number, b: number) => void;
     readonly __wbg_dentaltiltscanresult_free: (a: number, b: number) => void;
     readonly __wbg_denturearearesult_free: (a: number, b: number) => void;
     readonly __wbg_denturelivetilt_free: (a: number, b: number) => void;
@@ -1344,6 +1399,13 @@ export interface InitOutput {
     readonly dentalregionresult_take_outer_connector_edges: (a: number) => [number, number];
     readonly dentalregionresult_take_outer_edges: (a: number) => [number, number];
     readonly dentalregionresult_take_outer_ridge_edges: (a: number) => [number, number];
+    readonly dentalrimresult_flipped: (a: number) => number;
+    readonly dentalrimresult_floor_offset: (a: number) => number;
+    readonly dentalrimresult_ok: (a: number) => number;
+    readonly dentalrimresult_reason: (a: number) => [number, number];
+    readonly dentalrimresult_rim_scalars: (a: number) => [number, number];
+    readonly dentalrimresult_take_rim_points: (a: number) => [number, number];
+    readonly dentalrimresult_take_visibility_mask: (a: number) => [number, number];
     readonly dentaltiltscanresult_band: (a: number) => [number, number];
     readonly dentaltiltscanresult_boxed_counts: (a: number) => [number, number];
     readonly dentaltiltscanresult_boxed_points: (a: number) => [number, number];
@@ -1504,6 +1566,7 @@ export interface InitOutput {
     readonly genericpolicyresult_take_structures: (a: number) => [number, number];
     readonly geometrysession_dental_legacy_fill: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number) => [number, number, number];
     readonly geometrysession_dental_policy: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number, q: number, r: number, s: number, t: number, u: number, v: number, w: number) => [number, number, number];
+    readonly geometrysession_dental_rim_from_points: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number];
     readonly geometrysession_dental_tilt_scan: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number];
     readonly geometrysession_denture_compare_areas: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number];
     readonly geometrysession_denture_policy: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number];

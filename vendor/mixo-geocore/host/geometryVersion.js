@@ -22,6 +22,7 @@
 // 20: denture review rim = low points joined over the mesh (rim_loops/rim_sizes/rim_closed/rim_edges/rim_info), holes by an axis ray grid (hole_outlines/hole_sizes/hole_info/hole_band_mask); rim_loop, rim_bridged, hole_loops, hole_edges removed.
 
 /** Must equal the Rust `engine_version()`; both change together on any ABI change. */
+// 61: `dental_rim_from_points(model, points, flip, profile)` -> `DentalRimResult` (`ok`, `reason`, `rim_scalars` as an orient result's 22, `take_rim_points`, `take_visibility_mask`, `floor_offset`, `flipped`): the rim for a loop the operator drew on the surface, for an aligner whose rim detection found none. Same rasteriser, same mask shape; the opening's side comes from the floor rule, not the loop's winding.
 // 60: `generate` takes an optional last argument `on_phase(name, done, total)` (engine phase events for a staged progress bar: preparing, routing, placing, bracing, raft, checking, judging, finishing, writing); results unchanged. Host: `GENERATE_PHASES` in host/core/progress.ts.
 // 59: the allowed area (R2 and the hole band) ALWAYS cancels the socket mask (owner 2026-11-02, plan P3, option A): a socket face inside it is no socket, so rim, hole-band and area tips stand there; before, only R2 cancelled it. No ABI change.
 // 58: ONE overhang angle setting (owner 2026-11-02, plan P1b): the generic `scatterAngle` default is 45 (was 50), the same value as the global `overhangAngleDeg` rule; hosts show one Overhang angle control and send it as both. No ABI change.
@@ -47,7 +48,7 @@
 // 38: the self-supporting overhang rule (rules overhangSelfSupport, overhangMinAreaMm2, overhangMaxReachMm, overhangMinAngleDeg, appended: 89 rule names); off by default, so a build without it is unchanged; the review result has `self_support_faces()` and `self_support_info()`; the tilt scan honours it.
 // 37: the plate outline and the grid raft (rules raftGrid, raftMapOutline, raftGridBottomMm, raftGridTopMm, raftRibMm, raftRibPitchMm, raftRimMm, raftPadMarginMm, appended: 85 rule names); both switches default off, so a build without them is unchanged.
 // 36: opt-in R1b, the steep no-support ray (rule noSupportSteepDeg, appended: 77 rule names; the review result has `no_support_steep_mask()` and `no_support_steep_deg()`).
-export const HOST_GEOMETRY_VERSION = 60;
+export const HOST_GEOMETRY_VERSION = 61;
 
 /** Thrown when the loaded engine's `engine_version()` is not `HOST_GEOMETRY_VERSION` (code 'geometry-version-mismatch'). */
 export class GeometryVersionMismatch extends Error {

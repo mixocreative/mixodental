@@ -557,6 +557,110 @@ if (Symbol.dispose) DentalRegionResult.prototype[Symbol.dispose] = DentalRegionR
 exports.DentalRegionResult = DentalRegionResult;
 
 /**
+ * The rim built from a loop the operator drew on the surface. Deliberately NOT a
+ * `DentalOrientResult`: that result also carries `diagnostics`, `opening`, `arch` and
+ * `cross_check`, which are measurements of a detection that did not happen here, and a drawn rim
+ * has no honest value for any of them. The three rim getters keep the orient result's names and
+ * shapes, so the host reads either with one decoder.
+ */
+class DentalRimResult {
+    static __wrap(ptr) {
+        const obj = Object.create(DentalRimResult.prototype);
+        obj.__wbg_ptr = ptr;
+        DentalRimResultFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        DentalRimResultFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_dentalrimresult_free(ptr, 0);
+    }
+    /**
+     * Whether `flip` reversed the side the floor rule chose.
+     * @returns {boolean}
+     */
+    flipped() {
+        const ret = wasm.dentalrimresult_flipped(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * The side evidence: `orient::floor_offset` along the fitted plane normal before any flip, in
+     * [-1, 1]. Positive means the axis-facing floor area leans the way that normal points, so the
+     * opening was taken to face the other way. Near zero the floor decides nothing - that is what
+     * `rim-side-uncertain` reports.
+     * @returns {number}
+     */
+    floor_offset() {
+        const ret = wasm.dentalrimresult_floor_offset(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * False when the drawn points fit no plane (a normal result, not a throw); `reason` says why.
+     * @returns {boolean}
+     */
+    ok() {
+        const ret = wasm.dentalrimresult_ok(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * `rim-collinear` when the points lie on a line; `rim-side-uncertain` on an otherwise good rim
+     * whose floor lean did not reach the profile's minimum, so the side needs the operator's eye
+     * (see `floor_offset`). Empty when the side is certain.
+     * @returns {string}
+     */
+    reason() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.dentalrimresult_reason(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * As `DentalOrientResult::rim_scalars` (22 values, same layout); empty when not `ok`.
+     * @returns {Float64Array}
+     */
+    rim_scalars() {
+        const ret = wasm.dentalrimresult_rim_scalars(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The drawn loop points as f32 xyz triples, as given.
+     * @returns {Float32Array}
+     */
+    take_rim_points() {
+        const ret = wasm.dentalrimresult_take_rim_points(this.__wbg_ptr);
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * The visibility footprint, `resolution * resolution` bytes, built by the engine's own
+     * rasteriser exactly as an orientation-derived rim's is.
+     * @returns {Uint8Array}
+     */
+    take_visibility_mask() {
+        const ret = wasm.dentalrimresult_take_visibility_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+}
+if (Symbol.dispose) DentalRimResult.prototype[Symbol.dispose] = DentalRimResult.prototype.free;
+exports.DentalRimResult = DentalRimResult;
+
+/**
  * Arclength contact samples on one contour side band.
  */
 class DentalSampleResult {
@@ -2607,6 +2711,28 @@ class GeometrySession {
             throw takeFromExternrefTable0(ret[1]);
         }
         return PolicyHandle.__wrap(ret[0]);
+    }
+    /**
+     * The rim for a hand-drawn loop, for an aligner whose rim detection found none: the same
+     * scalars, loop points and 96 x 96 visibility mask an orient result carries, built by the same
+     * rasteriser. Which way the opening faces comes from the floor rule detection itself uses, not
+     * from the loop's winding, and `floor_offset()` reports the measurement behind it.
+     * @param {number} model
+     * @param {Float32Array} points
+     * @param {boolean} flip
+     * @param {string} profile
+     * @returns {DentalRimResult}
+     */
+    dental_rim_from_points(model, points, flip, profile) {
+        const ptr0 = passArrayF32ToWasm0(points, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_dental_rim_from_points(this.__wbg_ptr, model, ptr0, len0, flip, ptr1, len1);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return DentalRimResult.__wrap(ret[0]);
     }
     /**
      * Print-angle search over the profile's tilt range (docs/ROADMAP.md F) with the host's current
@@ -5155,6 +5281,9 @@ const DentalOrientResultFinalization = (typeof FinalizationRegistry === 'undefin
 const DentalRegionResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_dentalregionresult_free(ptr, 1));
+const DentalRimResultFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_dentalrimresult_free(ptr, 1));
 const DentalSampleResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_dentalsampleresult_free(ptr, 1));

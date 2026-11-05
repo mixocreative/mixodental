@@ -27,6 +27,35 @@ export interface DentalOrientResultLike {
   cross_check(): number;
 }
 
+/**
+ * Result handle of `dental_rim_from_points` (engine 61): the rim built from a loop the operator drew
+ * on the surface, for an aligner whose rim detection found none. Read it, then `free()`.
+ *
+ * The three rim getters are the orient result's, with the same layout, so `rimOf` reads either. What
+ * it deliberately does NOT carry is `diagnostics`, `opening`, `arch_kind` and `cross_check`: those
+ * are measurements of a detection that did not happen, and a drawn rim has no honest value for any
+ * of them.
+ */
+export interface DentalRimResultLike {
+  free(): void;
+  /** False when the drawn points fit no plane; `reason` says why. */
+  ok(): boolean;
+  /** `rim-collinear`, or `rim-side-uncertain` on a good rim whose side needs the operator's eye. */
+  reason(): string;
+  rim_scalars(): Float64Array;
+  take_rim_points(): Float32Array;
+  take_visibility_mask(): Uint8Array;
+  /**
+   * The side evidence, in [-1, 1]: the engine's floor-rule offset along the fitted plane normal
+   * before any flip. Positive means the axis-facing floor area leans the way that normal points, so
+   * the opening was taken to face the other way. Near zero the floor decides nothing, which is what
+   * `rim-side-uncertain` reports: show the operator the flip rather than let it pass.
+   */
+  floor_offset(): number;
+  /** Whether `flip` reversed the side the floor rule chose. */
+  flipped(): boolean;
+}
+
 /** Result handle of the region and footprint calls; read it, then `free()`. */
 export interface DentalRegionResultLike {
   free(): void;
@@ -212,6 +241,12 @@ export interface DentalSession {
   /** Print-angle search with the host's current support settings; `onTilt(done, total)` after each tilt. */
   dental_tilt_scan(model: number, profile: string, neckLengthMm: number, pillarDiameterMm: number, liftMm: number, braced: boolean,
     onTilt?: (done: number, total: number) => void): DentalTiltScanResultLike;
+  /**
+   * The rim for a closed loop the operator drew on the surface (engine 61): `points` flat f32 xyz in
+   * loop order, the first point not repeated, unit-local mm. `flip` reverses the side the engine
+   * chose for the opening, which it takes from the floor rule, never from the loop's winding.
+   */
+  dental_rim_from_points(model: number, points: Float32Array, flip: boolean, profile: string): DentalRimResultLike;
   dental_legacy_fill(model: number, profile: string, rim: Float64Array, visibilityMask: Uint8Array, manualArea: boolean,
     stamps: Float64Array, rotation: Float64Array, spacing: number, overhangAngleDegrees: number,
     initialPositions: Float64Array, initialNormals: Float64Array): LegacyFillLike;
@@ -317,8 +352,15 @@ export function rimScalars(rim: DentalRim): Float64Array {
     rim.front ? 1 : 0, ...(rim.front ?? [0, 0, 0]));
 }
 
-/** The unit-local rim an orientation result carries. */
-export function rimOf(result: DentalOrientResultLike): DentalRim {
+/** The three rim pieces an orient result and a drawn-rim result both carry, in the one layout. */
+export interface RimCarrier {
+  rim_scalars(): Float64Array;
+  take_rim_points(): Float32Array;
+  take_visibility_mask(): Uint8Array;
+}
+
+/** The unit-local rim an orientation result or a drawn-rim result carries. */
+export function rimOf(result: RimCarrier): DentalRim {
   const s = result.rim_scalars();
   const at = (i: number): [number, number, number] => [s[i]!, s[i + 1]!, s[i + 2]!];
   const rim: DentalRim = {
