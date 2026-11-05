@@ -109,5 +109,10 @@
     "label": "host-math",
     "maxMath": 1,
     "why": "normalises the anchor normal to aim one projection ray; the geometry that matters - the plane, the side and the visibility mask - is all the engine's, which is the entire reason this call exists"
+  },
+  "src/dental/rim/useRimDrawing.ts": {
+    "label": "host-adapter",
+    "maxMath": 0,
+    "why": "imports inverseTransformPoint/Direction to put a world-space pick into unit-local coordinates before storing it; no geometry of its own"
   }
 }

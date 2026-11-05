@@ -45,6 +45,7 @@ draws on a surface. This folder is only the dental reading of it.
 | `DentalRimStep.tsx` | The mode's dock: the tool switch, the readouts, the keys, Cancel and Done. Holds no wording of its own. |
 | `rimStepText.ts` | The mode's sentences: what is wrong with the loop, and why Done is off. |
 | `rimDraftGeometry.ts` | Where the drawing sits for the viewport: the lift off the surface, the chord pairs, and the two reach tests (pick up an anchor, close the loop). Pure. |
+| `useRimDrawing.ts` | What the viewport does to the drawing: place an anchor, and store a drag. Both are scene commands, so the app history undoes them. |
 | `drawnRim.ts` | The drawn loop becoming a real `DentalRim`: resample along the surface, then `dental_rim_from_points` (engine 61) for the plane, the side and the 96×96 visibility mask. Our own refusals are answered here, in our own words, before the engine is troubled. |
 
 The viewport half is `src/components/viewport/RimDraftLayer.tsx` (it draws the anchors and the chord)

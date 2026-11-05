@@ -71,8 +71,8 @@ import { PlateLedger, type PlateScene } from './core/plateLedger';
 import { estimateTriangles, ESTIMATE_HEAD_BYTES } from './core/import/estimate';
 import { emptyScene, reduceScene, type ContactSettings, type PrintScene, type PrintUnit, type SceneCommand, type SupportSettings } from './state/project';
 import { applyTransform, inverseTransformDirection, inverseTransformPoint, transformPoint, type ModelTransform } from '@mixo-geocore/host/state/transform';
-import { appendAnchor, closePath, emptyPath, type SurfaceAnchor, type SurfacePath } from './core/surfacePath/path';
-import { closesLoop } from './dental/rim/rimDraftGeometry';
+import { closePath } from './core/surfacePath/path';
+import { useRimDrawing } from './dental/rim/useRimDrawing';
 import { pathProblems } from './core/surfacePath/validate';
 import type { ExportKind } from '@mixo-geocore/host/supports/export';
 import type { GeneratedSupportMesh, SupportContact } from '@mixo-geocore/host/core/supports/mesh';
@@ -920,36 +920,8 @@ export default function App() {
     setStatus(plan.status === 'faces-up' ? 'This spot faces up, so a tip here may not hold.' : 'Support added.');
   }, [dispatch, setStatus]);
 
-  /**
-   * Rim define mode, Place: one hit on the model becomes one anchor.
-   *
-   * A hit ON THE FIRST ANCHOR closes the loop instead of adding another, because that is the gesture
-   * every drawing program uses to finish a shape - and Close loop is the button beside it, as the house
-   * rule requires. A closed loop takes no more anchors: `appendAnchor` refuses, and refusing quietly is
-   * right, since the operator can see the loop is shut.
-   */
-  const onRimPoint = useCallback((unitId: string, point: [number, number, number], normal: [number, number, number]) => {
-    const session = sessionRef.current;
-    if (session.mode !== 'dental' || session.dentalStage !== 'rim') return;
-    const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
-    if (!unit) return;
-    // Unit-local, like every anchor: the drawing survives the model being moved or turned later.
-    const anchor: SurfaceAnchor = {
-      position: inverseTransformPoint(unit.transform, point),
-      normal: inverseTransformDirection(unit.transform, normal),
-    };
-    const path = unit.rimDraft ?? emptyPath();
-    const next = closesLoop(path, anchor.position) ? closePath(path) : appendAnchor(path, anchor);
-    if (!next) return;
-    dispatch({ type: 'rim/set', unitId, path: next });
-  }, [dispatch]);
-
-  /** Rim define mode, Adjust: the whole drawing as the drag left it, stored in one command and so undone in one. */
-  const onRimPath = useCallback((unitId: string, path: SurfacePath) => {
-    const session = sessionRef.current;
-    if (session.mode !== 'dental' || session.dentalStage !== 'rim') return;
-    dispatch({ type: 'rim/set', unitId, path });
-  }, [dispatch]);
+  // The two edits of rim define mode; its own module owns them (src/dental/rim/useRimDrawing.ts).
+  const { onRimPoint, onRimPath } = useRimDrawing({ session: sessionRef, scene: sceneRef, dispatch });
 
   const onAddContact = useCallback((unitId: string, point: [number, number, number], normal: [number, number, number]) => {
     if (sessionRef.current.mode === 'zones') return; // supports take no edits while painting zones
