@@ -338,7 +338,9 @@ marks the unit finished without moving the stage. Session-only: finishing also *
 and a moved unit drops the build the export is reading, which would make `runExport` refuse it as
 stale. Four tests and walk check `x18b` hold it.
 
-**x15–x18 all passed and none pressed Exit afterwards** — the handoff's own lesson, repeated.
+**x15–x18 all passed and none pressed Exit afterwards.** The project handoff already carried the
+lesson from an identical miss — *when a step hands off to another step, walk the handover, not just
+the step* — written down, and repeated anyway.
 
 ### What that event does and does not mean
 
@@ -578,7 +580,7 @@ subset, or `japaneseSubset.test.ts` fails.
 running app lays out at 1685 CSS px and the browser pane captures the top-left corner only. The three
 waiting types already appear there, built from `PROGRESS_TYPES` so a new one shows up on its own.
 
-**The Items row and all six verdict states belong in `kit.html`**, each rendered once, so the operator
+**The Items row and all eight row states belong in `kit.html`**, each rendered once, so the operator
 wording and the dense layout can be reviewed without importing a file and waiting for a verdict. That
 is also the only way to see the "could not be read" and "refused" states at all, since both need a
 deliberately broken file to reach in the real app.
@@ -636,15 +638,18 @@ committed.
 
 **6. Diagnose in the worker.** `diagnose_mesh` after the weld in `importWorker.ts`, full-resolution
 mesh, verdict only across the boundary. `src/import/` (new module, README, tests) holds the host-side
-pure classifier mapping a report to one of §3's row states, and the three-language text for the coded
-read errors and the nine `fill-*` reasons.
+pure classifier — its input is a **union**, `DiagnoseReport | CodedError`, because half of §3's first
+table comes from the capacity guards and the STL reader rather than from `diagnose_mesh` — mapping one
+of those to a row state, and the three-language text for **all eight row sentences**, the coded import
+errors, and the three operator classes the nine `fill-*` codes collapse to.
 *Exit:* one test per row state in both of §3's tables, on the classifier, with no UI.
 
 **6a. The UI groundwork** (§7). Declare the app row-height token in `src/styles.css` and add it to
 the app token table in `docs/ui-styling.md`; decide and document the neutral row tone so `ledger`'s
 `--red` does not reach a routine row; add the glossary terms for *Appliance* in all three languages;
-add the Items row and all six verdict states to `kit.html` so the wording and density can be judged
-without importing a file.
+add all eight row **states** to `kit.html` as static markup so the wording and density can be judged
+without importing a file — **not the row component**, which is step 7b's, because a step must not
+need the one after it.
 *Exit:* `uiStylingDoc.test.ts`, `noColourLiterals.test.ts`, `glossary.test.ts`,
 `japaneseSubset.test.ts` and `i18n.test.ts` all green, and every state visible in `kit.html`.
 
@@ -695,7 +700,9 @@ Orient return to the Items page without ending the session** — today it sends 
 undo step, and what else must follow it: the **display decimation re-run**, the **pick index rebuilt**
 (`importWorker` builds it from `display ?? mesh`, so a repaired mesh leaves the viewport picking stale
 geometry), and a **capacity re-check**, because filling adds triangles and `assertPlateCapacity` is
-consulted only on the import path. Say whether centring re-runs. The project file stores the repaired
+consulted only on the import path. **Centring does not re-run**: `prepareImport` centres on first
+import and the unit's transform has been the operator's ever since, so re-centring a repaired mesh
+would move a model they have already oriented. The project file stores the repaired
 mesh and records that it was repaired.
 *Exit:* a refused repair leaves the unit untouched; a successful one leaves picking, display and
 capacity consistent.
