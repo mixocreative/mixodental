@@ -9,6 +9,8 @@ import { Panel } from '../components/Panel';
 import { Field } from '../components/Field';
 import { RestoreStepButton } from '../components/RestoreStepButton';
 import { stagedJobBar } from '../denture/progress/StagedProgress';
+import { Progress } from '../progress/Progress';
+import { PROGRESS_STYLE, PROGRESS_TYPES, type ProgressType } from '../progress/progressTypes';
 import { reviewLine } from '../denture/steps/supports/reviewLineText';
 
 /*
@@ -24,6 +26,13 @@ function Card({ caption, wide = false, children }: { caption: string; wide?: boo
 
 function Section({ title, ui, children }: { title: string; ui: string; children: ReactNode }) {
   return <section className="kit-section" data-ui={ui}><h2>{title}</h2><div className="kit-grid">{children}</div></section>;
+}
+
+/** A realistic label for each waiting type, so the cards read like the app and not like a test. */
+function waitingLabel(type: ProgressType): string {
+  if (type === 'blocking') return t('Loading…');
+  if (type === 'step') return t('Scanning print angles');
+  return t('Building supports for {name}', { name: 'reference-aligner' });
 }
 
 /** A static job row for the staged bar (its model reads only these fields). */
@@ -143,6 +152,22 @@ export function Catalogue() {
       <Card caption="failed (is-failed)"><StatusLine built={false} failed /></Card>
       <Card caption="building (is-building)"><StatusLine built={false} /></Card>
     </Section>
+
+    {/*
+      THE THREE KINDS OF WAITING, one group each, side by side. In the running app they never appear
+      together - one blocks, one sits on the scene and one is a row in a list - so a designer judging
+      them had to load a model and catch each as it went past. Each group names WHERE that type goes,
+      straight from `place` in src/progress/progressTypes.ts, and shows it both with a measure and
+      without, because the shape changes when there is nothing to count.
+    */}
+    {PROGRESS_TYPES.map((type, at) => <Section key={type} title={`Waiting ${at + 1} of 3 — ${type}`} ui={`kit-progress-${type}`}>
+      <Card caption={`WHERE IT GOES: ${PROGRESS_STYLE[type].place}`} wide>
+        <div className="kit-stage"><Progress type={type} label={waitingLabel(type)} fraction={0.42} /></div>
+      </Card>
+      <Card caption={`no measure: ${PROGRESS_STYLE[type].waiting === 'spinner' ? 'a spinner, which claims nothing' : 'the bar paces across instead of filling'} — never a number nobody counted`} wide>
+        <div className="kit-stage"><Progress type={type} label={waitingLabel(type)} /></div>
+      </Card>
+    </Section>)}
 
     <Section title="Staged progress bar (static states)" ui="kit-progress">
       <Card caption="scan, running">{stagedJobBar(jobRow(1, 'Orienting {name}', 'Scanning print angles', 'determinate', 0.5, 4000))}</Card>

@@ -480,6 +480,7 @@ export const zhHant: Dictionary = {
   'Cancel': '取消',
   'Dismiss': '關閉',
   'Cancelling…': '正在取消…',
+  'Loading…': '載入中…',
   '{n} s': '{n} 秒',
   '{m} min {s} s': '{m} 分 {s} 秒',
   'about {time} left': '約剩 {time}',

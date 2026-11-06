@@ -15,3 +15,18 @@
 /* Two dial sizes: the dial scales from this one token. */
 .kit-dial-small { --dial-size: 120px; }
 .kit-dial-large { --dial-size: 240px; }
+
+/*
+ * A stage for a waiting type to be shown in. The blocking type fills whatever box it is in and dims
+ * it, so it needs a box with a size and a position to sit inside; the other two simply sit in it.
+ */
+.kit-stage {
+  position: relative;
+  min-height: 140px;
+  display: grid;
+  align-content: center;
+  padding: 12px;
+  background: var(--paper);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}

@@ -476,6 +476,7 @@ export const ja: Dictionary = {
   'Cancel': 'キャンセル',
   'Dismiss': '閉じる',
   'Cancelling…': 'キャンセル中…',
+  'Loading…': '読み込み中…',
   '{n} s': '{n} 秒',
   '{m} min {s} s': '{m} 分 {s} 秒',
   'about {time} left': '残り約 {time}',

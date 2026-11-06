@@ -201,6 +201,56 @@ Colours with a meaning. Each is an alias of a UI token by default; give it a col
 | `--part-addon` | `var(--blue)` | Add-on parts of a denture (hooks, attachments) | Tint on the model (Step 2) and in the parts list |
 | `--progress-staged-fill` | `var(--red)` | Fill of the staged bar | The bar of a denture scan or support build in the background-work list |
 | `--progress-staged-track` | `var(--line)` | Track behind the staged bar | Same bar, the part not yet reached |
+| `--progress-tone` | per type | Fill of a waiting indicator | Declared on the type class; see below |
+| `--progress-label-size` | per type | Size of the waiting label | Same |
+| `--progress-track-height` | per type | Thickness of a waiting bar | Same |
+| `--progress-spinner-size` | per type | Diameter of a waiting spinner | Same |
+
+### Waiting: the three types (`src/progress/`)
+
+There are **three kinds of waiting**, because there are three things an operator can do while it
+happens: nothing, watch, or ignore. Every bar, spinner and loading word in the app is one of them.
+
+| Type | Means | **Where it goes on screen** | Label | With no measure | Cancel |
+| --- | --- | --- | --- | --- | --- |
+| `blocking` | You cannot act yet | **Middle of the view**, over a veil that dims everything behind | Large, uppercase, above | 40px spinner in paper | Never |
+| `step` | Your model is being worked on | **Top left of the 3D view**, under the step badge, over the scene | Small, above | 22px spinner | Never |
+| `ledger` | These jobs exist | **Bottom left of the 3D view**, one row of the background-work list | Small, leading | Bar paces across | Where the job allows |
+
+**Inheritance.** `PROGRESS_BASE` is what every type is before it is anything in particular — ink, a
+spinner when it cannot count, label above, normal size, no veil. Each type then states only what it
+**changes**, so the table reads as the differences between them rather than three full descriptions.
+
+**To restyle one, edit its row in `src/progress/progressTypes.ts`** — `tone` (a token name), `waiting`
+(`spinner` or `bar`), `labelPlacement` (`above` or `leading`), `size`, `veil`. Every instance of that
+type moves with it, and the stylesheet draws those choices while making none of its own.
+
+**What can be overridden, and what cannot.**
+
+- **Colour and size cascade.** They reach CSS as the four custom properties above, declared on the
+  type class, so any ancestor can set one and the instances inside follow — the same way a theme
+  overrides `tokens.css`, without editing the table.
+- **Structure does not.** Label placement, the veil, and whether waiting spins or paces are different
+  markup, not different values. "This one blocks" is a statement about what the operator can do.
+- **No call site overrides a type.** That is the hole this module closes: three surfaces drifted apart
+  precisely because each styled its own waiting. A site chooses its *type*; the type decides the rest.
+
+**The percentage is not a style option, and neither is the shape.** Both follow from one question:
+does the job report a real fraction?
+
+- **With a fraction** → a bar that fills, and the number beside it.
+- **With none** → no number at all, and the type's `waiting` shape: a spinner that claims nothing, or
+  a bar that paces across without filling.
+
+A job that is one call into the core reports a start and an end and nothing between. A bar sitting at
+a number nobody measured teaches a reader to stop believing the next one, so no type may ask for one.
+
+**See them together in the style book:** `kit.html`, sections *Waiting 1 of 3 — blocking*, *2 of 3 —
+step* and *3 of 3 — ledger*. Each group shows that type with a measure and without, and names where it
+goes. They never appear together in the running app, which is why judging them used to mean loading a
+model and catching each one as it went past.
+
+**`data-ui` names:** `progress-blocking`, `progress-step`, `progress-ledger`.
 
 ### Print-angle dial (Step 1)
 

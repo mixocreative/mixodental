@@ -823,6 +823,104 @@ footer.on-scene button { pointer-events: auto; }
 
 /* WORK IN PROGRESS, over the model it is about. A percentage shows only when the job counts its own work;
    otherwise the bar runs on its own and says no number (src/components/SceneProgress.tsx). */
+/*
+ * THE THREE KINDS OF WAITING (src/progress/progressTypes.ts). Everything that differs between them is
+ * either a class this sheet styles or `--progress-tone`, which the component carries in from the table
+ * so there is one source for the colour. A designer changes the table for colour, shape, size and
+ * where the label sits; this sheet is only how those choices are drawn.
+ *
+ * Seen all together in the style book: run `kit.html`, section "Waiting".
+ */
+/*
+ * THE BASE EVERY TYPE INHERITS, as custom properties so they CASCADE. Any ancestor can set one of
+ * these and the instances inside it follow, which is how a designer restyles waiting in one context
+ * without editing the table. Structure - label above or leading, veil or none - is not here, because
+ * it is different markup rather than a different value.
+ */
+.progress {
+  display: contents;
+  --progress-tone: var(--ink);
+  --progress-label-size: 11.5px;
+  --progress-track-height: 4px;
+  --progress-spinner-size: 22px;
+}
+.progress-body { display: grid; gap: 6px; }
+.progress-words { display: flex; align-items: baseline; gap: 12px; }
+.progress-label { color: var(--muted); font-size: var(--progress-label-size); }
+.progress-percent { font-family: var(--font-number); font-variant-numeric: tabular-nums; color: var(--ink); margin-left: auto; }
+
+/* The indicator. A bar fills only when there is a real measure; with none it paces instead, so it
+   says that work is happening without saying how much is left. */
+.progress-indicator { position: relative; overflow: hidden; background: var(--sunken); }
+.progress-indicator--bar { height: var(--progress-track-height); }
+.progress-run { height: 100%; background: var(--progress-tone, var(--ink)); transition: width var(--dur) linear; }
+.progress-indicator--bar.is-pacing .progress-run { width: 34%; animation: progress-pace 1.1s ease-in-out infinite; }
+@keyframes progress-pace { 0% { transform: translateX(-110%); } 100% { transform: translateX(310%); } }
+/* A spinner is the other honest shape for work with no measure: a ring that turns and claims nothing. */
+.progress-indicator--spinner {
+  justify-self: center;
+  width: var(--progress-spinner-size); height: var(--progress-spinner-size);
+  border: 3px solid var(--sunken);
+  border-top-color: var(--progress-tone, var(--ink));
+  border-radius: 50%;
+  background: none;
+  animation: progress-spin .9s linear infinite;
+}
+.progress-indicator--spinner .progress-run { display: none; }
+@keyframes progress-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .progress-indicator--bar.is-pacing .progress-run { animation: none; width: 100%; opacity: .45; }
+  .progress-indicator--spinner { animation-duration: 2.4s; }
+}
+
+/* Label above: the words are centred over the indicator, and the measure sits under them rather than
+   beside, so the one word stays the widest thing in the box. */
+.progress--label-above .progress-words { flex-direction: column; align-items: center; gap: 2px; }
+.progress--label-above .progress-percent { margin-left: 0; }
+
+/* 1. BLOCKING - nothing else can be done, so it takes the middle of the view and dims the rest. */
+.progress--blocking { --progress-tone: var(--ink); --progress-label-size: 24px; --progress-track-height: 6px; --progress-spinner-size: 40px; display: block; position: absolute; inset: 0; z-index: 4; }
+.progress--blocking .progress-veil { position: absolute; inset: 0; background: color-mix(in srgb, var(--paper) 88%, transparent); }
+.progress--blocking .progress-body {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: min(340px, 72vw);
+  padding: 18px 24px;
+  border-radius: var(--radius);
+  background: var(--ink);
+}
+.progress--blocking .progress-label { color: var(--paper); }
+.progress--blocking .progress-percent { color: var(--paper); }
+.progress--blocking .progress-indicator { background: color-mix(in srgb, var(--paper) 24%, transparent); }
+.progress--blocking .progress-run { background: var(--paper); }
+.progress--blocking .progress-indicator--spinner {
+  border-color: color-mix(in srgb, var(--paper) 24%, transparent);
+  border-top-color: var(--paper);
+  background: none;
+}
+
+/* 2. STEP - the view still turns under it, so it never takes the pointer and stays out of the way. */
+.progress--step { --progress-tone: var(--ink); display: block; }
+.progress--step .progress-body {
+  width: min(300px, 100%);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 3. LEDGER - a row in a list. The label leads, everything else follows it on the same line. */
+.progress--ledger { --progress-tone: var(--red); --progress-spinner-size: 14px; }
+.progress--ledger .progress-label { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* `size: large` is a typographic treatment as well as a number: the number cascades as
+   `--progress-label-size`, and this is the rest of what being the large one means. */
+.progress--large .progress-label { font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+
 .scene-progress {
   display: grid;
   gap: 6px;
