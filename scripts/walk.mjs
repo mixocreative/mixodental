@@ -1395,8 +1395,70 @@ async function walk(url, scratch, dentalFixture) {
       const dropped = Date.now();
       // Step 1's print-angle search (F): record whether its progress line showed.
       await page.evaluate(() => { window.__scanSeen = false; new MutationObserver(() => { if (/Scanning print angles \d+\/\d+/.test(document.body.innerText)) window.__scanSeen = true; }).observe(document.body, { subtree: true, childList: true, characterData: true }); });
+      /*
+       * THE BLOCKING KIND OF WAITING, as the operator meets it (src/progress/README.md). Reading a
+       * file is the one moment nothing else can be done, so it is `blocking`: one word in the middle
+       * of the view, the sentence under it, and an indicator saying the app has not stopped. It was a
+       * heading on a veil with NO indicator at all - the reader was told what was happening and given
+       * no sign it was still going. Watched for BEFORE the drop, because it is gone within seconds.
+       */
+      const waiting = (type) => page.locator(`[data-ui="progress-${type}"]`);
+      const blockingSeen = page.waitForSelector('[data-ui="progress-blocking"]', { timeout: 30000 })
+        .then(async () => ({
+          text: (await waiting('blocking').innerText()).replace(/\s+/g, ' ').trim(),
+          spins: await waiting('blocking').locator('.progress-indicator--spinner').count(),
+        }))
+        .catch(() => null);
+      /*
+       * AND THE STEP KIND, which follows it: the print-angle scan. The model is being worked on and
+       * the view still turns under it. The scan counts its own work, so this one is allowed a number
+       * and a bar - a job that cannot count gets neither.
+       *
+       * WATCHED FROM INSIDE THE PAGE, not with `waitForSelector`. The indicator lives for as long as
+       * the scan does and the page reloads around it, and a selector wait rejects on a navigation
+       * rather than carrying on. A MutationObserver just records that it was there, the way the scan
+       * text is already recorded for f1.
+       */
+      await page.evaluate(() => {
+        window.__stepWaits = [];
+        const look = () => {
+          const at = document.querySelector('[data-ui="progress-step"]');
+          if (!at) return;
+          const seen = {
+            measured: at.querySelectorAll('.progress-indicator--bar.is-measured').length,
+            spinner: at.querySelectorAll('.progress-indicator--spinner').length,
+            percent: at.querySelectorAll('.progress-percent').length,
+            text: at.innerText.replace(/\s+/g, ' ').trim().slice(0, 40),
+          };
+          // One entry per distinct state, not one per tick of a percentage.
+          const last = window.__stepWaits[window.__stepWaits.length - 1];
+          if (!last || last.text !== seen.text || last.measured !== seen.measured) window.__stepWaits.push(seen);
+        };
+        new MutationObserver(look).observe(document.body, { subtree: true, childList: true, attributes: true });
+        look();
+      });
       await drop(reference);
+      const blocking = await blockingSeen;
+      check('u8c reading a file blocks, with one word, the sentence under it and a live indicator',
+        Boolean(blocking) && /LOADING|読み込み|載入/i.test(blocking.text)
+          && /Checking and orienting/i.test(blocking.text) && blocking.spins === 1,
+        blocking ? `"${blocking.text.slice(0, 64)}", spinners ${blocking.spins}` : 'never appeared');
       await stepTo('Review the orientation', 180000);
+      check('u8d the blocking wait is gone once the aligner is read', (await waiting('blocking').count()) === 0);
+      /*
+       * Read AFTER the step settles: the work being watched for runs on the way here, so asking any
+       * earlier asks before it has had a chance to happen.
+       *
+       * THE RULE, CHECKED IN THE RUNNING APP, not just in a unit test: a step job that cannot count
+       * its own work shows NO number and NO filling bar. "Detecting the support area" is one call into
+       * the core - it reports a start and an end and nothing between - so it spins and says nothing
+       * about how far along it is. A number here would be one nobody measured.
+       */
+      const steps = await page.evaluate(() => window.__stepWaits ?? []);
+      const unmeasured = steps.filter((seen) => seen.measured === 0);
+      check('u8e a step job that cannot count itself shows no number and no filling bar',
+        steps.length > 0 && unmeasured.length > 0 && unmeasured.every((seen) => seen.percent === 0 && seen.spinner === 1),
+        `${steps.length} step waits: ${steps.map((seen) => `"${seen.text}" measured=${seen.measured} percent=${seen.percent} spinner=${seen.spinner}`).join(' | ') || 'none'}`);
       /** The angle the dial shows in its middle, e.g. "44.5" + the degree sign. */
       const angleText = () => page.locator('.print-angle [data-ui="tilt-dial-value"]').textContent().catch(() => '');
       /** The stable band, which used to be part of the same sentence. */

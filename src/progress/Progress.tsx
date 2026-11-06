@@ -11,6 +11,33 @@ import { t } from '../i18n';
  * where the label went.
  */
 
+/**
+ * THE INDICATOR ON ITS OWN, for a caller that already has a place for the words.
+ *
+ * The ledger is the one: a job row is a composite - label, elapsed time, Cancel, a failure sentence,
+ * sometimes a staged bar - and pushing all of that through `Progress` would grow it a set of
+ * row-shaped props, which is worse than the duplication it set out to remove. So the row keeps the
+ * row and borrows the indicator, and the type still decides its shape, its tone and whether it may
+ * show a measure.
+ *
+ * The width is a plain `style=` on purpose. Spreading it would slip past `noColourLiterals.test.ts`,
+ * whose regex looks for `style={`, and evading a guard whose rule this follows is worse than being
+ * listed by it. A bar width IS the job percentage, the exact case its exception list is for.
+ */
+export function ProgressIndicator({ type, label, fraction }: {
+  type: ProgressType;
+  /** Only for the accessible name; the caller draws the words it already has. */
+  label: string;
+  fraction?: number | undefined;
+}) {
+  const percent = progressMeasure(fraction);
+  const measured = percent !== undefined;
+  return <div className={progressClasses(type, fraction).indicator} role="progressbar" aria-label={label}
+    {...(measured ? { 'aria-valuenow': percent, 'aria-valuemin': 0, 'aria-valuemax': 100 } : {})}>
+    <div className="progress-run" style={measured ? { width: `${percent}%` } : undefined} />
+  </div>;
+}
+
 export function Progress({ type, label, fraction, children }: {
   type: ProgressType;
   /** What is being waited on, already in the reader's language. */
@@ -40,16 +67,7 @@ export function Progress({ type, label, fraction, children }: {
         {measured ? <span className="progress-percent">{percent}%</span> : null}
         {children}
       </div>
-      <div className={classes.indicator} role="progressbar" aria-label={label}
-        {...(measured ? { 'aria-valuenow': percent, 'aria-valuemin': 0, 'aria-valuemax': 100 } : {})}>
-        {/*
-          Written as a plain `style=` on purpose. Spreading it instead would slip past
-          `noColourLiterals.test.ts`, whose regex looks for `style={` - and evading a guard whose rule
-          this follows is worse than being listed by it. The width is the job percentage, which is the
-          exact case its exception list is for, and it is listed there with that reason.
-        */}
-        <div className="progress-run" style={measured ? { width: `${percent}%` } : undefined} />
-      </div>
+      <ProgressIndicator type={type} label={label} fraction={fraction} />
       {/*
         A job with no number says so to a screen reader, which cannot see a bar pacing. The sighted
         reader already has the pacing, so nothing is printed for them.

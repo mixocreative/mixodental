@@ -6,7 +6,7 @@ import { t, type Lang } from '../i18n';
 import type { DentalNotice } from '../dental/editingMode';
 import { CommandButton } from './CommandButton';
 import { PrintAngleField, noticeText, tiltNote } from './DentalSteps';
-import { SceneProgress } from './SceneProgress';
+import { Progress } from '../progress/Progress';
 import { Icon } from '../ui/Icon';
 import type { DentalTiltState } from './useDentalFlow';
 import type { StepRestore } from './RestoreStepButton';
@@ -117,7 +117,7 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
     {note ? <p className="scene-note" role="note" data-ui="orient-note">{note}</p> : null}
     {/* The scan counts the tilts it has done, so this one shows a TRUE percentage. */}
     {!freeOn && !asking && tilt?.status === 'scanning' && tilt.total > 0
-      ? <SceneProgress stage={t('Scanning print angles')} fraction={tilt.done / tilt.total} />
+      ? <Progress type="step" label={t('Scanning print angles')} fraction={tilt.done / tilt.total} />
       : null}
   </>;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, type ReactNode } from 'react';
 import { ERROR_CONTEXTS, errorStatus, type ErrorContext } from '@mixo-geocore/editing/errors';
+import { ProgressIndicator } from '../progress/Progress';
 import { t, translateMessage } from '../i18n';
 import { jobActivity, type JobActivity, type JobRow } from '@mixo-geocore/host/workers/jobActivity';
 import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
@@ -93,16 +94,16 @@ export default function JobActivityPanel({ activity = jobActivity, stagedBar }: 
               {row.state === 'failed' && <button onClick={() => activity.dismiss(row.id)} aria-label={t('Dismiss {label}', { label: translateMessage(row.label) })}>{t('Dismiss')}</button>}
             </div>
             {staged}
-            {!staged && !ended && <div
-              className={`progress-track${determinate ? '' : ' progress-track--indeterminate'}`}
-              role="progressbar"
-              aria-label={translateMessage(row.label)}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              {...(determinate ? { 'aria-valuenow': percent } : {})}
-            >
-              <div className="progress-fill" style={determinate ? { width: `${Math.max(percent, 2)}%` } : undefined} />
-            </div>}
+            {/*
+              THE LEDGER KIND OF WAITING (src/progress/README.md). The row keeps its own shape - a
+              label, a time, Cancel, a failure sentence - and borrows only the indicator, so the type
+              decides the tone, the shape and whether a measure may be shown, while the row stays a
+              row. A job with its own stages draws those instead; one that has ended draws nothing,
+              because there is nothing left to wait for.
+            */}
+            {!staged && !ended && <ProgressIndicator type="ledger"
+              label={translateMessage(row.label)}
+              {...(determinate ? { fraction: percent / 100 } : {})} />}
           </li>;
         })}
       </ul>

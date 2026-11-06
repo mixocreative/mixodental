@@ -89,10 +89,25 @@ needs a fourth answer to "what can they do about it". If there is one:
 3. Document it in `docs/ui-styling.md` — `uiStylingDoc.test.ts` fails on any undocumented token.
 4. It appears in `kit.html` on its own, because the catalogue builds its groups from `PROGRESS_TYPES`.
 
-## Not here
+## Where each type is used
 
-The old surfaces this replaces — the full-screen heading in `DentalSteps.tsx`, `SceneProgress.tsx`, and
-the bar inside `JobActivity.tsx` — **are still what the app renders.** The call sites have not been
-rewired yet, deliberately: the look is reviewed in the style book first, so the table can change
-cheaply before anything on screen depends on it. The denture's `StagedProgress` is not a fourth type;
-it renders *inside* a ledger row and is the one piece that composed correctly all along.
+| Type | Call site | What it waits on |
+|---|---|---|
+| `blocking` | `components/DentalSteps.tsx` | Reading and orienting a dropped file. The one word, the sentence under it, a spinner. |
+| `step` | `App.tsx` ×2, `components/OrientationBar.tsx` | Detecting the support area, placing the supports an angle needs, the print-angle scan. |
+| `ledger` | `components/JobActivity.tsx` | Every background job, through `ProgressIndicator` — the row keeps its own label, time and Cancel and borrows only the indicator. |
+
+`SceneProgress.tsx` is deleted; the hand-rolled bar inside `JobActivity` is gone with it, and so is the
+`.progress-track--indeterminate` rule that only it used. The denture's `StagedProgress` is not a fourth
+type: it renders *inside* a ledger row and is the one piece that composed correctly all along.
+
+## Known gap
+
+**The print-angle scan's `step` indicator does not appear.** Walk `u8e` watches the page through a
+MutationObserver and sees exactly one step wait during a full aligner load — "Detecting the support
+area" — while the scan's own dock note ("Scanning print angles i/n") does show. The guard in
+`OrientationBar` reads `!freeOn && !asking && tilt?.status === 'scanning' && tilt.total > 0`, and
+`tiltCount` can never return zero, so the total is not what blocks it.
+
+This is **not new**: the same site held `SceneProgress` under the same guard before the rewire, so it
+has been unreachable all along, in the same way the rim overlay was. It needs its own look.

@@ -3,6 +3,7 @@ import type { Gesture } from '@mixo-geocore/editing/gesture';
 import type { SessionEvent } from '@mixo-geocore/editing/session';
 import type { DentalNotice } from '../dental/editingMode';
 import { ALIGNER_PROFILES } from '@mixo-geocore/host/dental/alignerProfiles';
+import { Progress } from '../progress/Progress';
 import { t, translateMessage, type Lang } from '../i18n';
 import { TiltDial } from '../ui/parts/TiltDial';
 import { ChoiceKey } from '../ui/ChoiceKey';
@@ -87,8 +88,19 @@ export function DentalAlignerPrompt({ phase, notices, selectedName, onFiles, onU
   onUseSelected: () => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
-  if (phase === 'loading') return <div className="dental-stage" role="status" aria-busy="true">
-    <ScreenHeading>{t(kindText('Checking and orienting the aligner…', kind))}</ScreenHeading>
+  /*
+   * THE ONE MOMENT NOTHING ELSE CAN BE DONE, so it is the `blocking` kind of waiting
+   * (src/progress/README.md). It used to be a heading on a veil, built here by hand, with no
+   * indicator at all - the operator was told what was happening and given no sign it was still going.
+   *
+   * The word is LOADING and the sentence sits under it. The word is what is read from across the
+   * room; the sentence is what is read when they lean in, and a sentence at 24px uppercase wraps to
+   * three lines and stops being either.
+   */
+  if (phase === 'loading') return <div className="dental-stage dental-stage--waiting">
+    <Progress type="blocking" label={t('Loading…')}>
+      <span className="progress-detail">{t(kindText('Checking and orienting the aligner…', kind))}</span>
+    </Progress>
   </div>;
   const bad = notices.find((notice) => notice.kind === 'bad-file');
   return <div className="dental-stage">

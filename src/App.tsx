@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { SceneProgress } from './components/SceneProgress';
+import { Progress } from './progress/Progress';
 import { useSlowJob } from './ui/useSlowJob';
 import { angleEvidence } from './dental/angleEvidence';
 import { SceneLegend } from './components/SceneLegend';
@@ -1434,8 +1434,8 @@ export default function App() {
         <JobActivityPanel stagedBar={stagedJobBar} />
         {/* The area detector is ONE call into the core: it reports a start and an end and nothing between,
             so this one paces and shows no number. See src/components/SceneProgress.tsx. */}
-        {dentalFlow.detectingArea ? <SceneProgress stage={t('Detecting the support area')} />
-          : stepOnePlacing ? <SceneProgress stage={t('Placing the supports this angle needs')} /> : null}
+        {dentalFlow.detectingArea ? <Progress type="step" label={t('Detecting the support area')} />
+          : stepOnePlacing ? <Progress type="step" label={t('Placing the supports this angle needs')} /> : null}
         <div className="undo-toast-region" role="status" aria-live="polite">
           {toast && <UndoToast key={toast.id} toast={toast} onUndo={undoToastAction} onClose={closeToast} />}
           {doneHint !== undefined && editMode === 'off' && <div className="dental-done" role="status">

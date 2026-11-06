@@ -537,11 +537,12 @@ kbd {
 .job-row[data-state='cancelled'] .job-label { color: var(--muted); }
 .job-meta { flex: none; color: var(--muted); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
 .job-head button { flex: none; } /* the app's own button size */
-.job-row .progress-track { margin-top: 5px; }
+.job-row .progress-indicator { margin-top: 5px; }
+/* `.progress-track` / `.progress-fill` are now the STAGED bar only (denture). The job row's own bar
+   became the `ledger` waiting type, and its indeterminate variant went with it: the three kinds of
+   waiting own that behaviour now, in src/progress. */
 .progress-track { height: 2px; background: var(--line); overflow: hidden; }
 .progress-fill { height: 100%; background: var(--red); transition: width .25s ease-out; }
-/* No percent known: a short segment travels the track; still and full-width when motion is reduced. */
-.progress-track--indeterminate .progress-fill { width: 30%; animation: job-travel 1.2s ease-in-out infinite; }
 /* The staged bar of a denture scan or build (denture/progress): step, stage, elapsed time over a bar that moves by stage. */
 .staged-progress { margin-top: 4px; }
 .staged-progress-head { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
@@ -552,13 +553,11 @@ kbd {
 .staged-progress .staged-progress-track { margin-top: 4px; height: 3px; background: var(--progress-staged-track); }
 .staged-progress-fill { background: var(--progress-staged-fill); transition: width .4s linear; }
 .staged-progress[data-status='failed'] .staged-progress-fill, .staged-progress[data-status='cancelled'] .staged-progress-fill { opacity: .45; }
-@keyframes job-travel { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
 /* An import changes what is edited: the viewport takes no input while it shows (Cancel stays reachable). */
 .job-veil { position: absolute; inset: 0; z-index: 4; background: color-mix(in srgb, var(--paper) 55%, transparent); cursor: progress; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   .progress-fill, .staged-progress-fill { transition: none; }
-  .progress-track--indeterminate .progress-fill { animation: none; width: 100%; opacity: .45; }
 }
 
 /* ---- Settings ------------------------------------------------------------ */
@@ -854,6 +853,9 @@ footer.on-scene button { pointer-events: auto; }
 .progress-indicator { position: relative; overflow: hidden; background: var(--sunken); }
 .progress-indicator--bar { height: var(--progress-track-height); }
 .progress-run { height: 100%; background: var(--progress-tone, var(--ink)); transition: width var(--dur) linear; }
+/* A job that has started but reports 0 percent still shows that it has: a visibility floor, not a
+   claim about how far along it is. The hand-rolled job bar did the same with Math.max(percent, 2). */
+.progress-indicator--bar.is-measured .progress-run { min-width: 2%; }
 .progress-indicator--bar.is-pacing .progress-run { width: 34%; animation: progress-pace 1.1s ease-in-out infinite; }
 @keyframes progress-pace { 0% { transform: translateX(-110%); } 100% { transform: translateX(310%); } }
 /* A spinner is the other honest shape for work with no measure: a ring that turns and claims nothing. */
@@ -1511,3 +1513,12 @@ dialog.terms .terms-item > span { flex: none; }
 .landing-mark[data-tier='allowed'] { background: var(--landing-allowed); }
 .landing-mark[data-tier='other'] { background: var(--landing-other); }
 .landing-mark[data-tier='no-support'] { background: var(--landing-no-support); }
+
+/*
+ * The sentence under the one word, on the blocking block. The word says WAIT and is read from across
+ * the room; this says what is being waited on and is read when the reader leans in. Paper at less
+ * than full strength, so the two are a heading and its note rather than two headings.
+ */
+.progress-detail { font-size: 12px; color: color-mix(in srgb, var(--paper) 72%, transparent); text-align: center; }
+/* Step 1 while it reads a file: the waiting type brings its own veil, so the stage adds none. */
+.dental-stage--waiting { background: none; padding: 0; }
