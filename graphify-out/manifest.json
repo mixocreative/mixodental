@@ -120,15 +120,15 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1793949986.4695442,
-    "seen": 1793950930.3022435,
-    "ast_hash": "ac21793509097c60ca8bfb6410a3ba21",
+    "mtime": 1793960467.1139264,
+    "seen": 1793961369.632811,
+    "ast_hash": "1a0d2cd15e336d0727f31d59fdfddc5b",
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1793949375.681184,
-    "seen": 1793950930.3022435,
-    "ast_hash": "d79301be069ca1366cef539056f39089",
+    "mtime": 1793959223.2186077,
+    "seen": 1793961369.632811,
+    "ast_hash": "127af780e132aa77d291196c3a199039",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -168,9 +168,9 @@
     "semantic_hash": ""
   },
   "src/components/JobActivity.tsx": {
-    "mtime": 1793600163.3587532,
-    "seen": 1793600590.4223256,
-    "ast_hash": "d7d1e99cb1d0d3358c2f6532f5f043d3",
+    "mtime": 1793959311.835083,
+    "seen": 1793961369.632811,
+    "ast_hash": "b57044c56b1dd916fdb4f89dd5f87cc9",
     "semantic_hash": ""
   },
   "src/components/KeyCaps.tsx": {
@@ -1555,9 +1555,9 @@
     "semantic_hash": ""
   },
   "src/components/DentalSteps.tsx": {
-    "mtime": 1793798948.91862,
-    "seen": 1793902315.4000866,
-    "ast_hash": "bfe075e5525d973cf3118c31b76a0ad5",
+    "mtime": 1793959205.8890238,
+    "seen": 1793961369.632811,
+    "ast_hash": "7b7c7a3fa857fc8f5d18b8073732c201",
     "semantic_hash": ""
   },
   "src/importOracleBoundary.test.ts": {
@@ -4069,9 +4069,9 @@
     "semantic_hash": ""
   },
   "src/components/OrientationBar.tsx": {
-    "mtime": 1793949375.682184,
-    "seen": 1793950930.3022435,
-    "ast_hash": "7f8bfa3a1a2777b6ceed28f4ddfb746c",
+    "mtime": 1793959223.2186077,
+    "seen": 1793961369.632811,
+    "ast_hash": "4c3b7675106631d335e84effdd65f31f",
     "semantic_hash": ""
   },
   "src/ui/assets/icons/orient.svg": {
@@ -4717,9 +4717,9 @@
     "semantic_hash": ""
   },
   "src/ui/noColourLiterals.test.ts": {
-    "mtime": 1793955197.8141074,
-    "seen": 1793956543.9805412,
-    "ast_hash": "d363a43b22b2e4bd4f95cdd4698710ce",
+    "mtime": 1793961221.7817125,
+    "seen": 1793961369.632811,
+    "ast_hash": "f4e3621a48f84d6ef1c8639450a37b7c",
     "semantic_hash": ""
   },
   "src/ui/uiStylingDoc.test.ts": {
@@ -4729,9 +4729,9 @@
     "semantic_hash": ""
   },
   "docs/ui-styling.md": {
-    "mtime": 1793955892.975991,
-    "seen": 1793956543.9805412,
-    "ast_hash": "33e0d6977f2d7265cc9dfcbb8bac38ba",
+    "mtime": 1793958025.8978953,
+    "seen": 1793961369.633811,
+    "ast_hash": "3e767aefef836907773dc01fc8940a04",
     "semantic_hash": ""
   },
   "dentalwork/baselines/real-scan-baseline.json": {
@@ -5088,12 +5088,6 @@
     "ast_hash": "00a91176627191f45244658060c13c09",
     "semantic_hash": ""
   },
-  "src/components/SceneProgress.tsx": {
-    "mtime": 1793954325.7815776,
-    "seen": 1793956543.9800172,
-    "ast_hash": "ff6953cf1db62e16ef0f230278d253a7",
-    "semantic_hash": ""
-  },
   "src/components/viewport/PrintAngleArc.tsx": {
     "mtime": 1793816039.5491424,
     "seen": 1793902315.4000866,
@@ -5437,9 +5431,9 @@
     "semantic_hash": ""
   },
   "src/progress/Progress.tsx": {
-    "mtime": 1793955247.7018874,
-    "seen": 1793956543.9800172,
-    "ast_hash": "eabd9734f0584efcdecaed9c3afce92a",
+    "mtime": 1793959296.6397536,
+    "seen": 1793961369.632811,
+    "ast_hash": "cdd53da2b83ce8ebc43311c626596244",
     "semantic_hash": ""
   },
   "src/progress/progressTypes.test.ts": {
@@ -5452,6 +5446,12 @@
     "mtime": 1793956906.2569325,
     "seen": 1793957657.9024386,
     "ast_hash": "24d9e88059b6b3618dab001312eaf920",
+    "semantic_hash": ""
+  },
+  "src/progress/README.md": {
+    "mtime": 1793961346.0129118,
+    "seen": 1793961369.633811,
+    "ast_hash": "c5ef82c270708672fce3169ca9e1b7e0",
     "semantic_hash": ""
   }
 }
