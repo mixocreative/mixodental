@@ -8,9 +8,12 @@
 
 ## The short version
 
-One finding was a real, shipped dead end, and it is **fixed**. Two were errors in the document's own
-text, and they are **fixed**. Four more are real and **left for a decision** — three of them affect what
-the operator sees, one is only the document.
+One finding was a real, shipped dead end, and it is **fixed**. One was a drawn rim that saved and then
+vanished, and it is **fixed**. Two were errors in the document's own text, and they are **fixed**. Three
+more are real and **left for a decision** — one affects what the operator sees, two are only the document.
+
+**One claim in the first version of this report was wrong, and the correction is below** (the drawn-rim
+finding).
 
 Nothing here is speculative: every claim below was checked against the code before it was written down,
 and the ones I could not confirm are marked as such.
@@ -59,24 +62,42 @@ a future reader would trust most was the wrong one.
 
 ---
 
+## Fixed after the owner's go-ahead
+
+### 🔴 A drawn rim saved, then vanished
+
+The operator placed anchors, pressed Done, was told "Rim saved", and saw bare surface. `DentalRimOutline`
+returned `null` unless `boundaryKind === 'lower-edge-loop'`, and a drawn rim is always
+`projection-fallback` — a drawn loop claims no detection it did not earn.
+
+**Two things were wrong.** The gate is deleted: `boundaryKind` says whether a loop may AUTHORISE an
+automatic area, which Rust's `dental::legacy` enforces where it belongs, and both kinds are ordered mesh
+vertices on the surface. And the loop drew in the AREA FILL colour while the gate hid it — the legend the
+operator reads gives that colour to "Supports may grow here" and the edge colour to "Edge of that area".
+In Step 2 the operator paints the area in the fill colour, so the boundary would have vanished into the
+first stroke. It now draws in the edge colour, the same one `DentalRegionLines` gives a detected opening.
+
+**Checked by walk `u5j`**, watched to fail at 0 px with the gate and pass at 130 px without it. It measures
+the rim colour on the model against a control taken before the rim exists, with the legend's own swatch of
+that colour masked out, because a screenshot of the canvas catches whatever the page composites over it.
+
+#### ⚠️ And the first version of this report overstated the finding
+
+It said the overlay was dead "for the main fixture as well as for every hand-drawn rim." The second half
+is right. The first half is not. `DentalRimOutline` is only reached when the area policy is a **manual**
+area; an aligner whose detection succeeded takes the `two-contour` branch and draws `DentalRegionLines` —
+the real mesh edges of both contours, a better boundary than this loop. The reference aligner was never
+missing a boundary on its ordinary path. What the gate hid was the manual-area branch: every drawn rim,
+and a manual area over a fallback rim.
+
+I wrote that claim by reasoning from `boundaryKind` without reading the render site. The fix is right for
+a narrower reason than I first gave.
+
+---
+
 ## Real, and waiting on a decision
 
-### 🟡 1. The rim overlay never renders — for *any* rim, not just drawn ones
-
-`DentalRimOutline` returns `null` unless `rim.boundaryKind === 'lower-edge-loop'`
-(`src/components/viewport/dentalLayers.tsx:137`). **The reference aligner's own detected rim is
-`projection-fallback`** — the design doc measures this itself at line 55. So the overlay is dead for the
-main fixture as well as for every hand-drawn rim.
-
-This matters most where the document says it matters: the operator draws a rim, leaves the mode, and
-cannot see what they drew.
-
-**Recommendation: delete the `boundaryKind` gate.** The document's own finding is that `boundaryKind` is
-not an authority signal, and this line is the only code in the repo that treats the two kinds
-differently. **Not done unilaterally** — it makes the rim visible in Step 2 and Step 3 for every
-aligner, which is a visible change to screens you are mid-review on.
-
-### 🟡 2. "Delete point" is described but does not exist
+### 🟡 1. "Delete point" is described but does not exist
 
 The document specifies a Delete point control (`.danger` outline, only with an anchor selected) and
 reasons at length about refusing to delete from a three-anchor closed loop. There is no such command:
@@ -88,7 +109,7 @@ have no production caller.
 **Recommendation:** either build it (small — the geometry exists and is tested) or cut it from the
 document. Today "What is left" names only the flip control, so a reader is told this gap does not exist.
 
-### 🟡 3. Rim mode opens with a marking tool in hand, against the sibling rule
+### 🟡 2. Rim mode opens with a marking tool in hand, against the sibling rule
 
 `docs/design/2026-11-05-back-out-one-level.md` makes "every step opens on Select" a house rule with its
 own walk checks. Rim define mode opens on **Place** (`editingMode.ts:217`). That is probably right —
@@ -98,7 +119,7 @@ records the exemption**, so the two read as a flat contradiction.
 **Recommendation:** one sentence in the rim document saying why the rule does not apply here. Cheap, and
 it stops someone "fixing" it later.
 
-### 🟢 4. Document-only: stale line numbers, and a decision recorded twice
+### 🟢 3. Document-only: stale line numbers, and a decision recorded twice
 
 The "Mechanics this builds on" section is a file-and-line tour, and several pins have drifted
 (`DentalStage` is `:24` not `:20`; `onAddContact` moved into `useSupportEdits` in this session's

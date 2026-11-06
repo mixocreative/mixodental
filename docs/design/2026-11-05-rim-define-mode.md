@@ -62,11 +62,41 @@ mask bytes 9216  mask set 5089  front undefined
 ```
 
 The reference aligner — the fixture the whole dental flow is built on — already runs on a
-`projection-fallback` rim. The only code that treats the two kinds differently in this repo is
-`src/components/viewport/dentalLayers.tsx:137`, which declines to draw the rim overlay for a fallback rim.
-So a hand-drawn rim can honestly be `'projection-fallback'`: it claims no detection it did not earn, and it
-is in the same class as what already ships. (That overlay line is worth revisiting separately — a hand-drawn
-rim is the one case where the operator most wants to see the rim they drew.)
+`projection-fallback` rim. The only code that treated the two kinds differently in this repo was
+`DentalRimOutline` in `src/components/viewport/dentalLayers.tsx`, which declined to draw the rim overlay
+for a fallback rim. So a hand-drawn rim can honestly be `'projection-fallback'`: it claims no detection it
+did not earn, and it is in the same class as what already ships.
+
+**That line is now deleted** — see the correction below.
+
+#### Correction: the overlay gate was real, and it is gone
+
+The parenthetical here first said the line was "worth revisiting separately". It was worth more than that:
+it meant **a drawn rim left no mark on the model once the mode closed**. The operator placed anchors,
+pressed Done, was told "Rim saved", and then saw bare surface. The drawing was saved and invisible.
+
+Two things were wrong, and both are fixed:
+
+- **The gate is deleted.** `boundaryKind` says whether a loop may AUTHORISE an automatic area, which
+  `dental::legacy` enforces in Rust where it belongs. It says nothing about whether the loop is worth
+  looking at, and both kinds are ordered mesh vertices sitting on the surface — `ProjectionFallback` names
+  how the loop was *selected* (the inner ring of vertices near the end of the opening axis), not that its
+  points were flattened off the model.
+- **The colour was wrong too, and nobody could see it.** The loop drew in `--mark-area-permitted`, the
+  AREA FILL colour. The legend the operator reads gives that colour to "Supports may grow here" and
+  `--mark-area-edge` to "Edge of that area" — and this loop is that edge, the same colour
+  `DentalRegionLines` gives the opening edge on a detected area. In Step 2 the operator paints the area in
+  the fill colour, so a boundary wearing it would have vanished into the first stroke.
+
+One correction to the scope, because the first write-up of this overstated it: `DentalRimOutline` is only
+reached when the area policy is a MANUAL area (`UnitObject.tsx`). An aligner whose detection succeeded
+takes the `two-contour` branch and draws `DentalRegionLines` — the real mesh edges of both contours, a
+better boundary than this loop. So the reference aligner was never missing a boundary on its ordinary path.
+What the gate hid was the manual-area branch: every drawn rim, and a manual area over a fallback rim.
+
+Checked by walk `u5j`, which measures the rim colour on the model in Step 2 against a control taken before
+the rim exists, with the legend's own swatch of that colour masked out. It was watched to fail (0 px) with
+the gate in place and to pass (130 px) without it.
 
 ### The visibility mask cannot be produced here, and it is not optional
 
@@ -440,8 +470,10 @@ its mask; the drawing is not.
    ("which side is the opening?") as one step of the mode.
 4. **The `u7` type row on the failure notice** becomes unreachable once the mode takes over that branch.
    Delete it then, or keep the notice as a fallback for when the mode itself cannot run?
-5. **`dentalLayers.tsx:137`** hides the rim overlay for a `projection-fallback` rim, which would hide the
-   operator's own drawn rim once they leave the mode. Show it for a hand-drawn rim?
+5. **The rim overlay hid every `projection-fallback` rim** — ANSWERED, and more broadly than the question
+   asked: it is shown for BOTH kinds, because `boundaryKind` is an authority signal and not a visibility
+   one. The gate is deleted and the loop now draws in the edge colour the legend names. See the correction
+   in section 1.
 6. **Where the drawn rim lives in the session** — an operator-defined variant of `dentalProposal`, or its
    own field. Recommended: its own field, so detection's diagnostics stay measurements.
 

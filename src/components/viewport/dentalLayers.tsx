@@ -124,7 +124,23 @@ export function DentalRiskLayer({ mesh, risks, opacity }: { mesh: TriangleMesh; 
   </mesh>;
 }
 
-/** The proven lower-edge loop, held just above the model so the permitted area has a clear boundary. */
+/**
+ * The rim loop, held just above the model so the permitted area has a clear boundary.
+ *
+ * DRAWN AND DETECTED RIMS BOTH DRAW. This used to return null for anything but a `lower-edge-loop`,
+ * which made the overlay dead for the reference aligner (its own detected rim is a
+ * `projection-fallback`) and for every rim the operator draws, so they could not see what they had
+ * drawn once they left the mode. `boundaryKind` says whether a loop may AUTHORISE an automatic area
+ * - which `dental::legacy` enforces in Rust, where it belongs - and says nothing about whether the
+ * loop is worth looking at. Both kinds are ordered mesh vertices on the surface.
+ *
+ * IT DRAWS IN THE EDGE COLOUR, not the area fill. The legend the operator reads
+ * (`SceneLegend.tsx`) gives `--mark-area-permitted` to "Supports may grow here" and
+ * `--mark-area-edge` to "Edge of that area", and this loop is that edge - the same colour
+ * `DentalRegionLines` gives the opening edge on a detected area. It drew in the FILL colour while
+ * the gate above hid it, which nobody could see; in Step 2 the operator paints the area in that
+ * fill, so a boundary wearing it would disappear into the first stroke.
+ */
 export function DentalRimOutline({ rim }: { rim: DentalRim }) {
   const preview = usePreviewColours();
   const geometry = useMemo(() => {
@@ -134,13 +150,12 @@ export function DentalRimOutline({ rim }: { rim: DentalRim }) {
   }, [rim.points]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   const offset = useMemo(() => new THREE.Vector3(...rim.openingDirection).multiplyScalar(0.035), [rim.openingDirection]);
-  if (rim.boundaryKind !== 'lower-edge-loop') return null;
-  return <group position={offset} raycast={() => undefined} renderOrder={17}>
+  return <group position={offset} raycast={() => undefined} renderOrder={17} name="dental-rim">
     <lineLoop geometry={geometry} raycast={() => undefined}>
-      <lineBasicMaterial color={preview.areaPermitted} transparent opacity={0.9} depthTest={false} depthWrite={false} />
+      <lineBasicMaterial color={preview.areaEdge} transparent opacity={0.9} depthTest={false} depthWrite={false} />
     </lineLoop>
     <lineLoop geometry={geometry} scale={1.001} raycast={() => undefined}>
-      <lineBasicMaterial color={preview.areaPermitted} transparent opacity={0.22} depthTest={false} depthWrite={false} />
+      <lineBasicMaterial color={preview.areaEdge} transparent opacity={0.22} depthTest={false} depthWrite={false} />
     </lineLoop>
   </group>;
 }

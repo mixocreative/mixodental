@@ -269,6 +269,60 @@ function readProps() {
 }
 
 
+/**
+ * How many pixels of the 3D view are within `tolerance` of `hex`, and where they sit.
+ *
+ * THE ONLY HONEST WAY TO ASK WHETHER THE OPERATOR CAN SEE SOMETHING. The viewport's overlays are
+ * three.js objects in r3f's own fiber tree, which `readProps` cannot reach (it walks the react-dom
+ * tree under #root), and the GL canvas is made without `preserveDrawingBuffer`, so the page cannot
+ * read its own pixels back. Playwright's screenshot goes through the compositor, which DOES capture
+ * WebGL - so the shot is taken here and handed back to Chromium to decode, where `createImageBitmap`
+ * and an OffscreenCanvas do the work no dependency here would otherwise do.
+ *
+ * `without` names DOM elements lying OVER the canvas whose boxes are skipped, because a screenshot
+ * of the canvas catches whatever the page composites on top of it. The scene legend is the reason
+ * this exists: it shows a swatch of the rim colour a few pixels wide, which would answer "can the
+ * operator see the rim on the model" with the legend that merely names it.
+ *
+ * Returns the count and the hits' bounding box in image pixels, so a check can say the colour is
+ * present AND roughly where.
+ */
+async function canvasColour(page, hex, { tolerance = 26, without = [] } = {}) {
+  const shot = await page.locator('canvas').first().screenshot();
+  return page.evaluate(async ({ png, hex, tolerance, without }) => {
+    const bitmap = await createImageBitmap(await (await fetch(png)).blob());
+    const surface = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const context = surface.getContext('2d');
+    context.drawImage(bitmap, 0, 0);
+    const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height);
+    // CSS pixels to image pixels: the shot is the canvas's own box, at whatever scale it came back.
+    const frame = document.querySelector('canvas').getBoundingClientRect();
+    const scale = bitmap.width / frame.width;
+    const masks = without.flatMap((selector) => [...document.querySelectorAll(selector)].map((node) => {
+      const box = node.getBoundingClientRect();
+      return [(box.left - frame.left) * scale, (box.top - frame.top) * scale,
+        (box.right - frame.left) * scale, (box.bottom - frame.top) * scale];
+    }));
+    const want = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
+    let count = 0, left = Infinity, top = Infinity, right = -1, bottom = -1;
+    for (let at = 0; at < data.length; at += 4) {
+      if (Math.abs(data[at] - want[0]) > tolerance || Math.abs(data[at + 1] - want[1]) > tolerance
+        || Math.abs(data[at + 2] - want[2]) > tolerance) continue;
+      const pixel = at / 4, x = pixel % bitmap.width, y = Math.floor(pixel / bitmap.width);
+      if (masks.some((box) => x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3])) continue;
+      count += 1;
+      if (x < left) left = x;
+      if (x > right) right = x;
+      if (y < top) top = y;
+      if (y > bottom) bottom = y;
+    }
+    return { count, box: count ? [left, top, right, bottom] : null, width: bitmap.width, height: bitmap.height, masked: masks.length };
+  }, { png: `data:image/png;base64,${shot.toString('base64')}`, hex, tolerance, without });
+}
+
+/** A viewport colour as the page's tokens hold it right now, so a token edit moves the check with it. */
+const sceneToken = (page, token) => page.evaluate((name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim(), token);
+
 /** Waits until Step 2's tip preview is ready again after an edit (no "Updating" or "Finding" note, tips counted). */
 async function previewReady(page) {
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 400)));
@@ -1084,6 +1138,14 @@ async function walk(url, scratch, dentalFixture) {
        * itself, and Done refuses it CORRECTLY. Pressing Done there would have tested the refusal, not
        * the rim. Clear is exercised on the way through.
        */
+      /*
+       * THE CONTROL for u5j below, taken here because there is no rim on the model yet - a draft is
+       * drawn in its own colour by `RimDraftLayer`, and `areaPolicy` does not exist until Done. A bare
+       * count at Step 2 would prove nothing: GL, lighting and the legend all put stray pixels on screen.
+       */
+      const rimInk = await sceneToken(page, '--mark-area-edge');
+      const noRimYet = await canvasColour(page, rimInk, { without: ['.scene-legend'] });
+
       await d.button('Clear').click();
       await d.idle(300);
       check('u5f0 Clear takes the whole drawing away', (await rimPoints()) === '0', `points ${await rimPoints()}`);
@@ -1110,6 +1172,20 @@ async function walk(url, scratch, dentalFixture) {
       await stepTo('Step 2 · Support area', 120000);
       check('u5i Next carries a hand-drawn rim through to Step 2',
         (await badge()).includes('Step 2'), `badge "${(await badge()).slice(0, 34)}", status "${await d.status()}"`);
+
+      /*
+       * AND THE OPERATOR CAN SEE WHAT THEY DREW. `DentalRimOutline` used to return null for anything
+       * but a `lower-edge-loop`, so a drawn rim - always a `projection-fallback`, because a drawn loop
+       * claims no detection it did not earn - left no mark once the mode closed. The drawing was saved
+       * and invisible. This measures the rim colour ON THE MODEL against the control above, with the
+       * legend's own swatch of that colour masked out, so it answers the operator's question rather
+       * than the renderer's.
+       */
+      const rimDrawn = await canvasColour(page, rimInk, { without: ['.scene-legend'] });
+      await page.screenshot({ path: path.join(scratch, 'ux-a-step2-drawn-rim.png') });
+      check('u5j the drawn rim is visible on the model in Step 2, in the colour the legend names',
+        rimDrawn.count > noRimYet.count + 60,
+        `${rimDrawn.count} px of ${rimInk} with the rim vs ${noRimYet.count} without, box ${JSON.stringify(rimDrawn.box)}`);
       await d.button('Back').click();
       await stepTo('Step 1 · Aligner');
 
