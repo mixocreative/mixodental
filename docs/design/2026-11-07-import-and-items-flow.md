@@ -614,7 +614,8 @@ pre-existing failure**, not an unattributed risk of this work, so steps may proc
 the `exportedDental` fix, `src/App.tsx`, `src/components/{ModeEntry,StartScreen,DentalSupports}.tsx`,
 both `DentureReviewPanel` files, `DentalBar.test.tsx`, both locale files, the font subset,
 `scripts/walk.mjs`, `docs/ui-styling.md`, `docs/design/ui-structure.md`, this doc and the review
-artefacts. **Not green:** walk `g` and `s17` (§9).
+artefacts. **Walk now: `1 FAIL (152 checks)`, and the one failure is `g`**, proven pre-existing at `1db2987`
+(step 0). `s17` is fixed. So there are **no new failures** from any of this work.
 
 **2. Run the locale pass. — DONE.** `walk:locales` is
 `node scripts/walk.mjs --locales=en,ja,zh-Hant` — a **flag**, not the env var, because
@@ -688,7 +689,25 @@ distribution in its comment. Measure retained bytes per model in the same pass, 
 *Exit:* the constant exists, its comment states the distribution, and the measurement script is
 committed.
 
-**6. Diagnose in the worker.** `diagnose_mesh` after the weld in `importWorker.ts`, full-resolution
+**6. Diagnose in the worker. — THE CLASSIFIER IS DONE; the worker wiring is not.**
+
+`src/items/rowState.ts` + tests + README: **nine row states as three tested partitions**, pure, no
+UI. A test asserts the declared list and the *reachable* set are equal, because this table was wrong
+twice — once not exclusive (a holed file matched "Clean"), once not exhaustive (an untouched file fell
+through to "Repaired").
+
+**It is in `src/items/`, not `src/core/import/`.** It was written there first, on a reviewer's
+suggestion, and `importOracleBoundary.test.ts` refused it: that folder is pinned to exactly
+`estimate.ts` and `stlHeader.ts` so the TypeScript import geometry cannot creep back after being moved
+to Rust. Widening the guard would have weakened a boundary doing its job — and the classifier belongs
+with the Items page anyway, since the importer produces a report and this turns a report into a row.
+
+Step 5's measurement shaped the code: `clean` tests `watertight` rather than counting loops, because
+8 of 18 scans are not watertight **with no hole in them**; and `unchanged` is on the common path,
+because at a fill limit of 0 every loop reports `fill-disabled`, which is not a refusal.
+
+*Remaining:* `diagnose_mesh` after the weld in `importWorker.ts` on the full-resolution mesh, the
+verdict carried across the boundary on `PreparedMesh`, and the three-language sentences. `diagnose_mesh` after the weld in `importWorker.ts`, full-resolution
 mesh, verdict only across the boundary. `src/import/` (new module, README, tests) holds the host-side
 pure classifier — its input is a **union**, `DiagnoseReport | CodedError`, because half of §3's first
 table comes from the capacity guards and the STL reader rather than from `diagnose_mesh` — mapping one
