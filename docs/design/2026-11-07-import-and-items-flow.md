@@ -649,7 +649,37 @@ engine checkout's HEAD is — so the checkout is the step.
 `npm run build`; and the literal line **`real-scan gate: PASS (13 scans)`** — not exit 0, which
 `real-scan-gate.mjs` also returns when it **skips** for want of local scans.
 
-**5. Measure, and set the fill limit.** Loop `diagnose_mesh` over the 13 scans (a new script under
+**5. Measure, and set the fill limit. — DONE, and it changed the scope.** `scripts/measure-rim-loops.mjs`
+runs `diagnose_mesh` over all 18 local real scans. It prints a content hash per file, never a
+filename, because `dentalwork/fixtures/case-*` is clinical data.
+
+**The result:**
+
+| | |
+|---|---|
+| Open boundary rims, 18 files | **0** |
+| Files with a defect repair could fix | **8 of 18** |
+| Worst non-manifold edge count | **5,547** (and one file reports **525 bodies**) |
+| Largest model held | **12.2 MB** of positions + indices |
+
+**So `MAX_FILL_LOOP_MM = 0.0`** — fill nothing. Not a cautious default: there is **no rim to measure**
+in this corpus, so any non-zero limit would be a number nobody has evidence for, and §3's limit 1 says
+a filled patch is never intersection-tested. With 0 the engine reports `fill-disabled` on every loop,
+which is the honest state.
+
+**Which retires engine 63's filling from this release.** §3 set the valve: *"if holes turn out to be
+rare in the 13 real scans, diagnose-only is the better first ship."* Holes are not rare — they are
+**absent**. Filling stays in the engine, unused behind a zero limit, until a holed scan exists.
+
+**And it sharpens what repair is for.** §3 said the value here is "winding, non-manifold splitting and
+filling, not welding". The measurement narrows it again: **non-manifold splitting**, on 8 of 18 files.
+Several are `NOT watertight` with **zero** boundary loops — non-manifold edges break watertightness
+without opening a rim, which is why the row states key on both and not on holes alone.
+
+**The row cap follows from the same pass:** 12.2 MB × N for the models alone, before supports. A cap
+of 8 is ~100 MB held, which is the number §9's recommendation now has instead of a guess.
+
+*The procedure, for the next time:* Loop `diagnose_mesh` over the 13 scans (a new script under
 `scripts/`), read `take_loops()`. **The rule: the limit is the 95th percentile of open-rim length
 across the scans, rounded down to 0.1 mm** — p95 rather than the maximum so one pathological scan
 cannot authorise filling a rim nobody has judged, and rounded down because §3 limit 1 means an
