@@ -1,7 +1,7 @@
 # Graph Report - mixodental  (2026-11-06)
 
 ## Corpus Check
-- 868 files · ~804,817 words
+- 868 files · ~804,978 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 54 file(s) not represented in the graph (top: .stl 26, (none) 7, .css 6)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `266401da`
+- Built from commit: `b08df523`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1539,7 +1539,7 @@ Nodes (17): AllowModelLanding, decodeMask(), decodePieces(), EditAnswer, EditOpt
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `vitest` connect `ref_node_fs` to `App.tsx`, `flow.test.ts`, `commands.ts`, `App`, `StagedProgress.tsx`, `DentalReviewBlocks.tsx`, `usePlateArrange.ts`, `probe-dental-edges.ts`, `session.ts`, `state/project.ts`, `islandReport.ts`, `TriangleMesh`, `viewportPort.ts`, `editingMode.ts`, `JobLabel`, `status.ts`, `dentureClient.ts`, `probe-dental-orientation.ts`, `spatialParity.test.ts`, `unitSupports.ts`, `partRoles.ts`, `resultPath.test.ts`, `projectClient.ts`, `useRimDrawing.ts`, `DentalSteps.tsx`, `check-no-duplicates.mjs`, `supportParityHarness.ts`, `useDentureOrient.ts`, `projectFile.ts`, `package.json`, `JobActivity.tsx`, `settings.ts`, `ref_node_path`, `profileSelect.ts`, `UnresolvedBubbles.tsx`, `view.ts`, `third-party-notices.mjs`, `ObjectViewport.tsx`, `alignerProfiles.ts`, `uiStylingDoc.test.ts`, `TiltDial.tsx`, `DebugSection.tsx`, `prepareImport.ts`, `drawnRim.ts`, `rimDraftGeometry.ts`, `keys.ts`, `gizmoStyle.ts`, `geometry-guard.mjs`, `dentureClient.test.ts`, `scopeIcon`, `imports.test.ts`, `profileSelect.ts`, `TermsDialog.tsx`, `supports/contactEdits.ts`, `tokenColour.ts`, `flow.test.ts`, `SettingsPanel.tsx`, `vendor-geometry.mjs`, `legacyArea.test.ts`, `liveTipLayers.ts`, `importOracleBoundary.test.ts`, `threeBoundary.test.ts`, `layoutFile.test.ts`, `glossary.test.ts`, `icons.test.ts`, `stlSession.ts`, `plateLedger.ts`, `peelReport.ts`, `src/main.tsx`, `pipeline.ts`, `useDentalFlow.ts`, `referenceStep3.ts`, `noColourLiterals.test.ts`, `gesture.ts`, `rimStepText.ts`, `i18n.ts`, `Vector`, `KeyedQueue`, `tokenCss`, `liveTilt.test.ts`, `overlayMesh.test.ts`?**
-  _High betweenness centrality (0.104) - this node is a cross-community bridge._
+  _High betweenness centrality (0.102) - this node is a cross-community bridge._
 - **Are the 6 inferred relationships involving `App()` (e.g. with `What it does now` and `Completed task log`) actually correct?**
   _`App()` has 6 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `memory`, `__wbg_asciistlsession_free`, `__wbg_binarystlsession_free` to the rest of the system?**

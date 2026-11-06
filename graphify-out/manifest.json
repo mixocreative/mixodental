@@ -234,9 +234,9 @@
     "semantic_hash": ""
   },
   "src/components/SettingsPanel.tsx": {
-    "mtime": 1793724107.7209234,
-    "seen": 1793724127.8638725,
-    "ast_hash": "17941c786b05983b2a7950bd4cd7fa8b",
+    "mtime": 1793951307.3568192,
+    "seen": 1793952240.4175394,
+    "ast_hash": "a88c1d1b4c40d87eaed8cf0cef58eeab",
     "semantic_hash": ""
   },
   "src/components/ShapeBand.tsx": {
@@ -564,15 +564,15 @@
     "semantic_hash": ""
   },
   "src/locales/ja.ts": {
-    "mtime": 1793949586.6667278,
-    "seen": 1793950930.303749,
-    "ast_hash": "50f349628f6b771a377b7611bd3351d7",
+    "mtime": 1793951645.5125117,
+    "seen": 1793952240.4175394,
+    "ast_hash": "d37d40b9db65aa89ecee4fb6a62aaaa5",
     "semantic_hash": ""
   },
   "src/locales/zh-Hant.ts": {
-    "mtime": 1793949586.667728,
-    "seen": 1793950930.303749,
-    "ast_hash": "f401633c42acd41826c8d84600bf7628",
+    "mtime": 1793951645.5137675,
+    "seen": 1793952240.4175394,
+    "ast_hash": "2c0363965eba67f730e37273338e30b2",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -5335,9 +5335,9 @@
     "semantic_hash": ""
   },
   "src/assets/fonts/japanese-subset.txt": {
-    "mtime": 1793899787.495819,
-    "seen": 1793902315.4000866,
-    "ast_hash": "de5da28d624e462889be928b59681adc",
+    "mtime": 1793951669.1402285,
+    "seen": 1793952240.4175394,
+    "ast_hash": "49b6ca5d6620427f744f7d27f1cf046c",
     "semantic_hash": ""
   },
   "src/dental/README.md": {
