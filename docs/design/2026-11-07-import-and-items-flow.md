@@ -689,7 +689,7 @@ distribution in its comment. Measure retained bytes per model in the same pass, 
 *Exit:* the constant exists, its comment states the distribution, and the measurement script is
 committed.
 
-**6. Diagnose in the worker. — THE CLASSIFIER IS DONE; the worker wiring is not.**
+**6. Diagnose in the worker. — DONE.**
 
 `src/items/rowState.ts` + tests + README: **nine row states as three tested partitions**, pure, no
 UI. A test asserts the declared list and the *reachable* set are equal, because this table was wrong
@@ -706,8 +706,21 @@ Step 5's measurement shaped the code: `clean` tests `watertight` rather than cou
 8 of 18 scans are not watertight **with no hole in them**; and `unchanged` is on the common path,
 because at a fill limit of 0 every loop reports `fill-disabled`, which is not a refusal.
 
-*Remaining:* `diagnose_mesh` after the weld in `importWorker.ts` on the full-resolution mesh, the
-verdict carried across the boundary on `PreparedMesh`, and the three-language sentences. `diagnose_mesh` after the weld in `importWorker.ts`, full-resolution
+**And the wiring.** `diagnoseImported` in `prepareImport.ts` runs `diagnose_mesh` on the
+**full-resolution** mesh — never the display copy, whose topology is a decimation's and not the
+file's — and `importWorker.ts` calls it per prepared mesh after the weld. Only the **verdict**
+crosses the boundary: `ImportDiagnosis` is five facts and a body count, not the per-body report with
+its rim arrays. It is defined on the worker protocol and `src/items` imports it, so the UI depends on
+the worker's output and not the reverse.
+
+`src/workers/diagnoseImported.test.ts` proves the mapping **against the real engine**: a closed
+tetrahedron is watertight with no rim; one triangle has a single rim measuring **12 mm** for a 3-4-5
+triangle, which is how we know `longestRimMm` carries millimetres and not a count; two tetrahedra
+50 mm apart report **2 bodies**; and three triangles sharing an edge carry a non-manifold count — the
+case all 8 of the affected real scans land in.
+
+*Remaining for the row:* the three-language sentences (step 6a) and storing the verdict on the unit
+so a row can read it (step 7b). Nothing persists it yet, which is why there is no UI to look at. `diagnose_mesh` after the weld in `importWorker.ts`, full-resolution
 mesh, verdict only across the boundary. `src/import/` (new module, README, tests) holds the host-side
 pure classifier — its input is a **union**, `DiagnoseReport | CodedError`, because half of §3's first
 table comes from the capacity guards and the STL reader rather than from `diagnose_mesh` — mapping one
