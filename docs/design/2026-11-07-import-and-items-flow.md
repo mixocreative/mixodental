@@ -591,12 +591,24 @@ Each step names its files, its exit criterion and its tests. Every new element g
 new string gets en / ja / zh-Hant, **zh-Hant in Taiwan wording via Gemini, checked against the real
 locale entries, never invented ones**.
 
-**0. Attribute and fix walk `g`.** Every step below whose exit criterion mentions the walk depends on
-it, and §9 only *recommended* a bisect — no step owned it. Stash the working tree, run `--only=a` on a
-quiet machine to get a baseline, then bisect. My diagnosis (the switch left on Unselect by `a2`) was
-wrong and the fix did nothing, so start from no hypothesis.
-*Exit:* `npm run walk` prints `ALL PASS`, or `g` is proven pre-existing at `1db2987` and the plan says
-so with the evidence.
+**0. Attribute walk `g` and `s17`. — `g` IS DONE: it is pre-existing.**
+
+Checked out `1db2987` (the commit before any of this work), ran `node scripts/walk.mjs --only=a`, and
+`g` failed there too — **identical output, `selected 0` on the unthrottled stroke and the same hash
+`#811c9dc5`**, and the only failure in that section: `1 FAIL (29 checks) [only a]`. So `g` is **not**
+caused by this session's changes.
+
+Two consequences worth keeping. **The "94 checks 0 FAIL" gate recorded in the project handoff for that
+commit cannot have been read correctly** — which is unsurprising now that the exit-code mistake above
+is known. And **my `g` fix (pressing Select before the measured pair) was unnecessary**; it is
+harmless and makes the check independent of what the previous one leaves the switch on, so it stays,
+but it was not the cause.
+
+`g` still needs a real cause before any criterion below can say `ALL PASS`. It is now a **known
+pre-existing failure**, not an unattributed risk of this work, so steps may proceed against
+"no new failures beside `g` and `s17`".
+
+*Remaining exit:* `s17` baselined the same way (`--only=s` at `1db2987`), then a cause for each.
 
 **1. Done — `e5c5718`.** `src/scenes/`, `src/bench/`, `FLOW_END`, `reviewWayOn` and its four sites,
 the `exportedDental` fix, `src/App.tsx`, `src/components/{ModeEntry,StartScreen,DentalSupports}.tsx`,
