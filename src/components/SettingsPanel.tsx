@@ -80,7 +80,21 @@ export const SETTING_GROUPS: Group[] = [
       deg('maxNeckAngle', 'Connection angle', 'Largest tilt of the neck from vertical'),
     ],
   },
-  { title: 'Pillar', fields: [mm('pillarDiameter', 'Middle Ø', 0.05, 'Diameter of the support pillar')] },
+  /*
+   * OBJECT-WIDE ONLY, and that is not an oversight: this group has no `region`, so the rows here are
+   * never drawn per support. `neckMaxShift` is not one of the shape keys a single support can own, so
+   * a per-support row would have no value to show.
+   *
+   * It had no control anywhere until now. The shipped dental profile runs it at 10.5 mm, which the
+   * operator could only change by editing the vendored profile - and this repository must not edit
+   * that file, because it is checked against a sha256 manifest. This row is how values get tried.
+   */
+  {
+    title: 'Pillar', fields: [
+      mm('pillarDiameter', 'Middle Ø', 0.05, 'Diameter of the support pillar'),
+      mm('neckMaxShift', 'Sideways reach', 0.5, 'Farthest the top of a pillar may sit sideways from the tip it carries'),
+    ],
+  },
   {
     title: 'Foot', region: 'shape', fields: [
       mm('baseDiameter', 'Bottom Ø', 0.1, 'Diameter of the support foot on the raft or plate'),

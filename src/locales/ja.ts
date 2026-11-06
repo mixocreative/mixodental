@@ -417,6 +417,8 @@ export const ja: Dictionary = {
   'Length of the thin neck between the tip and the pillar': '先端と支柱の間にある細いネックの長さ',
   'Largest tilt of the neck from vertical': 'ネックの垂直からの最大傾斜角',
   'Diameter of the support pillar': 'サポートの支柱の直径',
+  'Sideways reach': '横方向の到達距離',
+  'Farthest the top of a pillar may sit sideways from the tip it carries': '支柱の上端が支える先端から横方向に離れられる最大距離',
   'Diameter of the support foot on the raft or plate': 'ラフトまたはプレート上のサポート基部の直径',
   'Height of the support foot': 'サポート基部の高さ',
   'Add cross braces between neighbouring pillars': '隣り合う支柱の間に斜めの補強材を追加します',

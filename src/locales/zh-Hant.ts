@@ -421,6 +421,8 @@ export const zhHant: Dictionary = {
   'Length of the thin neck between the tip and the pillar': '支撐頭與支撐柱之間細頸的長度',
   'Largest tilt of the neck from vertical': '頸部偏離垂直方向的最大傾斜角',
   'Diameter of the support pillar': '支撐柱的直徑',
+  'Sideways reach': '橫向延伸距離',
+  'Farthest the top of a pillar may sit sideways from the tip it carries': '支撐柱頂端相對於其承載的支撐頭可橫向偏移的最大距離',
   'Diameter of the support foot on the raft or plate': '支撐底座落在底筏或底板上的直徑',
   'Height of the support foot': '支撐底座的高度',
   'Add cross braces between neighbouring pillars': '在相鄰支撐柱之間加入交叉加強桿',
