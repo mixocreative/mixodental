@@ -564,15 +564,15 @@
     "semantic_hash": ""
   },
   "src/locales/ja.ts": {
-    "mtime": 1793951645.5125117,
-    "seen": 1793952240.4175394,
-    "ast_hash": "d37d40b9db65aa89ecee4fb6a62aaaa5",
+    "mtime": 1793954887.4409785,
+    "seen": 1793956543.9800172,
+    "ast_hash": "2372b309ce44306fb5741ad574eb230c",
     "semantic_hash": ""
   },
   "src/locales/zh-Hant.ts": {
-    "mtime": 1793951645.5137675,
-    "seen": 1793952240.4175394,
-    "ast_hash": "2c0363965eba67f730e37273338e30b2",
+    "mtime": 1793954887.4419775,
+    "seen": 1793956543.9800172,
+    "ast_hash": "0f6f5e7e093ef4393ab018444f1f1b3b",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -4717,9 +4717,9 @@
     "semantic_hash": ""
   },
   "src/ui/noColourLiterals.test.ts": {
-    "mtime": 1793779133.4354167,
-    "seen": 1793902315.4000866,
-    "ast_hash": "554ccd9ef9dcbca49254684cb1dc37be",
+    "mtime": 1793955197.8141074,
+    "seen": 1793956543.9805412,
+    "ast_hash": "d363a43b22b2e4bd4f95cdd4698710ce",
     "semantic_hash": ""
   },
   "src/ui/uiStylingDoc.test.ts": {
@@ -4729,9 +4729,9 @@
     "semantic_hash": ""
   },
   "docs/ui-styling.md": {
-    "mtime": 1793890415.932646,
-    "seen": 1793902315.4000866,
-    "ast_hash": "d0e424866d9b2d2a8c9ffd8dbcc32836",
+    "mtime": 1793955892.975991,
+    "seen": 1793956543.9805412,
+    "ast_hash": "33e0d6977f2d7265cc9dfcbb8bac38ba",
     "semantic_hash": ""
   },
   "dentalwork/baselines/real-scan-baseline.json": {
@@ -4993,9 +4993,9 @@
     "semantic_hash": ""
   },
   "src/kit/Catalogue.tsx": {
-    "mtime": 1793733834.59196,
-    "seen": 1793902315.4000866,
-    "ast_hash": "efb7d37e2da2d4e577d947798c4f83fa",
+    "mtime": 1793955864.062042,
+    "seen": 1793956543.9800172,
+    "ast_hash": "6983b6bb2c7bb3994e11b5380d6ad8f0",
     "semantic_hash": ""
   },
   "src/kit/main.tsx": {
@@ -5089,9 +5089,9 @@
     "semantic_hash": ""
   },
   "src/components/SceneProgress.tsx": {
-    "mtime": 1793804734.6976163,
-    "seen": 1793902315.4000866,
-    "ast_hash": "e0c1d68fa6d4cbe659639564b999f3d9",
+    "mtime": 1793954325.7815776,
+    "seen": 1793956543.9800172,
+    "ast_hash": "ff6953cf1db62e16ef0f230278d253a7",
     "semantic_hash": ""
   },
   "src/components/viewport/PrintAngleArc.tsx": {
@@ -5434,6 +5434,24 @@
     "mtime": 1793947456.962413,
     "seen": 1793950930.303749,
     "ast_hash": "8e150de32a84b220377bbcff8519a225",
+    "semantic_hash": ""
+  },
+  "src/progress/Progress.tsx": {
+    "mtime": 1793955247.7018874,
+    "seen": 1793956543.9800172,
+    "ast_hash": "eabd9734f0584efcdecaed9c3afce92a",
+    "semantic_hash": ""
+  },
+  "src/progress/progressTypes.test.ts": {
+    "mtime": 1793955916.0312111,
+    "seen": 1793956543.9800172,
+    "ast_hash": "43064f41631c2be2868edfd05a958a0a",
+    "semantic_hash": ""
+  },
+  "src/progress/progressTypes.ts": {
+    "mtime": 1793955831.1618805,
+    "seen": 1793956543.9800172,
+    "ast_hash": "cb46ef3c853d087a713a32ce06c8e012",
     "semantic_hash": ""
   }
 }
