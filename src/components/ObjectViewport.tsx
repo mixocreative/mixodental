@@ -149,6 +149,7 @@ export default function ObjectViewport(props: ObjectViewportProps) {
       onAddContact={props.onAddContact}
       onRimPoint={props.onRimPoint}
       onRimPath={props.onRimPath}
+      onRimSelect={props.onRimSelect}
       onRemoveContact={props.onRemoveContact}
       onErase={props.onErase}
       onEditMiss={props.onEditMiss}

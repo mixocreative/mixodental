@@ -1127,6 +1127,58 @@ async function walk(url, scratch, dentalFixture) {
         (await rimPoints()) === '4' && /open/i.test(rimLoop), `points ${await rimPoints()}, loop "${rimLoop}"`);
 
       /*
+       * DELETE POINT, which needs a subject before it will do anything. Adjust picking an anchor up is
+       * also what picks it OUT, so the press that would start a drag is the one that arms this - there is
+       * no third tool in a mode whose whole job is one loop.
+       *
+       * ITS OWN SQUARE, WELL SPREAD, and that is the whole reason this clears first. `grabAnchor` takes
+       * the nearest anchor within `RIM_GRAB_REACH_MM` (0.84 mm), and the cube is 2 mm across: the spots
+       * the checks above use sit about 0.5 mm apart, so EVERY anchor is within reach of every other and
+       * a press can never say which one it found. At this zoom 0.84 mm is about 182 canvas pixels, so
+       * these four are laid out at least 250 apart - far enough that a press answers about ONE anchor.
+       */
+      await d.button('Clear').click();
+      await d.idle(300);
+      const squareSpots = [[0.40, 0.36], [0.60, 0.36], [0.60, 0.64], [0.40, 0.64]];
+      for (const spot of squareSpots) { await d.stroke(spot, spot, 1); await d.idle(300); }
+      await d.button('Adjust').click();
+      await d.idle(200);
+      const deleteKey = d.button('Delete point');
+      check('u5e2 Delete point waits for a point to be picked, and is shown greyed rather than hidden',
+        (await deleteKey.isVisible()) && !(await deleteKey.isEnabled()) && (await rimPoints()) === '4',
+        `points ${await rimPoints()}`);
+
+      await d.stroke(squareSpots[1], squareSpots[1], 1);
+      await d.idle(300);
+      check('u5e3 picking a point with Adjust turns Delete point on', await deleteKey.isEnabled());
+
+      await deleteKey.click();
+      await d.idle(400);
+      check('u5e4 Delete point takes one point out and lets go of it',
+        (await rimPoints()) === '3' && !(await deleteKey.isEnabled()), `points ${await rimPoints()}`);
+
+      /*
+       * AND THE PICKED ONE IS THE ONE THAT LEFT. A count of 3 reads the same whichever anchor went, so
+       * this asks the dock a question only a vacated spot can answer: press where the deleted anchor used
+       * to be and Delete point stays OFF, because nothing is in reach to pick up. The second press, on a
+       * corner never touched, turns it back on - without which the first half would also pass if picking
+       * had simply stopped working.
+       */
+      await d.stroke(squareSpots[1], squareSpots[1], 1);
+      await d.idle(300);
+      const goneSpotOff = !(await deleteKey.isEnabled());
+      await d.stroke(squareSpots[3], squareSpots[3], 1);
+      await d.idle(300);
+      check('u5e5 the deleted point really left its own spot, and the others stayed',
+        goneSpotOff && (await deleteKey.isEnabled()) && (await rimPoints()) === '3',
+        `old spot picks ${goneSpotOff ? 'nothing' : 'something'}, points ${await rimPoints()}`);
+
+      // BACK INTO PLACE before anything below draws again: a click in Adjust moves points, it does not
+      // make them, so the triangle below would never be placed and Close loop would wait out its timeout.
+      await d.button('Place').click();
+      await d.idle(200);
+
+      /*
        * AND THE WHOLE WAY THROUGH, on THIS first entry, while the cube is alone on the plate and the
        * fit has it centred. Close the loop, press Done, and the drawing becomes the aligner's rim
        * through `dental_rim_from_points` (engine 61). Until that landed Done refused every sound loop,

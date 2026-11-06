@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type { EditSession, SessionEvent } from '@mixo-geocore/editing/session';
 import { withDentalMesh } from '@mixo-geocore/host/dental/dentalEngine';
 import { inverseTransformDirection, inverseTransformPoint } from '@mixo-geocore/host/state/transform';
-import { appendAnchor, closePath, emptyPath, type SurfaceAnchor, type SurfacePath } from '../../core/surfacePath/path';
+import { appendAnchor, closePath, emptyPath, hasAnchor, removeAnchor, type SurfaceAnchor, type SurfacePath } from '../../core/surfacePath/path';
 import type { Message } from '../../i18n';
 import type { PrintScene, SceneCommand } from '../../state/project';
 import { presetCommands } from '../../components/useDentalFlow';
@@ -12,7 +12,7 @@ import { rimProblemText } from './rimStepText';
 import { closesLoop } from './rimDraftGeometry';
 
 /*
- * What rim define mode DOES: the two edits the viewport makes to the drawing, and Done.
+ * What rim define mode DOES: the edits the viewport and the dock make to the drawing, and Done.
  *
  * Here rather than in `App.tsx` so that the whole of rim define mode lives under `src/dental/rim/` -
  * its words, its dock, its geometry, its engine call and its actions - and App keeps a call site
@@ -56,6 +56,43 @@ export function useRimDrawing({ session, scene, dispatch, send, setStatus }: {
     if (!next) return;
     dispatch({ type: 'rim/set', unitId, path: next });
   }, [dispatch, scene, session]);
+
+  /**
+   * Adjust picks an anchor up: the press that starts a drag is also the one that chooses the subject of
+   * Delete point. One gesture, two uses, and no third tool in a mode whose whole job is a single loop.
+   *
+   * The ring this leaves SURVIVES A VIEW TURN, which is why the selection is not dropped on a press over
+   * bare surface. A rim runs all the way round a shell, so the operator turns the model constantly to
+   * reach the far side; a selection that fell off every time they looked from another angle would make
+   * Delete point unusable exactly where it is needed most.
+   */
+  const onRimSelect = useCallback((at: number | undefined) => {
+    if (!drawing()) return;
+    send({ type: 'setDentalRimSelected', at });
+  }, [send, session]);
+
+  /**
+   * DELETE POINT: the picked anchor leaves the drawing, and the ring with it.
+   *
+   * `removeAnchor` refuses to take the third anchor out of a closed loop - opening the loop silently
+   * would throw away what the operator meant by closing it - and the dock has already said so on the
+   * greyed button. Reaching the refusal here means the drawing changed underfoot, so it is answered
+   * rather than swallowed.
+   */
+  const onRimDeletePoint = useCallback(() => {
+    if (!drawing()) return;
+    const unitId = session.current.dentalUnitId;
+    const at = session.current.dentalRimSelected;
+    const unit = scene.current.units.find((candidate) => candidate.id === unitId);
+    const path = unit?.rimDraft;
+    if (!unitId || !path || at === undefined || !hasAnchor(path, at)) return;
+    const next = removeAnchor(path, at);
+    if (!next) return setStatus('A closed rim needs at least three points. Press Clear to start this rim again.');
+    dispatch({ type: 'rim/set', unitId, path: next });
+    // Nothing is picked once the picked thing is gone: a ring left on the anchor that shuffled into its
+    // index would point at a point the operator never chose.
+    send({ type: 'setDentalRimSelected', at: undefined });
+  }, [dispatch, scene, send, session, setStatus]);
 
   /** Adjust: the whole drawing as the drag left it, stored in one command and so undone in one. */
   const onRimPath = useCallback((unitId: string, path: SurfacePath) => {
@@ -108,5 +145,5 @@ export function useRimDrawing({ session, scene, dispatch, send, setStatus }: {
       : 'Rim saved.');
   }, [dispatch, scene, send, session, setStatus]);
 
-  return { onRimPoint, onRimPath, onRimDone };
+  return { onRimPoint, onRimPath, onRimSelect, onRimDeletePoint, onRimDone };
 }

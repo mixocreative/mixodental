@@ -65,6 +65,11 @@ export interface ObjectViewportProps {
    * One call per drag, not per pointer move, so one drag is one step on the history.
    */
   onRimPath: (unitId: string, path: SurfacePath) => void;
+  /**
+   * Rim define mode, Adjust: which anchor the press picked out, or `undefined` to let go. A pick is not
+   * an edit, so it goes to the session rather than the scene and leaves no step on the history.
+   */
+  onRimSelect: (at: number | undefined) => void;
   onRemoveContact: (unitId: string, contactId: string) => void;
   onErase: (unitId: string, point: Vector) => void;
   /** A Support Edit Mode click that hit neither the model nor a support. */

@@ -1,3 +1,4 @@
+import { MIN_CLOSED_ANCHORS } from '../../core/surfacePath/path';
 import type { SurfacePathProblem } from '../../core/surfacePath/validate';
 
 /*
@@ -32,6 +33,24 @@ export function rimDoneReason(state: {
   }
   if (state.dentalRimProblem) return rimProblemText(state.dentalRimProblem as SurfacePathProblem);
   // Nothing else stands in the way: engine 61 builds a rim from the drawn points (`drawnRim.ts`).
+  return undefined;
+}
+
+/**
+ * Why Delete point is off, as an i18n key, or undefined when it is on.
+ *
+ * The second case is the one worth naming. `removeAnchor` REFUSES to take the third anchor out of a
+ * closed loop rather than quietly opening it, because a loop silently becoming a line throws away what
+ * the operator meant by closing it, with nothing on screen to say that happened. So the refusal is
+ * answered here in words, where they are looking, not as a button that does nothing when pressed.
+ */
+export function rimDeleteReason(state: {
+  dentalRimSelected?: number; dentalRimClosed?: boolean; dentalRimAnchors?: number;
+}): string | undefined {
+  if (state.dentalRimSelected === undefined) return 'Pick a point with Adjust first.';
+  if (state.dentalRimClosed && (state.dentalRimAnchors ?? 0) - 1 < MIN_CLOSED_ANCHORS) {
+    return 'A closed rim needs at least three points. Press Clear to start this rim again.';
+  }
   return undefined;
 }
 

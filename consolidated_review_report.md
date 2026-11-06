@@ -10,7 +10,7 @@
 
 One finding was a real, shipped dead end, and it is **fixed**. One was a drawn rim that saved and then
 vanished, and it is **fixed**. Two were errors in the document's own text, and they are **fixed**. Three
-more are real and **left for a decision** — one affects what the operator sees, two are only the document.
+more were real; one of those is now **built**, and the last two are only the document.
 
 **One claim in the first version of this report was wrong, and the correction is below** (the drawn-rim
 finding).
@@ -97,17 +97,16 @@ a narrower reason than I first gave.
 
 ## Real, and waiting on a decision
 
-### 🟡 1. "Delete point" is described but does not exist
+### ✅ 1. "Delete point" is described but does not exist — BUILT
 
-The document specifies a Delete point control (`.danger` outline, only with an anchor selected) and
-reasons at length about refusing to delete from a three-anchor closed loop. There is no such command:
-the registry has only `dental.rim.{place,adjust,close,clear,done}`. `RimDraftLayer`'s `selected` prop is
-even commented as "drawn ringed so Delete point has a visible subject" — the overlay is prepared for a
-control that was never added, and `insertAnchor` / `removeAnchor` / `openPath` in `core/surfacePath/`
-have no production caller.
+It exists now: `dental.rim.deletePoint`, on the Delete and Backspace keys, with its button beside Clear.
+Adjust picking an anchor up is also what picks it out, so the mode gained no third tool. Two deliberate
+departures from the document are recorded there: the button is shown-and-disabled rather than appearing
+with the pick, and it has no undo toast, because Clear — the more destructive of the two — has none either
+and the drawing is on the app history.
 
-**Recommendation:** either build it (small — the geometry exists and is tested) or cut it from the
-document. Today "What is left" names only the flip control, so a reader is told this gap does not exist.
+Checked by `rimStage.test.ts` and walk `u5e2`–`u5e5`, the last of which was watched to fail against a
+deliberately wrong index that the point-count check passed.
 
 ### 🟡 2. Rim mode opens with a marking tool in hand, against the sibling rule
 

@@ -39,7 +39,7 @@ function toVector(vector: THREE.Vector3): Vector {
 /** The viewport settings and callbacks one object takes, plus its own unit, supports and state. */
 interface UnitObjectProps extends Pick<ObjectViewportProps,
   | 'gesture' | 'liveTool' | 'selection' | 'tipsView' | 'modelVisible' | 'wireframe'
-  | 'onSelect' | 'onPickTip' | 'onAddContact' | 'onRimPoint' | 'onRimPath' | 'onRemoveContact' | 'onErase' | 'onEditMiss' | 'onToggleContact' | 'onPaint' | 'onShift' | 'onZoneStroke' | 'onDentalStroke' | 'onNoBodies'> {
+  | 'onSelect' | 'onPickTip' | 'onAddContact' | 'onRimPoint' | 'onRimPath' | 'onRimSelect' | 'onRemoveContact' | 'onErase' | 'onEditMiss' | 'onToggleContact' | 'onPaint' | 'onShift' | 'onZoneStroke' | 'onDentalStroke' | 'onNoBodies'> {
   problems: readonly SupportProblem[];
   /** Step 1's detected area, drawn while the scene has none of its own (src/components/useDentalFlow.ts). */
   dentalAreaPreview?: DentalPolicy;
@@ -124,6 +124,12 @@ export function UnitObject(props: UnitObjectProps) {
    * ends, and this local copy is what gets drawn in the meantime.
    */
   const [rimDrag, setRimDrag] = useState<{ at: number; path: SurfacePath } | null>(null);
+  /*
+   * WHICH ANCHOR WEARS THE RING. Mid-drag it is the one the pointer is carrying, which `rimDrag` knows
+   * and the session does not (the drag commits once, on release, so the session is deliberately behind).
+   * Otherwise it is the session pick, which outlasts the drag and is what Delete point acts on.
+   */
+  const rimPicked = rimDrag?.at ?? (gesture.kind === 'dental-rim' ? gesture.selected : undefined);
   /*
    * The release is listened for on the WINDOW, not on the mesh. A drag that ends with the pointer off
    * the model - past the edge of the aligner, or outside the canvas - still has to end, and a mesh
@@ -258,6 +264,9 @@ export function UnitObject(props: UnitObjectProps) {
       if (at === undefined) return;
       event.stopPropagation();
       setRimDrag({ at, path: unit.rimDraft });
+      // The same press picks the anchor out, so Delete point has a subject without a third tool. A press
+      // on bare surface leaves the pick alone and orbits: see `onRimSelect` for why it must survive that.
+      props.onRimSelect(at);
       return;
     }
     if (brush) return event.stopPropagation();
@@ -427,7 +436,7 @@ export function UnitObject(props: UnitObjectProps) {
       The preview anchor appears only in Place, and only with the pointer on the model.
     */}
     {(rimDrag?.path ?? unit.rimDraft) && <RimDraftLayer path={rimDrag?.path ?? unit.rimDraft!}
-      {...(rimDrag ? { selected: rimDrag.at } : {})}
+      {...(rimPicked === undefined ? {} : { selected: rimPicked })}
       {...(rimDrawing && gesture.kind === 'dental-rim' && gesture.tool === 'place' && hover
         ? { preview: { position: toVector(hover.point), normal: toVector(hover.normal.clone().normalize()) } }
         : {})} />}

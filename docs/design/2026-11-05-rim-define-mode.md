@@ -307,8 +307,36 @@ something else, and the two would interleave unpredictably. One stroke of Adjust
 pointer move, the same way a paint stroke is one entry.
 
 Visible controls, since the house rule requires a button beside every shortcut: **Delete point**
-(`.danger` outline, only when an anchor is selected — never a filled red), **Clear** (plain), and the app's
-own Undo.
+(`.danger` outline — never a filled red), **Clear** (plain), and the app's own Undo.
+
+**Built, with two deliberate departures from the paragraph above.**
+
+- **Shown always, enabled only with an anchor picked**, rather than appearing and disappearing. Clear and
+  Adjust sit on the same panel shown-and-disabled when they have nothing to act on, and a control that
+  came and went as the operator touched anchors would make the row jump under the pointer. The
+  `disabledReason` carries what the appearing-and-disappearing version would have taught silently.
+- **No `offerUndo` toast.** This section asked for one, like `clearManual`. Clear does not have one either,
+  and it is the destructive one: the drawing is scene state, so the app Undo already covers both, and a
+  toast for taking one point out of a visible loop would be noise beside an edit the operator can see.
+
+**How an anchor is picked.** Adjust picking an anchor up is also what picks it out — one gesture, two
+uses, and no third tool in a mode whose whole job is a single loop. The pick lives in the SESSION, not the
+scene, because selecting is not an edit and must not land on the history. It is let go of when the tool
+changes (it belongs to Adjust) and on either way out of the mode, but **it survives a view turn**: a rim
+runs all the way round a shell, so the operator turns the model constantly to reach the far side, and a
+pick that fell off every time they looked from another angle would make Delete point unusable exactly
+where it is needed most.
+
+**The refusal is answered in words.** `removeAnchor` will not take the third anchor out of a closed loop —
+opening the loop silently would throw away what the operator meant by closing it — so the button says
+*"A closed rim needs at least three points. Press Clear to start this rim again."* rather than doing
+nothing when pressed. There is no control that opens a loop back up, so Clear is the honest advice.
+
+Checked by `rimStage.test.ts` (both refusals, the key, and the pick being let go of) and by walk
+`u5e2`–`u5e5`. `u5e5` is the one that earns the claim: a point count reads the same whichever anchor went,
+so it presses where the deleted anchor used to be and requires Delete point to stay OFF, then presses a
+corner never touched and requires it back ON. It was watched to fail against a deliberately wrong index,
+which `u5e4` (the count) passed.
 
 ### Mechanics this builds on
 
@@ -503,7 +531,8 @@ Genuinely new, and the state of each:
 
 ### What is left
 
-One thing, and it is a refinement rather than a gap: **the flip control**. When the engine cannot tell
+**Delete point is built** (see the Undo section above). One thing is left, and it is a refinement rather
+than a gap: **the flip control**. When the engine cannot tell
 which way the opening faces it says so and the operator is told to check the aligner is the right way
 up. An arrow they could turn over would be better than a sentence. Everything else in this document is
 built, gated and shipped.

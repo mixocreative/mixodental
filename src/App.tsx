@@ -905,7 +905,7 @@ export default function App() {
    * stand together); otherwise at the exact hit. A spot that faces up gets a warning on the status line.
    */
   // The two edits of rim define mode; its own module owns them (src/dental/rim/useRimDrawing.ts).
-  const { onRimPoint, onRimPath, onRimDone } = useRimDrawing({ session: sessionRef, scene: sceneRef, dispatch, send, setStatus });
+  const { onRimPoint, onRimPath, onRimSelect, onRimDeletePoint, onRimDone } = useRimDrawing({ session: sessionRef, scene: sceneRef, dispatch, send, setStatus });
 
   /*
    * What a pointer does to supports - add, remove, pick - in one module (src/supports/useSupportEdits.ts).
@@ -1136,6 +1136,7 @@ export default function App() {
         if (unit && closed) dispatch({ type: 'rim/set', unitId: unit.id, path: closed });
         return;
       }
+      case 'dental.rim.deletePoint': return onRimDeletePoint();
       // Done: the drawing becomes the rim, and Step 1 takes it from there.
       case 'dental.rim.done': return onRimDone();
       case 'dental.rim.clear': {
@@ -1209,7 +1210,7 @@ export default function App() {
   // What the registry's rules read (editing/commands); Undo stops at the mode's floor.
   const ui: UiState = {
     mode: editMode, activeName: activeUnit?.name, supported: scene.units.some((unit) => unit.supports), zones: activeUnit?.zones.length ?? 0, exporting, active: Boolean(activeUnit), heavy: activeHeavy, units: scene.units.length, selectedObjects: selectedCount, tool: session.tool, addAction: session.addAction, method: session.selectStyle, dragAction: effectiveBrushMode(session.brushMode, session.shiftHeld),
-    selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalBuildFailed: Boolean(activeUnit && failedBuilds.get(activeUnit.id) === activeUnit), dentalStage: session.dentalStage, dentalRimTool: session.dentalRimTool,
+    selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalBuildFailed: Boolean(activeUnit && failedBuilds.get(activeUnit.id) === activeUnit), dentalStage: session.dentalStage, dentalRimTool: session.dentalRimTool, ...(session.dentalRimSelected === undefined ? {} : { dentalRimSelected: session.dentalRimSelected }),
     dentalRimAnchors: activeUnit?.rimDraft?.anchors.length ?? 0, dentalRimClosed: activeUnit?.rimDraft?.closed ?? false,
     ...(activeUnit?.rimDraft && pathProblems(activeUnit.rimDraft)[0] ? { dentalRimProblem: pathProblems(activeUnit.rimDraft)[0] } : {}), dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: orientFlow.tilt?.unitId === activeUnit?.id && (orientFlow.tilt?.status === 'scanning' || (orientFlow.tilt?.status === 'ready' && orientFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal) || (denture.active && denture.orient.proposed), dentalKind: denture.active ? 'denture' : 'aligner', dentureResolvable: activeMesh?.unresolved?.filter(denture.supports.resolvable).length ?? 0, canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
   };
@@ -1393,6 +1394,7 @@ export default function App() {
           onAddContact={onAddContact}
           onRimPoint={onRimPoint}
           onRimPath={onRimPath}
+          onRimSelect={onRimSelect}
           onRemoveContact={onRemoveContact}
           onErase={onErase}
           onEditMiss={onEditMiss}

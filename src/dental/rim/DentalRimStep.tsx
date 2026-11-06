@@ -74,7 +74,12 @@ export function DentalRimStep({ ui, run, notices = [] }: {
           <span>{t(rimLoopText(closed))}</span>
         </Field>
         <div className="edit-row">
-          {(['dental.rim.close', 'dental.rim.clear'] as const)
+          {/*
+            Close loop, then the two that take something away, narrowest first: Delete point acts on the
+            one anchor picked out, Clear takes the whole drawing. Delete point is a `.danger` OUTLINE and
+            Clear is plain, per the house rule - the one filled control in this mode is Done.
+          */}
+          {(['dental.rim.close', 'dental.rim.deletePoint', 'dental.rim.clear'] as const)
             .map((id) => resolve(id, ui))
             .filter((command) => command.visible)
             .map((command) => <CommandButton key={command.id} command={command} run={run} />)}

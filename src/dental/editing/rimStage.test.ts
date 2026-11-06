@@ -85,6 +85,30 @@ describe('rim define mode: the stage', () => {
   });
 });
 
+describe('rim define mode: picking an anchor', () => {
+  /*
+   * THE PICK BELONGS TO ADJUST. It is set by Adjust picking an anchor up, so switching tool lets go of it:
+   * carrying it into Place would leave a ring on the drawing with no tool that answers to it, and an index
+   * that the next Place could push out from under.
+   */
+  it('is let go of when the tool changes', () => {
+    const picked = run(drawing, { type: 'setDentalRimTool', tool: 'adjust' }, { type: 'setDentalRimSelected', at: 3 });
+    expect(picked.dentalRimSelected).toBe(3);
+    expect(run(picked, { type: 'setDentalRimTool', tool: 'place' }).dentalRimSelected).toBeUndefined();
+  });
+
+  it('is let go of on the way out of the mode, either way out', () => {
+    const picked = run(drawing, { type: 'setDentalRimTool', tool: 'adjust' }, { type: 'setDentalRimSelected', at: 1 });
+    expect(run(picked, { type: 'backDental' }).dentalRimSelected).toBeUndefined();
+    expect(run(picked, { type: 'dentalRimDefined' }).dentalRimSelected).toBeUndefined();
+  });
+
+  /** Nothing outside the mode may pick an anchor: there is no drawing to pick one from. */
+  it('cannot be set from outside rim define mode', () => {
+    expect(run(loading, { type: 'setDentalRimSelected', at: 2 }).dentalRimSelected).toBeUndefined();
+  });
+});
+
 describe('rim define mode: its keys', () => {
   it('offers both tools, and Adjust only once there is a point to adjust', () => {
     const empty = at({ dentalRimAnchors: 0 });
@@ -112,6 +136,53 @@ describe('rim define mode: its keys', () => {
   it('offers Clear only when there is something to clear', () => {
     expect(resolve('dental.rim.clear', at({ dentalRimAnchors: 0 })).enabled).toBe(false);
     expect(resolve('dental.rim.clear', at({ dentalRimAnchors: 1 })).enabled).toBe(true);
+  });
+
+  /*
+   * DELETE POINT, and the two refusals it has to be honest about. The control is always SHOWN - it sits
+   * beside Clear and Adjust, which are shown-and-disabled on the same panel, and a key that came and went
+   * as the operator touched anchors would make the row jump under the pointer.
+   */
+  it('offers Delete point only once an anchor is picked, and says which to do first', () => {
+    const nothingPicked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 5 });
+    expect(resolve('dental.rim.deletePoint', nothingPicked).visible).toBe(true);
+    expect(resolve('dental.rim.deletePoint', nothingPicked).enabled).toBe(false);
+    expect(resolve('dental.rim.deletePoint', nothingPicked).disabledReason?.key).toBe('Pick a point with Adjust first.');
+
+    const picked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 5, dentalRimSelected: 2 });
+    expect(resolve('dental.rim.deletePoint', picked).enabled).toBe(true);
+    expect(resolve('dental.rim.deletePoint', picked).disabledReason).toBeUndefined();
+    // A danger OUTLINE, never a filled red: the one filled control in this mode is Done.
+    expect(resolve('dental.rim.deletePoint', picked).role).toBe('destructive');
+  });
+
+  /*
+   * THE THIRD ANCHOR OF A CLOSED LOOP STAYS. `removeAnchor` refuses it rather than quietly opening the
+   * loop, so the button has to refuse too - and say what the operator can do instead, since there is no
+   * control that opens a loop back up.
+   */
+  it('will not take the third point out of a closed loop, and says what to do instead', () => {
+    const three = at({ dentalRimTool: 'adjust', dentalRimAnchors: 3, dentalRimClosed: true, dentalRimSelected: 0 });
+    expect(resolve('dental.rim.deletePoint', three).enabled).toBe(false);
+    expect(resolve('dental.rim.deletePoint', three).disabledReason?.key)
+      .toBe('A closed rim needs at least three points. Press Clear to start this rim again.');
+    // Four is one to spare, so it goes.
+    expect(resolve('dental.rim.deletePoint', { ...three, dentalRimAnchors: 4 }).enabled).toBe(true);
+    // An OPEN path has no such floor: a line of two points is still a line.
+    expect(resolve('dental.rim.deletePoint', { ...three, dentalRimClosed: false }).enabled).toBe(true);
+  });
+
+  it('deletes the picked point with the Delete key, the same key the steps either side use', () => {
+    const picked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 5, dentalRimSelected: 2 });
+    for (const key of ['Delete', 'Backspace']) {
+      expect(keyAction({ key, ctrl: false, shift: false, target: null, ui: picked }).command).toBe('dental.rim.deletePoint');
+    }
+    /*
+     * And with nothing picked the key does NOTHING, rather than falling through to something else:
+     * `keyAction` drops a command that is not enabled, and Delete must never reach the step beneath.
+     */
+    const nothingPicked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 5 });
+    expect(keyAction({ key: 'Delete', ctrl: false, shift: false, target: null, ui: nothingPicked }).command).toBeUndefined();
   });
 
   /*
