@@ -1080,6 +1080,93 @@ export class LegacyFill {
 }
 
 /**
+ * The diagnosis of one mesh: what the file is, with nothing changed.
+ */
+export class MeshDiagnosis {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * `BODY_SCALARS` values per physical body, in body id order (moved out).
+     */
+    take_bodies(): Float64Array;
+    /**
+     * `LOOP_SCALARS` values per boundary loop (moved out).
+     */
+    take_loops(): Float64Array;
+    /**
+     * The whole-mesh roll-up, `MESH_SCALARS` values (moved out).
+     */
+    take_mesh(): Float64Array;
+}
+
+/**
+ * The result of a repair: the mesh plus the report of every step.
+ */
+export class MeshRepairResult {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Whether any step changed anything. False means the arrays below are the caller's own,
+     * element for element (a clean mesh is returned bit-identical).
+     */
+    changed(): boolean;
+    /**
+     * False when a step would have moved a face between physical bodies: the repair was abandoned
+     * and `take_positions` / `take_indices` give the file back exactly as it came in. A normal
+     * result, not a throw; `reason` names the step. The `before` report is filled either way.
+     */
+    ok(): boolean;
+    /**
+     * Empty when `ok`. Otherwise `body-invariant:<step>`, the step being `weld`, `degenerate`,
+     * `manifold` or `winding`.
+     */
+    reason(): string;
+    /**
+     * The file as it leaves repair: `MESH_SCALARS` values (moved out).
+     */
+    take_after(): Float64Array;
+    /**
+     * The file as it came in: `MESH_SCALARS` values (moved out).
+     */
+    take_before(): Float64Array;
+    /**
+     * Bodies after repair, `BODY_SCALARS` each (moved out).
+     */
+    take_bodies_after(): Float64Array;
+    /**
+     * Bodies before repair, `BODY_SCALARS` each (moved out).
+     */
+    take_bodies_before(): Float64Array;
+    /**
+     * Every boundary loop the fill step looked at, `FILL_SCALARS` values each (moved out): whether
+     * it was closed and, when it was not, why. Empty when not `ok`.
+     */
+    take_fills(): Float64Array;
+    /**
+     * The repaired indices, u32 triangle triples (moved out).
+     */
+    take_indices(): Uint32Array;
+    /**
+     * Boundary loops left after repair, `LOOP_SCALARS` each (moved out).
+     */
+    take_loops_after(): Float64Array;
+    /**
+     * Boundary loops before repair, `LOOP_SCALARS` each (moved out).
+     */
+    take_loops_before(): Float64Array;
+    /**
+     * The repaired positions, f32 xyz triples (moved out).
+     */
+    take_positions(): Float32Array;
+    /**
+     * What each step did: `STEP_SCALARS` values (moved out). All zero when not `ok`.
+     */
+    take_steps(): Float64Array;
+}
+
+/**
  * A mesh's pick index as flat arrays: per node `min xyz, max xyz` (`bounds`) and `start, count`
  * (`links`), then the triangle permutation (`order`). Transferable between realms.
  */
@@ -1363,6 +1450,12 @@ export function dental_side_bands(positions: Float32Array, indices: Uint32Array,
 
 export function denture_profile_ids(): string[];
 
+/**
+ * What a mesh is, body by body: the diagnosis that replaces the dental `mesh_ok` bit. Changes
+ * nothing and allocates no mesh.
+ */
+export function diagnose_mesh(positions: Float32Array, indices: Uint32Array): MeshDiagnosis;
+
 export function engine_version(): number;
 
 export function face_mask_contour_segments(positions: Float32Array, pairs: Uint32Array): Float32Array;
@@ -1439,6 +1532,17 @@ export function remesh_cache_stats(): Uint32Array;
  * Removes collapsed triangles; the host reports the count.
  */
 export function remove_degenerate_triangles(positions: Float32Array, indices: Uint32Array): WeldResult;
+
+/**
+ * Repair on import: weld coincident vertices, drop collapsed triangles, split non-manifold edges
+ * and bowtie vertices, make the winding consistent per body and outward for the closed ones, fill
+ * the boundary loops `max_fill_loop_mm` allows, and mark the noise shells. Separate bodies always
+ * stay separate, every patch is built from one loop's own vertices, and a loop that is not filled
+ * is reported with the reason (`take_fills`). `max_fill_loop_mm` is the longest rim the caller
+ * permits to be closed, in mm; 0 (or any non-positive or non-finite value) fills nothing. The
+ * engine has no default for it on purpose - the number comes from measured rim lengths.
+ */
+export function repair_mesh(positions: Float32Array, indices: Uint32Array, max_fill_loop_mm: number): MeshRepairResult;
 
 /**
  * The names of the planner rules `generate`'s `rules` array overrides, in array order

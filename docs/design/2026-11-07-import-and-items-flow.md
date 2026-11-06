@@ -616,11 +616,17 @@ both `DentureReviewPanel` files, `DentalBar.test.tsx`, both locale files, the fo
 `scripts/walk.mjs`, `docs/ui-styling.md`, `docs/design/ui-structure.md`, this doc and the review
 artefacts. **Not green:** walk `g` and `s17` (§9).
 
-**2. Run the locale pass.** The walk already exits 1 on failure (see §6), so nothing needs changing
-there. What is missing is that `walkLocale` is never invoked: add a `walk:locales` script
-(`WALK_LOCALES=en,ja,zh-Hant node scripts/walk.mjs`) to `package.json` and a CI job beside the
-existing `npm run walk`.
-*Exit:* `npm run walk:locales` exists, CI runs it, and it reports `ALL PASS` for all three languages.
+**2. Run the locale pass. — DONE.** `walk:locales` is
+`node scripts/walk.mjs --locales=en,ja,zh-Hant` — a **flag**, not the env var, because
+`WALK_LOCALES=…` in an npm script is not portable to Windows and this needed no new dependency; it
+matches the file's existing `--only=` convention. CI runs it as its own step, because `walkLocale`
+*replaces* the English walk rather than adding to it.
+
+**And CI was masking walk failures the same way I was.** The step read
+`npm run walk 2>&1 | tee walk-out/walk.log`, and a pipeline's status is the **last** command's — so
+CI has been reading `tee`'s. The walk itself exits 1 correctly. Both steps now `set -o pipefail`.
+That is how the "Aligner supports" locale bug stayed invisible: nothing ran the pass, and nothing
+would have failed if it had.
 
 **3. Correct what earlier revisions got wrong, in code.** The `SceneScope` comment and
 `src/scenes/README.md`'s multi-file section (two sites); `scope`'s justification, or retire the field;
@@ -631,7 +637,11 @@ literals, **which go stale silently because `sceneOf` takes `string | null`** �
 step exists to catch.
 *Exit:* `npm test` green and no file asserting what another denies.
 
-**4. Vendor engine 63 and gate it.** In geocore: `git fetch`, `git checkout b5a71ab`, confirm
+**4. Vendor engine 63 and gate it. — DONE.** `SOURCE.json` records
+`b5a71abb69c3f4419a7b8f571c4dcb6a7b402ed2`, engine **63**; `vendor:check` 0, `tsc` 0, **1301 tests**,
+build 0, and **`real-scan gate: PASS (13 scans)`** with *"No differences."* — the literal line, and no
+skip. `host/core/repairMesh.ts` arrived with it, so `diagnose_mesh` and `repair_mesh` are now reachable
+from the app. The procedure that worked, kept for the next engine bump: `git fetch`, `git checkout b5a71ab`, confirm
 `git branch -r --contains b5a71ab`, a clean `crates`/`host`/`editing` tree, `npm run wasm:build`. Then
 here: `npm run vendor:geometry`. The command has **no commit selector** — it vendors whatever the
 engine checkout's HEAD is — so the checkout is the step.

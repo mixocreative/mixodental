@@ -125,6 +125,13 @@ const ONLY = new Set((process.argv.find((arg) => arg.startsWith('--only='))?.sli
   .split(',').map((name) => name.trim()).filter(Boolean));
 /** True when `section` is one the caller asked for; with no `--only` every section runs. */
 const runs = (section) => ONLY.size === 0 || ONLY.has(section);
+/*
+ * The locale pass, by flag as well as by env var. `WALK_LOCALES=…` works on a POSIX shell and not
+ * in an npm script on Windows, so `--locales=en,ja,zh-Hant` is the portable form and is what
+ * `npm run walk:locales` uses. Same shape as `--only=` above; no new dependency.
+ */
+const LOCALES = process.argv.find((arg) => arg.startsWith('--locales='))?.slice('--locales='.length)
+  ?? process.env.WALK_LOCALES;
 
 /*
  * A BRUSH IS NOT A TRANSACTION.
@@ -2652,7 +2659,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
 }
 
 // WALK_OUT: where a run leaves its screenshots and files for review; ordinary passing runs remove them.
-const scratch = process.env.WALK_LOCALES && process.env.WALK_OUT ? (mkdirSync(path.resolve(process.env.WALK_OUT), { recursive: true }), path.resolve(process.env.WALK_OUT)) : process.env.WALK_OUT ? (mkdirSync(path.resolve(process.env.WALK_OUT), { recursive: true }), mkdtempSync(path.join(path.resolve(process.env.WALK_OUT), 'run-'))) : mkdtempSync(path.join(tmpdir(), 'mixo-walk-'));
+const scratch = LOCALES && process.env.WALK_OUT ? (mkdirSync(path.resolve(process.env.WALK_OUT), { recursive: true }), path.resolve(process.env.WALK_OUT)) : process.env.WALK_OUT ? (mkdirSync(path.resolve(process.env.WALK_OUT), { recursive: true }), mkdtempSync(path.join(path.resolve(process.env.WALK_OUT), 'run-'))) : mkdtempSync(path.join(tmpdir(), 'mixo-walk-'));
 async function stopAll() {
   await browser?.close().catch(() => {});
   stopVite(vite);
@@ -2668,9 +2675,9 @@ try {
   console.log(`walk on ${url}`);
   const dentalFixture = process.env.DENTAL_WALK_FIXTURE ?? (existsSync(CASE_01_ALIGNER) ? CASE_01_ALIGNER : undefined);
   if (dentalFixture) console.log(`dental fixture: ${path.relative(ROOT, dentalFixture)}`);
-  if (process.env.WALK_LOCALES) {
+  if (LOCALES) {
     browser = await launch();
-    for (const lang of process.env.WALK_LOCALES.split(',').map((item) => item.trim()).filter(Boolean)) await walkLocale(url, scratch, lang, dentalFixture);
+    for (const lang of LOCALES.split(',').map((item) => item.trim()).filter(Boolean)) await walkLocale(url, scratch, lang, dentalFixture);
   } else await walk(url, scratch, dentalFixture);
 } catch (error) {
   check('walk setup', false, error.message);
@@ -2678,7 +2685,7 @@ try {
   await stopAll();
 }
 const failed = results.filter((r) => !r.ok).length;
-if (failed === 0 && !process.env.WALK_OUT && !process.env.WALK_LOCALES) rmSync(scratch, { recursive: true, force: true });
+if (failed === 0 && !process.env.WALK_OUT && !LOCALES) rmSync(scratch, { recursive: true, force: true });
 // A filtered run never says ALL PASS: it covered part of the walk, and the line has to say so.
 const scope = ONLY.size === 0 ? '' : ` [only ${[...ONLY].join(',')}]`;
 const verdict = failed > 0 ? `${failed} FAIL` : ONLY.size === 0 ? 'ALL PASS' : 'SOME PASS';

@@ -54,7 +54,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright-core install --with-deps chromium
-      - run: mkdir -p walk-out && npm run walk 2>&1 | tee walk-out/walk.log
+      # PIPEFAIL, OR THE GATE IS DECORATION. `npm run walk | tee` returns TEE's status, so a failing
+      # walk reported green here - the walk itself exits 1 correctly. Found after making the same
+      # mistake by hand: reading `$?` after a `grep` on the same line.
+      - run: |
+          set -o pipefail
+          mkdir -p walk-out && npm run walk 2>&1 | tee walk-out/walk.log
+      # The locale pass is a SEPARATE run: `walkLocale` replaces the English walk rather than adding
+      # to it, so it needs its own invocation. Nothing ran it until now.
+      - run: |
+          set -o pipefail
+          npm run walk:locales 2>&1 | tee walk-out/walk-locales.log
       - if: failure()
         uses: actions/upload-artifact@v7
         with:

@@ -3622,6 +3622,221 @@ if (Symbol.dispose) LegacyFill.prototype[Symbol.dispose] = LegacyFill.prototype.
 exports.LegacyFill = LegacyFill;
 
 /**
+ * The diagnosis of one mesh: what the file is, with nothing changed.
+ */
+class MeshDiagnosis {
+    static __wrap(ptr) {
+        const obj = Object.create(MeshDiagnosis.prototype);
+        obj.__wbg_ptr = ptr;
+        MeshDiagnosisFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        MeshDiagnosisFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_meshdiagnosis_free(ptr, 0);
+    }
+    /**
+     * `BODY_SCALARS` values per physical body, in body id order (moved out).
+     * @returns {Float64Array}
+     */
+    take_bodies() {
+        const ret = wasm.meshdiagnosis_take_bodies(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * `LOOP_SCALARS` values per boundary loop (moved out).
+     * @returns {Float64Array}
+     */
+    take_loops() {
+        const ret = wasm.meshdiagnosis_take_loops(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The whole-mesh roll-up, `MESH_SCALARS` values (moved out).
+     * @returns {Float64Array}
+     */
+    take_mesh() {
+        const ret = wasm.meshdiagnosis_take_mesh(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+}
+if (Symbol.dispose) MeshDiagnosis.prototype[Symbol.dispose] = MeshDiagnosis.prototype.free;
+exports.MeshDiagnosis = MeshDiagnosis;
+
+/**
+ * The result of a repair: the mesh plus the report of every step.
+ */
+class MeshRepairResult {
+    static __wrap(ptr) {
+        const obj = Object.create(MeshRepairResult.prototype);
+        obj.__wbg_ptr = ptr;
+        MeshRepairResultFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        MeshRepairResultFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_meshrepairresult_free(ptr, 0);
+    }
+    /**
+     * Whether any step changed anything. False means the arrays below are the caller's own,
+     * element for element (a clean mesh is returned bit-identical).
+     * @returns {boolean}
+     */
+    changed() {
+        const ret = wasm.meshrepairresult_changed(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * False when a step would have moved a face between physical bodies: the repair was abandoned
+     * and `take_positions` / `take_indices` give the file back exactly as it came in. A normal
+     * result, not a throw; `reason` names the step. The `before` report is filled either way.
+     * @returns {boolean}
+     */
+    ok() {
+        const ret = wasm.meshrepairresult_ok(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * Empty when `ok`. Otherwise `body-invariant:<step>`, the step being `weld`, `degenerate`,
+     * `manifold` or `winding`.
+     * @returns {string}
+     */
+    reason() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.meshrepairresult_reason(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * The file as it leaves repair: `MESH_SCALARS` values (moved out).
+     * @returns {Float64Array}
+     */
+    take_after() {
+        const ret = wasm.meshrepairresult_take_after(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The file as it came in: `MESH_SCALARS` values (moved out).
+     * @returns {Float64Array}
+     */
+    take_before() {
+        const ret = wasm.meshrepairresult_take_before(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Bodies after repair, `BODY_SCALARS` each (moved out).
+     * @returns {Float64Array}
+     */
+    take_bodies_after() {
+        const ret = wasm.meshrepairresult_take_bodies_after(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Bodies before repair, `BODY_SCALARS` each (moved out).
+     * @returns {Float64Array}
+     */
+    take_bodies_before() {
+        const ret = wasm.meshrepairresult_take_bodies_before(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Every boundary loop the fill step looked at, `FILL_SCALARS` values each (moved out): whether
+     * it was closed and, when it was not, why. Empty when not `ok`.
+     * @returns {Float64Array}
+     */
+    take_fills() {
+        const ret = wasm.meshrepairresult_take_fills(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The repaired indices, u32 triangle triples (moved out).
+     * @returns {Uint32Array}
+     */
+    take_indices() {
+        const ret = wasm.meshrepairresult_take_indices(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Boundary loops left after repair, `LOOP_SCALARS` each (moved out).
+     * @returns {Float64Array}
+     */
+    take_loops_after() {
+        const ret = wasm.meshrepairresult_take_loops_after(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Boundary loops before repair, `LOOP_SCALARS` each (moved out).
+     * @returns {Float64Array}
+     */
+    take_loops_before() {
+        const ret = wasm.meshrepairresult_take_loops_before(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The repaired positions, f32 xyz triples (moved out).
+     * @returns {Float32Array}
+     */
+    take_positions() {
+        const ret = wasm.meshrepairresult_take_positions(this.__wbg_ptr);
+        var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * What each step did: `STEP_SCALARS` values (moved out). All zero when not `ok`.
+     * @returns {Float64Array}
+     */
+    take_steps() {
+        const ret = wasm.meshrepairresult_take_steps(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+}
+if (Symbol.dispose) MeshRepairResult.prototype[Symbol.dispose] = MeshRepairResult.prototype.free;
+exports.MeshRepairResult = MeshRepairResult;
+
+/**
  * A mesh's pick index as flat arrays: per node `min xyz, max xyz` (`bounds`) and `start, count`
  * (`links`), then the triangle permutation (`order`). Transferable between realms.
  */
@@ -4639,6 +4854,26 @@ function denture_profile_ids() {
 exports.denture_profile_ids = denture_profile_ids;
 
 /**
+ * What a mesh is, body by body: the diagnosis that replaces the dental `mesh_ok` bit. Changes
+ * nothing and allocates no mesh.
+ * @param {Float32Array} positions
+ * @param {Uint32Array} indices
+ * @returns {MeshDiagnosis}
+ */
+function diagnose_mesh(positions, indices) {
+    const ptr0 = passArrayF32ToWasm0(positions, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray32ToWasm0(indices, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.diagnose_mesh(ptr0, len0, ptr1, len1);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return MeshDiagnosis.__wrap(ret[0]);
+}
+exports.diagnose_mesh = diagnose_mesh;
+
+/**
  * @returns {number}
  */
 function engine_version() {
@@ -5045,6 +5280,32 @@ function remove_degenerate_triangles(positions, indices) {
 exports.remove_degenerate_triangles = remove_degenerate_triangles;
 
 /**
+ * Repair on import: weld coincident vertices, drop collapsed triangles, split non-manifold edges
+ * and bowtie vertices, make the winding consistent per body and outward for the closed ones, fill
+ * the boundary loops `max_fill_loop_mm` allows, and mark the noise shells. Separate bodies always
+ * stay separate, every patch is built from one loop's own vertices, and a loop that is not filled
+ * is reported with the reason (`take_fills`). `max_fill_loop_mm` is the longest rim the caller
+ * permits to be closed, in mm; 0 (or any non-positive or non-finite value) fills nothing. The
+ * engine has no default for it on purpose - the number comes from measured rim lengths.
+ * @param {Float32Array} positions
+ * @param {Uint32Array} indices
+ * @param {number} max_fill_loop_mm
+ * @returns {MeshRepairResult}
+ */
+function repair_mesh(positions, indices, max_fill_loop_mm) {
+    const ptr0 = passArrayF32ToWasm0(positions, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray32ToWasm0(indices, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ret = wasm.repair_mesh(ptr0, len0, ptr1, len1, max_fill_loop_mm);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return MeshRepairResult.__wrap(ret[0]);
+}
+exports.repair_mesh = repair_mesh;
+
+/**
  * The names of the planner rules `generate`'s `rules` array overrides, in array order
  * (`mixo_geometry_core::supports::rules::NAMES`): the host packs its overrides by these names.
  * @returns {string[]}
@@ -5329,6 +5590,12 @@ const HandWorkFinalization = (typeof FinalizationRegistry === 'undefined')
 const LegacyFillFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_legacyfill_free(ptr, 1));
+const MeshDiagnosisFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_meshdiagnosis_free(ptr, 1));
+const MeshRepairResultFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_meshrepairresult_free(ptr, 1));
 const PickIndexFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_pickindex_free(ptr, 1));
