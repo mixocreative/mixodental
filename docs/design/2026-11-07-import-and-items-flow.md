@@ -843,10 +843,21 @@ that introduces the feature.
   of act as silent repair, and §3 decided against that.
 - ***Appliance* or *Purpose*** for level 1. **Recommendation:** Appliance, the dental word, accepting
   that "Any model" is not literally an appliance.
-- **Walk `g`** fails reproducibly with `selected 0` on the **unthrottled** stroke. My diagnosis — that
-  `a2` left the switch on Unselect — was **wrong**: pressing Select before the measured pair changed
-  nothing. Unattributed. **Recommendation:** stash-and-bisect on a quiet machine before anything else
-  in §7, since every "green" claim depends on it.
-- **Walk `s17`** (Back at Step 1) times out with the button detaching for 30 s — a re-render loop. No
-  mechanism identified; no earlier run reached section `s` to give a baseline. **It is in the region
-  step 8 rewrites**, so it may be settled or made moot there; it must not be assumed so.
+- **Walk `g` is FLAKY, and it is not this work's.** It failed at `1db2987`, before any of this work,
+  so it is pre-existing. But it is **not deterministic**, and an earlier version of this line said it
+  was, on the strength of a single baseline run. At HEAD it has both failed and passed, and the tell
+  is in the numbers: when it passes the stroke selects **4**, when it fails it selects **0** — the
+  stroke race its own comment warns about. **Three** of my explanations for `g` have now been wrong:
+  machine load, the switch left on Unselect, and "deterministic". **Recommendation:** measure the
+  rate first, the way `s17` was settled, and only then look for a cause.
+- **Walk `s17` is FIXED** (`f4c3500`), and the cause is worth keeping because it is easy to repeat:
+  s16 drops a **cube**, which has no findable rim, so orientation fails and **rim define mode opens
+  asynchronously** after s16's check has already passed — swapping the dock under the Back click.
+  Two weaker settles failed first: `atStep1()` + `quiet()` (which waits on the job list, not the
+  dock), and waiting for "Step 1 **or** rim mode" (which matched the badge before the mode opened,
+  skipped the Cancel, and left no Back at all). Waiting **for** rim mode and cancelling out of it
+  passes five runs of five.
+
+  The process lesson cost more than the bug: I bisected by reverting one file at a time and comparing
+  **single runs**, and concluded my own harness change was the cause. For a check that fails 3 of 5
+  at one commit, that comparison carries no information.
