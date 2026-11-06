@@ -873,6 +873,17 @@ footer.on-scene button { pointer-events: auto; }
   .progress-indicator--spinner { animation-duration: 2.4s; }
 }
 
+/*
+ * INLINE: the spinner leads and a short line of text sits beside it, so a detail that cannot be
+ * measured costs ONE row instead of two. There is no number and no bar to size in this case, so the
+ * height a stacked layout buys is height nothing uses. `order` does the reordering rather than new
+ * markup, because the reading order for a screen reader is still label then indicator.
+ */
+.progress--inline .progress-body { display: flex; align-items: center; gap: 10px; }
+.progress--inline .progress-indicator { order: -1; flex: none; }
+.progress--inline .progress-words { flex-direction: row; align-items: baseline; gap: 8px; min-width: 0; }
+.progress--inline .progress-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Label above: the words are centred over the indicator, and the measure sits under them rather than
    beside, so the one word stays the widest thing in the box. */
 .progress--label-above .progress-words { flex-direction: column; align-items: center; gap: 2px; }
@@ -915,6 +926,9 @@ footer.on-scene button { pointer-events: auto; }
 
 /* 3. LEDGER - a row in a list. The label leads, everything else follows it on the same line. */
 .progress--ledger { --progress-tone: var(--red); --progress-spinner-size: 14px; }
+/* Beside a line of text rather than over it, the spinner matches the text it stands next to. */
+.progress--inline { --progress-spinner-size: 16px; }
+.progress--inline .progress-indicator--spinner { border-width: 2px; }
 .progress--ledger .progress-label { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* `size: large` is a typographic treatment as well as a number: the number cascades as

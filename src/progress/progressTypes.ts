@@ -39,6 +39,17 @@ export interface ProgressStyle {
   readonly waiting: 'spinner' | 'bar';
   /** `above`: label over the indicator, centred. `leading`: label first on one line, meta after it. */
   readonly labelPlacement: 'above' | 'leading';
+  /**
+   * HOW IT LAYS OUT WHEN THERE IS NOTHING TO MEASURE, which is a different shape of problem from the
+   * measured case. With a fraction a type needs vertical room for a bar and a number. With none there
+   * is no number and no bar to size, so `inline` puts the spinner first and a short line of text
+   * beside it and the whole thing costs one row. `stacked` keeps it over two, which only earns its
+   * space when the words are the point - which is to say, only when the screen is blocked.
+   *
+   * It is honoured only for a type that waits as a `spinner`; see `progressLayout` for why a bar
+   * cannot be laid beside text.
+   */
+  readonly waitingLayout: 'inline' | 'stacked';
   /** The label size. `large` is for the one an operator reads from across the room. */
   readonly size: 'large' | 'normal' | 'small';
   /** A veil over the rest of the screen, so nothing behind it looks clickable. */
@@ -53,7 +64,7 @@ export interface ProgressStyle {
  * them are the whole of what a reader has to hold - and a new type starts from something sane.
  */
 export const PROGRESS_BASE: Omit<ProgressStyle, 'place'> = {
-  tone: '--ink', waiting: 'spinner', labelPlacement: 'above', size: 'normal', veil: false,
+  tone: '--ink', waiting: 'spinner', labelPlacement: 'above', waitingLayout: 'inline', size: 'normal', veil: false,
 };
 
 /**
@@ -66,7 +77,7 @@ export const PROGRESS_BASE: Omit<ProgressStyle, 'place'> = {
  * rows does not become a column of turning circles.
  */
 const PROGRESS_DELTA: Readonly<Record<ProgressType, Partial<ProgressStyle> & Pick<ProgressStyle, 'place'>>> = {
-  blocking: { size: 'large', veil: true,
+  blocking: { size: 'large', veil: true, waitingLayout: 'stacked',
     place: 'Centred in the middle of the view, over a veil that dims everything behind it. Nothing else is reachable while it shows.' },
   step: {
     place: 'Top left of the 3D view, under the step badge, over the scene. The model still turns behind it.' },
@@ -106,6 +117,24 @@ export const progressShape = (type: ProgressType, fraction: number | undefined):
 export const progressFill = (fraction: number | undefined): 'measured' | 'pacing' =>
   (progressMeasure(fraction) === undefined ? 'pacing' : 'measured');
 
+/**
+ * The layout one instance uses.
+ *
+ * `waitingLayout` applies ONLY when there is nothing to measure: a measured instance always lays out
+ * the way its `labelPlacement` says, because it has a bar and a number that need the room.
+ *
+ * AND INLINE IS FOR SPINNERS. A spinner is a fixed square and sits beside a line of text happily; a
+ * bar has no width of its own and would collapse to nothing next to one, which is exactly what it did
+ * the first time this was drawn. So a type that waits as a bar stays stacked, with the bar under its
+ * label where a bar can have a width - and the combination that cannot be drawn is refused here
+ * rather than left for somebody to configure.
+ */
+export const progressLayout = (type: ProgressType, fraction: number | undefined): 'inline' | 'stacked' => {
+  if (progressMeasure(fraction) !== undefined) return 'stacked';
+  const style = PROGRESS_STYLE[type];
+  return style.waitingLayout === 'inline' && style.waiting === 'spinner' ? 'inline' : 'stacked';
+};
+
 /*
  * OVERRIDING, AND THE ONE KIND THAT IS REFUSED.
  *
@@ -128,7 +157,8 @@ export function progressClasses(type: ProgressType, fraction: number | undefined
 } {
   const style = PROGRESS_STYLE[type];
   return {
-    root: `progress progress--${type} progress--label-${style.labelPlacement} progress--${style.size}`,
+    root: `progress progress--${type} progress--label-${style.labelPlacement} progress--${style.size}`
+      + ` progress--${progressLayout(type, fraction)}`,
     indicator: `progress-indicator progress-indicator--${progressShape(type, fraction)} is-${progressFill(fraction)}`,
   };
 }

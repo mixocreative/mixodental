@@ -10,7 +10,7 @@ import { Field } from '../components/Field';
 import { RestoreStepButton } from '../components/RestoreStepButton';
 import { stagedJobBar } from '../denture/progress/StagedProgress';
 import { Progress } from '../progress/Progress';
-import { PROGRESS_STYLE, PROGRESS_TYPES, type ProgressType } from '../progress/progressTypes';
+import { PROGRESS_STYLE, PROGRESS_TYPES, progressLayout, type ProgressType } from '../progress/progressTypes';
 import { reviewLine } from '../denture/steps/supports/reviewLineText';
 
 /*
@@ -33,6 +33,12 @@ function waitingLabel(type: ProgressType): string {
   if (type === 'blocking') return t('Loading…');
   if (type === 'step') return t('Scanning print angles');
   return t('Building supports for {name}', { name: 'reference-aligner' });
+}
+
+/** A SHORT detail line, to show the compact waiting form. Blocking keeps one word: at 24px uppercase
+ *  a sentence wraps to three lines and stops being the thing read from across the room. */
+function detailLabel(type: ProgressType): string {
+  return type === 'blocking' ? t('Loading…') : t('Detecting the support area');
 }
 
 /** A static job row for the staged bar (its model reads only these fields). */
@@ -164,8 +170,11 @@ export function Catalogue() {
       <Card caption={`WHERE IT GOES: ${PROGRESS_STYLE[type].place}`} wide>
         <div className="kit-stage"><Progress type={type} label={waitingLabel(type)} fraction={0.42} /></div>
       </Card>
-      <Card caption={`no measure: ${PROGRESS_STYLE[type].waiting === 'spinner' ? 'a spinner, which claims nothing' : 'the bar paces across instead of filling'} — never a number nobody counted`} wide>
+      <Card caption={`no measure, ${progressLayout(type, undefined)}: ${PROGRESS_STYLE[type].waiting === 'spinner' ? 'a spinner, which claims nothing' : 'the bar paces across instead of filling'} — never a number nobody counted`} wide>
         <div className="kit-stage"><Progress type={type} label={waitingLabel(type)} /></div>
+      </Card>
+      <Card caption={`no measure, a short detail line (${progressLayout(type, undefined) === 'inline' ? 'one row, which is all it needs' : 'stacked: a bar cannot sit beside text, so it keeps its own row'})`} wide>
+        <div className="kit-stage"><Progress type={type} label={detailLabel(type)} /></div>
       </Card>
     </Section>)}
 

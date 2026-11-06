@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { PROGRESS_BASE, PROGRESS_STYLE, PROGRESS_TYPES, progressClasses, progressFill, progressMeasure, progressShape } from './progressTypes';
+import { PROGRESS_BASE, PROGRESS_STYLE, PROGRESS_TYPES, progressClasses, progressFill, progressLayout, progressMeasure, progressShape } from './progressTypes';
 
 /*
  * The three kinds of waiting, and the two rules that keep them honest: a percentage is never invented,
@@ -60,7 +60,7 @@ describe('a type inherits, then changes only what differs', () => {
   });
 
   it('changes only what it says it changes', () => {
-    expect(PROGRESS_STYLE.blocking).toMatchObject({ ...PROGRESS_BASE, size: 'large', veil: true });
+    expect(PROGRESS_STYLE.blocking).toMatchObject({ ...PROGRESS_BASE, size: 'large', veil: true, waitingLayout: 'stacked' });
     expect(PROGRESS_STYLE.ledger).toMatchObject({ ...PROGRESS_BASE, tone: '--red', waiting: 'bar', labelPlacement: 'leading', size: 'small' });
   });
 
@@ -90,6 +90,39 @@ describe('the shape follows the measure, not the type', () => {
     expect(progressClasses('step', undefined).indicator).toContain('progress-indicator--spinner');
     expect(progressClasses('step', 0.5).indicator).toContain('progress-indicator--bar');
     expect(progressClasses('ledger', undefined).indicator).toContain('progress-indicator--bar');
+  });
+});
+
+describe('the compact waiting layout', () => {
+  /*
+   * A detail that cannot be measured has no number and no bar to size, so the height a stacked layout
+   * buys is height nothing uses. Spinner first, a short line of text beside it, one row.
+   */
+  it('puts a spinner beside the text when there is nothing to measure', () => {
+    expect(progressLayout('step', undefined)).toBe('inline');
+    expect(progressClasses('step', undefined).root).toContain('progress--inline');
+  });
+
+  it('goes back to stacked as soon as there is something to measure', () => {
+    expect(progressLayout('step', 0.4)).toBe('stacked');
+    expect(progressClasses('step', 0.4).root).toContain('progress--stacked');
+  });
+
+  /*
+   * THE COMBINATION THAT CANNOT BE DRAWN IS REFUSED. A spinner is a fixed square and sits beside text;
+   * a bar has no width of its own and collapsed to nothing the first time this was drawn. A type that
+   * waits as a bar therefore stays stacked, whatever its layout says.
+   */
+  it('refuses to lay a bar beside text, however the table is set', () => {
+    expect(PROGRESS_STYLE.ledger.waiting).toBe('bar');
+    expect(progressLayout('ledger', undefined)).toBe('stacked');
+    expect(progressClasses('ledger', undefined).root).toContain('progress--stacked');
+  });
+
+  /** The one type whose words are the point keeps them over their own row. */
+  it('keeps the blocking type stacked, because its label is what the reader is there for', () => {
+    expect(PROGRESS_STYLE.blocking.waitingLayout).toBe('stacked');
+    expect(progressLayout('blocking', undefined)).toBe('stacked');
   });
 });
 
