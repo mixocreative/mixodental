@@ -702,11 +702,25 @@ export default function App() {
     const plateNow = (): PlateScene => ({ ids: new Set(sceneRef.current.units.map((unit) => unit.id)), triangles: sceneRef.current.units.reduce((sum, unit) => sum + triangleCount(unit), 0) });
     try {
       const imported: PreparedMesh[][] = [];
+      /*
+       * ONE BAD FILE IS ITS OWN FAILURE, NOT THE DROP'S.
+       *
+       * The read loop used to sit inside the single `try` below, so any refusal - a damaged STL, a
+       * triangle or memory cap, a full plate - aborted the whole drop and added NOTHING. With one
+       * file that is the same thing; with a case of several it throws away the files that were fine
+       * because one was not, which is the behaviour a per-file Items row cannot be built on.
+       *
+       * A CANCEL IS STILL THE WHOLE DROP. One `AbortController` covers every file, and stopping is
+       * the operator asking for nothing to be added - so an abort is re-thrown to the outer handler
+       * rather than collected here.
+       */
+      const refused: { name: string; error: unknown }[] = [];
       const memoryCap = memoryCapBytes(memoryInfo());
       // The triangles this drop adds, with each file as it is read.
       let adding = 0;
       for (const file of accepted) {
         reading = file.name;
+        try {
         // Refused before anything is parsed or copied, whenever the file says how big it is.
         const estimate = estimateTriangles(new Uint8Array(await file.slice(0, await estimateHeadBytes(file)).arrayBuffer()), file.size, file.name);
         if (estimate) {
@@ -727,9 +741,23 @@ export default function App() {
           assertTriangleCapacity(file.name, raw.reduce((sum, mesh) => sum + (mesh.indices ? mesh.indices.length : mesh.positions.length / 3) / 3, 0), RUNTIME, true);
           imported.push(await importer().weld(raw, RUNTIME, label, controller.signal));
         }
-        // Counted again from what was read (an estimate may have been short).
-        adding += imported[imported.length - 1]!.reduce((sum, item) => sum + item.mesh.indices.length / 3, 0);
-        reservation.hold(adding, plateNow(), (plate) => assertPlateCapacity(file.name, plate, RUNTIME));
+          // Counted again from what was read (an estimate may have been short).
+          adding += imported[imported.length - 1]!.reduce((sum, item) => sum + item.mesh.indices.length / 3, 0);
+          reservation.hold(adding, plateNow(), (plate) => assertPlateCapacity(file.name, plate, RUNTIME));
+        } catch (error) {
+          if (isAbort(error)) throw error;
+          refused.push({ name: file.name, error });
+        }
+      }
+      /*
+       * Nothing survived: behave exactly as before, reporting the first refusal. `adding` never rose
+       * for a refused file, so the next successful `hold` lowers the reservation back on its own; with
+       * no successes at all there is nothing to commit, so release it.
+       */
+      if (imported.length === 0) {
+        reservation.release();
+        const first = refused[0]!;
+        return badFile(errorStatus('import', codedJobError(first.error), { name: first.name }));
       }
       for (const item of imported.flat()) {
         if (item.display) setDisplayMesh(item.mesh, item.display);
@@ -759,6 +787,16 @@ export default function App() {
         }
         setStatusMessage({ key: 'Imported {name}. Checking and orienting it…', vars: { name: aligner.name } });
         return startDentalAligner(aligner);
+      }
+      /*
+       * A refusal is the actionable news, so it wins the status line: the files that DID import are
+       * on the plate where the operator can see them, and a count of successes tells them nothing
+       * they cannot already count. No new string for the mixed case - the refusal's own sentence
+       * already names the file and says why.
+       */
+      if (refused.length > 0) {
+        const first = refused[0]!;
+        return badFile(errorStatus('import', codedJobError(first.error), { name: first.name }));
       }
       const heaviest = added.reduce((most, unit) => (triangleCount(unit) > triangleCount(most) ? unit : most));
       const plate = units.reduce((sum, unit) => sum + triangleCount(unit), 0);

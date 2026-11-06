@@ -737,7 +737,24 @@ need the one after it.
 *Exit:* `uiStylingDoc.test.ts`, `noColourLiterals.test.ts`, `glossary.test.ts`,
 `japaneseSubset.test.ts` and `i18n.test.ts` all green, and every state visible in `kit.html`.
 
-**7a. The Drop page and the drop loop.** `StartScreenId` gains `drop`; the task screen's three keys
+**7a. The Drop page and the drop loop. — THE LOOP HALF IS DONE; the page is not.**
+
+**Per-file isolation landed.** The read loop sat inside one `try`, so any refusal — a damaged STL, a
+triangle or memory cap, a full plate — aborted the whole drop and added **nothing**. Each file's read
+now has its own `try`. A **cancel is still the whole drop**: one `AbortController` covers every file
+and stopping means the operator wants nothing added, so an abort is re-thrown rather than collected.
+The reservation self-corrects, because `adding` never rises for a refused file; with no successes at
+all it releases and reports as before. **No new string**: when some files import and one does not, the
+refusal wins the status line, because that is the actionable news and the successes are on the plate.
+
+Walk **`m1`**, in its own section so it re-runs in **13 seconds** rather than thirty minutes:
+three files, the middle one damaged → `units 2` and the status naming the refused file.
+
+*Remaining:* the Drop page itself — `StartScreenId` gaining `drop`, the task keys moving onto it,
+`StartScreen` taking `File[]`, and the reservation-grain decision for a row abandoned before its unit
+exists.
+
+**7a (original).** The Drop page and the drop loop. `StartScreenId` gains `drop`; the task screen's three keys
 and *Open a saved project* move onto it; `StartScreen` takes `File[]` instead of `files.find(isStl)`;
 and the loop restructures for **per-file isolation** — today one `try`, one `PLATE.open()` and one
 `AbortController` wrap the whole drop, so a single refusal **aborts the entire drop and adds nothing**.

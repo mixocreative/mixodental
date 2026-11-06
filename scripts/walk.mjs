@@ -1010,7 +1010,31 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(1000);
       check('i6 a newer file is refused with a message and the plate stays', /newer version/.test(await d.status()) && (await page.locator('footer').innerText()).includes('1 object'), `status "${await d.status()}"`);
 
+    }
 
+    // m. A drop of several files where one is bad: its own section, so it can be re-run in a minute.
+    if (runs('m')) {
+      /*
+       * ONE BAD FILE IN A DROP IS ITS OWN FAILURE, NOT THE DROP'S. The read loop used to sit in a
+       * single try, so any refusal aborted the whole drop and added NOTHING - throwing away the files
+       * that were fine because one was not. With a single file that is the same behaviour; with a case
+       * of several it is the thing a per-file row cannot be built on.
+       *
+       * NO `quiet()` HERE. It waits for the activity list to hide, and after a deliberate failure that
+       * list is SUPPOSED to keep the failure visible - waiting for it to go away timed this check out
+       * at 300 s the first time, which was the check being wrong and not the app.
+       */
+      await page.goto(url);
+      await enterEditor(page);
+      const halfGood = path.join(scratch, 'half-good.stl');
+      writeFileSync(halfGood, 'solid x\nthis is not a mesh\n');
+      await page.setInputFiles('.drop input[type=file]', [FIXTURE, halfGood, FIXTURE]);
+      await page.waitForFunction(() => /2 objects/.test(document.querySelector('footer')?.innerText ?? ''), null, { timeout: 180000 }).catch(() => {});
+      await d.idle(2000);
+      const mixedDrop = await d.props();
+      check('m1 one damaged file in a drop of three refuses only itself: the other two import',
+        mixedDrop.units.length === 2 && /half-good/.test(await d.status()),
+        `units ${mixedDrop.units.length}, status "${await d.status()}"`);
     }
 
     // u. Dental flow, Step 0 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).
