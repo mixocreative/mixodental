@@ -1422,17 +1422,23 @@ async function walk(url, scratch, dentalFixture) {
       await page.evaluate(() => {
         window.__stepWaits = [];
         const look = () => {
-          const at = document.querySelector('[data-ui="progress-step"]');
-          if (!at) return;
-          const seen = {
-            measured: at.querySelectorAll('.progress-indicator--bar.is-measured').length,
-            spinner: at.querySelectorAll('.progress-indicator--spinner').length,
-            percent: at.querySelectorAll('.progress-percent').length,
-            text: at.innerText.replace(/\s+/g, ' ').trim().slice(0, 40),
-          };
-          // One entry per distinct state, not one per tick of a percentage.
-          const last = window.__stepWaits[window.__stepWaits.length - 1];
-          if (!last || last.text !== seen.text || last.measured !== seen.measured) window.__stepWaits.push(seen);
+          /*
+           * EVERY step wait on screen, not `querySelector`'s first. Two can show at once - the area
+           * detector spinning while the print-angle scan counts - and looking at only the first made
+           * the scan invisible to this check and produced a reported gap that did not exist.
+           */
+          for (const at of document.querySelectorAll('[data-ui="progress-step"]')) {
+            const seen = {
+              measured: at.querySelectorAll('.progress-indicator--bar.is-measured').length,
+              spinner: at.querySelectorAll('.progress-indicator--spinner').length,
+              percent: at.querySelectorAll('.progress-percent').length,
+              // Without the number, so a percentage ticking does not fill this with one entry per tick.
+              text: at.innerText.replace(/\s+/g, ' ').replace(/\d+%/, '').trim().slice(0, 40),
+            };
+            if (!window.__stepWaits.some((was) => was.text === seen.text && was.measured === seen.measured)) {
+              window.__stepWaits.push(seen);
+            }
+          }
         };
         new MutationObserver(look).observe(document.body, { subtree: true, childList: true, attributes: true });
         look();
@@ -1449,16 +1455,20 @@ async function walk(url, scratch, dentalFixture) {
        * Read AFTER the step settles: the work being watched for runs on the way here, so asking any
        * earlier asks before it has had a chance to happen.
        *
-       * THE RULE, CHECKED IN THE RUNNING APP, not just in a unit test: a step job that cannot count
-       * its own work shows NO number and NO filling bar. "Detecting the support area" is one call into
-       * the core - it reports a start and an end and nothing between - so it spins and says nothing
-       * about how far along it is. A number here would be one nobody measured.
+       * THE RULE, BOTH WAYS, IN THE RUNNING APP rather than only in a unit test. One load shows both
+       * kinds of step job, and each must say exactly what it knows:
+       *   - "Detecting the support area" is ONE call into the core - a start, an end, nothing between.
+       *     It spins, with no number and no filling bar. A number here would be one nobody measured.
+       *   - "Scanning print angles" counts its own tilts, so it gets a real percentage and a bar.
        */
       const steps = await page.evaluate(() => window.__stepWaits ?? []);
+      const told = steps.map((seen) => `"${seen.text}" measured=${seen.measured} percent=${seen.percent} spinner=${seen.spinner}`).join(' | ') || 'none';
       const unmeasured = steps.filter((seen) => seen.measured === 0);
-      check('u8e a step job that cannot count itself shows no number and no filling bar',
-        steps.length > 0 && unmeasured.length > 0 && unmeasured.every((seen) => seen.percent === 0 && seen.spinner === 1),
-        `${steps.length} step waits: ${steps.map((seen) => `"${seen.text}" measured=${seen.measured} percent=${seen.percent} spinner=${seen.spinner}`).join(' | ') || 'none'}`);
+      const measured = steps.filter((seen) => seen.measured === 1);
+      check('u8e a step job says exactly what it knows: a number only when it counted one',
+        unmeasured.length > 0 && unmeasured.every((seen) => seen.percent === 0 && seen.spinner === 1)
+          && measured.length > 0 && measured.every((seen) => seen.percent === 1 && seen.spinner === 0),
+        `${steps.length} step waits: ${told}`);
       /** The angle the dial shows in its middle, e.g. "44.5" + the degree sign. */
       const angleText = () => page.locator('.print-angle [data-ui="tilt-dial-value"]').textContent().catch(() => '');
       /** The stable band, which used to be part of the same sentence. */

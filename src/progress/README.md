@@ -101,13 +101,19 @@ needs a fourth answer to "what can they do about it". If there is one:
 `.progress-track--indeterminate` rule that only it used. The denture's `StagedProgress` is not a fourth
 type: it renders *inside* a ledger row and is the one piece that composed correctly all along.
 
-## Known gap
+## A gap that was reported and did not exist
 
-**The print-angle scan's `step` indicator does not appear.** Walk `u8e` watches the page through a
-MutationObserver and sees exactly one step wait during a full aligner load — "Detecting the support
-area" — while the scan's own dock note ("Scanning print angles i/n") does show. The guard in
-`OrientationBar` reads `!freeOn && !asking && tilt?.status === 'scanning' && tilt.total > 0`, and
-`tiltCount` can never return zero, so the total is not what blocks it.
+This README briefly said the print-angle scan's `step` indicator never appeared. **It was wrong, and
+the mistake is worth keeping because it is an easy one to repeat.**
 
-This is **not new**: the same site held `SceneProgress` under the same guard before the rewire, so it
-has been unreachable all along, in the same way the rim overlay was. It needs its own look.
+Walk `u8e` watched the page with `document.querySelector('[data-ui="progress-step"]')` — the FIRST
+match. Two step waits can be on screen at once: the area detector spinning while the scan counts. The
+check only ever looked at one of them, found the detector, and concluded the scan was missing.
+
+Driving the real app settled it in a minute: "Scanning print angles" runs 0% → 2% → 7% → 11% → 16%,
+measured, bar filling, exactly as designed. `u8e` now reads **every** step wait and asserts the rule
+in both directions — the job that cannot count shows no number and spins; the job that counts shows a
+percentage and a bar.
+
+**The lesson: a check that looks at one of a set will report the rest as missing.** When a walk check
+says something is not there, confirm it is not there before writing it down as a gap.
