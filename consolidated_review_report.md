@@ -1,173 +1,176 @@
-# Review report — `docs/design/2026-11-05-rim-define-mode.md`
+# Consolidated review — `docs/design/2026-11-05-rim-define-mode.md`
 
-**Date:** 2026-11-06 · **Reviewed range:** whole file (1–466) · **Mode:** consolidated
-**Stages run:** 5 (zoom-out). Stages 6–8 **not run** — see *Why the pipeline stopped* at the end.
-**Target status:** the feature is built and shipped, so this reviewed a record of reasoning, not a proposal.
+**Date:** 2026-11-06 · **Range:** whole file (1–538) · **Preset:** consolidated, all five stages
+**Stage reports:** `zoom_out_report.md`, `comprehension_report.md`, `critic_report.md`,
+`intermediate_zoom_out_report.md`, `implementation_readiness_report.md`
+**Reviewers:** 8, each in a fresh context with no conversation history, given a reading list
+(`egm-goldfish-context.md`) rather than the repository tree.
+
+> An earlier, smaller review of this document ran the same morning; its report is in git history at
+> `9987118`. Its two findings are closed: the hand-drawn rim reaching Step 2 (`ded4521`) and the rim
+> overlay rendering (`3e8f679`), and the Delete point it said was missing is built (`652537a`).
 
 ---
 
 ## The short version
 
-One finding was a real, shipped dead end, and it is **fixed**. One was a drawn rim that saved and then
-vanished, and it is **fixed**. Two were errors in the document's own text, and they are **fixed**. Three
-more were real; one of those is now **built**, and the last two are only the document.
+The document's **mechanics** survive scrutiny. Its engine-versus-host argument, its geometry
+reasoning, its undo account and its engine paragraph were checked line by line and hold up — the list
+of what was confirmed true is longer than the list of what was wrong, and is kept below because a
+record is only worth repairing if most of it is sound.
 
-**One claim in the first version of this report was wrong, and the correction is below** (the drawn-rim
-finding).
+Two defects run through everything else.
 
-Nothing here is speculative: every claim below was checked against the code before it was written down,
-and the ones I could not confirm are marked as such.
+**Defect A is documentary.** The document was turned from a proposal into a record by *appending*
+corrections rather than restating claims, so **whether a sentence is still true depends on how far
+down the subsection you read.** About 35 of the ~45 findings are this one defect in different clothes.
 
----
-
-## Fixed
-
-### 🔴 A hand-drawn rim could not reach Step 2 — `ded4521`
-
-The worst finding in the review, and the one that makes a claim of mine false. I said rim define mode
-worked end to end. It did not.
-
-Done saved the rim and handed Step 1 back. Pressing **Next** then said:
-
-> "No aligner opening was found, so no support area can be proposed. Go Back and choose another file, or Exit."
-
-The mode had moved the dead end one screen later — the exact thing it exists to remove.
-
-**Cause.** `next()` guarded on `dentalProposal`. Rim define mode clears that on entry
-(`editingMode.ts:217`), and Done deliberately does not fabricate one, because `DentalDiagnostics` are
-measurements a drawn rim has no honest value for. So the guard could never pass on this path.
-
-**Fix.** `next()` now reads `dentalRimOwn` — the flag the design created for this exact question, which
-until now was written, tested, and **read nowhere in production**. With a drawn rim there is no
-re-detection and Step 2 opens empty for the operator to paint, the same ending an aligner reaches when
-detection finds a rim but no area.
-
-**Why 80 green checks missed it.** The walk pressed Back after Done and never Next. New check `u5i`
-presses Next and asserts Step 2. It was added *before* the fix and watched to fail, so it tests the bug
-rather than describing the patch.
-
-### 🔴 The document contradicted itself in its own lede — `04208ec`
-
-Fourteen lines under a banner saying the feature shipped, the document still said, in bold: *"Nothing
-here is implemented yet."* A reader six months out had to choose which voice to believe for the
-remaining 440 lines. Rewritten to say what the document now is.
-
-### 🟡 A correction I wrote was itself wrong — `04208ec`
-
-The settled sign rule said the operator's flip is applied by `facingNormal(frame, facing)` in
-`core/surfacePath/frame.ts`. **`facingNormal` has no production caller anywhere** — only its own
-definition and its test. The flip is a plain boolean the engine takes and acts on, reporting `flipped()`
-back, which is the same paragraph's own point about the side being the engine's to decide. The sentence
-a future reader would trust most was the wrong one.
+**Defect B is substantive, and no single stage saw it whole: rim define mode is a one-way door.** It
+is entered only by `dentalRimNeeded`, accepted only while the aligner is still `loading`, sent from
+exactly one place, with no `dental.rim.enter`. Four findings that arrived separately are all
+consequences of that single fact. **So §7's "one thing is left — the flip control" names the wrong
+gap.** One re-entry route answers three findings; a flip arrow answers one, and Stage 9 showed it
+cannot even be built as described.
 
 ---
 
-## Fixed after the owner's go-ahead
+## Code defects — verified, ranked
 
-### 🔴 A drawn rim saved, then vanished
+These are bugs, not documentation. Each was confirmed by reading the code in this session.
 
-The operator placed anchors, pressed Done, was told "Rim saved", and saw bare surface. `DentalRimOutline`
-returned `null` unless `boundaryKind === 'lower-edge-loop'`, and a drawn rim is always
-`projection-fallback` — a drawn loop claims no detection it did not earn.
+### 1. 🔴 Cancel leaves an orphan drawing, and the comment licensing the overlay says it doesn't
+`rim/clear` is dispatched from exactly two places: the Clear command (`App.tsx:1144`) and Done
+(`useRimDrawing.ts:135`). Nothing clears `rimDraft` on Cancel, Esc, Exit or stage change. Meanwhile
+`UnitObject.tsx:432` renders the draft "whenever the unit holds one — not only while the mode is
+open", justified by a comment that reads *"Leaving the mode by Cancel clears the drawing, so a draft
+that still exists is one the operator is in the middle of."* That invariant does not hold. The
+abandoned loop follows the operator into Step 1 and Step 2; the only control that could remove it is
+`visible: rim`, so unreachable; and the undo floor rose at the stage change, so Undo cannot reach it.
 
-**Two things were wrong.** The gate is deleted: `boundaryKind` says whether a loop may AUTHORISE an
-automatic area, which Rust's `dental::legacy` enforces where it belongs, and both kinds are ordered mesh
-vertices on the surface. And the loop drew in the AREA FILL colour while the gate hid it — the legend the
-operator reads gives that colour to "Supports may grow here" and the edge colour to "Edge of that area".
-In Step 2 the operator paints the area in the fill colour, so the boundary would have vanished into the
-first stroke. It now draws in the edge colour, the same one `DentalRegionLines` gives a detected opening.
+### 2. 🔴 `rimDraft` is written to the project file, unvalidated, and a code comment denies it
+`project.ts:51` says it is "NOT saved to the project file". It is: `normalizeUnit` spreads `...unit`
+with no omission, `sceneJsonReplacer` passes it through, and `encodeProject` serialises
+`normalizeScene(scene)`. On load, `cloneSurfacePath` — which validates `closed`, every vector, and the
+three-anchor floor — is called **only** from the `rim/set` reducer, never for a loaded file. Defect 1
+makes it reachable: Cancel, Exit, Save.
+*(One reviewer asserted the opposite by repeating the false comment; a later stage caught it.)*
 
-**Checked by walk `u5j`**, watched to fail at 0 px with the gate and pass at 130 px without it. It measures
-the rim colour on the model against a control taken before the rim exists, with the legend's own swatch of
-that colour masked out, because a screenshot of the canvas catches whatever the page composites over it.
+### 3. 🟡 The Adjust drag never takes the camera out of the gesture
+Paint calls `beginStroke()`, which sets `controls.enabled = false`; the rim-drag branch returns
+before reaching it, and `<OrbitControls enabled={!dragging}>` is driven only by the gizmo's
+`dragging-changed`. The repo proves the point against itself — `beginStroke` exists precisely because
+`stopPropagation` does not stop OrbitControls, which listens on the canvas element. So the view
+orbits while an anchor is dragged. `u5d`/`u5e` cannot see it: both stay true while the camera swings.
+**Read-level conclusion; not executed.**
 
-#### ⚠️ And the first version of this report overstated the finding
+### 4. 🟡 Delete point can be lit over a stale index
+`rimDeleteReason` checks only `dentalRimSelected !== undefined` and the anchor count; it never
+bounds-checks. `onRimDeletePoint` returns silently on `!hasAnchor`. Pick the last anchor, press the
+app's Undo, press Delete point: nothing happens and nothing is said — the exact outcome the Undo
+section sets out to forbid.
 
-It said the overlay was dead "for the main fixture as well as for every hand-drawn rim." The second half
-is right. The first half is not. `DentalRimOutline` is only reached when the area policy is a **manual**
-area; an aligner whose detection succeeded takes the `two-contour` branch and draws `DentalRegionLines` —
-the real mesh edges of both contours, a better boundary than this loop. The reference aligner was never
-missing a boundary on its ordinary path. What the gate hid was the manual-area branch: every drawn rim,
-and a manual area over a fallback rim.
+### 5. 🟡 The Cancel hint is false, in three languages
+*"Leave rim define mode without a rim. Step 1 keeps the notice that sent you here"* — but the
+handover deliberately drops the `failed` notice (`useDentalFlow.ts:169`, with a comment explaining
+why showing it would be wrong). There is no notice to keep. Translated into ja and zh-Hant.
 
-I wrote that claim by reasoning from `boundaryKind` without reading the render site. The fix is right for
-a narrower reason than I first gave.
-
----
-
-## Real, and waiting on a decision
-
-### ✅ 1. "Delete point" is described but does not exist — BUILT
-
-It exists now: `dental.rim.deletePoint`, on the Delete and Backspace keys, with its button beside Clear.
-Adjust picking an anchor up is also what picks it out, so the mode gained no third tool. Two deliberate
-departures from the document are recorded there: the button is shown-and-disabled rather than appearing
-with the pick, and it has no undo toast, because Clear — the more destructive of the two — has none either
-and the drawing is on the app history.
-
-Checked by `rimStage.test.ts` and walk `u5e2`–`u5e5`, the last of which was watched to fail against a
-deliberately wrong index that the point-count check passed.
-
-### 🟡 2. Rim mode opens with a marking tool in hand, against the sibling rule
-
-`docs/design/2026-11-05-back-out-one-level.md` makes "every step opens on Select" a house rule with its
-own walk checks. Rim define mode opens on **Place** (`editingMode.ts:217`). That is probably right —
-there is nothing to damage on an empty drawing and the mode exists only to draw — but **neither document
-records the exemption**, so the two read as a flat contradiction.
-
-**Recommendation:** one sentence in the rim document saying why the rule does not apply here. Cheap, and
-it stops someone "fixing" it later.
-
-### 🟢 3. Document-only: stale line numbers, and a decision recorded twice
-
-The "Mechanics this builds on" section is a file-and-line tour, and several pins have drifted
-(`DentalStage` is `:24` not `:20`; `onAddContact` moved into `useSupportEdits` in this session's
-refactor; several others off by a few lines). Accurate pins remain alongside them, which makes the
-drifted ones more dangerous — a reader cannot tell which half to trust.
-
-Separately, **who densifies the drawn curve** is answered twice and differently: section 1 recommends the
-engine do it, section 3 recommends the host. The host does it (`drawnRim.ts`, 0.5 mm spacing). Neither is
-marked as the one that won.
-
-**Recommendation:** strip the line numbers to file names, and mark the densify decision. Both are
-tidying; neither is urgent.
+### 6. 🟡 After Cancel, Step 1 is a dead end with no explanation
+No rim, no proposal, no notice; `next()` answers *"No aligner opening was found… Go Back and choose
+another file, or Exit."* And the door is bolted twice: the only event that could put Step 1 back into
+`loading` is `switchDentalProfile` via the `u7` row, and `profilesWithoutOpening()` is empty today, so
+that row renders a sentence and **no button at all**. **This is a strictly worse screen than the dead
+end the feature was built to remove.**
 
 ---
 
-## Relayed but not independently verified
+## Document fixes — the smallest set that works
 
-Stated here so they are not lost, and labelled so they are not trusted more than they have earned:
+Stage 8 was asked for the *smallest* set rather than the longest list. Four edits, in order:
 
-- The delivered engine call takes a `flip` boolean where the handoff asked for an `openingHint` vector —
-  a change in who owns the side, recorded as an outcome but not as a change of input shape.
-- Three different signatures for the engine call appear across the document and the handoff, never
-  reconciled.
-- Section 5's verification plan still describes a golden mask comparison "once the geocore call exists",
-  which has since run and is pinned in the engine's test.
-- Section 6's heading says "all answered" while two of its items are still literal questions.
+1. **One "As shipped" block under the banner**, replacing the banner's two-item reversal list, stating
+   six facts in six sentences: the entry condition and why the other two failure paths keep the old
+   notice; that Done is final; that Cancel loses the rim, re-creates the dead end and leaves the
+   drawing on the model; that the drawing is `PrintUnit.rimDraft`; that the flip is a parameter with
+   no control; and that the remaining gap is re-entry. Then **stamp §5 and §6 as pre-engine history
+   in one line each** rather than rewriting them.
+2. **Sentence-level corrections in place:** delete line 397 (`offerUndo`); correct the projection rule
+   at 241–244 (interpolated anchor normals, 2 mm back-off, inward then outward, misses keep the chord
+   position; spacing is a module constant); re-title line 53 to *"`boundaryKind` gates authority, not
+   visibility"*; correct 225–226 on what Cancel costs. Add the four claims Stage 9 found false: the
+   Free-transform handover, the entry event and the stage union, the live overlay being
+   `RimDraftLayer`, and the anchor pick being `grabAnchor` on the model hit rather than pickable
+   instanced handles.
+3. **Strip the line numbers from the ~40 citations, keep the symbols and paths.** Refreshing them
+   guarantees they rot again — two rotted *today*, by edits that made the document more accurate.
+4. **Rewrite §7's "What is left" to name re-entry as the gap**, demote the flip arrow to a consequence
+   of it, and list the code defects above as defects.
 
 ---
 
-## What the review says the document gets right
+## Rejected, demoted and refuted — on the record
 
-Worth keeping, because it is the reason the document is worth repairing rather than replacing: it finds
-the root problem instead of the symptom. It does not patch a stuck Step 1 — it identifies the visibility
-mask as the real gate, **measures** that a blank mask permits nothing and a full one permits what the
-opening cannot reach, and rejects a TypeScript re-raster for the right reason. The refusal to fabricate
-`DentalDiagnostics` is the kind of note that stops a future reader inventing numbers. The Newell's-method
-trap checks out true in `validate.ts`.
+A review that only accumulates is worth less than one that also discards.
+
+- **REFUTED.** "`rimDraft` is not written to the project file" — repeated from the false code comment.
+  The opposite is true (defect 2).
+- **DEMOTED.** "The drawn loop does not bound the permitted area." The facts hold —
+  `rasterize_visible_surface` never receives the loop — but `make_rim` is the **same function the
+  detected path uses**, so no rim has ever been loop-clipped, and the document says as much at line
+  130. The proposed remedy, clipping the raster in the engine, would change detected-rim behaviour on
+  a safety path to fix a legend-reading risk `DentalRegionLines` has always carried. **Remedy: one
+  sentence in §1.** *(This also corrects something I told the owner mid-review: I framed a
+  long-standing property as a regression introduced by this morning's colour change.)*
+- **DEMOTED.** "~60 rotted citations" — real, but the remedy is deletion, not refreshing.
+- **RUBRIC ARTEFACT.** "Done is the one edit Undo cannot reach" — that is the flow-wide rule, written
+  at `flow.ts:37–42`. Rim define is not special.
+- **REJECTED.** Splitting the document; adding Goals / Non-Goals / Risks headings; the ALL-CAPS,
+  bold-saturation and "worth stating" items. These impose a proposal template on a record whose own
+  banner says it is not one, and describe the repo's house voice. Acting on them is churn.
 
 ---
 
-## Why the pipeline stopped after Stage 5
+## Confirmed true, and worth keeping
 
-I chose the consolidated preset, which runs five stages. I ran one and stopped, and that is my call
-rather than the skill's.
+Checked against code and found accurate: `rustRaycast`'s world point and local normal, and the miss
+that lets r3f fire `onPointerMissed`. `ViewportPort`'s `SurfacePick` shape and its `pick` being dead in
+production. `dragOver`'s "a press on empty space belongs to the camera" and `stroke.begin` accepting
+only button 0. **The gizmo really is hidden for free, with no new flag.** The entire undo account.
+`DentalRimOutline`'s every rendering detail. **§4's geometry reasoning in full** — the Newell refusal,
+the bowtie reporting `SELF_INTERSECTING` and `DEGENERATE_AREA` but not `COLLINEAR`, the injected
+`ProjectToSurface`, `removeAnchor` refusing below three with the dock answering in the exact quoted
+sentence. `imports.test.ts` enforcing the no-React/three/DOM rule. **§3's engine paragraph in every
+checkable particular**, including `floor_offset` being area-weighted at the 40% and 60% points. §3's
+test and walk citations, including that `u5e5` requires the vacated spot OFF and an untouched corner ON.
 
-Stage 5 surfaced a shipped dead end, two self-contradictions in the document, and four more real issues.
-Stages 6–8 (comprehension, design/structural/style critics, a second zoom-out) would review the same
-document again against different rubrics and return more findings of the same kind. The constraint here
-is not how many findings exist — it is how many are worth acting on, and that list is already longer than
-one sitting.
+And the document's own **best undocumented decision**: the shipped code distinguishes "detection ran
+and found no rim" from "we could not look", with a good rationale at `useDentalFlow.ts:168–178`. One
+reviewer flagged the contract as wrong; what is actually true is that the shipped distinction is
+better than the design, and the record is poorer than the thing it records. Here the fix is to add
+reasoning, not to correct a claim.
 
-Say the word and I will run the remaining stages. I would rather close these first.
+---
+
+## Why the flip control cannot be built as written
+
+`sideUncertain` is knowable only **after** the engine call, which happens only inside `onRimDone` —
+the same batch that clears the draft and leaves the stage. And `sideUncertain`, `floorOffset` and
+`flipped` are consumed **only** as a status sentence: no session field, no `UiState` field, nothing on
+the stored policy. **After Done, no part of the application knows the side was ever in doubt.**
+
+So "show the flip control" names neither a moment nor a state. A pre-Done toggle needs a speculative
+second engine call the code argues against; a post-Done control needs a persisted fact that does not
+exist and a way back into a mode that cannot be re-entered. The mask is rasterised in Rust, so turning
+an arrow over is a re-call, not a sign flip — the most load-bearing fact for this work, and the
+document never states it.
+
+**And it cannot be verified:** the only test producing `sideUncertain` fakes the engine, the walk never
+reaches an uncertain rim, and no fixture in the repo trips the threshold.
+
+---
+
+## What the owner is being asked
+
+The six code defects are bugs and need no decision beyond "go". The real decision is **whether to build
+a re-entry route into rim define mode.** It dissolves defects 1, 5 and 6 and makes the flip control
+buildable at all; without it, the honest move is to record in §7 that a wrong opening side is
+unrecoverable without re-importing the file.

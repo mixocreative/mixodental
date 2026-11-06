@@ -47,8 +47,15 @@ export function rimDoneReason(state: {
 export function rimDeleteReason(state: {
   dentalRimSelected?: number; dentalRimClosed?: boolean; dentalRimAnchors?: number;
 }): string | undefined {
-  if (state.dentalRimSelected === undefined) return 'Pick a point with Adjust first.';
-  if (state.dentalRimClosed && (state.dentalRimAnchors ?? 0) - 1 < MIN_CLOSED_ANCHORS) {
+  const anchors = state.dentalRimAnchors ?? 0;
+  /*
+   * A PICK THAT NO LONGER POINTS AT ANYTHING IS NO PICK. The index is into a path the app history can
+   * rewrite underneath it - undo an anchor and the one that was picked may be gone - so it is bounds
+   * checked here rather than left to fail silently in the handler. A button that does nothing when
+   * pressed is the thing this whole control was written to avoid.
+   */
+  if (state.dentalRimSelected === undefined || state.dentalRimSelected >= anchors) return 'Pick a point with Adjust first.';
+  if (state.dentalRimClosed && anchors - 1 < MIN_CLOSED_ANCHORS) {
     return 'A closed rim needs at least three points. Press Clear to start this rim again.';
   }
   return undefined;

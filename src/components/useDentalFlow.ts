@@ -8,6 +8,7 @@ import type { DentalNotice } from '../dental/editingMode';
 import type { AnalysisClient } from '../workers/analysisClient';
 import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
+import { isManualArea } from '@mixo-geocore/host/dental/dentalPolicy';
 import { manualAreaPolicy } from '../dental/manualArea';
 import { dentalStructureOf, dentalSupportSettings } from '../dental/supportPreset';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
@@ -260,7 +261,7 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
   /** Step 1 Next: detect the support area for the chosen type, or open Step 2 empty for painting. */
   const next = useCallback(() => {
     const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
-    const { dentalProposal: proposal, dentalProfile: profile, dentalRimOwn } = sessionRef.current;
+    const { dentalProposal: proposal, dentalProfile: profile } = sessionRef.current;
     if (!unit || sessionRef.current.dentalStage !== 'aligner' || sessionRef.current.dentalAligner !== 'ready') return;
     /*
      * A HAND-DRAWN RIM GOES STRAIGHT ON. There is no proposal - rim define mode cleared it, and Done
@@ -268,20 +269,33 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
      * value for. Done has already stored the rim as the unit's manual-area policy, so everything Next
      * would otherwise compute is in place.
      *
-     * Nothing re-detects over the operator's rim: that is what `dentalRimOwn` is for, and this is its
-     * one reader. Step 2 opens empty for them to paint, which is the same ending an aligner reaches
-     * when detection finds a rim but no area.
+     * THE TEST IS THE SCENE, NOT A SESSION FLAG. This read `dentalRimOwn`, a session boolean, and that
+     * was wrong the moment Step 1 could reopen the mode: reopening a saved rim and then pressing Cancel
+     * clears the flag, and an aligner with a perfectly good drawn rim would have been stranded here all
+     * over again. `isManualArea` asks the unit instead, which is where the answer actually lives and
+     * what survives Cancel, a reopen and a reload.
      *
-     * Without this the mode moved the dead end one screen later - Done saved the rim and Next then
-     * said "no aligner opening was found, go Back or Exit". Walk `u5i` is why that cannot return.
+     * It names the drawn-rim case exactly. The other manual-area policy - detection found a rim but no
+     * area - is set further down this same function, so that aligner always has a proposal and never
+     * reaches this branch.
+     *
+     * Step 2 opens empty for them to paint, which is the same ending an aligner reaches when detection
+     * finds a rim but no area. Without this branch the mode moved the dead end one screen later - Done
+     * saved the rim and Next then said "no aligner opening was found". Walk `u5i` is why that cannot
+     * return, and `u5k` is why reopening cannot bring it back.
      */
-    if (!proposal && dentalRimOwn && profile && unit.dental) {
+    if (!proposal && profile && unit.dental && isManualArea(unit.dental)) {
       send({ type: 'acceptDentalOrientation', noArea: true });
       requestView('bottom');
       return;
     }
-    // Orientation failed: there is no opening to build the support area from.
-    if (!proposal || !profile) return setStatus('No aligner opening was found, so no support area can be proposed. Go Back and choose another file, or Exit.');
+    /*
+     * Orientation found no opening, so there is nothing to build a support area from - and the answer
+     * is now in the same dock, not somewhere else entirely. This used to send the operator away ("Go
+     * Back and choose another file, or Exit") from a screen that had, since this feature shipped, a
+     * perfectly good way forward sitting unmentioned.
+     */
+    if (!proposal || !profile) return setStatus('No aligner opening was found. Press Draw the rim to mark it by hand, or go Back and choose another file.');
     const detection = ++detectionSeq.current;
     // The preview already detected this aligner's area as the step opened; Next does not detect it twice.
     const held = areaPreviewRef.current;

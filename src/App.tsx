@@ -1128,6 +1128,8 @@ export default function App() {
       case 'dental.tool.select': return send({ type: 'setDentalTool', tool: 'select' });
       // Rim define mode. Place and Adjust only change what the next drag means; the drawing itself is
       // scene state, so Close and Clear go through scene commands and the ordinary history undoes them.
+      // The way back in. The drawing on the unit is left alone: that is what coming back is for.
+      case 'dental.rim.enter': return send({ type: 'dentalRimReopen' });
       case 'dental.rim.place': return send({ type: 'setDentalRimTool', tool: 'place' });
       case 'dental.rim.adjust': return send({ type: 'setDentalRimTool', tool: 'adjust' });
       case 'dental.rim.close': {

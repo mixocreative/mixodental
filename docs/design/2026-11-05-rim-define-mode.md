@@ -6,9 +6,39 @@
 > build a visibility mask from arbitrary points — was closed by **geocore engine 61**
 > (`dental_rim_from_points`, geocore `8bd2430`).
 >
-> The sections below are kept as the reasoning that got there, not as a to-do list. Two of their
-> recommendations were **overturned by measurement** and are marked where they appear: the
-> opening-sign rule, and the assumption that a drawn rim reproduces a detected one.
+> The sections below are kept as the reasoning that got there, not as a to-do list. **Read the block
+> under this one first**: it is the shipped behaviour in one place, and where the sections disagree
+> with it, it wins.
+
+## As shipped
+
+Everything a maintainer needs before reading anything else. A full review of this document on
+2026-11-06 found that its corrections had been *appended* rather than folded in, so whether a
+sentence was still true depended on how far down a subsection the reader got. This block is the fix
+for that, and the sections below are history.
+
+- **Entry.** Rim define mode opens on one condition only: orientation **ran and found no rim**
+  (`result.kind === 'failed'`). The two other failures — no profile chosen, and no result at all from
+  the worker — are "we could not look", not "this shape has no rim", so they keep the old notice and
+  do not open a drawing mode. The event is `dentalRimNeeded`, not `dentalOrientFailed`, which still
+  exists and still does what it always did.
+- **The way back in.** Step 1 offers **Draw the rim** (`dental.rim.enter`, event `dentalRimReopen`)
+  to any read aligner with no detected orientation. Before it existed the mode was a one-way door and
+  three faults came of that: Cancel stranded the operator, the drawing it left behind could not be
+  reached, and a rim whose side the engine could not settle could never be redrawn.
+- **Cancel keeps the drawing.** It leaves the mode; it does not throw the work away. Draw the rim
+  comes back to it. (This document used to say Step 1 kept "the notice that sent you here"; the
+  handover deliberately drops that notice, so there was never one to keep.)
+- **Done is final for the drawing.** It turns the draft into the unit's manual-area policy and clears
+  the draft. What marks an aligner as hand-drawn from then on is that policy — `next` asks
+  `isManualArea(unit.dental)`. There is no session flag; one existed, `dentalRimOwn`, and it was
+  deleted when re-entry made it wrong.
+- **The drawing is `PrintUnit.rimDraft`**, scene state, so the ordinary history undoes each anchor.
+  It **is** saved with the project and validated on the way back in.
+- **The opening side.** When the engine reports `rim-side-uncertain` the host says so in the status
+  line. `flip` is a parameter on the engine call with no control wired to it, and nothing persists
+  the uncertainty, so a wrong side is corrected by drawing the rim again rather than by a toggle.
+- **What is left:** a flip control, and the state it would need. See "What is left" at the end.
 
 
 When automatic rim detection fails, the aligner is a dead end today: Step 1 says it could not be oriented,
@@ -32,8 +62,8 @@ explains why this could not be built in this repo at all, which is why there is 
 
 ## 1. What a rim has to be
 
-`DentalRim` (`vendor/mixo-geocore/host/dental/dental.ts:6`) is the gate. Every `DentalPolicy` carries one
-(`dentalPolicy.ts:23`), so there is no route into Step 2 without a complete rim:
+`DentalRim` (`vendor/mixo-geocore/host/dental/dental.ts`) is the gate. Every `DentalPolicy` carries one
+(`dentalPolicy.ts`), so there is no route into Step 2 without a complete rim:
 
 | Field | Hand-drawn source |
 | --- | --- |
@@ -46,19 +76,19 @@ explains why this could not be built in this repo at all, which is why there is 
 | `visibilityResolution`, `visibilityMin`, `visibilityMax` | the mask's grid and its 2D bounds in the rim frame |
 | `front?: Vector` | omitted — it exists for pose estimation, which this flow switches off |
 
-The first five are ordinary vector arithmetic over the drawn loop. `rimScalars()`
-(`dentalEngine.ts:310`) already serialises exactly this layout, and `rimOf()` reads it back, so the host is
+The first five are ordinary vector arithmetic over the drawn loop. `rimScalars`
+(`dentalEngine.ts`) already serialises exactly this layout, and `rimOf` reads it back, so the host is
 plainly allowed to *construct* a rim rather than only receive one.
 
-### `boundaryKind` is not an authority gate — measured, not assumed
+### `boundaryKind` gates authority, not visibility — measured, not assumed
 
-`dental.ts:7` says "Only a paired lower-edge loop may authorize automatic dental supports", which reads like
+`dental.ts` says "Only a paired lower-edge loop may authorize automatic dental supports", which reads like
 a hard gate on `boundaryKind`. It is not one in practice. Orienting the shipped reference aligner and
 printing its rim gives:
 
 ```
-RIM points 158  boundaryKind projection-fallback  visibilityResolution 96
-mask bytes 9216  mask set 5089  front undefined
+RIM points 158 boundaryKind projection-fallback visibilityResolution 96
+mask bytes 9216 mask set 5089 front undefined
 ```
 
 The reference aligner — the fixture the whole dental flow is built on — already runs on a
@@ -102,10 +132,10 @@ the gate in place and to pass (130 px) without it.
 
 Two facts, the second measured.
 
-**No engine entry point builds a mask.** Across the whole binding surface (`dentalEngine.ts:180`–`275`:
+**No engine entry point builds a mask.** Across the whole binding surface (`dentalEngine.ts`–`275`:
 `GeometrySession`, `DentalEngine`, `DentalInternals`) the mask only ever comes *out* of orientation, via
-`DentalOrientResultLike.take_visibility_mask()` (`dentalEngine.ts:22`). Every consumer —
-`dental_legacy_fill` (`:215`), `dental_allowed_vertices` (`:250`) — takes it as an argument the host already
+`DentalOrientResultLike.take_visibility_mask` (`dentalEngine.ts`). Every consumer —
+`dental_legacy_fill`, `dental_allowed_vertices` — takes it as an argument the host already
 has. There is no `mask_from_rim(mesh, frame)`.
 
 **And it is read even when the area is the operator's own paint.** The hope was that `manualArea` mode
@@ -128,7 +158,7 @@ length is validated, so the field cannot be dodged.
 ### Therefore: this feature needs geocore
 
 The mask is a 96 × 96 orthographic raster of projected mesh depth in the rim frame
-(`docs/superpowers/plans/2026-10-24-dental-rework.md:28`: "formed from projected mesh depth wherever any
+(`docs/superpowers/plans/2026-10-24-dental-rework.md`: "formed from projected mesh depth wherever any
 surface is visible, not an independently segmented trim footprint"). Three ways, and only one is sound:
 
 1. **A new geocore call** — `dental_rim_from_points(positions, indices, points, profile)` returning the same
@@ -183,18 +213,18 @@ What "no auto detect" switches off, concretely:
 
 ### Do not fabricate a proposal's diagnostics
 
-`next()` refuses on `!proposal`, so the obvious shortcut is to send `dentalOriented` with a synthesised
+`next` refuses on `!proposal`, so the obvious shortcut is to send `dentalOriented` with a synthesised
 `{ kind: 'proposal', rim: drawnRim, diagnostics }`. The trap is `DentalDiagnostics`
 (`vendor/mixo-geocore/host/dental/dental.ts`): `confidence`, `floorOffsetRatio`, `axialVarianceRatio` and
 `crossCheck` are **measurements**, and a hand-drawn rim has no honest value for any of them. They are read
-and shown — `src/dental/orientationEvidence.ts:34` turns `crossCheck` and `floorOffsetRatio` into the
-operator-facing evidence, and `src/state/project.ts:426` persists them. Filling them with zeros or ones
+and shown — `src/dental/orientationEvidence.ts` turns `crossCheck` and `floorOffsetRatio` into the
+operator-facing evidence, and `src/state/project.ts` persists them. Filling them with zeros or ones
 would put invented numbers in front of the operator in the "Why this angle" tool and into the saved project.
 
-So the rim must reach `next()` without pretending to be a detection: either `dentalProposal` gains a shape
+So the rim must reach `next` without pretending to be a detection: either `dentalProposal` gains a shape
 that says "operator-defined, no diagnostics" (diagnostics optional, and the evidence UI says the rim was
-drawn), or the drawn rim lives in its own session field and `next()`'s guard accepts either source. The
-second is smaller and keeps detection's type honest. Either way `next()`'s guard changes from "is there a
+drawn), or the drawn rim lives in its own session field and `next`'s guard accepts either source. The
+second is smaller and keeps detection's type honest. Either way `next`'s guard changes from "is there a
 proposal" to "is there a rim", which is what it actually needs.
 
 A consequence worth stating: the `u7` type row shipped in `f50fe73` becomes **unreachable on the failure
@@ -221,9 +251,18 @@ rim anchors is neither. Two tools:
 
 This is a **mode**, not a step, so its footer is not the step dock's arrow-and-Next pair. The way out is
 worded, the same as the way on: **Cancel | Done**, with a gap rather than a seam, because the two are
-opposites and a seam between opposites invites the wrong press. Cancel carries **Esc** and says what
-leaving costs — Step 1 keeps the notice that sent the operator here, and `dentalRimOwn` is cleared, so
-leaving without finishing means there is no operator rim to protect from detection.
+opposites and a seam between opposites invites the wrong press. Cancel carries **Esc**.
+
+**CORRECTED. Cancel costs less than this section said, and the sentence it shipped with was false.**
+It promised that "Step 1 keeps the notice that sent the operator here" — and the handover deliberately
+drops that notice, with a written reason: a line saying detection failed, sitting over a dock asking the
+operator to draw, would be telling them off for arriving. There was nothing to keep, and the hint said
+so in three languages.
+
+What Cancel does: it leaves the mode and **keeps the drawing**. Step 1 then offers **Draw the rim** to
+come back to it. Before that control existed, Cancel left the operator on a screen with no rim, no
+notice and a Next that told them to choose another file — a worse dead end than the one this feature
+was built to remove, and the drawing stayed painted on the model with no way to reach or remove it.
 
 Esc here leaves the **mode** and nothing more. See `docs/design/2026-11-05-back-out-one-level.md` for the
 rule this follows (a tool goes down, then a mode is left, then the flow) and why the step arrow is a
@@ -238,10 +277,15 @@ would make a polygon, not a rim.
 
 Between two anchors the curve must follow the model, not cut through it. Two options:
 
-- **Resample the chord and project each sample onto the surface** along the loop's current opening
-  direction, falling back to nearest-surface. Cheap, predictable, and can drift on a strongly concave
-  stretch — which the operator sees and fixes by adding an anchor. **Recommended**, with the sample spacing
-  a profile constant so the point count lands near what detection produces.
+- **Resample the chord and project each sample onto the surface.** Recommended, and taken — but **not
+  the way this bullet described**, which is worth stating because the difference is visible on a rim's
+  side walls. It proposed projecting along the loop's opening direction with a nearest-surface fallback.
+  What shipped projects along the **interpolated surface normals of the two bracketing anchors**, by a
+  ray cast from a 2 mm back-off, inward first and then outward, double-sided. The anchors themselves are
+  kept exactly and never re-projected, and a sample whose cast misses keeps its straight-line position
+  rather than failing the rim. The spacing is a **module** constant (`RIM_SAMPLE_SPACING_MM`), not a
+  profile one: no profile has needed its own. Drift on a strongly concave stretch is still real, and the
+  operator still fixes it by adding an anchor.
 - **A true geodesic along the mesh.** Correct everywhere and a great deal more work; worth revisiting only
   if projection proves visibly wrong in use.
 
@@ -278,7 +322,7 @@ shape.
   the engine guessing quietly**.
 
   The operator's flip is a **boolean parameter of the call** (`dental_rim_from_points(model, points,
-  flip, profile)`), and the engine applies it and reports `flipped()` back. An earlier draft of this
+  flip, profile)`), and the engine applies it and reports `flipped` back. An earlier draft of this
   correction said `facingNormal(frame, facing)` in `core/surfacePath/frame.ts` applies it; that is
   wrong, and `facingNormal` has no production caller at all — the side is the engine's to decide, which
   is the whole point of the paragraph above. The host's remaining part is to SHOW the flip, and today
@@ -344,84 +388,112 @@ Surveyed and spot-checked in the code, because three of the owner's four worries
 machinery that already exists.
 
 **Placing an anchor is the gesture the app already has.** Picking goes through `rustRaycast`
-(`src/components/viewport/rustRaycast.ts:17`), installed as the `raycast` prop on the model mesh
-(`UnitObject.tsx:304`), which calls the Rust engine's `session.pick` and pushes a `THREE.Intersection` with
+(`src/components/viewport/rustRaycast.ts`), installed as the `raycast` prop on the model mesh
+(`UnitObject.tsx`), which calls the Rust engine's `session.pick` and pushes a `THREE.Intersection` with
 `point` in **world** space and `face.normal` in **local**. A miss pushes nothing, so r3f fires
-`onPointerMissed`. `clickModel` (`UnitObject.tsx:268`) and `paint` (`:195`) already do exactly what an anchor
-needs — `paint` converts with `event.object.worldToLocal(event.point.clone())`, and `onAddContact`
-(`App.tsx:919`) converts world → unit-local with `inverseTransformPoint`/`inverseTransformDirection`. An
+`onPointerMissed`. `clickModel` (`UnitObject.tsx`) and `paint` already do exactly what an anchor
+needs — `paint` converts with `event.object.worldToLocal(event.point.clone)`, and `onAddContact`
+(`App.tsx`) converts world → unit-local with `inverseTransformPoint`/`inverseTransformDirection`. An
 anchor is one of those hits, kept.
 
-The renderer-free `ViewportPort` seam (`vendor/mixo-geocore/editing/ViewportPort.ts:54`) has a `pick` that
+The renderer-free `ViewportPort` seam (`vendor/mixo-geocore/editing/ViewportPort.ts`) has a `pick` that
 returns exactly the `SurfacePick { point, normal, triangle, distance }` this mode wants, but in production
-only `brushView()` is used and `useScreenBrush.ts:84` constructs the port with `mesh: () => undefined`, so
+only `brushView` is used and `useScreenBrush.ts` constructs the port with `mesh: => undefined`, so
 its `pick` always returns `undefined` there. Worth knowing before reaching for it: the port is the cleaner
 seam and the one mixomesh would want, but it is not wired for picking today.
 
 **Camera-only is already the house mechanism, not something to invent.** `OrbitControls` is drei's with
-`makeDefault` and `enabled={!dragging}` (`ObjectViewport.tsx:127`). Three existing ways the camera is kept
+`makeDefault` and `enabled={!dragging}` (`ObjectViewport.tsx`). Three existing ways the camera is kept
 from stealing a drag, and the mode should reuse the third:
 
-1. The gizmo sets `dragging` from `'dragging-changed'` (`ObjectViewport.tsx:74`).
-2. Paint sets `controls.enabled = false` in `beginStroke` (`UnitObject.tsx:152`) and restores it on a
-   window-level `pointerup`/`pointercancel`/`blur` (`:153`).
+1. The gizmo sets `dragging` from `'dragging-changed'` (`ObjectViewport.tsx`).
+2. Paint sets `controls.enabled = false` in `beginStroke` (`UnitObject.tsx`) and restores it on a
+   window-level `pointerup`/`pointercancel`/`blur`.
 3. **`DragOver.down(button, at, brush, onObject)` returns `false` for a press on empty space and leaves it
-   to the camera** — `vendor/mixo-geocore/editing/dragOver.ts:49`: "A press on empty space belongs to the
+   to the camera** — `vendor/mixo-geocore/editing/dragOver.ts`: "A press on empty space belongs to the
    camera". Right and middle drags always orbit (`stroke.begin` only accepts button 0,
-   `editing/stroke.ts:35`).
+   `editing/stroke.ts`).
 
 So "where the drag starts decides" is not a new rule to build — it is `onObject`, already written and in use.
 
+**CORRECTED: the rim drag does not use any of it.** `startStroke` takes the rim branch and returns
+before `brushStroke.begin`, so neither `DragOver.down` nor `createStroke` is involved and no button
+number is latched. "Where the drag starts decides" is re-implemented by `grabAnchor` returning
+`undefined` on bare surface. That is defensible, but it cost something: point 2 above is the mechanism
+paint uses to take the camera out of its gesture, and **the rim drag did not do it**, so the view
+orbited under every anchor drag until it was fixed. `stopPropagation` does not reach OrbitControls,
+which listens on the canvas element — which is exactly why point 2 exists.
+
 **The model cannot rotate in this mode, for free.** `gizmoShown(gesture, gizmoMode, rotationGizmo)`
-(`ObjectViewport.tsx:33`) returns a gizmo only when `rotationGizmo` is on, or when
+(`ObjectViewport.tsx`) returns a gizmo only when `rotationGizmo` is on, or when
 `gesture.kind === 'none'`. A rim-define gesture is neither, so a new gesture kind hides the gizmo **with no
-new flag**. `rotationGizmo` is `orienting && free.free` (`App.tsx:1434`) — Step 1 Free transform — which is
+new flag**. `rotationGizmo` is `orienting && free.free` (`App.tsx`) — Step 1 Free transform — which is
 precisely the next step, so the gizmo appearing again *is* the handover.
 
 **Undo already has the two things this needs.** History is snapshot-based:
-`SceneHistory { past, present, future, open? }` (`src/state/history.ts:3`), `HISTORY_LIMIT = 100` (`:16`),
-driven by `withSceneCommand(history, command, coalesce?)` (`:42`) through `dispatch(command, edit)`
-(`App.tsx:184`). Two mechanisms matter here:
+`SceneHistory { past, present, future, open? }` (`src/state/history.ts`), `HISTORY_LIMIT = 100`,
+driven by `withSceneCommand(history, command, coalesce?)` through `dispatch(command, edit)`
+(`App.tsx`). Two mechanisms matter here:
 
 - **One gesture, one entry.** A paint stroke dispatches nothing while it runs: stamps pile up in refs
-  (`UnitObject.tsx:104`) and are handed over once in `strokeEnded` (`:131`) as a single
-  `dental/stamps/add` — `App.tsx:862`, commented "One stroke is one undo step". An Adjust drag follows the
+  (`UnitObject.tsx`) and are handed over once in `strokeEnded` as a single
+  `dental/stamps/add` — `App.tsx`, commented "One stroke is one undo step". An Adjust drag follows the
   gizmo's shape instead: move the handle live, dispatch one `transform`-like command on release
-  (`ObjectViewport.tsx:77`). Discrete bursts coalesce by `edit` key via `history.open`.
-- **A per-step undo floor already exists.** `undoFloor` (`App.tsx:216`) is set when a dental step starts,
-  `canUndo(history, floor)` (`history.ts:68`) stops undo escaping the step, and `restoreStep()`
-  (`App.tsx:262`) puts the step back as one entry. So the mode gets step-scoped undo and a Restore step
+  (`ObjectViewport.tsx`). Discrete bursts coalesce by `edit` key via `history.open`.
+- **A per-step undo floor already exists.** `undoFloor` (`App.tsx`) is set when a dental step starts,
+  `canUndo(history, floor)` (`history.ts`) stops undo escaping the step, and `restoreStep`
+  (`App.tsx`) puts the step back as one entry. So the mode gets step-scoped undo and a Restore step
   key without inventing anything — which is the whole reason not to keep a private anchor stack.
 
-`offerUndo` (`App.tsx:275`) is **not** history: it shows a 6-second "Undo" toast for something already done
-(`editing/toast.ts:4`). Clear and Delete point should use it, the way `clearManual` does.
+`offerUndo` is **not** history: it shows a 6-second "Undo" toast for something already done
+(`editing/toast.ts`). Neither Clear nor Delete point uses it — see the Undo section above for why.
 
 **Drawing the curve: less exists than you would hope.** There is **no fat-line (`Line2`/`LineGeometry`)
 usage anywhere, no `THREE.Points` overlay, and no draggable in-scene handle** — confirmed by grep. Two
 consequences:
 
-- The curve itself is nearly free: `DentalRimOutline` (`dentalLayers.tsx:128`) is already a rim-polyline
-  renderer — two stacked `<lineLoop>` over a geometry whose `position` attribute is `rim.points.slice()`,
+- The curve itself is nearly free: `DentalRimOutline` (`dentalLayers.tsx`) is already a rim-polyline
+  renderer — two stacked `<lineLoop>` over a geometry whose `position` attribute is `rim.points.slice`,
   nudged along `openingDirection * 0.035`, `renderOrder={17}`, `depthTest={false}`,
-  `raycast={() => undefined}`. The live drawing overlay is that component with an open loop.
+  `raycast={ => undefined}`. **CORRECTED: the live drawing is NOT that component.** It is a separate
+  `RimDraftLayer` — a `lineSegments` over straight chord *pairs* plus one sphere per anchor, a larger
+  translucent sphere on the picked one, and a see-through sphere for the preview. `DentalRimOutline`
+  renders the **saved** rim only. The two differ in a way that matters: the chord layer draws the
+  straight lines between anchors, not the resampled surface curve the engine is given.
 - The **anchor handles have no precedent**. The nearest things are `EditPreview`'s hover ring
-  (`<torusGeometry>`, `supportLayers.tsx:34`), `CustomisedMarks` (an `<instancedMesh>` of torus,
-  `:246`) and `UnresolvedBubbles` (drei `<Html>` buttons anchored at 3D points,
-  `UnresolvedBubbles.tsx:46`) — which are click targets, not draggable. So anchors are an instanced torus or
-  sphere picked by the same `rustRaycast` path, and **Adjust is the one genuinely new piece of interaction
-  in this mode.** Plan for it accordingly.
+  (`<torusGeometry>`, `supportLayers.tsx`), `CustomisedMarks` (an `<instancedMesh>` of torus,
+  ) and `UnresolvedBubbles` (drei `<Html>` buttons anchored at 3D points,
+  `UnresolvedBubbles.tsx`) — which are click targets, not draggable. **Adjust is the one genuinely new
+  piece of interaction in this mode.**
+
+  **CORRECTED: the anchors are not picked at all.** They are individually rendered spheres with
+  `raycast={ => undefined}` on the group and on every one of them, because a marker that caught
+  clicks would steal them from the surface. An anchor is picked from the **model** hit: the local point
+  goes to `grabAnchor`, which returns the nearest anchor within `RIM_GRAB_REACH_MM` and `undefined` on
+  bare surface. `closesLoop` works the same way against the first anchor, at a shorter reach. This
+  distance-based pick is the mode's central new mechanism and the original sections never named it.
 - **Trap:** `<line>` in JSX is the **SVG** element. Every mark in this scene uses `lineSegments` or
-  `lineLoop` for that reason — the comment is at `PrintAngleArc.tsx:73`. A `lineSegments` arc wants two
+  `lineLoop` for that reason — the comment is at `PrintAngleArc.tsx`. A `lineSegments` arc wants two
   points per segment, not a strip.
 
-**Adding the stage is a well-trodden path.** `DentalStage = 'type' | 'aligner' | 'area' | 'review'`
-(`editingMode.ts:20`), augmented onto `EditSession` by a module declaration (`:73`). A `'rim'` stage means:
-the union, a `dental-rim` member of `DentalGesture` (`:60`) and `dentalGesture()` (`:220`), the transitions
-in `reduceDental` (`:125`) — `dentalOrientFailed` leading to `'rim'` instead of a notice, a `rimDefined`
-event leading to `'aligner'` with Free transform on, and `backDental` (`:189`) learning the way out — a
-branch in `DentalBar.tsx` (its early returns, `:74`–`:114`) and the panel chain in `App.tsx:1488`, plus the
-mode's own commands in `registerCommands` (`editingMode.ts:294`) and keys (`:258`). `send()` already clears
-per-step notices on a stage change (`App.tsx:235`).
+**Adding the stage is a well-trodden path.** `DentalStage` (`editingMode.ts`), augmented onto
+`EditSession` by a module declaration. A `'rim'` stage means: the union, a `dental-rim` member of
+`DentalGesture` and `dentalGesture`, the transitions in `reduceDental`, `backDental` learning the way
+out, a branch in `DentalBar.tsx` (its early returns) and the dock it renders, plus the mode's own
+commands in `registerCommands` and keys. `send` already clears per-step notices on a stage change.
+
+**CORRECTED in three particulars, all of which would send a maintainer to the wrong place.**
+
+- The shipped union is `'type' | 'aligner' | 'rim' | 'area' | 'review'`.
+- The entry transition is **not** on `dentalOrientFailed`. That event still exists and still does what
+  it always did: stay in `'aligner'`, ready, notices kept. A **new** event `dentalRimNeeded` sets the
+  `'rim'` stage, and a third, `dentalRimReopen`, is Step 1's way back in. All three are live and mean
+  different things, which is the distinction the "As shipped" block opens with.
+- **Done does not turn Free transform on.** The exit event is `dentalRimDefined`, and it touches
+  nothing to do with Free transform; `useFreeTransform` resets to off on every stage change and only an
+  operator press turns it on. After Done the operator lands in Step 1 with the gizmo **off**. The
+  owner's words were "when done go straight to free transform mode"; what shipped puts them one press
+  away from it, and this document should not have claimed the press was automatic.
 
 ## 4. Modularity — the loop is not aligner-only
 
@@ -473,6 +545,13 @@ its mask; the drawing is not.
 
 ## 5. Verification
 
+> **PRE-ENGINE HISTORY.** This section was written before `dental_rim_from_points` existed and still
+> asks for work the engine landing made unnecessary or already did. The shipped coverage is listed in
+> section 7 and in "As shipped" at the top: `rimStage.test.ts`, the four `surfacePath` test files,
+> `drawnRim.test.ts`, `rimDraftGeometry.test.ts`, and walk `u5`–`u5k3`. One real gap survives and is
+> named in "What is left": nothing in this repository produces a `rim-side-uncertain` rim against the
+> real engine, so the side-uncertain path has no end-to-end check.
+
 - Pure unit tests on the geometry. **Done: 39 tests across `src/core/surfacePath/`**, covering the anchor
   edits and their refusals, the fitted plane and its area (including the bowtie that Newell's method gets
   wrong), every validation code, the sliver and near-line cases either side of both thresholds, and the
@@ -487,7 +566,11 @@ its mask; the drawing is not.
   transform, reach Step 2. Checks lean on `data-ui` names, never prose.
 - The real-scan gate, since this touches the dental engine path.
 
-## 6. Open for the owner — all answered
+## 6. Open for the owner — answered, except where marked
+
+> **PRE-ENGINE HISTORY.** This heading used to say "all answered" over items that were still
+> questions. Two of them have since been answered by what shipped rather than by this section, and
+> they are marked below.
 
 1. **The geocore call was the blocker, and it landed.** ANSWERED as recommended: the mode was built
    against a Done that refused in a plain sentence, the engine followed, and the refusal was deleted
@@ -531,8 +614,38 @@ Genuinely new, and the state of each:
 
 ### What is left
 
-**Delete point is built** (see the Undo section above). One thing is left, and it is a refinement rather
-than a gap: **the flip control**. When the engine cannot tell
-which way the opening faces it says so and the operator is told to check the aligner is the right way
-up. An arrow they could turn over would be better than a sentence. Everything else in this document is
-built, gated and shipped.
+This section used to say one thing was left — a flip control — and called it "a refinement rather than
+a gap". **Both halves were wrong.** The review of 2026-11-06 found the real gap was that the mode could
+not be re-entered, which is now built (**Draw the rim**), and that the flip control cannot be built as
+described until two other things exist.
+
+**1. The flip control, and the state it needs.** `flip` is a parameter on `dental_rim_from_points` with
+no control wired to it. Three things stand in the way, and an implementer should be given all three
+before starting:
+
+- **It has no moment.** `sideUncertain` is knowable only *after* the engine call, and that call happens
+  inside Done — the same batch that clears the draft and leaves the mode. A pre-Done toggle would need
+  a speculative second engine call on every close, which `useRimDrawing` argues against in writing; a
+  post-Done control needs a way back into Step 1's drawing, which now exists.
+- **It has no state.** `sideUncertain`, `floorOffset` and `flipped` are read once, into a status
+  sentence, and then dropped. No session field, no `UiState` field, nothing on the stored policy. After
+  Done, nothing in the application knows the side was ever in doubt, so a control has no predicate for
+  `visible` or `enabled` and a reloaded project has none either. Deciding where that fact lives — and
+  whether it belongs on the serialized policy — is the first decision, not the last.
+- **Turning an arrow over is a re-call, not a sign flip.** The mask is rasterised in Rust in the rim
+  frame; the host is forbidden from rastering its own. So a flip re-runs the engine, and a post-Done
+  re-call must re-wrap through `manualAreaPolicy`, which hard-codes `stamps: []` — flipping after the
+  operator has painted in Step 2 would discard their paint unless the stamps are merged by hand.
+
+**2. A fixture that produces `rim-side-uncertain` against the real engine.** The only test that
+produces it fakes the engine, and the walk never reaches it. Until one exists the control above can be
+built and never seen to appear, so this comes first.
+
+**3. The loop sets the frame, not the boundary.** Worth stating once, because the overlay invites the
+opposite reading: `rasterize_visible_surface` is never given the drawn points. It takes its bounds over
+every vertex of the mesh and rasters every face, in the frame the loop defines. This has always been
+true of detected rims too — `make_rim` is one function — so it is not a drawn-rim defect and not worth
+an engine change. It does mean the drawn loop is not the edge of the permitted area, whatever the
+legend's colour suggests.
+
+Everything else in this document is built, gated and shipped.

@@ -54,6 +54,15 @@ export type DentalEvent =
    * a notice with no way on. The notices still travel, because the mode says in words why it opened.
    */
   | { type: 'dentalRimNeeded'; notices: readonly DentalNotice[] }
+  /**
+   * THE WAY BACK IN. Step 1 reopens rim define mode for an aligner whose rim is the operator to draw.
+   *
+   * A SEPARATE EVENT from `dentalRimNeeded`, which means "detection ran and found no rim" and is
+   * accepted only while the aligner is still loading. Widening that guard would have made one event
+   * mean both "the detector gave up" and "the operator asked to come back", and the notices it
+   * carries belong only to the first. Both are live, and they say different things.
+   */
+  | { type: 'dentalRimReopen' }
   | { type: 'setDentalRimTool'; tool: DentalRimTool }
   /**
    * Picks out one anchor of the drawing, or lets go of it (`undefined`). Set by Adjust picking an anchor
@@ -67,9 +76,9 @@ export type DentalEvent =
    */
   | { type: 'setDentalTool'; tool: EditTool }
   /**
-   * Done in rim define mode: the drawn rim is the aligner's. Back to Step 1, and `dentalRimOwn` stays on,
-   * which is what switches auto orientation OFF for this aligner - the operator's rim is not re-detected,
-   * and there is no print-angle scan to run without a detected arch front.
+   * Done in rim define mode: the drawn rim is the aligner's, and Step 1 takes it from there. What marks
+   * the aligner as hand-drawn from then on is the unit's own manual-area policy, not any session flag:
+   * `next()` asks `isManualArea(unit.dental)`, which survives Cancel, a reopen and a reload.
    */
   | { type: 'dentalRimDefined' }
   /** A denture is upright and its print angles are scanned (it has no aligner proposal). */
@@ -129,11 +138,6 @@ declare module '@mixo-geocore/editing/session' {
      * Undo would step back through anchors the operator merely looked at.
      */
     dentalRimSelected: number | undefined;
-    /**
-     * The rim of this aligner was drawn by hand, by the operator. Auto orientation is off for it: no
-     * second detection, no print-angle scan, and nothing detected for "Use detected" to re-apply.
-     */
-    dentalRimOwn: boolean;
   }
   interface ExtraSessionEvents { dental: DentalEvent }
 }
@@ -147,7 +151,7 @@ declare module '@mixo-geocore/editing/commands' {
     'supports.dentalAuto': true;
     'dental.useDetected': true; 'dental.next': true; 'dental.generate': true; 'dental.back': true; 'dental.exit': true; 'dental.finish': true; 'dental.addAnother': true;
     'dental.tool.paint': true; 'dental.tool.erase': true; 'dental.tool.add': true; 'dental.tool.select': true;
-    'dental.rim.place': true; 'dental.rim.adjust': true; 'dental.rim.close': true; 'dental.rim.clear': true; 'dental.rim.deletePoint': true; 'dental.rim.done': true;
+    'dental.rim.enter': true; 'dental.rim.place': true; 'dental.rim.adjust': true; 'dental.rim.close': true; 'dental.rim.clear': true; 'dental.rim.deletePoint': true; 'dental.rim.done': true;
   }
   interface UiState {
     /** The reviewed dental contact placement matches the current model and paint. */
@@ -182,7 +186,7 @@ declare module '@mixo-geocore/editing/commands' {
 
 const isDentalEvent = (event: SessionEvent): event is DentalEvent => DENTAL_EVENTS.has(event.type);
 const DENTAL_EVENTS = new Set<string>(['enterDental', 'chooseDentalProfile', 'startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
-  'dentalOrientFailed', 'dentalRimNeeded', 'setDentalRimTool', 'setDentalRimSelected', 'setDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
+  'dentalOrientFailed', 'dentalRimNeeded', 'dentalRimReopen', 'setDentalRimTool', 'setDentalRimSelected', 'setDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
   'addAnotherDental', 'backDental', 'setDentalRadius']);
 
 const finished = (state: EditSession, unitId: string): readonly string[] => (state.dentalFinished.includes(unitId) ? state.dentalFinished : [...state.dentalFinished, unitId]);
@@ -220,12 +224,12 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
         : state;
     /*
       * Detection found no rim, so Step 1 does not stop at a notice with no way on: it hands over to rim
-      * define mode. `dentalRimOwn` goes on here rather than on Done, so that nothing re-detects this
+      * define mode.
       * aligner while the operator is still drawing it.
       */
     case 'dentalRimNeeded':
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'loading'
-        ? { ...state, dentalStage: 'rim', dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: event.notices, dentalRimTool: 'place', dentalRimSelected: undefined, dentalRimOwn: true }
+        ? { ...state, dentalStage: 'rim', dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: event.notices, dentalRimTool: 'place', dentalRimSelected: undefined }
         : state;
     case 'setDentalTool':
       /*
@@ -245,12 +249,24 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
      * an anchor up and acted on by Delete point - so carrying it into Place would leave a ring on the
      * drawing with no tool that answers to it, and an index that Place could push out from under.
      */
+    /*
+     * Reopening keeps whatever is already drawn: the draft lives on the UNIT, and nothing here
+     * touches it. After Cancel that is the loop the operator stepped away from, which is the whole
+     * point of coming back; after Done it is empty, because Done turned it into the rim.
+     *
+     * Nothing is flagged on the session: whether this aligner is hand-drawn is the unit policy, and
+     * `next()` reads that.
+     */
+    case 'dentalRimReopen':
+      return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready'
+        ? { ...state, dentalStage: 'rim', dentalRimTool: 'place', dentalRimSelected: undefined }
+        : state;
     case 'setDentalRimTool':
       return state.mode === 'dental' && state.dentalStage === 'rim'
         ? { ...state, dentalRimTool: event.tool, dentalRimSelected: undefined } : state;
     case 'setDentalRimSelected':
       return state.mode === 'dental' && state.dentalStage === 'rim' ? { ...state, dentalRimSelected: event.at } : state;
-    // Done: back to Step 1 with the operator's rim, and `dentalRimOwn` left on so nothing detects over it.
+    // Done: back to Step 1 with the operator's rim; the unit policy is what records that it is theirs.
     case 'dentalRimDefined':
       return state.mode === 'dental' && state.dentalStage === 'rim'
         ? { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalNotices: [], dentalRimSelected: undefined }
@@ -298,9 +314,12 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
         /*
          * Back out of rim define mode returns to Step 1 and its failure notice - the honest parent of this
          * detour - with the aligner still on the plate, so the way on from there is Back again or Exit.
-         * `dentalRimOwn` is cleared: leaving the mode without finishing means there is no operator rim.
+         * The DRAWING IS KEPT, and Draw the rim in Step 1 comes back to it. Cancel leaves the mode; it
+         * does not throw the work away, and no session flag is left to get out of step with the unit -
+         * this used to clear `dentalRimOwn`, which after a reopen would have stranded an aligner whose
+         * rim was already saved.
          */
-        case 'rim': return { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalRimOwn: false, dentalRimSelected: undefined };
+        case 'rim': return { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalRimSelected: undefined };
         case 'aligner': return { ...state, dentalStage: 'type', dentalAligner: 'prompt', dentalProposal: undefined, dentalNotices: [], dentalUnitId: undefined };
         case 'type': return state;
       }
@@ -344,7 +363,7 @@ const rim = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' &&
 
 registerEditMode({
   id: 'dental',
-  initial: { dentalStage: 'type', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimTool: 'place', dentalRimSelected: undefined, dentalRimOwn: false },
+  initial: { dentalStage: 'type', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimTool: 'place', dentalRimSelected: undefined },
   // Paint and Erase are Step 2's own tools: no other mode starts on one.
   tools: ['paint', 'erase'],
   reduce: (state, event, kit) => (isDentalEvent(event) ? reduceDental(state, event, kit) : undefined),
@@ -462,7 +481,7 @@ registerCommands({
     shortcut: (s) => (rim(s) ? 'Esc' : undefined),
     label: (s) => (rim(s) ? 'Cancel' : 'Back'),
     hint: (s) => (rim(s)
-      ? 'Leave rim define mode without a rim. Step 1 keeps the notice that sent you here'
+      ? 'Leave rim define mode. Your drawing is kept, and Step 1 offers Draw the rim to come back to it'
       : 'Return to the previous step and keep your edits'),
     visible: (s) => s.mode === 'dental' && s.dentalStage !== 'type', enabled: always, disabledReason: never,
   },
@@ -480,6 +499,27 @@ registerCommands({
     hint: (s) => kindText('Finish this aligner and add the next one of the same type', s.dentalKind),
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'review', enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating,
     disabledReason: reviewReason,
+  },
+  /*
+   * THE WAY BACK INTO THE MODE, from Step 1. Without it the mode was a one-way door: Cancel left the
+   * operator in a Step 1 with no rim and no way to get another, and a rim whose side the engine could
+   * not settle could never be redrawn. Three separate faults, one missing control.
+   *
+   * OFFERED EXACTLY WHERE THE DEAD END IS: an aligner that is read and has no detected orientation.
+   * That one condition covers all three ways an operator arrives there - detection found no rim and
+   * they cancelled out of the drawing, they drew a rim and want it back, or detection could not look
+   * at all. A detected aligner has a proposal and is never asked. Dentures do not have this mode.
+   *
+   * It needs no flag of its own. A flag written and never read is what this feature has now had to
+   * delete twice, and the state it would describe is already readable from the step itself.
+   */
+  'dental.rim.enter': {
+    role: 'secondary', label: () => 'Draw the rim', hint: () => 'Draw this aligner rim by hand, keeping anything already drawn',
+    visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind !== 'denture' && !s.dentalProposed,
+    enabled: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind !== 'denture'
+      && !s.dentalProposed && Boolean(s.dentalAlignerReady),
+    disabledReason: (s) => (s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind !== 'denture'
+      && !s.dentalProposed && !s.dentalAlignerReady ? { key: 'Wait for the aligner to finish reading.' } : undefined),
   },
   /*
    * Rim define mode. Two tools with two different words: Place and Adjust. Not Paint (which marks a

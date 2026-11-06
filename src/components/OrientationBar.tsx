@@ -71,6 +71,15 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
       <div className="orient-row">
         <CommandButton command={resolve('dental.useDetected', ui)} run={autoRun} className="orient-auto"><Icon name="orient" /></CommandButton>
       </div>
+      {/*
+        THE WAY BACK INTO RIM DEFINE MODE, shown only to an aligner that has no detected orientation -
+        which is exactly the state that used to have no way on at all. It sits under Use detected
+        because the two answer the same question from opposite ends: take what the detector found, or
+        draw what it could not find.
+      */}
+      {resolve('dental.rim.enter', ui).visible ? <div className="orient-row">
+        <CommandButton command={resolve('dental.rim.enter', ui)} run={run} />
+      </div> : null}
       <div className="orient-row orient-free">
         <button type="button" className="orient-free-btn" onClick={() => free?.ask()}>{t('Free transform')}</button>
       </div>

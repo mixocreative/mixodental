@@ -48,9 +48,14 @@ export interface PrintUnit {
   denture?: DentureState;
   /**
    * The rim the operator is drawing by hand because detection found none (Step 1's rim define mode).
-   * Scene state, so the ordinary snapshot history undoes each anchor; NOT saved to the project file,
-   * because it is the working drawing, not an accepted result - what gets saved is the `dental` policy
-   * the finished rim goes into.
+   * Scene state, so the ordinary snapshot history undoes each anchor.
+   *
+   * IT IS SAVED WITH THE PROJECT, and `normalizeUnit` validates it on the way back in. This comment
+   * used to say the opposite - that the draft was not written to the file - which was never true:
+   * `normalizeUnit` spreads the unit whole and `encodeProject` serialises what it returns, so the
+   * draft went into every saved file and came back with none of the checks `rim/set` insists on.
+   * Saving it is the right behaviour now that Step 1 can reopen the drawing, so what changed is the
+   * validation and this sentence, not the file format.
    */
   rimDraft?: SurfacePath;
   /**
@@ -304,6 +309,9 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
     name: normalizeString(unit.name, 'unit name'),
     transform: cloneTransform(unit.transform),
     settings: migrateOverhangAngle(normalizeJsonObject(unit.settings) as SupportSettings),
+    // A loaded draft goes through the same gate as one made by `rim/set`: a file can be hand-edited
+    // or written by an older build, and an unchecked path reaches the engine the moment Done is pressed.
+    ...(unit.rimDraft ? { rimDraft: cloneSurfacePath(unit.rimDraft) } : {}),
     ...(unit.supports === undefined ? {} : { supports: normalizeSupportMesh(unit.supports) }),
     ...(unit.placement === undefined ? {} : { placement: normalizePlacement(unit.placement) }),
     manual: cloneJsonValue(unit.manual ?? []) as unknown as SupportPoint[],

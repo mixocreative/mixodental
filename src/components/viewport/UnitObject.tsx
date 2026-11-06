@@ -123,6 +123,7 @@ export function UnitObject(props: UnitObjectProps) {
    * instead of unwinding a hundred micro-moves. The scene keeps the drawing as it was until the drag
    * ends, and this local copy is what gets drawn in the meantime.
    */
+  const controls = useThree((state) => state.controls) as unknown as { enabled: boolean } | null;
   const [rimDrag, setRimDrag] = useState<{ at: number; path: SurfacePath } | null>(null);
   /*
    * WHICH ANCHOR WEARS THE RING. Mid-drag it is the one the pointer is carrying, which `rimDrag` knows
@@ -148,8 +149,14 @@ export function UnitObject(props: UnitObjectProps) {
     return () => {
       window.removeEventListener('pointerup', drop);
       window.removeEventListener('pointercancel', drop);
+      /*
+       * AND THE CAMERA COMES BACK, here rather than in `drop`, so it comes back however the drag ends -
+       * released, cancelled, or the unit unmounted mid-drag. Leaving the orbit switched off would be a
+       * worse fault than the one this fixes: a viewport that silently stops turning.
+       */
+      if (controls) controls.enabled = true;
     };
-  }, [rimDrag, onRimPath, unit.id]);
+  }, [rimDrag, onRimPath, unit.id, controls]);
   /** Select supports → Click: the contact whose support is under the pointer. */
   const [pointed, setPointed] = useState<string | null>(null);
   const leave = () => {
@@ -163,7 +170,6 @@ export function UnitObject(props: UnitObjectProps) {
   // pointer and window events to it. A zone stroke is handed on once, when it ends.
   // The orbit is off for the stroke (the r3f canvas listener runs before the OrbitControls one,
   // so the press that starts a stroke never starts a rotation).
-  const controls = useThree((state) => state.controls) as unknown as { enabled: boolean } | null;
   /** Runs once when a stroke ends (release, cancel, blur, a move with no button, the brush gone). */
   const strokeEnded = useRef(() => {});
   const [brushStroke] = useState(() => createStroke(() => strokeEnded.current()));
@@ -263,6 +269,14 @@ export function UnitObject(props: UnitObjectProps) {
       const at = grabAnchor(unit.rimDraft, [local.x, local.y, local.z]);
       if (at === undefined) return;
       event.stopPropagation();
+      /*
+       * THE CAMERA IS OUT OF THIS GESTURE, and it takes more than `stopPropagation` to do it.
+       * OrbitControls listens on the canvas element itself, not on the r3f object tree, so stopping
+       * r3f propagation leaves it listening - which is exactly why `beginStroke` below turns it off
+       * by hand for a paint stroke. Without this the view orbited under every anchor drag, and the
+       * walk could not see it: the anchor still moves and its old spot is still vacated.
+       */
+      if (controls) controls.enabled = false;
       setRimDrag({ at, path: unit.rimDraft });
       // The same press picks the anchor out, so Delete point has a subject without a third tool. A press
       // on bare surface leaves the pick alone and orbits: see `onRimSelect` for why it must survive that.
@@ -430,9 +444,14 @@ export function UnitObject(props: UnitObjectProps) {
       <DentalRiskLayer mesh={unit.source} risks={props.dentalRisks} opacity={0.85} />
     </group>}
     {/*
-      The rim being drawn, whenever the unit holds one - not only while the mode is open. Leaving the mode
-      by Cancel clears the drawing, so a draft that still exists is one the operator is in the middle of,
-      and hiding it would make Back into Step 1 look as though the work had been lost.
+      The rim being drawn, whenever the unit holds one - not only while the mode is open. CANCEL KEEPS THE
+      DRAWING: it leaves the mode, it does not throw the work away, and Step 1 offers Draw the rim to come
+      back to it. Hiding it in Step 1 would make Cancel look as though the work had been lost.
+
+      This comment used to say the opposite - that Cancel cleared the drawing - which was never true of any
+      code in this repository. `rim/clear` is dispatched by Clear and by Done, and by nothing else. The
+      drawing outlived Cancel the whole time, with no way back into the mode to edit it and no control that
+      could remove it, because Clear is `visible: rim`. The way back in is what makes keeping it right.
       The preview anchor appears only in Place, and only with the pointer on the model.
     */}
     {(rimDrag?.path ?? unit.rimDraft) && <RimDraftLayer path={rimDrag?.path ?? unit.rimDraft!}

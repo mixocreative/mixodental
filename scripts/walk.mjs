@@ -1109,7 +1109,15 @@ async function walk(url, scratch, dentalFixture) {
       const rimPoints = async () => ((await page.locator('[data-ui="rim-point-count-control"]').innerText()) ?? '').trim();
       check('u5c Place puts one anchor down per click on the model', (await rimPoints()) === '3', `points ${await rimPoints()}`);
       await d.button('Adjust').click();
-      await d.stroke(rimSpots[0], [0.37, 0.38], 10);
+      /*
+       * A LONG DRAG, AND THE REASON IS A BUG THAT USED TO HELP. This dragged to [0.37, 0.38], about
+       * 0.33 mm on a 2 mm cube - inside `closesLoop`'s reach of 0.67 mm - and u5e below still saw the
+       * old spot as bare. It passed only because the VIEW ORBITED during the drag, which carried the
+       * anchor further than the pointer did. With the orbit properly suppressed the anchor goes where
+       * the pointer goes, so the drag has to be long enough to mean something on its own: this one is
+       * about 1.6 mm, clear of both the close reach and `grabAnchor`'s 0.84 mm.
+       */
+      await d.stroke(rimSpots[0], [0.60, 0.70], 10);
       await d.idle(500);
       check('u5d a drag in Adjust adds nothing: the click the release fires is not a new anchor', (await rimPoints()) === '3', `points ${await rimPoints()}`);
 
@@ -1241,6 +1249,31 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Back').click();
       await stepTo('Step 1 · Aligner');
 
+      /*
+       * AND THE DOOR OPENS BOTH WAYS. Rim define mode used to be one-way: once it was left there was
+       * no event that could reopen it, so Cancel stranded the operator, an abandoned drawing could
+       * not be reached, and a rim whose side the engine could not settle could never be redrawn.
+       *
+       * The last check here is the one that matters most. Reopening and then cancelling used to clear
+       * `dentalRimOwn`, which was `next()`'s only test for a hand-drawn rim - so this exact sequence
+       * would have thrown away a rim that was already saved and sound. `next()` asks the unit policy
+       * now, and this is what holds it to that.
+       */
+      const drawAgain = d.button('Draw the rim');
+      check('u5k Step 1 offers the way back into the drawing for a hand-drawn aligner',
+        (await drawAgain.isVisible()) && (await drawAgain.isEnabled()));
+      await drawAgain.click();
+      await page.waitForFunction(() => /Define the rim/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
+      check('u5k2 Draw the rim reopens the mode', (await badge()).includes('Define the rim'), `badge "${(await badge()).slice(0, 34)}"`);
+      await d.button('Cancel').click();
+      await stepTo('Step 1 · Aligner');
+      await d.button('Next').click();
+      await stepTo('Step 2 · Support area', 120000);
+      check('u5k3 a rim already saved survives a reopen and a cancel, and still reaches Step 2',
+        (await badge()).includes('Step 2'), `badge "${(await badge()).slice(0, 34)}", status "${await d.status()}"`);
+      await d.button('Back').click();
+      await stepTo('Step 1 · Aligner');
+
       await d.button('Back').click();
       await onTypeScreen();
       await page.locator('.choice-key').click();
@@ -1256,6 +1289,18 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
       check('u5b Cancel leaves rim define mode and lands back in Step 1, still in the flow',
         (await badge()).includes('Step 1 · Aligner') && await d.button('Exit').isVisible(), `badge "${(await badge()).slice(0, 30)}"`);
+
+      /*
+       * AND STEP 1 SAYS WHAT TO DO. Cancelling with nothing drawn used to leave the operator on a
+       * screen whose only advice was to choose another file or leave - a worse dead end than the one
+       * this whole feature exists to remove, since at least that one came with an explanation.
+       */
+      check('u5b2 after Cancel, Step 1 still offers the way back in', await d.button('Draw the rim').isVisible());
+      await d.button('Next').click();
+      await d.idle(600);
+      const strandedStatus = await d.status();
+      check('u5b3 Next names the way forward instead of sending the operator away',
+        /Draw the rim/.test(strandedStatus) && (await badge()).includes('Step 1 · Aligner'), `status "${strandedStatus}"`);
 
       /*
        * A CLEAN PLATE before the next fixture. Two cubes were dropped above - one kept its drawn rim,

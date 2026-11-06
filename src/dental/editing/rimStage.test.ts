@@ -38,12 +38,14 @@ describe('rim define mode: the stage', () => {
   });
 
   /*
-   * `dentalRimOwn` is what switches auto orientation off for this aligner, and it goes on when the mode
-   * OPENS rather than when Done is pressed - otherwise a detection could land on top of a half-drawn rim.
+   * NO SESSION FLAG SAYS THE RIM IS THE OPERATOR. There used to be one, `dentalRimOwn`, and `next()`
+   * was its only reader; it was wrong as soon as Step 1 could reopen the mode, because reopening a
+   * saved rim and then cancelling cleared it and stranded the aligner. The durable answer is the
+   * unit's own manual-area policy, which Cancel, a reopen and a reload all leave alone.
    */
-  it('marks the aligner as having the operator rim from the moment the mode opens', () => {
-    expect(drawing.dentalRimOwn).toBe(true);
-    expect(run(drawing, { type: 'dentalRimDefined' }).dentalRimOwn).toBe(true);
+  it('carries no detection proposal into or out of the mode', () => {
+    expect(drawing.dentalProposal).toBeUndefined();
+    expect(run(drawing, { type: 'dentalRimDefined' }).dentalProposal).toBeUndefined();
   });
 
   it('only opens from Step 1 while it is still reading the aligner', () => {
@@ -71,10 +73,15 @@ describe('rim define mode: the stage', () => {
    * aligner still on the plate - and drops the operator-rim mark, because leaving without finishing means
    * there is no operator rim to protect from detection.
    */
-  it('goes back to Step 1 and forgets the unfinished rim', () => {
+  /*
+   * Cancel leaves the MODE, not the work. The drawing lives on the unit and nothing here touches it,
+   * which is what makes Draw the rim in Step 1 a way back to it rather than a blank sheet.
+   */
+  it('goes back to Step 1 and leaves the drawing where it is', () => {
     const back = run(drawing, { type: 'backDental' });
     expect(back.dentalStage).toBe('aligner');
-    expect(back.dentalRimOwn).toBe(false);
+    expect(back.dentalAligner).toBe('ready');
+    expect(back.dentalRimSelected).toBeUndefined();
   });
 
   it('hands the canvas its own gesture, and so no support tool and no gizmo', () => {
@@ -82,6 +89,57 @@ describe('rim define mode: the stage', () => {
     expect(press).toMatchObject({ kind: 'dental-rim', tool: 'place' });
     // `gizmoShown` only shows a gizmo for gesture kind 'none' or Free transform: this is neither.
     expect(press.kind).not.toBe('none');
+  });
+});
+
+describe('rim define mode: the way back in', () => {
+  /*
+   * WITHOUT THIS THE MODE WAS A ONE-WAY DOOR, and three separate faults came of it: Cancel left the
+   * operator in a Step 1 with no rim and no way to get one, the drawing it left behind could not be
+   * reached, and a rim whose side the engine could not settle could never be redrawn.
+   */
+  const step1 = (change: Partial<UiState> = {}): UiState =>
+    ({ ...READY, mode: 'dental', dentalStage: 'aligner', dentalAlignerReady: true, dentalKind: 'aligner', ...change });
+
+  it('is offered exactly where the dead end is: a read aligner with no detected orientation', () => {
+    expect(resolve('dental.rim.enter', step1()).visible).toBe(true);
+    expect(resolve('dental.rim.enter', step1()).enabled).toBe(true);
+    // A detected aligner has a proposal and is never asked.
+    expect(resolve('dental.rim.enter', step1({ dentalProposed: true })).visible).toBe(false);
+    // Dentures do not have this mode at all.
+    expect(resolve('dental.rim.enter', step1({ dentalKind: 'denture' })).visible).toBe(false);
+    // Nor is it offered from any other step.
+    expect(resolve('dental.rim.enter', step1({ dentalStage: 'area' })).visible).toBe(false);
+    expect(resolve('dental.rim.enter', step1({ dentalStage: 'rim' })).visible).toBe(false);
+  });
+
+  it('waits, with a reason, while the aligner is still being read', () => {
+    const reading = step1({ dentalAlignerReady: false });
+    expect(resolve('dental.rim.enter', reading).enabled).toBe(false);
+    expect(resolve('dental.rim.enter', reading).disabledReason?.key).toBe('Wait for the aligner to finish reading.');
+  });
+
+  /*
+   * A SEPARATE EVENT from `dentalRimNeeded`, which means "detection ran and found no rim" and is
+   * accepted only while the aligner is still loading. Widening that guard would have made one event
+   * carry two meanings, and the notices it brings belong only to the first.
+   */
+  it('reopens the mode from a ready Step 1, where the handover event is refused', () => {
+    const ready = run(drawing, { type: 'backDental' });
+    expect(ready.dentalStage).toBe('aligner');
+    expect(ready.dentalAligner).toBe('ready');
+    // The handover event cannot do this: it is for a aligner still being read.
+    expect(run(ready, { type: 'dentalRimNeeded', notices: [] }).dentalStage).toBe('aligner');
+    const back = run(ready, { type: 'dentalRimReopen' });
+    expect(back.dentalStage).toBe('rim');
+    expect(back.dentalRimTool).toBe('place');
+    expect(back.dentalRimSelected).toBeUndefined();
+  });
+
+  it('cannot reopen from anywhere but a ready Step 1', () => {
+    expect(run(loading, { type: 'dentalRimReopen' }).dentalStage).toBe('aligner');
+    expect(run(drawing, { type: 'dentalRimReopen' }).dentalStage).toBe('rim');
+    expect(run(initialSession, { type: 'dentalRimReopen' }).mode).toBe('off');
   });
 });
 
@@ -172,6 +230,19 @@ describe('rim define mode: its keys', () => {
     expect(resolve('dental.rim.deletePoint', { ...three, dentalRimClosed: false }).enabled).toBe(true);
   });
 
+  /*
+   * THE PICK IS AN INDEX INTO A PATH THE APP HISTORY CAN REWRITE. Pick the last anchor, press the
+   * app Undo, and that anchor is gone while the pick still names its slot. Delete point must go off,
+   * not stay lit over nothing and then do nothing when pressed.
+   */
+  it('goes off when the picked point is no longer there', () => {
+    const picked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 4, dentalRimSelected: 3 });
+    expect(resolve('dental.rim.deletePoint', picked).enabled).toBe(true);
+    const undone = at({ dentalRimTool: 'adjust', dentalRimAnchors: 3, dentalRimSelected: 3 });
+    expect(resolve('dental.rim.deletePoint', undone).enabled).toBe(false);
+    expect(resolve('dental.rim.deletePoint', undone).disabledReason?.key).toBe('Pick a point with Adjust first.');
+  });
+
   it('deletes the picked point with the Delete key, the same key the steps either side use', () => {
     const picked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 5, dentalRimSelected: 2 });
     for (const key of ['Delete', 'Backspace']) {
@@ -219,7 +290,12 @@ describe('rim define mode: its keys', () => {
   it('wears the mode\'s own words on the way out, not the step arrow\'s', () => {
     const back = resolve('dental.back', at({}));
     expect(back).toMatchObject({ label: 'Cancel', shortcut: 'Esc', visible: true, enabled: true });
-    expect(back.hint).toBe('Leave rim define mode without a rim. Step 1 keeps the notice that sent you here');
+    /*
+     * The hint has to be TRUE. It used to promise "Step 1 keeps the notice that sent you here", and the
+     * handover deliberately drops that notice (`useDentalFlow`, with a comment on why showing it would
+     * be telling the operator off for arriving). There was nothing to keep, in three languages.
+     */
+    expect(back.hint).toBe('Leave rim define mode. Your drawing is kept, and Step 1 offers Draw the rim to come back to it');
     // Everywhere else the same control is step navigation, and says so.
     const inStep = resolve('dental.back', at({ dentalStage: 'area' }));
     expect(inStep).toMatchObject({ label: 'Back', shortcut: undefined });
