@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1793900744.5473826,
-    "seen": 1793902315.4000866,
-    "ast_hash": "711b725ac55b0a659696445586ea8615",
+    "mtime": 1793941231.2102633,
+    "seen": 1793942281.9830666,
+    "ast_hash": "7b2dfbbd3da05f6ff5759f59d24ba9ae",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -967,9 +967,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1793011332.9029522,
-    "seen": 1793016329.1125016,
-    "ast_hash": "67d88e9d0760c3ba54c75dfd9551c1c5",
+    "mtime": 1793902379.1520858,
+    "seen": 1793942281.9840658,
+    "ast_hash": "6fb75ea5c131be346c0bf9ce807d0c16",
     "semantic_hash": ""
   },
   "DESIGN.md": {
@@ -2929,9 +2929,9 @@
     "semantic_hash": ""
   },
   "src/components/useDentalFlow.ts": {
-    "mtime": 1793899383.4666007,
-    "seen": 1793902315.4000866,
-    "ast_hash": "ddf969da5f0163a3833f24115a4e123b",
+    "mtime": 1793903247.4435732,
+    "seen": 1793942281.9830666,
+    "ast_hash": "088f7ce671d5c7a7d3f2d5edbc5fb544",
     "semantic_hash": ""
   },
   "scripts/dental-region-review/profile.ts": {
@@ -3037,9 +3037,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/dentalLayers.tsx": {
-    "mtime": 1793816039.549657,
-    "seen": 1793902315.4000866,
-    "ast_hash": "393cd19f9d03b331a10829ca72423c60",
+    "mtime": 1793941544.1368225,
+    "seen": 1793942281.9830666,
+    "ast_hash": "43f9202f2ccf7817f69872094fe7df96",
     "semantic_hash": ""
   },
   "src/components/viewport/warmMaterials.ts": {
@@ -5317,9 +5317,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-05-rim-define-mode.md": {
-    "mtime": 1793901162.6875632,
-    "seen": 1793902315.4000866,
-    "ast_hash": "a3a13f8f50cfc00ccce4f1743c68a0ad",
+    "mtime": 1793942133.459827,
+    "seen": 1793942281.9840658,
+    "ast_hash": "3410485f7fbac6f3752d275146c7227b",
     "semantic_hash": ""
   },
   "docs/design/2026-11-05-verdict-staleness-and-orient-ways.md": {
@@ -5392,6 +5392,12 @@
     "mtime": 1793787044.1402037,
     "seen": 1793902315.4000866,
     "ast_hash": "2b089eb08cb043f724da6749b64e18b2",
+    "semantic_hash": ""
+  },
+  "consolidated_review_report.md": {
+    "mtime": 1793942215.0308416,
+    "seen": 1793942281.9840658,
+    "ast_hash": "ca9e0113bf56f0c0b6a2ef1d43458e4c",
     "semantic_hash": ""
   }
 }
