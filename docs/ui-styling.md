@@ -208,6 +208,9 @@ Colours with a meaning. Each is an alias of a UI token by default; give it a col
 
 ### Waiting: the three types (`src/progress/`)
 
+> The module and why it exists: **`src/progress/README.md`**. This section is the designer's half —
+> where each type goes, what can be restyled, and what may not be.
+
 There are **three kinds of waiting**, because there are three things an operator can do while it
 happens: nothing, watch, or ignore. Every bar, spinner and loading word in the app is one of them.
 
