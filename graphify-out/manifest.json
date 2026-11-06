@@ -120,15 +120,15 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1793941231.2102633,
-    "seen": 1793942281.9830666,
-    "ast_hash": "7b2dfbbd3da05f6ff5759f59d24ba9ae",
+    "mtime": 1793943636.9553864,
+    "seen": 1793944627.1648912,
+    "ast_hash": "2cb1570937182d84ef098c8a5bbd702e",
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1793899432.754995,
-    "seen": 1793902315.4000866,
-    "ast_hash": "622d134a6c33da4dec35cee8ca5e1773",
+    "mtime": 1793942927.9203844,
+    "seen": 1793944627.1648912,
+    "ast_hash": "2ac88e606e880d3de6ab0602c5e5645d",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -204,9 +204,9 @@
     "semantic_hash": ""
   },
   "src/components/ObjectViewport.tsx": {
-    "mtime": 1793887173.823609,
-    "seen": 1793902315.4000866,
-    "ast_hash": "ce4024bb6afc270e1fd0b422e92f62b6",
+    "mtime": 1793942940.7675736,
+    "seen": 1793944627.1648912,
+    "ast_hash": "cf2eb0fb224a9138e3c8c2ed446c6c33",
     "semantic_hash": ""
   },
   "src/components/ProblemList.tsx": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/UnitObject.tsx": {
-    "mtime": 1793887209.92903,
-    "seen": 1793902315.4000866,
-    "ast_hash": "e20e2ebe3ff7495279f1cc75d8ce9e3a",
+    "mtime": 1793942979.4145172,
+    "seen": 1793944627.1648912,
+    "ast_hash": "a0efff8786944fac0ddb1a797382d876",
     "semantic_hash": ""
   },
   "src/components/viewport/cameras.tsx": {
@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/types.ts": {
-    "mtime": 1793887159.1954358,
-    "seen": 1793902315.4000866,
-    "ast_hash": "f2fe94486f15f808dbaf66d9cb8722fc",
+    "mtime": 1793942979.4145172,
+    "seen": 1793944627.1648912,
+    "ast_hash": "49557e3bcf2632a4c09877d6e3056128",
     "semantic_hash": ""
   },
   "src/components/viewport/useScreenBrush.ts": {
@@ -564,15 +564,15 @@
     "semantic_hash": ""
   },
   "src/locales/ja.ts": {
-    "mtime": 1793899680.7801125,
-    "seen": 1793902315.4000866,
-    "ast_hash": "a24649c84294e12772dc90b731baecef",
+    "mtime": 1793943099.5617561,
+    "seen": 1793944627.1654017,
+    "ast_hash": "90f16e7feeeb3dab095965c855489526",
     "semantic_hash": ""
   },
   "src/locales/zh-Hant.ts": {
-    "mtime": 1793899680.7791126,
-    "seen": 1793902315.4000866,
-    "ast_hash": "07887e0ca61111bd88d08ed4dc2cbd3f",
+    "mtime": 1793943099.5617561,
+    "seen": 1793944627.1654017,
+    "ast_hash": "a8b10c8fde4601b34e3ffbcf56455cdd",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -3769,9 +3769,9 @@
     "semantic_hash": ""
   },
   "src/dental/editingMode.ts": {
-    "mtime": 1793899469.1781142,
-    "seen": 1793902315.4000866,
-    "ast_hash": "26d6d9bee573b1742cf6606c201a1234",
+    "mtime": 1793942901.4141622,
+    "seen": 1793944627.1648912,
+    "ast_hash": "6119dbbce94b8e49291b378a88f3870d",
     "semantic_hash": ""
   },
   "src/workers/engineSource.ts": {
@@ -5191,15 +5191,15 @@
     "semantic_hash": ""
   },
   "src/dental/editing/rimStage.test.ts": {
-    "mtime": 1793899615.9591334,
-    "seen": 1793902315.4000866,
-    "ast_hash": "15d17c890ac1c59664ba8be64eb90f76",
+    "mtime": 1793943137.1710787,
+    "seen": 1793944627.1648912,
+    "ast_hash": "e512f8c2317eb2c22c748cb7e74cfdbc",
     "semantic_hash": ""
   },
   "src/dental/rim/DentalRimStep.tsx": {
-    "mtime": 1793885272.1323614,
-    "seen": 1793902315.4000866,
-    "ast_hash": "8e8c435587e0496bae4912b57b7f426b",
+    "mtime": 1793943000.1686566,
+    "seen": 1793944627.1648912,
+    "ast_hash": "b562e6e82dd652d59766e2400393487b",
     "semantic_hash": ""
   },
   "src/dental/rim/drawnRim.test.ts": {
@@ -5233,15 +5233,15 @@
     "semantic_hash": ""
   },
   "src/dental/rim/rimStepText.ts": {
-    "mtime": 1793899469.1781142,
-    "seen": 1793902315.4000866,
-    "ast_hash": "3d0cfda80d100d86667eda74983fa1fa",
+    "mtime": 1793942876.8106203,
+    "seen": 1793944627.1648912,
+    "ast_hash": "f1375598fa8274e7b4a91ab2db22a5fe",
     "semantic_hash": ""
   },
   "src/dental/rim/useRimDrawing.ts": {
-    "mtime": 1793899432.698764,
-    "seen": 1793902315.4000866,
-    "ast_hash": "75074a0349b8aa6835074a62ae189c4f",
+    "mtime": 1793943970.942788,
+    "seen": 1793944627.1648912,
+    "ast_hash": "fab29a393b129c6b4c128740ac852831",
     "semantic_hash": ""
   },
   "src/supports/useSupportEdits.ts": {
@@ -5317,9 +5317,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-05-rim-define-mode.md": {
-    "mtime": 1793942133.459827,
-    "seen": 1793942281.9840658,
-    "ast_hash": "3410485f7fbac6f3752d275146c7227b",
+    "mtime": 1793944556.0421016,
+    "seen": 1793944627.1654017,
+    "ast_hash": "b8da7b88d070ef1a4d8f95bc5f1094f1",
     "semantic_hash": ""
   },
   "docs/design/2026-11-05-verdict-staleness-and-orient-ways.md": {
@@ -5395,9 +5395,9 @@
     "semantic_hash": ""
   },
   "consolidated_review_report.md": {
-    "mtime": 1793942215.0308416,
-    "seen": 1793942281.9840658,
-    "ast_hash": "ca9e0113bf56f0c0b6a2ef1d43458e4c",
+    "mtime": 1793944556.0431063,
+    "seen": 1793944627.1654017,
+    "ast_hash": "9f064bb62836a3d5ed7471e32fcad14a",
     "semantic_hash": ""
   }
 }
