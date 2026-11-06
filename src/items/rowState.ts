@@ -33,7 +33,8 @@
  *     so this state is reachable, not theoretical.
  */
 
-import type { FillReason, RepairReport, RepairResult } from '@mixo-geocore/host/core/repairMesh';
+import type { FillReason, RepairResult } from '@mixo-geocore/host/core/repairMesh';
+import type { ImportDiagnosis } from '../workers/importProtocol';
 
 /** Which capacity guard turned a file away. Each has its own sentence; none of them means "unreadable". */
 export type CapacityLimit = 'triangles' | 'memory' | 'plate';
@@ -76,13 +77,10 @@ export const verdictOfRefusal = (refusal: ImportRefusal): RowState =>
  * these as four rows keyed partly on `changed()`, which is a field of the REPAIR report and does not
  * exist before a press - that table could report a holed file as "Clean".
  */
-export function verdictOfDiagnosis(report: RepairReport): RowState {
-  if (report.watertight) return { state: 'clean' };
-  if (report.boundaryLoops > 0) {
-    const longest = report.bodies.flatMap((body) => body.loopLengthsMm);
-    return { state: 'holes', loops: report.boundaryLoops, longestMm: longest.length > 0 ? Math.max(...longest) : 0 };
-  }
-  return { state: 'malformed', nonManifoldEdges: report.nonManifoldEdges, windingConsistent: report.windingConsistent };
+export function verdictOfDiagnosis(found: ImportDiagnosis): RowState {
+  if (found.watertight) return { state: 'clean' };
+  if (found.boundaryLoops > 0) return { state: 'holes', loops: found.boundaryLoops, longestMm: found.longestRimMm };
+  return { state: 'malformed', nonManifoldEdges: found.nonManifoldEdges, windingConsistent: found.windingConsistent };
 }
 
 /**

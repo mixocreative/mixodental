@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { LoopFill, RepairReport, RepairResult, RepairSteps } from '@mixo-geocore/host/core/repairMesh';
+import type { ImportDiagnosis } from '../workers/importProtocol';
 import { ROW_STATES, offersRepair, verdictOfDiagnosis, verdictOfRefusal, verdictOfRepair } from './rowState';
 
-/** A watertight single-body report; each test changes only the field it is about. */
+/** A watertight verdict as the worker sends it; each test changes only the field it is about. */
+const found = (over: Partial<ImportDiagnosis> = {}): ImportDiagnosis => ({
+  watertight: true, boundaryLoops: 0, longestRimMm: 0, nonManifoldEdges: 0,
+  windingConsistent: true, bodies: 1, ...over,
+});
+
+/** The full report, still needed for the `after` side of a repair result. */
 const report = (over: Partial<RepairReport> = {}): RepairReport => ({
   triangles: 1000, vertices: 502, bodies: [], boundaryLoops: 0, boundaryEdges: 0,
   nonManifoldEdges: 0, nonManifoldVertices: 0, closed: true, windingConsistent: true,
@@ -24,9 +31,9 @@ describe('a row state is decided in one place', () => {
     const reached = new Set<string>([
       verdictOfRefusal({ kind: 'unreadable', code: 'StlFormatError' }).state,
       verdictOfRefusal({ kind: 'too-big', limit: 'plate' }).state,
-      verdictOfDiagnosis(report()).state,
-      verdictOfDiagnosis(report({ watertight: false, boundaryLoops: 2 })).state,
-      verdictOfDiagnosis(report({ watertight: false })).state,
+      verdictOfDiagnosis(found()).state,
+      verdictOfDiagnosis(found({ watertight: false, boundaryLoops: 2 })).state,
+      verdictOfDiagnosis(found({ watertight: false })).state,
       verdictOfRepair(result({ ok: false, reason: 'body-invariant:weld' })).state,
       verdictOfRepair(result({ changed: false })).state,
       verdictOfRepair(result()).state,
@@ -41,10 +48,10 @@ describe('a row state is decided in one place', () => {
    * operator was about to print. These three conditions cannot overlap and cannot all miss.
    */
   it('before a press: watertight, holes, or malformed - and never two of them', () => {
-    expect(verdictOfDiagnosis(report())).toEqual({ state: 'clean' });
-    expect(verdictOfDiagnosis(report({ watertight: false, boundaryLoops: 3, bodies: [{ loopLengthsMm: [1.5, 4.25] }] as RepairReport['bodies'] })))
+    expect(verdictOfDiagnosis(found())).toEqual({ state: 'clean' });
+    expect(verdictOfDiagnosis(found({ watertight: false, boundaryLoops: 3, longestRimMm: 4.25 })))
       .toEqual({ state: 'holes', loops: 3, longestMm: 4.25 });
-    expect(verdictOfDiagnosis(report({ watertight: false, nonManifoldEdges: 5547, windingConsistent: false })))
+    expect(verdictOfDiagnosis(found({ watertight: false, nonManifoldEdges: 5547, windingConsistent: false })))
       .toEqual({ state: 'malformed', nonManifoldEdges: 5547, windingConsistent: false });
   });
 
@@ -54,7 +61,7 @@ describe('a row state is decided in one place', () => {
    * be "not watertight" with no hole in it, and `clean` must not claim otherwise.
    */
   it('calls a non-manifold mesh with no open rim malformed, not clean', () => {
-    const measured = report({ watertight: false, boundaryLoops: 0, nonManifoldEdges: 447 });
+    const measured = found({ watertight: false, boundaryLoops: 0, nonManifoldEdges: 447 });
     expect(verdictOfDiagnosis(measured).state).toBe('malformed');
     expect(verdictOfDiagnosis(measured).state).not.toBe('clean');
   });
@@ -82,9 +89,9 @@ describe('a row state is decided in one place', () => {
   });
 
   it('offers Repair only where a repair could help, and never after a refusal', () => {
-    expect(offersRepair(verdictOfDiagnosis(report({ watertight: false, boundaryLoops: 1 })))).toBe(true);
-    expect(offersRepair(verdictOfDiagnosis(report({ watertight: false })))).toBe(true);
-    expect(offersRepair(verdictOfDiagnosis(report()))).toBe(false);
+    expect(offersRepair(verdictOfDiagnosis(found({ watertight: false, boundaryLoops: 1 })))).toBe(true);
+    expect(offersRepair(verdictOfDiagnosis(found({ watertight: false })))).toBe(true);
+    expect(offersRepair(verdictOfDiagnosis(found()))).toBe(false);
     // The press that was just refused must not be offered again with nothing changed about the file.
     expect(offersRepair(verdictOfRepair(result({ ok: false, reason: 'body-invariant:weld' })))).toBe(false);
     expect(offersRepair(verdictOfRefusal({ kind: 'unreadable', code: 'StlEmptyError' }))).toBe(false);

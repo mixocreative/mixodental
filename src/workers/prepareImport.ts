@@ -1,7 +1,8 @@
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { assertTriangleCapacity, meshTier, TRIANGLE_BUDGET, type Runtime } from '@mixo-geocore/host/core/budget';
 import type { ImportedMesh, RawMesh } from '../state/import';
-import type { PreparedMesh } from './importProtocol';
+import type { ImportDiagnosis, PreparedMesh } from './importProtocol';
+import { diagnoseMesh } from '@mixo-geocore/host/core/repairMesh';
 import type { GeometryEngine } from '@mixo-geocore/host/workers/geometryClient';
 import { nonFiniteError } from './stlSession';
 
@@ -53,6 +54,37 @@ export function prepare(item: ImportedMesh, runtime: Runtime, progress: Progress
     display = simplify(centred.mesh, Math.floor(TRIANGLE_BUDGET[runtime] / 2));
   }
   return { ...centred, ...(display ? { display } : {}) };
+}
+
+/**
+ * The mesh's health, read in the worker on the FULL-RESOLUTION mesh, after the weld.
+ *
+ * Here and not on the main thread: the worker already holds the full-resolution arrays and already
+ * has a progress channel, so diagnosing here costs no copy across the boundary. `diagnose_mesh`
+ * allocates no mesh of its own, which is why it is safe to run on every import; `repair_mesh` does
+ * allocate one, which is why it runs only when the operator asks.
+ *
+ * The display copy is never diagnosed: it is a decimation, so its topology is not the file's.
+ */
+/*
+ * The decoder keeps its engine type private, so take it from the function rather than restate a shape
+ * that would then drift. NOT narrowed to `Pick<…, 'diagnose_mesh'>` even though that is all this uses:
+ * the vendored `diagnoseMesh` asks for the whole engine, and casting around a vendored signature to
+ * make a tidier parameter here is how a cast becomes a lie later.
+ */
+type DiagnoseEngine = Parameters<typeof diagnoseMesh>[0];
+
+export function diagnoseImported(mesh: TriangleMesh, engine: DiagnoseEngine): ImportDiagnosis {
+  const report = diagnoseMesh(engine, mesh.positions, mesh.indices);
+  const rims = report.bodies.flatMap((body) => body.loopLengthsMm);
+  return {
+    watertight: report.watertight,
+    boundaryLoops: report.boundaryLoops,
+    longestRimMm: rims.length > 0 ? Math.max(...rims) : 0,
+    nonManifoldEdges: report.nonManifoldEdges,
+    windingConsistent: report.windingConsistent,
+    bodies: report.bodies.length,
+  };
 }
 
 /** Every buffer of the prepared meshes, each once, to transfer. */

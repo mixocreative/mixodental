@@ -2,7 +2,7 @@ import './engineSource';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { geometryReady, type GeometryEngine } from '@mixo-geocore/host/workers/geometryClient';
 import type { ImportTask, PreparedMesh } from './importProtocol';
-import { buffers, centerImportedWithWasm, decimateWithWasm, prepare, weldRawWithWasm, type Progress } from './prepareImport';
+import { buffers, centerImportedWithWasm, decimateWithWasm, diagnoseImported, prepare, weldRawWithWasm, type Progress } from './prepareImport';
 import { serveTask, transferable } from '@mixo-geocore/host/workers/serveTask';
 import { buildPickIndexData } from './pickIndexes';
 import { finishStl, openStlSession, pushStl } from './stlSession';
@@ -51,6 +51,18 @@ serveTask<ImportTask, PreparedMesh[]>(async (task, { progress: post }) => {
     });
   }
   for (const item of prepared) item.pickIndex = buildPickIndexData(engine, item.display ?? item.mesh);
+  /*
+   * THE HEALTH VERDICT, on the FULL-RESOLUTION mesh and after the weld.
+   *
+   * `item.mesh`, never `item.display`: the display copy is a decimation, so its topology is not the
+   * file's. And after the weld on both paths - the STL session welds inside Rust, the glTF path
+   * through `weldRawWithWasm` - so what is left for a repair to find is winding and non-manifold
+   * geometry, which is exactly what the 18 real scans show (8 of them, up to 5,547 non-manifold
+   * edges, and not one open rim between them).
+   *
+   * Only the verdict crosses the boundary; see `ImportDiagnosis`.
+   */
+  for (const item of prepared) item.diagnosis = diagnoseImported(item.mesh, engine);
   progress(1, 'Done');
   return transferable(prepared, buffers(prepared));
 });
