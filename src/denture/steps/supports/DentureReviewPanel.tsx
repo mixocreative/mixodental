@@ -6,6 +6,7 @@ import { plural, t } from '../../../i18n';
 import { CommandButton } from '../../../components/CommandButton';
 import { Panel } from '../../../components/Panel';
 import { RestoreStepButton, type StepRestore } from '../../../components/RestoreStepButton';
+import { reviewWayOn } from '../../../dental/editingMode';
 import { BackAskBlock, EditSupportsBlock, IdLabelBlock, ProblemsBlock, SupportSettingsBlock, reviewNotes, type DentalReview } from '../../../components/DentalReviewBlocks';
 import type { DentureMesh } from '../../engine/dentureCore';
 import { PartsList } from '../../parts/PartsList';
@@ -88,7 +89,7 @@ export function DentureReviewPanel({ gesture, ui, review, ready, send, run, rest
         </div>
         <div className="orient-row orient-nav" data-ui="denture-review-nav">
           <CommandButton command={resolve('dental.back', ui)} run={run} uiName="denture-review-back" />
-          <CommandButton command={resolve('dental.finish', ui)} run={run} uiName="denture-review-ok" />
+          <CommandButton command={resolve(reviewWayOn(), ui)} run={run} uiName="denture-review-ok" />
         </div>
       </>}
     </div>

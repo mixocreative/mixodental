@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { UiState } from '@mixo-geocore/editing/commands';
+import { resolve, type UiState } from '@mixo-geocore/editing/commands';
+import { reviewWayOn } from '../../../dental/editingMode';
 import type { EditGesture } from '@mixo-geocore/editing/gesture';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import type { UnresolvedPoint } from '@mixo-geocore/host/core/supports/mesh';
@@ -51,7 +52,8 @@ describe('DentureReviewPanel', () => {
     const building = render({ buildLanded: false }, undefined, { ...ui, dentalReviewReady: false } as UiState, false);
     expect(building).toContain('Building supports');
     expect(building).not.toContain('denture-review-details-toggle');
-    expect(building).toMatch(/<button[^>]*disabled[^>]*>OK</);
+    // OK or Export STL, whichever the scene map leaves standing (src/scenes/sceneMap.ts).
+    expect(building).toMatch(new RegExp(`<button[^>]*disabled[^>]*>${resolve(reviewWayOn(), ui).label}<`));
     const ask = render({ backAsk: { added: 2, removed: 1, customised: 0 } });
     expect(ask).toContain('Discard and go back');
     expect(ask).not.toContain('denture-review-ok');

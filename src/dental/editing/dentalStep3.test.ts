@@ -4,6 +4,7 @@ import { keyAction } from '@mixo-geocore/editing/keys';
 import { initialSession, reduceSession, type EditSession, type SessionEvent } from '@mixo-geocore/editing/session';
 import { sessionStatus } from '@mixo-geocore/editing/status';
 import { READY } from './uiFixture';
+import { exitCommands } from '../flow';
 
 const run = (state: EditSession, ...events: SessionEvent[]) => events.reduce(reduceSession, state);
 const step3 = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' }, { type: 'dentalLoading', unitId: 'u1' },
@@ -64,5 +65,44 @@ describe('dental status on a step change', () => {
     expect(sessionStatus(next, back, { type: 'backDental' })?.key).toMatch(/^Paint where dental supports/);
     const again = reduceSession(next, { type: 'addAnotherDental', unitId: 'u1' });
     expect(sessionStatus(next, again, { type: 'addAnotherDental', unitId: 'u1' })?.key).toMatch(/^Drop an aligner STL/);
+  });
+});
+
+/*
+ * THE EXPORT HAS TO SURVIVE THE WAY OUT.
+ *
+ * With FLOW_END = 'export' the Step 3 primary is Export STL and OK is gone - and OK was the only
+ * thing that ever added a unit to `dentalFinished`. `exitCommands` strips the supports and the
+ * dental policy of every unit NOT in that list, so Export wrote a correct file and the one
+ * remaining exit then destroyed the work it had just written. The STL survived; the plate did not.
+ *
+ * A review found it. No walk check did, because none of them pressed Exit after Export. These tests
+ * are at the level where the question is decidable without a browser.
+ */
+describe('an exported aligner survives Exit', () => {
+  const unit = { id: 'u1', dental: {}, supports: {}, manual: [], deleted: [], contactSettings: {} } as unknown as Parameters<typeof exitCommands>[0];
+
+  it('Exit strips an aligner the step never finished', () => {
+    const kinds = exitCommands(unit, []).map((command) => command.type);
+    expect(kinds).toContain('supports/remove');
+    expect(kinds).toContain('dental/clear');
+  });
+
+  it('exportedDental marks it finished without leaving Step 3', () => {
+    const exported = run(step3, { type: 'acceptDentalArea' }, { type: 'exportedDental', unitId: 'u1' });
+    expect(exported.dentalFinished).toContain('u1');
+    // The operator is still on the step: Add another and Exit are both still ahead of them.
+    expect(exported.dentalStage).toBe('review');
+    expect(exported.mode).toBe('dental');
+  });
+
+  it('and Exit then keeps the supports and the policy it wrote', () => {
+    const exported = run(step3, { type: 'acceptDentalArea' }, { type: 'exportedDental', unitId: 'u1' });
+    expect(exitCommands(unit, exported.dentalFinished)).toEqual([]);
+  });
+
+  it('refuses to mark anything finished outside Step 3', () => {
+    const early = run(initialSession, { type: 'enterDental' }, { type: 'exportedDental', unitId: 'u1' });
+    expect(early.dentalFinished).not.toContain('u1');
   });
 });

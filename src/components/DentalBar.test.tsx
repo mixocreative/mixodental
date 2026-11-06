@@ -5,7 +5,8 @@ import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import type { DentalReview } from './DentalSupports';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import type { Gesture } from '@mixo-geocore/editing/gesture';
-import type { UiState } from '@mixo-geocore/editing/commands';
+import { resolve, type UiState } from '@mixo-geocore/editing/commands';
+import { reviewWayOn } from '../dental/editingMode';
 
 describe('DentalBar', () => {
   it('Step 0 shows one card per profile, with its art, name and description', () => {
@@ -79,7 +80,9 @@ describe('DentalBar', () => {
     expect(emptyHtml).not.toContain('>Done');
 
     const review = { kind: 'dental-review', edit: { kind: 'pick' } } as Gesture & { kind: 'dental-review' };
-    const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true, selection: 0, customisedActive: 0, addAction: 'add', tool: 'select', method: 'click', dragAction: 'select', canUndo: false, active: true, supported: true } as unknown as UiState;
+    /** The label of Step 3's way on, whichever of OK / Export STL the scene map leaves standing. */
+const wayOn = () => resolve(reviewWayOn(), stepUi).label;
+const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true, selection: 0, customisedActive: 0, addAction: 'add', tool: 'select', method: 'click', dragAction: 'select', canUndo: false, active: true, supported: true } as unknown as UiState;
     const base = {
       settings: defaultSupportSettings, onSetting: () => {},
       structure: { treeEnabled: true, bracesEnabled: true }, onStructure: () => {}, clickReach: { value: 1, onChange: () => {} },
@@ -97,7 +100,9 @@ describe('DentalBar', () => {
     expect(reviewHtml.indexOf('aligner-review-summary')).toBeLessThan(reviewHtml.indexOf('aligner-adjust'));
     expect(reviewHtml).toMatch(/data-ui="aligner-adjust-title" aria-expanded="false"/);
     for (const word of ['Tip size', 'Lift height', 'Tree branches', 'Cross-braces', 'Add supports', 'ID label']) expect(reviewHtml).not.toContain(word);
-    for (const word of ['>OK<', 'Add another aligner', 'Back']) expect(reviewHtml).toContain(word);
+    // Step 3's way on is OK or its own Export depending on whether the bench exists to hand back
+    // to (src/scenes/sceneMap.ts), so the test asks the registry rather than naming one of them.
+    for (const word of [`>${wayOn()}<`, 'Add another aligner', 'Back']) expect(reviewHtml).toContain(word);
     expect(reviewHtml).not.toContain('Exit');
     const gapHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
       review={{ ...base, rimGap: { outerMm: 4.2, openingMm: 8 } }} send={() => {}} run={() => {}} />);
@@ -119,7 +124,7 @@ describe('DentalBar', () => {
     // The FIRST build has no verdict yet: that, and only that, is what "Building supports" is for.
     const buildingHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={{ ...stepUi, dentalReviewReady: false } as UiState} reviewReady={false} review={{ ...base, buildLanded: false }} send={() => {}} run={() => {}} />);
     expect(buildingHtml).toContain('Building supports');
-    expect(buildingHtml).toMatch(/<button[^>]*disabled[^>]*>OK</);
+    expect(buildingHtml).toMatch(new RegExp(`<button[^>]*disabled[^>]*>${wayOn()}<`));
     /*
      * x9b. A setting change drops `reviewReady` at once (the build no longer belongs to the object as it is
      * now), and the verdict on screen must then be DIMMED, not taken away: the reader keeps the sentence and

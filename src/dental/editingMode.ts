@@ -9,6 +9,8 @@ import type { DentalProposal } from '@mixo-geocore/host/dental/dental';
 import { stageAfterOrientation, stageBeforeSupports } from '../denture/state/dentureStages';
 import '../denture/state/dentureCommands';
 import { kindText } from '../denture/kindText';
+import { onBench } from '../bench/benchScene';
+import { flowEndsAtExport } from '../scenes/sceneMap';
 
 /*
  * The dental flow as an app mode of the shared editor (mixo-geocore editing/modes.ts): its session
@@ -89,6 +91,20 @@ export type DentalEvent =
   | { type: 'acceptDentalArea' }
   /** OK in Step 3: this aligner is finished and the flow ends; it stays on the plate. */
   | { type: 'finishDental'; unitId: string }
+  /**
+   * THE STEP EXPORTED ITS ALIGNER, so that aligner is finished even though the flow stays open.
+   *
+   * Without this, Export STL wrote a correct file and then Exit THREW THE WORK AWAY: `exitCommands`
+   * removes the supports and the dental policy of any unit not in `dentalFinished`, and OK was the
+   * only thing that ever put one there. With OK gone under FLOW_END, the one remaining way out of
+   * Step 3 destroyed what had just been exported. The STL survived; the plate did not.
+   *
+   * It touches the SESSION ONLY - no scene command - on purpose. Finishing also arranges the plate,
+   * and arranging moves the unit, which drops the build the export is reading and makes `runExport`
+   * refuse it as stale. So the bookkeeping that keeps the work safe happens here, and arranging
+   * stays with Add another aligner, which is where the next object makes room necessary.
+   */
+  | { type: 'exportedDental'; unitId: string }
   /** Add another aligner in Step 3: this one is finished, Step 1 opens again with the same type. */
   | { type: 'addAnotherDental'; unitId: string }
   | { type: 'backDental' }
@@ -149,7 +165,7 @@ declare module '@mixo-geocore/editing/gesture' {
 declare module '@mixo-geocore/editing/commands' {
   interface ExtraCommandIds {
     'supports.dentalAuto': true;
-    'dental.useDetected': true; 'dental.next': true; 'dental.generate': true; 'dental.back': true; 'dental.exit': true; 'dental.finish': true; 'dental.addAnother': true;
+    'dental.useDetected': true; 'dental.next': true; 'dental.generate': true; 'dental.back': true; 'dental.exit': true; 'dental.finish': true; 'dental.addAnother': true; 'dental.export': true;
     'dental.tool.paint': true; 'dental.tool.erase': true; 'dental.tool.add': true; 'dental.tool.select': true;
     'dental.rim.enter': true; 'dental.rim.place': true; 'dental.rim.adjust': true; 'dental.rim.close': true; 'dental.rim.clear': true; 'dental.rim.deletePoint': true; 'dental.rim.done': true;
   }
@@ -187,7 +203,7 @@ declare module '@mixo-geocore/editing/commands' {
 const isDentalEvent = (event: SessionEvent): event is DentalEvent => DENTAL_EVENTS.has(event.type);
 const DENTAL_EVENTS = new Set<string>(['enterDental', 'chooseDentalProfile', 'startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
   'dentalOrientFailed', 'dentalRimNeeded', 'dentalRimReopen', 'setDentalRimTool', 'setDentalRimSelected', 'setDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
-  'addAnotherDental', 'backDental', 'setDentalRadius']);
+  'addAnotherDental', 'exportedDental', 'backDental', 'setDentalRadius']);
 
 const finished = (state: EditSession, unitId: string): readonly string[] => (state.dentalFinished.includes(unitId) ? state.dentalFinished : [...state.dentalFinished, unitId]);
 
@@ -299,6 +315,11 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
     case 'finishDental':
       return state.mode === 'dental' && state.dentalStage === 'review'
         ? withMode({ ...state, dentalFinished: finished(state, event.unitId) }, 'off')
+        : state;
+    case 'exportedDental':
+      // The stage does NOT move: the operator is still on Step 3 and may Add another or Exit from it.
+      return state.mode === 'dental' && state.dentalStage === 'review'
+        ? { ...state, dentalFinished: finished(state, event.unitId) }
         : state;
     case 'addAnotherDental':
       return state.mode === 'dental' && state.dentalStage === 'review'
@@ -447,10 +468,20 @@ const reviewReason = (s: UiState) => (s.generating ? generatingReason : s.dental
   : s.dentalBuildFailed ? { key: 'The supports could not be built. Change a setting to build them again, or press Back.' }
     : { key: 'Wait until the supports are built.' });
 
+/**
+ * THE WAY ON FROM STEP 3, decided once. OK while there is a bench to hand the operator back to, and
+ * the export of this step when there is not (src/scenes/sceneMap.ts). Both review footers ask this
+ * rather than naming a command, so the scene flag moves them together and neither is left behind.
+ *
+ * (No apostrophes above on purpose: i18n.test.ts scrapes single-quoted runs out of this file, and a
+ * pair of them in a comment reads as a UI string that wants translating into three languages.)
+ */
+export const reviewWayOn = (): 'dental.finish' | 'dental.export' => (flowEndsAtExport() ? 'dental.export' : 'dental.finish');
+
 registerCommands({
   'supports.dentalAuto': {
     role: 'secondary', label: () => 'Aligner Support Production', hint: () => 'Detect an aligner lower opening, review orientation, then limit supports to its approved lower area',
-    visible: always, enabled: (s) => s.mode === 'off' && !s.generating,
+    visible: always, enabled: (s) => onBench(s) && !s.generating,
     disabledReason: (s) => (s.generating ? generatingReason : s.mode !== 'off' ? entryReason(s) : undefined),
   },
   'dental.useDetected': {
@@ -489,9 +520,32 @@ registerCommands({
     role: 'secondary', label: () => 'Exit', hint: (s) => kindText('Leave the dental flow. The aligner stays on the plate without supports', s.dentalKind),
     visible: (s) => s.mode === 'dental', enabled: always, disabledReason: never,
   },
+  /*
+   * OK HANDS THE OPERATOR THE BENCH to finish in, which is what the flow no longer does: `FLOW_END`
+   * in src/scenes/sceneMap.ts routes the end of Step 3 to its own export instead. OK comes back the
+   * moment that route does. One flag decides which of the two Step 3 offers.
+   */
   'dental.finish': {
     role: 'primary', label: () => 'OK', hint: (s) => kindText('Finish this aligner. It stays on the plate with its supports', s.dentalKind),
-    visible: (s) => s.mode === 'dental' && s.dentalStage === 'review', enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating,
+    visible: (s) => !flowEndsAtExport() && s.mode === 'dental' && s.dentalStage === 'review',
+    enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating,
+    disabledReason: reviewReason,
+  },
+  /*
+   * THE END OF THE FLOW. The export used to live only in the bench right panel, so a flow that stops
+   * handing the bench back has to carry the export itself or a finished aligner has no way out.
+   *
+   * It writes the file and STAYS ON STEP 3. It does not also navigate: `runExport` reports a refusal
+   * (the model changed, the supports did not build, the safety check could not judge) through the
+   * status line and returns the same way it does on success, so a press that navigated would walk
+   * the operator away from a file that was never written. Add another aligner and Exit remain the
+   * two ways on, and both of them are already honest about where they go.
+   */
+  'dental.export': {
+    role: 'primary', label: () => 'Export STL',
+    hint: (s) => kindText('Write this aligner and its supports to one STL file. The aligner stays on this step', s.dentalKind),
+    visible: (s) => flowEndsAtExport() && s.mode === 'dental' && s.dentalStage === 'review',
+    enabled: (s) => Boolean(s.dentalReviewReady) && !s.generating && !s.exporting,
     disabledReason: reviewReason,
   },
   'dental.addAnother': {

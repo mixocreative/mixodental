@@ -1,6 +1,7 @@
 import { resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import { t, translateMessage } from '../i18n';
 import { CommandButton } from './CommandButton';
+import { onBench } from '../bench/benchScene';
 
 /**
  * The left panel's Modes group: Support Edit Mode and No-support zones, each button turning into
@@ -16,7 +17,7 @@ export function ModeSections({ ui, run, zones }: {
   const edit = resolve('mode.edit', ui);
   const zonesMode = resolve('mode.zones', ui);
   // Said only when both buttons are off outside a mode: no object, or a heavy one.
-  const waiting = ui.mode === 'off' && !edit.enabled && !zonesMode.enabled ? edit.disabledReason : undefined;
+  const waiting = onBench(ui) && !edit.enabled && !zonesMode.enabled ? edit.disabledReason : undefined;
   return <section>
     <h3>{t('Modes')}</h3>
     <CommandButton command={edit} run={run} locked={ui.mode !== 'off' && !edit.enabled} />

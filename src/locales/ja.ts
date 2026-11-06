@@ -787,6 +787,7 @@ export const ja: Dictionary = {
   'Discard and go back': '破棄して戻る',
   'Aligners finished so far: {n}': '完了したアライナー：{n}',
   'OK': 'OK',
+  'Write this aligner and its supports to one STL file. The aligner stays on this step': 'このアライナーとそのサポートを 1 つの STL ファイルに書き出します。アライナーはこのステップに残ります。',
   'Finish this aligner. It stays on the plate with its supports': 'このアライナーを完了します。サポート付きでプレートに残ります。',
   'The supports could not be built. Change a setting to build them again, or press Back.': 'サポートを作成できませんでした。設定を変更すると再度作成します。または「戻る」を押してください。',
   'Wait until the supports are built.': 'サポートの作成が終わるまでお待ちください。',

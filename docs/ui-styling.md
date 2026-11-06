@@ -392,6 +392,33 @@ Classes `.field`, `.field--row`, `.field--stack`, `.field--read-only`, `.field-l
 
 All four panel shapes and a two-column panel holding every kind of control are on the catalogue page (`kit.html`).
 
+## The bench (the scene with no mode) — `src/bench/`
+
+**The step flow no longer ends here** (`FLOW_END`, `src/scenes/sceneMap.ts`): Step 3 writes its own
+STL. The scene is otherwise unchanged and is still where Support Edit Mode, no-support zones, the
+plate panel and the exports live, reached by *Any model* on the start screen or by opening a project.
+
+Every step and mode in this app names itself in a badge. **The bench** is the one scene that does
+not, because it is the app with nothing in hand: the plate, the panels, no tool, no step. It had no
+name until `src/bench/benchScene.ts`; in code it is still `mode: 'off'`.
+
+A designer needs it named because it is the scene an operator sees most, and because it is reached
+three ways that all look identical — *Any model* on the start screen, Exit out of a mode, and opening
+a saved project. There is no Step 4: the dental flow ends at its own export and does not come here.
+
+Three rules hold the look of it, and `benchScene.test.ts` holds the app to them:
+
+- **Nothing is dimmed.** Every other mode makes at least one panel section `inert` and posts a lock
+  note saying why. The bench locks none, so no region wears the focus-mode dimming of §7.
+- **The canvas carries no cursor of its own.** No tool ring, no brush circle: a press orbits.
+- **No overlay belongs to it.** No badge, no mode bar, no veil. The **active object name** sits top
+  left where a step would put its badge, and the view toggles take the top-right corner.
+
+So restyling the bench means restyling the shell: header, the two panels, the viewport frame and the
+footer, with the tokens above and nothing scene-specific. `src/bench/README.md` carries the region
+table (what sits where) and the one open question — that arriving at the bench off the end of Step 3
+announces nothing at all.
+
 ## The data-ui names, by screen
 
 Style by `[data-ui="name"]`. `{kind}` is `denture` or `aligner`; in `problem-item-{kind}` it is the problem kind.
@@ -427,7 +454,7 @@ Every icon is one SVG file in `src/ui/assets/icons/`, drawn by `src/ui/Icon.tsx`
 
 ## The module map
 
-`src/denture/README.md` is the map of the denture workflow (one row per module). The viewport colour modules are `src/ui/tokenColour.ts` (reads a token), `src/ui/useTokenRevision.ts` (re-render on change), `src/components/viewport/sceneColours.ts` (which token is which viewport colour) and `src/components/viewport/style.ts` (opacities and the cursor).
+`src/denture/README.md` is the map of the denture workflow (one row per module). `src/bench/README.md` is the map of the bench, the scene with no mode; `src/progress/README.md` is the map of the three kinds of waiting. The viewport colour modules are `src/ui/tokenColour.ts` (reads a token), `src/ui/useTokenRevision.ts` (re-render on change), `src/components/viewport/sceneColours.ts` (which token is which viewport colour) and `src/components/viewport/style.ts` (opacities and the cursor).
 
 ## The batch-review viewer
 

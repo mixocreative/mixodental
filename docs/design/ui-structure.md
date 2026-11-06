@@ -161,7 +161,12 @@ group, `b` chosen · `░` dimmed and locked (`inert`) · `#` red 1 px mode fram
 abbreviated where 11.5 px text would not fit 22 ASCII columns; exact strings are in section 6.
 English shown; zh-Hant and ja are longer and must fit the same rows (see 7.6).
 
-### 2.3 No mode (setup)
+### 2.3 The bench — no mode ("setup" in this document)
+
+Named **the bench** since `src/bench/benchScene.ts`; `mode: 'off'` in code. This document
+calls it "setup" throughout, which is where you first meet it — but it is also where Exit, Done
+and **OK at the end of dental Step 3** all land, so it is a resting state, not a first screen.
+See `src/bench/README.md`.
 
 ```text
 +--------------------------------------------------------------------------------------------------------------------+
@@ -405,7 +410,8 @@ UiState
 Effective drag action = `shiftHeld ? flip(dragAction) : dragAction` **[new]**. The tool, method,
 switch, sizes survive mode changes and object changes (today's rule); the selection empties on every
 mode change and active-object change (today). `zonesReturn` is deleted **[change]**: zones always
-returns to setup.
+returns to setup. (Code calls that state `off`; the app calls it the bench —
+`src/bench/benchScene.ts`.)
 
 ### 4.2 Diagram
 

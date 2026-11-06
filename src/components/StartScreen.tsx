@@ -81,6 +81,9 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
       <div className="choice-keys">
         <ChoiceKey icon="aligner" label={t('Aligner')} ui="start-aligner" onChoose={() => onScreen('type')} />
         <DentureChoice onChoose={() => choose(DENTURE_PROFILE_ID)} />
+        {/* The way into the workspace for work with no flow at all - and the ONLY one, which is why it
+            stays even though the step flow no longer ends there (src/scenes/sceneMap.ts `doors`).
+            Hiding it took Support Edit Mode, zones, the plate panel and every export with it. */}
         <ChoiceKey icon="generic" label={t('Any model')} ui="start-any-model" onChoose={onAnyModel} />
       </div>
       <button type="button" className="link-button" onClick={onOpenProject}>{t('Open a saved project')}</button>

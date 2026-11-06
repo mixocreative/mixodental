@@ -6,6 +6,7 @@ import type { SessionEvent } from '@mixo-geocore/editing/session';
 import { plural, t } from '../i18n';
 import { kindText } from '../denture/kindText';
 import { adjustRemembered, rememberAdjust } from '../dental/adjustMemory';
+import { reviewWayOn } from '../dental/editingMode';
 import { reviewLine } from '../denture/steps/supports/reviewLineText';
 import { CommandButton } from './CommandButton';
 import { BackAskBlock, EditSupportsBlock, IdLabelBlock, ProblemsBlock, SupportSettingsBlock, reviewNotes, type DentalReview } from './DentalReviewBlocks';
@@ -81,7 +82,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, rest
       {/* The way back and the way on, as one block: OK is this step's way on. */}
       <div className="edit-row step-nav">
         <CommandButton command={resolve('dental.back', ui)} run={run} className="back-key back-key--arrow" labelHidden><Icon name="back" /></CommandButton>
-        <CommandButton command={resolve('dental.finish', ui)} run={run} />
+        <CommandButton command={resolve(reviewWayOn(), ui)} run={run} />
       </div>
     </section>}
     </div>

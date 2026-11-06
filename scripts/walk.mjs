@@ -141,6 +141,14 @@ const runs = (section) => ONLY.size === 0 || ONLY.has(section);
  */
 const ERASE_RESIDUE = 2;
 
+/*
+ * THE WAY ON FROM STEP 3. The flow ends at its own export rather than handing back the workspace
+ * (FLOW_END, src/scenes/sceneMap.ts), so the primary there reads Export STL instead of OK. Set
+ * FLOW_END back to 'bench' and this becomes 'OK' again - it is one name in one place for exactly
+ * that reason, since five checks across three sections press it.
+ */
+const WAY_ON = 'Export STL';
+
 const results = [];
 const started = Date.now();
 function check(name, ok, detail = '') {
@@ -820,6 +828,18 @@ async function walk(url, scratch, dentalFixture) {
       await d.enterDragOver();
       const A = [[0.3, 0.5], [0.7, 0.5]];
       const B = [[0.45, 0.4], [0.55, 0.6]];
+      /*
+       * START ON SELECT, SAID OUT LOUD. The switch survives mode changes by design
+       * (docs/design/ui-structure.md 4.1: the tool, method, switch and sizes all do), and `a2` above
+       * ENDS with Unselect pressed. So this check used to begin on whatever a2 left behind: the first
+       * stroke unselected from an empty selection, `sequential` came back 0, and the second pair gave
+       * the same 0 with the same hash - which reads as a broken app and is a broken test.
+       *
+       * The Select press below (before the throttled pair) was already here. It was just on the wrong
+       * side of the measurement it protects.
+       */
+      await d.button('Select', true).click().catch(() => {});
+      await d.idle(300);
       await d.stroke(A[0], A[1], 30);
       await d.settle();
       await d.button('Unselect').click();
@@ -1853,7 +1873,7 @@ async function walk(url, scratch, dentalFixture) {
         if (first) check('x0 Step 2 no longer carries the Tree and Brace toggles', (await page.getByText('Tree branches').count()) === 0 && (await page.getByText('Cross-braces').count()) === 0);
         await d.button('Next').click();
         await stepTo('Step 3 · Supports', 240000);
-        await page.waitForFunction(() => { const ok = [...document.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim().toLowerCase() === 'ok'); return ok && !ok.disabled; }, null, { timeout: 300000 });
+        await page.waitForFunction((want) => { const on = [...document.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim().toLowerCase() === want); return on && !on.disabled; }, WAY_ON.toLowerCase(), { timeout: 300000 });
         await d.quiet();
       };
       const wait = async (ok, what, ms = 240000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await ok()) return true; await d.idle(300); } throw new Error(`timed out: ${what}`); };
@@ -1862,15 +1882,15 @@ async function walk(url, scratch, dentalFixture) {
       await d.measureCanvas();
       await page.screenshot({ path: path.join(scratch, 'ux-c-step3-1440x900.png') });
       // The finish controls stay in view without scrolling, at the walk size and at 1280x720.
-      const finishInView = () => page.evaluate(() => {
+      const finishInView = () => page.evaluate(({ back, wayOn, another }) => {
         const side = document.querySelector('.dental-side');
         // Exit lives in the header, not in the step panel, so it is always on screen and not checked here.
-        const names = ['Back', 'OK', 'Add another aligner'];
+        const names = [back, wayOn, another];
         const boxes = names.map((name) => [...side.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim().toLowerCase() === name.toLowerCase())?.getBoundingClientRect());
         // The ID label moved into Adjust when Step 3 took the denture Step 2 shape, so it is no longer one
         // of the controls that has to be in view to finish.
         return boxes.every((r) => r && r.top >= 0 && r.bottom <= window.innerHeight && r.height > 0);
-      });
+      }, { back: 'Back', wayOn: WAY_ON, another: 'Add another aligner' });
       const at1440 = await finishInView();
       await page.setViewportSize({ width: 1280, height: 720 });
       await d.idle(600);
@@ -1881,13 +1901,13 @@ async function walk(url, scratch, dentalFixture) {
       await page.setViewportSize(VIEWPORT);
       await d.idle(600);
       await d.measureCanvas();
-      check('x1b Step 3 finish controls (Back, Exit, OK, Add another aligner) are in view without scrolling at 1440x900 and 1280x720', at1440 && at1280, `1440x900 ${at1440}, 1280x720 ${at1280}`);
+      check(`x1b Step 3 finish controls (Back, Exit, ${WAY_ON}, Add another aligner) are in view without scrolling at 1440x900 and 1280x720`, at1440 && at1280, `1440x900 ${at1440}, 1280x720 ${at1280}`);
       await openDetails();
       await openAdjust();
       // textContent, not innerText: the theme sets every panel title in caps, so "Problems" reads "PROBLEMS".
       const side = (await page.locator('.dental-side').textContent()).toLowerCase();
-      check('x1 Step 3 lists tip size, lift height, raft, Tree, Brace, the support tools, problems, the ID label, OK and Add another aligner',
-        ['tip size', 'lift height', 'raft', 'tree branches', 'cross-braces', 'add supports', 'problems', 'id label', 'ok', 'add another aligner'].every((word) => side.includes(word)), side.replace(/\s+/g, ' ').slice(0, 200));
+      check(`x1 Step 3 lists tip size, lift height, raft, Tree, Brace, the support tools, problems, the ID label, ${WAY_ON} and Add another aligner`,
+        ['tip size', 'lift height', 'raft', 'tree branches', 'cross-braces', 'add supports', 'problems', 'id label', WAY_ON.toLowerCase(), 'add another aligner'].every((word) => side.includes(word)), side.replace(/\s+/g, ' ').slice(0, 200));
       // U1: every notice in the panel uses its full width, its buttons on their own row below the text, inside the scroll content.
       const notices = await page.evaluate(() => {
         const panel = document.querySelector('.dental-side');
@@ -2068,32 +2088,58 @@ async function walk(url, scratch, dentalFixture) {
       await label.fill('R-2');
       await d.idle(500);
       await page.screenshot({ path: path.join(scratch, 'ux-b-step3-second.png') });
-      await d.button('OK').click();
-      await page.waitForFunction(() => !document.querySelector('.edit-badge'), null, { timeout: 10000 });
-      await d.idle(800);
+      /*
+       * THE END OF THE FLOW (FLOW_END, src/scenes/sceneMap.ts). Step 3 exports the aligner itself
+       * instead of handing back the workspace, so what used to be checked here - the plate with both
+       * aligners as ordinary objects, the left panel live again, the done note pointing at the right
+       * panel's Export STL - no longer happens, and that is not a gap: those were checks of the
+       * hand-off, and the hand-off is what was removed. The workspace itself is untouched and the
+       * x section still covers it in full, reached by Any model as before. What replaces them is the
+       * export this step now does, and the fact that the step SURVIVES it.
+       */
       await d.quiet();
-      await page.getByRole('button', { name: 'Fit', exact: false }).first().click().catch(() => {});
-      await d.idle(1200);
-      await page.screenshot({ path: path.join(scratch, 'ux-c-plate.png') });
+      await d.idle(800);
+      await page.screenshot({ path: path.join(scratch, 'ux-c-step3-end.png') });
       const finished = await d.props();
-      check('x15 OK ends the flow with both aligners on the plate as normal objects, each with supports',
-        (await objects()) === '2' && finished.units.length === 2 && finished.units.every((unit) => unit.supports && unit.dental) && (await page.locator('.panel.left [inert]').count()) === 0, `objects ${await objects()}`);
+      check('x15 both aligners are on the plate with their supports while Step 3 is still up',
+        (await objects()) === '2' && finished.units.length === 2 && finished.units.every((unit) => unit.supports && unit.dental), `objects ${await objects()}`);
       check('x16 both aligners carry their own label', finished.units[0].label === 'L-1' && finished.units[1].label === 'R-2', `labels ${finished.units.map((unit) => unit.label).join(', ')}`);
-      const doneBox = await page.locator('.dental-done').boundingBox();
-      check('x17 OK points to Export STL and Save project in a note of normal width (not a one-word column)', await page.locator('.dental-done').isVisible() && /Export STL/.test(await page.locator('.dental-done').innerText()) && Boolean(doneBox) && doneBox.width >= 320 && doneBox.height < 120, `note ${Math.round(doneBox?.width ?? 0)} x ${Math.round(doneBox?.height ?? 0)} px`);
 
-      // The whole-plate export holds both, with free space between them.
+      // The step's own export: one file, the active aligner and its supports.
       const download = page.waitForEvent('download', { timeout: 600000 });
-      await page.getByRole('button', { name: 'Whole plate in one file' }).click();
-      const plateFile = path.join(scratch, 'plate.stl');
-      await (await download).saveAs(plateFile);
-      const { count, xs } = stlVertexXs(readFileSync(plateFile));
-      const sorted = [...xs].sort((a, b) => a - b);
-      let widest = 0;
-      let at = 0;
-      for (let i = 1; i < sorted.length; i += 1) if (sorted[i] - sorted[i - 1] > widest) { widest = sorted[i] - sorted[i - 1]; at = i; }
-      const leftShare = at / sorted.length;
-      check('x18 the export holds both aligners side by side with free space between them (no overlap)', count > 1000 && widest >= 3 && leftShare > 0.2 && leftShare < 0.8, `triangles ${count}, widest empty gap ${widest.toFixed(2)} mm, left share ${(leftShare * 100).toFixed(0)}%`);
+      await d.button(WAY_ON).click();
+      const exported = path.join(scratch, 'step3-export.stl');
+      await (await download).saveAs(exported);
+      const { count } = stlVertexXs(readFileSync(exported));
+      check(`x17 ${WAY_ON} at the end of Step 3 writes the aligner and its supports as one file`, count > 1000, `triangles ${count}`);
+      /*
+       * AND IT DOES NOT NAVIGATE. `runExport` reports a refusal (the model changed, the supports did
+       * not build, the safety check could not judge) through the status line and returns the same way
+       * it does on success, so a press that also moved the operator on would walk them away from a
+       * file that was never written. The step staying up is the whole guard against that.
+       */
+      await d.idle(800);
+      check('x18 the step stays up after the export, so a refused export can never strand the operator',
+        /step 3/i.test((await page.locator('.edit-badge').textContent()) ?? ''), `badge "${((await page.locator('.edit-badge').textContent()) ?? '').trim().slice(0, 40)}"`);
+      /*
+       * THE HANDOVER, NOT THE STEP - the lesson this project already wrote down and I repeated.
+       *
+       * Export writes the file; Exit is the way out of the step. `exitCommands` strips the supports
+       * and the dental policy of any aligner the flow has not FINISHED, and OK was the only thing
+       * that ever finished one. With OK gone under FLOW_END, Export wrote a correct STL and Exit
+       * then emptied the plate behind it. x15-x18 all passed, because not one of them pressed Exit
+       * after Export. This check is that press.
+       *
+       * Both aligners must survive it, by two different routes: the first was finished by Add
+       * another aligner, the second by the export. Before the fix this came back 1 of 2.
+       */
+      await d.button('Exit').click();
+      await d.idle(1200);
+      await d.quiet();
+      const afterExit = await d.props();
+      const kept = afterExit.units.filter((unit) => unit.supports && unit.dental).length;
+      check('x18b Exit after Export keeps the exported aligner with its supports and its policy',
+        afterExit.units.length === 2 && kept === 2, `units ${afterExit.units.length}, still supported and dental ${kept}`);
       const [first, second] = finished.units;
       check('x19 the two aligners sit apart on the plate', Math.abs(first.pos[0] - second.pos[0]) > 20 || Math.abs(first.pos[2] - second.pos[2]) > 20, `centres ${first.pos.map((v) => v.toFixed(0))} / ${second.pos.map((v) => v.toFixed(0))}`);
     }
@@ -2167,11 +2213,11 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForFunction(() => document.body.innerText.includes('Step 3 · Supports'), null, { timeout: 240000 });
       await page.waitForFunction(() => /[1-9][\d,]* automatic/.test(document.querySelector('footer')?.innerText ?? '') && ![...document.querySelectorAll('button')].some((b) => /Generating dental supports/.test(b.innerText)), null, { timeout: 240000 });
       await d.quiet();
-      await d.button('OK').waitFor({ state: 'visible', timeout: 300000 });
+      await d.button(WAY_ON).waitFor({ state: 'visible', timeout: 300000 });
       await page.screenshot({ path: path.join(scratch, 'dental-generated.png') });
       /*
        * WAIT FOR THE MESH, not just for the button. The checks below are about the support mesh generation
-       * produced, and the OK button appears as the step settles - which is not the same moment the mesh
+       * produced, and the way-on button appears as the step settles - which is not the same moment the mesh
        * finishes filling. Read too early and the mesh object is there but EMPTY: no triangles, no
        * components, no rim coverage, which reads as a total failure of generation rather than as a race.
        *
@@ -2433,10 +2479,21 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     await page.goto(url);
     await page.waitForSelector('.start-task');
     const labels = await page.locator('.start-task button').allInnerTexts();
-    const wanted = ['Aligner supports', 'Any model', 'Open a saved project'].map(tr);
-    check(tag('t1 the task screen is in the language'), labels.join('|') === wanted.join('|') && (lang === 'en' || !labels.some((label) => wanted.indexOf(label) >= 0 && ['Aligner supports', 'Any model', 'Open a saved project'].includes(label))), labels.join('|'));
+    /*
+     * THE KEYS AS THE TASK SCREEN ACTUALLY DRAWS THEM. This read 'Aligner supports' and listed three
+     * keys; `StartScreen.tsx` draws `t('Aligner')` and there are FOUR buttons, Denture among them.
+     * 'Aligner supports' is in no dictionary and in no component - it is a label from an older task
+     * screen. So t1 failed for every language INCLUDING en, and the click under it looked for a
+     * button that does not exist, which killed the locale pass at its second step.
+     *
+     * Nothing caught it because `walkLocale` runs only under WALK_LOCALES and `npm run walk` does
+     * not set it: the locale pass is outside the gate. Worth remembering before trusting it.
+     */
+    const KEYS = ['Aligner', 'Denture', 'Any model', 'Open a saved project'];
+    const wanted = KEYS.map(tr);
+    check(tag('t1 the task screen is in the language'), labels.join('|') === wanted.join('|') && (lang === 'en' || !labels.some((label) => wanted.indexOf(label) >= 0 && KEYS.includes(label))), labels.join('|'));
     await shot(page, 'start-1-task');
-    await button('Aligner supports').click();
+    await button('Aligner').click();
     await page.waitForSelector('.start-screen .choice-keys');
     await shot(page, 'start-2-type');
     const backLabel = await page.locator('.start-back').innerText();
@@ -2534,7 +2591,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     }
     await button('Next').click();
     await badgeHas('Step 3 · Supports', 240000);
-    await page.waitForFunction((ok) => { const b = [...document.querySelectorAll('button')].find((x) => (x.textContent ?? '').trim().toLowerCase() === ok.toLowerCase()); return b && !b.disabled; }, tr('OK'), { timeout: 300000 });
+    await page.waitForFunction((ok) => { const b = [...document.querySelectorAll('button')].find((x) => (x.textContent ?? '').trim().toLowerCase() === ok.toLowerCase()); return b && !b.disabled; }, tr(WAY_ON), { timeout: 300000 });
     await quiet();
     await idle(800);
     await shot(page, 'dental-step3');

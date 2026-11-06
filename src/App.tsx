@@ -114,6 +114,7 @@ import { stepKind } from './state/stepKind';
 import { toastAlive, undoToast, type UndoAction, type UndoToast as UndoToastState } from '@mixo-geocore/editing/toast';
 import UndoToast from './components/UndoToast';
 import TermsDialog from './components/TermsDialog';
+import { onBench } from './bench/benchScene';
 import type { BrushMode } from '@mixo-geocore/editing/types';
 import { detectLanguage, plural, setLanguage, t, translateMessage, type Lang, type Message } from './i18n';
 
@@ -333,7 +334,7 @@ export default function App() {
   /** Whether the unit changed since its shown supports were built (counts follow once the build returns). */
   const building = (unit: PrintUnit) => unit.supports !== undefined && !buildSettled(unit);
   // Build plate (Round C): the printer's plate, "Arrange plate" and the re-pack of an edited case.
-  const plate = usePlateArrange({ units: scene.units, built, dispatch, setStatus, idle: editMode === 'off', redoPending: history.future.length > 0 });
+  const plate = usePlateArrange({ units: scene.units, built, dispatch, setStatus, idle: onBench({ mode: editMode }), redoPending: history.future.length > 0 });
   const activeMesh = activeUnit ? built.get(activeUnit.id)?.mesh : undefined;
   const dentalRimGap = activeUnit?.dental?.kind === 'two-contour' && built.get(activeUnit.id)?.unit === activeUnit
     ? activeMesh?.dentalRimCoverage?.needsReview
@@ -1004,7 +1005,7 @@ export default function App() {
     let ids = customisedOf(unit);
     let others = 0;
     let change: SceneCommand | undefined;
-    if (ids.length === 0 && sessionRef.current.mode === 'off') {
+    if (ids.length === 0 && onBench(sessionRef.current)) {
       const withSome = current.units.filter((candidate) => current.selectedUnitIds.includes(candidate.id)).map((candidate) => ({ candidate, found: customisedOf(candidate) })).filter(({ found }) => found.length > 0);
       if (withSome.length === 0) return;
       const [first, ...rest] = withSome;
@@ -1016,7 +1017,7 @@ export default function App() {
       // The session follows the scene in an effect; step it now so the mode can start on this object.
       send({ type: 'activeUnitChanged', id: unit.id, heavy: meshTier(triangleCount(unit), RUNTIME) === 'heavy' ? triangleCount(unit) : undefined });
     }
-    if (sessionRef.current.mode === 'off') send({ type: 'enterEdit' });
+    if (onBench(sessionRef.current)) send({ type: 'enterEdit' });
     // Undo inside the mode stops at the scene it began with: the one with this object active.
     if (change) undoFloor.current = reduceScene(historyRef.current.present, change);
     if (!editsSupports(sessionRef.current)) return;
@@ -1089,6 +1090,13 @@ export default function App() {
         const cleanup = exitCommands(current, dentalFinished);
         if (cleanup.length > 0) dispatch({ type: 'batch', commands: cleanup });
         setBackAsk(false);
+        /*
+         * STRAIGHT TO THE WORKSPACE, and FLOW_END does NOT change that. Routing Exit to the start
+         * screen was tried and the walk caught it: this command's own hint promises "the aligner
+         * stays on the plate without supports", which is a promise about the workspace, and landing
+         * on the start screen hides the very object it just told the operator about. FLOW_END is
+         * about where the LAST STEP ends, not about the escape hatch.
+         */
         return send({ type: 'exit' });
       }
       case 'dental.finish': case 'dental.addAnother': {
@@ -1164,6 +1172,27 @@ export default function App() {
       case 'view.fit': return requestView('fit', stepPanelInset(sessionRef.current));
       case 'view.bottom': return requestView('bottom');
       case 'zones.clearAll': return clearActiveZones();
+      /*
+       * STEP 3'S OWN EXPORT: the aligner and its supports, one file, and the step stays up (FLOW_END).
+       *
+       * IT MARKS THE ALIGNER FINISHED FIRST, and that is not bookkeeping tidiness - it is the whole
+       * reason this case is more than one line. `exitCommands` (dental/flow.ts) removes the supports
+       * and the dental policy of any unit NOT in `dentalFinished`, and OK was the only thing that
+       * ever added one. With OK gone, Export wrote the file and then Exit stripped the plate of what
+       * had just been written. A review caught it; no walk check did, because none of them pressed
+       * Exit after Export - the handover, not the step.
+       *
+       * Session event only, before the export, deliberately: it changes no unit, so the build the
+       * export is about to read stays valid. Marking it finished by ARRANGING the plate instead
+       * would move the unit, drop its build, and make `runExport` refuse the export as stale.
+       */
+      case 'dental.export': {
+        const { dentalUnitId, dentalStage } = sessionRef.current;
+        const unit = sceneRef.current.units.find((candidate) => candidate.id === dentalUnitId);
+        if (!unit || dentalStage !== 'review' || !unit.supports) return;
+        send({ type: 'exportedDental', unitId: unit.id });
+        return void runExport('active-printable');
+      }
       case 'export.active-printable': case 'export.active-supports': case 'export.separate-printable': case 'export.separate-supports': case 'export.whole-printable': return void runExport(exportKindOf(id));
     }
   }, [analysis, checkSupports, chooseProject, saveProject, clearActiveZones, clearManual, clearSelection, deleteSelected, deleteUnits, dentalPreview, dispatch, generate, generateDental, removeSupports, requestView, resetSelected, runExport, selectCustomised, send, setStatus, undo, unitName]);
@@ -1367,7 +1396,7 @@ export default function App() {
       </aside> : null}
       <section
         className={`viewport${isDraggingOver ? ' viewport--dropping' : ''}${VIEWPORT_CLASS[press.kind]}${editMode === 'dental' && session.dentalStage === 'review' ? ' viewport--step3' : ''}`}
-        onDragOver={(event) => { event.preventDefault(); setIsDraggingOver(sessionRef.current.mode === 'off' || acceptsDentalDrop(sessionRef.current)); }}
+        onDragOver={(event) => { event.preventDefault(); setIsDraggingOver(onBench(sessionRef.current) || acceptsDentalDrop(sessionRef.current)); }}
         onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingOver(false); }}
         onDrop={dropImport}
       >
@@ -1438,7 +1467,7 @@ export default function App() {
           : stepOnePlacing ? <Progress type="step" label={t('Placing the supports this angle needs')} /> : null}
         <div className="undo-toast-region" role="status" aria-live="polite">
           {toast && <UndoToast key={toast.id} toast={toast} onUndo={undoToastAction} onClose={closeToast} />}
-          {doneHint !== undefined && editMode === 'off' && <div className="dental-done" role="status">
+          {doneHint !== undefined && onBench({ mode: editMode }) && <div className="dental-done" role="status">
             <span>{plural(doneHint, kindText('{n} aligner finished and ready on the plate. Export STL (right panel) or Save project to keep your work.', jobKindOf(session.dentalProfile)), kindText('{n} aligners finished and ready on the plate. Export STL (right panel) or Save project to keep your work.', jobKindOf(session.dentalProfile)))}</span>
             <button type="button" onClick={() => setDoneHint(undefined)} {...hint('Close this note')}>{t('Dismiss')}</button>
           </div>}
