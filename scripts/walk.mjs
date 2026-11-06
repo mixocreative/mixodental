@@ -2398,6 +2398,40 @@ async function walk(url, scratch, dentalFixture) {
       await page.locator('.choice-key').click();
       await atStep1();
       check('s16 choosing the type with a held file goes straight to Step 1', (await page.locator('.start-screen').count()) === 0 && await plateHas(1));
+      /*
+       * WAIT FOR THE STEP BEFORE PRESSING ITS BACK. s16 arrives at Step 1 through a HELD file, so the
+       * aligner is still being read when the check passes: the import is a blocking job and the step
+       * panel is still mounting. Clicking Back into that races the re-render, and Playwright reports
+       * exactly that - "element is not stable", then "element was detached from the DOM" - until it
+       * gives up 30 s later.
+       *
+       * It is why s17 alone flaked (2 of 5 runs at one commit) while s18 and s19 never did: both of
+       * those already wait on `atStep1()` before their Back. Measured, not guessed - and only after a
+       * single-run comparison had me blaming an app change that turned out to be innocent.
+       */
+      /*
+       * SETTLE THE DOCK BEFORE PRESSING ITS BACK. s16 drops a CUBE, which has no findable rim, so
+       * orientation FAILS and rim define mode opens - asynchronously, after s16's check has already
+       * passed. That swaps the whole dock under the Back click, and Playwright reports exactly that:
+       * "element is not stable", then "element was detached from the DOM", until it gives up 30 s
+       * later. s17 passed whenever it won the race and failed whenever it lost: 2 of 5 runs at one
+       * commit.
+       *
+       * Two weaker settles were tried and both failed, which is worth recording because each looked
+       * right. `atStep1()` + `d.quiet()` does not help: `quiet()` waits on the job list, and what
+       * re-renders here is the dock. Waiting for "Step 1 OR rim mode" is worse - it matches the badge
+       * BEFORE the mode opens, skips the Cancel, and then the mode removes Back entirely, so the
+       * click fails with no element at all rather than an unstable one.
+       *
+       * A cube ALWAYS fails orientation, so rim mode always opens: wait FOR it, rather than for
+       * whichever arrives first. Section `u` has the same helper (`leaveRimIfOpen`) for the same
+       * reason; it is local to that block.
+       */
+      await page.waitForSelector('[data-ui="rim-why"]', { timeout: 30000 });
+      await d.button('Cancel').click();
+      await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 20000 });
+      await d.quiet();
+      await d.idle(300);
       await d.button('Back').click();
       await onScreen('type');
       await d.button('Back').click();
