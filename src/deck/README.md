@@ -9,6 +9,7 @@ through steps. Nothing is enforced beyond what is genuinely impossible.
 | `toolState.ts` | each tool's state, and the line a greyed one shows. The rail's order lives here |
 | `revisions.ts` | whose work is out of date, from one counter per unit |
 | `unitFacts.ts` | the only place that reads the scene's fields and answers the four questions |
+| `ToolRail.tsx` | how the four states LOOK, and the one line that says the next thing to do |
 
 `toolState.ts` and `revisions.ts` are pure: no React, no scene, no strings of their own.
 
@@ -83,3 +84,21 @@ absent record reads as "nothing accepted yet", which is what an unreadable one t
 
 A record naming a tool this build's rail does not have is also dropped — it was written against a
 different chain, so comparing against it would be meaningless.
+
+## The rail, drawn
+
+**Words, not icons.** `src/ui/assets/icons/` has `orient` and nothing for the other three, and that
+system is file-driven precisely so a designer owns those drawings rather than code inventing them.
+One icon beside three bare words looks broken, so all four are words; dropping the files in later
+needs no change here. The house style allows plain word buttons for exactly this.
+
+**One reason line, not four.** It belongs to the first unavailable tool, which *is* the next thing to
+do — one instruction at a time, the one thing the wizard did well. It is text on the page rather than
+a `title`, because a tooltip is invisible on a touch screen and easy to miss with a pointer. Every
+greyed tool still carries its own reason as a `title`, since the line only covers the next one.
+
+**Greyed, busy and stale must never look alike**, and the markup keeps them apart so CSS cannot
+collapse them by accident: blocked is `disabled` and muted, busy is pressable with the red progress
+underline, stale is pressable on a sunken band with a dashed rule. A test asserts a busy tool carries
+no stale class and vice versa. The open tool is an **ink fill, never red** — red is the one primary
+action, and an active tab is ink.

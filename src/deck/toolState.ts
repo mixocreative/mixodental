@@ -101,3 +101,17 @@ export function toolState(tool: ToolId, facts: ToolFacts): ToolState {
 /** The whole rail in order, which is what the UI draws. */
 export const railStates = (facts: ToolFacts): readonly { readonly tool: ToolId; readonly state: ToolState }[] =>
   TOOL_ORDER.map((tool) => ({ tool, state: toolState(tool, facts) }));
+
+/**
+ * THE ONE LINE THE RAIL SHOWS: the reason the first unavailable tool cannot be used.
+ *
+ * Four reason lines at once is noise, and a reason that lives only in a `title` is invisible on a
+ * touch screen and easy to miss with a pointer. The first unavailable tool IS the next thing to do,
+ * so its line is the instruction - one at a time, which is the one thing the wizard did well.
+ *
+ * `undefined` when every tool is open: there is nothing to do first, so there is nothing to say.
+ */
+export function railReason(facts: ToolFacts): Message | undefined {
+  for (const { state } of railStates(facts)) if (state.kind === 'unavailable') return state.because;
+  return undefined;
+}

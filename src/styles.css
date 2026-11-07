@@ -1567,5 +1567,42 @@ dialog.terms .terms-item > span { flex: none; }
    colour as text. An outline, never a fill - the house rule for anything destructive or refused. */
 .items-row--refused .name { color: var(--danger); }
 .items-row--refused .verdict { color: var(--danger); }
+/*
+ * THE TOOL RAIL. Orient · Rim · Area · Supports in dependency order, so the order is readable
+ * without pressing anything.
+ *
+ * The one rule the colours must keep: GREYED AND BUSY MUST NOT RESEMBLE EACH OTHER. Blocked is a
+ * disabled button, muted and unpressable. Busy keeps full ink and takes the red progress underline -
+ * the house red, which marks progress and the current item and nothing else. Stale is ink on a
+ * sunken band with a dashed underline: its work is still there, so it is not dimmed like a blocked
+ * one; it is flagged.
+ *
+ * The open tool is an INK FILL, never red: red is the one primary action, and an active tab or
+ * pressed toggle is ink. Hover is sunken, with no colour.
+ */
+.tool-rail { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
+.tool-rail .tool {
+  min-height: var(--row-height);
+  padding: 0 8px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: none;
+  color: var(--ink);
+}
+.tool-rail .tool:hover:not(:disabled) { background: var(--sunken); border-color: var(--line); }
+.tool-rail .tool--open { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tool-rail .tool--open:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
+/* Cannot yet: muted and unpressable. The reason line below the rail says what to do about it. */
+.tool-rail .tool:disabled { color: var(--muted); cursor: default; }
+/* Being made right now: full ink, and the red progress mark. NOT dimmed - it can be opened. */
+.tool-rail .tool--busy { border-bottom-color: var(--red); }
+/* Out of date: its work exists, so it is flagged rather than dimmed. */
+.tool-rail .tool--stale { background: var(--sunken); border-bottom: 1px dashed var(--line-strong); }
+/*
+ * The next thing to do, in words. Ranged left like every other run of words in the app, and sitting
+ * under the rail rather than in a tooltip, because a tooltip is invisible on a touch screen.
+ */
+.tool-reason { margin: 6px 0 0; padding: 0 8px; color: var(--muted); font-size: var(--small-size, 11.5px); }
 .items-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
 .items-left { color: var(--muted); font-size: var(--small-size, 11.5px); }

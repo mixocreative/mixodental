@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { railStates, TOOL_ORDER, toolState, type ToolFacts, type ToolId } from './toolState';
+import { railReason, railStates, TOOL_ORDER, toolState, type ToolFacts, type ToolId } from './toolState';
 
 /** A fresh import: oriented by nothing, no rim, no area. */
 const fresh: ToolFacts = { oriented: false, hasRim: false, areaAccepted: false };
@@ -89,5 +89,30 @@ describe('every tool is accounted for', () => {
     const seen = railStates(facts).map(({ tool }) => tool);
     expect(new Set(seen)).toEqual(new Set<ToolId>(['orient', 'rim', 'area', 'supports']));
     expect(railStates(facts).every(({ state }) => ['ready', 'busy', 'stale', 'unavailable'].includes(state.kind))).toBe(true);
+  });
+});
+
+describe('the one line the rail shows', () => {
+  it('is the NEXT thing to do, not every missing prerequisite at once', () => {
+    // Rim, Area and Supports are all unavailable on a fresh import. Saying all three would be noise.
+    const rim = toolState('rim', fresh);
+    expect(rim.kind).toBe('unavailable');
+    expect(railReason(fresh)).toEqual(rim.kind === 'unavailable' ? rim.because : undefined);
+    // And it is NOT one of the two further down the chain.
+    expect(railReason(fresh)?.key).not.toMatch(/support area/i);
+  });
+
+  it('moves on as each prerequisite is met', () => {
+    expect(railReason(fresh)?.key).toMatch(/right way up/i);
+    expect(railReason(oriented)?.key).toMatch(/rim/i);
+    expect(railReason(withRim)?.key).toMatch(/support area/i);
+  });
+
+  it('says nothing when every tool is open, because there is nothing to do first', () => {
+    expect(railReason(withArea)).toBeUndefined();
+  });
+
+  it('says nothing about a BUSY tool: that is progress, not a prerequisite', () => {
+    expect(railReason({ ...withArea, busy: 'supports' })).toBeUndefined();
   });
 });
