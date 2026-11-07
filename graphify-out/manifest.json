@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794076730.3574007,
-    "seen": 1794082605.029369,
-    "ast_hash": "f17b1c96b3a6c1b91f3ba1d21d1fe800",
+    "mtime": 1794082826.0295904,
+    "seen": 1794085646.9468825,
+    "ast_hash": "e957a08289ffed435151a5dbae031b3d",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -979,21 +979,21 @@
     "semantic_hash": ""
   },
   "README.ja.md": {
-    "mtime": 1793270083.8416486,
-    "seen": 1793270106.436683,
-    "ast_hash": "8d25e40c91f96d9db0c091a4eee1e219",
+    "mtime": 1794083297.689862,
+    "seen": 1794085646.9483857,
+    "ast_hash": "7d59d862726304e55e59c3a84a963b96",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793732154.2313352,
-    "seen": 1793902315.4000866,
-    "ast_hash": "4b5962d749cfc1b56b5f0db4fa592894",
+    "mtime": 1794083245.593103,
+    "seen": 1794085646.9483857,
+    "ast_hash": "2433202a503a77e14de6d3ab3cf956c1",
     "semantic_hash": ""
   },
   "README.zh-Hant.md": {
-    "mtime": 1793270083.932216,
-    "seen": 1793270106.436683,
-    "ast_hash": "46c86209bc614ddc26902d654420e120",
+    "mtime": 1794083297.6888628,
+    "seen": 1794085646.9483857,
+    "ast_hash": "2bb996f67ec10dec6a793a5ee2adee19",
     "semantic_hash": ""
   },
   "TERMS.md": {
@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1793270084.368864,
-    "seen": 1793270106.436683,
-    "ast_hash": "8adb0117a3fd0c5fdff39aa9103ac527",
+    "mtime": 1794083220.818293,
+    "seen": 1794085646.9483857,
+    "ast_hash": "2ceeadac1a21f17869179ec6729066b0",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -1519,9 +1519,9 @@
     "semantic_hash": ""
   },
   "docs/SHIP-PLAN.md": {
-    "mtime": 1793270084.4826994,
-    "seen": 1793270106.436683,
-    "ast_hash": "18b05f1303ab5a527796fb67558d289b",
+    "mtime": 1794083151.3318164,
+    "seen": 1794085646.9483857,
+    "ast_hash": "47bda1840770d94bc81eb584e7c5565f",
     "semantic_hash": ""
   },
   "scripts/perf-baseline.mjs": {
@@ -5479,9 +5479,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-07-import-and-items-flow.md": {
-    "mtime": 1794059708.8963442,
-    "seen": 1794082605.030369,
-    "ast_hash": "18f563aa568fb34aeca874f3b8cc7f6f",
+    "mtime": 1794083176.1659815,
+    "seen": 1794085646.9483857,
+    "ast_hash": "da7bffea562ad19913c0081e14fa271e",
     "semantic_hash": ""
   },
   "egm-goldfish-context-import-flow.md": {
@@ -5545,9 +5545,9 @@
     "semantic_hash": ""
   },
   "src/items/README.md": {
-    "mtime": 1794070332.7092426,
-    "seen": 1794082605.030369,
-    "ast_hash": "e36e326a910b000d3d4f948e1620a3e6",
+    "mtime": 1794083487.7970283,
+    "seen": 1794085646.9483857,
+    "ast_hash": "956c1c706d0690a816479498cea3ad46",
     "semantic_hash": ""
   },
   "src/components/startDrop.test.ts": {
@@ -5569,9 +5569,9 @@
     "semantic_hash": ""
   },
   "src/items/ItemsPage.tsx": {
-    "mtime": 1794080018.00392,
-    "seen": 1794082605.030369,
-    "ast_hash": "c581d32969b54246a50f3a42950dbfc5",
+    "mtime": 1794083049.5397458,
+    "seen": 1794085646.9468825,
+    "ast_hash": "db6b5307d31c76cad44f7a8b2e66a658",
     "semantic_hash": ""
   },
   "src/items/dropGrain.test.ts": {
@@ -5683,9 +5683,9 @@
     "semantic_hash": ""
   },
   "src/deck/ToolRail.tsx": {
-    "mtime": 1794077662.9082909,
-    "seen": 1794082605.029369,
-    "ast_hash": "cab29e0546b78b3f235bbbf4994a01eb",
+    "mtime": 1794083113.375636,
+    "seen": 1794085646.9468825,
+    "ast_hash": "26474eb1462395b8f90e9a314e2fd9bf",
     "semantic_hash": ""
   },
   "src/deck/jobSummary.test.ts": {
@@ -5785,9 +5785,21 @@
     "semantic_hash": ""
   },
   "src/deck/README.md": {
-    "mtime": 1794080050.6339076,
-    "seen": 1794082605.030369,
-    "ast_hash": "04780528443be53a8eaa47b07afe1f6a",
+    "mtime": 1794083133.951805,
+    "seen": 1794085646.9483857,
+    "ast_hash": "dad8e7b91354b463b7e4f8383c19d1a9",
+    "semantic_hash": ""
+  },
+  "src/items/ItemRow.tsx": {
+    "mtime": 1794082993.048884,
+    "seen": 1794085646.9468825,
+    "ast_hash": "7f0f3d69409f9d7ab8fc67a0ca9a5ff2",
+    "semantic_hash": ""
+  },
+  "src/items/RefusedRow.tsx": {
+    "mtime": 1794082993.1387057,
+    "seen": 1794085646.9468825,
+    "ast_hash": "1cde85d3118d179348b728bb3135e765",
     "semantic_hash": ""
   }
 }
