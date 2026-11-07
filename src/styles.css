@@ -1569,7 +1569,20 @@ dialog.terms .terms-item > span { flex: none; }
    refused or wrong - and it appears only when a row needs attention. */
 .items-tally { margin: 10px 0 0; color: var(--danger); font-size: var(--small-size, 11.5px); }
 /* The rail sits under the list, about the selected row. */
-.items-page .tool-rail { margin-top: 12px; }
+/*
+ * THE RAIL DOWN THE LEFT, with the models beside it - where the design puts it. One flex row, so it
+ * becomes the workspace's own left edge unchanged when that exists.
+ *
+ * It stacks on a narrow window rather than squeezing a 120px rail against a list that needs the
+ * width: the labels are words in three languages and must not clip.
+ */
+.items-body { display: flex; align-items: flex-start; gap: 14px; }
+.items-body .items-list { flex: 1; min-width: 0; }
+.items-page .tool-rail { flex: 0 0 auto; width: 104px; margin-top: 14px; }
+@media (max-width: 520px) {
+  .items-body { display: block; }
+  .items-page .tool-rail { width: auto; }
+}
 /* A file that never became a unit: named so the operator sees WHICH one, its verdict in the danger
    colour as text. An outline, never a fill - the house rule for anything destructive or refused. */
 .items-row--refused .name { color: var(--danger); }

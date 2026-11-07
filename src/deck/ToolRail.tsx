@@ -3,9 +3,9 @@ import { hint } from '../components/hint';
 import { railReason, railStates, type ToolFacts, type ToolId, type ToolState } from './toolState';
 
 /**
- * THE TOOL RAIL: Orient · Rim · Area · Supports, in dependency order. It sits UNDER the deck's
- * list today (`ItemsPage`), not down the left edge — the left edge is where it goes once the one
- * workspace exists, and this header used to claim that as if it were already true.
+ * THE TOOL RAIL: Orient · Rim · Area · Supports, down the left of the deck with the models beside
+ * it, in dependency order. The same component becomes the one workspace's own left edge when that
+ * exists; only the surrounding layout changes.
  *
  * The rule it draws lives in `toolState.ts` and the reasoning is in this folder's README. What this
  * file decides is how the four states LOOK, and there is one rule that matters: greyed and busy must

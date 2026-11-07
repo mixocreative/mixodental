@@ -259,6 +259,41 @@ as something this release depends on.
 
 *Read "seam only" as "do not extend it", never as "it is unused".*
 
+### WHAT WAS BUILT, 2026-11-08 — read this before the four increments below
+
+All four increments are **built, gated and pushed**, except the part of D that needs the step machine
+dissolved. The increment notes that follow are kept as the reasoning, not as a to-do list.
+
+| | commit | what landed |
+|---|---|---|
+| A | `6dcc062` | several dropped files wait for the purpose, which the batch needs |
+| B | `091046d` | one `dentalOrient` per row, each row keeping its OWN result |
+| C | `42b1a58` | the row picture, drawn once and kept as a bitmap |
+| D core | `75d86d6` | the enablement rule, the staleness model, the saved `revisions` |
+| D rail | `1609589` | the rail's four states, kept visually distinct, and its one reason line |
+| D mount | `88977a3` | the rail on the deck, the job-level tally, and two blockers a review found |
+| D stamp | `b028d91` | revisions stamped in the reducer, so staleness actually fires |
+
+**Three things this document got wrong, corrected in the code's own docs:**
+
+1. **§C's renderer.** "Render once from the display copy that already exists" cannot use the app's
+   renderer: the workspace, and so the only `<Canvas>`, is mounted **only when no start screen is up**
+   — and the deck IS a start screen. There is one dedicated renderer instead, uploading and disposing
+   one model at a time. `src/items/README.md` carries the detail.
+2. **§"THE RAIL CARRIES THE ORDER" states three rail states and a busy one.** The order they are
+   tested in turned out to be the whole rule, and the obvious order was wrong: testing *busy* first
+   let a tool be marked busy without its prerequisite, which hid its own reason and left the rail
+   instructing about a step two further on. It is unavailable → busy → stale → ready.
+3. **Staleness needs a recorded revision, which §D does not mention.** It is one integer counter per
+   unit, stamped in the reducer; `src/deck/README.md` explains why a recorded rotation would have
+   needed an epsilon nobody could defend.
+
+**What is NOT built, and why.** The per-tool **widgets**, the rail as the workspace's own left edge,
+and **per-tool entry** all need `dentalStage` dissolved. The stage machine guards every transition on
+the current stage (`src/dental/editingMode.ts`), so a tool's stage cannot be opened directly; and each
+stage owns the whole dock, which is what a floating widget replaces. A rail press therefore opens the
+MODEL today, which the button's own hint says rather than implying otherwise.
+
 ### BUILDING THE DECK: four increments, and two of them are smaller than this document assumed
 
 **A — Purpose before the batch.** The Drop page **already has the three keys**, and a single dropped

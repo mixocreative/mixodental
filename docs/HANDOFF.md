@@ -24,7 +24,38 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step
+## Latest completed step (the job deck — 2026-11-08)
+
+- **Requirement:** replace the per-item step wizard with a job deck — one workspace carrying the model
+  list, a tool rail, and per-row state — and build it in increments, each gated before it ships.
+- **Changed:** `src/items/` (the deck's rows, the batch detection, the row pictures, split so each row
+  owns what it says) and the new `src/deck/` (the enablement rule, the staleness model, the rail, the
+  job-level tally). `src/state/project.ts` gained the saved `revisions` field and stamps it. Full
+  reasoning lives in `src/items/README.md` and `src/deck/README.md`; the design and what it got wrong
+  are in `docs/design/2026-11-07-import-and-items-flow.md`.
+- **Commits:** `6dcc062` (A), `091046d` (B), `42b1a58` (C), `75d86d6` (D core), `1609589` (D rail),
+  `88977a3` (D mount + review fixes), `b028d91` (D stamp), `b2a9f9b` (graph).
+- **Results:** `tsc` 0 · 1492 tests · `npm run build` 0 · **real-scan gate PASS (13 scans, no
+  differences)** · walk 163/164, the single failure being `g-pre`, the machine-load precondition. One
+  earlier walk in the same session returned ALL PASS on 165 checks.
+- **Adopted behaviour worth carrying forward:** the rail expresses order by ENABLEMENT, not by steps,
+  and a greyed tool must say what to do about it — a disabled control with no explanation is worse
+  than a step. "Not yet possible" and "being made right now" must never look alike.
+- **Risks and failures, stated rather than buried:**
+  - A review found two blockers in code written the same day: nothing wrote `revisions`, so every unit
+    the batch had just oriented read as unoriented; and one unclosed rim anchor counted as a rim,
+    opening a tool that could not work. Both fixed and mutation-pinned.
+  - Stamping revisions broke the denture's rigid-move optimisation — `keepsBuild` compares every unit
+    key by identity, so a turn looked like a different build and valid supports would have been
+    rebuilt. Caught by `rigidMove.real.test.ts`, now also pinned by a cheap unit test.
+  - Five tests that did not test surfaced across the release. Every fix in the deck work was verified
+    by reverting it and watching the suite fail; that is the only reason none of them survived.
+- **Next executable step:** dissolve `dentalStage` into the one workspace — **owner's decision, not
+  taken**. The per-tool widgets, the rail as the workspace's own left edge and per-tool entry all
+  depend on it: the stage machine guards every transition on the current stage
+  (`src/dental/editingMode.ts`), and each stage owns the whole dock.
+
+## Previous completed step
 
 - Requirement: same settings in Blender and web must produce the same supports.
 - Harness: `tools/blender-parity/probe.py` (headless Blender 5.2 + mixo3d) records 19 settings cases on a downward pyramid into `tools/blender-parity/reference.json`; `src/supports/blenderCases.test.ts` replays each case (same contacts, true surface normals, same settings) and compares foot radius/centre, column top, touch sphere, neck tilt, and raft profile. Runs in `npm test`.
@@ -32,7 +63,7 @@ After every implementation task, record: the completed requirement; changed file
 - Results: `npm test` 14 files, 132 tests pass. All 19 cases match on every compared dimension; 3-6 of 17 supports per 45-degree case are turned/shortened by SLASG pillar repulsion (0 at 30 degrees) and are counted, not compared.
 - Next step: read SLASG's neck/pillar node group in Blender to replicate pillar repulsion, then tighten the test to compare every support.
 
-## Latest completed step (island minima bit for bit)
+## Previous step (island minima bit for bit)
 
 `tools/blender-parity/minima_dump.py` runs the stock SLASG_VertexScatter on the mushroom (SDF
 ridges off, as Resin UV runs it) and dumps every minima stage; `blenderMinima.test.ts` checks ours

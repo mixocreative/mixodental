@@ -12,6 +12,11 @@ through steps. Nothing is enforced beyond what is genuinely impossible.
 | `ToolRail.tsx` | how the four states LOOK, and the one line that says the next thing to do |
 | `jobSummary.ts` | how the whole drop is doing, counted from the rows' own verdicts |
 
+`toolState.ts` and `revisions.ts` are **pure**: no React, no scene, no strings of their own.
+`jobSummary.ts` is pure too but is the one module here that imports from `../items/` — deliberately,
+because its whole promise is that it cannot disagree with the rows, and it keeps that promise by
+calling the rows' own classifier rather than by reimplementing it.
+
 `toolState.ts` and `revisions.ts` are pure: no React, no scene, no strings of their own.
 
 ## Why a disabled button needs a module
@@ -174,10 +179,17 @@ vouch for geometry nothing has looked at — and it is not reported as a problem
 
 ## Where the rail is mounted today, and what that press does
 
-The rail is on the deck, about the selected row — falling back to `nextItem`, which is where work
-*resumes*, because a returning operator should see the model they are about to pick up rather than
-one they finished; and behind that to the **last** row, because `nextItem` is undefined once
-everything is finished and a rail that vanishes from a page which still has rows reads as a fault. Pressing a tool **opens that model**, because the step flow still owns the tool work and
+The rail is **down the left of the deck with the models beside it**, which is where the design puts
+it — one flex row in `ItemsPage`, and the one workspace's own left edge when that exists, with the
+same component either way. The walk checks that as GEOMETRY (`m4e`: the rail's right edge clear of
+the list's left edge, both sharing a top band), not by class name, because a stray `display: block`
+would undo it silently and a class assertion would never notice. Below 520px it stacks, since the
+labels are words in three languages and must not clip.
+
+It is about the selected row — falling back to `nextItem`, which is where work *resumes*, because a
+returning operator should see the model they are about to pick up rather than one they finished; and
+behind that to the **last** row, because `nextItem` is undefined once everything is finished and a
+rail that vanishes from a page which still has rows reads as a fault. Pressing a tool **opens that model**, because the step flow still owns the tool work and
 the rail is its entry point. A ready button's hint says exactly that rather than naming the tool, so
 it is not a button that fails to do what it claims.
 

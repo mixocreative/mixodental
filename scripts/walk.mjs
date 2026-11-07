@@ -1180,6 +1180,23 @@ async function walk(url, scratch, dentalFixture) {
         railOpen === false && railBlocked.every((blocked) => blocked === true) && /\w+\s+\w+/.test(railReason),
         `orient disabled ${railOpen}, others ${JSON.stringify(railBlocked)}, reason ${JSON.stringify(railReason)}`);
 
+      /*
+       * THE RAIL IS DOWN THE LEFT, with the models beside it. Checked as geometry rather than by
+       * class name: what matters is that the rail sits clear to the LEFT of the list and shares its
+       * top, which is what the design asks for and what a stray `display: block` would undo
+       * silently.
+       */
+      const boxes = await page.evaluate(() => {
+        const rail = document.querySelector('.tool-rail')?.getBoundingClientRect();
+        const list = document.querySelector('.items-list')?.getBoundingClientRect();
+        return rail && list
+          ? { railRight: Math.round(rail.right), listLeft: Math.round(list.left), railWidth: Math.round(rail.width), sameBand: Math.abs(rail.top - list.top) < 40 }
+          : undefined;
+      });
+      check('m4e the rail sits down the left with the models beside it, not under them',
+        boxes !== undefined && boxes.railWidth > 40 && boxes.railRight <= boxes.listLeft && boxes.sameBand,
+        `boxes ${JSON.stringify(boxes)}`);
+
       // Remove takes one row off and leaves the rest; the count follows the same rule the press does.
       await page.locator('.items-row .remove').first().click();
       await d.idle(500);

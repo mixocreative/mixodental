@@ -117,9 +117,21 @@ is what will make repair safe to write.
 | `detectState.ts` | what a row shows about ITS OWN orientation, and how many are still to look at |
 | `useBatchDetect.ts` | the batch itself: one detection per row, one at a time, each row's own result |
 | `thumbnail.ts` | WHICH row needs a picture and WHERE its camera goes — no GL in it |
-| `drawThumbnail.ts` | the GL half: one renderer for the app, one model uploaded and disposed at a time |
 | `useThumbnails.ts` | the cache, and drawing one row per task so the list paints between them |
-| `ItemsPage.tsx` | the page itself — one row per unit, in plate order |
+| `ItemRow.tsx` | one model's row: its picture, its name, its size, and its two independent answers |
+| `RefusedRow.tsx` | a file that never became a unit, as a row with the same columns |
+| `ItemsPage.tsx` | LAYOUT ONLY: the rail down the left, the rows beside it, the tally underneath |
+
+`drawThumbnail.ts` is **not** in this folder: it lives in `src/components/viewport/` because
+`threeBoundary.test.ts` keeps three.js in the view layer, and it is the one file of the feature that
+touches a renderer. The section below says more.
+
+**`ItemsPage.tsx` is layout and nothing else**, and it is worth saying why it was split. It used to
+render both kinds of row inline and ran to three times its present length, which made the page the
+place you had to read to learn what a row says. A row is the thing that knows what a row says, so
+each kind owns its own module and works out its own sentences; the page is left holding the
+arrangement. Nothing about the rendered markup changed — the page's own tests passed untouched
+across the split, which is what made it a safe refactor rather than a rewrite.
 
 Its `data-ui` names, all keyed to the unit and never to a row index: `items-row-<unitId>`,
 `items-preview-<unitId>`, `items-verdict-<unitId>`, `items-remove-<unitId>`, plus `items-start` and
@@ -128,7 +140,7 @@ Its `data-ui` names, all keyed to the unit and never to a row index: `items-row-
 ## All five sentences are reachable now
 
 `refusalOf.ts` turns the error that refused a file into an `ImportRefusal`, `verdictOfRefusal` turns
-that into a row state, and `ItemsPage` renders it — so `unreadable` and `too-big` can occur.
+that into a row state, and `RefusedRow` renders it — so `unreadable` and `too-big` can occur.
 
 **They could not before.** `verdictOfRefusal` had no production caller at all: a refused file was
 reported on the status line and vanished, so two of the five sentences were text for rows that could

@@ -32,6 +32,17 @@ English · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md)
 - Step 3 builds straight columns with cross-braces and a raft, checks the finished supports against the aligner, and repairs or leaves out any that would cut through it.
 - Not clinically validated: check every result before printing.
 
+### Several files at once
+- Drop a whole case — upper and lower, or a tray of models — and choose what you are making once,
+  for all of them.
+- Every file becomes a row with its own small picture, its own triangle count and size, and its own
+  two answers: whether the **mesh** is sound, and which way **up** it is. Upper and lower arches
+  orient differently, so one answer imposed on the list would be wrong for half of it.
+- A file that could not be read is a row too, named, rather than a message that scrolls away.
+- Beside the list, a rail of **Orient / Rim / Area / Supports** shows what is done and what is next.
+  A tool you cannot use yet is greyed **and says what to do first**; one whose work is still being
+  made says so instead of looking broken.
+
 ### Automatic supports
 - One click places supports on **downward faces**, **islands** (lowest points that would print in mid-air) and **overhang edges**.
 - **Light, Middle and Heavy presets**, or full custom control of spacing, overhang angle (50° by default), ridge angle, lift height, pillar diameter and more.
@@ -70,7 +81,7 @@ The interface picks up your browser language and remembers your choice. Switch b
 ## How to use it
 
 1. Open **[mixocreative.github.io/mixodental](https://mixocreative.github.io/mixodental/)**.
-2. Choose **Aligner supports** (and follow Steps 1 to 3), or **Any model** and drop your STL, GLB or glTF onto **Import models**.
+2. Choose **Aligner supports** (and follow Steps 1 to 3), or **Any model** and drop your STL, GLB or glTF onto **Import models**. Dropping **several files** opens the list instead, where each one keeps its own state.
 3. Move or rotate the model into print orientation.
 4. Press **Generate supports**, then pick a preset or tune the settings.
 5. Optional: run **Check for unsupported spots**, or fix things by hand in **Support Edit Mode**.

@@ -113,7 +113,18 @@ Dental mode is a visible feature. Entering it dims the rest of the editor.
 - **Mesh check on drop** (Step 1): warn about holes / non-manifold / broken geometry before detection; detection result is marked unreliable.
 - **Auto-arrange:** every drop in a session re-arranges all aligners on the plate without overlap.
 - Back is allowed (3→2→1); confirm before discarding manual Step 3 edits. Exit leaves the current aligner on the plate with no supports; previously finished aligners are kept.
-- Next release (not in scope now): multi-file batch drop with thumbnail strip, printer plate-fit warning, printer/resin setting presets, resin volume estimate.
+- **SUPERSEDED, 2026-11-08.** This line read: *"Next release (not in scope now): multi-file batch drop
+  with thumbnail strip, printer plate-fit warning, printer/resin setting presets, resin volume
+  estimate."* Two of those have moved:
+  - **The multi-file batch drop with its row pictures is BUILT** (the job deck:
+    `src/items/README.md`, `src/deck/README.md`). Several dropped files wait for the purpose, each row
+    gets its own orientation job and its own drawn picture, and a tool rail carries the order by
+    enablement instead of by steps.
+  - **The printer plate-fit warning is GONE, not pending.** The owner retired the build plate: exports
+    are per-object, so the slicer packs the real plate and packing to a build volume this app does not
+    own decides nothing. The seam is kept unwired (`src/components/usePlateArrange.ts` names the three
+    revival call sites) because mixomesh may need the packer.
+  - Still not in scope: printer/resin setting presets, resin volume estimate.
 
 ## Work units
 
