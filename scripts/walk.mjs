@@ -1102,6 +1102,31 @@ async function walk(url, scratch, dentalFixture) {
       check('m5 Remove takes off one row and the count follows',
         (await page.locator('.items-row').count()) === 2 && /2 items left/.test(await page.locator('.items-left').innerText()),
         `rows ${await page.locator('.items-row').count()}, ${await page.locator('.items-left').innerText()}`);
+
+      /*
+       * A DROP WHERE EVERY FILE IS REFUSED MUST NOT OPEN AN EMPTY PAGE. It used to: the switch was
+       * unconditional, the auto-escape only fires when the unit count falls FROM above zero, and the
+       * page had no Back - so the operator was stranded on a blank list. Two guards now, and this
+       * checks the first: nothing arrived, so the Drop page stays.
+       */
+      await page.goto(url);
+      await page.waitForSelector('.start-screen');
+      await dropModels([{ name: 'bad-one.stl', text: 'solid x\nnot a mesh\n' }, { name: 'bad-two.stl', text: 'solid y\nalso not\n' }]);
+      await d.idle(2500);
+      check('m6 a drop where every file is refused stays on the Drop page, not an empty list',
+        await page.locator('.start-task').isVisible() && (await page.locator('.items-page').count()) === 0,
+        `items page ${await page.locator('.items-page').count()}, status "${await d.status()}"`);
+      /*
+       * And the second guard: the page always has a way out. TWO files, because ONE goes straight
+       * into the flow and never reaches the list - the first version of this check dropped one, found
+       * no page, and passed through its own escape clause. A check that passes when the thing it
+       * examines is absent examines nothing.
+       */
+      await dropModels([{ name: 'good-a.stl', text: cube }, { name: 'good-b.stl', text: cube }]);
+      await page.waitForSelector('.items-page', { timeout: 180000 });
+      check('m7 the Items page always offers a way back',
+        (await page.locator('[data-ui="items-back"]').count()) === 1,
+        `rows ${await page.locator('.items-row').count()}, back ${await page.locator('[data-ui="items-back"]').count()}`);
     }
 
     // u. Dental flow, Step 0 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).
