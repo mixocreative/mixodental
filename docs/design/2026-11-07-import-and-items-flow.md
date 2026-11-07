@@ -594,10 +594,104 @@ subset, or `japaneseSubset.test.ts` fails.
 running app lays out at 1685 CSS px and the browser pane captures the top-left corner only. The three
 waiting types already appear there, built from `PROGRESS_TYPES` so a new one shows up on its own.
 
-**The Items row and all eight row states belong in `kit.html`**, each rendered once, so the operator
-wording and the dense layout can be reviewed without importing a file and waiting for a verdict. That
-is also the only way to see the "could not be read" and "refused" states at all, since both need a
-deliberately broken file to reach in the real app.
+**The Items row and the five reachable row states belong in `kit.html`**, each rendered once, so the
+operator wording and the dense layout can be reviewed without importing a file and waiting for a
+verdict. That is also the only way to see "could not be read" and "too big" at all, since both need a
+deliberately broken or oversized file to reach in the real app. (Five, not nine: the four repair
+states are cut with step 9. Derive the list from `ROW_STATES`, never by hand.)
+
+### The two pages, specified
+
+Round 4's loudest finding was that this section states the *rules* for the UI and never the UI. The
+only layout line in the document was §1's "preview, verdict, progress". Below is the specification,
+written so 7a and 7b can start. **Every name, string and token here is a proposal I am putting in
+writing rather than a question held open** — correct any of it and the steps follow the correction.
+
+#### Drop (page 1)
+
+One column, centred as a block, ranged-left text inside it. Top to bottom:
+
+| Region | `data-ui` | Class | Contents |
+|---|---|---|---|
+| Logo + title | — | `.start-head` | Unchanged from the task screen today. |
+| Drop zone | `drop-zone` | `.start-screen .drop-zone` | The whole column is the drop target, as `.start-screen` is today, so the walk's synthetic drop keeps working. |
+| Purpose keys | `drop-purpose-aligner`, `drop-purpose-denture`, `drop-purpose-any` | `.start-screen .choice-keys` | The three keys that are on the task screen today, class retained so section `s` keeps selecting them. |
+| Open a saved project | `drop-open-project` | `.start-open` | Moved from the task screen. |
+
+**Heading: "What are you making?"** Footer: **"Drop one or more files, or choose what to make."**
+Both replace the strings `u1a` pins today (*"What would you like to support?"* / *"Choose what to make
+supports for."*), so `u1a` is rewritten with them in 7d.
+
+**The question is named *Purpose*, not *Appliance*.** §9 left this open and it blocks 7a, so: *Appliance*
+is already the glossary term for **the object itself** — an aligner, a denture — and reusing it for the
+*question about* that object makes one word mean two things in one view, in three languages. *Purpose*
+names the question and collides with nothing. `Appliance` keeps its glossary entry for the object.
+
+**Accept list:** `.stl` only, as today. A dropped file of any other type is refused per-file (`4718e21`),
+so a mixed drop imports what it can and names what it could not — §6's rule, and walk `m1` already
+proves it.
+
+#### Items (page 2)
+
+One row per dropped file, in drop order, in the same single column. The column has a heading
+(**"Your files"**), the rows, and one primary at the foot.
+
+| Row part | `data-ui` | Class | Contents |
+|---|---|---|---|
+| Name | — | `.items-row .name` | The file's name, truncated with the full name as `title`. |
+| Preview | `items-preview-<importId>` | `.items-row .preview` | **Not rendered geometry** — see below. |
+| Verdict | `items-verdict-<importId>` | `.items-row .verdict` | One of the five sentences. |
+| Progress | `items-progress-<importId>` | `.items-row .progress` | The borrowed `ledger` indicator, named here because `ProgressIndicator` has none. |
+| Remove | `items-remove-<importId>` | `.items-row .remove` | `--danger` **outline**, never a fill. Calls `reservation.release()` when the unit does not exist yet. |
+| Foot | `items-start` | `.items-foot` | The one primary: **"Start with the first item"**. |
+
+Keyed to `importId`, never to an index, for the reason this section already gives.
+
+**The preview is a text summary, not a thumbnail, and this is a memory decision rather than a visual
+one.** §0's whole argument is that the release adds no per-file transient copy; a rendered thumbnail
+per row would add exactly that — the one new per-row cost in the feature — and at 12.2 MB a model and a
+cap of 8 it is the largest thing on the page. So the preview region carries **triangle count and
+bounding-box size in mm**, both already in hand (`diagnose_mesh` returns `triangles`; bounds come from
+`meshBounds`, which `placeImportedUnits` already calls). A thumbnail becomes worth revisiting the day
+a row needs to disambiguate two files with the same name, and not before.
+
+**Icons and tooltips.** Each of the three Purpose keys and the Remove action takes an icon plus a
+`title`. The icons are the app's existing set; the tooltips are the only new strings:
+
+| Control | Tooltip (en) |
+|---|---|
+| Aligner | Clear aligners and retainers. |
+| Denture | Dentures and try-ins. |
+| Any model | Any other model, with no dental steps. |
+| Remove | Take this file off the list. |
+
+**The verdict sentences** — five, because repair is cut. Each is one sentence, ranged left, no period
+on the count fragments:
+
+| State | Sentence (en) |
+|---|---|
+| `clean` | Ready to print. |
+| `holes` | Has {n} open edge loops. It can still be printed, but check the result. |
+| `malformed` | Has {n} edges shared by more than two faces. It can still be printed, but check the result. |
+| `unreadable` | Could not be read. |
+| `too-big` | Too big for the plate: {n} triangles, limit {limit}. |
+
+Two things these say on purpose. **Neither defect sentence tells the operator to fix it**, because
+nothing in this release can — offering a fix with no press behind it is the worse lie. And `holes` and
+`malformed` stay separate sentences even though both end the same way, because step 5 measured them as
+genuinely different populations: zero files with open rims, 8 of 18 with non-manifold edges. One
+merged sentence would hide which of the two the operator is looking at.
+
+**The row tone is neutral.** `ledger` is `--red` by module decision and forbids a call-site override,
+so a routine import row would otherwise wear the failure colour. The answer is the documented neutral
+token this section already calls for; the red stays for the one primary and the current-item marker.
+
+#### Memory on quit, restated for these pages
+
+A row removed before its unit exists calls `reservation.release()` — **per row**, not the whole hold.
+§9 left this open and L790/L802 contradicted each other; releasing the whole hold would drop the files
+the operator kept, which is the opposite of what pressing Remove on one row means. The whole hold is
+released only when every row is gone or the scene is abandoned.
 
 ## 8. Sequence
 
