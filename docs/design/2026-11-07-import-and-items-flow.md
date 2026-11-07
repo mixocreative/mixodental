@@ -176,8 +176,14 @@ The visible labels must not be "Kind" and "Type": synonyms in English.
 
 ## 3. What happens to a file on import
 
-**Engine COMPLETE and PUSHED: `6c37d20` (engine 62) and `b5a71ab` (engine 63), on `origin/main` in
-geocore. Not vendored — the tree is engine 61. App side unstarted.**
+**Engine COMPLETE, PUSHED and VENDORED: `6c37d20` (engine 62) and `b5a71ab` (engine 63);
+`vendor/mixo-geocore/SOURCE.json` reads `engineVersion: 63`. App side PART BUILT: `diagnoseImported`,
+`src/state/diagnosis.ts`, `src/items/rowState.ts` and `PrintUnit.diagnosis` are in and gated (§8
+steps 4 and 6). What is left is the pages and the row's words, not the pipeline.**
+
+*This header said "Not vendored — the tree is engine 61. App side unstarted." three rounds after both
+became false. A status line that nobody re-reads is worse than none: §8 was the only honest record,
+and a reader who trusted §3 would have rebuilt what already exists.*
 
 ### The import pipeline is already multi-file
 
@@ -256,8 +262,10 @@ accident. The engine patches a rim by one of three strategies and **refuses** a 
 its reach. Nine per-loop codes come back — `''` (filled), `fill-too-long`, `fill-non-planar`,
 `fill-self-intersecting`, `fill-too-many-edges`, `fill-not-a-loop`, `fill-degenerate`,
 `fill-spans-bodies`, `fill-disabled` — and **the host does not surface nine sentences.** Several name
-engine-internal conditions an operator cannot act on, and `fill-disabled` is unreachable once step 5's
-constant exists. The classifier maps them onto **three operator classes**: *filled*, *too long to fill
+engine-internal conditions an operator cannot act on, and `fill-disabled` is the one that is
+**universal in this release**, not unreachable: the measured limit is 0, so every loop reports it.
+(An earlier revision said "unreachable once step 5's constant exists" — exactly inverted, and
+contradicted thirty-eight lines later by this section's own table.) The classifier maps them onto **three operator classes**: *filled*, *too long to fill
 safely* (`fill-too-long`), and *shape refused* (everything else), with the raw code kept in the report
 for diagnostics. **A loop left open always arrives with a reason**; nine codes do not mean 27
 strings. (Method and thresholds are in geocore's `docs/mesh-repair.md`; they are engine altitude.)
@@ -297,8 +305,9 @@ because the weld has already run, so what remains is exactly winding and non-man
 | `ok()` and **not** `changed()` | **Nothing to change.** Reached when the fill limit is zero (every loop reports `fill-disabled`, which is not a refusal) or when a pass finds nothing to move. Not "Repaired". |
 | `changed()` and not watertight | Repaired; loops remain, **a reason per loop**. |
 
-A pure function in `src/import/` maps a report to one of these, tested on its own; the strip only
-renders it.
+A pure function in **`src/items/rowState.ts`** maps a report to one of these, tested on its own; the
+strip only renders it. Not `src/import/`, which does not exist, and not `src/core/import/`, which
+`importOracleBoundary.test.ts` pins to exactly `estimate.ts` and `stlHeader.ts`.
 
 ### Row progress — and which surface owns it
 
@@ -604,11 +613,13 @@ is known. And **my `g` fix (pressing Select before the measured pair) was unnece
 harmless and makes the check independent of what the previous one leaves the switch on, so it stays,
 but it was not the cause.
 
-`g` still needs a real cause before any criterion below can say `ALL PASS`. It is now a **known
-pre-existing failure**, not an unattributed risk of this work, so steps may proceed against
-"no new failures beside `g` and `s17`".
+**The criterion is now plain `ALL PASS`.** The full walk passed at `83a4998`: **ALL PASS, 153 checks,
+2113 s**, `g` included. `s17` is fixed and passes 5/5, so the old clause "no new failures beside `g`
+and `s17`" licensed a regression in a check that works — it is withdrawn.
 
-*Remaining exit:* `s17` baselined the same way (`--only=s` at `1db2987`), then a cause for each.
+`g` is flaky and pre-existing (it fails at `1db2987`). A run where **`g` alone** fails is re-run, not
+accepted; any other failure is a failure. *Remaining exit:* a cause for `g`, which is the only thing
+step 0 still owes.
 
 **1. Done — `e5c5718`.** `src/scenes/`, `src/bench/`, `FLOW_END`, `reviewWayOn` and its four sites,
 the `exportedDental` fix, `src/App.tsx`, `src/components/{ModeEntry,StartScreen,DentalSupports}.tsx`,
@@ -686,7 +697,18 @@ across the scans, rounded down to 0.1 mm** — p95 rather than the maximum so on
 cannot authorise filling a rim nobody has judged, and rounded down because §3 limit 1 means an
 unverified patch. Lands as a named host-side constant with its derivation and the measured
 distribution in its comment. Measure retained bytes per model in the same pass, for §9's cap.
-*Exit:* the constant exists, its comment states the distribution, and the measurement script is
+**NO CONSTANT WAS INTRODUCED, and that is the right outcome — but this step's exit said otherwise.**
+`MAX_FILL_LOOP_MM` appears nowhere in `src/` or `vendor/`: the only two occurrences in the tree are
+`console.log` strings in `scripts/measure-rim-loops.mjs`. The step was marked DONE against an exit it
+does not meet, and step 9 was left with nothing to pass to `repair_mesh`.
+
+The honest position: at a measured limit of **0** a named constant would be a parameter with one
+possible value and no caller, which §1's own argument against `scope` rejects. So **step 9 passes a
+literal `0`** at its single call site, with a comment naming `scripts/measure-rim-loops.mjs` as the
+derivation and the 0-rims-over-18-scans result as the reason. A constant is introduced the day a
+holed scan exists and the limit becomes a real number — not before.
+
+*Exit (corrected):* the measured distribution is recorded here, the measurement script is
 committed.
 
 **6. Diagnose in the worker. — DONE.**
@@ -709,11 +731,11 @@ because at a fill limit of 0 every loop reports `fill-disabled`, which is not a 
 **And the wiring.** `diagnoseImported` in `prepareImport.ts` runs `diagnose_mesh` on the
 **full-resolution** mesh — never the display copy, whose topology is a decimation's and not the
 file's — and `importWorker.ts` calls it per prepared mesh after the weld. Only the **verdict**
-crosses the boundary: `ImportDiagnosis` is five facts and a body count, not the per-body report with
+crosses the boundary: `ImportDiagnosis` is seven plain fields, not the per-body report with
 its rim arrays.
 
 `ImportDiagnosis` is declared in **`src/state/diagnosis.ts`**, a leaf module holding that one type.
-Four of its six fields are `Pick`ed from the vendored `RepairReport`: declaring them again shared
+Five of its seven fields are `Pick`ed from the vendored `RepairReport`: declaring them again shared
 57 % of the file's lines with `host/core/repairMesh.ts` and `noDuplicatePackages.test.ts` refused it,
 and picking leaves the engine owning their meaning so a rename there breaks this build. An earlier revision of this plan put it on the worker protocol, so that `src/items`
 imported it and the UI depended on the worker's output rather than the reverse. That stopped working
@@ -733,7 +755,8 @@ case all 8 of the affected real scans land in.
 mesh, verdict only across the boundary. `src/items/` (new module, README, tests) holds the host-side
 pure classifier — its input is a **union**, `DiagnoseReport | CodedError`, because half of §3's first
 table comes from the capacity guards and the STL reader rather than from `diagnose_mesh` — mapping one
-of those to a row state, and the three-language text for **all eight row sentences**, the coded import
+of those to a row state, and the three-language text for **all nine row sentences** — iterate the
+exported `ROW_STATES`, never a hand-copied count, which has been wrong at every revision — the coded import
 errors, and the three operator classes the nine `fill-*` codes collapse to.
 *Exit:* one test per row state in both of §3's tables, on the classifier, with no UI.
 
@@ -759,7 +782,7 @@ landing with 7b). The verdict is stored, so a row can now read it.
 **6a. The UI groundwork** (§7). Declare the app row-height token in `src/styles.css` and add it to
 the app token table in `docs/ui-styling.md`; decide and document the neutral row tone so `ledger`'s
 `--red` does not reach a routine row; add the glossary terms for *Appliance* in all three languages;
-add all eight row **states** to `kit.html` as static markup so the wording and density can be judged
+add all nine row **states** (iterate `ROW_STATES`) to `kit.html` as static markup so the wording and density can be judged
 without importing a file — **not the row component**, which is step 7b's, because a step must not
 need the one after it.
 *Exit:* `uiStylingDoc.test.ts`, `noColourLiterals.test.ts`, `glossary.test.ts`,
@@ -801,7 +824,42 @@ suppressing import jobs and the veil off; `data-ui` keyed to the import id, and 
 rewritten; the Drop page's formats and mixed-drop behaviour per §6. **Removing a row before its unit
 exists must call `reservation.release()`** — `PlateLedger` holds that import outside `scene.units`, so
 the scene reconcile never sees it, and no other step owns this.
-*Exit:* `ALL PASS` on the whole walk — not section `s` alone, because `enterEditor`'s seven call sites
+
+**THE LOOP DOES NOT WORK AS WRITTEN, and this is the step's real design problem.** Earlier revisions
+said only "use `useSelectedAligner` / `startDentalAligner`, never `startDental` (which resets
+`dentalFinished: []`)". The second half is true and verified (`editingMode.ts:219`). The first half is
+not enough, for three reasons read off the code:
+
+- `useSelectedAligner` **returns silently** unless `acceptsDentalDrop(session)`, which requires
+  `dentalStage === 'aligner'` (`editingMode.ts:353`, `App.tsx:818`). After item 1 the stage is
+  `review`, so the press does nothing at all.
+- `startDentalAligner` does not rescue it. It opens with `send({ type: 'dentalLoading' })`, and that
+  reducer case is a **no-op outside stage `aligner`** (`editingMode.ts:230`). `startAligner`'s own
+  `stale()` then sees `dentalAligner !== 'loading'` and aborts the orient job.
+- Neither takes a unit id: `useSelectedAligner` reads `sceneRef.current.activeUnitId`, and
+  `startAligner`'s `stale()` requires `activeUnitId === unit.id`. Nothing in the loop sets it.
+
+So **item 2..N needs one new session event** that returns the stage to `aligner` and points
+`dentalUnitId`/`activeUnitId` at the next item **while preserving `dentalFinished`** — structurally
+the same fix as `exportedDental` in step 1, and for the same reason: the stage machine has no
+transition for "done with this one, on to the next". Its reducer case must be session-only and must
+refuse when the named unit is not on the plate.
+
+**And item 1's entry is unstated.** `startDentalAligner` needs `mode === 'dental'`, which from `off`
+is reachable only through the entry paths this step forbids. Name that path, or the loop has no first
+iteration either.
+
+**The multi-file drop is sliced to one file today.** `App.tsx:692` reads
+`files.filter(acceptModelFile).slice(0, dentalDrop ? 1 : undefined)`, so while a dental session is
+live a five-file drop silently becomes one — the exact case the Items page exists for. The slice
+moves behind "is the Start scene up", not "is a dental session live", and a walk check asserts a
+five-file drop yields five rows with a session already open.
+*Exit:* **not** `ALL PASS` — step 7d owns the walk rewrite, and a step must not need the one after
+it. 7b's exit is: `tsc`, the suite, the build, the new `src/items/` tests, a walk check that a
+five-file drop with a live session yields five rows, and a walk check that *Next item* reaches item 2
+with `dentalFinished` still holding item 1. The whole-walk `ALL PASS` is **7d's** exit, stated once.
+
+*The superseded wording, kept because it was wrong in an instructive way:* `ALL PASS` on the whole walk — not section `s` alone, because `enterEditor`'s seven call sites
 all sit outside it — plus `npm run walk:locales` green, and *Any model* still reaching the bench
 asserted by a **walk** check, not by `sceneMap.test.ts`, which tests a frozen table and cannot assert
 reachability.
@@ -813,8 +871,13 @@ Orient return to the Items page without ending the session** — today it sends 
 `dentalFinished`, which with a live case loses every finished item.
 *Exit:* `npm test` green, and a walk check that Back at Orient keeps `dentalFinished`.
 
-**7d. The walk rewrite** — section `s` (2268–2424, 21 checks including `s2b` and `u1a`), the section
-`u` type-screen checks, and the *Add another aligner* → *Next item* checks (`u2`, `u11`, `x14`).
+**7d. The walk rewrite** — section `s` (**`s1` at 2331 through `s19` at 2486**, 21 checks including
+`s2b` and `u1a`), the section `u` type-screen checks, and the *Add another aligner* → *Next item*
+checks (**`x1` at 1940, `x1b` at 1935, `x14` at 2114**).
+
+*This range has been wrong at four successive revisions — 2268–2424 cut off `s14` onward, which are
+precisely the checks 7c changes, and `u2`/`u11` are unrelated checks. Re-grep the IDs when this step
+starts; do not trust the numbers above either.*
 *Exit:* `ALL PASS`, with the check count stated so a dropped check is visible.
 
 **8. — moved to step 7c**, because the walk rewrite depends on it. (Was: remove the type screen.)
@@ -831,10 +894,34 @@ undo step, and what else must follow it: the **display decimation re-run**, the 
 geometry), and a **capacity re-check**, because filling adds triangles and `assertPlateCapacity` is
 consulted only on the import path. **Centring does not re-run**: `prepareImport` centres on first
 import and the unit's transform has been the operator's ever since, so re-centring a repaired mesh
-would move a model they have already oriented. The project file stores the repaired
-mesh and records that it was repaired.
-*Exit:* a refused repair leaves the unit untouched; a successful one leaves picking, display and
-capacity consistent.
+would move a model they have already oriented.
+
+**It must also replace `PrintUnit.diagnosis`, and this is not optional.** The saved verdict carries
+`triangles`, and `normalizeUnit` drops a verdict whose count is not the attached mesh's — by design,
+so a stale verdict can never be stated as fact. A repair that replaces `source` without re-running
+`diagnose_mesh` therefore **silently loses the verdict on the next reload**, and the row falls back to
+"not diagnosed" on the one file the operator just acted on. So repair returns a new verdict and the
+same command writes both fields.
+
+**What the row says after a reload is a narrower question, and the doc owes an answer.**
+`verdictOfRepair` takes a `RepairResult`, which is not persistable, so `refused`, `unchanged`,
+`repaired` and `repaired-open` — four of the nine states — cannot be reconstructed from a saved
+project. Either the four collapse to the three `diagnose_mesh` states on reload (the cheap, honest
+option: the file is re-judged on what it now is, not on what was done to it), or a small
+`repairedAt`-style fact is saved alongside. **Recommendation: collapse.** A row that says what the
+mesh is now cannot be stale; a row that says "repaired" is a claim about history that the project file
+would have to keep true.
+
+**The capacity re-check keeps its place, but not its stated reason.** "Filling adds triangles" is
+impossible at limit 0. Non-manifold splitting duplicates vertices along split edges and can raise the
+triangle count, which is reason enough — and `assertPlateCapacity` is consulted only on the import
+path, so nothing else would catch it. A post-repair refusal must leave the original unit intact.
+
+*Exit:* a refused repair leaves the unit untouched; a successful one leaves picking, display,
+capacity **and the verdict** consistent, and a saved-and-reopened repaired unit still carries a
+verdict that matches its mesh. Plus the standing per-step gate: module + tests + README, `tsc`, the
+suite, the build, the walk, `walk:locales`, and — because this step is the first to run `repair_mesh`
+on real geometry — `npm run gate:real`.
 
 **10. Page names — NOT a step. Deleted, with the reason kept.** Revisions 3 and 4 scheduled a `PAGES`
 table beside `SCENES`. It would be a **fourth** enumeration of screens next to `StartScreenId`,
@@ -843,9 +930,28 @@ needs exactly its own members, so none wants to migrate. That is precisely the r
 `scope`: a structure holding an intention. **The page names are worth having; a data structure for
 them is not.** §1's table and `src/scenes/README.md` carry the vocabulary.
 
-**11. Finished-and-kept release** — widen `App.tsx`'s `built` map to `UnitBuild<KeptBuild>` (§5 —
-**not** `UnitBuild<BuiltSupports>`, which has no `footprint`), hung
-off `addAnotherDental` and a **successful** export (§4), never off the bare `exportedDental` press.
+**11. Finished-and-kept release** — hung off `addAnotherDental` and a **successful** export (§4),
+never off the bare `exportedDental` press.
+
+`UnitBuild<KeptBuild>` is the right shape for a released entry (**not** `UnitBuild<BuiltSupports>`,
+which has no `footprint` — a reviewer claim this doc once carried and which is false). But a
+**uniform widening of the map does not compile**, and that is the work this step is actually made of.
+The map's consumers need full geometry and say so in their own types: `src/plate/plateLayout.ts`
+(`Builds`, read at `plateFootprints`), `src/components/usePlateArrange.ts:16`
+(`ReadonlyMap<string, { unit; mesh: GeneratedSupportMesh }>`), `src/components/useExport.ts:26`
+(`ReadonlyMap<string, UnitBuild>`), plus `useFixSpot.ts` and `viewport/types.ts`. A live unit still
+needs its mesh; only a *released* one does not.
+
+So the value type becomes a **discriminated union** of built-and-held versus released-and-measured,
+and each of those five sites is migrated to narrow on the discriminator — a released entry must be a
+type error wherever geometry is dereferenced, not an empty mesh at runtime. Name all five in the
+commit; a silent `as` at any one of them defeats the step.
+
+**Its stated prerequisite, the row cap, is owned by no step.** §9 called it "rather than guessing a
+number now", which is stale: step 5 measured 12.2 MB per model and §9 already carries 8 (~100 MB).
+Either step 11 adopts that number and says so, or a step owns choosing it. **Recommendation:** step 11
+adopts 8 with step 5's measurement as the derivation; a cap nobody has measured against is the thing
+worth avoiding, and 8 has been measured.
 *Exit:* the geometry is gone, `dropped` / `droppedByZones` / `footprint` remain, `planExport` still
 emits a supports part, and the known cost — the evicted unit no longer drawing its support bodies, and
 being packed by its bounding box — is asserted rather than denied.

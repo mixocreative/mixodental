@@ -13,11 +13,11 @@ import type { RepairReport } from '@mixo-geocore/host/core/repairMesh';
  * WHAT THE WORKER SAYS ABOUT A MESH'S HEALTH: the verdict, not the report.
  *
  * `diagnose_mesh` returns a `RepairReport` whose `bodies` is a per-body array carrying each body's
- * rim lengths. None of that crosses the worker boundary. The Items row needs these six facts, so six
- * facts travel: all plain numbers and booleans, so the verdict structured-clones with no transfer
- * list and is small enough to save on the unit it describes.
+ * rim lengths. None of that crosses the worker boundary. The verdict is the seven fields below and
+ * nothing else: all plain numbers and booleans, so it structured-clones with no transfer list and is
+ * small enough to save on the unit it describes.
  *
- * FOUR OF THEM ARE PICKED FROM THE VENDORED REPORT rather than re-declared. The first version of
+ * FIVE OF THE SEVEN ARE PICKED FROM THE VENDORED REPORT rather than re-declared. The first version of
  * this file spelled them out again, and `noDuplicatePackages.test.ts` refused it: it shared 57 % of
  * its lines with `host/core/repairMesh.ts`. Picking them means the engine owns their meaning and
  * their doc comments, and a rename or a retype on that side breaks the build here instead of

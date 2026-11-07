@@ -54,7 +54,7 @@ It belongs here regardless. The importer produces a report; this turns a report 
 
 `diagnose_mesh` runs once, in the import worker, on the full-resolution mesh — never the display
 copy. The engine's per-body report does not cross the worker boundary: `diagnoseImported` reduces it
-to the six facts of `ImportDiagnosis`, which is plain numbers and booleans and so structured-clones
+to the seven fields of `ImportDiagnosis`, which are plain numbers and booleans and so structured-clone
 with no transfer list.
 
 `ImportDiagnosis` is declared in `src/state/diagnosis.ts`, a leaf with no imports of its own. It has
@@ -66,7 +66,7 @@ From there it is **saved on the unit** as `PrintUnit.diagnosis`, carried over by
 `placeImportedUnits`. It describes the mesh as imported, so no command touches it; a repair is the
 one thing that may replace it, because a repair is the one thing that replaces `source`.
 
-`ImportDiagnosis` **picks four of its fields from the vendored `RepairReport`** rather than
+`ImportDiagnosis` **picks five of its seven fields from the vendored `RepairReport`** rather than
 re-declaring them. The first version spelled them out again and `noDuplicatePackages.test.ts` refused
 it — 57 % of its lines matched `host/core/repairMesh.ts`. Picking leaves the engine owning those
 fields' meaning, so a rename on that side breaks this build instead of leaving a stale second

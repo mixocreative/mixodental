@@ -4,7 +4,7 @@ import { diagnoseImported } from './prepareImport';
 
 /*
  * THE VERDICT AGAINST THE REAL ENGINE, not a stand-in. `diagnoseImported` reduces a per-body report
- * to the five facts that cross the worker boundary, and the only way to know the mapping is right is
+ * to the seven fields that cross the worker boundary, and the only way to know the mapping is right is
  * to hand the real engine real meshes. `src/items/rowState.test.ts` covers what the row then SAYS;
  * this covers whether the facts arriving are true.
  */
