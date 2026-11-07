@@ -13,7 +13,11 @@ import { loadPrinter, printerById, savePrinter, type PrinterProfile } from '../p
 
 interface PlateHost {
   units: readonly PrintUnit[];
-  built: ReadonlyMap<string, { unit: PrintUnit; mesh: GeneratedSupportMesh }>;
+  /**
+   * Forwarded to `plateFootprints` and never read here, so it asks for what that reads and no more:
+   * a released build (geometry freed, outline kept) is a valid argument.
+   */
+  built: ReadonlyMap<string, { unit: PrintUnit; mesh: Pick<GeneratedSupportMesh, 'footprint'> }>;
   dispatch: (command: SceneCommand) => void;
   /** A status line: key, vars, plural key. */
   setStatus: (key: string, vars?: Record<string, string | number>, other?: string) => void;

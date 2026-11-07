@@ -5,7 +5,7 @@ import { plural, type Message } from '../i18n';
 import type { PrintScene, PrintUnit } from '../state/project';
 import { exportUnits, planExport, type ExportKind } from '@mixo-geocore/host/supports/export';
 import { exportRefusal } from '@mixo-geocore/host/supports/exportGate';
-import { currentBuilds, supportJobOf, unitContacts, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import { currentBuilds, supportJobOf, unitContacts, type BuiltSupports, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
 import type { ExportResult, SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
 import type { ExportFilePlan } from '@mixo-geocore/host/supports/export';
 import type { JobLabel } from '@mixo-geocore/host/workers/jobActivity';
@@ -23,7 +23,13 @@ const REFUSED_INCONCLUSIVE = 'Export refused: the safety check of {name} could n
  */
 export function useExport(host: {
   sceneRef: MutableRefObject<PrintScene>;
-  builtRef: MutableRefObject<ReadonlyMap<string, UnitBuild>>;
+  /**
+   * `BuiltSupports`, not the full mesh: this hook reads the map only through `currentBuilds` and
+   * `unitContacts`, and BOTH of those already take `BuiltSupports`. The geometry written to the STL
+   * comes from the export worker, not from here - so a released build (geometry freed once its unit
+   * is finished) exports exactly as before.
+   */
+  builtRef: MutableRefObject<ReadonlyMap<string, UnitBuild<BuiltSupports>>>;
   exporter: () => SupportMeshClient;
   /** An export that holds a denture runs in the denture worker (src/denture), every unit built there. */
   dentureExport?: (units: readonly (readonly [PrintUnit, number])[], files: ExportFilePlan[], label: JobLabel) => Promise<ExportResult>;

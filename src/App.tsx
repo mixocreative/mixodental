@@ -101,6 +101,7 @@ import { acceptsDentalDrop } from './dental/editingMode';
 import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
 import { ItemsPage } from './items/ItemsPage';
+import { hasGeometry, releaseFinished, type HeldBuild } from './plate/releasedBuild';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { splitDentureSpots } from './denture/check/dentureSpots';
@@ -318,14 +319,44 @@ export default function App() {
   // the new one arrives, and units that did not change are not rebuilt. Each mesh keeps the unit
   // version it was built from: its `dropped` contacts (zoned landings) decide the unit's contacts,
   // counts, checks and export plan, and a unit edited since shows its counts as still building.
-  const [built, setBuilt] = useState<ReadonlyMap<string, UnitBuild>>(new Map());
+  /**
+   * A build is held with its geometry while its unit is being worked on, and RELEASED to its kept
+   * facts once the unit is finished (`src/plate/releasedBuild.ts`). The map's value is the union, so
+   * every reader has to say which it needs — and all but one need only the small fields.
+   */
+  const [built, setBuilt] = useState<ReadonlyMap<string, UnitBuild<HeldBuild>>>(new Map());
   const builtRef = useRef(built);
   builtRef.current = built;
   /** Unit versions whose build failed (the error is in the status line): their counts stop waiting. */
   const [failedBuilds, setFailedBuilds] = useState<ReadonlyMap<string, PrintUnit>>(new Map());
   /** The unit's build finished, or failed, for the unit as it is now. */
   const buildSettled = (unit: PrintUnit) => built.get(unit.id)?.unit === unit || failedBuilds.get(unit.id) === unit;
-  const supportMeshes = useMemo(() => new Map([...built].map(([id, entry]) => [id, entry.mesh])), [built]);
+  /**
+   * THE BUILDS THAT STILL CARRY GEOMETRY. A released build (its unit finished, geometry freed —
+   * `src/plate/releasedBuild.ts`) is absent here, so a finished unit draws no supports: that is what
+   * releasing MEANS, and it is a visible change rather than a no-op. Its outline survives in `built`,
+   * which is what the plate packs by.
+   */
+  const heldBuilds = useMemo(() => {
+    const out = new Map<string, UnitBuild<GeneratedSupportMesh>>();
+    for (const [id, entry] of built) if (hasGeometry(entry.mesh)) out.set(id, { unit: entry.unit, mesh: entry.mesh });
+    return out;
+  }, [built]);
+  const supportMeshes = useMemo(() => new Map([...heldBuilds].map(([id, entry]) => [id, entry.mesh])), [heldBuilds]);
+  /*
+   * FINISHED-AND-KEPT RELEASE (plan §8 step 11). A unit that has been through the flow keeps its
+   * dropped lists and its plate outline and loses its geometry, which is the largest thing held per
+   * unit. A case of eight would otherwise carry eight support meshes for the whole session.
+   *
+   * Declarative, not hung off a particular press. The plan proposed wiring it to `addAnotherDental`
+   * and a successful export; every such hook is a path that can be missed, and two of them are two
+   * chances to miss it. The condition is simply "finished, and not the one being looked at", so it is
+   * written as that condition. `releaseFinished` returns the SAME map when nothing changed, so this
+   * is a no-op for React on every render where nothing finished.
+   */
+  useEffect(() => {
+    setBuilt((current) => releaseFinished(current, session.dentalFinished, scene.activeUnitId));
+  }, [session.dentalFinished, scene.activeUnitId]);
   /** The unit's contacts as its latest build left them (see `built`). */
   const contactsOf = useCallback((unit: PrintUnit) => {
     const { inArea: stepTwo, dentalPreview: preview } = areaRef.current;
@@ -337,7 +368,14 @@ export default function App() {
   const building = (unit: PrintUnit) => unit.supports !== undefined && !buildSettled(unit);
   // Build plate (Round C): the printer's plate, "Arrange plate" and the re-pack of an edited case.
   const plate = usePlateArrange({ units: scene.units, built, dispatch, setStatus, idle: onBench({ mode: editMode }), redoPending: history.future.length > 0 });
-  const activeMesh = activeUnit ? built.get(activeUnit.id)?.mesh : undefined;
+  /** The active unit's build, geometry or not: what `unitContacts` and `hiddenByZones` read. */
+  const activeBuild = activeUnit ? built.get(activeUnit.id)?.mesh : undefined;
+  /**
+   * THE ONE PLACE GEOMETRY IS ACTUALLY READ — `dentalRimCoverage`, `unresolved`,
+   * `dentalStructureFallback` are all fields of a real mesh. Narrowed by a guard rather than cast, so
+   * a released build reads as absent here and keeps its contacts everywhere else.
+   */
+  const activeMesh = hasGeometry(activeBuild) ? activeBuild : undefined;
   const dentalRimGap = activeUnit?.dental?.kind === 'two-contour' && built.get(activeUnit.id)?.unit === activeUnit
     ? activeMesh?.dentalRimCoverage?.needsReview
       ? { outerMm: activeMesh.dentalRimCoverage.outer.maxGapMm, openingMm: activeMesh.dentalRimCoverage.opening.maxGapMm }
@@ -419,13 +457,13 @@ export default function App() {
   // While a new preview loads, the last one's tips stay shown and pickable (a click in that window acts on them).
   const shownPreview = shownDentalPreview(dentalPreviewState, activeUnit);
   const areaContacts = useMemo(() => (inArea && activeUnit && shownPreview ? contactsWith(withRekeyedHandWork(activeUnit, shownPreview.localPoints), shownPreview.localPoints) : NO_CONTACTS), [inArea, activeUnit, shownPreview]);
-  const builtContacts = useMemo(() => (activeUnit ? unitContacts(activeUnit, activeMesh) : []), [activeUnit, activeMesh]);
+  const builtContacts = useMemo(() => (activeUnit ? unitContacts(activeUnit, activeBuild) : []), [activeUnit, activeBuild]);
   const activeContacts = inArea ? areaContacts : builtContacts;
   const areaRef = useRef({ inArea, dentalPreview: shownPreview });
   areaRef.current = { inArea, dentalPreview: shownPreview };
   useEffect(() => send({ type: 'contactsChanged', contacts: activeContacts }), [activeContacts, send]);
   /** Supports the active object's zones hide, in the build the viewport shows. */
-  const zonesHidden = useMemo(() => (activeUnit ? hiddenByZones(activeUnit, activeMesh) : 0), [activeUnit, activeMesh]);
+  const zonesHidden = useMemo(() => (activeUnit ? hiddenByZones(activeUnit, activeBuild) : 0), [activeUnit, activeBuild]);
   const activeSettings = useMemo(() => resolveSettings(activeUnit?.settings), [activeUnit?.settings]);
   // The Support shape region and the header count (editing/shapeEdit): the supports selected in Support Edit Mode, else the defaults.
   const activeIds = useMemo(() => activeContacts.map((contact) => contact.id), [activeContacts]);
@@ -539,7 +577,11 @@ export default function App() {
       const key = `check:${unit.id}`;
       {
         // Only a build of the unit as it is now says which contacts it dropped.
-        const mesh = currentBuild(unit, builtRef.current.get(unit.id));
+        const current = currentBuild(unit, builtRef.current.get(unit.id));
+        // A RELEASED build is "no current build" here, which this function already has a path for:
+        // the island verdict is not known, so the check is never reported clean. That is honest - a
+        // released build's islands were judged when it was finished, not now.
+        const mesh = hasGeometry(current) ? current : undefined;
         const found = await joinRun(checksRunning.current, unit.id, runToken(unit, mesh), () => analysis().check(key, checkJobOf(unit, mesh), { key: 'Checking supports on {name}', vars: { name: unitName(unit.id) } }));
         if (!found) return undefined;
         // Spots face down on the plate: plate down in unit-local space keeps a zone on the far side of a thin floor out.
@@ -1094,8 +1136,12 @@ export default function App() {
       case 'dental.useDetected': return orientRef.current.useDetected();
       case 'denture.resolveAll': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
-        const mesh = unit ? builtRef.current.get(unit.id) : undefined;
-        return unit && mesh?.unit === unit ? denture.supports.resolveAll(unit.id, mesh.mesh.unresolved ?? []) : undefined;
+        const entry = unit ? builtRef.current.get(unit.id) : undefined;
+        // Resolving denture spots needs the build's own `unresolved` list, which a released build
+        // does not carry: there is nothing to resolve on a unit that is already finished.
+        return unit && entry?.unit === unit && hasGeometry(entry.mesh)
+          ? denture.supports.resolveAll(unit.id, entry.mesh.unresolved ?? [])
+          : undefined;
       }
       case 'dental.next': return orientRef.current.next();
       case 'dental.generate': {
@@ -1316,7 +1362,7 @@ export default function App() {
   };
   const command = (id: CommandId) => resolve(id, ui);
   // Denture Step 2: the add-on parts of a multi-part file, tinted on the model (src/denture/parts).
-  const addOnTint = denture.active && activeUnit?.denture ? dentureAddOnTint(activeUnit.source, currentBuild(activeUnit, built.get(activeUnit.id))) : undefined;
+  const addOnTint = denture.active && activeUnit?.denture ? dentureAddOnTint(activeUnit.source, currentBuild(activeUnit, heldBuilds.get(activeUnit.id))) : undefined;
   // Dental Step 3's settings, findings and the answer to Back (see components/DentalSupports).
   const reviewTuning = dentalTuning.tuning;
   const verdictEntry = activeUnit ? problems.get(activeUnit.id) : undefined;
@@ -1550,7 +1596,7 @@ export default function App() {
           <div className="viewport-note">{t('Millimetres. Build plate at zero.')}</div>
         </> : press.kind === 'zones'
           ? <ZonesBar brush={press.brush} unitName={activeUnit?.name} belowPlate={tips.below} hidden={zonesHidden} ui={ui} send={send} run={runCommand} />
-          : press.kind === 'dental-type' || press.kind === 'dental-aligner' || press.kind === 'dental-rim' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} onTuningChange={dentalTuning.change} tilt={orientFlow.tilt?.unitId === activeUnit?.id ? orientFlow.tilt : undefined} onTilt={orientFlow.chooseTilt} free={dentalFree} restore={{ can: stepRestorable, run: restoreStep }} orientExtra={denture.active ? <LiveTipSummary counts={denture.orient.counts} /> : undefined} areaExtra={denture.active ? undefined : <PartsList kind="aligner" parts={placementParts(dentalPreview?.result)} />} dentureReview={denture.active && activeUnit?.denture ? { mesh: currentBuild(activeUnit, built.get(activeUnit.id)), options: activeUnit.denture.options, onOptions: (options) => denture.supports.setOptions(activeUnit.id, options) } : undefined} send={send} run={runCommand} />
+          : press.kind === 'dental-type' || press.kind === 'dental-aligner' || press.kind === 'dental-rim' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} onTuningChange={dentalTuning.change} tilt={orientFlow.tilt?.unitId === activeUnit?.id ? orientFlow.tilt : undefined} onTilt={orientFlow.chooseTilt} free={dentalFree} restore={{ can: stepRestorable, run: restoreStep }} orientExtra={denture.active ? <LiveTipSummary counts={denture.orient.counts} /> : undefined} areaExtra={denture.active ? undefined : <PartsList kind="aligner" parts={placementParts(dentalPreview?.result)} />} dentureReview={denture.active && activeUnit?.denture ? { mesh: currentBuild(activeUnit, heldBuilds.get(activeUnit.id)), options: activeUnit.denture.options, onOptions: (options) => denture.supports.setOptions(activeUnit.id, options) } : undefined} send={send} run={runCommand} />
           : <EditBar gesture={press} unitName={activeUnit?.name} ui={ui} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} send={send} run={runCommand} />}
       </section>
       {editMode !== 'dental' ? <aside className="panel right" onClick={blockedClick('right')}>

@@ -901,9 +901,20 @@ async function walk(url, scratch, dentalFixture) {
       check('g-pre the machine slowed enough for a brush queue to form (precondition, not the app)',
         pendingAtSwitch > 0,
         `${pendingAtSwitch} steps pending at the switch, ${throttle}x throttle. 0 means the pointer moves were dropped outright - the machine was too loaded, so g below could not be answered.`);
-      check('g Select to Unselect mid-queue keeps the earlier steps as Select',
-        switched.hash === sequential.hash,
-        `one after the other ${sequential.selected} (#${sequential.hash}), switched mid-queue ${switched.selected} (#${switched.hash}), selected when switching ${pendingAtSwitch} at ${throttle}x`);
+      /*
+       * AND g IS NOT REPORTED AT ALL WHEN NO QUEUE FORMED. Splitting the precondition out fixed the
+       * attribution and immediately introduced a worse fault: with 0 steps pending, both strokes
+       * compare the EMPTY state, the hashes match trivially, and `g` printed PASS - a vacuous pass,
+       * claiming the app is right about something it never exercised. A green that means nothing is
+       * more dangerous than a red that means the machine, because only one of them gets investigated.
+       */
+      if (pendingAtSwitch > 0) {
+        check('g Select to Unselect mid-queue keeps the earlier steps as Select',
+          switched.hash === sequential.hash,
+          `one after the other ${sequential.selected} (#${sequential.hash}), switched mid-queue ${switched.selected} (#${switched.hash}), selected when switching ${pendingAtSwitch} at ${throttle}x`);
+      } else {
+        note(`g could not be judged: no queue formed, so both strokes compared the empty state (#${sequential.hash}). The app was not exercised, so nothing is claimed about it.`);
+      }
       await d.exitMode();
 
       // k. Select them from another object: the active object has none, the first selected object with customised supports takes over.

@@ -8,8 +8,16 @@ import type { PrintUnit, SceneCommand } from '../state/project';
  * (`editing/arrange.ts arrangeOnPlate`); this module only feeds it and reads its answer.
  */
 
-/** The builds the app holds: the unit version each mesh was built from. */
-type Builds = ReadonlyMap<string, { unit: PrintUnit; mesh: GeneratedSupportMesh }>;
+/**
+ * The builds the app holds: the unit version each mesh was built from.
+ *
+ * ONLY `footprint` IS READ HERE, so only `footprint` is asked for. This said
+ * `mesh: GeneratedSupportMesh` and used one field of it, which made a RELEASED build (geometry freed
+ * once its unit is finished - `src/plate/releasedBuild.ts`) a type error at a call site that would
+ * have worked perfectly. Over-declaring a parameter is how a module acquires requirements it does not
+ * have, and this one was listed in the plan as a consumer that "needs full meshes".
+ */
+type Builds = ReadonlyMap<string, { unit: PrintUnit; mesh: Pick<GeneratedSupportMesh, 'footprint'> }>;
 
 const sameRotation = (a: PrintUnit, b: PrintUnit) => a.transform.rotation.every((value, axis) => value === b.transform.rotation[axis]);
 

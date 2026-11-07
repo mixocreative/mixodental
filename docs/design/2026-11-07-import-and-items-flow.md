@@ -112,6 +112,118 @@ So this is a change to navigation plus a stale marker, not a rewrite of the surf
 left-to-right order, the stale markers, and the deck flagging which rows need attention — a novice is
 led by what is marked rather than railroaded.
 
+### ONE WORKSPACE, not a deck page and an inspect page
+
+Revision 6 proposed a Deck page and an Inspect page with top tabs. **Closer study of a reference
+print-preparation tool says otherwise, and the simpler answer is the right one.** That tool has no
+top tabs at all. It has:
+
+- a **model list** panel (left), with per-model visibility and grouping;
+- a **tool rail** down the left edge — scale, orient, supports, layers, hollow, label;
+- a **floating widget** per tool, holding only that tool's controls;
+- a **job panel** (right): printer and material, job settings, a summary (time, volume, supports,
+  layers), a **validation** section with per-check toggles and warnings, and the model list;
+- the **plate itself** in the middle, all models at once.
+
+**The insight worth more than the layout:** one of its tools is a trim tool whose widget carries
+**1 → 2 → 3 inside it**, with its own Back and Next. The steps did not disappear — they moved *inside
+a tool*. The application level is not a wizard, and a tool that is genuinely sequential keeps its
+sequence, scoped to itself. The earlier revisions argued steps-versus-tabs as one choice for the whole
+app; the answer is **both, at different levels**.
+
+So there is **one workspace**, and "inspect" stops being a page:
+
+| region | ours |
+|---|---|
+| model list | **the job deck** — a panel, not a page |
+| tool rail | Orient · Rim · Area · Supports |
+| tool widget | that tool's controls, with steps inside where it needs them |
+| job panel (right) | purpose, support defaults, **validation**, model list |
+| plate (centre) | every model at once |
+
+Two things in that job panel transfer almost directly. Its **validation** section — per-check toggles
+with a warning summary — is our per-row verdict surface, raised to job level. And its
+**auto-generate-all** is the batch generate, stated as one job-level action.
+
+**This is fewer screens than revision 6, not more**, and it fits the shell the app already has:
+`.panel.left` and `.panel.right` exist with their sections, and dental is the only mode that hides
+them (`App.tsx`: `{editMode !== 'dental' ? <aside className="panel left">`). Adopting this means
+dental stops hiding the shell rather than new chrome being built.
+
+*The caution carried forward:* that reference is dense and professional, and this project's standing
+preference is minimal and game-like. Take the structure; keep each tool widget's content small.
+
+### WHEN A TOOL GETS STEPS, and when it just gets ordered controls
+
+Steps did not die with the wizard; they moved inside the tools. Without a rule for which tools get
+them, every tool acquires a wizard and nothing has been gained.
+
+**The test: steps are needed only when the USER must make a decision that determines what the next
+decision is.**
+
+*An earlier version of this rule said "a later action is impossible until an earlier one completes",
+and that was wrong.* It confuses **asynchronous state** with **sequence**. Something not ready yet is
+a busy indicator or a disabled control, not a step. Under the wrong rule both Orient and Supports
+appeared to need steps; under the right one, **none of the four tools does**:
+
+| tool | steps | why not |
+|---|---|---|
+| **Orient** | no | it branches — rim found, or draw one — but **the detector decides that, not the operator**. A branch nobody chooses is a state, not a step. |
+| **Supports** | no | supports that do not exist cannot be edited, but that is a tool showing *generating…*, not a gate the operator walks through. |
+| **Area** | no | paint and erase are both live the moment the tool opens. |
+| **Rim** | no | one continuous drawing action ending in Done. |
+
+**What replaces them** (the owner's flow): open Orient, re-orient, accept → accepting starts the
+generation and you leave the tool → the row shows its supports being built → open Supports to edit
+them, or never, if they are fine. The sequencing is the MACHINE's, so the machine carries it instead
+of marching the operator through it.
+
+### THE RAIL CARRIES THE ORDER, by enablement rather than by stepping
+
+With no steps, the dependency is expressed by **what the operator can press**. A tool whose
+prerequisite is not met is disabled; the order is visible on the rail, left to right, and nothing is
+enforced beyond what is genuinely impossible.
+
+| tool | enabled when | the line it shows when it is not |
+|---|---|---|
+| **Orient** | always | — |
+| **Rim** | the model is oriented | *Orient first* |
+| **Area** | a rim exists | *The area is measured from the rim* |
+| **Supports** | an area is accepted | *Mark the support area first* |
+
+**This answers the one real cost of dropping the wizard.** Linear steps teach a first-time operator
+the order; enablement teaches it too, and only at the moment it matters.
+
+**Two rules, because disabled controls are where this pattern usually fails:**
+
+1. **Greyed must say why, and what to do.** A disabled control with no explanation is worse than a
+   step — the operator sees grey and does not know the fix. The one-line reason is doing the teaching
+   the wizard used to do, so it is not optional chrome.
+2. **"Not yet possible" and "being made right now" must look different.** Greyed means *cannot yet —
+   do this first*. A tool whose work is generating is **enterable and busy**, showing progress, not
+   greyed; otherwise the operator presses it, sees grey, and concludes something failed. This is the
+   same confusion §3 made about `fill-disabled`, which is worth not repeating.
+
+**Three states per rail item, each with its own line:** *unavailable* (prerequisite missing), *stale*
+(upstream changed, the work still exists), *ready*. Re-orienting does not grey the downstream tools —
+their work is still there — it marks them stale.
+
+**The cost to watch:** auto-generating on accept means re-orienting regenerates, and generation is the
+heaviest job here. On a deck of eight, one adjusted row must not queue eight rebuilds, and repeated
+adjustment must not stack jobs. `scheduleRegenerate`, the per-unit `buildTimers` debounce, and the
+staleness guard that drops a build whose unit has changed are already in `App.tsx` — this is wiring,
+not new engineering.
+
+**And the property that makes internal steps safe: Back and Next live INSIDE the tool's widget.** The
+steps are local — they do not change the screen, do not swap the panels, do not move the operator out
+of the tool. That is the real difference from the app as it stands, where Step 1 → 2 → 3 replaces the
+whole dock and hides both side panels (`App.tsx`: `{editMode !== 'dental' ? <aside className="panel
+left">`). The same word costs very different things: leaving a step today means leaving the
+workspace; leaving a step inside a widget means pressing Back in a small window.
+
+**This also makes the cascade cheaper.** If Orient's internal flow is local, re-running it does not
+tear the screen down — it marks Area and Supports stale on the rail and nothing else moves.
+
 ### Why the thumbnail is affordable, reversing §7
 
 §7 ruled the preview must be text, on the grounds that a 3D preview per row is the release's only new

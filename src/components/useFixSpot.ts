@@ -7,7 +7,7 @@ import type { Message } from '../i18n';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { PrintScene, PrintUnit, SceneCommand } from '../state/project';
-import { currentBuild, resolveSettings, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import { currentBuild, resolveSettings, type BuiltSupports, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
 import type { SetStatus } from './appShared';
 
 /** A check finding as Fix needs it: where it is in its object's frame and how large. */
@@ -24,7 +24,11 @@ export function useFixSpot(host: {
   units: readonly PrintUnit[];
   activeUnitId: string | undefined;
   editMode: EditMode;
-  built: ReadonlyMap<string, UnitBuild>;
+  /**
+   * Compared by identity only (`entry.mesh !== currentBuild(...)`), never read field by field, so
+   * `BuiltSupports` is the honest requirement and a released build is a valid entry.
+   */
+  built: ReadonlyMap<string, UnitBuild<BuiltSupports>>;
   problems: ReadonlyMap<string, { unit: PrintUnit; mesh: GeneratedSupportMesh | undefined; items: readonly { position: Vector }[] }>;
   send: (event: SessionEvent) => void;
   dispatch: (command: SceneCommand) => void;
