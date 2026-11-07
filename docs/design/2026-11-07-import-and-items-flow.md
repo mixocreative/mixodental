@@ -233,25 +233,29 @@ carries `plateLayout`, `arrangeOnPlate` and footprint tracking at all.
 where the app takes printed items and slices them itself. That is **not in this product's scope at
 this stage**, and no work is justified by it.
 
-**But the seam is not dormant, and this distinction matters more than it looks.** `arrangeCommands`
-runs on three live paths today — `App.tsx` when an aligner is finished, and `useDentalFlow.ts` twice
-when an orientation is accepted. The multi-aligner flow already puts several finished objects on one
-plate, and something has to stop them colliding. `plateFootprints` feeds `arrangeOnPlate` real
-outlines, so it packs by shape rather than by bounding box.
+**But "the plate" is TWO things, and only one of them is a seam.** Checked against the signatures
+rather than assumed:
 
-So:
+| | where it lives | this product |
+|---|---|---|
+| **gap-based layout** — `arrangeCommands(units, ids)`, which takes **no plate size**, only `ARRANGE_GAP` and a `startX` | core (`editing/arrange.ts`) | **used today** on three live paths: `App.tsx` when an aligner is finished, `useDentalFlow.ts` twice when an orientation is accepted. Several finished objects share the view and something must stop them colliding. |
+| **plate-size packing** — `arrangeOnPlate` / `arrangePlateCases(…, plate: PlateSize)` | core | **not needed here.** Exports are per-object, so the slicer repacks; packing to a build volume this app does not own decides nothing. |
+| **the drawn plate outline** (`PlateOutline.tsx`) and the **printer picker** that feeds it `widthMm`/`depthMm` | this app | exist only to serve the packer above. |
 
-| | |
-|---|---|
-| **slicing, plate-level output** | out of scope — seam only, build nothing on it |
-| **arrangement of finished objects** | **in use now**, and must keep working |
+**Nothing is deleted and nothing moves.** The packing capability already lives in the core, where
+**mixomesh may need it** — this product simply does not exercise the part that requires a build
+volume. The dental flow's own layout keeps working untouched, because it never asked for a plate size
+in the first place.
 
-**This settles a step 11 question.** Keeping `footprint` on a released build is not speculative upkeep
-for a maybe-future: it is required by behaviour that ships today. Drop it and `arrangeOnPlate` falls
-back to bounding boxes, which are larger than the true outline, so a plate that fitted eight would
-silently fit fewer. `releasedBuild.test.ts` asserts a released unit's footprint still reads exactly as
-it did — that test's justification is present-tense, and an earlier note calling it future-proofing
-was wrong.
+*One name misleads:* `assertPlateCapacity` refuses oversized imports on a **triangle budget**, not on
+plate area. Import refusals are unaffected by any of this.
+
+**And it qualifies a step 11 claim.** `releasedBuild.test.ts` asserts a released unit's footprint
+still reads exactly as before, and the justification given for it — that the plate would otherwise fit
+fewer — belongs to the **packer**, which this product does not use. Keeping `footprint` is therefore
+cheap insurance for the core's packer rather than a present requirement of this app. Keep it: it costs
+a few numbers, the packer is one product away, and the test is still worth having. But do not cite it
+as something this release depends on.
 
 *Read "seam only" as "do not extend it", never as "it is unused".*
 
