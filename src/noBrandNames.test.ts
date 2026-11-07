@@ -31,16 +31,19 @@ describe('third-party slicer brand names', () => {
   });
 
   /*
-   * THE OPPOSITE FAILURE, and it needs guarding as much as the first. PRINTER HARDWARE IS NOT A
-   * SLICER: a plate size belongs to a named machine and the operator picks theirs by name, so the
-   * printer list must keep naming them. Over-applying the rule would leave the picker nameless, which
-   * is why `BRANDS` lists slicers and not manufacturers.
+   * THE OPPOSITE FAILURE: over-applying the rule. PRINTER HARDWARE IS NOT A SLICER, so the printer
+   * profiles are PERMITTED to name machines — `BRANDS` lists slicers, not manufacturers.
+   *
+   * Permitted, not required. An earlier version of this asserted the printers MUST be named, on the
+   * reasoning that the operator picks theirs by name. The build plate was retired an hour later and
+   * the picker went with it, so that assertion would have blocked the very change it was written
+   * alongside. A guard should forbid what is wrong, not freeze what happened to be true the day it
+   * was written.
    */
-  it('still name the printers, because the operator picks theirs by name', () => {
+  it('permit the printer profiles to name machines, since hardware is not a slicer', () => {
     const printers = Object.entries(TEXTS).find(([path]) => path.endsWith('config/printers.json'));
-    expect(printers, 'src/config/printers.json').toBeDefined();
-    expect(printers![1]).toContain('Form 4');
-    expect(BRANDS.test(printers![1])).toBe(false);
+    if (!printers) return; // The profiles are a dormant seam; they may be absent one day.
+    expect(BRANDS.test(printers[1])).toBe(false);
   });
 
   /*

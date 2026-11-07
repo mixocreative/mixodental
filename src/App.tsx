@@ -378,7 +378,7 @@ export default function App() {
   /** Whether the unit changed since its shown supports were built (counts follow once the build returns). */
   const building = (unit: PrintUnit) => unit.supports !== undefined && !buildSettled(unit);
   // Build plate (Round C): the printer's plate, "Arrange plate" and the re-pack of an edited case.
-  const plate = usePlateArrange({ units: scene.units, built, dispatch, setStatus, idle: onBench({ mode: editMode }), redoPending: history.future.length > 0 });
+  const plate = usePlateArrange({ units: scene.units, dispatch, setStatus });
   /** The active unit's build, geometry or not: what `unitContacts` and `hiddenByZones` read. */
   const activeBuild = activeUnit ? built.get(activeUnit.id)?.mesh : undefined;
   /**
@@ -1517,9 +1517,7 @@ export default function App() {
           locked={locked('objects')}
           run={runCommand}
         />
-        <PlatePanel printer={plate.printer} cases={scene.units.length} locked={locked('objects')}
-          unplaced={plate.unplaced.map((id) => ({ id, name: unitName(id) }))}
-          onPrinter={plate.choosePrinter} onArrange={plate.arrange} onSelect={(unitId) => onSelect(unitId, false)} />
+        <PlatePanel cases={scene.units.length} locked={locked('objects')} onArrange={plate.arrange} />
         <section {...(locked('transform') ? { inert: '' } : {})}>
           <h3>{t('Transform')}</h3>
           <Segmented value={gizmoMode} onChange={setGizmoMode} disabled={!command('transform.move').enabled} options={([['none', 'transform.select'], ['translate', 'transform.move'], ['rotate', 'transform.rotate']] as const).map(([value, id]) => {
@@ -1562,7 +1560,6 @@ export default function App() {
           onPickTip={onPickTip}
           gesture={canvasGesture(press)}
           gizmoMode={gizmoMode}
-          plate={plate.printer.plate}
           rotationGizmo={orienting && free.free}
           {...(denture.active && activeUnit && session.dentalStage === 'review' && addOnTint ? { unitOverlay: { unitId: activeUnit.id, node: addOnTint } } : {})}
           {...(denture.active && activeUnit?.denture && editMode === 'dental' && session.dentalStage === 'review' ? { bubbleResolve: { unitId: activeUnit.id, resolvable: denture.supports.resolvable, onResolve: (point: UnresolvedPoint) => denture.supports.resolve(activeUnit.id, point) } } : {})}

@@ -1,71 +1,44 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
+import { useCallback } from 'react';
+import { arrangeCommands } from '@mixo-geocore/editing/arrange';
 import type { PrintUnit, SceneCommand } from '../state/project';
-import { arrangePlateCases, editedCases, footprintKeys, plateFootprints } from '../plate/plateLayout';
-import { loadPrinter, printerById, savePrinter, type PrinterProfile } from '../plate/printerProfiles';
 
 /*
- * The plate section's state (Round C): the chosen printer (its plate size), "Arrange plate", and after a first
- * arrange the incremental re-pack: when a case's footprint changes (an edit, a rebuild) only that case moves, and
- * only if it now overlaps another or leaves the plate. The re-pack waits while a mode is open (the case being
- * edited never jumps under the pointer) and never runs while a redo is pending (it would drop the redo).
+ * LAYING THE OBJECTS OUT, with no build plate.
+ *
+ * This used to pack every case INSIDE a chosen printer's build plate, report the cases that did not
+ * fit, and re-pack incrementally whenever a footprint changed. All of that answered a question this
+ * product does not ask: exports are per-object, so the slicer packs the real plate, and packing to a
+ * build volume the app does not own decides nothing. The owner retired the build plate here.
+ *
+ * What is left is the part that was always load-bearing: **objects must not overlap**, so the
+ * operator can see them. `arrangeCommands` does exactly that and takes no plate size — it never did.
+ * It is the same call the dental flow already makes when an aligner is finished, so the app now has
+ * ONE layout behaviour instead of two.
+ *
+ * Gone with the plate: the printer choice, the "does not fit" list (nothing can fail to fit without
+ * bounds), and the incremental re-pack (it existed to re-fit things inside those bounds).
+ *
+ * THE SEAM IS KEPT, UNWIRED AND STILL TESTED: `src/plate/printerProfiles.ts`, `src/config/
+ * printers.json`, `components/viewport/PlateOutline.tsx`, and `arrangeOnPlate` in the core — which
+ * mixomesh may need. Reviving plate packing is re-wiring these call sites, not rebuilding the thing.
  */
 
 interface PlateHost {
   units: readonly PrintUnit[];
-  /**
-   * Forwarded to `plateFootprints` and never read here, so it asks for what that reads and no more:
-   * a released build (geometry freed, outline kept) is a valid argument.
-   */
-  built: ReadonlyMap<string, { unit: PrintUnit; mesh: Pick<GeneratedSupportMesh, 'footprint'> }>;
   dispatch: (command: SceneCommand) => void;
   /** A status line: key, vars, plural key. */
   setStatus: (key: string, vars?: Record<string, string | number>, other?: string) => void;
-  /** No mode (Support Edit Mode, zones, the dental flow) is open. */
-  idle: boolean;
-  /** Undo was used and Redo can step forward. */
-  redoPending: boolean;
 }
 
-export function usePlateArrange({ units, built, dispatch, setStatus, idle, redoPending }: PlateHost) {
-  const [printer, setPrinter] = useState<PrinterProfile>(() => loadPrinter());
-  /** Cases the last arrange could not place (shown until a later arrange places them). */
-  const [unplaced, setUnplaced] = useState<readonly string[]>([]);
-  /** The footprint keys the plate was last laid out with; undefined until the first "Arrange plate". */
-  const laidOut = useRef<Map<string, string> | undefined>(undefined);
-
-  const choosePrinter = useCallback((id: string) => {
-    const next = printerById(id);
-    savePrinter(next.id);
-    setPrinter(next);
-  }, []);
-
+export function usePlateArrange({ units, dispatch, setStatus }: PlateHost) {
   const arrange = useCallback(() => {
-    const footprints = plateFootprints(units, built);
-    const result = arrangePlateCases(units, footprints, printer.plate);
-    laidOut.current = footprintKeys(units, footprints);
-    setUnplaced(result.unplaced);
-    if (result.command) dispatch(result.command);
-    if (result.unplaced.length > 0) setStatus('{n} case does not fit on the plate.', { n: result.unplaced.length }, '{n} cases do not fit on the plate.');
-    else setStatus(result.moved.length > 0 ? 'Arranged {n} cases on the plate.' : 'The cases already fit on the plate.', { n: result.moved.length });
-  }, [built, dispatch, printer, setStatus, units]);
+    const commands = arrangeCommands(units, units.map((unit) => unit.id));
+    // No command means every object is already clear of the others, which is worth saying rather
+    // than leaving the press looking broken.
+    if (commands.length === 0) return setStatus('The objects are already apart.');
+    dispatch({ type: 'batch', commands });
+    setStatus('Moved {n} object so they do not overlap.', { n: commands.length }, 'Moved {n} objects so they do not overlap.');
+  }, [units, dispatch, setStatus]);
 
-  // The incremental re-pack: only cases whose footprint changed since the last layout, every other case frozen.
-  useEffect(() => {
-    const before = laidOut.current;
-    if (!before || !idle || redoPending) return;
-    const footprints = plateFootprints(units, built);
-    const now = footprintKeys(units, footprints);
-    const edited = editedCases(before, now);
-    laidOut.current = now;
-    if (edited.length === 0) return;
-    const result = arrangePlateCases(units, footprints, printer.plate, edited);
-    setUnplaced((current) => [...current.filter((id) => !edited.includes(id) && now.has(id)), ...result.unplaced]);
-    if (result.command) {
-      dispatch(result.command);
-      setStatus('Moved {n} edited case so the cases stay apart.', { n: result.moved.length }, 'Moved {n} edited cases so the cases stay apart.');
-    }
-  }, [built, dispatch, idle, printer, redoPending, setStatus, units]);
-
-  return { printer, choosePrinter, arrange, unplaced: unplaced.filter((id) => units.some((unit) => unit.id === id)) };
+  return { arrange };
 }

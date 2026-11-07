@@ -446,7 +446,7 @@ Style by `[data-ui="name"]`. `{kind}` is `denture` or `aligner`; in `problem-ite
 | Right panel, the groups | `setting-group-{title}` from the group's English title: `setting-group-auto-placement`, `-tree-supports`, `-contact-tip`, `-pillar`, `-foot`, `-bracing`, `-raft`, `-roof`, `-cage`, `-id-label`, `-advanced` |
 | Edit bar and area tools | `dental-brush-size`, `dental-area-width`, `dental-area-position`, `dental-support-density`, `surface-brush-size`, `select-circle-size`, `click-reach` |
 | Debug layers (3D view) | `debug-layers`, `debug-layer-{id}` |
-| Plate | `plate-panel`, `plate-printer`, `plate-printer-select`, `plate-size`, `plate-arrange`, `plate-unplaced`, `plate-unplaced-item` |
+| Layout | `plate-panel`, `plate-cases`, `plate-arrange`. **The build plate is retired** — exports are per-object, so the slicer packs the real plate. `plate-printer`, `plate-printer-select`, `plate-size` and `plate-unplaced*` went with it, along with the plate outline in the 3D view |
 | Viewport | `unresolved-bubble`, `landing-mark` |
 
 Add a `data-ui` to any element you add or touch; a command button takes it from its `uiName` prop.
