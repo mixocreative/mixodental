@@ -224,6 +224,37 @@ workspace; leaving a step inside a widget means pressing Back in a small window.
 **This also makes the cascade cheaper.** If Orient's internal flow is local, re-running it does not
 tear the screen down — it marks Area and Supports stale on the rail and nothing else moves.
 
+### THE PLATE: a seam for later, but arrangement is load-bearing NOW
+
+Exports are per-object, so the slicer packs the plate — which raises the fair question of why this app
+carries `plateLayout`, `arrangeOnPlate` and footprint tracking at all.
+
+**The owner's decision: the plate layout is a SEAM.** The door is deliberately left open to a future
+where the app takes printed items and slices them itself. That is **not in this product's scope at
+this stage**, and no work is justified by it.
+
+**But the seam is not dormant, and this distinction matters more than it looks.** `arrangeCommands`
+runs on three live paths today — `App.tsx` when an aligner is finished, and `useDentalFlow.ts` twice
+when an orientation is accepted. The multi-aligner flow already puts several finished objects on one
+plate, and something has to stop them colliding. `plateFootprints` feeds `arrangeOnPlate` real
+outlines, so it packs by shape rather than by bounding box.
+
+So:
+
+| | |
+|---|---|
+| **slicing, plate-level output** | out of scope — seam only, build nothing on it |
+| **arrangement of finished objects** | **in use now**, and must keep working |
+
+**This settles a step 11 question.** Keeping `footprint` on a released build is not speculative upkeep
+for a maybe-future: it is required by behaviour that ships today. Drop it and `arrangeOnPlate` falls
+back to bounding boxes, which are larger than the true outline, so a plate that fitted eight would
+silently fit fewer. `releasedBuild.test.ts` asserts a released unit's footprint still reads exactly as
+it did — that test's justification is present-tense, and an earlier note calling it future-proofing
+was wrong.
+
+*Read "seam only" as "do not extend it", never as "it is unused".*
+
 ### Why the thumbnail is affordable, reversing §7
 
 §7 ruled the preview must be text, on the grounds that a 3D preview per row is the release's only new
