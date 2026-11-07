@@ -329,7 +329,8 @@ a page with no viewport behind it. **Decision: while the Start scene is up, the 
 `JobActivity` suppresses import-context jobs and the veil is off on that scene. That is a behaviour
 change, not styling, and it belongs in the step's exit criteria.
 
-No Cancel on the row: one engine call has no mid-point to stop at. `ledger`'s `--red` tone is §9.
+No Cancel on the row: one engine call has no mid-point to stop at. `ledger`'s `--red` tone is the
+house progress fill and needs no change (§7).
 
 **`data-ui` keyed to the import's id, never its position** — `items-row-<importId>` — because removing
 a row re-indexes every row after it and the project rule is a *stable* name.
@@ -547,9 +548,15 @@ or size the row from one that exists. Either way the token goes in the table, be
 `uiStylingDoc.test.ts` fails on an undocumented one — and would have failed on a *mis-documented* one
 only by accident.
 
-`ledger`'s `--red` tone is the second token question (§9): a routine import row must not wear the
-failure colour, and the module forbids a call-site override, so the answer is a documented token for a
-neutral background row.
+**`ledger`'s `--red` tone is NOT a problem, and this document was wrong to call it one.** `--red` is
+`#7f0019` in `src/styles.css:15` — the house **primary and progress** colour, what `.primary` is filled
+with. The failure colour is `--danger` (`#b3261e`), used as an outline and never as a fill
+(`styles.css:159`). So a `ledger` bar in `--red` is the progress fill doing exactly what the house
+style says it does, and there is nothing to change.
+
+*The error was reading the token's NAME instead of its value* — "red" sounded like an alert, and
+`docs/ui-styling.md`'s own table (line 39) lists `--red` as an alias in the `--primary` row, which
+reads that way too. One `grep` of `styles.css` settles it. The open item in §9 is withdrawn.
 
 ### `data-ui`, and why the row is the hard case
 
@@ -574,11 +581,18 @@ would you like to support?"* and footer *"Choose what to make supports for."*, b
 
 ### House style, and the three-language constraint
 
-Rows are dense (22px, body 11.5px), radius 2px, hairlines rather than shadows, light theme only. The
-chosen state is an **ink fill with paper text**, never the accent; red is the one primary action, the
-progress fill, and the current-item marker, and **nothing else** — which is why `ledger`'s `--red` on a
-routine row is a real question and not a nit. A destructive row action is a `--danger` outline, never a
-filled red. `noColourLiterals.test.ts` fails on a colour literal **and** on an inline `style={`.
+Rows are dense, radius 2px, hairlines rather than shadows, light theme only. The chosen state is an
+**ink fill with paper text**, never the accent; red (`--red`, `#7f0019`) is the one primary action, the
+progress fill, and the current-item marker, and **nothing else**. A destructive row action is a
+`--danger` outline, never a filled red. `noColourLiterals.test.ts` fails on a colour literal **and**
+on an inline `style={`.
+
+**The sizes: 22px and 11.5px are the house-skill numbers, not this app's.** This app's body size is
+`--body-size`, **12.5px** (`theme.css:102`, and `styles.css:1295` uses it with that literal as its
+fallback); 11.5px is `--small-size`. And `--row: 22px` is declared **only** in
+`dentalwork/batch-review/tokens.css:44`, documented in that file's table at `docs/ui-styling.md:478`.
+So the row must either size from an app token that exists or declare one — the remaining real task,
+and the only one of the three token questions that survived checking.
 
 Labels must fit at 11.5px in **en, ja and zh-Hant**; a long label wraps the value to its own line and
 never clips. zh-Hant is Taiwan wording via Gemini, checked against the real locale entries.
@@ -682,9 +696,9 @@ nothing in this release can — offering a fix with no press behind it is the wo
 genuinely different populations: zero files with open rims, 8 of 18 with non-manifold edges. One
 merged sentence would hide which of the two the operator is looking at.
 
-**The row tone is neutral.** `ledger` is `--red` by module decision and forbids a call-site override,
-so a routine import row would otherwise wear the failure colour. The answer is the documented neutral
-token this section already calls for; the red stays for the one primary and the current-item marker.
+**The row keeps `ledger` as it is.** `--red` is the house progress fill, so the bar is already right;
+the only token work is the row's **height**, which has no app token yet. Nothing about the row needs a
+call-site override, which the progress module forbids anyway.
 
 #### Memory on quit, restated for these pages
 
@@ -1102,8 +1116,11 @@ that introduces the feature.
   holds 10 full models, and §5's eviction only drops support geometry. **Recommendation: take the
   per-model figure from step 5's measurement and set a row cap from it**, with its refusal text in
   three languages, rather than guessing a number now.
-- **`ledger`'s `--red` tone on a routine row.** **Recommendation:** a documented token for a neutral
-  background row rather than a call-site override, which the module forbids.
+- ~~**`ledger`'s `--red` tone on a routine row.**~~ **WITHDRAWN — it was never a problem.** `--red` is
+  `#7f0019` (`styles.css:15`), the house primary and progress colour, not an alert; the failure colour
+  is `--danger`, used as an outline only. The item existed because this document read a token's *name*
+  instead of its value. What survives is the **row-height token**: `--row: 22px` exists only in
+  `dentalwork/batch-review/tokens.css`, so the app has none.
 - **Whether the host should ever offer to drop a noise shell.** **Recommendation: no.** A shell under
   0.001 mm³ is reported and left; dropping geometry the operator did not ask to lose is the same class
   of act as silent repair, and §3 decided against that.

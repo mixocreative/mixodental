@@ -134,7 +134,7 @@ const NO_CONTACTS: readonly SupportContact[] = [];
 
 /** Settings edits come in bursts (typing a value); a unit's preview rebuild waits this long. */
 /** The footer line of each start screen (i18n keys). */
-const START_HINT: Record<Exclude<StartScreenId, 'file'>, string> = { task: 'Choose what to make supports for.', type: 'Choose the aligner type.' };
+const START_HINT: Record<Exclude<StartScreenId, 'file'>, string> = { drop: 'Drop one or more files, or choose what to make.', type: 'Choose the aligner type.' };
 const BUILD_DELAY_MS = 120;
 
 /** The Export STL commands (editing/commands): `export.` and the kind. */
@@ -198,13 +198,13 @@ export default function App() {
     setLanguage(next, true);
     setLang(next);
   };
-  const [status, setStatusMessage] = useState<Message>({ key: START_HINT.task });
+  const [status, setStatusMessage] = useState<Message>({ key: START_HINT.drop });
   const setStatus = useCallback((key: string, vars?: Message['vars'], other?: string) => setStatusMessage({ key, ...(vars ? { vars } : {}), ...(other ? { other } : {}) }), []);
   // Support Edit Mode / zones mode, tools and selection (src/editing/session): view state of the
   // active object, never in history. `send` steps it and says what changed on the status line.
   const [session, setSession] = useState(initialSession);
   /** The full-screen start in front of the workspace (docs/ROADMAP.md ST); null: the editor. */
-  const [startScreen, setStartScreen] = useState<StartScreenId | null>('task');
+  const [startScreen, setStartScreen] = useState<StartScreenId | null>('drop');
   /** The next dental import replaces the plate (a file chosen on the start screens). */
   const freshStart = useRef(false);
   const importRef = useRef<(files: readonly File[]) => Promise<void>>();
@@ -1111,7 +1111,7 @@ export default function App() {
           dentalFlow.invalidate();
           denture.orient.invalidate();
           setBackAsk(false);
-          const kindScreen = denture.active ? 'task' : 'type';
+          const kindScreen = denture.active ? 'drop' : 'type';
           send({ type: 'exit' });
           return setStartScreen(kindScreen);
         }
@@ -1251,7 +1251,7 @@ export default function App() {
   useEffect(() => {
     if (lastUnitCount.current > 0 && unitCount === 0) {
       send({ type: 'exit' });
-      setStartScreen('task');
+      setStartScreen('drop');
     }
     lastUnitCount.current = unitCount;
   }, [unitCount, send]);
@@ -1384,6 +1384,7 @@ export default function App() {
     {startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
       onScreen={goStart} onAnyModel={() => setStartScreen(null)} onOpenProject={() => runCommand('project.open')}
       onProjectFile={(file) => void openProject(file)} onStart={startDental}
+      onFiles={(files) => { setStartScreen(null); void importFiles(files); }}
       onUnsupported={() => setStatusMessage(errorStatus('import', new CodedError('file-type', 'file-type')))} /> : <>
     <section className={`workspace${editMode === 'dental' ? ' workspace--dental' : ''}`}>
       {editMode !== 'dental' ? <aside className="panel left" onClick={blockedClick('left')}>

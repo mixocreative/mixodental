@@ -702,6 +702,8 @@ export const ja: Dictionary = {
   'Choose the aligner type.': 'アライナーの種類を選択してください。',
   'Place the aligner STL, or choose it.': 'アライナー STL をここにドラッグするか、選択してください。',
   'What would you like to support?': '何のサポートを作りますか？',
+  'What are you making?': '何を作りますか？',
+  'Drop one or more files, or choose what to make.': '1つ以上のファイルをドロップするか、作る対象を選んでください。',
   'Use the selected model': '選択中のモデルを使う',
   'The aligner could not be oriented automatically. It stays as dropped: rotate it with the gizmo, then press Next.': 'アライナーの向きを自動調整できませんでした。ドロップした状態のままです。ギズモで回転してから「次へ」を押してください。',
   'Automatic orientation is uncertain. The aligner stays as dropped: adjust it with the rotation gizmo, then press Next.': '自動調整の向きを確定できません。ドロップした状態のままです。回転ギズモで調整してから「次へ」を押してください。',

@@ -2330,9 +2330,9 @@ async function walk(url, scratch, dentalFixture) {
       ].map((name) => name.trim());
       check('s1 the app opens on the task screen: the three choices drawn alike, Open a saved project, and no workspace',
         names.join('|') === 'Aligner|Denture|Any model|Open a saved project' && (await page.locator('.start-task .primary').count()) === 0 && (await page.locator('.workspace').count()) === 0, names.join('|'));
-      check('u1a on the task screen the header has no Undo, Redo, Hide models or Wireframe, the language switch stays, the heading is present, and the footer says what to choose',
+      check('u1a on the Drop page the header has no Undo, Redo, Hide models or Wireframe, the language switch stays, the heading is present, and the footer says what to do',
         (await page.locator('header').getByRole('button', { name: /^(Undo|Redo|Hide models|Wireframe)/ }).count()) === 0 && await page.locator('header').getByLabel('Language').isVisible() &&
-        await page.getByRole('heading', { name: 'What would you like to support?' }).isVisible() && (await page.locator('footer strong').innerText()) === 'Choose what to make supports for.', await page.locator('footer strong').innerText());
+        await page.getByRole('heading', { name: 'What are you making?' }).isVisible() && (await page.locator('footer strong').innerText()) === 'Drop one or more files, or choose what to make.', await page.locator('footer strong').innerText());
       await supports().click();
       await onScreen('type');
       check('s2 Aligner supports shows the type cards full-screen with Back', (await page.locator('.start-screen .choice-key').count()) === 1 && await d.button('Back').isVisible() && (await page.locator('.workspace').count()) === 0);

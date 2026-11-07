@@ -53,7 +53,7 @@ describe('the scene map', () => {
   });
 
   it('names the scene the app is showing, with a start screen winning over the workspace', () => {
-    expect(sceneOf({ startScreen: 'task', mode: 'off' })).toBe('start');
+    expect(sceneOf({ startScreen: 'drop', mode: 'off' })).toBe('start');
     expect(sceneOf({ startScreen: 'type', mode: 'dental' })).toBe('start');
     expect(sceneOf({ startScreen: null, mode: 'dental' })).toBe('object');
     for (const mode of ['off', 'edit', 'zones'] as const) {
