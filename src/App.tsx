@@ -103,6 +103,7 @@ import { StartScreen, type ChooserScreen, type StartScreenId } from './component
 import { ItemsPage } from './items/ItemsPage';
 import { dropKeepsOneFile, filesToImport } from './items/dropGrain';
 import { refusalOf } from './items/refusalOf';
+import { useBatchDetect } from './items/useBatchDetect';
 import type { ImportRefusal } from './items/rowState';
 import { builtGeometry, hasGeometry, type HeldBuild } from './plate/releasedBuild';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
@@ -172,6 +173,8 @@ const GLTF_ESTIMATE_BYTES = 16 * 1024 * 1024;
 
 /** Heavy-job admission for the whole app: placements, preview builds and exports share it. */
 const HEAVY_JOBS = new TriangleGate(refusalLimit(RUNTIME));
+/** A stable empty list, so the batch hook's effect does not re-run on every render. */
+const NO_UNITS: readonly PrintUnit[] = [];
 /** The plate guard across imports that run at once: each holds what it adds while it reads. */
 const PLATE = new PlateLedger();
 /** A .glb's JSON chunk up to this size is read for its pre-parse triangle count. */
@@ -427,6 +430,17 @@ export default function App() {
   const preview = useCallback(() => (workers.current.preview ??= new SupportMeshClient({ create: createMeshWorker, gate: HEAVY_JOBS })), []);
   const exporter = useCallback(() => (workers.current.export ??= new SupportMeshClient({ create: createMeshWorker, mode: 'per-job', gate: HEAVY_JOBS })), []);
   const analysis = useCallback(() => (workers.current.analysis ??= new AnalysisClient(createAnalysisWorker, undefined, undefined, HEAVY_JOBS)), []);
+  /**
+   * THE BATCH (plan §0b step 3): one orientation detection per row once the purpose is pressed. Runs
+   * only while the Items page is up — a batch for a list nobody is looking at would spend the
+   * triangle budget the flow itself needs.
+   */
+  const batchDetected = useBatchDetect({
+    units: startScreen === 'items' ? scene.units : NO_UNITS,
+    profile: batchProfile,
+    analysis,
+    unitName,
+  });
   const importer = useCallback(() => (workers.current.importer ??= new ImportClient(createImportWorker)), []);
   useEffect(() => () => {
     // An import worker lives only while its import runs.
@@ -1496,7 +1510,7 @@ export default function App() {
       </div>
     </header>
     {startScreen === 'items' ? <ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
-      refused={refusedFiles}
+      refused={refusedFiles} detected={batchDetected}
       onStart={startItem} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
       onBack={() => setStartScreen('drop')}
       onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} />

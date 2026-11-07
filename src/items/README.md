@@ -112,6 +112,10 @@ is what will make repair safe to write.
 | `rowText.ts` | what a row SAYS, as a `Message` so it re-translates |
 | `nextItem.ts` | which item the loop goes to next, and how many are left |
 | `itemSummary.ts` | the row's text preview: triangle count and size in mm |
+| `dropGrain.ts` | whether a drop is one file or many, and which of its files are importable |
+| `refusalOf.ts` | which refusal an import error is, so a refused file can be a row |
+| `detectState.ts` | what a row shows about ITS OWN orientation, and how many are still to look at |
+| `useBatchDetect.ts` | the batch itself: one detection per row, one at a time, each row's own result |
 | `ItemsPage.tsx` | the page itself — one row per unit, in plate order |
 
 Its `data-ui` names, all keyed to the unit and never to a row index: `items-row-<unitId>`,
@@ -138,3 +142,22 @@ can press it.
 The job deck proper (plan §0b): the batch run after Purpose, the per-row thumbnail, the tool rail,
 and refused files as rows. The page here is the Items page that preceded it. `offersRepair()` is the one piece of policy already decided: a refusal never re-offers the press
 that just failed.
+
+## Two things on a row, kept apart
+
+A row carries two independent answers and they must not grow into each other.
+
+`rowState.ts` answers **is this mesh healthy** — from the verdict, which `diagnose_mesh` produced
+once at import. `detectState.ts` answers **which way up is it** — from `dentalOrient`, which runs
+per row after the purpose is pressed. A trimmed arch is a perfectly healthy mesh with no rim, so one
+can be fine while the other has nothing to offer; collapsing them into a single "row status" would
+have to pick which of those two facts to drop.
+
+Both are pure and neither owns its words: the page picks the sentence, so a row re-translates with the
+language switch like everything else.
+
+**The batch runs one row at a time, which `useBatchDetect.ts` argues for at length and is worth
+repeating here:** `AnalysisClient`'s `TriangleGate` would queue these more cleverly by triangle
+budget, and it still stands underneath as the memory guarantee. Sequential submission buys something
+the gate cannot — a row reads `running` only when it IS running. Submitting all at once would show
+"Checking the orientation…" on every row while most sat in a queue, which is one lie told N times.

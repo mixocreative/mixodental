@@ -1117,6 +1117,20 @@ async function walk(url, scratch, dentalFixture) {
         && new Set(previews).size === 1
         && /3 items left/.test(await page.locator('.items-left').innerText()),
         `${JSON.stringify(previews)} / ${await page.locator('.items-left').innerText()}`);
+      /*
+       * THE BATCH RUNS, ROW BY ROW. One `dentalOrient` per row once the purpose is pressed - it takes
+       * the profile as an argument, which is why the purpose had to come first. Cubes have no rim, so
+       * every row here settles on "No rim found", and what this proves is that each row got its OWN
+       * answer rather than one imposed on the list.
+       */
+      const detected = await page.waitForFunction(
+        () => [...document.querySelectorAll('[data-ui^="items-detect-"]')].filter((node) => (node.textContent ?? '').trim().length > 0).length === 3,
+        null, { timeout: 240000 }).then(() => true, () => false);
+      const lines = await page.locator('[data-ui^="items-detect-"]').allInnerTexts();
+      check('m4b the batch gives every row its own orientation result',
+        detected && lines.length === 3 && lines.every((text) => /No rim found/.test(text)),
+        `detect lines ${JSON.stringify(lines)}; rows ${await page.locator('.items-row').count()}, unit rows ${await page.locator('.items-row:not(.items-row--refused)').count()}, detect spans ${await page.locator('[data-ui^="items-detect-"]').count()}, names ${JSON.stringify(await page.locator('.items-row .name').allInnerTexts())}`);
+
       // Remove takes one row off and leaves the rest; the count follows the same rule the press does.
       await page.locator('.items-row .remove').first().click();
       await d.idle(500);

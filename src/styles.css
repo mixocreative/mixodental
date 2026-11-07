@@ -1532,7 +1532,7 @@ dialog.terms .terms-item > span { flex: none; }
 .items-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  grid-template-areas: 'name preview remove' 'verdict verdict verdict';
+  grid-template-areas: 'name preview remove' 'verdict verdict verdict' 'detect detect detect';
   gap: 2px 10px;
   align-items: center;
   min-height: var(--row-height);
@@ -1545,6 +1545,8 @@ dialog.terms .terms-item > span { flex: none; }
 .items-row .remove { grid-area: remove; min-height: var(--row-height); padding: 0 8px; }
 /* The verdict wraps onto its own line, so a long sentence never clips the name or the size. */
 .items-row .verdict { grid-area: verdict; color: var(--muted); font-size: var(--small-size, 11.5px); }
+/* What the batch found about THIS row's orientation — its own result, not the batch's. */
+.items-row .detect { grid-area: detect; color: var(--muted); font-size: var(--small-size, 11.5px); }
 /* Files waiting for a purpose press on the Drop page: the question, not a status. */
 .start-held { margin: 0 0 10px; color: var(--muted); font-size: var(--small-size, 11.5px); }
 .items-row--done { opacity: .55; }

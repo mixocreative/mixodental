@@ -4,6 +4,7 @@ import { ItemsPage } from './ItemsPage';
 import type { PrintUnit } from '../state/project';
 import type { ImportDiagnosis } from '../state/diagnosis';
 import type { ImportRefusal } from './rowState';
+import type { DetectState } from './detectState';
 
 const mesh = { positions: new Float32Array([0, 0, 0, 10, 20, 30, 0, 20, 0]), indices: new Uint32Array([0, 1, 2]) };
 const verdict = (over: Partial<ImportDiagnosis> = {}): ImportDiagnosis => ({
@@ -14,7 +15,7 @@ const unit = (id: string, name: string, diagnosis?: ImportDiagnosis) =>
   ({ id, name, source: mesh, ...(diagnosis ? { diagnosis } : {}) } as PrintUnit);
 
 const render = (units: PrintUnit[], finished: string[] = [], refused: { name: string; refusal: ImportRefusal }[] = []) =>
-  renderToStaticMarkup(<ItemsPage units={units} refused={refused} finished={finished} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+  renderToStaticMarkup(<ItemsPage units={units} refused={refused} detected={new Map()} finished={finished} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
 describe('the Items page', () => {
   /*
@@ -114,6 +115,30 @@ describe('the Items page', () => {
     expect(html).not.toContain('items-remove-');
     // And the page still offers its way out, with no units at all.
     expect(html).toContain('data-ui="items-back"');
+  });
+
+  /*
+   * EACH ROW SHOWS ITS OWN ORIENTATION. Upper and lower arches in one drop orient differently, so a
+   * single answer imposed on the list would be wrong for half of it - and spotting that row 5 came
+   * out unlike rows 1-8 is the thing a list can do that eight sequential wizards cannot.
+   */
+  it('shows each row its own detection result, not one answer for the list', () => {
+    const html = renderToStaticMarkup(<ItemsPage
+      units={[unit('u-a', 'upper.stl', verdict()), unit('u-b', 'lower.stl', verdict())]}
+      refused={[]} detected={new Map([['u-a', { kind: 'oriented', turned: true }], ['u-b', { kind: 'no-rim' }]])}
+      finished={[]} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+    expect(html).toContain('data-ui="items-detect-u-a"');
+    expect(html).toContain('Turned upright.');
+    expect(html).toContain('data-ui="items-detect-u-b"');
+    expect(html).toContain('No rim found. Draw one to continue.');
+  });
+
+  it('says nothing about a row the batch has not reached', () => {
+    const html = render([unit('u-a', 'a.stl', verdict())]);
+    // The element is there - its name is stable - but it carries no claim yet.
+    expect(html).toContain('data-ui="items-detect-u-a"');
+    expect(html).not.toMatch(/upright|No rim|Checking the orientation/);
   });
 
   it('keeps Remove a danger outline, never a filled red', () => {

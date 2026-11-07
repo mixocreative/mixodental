@@ -6,6 +6,7 @@ import { verdictOfDiagnosis, verdictOfRefusal, type ImportRefusal } from './rowS
 import { rowSentence } from './rowText';
 import { sizeSummary, triangleSummary } from './itemSummary';
 import { itemsLeft, nextItem } from './nextItem';
+import { detectSentence, type DetectState } from './detectState';
 import { isModelFile } from '../components/startDrop';
 
 /**
@@ -19,7 +20,7 @@ import { isModelFile } from '../components/startDrop';
  * The page is a pure function of the scene and the session: it holds no state of its own, so there is
  * no second copy of "which item is next" to drift from `nextItem`.
  */
-export function ItemsPage({ units, refused, finished, lang, onStart, onRemove, onFiles, onBack }: {
+export function ItemsPage({ units, refused, detected, finished, lang, onStart, onRemove, onFiles, onBack }: {
   units: readonly PrintUnit[];
   /**
    * Files that never became units. They are rows too (§3's first table): drop eight, one is broken,
@@ -27,6 +28,8 @@ export function ItemsPage({ units, refused, finished, lang, onStart, onRemove, o
    * a drop with two bad files named one of them and lost the other.
    */
   refused: readonly { name: string; refusal: ImportRefusal }[];
+  /** Each row's OWN orientation result. Upper and lower arches in one drop differ, so this is per row. */
+  detected: ReadonlyMap<string, DetectState>;
   /** `session.dentalFinished`: the units already through the flow. */
   finished: readonly string[];
   lang: Lang;
@@ -70,6 +73,7 @@ export function ItemsPage({ units, refused, finished, lang, onStart, onRemove, o
         // No verdict means the unit never went through the import worker, or predates the verdict.
         // The row then shows its size and says nothing about health, which is the honest gap.
         const verdict = unit.diagnosis ? rowSentence(verdictOfDiagnosis(unit.diagnosis)) : undefined;
+        const found = detectSentence(detected.get(unit.id) ?? { kind: 'waiting' });
         return <li key={unit.id} className={`items-row${done ? ' items-row--done' : ''}`} data-ui={`items-row-${unit.id}`}>
           <span className="name" title={unit.name}>{unit.name}</span>
           <span className="preview" data-ui={`items-preview-${unit.id}`}>
@@ -79,6 +83,9 @@ export function ItemsPage({ units, refused, finished, lang, onStart, onRemove, o
           </span>
           <span className="verdict" data-ui={`items-verdict-${unit.id}`}>
             {verdict ? translateMessage(verdict) : null}
+          </span>
+          <span className="detect" data-ui={`items-detect-${unit.id}`}>
+            {found ? translateMessage(found) : null}
           </span>
           <button type="button" className="danger remove" data-ui={`items-remove-${unit.id}`}
             title={t('Take this file off the list.')} onClick={() => onRemove(unit)}>{t('Remove')}</button>
