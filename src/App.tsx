@@ -101,7 +101,7 @@ import { acceptsDentalDrop } from './dental/editingMode';
 import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
 import { ItemsPage } from './items/ItemsPage';
-import { hasGeometry, releaseFinished, type HeldBuild } from './plate/releasedBuild';
+import { builtGeometry, hasGeometry, type HeldBuild } from './plate/releasedBuild';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { splitDentureSpots } from './denture/check/dentureSpots';
@@ -344,19 +344,30 @@ export default function App() {
   }, [built]);
   const supportMeshes = useMemo(() => new Map([...heldBuilds].map(([id, entry]) => [id, entry.mesh])), [heldBuilds]);
   /*
-   * FINISHED-AND-KEPT RELEASE (plan §8 step 11). A unit that has been through the flow keeps its
-   * dropped lists and its plate outline and loses its geometry, which is the largest thing held per
-   * unit. A case of eight would otherwise carry eight support meshes for the whole session.
+   * THE RELEASE IS BUILT AND NOT YET TRIGGERED, and that is deliberate.
    *
-   * Declarative, not hung off a particular press. The plan proposed wiring it to `addAnotherDental`
-   * and a successful export; every such hook is a path that can be missed, and two of them are two
-   * chances to miss it. The condition is simply "finished, and not the one being looked at", so it is
-   * written as that condition. `releaseFinished` returns the SAME map when nothing changed, so this
-   * is a no-op for React on every render where nothing finished.
+   * `releaseFinished` is correct and tested (`src/plate/releasedBuild.ts`). Its TRIGGER was wrong for
+   * the app as it stands. `ObjectViewport` draws `supportMeshes.get(unit.id)` for EVERY unit on the
+   * plate, so releasing a finished unit made its supports vanish from the plate — and after *Add
+   * another aligner* the finished aligners sit there with their supports visible. That is a visible
+   * regression on the flow that ships today, not a saving.
+   *
+   * The premise "one unit needs geometry because one inspect page is open at a time" is the JOB
+   * DECK's premise (plan §0b), and the deck does not exist yet. Releasing on `dentalFinished` while
+   * every unit is still drawn is releasing something still in use.
+   *
+   * TURN IT ON when a row's geometry is no longer drawn — i.e. when the deck shows thumbnails and one
+   * inspected row carries the live mesh. Two things must land with it, both found by review:
+   *   1. `problems` holds the full mesh per checked unit (`setProblems(... { unit, mesh, items })`),
+   *      pruned only when the unit leaves the scene. Releasing the build frees nothing while that
+   *      entry still points at the mesh, so the problems entry must be released in the same step.
+   *   2. A released unit must be rebuildable: `requested.current` refuses to rebuild an unchanged
+   *      unit and `buildSettled` reports it settled, so returning to a released row would show no
+   *      supports for ever. Its `requested` entry has to be cleared when it is re-opened.
+   *
+   * Shipping the mechanism without the trigger is the honest half: the saving is not claimed, and
+   * nothing regresses.
    */
-  useEffect(() => {
-    setBuilt((current) => releaseFinished(current, session.dentalFinished, scene.activeUnitId));
-  }, [session.dentalFinished, scene.activeUnitId]);
   /** The unit's contacts as its latest build left them (see `built`). */
   const contactsOf = useCallback((unit: PrintUnit) => {
     const { inArea: stepTwo, dentalPreview: preview } = areaRef.current;
@@ -577,11 +588,10 @@ export default function App() {
       const key = `check:${unit.id}`;
       {
         // Only a build of the unit as it is now says which contacts it dropped.
-        const current = currentBuild(unit, builtRef.current.get(unit.id));
         // A RELEASED build is "no current build" here, which this function already has a path for:
         // the island verdict is not known, so the check is never reported clean. That is honest - a
         // released build's islands were judged when it was finished, not now.
-        const mesh = hasGeometry(current) ? current : undefined;
+        const mesh = builtGeometry(unit, builtRef.current.get(unit.id));
         const found = await joinRun(checksRunning.current, unit.id, runToken(unit, mesh), () => analysis().check(key, checkJobOf(unit, mesh), { key: 'Checking supports on {name}', vars: { name: unitName(unit.id) } }));
         if (!found) return undefined;
         // Spots face down on the plate: plate down in unit-local space keeps a zone on the far side of a thin floor out.
@@ -636,7 +646,9 @@ export default function App() {
     const stale = scene.units.filter((unit) => {
       const entry = problems.get(unit.id);
       // Re-checked once the unit's build settles, so the check sees the contacts that build kept.
-      return unit.supports && entry && buildSettled(unit) && (entry.unit !== unit || entry.mesh !== currentBuild(unit, built.get(unit.id)));
+      // `builtGeometry`, the SAME function the check records with. Comparing against
+      // `currentBuild` here compared `undefined` with a truthy released build on every pass.
+      return unit.supports && entry && buildSettled(unit) && (entry.unit !== unit || entry.mesh !== builtGeometry(unit, built.get(unit.id)));
     });
     if (stale.length === 0) return;
     window.clearTimeout(recheckTimer.current);
@@ -723,9 +735,10 @@ export default function App() {
    * it. Without this, a drop there mid-loop would silently keep the first file and discard the rest,
    * which is the same class of bug `startDrop.ts` was written to end.
    */
-  const importFiles = useCallback(async (files: readonly File[], options?: { takesOne?: boolean }) => {
+  const importFiles = useCallback(async (files: readonly File[], options?: { takesOne?: boolean; onAdded?: (count: number) => void }) => {
     // Dental Step 1 takes the aligner itself: one file, and it is oriented once read.
     const dentalDrop = acceptsDentalDrop(sessionRef.current) && (options?.takesOne ?? true);
+
     const replacesPlate = dentalDrop && freshStart.current;
     freshStart.current = false;
     const badFile = (message: Message) => {
@@ -829,6 +842,14 @@ export default function App() {
         { type: 'selection/set', unitIds: added.map((unit) => unit.id), activeUnitId: added[0]!.id },
       ] });
       reservation.commit(added.map((unit) => unit.id));
+      // HOW MANY ARRIVED, reported at the moment this knows it. A caller that compared
+      // `sceneRef.current.units.length` before and after saw NO CHANGE: the ref is updated on render,
+      // and the render has not happened when this promise resolves. The walk caught that; no unit
+      // test could have, because the fault is in the timing between a dispatch and a ref.
+      //
+      // A callback rather than a return value: this function has six early exits for refusals, and
+      // making each invent a count would spread the question over all of them.
+      options?.onAdded?.(added.length);
       if (dentalDrop) {
         const aligner = added[0]!;
         if (meshTier(triangleCount(aligner), RUNTIME) === 'heavy') {
@@ -1460,11 +1481,19 @@ export default function App() {
     </header>
     {startScreen === 'items' ? <ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
       onStart={startItem} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
+      onBack={() => setStartScreen('drop')}
       onFiles={(files) => void importFiles(files, { takesOne: false })} />
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
       onScreen={goStart} onAnyModel={() => setStartScreen(null)} onOpenProject={() => runCommand('project.open')}
       onProjectFile={(file) => void openProject(file)} onStart={startDental}
-      onFiles={(files) => { void importFiles(files).then(() => setStartScreen('items')); }}
+      onFiles={(files) => {
+        // ONLY GO TO THE ITEMS PAGE IF SOMETHING ARRIVED. `importFiles` reports a refusal through the
+        // status line and resolves normally, so switching unconditionally landed a drop of entirely
+        // bad files on an EMPTY page with no way back: the auto-escape only fires when the count
+        // falls from above zero, and this page had no Back. It now has one, and this is the second
+        // guard rather than the only one.
+        void importFiles(files, { onAdded: (count) => { if (count > 0) setStartScreen('items'); } });
+      }}
       onUnsupported={() => setStatusMessage(errorStatus('import', new CodedError('file-type', 'file-type')))} /> : <>
     <section className={`workspace${editMode === 'dental' ? ' workspace--dental' : ''}`}>
       {editMode !== 'dental' ? <aside className="panel left" onClick={blockedClick('left')}>

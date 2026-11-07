@@ -13,7 +13,7 @@ const unit = (id: string, name: string, diagnosis?: ImportDiagnosis) =>
   ({ id, name, source: mesh, ...(diagnosis ? { diagnosis } : {}) } as PrintUnit);
 
 const render = (units: PrintUnit[], finished: string[] = []) =>
-  renderToStaticMarkup(<ItemsPage units={units} finished={finished} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} />);
+  renderToStaticMarkup(<ItemsPage units={units} finished={finished} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
 describe('the Items page', () => {
   /*
@@ -72,6 +72,18 @@ describe('the Items page', () => {
     const html = render([unit('a', 'a.stl', verdict()), unit('b', 'b.stl', verdict())], ['a']);
     expect(html).toContain('items-row items-row--done');
     expect(html).toContain('a.stl');
+  });
+
+  /*
+   * A PAGE WITH NO WAY OUT IS A TRAP. Every other start screen has Back; this one shipped without it,
+   * and a drop of entirely unreadable files landed here EMPTY - the auto-escape only fires when the
+   * unit count falls from above zero, which it never had.
+   */
+  it('always offers a way back, even with no rows at all', () => {
+    for (const rows of [[], [unit('a', 'a.stl')]]) {
+      const html = render(rows);
+      expect(html, `${rows.length} rows`).toContain('data-ui="items-back"');
+    }
   });
 
   it('keeps Remove a danger outline, never a filled red', () => {

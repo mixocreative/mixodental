@@ -1,7 +1,8 @@
 // Copyright (c) Mixo Creative.
 
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
-import type { BuiltSupports, UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import { currentBuild, type BuiltSupports, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import type { PrintUnit } from '../state/project';
 
 /**
  * RELEASING A FINISHED BUILD'S GEOMETRY, keeping the few facts the plate still needs.
@@ -71,17 +72,43 @@ export function releaseBuild(build: UnitBuild<HeldBuild>): UnitBuild<KeptBuild> 
 export function releaseFinished(
   built: ReadonlyMap<string, UnitBuild<HeldBuild>>,
   finished: readonly string[],
-  keep: string | undefined,
+  keep: readonly (string | undefined)[],
 ): ReadonlyMap<string, UnitBuild<HeldBuild>> {
   let next: Map<string, UnitBuild<HeldBuild>> | undefined;
   for (const id of finished) {
-    if (id === keep) continue;
+    // KEEP IS A LIST, not one id, and that is the fix for a real bug. `exportedDental` marks a unit
+    // finished WITHOUT leaving review, so the unit being looked at is finished and on screen. With
+    // only `activeUnitId` kept, a click on empty space cleared the selection, the on-screen unit was
+    // released, and its supports vanished while the operator was looking at them - and with one
+    // aligner and no deck, that is the ordinary case rather than an edge.
+    if (keep.includes(id)) continue;
     const build = built.get(id);
     if (!build || !hasGeometry(build.mesh)) continue;
     next ??= new Map(built);
     next.set(id, releaseBuild(build));
   }
   return next ?? built;
+}
+
+/**
+ * THE CURRENT BUILD'S GEOMETRY, or undefined — the one function both the support check and its
+ * staleness test must use.
+ *
+ * They used to disagree. The check narrowed a released build to `undefined` and recorded that; the
+ * staleness test compared that record against `currentBuild(...)`, which returns the **truthy**
+ * `KeptBuild` because releasing preserves the unit reference. `undefined !== KeptBuild` is always
+ * true, so a released unit was permanently stale — and `problems` is in the effect's own dependency
+ * list, so every completed check scheduled another one. A worker check every 600 ms, forever.
+ *
+ * Two readers asking the same question in two different ways is how that happened, so there is now
+ * one way to ask it.
+ */
+export function builtGeometry(
+  unit: PrintUnit,
+  entry: UnitBuild<HeldBuild> | undefined,
+): GeneratedSupportMesh | undefined {
+  const current = currentBuild(unit, entry);
+  return hasGeometry(current) ? current : undefined;
 }
 
 /** Bytes of mesh a build is holding, for the memory note. 0 once released. */

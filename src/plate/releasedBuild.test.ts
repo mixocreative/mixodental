@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildBytes, hasGeometry, releaseBuild, releaseFinished, type HeldBuild } from './releasedBuild';
+import { buildBytes, builtGeometry, hasGeometry, releaseBuild, releaseFinished, type HeldBuild } from './releasedBuild';
 import { plateFootprints } from './plateLayout';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import type { UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
@@ -79,7 +79,7 @@ describe('releasing the finished ones and keeping the one in hand', () => {
   ]);
 
   it('releases every finished build except the one being looked at', () => {
-    const next = releaseFinished(map, ['a', 'b'], 'b');
+    const next = releaseFinished(map, ['a', 'b'], ['b']);
 
     expect(hasGeometry(next.get('a')!.mesh)).toBe(false);
     expect(hasGeometry(next.get('b')!.mesh)).toBe(true);
@@ -89,14 +89,14 @@ describe('releasing the finished ones and keeping the one in hand', () => {
 
   it('returns the SAME map when there is nothing to release', () => {
     // Reference equality is the point: a new map every render would re-render every consumer.
-    expect(releaseFinished(map, [], undefined)).toBe(map);
-    expect(releaseFinished(map, ['a'], 'a')).toBe(map);
-    const once = releaseFinished(map, ['a'], undefined);
-    expect(releaseFinished(once, ['a'], undefined)).toBe(once);
+    expect(releaseFinished(map, [], [])).toBe(map);
+    expect(releaseFinished(map, ['a'], ['a'])).toBe(map);
+    const once = releaseFinished(map, ['a'], []);
+    expect(releaseFinished(once, ['a'], [])).toBe(once);
   });
 
   it('ignores a finished id with no build, rather than inventing an entry', () => {
-    const next = releaseFinished(map, ['a', 'gone'], undefined);
+    const next = releaseFinished(map, ['a', 'gone'], []);
     expect(next.has('gone')).toBe(false);
     expect(next.size).toBe(3);
   });
@@ -110,11 +110,74 @@ describe('releasing the finished ones and keeping the one in hand', () => {
       ['1', '2', '3', '4', '5', '6', '7', '8'].map((id) => [id, build(id, full())]),
     );
     const finished = ['1', '2', '3', '4', '5', '6', '7'];
-    const next = releaseFinished(deck, finished, '8');
+    const next = releaseFinished(deck, finished, ['8']);
 
     const held = [...next.values()].filter((entry) => hasGeometry(entry.mesh)).length;
     const bytes = [...next.values()].reduce((sum, entry) => sum + buildBytes(entry.mesh), 0);
     expect(held).toBe(1);
     expect(bytes).toBe(3000 * 4 + 1200 * 4);
+  });
+});
+
+/*
+ * THE REGRESSION THAT SHIPPED FOR AN HOUR. Step 11 made the support check record a released build as
+ * `undefined` while its staleness test compared against `currentBuild`, which returns the TRUTHY
+ * kept build because releasing preserves the unit reference. The two never agreed, the unit was
+ * permanently stale, and `problems` sits in the effect's own dependency list - so a worker check was
+ * scheduled every 600 ms for ever, on every finished unit.
+ *
+ * `builtGeometry` exists so both readers ask one question. This is the test that notices if they
+ * ever diverge again.
+ */
+describe('the check and its staleness test ask the same question', () => {
+  const u = unit('a');
+
+  it('agrees with itself on a released build', () => {
+    const released = releaseBuild({ unit: u, mesh: full() });
+    const recorded = builtGeometry(u, released);
+    // What the check records, and what the staleness test compares, are the same value.
+    expect(recorded).toBeUndefined();
+    expect(builtGeometry(u, released)).toBe(recorded);
+    // The comparison that used to run forever now settles.
+    expect(recorded !== builtGeometry(u, released)).toBe(false);
+  });
+
+  it('still returns the mesh for a held build, so a live unit re-checks normally', () => {
+    const mesh = full();
+    expect(builtGeometry(u, { unit: u, mesh })).toBe(mesh);
+  });
+
+  it('returns undefined when the build is of another unit version, as currentBuild does', () => {
+    // A stale entry must read as no geometry: that IS a reason to re-check.
+    expect(builtGeometry(u, { unit: unit('a'), mesh: full() })).toBeUndefined();
+    expect(builtGeometry(u, undefined)).toBeUndefined();
+  });
+});
+
+/*
+ * THE UNIT ON SCREEN IS NOT RELEASED, and this is the case that made `keep` a list. `exportedDental`
+ * marks a unit finished WITHOUT leaving review, so the unit being looked at is finished and visible.
+ * Clicking empty space clears the selection; with only the selected id kept, that released the unit
+ * on screen and its supports vanished under the operator. With one aligner and no deck, that is the
+ * ordinary path, not an edge case.
+ */
+describe('what is kept while it is still being looked at', () => {
+  const map = new Map<string, UnitBuild<HeldBuild>>([['a', build('a', full())], ['b', build('b', full())]]);
+
+  it('keeps the unit the dental session holds even when nothing is selected', () => {
+    const next = releaseFinished(map, ['a', 'b'], [undefined, 'a']);
+    expect(hasGeometry(next.get('a')!.mesh)).toBe(true);
+    expect(hasGeometry(next.get('b')!.mesh)).toBe(false);
+  });
+
+  it('keeps the selected unit even when the session has moved on', () => {
+    const next = releaseFinished(map, ['a', 'b'], ['b', undefined]);
+    expect(hasGeometry(next.get('b')!.mesh)).toBe(true);
+  });
+
+  it('releases nothing that is kept by either reason, and is not confused by undefined', () => {
+    // `undefined` in the keep list must never match a real id.
+    expect(releaseFinished(map, ['a'], [undefined, undefined])).not.toBe(map);
+    expect(hasGeometry(releaseFinished(map, ['a'], [undefined, undefined]).get('a')!.mesh)).toBe(false);
   });
 });

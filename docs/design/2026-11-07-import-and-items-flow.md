@@ -1351,8 +1351,24 @@ union of held and released, narrowed by a guard where geometry is genuinely need
 **already generic** (`UnitBuild<T extends BuiltSupports = GeneratedSupportMesh>`), so no new machinery
 is required.
 
-**It fits the job deck exactly.** One inspect page open at a time means one unit holding geometry, and
-a deck of N generated rows is precisely the case that makes releasing the other N-1 worth doing.
+**It fits the job deck exactly** — and ONLY the job deck, which is why the mechanism ships without its
+trigger. `ObjectViewport` draws `supportMeshes.get(unit.id)` for **every unit on the plate**, so
+releasing a finished unit makes its supports vanish from the plate; after *Add another aligner* the
+finished aligners sit there with supports visible, and that is the flow which ships today. Releasing
+on `dentalFinished` while every unit is still drawn releases something still in use — a visible
+regression, not a saving.
+
+*The premise "one unit needs geometry because one inspect page is open at a time" is the DECK's
+premise.* So `releaseFinished` is built, tested and not called. It turns on when a row's geometry
+stops being drawn, and **two things must land with it**, both found by the code review:
+
+1. **`problems` holds the full mesh per checked unit** (`setProblems(… { unit, mesh, items })`),
+   pruned only when the unit leaves the scene. Releasing the build frees nothing while that entry
+   still points at the mesh, so the problems entry is released in the same step. *Until then, step 11
+   saves no memory and this document does not claim it does.*
+2. **A released unit must be rebuildable.** `requested.current` refuses to rebuild an unchanged unit
+   and `buildSettled` reports it settled, so returning to a released row would show no supports for
+   ever. Its `requested` entry has to be cleared when the row is re-opened.
 
 So the value type becomes a **discriminated union** of built-and-held versus released-and-measured,
 and each of those five sites is migrated to narrow on the discriminator — a released entry must be a

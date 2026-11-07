@@ -19,7 +19,7 @@ import { isModelFile } from '../components/startDrop';
  * The page is a pure function of the scene and the session: it holds no state of its own, so there is
  * no second copy of "which item is next" to drift from `nextItem`.
  */
-export function ItemsPage({ units, finished, lang, onStart, onRemove, onFiles }: {
+export function ItemsPage({ units, finished, lang, onStart, onRemove, onFiles, onBack }: {
   units: readonly PrintUnit[];
   /** `session.dentalFinished`: the units already through the flow. */
   finished: readonly string[];
@@ -29,17 +29,24 @@ export function ItemsPage({ units, finished, lang, onStart, onRemove, onFiles }:
   onRemove: (unit: PrintUnit) => void;
   /** Files dropped onto the list. They ADD to it — the caller must not apply Step 1's one-file rule. */
   onFiles: (files: readonly File[]) => void;
+  /** Back to the Drop page. Every other start screen has this; without it the page is a dead end. */
+  onBack: () => void;
 }) {
   const next = nextItem(units, finished, undefined);
   const left = itemsLeft(units, finished);
 
-  return <div className="items-page" lang={lang}
+  return <div className="items-page" lang={lang} tabIndex={-1}
+    onKeyDown={(event) => { if (event.key === 'Escape') onBack(); }}
     onDragOver={(event) => event.preventDefault()}
     onDrop={(event) => {
       event.preventDefault();
       const models = [...event.dataTransfer.files].filter(isModelFile);
       if (models.length > 0) onFiles(models);
     }}>
+    <button type="button" className="start-back back-key" data-ui="items-back"
+      aria-label={t('Back')} title={t('Back')} onClick={onBack}>
+      <Icon name="back" className="start-back-art" />
+    </button>
     <ScreenHeading>{t('Your files')}</ScreenHeading>
     <ul className="items-list">
       {units.map((unit) => {

@@ -7,7 +7,8 @@ import type { Message } from '../i18n';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { PrintScene, PrintUnit, SceneCommand } from '../state/project';
-import { currentBuild, resolveSettings, type BuiltSupports, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import { resolveSettings, type BuiltSupports, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import { builtGeometry, type HeldBuild } from '../plate/releasedBuild';
 import type { SetStatus } from './appShared';
 
 /** A check finding as Fix needs it: where it is in its object's frame and how large. */
@@ -28,7 +29,7 @@ export function useFixSpot(host: {
    * Compared by identity only (`entry.mesh !== currentBuild(...)`), never read field by field, so
    * `BuiltSupports` is the honest requirement and a released build is a valid entry.
    */
-  built: ReadonlyMap<string, UnitBuild<BuiltSupports>>;
+  built: ReadonlyMap<string, UnitBuild<HeldBuild>>;
   problems: ReadonlyMap<string, { unit: PrintUnit; mesh: GeneratedSupportMesh | undefined; items: readonly { position: Vector }[] }>;
   send: (event: SessionEvent) => void;
   dispatch: (command: SceneCommand) => void;
@@ -78,7 +79,10 @@ export function useFixSpot(host: {
     const unit = units.find((candidate) => candidate.id === rechecking.unitId);
     if (!unit) return setRechecking(undefined);
     const entry = problems.get(unit.id);
-    if (!entry || entry.unit !== unit || entry.mesh !== currentBuild(unit, built.get(unit.id))) return;
+    // `builtGeometry`, the same function the check records with. With `currentBuild` here, a
+    // RELEASED build compared truthy against the recorded `undefined` and this never agreed, so
+    // "Re-checking…" stayed on screen for ever on a finished unit.
+    if (!entry || entry.unit !== unit || entry.mesh !== builtGeometry(unit, built.get(unit.id))) return;
     setRechecking(undefined);
     setStatusMessage(recheckStatus(rechecking, entry.items));
   }, [built, problems, rechecking, setStatusMessage, units]);

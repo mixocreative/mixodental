@@ -104,8 +104,35 @@ One thing follows for the verdict: nothing in this release replaces a unit's `so
 verdict cannot go stale. The `triangles` gate below stays regardless — it costs one comparison and it
 is what will make repair safe to write.
 
+## What is here
+
+| file | what it decides |
+|---|---|
+| `rowState.ts` | the nine states, as three partitions |
+| `rowText.ts` | what a row SAYS, as a `Message` so it re-translates |
+| `nextItem.ts` | which item the loop goes to next, and how many are left |
+| `itemSummary.ts` | the row's text preview: triangle count and size in mm |
+| `ItemsPage.tsx` | the page itself — one row per unit, in plate order |
+
+Its `data-ui` names, all keyed to the unit and never to a row index: `items-row-<unitId>`,
+`items-preview-<unitId>`, `items-verdict-<unitId>`, `items-remove-<unitId>`, plus `items-start` and
+`items-back`. They are in the app's table in `docs/ui-styling.md`.
+
+## Two of the five sentences cannot be reached yet
+
+`rowText.ts` has text for `unreadable` and `too-big`, and **nothing can produce those rows today**:
+`verdictOfRefusal` has no production caller, because a refused file never becomes a unit and the page
+lists units. A dropped file that cannot be read is reported on the status line and disappears.
+
+That is the same fault this module refused to commit for the repair states, and it is recorded rather
+than papered over. **The fix is not to delete the text — it is to make a refused file a row**, which is
+what §3's first table always described and what a deck of eight needs: drop eight, one is broken, see
+*which*. Wiring `verdictOfRefusal` belongs with that work.
+
+So the states reachable in the shipped page are **three**: `clean`, `holes`, `malformed`.
+
 ## Not here yet
 
-The page, the row component, its `data-ui` names and the three-language sentences — §8 steps 6a and
-7b. Storing the verdict was the other half of 7b and is done. `offersRepair()` is the one piece of policy already decided: a refusal never re-offers the press
+The job deck proper (plan §0b): the batch run after Purpose, the per-row thumbnail, the tool rail,
+and refused files as rows. The page here is the Items page that preceded it. `offersRepair()` is the one piece of policy already decided: a refusal never re-offers the press
 that just failed.
