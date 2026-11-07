@@ -101,6 +101,7 @@ import { acceptsDentalDrop } from './dental/editingMode';
 import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
 import { ItemsPage } from './items/ItemsPage';
+import { dropKeepsOneFile, filesToImport } from './items/dropGrain';
 import { builtGeometry, hasGeometry, type HeldBuild } from './plate/releasedBuild';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
@@ -737,7 +738,7 @@ export default function App() {
    */
   const importFiles = useCallback(async (files: readonly File[], options?: { takesOne?: boolean; onAdded?: (count: number) => void }) => {
     // Dental Step 1 takes the aligner itself: one file, and it is oriented once read.
-    const dentalDrop = acceptsDentalDrop(sessionRef.current) && (options?.takesOne ?? true);
+    const dentalDrop = dropKeepsOneFile(acceptsDentalDrop(sessionRef.current), options?.takesOne);
 
     const replacesPlate = dentalDrop && freshStart.current;
     freshStart.current = false;
@@ -752,7 +753,7 @@ export default function App() {
       setPulse((current) => ({ panel: 'left', seq: current.seq + 1 }));
       return setStatusMessage(refusal);
     }
-    const accepted = files.filter(acceptModelFile).slice(0, dentalDrop ? 1 : undefined);
+    const accepted = filesToImport(files.filter(acceptModelFile), dentalDrop);
     if (accepted.length === 0) return badFile(errorStatus('import', new CodedError('file-type', 'file-type')));
     if (dentalDrop) send({ type: 'dentalLoading' });
     /** The file being read, named in an error. */

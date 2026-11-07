@@ -44,9 +44,13 @@ describe('what a row says', () => {
   });
 
   it('gives each capacity limit its own sentence, because the file is fine and does not fit', () => {
-    const limits = (['triangles', 'memory', 'plate'] as const).map((limit) => say({ state: 'too-big', limit }));
-    expect(new Set(limits).size).toBe(3);
-    for (const text of limits) expect(text).toBeTruthy();
+    // EACH SENTENCE PINNED, not merely "three different non-empty strings". The earlier version
+    // asserted distinctness and truthiness, so swapping the memory and plate sentences passed - and
+    // telling an operator their file is too big for the plate when it ran out of memory is exactly
+    // the kind of wrong-but-plausible line a row must never print.
+    expect(say({ state: 'too-big', limit: 'triangles' })).toBe('Too many triangles for the plate.');
+    expect(say({ state: 'too-big', limit: 'memory' })).toBe('Too large to hold in memory.');
+    expect(say({ state: 'too-big', limit: 'plate' })).toBe('Too big for the plate.');
     expect(say({ state: 'unreadable', code: 'stl-empty' })).toBe('Could not be read.');
   });
 
@@ -81,7 +85,12 @@ describe('what a row says', () => {
     // that stops being reachable, which is how a translated string would quietly go stale.
     expect(keys.size).toBe(11);
     for (const [lang, dictionary] of [['ja', ja], ['zh-Hant', zhHant]] as const) {
-      expect([...keys].filter((key) => !(key in dictionary)), lang).toEqual([]);
+      expect([...keys].filter((key) => !(key in dictionary)), `${lang}: missing`).toEqual([]);
+      // PRESENT IS NOT TRANSLATED. An entry whose value is the English key would have passed the
+      // check above - the commonest way a "translated" string ships untranslated. Neither language
+      // writes these in Latin script, so equality with the key means nobody did the work.
+      const untranslated = [...keys].filter((key) => dictionary[key] === key || dictionary[key]?.trim() === '');
+      expect(untranslated, `${lang}: present but not translated`).toEqual([]);
     }
   });
 

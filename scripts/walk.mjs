@@ -1092,10 +1092,18 @@ async function walk(url, scratch, dentalFixture) {
         (await page.locator('.items-row[data-ui^="items-row-unit-"]').count()) === 3
         && (await page.locator('[data-ui^="items-preview-unit-"]').count()) === 3,
         `named rows ${await page.locator('.items-row[data-ui^="items-row-unit-"]').count()}`);
-      check('m4 each row carries its own size, and the page says how many are left',
-        /\d+ × \d+ × \d+ mm/.test(await page.locator('.items-row .preview').first().innerText())
+      /*
+       * EVERY row, and the triangle count too. This read `.first()` only - so two rows could have
+       * shown nothing and it would have passed - and it never checked the triangle count although
+       * its own name claimed to. The three cubes are identical, so every row must read the same.
+       */
+      const previews = await page.locator('.items-row .preview').allInnerTexts();
+      check('m4 every row carries its own triangle count and size, and the page says how many are left',
+        previews.length === 3
+        && previews.every((text) => /\d+ triangles/.test(text) && /\d+ × \d+ × \d+ mm/.test(text))
+        && new Set(previews).size === 1
         && /3 items left/.test(await page.locator('.items-left').innerText()),
-        await page.locator('.items-left').innerText());
+        `${JSON.stringify(previews)} / ${await page.locator('.items-left').innerText()}`);
       // Remove takes one row off and leaves the rest; the count follows the same rule the press does.
       await page.locator('.items-row .remove').first().click();
       await d.idle(500);
