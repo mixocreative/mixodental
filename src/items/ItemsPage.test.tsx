@@ -15,7 +15,7 @@ const unit = (id: string, name: string, diagnosis?: ImportDiagnosis) =>
   ({ id, name, source: mesh, ...(diagnosis ? { diagnosis } : {}) } as PrintUnit);
 
 const render = (units: PrintUnit[], finished: string[] = [], refused: { name: string; refusal: ImportRefusal }[] = []) =>
-  renderToStaticMarkup(<ItemsPage units={units} refused={refused} detected={new Map()} finished={finished} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+  renderToStaticMarkup(<ItemsPage units={units} refused={refused} detected={new Map()} thumbnails={new Map()} finished={finished} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
 describe('the Items page', () => {
   /*
@@ -126,7 +126,7 @@ describe('the Items page', () => {
     const html = renderToStaticMarkup(<ItemsPage
       units={[unit('u-a', 'upper.stl', verdict()), unit('u-b', 'lower.stl', verdict())]}
       refused={[]} detected={new Map([['u-a', { kind: 'oriented', turned: true }], ['u-b', { kind: 'no-rim' }]])}
-      finished={[]} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+      thumbnails={new Map()} finished={[]} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
     expect(html).toContain('data-ui="items-detect-u-a"');
     expect(html).toContain('Turned upright.');
@@ -144,5 +144,34 @@ describe('the Items page', () => {
   it('keeps Remove a danger outline, never a filled red', () => {
     // House rule: a destructive action is an outline. noColourLiterals covers the CSS; this covers the class.
     expect(render([unit('a', 'a.stl')])).toContain('class="danger remove"');
+  });
+
+  /*
+   * THE ROW PICTURE. It arrives separately from the row (`useThumbnails` draws one at a time), so the
+   * two states have to be distinguishable: a frame with a picture in it, and a frame with none yet.
+   * A row that only appeared once its picture did would make the list jump as a drop fills in.
+   */
+  it('puts a drawn picture on its own row and leaves the others framed but empty', () => {
+    const a = unit('u-a', 'upper.stl', verdict());
+    const b = unit('u-b', 'lower.stl', verdict());
+    const html = renderToStaticMarkup(<ItemsPage
+      units={[a, b]} refused={[]} detected={new Map()}
+      thumbnails={new Map([['u-a', { mesh: a.source, url: 'data:image/png;base64,AAA' }]])}
+      finished={[]} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+    expect(html).toContain('data-ui="items-shot-u-a"');
+    expect(html).toContain('src="data:image/png;base64,AAA"');
+    // The row with no picture yet still has its frame, and nothing inside it.
+    expect(html).toMatch(/data-ui="items-shot-u-b"><\/span>/);
+  });
+
+  it('gives the picture an empty alt, because the name and the sentences already say it in words', () => {
+    const a = unit('u-a', 'upper.stl', verdict());
+    const html = renderToStaticMarkup(<ItemsPage
+      units={[a]} refused={[]} detected={new Map()}
+      thumbnails={new Map([['u-a', { mesh: a.source, url: 'data:image/png;base64,AAA' }]])}
+      finished={[]} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+    expect(html).toContain('alt=""');
   });
 });

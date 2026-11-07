@@ -88,6 +88,11 @@
   "src/denture/steps/supports/useDentureSupports.ts": {
     "label": "host-adapter"
   },
+  "src/items/thumbnail.ts": {
+    "label": "host-math",
+    "maxMath": 2,
+    "why": "the thumbnail camera: the distance at which a bounding sphere fills a square frame. Render framing only - no print decision rests on it"
+  },
   "src/state/import.ts": {
     "label": "host-adapter"
   },

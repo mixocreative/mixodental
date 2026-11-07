@@ -116,6 +116,9 @@ is what will make repair safe to write.
 | `refusalOf.ts` | which refusal an import error is, so a refused file can be a row |
 | `detectState.ts` | what a row shows about ITS OWN orientation, and how many are still to look at |
 | `useBatchDetect.ts` | the batch itself: one detection per row, one at a time, each row's own result |
+| `thumbnail.ts` | WHICH row needs a picture and WHERE its camera goes — no GL in it |
+| `drawThumbnail.ts` | the GL half: one renderer for the app, one model uploaded and disposed at a time |
+| `useThumbnails.ts` | the cache, and drawing one row per task so the list paints between them |
 | `ItemsPage.tsx` | the page itself — one row per unit, in plate order |
 
 Its `data-ui` names, all keyed to the unit and never to a row index: `items-row-<unitId>`,
@@ -161,3 +164,32 @@ repeating here:** `AnalysisClient`'s `TriangleGate` would queue these more cleve
 budget, and it still stands underneath as the memory guarantee. Sequential submission buys something
 the gate cannot — a row reads `running` only when it IS running. Submitting all at once would show
 "Checking the orientation…" on every row while most sat in a queue, which is one lie told N times.
+
+## The row picture, and the renderer it is NOT drawn with
+
+The design doc's §7 ruled this preview must be text, because a 3D preview per row would be the
+release's only new per-row memory cost. §0b reverses that on a distinction worth keeping straight:
+**N live viewports is not N cached images.** A 160 px PNG is tens of kilobytes beside a 12.2 MB mesh,
+and it is drawn once.
+
+The first attempt drew it with the app's own renderer, from a component inside the one `<Canvas>`
+— the `PlateSide` pattern. **That cannot work here, and the reason is worth recording so nobody
+tries it again:** the workspace, and so the Canvas, is mounted only when `startScreen === null`
+(`App.tsx`), and the deck IS a start screen. There is no renderer to borrow at the moment the
+pictures are wanted. Mounting the workspace behind every start screen would be a wide behaviour
+change that walk checks `u1a` and `l2g` rest on — the start screens have no panels — which is far
+more than a row picture should cost.
+
+So `drawThumbnail.ts` keeps ONE renderer for the app, made on first use. Not one per row: browsers
+cap GL contexts near sixteen and a drop of twenty would start losing them. Each model is uploaded,
+drawn and disposed in turn, so the peak is one model's geometry rather than the deck's.
+
+Two details that are easy to get wrong:
+
+- **An entry with no `url` still counts as drawn.** A device with no WebGL returns no picture, and if
+  a pictureless row stayed out of the cache `thumbnailNeeded` would hand it back on every pass — a
+  draw loop that never settles. This release has already paid for that shape of bug once, in a 600 ms
+  re-check that ran for ever.
+- **The camera frames the model AS PLACED**, from the box of the mesh with the unit's transform
+  applied. Framing the file's own frame would undo the orientation work the row is reporting in words
+  on the line below.

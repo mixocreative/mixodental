@@ -1131,6 +1131,40 @@ async function walk(url, scratch, dentalFixture) {
         detected && lines.length === 3 && lines.every((text) => /No rim found/.test(text)),
         `detect lines ${JSON.stringify(lines)}; rows ${await page.locator('.items-row').count()}, unit rows ${await page.locator('.items-row:not(.items-row--refused)').count()}, detect spans ${await page.locator('[data-ui^="items-detect-"]').count()}, names ${JSON.stringify(await page.locator('.items-row .name').allInnerTexts())}`);
 
+      /*
+       * EVERY ROW GETS A PICTURE, AND THE MODEL IS IN IT. The pictures are drawn one row per task, so
+       * the wait is for all three rather than for the first.
+       *
+       * "A picture exists" would be a weak check: an empty frame renders a perfectly valid PNG of the
+       * paper background. So this reads the pixels back - the CENTRE of each picture against its
+       * CORNER. The corner is background; the centre is the cube. If they match, nothing was drawn,
+       * whatever the data URL says.
+       */
+      const drawn = await page.waitForFunction(
+        () => [...document.querySelectorAll('[data-ui^="items-shot-unit-"] img')].filter((node) => (node.getAttribute('src') ?? '').startsWith('data:image/png')).length === 3,
+        null, { timeout: 240000 }).then(() => true, () => false);
+      const shots = drawn ? await page.evaluate(async () => {
+        const read = (source) => new Promise((resolve) => {
+          const image = new Image();
+          image.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = image.naturalWidth;
+            // `willReadFrequently`, because this reads pixels straight back and Chrome warns about
+            // exactly that - a warning check `h` would report as if the APP had logged it.
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+            context.drawImage(image, 0, 0);
+            const at = (x, y) => [...context.getImageData(x, y, 1, 1).data].slice(0, 3).join(',');
+            resolve({ size: image.naturalWidth, corner: at(2, 2), centre: at(Math.floor(image.naturalWidth / 2), Math.floor(image.naturalWidth / 2)) });
+          };
+          image.onerror = () => resolve({ size: 0, corner: '', centre: '' });
+          image.src = source;
+        });
+        return Promise.all([...document.querySelectorAll('[data-ui^="items-shot-unit-"] img')].map((node) => read(node.getAttribute('src'))));
+      }) : [];
+      check('m4c every row carries its own drawn picture, with the model actually in it',
+        drawn && shots.length === 3 && shots.every((shot) => shot.size > 0 && shot.centre !== shot.corner),
+        `shots ${JSON.stringify(shots)}`);
+
       // Remove takes one row off and leaves the rest; the count follows the same rule the press does.
       await page.locator('.items-row .remove').first().click();
       await d.idle(500);

@@ -101,6 +101,7 @@ import { acceptsDentalDrop } from './dental/editingMode';
 import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
 import { ItemsPage } from './items/ItemsPage';
+import { useThumbnails } from './items/useThumbnails';
 import { dropKeepsOneFile, filesToImport } from './items/dropGrain';
 import { refusalOf } from './items/refusalOf';
 import { useBatchDetect } from './items/useBatchDetect';
@@ -441,6 +442,12 @@ export default function App() {
     analysis,
     unitName,
   });
+  /**
+   * THE ROW PICTURES (plan §0b increment C), drawn one row at a time while the deck is on screen.
+   * Same gate as the batch above and for the same reason: the dental flow shows no rows, so drawing
+   * for it would spend time and GPU on pictures nobody sees.
+   */
+  const thumbnails = useThumbnails(scene.units, startScreen === 'items');
   const importer = useCallback(() => (workers.current.importer ??= new ImportClient(createImportWorker)), []);
   useEffect(() => () => {
     // An import worker lives only while its import runs.
@@ -1510,7 +1517,7 @@ export default function App() {
       </div>
     </header>
     {startScreen === 'items' ? <ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
-      refused={refusedFiles} detected={batchDetected}
+      refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails}
       onStart={startItem} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
       onBack={() => setStartScreen('drop')}
       onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} />
