@@ -61,3 +61,20 @@ export const nextRevision = (revisions: Revisions): number =>
 /** `revisions` with `tool` accepted now, which is what makes everything below it stale. */
 export const accepted = (revisions: Revisions, tool: ToolId): Revisions =>
   ({ ...revisions, [tool]: nextRevision(revisions) });
+
+/**
+ * `revisions` with `tool` accepted now, dropped when the tool's work is removed.
+ *
+ * `undefined` for `tool` means nothing is recorded any more: clearing a rim or removing the supports
+ * must take the revision with it, or the number would go on claiming work that is gone and
+ * `staleTools` would age the tools below it against a ghost.
+ */
+export function stamped(revisions: Revisions | undefined, tool: ToolId, done: boolean): Revisions | undefined {
+  const current = revisions ?? {};
+  if (!done) {
+    if (current[tool] === undefined) return revisions;
+    const { [tool]: _gone, ...rest } = current;
+    return Object.keys(rest).length === 0 ? undefined : rest;
+  }
+  return { ...current, [tool]: nextRevision(current) };
+}

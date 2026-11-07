@@ -256,4 +256,16 @@ describe('the Items page', () => {
 
     expect(html).toMatch(/data-ui="tool-orient"[^>]*tool--busy/);
   });
+
+  it('keeps the rail on a page whose every row is finished, rather than vanishing', () => {
+    // `nextItem` is undefined once nothing is left, and a rail that disappears from a page that
+    // still has rows reads as a fault rather than as "nothing left to do".
+    const html = renderToStaticMarkup(<ItemsPage
+      units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', verdict())]} refused={[]}
+      detected={new Map()} thumbnails={new Map()} finished={['u-a', 'u-b']} lang="en"
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+    expect(html).toContain('data-ui="tool-orient"');
+    expect(rowTag(html, 'u-b')).toContain('items-row--shown');
+  });
 });

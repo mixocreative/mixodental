@@ -77,20 +77,37 @@ staleness is a statement about work that exists.
 
 ## The facts are read from the work, not from the record
 
-**NOTHING IN THE APP WRITES `revisions` YET.** The field is saved and validated, and `staleTools` is
-correct, but no flow stamps a revision when work is accepted — so in a live session **staleness never
-fires**, and a stale rail state is reachable only from a project file that already carries the
-numbers. Stamping it at the accept points is the next piece of this increment. Until then, do not
-read the stale state as proof the cascade is wired.
+**The revisions are stamped in the REDUCER** (`src/state/project.ts`), not at the call sites that
+accept work. Three reasons, in order of weight:
 
-That gap is also what made the first version of `oriented` wrong, and it is worth recording. It read
+1. The work is recorded there, so it is the one place that cannot be forgotten when a new call site
+   appears.
+2. The stamp rides inside the same command, so accepting something stays **one undoable step**.
+   `withSceneCommand` makes each command one step, so a separate dispatch would have cost the
+   operator two undos per accept.
+3. The reducer can see the *previous* state, which is what the orientation rule needs.
+
+| command | stamps | when |
+|---|---|---|
+| `transform/set` | `orient` | only when the **rotation** changed — a move is not an orientation, and stamping it would age the rim every time a model was nudged across the view. Exact equality on the three numbers, no epsilon to defend |
+| `rim/set` | `rim` | only when the path is **closed**; the drawing dispatches on every anchor |
+| `rim/clear` | drops `rim` | a number left behind would claim work that is gone, and the area would be aged against a ghost |
+| `dental/set`, `dental/stamps/add` | `area` | painting the area **is** changing it, so supports built from the old one are out of date |
+| `dental/clear` | drops `area` | |
+| `supports/set` | `supports`, or drops it | the same command carries a build and a clear, so which it is depends on what arrived |
+| `supports/remove` | drops `supports` | |
+
+An earlier version of this file said nothing stamped at all, which was true and is no longer.
+
+That gap is what made the first version of `oriented` wrong, and it is worth recording. It read
 `revisions.orient`, `rimDraft` and `dental` only — so a unit the batch had *just oriented* reported
 `oriented: false`, and the rail told the operator to turn a model that was already upright. The
 inference meant to rescue legacy projects delivered that failure to every unit in a normal session.
 
 So `oriented` now reads the **detection result the deck is already showing on the row**: a detector
 that found a pose is an orientation, and that is a fact the deck has in hand. A closed rim or an
-accepted area still counts, because neither can be reached without orienting first.
+accepted area still counts, because neither can be reached without orienting first — and a stamped
+`revisions.orient` counts too, which is the path a reopened project takes.
 
 **A rim means a CLOSED rim.** `rim/set` is dispatched on *every anchor* (`useRimDrawing`, starting
 from `emptyPath()`), so testing `rimDraft` for existence opened Area on a single unclosed point — and
@@ -157,9 +174,10 @@ vouch for geometry nothing has looked at — and it is not reported as a problem
 
 ## Where the rail is mounted today, and what that press does
 
-The rail is on the deck, about the selected row (falling back to `nextItem`, which is where work
-*resumes* — a returning operator should see the model they are about to pick up, not one they
-finished). Pressing a tool **opens that model**, because the step flow still owns the tool work and
+The rail is on the deck, about the selected row — falling back to `nextItem`, which is where work
+*resumes*, because a returning operator should see the model they are about to pick up rather than
+one they finished; and behind that to the **last** row, because `nextItem` is undefined once
+everything is finished and a rail that vanishes from a page which still has rows reads as a fault. Pressing a tool **opens that model**, because the step flow still owns the tool work and
 the rail is its entry point. A ready button's hint says exactly that rather than naming the tool, so
 it is not a button that fails to do what it claims.
 

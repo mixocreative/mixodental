@@ -60,8 +60,11 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
    * THE ROW THE RAIL IS ABOUT. Falling back to `next` rather than to the first row matters: the
    * fallback is where work RESUMES, so a returning operator sees the state of the model they are
    * about to pick up rather than of one they already finished.
+   *
+   * The LAST row behind that, because `next` is undefined once every unit is finished - and the rail
+   * vanishing from a page that still has rows reads as a fault rather than as "nothing left to do".
    */
-  const shown = units.find((unit) => unit.id === selectedUnitId) ?? next;
+  const shown = units.find((unit) => unit.id === selectedUnitId) ?? next ?? units[units.length - 1];
 
   return <div className="items-page" lang={lang} tabIndex={-1}
     onKeyDown={(event) => { if (event.key === 'Escape') onBack(); }}

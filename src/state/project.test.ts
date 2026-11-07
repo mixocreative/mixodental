@@ -335,6 +335,105 @@ describe('reduceScene', () => {
  * persisted it before this), and that a corrupt one loads as ABSENT rather than throwing - the
  * opposite of `rimDraft`, because a label on a row is not geometry heading for the engine.
  */
+describe('stamping a tool revision as work is accepted', () => {
+  /*
+   * STAMPED IN THE REDUCER, not at the call sites. The work is recorded here, so this is the one
+   * place that cannot be forgotten when a new call site appears - and because the stamp rides inside
+   * the same command, accepting something stays ONE undoable step. A separate dispatch would have
+   * cost the operator two undos per accept (`withSceneCommand` makes each command one step).
+   */
+  const added = (over: Partial<PrintUnit> = {}) => reduceScene(emptyScene, { type: 'unit/add', unit: { ...unitA, ...over } });
+  const revisionsOf = (scene: PrintScene) => scene.units[0]!.revisions;
+  const turn = (scene: PrintScene, rotation: readonly [number, number, number]) =>
+    reduceScene(scene, { type: 'transform/set', unitId: 'unit-a', transform: { ...identityTransform, rotation: [...rotation] } });
+  const anchor = { position: [0, 0, 0] as [number, number, number], normal: [0, 1, 0] as [number, number, number] };
+  const policy: DentalPolicy = {
+    profileId: 'reference-aligner',
+    rim: {
+      boundaryKind: 'lower-edge-loop',
+      points: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
+      openingDirection: [0, -1, 0], centroid: [0, 0, 0], tangent: [1, 0, 0], bitangent: [0, 0, 1],
+      visibilityMask: new Uint8Array([1, 0, 1, 1]), visibilityResolution: 2, visibilityMin: [-1, -1], visibilityMax: [1, 1],
+    },
+    stamps: [],
+  };
+
+  it('records an orientation when the rotation changes', () => {
+    expect(revisionsOf(turn(added(), [0, 0.5, 0]))).toEqual({ orient: 1 });
+  });
+
+  /*
+   * A MOVE IS NOT AN ORIENTATION. `transform/set` carries ordinary moves too, and stamping those
+   * would mark the rim and the area out of date every time the operator nudged a model across the
+   * view - work the move did not touch.
+   */
+  it('records nothing when only the position moved', () => {
+    const moved = reduceScene(added(), {
+      type: 'transform/set', unitId: 'unit-a', transform: { ...identityTransform, position: [10, 0, 0] },
+    });
+    expect(moved.units[0]!).not.toHaveProperty('revisions');
+  });
+
+  it('records nothing when the rotation is set to what it already was', () => {
+    expect(turn(added(), [0, 0, 0]).units[0]!).not.toHaveProperty('revisions');
+  });
+
+  it('records a rim only once the drawing is CLOSED', () => {
+    const open = reduceScene(added(), { type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor], closed: false } });
+    expect(open.units[0]!).not.toHaveProperty('revisions');
+
+    const closed = reduceScene(open, { type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor, anchor, anchor], closed: true } });
+    expect(revisionsOf(closed)).toEqual({ rim: 1 });
+  });
+
+  it('takes the rim revision away again when the rim is cleared', () => {
+    // A number left behind would go on claiming work that is gone, and the area below it would be
+    // aged against a ghost.
+    const closed = reduceScene(added(), { type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor, anchor, anchor], closed: true } });
+    expect(reduceScene(closed, { type: 'rim/clear', unitId: 'unit-a' }).units[0]!).not.toHaveProperty('revisions');
+  });
+
+  it('records the area when a policy is accepted, and drops it when the area is cleared', () => {
+    const accepted = reduceScene(added(), { type: 'dental/set', unitId: 'unit-a', policy });
+    expect(revisionsOf(accepted)).toEqual({ area: 1 });
+    expect(reduceScene(accepted, { type: 'dental/clear', unitId: 'unit-a' }).units[0]!).not.toHaveProperty('revisions');
+  });
+
+  /*
+   * THE CASE THE WHOLE MECHANISM EXISTS FOR: accept an orientation, draw a rim, accept an area, then
+   * re-orient. All three below must read out of date - and the work itself must still be there.
+   */
+  it('makes everything below a re-orientation read stale, without throwing the work away', async () => {
+    const { staleTools } = await import('../deck/revisions');
+    let scene = turn(added(), [0, 0.5, 0]);
+    scene = reduceScene(scene, { type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor, anchor, anchor], closed: true } });
+    scene = reduceScene(scene, { type: 'dental/set', unitId: 'unit-a', policy });
+    expect(staleTools(revisionsOf(scene) ?? {})).toEqual([]);
+
+    scene = turn(scene, [0, 1.2, 0]);
+    expect(staleTools(revisionsOf(scene) ?? {})).toEqual(['rim', 'area']);
+    // The work is kept: stale, not discarded.
+    expect(scene.units[0]!.rimDraft).toBeDefined();
+    expect(scene.units[0]!.dental).toBeDefined();
+  });
+
+  it('makes the supports stale when the area is painted over', async () => {
+    const { staleTools } = await import('../deck/revisions');
+    let scene = reduceScene(added(), { type: 'dental/set', unitId: 'unit-a', policy });
+    scene = reduceScene(scene, { type: 'supports/set', unitId: 'unit-a', placement: undefined, supports: undefined });
+    // No supports arrived, so nothing was accepted: painting cannot age what does not exist.
+    expect(staleTools(revisionsOf(scene) ?? {})).toEqual([]);
+  });
+
+  it('survives a save and reopen, so a reopened project knows what is out of date', () => {
+    const scene = reduceScene(turn(added(), [0, 0.5, 0]), {
+      type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor, anchor, anchor], closed: true },
+    });
+    expect(deserializeScene(serializeScene(scene))).toEqual(scene);
+    expect(revisionsOf(deserializeScene(serializeScene(scene)))).toEqual({ orient: 1, rim: 2 });
+  });
+});
+
 describe('the tool revisions on a unit', () => {
   const revisions = { orient: 1, rim: 2, area: 3, supports: 4 };
   const withRevisions = (value: unknown) => reduceScene(emptyScene, {

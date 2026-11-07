@@ -11,7 +11,7 @@ import { normalizeDentureState, type DentureState } from '../denture/state/dentu
 import type { SurfaceAnchor, SurfacePath } from '../core/surfacePath/path';
 import type { ImportDiagnosis } from './diagnosis';
 import { TOOL_ORDER } from '../deck/toolState';
-import type { Revisions } from '../deck/revisions';
+import { stamped, type Revisions } from '../deck/revisions';
 
 export { identityTransform } from '@mixo-geocore/host/state/transform';
 
@@ -160,15 +160,34 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
         ? { ...withoutActiveUnit(scene), selectedUnitIds: [...command.unitIds] }
         : { ...scene, selectedUnitIds: [...command.unitIds], activeUnitId: command.activeUnitId };
     case 'supports/set':
-      return updateUnit(scene, command.unitId, (unit) => ({
-        ...unit,
-        placement: command.placement === undefined ? undefined : normalizePlacement(command.placement),
-        supports: command.supports === undefined ? undefined : normalizeSupportMesh(command.supports),
-      }));
+      return updateUnit(scene, command.unitId, (unit) => {
+        const supports = command.supports === undefined ? undefined : normalizeSupportMesh(command.supports);
+        return withRevisions({
+          ...unit,
+          placement: command.placement === undefined ? undefined : normalizePlacement(command.placement),
+          supports,
+        // A build that cleared the supports is not an acceptance of them: the same command carries
+        // both, so which one it is depends on what arrived.
+        }, stamped(unit.revisions, 'supports', supports !== undefined));
+      });
     case 'supports/remove':
-      return updateUnit(scene, command.unitId, ({ placement: _placement, supports: _supports, ...unit }) => unit);
+      return updateUnit(scene, command.unitId, ({ placement: _placement, supports: _supports, ...unit }) =>
+        withRevisions(unit, stamped(unit.revisions, 'supports', false)));
     case 'transform/set':
-      return updateUnit(scene, command.unitId, (unit) => ({ ...unit, transform: cloneTransform(command.transform) }));
+      return updateUnit(scene, command.unitId, (unit) => {
+        const transform = cloneTransform(command.transform);
+        /*
+         * ORIENTING IS A ROTATION CHANGE, not any transform change. `transform/set` also carries
+         * ordinary moves, and stamping on those would mark the rim and the area out of date every
+         * time the operator nudged a model across the view - work the move did not affect.
+         *
+         * The comparison is exact equality on the three numbers, not a tolerance: the question is
+         * "did this command change the rotation at all", and identical numbers answer it without an
+         * epsilon anyone would have to defend.
+         */
+        const turned = transform.rotation.some((angle, axis) => angle !== unit.transform.rotation[axis]);
+        return withRevisions({ ...unit, transform }, turned ? stamped(unit.revisions, 'orient', true) : unit.revisions);
+      });
     case 'settings/set':
       return updateUnit(scene, command.unitId, (unit) => ({ ...unit, settings: normalizeJsonObject(command.settings) as SupportSettings }));
     case 'manual/add':
@@ -197,22 +216,36 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
       if (scene.units.find((unit) => unit.id === command.unitId)?.zones.length === 0) return scene;
       return updateUnit(scene, command.unitId, (unit) => ({ ...unit, zones: [] }));
     case 'dental/set':
-      return updateUnit(scene, command.unitId, (unit) => ({ ...unit, dental: cloneDentalPolicy(command.policy, unit.source) }));
+      return updateUnit(scene, command.unitId, (unit) =>
+        withRevisions({ ...unit, dental: cloneDentalPolicy(command.policy, unit.source) }, stamped(unit.revisions, 'area', true)));
     case 'dental/stamps/add':
       if (command.stamps.length === 0) return scene;
+      // PAINTING THE AREA IS CHANGING THE AREA, so the supports built from the old one are out of
+      // date. Leaving this unstamped would let an operator paint a new region and keep looking at
+      // supports that know nothing about it, with the rail saying everything was fine.
       return updateUnit(scene, command.unitId, (unit) => unit.dental === undefined
         ? unit
-        : { ...unit, dental: { ...unit.dental, stamps: [...unit.dental.stamps, ...command.stamps.map(cloneDentalStamp)] } });
+        : withRevisions(
+          { ...unit, dental: { ...unit.dental, stamps: [...unit.dental.stamps, ...command.stamps.map(cloneDentalStamp)] } },
+          stamped(unit.revisions, 'area', true),
+        ));
     case 'dental/clear':
-      return updateUnit(scene, command.unitId, ({ dental: _dental, ...unit }) => unit);
+      return updateUnit(scene, command.unitId, ({ dental: _dental, ...unit }) =>
+        withRevisions(unit, stamped(unit.revisions, 'area', false)));
     case 'rim/set': {
       const path = cloneSurfacePath(command.path);
       // An empty drawing is no drawing: holding one would leave the mode's keys enabled over nothing.
       if (path.anchors.length === 0) return reduceScene(scene, { type: 'rim/clear', unitId: command.unitId });
-      return updateUnit(scene, command.unitId, (unit) => ({ ...unit, rimDraft: path }));
+      // Only a CLOSED path is a rim. The drawing dispatches this on every anchor, so stamping an
+      // open one would record a rim that does not exist yet.
+      return updateUnit(scene, command.unitId, (unit) =>
+        withRevisions({ ...unit, rimDraft: path }, path.closed ? stamped(unit.revisions, 'rim', true) : unit.revisions));
     }
     case 'rim/clear':
-      return updateUnit(scene, command.unitId, ({ rimDraft: _rimDraft, ...unit }) => unit);
+      // The rim is gone, so its revision goes with it: a number left behind would keep claiming work
+      // that no longer exists, and `staleTools` would age the area against a ghost.
+      return updateUnit(scene, command.unitId, ({ rimDraft: _rimDraft, ...unit }) =>
+        withRevisions(unit, stamped(unit.revisions, 'rim', false)));
     case 'denture/set':
       return updateUnit(scene, command.unitId, (unit) => ({ ...unit, denture: normalizeDentureState(command.denture) }));
     case 'denture/clear':
@@ -248,6 +281,19 @@ function withoutEntries(contactSettings: ContactSettings, ids: readonly string[]
   if (!ids.some((id) => id in contactSettings)) return contactSettings;
   const gone = new Set(ids);
   return Object.fromEntries(Object.entries(contactSettings).filter(([id]) => !gone.has(id)));
+}
+
+/**
+ * A unit with its tool revisions set, or with the field GONE when there are none. `revisions: undefined`
+ * would serialise as a present key holding nothing, and `normalizeUnit` treats an empty record as
+ * absent - so writing it that way would make a saved project differ from the scene it came from.
+ */
+function withRevisions(unit: PrintUnit, revisions: Revisions | undefined): PrintUnit {
+  if (revisions === undefined) {
+    const { revisions: _gone, ...rest } = unit;
+    return rest;
+  }
+  return { ...unit, revisions };
 }
 
 function updateUnit(scene: PrintScene, unitId: string, update: (unit: PrintUnit) => PrintUnit): PrintScene {

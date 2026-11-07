@@ -40,15 +40,21 @@ export function isRigidPlateMove(before: PrintUnit, after: PrintUnit): boolean {
 
 /**
  * Whether the build of `before` is also the build of `after`: the denture and its finished supports are the same,
- * every field but the transform and the settings is the same object, the transform only slid or turned the unit
- * about the vertical, and the settings differ at most in an ID label that builds the same (empty is the default
- * label: OK writes it out, and the build already used it).
+ * every field but the transform, the settings and the tool revisions is the same object, the transform only slid or
+ * turned the unit about the vertical, and the settings differ at most in an ID label that builds the same (empty is
+ * the default label: OK writes it out, and the build already used it).
+ *
+ * `revisions` IS SKIPPED, and it has to be. It is bookkeeping about the ORDER work was accepted in
+ * (`src/deck/revisions.ts`) and says nothing about geometry, but a turn stamps it - so comparing it
+ * here made every rigid turn of a denture look like a different build and threw away supports that
+ * were still perfectly valid. A real-scan parity test caught it. Anything that asks "is this the
+ * same build" must ignore this field for the same reason.
  */
 export function keepsBuild(before: PrintUnit, after: PrintUnit): boolean {
   if (before === after || !before.denture || !before.supports) return false;
   const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
   for (const key of keys) {
-    if (key === 'transform' || key === 'settings') continue;
+    if (key === 'transform' || key === 'settings' || key === 'revisions') continue;
     if ((before as unknown as Record<string, unknown>)[key] !== (after as unknown as Record<string, unknown>)[key]) return false;
   }
   if (!sameBuildSettings(before, after)) return false;

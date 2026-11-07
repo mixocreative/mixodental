@@ -26,6 +26,24 @@ describe('isRigidPlateMove', () => {
     expect(keepsBuild(before, { ...before, settings: { labelText: 'AB' } } as PrintUnit)).toBe(false);
     expect(keepsBuild(before, { ...before, settings: { labelText: 'X', raftEnabled: false } } as PrintUnit)).toBe(false);
   });
+  /*
+   * THE TOOL REVISIONS ARE NOT PART OF THE BUILD, and this regressed once. A turn stamps
+   * `revisions.orient` (the deck's rail reads it to say what is out of date), and because
+   * `keepsBuild` compares every other key by identity, every rigid turn of a denture suddenly looked
+   * like a different build - throwing away supports that were still valid, on a real scan. The field
+   * is bookkeeping about the ORDER work was accepted in and says nothing about geometry.
+   */
+  it('a turn that stamped a tool revision is still the same build', () => {
+    const before = unit();
+    const turned = {
+      ...before,
+      transform: { position: [0, 3, 0], rotation: [...before.transform.rotation] },
+      revisions: { orient: 4 },
+    } as PrintUnit;
+    expect(keepsBuild(before, turned)).toBe(true);
+    // And a revision appearing on its own, with no move at all, is still not a rigid MOVE.
+    expect(isRigidPlateMove(before, { ...before, revisions: { orient: 4 } } as PrintUnit)).toBe(false);
+  });
   it('a unit without built supports or a denture policy is not', () => {
     const bare = unit({ supports: undefined as never });
     expect(isRigidPlateMove(bare, { ...bare, transform: { position: [5, 3, 0], rotation: [...bare.transform.rotation] } })).toBe(false);
