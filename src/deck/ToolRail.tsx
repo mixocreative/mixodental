@@ -3,7 +3,9 @@ import { hint } from '../components/hint';
 import { railReason, railStates, type ToolFacts, type ToolId, type ToolState } from './toolState';
 
 /**
- * THE TOOL RAIL: Orient · Rim · Area · Supports, down the left edge, in dependency order.
+ * THE TOOL RAIL: Orient · Rim · Area · Supports, in dependency order. It sits UNDER the deck's
+ * list today (`ItemsPage`), not down the left edge — the left edge is where it goes once the one
+ * workspace exists, and this header used to claim that as if it were already true.
  *
  * The rule it draws lives in `toolState.ts` and the reasoning is in this folder's README. What this
  * file decides is how the four states LOOK, and there is one rule that matters: greyed and busy must
@@ -19,7 +21,12 @@ import { railReason, railStates, type ToolFacts, type ToolId, type ToolState } f
 /** What a tool's state adds to its button: the class, whether it can be pressed, and its hover line. */
 function look(state: ToolState): { className: string; disabled: boolean; note: string | undefined } {
   switch (state.kind) {
-    case 'ready': return { className: 'tool', disabled: false, note: undefined };
+    // "Open this model" and not "go to this tool", because that is what the press does TODAY: the
+    // step flow still owns the tool work, and the rail is its entry point. Saying otherwise would be
+    // a button that does not do what it claims. The tool-specific information a ready button carries
+    // is its STATE - available, stale, blocked - which is true either way. When the one workspace
+    // lands this note becomes tool-specific and nothing else here changes.
+    case 'ready': return { className: 'tool', disabled: false, note: 'Open this model.' };
     // Pressable on purpose: the operator opens it and watches, rather than meeting grey.
     case 'busy': return { className: 'tool tool--busy', disabled: false, note: 'Being made now.' };
     case 'stale': return { className: 'tool tool--stale', disabled: false, note: 'Out of date since something above it changed.' };

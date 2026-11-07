@@ -85,21 +85,24 @@ describe('upstream changing does not throw the downstream work away', () => {
 
 describe('every tool is accounted for', () => {
   it('gives a state to all four, so none can be forgotten by the rail', () => {
+    // The kinds are a closed union and every branch returns one, so asserting that each state IS one
+    // of the four is a tautology no mutation can fail. What is worth pinning is the COUNT and the
+    // identities: one entry per tool, no duplicates, nothing dropped.
     const facts: ToolFacts = { ...withArea, busy: 'orient', stale: ['area'] };
     const seen = railStates(facts).map(({ tool }) => tool);
+    expect(seen).toHaveLength(4);
     expect(new Set(seen)).toEqual(new Set<ToolId>(['orient', 'rim', 'area', 'supports']));
-    expect(railStates(facts).every(({ state }) => ['ready', 'busy', 'stale', 'unavailable'].includes(state.kind))).toBe(true);
   });
 });
 
 describe('the one line the rail shows', () => {
   it('is the NEXT thing to do, not every missing prerequisite at once', () => {
     // Rim, Area and Supports are all unavailable on a fresh import. Saying all three would be noise.
-    const rim = toolState('rim', fresh);
-    expect(rim.kind).toBe('unavailable');
-    expect(railReason(fresh)).toEqual(rim.kind === 'unavailable' ? rim.because : undefined);
-    // And it is NOT one of the two further down the chain.
-    expect(railReason(fresh)?.key).not.toMatch(/support area/i);
+    //
+    // Asserted against an INDEPENDENT literal, not against `toolState('rim', fresh).because` - an
+    // expectation computed from the module under test pins the choice of tool but passes whatever
+    // the sentence says, so it could not catch a wrong or empty string.
+    expect(railReason(fresh)?.key).toBe('Turn the model the right way up first.');
   });
 
   it('moves on as each prerequisite is met', () => {
@@ -114,5 +117,26 @@ describe('the one line the rail shows', () => {
 
   it('says nothing about a BUSY tool: that is progress, not a prerequisite', () => {
     expect(railReason({ ...withArea, busy: 'supports' })).toBeUndefined();
+  });
+});
+
+describe('a missing prerequisite is not hidden by a running job', () => {
+  /*
+   * `busy` is a free field: nothing stops a caller marking a tool busy whose prerequisite is absent.
+   * An earlier version tested busy FIRST on the reasoning that this could not happen, and so it
+   * rendered Rim as working on a model that was not oriented - hiding Rim's own reason and leaving
+   * the rail showing the AREA's line, which instructs about a step two further on.
+   */
+  it('reads unavailable, not busy, when the thing it needs is not there', () => {
+    expect(toolState('rim', { ...fresh, busy: 'rim' }).kind).toBe('unavailable');
+    expect(toolState('supports', { ...oriented, busy: 'supports' }).kind).toBe('unavailable');
+  });
+
+  it('keeps the reason line on the FIRST missing prerequisite, not on a later one', () => {
+    expect(railReason({ ...fresh, busy: 'rim' })?.key).toBe('Turn the model the right way up first.');
+  });
+
+  it('still reads busy once the prerequisite IS met', () => {
+    expect(toolState('supports', { ...withArea, busy: 'supports' }).kind).toBe('busy');
   });
 });

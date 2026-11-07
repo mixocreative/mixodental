@@ -1165,6 +1165,21 @@ async function walk(url, scratch, dentalFixture) {
         drawn && shots.length === 3 && shots.every((shot) => shot.size > 0 && shot.centre !== shot.corner),
         `shots ${JSON.stringify(shots)}`);
 
+      /*
+       * THE RAIL IS ON THE DECK, AND IT TEACHES THE ORDER. Three fresh cubes: nothing is oriented, so
+       * Orient is the only tool open and the other three are greyed. The line under the rail says the
+       * ONE next thing to do rather than three complaints at once.
+       *
+       * This is the property the wizard used to carry, so it is checked as behaviour and not as
+       * styling: `disabled` on the three, absent on Orient, and a reason line with words in it.
+       */
+      const railOpen = await page.locator('[data-ui="tool-orient"]').isDisabled();
+      const railBlocked = await Promise.all(['rim', 'area', 'supports'].map((tool) => page.locator(`[data-ui="tool-${tool}"]`).isDisabled()));
+      const railReason = await page.locator('[data-ui="tool-reason"]').innerText().catch(() => '');
+      check('m4d the rail opens Orient only, greys the rest, and says the one next thing to do',
+        railOpen === false && railBlocked.every((blocked) => blocked === true) && /\w+\s+\w+/.test(railReason),
+        `orient disabled ${railOpen}, others ${JSON.stringify(railBlocked)}, reason ${JSON.stringify(railReason)}`);
+
       // Remove takes one row off and leaves the rest; the count follows the same rule the press does.
       await page.locator('.items-row .remove').first().click();
       await d.idle(500);

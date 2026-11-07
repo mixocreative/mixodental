@@ -34,17 +34,32 @@ describe('whose work is out of date', () => {
     expect(staleTools(accepted(inOrder, 'rim'))).toEqual(['area', 'supports']);
   });
 
-  it('says nothing about work whose upstream was never accepted at all', () => {
-    // Supports recorded, no area: the prerequisite is MISSING, which greys the tool. Staleness is a
-    // statement about work that exists and this is a different failure.
+  it('says nothing about work with NOTHING above it, which is a missing prerequisite not an age', () => {
+    // Supports recorded and nothing else: the prerequisite is MISSING, which greys the tool.
     expect(staleTools({ supports: 2 })).toEqual([]);
   });
 
-  it('cascades even when the middle link is itself still newer than its own work', () => {
-    // area(5) is newer than supports(4), and rim(2) is older than orient(9): every link below the
-    // re-orient is stale, and the cascade has to carry past area rather than stopping at the first
-    // link whose own numbers happen to look fine.
-    expect(staleTools({ orient: 9, rim: 2, area: 5, supports: 4 })).toEqual(['rim', 'area', 'supports']);
+  /*
+   * ACROSS A GAP. The first version walked one link and gave up where that link had no work, so this
+   * reported nothing stale - Supports read ready although a re-orient had left it five revisions
+   * behind. `revisionsField` accepts gapped records (it checks key names and positive integers, not
+   * contiguity), so this is a record a saved project can really hold.
+   */
+  it('reaches past a tool that has no work of its own', () => {
+    expect(staleTools({ orient: 5, area: 1 })).toEqual(['area']);
+    expect(staleTools({ orient: 7, supports: 2 })).toEqual(['supports']);
+    expect(staleTools({ rim: 4, supports: 1 })).toEqual(['supports']);
+  });
+
+  it('carries past a middle link whose own numbers look fine', () => {
+    // supports(6) is NEWER than area(5), so its direct comparison is clean - the staleness can only
+    // come from orient(9) further up. The first version got this right only by accident, because its
+    // test case had supports older than area too.
+    expect(staleTools({ orient: 9, rim: 2, area: 5, supports: 6 })).toEqual(['rim', 'area', 'supports']);
+  });
+
+  it('leaves work alone that is newer than everything above it', () => {
+    expect(staleTools({ orient: 1, rim: 2, area: 3, supports: 9 })).toEqual([]);
   });
 });
 

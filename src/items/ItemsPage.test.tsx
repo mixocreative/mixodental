@@ -15,7 +15,18 @@ const unit = (id: string, name: string, diagnosis?: ImportDiagnosis) =>
   ({ id, name, source: mesh, ...(diagnosis ? { diagnosis } : {}) } as PrintUnit);
 
 const render = (units: PrintUnit[], finished: string[] = [], refused: { name: string; refusal: ImportRefusal }[] = []) =>
-  renderToStaticMarkup(<ItemsPage units={units} refused={refused} detected={new Map()} thumbnails={new Map()} finished={finished} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+  renderToStaticMarkup(<ItemsPage units={units} refused={refused} detected={new Map()} thumbnails={new Map()} finished={finished} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+/*
+ * The <li> tag for one row, so a class can be checked against the RIGHT row. It is a helper because
+ * the obvious regex - `data-ui` followed by the class - silently never matches: React renders
+ * `class` BEFORE `data-ui`, so the assertion passed whatever the code did. Caught by mutating the
+ * code and watching the test stay green.
+ */
+function rowTag(html: string, unitId: string): string {
+  const tags = [...html.matchAll(/<li\b[^>]*>/g)].map((match) => match[0]);
+  return tags.find((tag) => tag.includes(`data-ui="items-row-${unitId}"`)) ?? '';
+}
 
 describe('the Items page', () => {
   /*
@@ -126,7 +137,7 @@ describe('the Items page', () => {
     const html = renderToStaticMarkup(<ItemsPage
       units={[unit('u-a', 'upper.stl', verdict()), unit('u-b', 'lower.stl', verdict())]}
       refused={[]} detected={new Map([['u-a', { kind: 'oriented', turned: true }], ['u-b', { kind: 'no-rim' }]])}
-      thumbnails={new Map()} finished={[]} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+      thumbnails={new Map()} finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
     expect(html).toContain('data-ui="items-detect-u-a"');
     expect(html).toContain('Turned upright.');
@@ -157,7 +168,7 @@ describe('the Items page', () => {
     const html = renderToStaticMarkup(<ItemsPage
       units={[a, b]} refused={[]} detected={new Map()}
       thumbnails={new Map([['u-a', { mesh: a.source, url: 'data:image/png;base64,AAA' }]])}
-      finished={[]} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+      finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
     expect(html).toContain('data-ui="items-shot-u-a"');
     expect(html).toContain('src="data:image/png;base64,AAA"');
@@ -170,8 +181,79 @@ describe('the Items page', () => {
     const html = renderToStaticMarkup(<ItemsPage
       units={[a]} refused={[]} detected={new Map()}
       thumbnails={new Map([['u-a', { mesh: a.source, url: 'data:image/png;base64,AAA' }]])}
-      finished={[]} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+      finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
     expect(html).toContain('alt=""');
+  });
+
+  /*
+   * THE RAIL IS ABOUT ONE ROW, and which row matters. The fallback is `nextItem` - where work
+   * RESUMES - not the first row, so a returning operator sees the state of the model they are about
+   * to pick up rather than one they already finished.
+   */
+  it('shows the rail for the selected row', () => {
+    const html = renderToStaticMarkup(<ItemsPage
+      units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', verdict())]}
+      refused={[]} detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
+      selectedUnitId="u-b"
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+    expect(html).toContain('data-ui="tool-orient"');
+    expect(rowTag(html, 'u-b')).toContain('items-row--shown');
+    expect(rowTag(html, 'u-a')).not.toContain('items-row--shown');
+  });
+
+  it('falls back to where work resumes, not to the first row', () => {
+    // u-a is finished, so the next item is u-b: that is the row the rail should be about.
+    const html = renderToStaticMarkup(<ItemsPage
+      units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', verdict())]}
+      refused={[]} detected={new Map()} thumbnails={new Map()} finished={['u-a']} lang="en"
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+    expect(rowTag(html, 'u-b')).toContain('items-row--shown');
+    expect(rowTag(html, 'u-a')).not.toContain('items-row--shown');
+  });
+
+  it('draws no rail when there is no row to be about', () => {
+    const html = renderToStaticMarkup(<ItemsPage
+      units={[]} refused={[]} detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+    expect(html).not.toContain('data-ui="tool-orient"');
+  });
+
+  /*
+   * THE JOB LINE, CHECKED AGAINST ACTUAL RENDERED ROWS. It had no page-level test at all, so the
+   * claim that the panel cannot disagree with the list was pinned only at the pure-function level.
+   */
+  it('says how many files need a look, counting the rows it is shown beside', () => {
+    const holed = { ...verdict(), watertight: false, boundaryLoops: 2, longestRimMm: 9 };
+    const html = renderToStaticMarkup(<ItemsPage
+      units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', holed)]}
+      refused={[{ name: 'bad.stl', refusal: { kind: 'unreadable', code: 'stl-empty' } }]}
+      detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+    // One defective unit and one refused file: two need a look.
+    expect(html).toContain('data-ui="items-tally"');
+    expect(html).toMatch(/2 of these files need a look/);
+  });
+
+  it('stays silent about a drop where every row is sound', () => {
+    const html = renderToStaticMarkup(<ItemsPage
+      units={[unit('u-a', 'a.stl', verdict())]} refused={[]}
+      detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+    expect(html).not.toContain('data-ui="items-tally"');
+  });
+
+  it('shows Orient as busy while that row is still being checked', () => {
+    const html = renderToStaticMarkup(<ItemsPage
+      units={[unit('u-a', 'a.stl', verdict())]} refused={[]}
+      detected={new Map([['u-a', { kind: 'running' }]])} thumbnails={new Map()} finished={[]} lang="en"
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+
+    expect(html).toMatch(/data-ui="tool-orient"[^>]*tool--busy/);
   });
 });

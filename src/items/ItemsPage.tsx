@@ -8,6 +8,9 @@ import { sizeSummary, triangleSummary } from './itemSummary';
 import { itemsLeft, nextItem } from './nextItem';
 import { detectSentence, type DetectState } from './detectState';
 import { THUMB_SIZE, type ThumbCache } from './thumbnail';
+import { ToolRail } from '../deck/ToolRail';
+import { unitFacts } from '../deck/unitFacts';
+import { jobSentence, jobTally } from '../deck/jobSummary';
 import { isModelFile } from '../components/startDrop';
 
 /**
@@ -21,7 +24,7 @@ import { isModelFile } from '../components/startDrop';
  * The page is a pure function of the scene and the session: it holds no state of its own, so there is
  * no second copy of "which item is next" to drift from `nextItem`.
  */
-export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, onStart, onRemove, onFiles, onBack }: {
+export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, onSelect, onStart, onRemove, onFiles, onBack }: {
   units: readonly PrintUnit[];
   /**
    * Files that never became units. They are rows too (§3's first table): drop eight, one is broken,
@@ -39,6 +42,9 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   thumbnails: ThumbCache;
   /** `session.dentalFinished`: the units already through the flow. */
   finished: readonly string[];
+  /** The row the rail acts on. Absent falls back to the next unfinished one, which is where work resumes. */
+  selectedUnitId?: string;
+  onSelect: (unit: PrintUnit) => void;
   lang: Lang;
   /** Begin the dental flow on this unit. The caller owns the three-call order (see `nextItem`). */
   onStart: (unit: PrintUnit) => void;
@@ -50,6 +56,12 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
 }) {
   const next = nextItem(units, finished, undefined);
   const left = itemsLeft(units, finished);
+  /*
+   * THE ROW THE RAIL IS ABOUT. Falling back to `next` rather than to the first row matters: the
+   * fallback is where work RESUMES, so a returning operator sees the state of the model they are
+   * about to pick up rather than of one they already finished.
+   */
+  const shown = units.find((unit) => unit.id === selectedUnitId) ?? next;
 
   return <div className="items-page" lang={lang} tabIndex={-1}
     onKeyDown={(event) => { if (event.key === 'Escape') onBack(); }}
@@ -83,7 +95,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
         const verdict = unit.diagnosis ? rowSentence(verdictOfDiagnosis(unit.diagnosis)) : undefined;
         const found = detectSentence(detected.get(unit.id) ?? { kind: 'waiting' });
         const shot = thumbnails.get(unit.id)?.url;
-        return <li key={unit.id} className={`items-row${done ? ' items-row--done' : ''}`} data-ui={`items-row-${unit.id}`}>
+        return <li key={unit.id} className={`items-row${done ? ' items-row--done' : ''}${shown?.id === unit.id ? ' items-row--shown' : ''}`} data-ui={`items-row-${unit.id}`} onClick={() => onSelect(unit)}>
           <span className="shot" data-ui={`items-shot-${unit.id}`}>
             {/*
               The model as it is PLACED, so a row shows the orientation the batch just reported. It is
@@ -109,6 +121,21 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
         </li>;
       })}
     </ul>
+    {/*
+      HOW THE DROP IS DOING, from the SAME verdicts the rows show, so the two cannot disagree. Silent
+      when every row is sound: a line reading "0 problems" on every drop trains the operator to stop
+      reading it, and then it says nothing on the drop that matters.
+    */}
+    {(() => {
+      const said = jobSentence(jobTally(units, refused));
+      return said ? <p className="items-tally" data-ui="items-tally">{translateMessage(said)}</p> : null;
+    })()}
+    {/*
+      THE RAIL, ABOUT ONE ROW. It is the deck's answer to "what is done here and what is next",
+      which is the property the wizard used to carry. The rule it draws and the reasoning behind
+      each state live in `src/deck/README.md`.
+    */}
+    {shown ? <ToolRail facts={unitFacts(shown, detected.get(shown.id))} onPick={() => onStart(shown)} /> : null}
     <div className="items-foot">
       <span className="items-left">{left === 1 ? t('1 item left') : t('{n} items left', { n: left })}</span>
       {next ? <button type="button" className="primary key-art" data-ui="items-start" onClick={() => onStart(next)}>

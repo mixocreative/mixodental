@@ -1518,6 +1518,8 @@ export default function App() {
     </header>
     {startScreen === 'items' ? <ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
       refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails}
+      selectedUnitId={scene.activeUnitId}
+      onSelect={(unit) => dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id })}
       onStart={startItem} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
       onBack={() => setStartScreen('drop')}
       onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} />

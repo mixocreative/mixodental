@@ -14,29 +14,52 @@ const SOURCES = {
   ...Object.fromEntries(Object.entries(import.meta.glob<string>('../vendor/mixo-geocore/editing/*.ts', { query: '?raw', import: 'default', eager: true }))
     .map(([file, source]) => [file.replace('../vendor/mixo-geocore/editing/', './editing/'), source])),
 };
-/** The denture flow's UI modules (src/denture): its components, hooks, word tables and command rows, so a new widget is checked without a list edit. */
-const DENTURE_UI_FILES = Object.keys(SOURCES).filter((file) => file.startsWith('./denture/') && /\.tsx$|\/use[A-Z]\w*\.ts$|Text\.ts$|Commands\.ts$/.test(file));
-/** The aligner flow's own UI modules (src/dental), globbed the same way, so a new dental widget is checked without a list edit. */
-const DENTAL_UI_FILES = Object.keys(SOURCES).filter((file) => file.startsWith('./dental/') && /\.tsx$|\/use[A-Z]\w*\.ts$|Text\.ts$|Commands\.ts$/.test(file));
-/**
- * Modules that SPEAK, by the shape of their names: a component, a hook, a `*Text.ts`, a
- * `*Commands.ts` - or a `*State.ts`, which is the one this pattern used to miss. `items/detectState.ts`
- * holds five sentences and sat outside the check: they were translated by hand and nothing enforced
- * it, so the next one would have shipped in English. A state module that owns a `Message` is a UI
- * file whatever its name suggests.
+/*
+ * WHICH MODULES SPEAK, and this is the SECOND time the answer was wrong by name.
+ *
+ * It used to be a name pattern - a component, a hook, a `*Text.ts`, a `*Commands.ts`. That missed
+ * `items/detectState.ts` (five sentences), so `*State.ts` was added; then it missed
+ * `deck/jobSummary.ts` the same afternoon. Chasing names loses this race every time a module is
+ * given a name nobody predicted.
+ *
+ * So the test is what the file DOES: a module that builds a `Message` owns UI words, whatever it is
+ * called. The name pattern is kept as well, because a component or a hook can pass text through
+ * without ever writing `key:` itself.
  */
 const SPEAKS = /\.tsx$|\/use[A-Z]\w*\.ts$|Text\.ts$|Commands\.ts$|State\.ts$/;
-/** The Items module's UI, globbed like the two above, so a new row widget is checked without a list edit. */
-const ITEMS_UI_FILES = Object.keys(SOURCES).filter((file) => file.startsWith('./items/') && SPEAKS.test(file));
-/** The deck's own modules (the tool rail and its reasons), globbed the same way. */
-const DECK_UI_FILES = Object.keys(SOURCES).filter((file) => file.startsWith('./deck/') && SPEAKS.test(file));
+/** A `Message` literal: `{ key: '...' }`, however it is spaced. */
+const BUILDS_MESSAGE = /\bkey:\s*'/;
+const speaks = (file: string) => SPEAKS.test(file) || BUILDS_MESSAGE.test(SOURCES[file] ?? '');
+/** A flow's own UI modules, so a new widget is checked without a list edit. */
+const uiFilesIn = (folder: string) => Object.keys(SOURCES).filter((file) => file.startsWith(folder) && speaks(file));
+const DENTURE_UI_FILES = uiFilesIn('./denture/');
+const DENTAL_UI_FILES = uiFilesIn('./dental/');
+const ITEMS_UI_FILES = uiFilesIn('./items/');
+const DECK_UI_FILES = uiFilesIn('./deck/');
 const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/DebugSection.tsx', './components/useDebugLayers.ts', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx', './dental/editingMode.ts', './components/PlatePanel.tsx', './components/usePlateArrange.ts', './components/viewport/UnresolvedBubbles.tsx', './supports/unresolved/unresolvedText.ts', ...DENTURE_UI_FILES, ...DENTAL_UI_FILES, ...ITEMS_UI_FILES, ...DECK_UI_FILES];
 /** Quoted literals in UI files that are not shown to the user. */
 const NOT_UI = new Set(['Tab', 'Esc', 'Escape', 'Enter', 'Delete', 'Backspace', 'Unit', 'Mixo supports', 'ArrowUp', 'ArrowDown', 'CodedError', 'ProjectFileError', 'TimeoutError', '{error}', 'AbortError']);
 
 /** Single-quoted literals that read like UI text: a lowercase letter and a space or capital start. */
+/*
+ * COMMENTS ARE NOT CODE, and this is why the scraper strips them first.
+ *
+ * Prose uses apostrophes, and two of them in a sentence read as a quoted literal: "the build`s own
+ * unresolved report. The engine" was demanded as a UI string, and so was a line of this very file`s
+ * own documentation. The old answer was to WRITE COMMENTS WITHOUT APOSTROPHES in any file the guard
+ * covered - which contorts the prose and only holds until somebody forgets. Stripping comments fixes
+ * the class instead.
+ *
+ * Block comments go whole. Line comments go only when the `//` opens the line, because a trailing
+ * `//` cannot be told from one inside a string without tokenising, and a URL in a string is the
+ * common case there.
+ */
+const withoutComments = (code: string) => code
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^[ 	]*\/\/.*$/gm, '');
+
 function uiLiterals(code: string): string[] {
-  return [...code.matchAll(/'((?:[^'\\\n]|\\.)+)'/g)].map((match) => match[1]!)
+  return [...withoutComments(code).matchAll(/'((?:[^'\\\n]|\\.)+)'/g)].map((match) => match[1]!)
     .filter((text) => /[a-z]/.test(text) && (/^[A-Z{]/.test(text) || / /.test(text)))
     // Not code between two literals, a path, a MIME type or a lowercase class list.
     .filter((text) => !/[=()<>]|^[\s}.,/]|^\w+\/|^[a-z -]+$/.test(text));

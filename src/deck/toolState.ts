@@ -33,10 +33,7 @@ export const TOOL_ORDER: readonly ToolId[] = ['orient', 'rim', 'area', 'supports
 export type ToolState =
   /** Pressable, with nothing outstanding. */
   | { readonly kind: 'ready' }
-  /**
-   * Its own job is running. NOT greyed: it opens and shows progress. A tool can only be busy once
-   * its prerequisite was met, so this never hides an `unavailable` the operator needed to see.
-   */
+  /** Its own job is running. NOT greyed: it opens and shows progress. */
   | { readonly kind: 'busy' }
   /**
    * The prerequisite is missing. `because` is not optional chrome — it is the sentence that replaces
@@ -82,18 +79,24 @@ const BECAUSE: { readonly [K in Exclude<ToolId, 'orient'>]: Message } = {
  * One tool's state.
  *
  * THE ORDER OF THESE TESTS IS THE RULE, so it is spelled out rather than left to read off:
- * busy, then unavailable, then stale, then ready.
+ * unavailable, then busy, then stale, then ready.
  *
- * - **Busy first**, because a tool rebuilding after a change is busy AND stale, and what the operator
- *   needs to see is that the work is happening — telling them it is out of date while it is being
- *   brought up to date is the confusion rule 2 exists to prevent.
- * - **Unavailable before stale**, because a missing prerequisite is the stronger statement: there is
- *   nothing useful to open, so "out of date" would be beside the point.
+ * - **Unavailable first.** An earlier version put busy first, on the reasoning that a tool can only
+ *   be busy once its prerequisite was met — and nothing enforced that. `busy` is a free field, so
+ *   `{ oriented: false, busy: 'rim' }` rendered Rim as working, hid its own reason, and left
+ *   `railReason` showing the AREA's line: the rail instructed about the area on a model that was not
+ *   even oriented. Testing the prerequisite first makes the invariant hold rather than assuming it,
+ *   and costs nothing in the legitimate states, where a busy tool always has its prerequisite.
+ * - **Busy before stale**, because a tool rebuilding after a change is busy AND stale, and what the
+ *   operator needs to see is that the work is happening — telling them it is out of date while it is
+ *   being brought up to date is the confusion rule 2 exists to prevent.
+ * - **Stale last of the three**, because a missing prerequisite and a running job are both stronger
+ *   statements than "out of date".
  */
 export function toolState(tool: ToolId, facts: ToolFacts): ToolState {
-  if (facts.busy === tool) return { kind: 'busy' };
   const needs = NEEDS[tool];
   if (needs && !needs(facts)) return { kind: 'unavailable', because: BECAUSE[tool as Exclude<ToolId, 'orient'>] };
+  if (facts.busy === tool) return { kind: 'busy' };
   if (facts.stale?.includes(tool)) return { kind: 'stale' };
   return { kind: 'ready' };
 }

@@ -16,8 +16,8 @@ describe('the tool rail', () => {
 
   it('disables the tools whose prerequisite is missing, and only those', () => {
     const html = render(fresh);
-    // Orient is never withheld; the three below it are.
-    expect(html).toMatch(/data-ui="tool-orient"[^>]*>/);
+    // Orient is never withheld; the three below it are. (A `data-ui="tool-orient"[^>]*>` assertion
+    // used to sit here too and said nothing: it cannot fail while the button exists at all.)
     expect(html).not.toMatch(/data-ui="tool-orient"[^>]*disabled/);
     for (const tool of ['rim', 'area', 'supports']) expect(html).toMatch(new RegExp(`data-ui="tool-${tool}"[^>]*disabled`));
   });
@@ -54,6 +54,18 @@ describe('the tool rail', () => {
   it('tells busy and stale apart in the markup, so they cannot be styled alike by accident', () => {
     expect(render({ ...ready, busy: 'supports' })).not.toContain('tool--stale');
     expect(render({ ...ready, stale: ['supports'] })).not.toContain('tool--busy');
+  });
+
+  /*
+   * THE CASE THE CLAIM IS ACTUALLY ABOUT: a tool rebuilding after a change is BOTH. Rendering the
+   * two separately, as the test above does, only catches a `look()` that emitted both class names
+   * for one state - it never exercises the state where the rule has to choose.
+   */
+  it('shows a tool that is busy AND stale as busy, with no stale mark left on it', () => {
+    const html = render({ ...ready, busy: 'supports', stale: ['supports'] });
+    expect(html).toMatch(/data-ui="tool-supports"[^>]*tool--busy/);
+    expect(html).not.toContain('tool--stale');
+    expect(html).not.toMatch(/data-ui="tool-supports"[^>]*disabled/);
   });
 
   it('marks the open tool as pressed, which is what the ink fill is drawn from', () => {
