@@ -16,7 +16,15 @@ import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
  * rather than for the choice it offers, because a dropped file is now the ordinary way in and the
  * keys are the alternative (plan §1, §7). It was `task` until the Drop page landed.
  */
-export type StartScreenId = 'drop' | 'type' | 'file';
+export type StartScreenId = 'drop' | 'items' | 'type' | 'file';
+
+/**
+ * The screens THIS component renders. `items` is its own component (`src/items/ItemsPage.tsx`), so
+ * excluding it here makes "StartScreen never draws the Items page" a type fact rather than a
+ * convention — and keeps `dropAction`'s screen argument honest, since the Items page has no drop
+ * behaviour of its own.
+ */
+export type ChooserScreen = Exclude<StartScreenId, 'items'>;
 
 /**
  * The app's full-screen start. It renders instead of the workspace while the app has no work to
@@ -24,12 +32,12 @@ export type StartScreenId = 'drop' | 'type' | 'file';
  * screen is held until the type is chosen; the last screen hands the type and file to the app.
  */
 export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpenProject, onProjectFile, onStart, onFiles, onUnsupported }: {
-  screen: StartScreenId;
+  screen: ChooserScreen;
   /** The aligner type chosen before (kept pressed when the screen is reached again). */
   profile: string | undefined;
   lang: Lang;
   /** `kind`: the job kind the file step is for (its status line); absent: the aligner. */
-  onScreen: (screen: StartScreenId, kind?: DentalKind) => void;
+  onScreen: (screen: ChooserScreen, kind?: DentalKind) => void;
   onAnyModel: () => void;
   onOpenProject: () => void;
   onProjectFile: (file: File) => void;
@@ -52,14 +60,14 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
   // Keys reach onKeyDown only from inside: focus moves to the new screen's first button.
   useEffect(() => { root.current?.querySelector('button')?.focus(); }, [screen]);
 
-  const go = (next: StartScreenId) => {
+  const go = (next: ChooserScreen) => {
     if (next === 'drop') setHeld(undefined);
     onScreen(next);
   };
   // A denture job has one type: its file step comes straight from the task screen, and Back returns there.
   const kind = jobKindOf(chosen);
   const text = fileStepText(screen === 'file' ? kind : 'aligner');
-  const back = (): StartScreenId => (screen === 'file' && kind === 'aligner' ? 'type' : 'drop');
+  const back = (): ChooserScreen => (screen === 'file' && kind === 'aligner' ? 'type' : 'drop');
   const choose = (id: string) => {
     setChosen(id);
     if (held) onStart(id, held);

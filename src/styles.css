@@ -1527,3 +1527,29 @@ dialog.terms .terms-item > span { flex: none; }
 .progress-detail { font-size: 12px; color: color-mix(in srgb, var(--paper) 72%, transparent); text-align: center; }
 /* Step 1 while it reads a file: the waiting type brings its own veil, so the stage adds none. */
 .dental-stage--waiting { background: none; padding: 0; }
+
+/* ---- Items page (src/items/ItemsPage.tsx) ----------------------------------------------------
+   One row per dropped file. Sized from --row-height so the page shares the app's list density
+   rather than inventing its own; the preview is TEXT (plan §7) because a thumbnail per row would be
+   this release's only new per-file memory cost. */
+.items-page { width: min(560px, 100%); margin: 0 auto; }
+.items-list { list-style: none; margin: 14px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.items-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: 'name preview remove' 'verdict verdict verdict';
+  gap: 2px 10px;
+  align-items: center;
+  min-height: var(--row-height);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.items-row:hover { background: var(--sunken); }
+.items-row .name { grid-area: name; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.items-row .preview { grid-area: preview; color: var(--muted); font-size: var(--small-size, 11.5px); white-space: nowrap; }
+.items-row .remove { grid-area: remove; min-height: var(--row-height); padding: 0 8px; }
+/* The verdict wraps onto its own line, so a long sentence never clips the name or the size. */
+.items-row .verdict { grid-area: verdict; color: var(--muted); font-size: var(--small-size, 11.5px); }
+.items-row--done { opacity: .55; }
+.items-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.items-left { color: var(--muted); font-size: var(--small-size, 11.5px); }

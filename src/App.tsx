@@ -99,7 +99,9 @@ import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { editsSupports, initialSession, reduceSession, selectsTips, startsEditing, type SessionEvent } from '@mixo-geocore/editing/session';
 import { acceptsDentalDrop } from './dental/editingMode';
 import { planAddTip } from '@mixo-geocore/editing/addTip';
-import { StartScreen, type StartScreenId } from './components/StartScreen';
+import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
+import { ItemsPage } from './items/ItemsPage';
+import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { splitDentureSpots } from './denture/check/dentureSpots';
 import { keptBuild } from './denture/steps/supports/rigidMove';
@@ -134,7 +136,7 @@ const NO_CONTACTS: readonly SupportContact[] = [];
 
 /** Settings edits come in bursts (typing a value); a unit's preview rebuild waits this long. */
 /** The footer line of each start screen (i18n keys). */
-const START_HINT: Record<Exclude<StartScreenId, 'file'>, string> = { drop: 'Drop one or more files, or choose what to make.', type: 'Choose the aligner type.' };
+const START_HINT: Record<Exclude<StartScreenId, 'file'>, string> = { drop: 'Drop one or more files, or choose what to make.', items: 'Work through the files one at a time.', type: 'Choose the aligner type.' };
 const BUILD_DELAY_MS = 120;
 
 /** The Export STL commands (editing/commands): `export.` and the kind. */
@@ -673,9 +675,15 @@ export default function App() {
     : undefined;
 
   // ---- Import --------------------------------------------------------------------------
-  const importFiles = useCallback(async (files: readonly File[]) => {
+  /**
+   * `takesOne` overrides the Step 1 rule that a drop is ONE aligner. Step 1 does take one — it
+   * orients the file as it reads it — but the Items page is a list, and a drop onto a list adds to
+   * it. Without this, a drop there mid-loop would silently keep the first file and discard the rest,
+   * which is the same class of bug `startDrop.ts` was written to end.
+   */
+  const importFiles = useCallback(async (files: readonly File[], options?: { takesOne?: boolean }) => {
     // Dental Step 1 takes the aligner itself: one file, and it is oriented once read.
-    const dentalDrop = acceptsDentalDrop(sessionRef.current);
+    const dentalDrop = acceptsDentalDrop(sessionRef.current) && (options?.takesOne ?? true);
     const replacesPlate = dentalDrop && freshStart.current;
     freshStart.current = false;
     const badFile = (message: Message) => {
@@ -1237,7 +1245,29 @@ export default function App() {
 
   /** A start screen was reached. Back goes one step and removes nothing: the loaded aligner stays on the plate. */
   const [startKind, setStartKind] = useState<DentalKind>('aligner');
-  const goStart = (next: StartScreenId, kind: DentalKind = 'aligner') => { setStartKind(kind); setStartScreen(next); };
+  const goStart = (next: ChooserScreen, kind: DentalKind = 'aligner') => { setStartKind(kind); setStartScreen(next); };
+  /**
+   * Begin the dental flow on one item of the Items page. THE ORDER IS THE WHOLE SUBTLETY, and
+   * `src/items/nextItem.ts` records why:
+   *
+   *  1. the scene must point at this unit FIRST — `startAligner`'s staleness check reads
+   *     `sceneRef.current.activeUnitId` and abandons the orient job if it is not the unit it was given;
+   *  2. then the session has to be in stage `aligner`, because `dentalLoading` is a no-op outside it.
+   *     From `review` that is `addAnotherDental`, which preserves `dentalFinished`; on the first item
+   *     the session is still `off`, so `startDental` opens the flow — and resetting `dentalFinished`
+   *     is correct there, since nothing has been finished yet.
+   */
+  const startItem = (unit: PrintUnit) => {
+    dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id });
+    const live = sessionRef.current;
+    if (live.mode !== 'dental') {
+      setStartScreen(null);
+      return send({ type: 'startDental', profile: live.dentalProfile ?? DEFAULT_PROFILE_ID });
+    }
+    setStartScreen(null);
+    if (live.dentalStage === 'review' && live.dentalUnitId) send({ type: 'addAnotherDental', unitId: live.dentalUnitId });
+    startDentalAligner(unit);
+  };
   // The footer says what each start screen asks for (the file step in the job kind's words).
   useEffect(() => { if (startScreen !== null) setStatusMessage({ key: startScreen === 'file' ? fileStepText(startKind).status : START_HINT[startScreen] }); }, [startScreen, startKind]);
   const startDental = (profile: string, file?: File) => {
@@ -1381,10 +1411,13 @@ export default function App() {
         {session.mode === 'dental' ? <CommandButton command={command('dental.exit')} run={runCommand} className="nav-exit" /> : null}
       </div>
     </header>
-    {startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
+    {startScreen === 'items' ? <ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
+      onStart={startItem} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
+      onFiles={(files) => void importFiles(files, { takesOne: false })} />
+      : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
       onScreen={goStart} onAnyModel={() => setStartScreen(null)} onOpenProject={() => runCommand('project.open')}
       onProjectFile={(file) => void openProject(file)} onStart={startDental}
-      onFiles={(files) => { setStartScreen(null); void importFiles(files); }}
+      onFiles={(files) => { void importFiles(files).then(() => setStartScreen('items')); }}
       onUnsupported={() => setStatusMessage(errorStatus('import', new CodedError('file-type', 'file-type')))} /> : <>
     <section className={`workspace${editMode === 'dental' ? ' workspace--dental' : ''}`}>
       {editMode !== 'dental' ? <aside className="panel left" onClick={blockedClick('left')}>

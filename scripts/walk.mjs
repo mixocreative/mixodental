@@ -1035,6 +1035,42 @@ async function walk(url, scratch, dentalFixture) {
       check('m1 one damaged file in a drop of three refuses only itself: the other two import',
         mixedDrop.units.length === 2 && /half-good/.test(await d.status()),
         `units ${mixedDrop.units.length}, status "${await d.status()}"`);
+
+      /*
+       * THE ITEMS PAGE. A drop of several models on the Drop page must yield one ROW PER FILE, which is
+       * the thing two separate bugs used to prevent: `StartScreen` took `files.find(isStl)` and threw
+       * the rest away, and `importFiles` sliced a drop to one file whenever Step 1 was waiting. Either
+       * one alone made a five-file drop indistinguishable from a one-file drop.
+       */
+      await page.goto(url);
+      // The Drop page has to be mounted before a synthetic drop has anything to dispatch on: the
+      // first version of this went straight from `goto` to `evaluate` and read `null.dispatchEvent`.
+      await page.waitForSelector('.start-screen', { timeout: 60000 });
+      const dropModels = (names) => page.evaluate(({ files }) => {
+        const transfer = new DataTransfer();
+        for (const file of files) transfer.items.add(new File([file.text], file.name));
+        document.querySelector('.start-screen').dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
+      }, { files: names });
+      const cube = cubeStl();
+      await dropModels([{ name: 'one.stl', text: cube }, { name: 'two.stl', text: cube }, { name: 'three.stl', text: cube }]);
+      const rows = await page.waitForFunction(() => document.querySelectorAll('.items-row').length === 3, null, { timeout: 180000 })
+        .then(() => true, () => false);
+      check('m2 a drop of three models on the Drop page gives three rows, not one',
+        rows, `rows ${await page.locator('.items-row').count()}`);
+      check('m3 every row is named for its unit, so removing one cannot re-point the others',
+        (await page.locator('.items-row[data-ui^="items-row-unit-"]').count()) === 3
+        && (await page.locator('[data-ui^="items-preview-unit-"]').count()) === 3,
+        `named rows ${await page.locator('.items-row[data-ui^="items-row-unit-"]').count()}`);
+      check('m4 each row carries its own size, and the page says how many are left',
+        /\d+ × \d+ × \d+ mm/.test(await page.locator('.items-row .preview').first().innerText())
+        && /3 items left/.test(await page.locator('.items-left').innerText()),
+        await page.locator('.items-left').innerText());
+      // Remove takes one row off and leaves the rest; the count follows the same rule the press does.
+      await page.locator('.items-row .remove').first().click();
+      await d.idle(500);
+      check('m5 Remove takes off one row and the count follows',
+        (await page.locator('.items-row').count()) === 2 && /2 items left/.test(await page.locator('.items-left').innerText()),
+        `rows ${await page.locator('.items-row').count()}, ${await page.locator('.items-left').innerText()}`);
     }
 
     // u. Dental flow, Step 0 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).

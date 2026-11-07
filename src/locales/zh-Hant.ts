@@ -708,6 +708,13 @@ export const zhHant: Dictionary = {
   // The break is the owner's: the line reads 您想要製作 / 什麼支撐？ (`.screen-heading` keeps newlines).
   'What would you like to support?': '您想要製作\n什麼支撐？',
   'What are you making?': '您想要製作\n什麼？',
+  'Your files': '您的檔案',
+  'Work through the files one at a time.': '逐一處理檔案。',
+  'Start with the first item': '從第一個檔案開始',
+  '1 item left': '剩餘 1 個',
+  '{n} items left': '剩餘 {n} 個',
+  'Take this file off the list.': '從清單中移除此檔案',
+  '{x} × {y} × {z} mm': '{x} × {y} × {z} mm',
   'Ready to print.': '可列印。',
   'Has one open edge loop.': '有 1 個開放邊縁。',
   'Has {n} open edge loops.': '有 {n} 個開放邊縁。',
