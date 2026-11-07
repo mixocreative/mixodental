@@ -378,33 +378,65 @@ describe('stamping a tool revision as work is accepted', () => {
     expect(turn(added(), [0, 0, 0]).units[0]!).not.toHaveProperty('revisions');
   });
 
-  it('records a rim only once the drawing is CLOSED', () => {
+  /*
+   * A DRAFT IS NOT ACCEPTED WORK. These used to pin the opposite, and the opposite was wrong in two
+   * ways review found: `rim/set` fires on every anchor, so an abandoned drawing aged the area for
+   * ever; and `onRimDone` batches `dental/set` with `rim/clear`, so the number was written and
+   * deleted in the same step anyway.
+   */
+  it('records nothing while a rim is being drawn, closed or not', () => {
     const open = reduceScene(added(), { type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor], closed: false } });
     expect(open.units[0]!).not.toHaveProperty('revisions');
 
     const closed = reduceScene(open, { type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor, anchor, anchor], closed: true } });
-    expect(revisionsOf(closed)).toEqual({ rim: 1 });
+    expect(closed.units[0]!).not.toHaveProperty('revisions');
   });
 
-  it('takes the rim revision away again when the rim is cleared', () => {
-    // A number left behind would go on claiming work that is gone, and the area below it would be
-    // aged against a ghost.
-    const closed = reduceScene(added(), { type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor, anchor, anchor], closed: true } });
-    expect(reduceScene(closed, { type: 'rim/clear', unitId: 'unit-a' }).units[0]!).not.toHaveProperty('revisions');
+  it('records the rim WITH the area, because accepting the policy accepts both', () => {
+    // A DETECTED rim arrives inside the policy and never passes through `rim/set`, so stamping the
+    // rim only there left Rim unable to read stale while Area could - though a re-orient dates both.
+    expect(revisionsOf(reduceScene(added(), { type: 'dental/set', unitId: 'unit-a', policy })))
+      .toEqual({ rim: 1, area: 2 });
   });
 
-  it('records the area when a policy is accepted, and drops it when the area is cleared', () => {
+  it('drops the area when it is cleared', () => {
     const accepted = reduceScene(added(), { type: 'dental/set', unitId: 'unit-a', policy });
-    expect(revisionsOf(accepted)).toEqual({ area: 1 });
-    expect(reduceScene(accepted, { type: 'dental/clear', unitId: 'unit-a' }).units[0]!).not.toHaveProperty('revisions');
+    expect(reduceScene(accepted, { type: 'dental/clear', unitId: 'unit-a' }).units[0]!.revisions)
+      .toEqual({ rim: 1 });
   });
 
   /*
-   * THE CASE THE WHOLE MECHANISM EXISTS FOR: accept an orientation, draw a rim, accept an area, then
-   * re-orient. All three below must read out of date - and the work itself must still be there.
+   * NOT EVERY `dental/set` IS AN ACCEPTANCE. The Tree/Braces toggle and the tuning sliders
+   * re-dispatch the same region from Step 3 with only `structure` replaced. Stamping those marked
+   * the supports out of date over a change that never touched the footprint they were built from.
    */
+  it('records nothing for a settings-only change, since the footprint did not move', () => {
+    const accepted = reduceScene(added(), { type: 'dental/set', unitId: 'unit-a', policy });
+    const before = revisionsOf(accepted);
+    const toggled = reduceScene(accepted, { type: 'dental/set', unitId: 'unit-a', policy, settingsOnly: true });
+
+    expect(revisionsOf(toggled)).toEqual(before);
+  });
+
+  it('cannot tell a settings-only change by itself, which is why the caller says so', () => {
+    // `cloneDentalPolicy` rebuilds the rim, so the stored rim is never the same object as the
+    // incoming one. An identity check in the reducer would be false every time - including for the
+    // toggle - which is the trap this flag exists to avoid.
+    const accepted = reduceScene(added(), { type: 'dental/set', unitId: 'unit-a', policy });
+    expect(accepted.units[0]!.dental!.rim).not.toBe(policy.rim);
+  });
+
+  it('records a NEW area when the rim itself changed', () => {
+    const accepted = reduceScene(added(), { type: 'dental/set', unitId: 'unit-a', policy });
+    const redrawn = reduceScene(accepted, {
+      type: 'dental/set', unitId: 'unit-a', policy: { ...policy, rim: { ...policy.rim } },
+    });
+
+    expect(revisionsOf(redrawn)!.area).toBeGreaterThan(revisionsOf(accepted)!.area!);
+  });
+
   it('makes everything below a re-orientation read stale, without throwing the work away', async () => {
-    const { staleTools } = await import('../deck/revisions');
+    const { staleTools } = await import('./revisions');
     let scene = turn(added(), [0, 0.5, 0]);
     scene = reduceScene(scene, { type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor, anchor, anchor], closed: true } });
     scene = reduceScene(scene, { type: 'dental/set', unitId: 'unit-a', policy });
@@ -418,7 +450,7 @@ describe('stamping a tool revision as work is accepted', () => {
   });
 
   it('makes the supports stale when the area is painted over', async () => {
-    const { staleTools } = await import('../deck/revisions');
+    const { staleTools } = await import('./revisions');
     let scene = reduceScene(added(), { type: 'dental/set', unitId: 'unit-a', policy });
     scene = reduceScene(scene, { type: 'supports/set', unitId: 'unit-a', placement: undefined, supports: undefined });
     // No supports arrived, so nothing was accepted: painting cannot age what does not exist.
@@ -426,11 +458,10 @@ describe('stamping a tool revision as work is accepted', () => {
   });
 
   it('survives a save and reopen, so a reopened project knows what is out of date', () => {
-    const scene = reduceScene(turn(added(), [0, 0.5, 0]), {
-      type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor, anchor, anchor], closed: true },
-    });
+    const scene = reduceScene(turn(added(), [0, 0.5, 0]), { type: 'dental/set', unitId: 'unit-a', policy });
+
     expect(deserializeScene(serializeScene(scene))).toEqual(scene);
-    expect(revisionsOf(deserializeScene(serializeScene(scene)))).toEqual({ orient: 1, rim: 2 });
+    expect(revisionsOf(deserializeScene(serializeScene(scene)))).toEqual({ orient: 1, rim: 2, area: 3 });
   });
 });
 

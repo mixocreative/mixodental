@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { railReason, railStates, TOOL_ORDER, toolState, type ToolFacts, type ToolId } from './toolState';
+import { railReason, railStates, toolState, type ToolFacts } from './toolState';
+import { TOOL_ORDER, type ToolId } from '../state/tools';
 
 /** A fresh import: oriented by nothing, no rim, no area. */
 const fresh: ToolFacts = { oriented: false, hasRim: false, areaAccepted: false };
@@ -57,17 +58,17 @@ describe('a greyed tool says what to do about it', () => {
 describe('being made right now is not the same as not yet possible', () => {
   // RULE 2: conflate these and the operator presses a tool, sees grey, and concludes it failed.
   it('shows a generating tool as busy rather than greyed', () => {
-    expect(toolState('supports', { ...withArea, busy: 'supports' })).toEqual({ kind: 'busy' });
+    expect(toolState('supports', { ...withArea, runningTool: 'supports' })).toEqual({ kind: 'busy' });
   });
 
   it('leaves the other tools alone while one is busy', () => {
-    expect(kinds({ ...withArea, busy: 'supports' })).toEqual({ orient: 'ready', rim: 'ready', area: 'ready', supports: 'busy' });
+    expect(kinds({ ...withArea, runningTool: 'supports' })).toEqual({ orient: 'ready', rim: 'ready', area: 'ready', supports: 'busy' });
   });
 
   it('reads BUSY, not stale, for work that is being brought up to date right now', () => {
     // Both are true of it. Telling the operator it is out of date while it is being rebuilt is
     // exactly the confusion rule 2 exists to prevent, so busy wins.
-    expect(toolState('supports', { ...withArea, busy: 'supports', stale: ['supports'] })).toEqual({ kind: 'busy' });
+    expect(toolState('supports', { ...withArea, runningTool: 'supports', stale: ['supports'] })).toEqual({ kind: 'busy' });
   });
 });
 
@@ -88,7 +89,7 @@ describe('every tool is accounted for', () => {
     // The kinds are a closed union and every branch returns one, so asserting that each state IS one
     // of the four is a tautology no mutation can fail. What is worth pinning is the COUNT and the
     // identities: one entry per tool, no duplicates, nothing dropped.
-    const facts: ToolFacts = { ...withArea, busy: 'orient', stale: ['area'] };
+    const facts: ToolFacts = { ...withArea, runningTool: 'orient', stale: ['area'] };
     const seen = railStates(facts).map(({ tool }) => tool);
     expect(seen).toHaveLength(4);
     expect(new Set(seen)).toEqual(new Set<ToolId>(['orient', 'rim', 'area', 'supports']));
@@ -116,7 +117,7 @@ describe('the one line the rail shows', () => {
   });
 
   it('says nothing about a BUSY tool: that is progress, not a prerequisite', () => {
-    expect(railReason({ ...withArea, busy: 'supports' })).toBeUndefined();
+    expect(railReason({ ...withArea, runningTool: 'supports' })).toBeUndefined();
   });
 });
 
@@ -128,15 +129,15 @@ describe('a missing prerequisite is not hidden by a running job', () => {
    * the rail showing the AREA's line, which instructs about a step two further on.
    */
   it('reads unavailable, not busy, when the thing it needs is not there', () => {
-    expect(toolState('rim', { ...fresh, busy: 'rim' }).kind).toBe('unavailable');
-    expect(toolState('supports', { ...oriented, busy: 'supports' }).kind).toBe('unavailable');
+    expect(toolState('rim', { ...fresh, runningTool: 'rim' }).kind).toBe('unavailable');
+    expect(toolState('supports', { ...oriented, runningTool: 'supports' }).kind).toBe('unavailable');
   });
 
   it('keeps the reason line on the FIRST missing prerequisite, not on a later one', () => {
-    expect(railReason({ ...fresh, busy: 'rim' })?.key).toBe('Turn the model the right way up first.');
+    expect(railReason({ ...fresh, runningTool: 'rim' })?.key).toBe('Turn the model the right way up first.');
   });
 
   it('still reads busy once the prerequisite IS met', () => {
-    expect(toolState('supports', { ...withArea, busy: 'supports' }).kind).toBe('busy');
+    expect(toolState('supports', { ...withArea, runningTool: 'supports' }).kind).toBe('busy');
   });
 });

@@ -1,7 +1,7 @@
-# src/items: what a dropped file's row says
+# src/items: the deck, and what a dropped file's row says
 
-The Items page shows one row per dropped file. This module decides **what that row says** — and
-nothing else yet. `rowState.ts` is pure: no React, no DOM, no strings. It returns a state and the
+This folder is the deck: the page, its two kinds of row, the batch that orients them, and the
+pictures on them. `rowState.ts` is pure: no React, no DOM, no strings. It returns a state and the
 numbers that state needs; the UI picks the words.
 
 Plan: `docs/design/2026-11-07-import-and-items-flow.md` (§3 for the states, §8 step 6 for this piece).
@@ -133,9 +133,10 @@ each kind owns its own module and works out its own sentences; the page is left 
 arrangement. Nothing about the rendered markup changed — the page's own tests passed untouched
 across the split, which is what made it a safe refactor rather than a rewrite.
 
-Its `data-ui` names, all keyed to the unit and never to a row index: `items-row-<unitId>`,
-`items-preview-<unitId>`, `items-verdict-<unitId>`, `items-remove-<unitId>`, plus `items-start` and
-`items-back`. They are in the app's table in `docs/ui-styling.md`.
+Its `data-ui` names are **keyed to the unit and never to a row index**, and the whole list — the
+unit rows, the refused rows, the rail and `items-tally` — is in the app's one table in
+`docs/ui-styling.md`. A partial copy stood here and had fallen four names behind it; a list in two
+places only tells you which copy you happened to read.
 
 ## All five sentences are reachable now
 
@@ -152,10 +153,9 @@ eight with two bad files named one of them and **lost the other**. Rows can say 
 The four repair states stay unreachable, and deliberately: repair is cut (plan §8 step 9), so nothing
 can press it.
 
-## Not here yet
+## Repair is cut, and the row states for it are not reachable
 
-The job deck proper (plan §0b): the batch run after Purpose, the per-row thumbnail, the tool rail,
-and refused files as rows. The page here is the Items page that preceded it. `offersRepair()` is the one piece of policy already decided: a refusal never re-offers the press
+`offersRepair()` is the one piece of policy already decided: a refusal never re-offers the press
 that just failed.
 
 ## Two things on a row, kept apart
@@ -199,7 +199,7 @@ drawn and disposed in turn, so the peak is one model's geometry rather than the 
 Two details that are easy to get wrong:
 
 - **An entry with no `url` still counts as drawn.** A device with no WebGL returns no picture, and if
-  a pictureless row stayed out of the cache `thumbnailNeeded` would hand it back on every pass — a
+  a pictureless row stayed out of the cache `nextThumbnailToDraw` would hand it back on every pass — a
   draw loop that never settles. This release has already paid for that shape of bug once, in a 600 ms
   re-check that ran for ever.
 - **The camera frames the model AS PLACED**, from the box of the mesh with the unit's transform

@@ -1,6 +1,7 @@
 // Copyright (c) Mixo Creative.
 
 import type { Message } from '../i18n';
+import { TOOL_ORDER, type ToolId } from '../state/tools';
 
 /**
  * THE RAIL CARRIES THE ORDER — by what the operator can press, not by marching them through steps.
@@ -10,25 +11,19 @@ import type { Message } from '../i18n';
  * is enforced beyond what is genuinely impossible. This module is that rule and nothing else — no
  * React, no scene, no strings of its own.
  *
- * TWO THINGS THAT GO WRONG WITH DISABLED CONTROLS, and both are the reason this is a module rather
- * than a condition inside a button:
+ * TWO THINGS GO WRONG WITH DISABLED CONTROLS, and both are why this is a module rather than a
+ * condition inside a button:
  *
  * 1. **Greyed must say why, and what to do.** A disabled control with no explanation is WORSE than a
- *    step: the operator sees grey and does not know the fix. That one line is doing the teaching the
- *    wizard used to do, so `unavailable` cannot exist without it — the type makes it impossible.
+ *    step: the operator sees grey and does not know the fix. That line does the teaching the wizard
+ *    used to do, so `unavailable` cannot exist without it — the type makes it impossible.
+ * 2. **"Not yet possible" and "being made right now" must not look alike.** A tool whose work is
+ *    generating is BUSY: enterable, showing progress. Conflate them and the operator presses a tool,
+ *    sees grey and concludes something failed.
  *
- * 2. **"Not yet possible" and "being made right now" must not look alike.** Greyed means *cannot yet,
- *    do this first*. A tool whose work is generating is BUSY: enterable, showing progress. Conflate
- *    them and the operator presses a tool, sees grey and concludes something failed.
- *
- * A fourth state earns its place for the same reason: re-orienting does NOT grey the tools
- * downstream, because their work still exists. It marks them STALE.
+ * STALE earns its place for the same reason: re-orienting does not grey the tools downstream,
+ * because their work still exists. It says so instead.
  */
-
-export type ToolId = 'orient' | 'rim' | 'area' | 'supports';
-
-/** The rail, left to right. The order is the dependency, so it is declared once, here. */
-export const TOOL_ORDER: readonly ToolId[] = ['orient', 'rim', 'area', 'supports'];
 
 export type ToolState =
   /** Pressable, with nothing outstanding. */
@@ -48,31 +43,48 @@ export type ToolState =
 
 /** What a unit presents about its own progress. Every field is a fact, not a decision. */
 export interface ToolFacts {
-  /** An orientation has been accepted for this unit. */
+  /** The detector has looked at this model and come back with a usable answer (`unitFacts`). */
   readonly oriented: boolean;
   /** A rim exists — detected and accepted, or drawn by hand. */
   readonly hasRim: boolean;
   /** A support area has been accepted. */
   readonly areaAccepted: boolean;
-  /** The tool whose job is running right now, if any. */
-  readonly busy?: ToolId;
+  /**
+   * The tool whose job is running right now, if any. Named for the JOB rather than `busy`, because
+   * `busy` is also a `ToolState`, and one word for the input and the verdict reads as if the fact
+   * decided the state — it does not: `toolState` tests the prerequisite first.
+   */
+  readonly runningTool?: ToolId;
   /** Tools whose work predates the upstream it was made from. */
   readonly stale?: readonly ToolId[];
 }
 
-/** What each tool needs, and the line it shows when it does not have it. */
-const NEEDS: { readonly [K in ToolId]: ((facts: ToolFacts) => boolean) | undefined } = {
-  // Always available: there is nothing to do first, and it is where every model starts.
+/**
+ * WHAT EACH TOOL WAITS FOR, AND THE LINE IT SHOWS MEANWHILE — one entry per tool.
+ *
+ * A prerequisite and the sentence explaining it are one thing, so they are one record. Two parallel
+ * maps needed a cast to bridge them (`tool as Exclude<ToolId, 'orient'>`) — the compiler told to
+ * stop checking at exactly the place a fifth tool gets added.
+ *
+ * `undefined` for Orient is deliberate, not missing: nothing comes first, and it is where every
+ * model starts.
+ */
+const PREREQUISITE: {
+  readonly [K in ToolId]: { readonly met: (facts: ToolFacts) => boolean; readonly because: Message } | undefined;
+} = {
   orient: undefined,
-  rim: (facts) => facts.oriented,
-  area: (facts) => facts.hasRim,
-  supports: (facts) => facts.areaAccepted,
-};
-
-const BECAUSE: { readonly [K in Exclude<ToolId, 'orient'>]: Message } = {
-  rim: { key: 'Turn the model the right way up first.' },
-  area: { key: 'The area is measured from the rim, so draw the rim first.' },
-  supports: { key: 'Mark the support area first.' },
+  rim: {
+    met: (facts) => facts.oriented,
+    because: { key: 'Turn the model the right way up first.' },
+  },
+  area: {
+    met: (facts) => facts.hasRim,
+    because: { key: 'The area is measured from the rim, so draw the rim first.' },
+  },
+  supports: {
+    met: (facts) => facts.areaAccepted,
+    because: { key: 'Mark the support area first.' },
+  },
 };
 
 /**
@@ -81,22 +93,21 @@ const BECAUSE: { readonly [K in Exclude<ToolId, 'orient'>]: Message } = {
  * THE ORDER OF THESE TESTS IS THE RULE, so it is spelled out rather than left to read off:
  * unavailable, then busy, then stale, then ready.
  *
- * - **Unavailable first.** An earlier version put busy first, on the reasoning that a tool can only
- *   be busy once its prerequisite was met — and nothing enforced that. `busy` is a free field, so
- *   `{ oriented: false, busy: 'rim' }` rendered Rim as working, hid its own reason, and left
- *   `railReason` showing the AREA's line: the rail instructed about the area on a model that was not
- *   even oriented. Testing the prerequisite first makes the invariant hold rather than assuming it,
- *   and costs nothing in the legitimate states, where a busy tool always has its prerequisite.
- * - **Busy before stale**, because a tool rebuilding after a change is busy AND stale, and what the
- *   operator needs to see is that the work is happening — telling them it is out of date while it is
- *   being brought up to date is the confusion rule 2 exists to prevent.
- * - **Stale last of the three**, because a missing prerequisite and a running job are both stronger
- *   statements than "out of date".
+ * - **Unavailable first.** An earlier version tested busy first, assuming a tool can only be busy
+ *   once its prerequisite is met — and nothing enforces that. `runningTool` is a free field, so
+ *   `{ oriented: false, runningTool: 'rim' }` drew Rim as working, hid its own reason, and left
+ *   `railReason` showing the AREA's line: the rail instructing about the area on a model that was
+ *   not even oriented. Testing the prerequisite first makes the invariant hold instead of assuming
+ *   it, and costs nothing in the legitimate states.
+ * - **Busy before stale**, because a tool rebuilding after a change is both, and what the operator
+ *   needs to see is that the work is happening — calling it out of date while it is being brought up
+ *   to date is the confusion rule 2 exists to prevent.
+ * - **Stale last of the three**: a missing prerequisite and a running job are stronger statements.
  */
 export function toolState(tool: ToolId, facts: ToolFacts): ToolState {
-  const needs = NEEDS[tool];
-  if (needs && !needs(facts)) return { kind: 'unavailable', because: BECAUSE[tool as Exclude<ToolId, 'orient'>] };
-  if (facts.busy === tool) return { kind: 'busy' };
+  const prerequisite = PREREQUISITE[tool];
+  if (prerequisite && !prerequisite.met(facts)) return { kind: 'unavailable', because: prerequisite.because };
+  if (facts.runningTool === tool) return { kind: 'busy' };
   if (facts.stale?.includes(tool)) return { kind: 'stale' };
   return { kind: 'ready' };
 }
@@ -110,7 +121,7 @@ export const railStates = (facts: ToolFacts): readonly { readonly tool: ToolId; 
  *
  * Four reason lines at once is noise, and a reason that lives only in a `title` is invisible on a
  * touch screen and easy to miss with a pointer. The first unavailable tool IS the next thing to do,
- * so its line is the instruction - one at a time, which is the one thing the wizard did well.
+ * so its line is the instruction — one at a time, which is the one thing the wizard did well.
  *
  * `undefined` when every tool is open: there is nothing to do first, so there is nothing to say.
  */

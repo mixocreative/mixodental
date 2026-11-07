@@ -102,8 +102,6 @@ import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
 import { ItemsPage } from './items/ItemsPage';
 import { useThumbnails } from './items/useThumbnails';
-import { entryEvents } from './deck/toolEntry';
-import type { ToolId } from './deck/toolState';
 import { dropKeepsOneFile, filesToImport } from './items/dropGrain';
 import { refusalOf } from './items/refusalOf';
 import { useBatchDetect } from './items/useBatchDetect';
@@ -473,7 +471,9 @@ export default function App() {
   const onDentalStructureChange = useCallback((structure: { treeEnabled: boolean; bracesEnabled: boolean }) => {
     const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
     if (unit?.dental?.kind !== 'two-contour' || (sessionRef.current.dentalStage !== 'area' && sessionRef.current.dentalStage !== 'review')) return;
-    dispatch({ type: 'dental/set', unitId: unit.id, policy: { ...unit.dental, structure } });
+    // `settingsOnly`: the region is carried through untouched, so the supports built from it are
+    // still current and must not be marked out of date (see the command's own doc).
+    dispatch({ type: 'dental/set', unitId: unit.id, policy: { ...unit.dental, structure }, settingsOnly: true });
   }, [dispatch, sceneRef, sessionRef]);
   const dentalPreviewState = useDentalPreview(activeUnit, editMode === 'dental' && session.dentalStage === 'area' && !dentalTuning.busy, analysis, unitName);
   const areaRisks = useAreaRisks(activeUnit, editMode === 'dental' && session.dentalStage === 'area' && !dentalTuning.busy, analysis, unitName);
@@ -1375,24 +1375,23 @@ export default function App() {
     if (live.dentalStage === 'review' && live.dentalUnitId) send({ type: 'addAnotherDental', unitId: live.dentalUnitId });
     startDentalAligner(unit);
   };
-  /**
-   * A RAIL PRESS, from the deck. Which events open a tool is `src/deck/toolEntry.ts`, and this only
-   * sends them.
+  /*
+   * A RAIL PRESS, from the deck: it opens the MODEL, at the start of its flow.
    *
-   * Three cases, in order. The unit is not in the flow yet, so entering it IS opening its first
-   * tool. The tool is reachable by going back, so the rail walks there. Or the tool is FORWARD of
-   * where the operator stands — and going forward is an accept that does real work, which belongs
-   * to the tool's own primary action rather than to a press on a rail, so the rail opens the model
-   * and leaves the accept to them.
+   * There WAS a `toolEntry` module here that walked `backDental` to the pressed tool, and it is
+   * deleted rather than fixed. Three independent reasons, all found by review after it shipped:
+   *   - It was unreachable. The rail lives on the deck, the deck renders only while
+   *     `startScreen === 'items'`, and every route to a start screen sends `exit` first - so
+   *     `mode === 'dental'` and the deck on screen cannot both be true. The branch never ran.
+   *   - It hard-coded the aligner stage spine. A denture skips `area` (`stageBeforeSupports`), so
+   *     one press too many would have thrown the operator onto the type screen with `dentalUnitId`
+   *     cleared and an orient job still live.
+   *   - It bypassed a guard it claimed to respect. Back out of Step 3 asks for confirmation and
+   *     discards hand work (`dental/flow.ts`), and that guard lives in the COMMAND handler, not the
+   *     reducer - so sending `backDental` straight at the reducer skipped both.
+   * Per-tool entry belongs with the workspace, where the rail is on screen during the flow and the
+   * press can go through the same command the operator's own Back does.
    */
-  const openTool = (unit: PrintUnit, tool: ToolId) => {
-    const live = sessionRef.current;
-    if (live.mode !== 'dental' || live.dentalUnitId !== unit.id || live.dentalStage === undefined) return startItem(unit);
-    const events = entryEvents(tool, live.dentalStage);
-    if (events === undefined || events.length === 0) return startItem(unit);
-    setStartScreen(null);
-    for (const type of events) send({ type });
-  };
   // The footer says what each start screen asks for (the file step in the job kind's words).
   useEffect(() => { if (startScreen !== null) setStatusMessage({ key: startScreen === 'file' ? fileStepText(startKind).status : START_HINT[startScreen] }); }, [startScreen, startKind]);
   const startDental = (profile: string, file?: File) => {
@@ -1540,7 +1539,7 @@ export default function App() {
       refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails}
       selectedUnitId={scene.activeUnitId}
       onSelect={(unit) => dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id })}
-      onStart={startItem} onOpenTool={openTool} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
+      onStart={startItem} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
       onBack={() => setStartScreen('drop')}
       onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} />
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}

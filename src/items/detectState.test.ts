@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectSentence, detectStateOf, stillToDetect, type DetectState } from './detectState';
+import { detectSentence, detectStateOf, type DetectState } from './detectState';
 import type { DentalOrientation } from '@mixo-geocore/host/dental/dentalOrient';
 import { translateMessage } from '../i18n';
 import { ja } from '../locales/ja';
@@ -36,15 +36,7 @@ describe('what a row shows about its own orientation', () => {
     expect(say({ kind: 'running' })).toBe('Checking the orientation…');
   });
 
-  it('counts the rows still to be looked at, which is the deck’s own progress', () => {
-    const states: DetectState[] = [
-      { kind: 'waiting' }, { kind: 'running' }, { kind: 'oriented', turned: true }, { kind: 'no-rim' }, { kind: 'failed' },
-    ];
-    expect(stillToDetect(states)).toBe(2);
-    expect(stillToDetect([])).toBe(0);
-    // A finished batch counts zero, however its rows turned out.
-    expect(stillToDetect(states.slice(2))).toBe(0);
-  });
+
 
   it('translates every sentence it can produce, into both languages', () => {
     const keys = ([

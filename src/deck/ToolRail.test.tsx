@@ -5,8 +5,7 @@ import type { ToolFacts } from './toolState';
 
 const fresh: ToolFacts = { oriented: false, hasRim: false, areaAccepted: false };
 const ready: ToolFacts = { oriented: true, hasRim: true, areaAccepted: true };
-const render = (facts: ToolFacts, current?: Parameters<typeof ToolRail>[0]['current']) =>
-  renderToStaticMarkup(<ToolRail facts={facts} {...(current ? { current } : {})} onPick={() => {}} />);
+const render = (facts: ToolFacts) => renderToStaticMarkup(<ToolRail facts={facts} onPick={() => {}} />);
 
 describe('the tool rail', () => {
   it('draws all four tools, each named for its tool', () => {
@@ -40,7 +39,7 @@ describe('the tool rail', () => {
    * opens it and sees progress. Disable it and they meet grey and conclude it failed.
    */
   it('leaves a busy tool pressable, and marks it as busy rather than greying it', () => {
-    const html = render({ ...ready, busy: 'supports' });
+    const html = render({ ...ready, runningTool: 'supports' });
     expect(html).toMatch(/data-ui="tool-supports"[^>]*tool--busy/);
     expect(html).not.toMatch(/data-ui="tool-supports"[^>]*disabled/);
   });
@@ -52,7 +51,7 @@ describe('the tool rail', () => {
   });
 
   it('tells busy and stale apart in the markup, so they cannot be styled alike by accident', () => {
-    expect(render({ ...ready, busy: 'supports' })).not.toContain('tool--stale');
+    expect(render({ ...ready, runningTool: 'supports' })).not.toContain('tool--stale');
     expect(render({ ...ready, stale: ['supports'] })).not.toContain('tool--busy');
   });
 
@@ -62,15 +61,10 @@ describe('the tool rail', () => {
    * for one state - it never exercises the state where the rule has to choose.
    */
   it('shows a tool that is busy AND stale as busy, with no stale mark left on it', () => {
-    const html = render({ ...ready, busy: 'supports', stale: ['supports'] });
+    const html = render({ ...ready, runningTool: 'supports', stale: ['supports'] });
     expect(html).toMatch(/data-ui="tool-supports"[^>]*tool--busy/);
     expect(html).not.toContain('tool--stale');
     expect(html).not.toMatch(/data-ui="tool-supports"[^>]*disabled/);
-  });
-
-  it('marks the open tool as pressed, which is what the ink fill is drawn from', () => {
-    expect(render(ready, 'area')).toMatch(/data-ui="tool-area"[^>]*aria-pressed="true"/);
-    expect(render(ready, 'area')).toMatch(/data-ui="tool-orient"[^>]*aria-pressed="false"/);
   });
 
   it('gives a greyed tool its own reason in a title as well, since the line covers only the next one', () => {

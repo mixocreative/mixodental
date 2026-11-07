@@ -50,7 +50,3 @@ export function detectSentence(state: DetectState): Message | undefined {
     case 'failed': return { key: 'Could not check the orientation.' };
   }
 }
-
-/** How many rows are still to be looked at: what a deck shows as its own progress. */
-export const stillToDetect = (states: Iterable<DetectState>): number =>
-  [...states].filter((state) => state.kind === 'waiting' || state.kind === 'running').length;

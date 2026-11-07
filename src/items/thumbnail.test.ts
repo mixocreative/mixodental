@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { PrintUnit } from '../state/project';
-import { prunedThumbnails, THUMB_FOV, thumbFraming, thumbnailNeeded, type ThumbCache } from './thumbnail';
+import { prunedThumbnails, THUMB_FOV, thumbFraming, nextThumbnailToDraw, type ThumbCache } from './thumbnail';
 
 const mesh = (positions: number[]): TriangleMesh => ({ positions: new Float32Array(positions), indices: new Uint32Array([0, 1, 2]) });
 const unit = (id: string, source: TriangleMesh) => ({ id, source } as PrintUnit);
@@ -17,18 +17,18 @@ const cacheOf = (entries: readonly (readonly [string, TriangleMesh])[]): ThumbCa
 describe('which row needs a picture', () => {
   it('is none, once every row has one', () => {
     const a = box(0, 1), b = box(0, 2);
-    expect(thumbnailNeeded([unit('a', a), unit('b', b)], cacheOf([['a', a], ['b', b]]))).toBeUndefined();
+    expect(nextThumbnailToDraw([unit('a', a), unit('b', b)], cacheOf([['a', a], ['b', b]]))).toBeUndefined();
   });
 
   it('is the first row without one', () => {
     const a = box(0, 1), b = box(0, 2);
-    expect(thumbnailNeeded([unit('a', a), unit('b', b)], cacheOf([['a', a]]))?.id).toBe('b');
+    expect(nextThumbnailToDraw([unit('a', a), unit('b', b)], cacheOf([['a', a]]))?.id).toBe('b');
   });
 
   it('is a row whose model was REPLACED, even though it has a picture under that id', () => {
     const before = box(0, 1);
     const after = box(0, 1); // same numbers, a different mesh: the scene replaced `source`.
-    expect(thumbnailNeeded([unit('a', after)], cacheOf([['a', before]]))?.id).toBe('a');
+    expect(nextThumbnailToDraw([unit('a', after)], cacheOf([['a', before]]))?.id).toBe('a');
   });
 });
 

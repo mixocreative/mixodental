@@ -288,23 +288,21 @@ dissolved. The increment notes that follow are kept as the reasoning, not as a t
    unit, stamped in the reducer; `src/deck/README.md` explains why a recorded rotation would have
    needed an epsilon nobody could defend.
 
-**Per-tool entry is now PARTLY built** (`src/deck/toolEntry.ts`): a rail press walks BACK to a tool,
-which is the direction that matters, since a stale tool is one that must be revisited. Forward is an
-accept and stays the tool's own action. It needed no new transitions — `backDental` and
-`dentalRimReopen` already existed with their guards intact. What limits it is reach, not the mapping:
-the rail is on the deck, the deck is a start screen, and the flow hides start screens, so the walk
-back fires only when the operator is on the deck with a flow live on that unit.
+**Per-tool entry was built and withdrawn.** A `toolEntry` module walked `backDental` to the pressed
+tool; review found it unreachable (the rail is on the deck, the deck is a start screen, and every
+route to a start screen sends `exit` first), wrong for a denture (which skips `area`), and that it
+bypassed the Step-3 confirmation and hand-work discard, because that guard lives in the command
+handler rather than the reducer. It is deleted. `src/deck/README.md` keeps the three reasons.
 
-**What is NOT built, and why.** The per-tool **widgets**, and the rail as the workspace's own left
-edge, need `dentalStage` dissolved: each stage owns the whole dock, which is what a floating widget
-replaces, and the rail cannot stand beside the dock without giving two competing ideas of where the
+**What is NOT built, and why.** The per-tool **widgets**, the rail as the workspace's own left edge,
+and per-tool entry all need `dentalStage` dissolved: each stage owns the whole dock, which is what a
+floating widget replaces, and a rail beside that dock would give two competing ideas of where the
 operator is.
 
-*An earlier version of this paragraph said the machine "guards every transition on the current stage,
-so a tool's stage cannot be opened directly". That is true only FORWARD.* `backDental`
-(`src/dental/editingMode.ts`) already walks review → area → aligner, and `dentalRimReopen` already
-reopens the drawing — which is what made the backwards half of per-tool entry buildable with no new
-transitions at all. Forward stays shut on purpose: it is an accept, and an accept does real work.
+*A correction this document carried for a while:* it said the machine "guards every transition on the
+current stage, so a tool's stage cannot be opened directly". That is true only FORWARD — `backDental`
+walks review → area → aligner freely. Backwards entry was therefore expressible; it was the other
+three faults above that made it wrong, not the guards.
 
 ### BUILDING THE DECK: four increments, and two of them are smaller than this document assumed
 

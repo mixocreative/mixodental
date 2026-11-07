@@ -34,8 +34,8 @@ describe('what a unit presents to the rail', () => {
       .toEqual({ orient: 'ready', rim: 'ready', area: 'unavailable', supports: 'unavailable' });
   });
 
-  it('does NOT count a detection that found no rim as oriented, because it found no pose either', () => {
-    expect(unitFacts(unit(), detected('no-rim')).oriented).toBe(false);
+  it('does not count a detection that could not run at all', () => {
+    // `failed` means the job produced nothing usable, so there is no mesh answer to build a rim on.
     expect(unitFacts(unit(), detected('failed')).oriented).toBe(false);
   });
 
@@ -57,8 +57,19 @@ describe('what a unit presents to the rail', () => {
     expect(unitFacts(unit({ dental: policy }))).toMatchObject({ hasRim: true, areaAccepted: true });
   });
 
-  it('infers orienting from work that could not exist without it', () => {
-    expect(unitFacts(unit({ rimDraft: closedDraft })).oriented).toBe(true);
+  it('counts a detection that found NO rim, which is the unit that needs the rim tool most', () => {
+    // The flow hands over to rim drawing on exactly this answer, so greying Rim here would withhold
+    // the one tool the operator is being sent to.
+    expect(unitFacts(unit(), detected('no-rim')).oriented).toBe(true);
+  });
+
+  it('does not count a drawn rim as an accepted orientation, which is backwards', () => {
+    // Rim drawing is entered when detection found no rim, so a drawn rim is evidence the detector
+    // came back empty - not that a pose was accepted.
+    expect(unitFacts(unit({ rimDraft: closedDraft })).oriented).toBe(false);
+  });
+
+  it('infers orienting from an accepted footprint, which the flow cannot reach without Orient', () => {
     expect(unitFacts(unit({ dental: policy })).oriented).toBe(true);
   });
 
@@ -74,7 +85,7 @@ describe('what a unit presents to the rail', () => {
 
 describe('the one busy state the deck can honestly report', () => {
   it('is Orient, while its detection is running', () => {
-    expect(unitFacts(unit(), detected('running')).busy).toBe('orient');
+    expect(unitFacts(unit(), detected('running')).runningTool).toBe('orient');
     expect(kinds(unit(), detected('running'))?.orient).toBe('busy');
   });
 
@@ -83,9 +94,6 @@ describe('the one busy state the deck can honestly report', () => {
     expect(unitFacts(unit())).not.toHaveProperty('busy');
   });
 
-  it('carries an explicit busy tool through, which overrides the detection', () => {
-    expect(unitFacts(unit(), detected('running'), 'supports').busy).toBe('supports');
-  });
 });
 
 describe('staleness comes from the revisions and nothing else', () => {

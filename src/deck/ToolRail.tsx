@@ -1,6 +1,7 @@
 import { t, translateMessage } from '../i18n';
 import { hint } from '../components/hint';
-import { railReason, railStates, type ToolFacts, type ToolId, type ToolState } from './toolState';
+import { railReason, railStates, type ToolFacts, type ToolState } from './toolState';
+import type { ToolId } from '../state/tools';
 
 /**
  * THE TOOL RAIL: Orient · Rim · Area · Supports, down the left of the deck with the models beside
@@ -21,17 +22,10 @@ import { railReason, railStates, type ToolFacts, type ToolId, type ToolState } f
 /** What a tool's state adds to its button: the class, whether it can be pressed, and its hover line. */
 function look(state: ToolState): { className: string; disabled: boolean; note: string | undefined } {
   switch (state.kind) {
-    /*
-     * "Open this tool", which the press now actually does: `src/deck/toolEntry.ts` maps the tool to
-     * the events that reach it. This read "Open this model." while the press could only enter the
-     * flow at its start - honest then, and wrong now.
-     *
-     * A tool FORWARD of where the operator stands still opens the model rather than the tool,
-     * because going forward is an accept that does real work and belongs to the tool's own primary
-     * action. That is a property of the press and not of the button's look, so it is `toolEntry`'s
-     * sentence to keep, not this file's.
-     */
-    case 'ready': return { className: 'tool', disabled: false, note: 'Open this tool.' };
+    // "Open this model" and not the tool's name: the press enters the flow at its start. A rail that
+    // opened the pressed tool was built and deleted - `App.tsx`'s `openTool` comment says why - and
+    // this string went with it. What a ready button tells the operator truthfully is its STATE.
+    case 'ready': return { className: 'tool', disabled: false, note: 'Open this model.' };
     // Pressable on purpose: the operator opens it and watches, rather than meeting grey.
     case 'busy': return { className: 'tool tool--busy', disabled: false, note: 'Being made now.' };
     case 'stale': return { className: 'tool tool--stale', disabled: false, note: 'Out of date since something above it changed.' };
@@ -46,10 +40,8 @@ const LABEL: { readonly [K in ToolId]: string } = {
   supports: 'Supports',
 };
 
-export function ToolRail({ facts, current, onPick }: {
+export function ToolRail({ facts, onPick }: {
   facts: ToolFacts;
-  /** The tool that is open, if any. */
-  current?: ToolId;
   onPick: (tool: ToolId) => void;
 }) {
   const reason = railReason(facts);
@@ -58,8 +50,7 @@ export function ToolRail({ facts, current, onPick }: {
     {railStates(facts).map(({ tool, state }) => {
       const { className, disabled, note } = look(state);
       return <button key={tool} type="button" data-ui={`tool-${tool}`}
-        className={`${className}${current === tool ? ' tool--open' : ''}`}
-        aria-pressed={current === tool}
+        className={className}
         disabled={disabled}
         // A disabled button carries its own reason too: the line below says the NEXT thing to do, and
         // a tool further down the chain still owes an answer to "why not this one".

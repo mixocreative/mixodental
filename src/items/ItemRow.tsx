@@ -21,12 +21,12 @@ import { THUMB_SIZE, type ThumbCache } from './thumbnail';
  * Every part is named for the UNIT, never for the row's position: `items-row-3` would re-point every
  * later row the moment one is removed.
  */
-export function ItemRow({ unit, done, shown, detected, thumbnails, onSelect, onRemove }: {
+export function ItemRow({ unit, done, onRail, detected, thumbnails, onSelect, onRemove }: {
   unit: PrintUnit;
   /** Already through the flow: the row dims rather than disappearing. */
   done: boolean;
-  /** The row the rail is about. */
-  shown: boolean;
+  /** This is the row the rail acts on. Not "visible" - every row is visible. */
+  onRail: boolean;
   detected: DetectState | undefined;
   thumbnails: ThumbCache;
   onSelect: () => void;
@@ -39,7 +39,7 @@ export function ItemRow({ unit, done, shown, detected, thumbnails, onSelect, onR
   const shot = thumbnails.get(unit.id)?.url;
 
   return <li
-    className={`items-row${done ? ' items-row--done' : ''}${shown ? ' items-row--shown' : ''}`}
+    className={`items-row${done ? ' items-row--done' : ''}${onRail ? ' items-row--on-rail' : ''}`}
     data-ui={`items-row-${unit.id}`}
     onClick={onSelect}
   >

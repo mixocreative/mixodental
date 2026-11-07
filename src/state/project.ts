@@ -10,8 +10,8 @@ import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { normalizeDentureState, type DentureState } from '../denture/state/dentureState';
 import type { SurfaceAnchor, SurfacePath } from '../core/surfacePath/path';
 import type { ImportDiagnosis } from './diagnosis';
-import { TOOL_ORDER } from '../deck/toolState';
-import { stamped, type Revisions } from '../deck/revisions';
+import { TOOL_ORDER } from './tools';
+import { stamped, type Revisions } from './revisions';
 
 export { identityTransform } from '@mixo-geocore/host/state/transform';
 
@@ -64,7 +64,8 @@ export interface PrintUnit {
   /**
    * WHICH TOOL'S WORK IS NEWER THAN WHICH, so the rail can say "out of date" instead of throwing the
    * work away (`src/deck/revisions.ts`). One counter per unit; a tool is stale when its number is
-   * below the number of the tool above it.
+   * below the newest revision anywhere ABOVE it in the chain - not merely below its neighbour's,
+   * which is the bug that module fixed and this sentence used to restate.
    *
    * Saved, because the deck is where a reopened project is read: without it, a model that WAS
    * oriented would come back with Rim greyed and the operator told to do work they already did.
@@ -120,7 +121,17 @@ export type SceneCommand =
   | { type: 'handWork/set'; unitId: string; deleted: string[]; contactSettings: ContactSettings }
   | { type: 'zones/add'; unitId: string; stamps: ZoneStamp[] }
   | { type: 'zones/clear'; unitId: string }
-  | { type: 'dental/set'; unitId: string; policy: DentalPolicy }
+  | {
+    type: 'dental/set'; unitId: string; policy: DentalPolicy;
+    /**
+     * The FOOTPRINT IS UNCHANGED: this dispatch only replaces the policy's settings (the Tree and
+     * Braces toggles). Said by the caller because the reducer cannot tell: `cloneDentalPolicy`
+     * rebuilds the rim, so the stored rim is never the same object as the incoming one and an
+     * identity check here is always false. Without it, flicking a toggle at Step 3 marked the
+     * supports out of date over a change that never moved the area they were built from.
+     */
+    settingsOnly?: true;
+  }
   | { type: 'dental/stamps/add'; unitId: string; stamps: DentalAllowStamp[] }
   | { type: 'dental/clear'; unitId: string }
   /**
@@ -216,8 +227,22 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
       if (scene.units.find((unit) => unit.id === command.unitId)?.zones.length === 0) return scene;
       return updateUnit(scene, command.unitId, (unit) => ({ ...unit, zones: [] }));
     case 'dental/set':
-      return updateUnit(scene, command.unitId, (unit) =>
-        withRevisions({ ...unit, dental: cloneDentalPolicy(command.policy, unit.source) }, stamped(unit.revisions, 'area', true)));
+      return updateUnit(scene, command.unitId, (unit) => {
+        const dental = cloneDentalPolicy(command.policy, unit.source);
+        /*
+         * THE RIM AND THE AREA ARE ONE ACCEPTANCE, so they take one revision together. They were two
+         * numbers, and the rim's was never written for a rim that existed: a DETECTED rim arrives
+         * inside this policy and never passes through `rim/set` at all, so Rim could not read stale
+         * while Area did - although a re-orient dates both equally.
+         *
+         * `settingsOnly` is the caller saying the footprint did not move. A retune DOES move it (it
+         * replaces `region`), so only the Tree/Braces toggle passes the flag.
+         */
+        const marks = command.settingsOnly === true
+          ? unit.revisions
+          : stamped(stamped(unit.revisions, 'rim', true), 'area', true);
+        return withRevisions({ ...unit, dental }, marks);
+      });
     case 'dental/stamps/add':
       if (command.stamps.length === 0) return scene;
       // PAINTING THE AREA IS CHANGING THE AREA, so the supports built from the old one are out of
@@ -227,6 +252,7 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
         ? unit
         : withRevisions(
           { ...unit, dental: { ...unit.dental, stamps: [...unit.dental.stamps, ...command.stamps.map(cloneDentalStamp)] } },
+          // The paint changes the area but not the rim it was measured from, so only the area moves.
           stamped(unit.revisions, 'area', true),
         ));
     case 'dental/clear':
@@ -236,16 +262,19 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
       const path = cloneSurfacePath(command.path);
       // An empty drawing is no drawing: holding one would leave the mode's keys enabled over nothing.
       if (path.anchors.length === 0) return reduceScene(scene, { type: 'rim/clear', unitId: command.unitId });
-      // Only a CLOSED path is a rim. The drawing dispatches this on every anchor, so stamping an
-      // open one would record a rim that does not exist yet.
-      return updateUnit(scene, command.unitId, (unit) =>
-        withRevisions({ ...unit, rimDraft: path }, path.closed ? stamped(unit.revisions, 'rim', true) : unit.revisions));
+      /*
+       * NO REVISION HERE. A DRAFT IS NOT ACCEPTED WORK, and stamping it was wrong twice over:
+       *   - This fires on EVERY anchor press and drag, so re-opening a closed rim and nudging one
+       *     point marked the area out of date - then Cancel keeps the draft (by design) and the mark
+       *     stayed for ever, over a drawing that was never applied.
+       *   - The number did not survive anyway: `onRimDone` dispatches `dental/set` and `rim/clear` in
+       *     one batch, so the rim's revision was written and then deleted in the same step.
+       * The rim is accepted when it is promoted into `unit.dental`, which is where it is stamped.
+       */
+      return updateUnit(scene, command.unitId, (unit) => ({ ...unit, rimDraft: path }));
     }
     case 'rim/clear':
-      // The rim is gone, so its revision goes with it: a number left behind would keep claiming work
-      // that no longer exists, and `staleTools` would age the area against a ghost.
-      return updateUnit(scene, command.unitId, ({ rimDraft: _rimDraft, ...unit }) =>
-        withRevisions(unit, stamped(unit.revisions, 'rim', false)));
+      return updateUnit(scene, command.unitId, ({ rimDraft: _rimDraft, ...unit }) => unit);
     case 'denture/set':
       return updateUnit(scene, command.unitId, (unit) => ({ ...unit, denture: normalizeDentureState(command.denture) }));
     case 'denture/clear':

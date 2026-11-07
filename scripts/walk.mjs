@@ -1166,19 +1166,33 @@ async function walk(url, scratch, dentalFixture) {
         `shots ${JSON.stringify(shots)}`);
 
       /*
-       * THE RAIL IS ON THE DECK, AND IT TEACHES THE ORDER. Three fresh cubes: nothing is oriented, so
-       * Orient is the only tool open and the other three are greyed. The line under the rail says the
-       * ONE next thing to do rather than three complaints at once.
+       * THE RAIL IS ON THE DECK, AND IT TEACHES THE ORDER — by what is pressable and by the ONE line
+       * underneath, rather than by three complaints at once.
        *
-       * This is the property the wizard used to carry, so it is checked as behaviour and not as
-       * styling: `disabled` on the three, absent on Orient, and a reason line with words in it.
+       * THIS CHECK USED TO ASSERT THE OPPOSITE, AND IT PASSED BECAUSE OF A BUG. It read "three fresh
+       * cubes: nothing is oriented, so Orient is the only tool open and the other three are greyed".
+       * But it runs AFTER `m4b`, which waits for the batch to finish all three rows — so these cubes
+       * have been through detection and came back "No rim found". Nothing was fresh. It passed only
+       * because `oriented` was read off `revisions.orient`, which the batch never writes, so every
+       * row the batch had just oriented still reported as unoriented. A review found that; the rail
+       * was telling the operator to turn a model it had already turned.
+       *
+       * SO THE HONEST EXPECTATION AFTER THE BATCH IS: Orient open, and **Rim open too** — the flow's
+       * own answer to "no rim found" is to hand over to rim drawing, so greying Rim here would
+       * withhold the one tool the operator is being sent to. Area and Supports stay greyed, because
+       * the area really is measured from a rim that does not exist yet.
+       *
+       * The reason line is asserted as the AREA's sentence rather than as "two words", because the
+       * property worth pinning is WHICH tool is the next thing to do — the first unavailable one.
        */
       const railOpen = await page.locator('[data-ui="tool-orient"]').isDisabled();
-      const railBlocked = await Promise.all(['rim', 'area', 'supports'].map((tool) => page.locator(`[data-ui="tool-${tool}"]`).isDisabled()));
+      const railRim = await page.locator('[data-ui="tool-rim"]').isDisabled();
+      const railBlocked = await Promise.all(['area', 'supports'].map((tool) => page.locator(`[data-ui="tool-${tool}"]`).isDisabled()));
       const railReason = await page.locator('[data-ui="tool-reason"]').innerText().catch(() => '');
-      check('m4d the rail opens Orient only, greys the rest, and says the one next thing to do',
-        railOpen === false && railBlocked.every((blocked) => blocked === true) && /\w+\s+\w+/.test(railReason),
-        `orient disabled ${railOpen}, others ${JSON.stringify(railBlocked)}, reason ${JSON.stringify(railReason)}`);
+      check('m4d the rail opens what the batch unlocked, greys what is not reachable yet, and names the one next thing',
+        railOpen === false && railRim === false && railBlocked.every((blocked) => blocked === true)
+        && /The area is measured from the rim, so draw the rim first\./.test(railReason),
+        `orient disabled ${railOpen}, rim disabled ${railRim}, area+supports ${JSON.stringify(railBlocked)}, reason ${JSON.stringify(railReason)}`);
 
       /*
        * THE RAIL IS DOWN THE LEFT, with the models beside it. Checked as geometry rather than by

@@ -34,7 +34,7 @@ import type { PrintUnit } from '../state/project';
  *
  * `url` IS OPTIONAL, and that is load-bearing rather than defensive: an entry records that the row
  * was DRAWN, not that a picture came back. A device with no WebGL returns none, and if a pictureless
- * row stayed uncached `thumbnailNeeded` would hand it over again on every pass — a draw loop that
+ * row stayed uncached `nextThumbnailToDraw` would hand it over again on every pass — a draw loop that
  * never settles. The same shape of bug cost this release a 600 ms re-check that ran for ever.
  */
 export interface Thumbnail { readonly mesh: TriangleMesh; readonly url?: string }
@@ -60,7 +60,7 @@ const THUMB_DIRECTION: Vector = [70, 60, 90];
  * `source` wholesale rather than mutating it, so identity is the honest test of "this is a different
  * model now" and costs one comparison per row.
  */
-export function thumbnailNeeded(units: readonly PrintUnit[], cache: ThumbCache): PrintUnit | undefined {
+export function nextThumbnailToDraw(units: readonly PrintUnit[], cache: ThumbCache): PrintUnit | undefined {
   return units.find((unit) => cache.get(unit.id)?.mesh !== unit.source);
 }
 

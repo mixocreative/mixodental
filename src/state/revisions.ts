@@ -1,14 +1,15 @@
 // Copyright (c) Mixo Creative.
 
-import { TOOL_ORDER, type ToolId } from './toolState';
+import { TOOL_ORDER, type ToolId } from './tools';
 
 /**
  * WHICH TOOL'S WORK IS OUT OF DATE, and why this is one field of plain numbers.
  *
  * The rail needs a third state between *ready* and *greyed*: re-orienting must not throw the rim,
  * the area and the supports away, but it must say they no longer match. So each tool's accepted work
- * carries a REVISION, taken from one counter per unit, and a tool is stale exactly when its number
- * is below the number of the tool above it.
+ * carries a REVISION, taken from one counter per unit, and a tool is stale when its number is below
+ * **the newest revision anywhere above it in the chain** - see `staleTools`, which is where the
+ * "below its immediate neighbour" reading was a real bug.
  *
  * WHAT WAS CONSIDERED AND REJECTED: recording the rotation each stage was made at and comparing it.
  * Rotations are floats, so the comparison would need an epsilon, and an epsilon that decides whether
@@ -55,12 +56,8 @@ export function staleTools(revisions: Revisions): readonly ToolId[] {
 }
 
 /** The next revision to stamp on a unit's work: one above everything already recorded. */
-export const nextRevision = (revisions: Revisions): number =>
+const nextRevision = (revisions: Revisions): number =>
   Math.max(0, ...TOOL_ORDER.map((tool) => revisions[tool] ?? 0)) + 1;
-
-/** `revisions` with `tool` accepted now, which is what makes everything below it stale. */
-export const accepted = (revisions: Revisions, tool: ToolId): Revisions =>
-  ({ ...revisions, [tool]: nextRevision(revisions) });
 
 /**
  * `revisions` with `tool` accepted now, dropped when the tool's work is removed.

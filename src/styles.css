@@ -1564,7 +1564,7 @@ dialog.terms .terms-item > span { flex: none; }
 .start-held { margin: 0 0 10px; color: var(--muted); font-size: var(--small-size, 11.5px); }
 .items-row--done { opacity: .55; }
 /* The row the rail is about. Sunken, no colour - the house rule for a selected row. */
-.items-row--shown { background: var(--sunken); }
+.items-row--on-rail { background: var(--sunken); }
 /* How the drop is doing. The danger colour as TEXT, never a fill - the house rule for anything
    refused or wrong - and it appears only when a row needs attention. */
 .items-tally { margin: 10px 0 0; color: var(--danger); font-size: var(--small-size, 11.5px); }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { PrintUnit } from '../state/project';
+import { displayMesh } from '../state/meshExtras';
 import { drawThumbnail } from '../components/viewport/drawThumbnail';
-import { prunedThumbnails, thumbnailNeeded, type ThumbCache } from './thumbnail';
+import { nextThumbnailToDraw, prunedThumbnails, type ThumbCache } from './thumbnail';
 
 /**
  * THE ROW PICTURES, drawn one at a time and kept until the model changes.
@@ -23,10 +24,20 @@ export function useThumbnails(units: readonly PrintUnit[], enabled: boolean): Th
 
   useEffect(() => {
     if (!enabled) return;
-    const unit = thumbnailNeeded(units, cache);
+    const unit = nextThumbnailToDraw(units, cache);
     if (!unit) return;
     const handle = window.setTimeout(() => {
-      const url = drawThumbnail(unit.source, unit.transform);
+      /*
+       * THE DISPLAY MESH, not `unit.source`. The import worker prepares a simplified copy for heavy
+       * meshes and the viewport draws that one (`state/meshExtras.ts`); this passed the full
+       * import mesh while its own documentation claimed otherwise, so a 12 MB model was uploaded
+       * whole to be photographed at 160 px. `displayMesh` falls back to the source when there is no
+       * simplified copy, so a small model is unaffected.
+       *
+       * The cache is still keyed on `unit.source`: that is the identity of the unit's model, and the
+       * simplified copy is derived from it.
+       */
+      const url = drawThumbnail(displayMesh(unit.source), unit.transform);
       // Recorded EVEN WITH NO PICTURE: see `Thumbnail`. An unrecorded row would come back on the
       // next pass for ever.
       setCache((current) => new Map(current).set(unit.id, { mesh: unit.source, ...(url ? { url } : {}) }));

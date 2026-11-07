@@ -29,10 +29,12 @@ After every implementation task, record: the completed requirement; changed file
 - **Requirement:** replace the per-item step wizard with a job deck — one workspace carrying the model
   list, a tool rail, and per-row state — and build it in increments, each gated before it ships.
 - **Changed:** `src/items/` (the deck's rows, the batch detection, the row pictures, split so each row
-  owns what it says) and the new `src/deck/` (the enablement rule, the staleness model, the rail, the
-  job-level tally). `src/state/project.ts` gained the saved `revisions` field and stamps it. Full
-  reasoning lives in `src/items/README.md` and `src/deck/README.md`; the design and what it got wrong
-  are in `docs/design/2026-11-07-import-and-items-flow.md`.
+  owns what it says) and the new `src/deck/` (the enablement rule, the rail, the job-level tally).
+  The two pieces both layers need sit one layer DOWN — `src/state/tools.ts` (`ToolId`, `TOOL_ORDER`)
+  and `src/state/revisions.ts` (staleness) — because `src/state/project.ts` stamps revisions and must
+  not import the view; `src/deckBoundary.test.ts` keeps that one-way. Full reasoning lives in
+  `src/items/README.md` and `src/deck/README.md`; the design and what it got wrong are in
+  `docs/design/2026-11-07-import-and-items-flow.md`.
 - **Commits:** `6dcc062` (A), `091046d` (B), `42b1a58` (C), `75d86d6` (D core), `1609589` (D rail),
   `88977a3` (D mount + review fixes), `b028d91` (D stamp), `b2a9f9b` (graph).
 - **Results:** `tsc` 0 · 1492 tests · `npm run build` 0 · **real-scan gate PASS (13 scans, no
@@ -48,13 +50,33 @@ After every implementation task, record: the completed requirement; changed file
   - Stamping revisions broke the denture's rigid-move optimisation — `keepsBuild` compares every unit
     key by identity, so a turn looked like a different build and valid supports would have been
     rebuilt. Caught by `rigidMove.real.test.ts`, now also pinned by a cheap unit test.
-  - Five tests that did not test surfaced across the release. Every fix in the deck work was verified
-    by reverting it and watching the suite fail; that is the only reason none of them survived.
-- **Per-tool entry is partly built** (`src/deck/toolEntry.ts`): a rail press walks BACK to a tool,
-  which is the direction that matters, since a stale tool is one that must be revisited. It needed no
-  new transitions — `backDental` and `dentalRimReopen` already existed with their guards intact.
-  Forward stays shut because forward is an accept and an accept does real work. Its reach is narrow:
-  the rail is on the deck, the deck is a start screen, and the flow hides start screens.
+  - SIX tests that did not test surfaced across the release, the sixth being the walk's own `m4d`:
+    it asserted "nothing is oriented" on rows the batch had already detected, and passed only because
+    `oriented` was read off a field the batch never writes. Fixing the rule turned it red, which is
+    the check working for the first time. Every fix in the deck work was verified by reverting it and
+    watching the suite fail; that is the only reason none of them survived.
+- **Per-tool entry was built and withdrawn.** `src/deck/toolEntry.ts` walked `backDental` to the
+  pressed tool. Review found three faults: it was unreachable (the rail is on the deck, the deck is a
+  start screen, and every route to one sends `exit` first), it hard-coded the aligner stage order so a
+  denture would have been ejected from the flow with a job still live, and it bypassed the Step-3
+  confirmation and hand-work discard, which live in the command handler rather than the reducer.
+  Deleted; `src/deck/README.md` keeps the reasons so nobody rebuilds it the same way.
+- **Reviewed, then repaired (2026-11-08).** Three EGM reviews ran in parallel on the deck work before
+  any of it was committed; `docs/reviews/2026-11-08-egm-deck-rail.md` is the ledger of every finding
+  and where its answer lives. The headline: `toolEntry.ts` was deleted outright (unreachable, wrong
+  for a denture, and it bypassed the Step-3 guard), three stamping defects were fixed, `oriented` was
+  reading backwards off a drawn rim, and the directory cycle between `src/state/` and `src/deck/` was
+  broken. Two reviewer premises were wrong and were corrected rather than adopted.
+- **Organisation pass (the standing last step).** `PREREQUISITE` replaced two parallel maps bridged by
+  a cast; `ToolFacts.busy` became `runningTool` so the fact and the verdict stop sharing a word;
+  `thumbnailNeeded` became `nextThumbnailToDraw` and a row's `shown` became `onRail`
+  (`items-row--on-rail`). `src/deck/README.md` went 236 → 149 lines by becoming the map and leaving
+  each rule's history at the code; `docs/ui-styling.md` lost a false claim about an open-tool look and
+  gained `items-tally`; `src/items/README.md` now points at that one table instead of keeping a
+  partial copy four names out of date.
+- **Named, not fixed:** `App.tsx` is ~1700 lines — the release's real organisational debt. Copyright
+  headers are on 15 of 226 source files; which way to make that consistent is the owner's call
+  (recommendation in the review ledger: drop the 15).
 - **Next executable step:** dissolve `dentalStage` into the one workspace — **owner's decision, not
   taken**. The per-tool widgets and the rail as the workspace's own left edge depend on it: each
   stage owns the whole dock, and a rail beside that dock would give two competing ideas of where the

@@ -2,8 +2,8 @@
 
 import type { DetectState } from '../items/detectState';
 import type { PrintUnit } from '../state/project';
-import { staleTools } from './revisions';
-import type { ToolFacts, ToolId } from './toolState';
+import { staleTools } from '../state/revisions';
+import type { ToolFacts } from './toolState';
 
 /**
  * WHAT A UNIT PRESENTS TO THE RAIL. The one place that reads the scene's own fields and answers the
@@ -12,40 +12,50 @@ import type { ToolFacts, ToolId } from './toolState';
  */
 
 /**
- * ORIENTING IS A FACT THE DECK ALREADY HAS, and the first version of this got it wrong in a way
- * worth recording. It read `revisions.orient`, `rimDraft` and `dental` only - and **nothing in the
- * app writes `revisions`** - so a unit the batch had just oriented reported `oriented: false`, and
- * the rail told the operator to turn a model that was already upright. The inference meant to save
- * legacy projects delivered that failure to every unit in a normal session instead.
+ * ORIENTED MEANS THE DETECTOR HAS LOOKED AT THE MODEL, which is what Rim actually waits for.
  *
- * The honest source is the detection result the deck is already showing on the row: `oriented` means
- * the detector found a pose. A hand-drawn rim or an accepted area still counts, because neither can
- * be reached without having oriented first.
+ * Two earlier readings of this were wrong, in opposite directions:
+ *   - Reading `revisions.orient` alone reported false for every unit the batch had just oriented,
+ *     because the batch dispatches no `transform/set`. The rail then told the operator to turn a
+ *     model that was already upright.
+ *   - Inferring it from a hand-drawn rim was backwards: rim drawing is entered from
+ *     `dentalRimNeeded` precisely when detection found NO rim, so a drawn rim is evidence the
+ *     detector came back empty, not that a pose was accepted.
+ *
+ * `no-rim` counts for the same reason the flow hands over to rim drawing on it: the detector ran and
+ * produced a usable answer about this mesh. `failed` does not - the job could not run, so there is
+ * nothing to build a rim on. An accepted footprint counts too, since the flow cannot reach one
+ * without passing Orient, and that is what carries a reopened project.
  */
 const oriented = (unit: PrintUnit, detected?: DetectState): boolean =>
-  detected?.kind === 'oriented' || unit.revisions?.orient !== undefined || hasRim(unit);
+  detected?.kind === 'oriented' || detected?.kind === 'no-rim'
+  || unit.revisions?.orient !== undefined || hasAcceptedArea(unit);
 
-/**
- * A RIM MEANS A CLOSED RIM. `rimDraft` is written on EVERY anchor (`src/dental/rim/useRimDrawing.ts`
- * dispatches `rim/set` per press, starting from `emptyPath()`), so testing it for existence opened
- * Area on a single unclosed point - and an area cannot be measured from one point. That contradicted
- * the rail's own promise that nothing is withheld except what is genuinely impossible, in the
- * direction that matters: it let the operator into a tool that could not work.
- *
- * An accepted policy carries its own rim, so it counts whatever the draft says.
- */
 const hasRim = (unit: PrintUnit): boolean => unit.rimDraft?.closed === true || unit.dental !== undefined;
 
-export function unitFacts(unit: PrintUnit, detected?: DetectState, busy?: ToolId): ToolFacts {
+/**
+ * A DENTURE HAS NO AREA STEP, and reading only `unit.dental` made the rail lie about one: a denture
+ * that was oriented and supported showed Area and Supports greyed, with the line "The area is
+ * measured from the rim, so draw the rim first." on a job that never draws a rim. Its accepted
+ * policy is `unit.denture` (`denture/set`), and `stageAfterOrientation` sends it straight from Orient
+ * to its supports.
+ */
+const isDenture = (unit: PrintUnit): boolean => unit.denture !== undefined;
+/** Any accepted footprint, of either job kind. */
+const hasAcceptedArea = (unit: PrintUnit): boolean => unit.dental !== undefined || isDenture(unit);
+
+export function unitFacts(unit: PrintUnit, detected?: DetectState): ToolFacts {
   const stale = staleTools(unit.revisions ?? {});
   return {
     oriented: oriented(unit, detected),
-    hasRim: hasRim(unit),
+    // A denture draws no rim, so the rim tool is not something it is waiting for: reporting the rim
+    // as present is what keeps the rail from instructing about a step the job does not have.
+    hasRim: isDenture(unit) || hasRim(unit),
     // The accepted footprint. A rim being drawn, closed or not, is not an area.
-    areaAccepted: unit.dental !== undefined,
-    // A detection running IS the Orient tool working, which is the one busy state the deck can
-    // honestly report today. Passed explicitly so a caller cannot forget it is per unit.
-    ...(busy ? { busy } : detected?.kind === 'running' ? { busy: 'orient' as const } : {}),
+    areaAccepted: hasAcceptedArea(unit),
+    // A detection running IS the Orient tool working, and it is the only busy state the deck can
+    // report. There was a parameter here for a caller to override it; nothing ever passed one.
+    ...(detected?.kind === 'running' ? { runningTool: 'orient' as const } : {}),
     ...(stale.length > 0 ? { stale } : {}),
   };
 }

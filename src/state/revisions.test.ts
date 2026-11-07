@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accepted, nextRevision, staleTools, type Revisions } from './revisions';
+import { stamped, staleTools, type Revisions } from './revisions';
 
 /** Everything accepted in the rail's own order, nothing out of date. */
 const inOrder: Revisions = { orient: 1, rim: 2, area: 3, supports: 4 };
@@ -21,17 +21,17 @@ describe('whose work is out of date', () => {
 
   it('CASCADES from a re-orient, so the supports three links down are told', () => {
     // Orient accepted again: its number is now above all three below it.
-    expect(staleTools(accepted(inOrder, 'orient'))).toEqual(['rim', 'area', 'supports']);
+    expect(staleTools(stamped(inOrder, 'orient', true)!)).toEqual(['rim', 'area', 'supports']);
   });
 
   it('leaves the rim alone when only the area was redone, because the rim was not affected', () => {
     // The lie worth avoiding: marking everything stale on any change makes the operator work out
     // which of it actually matters.
-    expect(staleTools(accepted(inOrder, 'area'))).toEqual(['supports']);
+    expect(staleTools(stamped(inOrder, 'area', true)!)).toEqual(['supports']);
   });
 
   it('reaches the supports when the rim is redone, through the area between them', () => {
-    expect(staleTools(accepted(inOrder, 'rim'))).toEqual(['area', 'supports']);
+    expect(staleTools(stamped(inOrder, 'rim', true)!)).toEqual(['area', 'supports']);
   });
 
   it('says nothing about work with NOTHING above it, which is a missing prerequisite not an age', () => {
@@ -65,19 +65,26 @@ describe('whose work is out of date', () => {
 
 describe('stamping work as accepted', () => {
   it('takes a number above everything already recorded', () => {
-    expect(nextRevision(inOrder)).toBe(5);
-    expect(nextRevision({})).toBe(1);
+    expect(stamped(inOrder, 'orient', true)!.orient).toBe(5);
+    expect(stamped({}, 'orient', true)!.orient).toBe(1);
   });
 
   it('counts from the highest, not from the tool being stamped', () => {
     // Were it per-tool, re-accepting Orient would give it 2 - below the supports' 4 - and the
     // supports would not go stale. The counter is per UNIT for exactly this reason.
-    expect(accepted(inOrder, 'orient').orient).toBeGreaterThan(inOrder.supports!);
+    expect(stamped(inOrder, 'orient', true)!.orient).toBeGreaterThan(inOrder.supports!);
   });
 
   it('leaves the other tools untouched, so their work is kept rather than cleared', () => {
-    const after = accepted(inOrder, 'orient');
+    const after = stamped(inOrder, 'orient', true)!;
     expect({ rim: after.rim, area: after.area, supports: after.supports })
       .toEqual({ rim: 2, area: 3, supports: 4 });
+  });
+
+  it('takes a revision away when its work is removed, leaving nothing behind at the last one', () => {
+    expect(stamped(inOrder, 'supports', false)).toEqual({ orient: 1, rim: 2, area: 3 });
+    expect(stamped({ orient: 1 }, 'orient', false)).toBeUndefined();
+    // Removing what was never recorded changes nothing, rather than inventing an empty record.
+    expect(stamped({ orient: 1 }, 'supports', false)).toEqual({ orient: 1 });
   });
 });
