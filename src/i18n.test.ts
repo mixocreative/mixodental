@@ -18,9 +18,19 @@ const SOURCES = {
 const DENTURE_UI_FILES = Object.keys(SOURCES).filter((file) => file.startsWith('./denture/') && /\.tsx$|\/use[A-Z]\w*\.ts$|Text\.ts$|Commands\.ts$/.test(file));
 /** The aligner flow's own UI modules (src/dental), globbed the same way, so a new dental widget is checked without a list edit. */
 const DENTAL_UI_FILES = Object.keys(SOURCES).filter((file) => file.startsWith('./dental/') && /\.tsx$|\/use[A-Z]\w*\.ts$|Text\.ts$|Commands\.ts$/.test(file));
+/**
+ * Modules that SPEAK, by the shape of their names: a component, a hook, a `*Text.ts`, a
+ * `*Commands.ts` - or a `*State.ts`, which is the one this pattern used to miss. `items/detectState.ts`
+ * holds five sentences and sat outside the check: they were translated by hand and nothing enforced
+ * it, so the next one would have shipped in English. A state module that owns a `Message` is a UI
+ * file whatever its name suggests.
+ */
+const SPEAKS = /\.tsx$|\/use[A-Z]\w*\.ts$|Text\.ts$|Commands\.ts$|State\.ts$/;
 /** The Items module's UI, globbed like the two above, so a new row widget is checked without a list edit. */
-const ITEMS_UI_FILES = Object.keys(SOURCES).filter((file) => file.startsWith('./items/') && /\.tsx$|\/use[A-Z]\w*\.ts$|Text\.ts$|Commands\.ts$/.test(file));
-const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/DebugSection.tsx', './components/useDebugLayers.ts', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx', './dental/editingMode.ts', './components/PlatePanel.tsx', './components/usePlateArrange.ts', './components/viewport/UnresolvedBubbles.tsx', './supports/unresolved/unresolvedText.ts', ...DENTURE_UI_FILES, ...DENTAL_UI_FILES, ...ITEMS_UI_FILES];
+const ITEMS_UI_FILES = Object.keys(SOURCES).filter((file) => file.startsWith('./items/') && SPEAKS.test(file));
+/** The deck's own modules (the tool rail and its reasons), globbed the same way. */
+const DECK_UI_FILES = Object.keys(SOURCES).filter((file) => file.startsWith('./deck/') && SPEAKS.test(file));
+const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/DebugSection.tsx', './components/useDebugLayers.ts', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx', './dental/editingMode.ts', './components/PlatePanel.tsx', './components/usePlateArrange.ts', './components/viewport/UnresolvedBubbles.tsx', './supports/unresolved/unresolvedText.ts', ...DENTURE_UI_FILES, ...DENTAL_UI_FILES, ...ITEMS_UI_FILES, ...DECK_UI_FILES];
 /** Quoted literals in UI files that are not shown to the user. */
 const NOT_UI = new Set(['Tab', 'Esc', 'Escape', 'Enter', 'Delete', 'Backspace', 'Unit', 'Mixo supports', 'ArrowUp', 'ArrowDown', 'CodedError', 'ProjectFileError', 'TimeoutError', '{error}', 'AbortError']);
 

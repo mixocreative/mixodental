@@ -10,6 +10,8 @@ import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { normalizeDentureState, type DentureState } from '../denture/state/dentureState';
 import type { SurfaceAnchor, SurfacePath } from '../core/surfacePath/path';
 import type { ImportDiagnosis } from './diagnosis';
+import { TOOL_ORDER } from '../deck/toolState';
+import type { Revisions } from '../deck/revisions';
 
 export { identityTransform } from '@mixo-geocore/host/state/transform';
 
@@ -59,6 +61,17 @@ export interface PrintUnit {
    * validation and this sentence, not the file format.
    */
   rimDraft?: SurfacePath;
+  /**
+   * WHICH TOOL'S WORK IS NEWER THAN WHICH, so the rail can say "out of date" instead of throwing the
+   * work away (`src/deck/revisions.ts`). One counter per unit; a tool is stale when its number is
+   * below the number of the tool above it.
+   *
+   * Saved, because the deck is where a reopened project is read: without it, a model that WAS
+   * oriented would come back with Rim greyed and the operator told to do work they already did.
+   * `normalizeUnit` drops a malformed record rather than refusing the file, for the same reason as
+   * `diagnosis` - these numbers drive a label on a rail, not geometry handed to the engine.
+   */
+  revisions?: Revisions;
   /**
    * WHAT THE IMPORTER FOUND IN `source`, kept so the Items row can say it without re-running
    * `diagnose_mesh` on every render. Absent on a unit imported before the verdict existed, and on
@@ -317,7 +330,7 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
   // reject a value that is present has to be removed first: `...(ok ? { x } : {})` adds nothing on
   // the reject branch, so the bad value `...unit` already copied in would survive. Every other
   // optional field here is safe only because its `{}` branch means "the key was absent anyway".
-  const { diagnosis, ...rest } = unit;
+  const { diagnosis, revisions, ...rest } = unit;
   return migrateRemovals({
     ...rest,
     source: copyMesh ? cloneMesh(unit.source, 'source') : checkedMesh(unit.source, 'source'),
@@ -336,6 +349,7 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
     ...(unit.dental === undefined ? {} : { dental: cloneDentalPolicy(unit.dental, unit.source) }),
     ...(unit.denture === undefined ? {} : { denture: normalizeDentureState(unit.denture) }),
     ...diagnosisField(diagnosis, unit.source),
+    ...revisionsField(revisions),
     contactSettings: normalizeContactSettings(unit.contactSettings),
   });
 }
@@ -369,6 +383,24 @@ function diagnosisField(value: unknown, source: TriangleMesh): { diagnosis?: Imp
       bodyCount: found.bodyCount as number,
     },
   };
+}
+
+/**
+ * Saved tool revisions, checked. Dropped WHOLE on anything malformed rather than per entry: the
+ * numbers only mean anything RELATIVE to each other, so half a record would make the rail compare a
+ * loaded number against a missing one and call sound work stale. An absent record is honest - it
+ * reads as "nothing accepted yet", which is what an unreadable one tells us anyway.
+ */
+function revisionsField(value: unknown): { revisions?: Revisions } {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return {};
+  const found = value as Record<string, unknown>;
+  // A key that is not one of the four tools means the record was written by something else, or by a
+  // build whose rail differs from this one. Either way the comparison would be against a chain this
+  // build does not have.
+  if (Object.keys(found).some((key) => !(TOOL_ORDER as readonly string[]).includes(key))) return {};
+  const entries = Object.entries(found);
+  if (entries.some(([, at]) => typeof at !== 'number' || !Number.isInteger(at) || at < 1)) return {};
+  return entries.length === 0 ? {} : { revisions: Object.fromEntries(entries) as Revisions };
 }
 
 /** Saved or handed-in per-support settings, parsed; empty entries are dropped and a project from before them loads as none. */

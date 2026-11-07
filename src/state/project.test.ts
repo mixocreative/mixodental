@@ -335,6 +335,49 @@ describe('reduceScene', () => {
  * persisted it before this), and that a corrupt one loads as ABSENT rather than throwing - the
  * opposite of `rimDraft`, because a label on a row is not geometry heading for the engine.
  */
+describe('the tool revisions on a unit', () => {
+  const revisions = { orient: 1, rim: 2, area: 3, supports: 4 };
+  const withRevisions = (value: unknown) => reduceScene(emptyScene, {
+    type: 'unit/add', unit: { ...unitA, revisions: value as typeof revisions },
+  }).units[0]!;
+
+  it('survives a save and reopen, because a reopened project is read on the deck', () => {
+    const scene = reduceScene(emptyScene, { type: 'unit/add', unit: { ...unitA, revisions } });
+
+    expect(scene.units[0]!.revisions).toEqual(revisions);
+    expect(deserializeScene(serializeScene(scene))).toEqual(scene);
+  });
+
+  it('stays absent on a unit that never carried one', () => {
+    expect(withRevisions(undefined)).not.toHaveProperty('revisions');
+  });
+
+  /*
+   * DROPPED WHOLE, NOT PER ENTRY. The numbers mean nothing on their own - only relative to each
+   * other - so keeping the readable half would have the rail compare a loaded number against a
+   * missing one and call sound work out of date.
+   */
+  it('drops the WHOLE record on one bad entry, rather than keeping the readable half', () => {
+    expect(withRevisions({ orient: 1, rim: 'two' })).not.toHaveProperty('revisions');
+    expect(withRevisions({ orient: 1, rim: 2.5 })).not.toHaveProperty('revisions');
+    expect(withRevisions({ orient: 0 })).not.toHaveProperty('revisions');
+    expect(withRevisions({ orient: -1 })).not.toHaveProperty('revisions');
+  });
+
+  it('drops a record naming a tool this build does not have on its rail', () => {
+    // Written by another build whose chain differs: comparing against it would be meaningless.
+    expect(withRevisions({ orient: 1, hollow: 2 })).not.toHaveProperty('revisions');
+  });
+
+  it('drops an empty record rather than carrying a key that says nothing', () => {
+    expect(withRevisions({})).not.toHaveProperty('revisions');
+  });
+
+  it('keeps a sound record exactly, so staleness is decided by the saved numbers', () => {
+    expect(withRevisions({ orient: 7, supports: 2 }).revisions).toEqual({ orient: 7, supports: 2 });
+  });
+});
+
 describe('the import verdict on a unit', () => {
   // `triangles: 1` is `unitA.source`'s own count, which is what makes the verdict apply to it.
   const verdict = {
