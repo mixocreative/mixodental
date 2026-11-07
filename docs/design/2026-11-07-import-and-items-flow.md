@@ -273,6 +273,7 @@ dissolved. The increment notes that follow are kept as the reasoning, not as a t
 | D rail | `1609589` | the rail's four states, kept visually distinct, and its one reason line |
 | D mount | `88977a3` | the rail on the deck, the job-level tally, and two blockers a review found |
 | D stamp | `b028d91` | revisions stamped in the reducer, so staleness actually fires |
+| review | `3bbe431` | three EGM reviews acted on: `toolEntry` deleted, three stamping defects, `oriented` corrected, the state/deck cycle broken, and the walk's `m4d` which was passing BECAUSE of the bug. Ledger: `docs/reviews/2026-11-08-egm-deck-rail.md` |
 
 **Three things this document got wrong, corrected in the code's own docs:**
 
