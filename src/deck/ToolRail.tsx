@@ -21,12 +21,17 @@ import { railReason, railStates, type ToolFacts, type ToolId, type ToolState } f
 /** What a tool's state adds to its button: the class, whether it can be pressed, and its hover line. */
 function look(state: ToolState): { className: string; disabled: boolean; note: string | undefined } {
   switch (state.kind) {
-    // "Open this model" and not "go to this tool", because that is what the press does TODAY: the
-    // step flow still owns the tool work, and the rail is its entry point. Saying otherwise would be
-    // a button that does not do what it claims. The tool-specific information a ready button carries
-    // is its STATE - available, stale, blocked - which is true either way. When the one workspace
-    // lands this note becomes tool-specific and nothing else here changes.
-    case 'ready': return { className: 'tool', disabled: false, note: 'Open this model.' };
+    /*
+     * "Open this tool", which the press now actually does: `src/deck/toolEntry.ts` maps the tool to
+     * the events that reach it. This read "Open this model." while the press could only enter the
+     * flow at its start - honest then, and wrong now.
+     *
+     * A tool FORWARD of where the operator stands still opens the model rather than the tool,
+     * because going forward is an accept that does real work and belongs to the tool's own primary
+     * action. That is a property of the press and not of the button's look, so it is `toolEntry`'s
+     * sentence to keep, not this file's.
+     */
+    case 'ready': return { className: 'tool', disabled: false, note: 'Open this tool.' };
     // Pressable on purpose: the operator opens it and watches, rather than meeting grey.
     case 'busy': return { className: 'tool tool--busy', disabled: false, note: 'Being made now.' };
     case 'stale': return { className: 'tool tool--stale', disabled: false, note: 'Out of date since something above it changed.' };

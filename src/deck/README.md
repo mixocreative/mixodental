@@ -11,11 +11,18 @@ through steps. Nothing is enforced beyond what is genuinely impossible.
 | `unitFacts.ts` | the only place that reads the scene's fields and answers the four questions |
 | `ToolRail.tsx` | how the four states LOOK, and the one line that says the next thing to do |
 | `jobSummary.ts` | how the whole drop is doing, counted from the rows' own verdicts |
+| `toolEntry.ts` | which session events open a tool from where the operator stands |
 
-`toolState.ts` and `revisions.ts` are **pure**: no React, no scene, no strings of their own.
-`jobSummary.ts` is pure too but is the one module here that imports from `../items/` — deliberately,
-because its whole promise is that it cannot disagree with the rows, and it keeps that promise by
-calling the rows' own classifier rather than by reimplementing it.
+`toolState.ts`, `revisions.ts` and `toolEntry.ts` are **pure**: no React, no scene, no strings of
+their own. `toolEntry.ts` names the flow's stages, but only as a `import type` — so it stays pure,
+pulls no dental code into the bundle, and a rename on that side breaks the build here rather than
+drifting quietly.
+
+`jobSummary.ts` is pure too, and is the one module here that imports a *value* from `../items/` —
+deliberately, because its whole promise is that it cannot disagree with the rows, and it keeps that
+promise by calling the rows' own classifier rather than reimplementing it.
+
+`ToolRail.tsx` is the only component.
 
 `toolState.ts` and `revisions.ts` are pure: no React, no scene, no strings of their own.
 
@@ -189,7 +196,38 @@ labels are words in three languages and must not clip.
 It is about the selected row — falling back to `nextItem`, which is where work *resumes*, because a
 returning operator should see the model they are about to pick up rather than one they finished; and
 behind that to the **last** row, because `nextItem` is undefined once everything is finished and a
-rail that vanishes from a page which still has rows reads as a fault. Pressing a tool **opens that model**, because the step flow still owns the tool work and
+rail that vanishes from a page which still has rows reads as a fault. ## Pressing a tool
+
+`toolEntry.ts` maps the tool to the events that reach it, and the rule has one shape worth stating:
+**backwards only.**
+
+Going forward is an **accept** — the area is measured from a rim the operator approved, the supports
+are built from an area they approved. Those approvals do real work and are the tool's own primary
+action, so a rail press must not perform them on the operator's behalf. Going *back* is what the rail
+is for: a tool that reads **stale** is precisely one whose work is out of date and must be revisited,
+and before this the operator had to press Back the right number of times to get there.
+
+It needs **no new transitions and loosens no guard**. `backDental` already walks the stages
+(review → area → aligner) and `dentalRimReopen` already reopens the drawing from `aligner`, both with
+their own conditions intact. A "jump to this stage" event would have meant writing prerequisite
+checks a second time, beside the ones `toolState` already makes.
+
+`rim` is a **detour off `aligner`**, not a stage on the spine — which is where the first version of
+this went wrong. It counted depth along the spine, where `rim` and `aligner` sit level, so opening
+Orient from inside the rim drawing came out as zero steps and read as *cannot get there*, when one
+Back does exactly that. A test pins it.
+
+**WHEN THIS ACTUALLY FIRES, stated plainly.** The rail is on the deck, and the deck is a start
+screen, which the dental flow hides. So the back-walking path is reached only when the session is
+mid-flow on that unit *and* the operator is looking at the deck — real (drop more files while a flow
+is live and the deck returns) but narrow. Every other press opens the model, as before.
+
+Putting the rail in the dental workspace as well would make it fully reachable, and it was considered
+and **rejected for now**: beside the existing step dock it would give two competing ideas of where
+the operator is, which is the confusion this whole redesign exists to remove. It belongs with the
+dissolve, where the dock becomes a widget.
+
+Pressing a tool that is forward of the operator **opens that model**, because the step flow still owns the tool work and
 the rail is its entry point. A ready button's hint says exactly that rather than naming the tool, so
 it is not a button that fails to do what it claims.
 

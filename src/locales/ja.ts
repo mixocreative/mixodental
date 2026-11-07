@@ -717,7 +717,7 @@ export const ja: Dictionary = {
   'Area': '領域',
   'Supports': 'サポート',
   'Tools': 'ツール',
-  'Open this model.': 'このモデルを開きます。',
+  'Open this tool.': 'このツールを開きます。',
   '1 of these files needs a look.': 'このうち 1 個のファイルを確認してください。',
   '{n} of these files need a look.': 'このうち {n} 個のファイルを確認してください。',
   'Being made now.': '生成中です。',

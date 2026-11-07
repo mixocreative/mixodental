@@ -102,6 +102,8 @@ import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
 import { ItemsPage } from './items/ItemsPage';
 import { useThumbnails } from './items/useThumbnails';
+import { entryEvents } from './deck/toolEntry';
+import type { ToolId } from './deck/toolState';
 import { dropKeepsOneFile, filesToImport } from './items/dropGrain';
 import { refusalOf } from './items/refusalOf';
 import { useBatchDetect } from './items/useBatchDetect';
@@ -1373,6 +1375,24 @@ export default function App() {
     if (live.dentalStage === 'review' && live.dentalUnitId) send({ type: 'addAnotherDental', unitId: live.dentalUnitId });
     startDentalAligner(unit);
   };
+  /**
+   * A RAIL PRESS, from the deck. Which events open a tool is `src/deck/toolEntry.ts`, and this only
+   * sends them.
+   *
+   * Three cases, in order. The unit is not in the flow yet, so entering it IS opening its first
+   * tool. The tool is reachable by going back, so the rail walks there. Or the tool is FORWARD of
+   * where the operator stands — and going forward is an accept that does real work, which belongs
+   * to the tool's own primary action rather than to a press on a rail, so the rail opens the model
+   * and leaves the accept to them.
+   */
+  const openTool = (unit: PrintUnit, tool: ToolId) => {
+    const live = sessionRef.current;
+    if (live.mode !== 'dental' || live.dentalUnitId !== unit.id || live.dentalStage === undefined) return startItem(unit);
+    const events = entryEvents(tool, live.dentalStage);
+    if (events === undefined || events.length === 0) return startItem(unit);
+    setStartScreen(null);
+    for (const type of events) send({ type });
+  };
   // The footer says what each start screen asks for (the file step in the job kind's words).
   useEffect(() => { if (startScreen !== null) setStatusMessage({ key: startScreen === 'file' ? fileStepText(startKind).status : START_HINT[startScreen] }); }, [startScreen, startKind]);
   const startDental = (profile: string, file?: File) => {
@@ -1520,7 +1540,7 @@ export default function App() {
       refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails}
       selectedUnitId={scene.activeUnitId}
       onSelect={(unit) => dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id })}
-      onStart={startItem} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
+      onStart={startItem} onOpenTool={openTool} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
       onBack={() => setStartScreen('drop')}
       onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} />
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}

@@ -722,7 +722,7 @@ export const zhHant: Dictionary = {
   'Area': '區域',
   'Supports': '支撐',
   'Tools': '工具',
-  'Open this model.': '開啟此模型。',
+  'Open this tool.': '開啟此工具。',
   '1 of these files needs a look.': '有 1 個檔案需要檢查。',
   '{n} of these files need a look.': '有 {n} 個檔案需要檢查。',
   'Being made now.': '正在產生。',

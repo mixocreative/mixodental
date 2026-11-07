@@ -10,6 +10,7 @@ import { ItemRow } from './ItemRow';
 import { RefusedRow } from './RefusedRow';
 import { ToolRail } from '../deck/ToolRail';
 import { unitFacts } from '../deck/unitFacts';
+import type { ToolId } from '../deck/toolState';
 import { jobSentence, jobTally } from '../deck/jobSummary';
 import { isModelFile } from '../components/startDrop';
 
@@ -30,7 +31,7 @@ import { isModelFile } from '../components/startDrop';
  * looked at the first of a set of identically-named elements and reported the rest as missing — a
  * false gap that cost a round of investigation.
  */
-export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, onSelect, onStart, onRemove, onFiles, onBack }: {
+export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, onSelect, onStart, onOpenTool, onRemove, onFiles, onBack }: {
   units: readonly PrintUnit[];
   /**
    * Files that never became units. They are rows too (§3's first table): drop eight, one is broken,
@@ -54,6 +55,11 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   lang: Lang;
   /** Begin the dental flow on this unit. The caller owns the three-call order (see `nextItem`). */
   onStart: (unit: PrintUnit) => void;
+  /**
+   * Open one tool on this unit from the rail. The caller decides what that costs: `src/deck/toolEntry.ts`
+   * walks BACK to a tool and refuses to walk forward, because forward is an accept.
+   */
+  onOpenTool: (unit: PrintUnit, tool: ToolId) => void;
   onRemove: (unit: PrintUnit) => void;
   /** Files dropped onto the list. They ADD to it — the caller must not apply Step 1's one-file rule. */
   onFiles: (files: readonly File[]) => void;
@@ -97,7 +103,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
       row here, and the workspace's own left edge once that exists — the same component either way.
     */}
     <div className="items-body">
-      {shown ? <ToolRail facts={unitFacts(shown, detected.get(shown.id))} onPick={() => onStart(shown)} /> : null}
+      {shown ? <ToolRail facts={unitFacts(shown, detected.get(shown.id))} onPick={(tool) => onOpenTool(shown, tool)} /> : null}
       <ul className="items-list">
         {refused.map((entry) => <RefusedRow key={`refused-${entry.name}`} name={entry.name} refusal={entry.refusal} />)}
         {units.map((unit) => <ItemRow

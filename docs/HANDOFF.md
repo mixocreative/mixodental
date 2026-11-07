@@ -50,10 +50,15 @@ After every implementation task, record: the completed requirement; changed file
     rebuilt. Caught by `rigidMove.real.test.ts`, now also pinned by a cheap unit test.
   - Five tests that did not test surfaced across the release. Every fix in the deck work was verified
     by reverting it and watching the suite fail; that is the only reason none of them survived.
+- **Per-tool entry is partly built** (`src/deck/toolEntry.ts`): a rail press walks BACK to a tool,
+  which is the direction that matters, since a stale tool is one that must be revisited. It needed no
+  new transitions — `backDental` and `dentalRimReopen` already existed with their guards intact.
+  Forward stays shut because forward is an accept and an accept does real work. Its reach is narrow:
+  the rail is on the deck, the deck is a start screen, and the flow hides start screens.
 - **Next executable step:** dissolve `dentalStage` into the one workspace — **owner's decision, not
-  taken**. The per-tool widgets, the rail as the workspace's own left edge and per-tool entry all
-  depend on it: the stage machine guards every transition on the current stage
-  (`src/dental/editingMode.ts`), and each stage owns the whole dock.
+  taken**. The per-tool widgets and the rail as the workspace's own left edge depend on it: each
+  stage owns the whole dock, and a rail beside that dock would give two competing ideas of where the
+  operator is.
 
 ## Previous completed step
 
