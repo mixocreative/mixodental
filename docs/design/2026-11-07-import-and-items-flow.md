@@ -36,6 +36,80 @@ detection; per-row support settings; reordering rows; anything that slices or pl
 
 ---
 
+## 0b. THE JOB DECK — the shape this document had wrong
+
+**Revision 6 replaces the per-item wizard with a job deck.** Everything below §1 was written around
+one model walking Orient → Area → Supports → Export, repeated N times. That is the wrong shape, and
+the measurement in this very document says why: `dentalwork/fixtures/case-aligner` holds **8 models**,
+and a real clear-aligner case is a series of stages per arch. Eight passes through a three-step wizard
+for one patient is not a workflow.
+
+**It also contradicted a standing rule of this project** — *one global setting inherited by all
+streams; extras opt-in*. A per-item wizard asks the same questions once per model.
+
+### The sequence
+
+1. **Drop** → a loading scene while the files are read and each preview is cached. Cancellable: quitting
+   mid-import releases the hold (§5).
+2. **Purpose, once.** Aligner / Denture / Any model. This cannot come later: `startAligner` calls
+   `dentalOrient(…, unit.source, profile, …)`, so **detection takes the profile as an argument** and
+   there is nothing to detect against until the purpose is known. The ordering is a correctness
+   constraint, not a preference.
+3. **The batch runs in the background**, per row, **queued one at a time** — orientation detection and
+   the area proposal. N jobs in parallel would multiply peak memory by N and break §0's argument, which
+   is the argument the whole release rests on.
+4. **The job deck.** One row per model: name, size, verdict, **its own detected orientation**, a
+   progress indicator while its jobs run, and a 3D thumbnail that updates when they finish.
+5. **Inspect** opens one row. Not steps — **tools**, reachable in any order.
+6. **Generate** the supports, then **Export**: per row on the deck, or all / selected.
+
+### Steps become tools
+
+| was | becomes |
+|---|---|
+| Step 1 orient | **Orient** tool |
+| rim define (already a detour, never a step) | **Rim** tool |
+| Step 2 area | **Area** tool |
+| Step 3 supports | **Supports** tool (the existing Support Edit Mode) |
+| Step 3's export | moves to the deck |
+
+**THE CASCADE IS THE RISK, and it is the reason they were steps.** Each fed the next: re-orienting
+invalidates the rim, which invalidates the area, which invalidates the supports. Order enforced that
+for free. As tools in any order it must be explicit — re-orient a row and its downstream work is marked
+stale and re-run, or the row shows supports computed for an orientation it no longer has.
+`dentalFlow.invalidate()` and the per-unit `dental` / `rimDraft` state are the machinery; what is new is
+the dependency being tracked **per row** rather than implied by which screen is up. One test per edge
+of that graph, because this is the part most likely to be got wrong.
+
+### Why the thumbnail is affordable, reversing §7
+
+§7 ruled the preview must be text, on the grounds that a 3D preview per row is the release's only new
+per-row memory cost. **That objection applies to N live viewports, not to N cached images.** Rendered
+once from the display copy that already exists and kept as a bitmap, a 160 px thumbnail is tens of
+kilobytes against a 12.2 MB model. There is no offscreen render path in the app today, so it is new
+work — but the memory argument does not forbid it, and the earlier text-only ruling was too
+conservative.
+
+### What is already built, and what this costs
+
+Built and still needed: the Drop page, the rows and their `data-ui` naming, the verdict pipeline
+(`diagnose_mesh` → `ImportDiagnosis` → `rowState` → `rowText`), `nextItem` / `itemsLeft`, the per-job
+export client, and — importantly — **`targets()` already returns every unit when nothing is selected**,
+so "one setting inherited by all, overridden per row" is in the code rather than something to add.
+
+Superseded: the per-item **add loop**. §8 7b's *Next item* press and its walk check are **withdrawn**,
+not merely unbuilt — building them would build the thing this section argues against.
+
+### One open item this section cannot settle
+
+The sequence calls for each row to be *"auto tuned, fixed, and generated"*. **Repair is cut** (§8 step
+9), so nothing presses it: a row can *report* a defect and cannot mend it. Either repair returns —
+reversing the cut — or "fixed" is out of scope and the deck reports only. **Recommendation: report
+only.** Step 5 measured zero open rims across 18 scans, so the repair that matters here is non-manifold
+splitting, and step 9's own brief shows it carrying a worker protocol message, a `SceneCommand` that
+replaces `unit.source`, and a 4x import memory peak. That is a release of its own, not a line in this
+one.
+
 ## 1. Scenes and pages — the vocabulary
 
 **Scenes: built, committed** (`src/scenes/sceneMap.ts`, `src/bench/benchScene.ts`, `e5c5718`).
