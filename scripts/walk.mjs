@@ -1121,20 +1121,55 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForSelector('.start-screen');
       await dropModels([{ name: 'bad-one.stl', text: 'solid x\nnot a mesh\n' }, { name: 'bad-two.stl', text: 'solid y\nalso not\n' }]);
       await d.idle(2500);
-      check('m6 a drop where every file is refused stays on the Drop page, not an empty list',
-        await page.locator('.start-task').isVisible() && (await page.locator('.items-page').count()) === 0,
-        `items page ${await page.locator('.items-page').count()}, status "${await d.status()}"`);
+      /*
+       * REWRITTEN, because the behaviour it asserted was right only while a refused file had nowhere
+       * to go. It used to demand that an all-refused drop STAY on the Drop page - the fix for landing
+       * on a BLANK list. Refused files are rows now, so the list is not blank: it names every file
+       * that failed, which is the thing an operator dropping eight actually needs.
+       */
+      await page.waitForSelector('.items-page', { timeout: 60000 });
+      const allRefused = await page.locator('.items-row--refused').allInnerTexts();
+      check('m6 a drop where every file is refused opens the list and names them all',
+        allRefused.length === 2 && allRefused.every((text) => /[Cc]ould not be read/.test(text))
+        && (await page.locator('.items-row:not(.items-row--refused)').count()) === 0
+        && (await page.locator('[data-ui="items-back"]').count()) === 1,
+        `refused ${JSON.stringify(allRefused)}, good ${await page.locator('.items-row:not(.items-row--refused)').count()}`);
       /*
        * And the second guard: the page always has a way out. TWO files, because ONE goes straight
        * into the flow and never reaches the list - the first version of this check dropped one, found
        * no page, and passed through its own escape clause. A check that passes when the thing it
        * examines is absent examines nothing.
        */
+      await page.goto(url);
+      await page.waitForSelector('.start-screen', { timeout: 60000 });
       await dropModels([{ name: 'good-a.stl', text: cube }, { name: 'good-b.stl', text: cube }]);
       await page.waitForSelector('.items-page', { timeout: 180000 });
       check('m7 the Items page always offers a way back',
         (await page.locator('[data-ui="items-back"]').count()) === 1,
-        `rows ${await page.locator('.items-row').count()}, back ${await page.locator('[data-ui="items-back"]').count()}`);
+        `rows ${JSON.stringify(await page.locator('.items-row .name').allInnerTexts())}, back ${await page.locator('[data-ui="items-back"]').count()}`);
+
+      /*
+       * A REFUSED FILE IS A ROW, naming WHICH one failed. The status line can say only one thing, so a
+       * drop of eight with two bad files named one and lost the other. `verdictOfRefusal` had no
+       * production caller before this, which is why two of the five row sentences were text for rows
+       * that could not exist.
+       */
+      // Back to Drop first: m6 left the Items page up, and `dropModels` dispatches onto `.start-screen`.
+      await page.goto(url);
+      await page.waitForSelector('.start-screen', { timeout: 60000 });
+      await dropModels([
+        { name: 'fine-a.stl', text: cube },
+        { name: 'broken.stl', text: 'solid x\nnot a mesh\n' },
+        { name: 'fine-b.stl', text: cube },
+      ]);
+      await page.waitForSelector('.items-page', { timeout: 180000 });
+      await d.idle(1500);
+      const refusedRows = await page.locator('.items-row--refused').allInnerTexts();
+      check('m8 a bad file among good ones is a row that names it, beside the two that imported',
+        refusedRows.length === 1 && /broken\.stl/.test(refusedRows[0] ?? '')
+        && /[Cc]ould not be read/.test(refusedRows[0] ?? '')
+        && (await page.locator('.items-row:not(.items-row--refused)').count()) === 2,
+        `refused ${JSON.stringify(refusedRows)}, good rows ${await page.locator('.items-row:not(.items-row--refused)').count()}`);
     }
 
     // u. Dental flow, Step 0 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).

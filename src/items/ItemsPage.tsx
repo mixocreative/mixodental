@@ -2,7 +2,7 @@ import { t, translateMessage, type Lang } from '../i18n';
 import { ScreenHeading } from '../ui/ScreenHeading';
 import { Icon } from '../ui/Icon';
 import type { PrintUnit } from '../state/project';
-import { verdictOfDiagnosis } from './rowState';
+import { verdictOfDiagnosis, verdictOfRefusal, type ImportRefusal } from './rowState';
 import { rowSentence } from './rowText';
 import { sizeSummary, triangleSummary } from './itemSummary';
 import { itemsLeft, nextItem } from './nextItem';
@@ -19,8 +19,14 @@ import { isModelFile } from '../components/startDrop';
  * The page is a pure function of the scene and the session: it holds no state of its own, so there is
  * no second copy of "which item is next" to drift from `nextItem`.
  */
-export function ItemsPage({ units, finished, lang, onStart, onRemove, onFiles, onBack }: {
+export function ItemsPage({ units, refused, finished, lang, onStart, onRemove, onFiles, onBack }: {
   units: readonly PrintUnit[];
+  /**
+   * Files that never became units. They are rows too (§3's first table): drop eight, one is broken,
+   * see WHICH. Before this they were reported on the status line, which can say only one thing — so
+   * a drop with two bad files named one of them and lost the other.
+   */
+  refused: readonly { name: string; refusal: ImportRefusal }[];
   /** `session.dentalFinished`: the units already through the flow. */
   finished: readonly string[];
   lang: Lang;
@@ -49,6 +55,16 @@ export function ItemsPage({ units, finished, lang, onStart, onRemove, onFiles, o
     </button>
     <ScreenHeading>{t('Your files')}</ScreenHeading>
     <ul className="items-list">
+      {refused.map((entry) => {
+        const said = rowSentence(verdictOfRefusal(entry.refusal));
+        return <li key={`refused-${entry.name}`} className="items-row items-row--refused" data-ui={`items-row-refused-${entry.name}`}>
+          <span className="name" title={entry.name}>{entry.name}</span>
+          <span className="preview" data-ui={`items-preview-refused-${entry.name}`} />
+          <span className="verdict" data-ui={`items-verdict-refused-${entry.name}`}>
+            {said ? translateMessage(said) : null}
+          </span>
+        </li>;
+      })}
       {units.map((unit) => {
         const done = finished.includes(unit.id);
         // No verdict means the unit never went through the import worker, or predates the verdict.

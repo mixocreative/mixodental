@@ -1546,5 +1546,9 @@ dialog.terms .terms-item > span { flex: none; }
 /* The verdict wraps onto its own line, so a long sentence never clips the name or the size. */
 .items-row .verdict { grid-area: verdict; color: var(--muted); font-size: var(--small-size, 11.5px); }
 .items-row--done { opacity: .55; }
+/* A file that never became a unit: named so the operator sees WHICH one, its verdict in the danger
+   colour as text. An outline, never a fill - the house rule for anything destructive or refused. */
+.items-row--refused .name { color: var(--danger); }
+.items-row--refused .verdict { color: var(--danger); }
 .items-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
 .items-left { color: var(--muted); font-size: var(--small-size, 11.5px); }

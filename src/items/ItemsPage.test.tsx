@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { ItemsPage } from './ItemsPage';
 import type { PrintUnit } from '../state/project';
 import type { ImportDiagnosis } from '../state/diagnosis';
+import type { ImportRefusal } from './rowState';
 
 const mesh = { positions: new Float32Array([0, 0, 0, 10, 20, 30, 0, 20, 0]), indices: new Uint32Array([0, 1, 2]) };
 const verdict = (over: Partial<ImportDiagnosis> = {}): ImportDiagnosis => ({
@@ -12,8 +13,8 @@ const verdict = (over: Partial<ImportDiagnosis> = {}): ImportDiagnosis => ({
 const unit = (id: string, name: string, diagnosis?: ImportDiagnosis) =>
   ({ id, name, source: mesh, ...(diagnosis ? { diagnosis } : {}) } as PrintUnit);
 
-const render = (units: PrintUnit[], finished: string[] = []) =>
-  renderToStaticMarkup(<ItemsPage units={units} finished={finished} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+const render = (units: PrintUnit[], finished: string[] = [], refused: { name: string; refusal: ImportRefusal }[] = []) =>
+  renderToStaticMarkup(<ItemsPage units={units} refused={refused} finished={finished} lang="en" onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
 describe('the Items page', () => {
   /*
@@ -84,6 +85,35 @@ describe('the Items page', () => {
       const html = render(rows);
       expect(html, `${rows.length} rows`).toContain('data-ui="items-back"');
     }
+  });
+
+  /*
+   * A REFUSED FILE IS A ROW. Before this it was reported on the status line, which can say only one
+   * thing - so a drop of eight with two bad files named one and lost the other. `verdictOfRefusal`
+   * had no production caller at all, which is why two of the five sentences were text for rows that
+   * could not exist.
+   */
+  it('shows a row for a file that never became a unit, naming it and why', () => {
+    const html = render([unit('u-a', 'good.stl', verdict())], [], [
+      { name: 'broken.stl', refusal: { kind: 'unreadable', code: 'no-mesh' } },
+      { name: 'huge.stl', refusal: { kind: 'too-big', limit: 'memory' } },
+    ]);
+
+    expect(html).toContain('broken.stl');
+    expect(html).toContain('Could not be read.');
+    expect(html).toContain('huge.stl');
+    expect(html).toContain('Too large to hold in memory.');
+    // The good file is still there beside them.
+    expect(html).toContain('good.stl');
+    expect(html).toContain('Ready to print.');
+  });
+
+  it('gives a refused row no Remove, because there is no unit to remove', () => {
+    const html = render([], [], [{ name: 'broken.stl', refusal: { kind: 'unreadable', code: 'no-mesh' } }]);
+    expect(html).toContain('items-row--refused');
+    expect(html).not.toContain('items-remove-');
+    // And the page still offers its way out, with no units at all.
+    expect(html).toContain('data-ui="items-back"');
   });
 
   it('keeps Remove a danger outline, never a filled red', () => {

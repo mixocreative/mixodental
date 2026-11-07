@@ -102,6 +102,8 @@ import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
 import { ItemsPage } from './items/ItemsPage';
 import { dropKeepsOneFile, filesToImport } from './items/dropGrain';
+import { refusalOf } from './items/refusalOf';
+import type { ImportRefusal } from './items/rowState';
 import { builtGeometry, hasGeometry, type HeldBuild } from './plate/releasedBuild';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
@@ -209,6 +211,8 @@ export default function App() {
   const [session, setSession] = useState(initialSession);
   /** The full-screen start in front of the workspace (docs/ROADMAP.md ST); null: the editor. */
   const [startScreen, setStartScreen] = useState<StartScreenId | null>('drop');
+  /** Files of the last drop that never became units: rows on the Items page, not a lost status line. */
+  const [refusedFiles, setRefusedFiles] = useState<readonly { name: string; refusal: ImportRefusal }[]>([]);
   /** The next dental import replaces the plate (a file chosen on the start screens). */
   const freshStart = useRef(false);
   const importRef = useRef<(files: readonly File[]) => Promise<void>>();
@@ -736,7 +740,15 @@ export default function App() {
    * it. Without this, a drop there mid-loop would silently keep the first file and discard the rest,
    * which is the same class of bug `startDrop.ts` was written to end.
    */
-  const importFiles = useCallback(async (files: readonly File[], options?: { takesOne?: boolean; onAdded?: (count: number) => void }) => {
+  const importFiles = useCallback(async (files: readonly File[], options?: {
+    takesOne?: boolean;
+    onAdded?: (count: number) => void;
+    /**
+     * EVERY refusal, not just the first. The status line can only say one thing, so a drop of eight
+     * with two bad files named one of them and lost the other. A deck of rows can say which.
+     */
+    onRefused?: (refusals: readonly { name: string; refusal: ImportRefusal }[]) => void;
+  }) => {
     // Dental Step 1 takes the aligner itself: one file, and it is oriented once read.
     const dentalDrop = dropKeepsOneFile(acceptsDentalDrop(sessionRef.current), options?.takesOne);
 
@@ -818,6 +830,7 @@ export default function App() {
        * for a refused file, so the next successful `hold` lowers the reservation back on its own; with
        * no successes at all there is nothing to commit, so release it.
        */
+      options?.onRefused?.(refused.map((entry) => ({ name: entry.name, refusal: refusalOf(entry.error) })));
       if (imported.length === 0) {
         reservation.release();
         const first = refused[0]!;
@@ -1481,9 +1494,10 @@ export default function App() {
       </div>
     </header>
     {startScreen === 'items' ? <ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
+      refused={refusedFiles}
       onStart={startItem} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
       onBack={() => setStartScreen('drop')}
-      onFiles={(files) => void importFiles(files, { takesOne: false })} />
+      onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} />
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
       onScreen={goStart} onAnyModel={() => setStartScreen(null)} onOpenProject={() => runCommand('project.open')}
       onProjectFile={(file) => void openProject(file)} onStart={startDental}
@@ -1493,7 +1507,12 @@ export default function App() {
         // bad files on an EMPTY page with no way back: the auto-escape only fires when the count
         // falls from above zero, and this page had no Back. It now has one, and this is the second
         // guard rather than the only one.
-        void importFiles(files, { onAdded: (count) => { if (count > 0) setStartScreen('items'); } });
+        setRefusedFiles([]);
+        void importFiles(files, {
+          onAdded: (count) => { if (count > 0) setStartScreen('items'); },
+          // A refused file is a ROW, so a drop where every file fails still has somewhere to say so.
+          onRefused: (refusals) => { setRefusedFiles(refusals); if (refusals.length > 0) setStartScreen('items'); },
+        });
       }}
       onUnsupported={() => setStatusMessage(errorStatus('import', new CodedError('file-type', 'file-type')))} /> : <>
     <section className={`workspace${editMode === 'dental' ? ' workspace--dental' : ''}`}>

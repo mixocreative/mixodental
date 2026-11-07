@@ -118,18 +118,20 @@ Its `data-ui` names, all keyed to the unit and never to a row index: `items-row-
 `items-preview-<unitId>`, `items-verdict-<unitId>`, `items-remove-<unitId>`, plus `items-start` and
 `items-back`. They are in the app's table in `docs/ui-styling.md`.
 
-## Two of the five sentences cannot be reached yet
+## All five sentences are reachable now
 
-`rowText.ts` has text for `unreadable` and `too-big`, and **nothing can produce those rows today**:
-`verdictOfRefusal` has no production caller, because a refused file never becomes a unit and the page
-lists units. A dropped file that cannot be read is reported on the status line and disappears.
+`refusalOf.ts` turns the error that refused a file into an `ImportRefusal`, `verdictOfRefusal` turns
+that into a row state, and `ItemsPage` renders it — so `unreadable` and `too-big` can occur.
 
-That is the same fault this module refused to commit for the repair states, and it is recorded rather
-than papered over. **The fix is not to delete the text — it is to make a refused file a row**, which is
-what §3's first table always described and what a deck of eight needs: drop eight, one is broken, see
-*which*. Wiring `verdictOfRefusal` belongs with that work.
+**They could not before.** `verdictOfRefusal` had no production caller at all: a refused file was
+reported on the status line and vanished, so two of the five sentences were text for rows that could
+not exist — the same fault this module refused to commit for the repair states.
 
-So the states reachable in the shipped page are **three**: `clean`, `holes`, `malformed`.
+The status line can say only one thing, which is the operator-facing reason this matters: a drop of
+eight with two bad files named one of them and **lost the other**. Rows can say which.
+
+The four repair states stay unreachable, and deliberately: repair is cut (plan §8 step 9), so nothing
+can press it.
 
 ## Not here yet
 
