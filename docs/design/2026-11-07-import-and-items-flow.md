@@ -21,7 +21,9 @@ the app once per aligner: **same task, same type, same answers**, re-entered eac
 **The measure**, stated as a bound rather than a parity claim: a case of N aligners takes one trip
 through the start flow instead of N; peak memory stays inside the existing plate refusal limit
 (`TRIANGLE_BUDGET × 4` = 6,000,000 imported triangles); and **no transient copy is added per file
-beyond the one `repair_mesh` returns when the operator asks for it.**
+beyond the one `repair_mesh` would return when the operator asks for it — **and in this release it is
+never asked**, because repair is cut (see §8 step 9). The release holds no transient copy per file at
+all.**
 
 > Revision 2 claimed "no step holds more memory at once than the single-file flow does today". That is
 > false twice over: the retained term grows with N by definition (the models stay on the plate), and
@@ -290,13 +292,16 @@ on which repair had not run. Two tables, each exhaustive over its own report:
 |---|---|
 | could not be imported | **Could not be read** (`StlFormatError`, `StlEmptyError`, non-finite) — or **Too big for the plate**, naming the limit (`assertTriangleCapacity`, `assertMemoryCapacity`, `assertPlateCapacity`). Two different sentences: a capacity refusal read the file perfectly well. |
 | `watertight` | Clean. Nothing to do. |
-| `boundaryLoops > 0` | **Holes found.** Offers *Repair*. |
-| not watertight, no open loops | **Winding or non-manifold.** Offers *Repair*. |
+| `boundaryLoops > 0` | **Holes found.** Reports only — *Repair* is not in this release. |
+| not watertight, no open loops | **Winding or non-manifold.** Reports only — *Repair* is not in this release. |
 
 That last row is the one revision 2 had no state for — **and it is the expected case on this path**,
 because the weld has already run, so what remains is exactly winding and non-manifold.
 
-**After a press — from `repair_mesh`:**
+**After a press — from `repair_mesh`. NOT REACHABLE IN THIS RELEASE** (step 9 is cut), kept because
+`rowState.ts` already implements and tests it and repair returns the day a holed scan exists. Nothing
+in the shipped UI can produce any row below, so none of them needs text, `kit.html` markup or a
+translation yet.
 
 | Condition | Says |
 |---|---|
@@ -755,8 +760,10 @@ case all 8 of the affected real scans land in.
 mesh, verdict only across the boundary. `src/items/` (new module, README, tests) holds the host-side
 pure classifier — its input is a **union**, `DiagnoseReport | CodedError`, because half of §3's first
 table comes from the capacity guards and the STL reader rather than from `diagnose_mesh` — mapping one
-of those to a row state, and the three-language text for **all nine row sentences** — iterate the
-exported `ROW_STATES`, never a hand-copied count, which has been wrong at every revision — the coded import
+of those to a row state, and the three-language text for the **five reachable row sentences**
+(`unreadable`, `too-big`, `clean`, `holes`, `malformed`) — derive them from `ROW_STATES` minus the four
+that only a repair can produce, never a hand-copied count, which has been wrong at every revision —
+the coded import
 errors, and the three operator classes the nine `fill-*` codes collapse to.
 *Exit:* one test per row state in both of §3's tables, on the classifier, with no UI.
 
@@ -782,7 +789,8 @@ landing with 7b). The verdict is stored, so a row can now read it.
 **6a. The UI groundwork** (§7). Declare the app row-height token in `src/styles.css` and add it to
 the app token table in `docs/ui-styling.md`; decide and document the neutral row tone so `ledger`'s
 `--red` does not reach a routine row; add the glossary terms for *Appliance* in all three languages;
-add all nine row **states** (iterate `ROW_STATES`) to `kit.html` as static markup so the wording and density can be judged
+add the **five reachable** row states to `kit.html` as static markup (derived from `ROW_STATES`, not
+listed by hand; the four repair states are cut with step 9) so the wording and density can be judged
 without importing a file — **not the row component**, which is step 7b's, because a step must not
 need the one after it.
 *Exit:* `uiStylingDoc.test.ts`, `noColourLiterals.test.ts`, `glossary.test.ts`,
@@ -888,7 +896,35 @@ starts; do not trust the numbers above either.*
 > from a reviewer report without checking the source.
 *Exit:* `npm test` green, and a walk check that Back at Orient keeps `dentalFinished`.
 
-**9. Repair on a press** — the *Repair* action on a row, the repaired mesh replacing the unit as **one**
+**9. Repair on a press — CUT FROM THIS RELEASE.** Not deferred vaguely: cut, with the condition for
+its return stated. **It comes back when a holed scan exists** — at a measured fill limit of 0 the only
+thing repair can do here is non-manifold splitting, and a step whose whole purpose is one operation
+should not also be the step that invents a worker protocol message, a `SceneCommand` that replaces
+`unit.source`, and a 4×-import memory peak.
+
+**What diagnose-only still delivers, which is why cutting costs little:** the operator is told the
+truth about the 8 of 18 real scans that carry defects, before they print. That was always the larger
+half — §3's own valve said *"if holes turn out to be rare … diagnose-only is the better first ship"*,
+and step 5 measured holes as not merely rare but **absent**.
+
+**What the cut takes with it:**
+
+- `offersRepair()` stays in `rowState.ts`, unused and tested. No row renders a *Repair* press, so no
+  row needs the press's words.
+- **Four of the nine row states become unreachable** — `refused`, `unchanged`, `repaired`,
+  `repaired-open`. Step 6a's `kit.html` markup and the three-language sentences are therefore **five
+  states, not nine**: `unreadable`, `too-big`, `clean`, `holes`, `malformed`. The nine stay in
+  `ROW_STATES` because the classifier is pure, proven and cheap to keep; what is cut is the UI's
+  obligation to have words for states nothing can produce.
+- The reload question disappears with it. `verdictOfRepair`'s `RepairResult` is unpersistable, and the
+  four states it produces were the only ones that could not survive a reload — so nothing in this
+  release can show a row the project file cannot rebuild.
+- `PrintUnit.diagnosis` can no longer go stale **in this release**, because nothing replaces `source`.
+  The `triangles` gate stays exactly as it is: it is the check that makes step 9 safe to write later,
+  and it costs one comparison.
+
+**When step 9 returns it owes all of this, which round 4 established and should not be re-derived:**
+the *Repair* action on a row, the repaired mesh replacing the unit as **one**
 undo step, and what else must follow it: the **display decimation re-run**, the **pick index rebuilt**
 (`importWorker` builds it from `display ?? mesh`, so a repaired mesh leaves the viewport picking stale
 geometry), and a **capacity re-check**, because filling adds triangles and `assertPlateCapacity` is
@@ -922,6 +958,8 @@ capacity **and the verdict** consistent, and a saved-and-reopened repaired unit 
 verdict that matches its mesh. Plus the standing per-step gate: module + tests + README, `tsc`, the
 suite, the build, the walk, `walk:locales`, and — because this step is the first to run `repair_mesh`
 on real geometry — `npm run gate:real`.
+
+*None of the above is in this release's scope. It is the brief for the step's return.*
 
 **10. Page names — NOT a step. Deleted, with the reason kept.** Revisions 3 and 4 scheduled a `PAGES`
 table beside `SCENES`. It would be a **fourth** enumeration of screens next to `StartScreenId`,

@@ -55,7 +55,30 @@ earlier round. Every finding below was checked against code, not prose.
     the `exportedDental` analogue, item 1's entry flagged as unstated, the one-file slice recorded, and
     its exit corrected: whole-walk `ALL PASS` is **7d's**, not 7b's.
 
-## Not applied — judgment, not fact
+## Settled by the owner after this round
+
+**Step 9 (repair on a press) is CUT from this release**, with the condition for its return stated:
+a holed scan has to exist. At a measured fill limit of 0 the only operation repair can perform here
+is non-manifold splitting, and that is not worth a step that must also invent a worker protocol
+message, a `SceneCommand` replacing `unit.source`, and a 4x-import memory peak.
+
+Followed through rather than deleted:
+
+- §0's memory claim now says the release holds **no** transient copy per file, because nothing asks
+  for one.
+- §3's pre-press table reports instead of offering a press; its post-press table is marked not
+  reachable and kept, because `rowState.ts` already implements and tests it.
+- **Step 6a drops from nine row sentences to five** (`unreadable`, `too-big`, `clean`, `holes`,
+  `malformed`), derived from `ROW_STATES` minus the four only a repair can produce — not listed by
+  hand, which is how the count went wrong at every revision.
+- The reload question disappears: the four unpersistable states were the only rows the project file
+  could not rebuild.
+- `PrintUnit.diagnosis` cannot go stale this release, since nothing replaces `source`. The `triangles`
+  gate stays anyway — one comparison, and it is what makes repair safe to write later.
+- Step 9's full brief is kept in place, labelled as the brief for its return, so round 4's findings
+  are not re-derived when it comes back.
+
+## Still open — judgment, not fact
 
 - **§7 does not specify the UI it exists to specify.** Ten user-visible strings have zero locale
   entries, neither new page has a layout, and "preview" appears once and is defined nowhere. If it is

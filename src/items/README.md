@@ -89,6 +89,21 @@ other optional field there uses `...(unit.x ? { x } : {})`, which is safe only b
 branch means the key was absent anyway. This gate can reject a value that is *present*, and spreading
 `{}` adds nothing — it does not remove what the earlier spread already copied in.
 
+## Four of the nine are not reachable in this release
+
+**Repair is cut** (plan §8 step 9), so nothing presses it: `refused`, `unchanged`, `repaired` and
+`repaired-open` cannot occur, and only `unreadable`, `too-big`, `clean`, `holes` and `malformed` need
+words, `kit.html` markup or translations.
+
+The nine stay here anyway. The classifier is pure, proven and costs nothing to keep, and
+`verdictOfRepair` plus `offersRepair` are the brief for the step's return — the day a holed scan
+exists and the fill limit stops being 0. What was cut is the UI's obligation to have sentences for
+states nothing can produce, not the knowledge of what those states are.
+
+One thing follows for the verdict: nothing in this release replaces a unit's `source`, so a saved
+verdict cannot go stale. The `triangles` gate below stays regardless — it costs one comparison and it
+is what will make repair safe to write.
+
 ## Not here yet
 
 The page, the row component, its `data-ui` names and the three-language sentences — §8 steps 6a and
