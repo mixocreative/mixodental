@@ -259,6 +259,34 @@ as something this release depends on.
 
 *Read "seam only" as "do not extend it", never as "it is unused".*
 
+### BUILDING THE DECK: four increments, and two of them are smaller than this document assumed
+
+**A — Purpose before the batch.** The Drop page **already has the three keys**, and a single dropped
+file is **already held** until one is pressed (`StartScreen`'s `held`). A multi-file drop bypasses
+them, which is the whole gap. So: hold ALL the files the same way, and let the purpose press release
+them into the batch. No new screen, no new mechanism — `held` becomes `File[]` and `choose(id)` hands
+the list on with its profile. The page says how many are waiting.
+
+*Purpose must come first, and it is a correctness constraint rather than a preference:
+`startAligner` calls `dentalOrient(…, unit.source, profile, …)`, so detection takes the profile as an
+argument and there is nothing to detect against until the purpose is known.*
+
+**B — The batch run. ALREADY QUEUED, by machinery that exists.** This document treats "queued, one at
+a time, never N in parallel" as work to be done, on the grounds that N jobs would multiply peak memory
+by N. It is already true: `AnalysisClient` is constructed with `HEAVY_JOBS`, a `TriangleGate`, and
+`analysisClient.test.ts` states its behaviour — *"the second starts only when the first frees its
+triangles"*. Firing one `dentalOrient` per row is therefore serialised **by triangle budget**, which
+is a better rule than "one at a time": two small models may run together, two large ones may not.
+
+So B is: fire one detection per row, record each row's own result, and show progress. The memory
+protection is not built — it is inherited.
+
+**C — Thumbnails.** New work: no offscreen render path exists. Render once from the display copy that
+already exists and cache the **image**; see the paragraph below on why that is affordable.
+
+**D — The tool rail and the inspect page.** The largest piece, and the one that replaces the step
+navigation with tools plus enablement.
+
 ### Why the thumbnail is affordable, reversing §7
 
 §7 ruled the preview must be text, on the grounds that a 3D preview per row is the release's only new
