@@ -1545,6 +1545,8 @@ dialog.terms .terms-item > span { flex: none; }
 .items-row .remove { grid-area: remove; min-height: var(--row-height); padding: 0 8px; }
 /* The verdict wraps onto its own line, so a long sentence never clips the name or the size. */
 .items-row .verdict { grid-area: verdict; color: var(--muted); font-size: var(--small-size, 11.5px); }
+/* Files waiting for a purpose press on the Drop page: the question, not a status. */
+.start-held { margin: 0 0 10px; color: var(--muted); font-size: var(--small-size, 11.5px); }
 .items-row--done { opacity: .55; }
 /* A file that never became a unit: named so the operator sees WHICH one, its verdict in the danger
    colour as text. An outline, never a fill - the house rule for anything destructive or refused. */

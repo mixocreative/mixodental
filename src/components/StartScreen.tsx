@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { isProjectFile } from '../state/projectFile';
 import { dropAction } from './startDrop';
-import { t, type Lang } from '../i18n';
+import { plural, t, type Lang } from '../i18n';
 import { DentureChoice } from '../denture/steps/start/DentureChoice';
 import { ChoiceKey } from '../ui/ChoiceKey';
 import { Icon } from '../ui/Icon';
@@ -47,12 +47,17 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
    * and the operator chooses among them on the plate. The Items page takes this seam over (§8 7b) —
    * until then nothing silently discards the files past the first, which is what this replaced.
    */
-  onFiles: (files: readonly File[]) => void;
+  onFiles: (files: readonly File[], profile: string) => void;
   onUnsupported: () => void;
 }) {
   const root = useRef<HTMLElement>(null);
   const input = useRef<HTMLInputElement>(null);
-  const [held, setHeld] = useState<File>();
+  /**
+   * Files waiting for a purpose. ONE file is not held on the Drop page — it goes straight in on the
+   * default aligner type, which is the fast path 7c created and the ordinary single-aligner case.
+   * SEVERAL files are a case, where the purpose governs a batch, so they wait for the press.
+   */
+  const [held, setHeld] = useState<readonly File[]>([]);
   const [chosen, setChosen] = useState(profile);
   const [over, setOver] = useState(false);
 
@@ -60,7 +65,7 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
   useEffect(() => { root.current?.querySelector('button')?.focus(); }, [screen]);
 
   const go = (next: ChooserScreen) => {
-    if (next === 'drop') setHeld(undefined);
+    if (next === 'drop') setHeld([]);
     onScreen(next);
   };
   // A denture job has one type: its file step comes straight from the task screen, and Back returns there.
@@ -72,8 +77,12 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
   const back = (): ChooserScreen => 'drop';
   const choose = (id: string) => {
     setChosen(id);
-    if (held) onStart(id, held);
-    else onScreen('file', jobKindOf(id));
+    // The purpose press is what releases the held files, with the profile it chose. Asked ONCE for
+    // the whole batch: `dentalOrient` takes the profile as an argument, so there is nothing to
+    // detect against until this is answered.
+    if (held.length > 1) { setHeld([]); return onFiles(held, id); }
+    if (held.length === 1) return onStart(id, held[0]!);
+    return onScreen('file', jobKindOf(id));
   };
   const drop = (event: React.DragEvent<HTMLElement>) => {
     event.preventDefault();
@@ -83,10 +92,12 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     switch (action.kind) {
       case 'project': return onProjectFile(action.file);
       case 'unsupported': return onUnsupported();
-      case 'many': return onFiles(action.files);
+      // HELD, not imported. The purpose governs what the batch is detected against, so several
+      // files wait for it rather than being read first and asked afterwards.
+      case 'many': return setHeld(action.files);
       case 'start': return onStart(action.profile, action.file);
       case 'hold':
-        setHeld(action.file);
+        setHeld([action.file]);
         // A model dropped on Drop goes straight in on the default aligner type.
         return screen === 'drop' ? onStart(defaultProfileId('aligner'), action.file) : undefined;
       case 'ignore': return undefined;
@@ -104,6 +115,9 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     {/* The class stays `start-task` so section `s` of the walk keeps selecting it; 7d renames it. */}
     {screen === 'drop' ? <div className="start-task">
       <ScreenHeading>{t('What are you making?')}</ScreenHeading>
+      {held.length > 1 ? <p className="start-held" data-ui="start-held">
+        {plural(held.length, '1 file ready. Choose what you are making.', '{n} files ready. Choose what you are making.')}
+      </p> : null}
       <div className="choice-keys">
         <ChoiceKey icon="aligner" label={t('Aligner')} ui="start-aligner" onChoose={() => choose(defaultProfileId('aligner'))} />
         <DentureChoice onChoose={() => choose(DENTURE_PROFILE_ID)} />

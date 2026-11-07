@@ -705,6 +705,8 @@ export const ja: Dictionary = {
   'What would you like to support?': '何のサポートを作りますか？',
   'What are you making?': '何を作りますか？',
   'Your files': '追加したファイル',
+  '1 file ready. Choose what you are making.': '1つのファイルが準備できました。作る対象を選んでください。',
+  '{n} files ready. Choose what you are making.': '{n}個のファイルが準備できました。作る対象を選んでください。',
   'Layout': 'レイアウト',
   'Arrange objects': 'オブジェクトを配置',
   'The objects are already apart.': 'オブジェクトはすでに離れています。',

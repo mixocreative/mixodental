@@ -710,6 +710,8 @@ export const zhHant: Dictionary = {
   'What would you like to support?': '您想要製作\n什麼支撐？',
   'What are you making?': '您想要製作\n什麼？',
   'Your files': '您的檔案',
+  '1 file ready. Choose what you are making.': '1 個檔案已就緒。請選擇要製作的項目。',
+  '{n} files ready. Choose what you are making.': '{n} 個檔案已就緒。請選擇要製作的項目。',
   'Layout': '排版',
   'Arrange objects': '排列物件',
   'The objects are already apart.': '物件已分開。',

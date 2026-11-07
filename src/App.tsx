@@ -213,6 +213,8 @@ export default function App() {
   const [startScreen, setStartScreen] = useState<StartScreenId | null>('drop');
   /** Files of the last drop that never became units: rows on the Items page, not a lost status line. */
   const [refusedFiles, setRefusedFiles] = useState<readonly { name: string; refusal: ImportRefusal }[]>([]);
+  /** The purpose pressed for a multi-file drop: what the batch detects against (plan §0b step 2). */
+  const [batchProfile, setBatchProfile] = useState<string>();
   /** The next dental import replaces the plate (a file chosen on the start screens). */
   const freshStart = useRef(false);
   const importRef = useRef<(files: readonly File[]) => Promise<void>>();
@@ -1344,7 +1346,7 @@ export default function App() {
     const live = sessionRef.current;
     if (live.mode !== 'dental') {
       setStartScreen(null);
-      return send({ type: 'startDental', profile: live.dentalProfile ?? DEFAULT_PROFILE_ID });
+      return send({ type: 'startDental', profile: live.dentalProfile ?? batchProfile ?? DEFAULT_PROFILE_ID });
     }
     setStartScreen(null);
     if (live.dentalStage === 'review' && live.dentalUnitId) send({ type: 'addAnotherDental', unitId: live.dentalUnitId });
@@ -1501,7 +1503,11 @@ export default function App() {
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
       onScreen={goStart} onAnyModel={() => setStartScreen(null)} onOpenProject={() => runCommand('project.open')}
       onProjectFile={(file) => void openProject(file)} onStart={startDental}
-      onFiles={(files) => {
+      onFiles={(files, profile) => {
+        // The purpose pressed for the whole batch. Held here rather than in the session, because the
+        // session's profile is set by entering a unit's flow and this batch has started none - and
+        // `dentalOrient` needs it the moment the batch runs (plan §0b step 2).
+        setBatchProfile(profile);
         // ONLY GO TO THE ITEMS PAGE IF SOMETHING ARRIVED. `importFiles` reports a refusal through the
         // status line and resolves normally, so switching unconditionally landed a drop of entirely
         // bad files on an EMPTY page with no way back: the auto-escape only fires when the count

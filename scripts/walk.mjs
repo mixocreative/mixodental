@@ -1084,6 +1084,19 @@ async function walk(url, scratch, dentalFixture) {
       }, { files: names });
       const cube = cubeStl();
       await dropModels([{ name: 'one.stl', text: cube }, { name: 'two.stl', text: cube }, { name: 'three.stl', text: cube }]);
+      /*
+       * SEVERAL FILES WAIT FOR THE PURPOSE. A multi-file drop used to import immediately and ask
+       * nothing, which cannot work: `dentalOrient` takes the profile as an ARGUMENT, so there is
+       * nothing to detect against until the purpose is answered. One file still goes straight in on
+       * the default aligner type - that is the fast path, and the ordinary single-aligner case.
+       */
+      check('m1b several dropped files wait on the Drop page and say how many',
+        await page.locator('[data-ui="start-held"]').isVisible()
+        && /3 files ready/.test(await page.locator('[data-ui="start-held"]').innerText())
+        && (await page.locator('.items-page').count()) === 0,
+        `held "${await page.locator('[data-ui="start-held"]').innerText().catch(() => 'absent')}", items page ${await page.locator('.items-page').count()}`);
+      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+      // The rows exist only AFTER the purpose press: that press is what starts the import.
       const rows = await page.waitForFunction(() => document.querySelectorAll('.items-row').length === 3, null, { timeout: 180000 })
         .then(() => true, () => false);
       check('m2 a drop of three models on the Drop page gives three rows, not one',
@@ -1127,6 +1140,7 @@ async function walk(url, scratch, dentalFixture) {
        * on a BLANK list. Refused files are rows now, so the list is not blank: it names every file
        * that failed, which is the thing an operator dropping eight actually needs.
        */
+      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
       await page.waitForSelector('.items-page', { timeout: 60000 });
       const allRefused = await page.locator('.items-row--refused').allInnerTexts();
       check('m6 a drop where every file is refused opens the list and names them all',
@@ -1143,6 +1157,7 @@ async function walk(url, scratch, dentalFixture) {
       await page.goto(url);
       await page.waitForSelector('.start-screen', { timeout: 60000 });
       await dropModels([{ name: 'good-a.stl', text: cube }, { name: 'good-b.stl', text: cube }]);
+      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
       await page.waitForSelector('.items-page', { timeout: 180000 });
       check('m7 the Items page always offers a way back',
         (await page.locator('[data-ui="items-back"]').count()) === 1,
@@ -1162,6 +1177,7 @@ async function walk(url, scratch, dentalFixture) {
         { name: 'broken.stl', text: 'solid x\nnot a mesh\n' },
         { name: 'fine-b.stl', text: cube },
       ]);
+      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
       await page.waitForSelector('.items-page', { timeout: 180000 });
       await d.idle(1500);
       const refusedRows = await page.locator('.items-row--refused').allInnerTexts();
