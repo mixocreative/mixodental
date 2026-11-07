@@ -81,6 +81,37 @@ stale and re-run, or the row shows supports computed for an orientation it no lo
 the dependency being tracked **per row** rather than implied by which screen is up. One test per edge
 of that graph, because this is the part most likely to be got wrong.
 
+### The steps become TABS, not a dissolved sequence
+
+The owner's reference: other software puts the steps as **section tabs along the top**, each tab owning
+its own tools and isolating the workspace. Resin and FDM slicers do it for prepare/preview/device;
+video and photo suites call them pages or modules. Three properties matter here:
+
+- **Ordered but not gated.** Left to right communicates the dependency without forcing passage through it.
+- **Each tab isolates its toolset**, so one tab's tool cannot be mistaken for another's.
+- **A tab can be marked stale** when something upstream of it changed.
+
+**The third property is what answers the cascade risk above.** Tabs do not restore the gate — they
+*display* it. Re-orient a row and Rim, Area and Supports show a stale marker and re-run when opened.
+The dependency becomes visible instead of enforced, which is what a technician who knows the job wants
+and what would infuriate them if enforced.
+
+**The app is already built this way underneath.** `DentalStage` already drives the viewport chrome per
+stage (`VIEWPORT_CLASS` keyed by gesture kind: `dental-aligner`, `dental-rim`, `dental-area`,
+`dental-review`) and `sectionLocked` already locks panel sections per mode. The stages **already**
+isolate their workspaces; what makes them steps rather than tabs is only the Next/Back control flow.
+So this is a change to navigation plus a stale marker, not a rewrite of the surfaces.
+
+| level | destination | contains |
+|---|---|---|
+| top | **Job deck** | the rows, generate, export |
+| top | **Inspect** (one row) | the tabs below |
+| tab | Orient · Rim · Area · Supports | that tab's own tools, isolated |
+
+*What tabs cost:* linear steps teach a first-time user the order and tabs do not. Mitigated by the
+left-to-right order, the stale markers, and the deck flagging which rows need attention — a novice is
+led by what is marked rather than railroaded.
+
 ### Why the thumbnail is affordable, reversing §7
 
 §7 ruled the preview must be text, on the grounds that a 3D preview per row is the release's only new
@@ -1185,13 +1216,31 @@ them is not.** §1's table and `src/scenes/README.md` carry the vocabulary.
 never off the bare `exportedDental` press.
 
 `UnitBuild<KeptBuild>` is the right shape for a released entry (**not** `UnitBuild<BuiltSupports>`,
-which has no `footprint` — a reviewer claim this doc once carried and which is false). But a
-**uniform widening of the map does not compile**, and that is the work this step is actually made of.
-The map's consumers need full geometry and say so in their own types: `src/plate/plateLayout.ts`
-(`Builds`, read at `plateFootprints`), `src/components/usePlateArrange.ts:16`
-(`ReadonlyMap<string, { unit; mesh: GeneratedSupportMesh }>`), `src/components/useExport.ts:26`
-(`ReadonlyMap<string, UnitBuild>`), plus `useFixSpot.ts` and `viewport/types.ts`. A live unit still
-needs its mesh; only a *released* one does not.
+which has no `footprint` — a reviewer claim this doc once carried and which is false).
+
+**"Five consumers need full meshes" is ALSO false, and this document carried that too.** Traced
+against the code rather than taken from the review:
+
+| consumer | what it actually reads |
+|---|---|
+| `src/plate/plateLayout.ts` | `entry.mesh.footprint` only — nothing else |
+| `src/components/usePlateArrange.ts` | forwards `built` to `plateFootprints`; reads no field itself |
+| `src/components/useExport.ts` | passes through to `planExport`, whose parameter is `BuiltSupports`, and `unitContacts`, likewise |
+| `src/components/useFixSpot.ts` | compares `entry.mesh !== currentBuild(...)` — identity, no field access |
+| `src/viewport/types.ts` | **does not exist** |
+
+Three of them **over-declare** their parameter as `GeneratedSupportMesh` while reading only small
+fields; one was never a consumer at all. **The single real geometry reader is `activeMesh`**
+(`App.tsx:340`) — `dentalRimCoverage`, `unresolved`, `dentalStructureFallback` — which is the unit
+being looked at.
+
+So the step is: narrow the three over-declared parameters to what they read, and make the map's value a
+union of held and released, narrowed by a guard where geometry is genuinely needed. `UnitBuild` is
+**already generic** (`UnitBuild<T extends BuiltSupports = GeneratedSupportMesh>`), so no new machinery
+is required.
+
+**It fits the job deck exactly.** One inspect page open at a time means one unit holding geometry, and
+a deck of N generated rows is precisely the case that makes releasing the other N-1 worth doing.
 
 So the value type becomes a **discriminated union** of built-and-held versus released-and-measured,
 and each of those five sites is migrated to narrow on the discriminator — a released entry must be a
