@@ -734,9 +734,23 @@ but it was not the cause.
 2113 s**, `g` included. `s17` is fixed and passes 5/5, so the old clause "no new failures beside `g`
 and `s17`" licensed a regression in a check that works — it is withdrawn.
 
-`g` is flaky and pre-existing (it fails at `1db2987`). A run where **`g` alone** fails is re-run, not
-accepted; any other failure is a failure. *Remaining exit:* a cause for `g`, which is the only thing
-step 0 still owes.
+**`g`'s cause is found, and it was never one question.** The check asserted two things on one line:
+that a brush queue formed under CPU throttling (a precondition about the MACHINE) and that switching
+Select to Unselect mid-queue leaves the same state as doing them in order (the assertion about the
+APP). It failed whenever either gave way, and the text could not say which — which is why this
+document called it flaky, then deterministic, then flaky again across three revisions.
+
+The run that settled it: both hashes `#811c9dc5`, **identical**, so the app assertion held; and
+`pendingAtSwitch` **0**, so no queue ever formed. The walk's own comment already described this case
+— *"too slow and the pointer moves are dropped outright … which is how this failed on this machine at
+4x, after already being lowered from 6x"* — and the machine was carrying an orphaned 11 GB dev server
+at the time.
+
+So it is split: **`g-pre`** owns the precondition and fails loudly when the machine cannot build a
+queue, and **`g`** owns the app assertion and still has to pass. A check that could not run is not a
+check that passed, so neither is silenced; they simply no longer share a verdict.
+
+*Step 0 is now done.* The criterion stays plain `ALL PASS`.
 
 **1. Done — `e5c5718`.** `src/scenes/`, `src/bench/`, `FLOW_END`, `reviewWayOn` and its four sites,
 the `exportedDental` fix, `src/App.tsx`, `src/components/{ModeEntry,StartScreen,DentalSupports}.tsx`,

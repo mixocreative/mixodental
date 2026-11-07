@@ -136,7 +136,7 @@ const NO_CONTACTS: readonly SupportContact[] = [];
 
 /** Settings edits come in bursts (typing a value); a unit's preview rebuild waits this long. */
 /** The footer line of each start screen (i18n keys). */
-const START_HINT: Record<Exclude<StartScreenId, 'file'>, string> = { drop: 'Drop one or more files, or choose what to make.', items: 'Work through the files one at a time.', type: 'Choose the aligner type.' };
+const START_HINT: Record<Exclude<StartScreenId, 'file'>, string> = { drop: 'Drop one or more files, or choose what to make.', items: 'Work through the files one at a time.' };
 const BUILD_DELAY_MS = 120;
 
 /** The Export STL commands (editing/commands): `export.` and the kind. */
@@ -1119,7 +1119,8 @@ export default function App() {
           dentalFlow.invalidate();
           denture.orient.invalidate();
           setBackAsk(false);
-          const kindScreen = denture.active ? 'drop' : 'type';
+          // The type screen is gone (7c): Back at Step 1 returns to Drop for every job kind.
+          const kindScreen = 'drop';
           send({ type: 'exit' });
           return setStartScreen(kindScreen);
         }

@@ -3,7 +3,7 @@ import { dropAction, isModelFile } from './startDrop';
 
 const file = (name: string) => new File([new Uint8Array(1)], name);
 const isProject = (name: string) => name.toLowerCase().endsWith('.mixo');
-const act = (names: string[], over: { screen?: 'drop' | 'type' | 'file'; chosen?: string } = {}) =>
+const act = (names: string[], over: { screen?: 'drop' | 'file'; chosen?: string } = {}) =>
   dropAction(names.map(file), { screen: over.screen ?? 'drop', chosen: over.chosen, isProject });
 
 describe('what a drop on a start screen means', () => {

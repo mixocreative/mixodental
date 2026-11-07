@@ -44,7 +44,7 @@ export const isModelFile = (file: File): boolean => /\.stl$/i.test(file.name);
  */
 export function dropAction(
   files: readonly File[],
-  options: { screen: 'drop' | 'type' | 'file'; chosen: string | undefined; isProject: (name: string) => boolean },
+  options: { screen: 'drop' | 'file'; chosen: string | undefined; isProject: (name: string) => boolean },
 ): DropAction {
   if (files.length === 0) return { kind: 'ignore' };
   const project = files.find((file) => options.isProject(file.name));

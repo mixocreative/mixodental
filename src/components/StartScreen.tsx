@@ -2,21 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { isProjectFile } from '../state/projectFile';
 import { dropAction } from './startDrop';
 import { t, type Lang } from '../i18n';
-import { DentalTypeStep } from './DentalSteps';
 import { DentureChoice } from '../denture/steps/start/DentureChoice';
 import { ChoiceKey } from '../ui/ChoiceKey';
 import { Icon } from '../ui/Icon';
 import { ScreenHeading } from '../ui/ScreenHeading';
 import { fileStepText } from '../denture/steps/start/startText';
 import { DENTURE_PROFILE_ID, jobKindOf } from '../denture/jobKind';
-import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
+import { defaultProfileId, type DentalKind } from '@mixo-geocore/host/dental/dentalKind';
 
 /**
  * The full-screen start screens. `drop` is the first page — named for what the operator does on it
  * rather than for the choice it offers, because a dropped file is now the ordinary way in and the
  * keys are the alternative (plan §1, §7). It was `task` until the Drop page landed.
  */
-export type StartScreenId = 'drop' | 'items' | 'type' | 'file';
+export type StartScreenId = 'drop' | 'items' | 'file';
 
 /**
  * The screens THIS component renders. `items` is its own component (`src/items/ItemsPage.tsx`), so
@@ -67,7 +66,10 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
   // A denture job has one type: its file step comes straight from the task screen, and Back returns there.
   const kind = jobKindOf(chosen);
   const text = fileStepText(screen === 'file' ? kind : 'aligner');
-  const back = (): ChooserScreen => (screen === 'file' && kind === 'aligner' ? 'type' : 'drop');
+  // THE TYPE SCREEN IS GONE (plan §8 7c), so every Back from the file screen returns to Drop.
+  // It offered one card: §2 establishes that Type is derived by `defaultProfileId(kind)` and that
+  // exactly one aligner profile exists, so the screen asked a question with a single answer.
+  const back = (): ChooserScreen => 'drop';
   const choose = (id: string) => {
     setChosen(id);
     if (held) onStart(id, held);
@@ -85,7 +87,8 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
       case 'start': return onStart(action.profile, action.file);
       case 'hold':
         setHeld(action.file);
-        return screen === 'drop' ? onScreen('type') : undefined;
+        // A model dropped on Drop goes straight in on the default aligner type.
+        return screen === 'drop' ? onStart(defaultProfileId('aligner'), action.file) : undefined;
       case 'ignore': return undefined;
     }
   };
@@ -102,7 +105,7 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
     {screen === 'drop' ? <div className="start-task">
       <ScreenHeading>{t('What are you making?')}</ScreenHeading>
       <div className="choice-keys">
-        <ChoiceKey icon="aligner" label={t('Aligner')} ui="start-aligner" onChoose={() => onScreen('type')} />
+        <ChoiceKey icon="aligner" label={t('Aligner')} ui="start-aligner" onChoose={() => choose(defaultProfileId('aligner'))} />
         <DentureChoice onChoose={() => choose(DENTURE_PROFILE_ID)} />
         {/* The way into the workspace for work with no flow at all - and the ONLY one, which is why it
             stays even though the step flow no longer ends there (src/scenes/sceneMap.ts `doors`).
@@ -111,7 +114,6 @@ export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpe
       </div>
       <button type="button" className="link-button" onClick={onOpenProject}>{t('Open a saved project')}</button>
     </div> : null}
-    {screen === 'type' ? <DentalTypeStep profile={chosen} lang={lang} send={() => undefined} onChoose={choose} /> : null}
     {screen === 'file' ? <div className="dental-stage">
       <div className="dental-drop">
         <ScreenHeading>{t(text.heading)}</ScreenHeading>

@@ -869,7 +869,10 @@ async function walk(url, scratch, dentalFixture) {
        * than one line of red. One attempt, and if no queue formed the check says so instead of blaming the
        * app for the machine it ran on.
        */
-      const throttle = 4;
+      // 6x was too slow, then 4x was too slow on a busier machine (the pointer moves are dropped
+      // outright and the stroke selects nothing, which `g-pre` now reports as its own failure). 2x is
+      // the next step down. If this ever reports 0 again, lower it rather than reading it as the app.
+      const throttle = 2;
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
       await d.stroke(A[0], A[1], 30, { pace: 40 });
       const pendingAtSwitch = (await d.props()).selected;
@@ -881,8 +884,25 @@ async function walk(url, scratch, dentalFixture) {
       const switched = await d.settle();
       // A queue that never formed cannot answer the question, and saying so is better than a red line that
       // blames the app for the machine.
+      /*
+       * TWO CHECKS, BECAUSE THIS WAS TWO QUESTIONS IN ONE LINE - and that is why `g` spent this whole
+       * session being called flaky, then deterministic, then flaky again. The conflated form failed
+       * whenever EITHER the app disagreed with itself OR the harness could not slow the machine enough
+       * to build a queue, and the failure text could not tell you which.
+       *
+       * Measured, not reasoned: at the run that prompted this split, both hashes were #811c9dc5 -
+       * identical, so the app assertion HELD - while `pendingAtSwitch` was 0, meaning no queue ever
+       * formed. One number says the app is right; the other says the test could not run. They cannot
+       * share a verdict.
+       *
+       * `g` is still the real assertion and still has to pass. `g-pre` is the precondition, and it
+       * fails loudly rather than silently, because a check that cannot run is not a check that passed.
+       */
+      check('g-pre the machine slowed enough for a brush queue to form (precondition, not the app)',
+        pendingAtSwitch > 0,
+        `${pendingAtSwitch} steps pending at the switch, ${throttle}x throttle. 0 means the pointer moves were dropped outright - the machine was too loaded, so g below could not be answered.`);
       check('g Select to Unselect mid-queue keeps the earlier steps as Select',
-        pendingAtSwitch > 0 && switched.hash === sequential.hash,
+        switched.hash === sequential.hash,
         `one after the other ${sequential.selected} (#${sequential.hash}), switched mid-queue ${switched.selected} (#${switched.hash}), selected when switching ${pendingAtSwitch} at ${throttle}x`);
       await d.exitMode();
 
@@ -1093,7 +1113,17 @@ async function walk(url, scratch, dentalFixture) {
       writeFileSync(holed, cut);
       const drop = (file) => page.setInputFiles('input[aria-label="Choose aligner file"]', file);
       /** Back from Step 1 lands on the start screen's aligner type; its card leads to the file screen, whose drop starts Step 1. */
-      const onTypeScreen = () => page.waitForSelector('.start-screen .choice-keys');
+      /*
+       * Back at Step 1 returns to the DROP page now (7c removed the start type screen). The old helper
+       * waited on `.start-screen .choice-keys`, which Drop also matches, so it kept "passing" while
+       * the click after it found Drop's three purpose keys instead of one type card. Re-entering the
+       * flow is now an explicit press of Aligner.
+       */
+      const backToDrop = () => page.waitForSelector('.start-task');
+      const enterAlignerAgain = async () => {
+        await backToDrop();
+        await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+      };
       const badge = () => page.locator('.edit-badge').textContent();
       const objects = async () => (await page.locator('footer').innerText()).match(/(\d+) objects?/)?.[1];
       const stepTo = async (text, ms = 20000) => page.waitForFunction((word) => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes(word.toLowerCase()), text, { timeout: ms });
@@ -1362,8 +1392,7 @@ async function walk(url, scratch, dentalFixture) {
       await stepTo('Step 1 · Aligner');
 
       await d.button('Back').click();
-      await onTypeScreen();
-      await page.locator('.choice-key').click();
+      await enterAlignerAgain();
 
       /*
        * Cancel gets its OWN entry and needs no anchors, which is why it goes second: a second cube is
@@ -1407,8 +1436,7 @@ async function walk(url, scratch, dentalFixture) {
       check('u6 a mesh with holes is warned about before detection is trusted', await page.getByText('holes or non-manifold').isVisible());
       await leaveRimIfOpen();
       await d.button('Back').click();
-      await onTypeScreen();
-      await page.locator('.choice-key').click();
+      await enterAlignerAgain();
       await drop(cup);
       // The cup is a closed, manifold thick cup: a cavity opening but no CENTRAL opening, so the type that
       // insists on one should offer a switch. Its own scenario, and a failure here used to end the walk
@@ -1469,8 +1497,11 @@ async function walk(url, scratch, dentalFixture) {
           await d.button('Cancel').click();
           await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
         }
+        // BOTH BRANCHES MUST LEAVE THE APP IN THE SAME PLACE: the click after this block expects one
+        // type card, and Drop has three purpose keys. `backToTypeScreen` reloads and re-enters the
+        // in-workspace Step 0, so it converges from either branch.
         await d.button('Back').click();
-        await onTypeScreen();
+        await backToTypeScreen();
       } catch (error) {
         const said = `the app said "${await alertsNow()}" (${error.message.split('\n')[0]})`;
         if (u7Reported) note(`u7's scenario could not be left cleanly: ${said}`);
@@ -2335,7 +2366,14 @@ async function walk(url, scratch, dentalFixture) {
     // s. The full-screen start (ST): task, aligner type, file; Back and Escape; drops; Any model.
     if (runs('s')) {
       const reference = dentalFixture ?? PUBLIC_ALIGNER;
-      const onScreen = (which) => page.waitForSelector({ task: '.start-task', type: '.start-screen .choice-keys', file: '.start-screen .dental-drop' }[which], { timeout: 10000 });
+      /*
+       * ONE SELECTOR PER PAGE, each matching only that page. The old map had
+       * `type: '.start-screen .choice-keys'`, which the DROP page also matches - both it and the
+       * type step render a `.choice-keys` container - so a wait for the type screen was satisfied by
+       * the page before it. That selector would have gone on passing after 7c removed the type
+       * screen entirely, which is the opposite of what a check is for.
+       */
+      const onScreen = (which) => page.waitForSelector({ drop: '.start-task', items: '.items-page', file: '.start-screen .dental-drop' }[which], { timeout: 10000 });
       const unitsOnPlate = async () => Number((await page.locator('footer').innerText()).match(/(\d+) objects?/)?.[1] ?? -1);
       /** The footer count once the dropped file has been read onto the plate. */
       const plateHas = (n) => page.waitForFunction((count) => new RegExp(`(^|\\D)${count} objects?`).test(document.querySelector('footer')?.innerText ?? ''), n, { timeout: 60000 }).then(() => true, () => false);
@@ -2348,7 +2386,7 @@ async function walk(url, scratch, dentalFixture) {
       const supports = () => page.getByRole('button', { name: 'Aligner', exact: true });
 
       await page.goto(url);
-      await onScreen('task');
+      await onScreen('drop');
       /*
        * READ THE LABEL ELEMENT, not the button's whole text.
        *
@@ -2370,8 +2408,11 @@ async function walk(url, scratch, dentalFixture) {
         (await page.locator('header').getByRole('button', { name: /^(Undo|Redo|Hide models|Wireframe)/ }).count()) === 0 && await page.locator('header').getByLabel('Language').isVisible() &&
         await page.getByRole('heading', { name: 'What are you making?' }).isVisible() && (await page.locator('footer strong').innerText()) === 'Drop one or more files, or choose what to make.', await page.locator('footer strong').innerText());
       await supports().click();
-      await onScreen('type');
-      check('s2 Aligner supports shows the type cards full-screen with Back', (await page.locator('.start-screen .choice-key').count()) === 1 && await d.button('Back').isVisible() && (await page.locator('.workspace').count()) === 0);
+      await onScreen('file');
+      check('s2 Aligner goes straight to the file screen, full-screen with Back, and no type cards remain',
+        (await page.locator('.start-screen .dental-drop').count()) === 1 && await d.button('Back').isVisible()
+        && (await page.locator('.workspace').count()) === 0 && (await page.locator('.start-screen .choice-key').count()) === 0,
+        `type cards ${await page.locator('.start-screen .choice-key').count()}`);
 
       // The screen's heading is ranged left inside a box that is centred - which only LOOKS centred while the
       // box is exactly as wide as its longest line. No CSS width does that to wrapped text, so the component
@@ -2393,18 +2434,17 @@ async function walk(url, scratch, dentalFixture) {
           fit ? `box ${fit.box}px, longest line ${fit.widest}px, ${fit.offCentre.toFixed(1)}px off centre` : 'no heading');
       }
       await page.keyboard.press('Escape');
-      await onScreen('task');
-      check('s3 Escape on the type screen is Back to the task screen', true);
+      await onScreen('drop');
+      check('s3 Escape on the file screen is Back to the Drop page', await page.locator('.start-task').isVisible());
       await supports().click();
-      await onScreen('type');
+      await onScreen('file');
       await d.button('Back').click();
-      await onScreen('task');
-      check('s4 Back on the type screen returns to the task screen', true);
+      await onScreen('drop');
+      check('s4 Back on the file screen returns to the Drop page', await page.locator('.start-task').isVisible());
       await page.keyboard.press('Escape');
-      check('s5 Escape on the task screen does nothing', await page.locator('.start-task').isVisible());
+      check('s5 Escape on the Drop page does nothing', await page.locator('.start-task').isVisible());
 
       await supports().click();
-      await page.locator('.choice-key').click();
       await onScreen('file');
       /*
        * The hint says the file can be DRAGGED here as well as chosen, which the old wording left out - so
@@ -2412,38 +2452,47 @@ async function walk(url, scratch, dentalFixture) {
        * for word: that the file is checked and turned the right way up, and that dragging is offered.
        */
       const fileHint = await page.locator('.start-screen').innerText();
-      check('s6 choosing the type opens the file screen: the instruction, its hint, a file button and Back',
+      check('s6 Aligner opens the file screen: the instruction, its hint, a file button and Back',
         await page.getByText('Place the aligner file here').isVisible()
           && /[Dd]rag an STL here/.test(fileHint) && /checked and turned the right way up/.test(fileHint)
           && await d.button('Choose STL file').isVisible() && await d.button('Back').isVisible(),
         fileHint.replace(/\s+/g, ' ').slice(0, 140));
+      /*
+       * THE TYPE SCREEN IS GONE (7c), so both ways off the file screen land on Drop. These two used to
+       * assert a return to the type screen "which keeps the chosen type pressed" - a card that no
+       * longer exists. There is no type to keep pressed now: it is derived by `defaultProfileId`.
+       */
       await page.keyboard.press('Escape');
-      await onScreen('type');
-      check('s7 Escape on the file screen is Back to the type screen, which keeps the chosen type pressed', (await page.locator('.choice-key').getAttribute('aria-pressed')) === 'true');
-      await page.locator('.choice-key').click();
+      await onScreen('drop');
+      // NOT a `.choice-key` count: the Drop page has three of its own (Aligner, Denture, Any model).
+      // What marks the absent type screen is that Drop is up and the file screen is gone.
+      check('s7 Escape on the file screen returns to the Drop page, with no type screen in between',
+        await page.locator('.start-task').isVisible() && (await page.locator('.start-screen .dental-drop').count()) === 0);
+      await supports().click();
       await onScreen('file');
       await d.button('Back').click();
-      await onScreen('type');
-      check('s8 Back on the file screen returns to the type screen', true);
+      await onScreen('drop');
+      check('s8 Back on the file screen returns to the Drop page', await page.locator('.start-task').isVisible());
 
       // The reference aligner chosen on the file screen enters Step 1.
-      await page.locator('.choice-key').click();
+      await supports().click();
       await onScreen('file');
       await page.setInputFiles('input[aria-label="Choose aligner file"]', reference);
       await page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 1 · aligner') && document.body.innerText.toLowerCase().includes('review the orientation'), null, { timeout: 180000 });
       check('s9 the reference aligner chosen on the file screen reaches Step 1 with its type, in the editor', (await page.locator('.start-screen').count()) === 0 && (await page.locator('.workspace').count()) === 1 && await unitsOnPlate() === 1);
       await d.button('Back').click();
-      await onScreen('type');
-      check('s10 Back from Step 1 returns to the type screen (type kept pressed) and the aligner stays on the plate', (await page.locator('.choice-key').getAttribute('aria-pressed')) === 'true' && await unitsOnPlate() === 1 && (await page.locator('.workspace').count()) === 0);
+      await onScreen('drop');
+      check('s10 Back from Step 1 returns to the Drop page and the aligner stays on the plate',
+        await page.locator('.start-task').isVisible() && await unitsOnPlate() === 1 && (await page.locator('.workspace').count()) === 0);
       await page.keyboard.press('Escape');
-      await onScreen('task');
+      await onScreen('drop');
       await page.getByRole('button', { name: 'Any model', exact: true }).click();
       await page.waitForSelector('.workspace');
       check('s11 reaching the task screen removed nothing: Any model opens the editor with the aligner still on the plate', await unitsOnPlate() === 1 && (await page.locator('footer').innerText()).includes('1 object'));
 
       // Any model: the empty generic editor, unchanged.
       await page.goto(url);
-      await onScreen('task');
+      await onScreen('drop');
       await page.getByRole('button', { name: 'Any model', exact: true }).click();
       await page.waitForSelector('.workspace');
       check('s12 Any model opens the empty generic editor with its import control', await unitsOnPlate() === 0 && await page.locator('.panel.left .drop').isVisible() && await d.button('Aligner Support Production').isVisible());
@@ -2455,16 +2504,21 @@ async function walk(url, scratch, dentalFixture) {
 
       // Drops: an STL on the task screen is held, the type step follows, choosing the type goes straight to Step 1.
       await page.goto(url);
-      await onScreen('task');
+      await onScreen('drop');
       await dropOnStart('notes.txt', 'not a model');
       await d.idle(500);
       check('s14 a non-STL dropped on the task screen is refused and the screen stays', await page.locator('.start-task').isVisible() && /Unsupported|not supported|file type|STL/i.test(await d.status()), `status "${await d.status()}"`);
+      /*
+       * ONE STL DROPPED ON DROP GOES STRAIGHT IN. These were two checks - the file was held, then the
+       * type step followed, then choosing the type reached Step 1. With the type screen gone (7c) the
+       * type is derived by `defaultProfileId('aligner')`, so the drop has nothing left to ask and the
+       * two middle presses are gone with it.
+       */
       await dropOnStart('cube.stl', cubeStl());
-      await onScreen('type');
-      check('s15 an STL dropped on the task screen is held and the type step follows', (await page.locator('.choice-key').count()) === 1);
-      await page.locator('.choice-key').click();
       await atStep1();
-      check('s16 choosing the type with a held file goes straight to Step 1', (await page.locator('.start-screen').count()) === 0 && await plateHas(1));
+      check('s15 an STL dropped on the Drop page goes straight to Step 1, with no type step to answer',
+        (await page.locator('.start-screen').count()) === 0 && (await page.locator('.start-task').count()) === 0);
+      check('s16 and the dropped aligner is on the plate', await plateHas(1));
       /*
        * WAIT FOR THE STEP BEFORE PRESSING ITS BACK. s16 arrives at Step 1 through a HELD file, so the
        * aligner is still being read when the check passes: the import is a blocking job and the step
@@ -2499,27 +2553,37 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 20000 });
       await d.quiet();
       await d.idle(300);
+      // ONE Back, not two: with the type screen gone, Back at Step 1 returns straight to Drop.
       await d.button('Back').click();
-      await onScreen('type');
-      await d.button('Back').click();
-      await onScreen('task');
+      await onScreen('drop');
       await page.getByRole('button', { name: 'Any model', exact: true }).click();
       await page.waitForSelector('.workspace');
-      check('s17 Back to the task screen keeps the loaded file on the plate', await unitsOnPlate() === 1);
+      check('s17 Back to the Drop page keeps the loaded file on the plate', await unitsOnPlate() === 1);
+      /*
+       * s18 used to drop on the TYPE screen and then press its card. That screen is gone (7c), so what
+       * is left to prove is the pair the type screen used to sit between: a drop on the file screen
+       * enters Step 1 on the derived type, and Back from there returns to Drop with the aligner kept.
+       */
       await page.goto(url);
       await supports().click();
-      await onScreen('type');
-      await dropOnStart('cube.stl', cubeStl());
-      await page.locator('.choice-key').click();
-      await atStep1();
-      check('s18 an STL dropped on the type screen is held and enters Step 1 with the chosen type', (await page.locator('.start-screen').count()) === 0);
-      await d.button('Back').click();
-      await onScreen('type');
-      await page.locator('.choice-key').click();
       await onScreen('file');
       await dropOnStart('cube.stl', cubeStl());
       await atStep1();
-      check('s19 an STL dropped on the file screen enters Step 1, replacing the aligner that stayed', await plateHas(1));
+      check('s18 an STL dropped on the file screen enters Step 1 on the derived type',
+        (await page.locator('.start-screen').count()) === 0);
+      // The cube fails orientation and opens rim define mode, which takes Back away: leave it first.
+      await page.waitForSelector('[data-ui="rim-why"]', { timeout: 30000 });
+      await d.button('Cancel').click();
+      await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 20000 });
+      await d.quiet();
+      await d.idle(300);
+      await d.button('Back').click();
+      await onScreen('drop');
+      await supports().click();
+      await onScreen('file');
+      await dropOnStart('cube.stl', cubeStl());
+      await atStep1();
+      check('s19 dropping again on the file screen enters Step 1, replacing the aligner that stayed', await plateHas(1));
       // Leave the flow so the checks after this block start with no mode on.
       await d.button('Exit').click();
     }
@@ -2555,9 +2619,17 @@ async function walk(url, scratch, dentalFixture) {
 function translator(lang) {
   if (lang === 'en') return (key) => key;
   const source = readFileSync(path.join(ROOT, 'src', 'locales', `${lang}.ts`), 'utf8');
-  const unquote = (text) => text.replace(/\\(['\\])/g, '$1').replace(/\\n/g, '\n');
+  const unquote = (text) => text.replace(/\\(['"\\])/g, '$1').replace(/\\n/g, '\n');
   const table = new Map();
-  for (const m of source.matchAll(/^ {2}'((?:[^'\\]|\\.)*)':\s*'((?:[^'\\]|\\.)*)',\s*$/gm)) table.set(unquote(m[1]), unquote(m[2]));
+  /*
+   * BOTH QUOTE STYLES. This matched only '...' entries, and the locale files hold 137 per language
+   * written with "..." - 14% of the dictionary invisible to the walk. Because the lookup below
+   * ends in `?? key`, a key it could not see came back as its own ENGLISH text, so a check
+   * comparing the page against `tr(key)` compared Japanese against English and reported the APP
+   * at fault. That is how t1 failed for ja and zh while passing for en: tr('Denture') returned
+   * 'Denture'. The silent fallback is what let it survive unnoticed for so long.
+   */
+  for (const m of source.matchAll(/^ {2}(['"])((?:[^'"\\]|\\.)*)\1:\s*(['"])((?:[^'"\\]|\\.)*)\3,\s*$/gm)) table.set(unquote(m[2]), unquote(m[4]));
   return (key) => table.get(key) ?? key;
 }
 
@@ -2592,21 +2664,20 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
      */
     const KEYS = ['Aligner', 'Denture', 'Any model', 'Open a saved project'];
     const wanted = KEYS.map(tr);
-    check(tag('t1 the task screen is in the language'), labels.join('|') === wanted.join('|') && (lang === 'en' || !labels.some((label) => wanted.indexOf(label) >= 0 && KEYS.includes(label))), labels.join('|'));
-    await shot(page, 'start-1-task');
+    check(tag('t1 the Drop page is in the language'), labels.join('|') === wanted.join('|') && (lang === 'en' || !labels.some((label) => wanted.indexOf(label) >= 0 && KEYS.includes(label))),
+      `drawn ${labels.join('|')} :: wanted ${wanted.join('|')}`);
+    await shot(page, 'start-1-drop');
+    // Aligner goes straight to the file screen: the type screen it used to pass through is gone (7c),
+    // and with it t2's "Choose the aligner type" heading. The file screen's own heading is checked here.
     await button('Aligner').click();
-    await page.waitForSelector('.start-screen .choice-keys');
-    await shot(page, 'start-2-type');
-    const backLabel = await page.locator('.start-back').innerText();
-    const heading = await page.locator('.dental-stage h2').innerText();
-    check(tag('t2 the type screen is in the language'), backLabel === tr('Back') && heading === tr('Choose the aligner type'), `${backLabel} / ${heading}`);
-    await page.locator('.choice-key').click();
     await page.waitForSelector('.start-screen .dental-drop');
+    const backLabel = await page.locator('.start-back').getAttribute('aria-label');
+    const heading = await page.locator('.dental-stage h2').innerText();
+    check(tag('t2 the file screen is in the language, reached straight from Drop'),
+      backLabel === tr('Back') && heading === tr('Place the aligner file here'), `${backLabel} / ${heading}`);
     await shot(page, 'start-3-file');
     const fileTexts = await page.locator('.dental-drop').innerText();
-    check(tag('t3 the file screen is in the language'), fileTexts.includes(tr('Place the aligner file here')) && fileTexts.includes(tr('An STL. It is checked and turned the right way up automatically.')) && fileTexts.includes(tr('Choose STL file')), fileTexts.replace(/\s+/g, ' '));
-    await page.keyboard.press('Escape');
-    await page.waitForSelector('.start-screen .choice-keys');
+    check(tag('t3 the file screen is in the language'), fileTexts.includes(tr('Place the aligner file here')) && fileTexts.includes(tr('Drag an STL here, or choose one below. It is checked and turned the right way up automatically.')) && fileTexts.includes(tr('Choose STL file')), fileTexts.replace(/\s+/g, ' '));
     await page.keyboard.press('Escape');
     await page.waitForSelector('.start-task');
     await button('Any model').click();
@@ -2673,15 +2744,29 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     await shot(page, 'dental-step1-print-angle');
     await button('Next').click();
     await badgeHas('Step 2 · Support area', 180000);
-    await page.waitForFunction(() => [...document.querySelectorAll('.edit-note')].some((note) => /[1-9]/.test(note.innerText)), null, { timeout: 240000 });
+    /*
+     * `previewReady` WAITS ON THE NAMED TIP COUNT. This line was the unfixed copy of the mistake that
+     * function already documents: it waited for any digit inside an `.edit-note`, which worked only
+     * while the count sat in a sentence there. The count became a readout of its own, the notes were
+     * left holding no digits, and this waited out its full 240 s - in every language, every run,
+     * because the locale pass is outside `npm run walk`.
+     */
+    await previewReady(page);
     await idle(800);
     await shot(page, 'dental-step2');
     // B3: the four tools and the up-facing warning in the language.
     {
       const tools = page.locator('.dental-brush').getByRole('group', { name: tr('Dental area tools') });
       const names = await tools.getByRole('button').allInnerTexts();
-      const wantedTools = ['Paint', 'Erase', 'Add', 'Select'].map(tr);
-      check(tag('b1 Step 2 offers the four tools in the language'), names.join('|') === wantedTools.join('|'), names.join('|'));
+      /*
+       * THE ORDER IS THE APP'S: `AREA_TOOLS` in DentalBar.tsx is ['select','paint','erase','add'],
+       * and Select leads because it is the tool a step opens on. This listed Paint first - the order
+       * before Select was added - so it compared four correct Japanese labels against four correct
+       * Japanese labels in the wrong sequence and called the app wrong. Both sides are reported now.
+       */
+      const wantedTools = ['Select', 'Paint', 'Erase', 'Add'].map(tr);
+      check(tag('b1 Step 2 offers the four tools in the language'), names.join('|') === wantedTools.join('|'),
+        `drawn ${names.join('|')} :: wanted ${wantedTools.join('|')}`);
       await page.keyboard.press('a');
       const english = 'This spot faces up, so a tip here may not hold.';
       const facesUp = tr(english);
@@ -2696,7 +2781,40 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     await quiet();
     await idle(800);
     await shot(page, 'dental-step3');
-    await page.locator('.dental-side').getByRole('button', { name: tr('Check for unsupported spots'), exact: true }).click();
+    // NOT scoped to `.dental-side`: the button is not inside it, so this waited out its 30 s on a
+    // locator that can never resolve. The unscoped `button()` helper is what the generic pass above
+    // already uses for the same control, and `d.button(...)` is what section `u` uses in English.
+    /*
+     * ONE MISSING CONTROL IS ITS OWN FAILURE, NOT THE PASS'S - the same rule the import drop loop
+     * follows. This was a bare `.click()`, so when the button did not resolve the 30 s timeout threw
+     * out of the whole locale pass and every check after it was never reached. Now the absence is
+     * reported as one result and the pass carries on, which is what makes the rest of the language
+     * coverage worth running at all.
+     *
+     * It does not resolve here while English section `x` clicks the same label happily, so Step 3's
+     * side panel is reaching a different state in this pass. That is a real gap and it is recorded as
+     * one rather than hidden behind a thrown timeout.
+     */
+    /*
+     * OPEN THE REVIEW DETAILS FIRST. Step 3's Problems section lives inside the review summary's
+     * collapsible, so the check control is not in the DOM until `Details` is pressed - which is why
+     * the button list this reported held `詳細` and no check button at all. English section `x`
+     * reaches it only because its longer sequence has already opened the panel.
+     *
+     * Pressed by `data-ui`, not by its word: the toggle's label flips between Details and Hide
+     * details, so matching on text would depend on which state it happened to be in.
+     */
+    const reviewDetails = page.locator('[data-ui="aligner-review-details-toggle"]');
+    if ((await reviewDetails.count()) > 0 && (await reviewDetails.getAttribute('aria-expanded')) === 'false') {
+      await reviewDetails.click();
+      await idle(300);
+    }
+    const checkSpots = button('Check for unsupported spots');
+    const hasCheckSpots = (await checkSpots.count()) > 0;
+    check(tag('d0b Step 3 offers the unsupported-spots check'), hasCheckSpots,
+      hasCheckSpots ? 'present'
+        : `not found. Step 3 buttons: ${JSON.stringify(await page.locator('button').allInnerTexts())}`);
+    if (hasCheckSpots) await checkSpots.click();
     const none = tr('No problems listed. Press Check supports to look for islands and overhangs.');
     await idle(1500);
     await quiet();
@@ -2704,7 +2822,9 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     await idle(800);
     const side = await page.locator('.dental-side').innerText();
     const listed = await page.locator('.dental-side .problems li').evaluateAll((items) => items.map((li) => li.innerText.replace(/\s+/g, ' ')));
-    check(tag('d1 Step 3 Check ends in the problem list (rows) or the translated empty note'), listed.length > 0 || side.includes(none), `rows ${JSON.stringify(listed)}`);
+    if (hasCheckSpots) {
+      check(tag('d1 Step 3 Check ends in the problem list (rows) or the translated empty note'), listed.length > 0 || side.includes(none), `rows ${JSON.stringify(listed)}`);
+    }
     const badge = (await page.locator('.edit-badge').textContent()).replace(/\s+/g, ' ');
     check(tag('d2 Step 3 badge is in the language'), lang === 'en' ? badge.includes('Step 3 ·') : !badge.includes('Step 3 ·'), badge);
     await page.locator('.dental-side .problems li').last().scrollIntoViewIfNeeded().catch(() => {});
