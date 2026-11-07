@@ -710,8 +710,18 @@ because at a fill limit of 0 every loop reports `fill-disabled`, which is not a 
 **full-resolution** mesh — never the display copy, whose topology is a decimation's and not the
 file's — and `importWorker.ts` calls it per prepared mesh after the weld. Only the **verdict**
 crosses the boundary: `ImportDiagnosis` is five facts and a body count, not the per-body report with
-its rim arrays. It is defined on the worker protocol and `src/items` imports it, so the UI depends on
-the worker's output and not the reverse.
+its rim arrays.
+
+`ImportDiagnosis` is declared in **`src/state/diagnosis.ts`**, a leaf module holding that one type.
+Four of its six fields are `Pick`ed from the vendored `RepairReport`: declaring them again shared
+57 % of the file's lines with `host/core/repairMesh.ts` and `noDuplicatePackages.test.ts` refused it,
+and picking leaves the engine owning their meaning so a rename there breaks this build. An earlier revision of this plan put it on the worker protocol, so that `src/items`
+imported it and the UI depended on the worker's output rather than the reverse. That stopped working
+the moment the verdict became a saved field: `PrintUnit` would then import from `src/workers/`, and
+`src/state/import.ts` — which carries the verdict onto the unit — already imports from
+`src/state/project.ts`. Declaring it in `project.ts` drags the whole scene module into the worker
+bundle; declaring it in `import.ts` makes `project.ts` import back from a module that imports it. A
+leaf is the only home with neither problem, and all four readers now point at it.
 
 `src/workers/diagnoseImported.test.ts` proves the mapping **against the real engine**: a closed
 tetrahedron is watertight with no rim; one triangle has a single rim measuring **12 mm** for a 3-4-5
@@ -719,14 +729,32 @@ triangle, which is how we know `longestRimMm` carries millimetres and not a coun
 50 mm apart report **2 bodies**; and three triangles sharing an edge carry a non-manifold count — the
 case all 8 of the affected real scans land in.
 
-*Remaining for the row:* the three-language sentences (step 6a) and storing the verdict on the unit
-so a row can read it (step 7b). Nothing persists it yet, which is why there is no UI to look at. `diagnose_mesh` after the weld in `importWorker.ts`, full-resolution
-mesh, verdict only across the boundary. `src/import/` (new module, README, tests) holds the host-side
+*Build:* `diagnose_mesh` after the weld in `importWorker.ts`, full-resolution
+mesh, verdict only across the boundary. `src/items/` (new module, README, tests) holds the host-side
 pure classifier — its input is a **union**, `DiagnoseReport | CodedError`, because half of §3's first
 table comes from the capacity guards and the STL reader rather than from `diagnose_mesh` — mapping one
 of those to a row state, and the three-language text for **all eight row sentences**, the coded import
 errors, and the three operator classes the nine `fill-*` codes collapse to.
 *Exit:* one test per row state in both of §3's tables, on the classifier, with no UI.
+
+**Persistence, done with this step rather than 7b.** The verdict is saved as `PrintUnit.diagnosis`
+and carried over by `placeImportedUnits`. It describes the mesh as imported, so no command touches
+it — a repair is the one thing that may replace it, because a repair is the one thing that replaces
+`source`. `normalizeUnit` re-checks a saved verdict and **drops a malformed one rather than throwing**,
+unlike `rimDraft` and `dental`, which stop the load: those reach the engine, while this is a label on
+a row, and a sound project should not refuse to open because a label is corrupt. The gate takes
+`diagnosis` out of the `...unit` spread before re-adding it, because `...(ok ? { x } : {})` adds
+nothing on the reject branch and so cannot remove a bad value already copied in — the first version
+of this gate had that bug and a test caught it.
+
+The verdict also carries **`triangles`**, which no row displays. It is there so the gate can compare
+a saved verdict against the mesh it is attached to and drop a mismatch. A stale verdict is the one
+failure mode that does not look like corruption — every field parses, and the row states it as fact
+about geometry the engine never saw. **Step 9 is the change that would cause it**, since repair is
+what replaces `source`, so the check exists before the thing it guards against.
+
+*Remaining for the row:* only the three-language sentences and the row component itself (step 6a,
+landing with 7b). The verdict is stored, so a row can now read it.
 
 **6a. The UI groundwork** (§7). Declare the app row-height token in `src/styles.css` and add it to
 the app token table in `docs/ui-styling.md`; decide and document the neutral row tone so `ledger`'s

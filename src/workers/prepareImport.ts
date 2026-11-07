@@ -1,7 +1,8 @@
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { assertTriangleCapacity, meshTier, TRIANGLE_BUDGET, type Runtime } from '@mixo-geocore/host/core/budget';
 import type { ImportedMesh, RawMesh } from '../state/import';
-import type { ImportDiagnosis, PreparedMesh } from './importProtocol';
+import type { ImportDiagnosis } from '../state/diagnosis';
+import type { PreparedMesh } from './importProtocol';
 import { diagnoseMesh } from '@mixo-geocore/host/core/repairMesh';
 import type { GeometryEngine } from '@mixo-geocore/host/workers/geometryClient';
 import { nonFiniteError } from './stlSession';
@@ -83,7 +84,8 @@ export function diagnoseImported(mesh: TriangleMesh, engine: DiagnoseEngine): Im
     longestRimMm: rims.length > 0 ? Math.max(...rims) : 0,
     nonManifoldEdges: report.nonManifoldEdges,
     windingConsistent: report.windingConsistent,
-    bodies: report.bodies.length,
+    triangles: report.triangles,
+    bodyCount: report.bodies.length,
   };
 }
 

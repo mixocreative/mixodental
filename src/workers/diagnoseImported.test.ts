@@ -24,7 +24,9 @@ describe('the import verdict, against the real engine', () => {
     expect(found.boundaryLoops).toBe(0);
     expect(found.longestRimMm).toBe(0);
     expect(found.nonManifoldEdges).toBe(0);
-    expect(found.bodies).toBe(1);
+    expect(found.bodyCount).toBe(1);
+    // The count the saved verdict is checked against, so it has to be the engine's and not a guess.
+    expect(found.triangles).toBe(4);
   });
 
   it('reports an open rim on a single triangle, and measures it', () => {
@@ -42,7 +44,7 @@ describe('the import verdict, against the real engine', () => {
       mesh([...TETRA_POINTS, ...far], [...TETRA_FACES, ...TETRA_FACES.map((i) => i + 4)]),
       engine,
     );
-    expect(found.bodies).toBe(2);
+    expect(found.bodyCount).toBe(2);
     expect(found.watertight).toBe(true);
   });
 

@@ -328,3 +328,64 @@ describe('reduceScene', () => {
     expect(reduceScene(both, { type: 'batch', commands: [] })).toBe(both);
   });
 });
+
+/*
+ * THE IMPORT VERDICT IS A SAVED FIELD, so it goes through the save gate like any other. Two things
+ * matter and neither is obvious from the type: that it survives a save and reopen at all (nothing
+ * persisted it before this), and that a corrupt one loads as ABSENT rather than throwing - the
+ * opposite of `rimDraft`, because a label on a row is not geometry heading for the engine.
+ */
+describe('the import verdict on a unit', () => {
+  // `triangles: 1` is `unitA.source`'s own count, which is what makes the verdict apply to it.
+  const verdict = {
+    triangles: 1, watertight: false, boundaryLoops: 0, longestRimMm: 0,
+    nonManifoldEdges: 5547, windingConsistent: true, bodyCount: 525,
+  };
+
+  it('survives a save and reopen unchanged', () => {
+    const scene = reduceScene(emptyScene, { type: 'unit/add', unit: { ...unitA, diagnosis: verdict } });
+
+    expect(scene.units[0]!.diagnosis).toEqual(verdict);
+    expect(deserializeScene(serializeScene(scene))).toEqual(scene);
+  });
+
+  it('stays absent on a unit that never carried one', () => {
+    const scene = reduceScene(emptyScene, { type: 'unit/add', unit: unitA });
+
+    expect(scene.units[0]).not.toHaveProperty('diagnosis');
+    expect(deserializeScene(serializeScene(scene)).units[0]).not.toHaveProperty('diagnosis');
+  });
+
+  it('drops a malformed verdict instead of refusing the project', () => {
+    const bad = (over: Record<string, unknown>) => reduceScene(emptyScene, {
+      type: 'unit/add', unit: { ...unitA, diagnosis: { ...verdict, ...over } as typeof verdict },
+    }).units[0];
+
+    // One wrong field drops the whole verdict: half of one is not a verdict.
+    expect(bad({ watertight: 'yes' })).not.toHaveProperty('diagnosis');
+    expect(bad({ bodyCount: -1 })).not.toHaveProperty('diagnosis');
+    expect(bad({ longestRimMm: Number.NaN })).not.toHaveProperty('diagnosis');
+    expect(bad({ nonManifoldEdges: undefined })).not.toHaveProperty('diagnosis');
+    // And a sound one still gets through the same gate.
+    expect(bad({})).toHaveProperty('diagnosis', verdict);
+  });
+
+  /*
+   * A VERDICT THAT OUTLIVED ITS MESH is the one failure mode that does not look like corruption: every
+   * field parses, and the row would state it as fact about geometry the engine never saw. Nothing
+   * replaces `source` in the build as it stands, so this cannot happen yet - step 9's repair is the
+   * change that would cause it, and this is the check that will catch it when it lands.
+   */
+  it('drops a verdict whose triangle count is not the mesh it is attached to', () => {
+    const attach = (diagnosis: typeof verdict, mesh = source) => reduceScene(emptyScene, {
+      type: 'unit/add', unit: { ...unitA, source: mesh, diagnosis },
+    }).units[0];
+
+    expect(attach({ ...verdict, triangles: 2 })).not.toHaveProperty('diagnosis');
+    // The same verdict is kept when the mesh really does have that many triangles.
+    const twoTriangles = { positions: new Float32Array(18), indices: new Uint32Array([0, 1, 2, 3, 4, 5]) };
+    expect(attach({ ...verdict, triangles: 2 }, twoTriangles)).toHaveProperty('diagnosis');
+    // And a repair that replaced the mesh without replacing the verdict loses the stale one.
+    expect(attach(verdict, twoTriangles)).not.toHaveProperty('diagnosis');
+  });
+});

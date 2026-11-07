@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { LoopFill, RepairReport, RepairResult, RepairSteps } from '@mixo-geocore/host/core/repairMesh';
-import type { ImportDiagnosis } from '../workers/importProtocol';
+import type { ImportDiagnosis } from '../state/diagnosis';
 import { ROW_STATES, offersRepair, verdictOfDiagnosis, verdictOfRefusal, verdictOfRepair } from './rowState';
 
 /** A watertight verdict as the worker sends it; each test changes only the field it is about. */
 const found = (over: Partial<ImportDiagnosis> = {}): ImportDiagnosis => ({
-  watertight: true, boundaryLoops: 0, longestRimMm: 0, nonManifoldEdges: 0,
-  windingConsistent: true, bodies: 1, ...over,
+  // `triangles` is carried so a saved verdict can be checked against its mesh; the row never reads it.
+  triangles: 1000, watertight: true, boundaryLoops: 0, longestRimMm: 0, nonManifoldEdges: 0,
+  windingConsistent: true, bodyCount: 1, ...over,
 });
 
 /** The full report, still needed for the `after` side of a repair result. */

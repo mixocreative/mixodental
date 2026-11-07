@@ -9,6 +9,7 @@ import { DEFAULT_PROFILE_ID, profileData } from '@mixo-geocore/host/dental/align
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { normalizeDentureState, type DentureState } from '../denture/state/dentureState';
 import type { SurfaceAnchor, SurfacePath } from '../core/surfacePath/path';
+import type { ImportDiagnosis } from './diagnosis';
 
 export { identityTransform } from '@mixo-geocore/host/state/transform';
 
@@ -58,6 +59,16 @@ export interface PrintUnit {
    * validation and this sentence, not the file format.
    */
   rimDraft?: SurfacePath;
+  /**
+   * WHAT THE IMPORTER FOUND IN `source`, kept so the Items row can say it without re-running
+   * `diagnose_mesh` on every render. Absent on a unit imported before the verdict existed, and on
+   * one that never went through the import worker.
+   *
+   * It describes the mesh AS IMPORTED. Moving, rotating, arranging or supporting a unit cannot
+   * change it, so no command touches it; a repair is the one thing that may replace it, because a
+   * repair is the one thing that replaces `source`.
+   */
+  diagnosis?: ImportDiagnosis;
   /**
    * Per-support settings by exact contact id (automatic or manual): only the keys the user set.
    * A support without an entry follows `settings`; adding a support creates none.
@@ -302,8 +313,13 @@ function migrateRemovals(unit: PrintUnit & { suppressed?: string[] }): PrintUnit
 }
 
 function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
+  // `diagnosis` is taken OUT of the spread rather than overridden after it. A field whose gate can
+  // reject a value that is present has to be removed first: `...(ok ? { x } : {})` adds nothing on
+  // the reject branch, so the bad value `...unit` already copied in would survive. Every other
+  // optional field here is safe only because its `{}` branch means "the key was absent anyway".
+  const { diagnosis, ...rest } = unit;
   return migrateRemovals({
-    ...unit,
+    ...rest,
     source: copyMesh ? cloneMesh(unit.source, 'source') : checkedMesh(unit.source, 'source'),
     id: normalizeString(unit.id, 'unit id'),
     name: normalizeString(unit.name, 'unit name'),
@@ -319,8 +335,40 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
     zones: cloneJsonValue(unit.zones ?? []) as unknown as ZoneStamp[],
     ...(unit.dental === undefined ? {} : { dental: cloneDentalPolicy(unit.dental, unit.source) }),
     ...(unit.denture === undefined ? {} : { denture: normalizeDentureState(unit.denture) }),
+    ...diagnosisField(diagnosis, unit.source),
     contactSettings: normalizeContactSettings(unit.contactSettings),
   });
+}
+
+/**
+ * A saved verdict, checked. A malformed one is DROPPED rather than thrown on, which is the opposite
+ * of how `rimDraft` and `dental` are treated - and deliberately so. Those reach the engine, so a bad
+ * one must stop the load. This is a label on a row: a project whose geometry is sound should not
+ * refuse to open because a label is corrupt, and an absent verdict is an honest thing for a row to
+ * say ("not diagnosed") where a half-parsed one is not.
+ */
+function diagnosisField(value: unknown, source: TriangleMesh): { diagnosis?: ImportDiagnosis } {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return {};
+  const found = value as Record<string, unknown>;
+  const counts = ['triangles', 'boundaryLoops', 'longestRimMm', 'nonManifoldEdges', 'bodyCount'] as const;
+  const flags = ['watertight', 'windingConsistent'] as const;
+  if (flags.some((key) => typeof found[key] !== 'boolean')) return {};
+  if (counts.some((key) => typeof found[key] !== 'number' || !Number.isFinite(found[key]) || (found[key] as number) < 0)) return {};
+  // THE STALENESS CHECK, and the reason `triangles` is in the verdict at all: a verdict describing a
+  // different mesh than the one it is attached to is worse than none, because the row states it as
+  // fact. Dropped, not thrown on, for the same reason as the rest of this gate.
+  if (found.triangles !== source.indices.length / 3) return {};
+  return {
+    diagnosis: {
+      triangles: found.triangles as number,
+      watertight: found.watertight as boolean,
+      boundaryLoops: found.boundaryLoops as number,
+      longestRimMm: found.longestRimMm as number,
+      nonManifoldEdges: found.nonManifoldEdges as number,
+      windingConsistent: found.windingConsistent as boolean,
+      bodyCount: found.bodyCount as number,
+    },
+  };
 }
 
 /** Saved or handed-in per-support settings, parsed; empty entries are dropped and a project from before them loads as none. */

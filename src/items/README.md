@@ -50,8 +50,47 @@ list would have weakened a boundary that is doing its job.
 
 It belongs here regardless. The importer produces a report; this turns a report into a row.
 
+## Where the verdict comes from, and where it lives
+
+`diagnose_mesh` runs once, in the import worker, on the full-resolution mesh — never the display
+copy. The engine's per-body report does not cross the worker boundary: `diagnoseImported` reduces it
+to the six facts of `ImportDiagnosis`, which is plain numbers and booleans and so structured-clones
+with no transfer list.
+
+`ImportDiagnosis` is declared in `src/state/diagnosis.ts`, a leaf with no imports of its own. It has
+to be reachable from the worker, from `PrintUnit`, and from here, and `src/state/import.ts` already
+imports from `src/state/project.ts` — so either of those two as its home would mean a cycle one way
+or the whole scene module dragged into the worker bundle the other.
+
+From there it is **saved on the unit** as `PrintUnit.diagnosis`, carried over by
+`placeImportedUnits`. It describes the mesh as imported, so no command touches it; a repair is the
+one thing that may replace it, because a repair is the one thing that replaces `source`.
+
+`ImportDiagnosis` **picks four of its fields from the vendored `RepairReport`** rather than
+re-declaring them. The first version spelled them out again and `noDuplicatePackages.test.ts` refused
+it — 57 % of its lines matched `host/core/repairMesh.ts`. Picking leaves the engine owning those
+fields' meaning, so a rename on that side breaks this build instead of leaving a stale second
+definition behind.
+
+It also carries `triangles`, which no row displays. That field is what makes a **saved** verdict
+self-checking: one that outlived the mesh it describes is worse than none, because the row states it
+as fact. Nothing replaces a unit's `source` in the build as it stands, so staleness cannot happen
+yet — step 9's repair is the change that would cause it, and `normalizeUnit` compares the count
+against the attached mesh and drops a mismatch, so the invariant is checked rather than remembered.
+
+A saved verdict is re-checked by `normalizeUnit`, and a malformed one is **dropped rather than
+thrown on** — the opposite of `rimDraft` and `dental`, which stop the load. Those reach the engine;
+this is a label on a row, and a project with sound geometry should not refuse to open because a
+label is corrupt. An absent verdict reads as "not diagnosed", which is honest where a half-parsed
+one is not.
+
+That gate takes `diagnosis` out of `normalizeUnit`'s `...unit` spread before re-adding it. Every
+other optional field there uses `...(unit.x ? { x } : {})`, which is safe only because its empty
+branch means the key was absent anyway. This gate can reject a value that is *present*, and spreading
+`{}` adds nothing — it does not remove what the earlier spread already copied in.
+
 ## Not here yet
 
 The page, the row component, its `data-ui` names and the three-language sentences — §8 steps 6a and
-7b. `offersRepair()` is the one piece of policy already decided: a refusal never re-offers the press
+7b. Storing the verdict was the other half of 7b and is done. `offersRepair()` is the one piece of policy already decided: a refusal never re-offers the press
 that just failed.

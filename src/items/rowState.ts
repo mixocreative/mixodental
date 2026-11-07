@@ -34,7 +34,7 @@
  */
 
 import type { FillReason, RepairResult } from '@mixo-geocore/host/core/repairMesh';
-import type { ImportDiagnosis } from '../workers/importProtocol';
+import type { ImportDiagnosis } from '../state/diagnosis';
 
 /** Which capacity guard turned a file away. Each has its own sentence; none of them means "unreadable". */
 export type CapacityLimit = 'triangles' | 'memory' | 'plate';

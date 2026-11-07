@@ -2,6 +2,7 @@ import { BufferGeometry, Mesh, type Object3D } from 'three';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import type { ImportDiagnosis } from './diagnosis';
 import type { PrintUnit, SupportSettings } from './project';
 import { applyTransform } from '@mixo-geocore/host/state/transform';
 
@@ -21,6 +22,8 @@ export interface ImportedMesh {
    * in place): that centre and the bounds before the move. placeImportedUnits then uses the mesh as is.
    */
   centred?: { center: Vector; bounds: { min: Vector; max: Vector } };
+  /** The worker's health verdict for the FULL-RESOLUTION mesh (never the display copy). */
+  diagnosis?: ImportDiagnosis;
 }
 
 /** Gap between imported units and those already on the plate (Blender ARRANGE_GAP). */
@@ -104,6 +107,9 @@ export function placeImportedUnits(
       manual: [],
       deleted: [],
       zones: [],
+      // The verdict travels with the unit it describes. It is about `source` as imported, so nothing
+      // that moves or re-places the unit may change it, and only a repair may replace it.
+      ...(item.diagnosis ? { diagnosis: item.diagnosis } : {}),
       contactSettings: {},
     };
   });
