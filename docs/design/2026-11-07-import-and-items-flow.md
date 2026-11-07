@@ -543,10 +543,14 @@ each has caught something in this session already.
 declaration is dropped **silently** — and `uiStylingDoc.test.ts` would not catch it, because the name
 *is* documented, just in the wrong table.
 
-So: **declare the row height as an app token in `src/styles.css` and add it to the app token table**,
-or size the row from one that exists. Either way the token goes in the table, because
-`uiStylingDoc.test.ts` fails on an undocumented one — and would have failed on a *mis-documented* one
-only by accident.
+**DONE.** `--row-height: 24px` is declared in `src/styles.css` and documented in the app's UI table.
+**24px, not 22px:** that is what the app already uses — `.panel .unit` carried it as a literal, and the
+token now replaces that literal rather than sitting unused beside it. The 22px of
+`dentalwork/batch-review/tokens.css` is a denser viewer's figure.
+
+The names are kept **apart on purpose**. `uiStylingDoc.test.ts` asks only whether a token's name
+appears *somewhere* in the page, so a second `--row` would have passed the guard while meaning a
+different height in a different stylesheet — the exact failure this section was written to avoid.
 
 **`ledger`'s `--red` tone is NOT a problem, and this document was wrong to call it one.** `--red` is
 `#7f0019` in `src/styles.css:15` — the house **primary and progress** colour, what `.primary` is filled
@@ -955,11 +959,24 @@ not enough, for three reasons read off the code:
 - Neither takes a unit id: `useSelectedAligner` reads `sceneRef.current.activeUnitId`, and
   `startAligner`'s `stale()` requires `activeUnitId === unit.id`. Nothing in the loop sets it.
 
-So **item 2..N needs one new session event** that returns the stage to `aligner` and points
-`dentalUnitId`/`activeUnitId` at the next item **while preserving `dentalFinished`** — structurally
-the same fix as `exportedDental` in step 1, and for the same reason: the stage machine has no
-transition for "done with this one, on to the next". Its reducer case must be session-only and must
-refuse when the named unit is not on the plate.
+**But NO new session event is needed, and an earlier revision of this line was wrong to ask for one.**
+`addAnotherDental` already makes exactly that transition: stage `review` to stage `aligner`,
+`dentalAligner` back to `prompt`, `dentalUnitId` cleared, and `dentalFinished` preserved through
+`finished()`. `src/dental/editing/session.test.ts:317` has proven the preservation since before this
+feature existed. Adding a second event beside it would have been a duplicate transition — two ways to
+leave `review`, drifting apart.
+
+What was genuinely missing is narrower: **which unit**, a question the old flow never had to ask
+because it only ever had one. That is `src/items/nextItem.ts`.
+
+So *Next item* is three ordinary calls, and **the order is the whole subtlety**:
+
+1. `selection/set` with `activeUnitId` on the next unit. `startAligner`'s staleness check reads
+   `sceneRef.current.activeUnitId` and abandons the orient job if it is not the unit it was handed, so
+   the scene must point at the next item **before** the job starts.
+2. `addAnotherDental` with the unit just finished — this is what returns the stage to `aligner`.
+   `dentalLoading` is a no-op outside that stage, so a job started first would die silently.
+3. `startDentalAligner(next)`.
 
 **And item 1's entry is unstated.** `startDentalAligner` needs `mode === 'dental'`, which from `off`
 is reachable only through the entry paths this step forbids. Name that path, or the loop has no first

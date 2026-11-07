@@ -152,6 +152,7 @@ Set the look of the DOM. They are the mixo-app-style tokens (paper, ink, hairlin
 | `--panel-title-ink-closed` | `var(--ink)` | The words on the closed bar | the same |
 | `--radius` | `2px` | Corner radius of every control | Buttons, cards, bands |
 | `--dur` | `.15s` | Duration of hover and chevron transitions | Buttons, collapsible chevrons |
+| `--row-height` | `24px` | Height of one list row | `.panel .unit`, and the Items row. **Not** `--row`, which is `22px` and belongs to the batch-review viewer's own table below — the app and that viewer are different densities, so the names are kept apart |
 
 ### The docks (the 3D view's grid)
 

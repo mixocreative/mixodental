@@ -30,6 +30,11 @@
   --panel-title-ink-closed: var(--ink);
   --radius: 2px;
   --dur: .15s;
+  /* One list row. 24px is what the app already uses - `.panel .unit` had it as a literal - not the
+     22px of dentalwork/batch-review/tokens.css, whose `--row` belongs to a denser viewer. The names
+     stay different on purpose: two tokens called `--row` meaning two heights would be worse than
+     neither, and docs/ui-styling.md's guard only checks that a name appears SOMEWHERE in the page. */
+  --row-height: 24px;
   /* Round C marks in the viewport: an unresolved point, and a support landed on the model by tier. */
   --unresolved: var(--warning);
   --landing-allowed: var(--success);
@@ -284,10 +289,10 @@ button[aria-pressed='true']:not(.primary):hover:not(:disabled) { background: var
 /* Print units: the letter matches the label embossed on each raft. */
 .units { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); max-height: 199px; overflow: auto; }
 .units li { border-bottom: 1px solid var(--line); }
-/* One 24px row per object: letter badge, name, support count. */
+/* One row per object (--row-height): letter badge, name, support count. */
 .panel .unit {
   width: 100%;
-  min-height: 24px;
+  min-height: var(--row-height);
   margin: 0;
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr) auto;
