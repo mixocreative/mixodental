@@ -1230,7 +1230,19 @@ export default function App() {
       selectedUnitId={scene.activeUnitId}
       onSelect={(unit) => dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id })}
       denture={isDentureJob(session.dentalProfile ?? batchProfile)}
-      onStart={startItem} onRemove={(unit) => dispatch({ type: 'unit/remove', unitId: unit.id })}
+      onStart={startItem}
+      /*
+       * REMOVE OFFERS UNDO, because deleting on the plate already does and this takes the same thing
+       * away (found by audit, W-06). A finished, exported row and its supports went in one click with
+       * no confirmation and no way back; `deleteUnits` has offered an undo for the same command all
+       * along. An offer rather than a confirm: the press is deliberate, and a dialog on every removal
+       * of a bad file would be in the way.
+       */
+      onRemove={(unit) => {
+        dispatch({ type: 'unit/remove', unitId: unit.id });
+        setStatusMessage(undoToast(0, { kind: 'deleteObjects', count: 1 }).message);
+        offerUndo({ kind: 'deleteObjects', count: 1 });
+      }}
       onBack={() => setStartScreen('drop')}
       onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} />
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}

@@ -36,7 +36,16 @@ export function useBatchDetect({ units, profile, analysis, unitName }: {
    *
    * Newcomers now join the queue and the running loop drains them.
    */
-  const queue = useRef<PrintUnit[]>([]);
+  /*
+   * EACH QUEUED ROW CARRIES THE PURPOSE IT WAS QUEUED UNDER (found by audit, W-04).
+   *
+   * The loop used to read `profile` from the effect run that STARTED it, and a later effect that
+   * only pushes returns early - so a second drop with a different purpose was drained under the
+   * first one's profile. Reading a live ref instead would be wrong in the opposite direction: a row
+   * queued under Aligner would then be detected under Denture because the operator changed purpose
+   * while it waited. The purpose is per RUN (design doc §2), so it belongs to the entry.
+   */
+  const queue = useRef<{ unit: PrintUnit; profile: string }[]>([]);
   const running = useRef(false);
 
   useEffect(() => {
@@ -44,7 +53,7 @@ export function useBatchDetect({ units, profile, analysis, unitName }: {
     const pending = units.filter((unit) => !started.current.has(unit.id));
     if (pending.length === 0) return;
     for (const unit of pending) started.current.add(unit.id);
-    queue.current.push(...pending);
+    queue.current.push(...pending.map((unit) => ({ unit, profile })));
     setStates((current) => {
       const next = new Map(current);
       for (const unit of pending) next.set(unit.id, { kind: 'waiting' });
@@ -56,7 +65,7 @@ export function useBatchDetect({ units, profile, analysis, unitName }: {
     running.current = true;
     void (async () => {
       while (queue.current.length > 0) {
-        const unit = queue.current.shift()!;
+        const { unit, profile: queuedProfile } = queue.current.shift()!;
         setStates((current) => new Map(current).set(unit.id, { kind: 'running' }));
         // A failure here belongs to THIS ROW and not to the batch: the next row still runs. Same
         // rule as the drop loop, where one bad file refuses only itself.
@@ -65,7 +74,7 @@ export function useBatchDetect({ units, profile, analysis, unitName }: {
         // of UI files, and a pair of them in prose reads as a string it then demands a translation
         // for. This module became a UI file when its folder was globbed into that guard.)
         const result = await analysis()
-          .dentalOrient(`batch-orient:${unit.id}`, unit.source, profile, { key: 'Checking {name}', vars: { name: unitName(unit.id) } })
+          .dentalOrient(`batch-orient:${unit.id}`, unit.source, queuedProfile, { key: 'Checking {name}', vars: { name: unitName(unit.id) } })
           .catch(() => undefined);
         setStates((current) => new Map(current).set(unit.id, detectStateOf(result)));
       }
