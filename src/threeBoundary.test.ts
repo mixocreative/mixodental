@@ -5,9 +5,14 @@ import { describe, expect, it } from 'vitest';
 // three, src/core/import); tests may use three as a reference.
 const SOURCES = import.meta.glob<string>(['./**/*.ts', './**/*.tsx', '!./**/*.test.ts', '!./**/*.test.tsx'], { query: '?raw', import: 'default', eager: true });
 const VIEW_LAYER = /^\.\/components\//;
+/**
+ * ONE exception left. `App.tsx` was the other: it parsed glTF with the loader on the main thread.
+ * That parse now lives in `components/useImportFiles.ts`, which is INSIDE the view layer — so the
+ * exception did not move, it stopped being needed. The third test keeps a stale entry from sitting
+ * here unnoticed, and is what caught this one.
+ */
 const LOADER_EXCEPTIONS: Record<string, string> = {
   './state/import.ts': 'walks the GLTFLoader scene graph (gltfRawMeshes) and takes BufferGeometry inputs in tests (geometryToMesh); the weld is typed-array (src/core/import)',
-  './App.tsx': 'parses glTF with GLTFLoader on the main thread before the import worker welds it',
 };
 const THREE_IMPORT = /\b(?:import|export)\s[^'"`;]*?\sfrom\s*['"](three|three\/[^'"]*|@react-three\/[^'"]*|three-mesh-bvh|three-stdlib)['"]/;
 

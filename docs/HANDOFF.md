@@ -24,7 +24,53 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (the job deck — 2026-11-08)
+## Latest completed step (App.tsx broken into modules — 2026-11-08)
+
+- **Requirement:** the owner's standing last step — "code well organized, broken into reasonably
+  modules, maintainable and readable by human, with comments well written". `App.tsx` at 1733 lines
+  was the debt the previous step named and did not take.
+- **Changed:** two whole jobs left `App.tsx` as hooks, each with a documented `host` field per
+  dependency, and **no behaviour change intended anywhere**.
+  - `src/components/useImportFiles.ts` — import: reading the files, the triangle/memory/plate
+    refusals, placement, and what the status line says came of it. It took the import plate ledger,
+    the pre-parse head estimate and the glTF parse with it.
+  - `src/components/useSupportChecks.ts` — the support check: the findings by unit, the list the
+    panel may show, the re-check of an edited unit, and Fix. It calls `useFixSpot` from the inside
+    rather than beside it, because Fix both reads `problems` and reports whether a finding is being
+    re-checked; keeping them apart was a cycle through `App.tsx`.
+  - `src/components/README.md` is new. That folder had 69 files and no map, which is the single
+    biggest navigation gap left in the tree; it is now the table of which hook owns which job.
+- **Result:** `App.tsx` 1733 → 1431 lines. `tsc` 0 · tests 1497 pass, 1 skipped · `npm run build` 0.
+- **Three things the guards and the reading caught, none of them planned:**
+  - `threeBoundary.test.ts` failed, correctly. `App.tsx` was a listed exception for parsing glTF on
+    the main thread; the parse moved into `src/components/`, which is INSIDE the view layer, so the
+    exception did not move — **it stopped being needed**. Its third test, "lists only exceptions that
+    still import three.js", is what caught it. One exception is left.
+  - `runCommand` listed `analysis` and `unitName` as dependencies and its body reads neither. Both
+    are stable callbacks, so nothing misbehaved; it was stale drift and the array now says what the
+    function actually reads.
+  - `applyTransform` had been imported by `App.tsx` and unused since before this change (confirmed
+    against `HEAD`). Gone with the rest of the trim.
+- **One decision worth carrying:** `useSupportChecks` takes `built` and `failedBuilds` rather than a
+  `buildSettled` callback. A callback recreated every render is never equal twice, so putting one in
+  the re-check effect's dependencies would tear down and rebuild its 600 ms timer on every render and
+  could defer the re-check for as long as the app kept rendering. The maps compare by identity, which
+  is the question actually being asked. The hook's docstring argues this where it would be changed.
+- **Named, not fixed (deliberately, to keep the commit reviewable):**
+  - **The support build cycle is the next extraction** — `built`, `failedBuilds`, the per-unit
+    debounce, and the effect that schedules a build or keeps the one a slid denture already had. It
+    is the most tangled piece left: one `forgetUnit` reaches the preview worker, the denture worker,
+    `useRegenerate`'s `forgetPlacing` and `useSupportChecks`'s `forgetProblems`.
+  - `runCommand` stays in `App.tsx`. It is a flat, readable switch; moving it out needs a dependency
+    object of thirty-odd fields, which is not obviously an improvement.
+  - Copyright headers on 15 of 226 source files — still the owner's call (recommendation: drop the
+    15, since the build already emits `dist/THIRD-PARTY-NOTICES.txt`).
+- **Next executable step:** extract the support build cycle, then **dissolve `dentalStage` into the
+  one workspace — still the owner's decision, not taken.** The per-tool widgets and the rail as the
+  workspace's own left edge depend on that second one: each stage owns the whole dock today, and a
+  rail beside that dock would give two competing ideas of where the operator is.
+
+## Previous completed step (the job deck — 2026-11-08)
 
 - **Requirement:** replace the per-item step wizard with a job deck — one workspace carrying the model
   list, a tool rail, and per-row state — and build it in increments, each gated before it ships.

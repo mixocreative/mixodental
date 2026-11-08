@@ -3,10 +3,7 @@ import { Progress } from './progress/Progress';
 import { useSlowJob } from './ui/useSlowJob';
 import { angleEvidence } from './dental/angleEvidence';
 import { SceneLegend } from './components/SceneLegend';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import type { Object3D } from 'three';
 import { labelForIndex } from '@mixo-geocore/host/core/analysis/mesh';
-import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
 import type { PlacementResult, SupportPoint } from '@mixo-geocore/host/core/analysis/types';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import JobActivityPanel from './components/JobActivity';
@@ -15,9 +12,8 @@ import { AnalysisClient } from './workers/analysisClient';
 import { ImportClient } from './workers/importClient';
 import { createAnalysisWorker, createImportWorker, createMeshWorker } from './workers/factories';
 import { SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
-import type { PreparedMesh } from './workers/importProtocol';
 import { codedJobError } from './workers/jobErrors';
-import ObjectViewport, { acceptModelFile } from './components/ObjectViewport';
+import ObjectViewport from './components/ObjectViewport';
 import DebugSection from './components/DebugSection';
 import { useDebugLayers, visibleLayers } from './components/useDebugLayers';
 import { CirclePreview } from './components/viewport/CirclePreview';
@@ -36,8 +32,9 @@ import { ProblemList } from './components/ProblemList';
 import { ZonesBar } from './components/ZonesBar';
 import { Segmented } from './components/Segmented';
 import { isAbort, RUNTIME, triangleCount } from './components/appShared';
-import { useFixSpot } from './components/useFixSpot';
+import { useSupportChecks } from './components/useSupportChecks';
 import { useExport } from './components/useExport';
+import { useImportFiles } from './components/useImportFiles';
 import { useRegenerate } from './components/useRegenerate';
 import { currentDentalPreview, shownDentalPreview, useDentalPreview } from './components/useDentalPreview';
 import { useDentalTuning } from './components/useDentalTuning';
@@ -62,15 +59,10 @@ import { hint } from './components/hint';
 import { isOrientationStep, NO_SUPPORT_MESHES } from './dental/step1View';
 import { LanguageSelect } from './components/LanguageSelect';
 import { cancelSceneEdit, canUndo as historyCanUndo, createSceneHistory, redoScene, replaceScene, restoreScene, sameData, undoScene, withSceneCommand, type SceneHistory } from './state/history';
-import { gltfRawMeshes, placeImportedUnits } from './state/import';
-import { setDisplayMesh } from './state/meshExtras';
-import { memoryInfo } from './state/runtime';
-import { assertMemoryCapacity, assertPlateCapacity, assertTriangleCapacity, memoryCapBytes, meshTier, refusalLimit } from '@mixo-geocore/host/core/budget';
+import { meshTier, refusalLimit } from '@mixo-geocore/host/core/budget';
 import { TriangleGate } from '@mixo-geocore/host/core/jobGate';
-import { PlateLedger, type PlateScene } from './core/plateLedger';
-import { estimateTriangles, ESTIMATE_HEAD_BYTES } from './core/import/estimate';
 import { emptyScene, reduceScene, type ContactSettings, type PrintScene, type PrintUnit, type SceneCommand, type SupportSettings } from './state/project';
-import { applyTransform, inverseTransformDirection, inverseTransformPoint, transformPoint, type ModelTransform } from '@mixo-geocore/host/state/transform';
+import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { closePath } from './core/surfacePath/path';
 import { useRimDrawing } from './dental/rim/useRimDrawing';
 import { useSupportEdits } from './supports/useSupportEdits';
@@ -79,16 +71,13 @@ import type { ExportKind } from '@mixo-geocore/host/supports/export';
 import type { GeneratedSupportMesh, SupportContact } from '@mixo-geocore/host/core/supports/mesh';
 import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
 import { type ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
-import { problemInZone } from '@mixo-geocore/host/supports/zoneCheck';
 import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { defaultDentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
 import { deleteCommands } from './supports/selection';
 import { canvasGesture, gesture, type GestureKind } from '@mixo-geocore/editing/gesture';
 import { TIPS_START, tipsButton, tipsCamera, tipsPress } from '@mixo-geocore/editing/view';
-import { applyPreset, defaultSupportSettings, setRoofMode, updateSetting, withShape, type LiveSupportSettings, type SettingKey, type ShapeKey } from '@mixo-geocore/host/core/supports/settings';
-import { islandProblems } from '@mixo-geocore/editing/islandProblems';
-import { omittedProblems } from '@mixo-geocore/editing/omittedProblem';
-import { checkJobOf, contactsWith, currentBuild, hiddenByZones, liftCommands, orientationOf, placementPending, PLACEMENT_KEYS, resolveSettings, supportJobOf, unitContacts, unitRemovedCount, unitSupportMesh, withRekeyedHandWork, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import { applyPreset, setRoofMode, updateSetting, withShape, type LiveSupportSettings, type SettingKey, type ShapeKey } from '@mixo-geocore/host/core/supports/settings';
+import { contactsWith, currentBuild, hiddenByZones, liftCommands, placementPending, PLACEMENT_KEYS, resolveSettings, supportJobOf, unitContacts, unitRemovedCount, unitSupportMesh, withRekeyedHandWork, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
 import { COMMAND_IDS, resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import { effectiveBrushMode } from '@mixo-geocore/editing/selection';
 import { keyAction } from '@mixo-geocore/editing/keys';
@@ -102,22 +91,18 @@ import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
 import { ItemsPage } from './items/ItemsPage';
 import { useThumbnails } from './items/useThumbnails';
-import { dropKeepsOneFile, filesToImport } from './items/dropGrain';
-import { refusalOf } from './items/refusalOf';
 import { useBatchDetect } from './items/useBatchDetect';
 import type { ImportRefusal } from './items/rowState';
-import { builtGeometry, hasGeometry, type HeldBuild } from './plate/releasedBuild';
+import { hasGeometry, type HeldBuild } from './plate/releasedBuild';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
-import { splitDentureSpots } from './denture/check/dentureSpots';
 import { keptBuild } from './denture/steps/supports/rigidMove';
 import { stepPanelInset } from './dental/stepPanelInset';
 import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import type { DentalReview } from './components/DentalSupports';
-import { BUILDING_STATUS, busyStatus, heavyStatus, importRefusal, importStatus, missStatus, sessionStatus } from '@mixo-geocore/editing/status';
+import { BUILDING_STATUS, busyStatus, heavyStatus, missStatus, sessionStatus } from '@mixo-geocore/editing/status';
 import { CodedError, errorStatus } from '@mixo-geocore/editing/errors';
-import { checkStatus, joinRun, runToken, tallyChecks, uncovered, type CheckTally } from '@mixo-geocore/editing/check';
 import { stepKind } from './state/stepKind';
 import { toastAlive, undoToast, type UndoAction, type UndoToast as UndoToastState } from '@mixo-geocore/editing/toast';
 import UndoToast from './components/UndoToast';
@@ -162,34 +147,11 @@ const VIEWPORT_CLASS: Record<GestureKind, string> = {
   pick: ' viewport--editing',
   drag: ' viewport--editing',
 };
-/** A support check finding, its position in the unit's local frame. */
-export interface UnitProblem extends SupportProblem {
-  unitId: string;
-  /** The spot lies inside a no-support zone, which is why it has no support. */
-  inZone: boolean;
-}
-
-/** A .gltf (JSON) up to this size is read whole for its pre-parse triangle count. */
-const GLTF_ESTIMATE_BYTES = 16 * 1024 * 1024;
 
 /** Heavy-job admission for the whole app: placements, preview builds and exports share it. */
 const HEAVY_JOBS = new TriangleGate(refusalLimit(RUNTIME));
 /** A stable empty list, so the batch hook's effect does not re-run on every render. */
 const NO_UNITS: readonly PrintUnit[] = [];
-/** The plate guard across imports that run at once: each holds what it adds while it reads. */
-const PLATE = new PlateLedger();
-/** A .glb's JSON chunk up to this size is read for its pre-parse triangle count. */
-const GLB_JSON_ESTIMATE_BYTES = 64 * 1024 * 1024;
-
-/** How much of a file the pre-parse estimate reads: a whole small .gltf, a .glb's JSON chunk, else the head. */
-async function estimateHeadBytes(file: File): Promise<number> {
-  if (/\.gltf$/i.test(file.name) && file.size <= GLTF_ESTIMATE_BYTES) return file.size;
-  if (/\.glb$/i.test(file.name) && file.size >= 20) {
-    const json = new DataView(await file.slice(0, 20).arrayBuffer()).getUint32(12, true);
-    if (20 + json <= GLB_JSON_ESTIMATE_BYTES) return Math.min(file.size, 20 + json);
-  }
-  return ESTIMATE_HEAD_BYTES;
-}
 
 export default function App() {
   const [history, dispatchHistory] = useReducer(historyReducer, emptyScene, createSceneHistory);
@@ -524,15 +486,16 @@ export default function App() {
 
   const requested = useRef(new Map<string, { unit: PrintUnit; index: number }>());
   const buildTimers = useRef(new Map<string, number>());
-  /** Findings by unit, with the unit version and support build they checked. */
-  const [problems, setProblems] = useState<ReadonlyMap<string, { unit: PrintUnit; mesh: GeneratedSupportMesh | undefined; items: UnitProblem[] }>>(new Map());
-  const showProblem = useCallback((problem: { unitId: string; position: Vector; area: number }) => {
-    const unit = sceneRef.current.units.find((candidate) => candidate.id === problem.unitId);
-    if (unit) setFocus((current) => ({ point: transformPoint(unit.transform, problem.position), area: problem.area, seq: (current?.seq ?? 0) + 1 }));
-  }, []);
-
-  const { fix: fixProblem, noteAdded, isRechecking, stopRechecking } = useFixSpot({
-    sceneRef, sessionRef, units: scene.units, activeUnitId: scene.activeUnitId, editMode: editing ? 'edit' : editMode, built, problems, send, dispatch, setStatus, setStatusMessage, showProblem,
+  // ---- Support check (components/useSupportChecks) -------------------------------------
+  /** Frame a check finding in the viewport. The seq is what makes a repeat press a fresh request. */
+  const focusSpot = useCallback((point: [number, number, number], area: number) =>
+    setFocus((current) => ({ point, area, seq: (current?.seq ?? 0) + 1 })), []);
+  const {
+    problems, listedProblems, outOfDate, runCheck, checkSupports, showProblem, fixProblem, noteAdded, isRechecking, forgetProblems,
+  } = useSupportChecks({
+    sceneRef, sessionRef, units: scene.units, activeUnitId: scene.activeUnitId,
+    editMode: editing ? 'edit' : editMode, analysis, dentureClient: denture.client,
+    built, failedBuilds, builtRef, targets, unitName, send, dispatch, focusSpot, setStatus, setStatusMessage,
   });
 
   /** A unit left the scene: stop its work and free what the workers hold for it. */
@@ -545,18 +508,11 @@ export default function App() {
     workers.current.analysis?.cancel(`dental-place:${unitId}`);
     workers.current.analysis?.cancel(`check:${unitId}`);
     forgetPlacing(unitId);
-    setProblems((current) => {
-      if (!current.has(unitId)) return current;
-      const next = new Map(current);
-      next.delete(unitId);
-      return next;
-    });
-  }, [forgetPlacing]);
+    forgetProblems(unitId);
+  }, [forgetPlacing, forgetProblems]);
 
   useEffect(() => {
     const ids = new Set(scene.units.map((unit) => unit.id));
-    // Imported units the scene now shows are counted by the scene, no longer held by their import.
-    PLATE.settle(ids);
     for (const id of [...requested.current.keys()]) {
       if (ids.has(id)) continue;
       requested.current.delete(id);
@@ -604,102 +560,6 @@ export default function App() {
     });
   }, [scene.units, forgetUnit, preview, setStatus, unitName, denture.supports.build]);
 
-  // ---- Support check -------------------------------------------------------------------
-  /** Running checks by unit id, with the unit version they check (a second caller joins, editing/check). */
-  const checksRunning = useRef(new Map<string, { token: object; promise: Promise<SupportProblem[] | undefined> }>());
-  /**
-   * Checks the units' current contacts; resolves with the spots found outside and inside no-support
-   * zones, and how many units' checks did not finish (replaced by a newer check of a changed unit).
-   */
-  const dentureClient = denture.client;
-  const runCheck = useCallback(async (units: readonly PrintUnit[]): Promise<CheckTally> => {
-    const checked = await Promise.all(units.filter((unit) => unit.supports).map(async (unit) => {
-      const orientation = orientationOf(unit);
-      const key = `check:${unit.id}`;
-      {
-        // Only a build of the unit as it is now says which contacts it dropped.
-        // A RELEASED build is "no current build" here, which this function already has a path for:
-        // the island verdict is not known, so the check is never reported clean. That is honest - a
-        // released build's islands were judged when it was finished, not now.
-        const mesh = builtGeometry(unit, builtRef.current.get(unit.id));
-        const found = await joinRun(checksRunning.current, unit.id, runToken(unit, mesh), () => analysis().check(key, checkJobOf(unit, mesh), { key: 'Checking supports on {name}', vars: { name: unitName(unit.id) } }));
-        if (!found) return undefined;
-        // Spots face down on the plate: plate down in unit-local space keeps a zone on the far side of a thin floor out.
-        const down = inverseTransformDirection(orientation, [0, -1, 0]);
-        const located = found.map((problem) => {
-          const position = inverseTransformPoint(orientation, problem.position);
-          return { ...problem, unitId: unit.id, position, inZone: problemInZone(unit.zones, position, down) };
-        });
-        // A denture follows its own rules: spots they leave unsupported on purpose are listed grey, not as problems.
-        const { real: overhangs, accepted } = await splitDentureSpots(dentureClient(), unit, located, { key: 'Checking the denture rules on {name}', vars: { name: unitName(unit.id) } });
-        const acceptedRows = accepted.map(({ reason, points }) => ({ kind: 'outside' as const, area: 0, position: points[0]!, points, rule: reason, unitId: unit.id, inZone: false }));
-        // Islands are the Rust verdict of the build, already in the unit frame (a vertex of the unit mesh).
-        const islands = islandProblems(mesh?.islands, unit.source.positions).map((problem) => ({
-          ...problem, unitId: unit.id, inZone: problem.kind === 'island' && problemInZone(unit.zones, problem.position, down),
-        }));
-        const items = [...islands, ...omittedProblems(unitContacts(unit, undefined), mesh).map((problem) => ({ ...problem, unitId: unit.id, inZone: false })), ...acceptedRows, ...overhangs];
-        setProblems((current) => new Map(current).set(unit.id, { unit, mesh, items }));
-        // No current build: the island verdict is not known yet, so this check is not complete (never clean);
-        // the re-check below runs once the build lands and lists what it finds.
-        if (!mesh) return undefined;
-        const unjudged = items.filter((problem) => problem.kind === 'unjudged').length;
-        // Low points outside the policy's area are informational: never a spot that may print unsupported.
-        const outside = items.filter((problem) => problem.kind === 'outside' || problem.kind === 'omitted').length;
-        const inZone = items.filter((problem) => problem.inZone).length;
-        return { spots: items.length - inZone - unjudged - outside, inZone, unjudged };
-      }
-    }));
-    return tallyChecks(checked);
-  }, [analysis, dentureClient, unitName]);
-
-  /**
-   * The findings listed: those of units and builds unchanged since their check, and, for a unit
-   * edited since, its last findings that no support covers yet, marked out of date until its
-   * re-check (below) replaces them.
-   */
-  const { listedProblems, outOfDate } = useMemo(() => {
-    let stale = false;
-    const listed = scene.units.flatMap((unit) => {
-      const entry = problems.get(unit.id);
-      if (!entry) return [];
-      const mesh = currentBuild(unit, built.get(unit.id));
-      if (entry.unit === unit && entry.mesh === mesh) return entry.items;
-      // An unjudged verdict, and the outside-policy note, have no spot a support could cover: it stays until the re-check replaces it.
-      const open = uncovered(entry.items, unitContacts(unit, mesh), resolveSettings(unit.settings).scatterSpacing, (problem) => problem.kind === 'unjudged' || problem.kind === 'outside' || problem.kind === 'omitted' || isRechecking(problem));
-      stale ||= open.length > 0;
-      return open;
-    });
-    return { listedProblems: listed, outOfDate: stale };
-  }, [built, isRechecking, problems, scene.units]);
-  const recheckTimer = useRef<number | undefined>(undefined);
-  useEffect(() => {
-    const stale = scene.units.filter((unit) => {
-      const entry = problems.get(unit.id);
-      // Re-checked once the unit's build settles, so the check sees the contacts that build kept.
-      // `builtGeometry`, the SAME function the check records with. Comparing against
-      // `currentBuild` here compared `undefined` with a truthy released build on every pass.
-      return unit.supports && entry && buildSettled(unit) && (entry.unit !== unit || entry.mesh !== builtGeometry(unit, built.get(unit.id)));
-    });
-    if (stale.length === 0) return;
-    window.clearTimeout(recheckTimer.current);
-    // A recheck replaced by a newer one says nothing (the newer one runs); a failure or a cancel is
-    // said, since the edited unit's findings stay hidden until a check finishes.
-    recheckTimer.current = window.setTimeout(() => void runCheck(stale).catch((error: unknown) => {
-      stopRechecking();
-      if (isAbort(error)) setStatus('Support check cancelled. Supports unchanged.');
-      else setStatusMessage(errorStatus('check', codedJobError(error)));
-    }), 600);
-  }, [built, failedBuilds, problems, runCheck, scene.units, setStatus, stopRechecking]);
-
-  const checkSupports = useCallback(() => {
-    const units = targets(sceneRef.current).filter((unit) => unit.supports);
-    if (units.length === 0) return setStatus('Generate supports before checking them.');
-    setStatus('Checking supports on 1 object.', { n: units.length }, 'Checking supports on {n} objects.');
-    runCheck(units).then(
-      (tally) => setStatusMessage(checkStatus(tally)),
-      (error: unknown) => (isAbort(error) ? setStatus('Support check cancelled. Supports unchanged.') : setStatusMessage(errorStatus('check', codedJobError(error)))),
-    );
-  }, [runCheck, setStatus, targets]);
 
   // ---- Dental Steps 1 and 2 (orient, detect the area): components/useDentalFlow ------------
   const dentalFlow = useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, session, setStatus, requestView, setGizmoMode, unitName });
@@ -758,187 +618,24 @@ export default function App() {
     ? { unitId: activeUnit.id, deg: orientFlow.tilt.scan.rows[orientFlow.tilt.index]!.tiltDeg }
     : undefined;
 
-  // ---- Import --------------------------------------------------------------------------
+  // ---- Import (components/useImportFiles) ---------------------------------------------
   /**
-   * `takesOne` overrides the Step 1 rule that a drop is ONE aligner. Step 1 does take one — it
-   * orients the file as it reads it — but the Items page is a list, and a drop onto a list adds to
-   * it. Without this, a drop there mid-loop would silently keep the first file and discard the rest,
-   * which is the same class of bug `startDrop.ts` was written to end.
+   * A refusal because a mode owns the scene pulses the left panel, whose lock note says why and how
+   * out. One callback, because both an import and a project opened mid-mode refuse that way.
    */
-  const importFiles = useCallback(async (files: readonly File[], options?: {
-    takesOne?: boolean;
-    onAdded?: (count: number) => void;
-    /**
-     * EVERY refusal, not just the first. The status line can only say one thing, so a drop of eight
-     * with two bad files named one of them and lost the other. A deck of rows can say which.
-     */
-    onRefused?: (refusals: readonly { name: string; refusal: ImportRefusal }[]) => void;
-  }) => {
-    // Dental Step 1 takes the aligner itself: one file, and it is oriented once read.
-    const dentalDrop = dropKeepsOneFile(acceptsDentalDrop(sessionRef.current), options?.takesOne);
-
-    const replacesPlate = dentalDrop && freshStart.current;
-    freshStart.current = false;
-    const badFile = (message: Message) => {
-      setStatusMessage(message);
-      if (dentalDrop) send({ type: 'dentalBadFile', message });
-    };
-    // A mode owns the scene until it is finished: a dropped or chosen file waits.
-    const refusal = dentalDrop ? undefined : importRefusal(sessionRef.current.mode);
-    if (refusal) {
-      // The refusal also pulses the left panel's lock note, which says why and how out.
-      setPulse((current) => ({ panel: 'left', seq: current.seq + 1 }));
-      return setStatusMessage(refusal);
-    }
-    const accepted = filesToImport(files.filter(acceptModelFile), dentalDrop);
-    if (accepted.length === 0) return badFile(errorStatus('import', new CodedError('file-type', 'file-type')));
-    if (dentalDrop) send({ type: 'dentalLoading' });
-    /** The file being read, named in an error. */
-    let reading = accepted[0]!.name;
-    // One controller for the whole drop: Cancel (in the activity list) stops it and nothing is added.
-    const controller = new AbortController();
-    // What this drop adds is held on the plate while it reads, so an import started meanwhile counts
-    // it too; a failure or cancel releases it (core/plateLedger).
-    const reservation = PLATE.open();
-    const plateNow = (): PlateScene => ({ ids: new Set(sceneRef.current.units.map((unit) => unit.id)), triangles: sceneRef.current.units.reduce((sum, unit) => sum + triangleCount(unit), 0) });
-    try {
-      const imported: PreparedMesh[][] = [];
-      /*
-       * ONE BAD FILE IS ITS OWN FAILURE, NOT THE DROP'S.
-       *
-       * The read loop used to sit inside the single `try` below, so any refusal - a damaged STL, a
-       * triangle or memory cap, a full plate - aborted the whole drop and added NOTHING. With one
-       * file that is the same thing; with a case of several it throws away the files that were fine
-       * because one was not, which is the behaviour a per-file Items row cannot be built on.
-       *
-       * A CANCEL IS STILL THE WHOLE DROP. One `AbortController` covers every file, and stopping is
-       * the operator asking for nothing to be added - so an abort is re-thrown to the outer handler
-       * rather than collected here.
-       */
-      const refused: { name: string; error: unknown }[] = [];
-      const memoryCap = memoryCapBytes(memoryInfo());
-      // The triangles this drop adds, with each file as it is read.
-      let adding = 0;
-      for (const file of accepted) {
-        reading = file.name;
-        try {
-        // Refused before anything is parsed or copied, whenever the file says how big it is.
-        const estimate = estimateTriangles(new Uint8Array(await file.slice(0, await estimateHeadBytes(file)).arrayBuffer()), file.size, file.name);
-        if (estimate) {
-          assertTriangleCapacity(file.name, estimate.triangles, RUNTIME, estimate.exact);
-          assertMemoryCapacity(file.name, estimate.triangles, RUNTIME, memoryCap);
-          if (estimate.exact) reservation.hold(adding + estimate.triangles, plateNow(), (plate) => assertPlateCapacity(file.name, plate, RUNTIME));
-        }
-        const label = { key: 'Importing {name}', vars: { name: file.name } };
-        if (/\.stl$/i.test(file.name)) {
-          // The worker reads the file itself, slice by slice.
-          imported.push(await importer().readStl(file, file.name, RUNTIME, label, controller.signal));
-        } else {
-          const data = await file.arrayBuffer();
-          const gltf = await new Promise<{ scene: Object3D }>((resolve, reject) => new GLTFLoader().parse(data, '', resolve, reject));
-          const raw = gltfRawMeshes(gltf, file.name);
-          if (raw.length === 0) throw new CodedError('no-mesh', `${file.name} contains no mesh`);
-          // Backstop for a glTF the estimate could not read: counted before welding.
-          assertTriangleCapacity(file.name, raw.reduce((sum, mesh) => sum + (mesh.indices ? mesh.indices.length : mesh.positions.length / 3) / 3, 0), RUNTIME, true);
-          imported.push(await importer().weld(raw, RUNTIME, label, controller.signal));
-        }
-          // Counted again from what was read (an estimate may have been short).
-          adding += imported[imported.length - 1]!.reduce((sum, item) => sum + item.mesh.indices.length / 3, 0);
-          reservation.hold(adding, plateNow(), (plate) => assertPlateCapacity(file.name, plate, RUNTIME));
-        } catch (error) {
-          if (isAbort(error)) throw error;
-          refused.push({ name: file.name, error });
-        }
-      }
-      /*
-       * Nothing survived: behave exactly as before, reporting the first refusal. `adding` never rose
-       * for a refused file, so the next successful `hold` lowers the reservation back on its own; with
-       * no successes at all there is nothing to commit, so release it.
-       */
-      options?.onRefused?.(refused.map((entry) => ({ name: entry.name, refusal: refusalOf(entry.error) })));
-      if (imported.length === 0) {
-        reservation.release();
-        const first = refused[0]!;
-        return badFile(errorStatus('import', codedJobError(first.error), { name: first.name }));
-      }
-      for (const item of imported.flat()) {
-        if (item.display) setDisplayMesh(item.mesh, item.display);
-      }
-      let units = [...sceneRef.current.units];
-      const added: PrintUnit[] = [];
-      for (const group of imported) {
-        const placed = placeImportedUnits(group, units, { lift: defaultSupportSettings.liftHeight, createId: () => `unit-${crypto.randomUUID()}` });
-        units = [...units, ...placed];
-        added.push(...placed);
-      }
-      // A mode that began while the files were read still ends here, so the new objects are never edited under it.
-      if (!dentalDrop) send({ type: 'leave' });
-      dispatch({ type: 'batch', commands: [
-        // A file chosen on the start screens replaces the aligner that stayed on the plate.
-        ...(replacesPlate ? sceneRef.current.units.map((unit) => ({ type: 'unit/remove' as const, unitId: unit.id })) : []),
-        // Handed over: the worker's fresh arrays, also the keys of their display copy and pick index.
-        ...added.map((unit) => ({ type: 'unit/add' as const, unit, owned: true })),
-        { type: 'selection/set', unitIds: added.map((unit) => unit.id), activeUnitId: added[0]!.id },
-      ] });
-      reservation.commit(added.map((unit) => unit.id));
-      // HOW MANY ARRIVED, reported at the moment this knows it. A caller that compared
-      // `sceneRef.current.units.length` before and after saw NO CHANGE: the ref is updated on render,
-      // and the render has not happened when this promise resolves. The walk caught that; no unit
-      // test could have, because the fault is in the timing between a dispatch and a ref.
-      //
-      // A callback rather than a return value: this function has six early exits for refusals, and
-      // making each invent a count would spread the question over all of them.
-      options?.onAdded?.(added.length);
-      if (dentalDrop) {
-        const aligner = added[0]!;
-        if (meshTier(triangleCount(aligner), RUNTIME) === 'heavy') {
-          dispatch({ type: 'unit/remove', unitId: aligner.id });
-          return badFile({ key: 'This aligner has too many triangles ({n}) for the dental flow. Simplify the file and drop it again.', vars: { n: triangleCount(aligner).toLocaleString() } });
-        }
-        setStatusMessage({ key: 'Imported {name}. Checking and orienting it…', vars: { name: aligner.name } });
-        return startDentalAligner(aligner);
-      }
-      /*
-       * A refusal is the actionable news, so it wins the status line: the files that DID import are
-       * on the plate where the operator can see them, and a count of successes tells them nothing
-       * they cannot already count. No new string for the mixed case - the refusal's own sentence
-       * already names the file and says why.
-       */
-      if (refused.length > 0) {
-        const first = refused[0]!;
-        return badFile(errorStatus('import', codedJobError(first.error), { name: first.name }));
-      }
-      const heaviest = added.reduce((most, unit) => (triangleCount(unit) > triangleCount(most) ? unit : most));
-      const plate = units.reduce((sum, unit) => sum + triangleCount(unit), 0);
-      setStatusMessage(importStatus({ name: heaviest.name, triangles: triangleCount(heaviest) }, plate, added.length, RUNTIME));
-    } catch (error) {
-      reservation.release();
-      if (isAbort(error)) {
-        setStatus('Import cancelled; nothing was added.');
-        if (dentalDrop) send({ type: 'dentalBadFile', message: { key: 'Import cancelled; nothing was added.' } });
-      } else badFile(errorStatus('import', codedJobError(error), { name: reading }));
-    }
-  }, [dispatch, importer, send, setStatus, startDentalAligner]);
+  const pulseLeftPanel = useCallback(() => setPulse((current) => ({ panel: 'left', seq: current.seq + 1 })), []);
+  const { importFiles, useSelectedAligner } = useImportFiles({
+    sceneRef, sessionRef, units: scene.units, freshStart, send, dispatch, importer, startDentalAligner,
+    pulseLeftPanel, setStatus, setStatusMessage,
+  });
 
   importRef.current = importFiles;
 
-  /** Step 1 with the object already selected on the plate instead of a drop. */
-  const useSelectedAligner = useCallback(() => {
-    const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
-    if (!unit || !acceptsDentalDrop(sessionRef.current)) return;
-    if (meshTier(triangleCount(unit), RUNTIME) === 'heavy') {
-      const message = { key: 'This aligner has too many triangles ({n}) for the dental flow. Simplify the file and drop it again.', vars: { n: triangleCount(unit).toLocaleString() } };
-      setStatusMessage(message);
-      return send({ type: 'dentalBadFile', message });
-    }
-    startDentalAligner(unit);
-  }, [send, startDentalAligner]);
-
   const replaceWith = useCallback((next: PrintScene) => dispatchHistory({ type: 'replace', scene: next }), []);
   const refuseWhileBusy = useCallback((message: Message) => {
-    setPulse((current) => ({ panel: 'left', seq: current.seq + 1 }));
+    pulseLeftPanel();
     setStatusMessage(message);
-  }, []);
+  }, [pulseLeftPanel]);
   const closeStart = useCallback(() => setStartScreen(null), []);
   const { openProject, saveProject, chooseProject } = useProjectFile({ sceneRef, modeRef: sessionRef, replace: replaceWith, setStatusMessage, offerUndo, refused: refuseWhileBusy, scene, onOpened: closeStart });
 
@@ -1348,7 +1045,7 @@ export default function App() {
       }
       case 'export.active-printable': case 'export.active-supports': case 'export.separate-printable': case 'export.separate-supports': case 'export.whole-printable': return void runExport(exportKindOf(id));
     }
-  }, [analysis, checkSupports, chooseProject, saveProject, clearActiveZones, clearManual, clearSelection, deleteSelected, deleteUnits, dentalPreview, dispatch, generate, generateDental, removeSupports, requestView, resetSelected, runExport, selectCustomised, send, setStatus, undo, unitName]);
+  }, [checkSupports, chooseProject, saveProject, clearActiveZones, clearManual, clearSelection, deleteSelected, deleteUnits, dentalPreview, dispatch, generate, generateDental, removeSupports, requestView, resetSelected, runExport, selectCustomised, send, setStatus, undo]);
 
   /** A start screen was reached. Back goes one step and removes nothing: the loaded aligner stays on the plate. */
   const [startKind, setStartKind] = useState<DentalKind>('aligner');
