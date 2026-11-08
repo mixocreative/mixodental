@@ -1040,6 +1040,22 @@ export default function App() {
    *     is correct there, since nothing has been finished yet.
    */
   const startItem = (unit: PrintUnit) => {
+    /*
+     * NO SYNCHRONOUS GUARD HERE, AND THE REASON IS WORTH MORE THAN THE GUARD WAS.
+     *
+     * Remove and Start reach one unit in a single tick easily: both controls are on screen, both
+     * aimed at the row the rail shows, and `onStart` closes over a unit OBJECT rather than a live
+     * lookup. The obvious guard - look the unit up in `sceneRef.current` and refuse if it has gone -
+     * was written here first and **it cannot fire**. `sceneRef.current` is updated on RENDER, and
+     * the render has not happened when the second click of the same tick runs, so the removed unit
+     * is still in it. (`useImportFiles` carries the same warning about the same ref; I read it and
+     * made the mistake anyway, which is why it is restated at the second site.) A guard that can
+     * never fire is a dead control wearing safety's clothes, so it is gone rather than kept.
+     *
+     * What actually holds this is the invariant effect further down ("the flow cannot be open on a
+     * unit that is not on the plate"), which runs on RENDERED state where the scene is current - and
+     * which recovers from every way a unit can leave under the flow, not just from this race.
+     */
     dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id });
     const live = sessionRef.current;
     if (live.mode !== 'dental') {
@@ -1089,6 +1105,38 @@ export default function App() {
     setStartScreen(null);
     send({ type: 'startDental', profile, ...(file ? { file } : {}) });
   };
+  /*
+   * THE FLOW CANNOT BE OPEN ON A UNIT THAT IS NOT ON THE PLATE (gap register W-09, walk `q6`).
+   *
+   * WHAT THE FAULT LOOKED LIKE. Remove and Start on one row in one tick: the removal and the flow
+   * entry both go through, and then every downstream guard works exactly as written and still leaves
+   * the operator somewhere no screen describes. The selection reducer drops an id the scene has not
+   * got, so `activeUnitId` is empty; `startAligner` abandons its orient job because the active unit
+   * is not the one it was handed; `setStartScreen(null)` had already shut the deck; and the gesture
+   * that draws the dental bar needs an active unit, so no step is drawn either. The probe found the
+   * deck gone, no badge, the GENERIC editor panels on screen, two models on the plate, nothing
+   * selected - and the status line still saying "Drop an aligner STL... then press Next". The mode
+   * was on underneath with nothing drawn to leave it by.
+   *
+   * WHY IT IS AN EFFECT AND NOT A GUARD. `startItem`'s comment has the long version: a guard there
+   * reads `sceneRef.current`, which is a render behind, so it cannot see a removal from the same
+   * tick. This runs on RENDERED state, where `scene` and `session` are both current - so it does not
+   * care which of the two actors won, or in what order, or by what route the unit left. A dropped
+   * unit, an undone import and this race all converge here.
+   *
+   * RECOVERY, NOT A REFUSAL. The flow closes and the deck comes back, which is a world every
+   * observer agrees on and one the operator can read: their row is visibly gone from a list they
+   * were already looking at. `START_HINT` then writes the deck's own line, which is true, so this
+   * deliberately adds no sentence of its own - an explanation nobody needs is one more thing to
+   * translate and keep true.
+   */
+  useEffect(() => {
+    if (session.mode !== 'dental' || !session.dentalUnitId) return;
+    if (scene.units.some((unit) => unit.id === session.dentalUnitId)) return;
+    send({ type: 'exit' });
+    setStartScreen(scene.units.length > 0 ? 'items' : 'drop');
+  }, [scene.units, session.mode, session.dentalUnitId, send]);
+
   // Closing the last model returns to the start and leaves any step, so the next type choice starts afresh.
   const unitCount = scene.units.length;
   const lastUnitCount = useRef(unitCount);
