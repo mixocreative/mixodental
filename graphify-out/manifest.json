@@ -120,15 +120,15 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794139233.1459248,
-    "seen": 1794141483.3334954,
-    "ast_hash": "1de248e534f05eb275d3b0171657614b",
+    "mtime": 1794148368.7477877,
+    "seen": 1794150794.672841,
+    "ast_hash": "5aaea84eb75bfeb366be9cbd15bfa5f4",
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794144296.2761421,
-    "seen": 1794146713.678108,
-    "ast_hash": "fabcfd8418479fc8ee0ea97a6ecd8930",
+    "mtime": 1794148227.2536707,
+    "seen": 1794150794.672841,
+    "ast_hash": "4cc8a209cf50616fcbda59dafd8b0f99",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -564,15 +564,15 @@
     "semantic_hash": ""
   },
   "src/locales/ja.ts": {
-    "mtime": 1794131574.8742218,
-    "seen": 1794134472.3563173,
-    "ast_hash": "5855a0dbabc8b4f81d3279d806e4e10e",
+    "mtime": 1794148282.4126198,
+    "seen": 1794150794.672841,
+    "ast_hash": "5059dd330be84e8957d4e43a0862cc3a",
     "semantic_hash": ""
   },
   "src/locales/zh-Hant.ts": {
-    "mtime": 1794131574.8762205,
-    "seen": 1794134472.3563173,
-    "ast_hash": "9fe2b50510e67489fcc1423906088bcf",
+    "mtime": 1794148282.429783,
+    "seen": 1794150794.672841,
+    "ast_hash": "7295a2ec89545ea973e5bfad97befb5c",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -618,15 +618,15 @@
     "semantic_hash": ""
   },
   "src/state/project.test.ts": {
-    "mtime": 1794090006.837104,
-    "seen": 1794095721.438297,
-    "ast_hash": "204e9056f644ba8658814fd3876424e0",
+    "mtime": 1794148404.1123135,
+    "seen": 1794150794.672841,
+    "ast_hash": "9f0fbea23e7f89880d08f45562ecd412",
     "semantic_hash": ""
   },
   "src/state/project.ts": {
-    "mtime": 1794090006.837104,
-    "seen": 1794095721.438297,
-    "ast_hash": "9ed635db4fb789b3196640b7bfdc432c",
+    "mtime": 1794148227.252168,
+    "seen": 1794150794.672841,
+    "ast_hash": "04d706b3da0dde9a15652d65daa47548",
     "semantic_hash": ""
   },
   "src/state/projectFile.test.ts": {
@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794131298.1094265,
-    "seen": 1794131333.8728402,
-    "ast_hash": "19f7b096950e8938fc2ddbec6739564b",
+    "mtime": 1794146746.34603,
+    "seen": 1794150794.672841,
+    "ast_hash": "be7d86fd7d37d52c318dac8394949af4",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -3769,9 +3769,9 @@
     "semantic_hash": ""
   },
   "src/dental/editingMode.ts": {
-    "mtime": 1794134557.9004927,
-    "seen": 1794141483.3334954,
-    "ast_hash": "6f5825f7393786c0884d9fa0c348332d",
+    "mtime": 1794148227.252168,
+    "seen": 1794150794.672841,
+    "ast_hash": "d54202840abb540111a923d764f0c803",
     "semantic_hash": ""
   },
   "src/workers/engineSource.ts": {
@@ -3817,9 +3817,9 @@
     "semantic_hash": ""
   },
   "src/dental/editing/session.test.ts": {
-    "mtime": 1794134671.036937,
-    "seen": 1794141483.3334954,
-    "ast_hash": "e70ee34f63056c268209de13ad492635",
+    "mtime": 1794148404.1123135,
+    "seen": 1794150794.672841,
+    "ast_hash": "fe5cee2e71a19daf316906f6453a35b8",
     "semantic_hash": ""
   },
   "src/dental/editing/status.test.ts": {
@@ -5563,15 +5563,15 @@
     "semantic_hash": ""
   },
   "src/items/ItemsPage.test.tsx": {
-    "mtime": 1794144430.2194083,
-    "seen": 1794146713.678108,
-    "ast_hash": "048a74cd0fe89d1afd3a9afa1b08beee",
+    "mtime": 1794148404.1123135,
+    "seen": 1794150794.672841,
+    "ast_hash": "58f0693d226756efb3399bbabc5d6776",
     "semantic_hash": ""
   },
   "src/items/ItemsPage.tsx": {
-    "mtime": 1794144296.2751424,
-    "seen": 1794146713.678108,
-    "ast_hash": "61d118fbf9a3913b37995f5a981b9176",
+    "mtime": 1794148256.239342,
+    "seen": 1794150794.672841,
+    "ast_hash": "310cdb1552e0961587dc11b3539e465c",
     "semantic_hash": ""
   },
   "src/items/dropGrain.test.ts": {
@@ -5773,9 +5773,9 @@
     "semantic_hash": ""
   },
   "src/items/ItemRow.tsx": {
-    "mtime": 1794090129.6774137,
-    "seen": 1794095721.438297,
-    "ast_hash": "d0446ba80ed4546c70e5f0d9bd1f9fa9",
+    "mtime": 1794148227.2511694,
+    "seen": 1794150794.672841,
+    "ast_hash": "d8158f367e41d57966a459183b577e8f",
     "semantic_hash": ""
   },
   "src/items/RefusedRow.tsx": {
@@ -5860,6 +5860,12 @@
     "mtime": 1794144454.7114096,
     "seen": 1794146713.678108,
     "ast_hash": "86596dadc8b3101f09d0051dee4c6823",
+    "semantic_hash": ""
+  },
+  "docs/reviews/2026-11-08-cia-deck-and-flow.md": {
+    "mtime": 1794150735.221464,
+    "seen": 1794150794.672841,
+    "ast_hash": "3b5eb9f2a52c1c0d104b7bf0bf5e3b1d",
     "semantic_hash": ""
   }
 }
