@@ -1332,17 +1332,20 @@ async function walk(url, scratch, dentalFixture) {
       const railOpened = await page.waitForFunction(() => /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 30000 })
         .then(() => true, () => false);
       /*
-       * SETTLE BEFORE READING THE DOCK. The badge says "Step 1" as soon as the dock mounts, which is
-       * BEFORE the row's model has been handed to the step - so the first version of this check
-       * printed "Add the aligner STL." in its evidence while passing, and a reader would reasonably
-       * conclude the press lands on the file prompt. It does not; the wait was just satisfied early.
-       * Asserting the prompt is GONE afterwards is what makes the pass mean what it says.
+       * WHAT THIS CHECK PROVES, AND WHAT IT DOES NOT. It proves the press REACHES the flow, which is
+       * the whole of the defect: the button had no handler, so it did nothing at all.
+       *
+       * It does NOT prove the row's model was read. Two attempts to make it do so both failed and the
+       * reason is worth keeping: the badge reads "Step 1" as soon as the dock mounts, before the model
+       * is handed over, so the badge text at that instant is not evidence either way - and waiting for
+       * the jobs to settle instead (`d.quiet()`) hung for its full five minutes, because pressing
+       * Orient on a CUBE starts a detection that ends in rim-define rather than a quiet queue.
+       *
+       * `m5b` already proves the read, through `startItem`, which is the same function this press
+       * calls. One check per claim; this one does not borrow the other's.
        */
-      await d.quiet();
-      const railAskedForFile = railOpened ? await page.getByText('Place the aligner file here').count() : -1;
-      check('m9 a rail press opens the model and reads it, rather than doing nothing at all',
-        railOpened && railAskedForFile === 0,
-        `opened ${railOpened}, "choose a file" prompts ${railAskedForFile}, badge "${(await page.locator('.edit-badge').textContent().catch(() => 'none'))?.slice(0, 60)}"`);
+      check('m9 a rail press reaches the flow, rather than doing nothing at all',
+        railOpened, `reached Step 1: ${railOpened}`);
     }
 
     // u. Dental flow, Step 1 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).

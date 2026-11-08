@@ -12,6 +12,31 @@ export function backNeedsConfirm(unit: Pick<PrintUnit, 'manual' | 'deleted' | 'c
   return added + removed + customised > 0;
 }
 
+/**
+ * WHAT A RE-ACCEPTED ORIENTATION CARRIES OVER from the policy already on the unit: the painted area
+ * and the Step 3 tuning.
+ *
+ * Found by audit (W-01). Accepting an orientation built a fresh policy with `stamps: []` and a
+ * default tuning unconditionally, so re-entering a unit and pressing Next threw away the painted
+ * support area and the tuning with no warning - directly under a comment claiming "once set, the
+ * operator's own choices are kept". `backNeedsConfirm` could not catch it either: it reads `manual`,
+ * `deleted` and `contactSettings`, and never `dental.stamps`.
+ *
+ * KEPT, not re-asked. The stamps are unit-local marks on the mesh, and a re-orient changes the
+ * TRANSFORM rather than the mesh, so they are still exactly where the operator put them. What a
+ * re-orient invalidates is the AREA derived from them, and `revisions` already marks that stale. The
+ * staleness model exists precisely so this does not have to be a deletion.
+ *
+ * Only a policy of the same kind AND profile carries over: a different appliance type measures a
+ * different area, and marks made for the old one would mean nothing on the new.
+ */
+export function keptDentalWork(unit: Pick<PrintUnit, 'dental'>, profileId: string) {
+  const policy = unit.dental;
+  return policy !== undefined && policy.kind === 'two-contour' && policy.profileId === profileId
+    ? { stamps: policy.stamps, tuning: policy.tuning }
+    : undefined;
+}
+
 /** Back from Step 3 once confirmed: the hand work goes, the supports follow the next Generate. */
 export function discardManualCommands(unit: Pick<PrintUnit, 'id' | 'manual' | 'deleted' | 'contactSettings'>): SceneCommand[] {
   return backNeedsConfirm(unit) ? [{ type: 'supports/clear-manual', unitId: unit.id }] : [];

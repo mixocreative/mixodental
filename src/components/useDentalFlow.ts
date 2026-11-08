@@ -9,6 +9,7 @@ import type { AnalysisClient } from '../workers/analysisClient';
 import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { isManualArea } from '@mixo-geocore/host/dental/dentalPolicy';
+import { keptDentalWork } from '../dental/flow';
 import { manualAreaPolicy } from '../dental/manualArea';
 import { dentalStructureOf, dentalSupportSettings } from '../dental/supportPreset';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
@@ -315,9 +316,12 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
         return;
       }
       // A new aligner (or one whose type changed) starts from its type's Step 3 settings and
-      // Tree/Brace switches; once set, the operator's own choices are kept.
+      // Tree/Brace switches; once set, the operator's own choices are kept - including the painted
+      // area and the tuning, which this used to discard in silence (`keptDentalWork` says why).
       const { settings, structure } = alignerSettings(unit, profile);
-      const policy = { kind: 'two-contour' as const, profileId: profile, rim: proposal.rim, region, stamps: [], tuning: defaultDentalTuning(profile), structure };
+      const kept = keptDentalWork(unit, profile);
+      const policy = { kind: 'two-contour' as const, profileId: profile, rim: proposal.rim, region,
+        stamps: kept?.stamps ?? [], tuning: kept?.tuning ?? defaultDentalTuning(profile), structure };
       const accept = (angleMovedDeg?: number) => {
         dispatch({ type: 'batch', commands: [...presetCommands(unit, profile), { type: 'dental/set', unitId: unit.id, policy }] });
         send({ type: 'acceptDentalOrientation', ...(angleMovedDeg === undefined ? {} : { angleMovedDeg }) });

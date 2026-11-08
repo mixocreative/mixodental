@@ -7,9 +7,46 @@ import { acceptCommands } from '../denture/steps/orient/acceptCommands';
 import { DENTURE_PROFILE_ID } from '../denture/jobKind';
 import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { DEFAULT_DENTURE_OPTIONS } from '../denture/settings/dentureOptions';
-import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts, startsDentalStep } from './flow';
+import { backNeedsConfirm, discardManualCommands, exitCommands, keptDentalWork, manualEditCounts, startsDentalStep } from './flow';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u1', manual: [], deleted: [], contactSettings: {}, ...over }) as unknown as PrintUnit;
+
+/*
+ * W-01, FOUND BY AUDIT. Accepting an orientation built a fresh policy with `stamps: []` and a default
+ * tuning unconditionally, so re-entering a unit and pressing Next threw away the painted support area
+ * and the Step 3 tuning in silence - directly beneath a comment claiming the operator's own choices
+ * are kept. `backNeedsConfirm` could not catch it: it reads `manual`, `deleted` and `contactSettings`,
+ * never `dental.stamps`, so the guard was blind to a whole class of hand work.
+ */
+describe('what a re-accepted orientation carries over', () => {
+  const painted = (over: Record<string, unknown> = {}) => unit({
+    dental: { kind: 'two-contour', profileId: 'p', stamps: [{ at: 1 }], tuning: { density: 3 }, region: {}, rim: {} },
+    ...over,
+  } as unknown as Partial<PrintUnit>);
+
+  it('keeps the painted area and the tuning of a policy of the same kind and profile', () => {
+    expect(keptDentalWork(painted(), 'p')).toEqual({ stamps: [{ at: 1 }], tuning: { density: 3 } });
+  });
+
+  it('carries nothing over when the appliance type changed', () => {
+    // A different profile measures a different area, so marks made for the old one mean nothing.
+    expect(keptDentalWork(painted(), 'other-profile')).toBeUndefined();
+  });
+
+  it('carries nothing over for a unit with no policy, or a policy of another kind', () => {
+    expect(keptDentalWork(unit(), 'p')).toBeUndefined();
+    expect(keptDentalWork(unit({ dental: { kind: 'manual-area', profileId: 'p' } } as unknown as Partial<PrintUnit>), 'p')).toBeUndefined();
+  });
+
+  /*
+   * THE GAP THAT LET THIS THROUGH, pinned so it is not re-opened: the hand-work guard still does not
+   * see painted stamps. That is correct for what it is FOR - Back out of Step 3 discards Step 3's
+   * supports - but it is why the area needed keeping rather than confirming.
+   */
+  it('is not something backNeedsConfirm can see, which is why the area is kept rather than re-asked', () => {
+    expect(backNeedsConfirm(painted())).toBe(false);
+  });
+});
 
 describe('dental flow rules', () => {
   it('Back from Step 3 asks only when hand work would be discarded', () => {
