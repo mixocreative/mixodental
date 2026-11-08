@@ -1614,11 +1614,14 @@ at all. The true multi-model plate is a separate project, after E9.
 
 Each leaves the app working, gated and pushed.
 
-**E0. Test the denture path through the rail.** Found while checking the above: `grep denture` in
+**E0. DONE.** Test the denture path through the rail. Found while checking the above: `grep denture` in
 `src/deck/unitFacts.test.ts` and `toolState.test.ts` returns nothing, although three lines of
 `unitFacts.ts` exist solely to fix a denture-specific rail lie that review caught. It is first
 because every increment below leans on those facts being right.
-*Exit:* removing `isDenture` from either fact fails a test.
+*Exit, met:* each `isDenture` branch was deleted in turn and three tests went red each time, with
+19 green once restored. Both halves of the recorded fault are covered — the greying AND the sentence
+it showed, which were one bug. A fourth test guards the over-correction: a freshly imported denture
+has no accepted policy and must still read as nothing done.
 
 **E1. Remove the in-flow type step** (was §8 7c). Delete `dentalStage: 'type'` and its ~15 sites, and
 make Back at Orient return to the Items page **without ending the session** — today it sends `exit`

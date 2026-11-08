@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { DetectState } from '../items/detectState';
 import type { PrintUnit } from '../state/project';
-import { railStates } from './toolState';
+import { railReason, railStates } from './toolState';
 import { unitFacts } from './unitFacts';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u', name: 'n', ...over } as PrintUnit);
 const policy = {} as PrintUnit['dental'];
+/** An ACCEPTED denture policy (`denture/set`), which is what marks the job kind on a unit. */
+const denturePolicy = {} as PrintUnit['denture'];
 /*
  * REAL DRAFTS, open and closed. These used to be `{} as PrintUnit['rimDraft']` - an empty object
  * standing in for a rim - which is precisely why the suite could not see that one unclosed anchor
@@ -80,6 +82,46 @@ describe('what a unit presents to the rail', () => {
   it('opens the rail for a project saved before revisions existed', () => {
     expect(kinds(unit({ dental: policy })))
       .toEqual({ orient: 'ready', rim: 'ready', area: 'ready', supports: 'ready' });
+  });
+});
+
+/*
+ * THE DENTURE PATH, which had no test at all until this block - although three lines of
+ * `unitFacts.ts` exist solely because of it. The recorded fault: a denture that was oriented and
+ * supported showed Area and Supports greyed, under the line "The area is measured from the rim, so
+ * draw the rim first." on a job that never draws a rim and has no area step.
+ *
+ * `isDenture` appears in TWO facts, so each assertion below names which one it defends. Delete
+ * either branch and something here must go red, or this block is decoration.
+ *
+ * It lives here and NOT in `toolState.test.ts` on purpose: that file works on a `ToolFacts` object
+ * directly and has no denture knowledge by design - the job kind is resolved in `unitFacts`. Saying
+ * so keeps the gap from being "fixed" in the file that cannot see it.
+ */
+describe('a denture is a different job, and the rail must not instruct about steps it lacks', () => {
+  it('presents a rim and an area it will never be asked for', () => {
+    // `hasRim`'s branch: a denture draws no rim, so the rim tool is not something it waits for.
+    // `hasAcceptedArea`'s branch: its accepted policy IS its footprint, so there is no area step.
+    expect(unitFacts(unit({ denture: denturePolicy })))
+      .toMatchObject({ oriented: true, hasRim: true, areaAccepted: true });
+  });
+
+  it('opens every tool, rather than greying the two it skips', () => {
+    expect(kinds(unit({ denture: denturePolicy })))
+      .toEqual({ orient: 'ready', rim: 'ready', area: 'ready', supports: 'ready' });
+  });
+
+  it('says nothing, where it used to instruct about a rim', () => {
+    // The user-visible half of the fault. The reason line is drawn from the FIRST unavailable tool,
+    // so the greying and the wrong sentence were one bug; this asserts the sentence is gone.
+    expect(railReason(unitFacts(unit({ denture: denturePolicy })))).toBeUndefined();
+  });
+
+  it('is still waiting on Orient before it has an accepted policy', () => {
+    // The guard against over-correcting: `unit.denture` is set on acceptance, so a freshly imported
+    // denture has none and must read as nothing done. If this ever passes with `denture` undefined,
+    // the job kind is being inferred from something earlier than acceptance.
+    expect(unitFacts(unit())).toMatchObject({ oriented: false, hasRim: false, areaAccepted: false });
   });
 });
 

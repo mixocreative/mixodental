@@ -24,7 +24,25 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (the support build cycle, split by one test — 2026-11-08)
+## Latest completed step (E0 of dissolving the step machine — 2026-11-08)
+
+The owner approved dissolving `dentalStage`. The route is `docs/design/2026-11-07-import-and-items-flow.md`
+§10: ten increments E0–E9, each leaving the app working, with the two that cannot be split named.
+
+**The ruling that unblocked it:** the Step-3 confirm-and-discard guard does not belong to navigation
+at all. In a workspace that is ordered but not gated, moving is free — only MUTATING destroys hand
+work. `openTool(tool, unitId)` changes focus and nothing else, so it has no guard to own; the guard
+becomes a condition on upstream Apply, decided by one pure predicate. That closes the third
+withdrawal fault by construction rather than by discipline.
+
+**E0 is done:** the denture path through the rail had no test, although three lines of
+`src/deck/unitFacts.ts` exist solely to fix a denture-specific rail lie review caught. Four tests
+now cover both `isDenture` branches; each was deleted in turn to prove three tests go red.
+
+**Next: E1** — remove the in-flow type step, and make Back at Orient return to the Items page
+without ending the session (today it sends `exit` and discards `dentalFinished`).
+
+## Previous completed step (the support build cycle, split by one test — 2026-11-08)
 
 `App.tsx` 1430 → 1379 lines, in two commits so each reads on its own.
 
