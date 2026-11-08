@@ -873,20 +873,30 @@ export default function App() {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
         if (sessionRef.current.dentalStage === 'review' && backNeedsConfirm(unit)) return setBackAsk(true);
         /*
-         * Back at Step 1 LEAVES the session and shows the Drop page; the loaded aligner stays on the
-         * plate. It never reaches `backDental` - the reducer's `aligner` case is a documented no-op.
+         * BACK AT STEP 1 STEPS OUT TO THE CASE, not out of the session (E1b). It used to send `exit`
+         * and show the Drop page, which discarded `dentalFinished` - so with a case of eight, going
+         * back from the second item lost the first one's finished mark. Now the session stays and the
+         * Items page comes up over it, which is the first time a LIVE dental session and a start
+         * screen are on screen together.
          *
-         * This still discards `dentalFinished`, which with a live case loses every finished item.
-         * Replacing it with a return to the Items page that KEEPS the session is E1b, and it waits on
-         * one question: the only `<Canvas>` is mounted solely while no start screen is up, so a live
-         * session behind a start screen is a shape the app has never been in.
+         * What that costs, stated rather than assumed: the workspace unmounts with the start screen,
+         * and the only `<Canvas>` is inside it, so the renderer is disposed and the models re-upload
+         * when a row is opened. That is the same cost the workspace already pays on every mount, and
+         * nothing the SESSION holds lives in the canvas. The jobs do not survive, and must not: both
+         * flows are invalidated right here, because the orientation being computed belongs to the unit
+         * the operator is walking away from.
+         *
+         * `startItem` already re-enters without exiting, so the way back needed no change.
+         *
+         * An EMPTY plate goes to Drop instead: Items with no rows is a page about a case that does not
+         * exist yet, and its own Back would be the only thing on it.
          */
         if (sessionRef.current.dentalStage === 'aligner') {
           dentalFlow.invalidate();
           denture.orient.invalidate();
           setBackAsk(false);
-          send({ type: 'exit' });
-          return setStartScreen('drop');
+          send({ type: 'backDental' });
+          return setStartScreen(sceneRef.current.units.length > 0 ? 'items' : 'drop');
         }
         return send({ type: 'backDental' });
       }

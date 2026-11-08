@@ -75,18 +75,20 @@ describe('reduceSession: modes', () => {
     expect(reduceSession(review, { type: 'exit' }).mode).toBe('off');
   });
 
-  it('Back goes 2 to 1 keeping the oriented aligner; at Step 1 the reducer does nothing', () => {
+  it('Back goes 2 to 1 keeping the oriented aligner; at Step 1 it puts Step 1 back to waiting', () => {
     const ready = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading' }, { type: 'dentalOriented', proposal, notices: [] });
     const area = reduceSession(ready, { type: 'acceptDentalOrientation' });
     const back1 = reduceSession(area, { type: 'backDental' });
     expect(back1).toMatchObject({ dentalStage: 'aligner', dentalAligner: 'ready', dentalProposal: proposal });
     /*
-      * AT STEP 1 THE REDUCER DOES NOTHING, because the app never asks it to: `dental.back`'s handler
-      * intercepts Step 1, sends `exit` and shows the Drop page. Identity (`toBe`) is the assertion
-      * that matters - the removed `type` case used to clear the proposal and the unit id here, so a
-      * stray `backDental` would have quietly thrown away an orientation the operator still had.
-      */
-    expect(reduceSession(back1, { type: 'backDental' })).toBe(back1);
+     * AT STEP 1 Back steps out to the CASE, so the step goes back to waiting and the stage does NOT
+     * move: Step 1 is where the flow waits for an aligner, which is exactly the state being returned
+     * to. The Items page comes up over it from the command handler, which is what stops this being a
+     * dead end. The profile survives, because the next row is the same kind of job.
+     */
+    const out = reduceSession(back1, { type: 'backDental' });
+    expect(out).toMatchObject({ dentalStage: 'aligner', dentalAligner: 'prompt', dentalProposal: undefined, dentalUnitId: undefined });
+    expect(out.dentalProfile).toBe('p');
     expect(reduceSession(initialSession, { type: 'backDental' })).toBe(initialSession);
   });
 
@@ -325,6 +327,24 @@ describe('reduceSession: dental Step 3 and finishing', () => {
     const area = run(step3, { type: 'backDental' });
     expect(reduceSession(area, { type: 'finishDental', unitId: 'u1' })).toBe(area);
     expect(reduceSession(area, { type: 'addAnotherDental', unitId: 'u1' })).toBe(area);
+  });
+
+  /*
+   * E1b, AND THE WHOLE REASON IT IS AN INCREMENT OF ITS OWN. Back at Step 1 used to send `exit`,
+   * which discards `dentalFinished` - so in a case of eight, going back from the second item lost the
+   * first item's finished mark, with no warning and no way to get it back.
+   */
+  it('Back at Step 1 keeps the case: the finished list survives stepping out to the rows', () => {
+    // `addAnotherDental` IS the "finish this one and start the next" press, and it marks the item
+    // finished itself. `finishDental` is the other ending - it leaves the mode - so it cannot be the
+    // fixture here: the state this test is about is a LIVE case with one item already done.
+    const done = run(step3, { type: 'addAnotherDental', unitId: 'u1' });
+    expect(done).toMatchObject({ mode: 'dental', dentalStage: 'aligner', dentalFinished: ['u1'] });
+    const back = reduceSession(done, { type: 'backDental' });
+    expect(back.dentalFinished).toEqual(['u1']);
+    expect(back.mode).toBe('dental');
+    // Exit is still how a case ENDS, and it still clears the mode. Back is not Exit.
+    expect(reduceSession(done, { type: 'exit' }).mode).toBe('off');
   });
 
   it('a new visit to the flow forgets the finished list', () => {

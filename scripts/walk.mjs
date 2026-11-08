@@ -1301,17 +1301,6 @@ async function walk(url, scratch, dentalFixture) {
       cut.writeUInt32LE(count - 40, 80);
       writeFileSync(holed, cut);
       const drop = (file) => page.setInputFiles('input[aria-label="Choose aligner file"]', file);
-      /*
-       * Back at Step 1 returns to the DROP page now (7c removed the start type screen). The old helper
-       * waited on `.start-screen .choice-keys`, which Drop also matches, so it kept "passing" while
-       * the click after it found Drop's three purpose keys instead of one type card. Re-entering the
-       * flow is now an explicit press of Aligner.
-       */
-      const backToDrop = () => page.waitForSelector('.start-task');
-      const enterAlignerAgain = async () => {
-        await backToDrop();
-        await page.getByRole('button', { name: 'Aligner', exact: true }).click();
-      };
       const badge = () => page.locator('.edit-badge').textContent();
       const objects = async () => (await page.locator('footer').innerText()).match(/(\d+) objects?/)?.[1];
       const stepTo = async (text, ms = 20000) => page.waitForFunction((word) => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes(word.toLowerCase()), text, { timeout: ms });
@@ -1587,7 +1576,23 @@ async function walk(url, scratch, dentalFixture) {
       await stepTo('Step 1 · Aligner');
 
       await d.button('Back').click();
-      await enterAlignerAgain();
+      /*
+       * BACK AT STEP 1 STEPS OUT TO THE CASE (E1b), not out of the session. The Items page comes up
+       * over a LIVE flow, which is a shape the app could not be in before: every earlier route to a
+       * start screen sent `exit` first. The rows ARE the case, so the object just worked on is still
+       * listed - had Back exited, the finished marks would have gone with it.
+       *
+       * Checking for the absence of `.start-task` matters as much as the presence of the rows: the old
+       * behaviour landed on the Drop page, and a check that only looked for "some start screen" would
+       * have passed either way.
+       */
+      await page.waitForSelector('.items-page', { timeout: 20000 });
+      check('u5l Back at Step 1 shows the case instead of ending it: the rows, not the Drop page',
+        (await page.locator('.items-list li').count()) > 0 && (await page.locator('.start-task').count()) === 0,
+        `rows ${await page.locator('.items-list li').count()}, drop pages ${await page.locator('.start-task').count()}`);
+      // A CLEAN PLATE for the next fixture, and a reload is deterministic where re-entering a row is
+      // not: the rows carry two cubes from above, and everything below assumes one object.
+      await backToStepOne();
 
       /*
        * Cancel gets its OWN entry and needs no anchors, which is why it goes second: a second cube is
@@ -1629,8 +1634,8 @@ async function walk(url, scratch, dentalFixture) {
        */
       check('u6 a mesh with holes is warned about before detection is trusted', await page.getByText('holes or non-manifold').isVisible());
       await leaveRimIfOpen();
-      await d.button('Back').click();
-      await enterAlignerAgain();
+      // Back lands on the case's rows now (u5l); the next fixture wants a clean plate, so reload in.
+      await backToStepOne();
       await drop(cup);
       // The cup is a closed, manifold thick cup: a cavity opening but no CENTRAL opening, so the type that
       // insists on one should offer a switch. Its own scenario, and a failure here used to end the walk
@@ -2564,6 +2569,18 @@ async function walk(url, scratch, dentalFixture) {
        */
       const onScreen = (which) => page.waitForSelector({ drop: '.start-task', items: '.items-page', file: '.start-screen .dental-drop' }[which], { timeout: 10000 });
       const unitsOnPlate = async () => Number((await page.locator('footer').innerText()).match(/(\d+) objects?/)?.[1] ?? -1);
+      /*
+       * BACK AT STEP 1 LEAVES VIA THE CASE now (E1b): the Items page comes up over the live session
+       * rather than the Drop page, and the rows' own Back reaches Drop. Two checks below want to be
+       * standing on Drop afterwards, so the pair of presses lives here instead of being spelled out
+       * at each one. `s10` keeps its presses inline, because what it checks IS the Items page.
+       */
+      const backFromStepOneToDrop = async () => {
+        await d.button('Back').click();
+        await page.waitForSelector('.items-page', { timeout: 20000 });
+        await page.locator('[data-ui="items-back"]').click();
+        await onScreen('drop');
+      };
       /** The footer count once the dropped file has been read onto the plate. */
       const plateHas = (n) => page.waitForFunction((count) => new RegExp(`(^|\\D)${count} objects?`).test(document.querySelector('footer')?.innerText ?? ''), n, { timeout: 60000 }).then(() => true, () => false);
       const dropOnStart = (name, content) => page.evaluate(({ fileName, text }) => {
@@ -2670,10 +2687,18 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 1 · aligner') && document.body.innerText.toLowerCase().includes('review the orientation'), null, { timeout: 180000 });
       check('s9 the reference aligner chosen on the file screen reaches Step 1 with its type, in the editor', (await page.locator('.start-screen').count()) === 0 && (await page.locator('.workspace').count()) === 1 && await unitsOnPlate() === 1);
       await d.button('Back').click();
-      await onScreen('drop');
-      check('s10 Back from Step 1 returns to the Drop page and the aligner stays on the plate',
-        await page.locator('.start-task').isVisible() && await unitsOnPlate() === 1 && (await page.locator('.workspace').count()) === 0);
-      await page.keyboard.press('Escape');
+      /*
+       * BACK AT STEP 1 SHOWS THE CASE, not the Drop page (E1b). This check used to wait on
+       * `.start-task` and timed out the moment that changed - which is the walk doing its job, but it
+       * also cost the eight checks below it, so the wait is on the page that actually comes up.
+       *
+       * The aligner stays on the plate either way, and that half of the old check is the half worth
+       * keeping: stepping out of a flow must never remove the model it was working on.
+       */
+      await page.waitForSelector('.items-page', { timeout: 20000 });
+      check('s10 Back from Step 1 shows the case, and the aligner stays on the plate',
+        (await page.locator('.items-list li').count()) === 1 && await unitsOnPlate() === 1 && (await page.locator('.workspace').count()) === 0);
+      await page.locator('[data-ui="items-back"]').click();
       await onScreen('drop');
       await page.getByRole('button', { name: 'Any model', exact: true }).click();
       await page.waitForSelector('.workspace');
@@ -2742,16 +2767,15 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 20000 });
       await d.quiet();
       await d.idle(300);
-      // ONE Back, not two: with the type screen gone, Back at Step 1 returns straight to Drop.
-      await d.button('Back').click();
-      await onScreen('drop');
+      await backFromStepOneToDrop();
       await page.getByRole('button', { name: 'Any model', exact: true }).click();
       await page.waitForSelector('.workspace');
-      check('s17 Back to the Drop page keeps the loaded file on the plate', await unitsOnPlate() === 1);
+      check('s17 stepping back out of Step 1 keeps the loaded file on the plate', await unitsOnPlate() === 1);
       /*
        * s18 used to drop on the TYPE screen and then press its card. That screen is gone (7c), so what
        * is left to prove is the pair the type screen used to sit between: a drop on the file screen
-       * enters Step 1 on the derived type, and Back from there returns to Drop with the aligner kept.
+       * enters Step 1 on the derived type, and stepping back from there keeps the aligner on the plate
+       * (by way of the case now, not straight to Drop - E1b).
        */
       await page.goto(url);
       await supports().click();
@@ -2766,8 +2790,7 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 20000 });
       await d.quiet();
       await d.idle(300);
-      await d.button('Back').click();
-      await onScreen('drop');
+      await backFromStepOneToDrop();
       await supports().click();
       await onScreen('file');
       await dropOnStart('cube.stl', cubeStl());

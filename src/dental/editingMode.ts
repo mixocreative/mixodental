@@ -334,17 +334,16 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
          */
         case 'rim': return { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalRimSelected: undefined };
         /*
-         * NOTHING IN THE APP REACHES THIS. `dental.back` at Step 1 is intercepted by its command
-         * handler in `App.tsx`, which invalidates the flows, sends `exit` and shows the Drop page -
-         * so Back at Step 1 leaves the session rather than stepping within it. The case used to send
-         * the session to `type`, which with the type step gone has no meaning.
+         * BACK AT STEP 1 PUTS STEP 1 BACK TO WAITING, and leaves the rest of the session alone. The
+         * command handler in `App.tsx` shows the Items page alongside this; what it no longer does is
+         * send `exit`, which used to discard `dentalFinished` and with it every item the operator had
+         * already finished in this case.
          *
-         * It stays as an explicit no-op rather than being deleted, because `backDental` is a free
-         * event: a missing case falls through to `return state` with nothing recording that Step 1
-         * was considered. E1b replaces the handler's `exit` with a return to the Items page that
-         * KEEPS the session - that is where this case may gain a body.
+         * The stage does NOT change - Step 1 is where the flow waits for an aligner, and that is
+         * exactly the state being returned to. `dentalProfile` survives on purpose: the next row the
+         * operator opens is the same kind of job, and `startItem` reads it.
          */
-        case 'aligner': return state;
+        case 'aligner': return { ...state, dentalAligner: 'prompt', dentalProposal: undefined, dentalNotices: [], dentalUnitId: undefined };
       }
       return state;
     case 'setDentalRadius': return set(state, 'dentalRadius', event.radius);

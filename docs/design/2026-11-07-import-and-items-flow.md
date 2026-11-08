@@ -1632,14 +1632,30 @@ one and it is not a denture.
 *Exit:* no `'type'` in `DentalStage`; the walk enters at Step 1 and `u0` asserts the ABSENCE of a type
 card as well as the badge — a check that only read the badge would still pass with a card under it.
 
-**E1b. Back at Orient returns to the Items page without ending the session.** Today it sends `exit`
-and discards `dentalFinished`, which with a live case loses every finished item.
-*Why it is separate:* the only `<Canvas>` is mounted solely while no start screen is up (§0b
-correction 1). A live dental session sitting behind a start screen is a shape the app has never been
-in, so this is a behaviour change with a real question attached rather than a deletion. It is also the
-increment that first makes "a live session and the deck on screen" possible, which E4 needs.
-*Exit:* a walk check that Back at Orient keeps `dentalFinished`, and an answer on what the canvas
-unmount does to a live session's jobs.
+**E1b. Back at Orient steps out to the CASE, not out of the session.** It used to send `exit` and
+show the Drop page, discarding `dentalFinished` — so in a case of eight, going back from the second
+item lost the first item's finished mark, with no warning and no way to recover it. Now the session
+stays and the Items page comes up over it. The reducer puts Step 1 back to waiting without moving the
+stage, because Step 1 IS where the flow waits for an aligner; `dentalProfile` survives, since the next
+row is the same kind of job.
+
+*The canvas question, answered rather than assumed.* The workspace unmounts with the start screen and
+the only `<Canvas>` is inside it, so the renderer is disposed and the models re-upload when a row is
+opened — the same cost the workspace already pays on every mount, and nothing the SESSION holds lives
+in the canvas. The jobs do not survive and must not: both flows are invalidated at the press, because
+the orientation being computed belongs to the unit the operator is walking away from.
+
+*Two things that needed no change, found by reading rather than guessing.* `startItem` already
+re-enters a live session without exiting, so the way back was already built. And an EMPTY plate goes
+to Drop instead of Items, because Items with no rows is a page about a case that does not exist yet.
+
+*This is the increment that first makes "a live session and a start screen on screen together"
+possible* — the shape E4 needs, and the one the withdrawn `toolEntry` could not have.
+
+*Exit, met:* `u5l` asserts Back at Step 1 shows the rows and NOT the Drop page — the absence matters
+as much as the presence, since the old behaviour landed on Drop and a check for "some start screen"
+would have passed either way. A session test proves `dentalFinished` survives Back and still dies on
+Exit, so Back is not Exit.
 
 ### Two things E1a found in the code, against what was expected of it
 
