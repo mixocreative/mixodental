@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794128089.0011337,
-    "seen": 1794131087.9066243,
-    "ast_hash": "577b8203353bf52af2809e772833b2cf",
+    "mtime": 1794131298.1094265,
+    "seen": 1794131333.8728402,
+    "ast_hash": "19f7b096950e8938fc2ddbec6739564b",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -5479,9 +5479,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-07-import-and-items-flow.md": {
-    "mtime": 1794129006.9260905,
-    "seen": 1794131087.9066243,
-    "ast_hash": "10f1d979fed4ea04ca65dfff87e12e80",
+    "mtime": 1794131298.1094265,
+    "seen": 1794131333.8728402,
+    "ast_hash": "34acea4be4689c8decb601953eb5ae0a",
     "semantic_hash": ""
   },
   "egm-goldfish-context-import-flow.md": {
@@ -5707,15 +5707,15 @@
     "semantic_hash": ""
   },
   "src/deck/unitFacts.test.ts": {
-    "mtime": 1794090066.6605513,
-    "seen": 1794095721.4367871,
-    "ast_hash": "e393cf0621686bd1bf9237e35a30ce4b",
+    "mtime": 1794131130.29329,
+    "seen": 1794131333.8728402,
+    "ast_hash": "7fbace0deaa536411bc92b8f09826966",
     "semantic_hash": ""
   },
   "src/deck/unitFacts.ts": {
-    "mtime": 1794090066.6595533,
-    "seen": 1794095721.4367871,
-    "ast_hash": "2955899285e348267ee5e3e82cb374ad",
+    "mtime": 1794131152.2883215,
+    "seen": 1794131333.8728402,
+    "ast_hash": "9af305c4717a43629652f6177e31d093",
     "semantic_hash": ""
   },
   "src/items/detectState.test.ts": {
