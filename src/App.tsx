@@ -137,7 +137,6 @@ const exportKindOf = (id: CommandId) => id.slice('export.'.length) as ExportKind
 const VIEWPORT_CLASS: Record<GestureKind, string> = {
   none: '',
   zones: ' viewport--editing viewport--zones',
-  'dental-type': ' viewport--editing viewport--dental',
   'dental-aligner': ' viewport--editing viewport--dental',
   'dental-rim': ' viewport--editing viewport--dental',
   'dental-area': ' viewport--editing viewport--dental',
@@ -214,7 +213,6 @@ export default function App() {
     setSession(next);
     // A new dental step starts clean: the last step's undo toast and notices do not follow.
     if (next.mode === 'dental' && (next.dentalStage !== previous.dentalStage || next.dentalAligner !== previous.dentalAligner)) { setToast(undefined); setBackAsk(false); }
-    if (event.type === 'enterDental') setDoneHint(undefined);
     if (event.type === 'startDental') {
       setDoneHint(undefined);
       if (event.file) void importRef.current?.([event.file]);
@@ -838,7 +836,15 @@ export default function App() {
       case 'transform.move': return setGizmoMode('translate');
       case 'transform.rotate': return setGizmoMode('rotate');
       case 'supports.generate': return generate();
-      case 'supports.dentalAuto': return send({ type: 'enterDental' });
+      /*
+       * "Aligner Support Production", so it starts an ALIGNER run. It used to open the in-flow type
+       * card, which is gone (design doc §10, E1): detection takes the profile as an argument, so the
+       * purpose has to be known before Step 1 rather than asked inside it. The batch's profile is
+       * kept when the operator chose one and it is not a denture - this button's own label rules a
+       * denture out - and otherwise the default aligner profile stands in.
+       */
+      case 'supports.dentalAuto':
+        return send({ type: 'startDental', profile: batchProfile && !isDentureJob(batchProfile) ? batchProfile : DEFAULT_PROFILE_ID });
       case 'dental.useDetected': return orientRef.current.useDetected();
       case 'denture.resolveAll': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
@@ -866,15 +872,21 @@ export default function App() {
         // Going back from Step 3 throws its hand work away: ask first.
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
         if (sessionRef.current.dentalStage === 'review' && backNeedsConfirm(unit)) return setBackAsk(true);
-        // Back at Step 1 returns to the start's aligner type; the loaded aligner stays on the plate.
+        /*
+         * Back at Step 1 LEAVES the session and shows the Drop page; the loaded aligner stays on the
+         * plate. It never reaches `backDental` - the reducer's `aligner` case is a documented no-op.
+         *
+         * This still discards `dentalFinished`, which with a live case loses every finished item.
+         * Replacing it with a return to the Items page that KEEPS the session is E1b, and it waits on
+         * one question: the only `<Canvas>` is mounted solely while no start screen is up, so a live
+         * session behind a start screen is a shape the app has never been in.
+         */
         if (sessionRef.current.dentalStage === 'aligner') {
           dentalFlow.invalidate();
           denture.orient.invalidate();
           setBackAsk(false);
-          // The type screen is gone (7c): Back at Step 1 returns to Drop for every job kind.
-          const kindScreen = 'drop';
           send({ type: 'exit' });
-          return setStartScreen(kindScreen);
+          return setStartScreen('drop');
         }
         return send({ type: 'backDental' });
       }
@@ -1336,7 +1348,7 @@ export default function App() {
           <div className="viewport-note">{t('Millimetres. Build plate at zero.')}</div>
         </> : press.kind === 'zones'
           ? <ZonesBar brush={press.brush} unitName={activeUnit?.name} belowPlate={tips.below} hidden={zonesHidden} ui={ui} send={send} run={runCommand} />
-          : press.kind === 'dental-type' || press.kind === 'dental-aligner' || press.kind === 'dental-rim' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} onTuningChange={dentalTuning.change} tilt={orientFlow.tilt?.unitId === activeUnit?.id ? orientFlow.tilt : undefined} onTilt={orientFlow.chooseTilt} free={dentalFree} restore={{ can: stepRestorable, run: restoreStep }} orientExtra={denture.active ? <LiveTipSummary counts={denture.orient.counts} /> : undefined} areaExtra={denture.active ? undefined : <PartsList kind="aligner" parts={placementParts(dentalPreview?.result)} />} dentureReview={denture.active && activeUnit?.denture ? { mesh: currentBuild(activeUnit, heldBuilds.get(activeUnit.id)), options: activeUnit.denture.options, onOptions: (options) => denture.supports.setOptions(activeUnit.id, options) } : undefined} send={send} run={runCommand} />
+          : press.kind === 'dental-aligner' || press.kind === 'dental-rim' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} onTuningChange={dentalTuning.change} tilt={orientFlow.tilt?.unitId === activeUnit?.id ? orientFlow.tilt : undefined} onTilt={orientFlow.chooseTilt} free={dentalFree} restore={{ can: stepRestorable, run: restoreStep }} orientExtra={denture.active ? <LiveTipSummary counts={denture.orient.counts} /> : undefined} areaExtra={denture.active ? undefined : <PartsList kind="aligner" parts={placementParts(dentalPreview?.result)} />} dentureReview={denture.active && activeUnit?.denture ? { mesh: currentBuild(activeUnit, heldBuilds.get(activeUnit.id)), options: activeUnit.denture.options, onOptions: (options) => denture.supports.setOptions(activeUnit.id, options) } : undefined} send={send} run={runCommand} />
           : <EditBar gesture={press} unitName={activeUnit?.name} ui={ui} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} send={send} run={runCommand} />}
       </section>
       {editMode !== 'dental' ? <aside className="panel right" onClick={blockedClick('right')}>

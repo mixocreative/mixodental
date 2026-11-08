@@ -1623,10 +1623,36 @@ because every increment below leans on those facts being right.
 it showed, which were one bug. A fourth test guards the over-correction: a freshly imported denture
 has no accepted policy and must still read as nothing done.
 
-**E1. Remove the in-flow type step** (was §8 7c). Delete `dentalStage: 'type'` and its ~15 sites, and
-make Back at Orient return to the Items page **without ending the session** — today it sends `exit`
+**E1 SPLIT IN TWO**, because its second half carries a risk its first half does not.
+
+**E1a. Remove the in-flow type step** (was §8 7c). Delete `dentalStage: 'type'` and its sites. The
+appliance kind is chosen per run on the Drop page; `supports.dentalAuto` is labelled "Aligner Support
+Production", so it starts an aligner run directly, keeping the batch's profile when the operator chose
+one and it is not a denture.
+*Exit:* no `'type'` in `DentalStage`; the walk enters at Step 1 and `u0` asserts the ABSENCE of a type
+card as well as the badge — a check that only read the badge would still pass with a card under it.
+
+**E1b. Back at Orient returns to the Items page without ending the session.** Today it sends `exit`
 and discards `dentalFinished`, which with a live case loses every finished item.
-*Exit:* no `'type'` in `DentalStage`; a walk check that Back at Orient keeps `dentalFinished`.
+*Why it is separate:* the only `<Canvas>` is mounted solely while no start screen is up (§0b
+correction 1). A live dental session sitting behind a start screen is a shape the app has never been
+in, so this is a behaviour change with a real question attached rather than a deletion. It is also the
+increment that first makes "a live session and the deck on screen" possible, which E4 needs.
+*Exit:* a walk check that Back at Orient keeps `dentalFinished`, and an answer on what the canvas
+unmount does to a live session's jobs.
+
+### Two things E1a found in the code, against what was expected of it
+
+1. **Back at Step 1 STAYS VISIBLE, and hiding it was the wrong instinct.** "The first step has nothing
+   behind it" is true of the reducer and false of the app: `dental.back`'s *command handler* in
+   `App.tsx` intercepts Step 1, invalidates the flows, sends `exit` and shows the Drop page. Back
+   there is a real way OUT, not a step backwards, so removing the button would have removed a route
+   the walk and the operator both use. `dental.back`'s visibility was `dentalStage !== 'type'`, which
+   with the type step gone simply means "in dental mode".
+2. **The reducer's `backDental` case for `aligner` is unreachable from the app**, for the same reason.
+   It used to send the session to `type` while clearing the proposal and the unit id. It is now an
+   explicit no-op with a comment saying why, and the test asserts identity rather than a shape — a
+   stray `backDental` must not quietly throw away an orientation the operator still has.
 
 **E2. `handWorkAtRisk` becomes a pure predicate** consumed by the existing Back handler.
 *Exit:* exactly one place decides discard; Back behaves identically; the predicate is tested per edge.

@@ -9,19 +9,6 @@ import { resolve, type UiState } from '@mixo-geocore/editing/commands';
 import { reviewWayOn } from '../dental/editingMode';
 
 describe('DentalBar', () => {
-  it('Step 0 shows one card per profile, with its art, name and description', () => {
-    const gesture = { kind: 'dental-type', profile: 'reference-aligner' } as Gesture & { kind: 'dental-type' };
-    const html = renderToStaticMarkup(<DentalBar gesture={gesture} unitName={undefined} ui={{ mode: 'dental', dentalStage: 'type' } as UiState} send={() => {}} run={() => {}} />);
-    expect(html).toContain('Step 0');
-    expect(html).toContain('Reference aligner');
-    expect(html).toContain('<svg');
-    expect(html).toContain('aria-pressed="true"');
-    expect(html).not.toContain('Exit');
-    expect(html).not.toContain('>Back<');
-    const taiwan = renderToStaticMarkup(<DentalBar gesture={gesture} lang="zh-Hant" unitName={undefined} ui={{ mode: 'dental', dentalStage: 'type' } as UiState} send={() => {}} run={() => {}} />);
-    expect(taiwan).toContain('標準牙套');
-  });
-
   it('Step 1 asks for the file, then reads it, and shows a bad-file message in place', () => {
     const prompt = { kind: 'dental-aligner', phase: 'prompt', proposal: undefined, notices: [], profile: 'reference-aligner' } as Gesture & { kind: 'dental-aligner' };
     const ui = { mode: 'dental', dentalStage: 'aligner' } as UiState;

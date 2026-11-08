@@ -680,13 +680,10 @@ export const ja: Dictionary = {
   'Dental support placement cancelled; existing supports kept.': 'デンタルサポートの配置を中止しました。既存のサポートは保持されます。',
   'Analysing approved dental surface for {name}.': '{name} の承認済みデンタル表面を解析中です。',
   // Dental flow: aligner type, drop, orientation
-  'Step 0 · Aligner type': 'ステップ 0 · アライナーの種類',
-  'Choose the aligner type to begin.': 'アライナーの種類を選んで始めます。',
   'Step 1 · Aligner': 'ステップ 1 · アライナー',
   'Review the orientation. Turn the aligner with the gizmo if needed.': '向きを確認します。必要ならギズモでアライナーを回転してください。',
   'Add the aligner STL.': 'アライナーの STL を追加してください。',
   'No support area was detected. Mark it, then press Next.': 'サポート領域が検出されませんでした。領域を指定してから「次へ」を押してください。',
-  'Aligner type': 'アライナーの種類',
   'Choose the aligner type': 'アライナーの種類を選択',
   'Checking and orienting the aligner…': 'アライナーを確認して向きを調整しています…',
   'Place the aligner file here': 'アライナーファイルをここへ',

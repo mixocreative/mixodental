@@ -24,7 +24,7 @@ export function canvasCursor(gesture: Gesture, overBrush: boolean): string {
     case 'pick': return 'default';
     case 'add': return 'crosshair';
     case 'zones': return overBrush ? brushCursors()[gesture.brush.kind] : 'crosshair';
-    case 'dental-type': case 'dental-aligner': return 'default';
+    case 'dental-aligner': return 'default';
     // Rim define mode: the ring shows only over the model, where a drag is the tool; off it a drag orbits.
     case 'dental-rim': return overBrush ? 'crosshair' : 'grab';
     case 'dental-review': return gesture.edit?.kind === 'add' ? (overBrush ? 'crosshair' : 'grab') : 'default';

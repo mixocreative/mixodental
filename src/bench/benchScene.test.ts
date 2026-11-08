@@ -9,7 +9,7 @@ const withActive = run(initialSession, { type: 'activeUnitChanged', id: 'u1' });
 const SECTIONS: readonly PanelSection[] = ['import', 'objects', 'transform', 'supports', 'check', 'settings', 'export'];
 const PANELS: readonly Panel[] = ['left', 'right'];
 /** Dental Step 3, the step the bench is reached off the end of. */
-const step3 = run(withActive, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' },
+const step3 = run(withActive, { type: 'startDental', profile: 'p' },
   { type: 'dentalLoading', unitId: 'u1' }, { type: 'dentalOriented', proposal: {} as never, notices: [] },
   { type: 'acceptDentalOrientation' }, { type: 'acceptDentalArea' });
 

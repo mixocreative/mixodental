@@ -52,12 +52,11 @@ describe('reduceSession: modes', () => {
     expect(reduceSession(zones, { type: 'exit' }).mode).toBe('off');
   });
 
-  it('the dental flow runs Step 0, Step 1 (drop, orient), Step 2, Step 3 and backs out', () => {
-    const entered = reduceSession(initialSession, { type: 'enterDental' });
-    // Entry needs no object: the dimmed flow starts at the type cards.
-    expect(entered).toMatchObject({ mode: 'dental', dentalStage: 'type', dentalRadius: 2 });
-    expect(gesture(entered)).toMatchObject({ kind: 'dental-type' });
-    const aligner = reduceSession(entered, { type: 'chooseDentalProfile', id: 'reference-aligner' });
+  it('the dental flow runs Step 1 (drop, orient), Step 2, Step 3 and backs out', () => {
+    // Entry needs no object, but it DOES need a purpose: detection takes the profile as an argument,
+    // so it arrives with the run rather than being asked for inside the flow (design doc §10, E1).
+    const aligner = reduceSession(initialSession, { type: 'startDental', profile: 'reference-aligner' });
+    expect(aligner).toMatchObject({ mode: 'dental', dentalStage: 'aligner', dentalRadius: 2 });
     expect(gesture(aligner)).toMatchObject({ kind: 'dental-aligner', phase: 'prompt', profile: 'reference-aligner' });
     // Next is not reachable before an aligner was read and oriented.
     expect(reduceSession(aligner, { type: 'acceptDentalOrientation' })).toBe(aligner);
@@ -76,28 +75,33 @@ describe('reduceSession: modes', () => {
     expect(reduceSession(review, { type: 'exit' }).mode).toBe('off');
   });
 
-  it('Back goes 2 to 1 (keeping the oriented aligner) and 1 to 0; Step 0 has no Back', () => {
-    const ready = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' }, { type: 'dentalLoading' }, { type: 'dentalOriented', proposal, notices: [] });
+  it('Back goes 2 to 1 keeping the oriented aligner; at Step 1 the reducer does nothing', () => {
+    const ready = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading' }, { type: 'dentalOriented', proposal, notices: [] });
     const area = reduceSession(ready, { type: 'acceptDentalOrientation' });
     const back1 = reduceSession(area, { type: 'backDental' });
     expect(back1).toMatchObject({ dentalStage: 'aligner', dentalAligner: 'ready', dentalProposal: proposal });
-    const back0 = reduceSession(back1, { type: 'backDental' });
-    expect(back0).toMatchObject({ dentalStage: 'type', dentalProfile: 'p', dentalProposal: undefined });
-    expect(reduceSession(back0, { type: 'backDental' })).toBe(back0);
+    /*
+      * AT STEP 1 THE REDUCER DOES NOTHING, because the app never asks it to: `dental.back`'s handler
+      * intercepts Step 1, sends `exit` and shows the Drop page. Identity (`toBe`) is the assertion
+      * that matters - the removed `type` case used to clear the proposal and the unit id here, so a
+      * stray `backDental` would have quietly thrown away an orientation the operator still had.
+      */
+    expect(reduceSession(back1, { type: 'backDental' })).toBe(back1);
     expect(reduceSession(initialSession, { type: 'backDental' })).toBe(initialSession);
   });
 
-  it('Exit leaves the dental mode from every step, and the last type choice is remembered', () => {
-    for (const events of [[], [{ type: 'chooseDentalProfile', id: 'p' }], [{ type: 'chooseDentalProfile', id: 'p' }, { type: 'dentalLoading' }]] as SessionEvent[][]) {
-      const left = run(initialSession, { type: 'enterDental' }, ...events, { type: 'exit' });
+  it('Exit leaves the dental mode from every step, and the profile outlives the session', () => {
+    for (const events of [[], [{ type: 'dentalLoading' }], [{ type: 'dentalLoading' }, { type: 'dentalBadFile', message: { key: 'x' } }]] as SessionEvent[][]) {
+      const left = run(initialSession, { type: 'startDental', profile: 'p' }, ...events, { type: 'exit' });
       expect(left.mode).toBe('off');
     }
-    const again = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' }, { type: 'exit' }, { type: 'enterDental' });
-    expect(again).toMatchObject({ dentalStage: 'type', dentalProfile: 'p' });
+    // The profile SURVIVES exit, and something reads it: `supports.dentalAuto` prefers the live or
+    // batch profile over the default when starting an aligner run.
+    expect(run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'exit' }).dentalProfile).toBe('p');
   });
 
   it('a bad file keeps Step 1 on its prompt with the message; a new drop clears it', () => {
-    const aligner = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' }, { type: 'dentalLoading' });
+    const aligner = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading' });
     const message = { key: 'x' };
     const bad = reduceSession(aligner, { type: 'dentalBadFile', message });
     expect(bad).toMatchObject({ dentalStage: 'aligner', dentalAligner: 'prompt', dentalNotices: [{ kind: 'bad-file', message }] });
@@ -109,7 +113,7 @@ describe('reduceSession: modes', () => {
   });
 
   it('a failed orientation keeps Step 1 ready with its message and no proposal', () => {
-    const loading = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' }, { type: 'dentalLoading' });
+    const loading = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading' });
     const failed = reduceSession(loading, { type: 'dentalOrientFailed', notices: [{ kind: 'failed' }] });
     expect(failed).toMatchObject({ dentalStage: 'aligner', dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: [{ kind: 'failed' }] });
     // A late result of a replaced read is ignored.
@@ -117,14 +121,14 @@ describe('reduceSession: modes', () => {
   });
 
   it('a type mismatch is a notice that Keep dismisses and Switch re-runs with the other profile', () => {
-    const loading = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'a' }, { type: 'dentalLoading' });
+    const loading = run(initialSession, { type: 'startDental', profile: 'a' }, { type: 'dentalLoading' });
     const ready = reduceSession(loading, { type: 'dentalOriented', proposal, notices: [{ kind: 'mismatch' }, { kind: 'holes' }] });
     expect(reduceSession(ready, { type: 'dismissDentalNotice', kind: 'mismatch' }).dentalNotices).toEqual([{ kind: 'holes' }]);
     expect(reduceSession(ready, { type: 'switchDentalProfile', id: 'b' })).toMatchObject({ dentalProfile: 'b', dentalAligner: 'loading', dentalNotices: [] });
   });
 
   it('no support area: Step 2 opens with its message; leaving Step 2 clears it', () => {
-    const ready = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' }, { type: 'dentalLoading' }, { type: 'dentalOriented', proposal, notices: [] });
+    const ready = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading' }, { type: 'dentalOriented', proposal, notices: [] });
     const area = reduceSession(ready, { type: 'acceptDentalOrientation', noArea: true });
     expect(gesture(area)).toMatchObject({ kind: 'dental-area', notices: [{ kind: 'no-area' }] });
     expect(reduceSession(area, { type: 'backDental' }).dentalNotices).toEqual([]);
@@ -281,7 +285,7 @@ describe('Drag over: Select | Unselect and Shift', () => {
 });
 
 describe('reduceSession: dental Step 3 and finishing', () => {
-  const step3 = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' }, { type: 'dentalLoading', unitId: 'u1' },
+  const step3 = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading', unitId: 'u1' },
     { type: 'dentalOriented', proposal, notices: [] }, { type: 'acceptDentalOrientation' }, { type: 'acceptDentalArea' });
 
   it('Step 3 reuses the Support Edit Mode tools: selecting works, the canvas gets the edit gesture', () => {
@@ -325,6 +329,6 @@ describe('reduceSession: dental Step 3 and finishing', () => {
 
   it('a new visit to the flow forgets the finished list', () => {
     const done = run(step3, { type: 'finishDental', unitId: 'u1' });
-    expect(run(done, { type: 'enterDental' }).dentalFinished).toEqual([]);
+    expect(run(done, { type: 'startDental', profile: 'p' }).dentalFinished).toEqual([]);
   });
 });

@@ -8,7 +8,7 @@ const run = (state: EditSession, ...events: SessionEvent[]) => events.reduce(red
 describe('isOrientationStep (PD.11 Step 1 viewport)', () => {
   it('is true only for the dental aligner stage', () => {
     expect(isOrientationStep({ mode: 'dental', dentalStage: 'aligner' })).toBe(true);
-    for (const dentalStage of ['area', 'review', 'type', 'off']) expect(isOrientationStep({ mode: 'dental', dentalStage })).toBe(false);
+    for (const dentalStage of ['area', 'review', 'rim', 'off']) expect(isOrientationStep({ mode: 'dental', dentalStage })).toBe(false);
     expect(isOrientationStep({ mode: 'off', dentalStage: 'aligner' })).toBe(false);
   });
 
@@ -17,7 +17,7 @@ describe('isOrientationStep (PD.11 Step 1 viewport)', () => {
   });
 
   it('adding supports is not possible in Step 1: the gesture is dental-aligner, not an add', () => {
-    const step1 = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' });
+    const step1 = run(initialSession, { type: 'startDental', profile: 'p' });
     const step1Gesture = gesture({ ...step1, mode: 'dental', dentalStage: 'aligner' });
     expect(step1Gesture.kind).toBe('dental-aligner');
   });

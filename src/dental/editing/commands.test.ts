@@ -236,13 +236,14 @@ describe('the left panel commands', () => {
     expect(resolve('supports.dentalAuto', at({ mode: 'dental' })).enabled).toBe(false);
   });
 
-  it('Step 1 Next waits for an aligner; Back is offered from Step 1; Exit in every step', () => {
+  it('Step 1 Next waits for an aligner; Back and Exit are offered in every step', () => {
     expect(resolve('dental.next', at({ mode: 'dental', dentalStage: 'aligner' }))).toMatchObject({ enabled: false, disabledReason: { key: 'Add an aligner first.' } });
     expect(resolve('dental.next', at({ mode: 'dental', dentalStage: 'aligner', dentalAlignerReady: true })).enabled).toBe(true);
     expect(resolve('dental.useDetected', at({ mode: 'dental', dentalStage: 'aligner' })).enabled).toBe(false);
-    expect(resolve('dental.back', at({ mode: 'dental', dentalStage: 'type' })).visible).toBe(false);
-    for (const dentalStage of ['aligner', 'area', 'review'] as const) expect(resolve('dental.back', at({ mode: 'dental', dentalStage })).visible).toBe(true);
-    for (const dentalStage of ['type', 'aligner', 'area', 'review'] as const) expect(resolve('dental.exit', at({ mode: 'dental', dentalStage }))).toMatchObject({ visible: true, enabled: true });
+    // Back is offered in every step, Step 1 included: there it leaves the flow for the Drop page
+    // (`App.tsx` intercepts it), which is a way out rather than a step backwards.
+    for (const dentalStage of ['aligner', 'rim', 'area', 'review'] as const) expect(resolve('dental.back', at({ mode: 'dental', dentalStage })).visible).toBe(true);
+    for (const dentalStage of ['aligner', 'rim', 'area', 'review'] as const) expect(resolve('dental.exit', at({ mode: 'dental', dentalStage }))).toMatchObject({ visible: true, enabled: true });
     expect(resolve('dental.exit', READY).visible).toBe(false);
   });
 

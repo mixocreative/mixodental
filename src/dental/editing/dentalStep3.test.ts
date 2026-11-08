@@ -7,7 +7,7 @@ import { READY } from './uiFixture';
 import { exitCommands } from '../flow';
 
 const run = (state: EditSession, ...events: SessionEvent[]) => events.reduce(reduceSession, state);
-const step3 = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' }, { type: 'dentalLoading', unitId: 'u1' },
+const step3 = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading', unitId: 'u1' },
   { type: 'dentalOriented', proposal: {} as never, notices: [] }, { type: 'acceptDentalOrientation' });
 const ui = (over: Partial<UiState>): UiState => ({ ...READY, mode: 'dental', dentalStage: 'review', ...over });
 
@@ -102,7 +102,7 @@ describe('an exported aligner survives Exit', () => {
   });
 
   it('refuses to mark anything finished outside Step 3', () => {
-    const early = run(initialSession, { type: 'enterDental' }, { type: 'exportedDental', unitId: 'u1' });
+    const early = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'exportedDental', unitId: 'u1' });
     expect(early.dentalFinished).not.toContain('u1');
   });
 });

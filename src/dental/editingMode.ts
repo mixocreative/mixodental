@@ -20,10 +20,14 @@ import { flowEndsAtExport } from '../scenes/sceneMap';
  */
 
 /**
- * The dental flow's steps: 0 aligner type, 1 aligner (drop, check, orient), 2 support area, 3 supports,
- * plus `rim` - a detour out of Step 1 when detection finds no rim and the operator draws it by hand.
+ * The dental flow's steps: 1 aligner (drop, check, orient), 2 support area, 3 supports, plus `rim` -
+ * a detour out of Step 1 when detection finds no rim and the operator draws it by hand.
+ *
+ * THERE IS NO LONGER A TYPE STEP. The appliance kind is chosen per run on the Drop page, because
+ * detection takes the profile as an ARGUMENT - there is nothing to detect against until the purpose
+ * is known, so asking inside the flow was always one screen too late (design doc §10, E1).
  */
-export type DentalStage = 'type' | 'aligner' | 'rim' | 'area' | 'review';
+export type DentalStage = 'aligner' | 'rim' | 'area' | 'review';
 /**
  * Rim define mode's two tools. Deliberately NOT called Paint or Select: those words belong to marking a
  * surface and to picking objects, and reusing either for placing boundary points would tell a reader the
@@ -42,8 +46,6 @@ export type DentalNotice =
 type Proposal = Extract<DentalProposal, { kind: 'proposal' }>;
 
 export type DentalEvent =
-  | { type: 'enterDental' }
-  | { type: 'chooseDentalProfile'; id: string }
   /** The full-screen start (components/StartScreen): straight to Step 1 with this type; `file` is read by the app once Step 1 waits for it. */
   | { type: 'startDental'; profile: string; file?: File }
   | { type: 'switchDentalProfile'; id: string }
@@ -116,7 +118,6 @@ export type DentalEvent =
  * on the suggested tips. Step 3: the Support Edit Mode tools (`edit`) work inside the step.
  */
 export type DentalGesture =
-  | { kind: 'dental-type'; profile: string | undefined }
   | { kind: 'dental-aligner'; phase: DentalAligner; proposal: Proposal | undefined; notices: readonly DentalNotice[]; profile: string | undefined }
   | { kind: 'dental-area'; brush: { radius: number; kind: 'allow' | 'erase' } | undefined; edit: EditGesture | undefined; notices: readonly DentalNotice[] }
   /** Rim define mode. The drawn path itself is scene state, so it reaches the panel as a prop, not through here. */
@@ -201,7 +202,7 @@ declare module '@mixo-geocore/editing/commands' {
 }
 
 const isDentalEvent = (event: SessionEvent): event is DentalEvent => DENTAL_EVENTS.has(event.type);
-const DENTAL_EVENTS = new Set<string>(['enterDental', 'chooseDentalProfile', 'startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
+const DENTAL_EVENTS = new Set<string>(['startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
   'dentalOrientFailed', 'dentalRimNeeded', 'dentalRimReopen', 'setDentalRimTool', 'setDentalRimSelected', 'setDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
   'addAnotherDental', 'exportedDental', 'backDental', 'setDentalRadius']);
 
@@ -209,18 +210,9 @@ const finished = (state: EditSession, unitId: string): readonly string[] => (sta
 
 function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, emptySelection: NO_SELECTION }: SessionKit): EditSession {
   switch (event.type) {
-    case 'enterDental':
-      // Entry needs no object: Step 0 and the drop in Step 1 come first.
-      return state.mode === 'off'
-        ? { ...withMode(state, 'dental'), dentalStage: 'type', dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalFinished: [], dentalUnitId: undefined }
-        : state;
     case 'startDental':
       return state.mode === 'off'
         ? { ...withMode(state, 'dental'), dentalStage: 'aligner', dentalProfile: event.profile, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalFinished: [], dentalUnitId: undefined }
-        : state;
-    case 'chooseDentalProfile':
-      return state.mode === 'dental' && state.dentalStage === 'type'
-        ? { ...state, dentalStage: 'aligner', dentalProfile: event.id, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined }
         : state;
     case 'switchDentalProfile':
       return state.mode === 'dental' && state.dentalStage === 'aligner'
@@ -341,8 +333,18 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
          * rim was already saved.
          */
         case 'rim': return { ...state, dentalStage: 'aligner', dentalAligner: 'ready', dentalRimSelected: undefined };
-        case 'aligner': return { ...state, dentalStage: 'type', dentalAligner: 'prompt', dentalProposal: undefined, dentalNotices: [], dentalUnitId: undefined };
-        case 'type': return state;
+        /*
+         * NOTHING IN THE APP REACHES THIS. `dental.back` at Step 1 is intercepted by its command
+         * handler in `App.tsx`, which invalidates the flows, sends `exit` and shows the Drop page -
+         * so Back at Step 1 leaves the session rather than stepping within it. The case used to send
+         * the session to `type`, which with the type step gone has no meaning.
+         *
+         * It stays as an explicit no-op rather than being deleted, because `backDental` is a free
+         * event: a missing case falls through to `return state` with nothing recording that Step 1
+         * was considered. E1b replaces the handler's `exit` with a return to the Items page that
+         * KEEPS the session - that is where this case may gain a body.
+         */
+        case 'aligner': return state;
       }
       return state;
     case 'setDentalRadius': return set(state, 'dentalRadius', event.radius);
@@ -367,7 +369,6 @@ function areaGesture(session: EditSession): Gesture {
 
 function dentalGesture(session: EditSession): Gesture {
   switch (session.dentalStage) {
-    case 'type': return { kind: 'dental-type', profile: session.dentalProfile };
     case 'aligner': return { kind: 'dental-aligner', phase: session.dentalAligner, proposal: session.dentalProposal, notices: session.dentalNotices, profile: session.dentalProfile };
     case 'rim': return { kind: 'dental-rim', tool: session.dentalRimTool, selected: session.dentalRimSelected, notices: session.dentalNotices };
     case 'area': return areaGesture(session);
@@ -384,7 +385,7 @@ const rim = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' &&
 
 registerEditMode({
   id: 'dental',
-  initial: { dentalStage: 'type', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimTool: 'place', dentalRimSelected: undefined },
+  initial: { dentalStage: 'aligner', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimTool: 'place', dentalRimSelected: undefined },
   // Paint and Erase are Step 2's own tools: no other mode starts on one.
   tools: ['paint', 'erase'],
   reduce: (state, event, kit) => (isDentalEvent(event) ? reduceDental(state, event, kit) : undefined),
@@ -392,11 +393,10 @@ registerEditMode({
   // Tips can be selected in dental Step 2 (its tips, under Select).
   selectsTips: (s) => s.mode === 'dental' && s.dentalStage === 'area',
   gesture: dentalGesture,
-  gestureKinds: ['dental-type', 'dental-aligner', 'dental-rim', 'dental-area', 'dental-review'],
+  gestureKinds: ['dental-aligner', 'dental-rim', 'dental-area', 'dental-review'],
   // Step 3, and Step 2 under Add or Select, hand the canvas a Support Edit Mode tool.
   canvasGesture: (press) => (press.kind === 'dental-area' ? press.edit ?? press : press.kind === 'dental-review' ? press.edit : undefined),
   gestureStatus: {
-    'dental-type': 'Choose the aligner type to begin.',
     'dental-aligner': 'Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.',
     'dental-rim': 'Click along the rim to place points; they land on the model. Close the loop, then press Done. Drag off the model to turn the view.',
     'dental-area': 'Paint where dental supports may grow, anywhere on the aligner; Erase takes area away. Drag on the model.',
@@ -514,7 +514,9 @@ registerCommands({
     hint: (s) => (rim(s)
       ? 'Leave rim define mode. Your drawing is kept, and Step 1 offers Draw the rim to come back to it'
       : 'Return to the previous step and keep your edits'),
-    visible: (s) => s.mode === 'dental' && s.dentalStage !== 'type', enabled: always, disabledReason: never,
+    // Shown in EVERY dental step. This used to read `dentalStage !== 'type'`, which with the type
+    // step gone is simply "in dental mode" - Step 1's Back is a real way out, handled in `App.tsx`.
+    visible: (s) => s.mode === 'dental', enabled: always, disabledReason: never,
   },
   'dental.exit': {
     role: 'secondary', label: () => 'Exit', hint: (s) => kindText('Leave the dental flow. The aligner stays on the plate without supports', s.dentalKind),

@@ -8,7 +8,7 @@ import { t, type Lang } from '../i18n';
 import type { DentalTuning } from '@mixo-geocore/host/dental/dentalTuning';
 import type { ProfileDefaults } from '@mixo-geocore/host/dental/alignerProfiles';
 import { CommandButton } from './CommandButton';
-import { DentalAlignerPrompt, DentalTypeStep, noticeText } from './DentalSteps';
+import { DentalAlignerPrompt, noticeText } from './DentalSteps';
 import { OrientationBar, type DentalFreeControls } from './OrientationBar';
 import { DentalSupportsStep, type DentalReview } from './DentalSupports';
 import { DentalRimStep } from '../dental/rim/DentalRimStep';
@@ -37,7 +37,7 @@ const AREA_TOOLS = ['select', 'paint', 'erase', 'add'] as const;
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
   lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, onTuningChange,
   review, clickReach, tilt, onTilt, free, restore, orientExtra, dentureReview, areaExtra, risks, onShowRisk, send, run }: {
-  gesture: Extract<Gesture, { kind: 'dental-type' | 'dental-aligner' | 'dental-rim' | 'dental-area' | 'dental-review' }>;
+  gesture: Extract<Gesture, { kind: 'dental-aligner' | 'dental-rim' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
   /** Step 1: the object selected on the plate, offered as the aligner without a drop. */
   selectedName?: string;
@@ -77,14 +77,6 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   send: (event: SessionEvent) => void;
   run: (id: CommandId) => void;
 }) {
-  if (gesture.kind === 'dental-type') return <>
-    <div className="edit-frame" aria-hidden="true" />
-    <div className="edit-badge" role="status">
-      {t('Step 0 · Aligner type')}
-      <b>{t('Choose the aligner type to begin.')}</b>
-    </div>
-    <DentalTypeStep profile={gesture.profile} lang={lang} send={send} />
-  </>;
   if (gesture.kind === 'dental-aligner') {
     const words = stepOneText(gesture.profile, lang);
     return <>

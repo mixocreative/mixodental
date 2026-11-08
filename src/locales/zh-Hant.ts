@@ -684,13 +684,10 @@ export const zhHant: Dictionary = {
   'Dental support placement cancelled; existing supports kept.': '已取消牙套支撐配置；現有支撐會保留。',
   'Analysing approved dental surface for {name}.': '正在分析 {name} 的核准牙套表面。',
   // Dental flow: aligner type, drop, orientation
-  'Step 0 · Aligner type': '步驟 0 · 牙套類型',
-  'Choose the aligner type to begin.': '選擇牙套類型以開始。',
   'Step 1 · Aligner': '步驟 1 · 牙套',
   'Review the orientation. Turn the aligner with the gizmo if needed.': '檢查擺放方向。如有需要，請使用旋轉控制器旋轉牙套。',
   'Add the aligner STL.': '新增牙套 STL。',
   'No support area was detected. Mark it, then press Next.': '未偵測到支撐區域。請標記該區域，然後按「下一步」。',
-  'Aligner type': '牙套類型',
   'Choose the aligner type': '選擇牙套類型',
   'Checking and orienting the aligner…': '正在檢查並調整牙套方向…',
   'Place the aligner file here': '拖曳牙套檔案至此',

@@ -6,7 +6,7 @@ import { initialSession, reduceSession, type EditSession, type SessionEvent } fr
 import { READY } from './uiFixture';
 
 const run = (state: EditSession, ...events: SessionEvent[]) => events.reduce(reduceSession, state);
-const area = run(initialSession, { type: 'enterDental' }, { type: 'chooseDentalProfile', id: 'p' }, { type: 'dentalLoading', unitId: 'u1' },
+const area = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading', unitId: 'u1' },
   { type: 'dentalOriented', proposal: {} as never, notices: [] }, { type: 'acceptDentalOrientation' });
 const ui = (over: Partial<UiState>): UiState => ({ ...READY, mode: 'dental', dentalStage: 'area', ...over });
 

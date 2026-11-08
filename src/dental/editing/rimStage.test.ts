@@ -310,7 +310,7 @@ describe('rim define mode: its keys', () => {
   });
 
   it('keeps its keys out of every other step', () => {
-    for (const stage of ['type', 'aligner', 'area', 'review'] as const) {
+    for (const stage of ['aligner', 'area', 'review'] as const) {
       const elsewhere = at({ dentalStage: stage });
       for (const id of ['dental.rim.place', 'dental.rim.adjust', 'dental.rim.close', 'dental.rim.clear', 'dental.rim.done'] as const) {
         expect(resolve(id, elsewhere).visible, `${id} in ${stage}`).toBe(false);

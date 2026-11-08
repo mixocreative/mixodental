@@ -1282,7 +1282,7 @@ async function walk(url, scratch, dentalFixture) {
         `refused ${JSON.stringify(refusedRows)}, good rows ${await page.locator('.items-row:not(.items-row--refused)').count()}`);
     }
 
-    // u. Dental flow, Step 0 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).
+    // u. Dental flow, Step 1 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).
     if (runs('u')) {
       const reference = PUBLIC_ALIGNER;
       const cube = path.join(scratch, 'cube.stl');
@@ -1301,7 +1301,6 @@ async function walk(url, scratch, dentalFixture) {
       cut.writeUInt32LE(count - 40, 80);
       writeFileSync(holed, cut);
       const drop = (file) => page.setInputFiles('input[aria-label="Choose aligner file"]', file);
-      /** Back from Step 1 lands on the start screen's aligner type; its card leads to the file screen, whose drop starts Step 1. */
       /*
        * Back at Step 1 returns to the DROP page now (7c removed the start type screen). The old helper
        * waited on `.start-screen .choice-keys`, which Drop also matches, so it kept "passing" while
@@ -1319,32 +1318,39 @@ async function walk(url, scratch, dentalFixture) {
       const noticeShown = (text, ms = 120000) => page.waitForFunction((word) => [...document.querySelectorAll('[role="alert"]')].some((node) => node.textContent.includes(word)), text, { timeout: ms });
       /** Every alert on screen, for a failure that needs to say what the app DID say. */
       const alertsNow = () => page.evaluate(() => [...document.querySelectorAll('[role="alert"]')].map((node) => node.textContent.trim()).join(' | '));
-      /** Back to the type screen from wherever a scenario left off, so one bad scenario does not end the walk. */
-      const backToTypeScreen = async () => {
+      /** Back to Step 1 from wherever a scenario left off, so one bad scenario does not end the walk. */
+      const backToStepOne = async () => {
         await page.goto(url);
         await enterEditor(page);
         await d.button('Aligner Support Production').click();
-        await stepTo('Step 0 · Aligner type');
-        await page.waitForSelector('.choice-key');
+        await stepTo('Step 1 · Aligner');
       };
 
       await page.goto(url);
 
       await enterEditor(page);
       await d.button('Aligner Support Production').click();
-      await stepTo('Step 0 · Aligner type');
+      /*
+       * STRAIGHT TO STEP 1. The in-flow type card is gone (design doc §10, E1): detection takes the
+       * profile as an argument, so the purpose arrives with the run from the Drop page. u0 therefore
+       * asserts the ABSENCE of a card as well as the badge, because "no card" is the whole change and
+       * a check that only read the badge would still pass with a card sitting under it.
+       */
+      await stepTo('Step 1 · Aligner');
       const panelsShown = await page.locator('.panel.left, .panel.right').count();
-      check('u0 entering the dental flow shows no generic side panels (U1) and shows the type card', panelsShown === 0 && await page.locator('.choice-key').count() === 1 && /Reference aligner/.test(await page.locator('.choice-key').innerText()) && await page.locator('.choice-key svg').count() === 1,
+      check('u0 Aligner Support Production enters at Step 1 with no type card and no generic side panels (U1)',
+        panelsShown === 0 && await page.locator('.choice-key').count() === 0 && await page.getByText('Place the aligner file here').isVisible(),
         `panels ${panelsShown}, cards ${await page.locator('.choice-key').count()}`);
-      await page.screenshot({ path: path.join(scratch, 'ux-a-step0.png') });
+      await page.screenshot({ path: path.join(scratch, 'ux-a-step1-entry.png') });
       await d.button('Exit').click();
       await page.waitForFunction(() => !document.querySelector('.edit-badge'), null, { timeout: 5000 });
-      check('u1 Exit at Step 0 leaves the flow with the plate untouched', (await objects()) === '0' && (await page.locator('.panel.left [inert]').count()) === 0, `objects ${await objects()}`);
+      check('u1 Exit at Step 1 leaves the flow with the plate untouched', (await objects()) === '0' && (await page.locator('.panel.left [inert]').count()) === 0, `objects ${await objects()}`);
 
       await d.button('Aligner Support Production').click();
-      await page.locator('.choice-key').click();
       await stepTo('Step 1 · Aligner');
-      check('u2 one click on the card goes to Step 1, which asks for the aligner file', await page.getByText('Place the aligner file here').isVisible() && await d.button('Back').isVisible());
+      // Back IS offered at Step 1: it leaves for the Drop page rather than stepping backwards, which
+      // is why removing the type step did not remove the button.
+      check('u2 Step 1 asks for the aligner file and still offers a way out', await page.getByText('Place the aligner file here').isVisible() && await d.button('Back').isVisible());
 
       // The 3D view's chrome sits in grid columns, so two panels CANNOT overlap however their words wrap.
       // This measures the real boxes rather than trusting the rules: the title block on the left, the
@@ -1612,8 +1618,7 @@ async function walk(url, scratch, dentalFixture) {
        * one was cancelled - and everything below assumes a plate holding a single object, because a
        * second is laid out beside the first and every canvas fraction here is fixed.
        */
-      await backToTypeScreen();
-      await page.locator('.choice-key').click();
+      await backToStepOne();
 
       await drop(holed);
       await noticeShown('holes or non-manifold');
@@ -1686,19 +1691,17 @@ async function walk(url, scratch, dentalFixture) {
           await d.button('Cancel').click();
           await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
         }
-        // BOTH BRANCHES MUST LEAVE THE APP IN THE SAME PLACE: the click after this block expects one
-        // type card, and Drop has three purpose keys. `backToTypeScreen` reloads and re-enters the
-        // in-workspace Step 0, so it converges from either branch.
+        // BOTH BRANCHES MUST LEAVE THE APP IN THE SAME PLACE. `backToStepOne` reloads and re-enters
+        // the flow, so it converges from either branch whatever Back left on screen.
         await d.button('Back').click();
-        await backToTypeScreen();
+        await backToStepOne();
       } catch (error) {
         const said = `the app said "${await alertsNow()}" (${error.message.split('\n')[0]})`;
         if (u7Reported) note(`u7's scenario could not be left cleanly: ${said}`);
         else check('u7 a model with no central opening names the aligner type as a way out instead of silently continuing', false, said);
-        await backToTypeScreen();
+        await backToStepOne();
       }
 
-      await page.locator('.choice-key').click();
       const dropped = Date.now();
       // Step 1's print-angle search (F): record whether its progress line showed.
       await page.evaluate(() => { window.__scanSeen = false; new MutationObserver(() => { if (/Scanning print angles \d+\/\d+/.test(document.body.innerText)) window.__scanSeen = true; }).observe(document.body, { subtree: true, childList: true, characterData: true }); });
@@ -2142,14 +2145,12 @@ async function walk(url, scratch, dentalFixture) {
         await d.idle(400);
       };
       const slider = (ui) => named(ui);
-      /** One aligner from the type card (first) or Step 1 to Step 3, supports built. */
+      /** One aligner from a fresh entry (first) or from Step 1 through to Step 3, supports built. */
       const toStep3 = async (first) => {
         if (first) {
           await page.goto(url);
           await enterEditor(page);
           await d.button('Aligner Support Production').click();
-          await stepTo('Step 0 · Aligner type');
-          await page.locator('.choice-key').click();
         }
         await stepTo('Step 1 · Aligner');
         await drop(reference);
@@ -2439,7 +2440,6 @@ async function walk(url, scratch, dentalFixture) {
       await page.goto(url);
       await enterEditor(page);
       await d.button('Aligner Support Production').click();
-      await page.locator('.choice-key').click();
       await page.setInputFiles('input[aria-label="Choose aligner file"]', dentalFixture);
       await page.waitForFunction(() => document.body.innerText.includes('Review the orientation'), null, { timeout: 180000 });
       await page.screenshot({ path: path.join(scratch, 'dental-orientation.png') });
@@ -2911,15 +2911,12 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     note(`[${lang}] statuses after Check: ${JSON.stringify(await page.evaluate(() => window.__statuses))}`);
     note(`[${lang}] problem rows: ${JSON.stringify(rows.map((row) => row.text.replace(/\s+/g, ' ')))}`);
 
-    // Dental: Step 0 -> 3 on the reference aligner, then Check.
+    // Dental: Step 1 -> 3 on the reference aligner, then Check.
     const reference = dentalFixture ?? PUBLIC_ALIGNER;
     await page.goto(url);
     await button('Any model').click();
     await page.waitForSelector('.workspace');
     await button('Aligner Support Production').click();
-    await badgeHas('Step 0 · Aligner type');
-    await shot(page, 'dental-step0');
-    await page.locator('.choice-key').click();
     await badgeHas('Step 1 · Aligner');
     await shot(page, 'dental-step1');
     await page.setInputFiles(`input[aria-label="${tr('Choose aligner file')}"]`, reference);

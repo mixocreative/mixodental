@@ -1,12 +1,9 @@
 import { useRef } from 'react';
 import type { Gesture } from '@mixo-geocore/editing/gesture';
-import type { SessionEvent } from '@mixo-geocore/editing/session';
 import type { DentalNotice } from '../dental/editingMode';
-import { ALIGNER_PROFILES } from '@mixo-geocore/host/dental/alignerProfiles';
 import { Progress } from '../progress/Progress';
-import { t, translateMessage, type Lang } from '../i18n';
+import { t, translateMessage } from '../i18n';
 import { TiltDial } from '../ui/parts/TiltDial';
-import { ChoiceKey } from '../ui/ChoiceKey';
 import { RestoreStepButton, type StepRestore } from './RestoreStepButton';
 import { Icon } from '../ui/Icon';
 import { ScreenHeading } from '../ui/ScreenHeading';
@@ -42,9 +39,6 @@ export function tiltProblems(row: TiltRow): string[] {
   return row.failed.map((failure) => t('{rule} at {n}° ({at})', { rule: t(TILT_RULE_NAMES[failure.rule]), n: tiltLabel(row.tiltDeg), at: failure.at }));
 }
 
-/** The Step 0 card art of each aligner type: the icon file that draws its top view. */
-const CARD_ICON: Record<string, string> = { 'reference-aligner': 'aligner' };
-
 /** The message of one notice, in the words of Step 1 and Step 2 (a refused file in the words of the job `kind`). */
 export function noticeText(notice: DentalNotice, kind?: DentalKind): string {
   switch (notice.kind) {
@@ -60,23 +54,6 @@ export function noticeText(notice: DentalNotice, kind?: DentalKind): string {
 }
 
 /** Step 0: one large card per aligner profile; a click selects it and goes to Step 1. */
-export function DentalTypeStep({ profile, lang, send, onChoose }: {
-  profile: string | undefined;
-  lang: Lang;
-  send: (event: SessionEvent) => void;
-  /** The full-screen start chooses the type itself instead of sending the session event. */
-  onChoose?: (id: string) => void;
-}) {
-  return <div className="dental-stage" role="group" aria-label={t('Aligner type')}>
-    <ScreenHeading>{t('Choose the aligner type')}</ScreenHeading>
-    <div className="choice-keys">
-      {ALIGNER_PROFILES.map((entry) => <ChoiceKey key={entry.id} icon={CARD_ICON[entry.id] ?? 'generic'}
-        label={entry.name[lang]} note={entry.description[lang]} ui={`type-${entry.id}`} pressed={profile === entry.id}
-        onChoose={() => (onChoose ? onChoose(entry.id) : send({ type: 'chooseDentalProfile', id: entry.id }))} />)}
-    </div>
-  </div>;
-}
-
 /** Step 1 before an aligner is oriented: the drop zone and upload button, or the loading line. */
 export function DentalAlignerPrompt({ phase, notices, selectedName, onFiles, onUseSelected, kind = 'aligner' }: {
   phase: Extract<Gesture, { kind: 'dental-aligner' }>['phase'];
