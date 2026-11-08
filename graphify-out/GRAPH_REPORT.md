@@ -1,7 +1,7 @@
 # Graph Report - mixodental  (2026-11-08)
 
 ## Corpus Check
-- 938 files · ~923,355 words
+- 938 files · ~924,201 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 54 file(s) not represented in the graph (top: .stl 26, (none) 7, .css 6)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2877a7d6`
+- Built from commit: `547004f9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
