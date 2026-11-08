@@ -166,10 +166,24 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
     }
     case 'supports/clear-manual':
       return updateUnit(scene, command.unitId, (unit) => ({ ...unit, manual: [], deleted: [], contactSettings: {} }));
-    case 'selection/set':
-      return command.activeUnitId === undefined
-        ? { ...withoutActiveUnit(scene), selectedUnitIds: [...command.unitIds] }
-        : { ...scene, selectedUnitIds: [...command.unitIds], activeUnitId: command.activeUnitId };
+    case 'selection/set': {
+      /*
+       * A SELECTION NAMES UNITS THAT EXIST. Ids for units that have left the scene are dropped here
+       * rather than trusted, because the caller is a click handler and clicks arrive in orders
+       * nobody designed: Remove's press used to bubble to the row's own select handler, so the id
+       * of the unit just deleted was dispatched as the ACTIVE one. Downstream that is not a cosmetic
+       * wrong highlight - `activeUnitChanged` with no id switches the edit session off, which on a
+       * live dental case took the finished list with it.
+       *
+       * Guarded here as well as at the button: the button fixes that press, this fixes the class.
+       */
+      const has = (unitId: string) => scene.units.some((unit) => unit.id === unitId);
+      const selectedUnitIds = command.unitIds.filter(has);
+      const active = command.activeUnitId !== undefined && has(command.activeUnitId) ? command.activeUnitId : undefined;
+      return active === undefined
+        ? { ...withoutActiveUnit(scene), selectedUnitIds }
+        : { ...scene, selectedUnitIds, activeUnitId: active };
+    }
     case 'supports/set':
       return updateUnit(scene, command.unitId, (unit) => {
         const supports = command.supports === undefined ? undefined : normalizeSupportMesh(command.supports);

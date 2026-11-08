@@ -133,6 +133,30 @@ describe('the Items page', () => {
    * single answer imposed on the list would be wrong for half of it - and spotting that row 5 came
    * out unlike rows 1-8 is the thing a list can do that eight sequential wizards cannot.
    */
+  /*
+   * START SAYS WHICH ROW IT WILL OPEN. It used to open the first UNFINISHED row whatever was
+   * highlighted, with the same label either way - and with the rail's buttons inert, that made rows
+   * reachable only in list order: a flagged row in the middle could not be opened until every row
+   * above it was finished or destroyed with Remove.
+   */
+  it('names the chosen row on the Start button, not "the first item"', () => {
+    const units = [unit('u-a', 'first.stl', verdict()), unit('u-b', 'second.stl', verdict())];
+    const asList = renderToStaticMarkup(<ItemsPage denture={false} units={units} refused={[]} detected={new Map()}
+      thumbnails={new Map()} finished={[]} lang="en" onSelect={() => {}} onStart={() => {}}
+      onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+    expect(asList).toContain('Start with the first item');
+    const chosen = renderToStaticMarkup(<ItemsPage denture={false} units={units} refused={[]} detected={new Map()}
+      thumbnails={new Map()} finished={[]} lang="en" selectedUnitId="u-b" onSelect={() => {}} onStart={() => {}}
+      onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+    expect(chosen).toContain('Start this item');
+    expect(chosen).not.toContain('Start with the first item');
+    // A FINISHED row is not what the press means, so the label falls back to the next unfinished one.
+    const finishedPick = renderToStaticMarkup(<ItemsPage denture={false} units={units} refused={[]} detected={new Map()}
+      thumbnails={new Map()} finished={['u-b']} lang="en" selectedUnitId="u-b" onSelect={() => {}} onStart={() => {}}
+      onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+    expect(finishedPick).toContain('Start with the first item');
+  });
+
   it('shows each row its own detection result, not one answer for the list', () => {
     const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[unit('u-a', 'upper.stl', verdict()), unit('u-b', 'lower.stl', verdict())]}

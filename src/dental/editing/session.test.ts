@@ -347,6 +347,24 @@ describe('reduceSession: dental Step 3 and finishing', () => {
     expect(reduceSession(done, { type: 'exit' }).mode).toBe('off');
   });
 
+  /*
+   * OPENING ANOTHER ITEM OF THE SAME CASE KEEPS THE CASE. Found by audit, and the bug was a false
+   * premise stated in a comment: "on the first item the session is still off, so resetting
+   * `dentalFinished` is correct there". Mode `off` does NOT mean nothing has been finished -
+   * `finishDental` leaves the mode off and KEEPS the finished list - so the deck's own Start came
+   * through `startDental` for the second and later items of a case and cleared it. The rows lost
+   * their mark, "items left" went back up, and `exitCommands` stopped sparing them, so Exit on a
+   * reopened row removed supports that had already been exported.
+   */
+  it('opening another item of the same case keeps the finished list; a new case does not', () => {
+    const done = run(step3, { type: 'finishDental', unitId: 'u1' });
+    expect(done).toMatchObject({ mode: 'off', dentalFinished: ['u1'] });
+    // The deck opening the next row: same case, so the mark survives.
+    expect(run(done, { type: 'startDental', profile: 'p', resume: true }).dentalFinished).toEqual(['u1']);
+    // The Drop page starting a new run: a new case, so it does not.
+    expect(run(done, { type: 'startDental', profile: 'p' }).dentalFinished).toEqual([]);
+  });
+
   it('a new visit to the flow forgets the finished list', () => {
     const done = run(step3, { type: 'finishDental', unitId: 'u1' });
     expect(run(done, { type: 'startDental', profile: 'p' }).dentalFinished).toEqual([]);

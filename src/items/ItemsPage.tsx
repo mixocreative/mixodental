@@ -69,6 +69,20 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   const next = nextItem(units, finished, undefined);
   const left = itemsLeft(units, finished);
   /*
+   * WHAT START WILL OPEN — and it has to SAY which, which is the half that was missing.
+   *
+   * It used to be `next` unconditionally: the first unfinished row in list order. So selecting row 3
+   * and pressing Start opened row 1, and the label read "the first item" whatever was highlighted.
+   * With the rail's own buttons inert (see `src/deck/README.md`), that made rows reachable ONLY in
+   * order — a flagged row in the middle of a case could not be opened at all until every row above it
+   * was finished or destroyed with Remove. For a drop where three of eight come back with no rim,
+   * that is the ordinary case rather than an edge.
+   *
+   * A selected row wins unless it is already finished, because pressing Start cannot sensibly mean
+   * "finish that one again". Otherwise the first unfinished row, as before.
+   */
+  const target = units.find((unit) => unit.id === selectedUnitId && !finished.includes(unit.id)) ?? next;
+  /*
    * THE ROW THE RAIL IS ABOUT. Falling back to `next` rather than to the first row matters: the
    * fallback is where work RESUMES, so a returning operator sees the state of the model they are
    * about to pick up rather than of one they already finished.
@@ -123,8 +137,12 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
 
     <div className="items-foot">
       <span className="items-left">{left === 1 ? t('1 item left') : t('{n} items left', { n: left })}</span>
-      {next ? <button type="button" className="primary key-art" data-ui="items-start" onClick={() => onStart(next)}>
-        <Icon name="next" />{t('Start with the first item')}
+      {target ? <button type="button" className="primary key-art" data-ui="items-start"
+        /* The name goes in the title rather than the label: a long file name in the primary would
+           either clip or wrap the row, and the label has to read the same in three languages. */
+        title={target.name}
+        onClick={() => onStart(target)}>
+        <Icon name="next" />{t(target === next ? 'Start with the first item' : 'Start this item')}
       </button> : null}
     </div>
   </div>;

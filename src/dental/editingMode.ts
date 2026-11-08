@@ -46,8 +46,17 @@ export type DentalNotice =
 type Proposal = Extract<DentalProposal, { kind: 'proposal' }>;
 
 export type DentalEvent =
-  /** The full-screen start (components/StartScreen): straight to Step 1 with this type; `file` is read by the app once Step 1 waits for it. */
-  | { type: 'startDental'; profile: string; file?: File }
+  /**
+   * The full-screen start (components/StartScreen): straight to Step 1 with this type; `file` is read
+   * by the app once Step 1 waits for it.
+   *
+   * `resume` says this is ANOTHER ITEM OF THE SAME CASE rather than a new one, and it exists because
+   * mode `off` does not mean "nothing finished". `finishDental` leaves the mode off and KEEPS
+   * `dentalFinished`, so opening the next row from the deck came through here and cleared the list -
+   * the finished rows lost their mark, "items left" went back up, and `exitCommands` no longer spared
+   * them, so Exit on a reopened one removed the supports it had already exported.
+   */
+  | { type: 'startDental'; profile: string; file?: File; resume?: true }
   | { type: 'switchDentalProfile'; id: string }
   /** `unitId`: the aligner is read and on the plate (Step 1 is now working on it). */
   | { type: 'dentalLoading'; unitId?: string }
@@ -212,7 +221,8 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
   switch (event.type) {
     case 'startDental':
       return state.mode === 'off'
-        ? { ...withMode(state, 'dental'), dentalStage: 'aligner', dentalProfile: event.profile, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalFinished: [], dentalUnitId: undefined }
+        // The finished list belongs to the CASE, not to this visit: `resume` keeps it (see the event).
+        ? { ...withMode(state, 'dental'), dentalStage: 'aligner', dentalProfile: event.profile, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalFinished: event.resume ? state.dentalFinished : [], dentalUnitId: undefined }
         : state;
     case 'switchDentalProfile':
       return state.mode === 'dental' && state.dentalStage === 'aligner'

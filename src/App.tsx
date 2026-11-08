@@ -1050,7 +1050,22 @@ export default function App() {
     const live = sessionRef.current;
     if (live.mode !== 'dental') {
       setStartScreen(null);
-      return send({ type: 'startDental', profile: live.dentalProfile ?? batchProfile ?? DEFAULT_PROFILE_ID });
+      /*
+       * TWO FIXES LIVE IN THIS BRANCH, and the comment above this function used to state the premise
+       * that made both wrong: "on the first item the session is still `off`". Mode `off` does NOT
+       * mean nothing has been finished - `finishDental` leaves the mode off and keeps the finished
+       * list - so this branch is also how the SECOND and later items of a case are opened.
+       *
+       *   - `resume` keeps `dentalFinished`. Without it the finished rows lost their mark and
+       *     `exitCommands` stopped sparing them, so Exit on a reopened one removed supports that had
+       *     already been exported.
+       *   - `startDentalAligner` is called here too. It used to `return` instead, and nothing else
+       *     starts the read: the auto-start effect in `useDentalFlow` fires only on a profile CHANGE
+       *     while already loading. So the press landed on Step 1's "choose a file" prompt with the
+       *     row's model already on the plate, and the way on was a second control.
+       */
+      send({ type: 'startDental', profile: live.dentalProfile ?? batchProfile ?? DEFAULT_PROFILE_ID, resume: true });
+      return startDentalAligner(unit);
     }
     setStartScreen(null);
     if (live.dentalStage === 'review' && live.dentalUnitId) send({ type: 'addAnotherDental', unitId: live.dentalUnitId });

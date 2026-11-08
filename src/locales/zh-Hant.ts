@@ -736,6 +736,7 @@ export const zhHant: Dictionary = {
   'Move the objects so none overlaps another. Only positions change; supports stay editable': '移動物件以避免重疊。僅變更位置，支撐仍可編輯。',
   'Work through the files one at a time.': '逐一處理檔案。',
   'Start with the first item': '從第一個檔案開始',
+  'Start this item': '從此檔案開始',
   '1 item left': '剩餘 1 個',
   '{n} items left': '剩餘 {n} 個',
   'Take this file off the list.': '從清單中移除此檔案',

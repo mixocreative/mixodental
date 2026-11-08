@@ -69,6 +69,24 @@ describe('reduceScene', () => {
     expect(next.units[0].manual).toEqual([]);
   });
 
+  /*
+   * A SELECTION NAMES UNITS THAT EXIST, and the reducer enforces it rather than trusting the caller.
+   * Found by audit: Remove's button sat inside the row's own click handler with no `stopPropagation`,
+   * so a press removed the unit and then dispatched a selection naming the id that had just gone. A
+   * wrong highlight would be cosmetic; this was not - `activeUnitChanged` with no id switches the
+   * edit session off, and on a live dental case that took the finished list with it, after which Exit
+   * no longer spared the finished units and removed supports that had already been exported.
+   */
+  it('drops selection ids for units that are not in the scene, active one included', () => {
+    const scene = reduceScene(emptyScene, { type: 'unit/add', unit: { ...unitA, supports: undefined, placement: undefined } });
+    const ghost = reduceScene(scene, { type: 'selection/set', unitIds: ['unit-a', 'unit-gone'], activeUnitId: 'unit-gone' });
+    expect(ghost.selectedUnitIds).toEqual(['unit-a']);
+    expect(ghost.activeUnitId).toBeUndefined();
+    // A present id still selects, so the guard narrows nothing it should not.
+    const real = reduceScene(scene, { type: 'selection/set', unitIds: ['unit-a'], activeUnitId: 'unit-a' });
+    expect(real.activeUnitId).toBe('unit-a');
+  });
+
   it('updates selection, transform, settings, manual contacts, and removals immutably', () => {
     const scene = reduceScene(emptyScene, { type: 'unit/add', unit: { ...unitA, supports: undefined, placement: undefined } });
     const selected = reduceScene(scene, { type: 'selection/set', unitIds: ['unit-a'], activeUnitId: 'unit-a' });

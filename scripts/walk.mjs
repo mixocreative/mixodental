@@ -1211,12 +1211,44 @@ async function walk(url, scratch, dentalFixture) {
         boxes !== undefined && boxes.railWidth > 40 && boxes.railRight <= boxes.listLeft && boxes.sameBand,
         `boxes ${JSON.stringify(boxes)}`);
 
+      /*
+       * START SAYS WHICH ROW IT WILL OPEN, and opens that one. It used to open the first UNFINISHED
+       * row whatever was highlighted, with a label that said "the first item" either way - and with
+       * the rail's buttons inert, that made rows reachable only in list order: a flagged row in the
+       * middle of a case could not be opened until every row above it was finished or removed.
+       *
+       * The label is the cheap half of the check and it is the one that would have caught it: no
+       * navigation, no detection, just the press's own scope stated on the press.
+       */
+      const startLabelFirst = await page.locator('[data-ui="items-start"]').innerText();
+      await page.locator('.items-row').nth(1).click();
+      await d.idle(300);
+      const startLabelPicked = await page.locator('[data-ui="items-start"]').innerText();
+      check('m4f Start names what it will open, and a chosen row is what it opens',
+        /first/i.test(startLabelFirst) && !/first/i.test(startLabelPicked) && startLabelPicked.trim().length > 0,
+        `label with nothing chosen ${JSON.stringify(startLabelFirst)}, with row 2 chosen ${JSON.stringify(startLabelPicked)}`);
+
       // Remove takes one row off and leaves the rest; the count follows the same rule the press does.
       await page.locator('.items-row .remove').first().click();
       await d.idle(500);
       check('m5 Remove takes off one row and the count follows',
         (await page.locator('.items-row').count()) === 2 && /2 items left/.test(await page.locator('.items-left').innerText()),
         `rows ${await page.locator('.items-row').count()}, ${await page.locator('.items-left').innerText()}`);
+
+      /*
+       * STARTING A ROW READS THAT ROW. The press used to `return` before `startDentalAligner`, and
+       * nothing else starts the read - the auto-start effect fires only on a profile CHANGE while
+       * already loading. So the operator arrived at Step 1's "choose a file" prompt with the row's
+       * model already on the plate, and the way on was a different control entirely.
+       *
+       * Asserting the ABSENCE of the prompt is the point: the badge said "Step 1" in both the broken
+       * and the fixed app, so a check that read only the badge would have passed throughout.
+       */
+      await page.locator('[data-ui="items-start"]').click();
+      await page.waitForFunction(() => /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 30000 });
+      const askedForFile = await page.getByText('Place the aligner file here').count();
+      check('m5b Start opens the row and reads it, rather than asking for a file already on the plate',
+        askedForFile === 0, `"choose a file" prompts on screen ${askedForFile}`);
 
       /*
        * A DROP WHERE EVERY FILE IS REFUSED MUST NOT OPEN AN EMPTY PAGE. It used to: the switch was

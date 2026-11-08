@@ -731,6 +731,7 @@ export const ja: Dictionary = {
   'Move the objects so none overlaps another. Only positions change; supports stay editable': 'オブジェクトが重ならないように移動します。位置のみが変更され、サポートは編集可能です。',
   'Work through the files one at a time.': 'ファイルを1つずつ処理してください。',
   'Start with the first item': '最初のファイルから開始',
+  'Start this item': 'このファイルから開始',
   '1 item left': '残り 1 件',
   '{n} items left': '残り {n} 件',
   'Take this file off the list.': 'このファイルをリストから外す',

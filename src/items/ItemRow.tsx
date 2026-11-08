@@ -63,7 +63,15 @@ export function ItemRow({ unit, done, onRail, detected, thumbnails, onSelect, on
     <span className="detect" data-ui={`items-detect-${unit.id}`}>
       {found ? translateMessage(found) : null}
     </span>
+    {/*
+      REMOVE MUST NOT ALSO SELECT. This button sits inside the row's own `onClick`, so without
+      `stopPropagation` a press removed the unit and then dispatched a selection for the id that had
+      just gone - leaving the scene's active unit pointing at nothing, which switches a live dental
+      session off (`editing/session.ts` reads `event.id` to decide the mode). The reducer now guards
+      the same invariant, so this is the local half of a fix that is made in two places on purpose.
+    */}
     <button type="button" className="danger remove" data-ui={`items-remove-${unit.id}`}
-      title={t('Take this file off the list.')} onClick={onRemove}>{t('Remove')}</button>
+      title={t('Take this file off the list.')}
+      onClick={(event) => { event.stopPropagation(); onRemove(); }}>{t('Remove')}</button>
   </li>;
 }
