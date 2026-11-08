@@ -1,0 +1,10 @@
+run: 2026-11-09 Screen tier - G2/G4 fault injection on the deck -> flow -> deck journeys
+HEAD: 0119849329e6d3a9231c2667408f391c9a20939e
+tree: 2 changed path(s)
+ M scripts/walk.mjs
+?? artefacts/
+node: v22.15.1
+playwright-core: 1.64.1
+plate fixture sha256: e06e48afe247f2d2963687628e593aa8dbeb79cab64833665ba38a79f6134b43
+plate fixture triangles: 3193368
+refusal limit (TRIANGLE_BUDGET x REFUSE_FACTOR): 6000000

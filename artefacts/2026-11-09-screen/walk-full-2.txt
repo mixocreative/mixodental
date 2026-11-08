@@ -1,0 +1,194 @@
+
+> mixodental@0.0.0 walk
+> node scripts/walk.mjs
+
+walk on http://127.0.0.1:5260/mixodental/
+dental fixture: dentalwork\fixtures\case-001\aligner.stl
+PASS i Drag over pressed while the first build runs says so | status "Supports are still building.", build still running at the press true, Drag over engaged while building true
+PASS a0 the editor fits the window: the canvas does not run past the bottom of the screen | canvas 844 px tall, bottom at 900, page 900, window 900
+PASS a1 generate: automatic count | auto 429 (baseline 429), manual 0, removed 0
+PASS a2 drag over: fixed selection counts | selected 57, 57, 57 (baseline 57, 57, 57)
+PASS a3 Delete removes exactly the selection | removed 57 of 57 selected, auto 372
+PASS a4 Undo brings them back | removed 0, auto 429
+     zones painted over the model (1 strokes landed)
+PASS c zone landing: the count and the drawn supports both lose the zoned ones | auto 429 -> 424, drawn supports 429 -> 424, dropped by a landing 763, dropped still drawn 0; badge "Painting no-support zones knot 7 supports hidden by zones"
+PASS d export after zone + Delete matches the build on screen | exported 94600 triangles, on screen 94600 (deleted 57, drawn supports 367)
+PASS d2 Undo after the export brings the deleted supports back | removed 0
+PASS e remove then add at the same spot keeps the manual support | at 0.6,0.42: removed 1, then manual 1 removed 1; the app said "Support added."
+PASS e Undo and Redo walk both steps | undo add 0/1, undo remove 0/0, redo remove 0/1, redo add 1/1 (manual/removed)
+PASS f1 Point Ø on the selection customises exactly those | selected 56, customised 56, object Point Ø 0.2
+PASS f2 changing the default leaves them customised | customised 56, default Point Ø 0.35
+PASS f3 Reset clears them | customised 0
+PASS f4 Undo brings them back | customised 56
+FAIL g-pre the machine slowed enough for a brush queue to form (precondition, not the app) | 0 steps pending at the switch, 2x throttle. 0 means the pointer moves were dropped outright - the machine was too loaded, so g below could not be answered.
+     g could not be judged: no queue formed, so both strokes compared the empty state (#14da8dce). The app was not exercised, so nothing is claimed about it.
+PASS k Select them with the active object bare switches to the first object with customised supports | active was second, now first, selected 56 of 56, status "56 customised supports selected on knot."
+PASS k2 Undo takes the second object away again | footer 1 object, customised 56
+PASS a5 drag over from Bottom view picks up the tips it can see | selected 56
+PASS i1 the work to save has every kind of hand edit | {"auto":365,"manual":1,"removed":57,"customised":4,"zones":1}
+     project file knot.mixodental: 1330346 bytes gzip, 4448288 bytes plain
+PASS i2 Save writes knot.mixodental with the format header, and the leave prompt follows it | file knot.mixodental, header {"app":"mixodental","version":1}, prompt before the save true, status "Saved knot.mixodental."
+     Open project main-thread long tasks (ms): [114,183,401]
+PASS i3 Open after a reload: automatic, manual, removed, customised and zones are identical | before {"auto":365,"manual":1,"removed":57,"customised":4,"zones":1}, after {"auto":365,"manual":1,"removed":57,"customised":4,"zones":1}
+PASS i4 a freshly opened project has nothing unsaved | status "Opened knot.mixodental."
+     the Undo toast counted out while the plate settled; undoing with the keyboard instead
+PASS i5 Open over an object offers Undo, and Undo restores the plate as it was | opened {"auto":365,"manual":1,"removed":57,"customised":4,"zones":1}, after Undo {"auto":0,"manual":0,"removed":0,"customised":0,"zones":0}
+PASS i6 a newer file is refused with a message and the plate stays | status "wrong.mixodental was saved by a newer version of mixoDental (file version 99; this one reads up to 1). Update the app, then open it again."
+PASS m1 one damaged file in a drop of three refuses only itself: the other two import | units 2, status "half-good.stl contains no mesh. Export it again with the mesh included, then import it."
+PASS m1b several dropped files wait on the Drop page and say how many | held "3 files ready. Choose what you are making.", items page 0
+PASS m2 a drop of three models on the Drop page gives three rows, not one | rows 3
+PASS m3 every row is named for its unit, so removing one cannot re-point the others | named rows 3
+PASS m4 every row carries its own triangle count and size, and the page says how many are left | ["12 triangles · 2 × 2 × 2 mm","12 triangles · 2 × 2 × 2 mm","12 triangles · 2 × 2 × 2 mm"] / 3 items left
+PASS m4b the batch gives every row its own orientation result | detect lines ["No rim found. Draw one to continue.","No rim found. Draw one to continue.","No rim found. Draw one to continue."]; rows 3, unit rows 3, detect spans 3, names ["one","two","three"]
+PASS m4c every row carries its own drawn picture, with the model actually in it | shots [{"size":160,"corner":"227,234,234","centre":"169,179,179"},{"size":160,"corner":"227,234,234","centre":"169,179,179"},{"size":160,"corner":"227,234,234","centre":"169,179,179"}]
+PASS m4d the rail opens what the batch unlocked, greys what is not reachable yet, and names the one next thing | orient disabled false, rim disabled false, area+supports [true,true], reason "The area is measured from the rim, so draw the rim first."
+PASS m4e the rail sits down the left with the models beside it, not under them | boxes {"railRight":544,"listLeft":558,"railWidth":104,"sameBand":true}
+PASS m4f Start names what it will open, and a chosen row is what it opens | label with nothing chosen "Start with the first item", with row 2 chosen "Start this item"
+PASS m5 Remove takes off one row and the count follows | rows 2, 2 items left
+PASS m5b Start opens the row and reads it, rather than asking for a file already on the plate | "choose a file" prompts on screen 0
+PASS m6 a drop where every file is refused opens the list and names them all | refused ["bad-one.stl\nCould not be read.","bad-two.stl\nCould not be read."], good 0
+PASS m7 the Items page always offers a way back | rows ["good-a","good-b"], back 1
+PASS m8 a bad file among good ones is a row that names it, beside the two that imported | refused ["broken.stl\nCould not be read."], good rows 2
+PASS m9 a rail press reaches the flow, rather than doing nothing at all | reached Step 1: true
+PASS m10 Rim on a row the detector flagged opens rim drawing, not Step 1 over again | rim panel true, badge "Step 1 · Define the rimrim-oneClick along the rim to place points.", hint "Draw the rim on this model.", file prompts 0
+PASS q1 G4 two drops in flight on one plate quota admit exactly one, and the loser is refused in words | units on the plate 1, footer "1 object", the refusal said "The plate would hold 6,386,736 triangles with heavy-3_2m.stl; the limit is 6,000,000. Delete or simplify an object first, then import again."
+PASS q2 G4 the refused drop is still accountable once the plate has settled | status now "heavy-3_2m is a heavy model (3,193,368 triangles, over 1,500,000): the view shows a simplified copy and hand editing is off. Generate and export use the full model.", refusal still on screen true, alerts []
+PASS q3 G2 the purpose pressed twice imports the held files once | presses 2, rows 3, names ["r-one","r-two","r-three"]
+PASS q4 G2 Remove pressed twice in one tick takes off one row, not the neighbour as well | was ["q-one","q-two","q-three"], now ["q-one","q-three"], expected ["q-one","q-three"]
+PASS q5 G2 every analysis reply delivered twice settles each row once and throws nothing | replies redelivered 6, rows settled true, lines ["No rim found. Draw one to continue.","No rim found. Draw one to continue.","No rim found. Draw one to continue."], console errors []
+PASS q6 G4 Remove and Start on one unit in one tick leave the operator on the deck or in a step | contested row "q-two", badge "", rows 2, deck pages 1, asked for a file false, session null, status "Work through the files one at a time."
+PASS u0 Aligner Support Production enters at Step 1 with no type card and no generic side panels (U1) | panels 0, cards 0
+PASS u1 Exit at Step 1 leaves the flow with the plate untouched | objects 0
+PASS u2 Step 1 asks for the aligner file and still offers a way out
+PASS u2b the 3D view is docked: nothing overlaps anything, and the controls are on the right | showing title, controls, status; no overlap
+PASS u3 a file that is no model is refused in place, Step 1 stays | status "Only STL, GLB and glTF files can be imported. Choose a file of one of these types."
+PASS u4 a broken STL is refused in place, Step 1 stays, nothing is added | status "Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.", objects 0
+PASS u5 a shape with no detectable rim hands over to rim define mode, and the dock says why | badge "Step 1 · Define the rimcubeCli", why "Orientation could not find a rim on this ali"
+PASS u5c Place puts one anchor down per click on the model | points 3
+PASS u5d a drag in Adjust adds nothing: the click the release fires is not a new anchor | points 3
+PASS u5e the dragged anchor really left its old spot, which is now bare surface | points 4, loop "Open"
+PASS u5e2 Delete point waits for a point to be picked, and is shown greyed rather than hidden | points 4
+PASS u5e3 picking a point with Adjust turns Delete point on
+PASS u5e4 Delete point takes one point out and lets go of it | points 3
+PASS u5e5 the deleted point really left its own spot, and the others stayed | old spot picks nothing, points 3
+PASS u5f0 Clear takes the whole drawing away | points 0
+PASS u5f Close loop joins the last point back to the first | loop "Closed"
+PASS u5g a sound loop lets Done through, with nothing left in the way
+PASS u5h Done turns the drawing into the rim and hands Step 1 back | status "Rim saved, but which way the opening faces was unclear. Check the aligner is the right way up before going on."
+PASS u5i Next carries a hand-drawn rim through to Step 2 | badge "Step 2 · Support areacubeNo suppor", status "Paint where dental supports may grow, anywhere on the aligner; Erase takes area away. Drag on the model."
+PASS u5j the drawn rim is visible on the model in Step 2, in the colour the legend names | 117 px of #cc1f93 with the rim vs 0 without, box [517,222,537,338]
+PASS u5k Step 1 offers the way back into the drawing for a hand-drawn aligner
+PASS u5k2 Draw the rim reopens the mode | badge "Step 1 · Define the rimcubeClick a"
+PASS u5k3 a rim already saved survives a reopen and a cancel, and still reaches Step 2 | badge "Step 2 · Support areacubeNo suppor", status "Paint where dental supports may grow, anywhere on the aligner; Erase takes area away. Drag on the model."
+PASS u5l Back at Step 1 shows the case instead of ending it: the rows, not the Drop page | rows 1, drop pages 0
+PASS u5b Cancel leaves rim define mode and lands back in Step 1, still in the flow | badge "Step 1 · AlignercubeReview the"
+PASS u5b2 after Cancel, Step 1 still offers the way back in
+PASS u5b3 Next names the way forward instead of sending the operator away | status "No aligner opening was found. Press Draw the rim to mark it by hand, or go Back and choose another file."
+PASS u6 a mesh with holes is warned about before detection is trusted
+PASS u7 a model with no central opening is offered a way out instead of silently continuing | handed over to rim define mode
+PASS u7b Keep dismisses the type prompt | no rim was found, so the step handed over to drawing one and there was no type prompt to keep
+     u8 / u8b skipped: both need the oriented ending (Step 2 builds its empty area from the orientation proposal), and this fixture was handed to rim define mode instead
+PASS u8c reading a file blocks, with one word, the sentence under it and a live indicator | "LOADING… Checking and orienting the aligner… Working…", spinners 1
+PASS u8d the blocking wait is gone once the aligner is read
+PASS u8e a step job says exactly what it knows: a number only when it counted one | 2 step waits: "Detecting the support area Working…" measured=0 percent=0 spinner=1 | "Scanning print angles" measured=1 percent=1 spinner=0
+     reference aligner read, oriented and its print angles scanned in 7 s
+PASS u9 the dropped aligner is oriented with no button pressed, and the mesh check is clean
+PASS f1 Step 1 scans the print angles ("Scanning print angles i/n"), then shows the pick with its stable band | dial "44.5°", band "Stable 26.5–44.5°"
+PASS f2 the print-angle dial spans start ± 22° with the stable band lit around its arc | range [24.4577512332,68.4577512332], lit ticks 9
+PASS f3 turning the dial one step turns the preview to that tilt and shows its rule flags (no tips in Step 1) | "45.5°", verdict "Why this angle 45.5° This angle passes every rule, but only just. Supports on the fitting side 17 Widest rim gap 6.03 mm", rotation [-0.0348606873839306,0.00003117926093687579,-0.0017885816236866221] -> [-0.017430346839834434,0.00000779576902825485,-0.0008944259721947108]
+PASS f4 the steepest tilt shows its failed rules by name | verdict "Why this angle 68.5° This angle breaks a rule. Resin would be trapped in a pocket Supports would cross the model Supports on the fitting side 15 Widest rim gap "
+PASS f5 Auto orientation returns the dial and the preview to the automatic pick | "44.5°"
+PASS u10 Step 2 shows the detected area with tips, and Next is on
+PASS u1b in Step 2 the generic left and right panels are absent and the viewport buttons stay
+PASS f6 Next confirmed the automatic pick with a real build: it held, or it moved with the notice and a new rotation | moved notes , angle , rotation [-0.0348606873839306,0.00003117926093687579,-0.0017885816236866221] vs [-0.0348606873839306,0.00003117926093687579,-0.0017885816236866221]
+     PD.1 overhang low points outside the default area on the reference aligner: 0
+PASS u10c Step 2 lists each low point outside the area with a Show me button | 0 rows, 0 buttons
+PASS u10b Step 2 offers Paint and Erase and the Area width, Area position and Support density sliders (no hidden setback)
+PASS u10c Area width widens the area and moves the tip preview onto its middle line | width 0.5 -> 0.7 mm, faces 14110 -> 14946, tips 6874a745 -> 12a3f4de, 519 ms
+PASS u10d Area position moves the area off the edge and the tips with it | position 0.25 -> 0.4 mm, faces 14946 -> 15943, tips 12a3f4de -> c6d84cf2, 459 ms
+     u10 live Step 2 updates (key press to tip preview, one debounce and one worker job included): width 519 ms, position 459 ms
+PASS u10g Step 2 opens on Select, the tool that changes nothing | pressed "Select"
+PASS u10h resting on Select, a drag on the model marks nothing | stamps 0 -> 0
+PASS u10i there is no separate way to put a tool down: Select is on the switch | Put it down keys: 0
+PASS u10j Esc goes back to Select and the step stays | pressed "Select", badge "Step 2 · Support arearef"
+PASS u10k picking the tool already in hand leaves it in hand, so its key stays idempotent | armed "Paint" -> pressed "Paint"
+PASS u10l Select comes first on the switch and the switch always has one pressed | first "Select", pressed "Select"
+PASS u10e Paint outside the detected strip adds support tips there, and the status says so | tips 94 -> 103, 2399 ms (drag 2028 ms, release to tip preview 371 ms)
+PASS u10f Erase over the same place removes the area and its tips again | tips 103 -> 95 (before paint 94), 2768 ms (drag 2297 ms, release to tip preview 471 ms)
+PASS b3a Step 2 offers the four tools, Select first, then Paint, Erase and Add | [Select|Paint|Erase|Add]
+PASS b3b the keys P, E, A and S switch the tools | Paint|Erase|Add|Select
+PASS b3c with the keys: Paint reveals suggested tips, Erase hides them again | tips 95 -> 106 -> 95 (residue allowed 2)
+PASS b3d Add on the aligner places a manual tip at the hit and says so | manual 0 -> 1, deleted 0 -> 0, status "Support added."
+PASS b3e a manual tip survives a density change | manual 1 -> 1
+PASS b3f Add within Click reach of a suggested tip takes its place in one step (manual +1, that tip deleted; one Undo gives both back) | manual 1 -> 2 -> 1, deleted 0 -> 1 -> 0
+PASS b3g Select (Click) a tip and Delete removes it | selected 1, manual 1 -> 1, deleted 0 -> 1, tips 108 -> 107
+PASS b3h a deleted tip stays removed after the next rebuild | tips 107 -> 108, deleted 1 -> 1
+PASS b3i Select (Drag over) takes several tips, and Esc drops the selection first | selected 18
+PASS b3j Add on an up-facing spot still adds, and the status line warns that it may not hold | This spot faces up, so a tip here may not hold. (0.5,0.5:none 0.4,0.5:added)
+PASS u11 Back from Step 2 returns to Step 1 with the oriented aligner kept
+PASS u12 Exit leaves the aligners on the plate without supports | objects 1, automatic supports 0
+PASS x0 Step 2 no longer carries the Tree and Brace toggles
+PASS x1b Step 3 finish controls (Back, Exit, Export STL, Add another aligner) are in view without scrolling at 1440x900 and 1280x720 | 1440x900 true, 1280x720 true
+PASS x1 Step 3 lists tip size, lift height, raft, Tree, Brace, the support tools, problems, the ID label, Export STL and Add another aligner | supports ready. every point is held.hide detailsproblemscheck for unsupported spotsno problems listed. press check supports to look for islands and overhangs.adjustsupport settingstip size0.45 mmpilla
+PASS u1c Step 3 panel is one scroll area (the blocks do not scroll) and each notice shows in full: text on top, buttons on their own row below | {"count":0,"scrolls":true,"bad":0}
+PASS b3k Step 3 shows no Paint, Erase or density | supports ready. every point is held.hide detailsproblemscheck for unsupported spotsno problems listed. press check supports to look for islands and overhangs.ad
+PASS x1c Step 3 starts with the aligner type defaults: 0.45 mm tip, 3.5 mm lift, raft on, Tree off, Brace on (D21) | {"tip":"0.45","lift":"3.5","tree":false,"brace":true,"raft":true}
+PASS x2 the ID label field starts as X and is reachable by its name | value "X"
+PASS x3 the Label field takes only A-Z 0-9 and -, uppercases letters, and stops at 8 characters | typed "A-1B", long "ABCDEFGH"
+PASS x4 the typed label is stored with the aligner | label "L-1"
+     x6 edit-count "28 selected", status "Esc again to exit"
+PASS x6 Step 3 selects supports with the Support Edit Mode tools | selected 28
+PASS x7 Delete removes the selected supports | removed 0 -> 28
+PASS x8 Add supports adds one by hand | manual 0 -> 1, status "Support added."
+PASS x5 raft off says the label needs it
+PASS x9 a lift change regenerates the supports and keeps the manual edits | manual 1 -> 1, removed 28 -> 28, status "Support added."
+PASS x9b each Step 3 control (Tip size, Pillar size, Lift height, Raft, Tree branches, Cross-braces) greys the Problems section until its new verdict arrives, then clears it | Tip size: stale seen 2x; Pillar size: stale seen 6x; Lift height: stale seen 6x; Raft: stale seen 12x; Tree branches: stale seen 6x; Cross-braces: stale seen 6x
+PASS x10 Check supports inside Step 3 reports into the problem list (each finding has Show me and Fix; the outside-area note only Show me) | 9 listed, 1 outside-area note
+PASS x11 Fix opens Add supports at the spot | Add supports pressed false -> true, status "7 spots may print unsupported: see Check supports."
+PASS x12 Back from Step 3 asks before discarding manual edits
+PASS x13 Stay keeps Step 3 and the edits
+PASS x14 Add another aligner returns to Step 1 and asks for the next file, same type
+PASS x15 both aligners are on the plate with their supports while Step 3 is still up | objects 2
+PASS x16 both aligners carry their own label | labels L-1, R-2
+PASS x17 Export STL at the end of Step 3 writes the aligner and its supports as one file | triangles 408308
+PASS x18 the step stays up after the export, so a refused export can never strand the operator | badge "Step 3 · Supportsreference-alignerReview"
+PASS x18b Exit after Export keeps the exported aligner with its supports and its policy | units 2, still supported and dental 2
+PASS x19 the two aligners sit apart on the plate | centres -37,23,-0 / 42,23,-6
+PASS l0 Step 1 offers orientation and Next without premature Done
+PASS l1 automatic orientation stays in Step 1
+PASS l2 dental area holds the two-contour face mask | policy "two-contour", manual markers 0
+PASS l2b Step 2 offers paint and Next without premature Done
+PASS l2c strip width updates the live painted face mask | faces 14110 -> 14611
+PASS l2d support density updates the live tip preview | candidate tips 94 -> 105
+PASS l2f Tree and Brace moved out of Step 2 (they are in Step 3)
+PASS l2g the generic structure panel is not shown beside dental Step 2, so it cannot contradict it | right panels on screen 0
+PASS l2e area position moves the live permitted area | faces 14611 -> 14946
+PASS l3 dental generation finishes a support mesh only after the approved-area stage | automatic 104, mesh triangles 36568, drawn 104, forbidden secondary landings dropped 0, dropped still drawn 0, tuned review gap 7.2076273327458065
+PASS l4 the final rim gap is disclosed when the build says the rim needs a look, and not otherwise | needs review false, note "(no rim gap note on screen)"
+PASS s1 the app opens on the task screen: the three choices drawn alike, Open a saved project, and no workspace | Aligner|Denture|Any model|Open a saved project
+PASS u1a on the Drop page the header has no Undo, Redo, Hide models or Wireframe, the language switch stays, the heading is present, and the footer says what to do | Drop one or more files, or choose what to make.
+PASS s2 Aligner goes straight to the file screen, full-screen with Back, and no type cards remain | type cards 0
+PASS s2b the screen heading is a box the width of its own longest line, centred | box 404px, longest line 404px, 0.0px off centre
+PASS s3 Escape on the file screen is Back to the Drop page
+PASS s4 Back on the file screen returns to the Drop page
+PASS s5 Escape on the Drop page does nothing
+PASS s6 Aligner opens the file screen: the instruction, its hint, a file button and Back | Place the aligner file here Drag an STL here, or choose one below. It is checked and turned the right way up automatically. Choose STL file
+PASS s7 Escape on the file screen returns to the Drop page, with no type screen in between
+PASS s8 Back on the file screen returns to the Drop page
+PASS s9 the reference aligner chosen on the file screen reaches Step 1 with its type, in the editor
+PASS s10 Back from Step 1 shows the case, and the aligner stays on the plate
+PASS s11 reaching the task screen removed nothing: Any model opens the editor with the aligner still on the plate
+PASS s12 Any model opens the empty generic editor with its import control
+PASS s13 closing the last model returns to the task screen
+PASS s14 a non-STL dropped on the task screen is refused and the screen stays | status "Only STL, GLB and glTF files can be imported. Choose a file of one of these types."
+PASS s15 an STL dropped on the Drop page goes straight to Step 1, with no type step to answer
+PASS s16 and the dropped aligner is on the plate
+PASS s17 stepping back out of Step 1 keeps the loaded file on the plate
+PASS s18 an STL dropped on the file screen enters Step 1 on the derived type
+PASS s19 dropping again on the file screen enters Step 1, replacing the aligner that stayed
+PASS j Terms opens the bundled terms in a dialog
+PASS j Escape closes the Terms dialog
+PASS h no request leaves localhost | 0 external requests
+PASS h no console errors or warnings | 0 messages
+1 FAIL (176 checks, 1580 s)
+WALK_EXIT=1

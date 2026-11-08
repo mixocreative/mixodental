@@ -22,21 +22,56 @@ const PUBLIC_ALIGNER = path.join(ROOT, 'docs', 'dental-reference', 'reference-al
 const CASE_01_ALIGNER = path.join(ROOT, 'dentalwork', 'fixtures', 'case-001', 'aligner.stl');
 const VIEWPORT = { width: 1440, height: 900 };
 
-/** Page script: the mesh worker's replies arrive `window.__meshDelay` ms late, so the first build can be pressed on while it runs. */
+/**
+ * Page script: two levers on what a worker's replies do, both off by default.
+ *
+ * `window.__meshDelay` holds the MESH worker's replies back that many ms, so the first build can be
+ * pressed on while it runs. The reply is swallowed and re-dispatched later: it arrives LATE, once.
+ *
+ * `window.__replayWorker` is the fault-injection lever (G2, section `q`): every reply from the
+ * worker whose URL contains that substring is dispatched a SECOND time, without the first being
+ * swallowed. So the job settles and is then told again that it has settled, which is what a
+ * duplicate message from a channel actually looks like. `window.__replayed` counts them, so a check
+ * can prove the fault arrived rather than assume it - a replay test that never replayed is the
+ * vacuous pass this section exists to avoid.
+ */
 function slowMeshWorker() {
   const Real = window.Worker;
   window.__meshDelay = 0;
+  window.__replayWorker = '';
+  window.__replayed = 0;
   window.Worker = class extends Real {
     constructor(url, options) {
       super(url, options);
-      if (!String(url).includes('meshWorker')) return;
+      const name = String(url);
       this.addEventListener('message', (event) => {
-        if (event.redelivered || !window.__meshDelay) return;
+        if (event.redelivered) return;
+        if (window.__replayWorker && name.includes(window.__replayWorker)) {
+          window.__replayed += 1;
+          setTimeout(() => { const again = new MessageEvent('message', { data: event.data }); again.redelivered = true; this.dispatchEvent(again); }, 0);
+          return;
+        }
+        if (!name.includes('meshWorker') || !window.__meshDelay) return;
         event.stopImmediatePropagation();
         setTimeout(() => { const again = new MessageEvent('message', { data: event.data }); again.redelivered = true; this.dispatchEvent(again); }, window.__meshDelay);
       });
     }
   };
+}
+
+/**
+ * The plate-quota fixture for section `q`: one binary STL of about 3.19M triangles, so two of them
+ * cross the 6M plate refusal limit while either alone fits. Git-ignored and about 152 MiB, so it is
+ * made on demand rather than committed; the generator streams it, which is why a 6M-triangle fault
+ * injection costs twenty seconds and not a gigabyte of memory.
+ */
+const HEAVY_PLATE_STL = path.join(ROOT, '.playwright-mcp', 'heavy', 'heavy-3_2m.stl');
+function heavyPlateFixture() {
+  if (existsSync(HEAVY_PLATE_STL)) return HEAVY_PLATE_STL;
+  note('making the plate-quota fixture (3.2M triangles, ~152 MiB, git-ignored) - this happens once per clone');
+  execFileSync('npx', ['vite-node', 'scripts/make-heavy-meshes.ts', '3200000'], { cwd: ROOT, stdio: 'inherit', shell: true });
+  if (!existsSync(HEAVY_PLATE_STL)) throw new Error(`the plate-quota fixture was not made at ${HEAVY_PLATE_STL}`);
+  return HEAVY_PLATE_STL;
 }
 const FIRST_PORT = 5260;
 
@@ -102,6 +137,17 @@ const BASE = {
 };
 
 /*
+ * NAMED DEBT: THIS FILE IS OVER THREE THOUSAND LINES, and the repo's rule is that past ~1000 the cut
+ * is taken rather than named. It is named instead, with the reason and the cut, because this file IS
+ * the release gate: a restructure that silently drops a check would be the one defect nothing else
+ * here could catch, and it must not ride along with an audit of the app.
+ *
+ * The cut, when it is taken: `walk()` is already a list of independent `if (runs('<letter>'))`
+ * blocks that share only `page`, `url`, `d`, `scratch` and the fixture paths. Each becomes
+ * `scripts/walk/<letter>-<name>.mjs` exporting `run(context)`; this file keeps the launcher, the
+ * driver, the page helpers, the `--only`/`--locales` parsing and the summary. The section letters
+ * are already the natural boundary, which is why the split is mechanical rather than a redesign.
+ *
  * WHICH SECTIONS RUN.
  *
  *   npm run walk                 every section, as always
@@ -119,12 +165,30 @@ const BASE = {
  *
  * The section letters are the ones the comments in `walk()` already use: `a` for the plain editor (a-k
  * and i), `u` for the dental flow up to Step 2 on the reference aligner, `x` for Step 3 and finishing,
- * `l` for the same flow against the real case fixture where the machine has one, `s` for the start screen.
+ * `l` for the same flow against the real case fixture where the machine has one, `s` for the start screen,
+ * `m` for the drop and the deck, and `q` for the deliberate fault injection (G2 replay, G4 two actors
+ * on one scarce resource) that turns the wiring walk's gap register from READ into reproduced.
  */
 const ONLY = new Set((process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length) ?? '')
   .split(',').map((name) => name.trim()).filter(Boolean));
 /** True when `section` is one the caller asked for; with no `--only` every section runs. */
 const runs = (section) => ONLY.size === 0 || ONLY.has(section);
+/*
+ * AND WITHIN THE FAULT-INJECTION SECTION, ONE PROBE AT A TIME.
+ *
+ *   npm run walk -- --only=q                 all six probes, about eight minutes
+ *   npm run walk -- --only=q --probes=q6     one probe, about thirty seconds
+ *
+ * `--only` cut a full walk to a section and that saved a day; this cuts a section to a probe, for
+ * the same reason and with the same danger. q1 and q2 are one group because q2 reads the world q1
+ * made. The names that ran are printed, and a filtered run can never be read as the whole section.
+ *
+ * It exists because iterating on ONE fault cost eight minutes a turn, almost all of it q1's
+ * 3.19M-triangle read - and a diagnosis that costs eight minutes a question gets guessed at instead.
+ */
+const PROBES = new Set((process.argv.find((arg) => arg.startsWith('--probes='))?.slice('--probes='.length) ?? '')
+  .split(',').map((name) => name.trim()).filter(Boolean));
+const probes = (name) => PROBES.size === 0 || PROBES.has(name);
 /*
  * The locale pass, by flag as well as by env var. `WALK_LOCALES=…` works on a POSIX shell and not
  * in an npm script on Windows, so `--locales=en,ja,zh-Hant` is the portable form and is what
@@ -1346,7 +1410,311 @@ async function walk(url, scratch, dentalFixture) {
        */
       check('m9 a rail press reaches the flow, rather than doing nothing at all',
         railOpened, `reached Step 1: ${railOpened}`);
+
+      /*
+       * THE PRESSED TOOL IS WHAT OPENS (increment E4), and only this check can tell the difference.
+       *
+       * W-02 had two halves. The buttons had no handler at all - `m9` covers that - and `ItemsPage`
+       * then THREW THE TOOL ARGUMENT AWAY, so all four buttons did the one thing: open the model at
+       * Step 1. `m9` passes either way, because Orient's own entry IS Step 1. Rim is the button that
+       * can tell them apart.
+       *
+       * These rows are cubes, so the batch came back "No rim found. Draw one to continue." - the
+       * state Step 1 answers by handing over to rim drawing. Pressing Rim therefore has a right
+       * answer that is NOT Step 1: the rim panel, reached without running `dentalOrient` a second
+       * time to be told what the row already says.
+       *
+       * `rim-why` is the assertion rather than the badge, for the reason `m5b` records about Step 1's
+       * prompt: the badge is written as soon as the dock mounts, so its text at that instant is not
+       * evidence either way. The panel's own line is only there in rim stage.
+       */
+      await page.goto(url);
+      await page.waitForSelector('.start-screen', { timeout: 60000 });
+      await dropModels([{ name: 'rim-one.stl', text: cube }, { name: 'rim-two.stl', text: cube }]);
+      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+      await page.waitForFunction(() => document.querySelectorAll('.items-row').length === 2, null, { timeout: 180000 });
+      // The rail's Rim is only pressable once the batch has answered for the row it is showing.
+      await page.waitForFunction(
+        () => [...document.querySelectorAll('[data-ui^="items-detect-"]')].filter((node) => /No rim found/.test(node.textContent ?? '')).length === 2,
+        null, { timeout: 240000 }).catch(() => {});
+      const rimHint = await page.locator('[data-ui="tool-rim"]').getAttribute('title')
+        ?? await page.locator('[data-ui="tool-rim"]').getAttribute('aria-label');
+      await page.locator('[data-ui="tool-rim"]').click();
+      const inRim = await page.waitForSelector('[data-ui="rim-why"]', { timeout: 60000 }).then(() => true, () => false);
+      check('m10 Rim on a row the detector flagged opens rim drawing, not Step 1 over again',
+        inRim && (await page.getByText('Place the aligner file here').count()) === 0,
+        `rim panel ${inRim}, badge ${JSON.stringify((await page.locator('.edit-badge').textContent().catch(() => '')) ?? '')}, hint ${JSON.stringify(rimHint ?? '')}, file prompts ${await page.getByText('Place the aligner file here').count()}`);
     }
+
+    /*
+     * q. FAULT INJECTION: G2 (replay) and G4 (two actors on one scarce resource).
+     *
+     * WHY THIS SECTION EXISTS. `docs/reviews/2026-11-09-wiring-walk-dental-flow.md` mapped every
+     * connection of the deck -> flow -> deck journeys and then graded every gap-register row READ.
+     * A register where every row is READ is a code review, by that doctrine's own rule, and these
+     * are the two faults its own "what runs next" named as the floor. They are run here through the
+     * FRONT DOOR - the file input, the purpose button, the row's own controls - because a fault
+     * injected through an internal call proves the function and not the wiring.
+     *
+     * THE ONLY TWO ACCEPTABLE OUTCOMES, for every check below: the system recovers by itself to a
+     * state every observer agrees on, or the problem is on the operator's screen in words they can
+     * act on. A silent wrong state passes neither, and a status line the next message replaces is
+     * not a screen - q2 is exactly that case.
+     *
+     * ONE CHECK PER CLAIM. q1 asks whether the ledger admitted one; q2 asks whether the loser is
+     * still accountable afterwards. The first can pass while the second fails, which is the whole
+     * reason they are not one check.
+     */
+    if (runs('q')) {
+      const qCube = cubeStl();
+      const dropOnStart = (names) => page.evaluate(({ files }) => {
+        const transfer = new DataTransfer();
+        for (const file of files) transfer.items.add(new File([file.text], file.name));
+        document.querySelector('.start-screen').dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
+      }, { files: names });
+      /** Three cubes on the deck, ready for a replay to be aimed at. */
+      const threeRowDeck = async () => {
+        await page.goto(url);
+        await page.waitForSelector('.start-screen', { timeout: 60000 });
+        await dropOnStart([{ name: 'q-one.stl', text: qCube }, { name: 'q-two.stl', text: qCube }, { name: 'q-three.stl', text: qCube }]);
+        await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+        await page.waitForFunction(() => document.querySelectorAll('.items-row').length === 3, null, { timeout: 180000 });
+      };
+
+      /*
+       * G4.1 - TWO ACTORS ON THE PLATE QUOTA. The plate holds at most the runtime's refusal limit
+       * (6M triangles, `host/core/budget.refusalLimit`), and `src/core/plateLedger.ts` exists so
+       * that two imports in flight count each other rather than each believing the plate has room.
+       * Its own unit test proves the CLASS; this proves the CONNECTION, which is a different claim:
+       * the ledger is only reached if `useImportFiles` opens a reservation and holds on it before
+       * it parses, and only the front door shows whether it does.
+       *
+       * THE FIXTURE IS TWO COPIES OF ONE 3.19M-TRIANGLE MESH. Each alone fits (3.19M < 6M); the
+       * pair does not (6.39M > 6M). The refusal is decided from the binary STL's 84-byte header
+       * before a single triangle is parsed, so the loser costs nothing and only the winner pays for
+       * a read - which is what makes a 6M-triangle fault injection affordable at all.
+       *
+       * TWO `setInputFiles` CALLS, NOT ONE WITH TWO FILES. One call with both files is a single
+       * drop: it shares one reservation, and a file that is refused never raises what the drop is
+       * holding - so the two files would not contend and the check would prove nothing. Playwright
+       * resolves `setInputFiles` when the change event is dispatched, not when the app has
+       * finished, so the second drop starts while the first is still inside its first await. That
+       * is two actors on one ledger, which is the fault.
+       */
+      if (probes('q1')) {
+      const heavy = heavyPlateFixture();
+      await page.goto(url);
+      await enterEditor(page);
+      await page.setInputFiles('.drop input[type=file]', [heavy]);
+      await page.setInputFiles('.drop input[type=file]', [heavy]);
+      /*
+       * The loser's sentence is caught WHILE IT IS ON SCREEN. The winner's own success line
+       * replaces it when its read finishes half a minute later, so a check that read the status
+       * only at the end would record the refusal as never having been said. Catching it here and
+       * reading it again at the end is what lets q1 and q2 disagree.
+       */
+      const refusalSaid = await page.waitForFunction(() => {
+        const line = document.querySelector('footer strong')?.innerText ?? '';
+        return /plate would hold/i.test(line) ? line : false;
+      }, null, { timeout: 180000 }).then((handle) => handle.jsonValue(), () => '');
+      await page.waitForFunction(() => /\b1 object\b/.test(document.querySelector('footer')?.innerText ?? ''), null, { timeout: 420000 }).catch(() => {});
+      await d.idle(2500);
+      const racedPlate = await d.props();
+      const racedFooter = await d.footer();
+      const racedStatus = await d.status();
+      check('q1 G4 two drops in flight on one plate quota admit exactly one, and the loser is refused in words',
+        racedPlate.units.length === 1 && /plate would hold/i.test(refusalSaid),
+        `units on the plate ${racedPlate.units.length}, footer ${JSON.stringify((racedFooter.split('\n')[0] ?? '').trim())}, the refusal said ${JSON.stringify(refusalSaid)}`);
+      /*
+       * G4.1, SECOND CLAIM: IS THE LOSER STILL ACCOUNTABLE? The operator dropped two files and one
+       * of them is not on the plate. A refusal that lived in the status line until the winner's
+       * success replaced it leaves them with one object, a cheerful sentence, and no way to learn
+       * that the second drop was refused or why. This is W-05's class reached from the import side:
+       * the refusal reaches a line the next message overwrites, with no flag on anything that
+       * stays.
+       */
+      const loserFlagged = await page.evaluate(() => ({
+        refusalOnScreen: /plate would hold|was refused|could not be added/i.test(document.body.innerText),
+        alerts: [...document.querySelectorAll('[role="alert"]')].map((node) => (node.textContent ?? '').trim()),
+      }));
+      check('q2 G4 the refused drop is still accountable once the plate has settled',
+        loserFlagged.refusalOnScreen || loserFlagged.alerts.length > 0,
+        `status now ${JSON.stringify(racedStatus)}, refusal still on screen ${loserFlagged.refusalOnScreen}, alerts ${JSON.stringify(loserFlagged.alerts)}`);
+      }
+
+
+      /*
+       * G2.1 - THE PURPOSE PRESSED TWICE. The purpose press is what starts the import of a held
+       * batch (`startDental` / `batchProfile`), so it is the deck journey's one replayable request:
+       * a double click, a key repeat, or an impatient operator sends it twice. Exactly one effect
+       * at every observer means three files give three rows, whatever the press count.
+       *
+       * Both presses go out in ONE `page.evaluate`, so they land in the same tick - two Playwright
+       * clicks would be two tasks with a render between them, which is a different and weaker
+       * fault.
+       */
+      if (probes('q3')) {
+      await page.goto(url);
+      await page.waitForSelector('.start-screen', { timeout: 60000 });
+      await dropOnStart([{ name: 'r-one.stl', text: qCube }, { name: 'r-two.stl', text: qCube }, { name: 'r-three.stl', text: qCube }]);
+      await page.waitForSelector('[data-ui="start-held"]', { timeout: 60000 });
+      /*
+       * BOTH PRESSES IN ONE TICK, through the element Playwright itself resolves. The first version
+       * of this hunted for a button whose textContent was exactly "Aligner" and found none - the
+       * purpose keys carry more than their label - so it reported `presses 0` and failed a check
+       * about the app on a fault in the check. The count is returned and asserted for exactly that
+       * reason: a replay test that never replayed is a vacuous pass, and it has to be able to say so.
+       */
+      const purposeKey = await page.getByRole('button', { name: 'Aligner', exact: true }).elementHandle();
+      const pressedTwice = purposeKey ? await purposeKey.evaluate((node) => { node.click(); node.click(); return 2; }) : 0;
+      await page.waitForFunction(() => document.querySelectorAll('.items-row').length >= 3, null, { timeout: 180000 }).catch(() => {});
+      await d.idle(3000);
+      const replayRows = await page.locator('.items-row').count();
+      const replayNames = await page.locator('.items-row .name').allInnerTexts();
+      check('q3 G2 the purpose pressed twice imports the held files once',
+        pressedTwice === 2 && replayRows === 3 && new Set(replayNames).size === replayNames.length,
+        `presses ${pressedTwice}, rows ${replayRows}, names ${JSON.stringify(replayNames)}`);
+      }
+
+
+      /*
+       * G2.2 - REMOVE PRESSED TWICE ON ONE ROW. A destructive command replayed in one tick, and the
+       * sharpest version of it: the second press lands on a DOM node the first press is about to
+       * re-render. If the handler closed over a row INDEX, the replay takes the neighbour as well,
+       * and the operator loses a row they never pointed at. `m3` proves every row is named for its
+       * unit; this proves the press is too, which is the same rule one layer down.
+       */
+      if (probes('q4')) {
+      await threeRowDeck();
+      const beforeRemove = await page.locator('.items-row .name').allInnerTexts();
+      await page.evaluate(() => {
+        const remove = document.querySelectorAll('.items-row')[1]?.querySelector('.remove');
+        remove?.click();
+        remove?.click();
+      });
+      await d.idle(1500);
+      const afterRemove = await page.locator('.items-row .name').allInnerTexts();
+      const expectedAfterRemove = beforeRemove.filter((_, at) => at !== 1);
+      check('q4 G2 Remove pressed twice in one tick takes off one row, not the neighbour as well',
+        afterRemove.length === 2 && afterRemove.join('|') === expectedAfterRemove.join('|'),
+        `was ${JSON.stringify(beforeRemove)}, now ${JSON.stringify(afterRemove)}, expected ${JSON.stringify(expectedAfterRemove)}`);
+      }
+
+
+      /*
+       * G2.3 - A WORKER REPLY DELIVERED TWICE. The analysis worker's reply is the batch's and the
+       * flow's only channel inward, and a duplicate message is the plainest thing a channel can do
+       * wrong. `window.__replayWorker` re-dispatches every reply from the named worker a second
+       * time WITHOUT swallowing the first, so each job settles and is then told again that it has
+       * settled. Exactly one effect means three rows still carry three sentences and nothing on the
+       * page throws.
+       *
+       * The console is read here rather than left to section `h`: `h` runs at the end of the whole
+       * walk and would attribute a throw to whatever ran last. One check per claim.
+       */
+      if (probes('q5')) {
+      const replayErrors = [];
+      const onConsole = (message) => { if (message.type() === 'error') replayErrors.push(message.text()); };
+      const onPageError = (error) => replayErrors.push(String(error));
+      page.on('console', onConsole);
+      page.on('pageerror', onPageError);
+      await page.goto(url);
+      await page.waitForSelector('.start-screen', { timeout: 60000 });
+      await page.evaluate(() => { window.__replayWorker = 'analysisWorker'; });
+      await dropOnStart([{ name: 'w-one.stl', text: qCube }, { name: 'w-two.stl', text: qCube }, { name: 'w-three.stl', text: qCube }]);
+      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+      await page.waitForFunction(() => document.querySelectorAll('.items-row').length === 3, null, { timeout: 180000 }).catch(() => {});
+      const replayedSettled = await page.waitForFunction(
+        () => [...document.querySelectorAll('[data-ui^="items-detect-"]')].filter((node) => (node.textContent ?? '').trim().length > 0).length === 3,
+        null, { timeout: 240000 }).then(() => true, () => false);
+      await d.idle(2000);
+      const replayedLines = await page.locator('[data-ui^="items-detect-"]').allInnerTexts();
+      const replayCount = await page.evaluate(() => window.__replayed ?? 0);
+      page.off('console', onConsole);
+      page.off('pageerror', onPageError);
+      await page.evaluate(() => { window.__replayWorker = ''; });
+      check('q5 G2 every analysis reply delivered twice settles each row once and throws nothing',
+        replayCount > 0 && replayedSettled && replayedLines.length === 3 && replayErrors.length === 0,
+        `replies redelivered ${replayCount}, rows settled ${replayedSettled}, lines ${JSON.stringify(replayedLines)}, console errors ${JSON.stringify(replayErrors)}`);
+      }
+
+
+      /*
+       * G4.2 - TWO ACTORS ON ONE UNIT. The scarce resource on the deck is not a quota, it is the
+       * ROW: the list owns it and the flow is about to take it. Remove and Start are aimed at the
+       * same unit in the same tick, which is the editor's form of two workers claiming one job
+       * (`browser-walks.md` §12, "two writers edit one object in the same frame").
+       *
+       * EITHER OUTCOME IS A PASS, and saying so is the point: the flow may refuse and stay on the
+       * deck, or it may open the row the list still has. What fails is landing on NEITHER - and that
+       * is the assertion, not a list of the bad screens I could think of.
+       *
+       * THE FIRST VERSION OF THIS CHECK FAILED THAT WAY AND PASSED ANYWAY. It looked for one named
+       * third outcome - Step 1 with the "choose a file" prompt - and the run came back `rows 0,
+       * badge "", units 2, active ""`: the deck shut, no step opened, two models on the plate and
+       * nothing selected. Green, on the exact dead end the check existed to find. So the assertion
+       * is now the POSITIVE one: after the contest the operator is on the deck (it has rows) or in a
+       * step (the badge says so). A check that enumerates the bad states can only find the bad
+       * states its author imagined.
+       */
+      if (probes('q6')) {
+      await threeRowDeck();
+      await page.locator('.items-row').nth(1).click();
+      await d.idle(500);
+      const contestedName = (await page.locator('.items-row .name').allInnerTexts())[1] ?? '';
+      await page.evaluate(() => {
+        document.querySelectorAll('.items-row')[1]?.querySelector('.remove')?.click();
+        document.querySelector('[data-ui="items-start"]')?.click();
+      });
+      await d.idle(3000);
+      /*
+       * WHAT THE OPERATOR CAN SEE, AND WHAT THE SESSION THINKS, in one read.
+       *
+       * The first fix for this failed because it was written from a guess about which state the app
+       * lands in. `session` walks the react tree for the props carrying `dentalStage` - the same
+       * trick `readProps` uses for the viewport - and `screen` is the first of what is actually on
+       * the page. Diagnose from a probe, not from a reading of the source (S10).
+       */
+      const contested = await page.evaluate(() => {
+        const root = document.getElementById('root');
+        const key = Object.keys(root).find((k) => k.startsWith('__reactContainer'));
+        const stack = [root[key].stateNode?.current ?? root[key]];
+        let session;
+        while (stack.length) {
+          const fiber = stack.pop();
+          if (!fiber) continue;
+          const props = fiber.memoizedProps;
+          if (props && typeof props === 'object') {
+            for (const value of Object.values(props)) {
+              if (value && typeof value === 'object' && 'dentalStage' in value && 'mode' in value) session ??= { mode: value.mode, stage: value.dentalStage, aligner: value.dentalAligner, unitId: value.dentalUnitId, finished: value.dentalFinished?.length };
+            }
+          }
+          if (fiber.child) stack.push(fiber.child);
+          if (fiber.sibling) stack.push(fiber.sibling);
+        }
+        return {
+          badge: (document.querySelector('.edit-badge')?.textContent ?? '').trim(),
+          rows: document.querySelectorAll('.items-row').length,
+          deck: document.querySelectorAll('.items-page').length,
+          asksForFile: /Place the aligner file here/.test(document.body.innerText),
+          session: session ?? null,
+          status: document.querySelector('footer strong')?.innerText ?? '',
+        };
+      });
+      /*
+       * THE DETAIL IS THE OPERATOR'S FACTS ONLY. It used to print `d.props().units.length` too, and
+       * on a PASS that read "rows 2, units 0" - because `readProps` walks to the viewport's scene
+       * prop and the viewport is not mounted while the deck is up. A reader would have taken it for
+       * an empty plate. A number that means "the reader was not there" must not sit beside numbers
+       * that mean what they say; the footer is where the plate's count belongs.
+       */
+      check('q6 G4 Remove and Start on one unit in one tick leave the operator on the deck or in a step',
+        (contested.rows > 0 || /Step/.test(contested.badge)) && !contested.asksForFile,
+        `contested row ${JSON.stringify(contestedName)}, badge ${JSON.stringify(contested.badge)}, rows ${contested.rows}, deck pages ${contested.deck}, asked for a file ${contested.asksForFile}, session ${JSON.stringify(contested.session)}, status ${JSON.stringify(contested.status)}`);
+      }
+      if (PROBES.size > 0) note(`fault injection filtered to ${[...PROBES].join(', ')} - not the whole section`);
+    }
+
 
     // u. Dental flow, Step 1 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).
     if (runs('u')) {

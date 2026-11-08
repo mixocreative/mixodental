@@ -1,0 +1,18 @@
+
+> mixodental@0.0.0 walk
+> node scripts/walk.mjs --only=q
+
+walk on http://127.0.0.1:5260/mixodental/
+dental fixture: dentalwork\fixtures\case-001\aligner.stl
+PASS q1 G4 two drops in flight on one plate quota admit exactly one, and the loser is refused in words | units on the plate 1, footer "1 object", the refusal said "The plate would hold 6,386,736 triangles with heavy-3_2m.stl; the limit is 6,000,000. Delete or simplify an object first, then import again."
+FAIL q2 G4 the refused drop is still accountable once the plate has settled | status now "heavy-3_2m is a heavy model (3,193,368 triangles, over 1,500,000): the view shows a simplified copy and hand editing is off. Generate and export use the full model.", refusal still on screen false, alerts []
+FAIL q3 G2 the purpose pressed twice imports the held files once | presses 2, rows 6, names ["r-one","r-two","r-three","r-one","r-two","r-three"]
+PASS q4 G2 Remove pressed twice in one tick takes off one row, not the neighbour as well | was ["q-one","q-two","q-three"], now ["q-one","q-three"], expected ["q-one","q-three"]
+PASS q5 G2 every analysis reply delivered twice settles each row once and throws nothing | replies redelivered 6, rows settled true, lines ["No rim found. Draw one to continue.","No rim found. Draw one to continue.","No rim found. Draw one to continue."], console errors []
+FAIL q6 G4 Remove and Start on one unit in one tick leave the operator on the deck or in a step | contested row "q-two", badge "", rows 0, units 2, active "", asked for a file false
+PASS j Terms opens the bundled terms in a dialog
+PASS j Escape closes the Terms dialog
+PASS h no request leaves localhost | 0 external requests
+PASS h no console errors or warnings | 0 messages
+3 FAIL (10 checks, 32 s) [only q]
+EXIT=1
