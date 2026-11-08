@@ -38,10 +38,20 @@ export function detectStateOf(result: DentalOrientation | undefined): DetectStat
   return { kind: 'oriented', turned: result.rotation !== undefined };
 }
 
-/** The row's line, or `undefined` while nothing has happened to it yet. */
+/**
+ * The row's line, or `undefined` for a row that has no detection state at all.
+ *
+ * `waiting` SAYS SO (gap register W-03). It used to return `undefined`, which drew the same blank as
+ * a row the batch has never heard of - so "queued behind the others" and "nothing is happening to
+ * this row" were one picture. The batch drains one row at a time (`useBatchDetect`), so on a case of
+ * eight the later rows sit in `waiting` for minutes, and a stalled job ahead of them holds them
+ * there for as long as the analysis worker's own per-job timeout allows (10 minutes, then the job
+ * fails and the queue moves on - so the queue cannot block for ever, which is the half of W-03 the
+ * register had wrong). Either way the operator was shown nothing and had nothing to wait for.
+ */
 export function detectSentence(state: DetectState): Message | undefined {
   switch (state.kind) {
-    case 'waiting': return undefined;
+    case 'waiting': return { key: 'Waiting its turn…' };
     case 'running': return { key: 'Checking the orientation…' };
     // "Turned" is the fact an operator checks against the model in front of them; "already upright"
     // tells them the file arrived that way, which is worth knowing when a batch is inconsistent.

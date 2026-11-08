@@ -31,20 +31,48 @@ describe('what a row shows about its own orientation', () => {
     expect(say({ kind: 'no-rim' })).not.toMatch(/error|failed|could not/i);
   });
 
-  it('says nothing for a row nothing has happened to yet', () => {
-    expect(say({ kind: 'waiting' })).toBeUndefined();
+  /*
+   * A QUEUED ROW SAYS SO (gap register W-03). This used to assert the opposite - `waiting` returned
+   * `undefined` - and the assertion was written from the state's name rather than from the screen:
+   * a row the batch has not reached and a row the batch has never heard of drew the SAME blank. The
+   * batch drains one row at a time, so on a case of eight the later rows sit here for minutes, and a
+   * stalled job ahead of them holds them until the analysis worker's own per-job timeout fires.
+   * Either way the operator was shown nothing and had nothing to wait for.
+   */
+  it('says a queued row is queued, rather than drawing the same blank as a row it has never heard of', () => {
+    expect(say({ kind: 'waiting' })).toBe('Waiting its turn…');
     expect(say({ kind: 'running' })).toBe('Checking the orientation…');
+    expect(say({ kind: 'waiting' })).not.toBe(say({ kind: 'running' }));
   });
 
+  /*
+   * EVERY KIND, ENFORCED BY THE COMPILER. This was a hand-written list of five states, and `waiting`
+   * was not on it - so the one state whose sentence was missing was also the one the translation
+   * check could not see. A `Record` keyed by `DetectState['kind']` cannot be short: adding a kind
+   * without adding it here fails the build, which is cheaper and more certain than remembering.
+   */
+  const EVERY_KIND: Record<DetectState['kind'], DetectState> = {
+    waiting: { kind: 'waiting' },
+    running: { kind: 'running' },
+    oriented: { kind: 'oriented', turned: true },
+    'no-rim': { kind: 'no-rim' },
+    failed: { kind: 'failed' },
+  };
 
+  it('has a sentence for every state it can be in', () => {
+    for (const [kind, state] of Object.entries(EVERY_KIND)) {
+      expect(detectSentence(state), `${kind}: no sentence`).toBeDefined();
+    }
+    // Both `oriented` sentences, which the record can only carry one of.
+    expect(say({ kind: 'oriented', turned: false })).toBe('Already upright.');
+  });
 
   it('translates every sentence it can produce, into both languages', () => {
-    const keys = ([
-      { kind: 'running' }, { kind: 'oriented', turned: true }, { kind: 'oriented', turned: false },
-      { kind: 'no-rim' }, { kind: 'failed' },
-    ] as DetectState[]).map((state) => detectSentence(state)!.key);
+    const keys = [...Object.values(EVERY_KIND), { kind: 'oriented', turned: false } as DetectState]
+      .map((state) => detectSentence(state)!.key);
 
-    expect(new Set(keys).size).toBe(5);
+    // Six states, six distinct sentences: a shared sentence would hide one state behind another.
+    expect(new Set(keys).size).toBe(6);
     for (const [lang, dictionary] of [['ja', ja], ['zh-Hant', zhHant]] as const) {
       expect(keys.filter((key) => !(key in dictionary)), `${lang}: missing`).toEqual([]);
       // Present is not translated: an entry equal to its key is the commonest way this ships undone.
