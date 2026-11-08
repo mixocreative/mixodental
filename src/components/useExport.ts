@@ -2,7 +2,10 @@ import { useCallback, useState, type MutableRefObject } from 'react';
 import { errorStatus } from '@mixo-geocore/editing/errors';
 import { supportsNeedReplanting } from '../state/revisions';
 import { exportStatus, type CheckTally } from '@mixo-geocore/editing/check';
-import { plural, type Message } from '../i18n';
+import { plural, translateMessage, type Message } from '../i18n';
+import { EXPORT_REFUSED_CODE, exportRefusalText, type ExportRefusalReason } from './exportRefusalText';
+import { jobActivity } from '@mixo-geocore/host/workers/jobActivity';
+import { WorkerJobError } from '@mixo-geocore/host/workers/WorkerTask';
 import type { PrintScene, PrintUnit } from '../state/project';
 import { exportUnits, planExport, type ExportKind } from '@mixo-geocore/host/supports/export';
 import { exportRefusal } from '@mixo-geocore/host/supports/exportGate';
@@ -13,10 +16,6 @@ import type { JobLabel } from '@mixo-geocore/host/workers/jobActivity';
 import { codedJobError } from '../workers/jobErrors';
 import { isAbort, type SetStatus } from './appShared';
 
-const REFUSED_STALE = 'Export refused: {name} changed while it was being exported, so the files would not match what you see. Nothing was written; export again.';
-const REFUSED_FAILED = 'Export refused: the supports of {name} were not built, so nothing was written. Generate again, then export.';
-const REFUSED_REPLANT = 'Export refused: the supports on {name} were planted before the model was turned, so they would not hold. Regenerate them, then export.';
-const REFUSED_INCONCLUSIVE = 'Export refused: the safety check of {name} could not reach a verdict (it ran out of time or could not judge a crossing), so nothing was written. Generate again, or use fewer supports.';
 
 /**
  * Export: plans the files, builds them at full resolution in the export worker, hands them to the
@@ -41,6 +40,25 @@ export function useExport(host: {
 }) {
   const { sceneRef, builtRef, exporter, dentureExport, runCheck, setStatus, setStatusMessage } = host;
   const [exporting, setExporting] = useState(false);
+  /**
+   * A REFUSAL IS SAID TWICE: to the status line, and to the job activity list, which KEEPS it.
+   *
+   * The four sentences used to be constants in this file, said once to the status line - which the
+   * next message replaces. So the operator could press Export, be refused, press something else,
+   * and be left with no record that nothing had been written (gap register W-05; walk `q2`
+   * reproduced the same class on the import side). A failed activity row is never dropped and
+   * surfaces even if it ended inside the show delay, so that list is the screen that remembers.
+   *
+   * The sentences moved to `exportRefusalText.ts` because the list builds its text from an error
+   * CODE, and the generic export failure it would otherwise reach says "the export failed" - a
+   * second, vaguer vocabulary for an event the status line describes exactly.
+   */
+  const refuse = useCallback((reason: ExportRefusalReason, name: string): void => {
+    const message = exportRefusalText(reason, name);
+    setStatusMessage(message);
+    jobActivity.begin({ label: { key: 'Exporting {name}', vars: { name } }, context: 'export' })
+      .end(new WorkerJobError(translateMessage(message), EXPORT_REFUSED_CODE, { reason, name }));
+  }, [setStatusMessage]);
   const runExport = useCallback(async (kind: ExportKind) => {
     const current = sceneRef.current;
     // A unit changed since its build keeps its supports part (the worker skips an empty one).
@@ -71,7 +89,7 @@ export function useExport(host: {
     const replanted = [...new Set(files.flatMap((file) => file.parts.filter((part) => part.content === 'supports').map((part) => part.unitId)))]
       .map((unitId) => current.units.find((unit) => unit.id === unitId))
       .find((unit) => unit !== undefined && supportsNeedReplanting(unit.revisions));
-    if (replanted) return setStatus(REFUSED_REPLANT, { name: replanted.name });
+    if (replanted) return refuse('replant', replanted.name);
 
     const used = new Set(files.flatMap((file) => file.parts.map((part) => part.unitId)));
     const units = exportUnits(current, kind).filter(([unit]) => used.has(unit.id));
@@ -90,9 +108,9 @@ export function useExport(host: {
       const refusal = exportRefusal(outcome, [...new Set(withSupports)], (unitId) => sceneRef.current.units.find((candidate) => candidate.id === unitId) === units.find(([unit]) => unit.id === unitId)?.[0]);
       if (refusal) {
         const name = units.find(([unit]) => unit.id === refusal.unitId)?.[0].name ?? refusal.unitId;
-        if (refusal.reason === 'stale') return setStatus(REFUSED_STALE, { name });
-        if (refusal.reason === 'failed') return setStatus(REFUSED_FAILED, { name });
-        return setStatus(REFUSED_INCONCLUSIVE, { name });
+        if (refusal.reason === 'stale') return refuse('stale', name);
+        if (refusal.reason === 'failed') return refuse('failed', name);
+        return refuse('inconclusive', name);
       }
       for (const file of written) {
         const url = URL.createObjectURL(new Blob([file.buffer], { type: 'model/stl' }));
@@ -112,6 +130,6 @@ export function useExport(host: {
     } finally {
       setExporting(false);
     }
-  }, [builtRef, dentureExport, exporter, runCheck, sceneRef, setStatus, setStatusMessage]);
+  }, [builtRef, dentureExport, exporter, refuse, runCheck, sceneRef, setStatus, setStatusMessage]);
   return { exporting, runExport };
 }
