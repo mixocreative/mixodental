@@ -1691,9 +1691,45 @@ that actually hide a placed point — what the operator sees come back) while th
 currently placed hides nothing, so a unit can truthfully carry hand work and report 0 removed. Both
 lines now say so.
 
-**E3. `openTool(tool, unitId)` and an `activeTool` field** beside `dentalStage`, with the stage
-derived from the tool. Next/Back become thin wrappers over `openTool`.
-*Exit:* behaviour unchanged; every navigation goes through one command.
+**E3. NEEDS RESHAPING — and the reason is worth reading before anyone writes it.**
+
+As specified it was: add an `activeTool` field beside `dentalStage` and derive the stage from it.
+**That is duplication, not progress.** The two are the same thing under different names, 1:1:
+
+| tool | stage |
+|---|---|
+| `orient` | `aligner` |
+| `rim` | `rim` |
+| `area` | `area` |
+| `supports` | `review` |
+
+So `dentalStage` IS the active tool, and E9 is a RENAME rather than a removal. What E3 actually owes
+is one mapping and one command — `openTool(tool, unitId)` setting the stage — and no new field.
+
+**But a bigger thing surfaced while checking that, and it blocks per-tool entry.** For a denture the
+rail reports all four tools READY, including Rim and Area — a denture has neither
+(`dentureStages.ts`: `aligner` → `review`). It is harmless today only because a rail press ignores
+the tool and opens the model; the moment `openTool` honours the tool, pressing Area on a denture is
+Fable's withdrawn fault #2 in a new costume.
+
+The `isDenture` branches in `unitFacts.ts` are compensation for this: they report a rim and an area
+as *present* so the rail does not instruct about steps the job lacks. The straighter answer is for
+the rail not to LIST them.
+
+*That is not Fable's `toolsFor(purpose)` after all, and the distinction matters:* a FILTER over
+`TOOL_ORDER` is derived from the one order, where a parallel per-purpose list would compete with it.
+`toolsFor(unit) = TOOL_ORDER.filter(…)` keeps one truth.
+
+**The catch that makes this a decision rather than a tidy-up.** `PREREQUISITE` is hand-written per
+tool, and `supports` requires `areaAccepted` — which for a denture is true only because
+`hasAcceptedArea` includes `isDenture`. Filter `area` out and `supports` needs the prerequisite of
+whatever is actually above it in THIS job's chain, which for a denture is `oriented`. So the
+prerequisite stops being a per-tool constant and becomes "the output fact of the previous tool in
+`toolsFor(unit)`".
+
+That is a better model — it deletes the `isDenture` compensations and makes the chain one rule
+instead of four constants. It also rewrites the module an EGM review recently hardened, including the
+load-bearing unavailable → busy → stale → ready order. Hence: owner's call before it is written.
 
 **E4. Mount the rail in the workspace's left slot** during a live session, wired to `openTool`. This
 is where the first withdrawal fault is cured — the rail leaves the deck.
