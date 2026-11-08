@@ -1614,7 +1614,7 @@ at all. The true multi-model plate is a separate project, after E9.
 
 Each leaves the app working, gated and pushed.
 
-**E0. DONE.** Test the denture path through the rail. Found while checking the above: `grep denture` in
+**E0. DONE** - `f4adde5`. Test the denture path through the rail. Found while checking the above: `grep denture` in
 `src/deck/unitFacts.test.ts` and `toolState.test.ts` returns nothing, although three lines of
 `unitFacts.ts` exist solely to fix a denture-specific rail lie that review caught. It is first
 because every increment below leans on those facts being right.
