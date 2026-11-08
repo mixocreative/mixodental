@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794163271.504653,
-    "seen": 1794163324.5866404,
-    "ast_hash": "56e242281239e4b9d8d378d9baf037f0",
+    "mtime": 1794165694.289832,
+    "seen": 1794167982.9637845,
+    "ast_hash": "b835eea11ba3c20c20599aca7bd48f71",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -1621,9 +1621,9 @@
     "semantic_hash": ""
   },
   "src/dental/flow.ts": {
-    "mtime": 1793598350.3596349,
-    "seen": 1793599458.0330968,
-    "ast_hash": "645fc10d1375cd2c909e4391b6531539",
+    "mtime": 1794163773.1235945,
+    "seen": 1794167982.9637845,
+    "ast_hash": "1a30b85e1a7638d835d861744a846a7a",
     "semantic_hash": ""
   },
   "src/components/DentalSupports.tsx": {
@@ -1669,9 +1669,9 @@
     "semantic_hash": ""
   },
   "src/dental/flow.test.ts": {
-    "mtime": 1793598391.797345,
-    "seen": 1793599458.0330968,
-    "ast_hash": "cf8422d06b2c0d1a9b2c4d1f14509be0",
+    "mtime": 1794163811.0134368,
+    "seen": 1794167982.9637845,
+    "ast_hash": "fffeb870211098bbc1042834fbd1e171",
     "semantic_hash": ""
   },
   "scripts/test-support/supportParityHarness.ts": {
@@ -2929,9 +2929,9 @@
     "semantic_hash": ""
   },
   "src/components/useDentalFlow.ts": {
-    "mtime": 1793949707.485034,
-    "seen": 1793950930.3032458,
-    "ast_hash": "6369ab6af0665e764c2e3870172a5148",
+    "mtime": 1794163787.336578,
+    "seen": 1794167982.9637845,
+    "ast_hash": "18018181f9955d74e344edab4fa58abc",
     "semantic_hash": ""
   },
   "scripts/dental-region-review/profile.ts": {
