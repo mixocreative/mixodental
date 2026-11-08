@@ -58,6 +58,35 @@ export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProje
    * SEVERAL files are a case, where the purpose governs a batch, so they wait for the press.
    */
   const [held, setHeld] = useState<readonly File[]>([]);
+  /**
+   * THE SAME HELD BATCH, CLAIMABLE IN ONE SYNCHRONOUS STEP - because `setHeld([])` cannot guard a
+   * replay.
+   *
+   * `choose` used to read `held` out of its render's closure and clear it with `setHeld([])`. Two
+   * presses in one tick - a double click on the purpose key, a key repeat, an impatient operator -
+   * both see the SAME `held`, and both release it: three dropped files became six rows, each file
+   * imported twice, each duplicate counting against the plate and memory budgets. A state setter
+   * schedules a re-render; it does not take anything away from a handler that has already closed
+   * over the old value.
+   *
+   * So the ref is the batch's owner and the state is only what the screen RENDERS (the count in the
+   * "n files ready" line). `claimHeld` reads and empties in one statement, so the second press finds
+   * nothing to release. Walk check `q3` is this rule's guard: the suite runs in `environment: 'node'`
+   * with `renderToStaticMarkup`, which cannot click anything, so an interaction rule is proved in
+   * the browser walk or not at all.
+   */
+  const heldRef = useRef<readonly File[]>([]);
+  /** Hold `files` for the purpose press: the ref owns them, the state draws them. */
+  const hold = (files: readonly File[]) => {
+    heldRef.current = files;
+    setHeld(files);
+  };
+  /** The held batch, taken away in the same step it is read. A second caller in the same tick gets none. */
+  const claimHeld = (): readonly File[] => {
+    const files = heldRef.current;
+    heldRef.current = [];
+    return files;
+  };
   const [chosen, setChosen] = useState(profile);
   const [over, setOver] = useState(false);
 
@@ -65,7 +94,7 @@ export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProje
   useEffect(() => { root.current?.querySelector('button')?.focus(); }, [screen]);
 
   const go = (next: ChooserScreen) => {
-    if (next === 'drop') setHeld([]);
+    if (next === 'drop') hold([]);
     onScreen(next);
   };
   // A denture job has one type: its file step comes straight from the task screen, and Back returns there.
@@ -80,8 +109,13 @@ export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProje
     // The purpose press is what releases the held files, with the profile it chose. Asked ONCE for
     // the whole batch: `dentalOrient` takes the profile as an argument, so there is nothing to
     // detect against until this is answered.
-    if (held.length > 1) { setHeld([]); return onFiles(held, id); }
-    if (held.length === 1) return onStart(id, held[0]!);
+    //
+    // CLAIMED, not read: the batch leaves `heldRef` in the same statement it is read, so a second
+    // press in this tick releases nothing (see `claimHeld` above). `setHeld([])` follows only to
+    // redraw the line that counted them.
+    const batch = claimHeld();
+    if (batch.length > 1) { setHeld([]); return onFiles(batch, id); }
+    if (batch.length === 1) { setHeld([]); return onStart(id, batch[0]!); }
     return onScreen('file', jobKindOf(id));
   };
   const drop = (event: React.DragEvent<HTMLElement>) => {
@@ -94,10 +128,10 @@ export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProje
       case 'unsupported': return onUnsupported();
       // HELD, not imported. The purpose governs what the batch is detected against, so several
       // files wait for it rather than being read first and asked afterwards.
-      case 'many': return setHeld(action.files);
+      case 'many': return hold(action.files);
       case 'start': return onStart(action.profile, action.file);
       case 'hold':
-        setHeld([action.file]);
+        hold([action.file]);
         // A model dropped on Drop goes straight in on the default aligner type.
         return screen === 'drop' ? onStart(defaultProfileId('aligner'), action.file) : undefined;
       case 'ignore': return undefined;
