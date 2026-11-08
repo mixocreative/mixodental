@@ -24,7 +24,62 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (E0–E3a of dissolving the step machine — 2026-11-08)
+## Latest completed step (the CIA audit and its fixes - 2026-11-09)
+
+A scoped Screen-tier `cia` audit of the deck -> flow -> deck journeys, after two EGM document reviews
+missed the class. Ledgers: `docs/reviews/2026-11-08-cia-deck-and-flow.md` (sweeps) and
+`docs/reviews/2026-11-09-wiring-walk-dental-flow.md` (the wiring walk).
+
+| commit | what landed |
+|---|---|
+| `99bfdbc` | Remove no longer selects the row it removed; opening the next item keeps the case; Start says and honours which row it opens; starting a row reads it |
+| `c643f3c` | export refuses supports planted before the model was turned; the row's detect line stops lying and shows trouble in its own tone |
+| `a9b52b0` | the dead tool rail is WIRED, and `noUnusedLocals` / `noUnusedParameters` are on |
+| `5dc3376` | a re-accepted orientation keeps the painted area and the tuning (W-01) |
+
+**The lesson that outranks the findings.** The dead rail - `onPick` destructured and never called,
+four tools drawn in four states and none pressable - survived two EGM reviews, two readings of that
+file and a 250k-token subagent audit. `tsconfig.json` had `strict: true` and no `noUnusedLocals`.
+One flag, already paid for, named it in a line. **Before reaching for a graph or an audit, check
+whether the compiler was asked.** Sixteen bindings were unused; one was a dead function of mine from
+the same afternoon.
+
+**Two code graphs now**, with the owner's rules in `CLAUDE.md` and the `feedback-two-graphs` memory:
+CodeGraphContext for code relationships (31,988 CALLS edges, a Kuzu store OUTSIDE the repo under the
+user profile, its own venv, registered as a user-scope MCP server), graphify for architectural
+context and the doc-to-code edges. Separate stores, never the same question twice, neither
+authoritative over the code. **CGC's queries are MCP-only, so they come online in a NEW session.**
+
+### Open, in the order I would take them
+
+1. **E4 / W-02 - per-tool entry.** The rail press opens the MODEL; opening the pressed TOOL is not
+   built. Can ship for FLAGGED ROWS alone, so it need not settle whether a detected rim may be
+   redrawn. The deck-is-the-queue ruling makes this the operator's path through a case.
+2. **W-03 to W-06**, read-only findings not yet reproduced: a never-resolving detection blocks the
+   batch queue; the batch uses the profile captured when its loop started; the replant refusal reaches
+   only a status line the next message replaces; Remove has no confirm and no undo offer.
+3. **G1-G7 fault injection has NEVER run.** Every row of the wiring walk's gap register says `READ`,
+   which by that doctrine's own rule makes it a code review. G2 (replay) and G4 (two actors on one
+   scarce resource) are the floor.
+4. **Vendor geocore engines 62/63** (`b5a71ab` on that repo's main). The peer session finished and
+   ended. `max_fill_loop_mm` is a required argument with no default; 0 fills nothing and is correct
+   until the loop histogram is measured by `gate:real`. A rim bending more than 35% of its reach is
+   never filled by design and a patch is not intersection-tested - if the real scans hold many such
+   rims that is a slice 3, not a threshold change.
+
+### Walk knowledge worth keeping
+
+- **`npm run walk -- --only=m` runs one section in ~22 s.** A day of 30-minute full runs went by
+  before I noticed the flag.
+- `g-pre` is a machine-load precondition, not the app. It fails on most runs and leaves `g`
+  unanswered; it passed once, at 167 checks ALL PASS. Never report a `g-pre` failure as a regression,
+  and never call a run green without saying `g` went unanswered.
+- **A check whose own cleanup can fail is worse than no check.** A mid-sequence check that returned
+  via `Back` timed out and took the twelve checks below it with it.
+- **One check per claim.** A check that borrows another's claim can pass while the thing it implies is
+  broken.
+
+## Previous completed step (E0-E3a of dissolving the step machine - 2026-11-08)
 
 Route: `docs/design/2026-11-07-import-and-items-flow.md` §10. Pushed, each gated:
 
