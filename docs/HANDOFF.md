@@ -24,7 +24,49 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (App.tsx broken into modules — 2026-11-08)
+## Latest completed step (the support build cycle, split by one test — 2026-11-08)
+
+`App.tsx` 1430 → 1379 lines, in two commits so each reads on its own.
+
+**1. `src/plate/buildViews.ts`** — everything the app READS off a support build, as pure functions:
+`isSettled`, `isBuilding`, `withGeometry`, `meshesOf`, `rimGap`. They were inline `useMemo`s and a
+nested ternary, so none of them could be tested. Ten tests now cover them, and the one that matters
+is `rimGap`: its three-outcome verdict (a measured gap / nothing to say / `'unavailable'`) decides
+whether the operator is told to look at the rim, and it had **no coverage at all**. `'unavailable'`
+means the coverage was never computed — a released build, or a mesh built before the rim pass — and
+must not read as "measured and fine", because silence and "I could not check" are different
+sentences. The two paths that genuinely both mean silence are documented as deliberate.
+
+**2. `src/components/useSupportBuilds.ts`** — WHEN a build is asked for: the 120 ms settling delay,
+the build a slid denture keeps, the empty entry a unit with no supports still needs, and the pruning
+of a unit that has left. Nine host fields in, nothing out.
+
+**What deliberately did NOT move: the `built`/`failedBuilds` maps.** Thirty-odd read sites in
+`App.tsx` and three hooks already take them as input, so a hook around them would hand back nearly
+everything it was handed. The test used throughout: *a module is clean when its output is narrower
+than its input.* A hub fails it; a job passes it.
+
+### What this step found that nobody asked for
+
+- **`src/plate/releaseTrigger.test.ts` was pinned to `App.tsx`** and failed when `requested` moved
+  out of it. The tripwire's job is to fail when a debt is *paid*, so reading an ordinary refactor as
+  payment is the one mistake it must not make. It now scans the whole tree for the mechanism rather
+  than one file — strictly more robust, and it caught this itself.
+- **The build effect listed `setStatus` as a dependency and has never called it**, while the
+  `setStatusMessage` it does call was missing from the list. Harmless (both setters are stable),
+  fixed in the move, and named in the hook's own comment. Same class of drift as `runCommand`'s stale
+  `analysis`/`unitName` deps found in the previous step.
+- `GeneratedSupportMesh`, `keptBuild`, `unitSupportMesh`, `supportJobOf`, `codedJobError`, `isAbort`
+  and `BUILD_DELAY_MS` all became unused in `App.tsx` and were removed. `tsconfig` has no
+  `noUnusedLocals`, so these have to be found by counting occurrences — a count of 1 means only the
+  import line is left.
+
+### The rule this step added to `src/components/README.md`
+
+A module hands back LESS than it was given. Count host fields in against values out before
+extracting; if the counts are close, it is a hub and moving it is motion rather than modularity.
+
+## Previous completed step (App.tsx broken into modules — 2026-11-08)
 
 - **Requirement:** the owner's standing last step — "code well organized, broken into reasonably
   modules, maintainable and readable by human, with comments well written". `App.tsx` at 1733 lines

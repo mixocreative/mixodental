@@ -16,9 +16,10 @@ import { describe, expect, it } from 'vitest';
  *      that entry points at the mesh, releasing the build frees NOTHING. The problems entry must be
  *      released in the same step, or step 11's whole justification is still unmet.
  *
- *   2. A released unit must be REBUILDABLE. `requested.current` refuses to rebuild an unchanged unit
- *      and `buildSettled` reports it settled, so re-opening a released row shows no supports, no
- *      spinner and no clean check — for ever. Its `requested` entry has to be cleared on re-open.
+ *   2. A released unit must be REBUILDABLE. `useSupportBuilds`'s `requested` map refuses to rebuild
+ *      an unchanged unit and `buildSettled` reports it settled, so re-opening a released row shows no
+ *      supports, no spinner and no clean check — for ever. Its `requested` entry has to be cleared
+ *      on re-open.
  *
  * When both are done: add the caller, satisfy this file's expectations, and delete it.
  */
@@ -45,9 +46,19 @@ describe('the geometry release trigger', () => {
   });
 
   it('has not had its two debts quietly paid by something else', () => {
-    const app = Object.values(APP)[0]!;
-    // If either of these stops being true, the note in App.tsx is stale and this tripwire is lying.
-    expect(app, 'problems no longer stores a mesh - re-read this file').toContain('{ unit, mesh, items }');
-    expect(app, 'requested.current is gone - re-read this file').toContain('requested.current');
+    /*
+     * THESE SCAN THE WHOLE TREE, not `App.tsx`, and that is the fix for a false alarm this tripwire
+     * raised on itself. Both mechanisms have since moved out of the component — `problems` into
+     * `components/useSupportChecks.ts`, `requested` into `components/useSupportBuilds.ts` — and a
+     * tripwire pinned to one FILE reads an ordinary refactor as a debt that has been paid, which is
+     * the one thing it must never do. What it actually needs to know is whether the mechanism still
+     * exists anywhere in the app.
+     */
+    const holders = (needle: string) => Object.entries(SOURCES)
+      .filter(([path]) => !path.includes('releaseTrigger.test'))
+      .filter(([, text]) => text.includes(needle))
+      .map(([path]) => path);
+    expect(holders('{ unit, mesh, items }'), 'problems no longer stores a mesh - re-read this file').not.toEqual([]);
+    expect(holders('requested.current'), 'the requested map is gone - re-read this file').not.toEqual([]);
   });
 });

@@ -18,6 +18,7 @@ is why the table below is the fastest way to find where a behaviour lives.
 | hook | what it owns |
 |---|---|
 | `useImportFiles.ts` | **Import**: files to units on the plate — reading, the triangle, memory and plate refusals, placement, and what the status line says came of it. Owns the import plate ledger. |
+| `useSupportBuilds.ts` | **When supports get rebuilt**: the settling delay per unit, the build a slid denture keeps when it is only moved, the empty entry a unit with no supports still needs, and the pruning of work for a unit that has left the scene. |
 | `useSupportChecks.ts` | **The support check**: running it, the findings by unit, the list the panel may show, the re-check of an edited unit, and Fix (through `useFixSpot`). |
 | `useFixSpot.ts` | Fix on one check finding: frames the spot, opens Support Edit Mode with Add waiting, and follows the support added through to the re-check. Called from `useSupportChecks`, not beside it. |
 | `useRegenerate.ts` | Placement of automatic contacts: Generate and Regenerate, and the placement settings that regenerate by themselves outside a mode. |
@@ -54,6 +55,13 @@ is out of date and the list says so. This is the same discipline the deck's rail
 (`src/deck/README.md`) and the reason `src/items/rowState.ts` has nine states rather than one
 "status".
 
+**A module hands back LESS than it was given.** This is the test applied before every extraction
+here, and it is why the support build MAP stayed in `App.tsx` while its scheduler and its derived
+views left. Count the host fields in against the values out: `useImportFiles` is eleven in and two
+out, `useSupportBuilds` nine in and nothing out, and both earn their place. A hook wrapped round
+`built`/`failedBuilds` would be about twelve in and ten out, because thirty-odd sites in `App.tsx`
+and three other hooks read those maps — that is a hub, and moving a hub is motion, not modularity.
+
 **Pass the maps, not a callback over them.** `useSupportChecks` takes `built` and `failedBuilds`
 rather than a `buildSettled` function. A callback recreated on every render is never equal twice, so
 putting one in an effect's dependencies would rebuild the re-check timer on every render and defer
@@ -70,11 +78,12 @@ Not everything that should be here is. `App.tsx` still holds, as named debt:
   module is worth making when its output is NARROWER than its input, and this one's would not be.
   What *was* pure has already left: everything the app reads off a build now lives in
   `src/plate/buildViews.ts` and is tested without React.
-- **The build scheduler** — the per-unit debounce and the effect that asks for a build, or keeps the
-  one a slid denture already had. A real mechanism with a narrow contract, so it is the next
-  extraction. The tangle to watch is `forgetUnit`, which reaches the preview worker, the denture
-  worker, `useRegenerate`'s `forgetPlacing` and `useSupportChecks`'s `forgetProblems` in one call —
-  the app has no single notion of "a unit left the scene", and that absence is the actual smell.
+- **`forgetUnit`** — one call that reaches the preview worker, the export worker, the analysis
+  worker, `useRegenerate`'s `forgetPlacing` and `useSupportChecks`'s `forgetProblems`. The app has no
+  single notion of "a unit left the scene", and that absence is the real debt here, not the length of
+  the function. It is left visible in `App.tsx` on purpose: buried inside a hook it would look
+  settled. (`useSupportBuilds` no longer adds to it — it clears its own timers, which is why that
+  hook's one caller is also the only place a departure is noticed.)
 - **`runCommand`** — the registry switch. It is flat and readable where it is; moving it out would
   need a dependency object of thirty-odd fields, which is not obviously an improvement.
 - **The scene history and session reducers**, the keyboard effect, and the JSX.

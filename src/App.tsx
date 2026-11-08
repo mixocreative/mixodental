@@ -12,7 +12,6 @@ import { AnalysisClient } from './workers/analysisClient';
 import { ImportClient } from './workers/importClient';
 import { createAnalysisWorker, createImportWorker, createMeshWorker } from './workers/factories';
 import { SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
-import { codedJobError } from './workers/jobErrors';
 import ObjectViewport from './components/ObjectViewport';
 import DebugSection from './components/DebugSection';
 import { useDebugLayers, visibleLayers } from './components/useDebugLayers';
@@ -31,7 +30,7 @@ import { usePlateArrange } from './components/usePlateArrange';
 import { ProblemList } from './components/ProblemList';
 import { ZonesBar } from './components/ZonesBar';
 import { Segmented } from './components/Segmented';
-import { isAbort, RUNTIME, triangleCount } from './components/appShared';
+import { RUNTIME, triangleCount } from './components/appShared';
 import { useSupportChecks } from './components/useSupportChecks';
 import { useExport } from './components/useExport';
 import { useImportFiles } from './components/useImportFiles';
@@ -77,7 +76,7 @@ import { deleteCommands } from './supports/selection';
 import { canvasGesture, gesture, type GestureKind } from '@mixo-geocore/editing/gesture';
 import { TIPS_START, tipsButton, tipsCamera, tipsPress } from '@mixo-geocore/editing/view';
 import { applyPreset, setRoofMode, updateSetting, withShape, type LiveSupportSettings, type SettingKey, type ShapeKey } from '@mixo-geocore/host/core/supports/settings';
-import { contactsWith, currentBuild, hiddenByZones, liftCommands, placementPending, PLACEMENT_KEYS, resolveSettings, supportJobOf, unitContacts, unitRemovedCount, unitSupportMesh, withRekeyedHandWork, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import { contactsWith, currentBuild, hiddenByZones, liftCommands, placementPending, PLACEMENT_KEYS, resolveSettings, unitContacts, unitRemovedCount, withRekeyedHandWork, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
 import { COMMAND_IDS, resolve, type CommandId, type UiState } from '@mixo-geocore/editing/commands';
 import { effectiveBrushMode } from '@mixo-geocore/editing/selection';
 import { keyAction } from '@mixo-geocore/editing/keys';
@@ -94,10 +93,10 @@ import { useThumbnails } from './items/useThumbnails';
 import { useBatchDetect } from './items/useBatchDetect';
 import type { ImportRefusal } from './items/rowState';
 import { hasGeometry, type HeldBuild } from './plate/releasedBuild';
+import { useSupportBuilds } from './components/useSupportBuilds';
 import { isBuilding, isSettled, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
-import { keptBuild } from './denture/steps/supports/rigidMove';
 import { stepPanelInset } from './dental/stepPanelInset';
 import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
@@ -129,7 +128,6 @@ const NO_CONTACTS: readonly SupportContact[] = [];
 /** Settings edits come in bursts (typing a value); a unit's preview rebuild waits this long. */
 /** The footer line of each start screen (i18n keys). */
 const START_HINT: Record<Exclude<StartScreenId, 'file'>, string> = { drop: 'Drop one or more files, or choose what to make.', items: 'Work through the files one at a time.' };
-const BUILD_DELAY_MS = 120;
 
 /** The Export STL commands (editing/commands): `export.` and the kind. */
 const EXPORT_IDS = COMMAND_IDS.filter((id): id is Extract<CommandId, `export.${string}`> => id.startsWith('export.'));
@@ -330,9 +328,9 @@ export default function App() {
    *   1. `problems` holds the full mesh per checked unit (`setProblems(... { unit, mesh, items })`),
    *      pruned only when the unit leaves the scene. Releasing the build frees nothing while that
    *      entry still points at the mesh, so the problems entry must be released in the same step.
-   *   2. A released unit must be rebuildable: `requested.current` refuses to rebuild an unchanged
-   *      unit and `buildSettled` reports it settled, so returning to a released row would show no
-   *      supports for ever. Its `requested` entry has to be cleared when it is re-opened.
+   *   2. A released unit must be rebuildable: `useSupportBuilds`'s `requested` map refuses to rebuild
+   *      an unchanged unit and `buildSettled` reports it settled, so returning to a released row would
+   *      show no supports for ever. Its `requested` entry has to be cleared when it is re-opened.
    *
    * Shipping the mechanism without the trigger is the honest half: the saving is not claimed, and
    * nothing regresses.
@@ -477,8 +475,6 @@ export default function App() {
     return scopeCounts(scoped.map((unit) => ({ ids: unitContacts(unit, built.get(unit.id)?.mesh).map((contact) => contact.id), overrides: unit.contactSettings })));
   }, [activeUnit, built, editing, scene.selectedUnitIds, scene.units]);
 
-  const requested = useRef(new Map<string, { unit: PrintUnit; index: number }>());
-  const buildTimers = useRef(new Map<string, number>());
   // ---- Support check (components/useSupportChecks) -------------------------------------
   /** Frame a check finding in the viewport. The seq is what makes a repeat press a fresh request. */
   const focusSpot = useCallback((point: [number, number, number], area: number) =>
@@ -492,9 +488,8 @@ export default function App() {
   });
 
   /** A unit left the scene: stop its work and free what the workers hold for it. */
+  /** A unit left the scene: free what the workers and the other hooks hold for it. */
   const forgetUnit = useCallback((unitId: string) => {
-    window.clearTimeout(buildTimers.current.get(unitId));
-    buildTimers.current.delete(unitId);
     workers.current.preview?.forget(unitId);
     workers.current.export?.forget(unitId);
     workers.current.analysis?.cancel(`place:${unitId}`);
@@ -504,54 +499,15 @@ export default function App() {
     forgetProblems(unitId);
   }, [forgetPlacing, forgetProblems]);
 
-  useEffect(() => {
-    const ids = new Set(scene.units.map((unit) => unit.id));
-    for (const id of [...requested.current.keys()]) {
-      if (ids.has(id)) continue;
-      requested.current.delete(id);
-      forgetUnit(id);
-    }
-    setBuilt((current) => {
-      const kept = new Map([...current].filter(([id]) => ids.has(id)));
-      return kept.size === current.size ? current : kept;
-    });
-    setFailedBuilds((current) => {
-      const kept = new Map([...current].filter(([id]) => ids.has(id)));
-      return kept.size === current.size ? current : kept;
-    });
-    scene.units.forEach((unit, index) => {
-      const previous = requested.current.get(unit.id);
-      if (previous && previous.unit === unit && previous.index === index) return;
-      requested.current.set(unit.id, { unit, index });
-      window.clearTimeout(buildTimers.current.get(unit.id));
-      // A denture only slid over the plate (OK's arrangement) keeps its build: it is unit-local and the job is unchanged.
-      const kept = unit.denture && index === previous?.index ? keptBuild(previous?.unit, unit, builtRef.current.get(unit.id)) : undefined;
-      if (kept) {
-        setBuilt((current) => new Map(current).set(unit.id, kept));
-        return;
-      }
-      if (unit.supports === undefined) {
-        const empty = unitSupportMesh(unit, index);
-        setBuilt((current) => new Map(current).set(unit.id, { unit, mesh: empty }));
-        return;
-      }
-      buildTimers.current.set(unit.id, window.setTimeout(() => {
-        buildTimers.current.delete(unit.id);
-        if (requested.current.get(unit.id)?.unit !== unit) return;
-        const label = { key: 'Building supports for {name}', vars: { name: unitName(unit.id) } };
-        // A denture builds with its own policy in the denture worker (src/denture); every other unit in the preview worker.
-        (unit.denture ? denture.supports.build(unit, label) : preview().build(unit.id, supportJobOf(unit, index, 'preview'), label)).then((mesh) => {
-          if (!mesh || requested.current.get(unit.id)?.unit !== unit) return;
-          setBuilt((current) => new Map(current).set(unit.id, { unit, mesh }));
-        }, (error: unknown) => {
-          // A build of a version the scene no longer holds says nothing: its unit changed or left, a newer build follows.
-          if (requested.current.get(unit.id)?.unit !== unit) return;
-          setStatusMessage(isAbort(error) ? { key: 'Support build of {name} cancelled. Change a setting to build it again.', vars: { name: unit.name } } : errorStatus('build', codedJobError(error), { name: unit.name }));
-          setFailedBuilds((current) => new Map(current).set(unit.id, unit));
-        });
-      }, BUILD_DELAY_MS));
-    });
-  }, [scene.units, forgetUnit, preview, setStatus, unitName, denture.supports.build]);
+  /**
+   * WHEN SUPPORTS GET REBUILT: the settling delay, the build a slid denture keeps, and the pruning
+   * of a unit that has left (`components/useSupportBuilds`). The maps stay here because their
+   * readers are here; the rules about when to ask for a build do not belong in a component.
+   */
+  useSupportBuilds({
+    units: scene.units, builtRef, setBuilt, setFailedBuilds, preview,
+    dentureBuild: denture.supports.build, unitName, forgetUnit, setStatusMessage,
+  });
 
 
   // ---- Dental Steps 1 and 2 (orient, detect the area): components/useDentalFlow ------------

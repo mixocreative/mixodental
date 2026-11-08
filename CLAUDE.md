@@ -26,3 +26,16 @@ rather than assumed:
 If per-session also proves too easy to forget, the honest next step is a Stop hook rather than
 stronger wording - structure keeps a rule that memory does not.
 -->
+
+## code principle
+
+Every task's last step: the code is modular, human-readable and organised for maintainability, the
+comments are written, every affected `.md` is updated, and the work is pushed. Part of the task, not
+a later cleanup pass.
+
+The test applied before any extraction in this repo: **a module is clean when its output is narrower
+than its input.** Count the host fields handed in against the values handed back. A module that needs
+nearly as much as it returns is a hub, not a job, and moving it is motion rather than modularity —
+which is why `src/plate/buildViews.ts` and `src/components/useSupportBuilds.ts` exist while the
+`built`/`failedBuilds` maps stayed in `App.tsx`. Pure rules go in a plain module and get a test;
+`src/components/README.md` and `src/deck/README.md` carry the rest.
