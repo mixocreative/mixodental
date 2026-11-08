@@ -9,7 +9,8 @@ import { isAbort, RUNTIME, triangleCount, type SetStatus } from './appShared';
 import { gltfRawMeshes, placeImportedUnits } from '../state/import';
 import { setDisplayMesh } from '../state/meshExtras';
 import { memoryInfo } from '../state/runtime';
-import { assertMemoryCapacity, assertPlateCapacity, assertTriangleCapacity, memoryCapBytes, meshTier } from '@mixo-geocore/host/core/budget';
+import { assertMemoryCapacity, assertPlateCapacity, assertTriangleCapacity, CapacityError, memoryCapBytes, meshTier, PlateFullError } from '@mixo-geocore/host/core/budget';
+import { jobActivity } from '@mixo-geocore/host/workers/jobActivity';
 import { PlateLedger, type PlateScene } from '../core/plateLedger';
 import { estimateTriangles, ESTIMATE_HEAD_BYTES } from '../core/import/estimate';
 import type { PrintScene, PrintUnit, SceneCommand } from '../state/project';
@@ -36,6 +37,30 @@ const GLB_JSON_ESTIMATE_BYTES = 64 * 1024 * 1024;
  * would let each believe the plate had room.
  */
 const PLATE = new PlateLedger();
+
+/**
+ * A REFUSAL THAT NEVER STARTED A JOB STILL HAS TO REACH A SCREEN.
+ *
+ * A file the import WORKER refuses - a damaged STL, a file with no mesh - already lands in the
+ * activity list and STAYS there: `jobActivity.view` never drops a failed row, and surfaces one even
+ * if it ended inside the show delay. That list is the screen the operator watches to learn what a
+ * drop did, and walk check `m1` relies on it keeping a deliberate failure up.
+ *
+ * A file the BUDGET refuses - too many triangles, not enough memory, a full plate - is refused
+ * BEFORE any worker starts, usually off the 84-byte header alone. So no job ever began, nothing was
+ * ever listed, and the refusal had one home: the status line. Walk check `q2` dropped two
+ * 3.19M-triangle files together, watched the plate ledger correctly refuse the second
+ * ("6,386,736 triangles; the limit is 6,000,000"), and then watched the WINNER's own heavy-model
+ * sentence replace it. One object on the plate, a cheerful line, and no way left to learn that the
+ * other file was refused or why.
+ *
+ * One row, opened and closed at once, puts both kinds of refusal on the same screen. The error is
+ * handed over whole, so the list says it in the operator's language from the same code and values
+ * the status line uses (`JobActivity`'s `failureText`), and it stays until they dismiss it.
+ */
+function listBudgetRefusal(fileName: string, error: CapacityError | PlateFullError): void {
+  jobActivity.begin({ label: { key: 'Importing {name}', vars: { name: fileName } }, context: 'import' }).end(error);
+}
 
 /** How much of a file the pre-parse estimate reads: a whole small .gltf, a .glb's JSON chunk, else the head. */
 async function estimateHeadBytes(file: File): Promise<number> {
@@ -177,6 +202,10 @@ export function useImportFiles(host: {
         } catch (error) {
           if (isAbort(error)) throw error;
           refused.push({ name: file.name, error });
+          // Refused by the budget, so no worker ever ran and nothing listed it (see above). The deck
+          // turns a refusal into a ROW; the plain editor has no list of its own, and before this the
+          // refusal lived only in a status line the next message replaced.
+          if (error instanceof CapacityError || error instanceof PlateFullError) listBudgetRefusal(file.name, error);
         }
       }
       /*
