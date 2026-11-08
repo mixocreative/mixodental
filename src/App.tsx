@@ -87,6 +87,7 @@ import { StartScreen, type ChooserScreen, type StartScreenId } from './component
 import { ItemsPage } from './items/ItemsPage';
 import { useThumbnails } from './items/useThumbnails';
 import { useBatchDetect } from './items/useBatchDetect';
+import type { ToolId } from './state/tools';
 import type { ImportRefusal } from './items/rowState';
 import { hasGeometry, type HeldBuild } from './plate/releasedBuild';
 import { useSupportBuilds } from './components/useSupportBuilds';
@@ -1039,7 +1040,7 @@ export default function App() {
    *     the session is still `off`, so `startDental` opens the flow — and resetting `dentalFinished`
    *     is correct there, since nothing has been finished yet.
    */
-  const startItem = (unit: PrintUnit) => {
+  const startItem = (unit: PrintUnit, tool?: ToolId) => {
     /*
      * NO SYNCHRONOUS GUARD HERE, AND THE REASON IS WORTH MORE THAN THE GUARD WAS.
      *
@@ -1058,6 +1059,17 @@ export default function App() {
      */
     dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id });
     const live = sessionRef.current;
+    /*
+     * THE PRESSED TOOL, FOR THE ROWS THE DETECTOR FLAGGED (increment E4).
+     *
+     * `rimPressed` is true only when the operator pressed RIM on a row whose batch detection came
+     * back `no-rim` - the deck's own "No rim found. Draw one to continue." Opening that row at Step 1
+     * re-ran `dentalOrient` to be told what the row already said, and only then handed over to
+     * drawing. Any other tool, and any row the detector did not flag, keeps today's behaviour: the
+     * model opens at the start of its flow. Whether a rim that WAS detected may be redrawn is the
+     * owner's call and is not decided here.
+     */
+    const rimPressed = tool === 'rim' && batchDetected.get(unit.id)?.kind === 'no-rim' && !isDentureJob(live.dentalProfile);
     if (live.mode !== 'dental') {
       setStartScreen(null);
       /*
@@ -1075,10 +1087,11 @@ export default function App() {
        *     row's model already on the plate, and the way on was a second control.
        */
       send({ type: 'startDental', profile: live.dentalProfile ?? batchProfile ?? DEFAULT_PROFILE_ID, resume: true });
-      return startDentalAligner(unit);
+      return rimPressed ? dentalFlow.startRimDrawing(unit) : startDentalAligner(unit);
     }
     setStartScreen(null);
     if (live.dentalStage === 'review' && live.dentalUnitId) send({ type: 'addAnotherDental', unitId: live.dentalUnitId });
+    if (rimPressed) return dentalFlow.startRimDrawing(unit);
     startDentalAligner(unit);
   };
   /*

@@ -204,6 +204,43 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     }, () => { if (!stale()) failed([{ kind: 'failed' }]); });
   }, [analysis, dispatch, requestView, send, sceneRef, sessionRef, setGizmoMode, setTilt, startScan]);
 
+  /**
+   * STEP 1'S RIM DETOUR, ENTERED DIRECTLY, for a row whose batch detection already answered "no rim".
+   *
+   * WHY THIS EXISTS (increment E4, gap-register W-02's second half). The rail's four buttons are
+   * pressable now, but every press opened the MODEL at the start of its flow and threw the pressed
+   * tool away (`ItemsPage`'s `onPick` ignored its argument). Pressing Rim on a row the deck has
+   * already marked "No rim found. Draw one to continue." therefore ran `dentalOrient` on that unit a
+   * SECOND time - minutes of worker time to be told what the row already says - and only then handed
+   * over to drawing. Here the press goes where the row says it goes.
+   *
+   * WHY ONLY THE ROWS THE DETECTOR FLAGGED. `detected?.kind === 'no-rim'` is evidence from this
+   * session's own batch that the detector ran, judged the mesh usable, and found nothing to measure
+   * from - which is exactly the state `startAligner` answers with `dentalRimNeeded` (see above). On
+   * any other row the question is "may a rim that WAS detected be redrawn", and that is the owner's
+   * to settle, not this increment's.
+   *
+   * WHY IT DOES NOT REPEAT THE DELETED `toolEntry`'s THREE FAULTS (`App.tsx`'s rail-press comment):
+   * it never walks `backDental`, so it bypasses no confirm-and-discard guard and discards nothing;
+   * it hard-codes no stage spine, because `toolsFor` gives a denture no Rim button to press; and it
+   * is reached from the deck, where the unit is opened FORWARD into the flow rather than stepped
+   * back through it.
+   *
+   * The view is fitted for the same reason the detected path fits it: the operator is about to draw
+   * ON this model, and a dropped aligner can sit half off screen.
+   */
+  const startRimDrawing = useCallback((unit: PrintUnit) => {
+    // The same two steps `startAligner` takes before its job: the stage has to be `aligner` and
+    // `loading` before `dentalRimNeeded` is accepted at all (`dental/editingMode.ts`).
+    ++orientSeq.current;
+    send({ type: 'dentalLoading', unitId: unit.id });
+    detected.current = { unitId: unit.id, profile: sessionRef.current.dentalProfile ?? '', rotation: undefined };
+    requestView('fit');
+    // No notices: `no-rim` is the detector's ordinary answer on a usable mesh, so there is nothing
+    // about the shape to warn the operator about as they start drawing.
+    send({ type: 'dentalRimNeeded', notices: [] });
+  }, [requestView, send, sessionRef]);
+
   // Step 1 offered another aligner type (mismatch notice): orient the same aligner again with it.
   const { mode, dentalStage, dentalAligner, dentalProfile, dentalUnitId } = session;
   useEffect(() => {
@@ -373,5 +410,5 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     if (current?.status === 'ready') keepTilt({ ...current, hand: true });
   }, [keepTilt]);
 
-  return { startAligner, useDetected, next, invalidate, tilt, chooseTilt, markHand, areaPreview, detectingArea };
+  return { startAligner, startRimDrawing, useDetected, next, invalidate, tilt, chooseTilt, markHand, areaPreview, detectingArea };
 }

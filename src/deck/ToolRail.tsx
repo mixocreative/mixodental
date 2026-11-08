@@ -49,6 +49,16 @@ export function ToolRail({ facts, onPick }: {
   return <div className="tool-rail" role="group" aria-label={t('Tools')}>
     {railStates(facts).map(({ tool, state }) => {
       const { className, disabled, note } = look(state);
+      /*
+       * WHAT THE PRESS ACTUALLY OPENS, where it is no longer "this model" (increment E4).
+       *
+       * A ready Rim on a model with no rim goes to rim drawing - directly when the detector flagged
+       * the row, and by way of Step 1's own hand-over otherwise - so "Open this model" was the one
+       * ready note that had stopped being true. The condition lives here rather than in `look`
+       * because only this loop has the tool and the facts in hand, and `look` stays a function of
+       * the STATE alone.
+       */
+      const says = state.kind === 'ready' && tool === 'rim' && !facts.hasRim ? 'Draw the rim on this model.' : note;
       return <button key={tool} type="button" data-ui={`tool-${tool}`}
         className={className}
         disabled={disabled}
@@ -58,7 +68,7 @@ export function ToolRail({ facts, onPick }: {
         // A disabled button carries its own reason too: the line below says the NEXT thing to do, and
         // a tool further down the chain still owes an answer to "why not this one".
         {...(state.kind === 'unavailable' ? { title: translateMessage(state.because) }
-          : note ? hint(note) : {})}
+          : says ? hint(says) : {})}
       >{t(LABEL[tool])}</button>;
     })}
     {/*

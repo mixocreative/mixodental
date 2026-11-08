@@ -9,6 +9,7 @@ import type { ThumbCache } from './thumbnail';
 import { ItemRow } from './ItemRow';
 import { RefusedRow } from './RefusedRow';
 import { ToolRail } from '../deck/ToolRail';
+import type { ToolId } from '../state/tools';
 import { unitFacts } from '../deck/unitFacts';
 import { jobSentence, jobTally } from '../deck/jobSummary';
 import { isModelFile } from '../components/startDrop';
@@ -59,7 +60,14 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
    * denture as an aligner and offer it a rim to draw (`deck/unitFacts.ts`).
    */
   denture: boolean;
-  onStart: (unit: PrintUnit) => void;
+  /**
+   * Open this row. `tool` is the rail button that was pressed, absent for the page's own primary.
+   *
+   * The rail used to drop it (`onPick={() => onStart(railUnit)}`), so all four buttons did the same
+   * thing - open the model at the start of its flow - which is how W-02's second half outlived its
+   * first. `App.tsx` decides what a given tool may enter; the page only reports which was pressed.
+   */
+  onStart: (unit: PrintUnit, tool?: ToolId) => void;
   onRemove: (unit: PrintUnit) => void;
   /** Files dropped onto the list. They ADD to it — the caller must not apply Step 1's one-file rule. */
   onFiles: (files: readonly File[]) => void;
@@ -117,7 +125,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
       row here, and the workspace's own left edge once that exists — the same component either way.
     */}
     <div className="items-body">
-      {railUnit ? <ToolRail facts={unitFacts(railUnit, detected.get(railUnit.id), denture)} onPick={() => onStart(railUnit)} /> : null}
+      {railUnit ? <ToolRail facts={unitFacts(railUnit, detected.get(railUnit.id), denture)} onPick={(tool) => onStart(railUnit, tool)} /> : null}
       <ul className="items-list">
         {refused.map((entry) => <RefusedRow key={`refused-${entry.name}`} name={entry.name} refusal={entry.refusal} />)}
         {units.map((unit) => <ItemRow
