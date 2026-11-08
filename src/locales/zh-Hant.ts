@@ -499,7 +499,7 @@ export const zhHant: Dictionary = {
   'Export cancelled; no file was written.': '已取消匯出，未寫出任何檔案。',
   'Export refused: {name} changed while it was being exported, so the files would not match what you see. Nothing was written; export again.': '已拒絕匯出：{name} 在匯出過程中被更動，檔案會與您看到的內容不符，未寫出任何檔案。請重新匯出。',
   'Export refused: the supports of {name} were not built, so nothing was written. Generate again, then export.': '已拒絕匯出：尚未建立 {name} 的支撐，未寫出任何檔案。請重新產生，然後再匯出。',
-  'Export refused: the supports on {name} were planted before the model was turned, so they would not hold. Regenerate them, then export.': '已拒絕匯出：{name} 的支撐是在模型旋轉前配置的，無法有效固定。請重新產生，然後再匯出。',
+  'Export refused: the supports on {name} were planted before the model was turned, so they would not hold. Nothing was written; regenerate them, then export.': '已拒絕匯出：{name} 的支撐是在模型旋轉前配置的，無法有效固定。未寫入任何內容。請重新產生，然後再匯出。',
   'Export refused: the safety check of {name} could not reach a verdict (it ran out of time or could not judge a crossing), so nothing was written. Generate again, or use fewer supports.': '已拒絕匯出：{name} 的安全檢查無法判定（已逾時或無法判斷交叉點），未寫出任何檔案。請重新產生，或減少支撐數量。',
   'Support placement cancelled; existing supports kept.': '已取消支撐配置，保留現有支撐。',
   'Too detailed to edit by hand ({n} triangles). Generate and export still use the full model.': '模型過於精細，無法手動編輯（{n} 個三角面）。產生與匯出仍使用完整模型。',
@@ -1056,4 +1056,6 @@ export const zhHant: Dictionary = {
   "1 thing to look at.": "有 1 個地方需要確認。",
   "{n} things to look at.": "有 {n} 個地方需要確認。",
   "Supports ready. Every point is held.": "支撐已完成，每個點都有撐住。",
+  'Waiting its turn…': '正在排隊…',
+  'Draw the rim on this model.': '在此模型上繪製邊緣。',
 };

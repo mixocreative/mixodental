@@ -495,7 +495,7 @@ export const ja: Dictionary = {
   'Export cancelled; no file was written.': '書き出しをキャンセルしました。ファイルは作成されていません。',
   'Export refused: {name} changed while it was being exported, so the files would not match what you see. Nothing was written; export again.': '書き出しを中止しました：{name} が書き出し中に変更されたため、ファイルが画面の内容と一致しません。ファイルは作成されていません。もう一度書き出してください。',
   'Export refused: the supports of {name} were not built, so nothing was written. Generate again, then export.': '書き出しを中止しました：{name} のサポートが作成されていないため、ファイルは作成されていません。再度生成してから書き出してください。',
-  'Export refused: the supports on {name} were planted before the model was turned, so they would not hold. Regenerate them, then export.': '書き出しを中止しました：{name} のサポートはモデルの回転前に配置されたため、モデルを保持できません。再度生成してから書き出してください。',
+  'Export refused: the supports on {name} were planted before the model was turned, so they would not hold. Nothing was written; regenerate them, then export.': '書き出しを中止しました：{name} のサポートはモデルの回転前に配置されたため、モデルを保持できません。何も書き出されませんでした。再度生成してから書き出してください。',
   'Export refused: the safety check of {name} could not reach a verdict (it ran out of time or could not judge a crossing), so nothing was written. Generate again, or use fewer supports.': '書き出しを中止しました：{name} の安全確認で結論が出ませんでした（時間切れ、または交差を判定できませんでした）。ファイルは作成されていません。再度生成するか、サポートを減らしてください。',
   'Support placement cancelled; existing supports kept.': 'サポートの配置をキャンセルしました。既存のサポートはそのままです。',
   'Too detailed to edit by hand ({n} triangles). Generate and export still use the full model.': 'モデルが細かすぎるため手動では編集できません（三角形 {n} 個）。生成と書き出しは完全なモデルで行われます。',
@@ -1051,4 +1051,6 @@ export const ja: Dictionary = {
   "1 thing to look at.": "確認が必要な点が 1 件あります。",
   "{n} things to look at.": "確認が必要な点が {n} 件あります。",
   "Supports ready. Every point is held.": "サポートができました。すべての点が支えられています。",
+  'Waiting its turn…': '順番待ち…',
+  'Draw the rim on this model.': 'このモデルに縁を描画します。',
 };
