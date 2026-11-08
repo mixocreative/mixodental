@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794159982.2797954,
-    "seen": 1794163324.5866404,
-    "ast_hash": "2798ee687e574fc97add7b13a9910fb9",
+    "mtime": 1794170083.5554278,
+    "seen": 1794172196.7376175,
+    "ast_hash": "28074dc8bc52de830a3478ed954c7223",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794146746.34603,
-    "seen": 1794150794.672841,
-    "ast_hash": "be7d86fd7d37d52c318dac8394949af4",
+    "mtime": 1794168046.5957863,
+    "seen": 1794172196.7386148,
+    "ast_hash": "dfb80ab1f319d219ddd105c14af34ef2",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -5755,9 +5755,9 @@
     "semantic_hash": ""
   },
   "src/items/useBatchDetect.ts": {
-    "mtime": 1794067412.1197684,
-    "seen": 1794082605.030369,
-    "ast_hash": "b5bb3e2d104e4e9fdf4cde91ddf3a2b5",
+    "mtime": 1794170083.548639,
+    "seen": 1794172196.7376175,
+    "ast_hash": "68c87ca0e520f67da67bbdd62b59c440",
     "semantic_hash": ""
   },
   "src/items/useThumbnails.ts": {
