@@ -120,15 +120,15 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794148368.7477877,
-    "seen": 1794150794.672841,
-    "ast_hash": "5aaea84eb75bfeb366be9cbd15bfa5f4",
+    "mtime": 1794163271.504653,
+    "seen": 1794163324.5866404,
+    "ast_hash": "56e242281239e4b9d8d378d9baf037f0",
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794148227.2536707,
-    "seen": 1794150794.672841,
-    "ast_hash": "4cc8a209cf50616fcbda59dafd8b0f99",
+    "mtime": 1794159982.2797954,
+    "seen": 1794163324.5866404,
+    "ast_hash": "2798ee687e574fc97add7b13a9910fb9",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -318,9 +318,9 @@
     "semantic_hash": ""
   },
   "src/components/useFixSpot.ts": {
-    "mtime": 1794048359.2636282,
-    "seen": 1794058596.9335043,
-    "ast_hash": "3f32a2940c0af7149b9113e60c7edc6e",
+    "mtime": 1794159969.5802922,
+    "seen": 1794163324.5866404,
+    "ast_hash": "f6f88b42ba38ed4f6d019c998c8b4050",
     "semantic_hash": ""
   },
   "src/components/useProjectFile.ts": {
@@ -396,9 +396,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/supportLayers.tsx": {
-    "mtime": 1793595164.445848,
-    "seen": 1793595218.4797332,
-    "ast_hash": "5f6678d435a3440ca850b4c0a3f439b0",
+    "mtime": 1794159969.5802922,
+    "seen": 1794163324.5866404,
+    "ast_hash": "9292a79d55819f3bed5c47657d064bc8",
     "semantic_hash": ""
   },
   "src/components/viewport/types.ts": {
@@ -756,9 +756,9 @@
     "semantic_hash": "8f68c27c3fc38817b2726b20e2d4f1ee"
   },
   "src/workers/analysisClient.test.ts": {
-    "mtime": 1793268306.3426504,
-    "seen": 1793268328.171727,
-    "ast_hash": "884c4ce64ef5d0bb7a3bab6570e944db",
+    "mtime": 1794159969.5802922,
+    "seen": 1794163324.5866404,
+    "ast_hash": "aabd60a2c418a63f458d72d2f8cc32ef",
     "semantic_hash": ""
   },
   "src/workers/analysisClient.ts": {
@@ -949,9 +949,9 @@
     "semantic_hash": ""
   },
   "tsconfig.json": {
-    "mtime": 1793265670.4739988,
-    "seen": 1793265672.9182296,
-    "ast_hash": "ebd4ebb476cc7538d6223b8f699b3701",
+    "mtime": 1794159969.5782862,
+    "seen": 1794163324.5866404,
+    "ast_hash": "721f6042702a157b26d874a90c0e6281",
     "semantic_hash": ""
   },
   "vite.config.ts": {
@@ -967,9 +967,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1794128089.149096,
-    "seen": 1794131087.9066243,
-    "ast_hash": "30e172cd7f8237bb3158630481898a3d",
+    "mtime": 1794160454.1808827,
+    "seen": 1794163324.5866404,
+    "ast_hash": "7d32d73f2fa2c201107ab2ceb0df0d40",
     "semantic_hash": ""
   },
   "DESIGN.md": {
@@ -1441,9 +1441,9 @@
     "semantic_hash": ""
   },
   "src/workers/weldWasmParity.test.ts": {
-    "mtime": 1793265453.2732968,
-    "seen": 1793265454.4618626,
-    "ast_hash": "25766b4c319692aa4fa9ccc9a40c5a02",
+    "mtime": 1794159969.5802922,
+    "seen": 1794163324.5866404,
+    "ast_hash": "9dce18450f4154b8e72b81671260afde",
     "semantic_hash": ""
   },
   "src/workers/stlWasmParity.test.ts": {
@@ -1555,9 +1555,9 @@
     "semantic_hash": ""
   },
   "src/components/DentalSteps.tsx": {
-    "mtime": 1794131574.8101988,
-    "seen": 1794134472.3563173,
-    "ast_hash": "98f75adfed9229efebbbb17518db3411",
+    "mtime": 1794159969.5792906,
+    "seen": 1794163324.5866404,
+    "ast_hash": "7fec567f49a8ef8eb90f941dd8782d0e",
     "semantic_hash": ""
   },
   "src/importOracleBoundary.test.ts": {
@@ -3121,9 +3121,9 @@
     "semantic_hash": ""
   },
   "src/components/StartScreen.tsx": {
-    "mtime": 1794061346.2775953,
-    "seen": 1794082605.029369,
-    "ast_hash": "5507577f5d897b6963a195c67d4ef640",
+    "mtime": 1794159969.5802922,
+    "seen": 1794163324.5866404,
+    "ast_hash": "05169a4c3bb282f3239d473638ba8650",
     "semantic_hash": ""
   },
   "scripts/host-example.mjs": {
@@ -5563,9 +5563,9 @@
     "semantic_hash": ""
   },
   "src/items/ItemsPage.test.tsx": {
-    "mtime": 1794155338.5407395,
-    "seen": 1794157672.181129,
-    "ast_hash": "5d32674591610b24d7fdc7c509f5e53a",
+    "mtime": 1794159969.5802922,
+    "seen": 1794163324.5866404,
+    "ast_hash": "33cb3f0b2a1fb651ed962f0dffa4c89f",
     "semantic_hash": ""
   },
   "src/items/ItemsPage.tsx": {
@@ -5677,9 +5677,9 @@
     "semantic_hash": ""
   },
   "src/deck/ToolRail.tsx": {
-    "mtime": 1794090066.6595533,
-    "seen": 1794095721.4367871,
-    "ast_hash": "8ccc7dfcf042540b9ae44f819c45bd19",
+    "mtime": 1794159969.5782862,
+    "seen": 1794163324.5866404,
+    "ast_hash": "7d67c511cb3d2ba8b3f503bdd888866d",
     "semantic_hash": ""
   },
   "src/deck/jobSummary.test.ts": {
