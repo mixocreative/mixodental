@@ -1535,3 +1535,125 @@ that introduces the feature.
   The process lesson cost more than the bug: I bisected by reverting one file at a time and comparing
   **single runs**, and concluded my own harness change was the cause. For a check that fails 3 of 5
   at one commit, that comparison carries no information.
+
+## 10. Dissolving the step machine
+
+Approved by the owner 2026-11-08. The target shape is §0b's one workspace; this section is the
+ordered route to it, the rulings that were missing, and the boundary that must not be crossed on the
+way. Specified with Fable, with three corrections made against the code and recorded below.
+
+### The ruling that unblocked it: the guard belongs to Apply, not to navigation
+
+The question that had stalled this was where the Step-3 confirm-and-discard guard lives once there is
+no "back out of Step 3" direction. Both answers considered were wrong, because both assumed something
+must be guarded when the operator *moves*.
+
+**In a workspace that is ordered but not gated, moving is free. Only MUTATING destroys hand work.**
+Today "Back out of supports" is a proxy for "I am about to re-run something upstream of supports".
+So the proxy becomes explicit:
+
+- **`openTool(tool, unitId)` changes focus and nothing else** — never clears the unit id, never
+  cancels a job, never discards. Allowed while a job runs (the widget shows busy); refused only when
+  the rail state is `unavailable`, which is a prerequisite output that physically does not exist yet
+  rather than a workflow gate. Because it mutates nothing, **it has no guard to own or inherit.**
+- **The guard moves to upstream Apply.** Its trigger becomes: *an Apply in tool T on unit U, when a
+  tool downstream of T on U carries hand work.* Today's semantics are kept — confirm, then discard —
+  because hand supports are surface-anchored and geometrically meaningless after a re-orient, so
+  "stale but kept" would be a lie. One pure predicate, `handWorkAtRisk(state, unitId, tool)`, in the
+  reducer module; the confirm stays in the command layer because it is async UI, but the DECISION is
+  pure and single-sourced.
+- **This closes the third withdrawal fault by construction rather than by discipline.** The deleted
+  `toolEntry` bypassed a guard that lived in a command handler. Once the reducer stamps the revision
+  and clears hand work in the same event, a direct reducer dispatch cannot bypass anything.
+- **Next/Back are deleted at application level.** Each widget's primary is **Apply** — one accent
+  colour, which is also the game-like affordance. After Apply the rail *focuses* the next tool that
+  is stale or unavailable: a hint, ignorable by pressing anything else. Steps that are genuinely
+  sequential stay INSIDE a widget and never touch session state.
+
+### Where this corrects Fable, against the code
+
+1. **No `toolsFor(purpose)`, and no per-purpose order list.** The proposal was to make tool order
+   profile data. `src/state/tools.ts` already declares `TOOL_ORDER` once with an explicit warning
+   that three readers must not disagree about it, and the denture difference is **already handled in
+   facts**, not in order: `hasRim: isDenture(unit) || hasRim(unit)` and
+   `hasAcceptedArea = unit.dental !== undefined || isDenture(unit)` (`src/deck/unitFacts.ts`). A
+   second list would be a second truth for the chain — the very duplication `tools.ts` was written to
+   prevent. What actually remains of the hard-coded-order fault is the sequential hop pair
+   `stageAfterOrientation` / `stageBeforeSupports`, and `openTool` addressing a tool DIRECTLY is what
+   makes those unnecessary for entry.
+2. **A denture has no rim step either.** The proposed denture order `[orient, rim, supports]` is
+   wrong: `src/denture/state/dentureStages.ts` maps a denture to `aligner` then `review`, and rim is
+   an aligner-only detour out of Step 1. Its rail satisfies rim by construction, which is why the
+   rail needs no order of its own.
+3. **The shell: keep the five generic sections HIDDEN.** §0b said adopting this means "dental stops
+   hiding the shell". That is right about the two layout SLOTS and wrong about their contents.
+   Unhiding import/objects/transform/supports/check with per-section locks produces a wall of
+   disabled controls that restates the rail's four states in a second vocabulary — the opposite of
+   minimal. Dental is not "the editor with panels hidden"; it is a **shell variant filling the same
+   two slots**: left slot is the rail alone, right slot is the job panel (purpose read-only, support
+   defaults, the silent validation tally, export, the model list). Every generic section has a dental
+   home, so nothing needs locking: import to the model list's add row, objects to the model list,
+   transform to Orient, supports to Supports, check to the tally. The Drop page survives as the
+   workspace's empty state.
+
+### THE BOUNDARY: one unit at a time. A shared plate is a different project.
+
+§0b's table says "plate (centre) — every model at once". **That is not in this work, and increment E8
+must not quietly become it.** Every mechanism built so far is per unit — revisions, hand work, busy,
+the orient job — and the workspace is single-unit. A genuinely shared plate forces four new problems
+at once: which unit a widget acts on; hand supports in unit space versus plate space; the
+memory-first rule, since loading every model at full resolution is exactly what that rule forbids;
+and a job finishing on a unit that is no longer selected, stamping a revision the visible widget
+never saw.
+
+**Ruling: the current unit is the selection in the job panel's model list.** All tools act on the
+selection; other models render as low-cost proxies (bounding box or decimated shell) if they render
+at all. The true multi-model plate is a separate project, after E9.
+
+### The increments
+
+Each leaves the app working, gated and pushed.
+
+**E0. Test the denture path through the rail.** Found while checking the above: `grep denture` in
+`src/deck/unitFacts.test.ts` and `toolState.test.ts` returns nothing, although three lines of
+`unitFacts.ts` exist solely to fix a denture-specific rail lie that review caught. It is first
+because every increment below leans on those facts being right.
+*Exit:* removing `isDenture` from either fact fails a test.
+
+**E1. Remove the in-flow type step** (was §8 7c). Delete `dentalStage: 'type'` and its ~15 sites, and
+make Back at Orient return to the Items page **without ending the session** — today it sends `exit`
+and discards `dentalFinished`, which with a live case loses every finished item.
+*Exit:* no `'type'` in `DentalStage`; a walk check that Back at Orient keeps `dentalFinished`.
+
+**E2. `handWorkAtRisk` becomes a pure predicate** consumed by the existing Back handler.
+*Exit:* exactly one place decides discard; Back behaves identically; the predicate is tested per edge.
+
+**E3. `openTool(tool, unitId)` and an `activeTool` field** beside `dentalStage`, with the stage
+derived from the tool. Next/Back become thin wrappers over `openTool`.
+*Exit:* behaviour unchanged; every navigation goes through one command.
+
+**E4. Mount the rail in the workspace's left slot** during a live session, wired to `openTool`. This
+is where the first withdrawal fault is cured — the rail leaves the deck.
+*Exit:* three regression tests, one per recorded fault: reachable in a live session; a denture press
+never lands on a cleared unit; a press never discards hand work.
+
+**E5. The job panel in the right slot** — purpose, support defaults, the tally, export.
+*Exit:* `DentalBar` no longer owns export; the right slot renders in dental mode.
+
+**E6. Split `DentalBar` into per-tool widgets, one increment per tool, Orient first.** `DentalBar`
+delegates for the tools that are done and renders its old content for the rest. (Its ~30 props are
+themselves the hub smell this splits.)
+*Exit, per tool:* the widget holds only that tool's controls, has an Apply, and Apply consults E2's
+predicate.
+
+**E7. Delete Next/Back; Apply focuses the next tool.** **Cannot be split from the last of E6** —
+removing Next before every tool has its own Apply strands the operator in a widget with no way out.
+*Exit:* no Next/Back in the DOM; tests navigate with `openTool`.
+
+**E8. The deck becomes the model list panel**, and selecting a row switches unit without `exit`.
+**Cannot be split internally** — removing the start screen while selection still routes through
+`exit` leaves no way to switch units.
+*Exit:* the start screen is gone; no route sends `exit` to change unit.
+
+**E9. Delete `dentalStage`.**
+*Exit:* the grep is empty; `activeTool` plus the revisions are the only truth.
