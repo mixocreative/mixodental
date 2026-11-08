@@ -24,7 +24,42 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (E0 of dissolving the step machine — 2026-11-08)
+## Latest completed step (E0–E3a of dissolving the step machine — 2026-11-08)
+
+Route: `docs/design/2026-11-07-import-and-items-flow.md` §10. Pushed, each gated:
+
+| step | commit | what landed |
+|---|---|---|
+| E0 | `f4adde5` | the denture path through the rail, which had no test |
+| E1a | `2877a7d` | the in-flow type step is gone; the flow opens at Step 1 |
+| E1b | `547004f` | Back at Step 1 steps out to the CASE, keeping `dentalFinished` |
+| E2 | `430a37c` | one predicate decides whether a unit carries hand work |
+| E3a | `08abeea` | the rail's chain is per job; the prerequisite derives from it |
+
+**The ruling that unblocked the whole thing:** the Step-3 confirm-and-discard guard does not belong
+to navigation. Moving is free in a workspace that is ordered but not gated; only MUTATING destroys
+hand work. So `openTool` has no guard to own, and the guard becomes a condition on upstream Apply.
+
+**The owner's conclusion that settled the multi-item case: THE DECK IS THE QUEUE.** Several files
+dropped with several rims undetected needs nothing new — during a batch there is no dental session,
+so the hand-over to rim drawing cannot fire; each row records its own result and the deck already
+flags which tool it needs (`no-rim` → Rim, `failed` → Orient). Multiple failures are multiple
+flagged rows, handled one at a time by clicking. The single-unit session is the right shape, not a
+limitation.
+
+**Next: run `/cia` on the deck-and-flow BEFORE building E4.** Two rounds of EGM review missed the
+multi-item journey gaps because EGM audits a DOCUMENT against document standards — only one of its
+seven reviewers reads code, for accuracy and reuse, not journeys. `cia` is scoped at runtime UX
+journeys, dead controls and ambiguous steps, which is this class exactly. Then E4 (mount the rail in
+the workspace, wired to `openTool`), which can ship for FLAGGED ROWS ALONE and so need not settle
+whether a detected rim may be redrawn.
+
+**Named debt found and not taken: detection runs twice per row.** `startAligner` always re-runs
+`dentalOrient` on opening a row instead of reusing the batch result, so a case of eight pays the
+expensive pass sixteen times. Wasteful, not wrong — but front-loading detection was the batch's
+whole purpose.
+
+## Previous completed step (E0 of dissolving the step machine — 2026-11-08)
 
 The owner approved dissolving `dentalStage`. The route is `docs/design/2026-11-07-import-and-items-flow.md`
 §10: ten increments E0–E9, each leaving the app working, with the two that cannot be split named.
