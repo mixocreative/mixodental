@@ -120,15 +120,15 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794093754.070262,
-    "seen": 1794095721.4367871,
-    "ast_hash": "f5141b6887cfb342e88f3f899df2c112",
+    "mtime": 1794132140.2286892,
+    "seen": 1794134472.3563173,
+    "ast_hash": "8d83938caee4e89fdff10d35137267ac",
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794127578.1226869,
-    "seen": 1794131087.9056244,
-    "ast_hash": "309058096f8c5fc857f1d9512154351d",
+    "mtime": 1794132078.2434063,
+    "seen": 1794134472.3563173,
+    "ast_hash": "e8b4e7fc733bd10a49b049bc30aa7146",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -144,15 +144,15 @@
     "semantic_hash": ""
   },
   "src/components/DentalBar.test.tsx": {
-    "mtime": 1793999960.8463843,
-    "seen": 1794008080.1865294,
-    "ast_hash": "1fb672e8aa5cd96c5fd2a8bbff8236df",
+    "mtime": 1794131661.6544936,
+    "seen": 1794134472.3563173,
+    "ast_hash": "f1be2dc24af2a4c5b719665f94fae3bd",
     "semantic_hash": ""
   },
   "src/components/DentalBar.tsx": {
-    "mtime": 1793885272.1323614,
-    "seen": 1793902315.4000866,
-    "ast_hash": "79d824a56f008f8c040b26271e14f0ee",
+    "mtime": 1794131534.6118083,
+    "seen": 1794134472.3563173,
+    "ast_hash": "815f26c7a3dff33f23cdfcc0011a4e2c",
     "semantic_hash": ""
   },
   "src/components/EditBar.tsx": {
@@ -390,9 +390,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/style.ts": {
-    "mtime": 1793879108.6509857,
-    "seen": 1793902315.4000866,
-    "ast_hash": "a10ce88b630fb2152e2d8158298af59d",
+    "mtime": 1794131534.6118083,
+    "seen": 1794134472.3563173,
+    "ast_hash": "44407e0965d4c777bf1cbec4bafd35fb",
     "semantic_hash": ""
   },
   "src/components/viewport/supportLayers.tsx": {
@@ -564,15 +564,15 @@
     "semantic_hash": ""
   },
   "src/locales/ja.ts": {
-    "mtime": 1794089750.383565,
-    "seen": 1794095721.438297,
-    "ast_hash": "b83809b8c3a65cafb54d5b77f965064b",
+    "mtime": 1794131574.8742218,
+    "seen": 1794134472.3563173,
+    "ast_hash": "5855a0dbabc8b4f81d3279d806e4e10e",
     "semantic_hash": ""
   },
   "src/locales/zh-Hant.ts": {
-    "mtime": 1794089750.383565,
-    "seen": 1794095721.438297,
-    "ast_hash": "c56d03f81f3e30b9ff6fbc8e49c545c3",
+    "mtime": 1794131574.8762205,
+    "seen": 1794134472.3563173,
+    "ast_hash": "9fe2b50510e67489fcc1423906088bcf",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -1555,9 +1555,9 @@
     "semantic_hash": ""
   },
   "src/components/DentalSteps.tsx": {
-    "mtime": 1793959205.8890238,
-    "seen": 1793961369.632811,
-    "ast_hash": "7b7c7a3fa857fc8f5d18b8073732c201",
+    "mtime": 1794131574.8101988,
+    "seen": 1794134472.3563173,
+    "ast_hash": "98f75adfed9229efebbbb17518db3411",
     "semantic_hash": ""
   },
   "src/importOracleBoundary.test.ts": {
@@ -3769,9 +3769,9 @@
     "semantic_hash": ""
   },
   "src/dental/editingMode.ts": {
-    "mtime": 1793999960.8489616,
-    "seen": 1794008080.1872241,
-    "ast_hash": "272fafc598ca643a5403a9afa02f2a6b",
+    "mtime": 1794131965.220472,
+    "seen": 1794134472.3563173,
+    "ast_hash": "e8d0de29af958d2c6cf78995bde742e4",
     "semantic_hash": ""
   },
   "src/workers/engineSource.ts": {
@@ -3787,21 +3787,21 @@
     "semantic_hash": ""
   },
   "src/dental/editing/commands.test.ts": {
-    "mtime": 1793268674.496804,
-    "seen": 1793268698.622336,
-    "ast_hash": "59854fde70cb76c136237d62f8c5785e",
+    "mtime": 1794131965.2214725,
+    "seen": 1794134472.3563173,
+    "ast_hash": "307049250d7ad8d9e1f498c90599e64d",
     "semantic_hash": ""
   },
   "src/dental/editing/dentalStep2.test.ts": {
-    "mtime": 1793879484.889469,
-    "seen": 1793902315.4000866,
-    "ast_hash": "9d661bf293152c8a4c85503eeff86420",
+    "mtime": 1794131606.327163,
+    "seen": 1794134472.3563173,
+    "ast_hash": "f6b9faa2d7fe61025658e4cbfccffbbe",
     "semantic_hash": ""
   },
   "src/dental/editing/dentalStep3.test.ts": {
-    "mtime": 1793999960.8479302,
-    "seen": 1794008080.1872241,
-    "ast_hash": "aba871e32761330d98fbdd372cae9c70",
+    "mtime": 1794131643.3380527,
+    "seen": 1794134472.3563173,
+    "ast_hash": "16316d3cbce8b5079628e57b004ba7dc",
     "semantic_hash": ""
   },
   "src/dental/editing/keys.test.ts": {
@@ -3817,9 +3817,9 @@
     "semantic_hash": ""
   },
   "src/dental/editing/session.test.ts": {
-    "mtime": 1793879484.8884637,
-    "seen": 1793902315.4000866,
-    "ast_hash": "0b61e0786a7cfcabbe9b65b978def591",
+    "mtime": 1794131965.2214725,
+    "seen": 1794134472.3563173,
+    "ast_hash": "4fe366248f3fc0e2f0d912bc85e502c3",
     "semantic_hash": ""
   },
   "src/dental/editing/status.test.ts": {
@@ -4051,9 +4051,9 @@
     "semantic_hash": ""
   },
   "src/dental/step1View.test.ts": {
-    "mtime": 1793307195.7862577,
-    "seen": 1793307228.8438706,
-    "ast_hash": "9942b8856118cee2da291cc2f1bcfcbc",
+    "mtime": 1794131643.3380527,
+    "seen": 1794134472.3563173,
+    "ast_hash": "db8e87fd8185ffbd59f757e56acee0a7",
     "semantic_hash": ""
   },
   "src/dental/step1View.ts": {
@@ -5185,9 +5185,9 @@
     "semantic_hash": ""
   },
   "src/dental/editing/rimStage.test.ts": {
-    "mtime": 1793949758.488443,
-    "seen": 1793950930.3032458,
-    "ast_hash": "a5f369e3a487186bbb40262cc8fb76c2",
+    "mtime": 1794131643.3380527,
+    "seen": 1794134472.3563173,
+    "ast_hash": "7120ca2b5cf3e5a4ee8518daf1b9c4a8",
     "semantic_hash": ""
   },
   "src/dental/rim/DentalRimStep.tsx": {
@@ -5455,9 +5455,9 @@
     "semantic_hash": ""
   },
   "src/bench/benchScene.test.ts": {
-    "mtime": 1793999689.721641,
-    "seen": 1794008080.1865294,
-    "ast_hash": "d2ee9399a5c67574822981152667eee0",
+    "mtime": 1794131606.328165,
+    "seen": 1794134472.3563173,
+    "ast_hash": "c3d2a5fc17143af19f9bf504a9b79c62",
     "semantic_hash": ""
   },
   "src/bench/benchScene.ts": {
@@ -5479,9 +5479,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-07-import-and-items-flow.md": {
-    "mtime": 1794131298.1094265,
-    "seen": 1794131333.8728402,
-    "ast_hash": "34acea4be4689c8decb601953eb5ae0a",
+    "mtime": 1794132185.0345504,
+    "seen": 1794134472.357819,
+    "ast_hash": "8fc3ff904d413535f04f4c7b47988856",
     "semantic_hash": ""
   },
   "egm-goldfish-context-import-flow.md": {
