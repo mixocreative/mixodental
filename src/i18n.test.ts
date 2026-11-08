@@ -36,9 +36,27 @@ const DENTURE_UI_FILES = uiFilesIn('./denture/');
 const DENTAL_UI_FILES = uiFilesIn('./dental/');
 const ITEMS_UI_FILES = uiFilesIn('./items/');
 const DECK_UI_FILES = uiFilesIn('./deck/');
-const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/DebugSection.tsx', './components/useDebugLayers.ts', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx', './dental/editingMode.ts', './components/PlatePanel.tsx', './components/usePlateArrange.ts', './components/viewport/UnresolvedBubbles.tsx', './supports/unresolved/unresolvedText.ts', ...DENTURE_UI_FILES, ...DENTAL_UI_FILES, ...ITEMS_UI_FILES, ...DECK_UI_FILES];
+/*
+ * AND `./components/`, WHICH IS THE THIRD TIME THIS SCOPE WAS WRONG.
+ *
+ * The comment above records the first two misses, both inside folders this test already globbed.
+ * The third was a folder it did not glob at all: `src/components/` had an explicit hand-written
+ * list, so a new module there owned user-facing sentences and was simply outside the guard.
+ * `exportRefusalText.ts` is how it was found - four export refusal sentences, added by an audit,
+ * invisible to this test, and its name even matches `SPEAKS`. The explicit list below stays, because
+ * it names files that pass text through without writing `key:` themselves; this adds the ones that
+ * speak for themselves, by the same rule as the other four folders.
+ *
+ * Cost of closing it: three entries in `NOT_UI`. Nothing else in `src/components/` was untranslated,
+ * which is worth saying - the shadow was in the instrument, not in the work.
+ */
+const COMPONENTS_UI_FILES = uiFilesIn('./components/');
+const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/DebugSection.tsx', './components/useDebugLayers.ts', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx', './dental/editingMode.ts', './components/PlatePanel.tsx', './components/usePlateArrange.ts', './components/viewport/UnresolvedBubbles.tsx', './supports/unresolved/unresolvedText.ts', ...DENTURE_UI_FILES, ...DENTAL_UI_FILES, ...ITEMS_UI_FILES, ...DECK_UI_FILES, ...COMPONENTS_UI_FILES];
 /** Quoted literals in UI files that are not shown to the user. */
-const NOT_UI = new Set(['Tab', 'Esc', 'Escape', 'Enter', 'Delete', 'Backspace', 'Unit', 'Mixo supports', 'ArrowUp', 'ArrowDown', 'CodedError', 'ProjectFileError', 'TimeoutError', '{error}', 'AbortError']);
+const NOT_UI = new Set(['Tab', 'Esc', 'Escape', 'Enter', 'Delete', 'Backspace', 'Unit', 'Mixo supports', 'ArrowUp', 'ArrowDown', 'CodedError', 'ProjectFileError', 'TimeoutError', '{error}', 'AbortError',
+  // Not sentences: two font families a stylesheet names, and a modifier key. All three arrived with
+  // `./components/` above, and all three are the whole bill for closing that blind spot.
+  'Atkinson Hyperlegible Next', 'Segoe UI', 'Shift']);
 
 /** Single-quoted literals that read like UI text: a lowercase letter and a space or capital start. */
 /*
