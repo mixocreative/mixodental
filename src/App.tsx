@@ -68,7 +68,7 @@ import { useRimDrawing } from './dental/rim/useRimDrawing';
 import { useSupportEdits } from './supports/useSupportEdits';
 import { pathProblems } from './core/surfacePath/validate';
 import type { ExportKind } from '@mixo-geocore/host/supports/export';
-import type { GeneratedSupportMesh, SupportContact } from '@mixo-geocore/host/core/supports/mesh';
+import type { SupportContact } from '@mixo-geocore/host/core/supports/mesh';
 import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
 import { type ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
 import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
@@ -94,6 +94,7 @@ import { useThumbnails } from './items/useThumbnails';
 import { useBatchDetect } from './items/useBatchDetect';
 import type { ImportRefusal } from './items/rowState';
 import { hasGeometry, type HeldBuild } from './plate/releasedBuild';
+import { isBuilding, isSettled, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { keptBuild } from './denture/steps/supports/rigidMove';
@@ -303,19 +304,14 @@ export default function App() {
   /** Unit versions whose build failed (the error is in the status line): their counts stop waiting. */
   const [failedBuilds, setFailedBuilds] = useState<ReadonlyMap<string, PrintUnit>>(new Map());
   /** The unit's build finished, or failed, for the unit as it is now. */
-  const buildSettled = (unit: PrintUnit) => built.get(unit.id)?.unit === unit || failedBuilds.get(unit.id) === unit;
+  const buildSettled = (unit: PrintUnit) => isSettled(built, failedBuilds, unit);
   /**
-   * THE BUILDS THAT STILL CARRY GEOMETRY. A released build (its unit finished, geometry freed —
-   * `src/plate/releasedBuild.ts`) is absent here, so a finished unit draws no supports: that is what
-   * releasing MEANS, and it is a visible change rather than a no-op. Its outline survives in `built`,
-   * which is what the plate packs by.
+   * THE BUILDS THAT STILL CARRY GEOMETRY, and the meshes the viewport draws from them. A released
+   * build is absent from both, which is what releasing MEANS - `plate/buildViews` says why, and
+   * holds the rest of what is read off a build, tested without React.
    */
-  const heldBuilds = useMemo(() => {
-    const out = new Map<string, UnitBuild<GeneratedSupportMesh>>();
-    for (const [id, entry] of built) if (hasGeometry(entry.mesh)) out.set(id, { unit: entry.unit, mesh: entry.mesh });
-    return out;
-  }, [built]);
-  const supportMeshes = useMemo(() => new Map([...heldBuilds].map(([id, entry]) => [id, entry.mesh])), [heldBuilds]);
+  const heldBuilds = useMemo(() => withGeometry(built), [built]);
+  const supportMeshes = useMemo(() => meshesOf(heldBuilds), [heldBuilds]);
   /*
    * THE RELEASE IS BUILT AND NOT YET TRIGGERED, and that is deliberate.
    *
@@ -349,7 +345,7 @@ export default function App() {
     return stepTwo ? NO_CONTACTS : unitContacts(unit, builtRef.current.get(unit.id)?.mesh);
   }, []);
   /** Whether the unit changed since its shown supports were built (counts follow once the build returns). */
-  const building = (unit: PrintUnit) => unit.supports !== undefined && !buildSettled(unit);
+  const building = (unit: PrintUnit) => isBuilding(built, failedBuilds, unit);
   // Build plate (Round C): the printer's plate, "Arrange plate" and the re-pack of an edited case.
   const plate = usePlateArrange({ units: scene.units, dispatch, setStatus });
   /** The active unit's build, geometry or not: what `unitContacts` and `hiddenByZones` read. */
@@ -360,11 +356,8 @@ export default function App() {
    * a released build reads as absent here and keeps its contacts everywhere else.
    */
   const activeMesh = hasGeometry(activeBuild) ? activeBuild : undefined;
-  const dentalRimGap = activeUnit?.dental?.kind === 'two-contour' && built.get(activeUnit.id)?.unit === activeUnit
-    ? activeMesh?.dentalRimCoverage?.needsReview
-      ? { outerMm: activeMesh.dentalRimCoverage.outer.maxGapMm, openingMm: activeMesh.dentalRimCoverage.opening.maxGapMm }
-      : activeMesh?.dentalRimCoverage ? undefined : 'unavailable' as const
-    : undefined;
+  /** Step 3's rim verdict: a measured gap, nothing to say, or "could not measure" (`plate/buildViews`). */
+  const dentalRimGap = rimGap(activeUnit, activeUnit ? built.get(activeUnit.id) : undefined);
   const targets = useCallback((current: PrintScene) => {
     const selected = current.units.filter((unit) => current.selectedUnitIds.includes(unit.id));
     return selected.length > 0 ? selected : current.units;

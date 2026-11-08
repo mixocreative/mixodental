@@ -64,10 +64,17 @@ question actually being asked. The hook's own docstring says this where it would
 
 Not everything that should be here is. `App.tsx` still holds, as named debt:
 
-- **The support build cycle** — `built`, `failedBuilds`, the per-unit debounce and the effect that
-  schedules a build or keeps the one a slid denture already had. It is the next extraction, and the
-  most tangled: it reaches the preview worker, the denture worker, `useRegenerate`'s `forgetPlacing`
-  and `useSupportChecks`'s `forgetProblems` in one `forgetUnit`.
+- **The support build map** — `built` and `failedBuilds` themselves. These stay, and that is a
+  decision rather than a leftover: the map has thirty-odd read sites in `App.tsx` and three hooks
+  already take it as input, so a hook around it would hand back nearly everything it was handed. A
+  module is worth making when its output is NARROWER than its input, and this one's would not be.
+  What *was* pure has already left: everything the app reads off a build now lives in
+  `src/plate/buildViews.ts` and is tested without React.
+- **The build scheduler** — the per-unit debounce and the effect that asks for a build, or keeps the
+  one a slid denture already had. A real mechanism with a narrow contract, so it is the next
+  extraction. The tangle to watch is `forgetUnit`, which reaches the preview worker, the denture
+  worker, `useRegenerate`'s `forgetPlacing` and `useSupportChecks`'s `forgetProblems` in one call —
+  the app has no single notion of "a unit left the scene", and that absence is the actual smell.
 - **`runCommand`** — the registry switch. It is flat and readable where it is; moving it out would
   need a dependency object of thirty-odd fields, which is not obviously an improvement.
 - **The scene history and session reducers**, the keyboard effect, and the JSX.
