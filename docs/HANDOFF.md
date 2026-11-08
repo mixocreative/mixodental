@@ -24,7 +24,92 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (the CIA audit and its fixes - 2026-11-09)
+## Latest completed step (G2/G4 fault injection, and what it caught - 2026-11-09)
+
+The wiring walk's gap register was all `READ`, which by that doctrine's own rule made it a code
+review rather than an audit. **G2 (replay) and G4 (two actors on one scarce resource) now RUN** -
+through the front door, in headless Chromium, against the real app. Ledger:
+`docs/reviews/2026-11-09-wiring-walk-dental-flow.md` §6. Logs and the run's identity (HEAD, node,
+playwright, the fixture's sha256 and triangle count): `artefacts/2026-11-09-screen/`.
+
+- **Harness:** `scripts/walk.mjs` section `q`, six probes, `npm run walk -- --only=q`, ~8 min. The
+  plate-quota fixture is one 3,193,368-triangle binary STL made on demand by
+  `scripts/make-heavy-meshes.ts 3200000` (152 MiB, git-ignored): two of them cross the 6M plate limit
+  while either alone fits, and the refusal is decided off the 84-byte header, so only the winner pays
+  for a read. That is what makes a 6M-triangle fault injection cost twenty seconds.
+  `window.__replayWorker` was added beside `window.__meshDelay`: it re-dispatches every reply of a
+  named worker a second time **without** swallowing the first, and counts them, so a replay test can
+  prove the fault arrived rather than assume it.
+
+- **Verified controls, with the mechanism named** (a control is only listed once an injection failed
+  to break it): `q1` two drops in flight cannot both pass the plate quota - `PlateLedger.hold`
+  checks scene + every other hold + its own and takes its hold in the same synchronous step, and the
+  refusal names the arithmetic ("would hold 6,386,736; the limit is 6,000,000"). `q4` a replayed
+  Remove takes one row and the right one, because the press is keyed by unit id. `q5` six
+  redelivered analysis replies had no second effect, because `WorkerTask.wire` resolves a reply's job
+  out of `this.jobs` and a settled job has left that map.
+
+- **Reproduced, and fixed:**
+  - **W-08 (HIGH)** the purpose key pressed twice imported the held batch twice - three files, six
+    rows. `choose` read `held` out of its render's closure and cleared it with `setHeld([])`; a state
+    setter schedules a re-render, it takes nothing away from a handler that already closed over the
+    old value. `StartScreen` now claims the batch from a ref, read and emptied in one statement.
+  - **W-09 (HIGH)** Remove and Start on one unit in one tick left the operator where no screen
+    describes: deck shut, no step drawn, the GENERIC editor panels up, two models on the plate,
+    nothing selected - and the dental mode still on underneath with no dental bar to leave it by,
+    while the status line said "Drop an aligner STL... then press Next". Every guard downstream had
+    worked exactly as written: the selection reducer drops an id the scene has not got so
+    `activeUnitId` is empty, `startAligner` abandons its orient job, `setStartScreen(null)` had
+    already closed the deck, and the gesture that draws the dental bar needs an active unit.
+    Fixed by an INVARIANT EFFECT on rendered state - the flow cannot be open on a unit that is not on
+    the plate, so it closes and the deck comes back. **Not** by a guard in `startItem`: that was the
+    first fix and it could never fire, because `sceneRef.current` is updated on render and so still
+    holds the unit in the tick the removal was dispatched. `useImportFiles` carries that warning
+    about that ref; it was read earlier in the same session and the bug was written anyway. The guard
+    was deleted rather than kept - one that cannot fire is a dead control wearing safety's clothes.
+  - **W-07 (HIGH)** a budget refusal (triangles, memory, a full plate) is decided before any worker
+    starts, so no activity row was ever opened and the refusal lived only in the status line - which
+    the winning file's own heavy-model sentence then replaced. A file refused by the WORKER was
+    always safe, because a failed activity row is never dropped; that asymmetry is what hid it.
+    `useImportFiles.listBudgetRefusal` puts both kinds of refusal on the same screen.
+
+- **UNPROVEN, not skipped:** G1, G3, G5, G7 each need a page lever that can FAIL, REORDER or STOP a
+  reply; `window.__meshDelay` only delays. One lever (`window.__faultWorker = { fail, reorder, stop }`)
+  covers all four and is the cheapest audit work left. G6 is `N/A` with its map row: no finished
+  record points at an artefact outside the scene.
+
+- **Also in this pass**, from the register's own next-steps list: **W-03** a queued row says "Waiting
+  its turn…" instead of drawing the same blank as a row the batch has never heard of (and the
+  register was wrong about the mechanism - the analysis worker's 10-minute per-job timeout means the
+  queue cannot block for ever; the blank was the whole defect). **W-05** the four export refusals
+  moved to a pure `src/components/exportRefusalText.ts` read by both the status line and the activity
+  list, with a test asserting as a property that every one of them names the model, says nothing was
+  written, and ends with the next step - which caught the `replant` sentence never saying it.
+  **E4** the rail press now carries its tool (`ItemsPage` discarded it, which was W-02's unnoticed
+  second half), and Rim on a row the detector flagged `no-rim` enters rim drawing directly instead of
+  re-running `dentalOrient` to be told what the row already says.
+
+- **The lessons, and they are one lesson three times:** walk `q6` PASSED on its first run and should
+  not have, because it looked for one named bad outcome and came back green on a worse one - **a
+  check that enumerates the bad states can only find the bad states its author imagined**, so assert
+  what must be true. Then the first FIX for it was wrong in the same way, guarding against a race
+  with a ref that is a render behind. And the first DIAGNOSIS was a guess, because the probe that
+  would have settled it cost eight minutes - so `--probes=<list>` was added to filter section `q` to
+  one injection (seven seconds, almost all of the saving being q1's 3.19M-triangle read) and it
+  changed the work in the same turn. **A diagnosis that costs eight minutes a question gets guessed
+  at instead of asked.** Same family as the previous day's `noUnusedLocals` lesson: the cheap,
+  certain instrument beats the careful reading.
+
+- **Deliberate debt, with its reason:** W-05 and W-07 took the activity list, which is the screen the
+  operator already watches but is dismissible and session-scoped - a project reopened tomorrow does
+  not know its last export was refused. A persistent mark on the unit is scene state with save-file
+  consequences, so it is written down rather than taken quietly.
+
+- **Results:** tsc 0 - 1532 tests passed, 1 skipped (was 1527) - build 0 - full walk run and read;
+  all six fault injections pass against the fixed app. `g-pre` fails as it usually does (a
+  machine-load precondition, not the app), which leaves `g` unanswered - never a green claim.
+
+## Previous completed step (the CIA audit and its fixes - 2026-11-09)
 
 A scoped Screen-tier `cia` audit of the deck -> flow -> deck journeys, after two EGM document reviews
 missed the class. Ledgers: `docs/reviews/2026-11-08-cia-deck-and-flow.md` (sweeps) and

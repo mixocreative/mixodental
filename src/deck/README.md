@@ -10,7 +10,7 @@ enforced beyond what is genuinely impossible.
 | `toolState.ts` | each tool's state, the line a greyed one shows, and `railReason` |
 | `unitFacts.ts` | the only place that reads the scene's fields and answers the rule's questions |
 | `jobSummary.ts` | how the whole drop is doing, counted from the rows' own verdicts |
-| `ToolRail.tsx` | how the four states LOOK; it renders the reason line `toolState` picks |
+| `ToolRail.tsx` | how the four states LOOK; it renders the reason line `toolState` picks, and names what each press opens |
 
 **Two pieces live one layer down**, because the reducer needs them too and the deck must not be
 imported from below it: `src/state/tools.ts` holds `ToolId` and `TOOL_ORDER` — the four tools and the
@@ -147,3 +147,31 @@ press can go through the same command the operator's own Back does.
 `src/state/project.ts` needs nothing: `revisionsField` validates against `TOOL_ORDER`, so a new tool
 is accepted in a saved record automatically — but the reducer will not STAMP it until a command says
 so. Tests to extend: `toolState.test.ts`, `unitFacts.test.ts`, `src/state/revisions.test.ts`.
+
+## The press carries the tool (increment E4)
+
+W-02 had two halves and only the first was obvious. The buttons had no `onClick` at all, so four
+states were drawn and none was pressable; that was fixed on 2026-11-08. The second half survived it:
+`ItemsPage` passed `onPick={() => onStart(railUnit)}` and **threw the tool argument away**, so all
+four buttons did the one thing — open the model at the start of its flow — and the rail's own `ready`
+note, "Open this model.", was the truthful description of that.
+
+The press now carries the tool, and `App.tsx` decides what each one may enter. **One row of the
+rail actually goes somewhere different, and only one:** pressing **Rim** on a row whose batch
+detection came back `no-rim` enters rim drawing directly (`useDentalFlow.startRimDrawing`). That row
+is the one case where the evidence is already in hand — the detector ran, judged the mesh usable and
+found nothing to measure from, which is exactly the state Step 1 answers with `dentalRimNeeded` —
+so opening it at Step 1 meant running `dentalOrient` again to be told what the row already said.
+
+Every other press keeps today's behaviour. On a row whose rim **was** detected the question becomes
+*may a detected rim be redrawn*, and that is the owner's to settle; this increment does not need the
+answer, which is why it is scoped this way. A denture has no Rim button at all (`toolsFor`), so the
+branch cannot be reached on one.
+
+**Why this is not the deleted `toolEntry` coming back.** That module walked `backDental` to the
+pressed tool, and `App.tsx`'s rail-press comment records its three faults: it was unreachable, it
+hard-coded the aligner stage spine, and it bypassed a confirm-and-discard guard that lives in the
+command layer. This goes FORWARD into the flow through the same events the detected path uses,
+discards nothing and walks nothing back, and the per-tool entry §10 of
+`docs/design/2026-11-07-import-and-items-flow.md` describes — `openTool(tool, unitId)`, free because
+it mutates nothing — still belongs with the workspace, where the rail is on screen during the flow.

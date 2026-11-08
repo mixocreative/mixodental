@@ -17,3 +17,8 @@ graphify-out/20*/
 # Stitch: captures and the per-machine project binding. The project link lives in DESIGN.md.
 .stitch/
 .stitch.json
+
+# Audit run logs. The evidence a review CITES is committed explicitly by path - a table that cites
+# evidence nobody can open is the defect those reviews are about - and everything else here is a
+# local by-product of a run that the commit can reproduce. Tracked files are unaffected by this.
+artefacts/

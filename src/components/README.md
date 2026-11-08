@@ -35,6 +35,32 @@ is why the table below is the fastest way to find where a behaviour lives.
 `appShared.ts` holds what nearly all of them need: the runtime tier for the budgets, `triangleCount`,
 `isAbort`, and the `SetStatus` type.
 
+## Where a refusal goes, and why it is said twice
+
+**A refusal that reaches only the status line has not reached the operator.** The status line holds
+one message and the next thing to happen replaces it, so "nothing was written" can be erased by a
+cheerful sentence about something else before anyone reads it. Both halves of that defect were
+reproduced by fault injection on 2026-11-09 (`docs/reviews/2026-11-09-wiring-walk-dental-flow.md`
+§6, walk checks `q1`/`q2`): two files dropped together, the plate ledger correctly refused the
+second, and the winner's own heavy-model sentence then took the line.
+
+So a refusal is said **twice**: to the status line, which is where the operator is looking at that
+instant, and to the **job activity list**, which is where it stays. That list never drops a failed
+row (`JobActivity.view` deletes only rows whose outcome is not `failed`) and surfaces one that ended
+inside its show delay, so it is the screen that remembers.
+
+| file | its part in that |
+|---|---|
+| `useImportFiles.ts` | `listBudgetRefusal` — a triangle, memory or plate refusal happens before any worker starts, so nothing was ever listed. A file the WORKER refuses was always safe, and that asymmetry is what hid it. |
+| `exportRefusalText.ts` | the four export refusal sentences, pure, read by **both** screens. They live here because the activity list builds its text from an error CODE, and the generic "the export failed" it would otherwise reach is a second, vaguer vocabulary for an event the status line describes exactly. |
+| `useExport.ts` | `refuse(reason, name)` — one call that says it to both. |
+| `JobActivity.tsx` | `failureText` prefers `storedExportRefusal` over the generic text, so the two screens cannot drift. |
+
+**What this fix is not.** The activity list is dismissible and session-scoped: a project reopened
+tomorrow does not know its last export was refused. A persistent mark on the unit is scene state
+with save-file consequences, so it is written down as debt with its reason (the review's "what runs
+next") rather than taken quietly.
+
 ## Why a hook and not a module function
 
 Each of these is a closure over the app's refs and setters — `sceneRef`, `sessionRef`, `send`,
@@ -84,6 +110,22 @@ Not everything that should be here is. `App.tsx` still holds, as named debt:
   the function. It is left visible in `App.tsx` on purpose: buried inside a hook it would look
   settled. (`useSupportBuilds` no longer adds to it — it clears its own timers, which is why that
   hook's one caller is also the only place a departure is noticed.)
+- **`startItem`** — what a press from the deck does: which unit is opened, and (since E4) which tool
+  the press may enter. It is wiring by definition — it reaches the scene, the session, the flow hook
+  and the start screen. Its one rule is E4's: Rim on a row the detector flagged `no-rim` goes to rim
+  drawing rather than back through a detection (`src/deck/README.md`). When the workspace replaces
+  the deck, this is what `openTool(tool, unitId)` takes over
+  (`docs/design/2026-11-07-import-and-items-flow.md` §10).
+- **Two invariant effects about units leaving**, and they are here because they need the SCENE and
+  the SESSION together, which is what the composition root has:
+  - closing the last model returns to the start and leaves any step;
+  - **the dental flow cannot be open on a unit that is not on the plate** (W-09). A guard in
+    `startItem` cannot do this job: `sceneRef.current` is a render behind, so it cannot see a
+    removal dispatched in the same tick as the press. The effect runs on rendered state, so it does
+    not care which actor won or in what order, and it RECOVERS — the flow closes and the deck comes
+    back — rather than refusing. Both effects are the same shape and should stay next to each
+    other; a third would be the signal that "a unit left the scene" wants a notion of its own, which
+    is the debt `forgetUnit` above already names.
 - **`runCommand`** — the registry switch. It is flat and readable where it is; moving it out would
   need a dependency object of thirty-odd fields, which is not obviously an improvement.
 - **The scene history and session reducers**, the keyboard effect, and the JSX.
