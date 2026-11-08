@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794089327.2867415,
-    "seen": 1794095721.4367871,
-    "ast_hash": "f9924cfe4e19c27a9e7909f96f46b316",
+    "mtime": 1794115123.1555784,
+    "seen": 1794117437.1694646,
+    "ast_hash": "ebe4d4c67db081c43a7289cce6dfde80",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -744,9 +744,9 @@
     "semantic_hash": "45d648166e0db47b472a1458bd193b61"
   },
   "src/threeBoundary.test.ts": {
-    "mtime": 1793268561.17332,
-    "seen": 1793268565.3634207,
-    "ast_hash": "9ae214423cfd9d0849e181d4e7ba983e",
+    "mtime": 1794114604.8118267,
+    "seen": 1794117437.1694646,
+    "ast_hash": "1f3bb69280e86a32c1c7aac3b3763238",
     "semantic_hash": ""
   },
   "src/vite-env.d.ts": {
@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794093786.7737222,
-    "seen": 1794095721.438297,
-    "ast_hash": "386b0b65fbada65b3253b9be22e44461",
+    "mtime": 1794115167.6639013,
+    "seen": 1794117437.2014086,
+    "ast_hash": "ffe5cbd9fdc5490b726190c2228de328",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -1513,9 +1513,9 @@
     "semantic_hash": ""
   },
   "scripts/geometry-allowlist.json": {
-    "mtime": 1794070657.7157707,
-    "seen": 1794082605.029369,
-    "ast_hash": "b2c08b35d03f98a29fef1ba6f67f361b",
+    "mtime": 1794115029.5373392,
+    "seen": 1794117437.1694646,
+    "ast_hash": "abafbd36b1c8191d97ceabf3df1d7ffd",
     "semantic_hash": ""
   },
   "docs/SHIP-PLAN.md": {
@@ -5818,6 +5818,24 @@
     "mtime": 1794048065.0644312,
     "seen": 1794095721.438297,
     "ast_hash": "d6c5dfe9204f32fb5c0c45c7a8a80d44",
+    "semantic_hash": ""
+  },
+  "src/components/useImportFiles.ts": {
+    "mtime": 1794115512.9331026,
+    "seen": 1794117437.1694646,
+    "ast_hash": "9d475dfb297c017ee40b78906eb3c0b2",
+    "semantic_hash": ""
+  },
+  "src/components/useSupportChecks.ts": {
+    "mtime": 1794114845.7041423,
+    "seen": 1794117437.1694646,
+    "ast_hash": "f9865074e83ff344144c9ffb1e14039e",
+    "semantic_hash": ""
+  },
+  "src/components/README.md": {
+    "mtime": 1794115123.1555784,
+    "seen": 1794117437.2014086,
+    "ast_hash": "64faffa02540dd011636776642c44cf8",
     "semantic_hash": ""
   }
 }
