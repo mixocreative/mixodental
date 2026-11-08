@@ -634,7 +634,20 @@ export default function App() {
   const clearManual = () => {
     const cleared = { added: 0, removed: 0, customised: 0 };
     const count = forTargets((unit) => {
-      if (!unit.manual.length && !unit.deleted.length && !Object.keys(unit.contactSettings).length) return undefined;
+      /*
+       * ONE PREDICATE DECIDES WHETHER A UNIT CARRIES HAND WORK, and this used to be a second copy of
+       * it written inline. `backNeedsConfirm` is the same question Back out of Step 3 asks before it
+       * discards, and two spellings of one rule are two things that can drift apart - with the guard
+       * as the half that matters.
+       */
+      if (!backNeedsConfirm(unit)) return undefined;
+      /*
+       * THE COUNTS ARE NOT THE PREDICATE, and the difference is deliberate rather than an oversight.
+       * `unitRemovedCount` counts the deletions that actually HIDE a placed point, which is what the
+       * operator will see come back; the predicate reads `deleted.length`, which is whether any hand
+       * work is recorded at all. A deletion of a point that is not currently placed hides nothing, so
+       * a unit can truthfully carry hand work and report 0 removed.
+       */
       cleared.added += unit.manual.length;
       cleared.removed += unitRemovedCount(unit);
       cleared.customised += Object.keys(unit.contactSettings).length;

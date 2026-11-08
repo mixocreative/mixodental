@@ -1670,8 +1670,26 @@ Exit, so Back is not Exit.
    explicit no-op with a comment saying why, and the test asserts identity rather than a shape — a
    stray `backDental` must not quietly throw away an orientation the operator still has.
 
-**E2. `handWorkAtRisk` becomes a pure predicate** consumed by the existing Back handler.
-*Exit:* exactly one place decides discard; Back behaves identically; the predicate is tested per edge.
+**E2. DONE, and SMALLER than specified — the predicate already existed.** The plan called for
+`handWorkAtRisk` to be made pure and tested. `src/dental/flow.ts`'s `backNeedsConfirm` already was
+both, and both discard paths (`discardManualCommands`, `exitCommands`) already consulted it.
+
+What was actually missing was the "exactly one place" half: `clearManual` in `App.tsx` re-expressed
+the same question inline — `!unit.manual.length && !unit.deleted.length && !keys(contactSettings)` —
+so there were two spellings of one rule, with the guard as the half that matters. It now consults the
+predicate. The change is provably behaviour-identical, so it needed no walk.
+
+*The tool dimension is deliberately NOT built yet.* Fable's ruling generalises the trigger to "an
+Apply in tool T on unit U, when a tool downstream of T carries hand work". Today the only hand work
+is supports-level, which is downstream of orient, rim and area alike, so a `tool` parameter would
+have no caller that varies it until E6 gives each tool its own Apply. Machinery with no user is the
+thing this plan's own test forbids; it lands with its first caller.
+
+*One difference worth not "fixing".* The counts in the clear toast use `unitRemovedCount` (deletions
+that actually hide a placed point — what the operator sees come back) while the predicate reads
+`deleted.length` (whether any hand work is recorded at all). A deletion of a point that is not
+currently placed hides nothing, so a unit can truthfully carry hand work and report 0 removed. Both
+lines now say so.
 
 **E3. `openTool(tool, unitId)` and an `activeTool` field** beside `dentalStage`, with the stage
 derived from the tool. Next/Back become thin wrappers over `openTool`.
