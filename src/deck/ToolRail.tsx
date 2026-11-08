@@ -52,6 +52,9 @@ export function ToolRail({ facts, onPick }: {
       return <button key={tool} type="button" data-ui={`tool-${tool}`}
         className={className}
         disabled={disabled}
+        // The press the call site has always passed in and this component never called. A disabled
+        // button cannot fire, so an unavailable tool stays inert without a second guard here.
+        onClick={() => onPick(tool)}
         // A disabled button carries its own reason too: the line below says the NEXT thing to do, and
         // a tool further down the chain still owes an answer to "why not this one".
         {...(state.kind === 'unavailable' ? { title: translateMessage(state.because) }

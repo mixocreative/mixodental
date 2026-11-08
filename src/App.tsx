@@ -4,7 +4,7 @@ import { useSlowJob } from './ui/useSlowJob';
 import { angleEvidence } from './dental/angleEvidence';
 import { SceneLegend } from './components/SceneLegend';
 import { labelForIndex } from '@mixo-geocore/host/core/analysis/mesh';
-import type { PlacementResult, SupportPoint } from '@mixo-geocore/host/core/analysis/types';
+import type { PlacementResult } from '@mixo-geocore/host/core/analysis/types';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import JobActivityPanel from './components/JobActivity';
 import { stagedJobBar } from './denture/progress/StagedProgress';
@@ -68,7 +68,6 @@ import { useSupportEdits } from './supports/useSupportEdits';
 import { pathProblems } from './core/surfacePath/validate';
 import type { ExportKind } from '@mixo-geocore/host/supports/export';
 import type { SupportContact } from '@mixo-geocore/host/core/supports/mesh';
-import { meshBounds } from '@mixo-geocore/host/core/supports/meshQuery';
 import { type ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
 import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { defaultDentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
@@ -82,11 +81,8 @@ import { effectiveBrushMode } from '@mixo-geocore/editing/selection';
 import { keyAction } from '@mixo-geocore/editing/keys';
 import { customisedAmong, liveSelection, scopeCounts, shapePatch, shapeView } from '@mixo-geocore/editing/shapeEdit';
 import { lockNote, sectionLocked, type Panel } from '@mixo-geocore/editing/locks';
-import { contactToRemove } from '@mixo-geocore/editing/removal';
-import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { editsSupports, initialSession, reduceSession, selectsTips, startsEditing, type SessionEvent } from '@mixo-geocore/editing/session';
 import { acceptsDentalDrop } from './dental/editingMode';
-import { planAddTip } from '@mixo-geocore/editing/addTip';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
 import { ItemsPage } from './items/ItemsPage';
 import { useThumbnails } from './items/useThumbnails';
@@ -94,14 +90,14 @@ import { useBatchDetect } from './items/useBatchDetect';
 import type { ImportRefusal } from './items/rowState';
 import { hasGeometry, type HeldBuild } from './plate/releasedBuild';
 import { useSupportBuilds } from './components/useSupportBuilds';
-import { isBuilding, isSettled, meshesOf, rimGap, withGeometry } from './plate/buildViews';
+import { isBuilding, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { stepPanelInset } from './dental/stepPanelInset';
 import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import type { DentalReview } from './components/DentalSupports';
-import { BUILDING_STATUS, busyStatus, heavyStatus, missStatus, sessionStatus } from '@mixo-geocore/editing/status';
+import { BUILDING_STATUS, busyStatus, sessionStatus } from '@mixo-geocore/editing/status';
 import { CodedError, errorStatus } from '@mixo-geocore/editing/errors';
 import { stepKind } from './state/stepKind';
 import { toastAlive, undoToast, type UndoAction, type UndoToast as UndoToastState } from '@mixo-geocore/editing/toast';
@@ -299,8 +295,6 @@ export default function App() {
   builtRef.current = built;
   /** Unit versions whose build failed (the error is in the status line): their counts stop waiting. */
   const [failedBuilds, setFailedBuilds] = useState<ReadonlyMap<string, PrintUnit>>(new Map());
-  /** The unit's build finished, or failed, for the unit as it is now. */
-  const buildSettled = (unit: PrintUnit) => isSettled(built, failedBuilds, unit);
   /**
    * THE BUILDS THAT STILL CARRY GEOMETRY, and the meshes the viewport draws from them. A released
    * build is absent from both, which is what releasing MEANS - `plate/buildViews` says why, and

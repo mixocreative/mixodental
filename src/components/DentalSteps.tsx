@@ -112,7 +112,6 @@ export function PrintAngleField({ tilt, profile, onChoose, restore }: {
   const tiltStepDeg = tiltStepOf(profile);
   const row = scan.rows[index]!;
   const band = scan.band ? [scan.rows[scan.band[0]]!.tiltDeg, scan.rows[scan.band[1]]!.tiltDeg] as const : undefined;
-  const flags = tiltFlags(row);
   const pick = scan.rows[scan.order[0]!]!;
   return <div className="print-angle" role="group" aria-label={t('Print angle')}>
     {/* The dial DRAWS the stable band, so the line that said it in words was saying it twice. It stays for a

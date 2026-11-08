@@ -7,7 +7,7 @@ import type { Message } from '../i18n';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { PrintScene, PrintUnit, SceneCommand } from '../state/project';
-import { resolveSettings, type BuiltSupports, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
+import { resolveSettings, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
 import { builtGeometry, type HeldBuild } from '../plate/releasedBuild';
 import type { SetStatus } from './appShared';
 

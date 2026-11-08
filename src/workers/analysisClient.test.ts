@@ -4,7 +4,6 @@ import type { DentalPlacementJob, PlacementJob } from '@mixo-geocore/host/core/j
 import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { TriangleGate } from '@mixo-geocore/host/core/jobGate';
 import { AnalysisClient, analysisPoolSize } from './analysisClient';
-import { JobActivity } from '@mixo-geocore/host/workers/jobActivity';
 import type { AnalysisTask } from './analysisProtocol';
 import type { WorkerLike } from '@mixo-geocore/host/workers/WorkerTask';
 

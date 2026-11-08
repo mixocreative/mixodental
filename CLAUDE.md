@@ -39,3 +39,34 @@ nearly as much as it returns is a hub, not a job, and moving it is motion rather
 which is why `src/plate/buildViews.ts` and `src/components/useSupportBuilds.ts` exist while the
 `built`/`failedBuilds` maps stayed in `App.tsx`. Pure rules go in a plain module and get a test;
 `src/components/README.md` and `src/deck/README.md` carry the rest.
+
+## two graphs, two jobs, one source of truth
+
+Owner's rules, 2026-11-09. Two code graphs are installed and they are not interchangeable.
+
+**Separate stores. Never write one into the other's directory or database.**
+
+| | graphify | CodeGraphContext (CGC) |
+|---|---|---|
+| store | `graphify-out/` - committed, rewritten whole by `graphify update .` | `C:\Users\DCT\.local\cgc-db\mixodental` - OUTSIDE the repo, never committed |
+| run as | the `graphify` CLI | the venv at `C:\Users\DCT\.local\venvs\codegraphcontext` - its own venv on purpose: installing it `--user` dragged `protobuf` down to 3.20.3 and broke `grpcio-status` in this machine's ML environment |
+
+**Ask the right one, and ask only one.**
+
+- **CGC first, for code RELATIONSHIPS:** callers, callees, call chains, class hierarchies, blast
+  radius. That is what it models and graphify does not - graphify has no node for a prop or a
+  parameter, which is why `onPick` being destructured and never called was invisible to it.
+- **graphify when CGC is not enough, for ARCHITECTURAL context:** communities, god nodes, the wiki,
+  and the doc-to-code edges. `graphify affected "X"` lists the `docs/` pages that reference a module,
+  which is the fastest way to honour "update all the md". `explain`, `path` and `affected` are the
+  cheap calls; a bare prose `query` returns noise at this size, so seed it (`--seed`) or cap it
+  (`--budget`).
+- Do not ask both the same question. Two answers to one question is not corroboration - it is twice
+  the tokens and a tie-break nobody owns.
+
+**Neither graph is authoritative.** The code and `docs/` are. A graph answer that disagrees with the
+source means the index is stale: rebuild it, do not file a finding against the code.
+
+**And neither is the first tool for an unused binding.** `tsconfig.json` sets `noUnusedLocals` and
+`noUnusedParameters`, so a binding nothing reads fails the build. That is cheaper and more certain
+than either graph, and it is what finally named the dead tool rail.

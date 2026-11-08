@@ -1312,6 +1312,37 @@ async function walk(url, scratch, dentalFixture) {
         && /[Cc]ould not be read/.test(refusedRows[0] ?? '')
         && (await page.locator('.items-row:not(.items-row--refused)').count()) === 2,
         `refused ${JSON.stringify(refusedRows)}, good rows ${await page.locator('.items-row:not(.items-row--refused)').count()}`);
+
+      /*
+       * A RAIL PRESS DOES SOMETHING. Until 2026-11-09 `ToolRail` destructured `onPick` and never
+       * called it, and its buttons carried no `onClick`: four tools drawn in four states, none of
+       * them pressable, while `src/deck/README.md` said pressing one works. Two document reviews,
+       * two readings of that file and a long subagent audit all missed it; `noUnusedParameters`
+       * named it in one line, which is why that flag is now on.
+       *
+       * The press opens the MODEL at the start of its flow - what the call site passes and what the
+       * README describes. Opening the pressed TOOL is per-tool entry, and is not built.
+       *
+       * LAST IN THE SECTION on purpose. It navigates off the deck, and an earlier attempt sat in the
+       * middle and tried to come back with Back: that click timed out and took the twelve checks
+       * below it with it. A check whose own cleanup can fail is worse than no check. Here the deck
+       * m8 left up is all it needs, and nothing after it wants the deck back.
+       */
+      await page.locator('[data-ui="tool-orient"]').click();
+      const railOpened = await page.waitForFunction(() => /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 30000 })
+        .then(() => true, () => false);
+      /*
+       * SETTLE BEFORE READING THE DOCK. The badge says "Step 1" as soon as the dock mounts, which is
+       * BEFORE the row's model has been handed to the step - so the first version of this check
+       * printed "Add the aligner STL." in its evidence while passing, and a reader would reasonably
+       * conclude the press lands on the file prompt. It does not; the wait was just satisfied early.
+       * Asserting the prompt is GONE afterwards is what makes the pass mean what it says.
+       */
+      await d.quiet();
+      const railAskedForFile = railOpened ? await page.getByText('Place the aligner file here').count() : -1;
+      check('m9 a rail press opens the model and reads it, rather than doing nothing at all',
+        railOpened && railAskedForFile === 0,
+        `opened ${railOpened}, "choose a file" prompts ${railAskedForFile}, badge "${(await page.locator('.edit-badge').textContent().catch(() => 'none'))?.slice(0, 60)}"`);
     }
 
     // u. Dental flow, Step 1 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).

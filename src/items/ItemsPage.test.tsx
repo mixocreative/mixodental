@@ -4,7 +4,6 @@ import { ItemsPage } from './ItemsPage';
 import type { PrintUnit } from '../state/project';
 import type { ImportDiagnosis } from '../state/diagnosis';
 import type { ImportRefusal } from './rowState';
-import type { DetectState } from './detectState';
 
 const mesh = { positions: new Float32Array([0, 0, 0, 10, 20, 30, 0, 20, 0]), indices: new Uint32Array([0, 1, 2]) };
 const verdict = (over: Partial<ImportDiagnosis> = {}): ImportDiagnosis => ({

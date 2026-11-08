@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it } from 'vitest';
 import { weld_positions_in_place as weldWasm } from '../../vendor/mixo-geocore/pkg-node/mixo_geometry_wasm.js';
 import { exactArray, expectGolden } from '../../scripts/test-support/golden';
 

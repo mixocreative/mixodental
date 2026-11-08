@@ -6,7 +6,7 @@ import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import type { GeneratedSupportMesh, SupportContact } from '@mixo-geocore/host/core/supports/mesh';
 import { warmZoneOverlay, zoneOverlay } from './overlayMesh';
 import { contactRadius, withShape } from '@mixo-geocore/host/core/supports/settings';
-import { sameStamp, stampVertices, zonedVertices, type VertexGrid, type ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
+import { sameStamp, stampVertices, type VertexGrid, type ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
 import type { DentalAllowStamp } from '@mixo-geocore/host/dental/dentalPolicy';
 import { contactToRemove } from '@mixo-geocore/editing/removal';
 import { contactVertexRuns, selectionDelta } from '@mixo-geocore/editing/selectionHighlight';

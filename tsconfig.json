@@ -9,6 +9,13 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    // A BINDING NOTHING READS IS A DEFECT, not untidiness - switched on 2026-11-09 after an audit.
+    // The tool rail's `onPick` was destructured and never called: four buttons drawn in four states
+    // and none of them pressable. Two document reviews, two readings of that file and a long
+    // subagent audit found it; `noUnusedParameters` names it in one line, at compile time, for free.
+    // It also replaces the grep-counting that was the only way to find an orphaned import here.
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",

@@ -30,7 +30,7 @@ export type ChooserScreen = Exclude<StartScreenId, 'items'>;
  * show: choose the task, then the aligner type, then the file. A file dropped on the first or second
  * screen is held until the type is chosen; the last screen hands the type and file to the app.
  */
-export function StartScreen({ screen, profile, lang, onScreen, onAnyModel, onOpenProject, onProjectFile, onStart, onFiles, onUnsupported }: {
+export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProject, onProjectFile, onStart, onFiles, onUnsupported }: {
   screen: ChooserScreen;
   /** The aligner type chosen before (kept pressed when the screen is reached again). */
   profile: string | undefined;
