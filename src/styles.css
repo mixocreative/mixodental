@@ -1560,6 +1560,10 @@ dialog.terms .terms-item > span { flex: none; }
 .items-row .verdict { grid-area: verdict; color: var(--muted); font-size: var(--small-size, 11.5px); }
 /* What the batch found about THIS row's orientation — its own result, not the batch's. */
 .items-row .detect { grid-area: detect; color: var(--muted); font-size: var(--small-size, 11.5px); }
+/* A row that needs the operator, and a row whose check could not run: not the same thing, and
+   neither is the muted grey of a row that is fine. */
+.items-row .detect--todo { color: var(--warning); }
+.items-row .detect--bad { color: var(--danger); }
 /* Files waiting for a purpose press on the Drop page: the question, not a status. */
 .start-held { margin: 0 0 10px; color: var(--muted); font-size: var(--small-size, 11.5px); }
 .items-row--done { opacity: .55; }

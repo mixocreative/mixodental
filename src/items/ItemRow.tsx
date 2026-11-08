@@ -35,7 +35,26 @@ export function ItemRow({ unit, done, onRail, detected, thumbnails, onSelect, on
   // No verdict means the unit never went through the import worker, or predates the verdict. The row
   // then shows its size and says nothing about health, which is the honest gap.
   const verdict = unit.diagnosis ? rowSentence(verdictOfDiagnosis(unit.diagnosis)) : undefined;
-  const found = detectSentence(detected ?? { kind: 'waiting' });
+  /*
+   * A DETECT SENTENCE CAN GO OUT OF DATE, and two of them are INSTRUCTIONS. "No rim found. Draw one
+   * to continue." and the failure line come from the batch's map, which is never written again - so a
+   * row whose rim the operator had since drawn by hand still told them to draw it, while the rail
+   * beside it (which reads the unit) said the rim was there. Two surfaces on one row, disagreeing,
+   * and the instruction was the wrong one of the two.
+   *
+   * Only those two are superseded. "Already upright." stays true however far the row has progressed.
+   */
+  const settled = unit.rimDraft?.closed === true || unit.dental !== undefined || unit.denture !== undefined;
+  const superseded = settled && (detected?.kind === 'no-rim' || detected?.kind === 'failed');
+  const found = superseded ? undefined : detectSentence(detected ?? { kind: 'waiting' });
+  /*
+   * TROUBLE MUST NOT LOOK LIKE SUCCESS. Every detect line rendered in the same muted grey, so
+   * "Already upright." and "Could not check the orientation." were indistinguishable at a glance -
+   * with eight rows the operator had to read all eight. Two tones, because the two states are not the
+   * same thing: a rim that was not found needs the operator (a job, not an error), and a check that
+   * could not run is a fault.
+   */
+  const tone = superseded || !detected ? '' : detected.kind === 'failed' ? ' detect--bad' : detected.kind === 'no-rim' ? ' detect--todo' : '';
   const shot = thumbnails.get(unit.id)?.url;
 
   return <li
@@ -60,7 +79,7 @@ export function ItemRow({ unit, done, onRail, detected, thumbnails, onSelect, on
     <span className="verdict" data-ui={`items-verdict-${unit.id}`}>
       {verdict ? translateMessage(verdict) : null}
     </span>
-    <span className="detect" data-ui={`items-detect-${unit.id}`}>
+    <span className={`detect${tone}`} data-ui={`items-detect-${unit.id}`}>
       {found ? translateMessage(found) : null}
     </span>
     {/*

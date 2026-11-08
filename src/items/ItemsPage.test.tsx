@@ -157,6 +157,37 @@ describe('the Items page', () => {
     expect(finishedPick).toContain('Start with the first item');
   });
 
+  /*
+   * FOUND BY AUDIT (ledger F6, F7). Two defects on one span: every detect line rendered in the same
+   * muted grey, so a failure read like a success and eight rows had to be read one by one; and the
+   * line came from the batch's map, which is never written again - so a row whose rim the operator had
+   * since drawn by hand still told them to draw it, disagreeing with the rail beside it.
+   */
+  it('marks a row that needs the operator differently from one that is fine', () => {
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
+      units={[unit('u-a', 'ok.stl', verdict()), unit('u-b', 'norim.stl', verdict()), unit('u-c', 'bad.stl', verdict())]}
+      refused={[]} finished={[]} lang="en" thumbnails={new Map()}
+      detected={new Map([['u-a', { kind: 'oriented', turned: true }], ['u-b', { kind: 'no-rim' }], ['u-c', { kind: 'failed' }]])}
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+    const toneOf = (id: string) => html.match(new RegExp(`class="detect([^"]*)"[^>]*data-ui="items-detect-${id}"`))?.[1] ?? 'absent';
+    expect(toneOf('u-a')).toBe('');
+    expect(toneOf('u-b')).toBe(' detect--todo');
+    expect(toneOf('u-c')).toBe(' detect--bad');
+  });
+
+  it('stops telling a row to draw a rim once the rim is drawn', () => {
+    const drawn = { ...unit('u-b', 'norim.stl', verdict()), rimDraft: { anchors: [], closed: true } } as unknown as PrintUnit;
+    const html = renderToStaticMarkup(<ItemsPage denture={false} units={[drawn]} refused={[]} finished={[]}
+      lang="en" thumbnails={new Map()} detected={new Map([['u-b', { kind: 'no-rim' }]])}
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+    expect(html).not.toContain('Draw one to continue');
+    // "Already upright." is NOT superseded by progress, so only the instructions are withdrawn.
+    const upright = renderToStaticMarkup(<ItemsPage denture={false} units={[drawn]} refused={[]} finished={[]}
+      lang="en" thumbnails={new Map()} detected={new Map([['u-b', { kind: 'oriented', turned: false }]])}
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+    expect(upright).toContain('Already upright');
+  });
+
   it('shows each row its own detection result, not one answer for the list', () => {
     const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[unit('u-a', 'upper.stl', verdict()), unit('u-b', 'lower.stl', verdict())]}

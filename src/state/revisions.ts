@@ -55,6 +55,19 @@ export function staleTools(revisions: Revisions): readonly ToolId[] {
   return stale;
 }
 
+/**
+ * THE SUPPORTS ON THIS UNIT WERE PLANTED BEFORE ITS CURRENT ORIENTATION — the one question the export
+ * gate asks, named here so there is one place that decides it and one place to test.
+ *
+ * It is `staleTools` narrowed to the tool that matters at the export boundary. Rotating a unit moves
+ * its supports rigidly with it, which is right for a move and wrong for a turn: planted against the
+ * old down-direction, they hold nothing after one. Until this was consulted at export, the rail's
+ * grey "stale" mark was the signal's only consumer, and the rail lives on the deck where nothing is
+ * exported.
+ */
+export const supportsNeedReplanting = (revisions: Revisions | undefined): boolean =>
+  staleTools(revisions ?? {}).includes('supports');
+
 /** The next revision to stamp on a unit's work: one above everything already recorded. */
 const nextRevision = (revisions: Revisions): number =>
   Math.max(0, ...TOOL_ORDER.map((tool) => revisions[tool] ?? 0)) + 1;

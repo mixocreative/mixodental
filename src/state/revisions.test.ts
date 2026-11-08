@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stamped, staleTools, type Revisions } from './revisions';
+import { stamped, staleTools, supportsNeedReplanting, type Revisions } from './revisions';
 
 /** Everything accepted in the rail's own order, nothing out of date. */
 const inOrder: Revisions = { orient: 1, rim: 2, area: 3, supports: 4 };
@@ -60,6 +60,28 @@ describe('whose work is out of date', () => {
 
   it('leaves work alone that is newer than everything above it', () => {
     expect(staleTools({ orient: 1, rim: 2, area: 3, supports: 9 })).toEqual([]);
+  });
+});
+
+describe('the one question the export gate asks', () => {
+  /*
+   * FOUND BY AUDIT (`docs/reviews/2026-11-08-cia-deck-and-flow.md` F5). Export wrote supports planted
+   * before the model was turned, with no refusal: the only warning was a status line that the next
+   * message replaced. The signal existed the whole time - this is it, named and consulted.
+   */
+  it('is true exactly when the supports predate something above them', () => {
+    expect(supportsNeedReplanting({ orient: 2, supports: 1 })).toBe(true);
+    expect(supportsNeedReplanting({ orient: 1, supports: 2 })).toBe(false);
+    // Re-painting the area is also above the supports, and is also a reason to re-plant.
+    expect(supportsNeedReplanting({ orient: 1, area: 3, supports: 2 })).toBe(true);
+  });
+
+  it('is false when there are no supports to re-plant, and on a unit with no record at all', () => {
+    // Staleness is a statement about work that EXISTS: a unit with no supports is not stale, it is
+    // unsupported, and refusing its export would be refusing the wrong thing.
+    expect(supportsNeedReplanting({ orient: 5 })).toBe(false);
+    expect(supportsNeedReplanting({})).toBe(false);
+    expect(supportsNeedReplanting(undefined)).toBe(false);
   });
 });
 

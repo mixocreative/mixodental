@@ -1,5 +1,6 @@
 import { useCallback, useState, type MutableRefObject } from 'react';
 import { errorStatus } from '@mixo-geocore/editing/errors';
+import { supportsNeedReplanting } from '../state/revisions';
 import { exportStatus, type CheckTally } from '@mixo-geocore/editing/check';
 import { plural, type Message } from '../i18n';
 import type { PrintScene, PrintUnit } from '../state/project';
@@ -14,6 +15,7 @@ import { isAbort, type SetStatus } from './appShared';
 
 const REFUSED_STALE = 'Export refused: {name} changed while it was being exported, so the files would not match what you see. Nothing was written; export again.';
 const REFUSED_FAILED = 'Export refused: the supports of {name} were not built, so nothing was written. Generate again, then export.';
+const REFUSED_REPLANT = 'Export refused: the supports on {name} were planted before the model was turned, so they would not hold. Regenerate them, then export.';
 const REFUSED_INCONCLUSIVE = 'Export refused: the safety check of {name} could not reach a verdict (it ran out of time or could not judge a crossing), so nothing was written. Generate again, or use fewer supports.';
 
 /**
@@ -51,6 +53,26 @@ export function useExport(host: {
       if (kind.endsWith('supports') && emptied.length > 1) return setStatus('Nothing to export: no object in this export has supports left.');
       return setStatus('Nothing to export for this mode.');
     }
+    /*
+     * SUPPORTS PLANTED BEFORE THE MODEL WAS TURNED ARE NOT SUPPORTS FOR THIS MODEL, and nothing
+     * stopped them being written until this gate. Rotating a unit after generating moves its supports
+     * rigidly with it - right for a MOVE and wrong for a TURN: they were planted against the old
+     * down-direction, so after a turn they hold nothing. The app said so once, in a status line the
+     * next message replaced, and then exported them anyway.
+     *
+     * `revisions` already knew. `transform/set` stamps `orient` when the ROTATION changed and only
+     * then; `supports/set` stamps `supports`; so `staleTools` reports `supports` stale in exactly this
+     * case. Before this, the rail's grey "stale" mark was that signal's only consumer - and the rail
+     * lives on the deck, where nothing is exported (found by audit, `docs/reviews/2026-11-08-cia-deck-and-flow.md` F5).
+     *
+     * Refused rather than confirmed, and BEFORE the job rather than after: a full-resolution export of
+     * supports that cannot hold is work the operator waits for and must then throw away.
+     */
+    const replanted = [...new Set(files.flatMap((file) => file.parts.filter((part) => part.content === 'supports').map((part) => part.unitId)))]
+      .map((unitId) => current.units.find((unit) => unit.id === unitId))
+      .find((unit) => unit !== undefined && supportsNeedReplanting(unit.revisions));
+    if (replanted) return setStatus(REFUSED_REPLANT, { name: replanted.name });
+
     const used = new Set(files.flatMap((file) => file.parts.map((part) => part.unitId)));
     const units = exportUnits(current, kind).filter(([unit]) => used.has(unit.id));
     setExporting(true);
