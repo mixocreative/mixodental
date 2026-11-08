@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DetectState } from '../items/detectState';
 import type { PrintUnit } from '../state/project';
 import { railReason, railStates } from './toolState';
+import { TOOL_ORDER } from '../state/tools';
 import { unitFacts } from './unitFacts';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u', name: 'n', ...over } as PrintUnit);
@@ -17,12 +18,12 @@ const anchor = { position: [0, 0, 0], normal: [0, 1, 0] } as unknown as NonNulla
 const openDraft = { anchors: [anchor], closed: false } as NonNullable<PrintUnit['rimDraft']>;
 const closedDraft = { anchors: [anchor, anchor, anchor], closed: true } as NonNullable<PrintUnit['rimDraft']>;
 const detected = (kind: DetectState['kind']) => (kind === 'oriented' ? { kind, turned: true } : { kind }) as DetectState;
-const kinds = (u: PrintUnit, state?: DetectState) =>
-  Object.fromEntries(railStates(unitFacts(u, state)).map(({ tool, state: got }) => [tool, got.kind]));
+const kinds = (u: PrintUnit, state?: DetectState, denture = false) =>
+  Object.fromEntries(railStates(unitFacts(u, state, denture)).map(({ tool, state: got }) => [tool, got.kind]));
 
 describe('what a unit presents to the rail', () => {
   it('reads a fresh import as nothing done', () => {
-    expect(unitFacts(unit())).toEqual({ oriented: false, hasRim: false, areaAccepted: false });
+    expect(unitFacts(unit())).toEqual({ tools: TOOL_ORDER, oriented: false, hasRim: false, areaAccepted: false });
   });
 
   /*
@@ -98,23 +99,41 @@ describe('what a unit presents to the rail', () => {
  * directly and has no denture knowledge by design - the job kind is resolved in `unitFacts`. Saying
  * so keeps the gap from being "fixed" in the file that cannot see it.
  */
-describe('a denture is a different job, and the rail must not instruct about steps it lacks', () => {
-  it('presents a rim and an area it will never be asked for', () => {
-    // `hasRim`'s branch: a denture draws no rim, so the rim tool is not something it waits for.
-    // `hasAcceptedArea`'s branch: its accepted policy IS its footprint, so there is no area step.
+describe('a denture is a different job, and the rail does not offer steps it lacks', () => {
+  it('has a chain of two: there is no rim and no area to wait for', () => {
+    // This REPLACED a worse answer. The facts used to claim a rim and an area were present, so the
+    // rail would list all four and not instruct about the two it should never have offered. Now the
+    // chain itself is short, so the question does not arise and the facts can say what is true.
     expect(unitFacts(unit({ denture: denturePolicy })))
-      .toMatchObject({ oriented: true, hasRim: true, areaAccepted: true });
+      .toMatchObject({ tools: ['orient', 'supports'], oriented: true, hasRim: false, areaAccepted: false });
   });
 
-  it('opens every tool, rather than greying the two it skips', () => {
-    expect(kinds(unit({ denture: denturePolicy })))
-      .toEqual({ orient: 'ready', rim: 'ready', area: 'ready', supports: 'ready' });
+  it('draws two buttons, not four with two of them meaningless', () => {
+    expect(kinds(unit({ denture: denturePolicy }))).toEqual({ orient: 'ready', supports: 'ready' });
   });
 
-  it('says nothing, where it used to instruct about a rim', () => {
-    // The user-visible half of the fault. The reason line is drawn from the FIRST unavailable tool,
-    // so the greying and the wrong sentence were one bug; this asserts the sentence is gone.
+  it('makes Supports wait on the ORIENTATION, which is what is above it in this chain', () => {
+    // The old hand-written prerequisite said Supports waits for an accepted AREA, which a denture
+    // never has - so the facts had to fake one. Derived from the chain, it waits for the right thing.
+    expect(kinds(unit(), undefined, true)).toEqual({ orient: 'ready', supports: 'unavailable' });
+    expect(railReason(unitFacts(unit(), undefined, true)))
+      .toEqual({ key: 'Turn the model the right way up first.' });
+  });
+
+  it('says nothing once oriented, where it used to instruct about a rim', () => {
     expect(railReason(unitFacts(unit({ denture: denturePolicy })))).toBeUndefined();
+  });
+
+  /*
+   * THE PRE-ACCEPTANCE WINDOW, which the earlier fix did not reach. `unit.denture` is written by
+   * `denture/set` on ACCEPTANCE, so a denture that has been dropped and oriented but not accepted has
+   * none - and reading only the unit treated it as an aligner for that whole window, telling the
+   * operator to draw a rim on it. The run's profile knows the purpose from the start, so it is passed
+   * in; this is the test that would have caught the gap.
+   */
+  it('is a denture from the drop, not from the acceptance', () => {
+    expect(kinds(unit(), detected('oriented'), true)).toEqual({ orient: 'ready', supports: 'ready' });
+    expect(railReason(unitFacts(unit(), detected('oriented'), true))).toBeUndefined();
   });
 
   it('is still waiting on Orient before it has an accepted policy', () => {

@@ -1731,6 +1731,66 @@ That is a better model — it deletes the `isDenture` compensations and makes th
 instead of four constants. It also rewrites the module an EGM review recently hardened, including the
 load-bearing unavailable → busy → stale → ready order. Hence: owner's call before it is written.
 
+**E3a. DONE — the rail's chain is per job, and the prerequisite is derived from it.** Owner approved
+reshaping rather than patching.
+
+- `state/tools.ts` gains `toolsFor(denture)`: `TOOL_ORDER` **filtered**, never a list of its own. A
+  filter cannot disagree with the order it filters, which is what a parallel per-job list would be
+  free to do.
+- `toolState.ts`'s hand-written `PREREQUISITE` (four constants, keyed by the tool that WAITS) became
+  `OUTPUT` (keyed by the tool that PRODUCES) plus one rule: **a tool waits for whatever is
+  immediately above it in its own chain.** A denture's Supports now waits on the ORIENTATION, which
+  is true, instead of on an accepted area, which it never has.
+- The three reason sentences did not change. Each already read as a statement about the producer —
+  "draw the rim first" belongs to Rim, whoever is waiting on it — so no locale work.
+- `unitFacts.ts` loses both `isDenture` compensations. They existed to claim a rim and an area were
+  *present* so the rail would not instruct about steps the job lacks; with the chain short, the
+  question does not arise and the facts can say what is true.
+
+**The bug this found, which the earlier fix did not reach.** `unit.denture` is the ACCEPTED policy,
+written by `denture/set` on acceptance — so for a denture that has been dropped and oriented but not
+yet accepted it is empty, and reading only the unit treated it as an aligner for that whole window,
+telling the operator to draw a rim on it. The run's profile knows the purpose from the drop, so it is
+passed in (`ItemsPage` gains `denture`, from `session.dentalProfile ?? batchProfile`); the unit's own
+policy still counts, so a reopened project with no run profile reads correctly.
+
+*Which makes Fable right and my earlier objection half-wrong, worth recording in that order:* this IS
+profile data, as the ruling said. What I was right about is that it must DERIVE from `TOOL_ORDER`
+rather than sit beside it. Both halves were needed.
+
+### THE DECK IS THE QUEUE — the owner's conclusion, and it settles the multi-failure case
+
+Asked what happens when several files in one drop come back with no rim, the answer turned out to be
+that nothing needed inventing. During a batch there is no dental session at all, so the automatic
+hand-over to rim drawing *cannot* fire — its guard needs a live session that is loading. Each row
+records its own `DetectState`, and the deck already flags them:
+
+| row says | means | the tool the deck points at |
+|---|---|---|
+| `no-rim` | oriented fine, no rim found | **Rim** — draw it by hand |
+| `failed` | could not look at all | **Orient** — rotate it by hand |
+
+So multiple failures are multiple flagged rows, handled one at a time by clicking. **The single-unit
+session stops being a limitation and becomes the right shape**, and no batch rim mode is ever needed.
+
+Two consequences for E4:
+
+1. **It can ship for flagged rows alone.** Those rows have no orientation proposal, so Rim is
+   legitimately their entry point — which means per-tool entry does not have to settle the harder
+   question of redrawing a rim the detector got right. Smaller, and safer.
+2. **Point "start next item" at the next FLAGGED row.** The deck already has that primary
+   (`data-ui="items-start"`, `nextItem`); aimed at the next row needing attention it gives a
+   press-draw-done-press path through a case of eight.
+
+**Named debt found on the way, not taken here: detection runs twice per row.** `startAligner` always
+re-runs `dentalOrient` when a row is opened rather than reusing the batch's result, so a case of
+eight pays the expensive pass sixteen times. Wasteful rather than wrong — same mesh, same profile,
+same answer — but front-loading detection was the batch's whole purpose, so it is defeating itself.
+
+**E3b (was E3). `openTool(tool, unitId)` and the stage mapping.** No new field: the tool and the
+stage are the same thing 1:1, so this is one mapping plus one command, and E9 is a rename.
+*Exit:* every navigation goes through one command; behaviour unchanged.
+
 **E4. Mount the rail in the workspace's left slot** during a live session, wired to `openTool`. This
 is where the first withdrawal fault is cured — the rail leaves the deck.
 *Exit:* three regression tests, one per recorded fault: reachable in a live session; a denture press

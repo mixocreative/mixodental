@@ -15,7 +15,7 @@ const unit = (id: string, name: string, diagnosis?: ImportDiagnosis) =>
   ({ id, name, source: mesh, ...(diagnosis ? { diagnosis } : {}) } as PrintUnit);
 
 const render = (units: PrintUnit[], finished: string[] = [], refused: { name: string; refusal: ImportRefusal }[] = []) =>
-  renderToStaticMarkup(<ItemsPage units={units} refused={refused} detected={new Map()} thumbnails={new Map()} finished={finished} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
+  renderToStaticMarkup(<ItemsPage denture={false} units={units} refused={refused} detected={new Map()} thumbnails={new Map()} finished={finished} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
 /*
  * The <li> tag for one row, so a class can be checked against the RIGHT row. It is a helper because
@@ -134,8 +134,9 @@ describe('the Items page', () => {
    * out unlike rows 1-8 is the thing a list can do that eight sequential wizards cannot.
    */
   it('shows each row its own detection result, not one answer for the list', () => {
-    const html = renderToStaticMarkup(<ItemsPage
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[unit('u-a', 'upper.stl', verdict()), unit('u-b', 'lower.stl', verdict())]}
+     
       refused={[]} detected={new Map([['u-a', { kind: 'oriented', turned: true }], ['u-b', { kind: 'no-rim' }]])}
       thumbnails={new Map()} finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
@@ -165,7 +166,7 @@ describe('the Items page', () => {
   it('puts a drawn picture on its own row and leaves the others framed but empty', () => {
     const a = unit('u-a', 'upper.stl', verdict());
     const b = unit('u-b', 'lower.stl', verdict());
-    const html = renderToStaticMarkup(<ItemsPage
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[a, b]} refused={[]} detected={new Map()}
       thumbnails={new Map([['u-a', { mesh: a.source, url: 'data:image/png;base64,AAA' }]])}
       finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
@@ -178,7 +179,7 @@ describe('the Items page', () => {
 
   it('gives the picture an empty alt, because the name and the sentences already say it in words', () => {
     const a = unit('u-a', 'upper.stl', verdict());
-    const html = renderToStaticMarkup(<ItemsPage
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[a]} refused={[]} detected={new Map()}
       thumbnails={new Map([['u-a', { mesh: a.source, url: 'data:image/png;base64,AAA' }]])}
       finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
@@ -192,8 +193,9 @@ describe('the Items page', () => {
    * to pick up rather than one they already finished.
    */
   it('shows the rail for the selected row', () => {
-    const html = renderToStaticMarkup(<ItemsPage
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', verdict())]}
+     
       refused={[]} detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
       selectedUnitId="u-b"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
@@ -205,8 +207,9 @@ describe('the Items page', () => {
 
   it('falls back to where work resumes, not to the first row', () => {
     // u-a is finished, so the next item is u-b: that is the row the rail should be about.
-    const html = renderToStaticMarkup(<ItemsPage
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', verdict())]}
+     
       refused={[]} detected={new Map()} thumbnails={new Map()} finished={['u-a']} lang="en"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
@@ -215,7 +218,7 @@ describe('the Items page', () => {
   });
 
   it('draws no rail when there is no row to be about', () => {
-    const html = renderToStaticMarkup(<ItemsPage
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[]} refused={[]} detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
@@ -228,7 +231,7 @@ describe('the Items page', () => {
    */
   it('says how many files need a look, counting the rows it is shown beside', () => {
     const holed = { ...verdict(), watertight: false, boundaryLoops: 2, longestRimMm: 9 };
-    const html = renderToStaticMarkup(<ItemsPage
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', holed)]}
       refused={[{ name: 'bad.stl', refusal: { kind: 'unreadable', code: 'stl-empty' } }]}
       detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
@@ -240,7 +243,7 @@ describe('the Items page', () => {
   });
 
   it('stays silent about a drop where every row is sound', () => {
-    const html = renderToStaticMarkup(<ItemsPage
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[unit('u-a', 'a.stl', verdict())]} refused={[]}
       detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
@@ -249,7 +252,7 @@ describe('the Items page', () => {
   });
 
   it('shows Orient as busy while that row is still being checked', () => {
-    const html = renderToStaticMarkup(<ItemsPage
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[unit('u-a', 'a.stl', verdict())]} refused={[]}
       detected={new Map([['u-a', { kind: 'running' }]])} thumbnails={new Map()} finished={[]} lang="en"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
@@ -260,7 +263,7 @@ describe('the Items page', () => {
   it('keeps the rail on a page whose every row is finished, rather than vanishing', () => {
     // `nextItem` is undefined once nothing is left, and a rail that disappears from a page that
     // still has rows reads as a fault rather than as "nothing left to do".
-    const html = renderToStaticMarkup(<ItemsPage
+    const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', verdict())]} refused={[]}
       detected={new Map()} thumbnails={new Map()} finished={['u-a', 'u-b']} lang="en"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);

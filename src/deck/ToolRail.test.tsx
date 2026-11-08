@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ToolRail } from './ToolRail';
 import type { ToolFacts } from './toolState';
+import { TOOL_ORDER } from '../state/tools';
 
-const fresh: ToolFacts = { oriented: false, hasRim: false, areaAccepted: false };
-const ready: ToolFacts = { oriented: true, hasRim: true, areaAccepted: true };
+const fresh: ToolFacts = { tools: TOOL_ORDER, oriented: false, hasRim: false, areaAccepted: false };
+const ready: ToolFacts = { tools: TOOL_ORDER, oriented: true, hasRim: true, areaAccepted: true };
 const render = (facts: ToolFacts) => renderToStaticMarkup(<ToolRail facts={facts} onPick={() => {}} />);
 
 describe('the tool rail', () => {

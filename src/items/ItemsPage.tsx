@@ -30,7 +30,7 @@ import { isModelFile } from '../components/startDrop';
  * looked at the first of a set of identically-named elements and reported the rest as missing — a
  * false gap that cost a round of investigation.
  */
-export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, onSelect, onStart, onRemove, onFiles, onBack }: {
+export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, denture, onSelect, onStart, onRemove, onFiles, onBack }: {
   units: readonly PrintUnit[];
   /**
    * Files that never became units. They are rows too (§3's first table): drop eight, one is broken,
@@ -53,6 +53,12 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   onSelect: (unit: PrintUnit) => void;
   lang: Lang;
   /** Begin the dental flow on this unit. The caller owns the three-call order (see `nextItem`). */
+  /**
+   * The run is making dentures. It comes from the RUN's profile rather than from a row, because a
+   * row's own `denture` policy is only written on acceptance - so until then the rail would read a
+   * denture as an aligner and offer it a rim to draw (`deck/unitFacts.ts`).
+   */
+  denture: boolean;
   onStart: (unit: PrintUnit) => void;
   onRemove: (unit: PrintUnit) => void;
   /** Files dropped onto the list. They ADD to it — the caller must not apply Step 1's one-file rule. */
@@ -97,7 +103,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
       row here, and the workspace's own left edge once that exists — the same component either way.
     */}
     <div className="items-body">
-      {railUnit ? <ToolRail facts={unitFacts(railUnit, detected.get(railUnit.id))} onPick={() => onStart(railUnit)} /> : null}
+      {railUnit ? <ToolRail facts={unitFacts(railUnit, detected.get(railUnit.id), denture)} onPick={() => onStart(railUnit)} /> : null}
       <ul className="items-list">
         {refused.map((entry) => <RefusedRow key={`refused-${entry.name}`} name={entry.name} refusal={entry.refusal} />)}
         {units.map((unit) => <ItemRow

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { railReason, railStates, toolState, type ToolFacts } from './toolState';
 import { TOOL_ORDER, type ToolId } from '../state/tools';
 
-/** A fresh import: oriented by nothing, no rim, no area. */
-const fresh: ToolFacts = { oriented: false, hasRim: false, areaAccepted: false };
+/** A fresh import of an ALIGNER: the whole chain, oriented by nothing, no rim, no area. */
+const fresh: ToolFacts = { tools: TOOL_ORDER, oriented: false, hasRim: false, areaAccepted: false };
 const oriented: ToolFacts = { ...fresh, oriented: true };
 const withRim: ToolFacts = { ...oriented, hasRim: true };
 const withArea: ToolFacts = { ...withRim, areaAccepted: true };

@@ -1,7 +1,7 @@
 // Copyright (c) Mixo Creative.
 
 import type { Message } from '../i18n';
-import { TOOL_ORDER, type ToolId } from '../state/tools';
+import { type ToolId } from '../state/tools';
 
 /**
  * THE RAIL CARRIES THE ORDER — by what the operator can press, not by marching them through steps.
@@ -57,34 +57,59 @@ export interface ToolFacts {
   readonly runningTool?: ToolId;
   /** Tools whose work predates the upstream it was made from. */
   readonly stale?: readonly ToolId[];
+  /**
+   * THE TOOLS THIS JOB HAS, in dependency order (`state/tools.ts`'s `toolsFor`). It is a fact about
+   * the job rather than the unit, and it belongs here because it is what makes the chain - and so
+   * every prerequisite below - job-specific instead of hard-coded.
+   */
+  readonly tools: readonly ToolId[];
 }
 
 /**
- * WHAT EACH TOOL WAITS FOR, AND THE LINE IT SHOWS MEANWHILE — one entry per tool.
+ * WHAT EACH TOOL PRODUCES, AND THE LINE SHOWN TO WHOEVER IS WAITING FOR IT.
  *
- * A prerequisite and the sentence explaining it are one thing, so they are one record. Two parallel
- * maps needed a cast to bridge them (`tool as Exclude<ToolId, 'orient'>`) — the compiler told to
- * stop checking at exactly the place a fifth tool gets added.
+ * This was `PREREQUISITE`, keyed by the tool that WAITS: four hand-written constants, with Supports
+ * requiring an accepted area. That cannot survive a job whose chain is a different shape. A denture
+ * goes Orient → Supports, so its Supports waits on the ORIENTATION — and the constant said area, so
+ * the facts had to claim an area was accepted to compensate.
  *
- * `undefined` for Orient is deliberate, not missing: nothing comes first, and it is where every
- * model starts.
+ * Keying on the tool that PRODUCES turns four constants into one rule: **a tool waits for whatever is
+ * immediately above it in its own chain.** The sentences did not change, because each already read as
+ * a statement about the producer — "draw the rim first" belongs to Rim, whoever is waiting on it.
+ *
+ * `supports` produces nothing anything waits for: it is last in every chain.
+ *
+ * A prerequisite and the sentence explaining it are still one record. Two parallel maps needed a cast
+ * to bridge them — the compiler told to stop checking at exactly the place a fifth tool gets added.
  */
-const PREREQUISITE: {
+const OUTPUT: {
   readonly [K in ToolId]: { readonly met: (facts: ToolFacts) => boolean; readonly because: Message } | undefined;
 } = {
-  orient: undefined,
-  rim: {
+  orient: {
     met: (facts) => facts.oriented,
     because: { key: 'Turn the model the right way up first.' },
   },
-  area: {
+  rim: {
     met: (facts) => facts.hasRim,
     because: { key: 'The area is measured from the rim, so draw the rim first.' },
   },
-  supports: {
+  area: {
     met: (facts) => facts.areaAccepted,
     because: { key: 'Mark the support area first.' },
   },
+  supports: undefined,
+};
+
+/**
+ * The tool immediately above this one in the job's own chain, or `undefined` for the first — which is
+ * deliberate rather than missing: nothing comes before Orient, and it is where every model starts.
+ *
+ * A tool the job does not have returns `undefined` too (`indexOf` is -1), so a stray call cannot
+ * invent a prerequisite for a tool that is not on the rail.
+ */
+const upstreamOf = (tool: ToolId, tools: readonly ToolId[]): ToolId | undefined => {
+  const at = tools.indexOf(tool);
+  return at > 0 ? tools[at - 1] : undefined;
 };
 
 /**
@@ -105,16 +130,20 @@ const PREREQUISITE: {
  * - **Stale last of the three**: a missing prerequisite and a running job are stronger statements.
  */
 export function toolState(tool: ToolId, facts: ToolFacts): ToolState {
-  const prerequisite = PREREQUISITE[tool];
+  const upstream = upstreamOf(tool, facts.tools);
+  const prerequisite = upstream ? OUTPUT[upstream] : undefined;
   if (prerequisite && !prerequisite.met(facts)) return { kind: 'unavailable', because: prerequisite.because };
   if (facts.runningTool === tool) return { kind: 'busy' };
   if (facts.stale?.includes(tool)) return { kind: 'stale' };
   return { kind: 'ready' };
 }
 
-/** The whole rail in order, which is what the UI draws. */
+/**
+ * The whole rail in order, which is what the UI draws — the JOB's tools, so a denture draws two
+ * buttons rather than four with two of them meaningless.
+ */
 export const railStates = (facts: ToolFacts): readonly { readonly tool: ToolId; readonly state: ToolState }[] =>
-  TOOL_ORDER.map((tool) => ({ tool, state: toolState(tool, facts) }));
+  facts.tools.map((tool) => ({ tool, state: toolState(tool, facts) }));
 
 /**
  * THE ONE LINE THE RAIL SHOWS: the reason the first unavailable tool cannot be used.
