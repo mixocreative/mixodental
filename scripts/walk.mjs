@@ -300,6 +300,22 @@ const ONLY = new Set((process.argv.find((arg) => arg.startsWith('--only='))?.sli
   .split(',').map((name) => name.trim()).filter(Boolean));
 /** The sections in the order `walk()` runs them, which is what a resume after a crash walks forward through. */
 const SECTION_ORDER = ['a', 'm', 'q', 'r', 'u', 'x', 'l', 's'];
+/*
+ * A MISTYPED FILTER IS NOT A FILTERED RUN, and until this check existed it looked like a broken app.
+ * `--only=g` (g is the THROTTLE PROBE INSIDE section `a`, not a section) matched no section, so the
+ * run walked nothing, reached the always-on tail, and reported `FAIL j Terms dialog` - a red about
+ * the product, from a typo in a flag. The comment above this one is proud that a filtered run can
+ * never be read as a full one; the same care is owed to a filter that names nothing at all.
+ *
+ * Refused before any work, because the only honest answer to "walk section g" is that there is no
+ * such section.
+ */
+const unknownSections = [...ONLY].filter((name) => !SECTION_ORDER.includes(name));
+if (unknownSections.length) {
+  console.error(`walk: no such section ${unknownSections.map((name) => `'${name}'`).join(', ')}.`
+    + ` The sections are ${SECTION_ORDER.join(', ')} (and \`--probes=\` cuts q and r to one probe).`);
+  process.exit(2);
+}
 /**
  * The sections this pass may run. It is `ONLY` for an ordinary run, and is narrowed by the crash
  * resume at the bottom of this file so the second browser picks up where the dead one stopped.
@@ -325,7 +341,18 @@ let currentSection = '';
  */
 const PROBES = new Set((process.argv.find((arg) => arg.startsWith('--probes='))?.slice('--probes='.length) ?? '')
   .split(',').map((name) => name.trim()).filter(Boolean));
-const probes = (name) => PROBES.size === 0 || PROBES.has(name);
+/*
+ * Every probe name this run was ASKED about, so a name nobody recognises cannot pass silently.
+ * `--probes=q9` would otherwise run no probe at all and report `ALL PASS (0 checks)` - a green that
+ * means nothing, which this walk treats as more dangerous than a red that means the machine. There is
+ * no registry of probe names to validate against up front (each section asks for its own), so the
+ * question is answered at the end instead: a requested name never asked about does not exist.
+ */
+const probesAsked = new Set();
+const probes = (name) => {
+  probesAsked.add(name);
+  return PROBES.size === 0 || PROBES.has(name);
+};
 /*
  * The locale pass, by flag as well as by env var. `WALK_LOCALES=…` works on a POSIX shell and not
  * in an npm script on Windows, so `--locales=en,ja,zh-Hant` is the portable form and is what
@@ -4312,8 +4339,15 @@ const failed = results.filter((r) => !r.ok).length;
 if (failed === 0 && !process.env.WALK_OUT && !LOCALES) rmSync(scratch, { recursive: true, force: true });
 // A filtered run never says ALL PASS: it covered part of the walk, and the line has to say so.
 const scope = ONLY.size === 0 ? '' : ` [only ${[...ONLY].join(',')}]`;
-const verdict = failed > 0 ? `${failed} FAIL` : ONLY.size === 0 ? 'ALL PASS' : 'SOME PASS';
+// A probe name nothing recognised: say so, and never let the run read as green (see `probesAsked`).
+const unknownProbes = [...PROBES].filter((name) => !probesAsked.has(name));
+if (unknownProbes.length) {
+  check(`no such probe ${unknownProbes.map((name) => `'${name}'`).join(', ')}`, false,
+    `names this run offered: ${[...probesAsked].sort().join(', ') || 'none - no section with probes ran'}`);
+}
+const failedNow = results.filter((r) => !r.ok).length;
+const verdict = failedNow > 0 ? `${failedNow} FAIL` : ONLY.size === 0 ? 'ALL PASS' : 'SOME PASS';
 // A resumed run names the sections it could not finish, so its check count can never read as full coverage.
 const after = resumed.length ? ` [the tab crashed in ${resumed.join(',')}; ${resumed.length === 1 ? 'that section is' : 'those sections are'} unfinished, the rest ran in a fresh browser]` : '';
 console.log(`${verdict} (${results.length} checks, ${Math.round((Date.now() - started) / 1000)} s)${scope}${after}`);
-process.exit(failed === 0 ? 0 : 1);
+process.exit(failedNow === 0 ? 0 : 1);
