@@ -1,10 +1,11 @@
 import { useEffect, useReducer, useRef, type ReactNode } from 'react';
-import { ERROR_CONTEXTS, errorStatus, type ErrorContext } from '@mixo-geocore/editing/errors';
+import { errorStatus } from '@mixo-geocore/editing/errors';
 import { ProgressIndicator } from '../progress/Progress';
 import { t, translateMessage } from '../i18n';
 import { jobActivity, type JobActivity, type JobRow } from '@mixo-geocore/host/workers/jobActivity';
 import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
 import { rebuiltJobError } from '../workers/jobErrors';
+import { DETECT_CONTEXT, detectFailureText, jobVocabulary } from '../workers/analysisJobVocabulary';
 import { formatTime } from './formatTime';
 import { storedExportOutcome } from './exportOutcomeText';
 
@@ -24,10 +25,22 @@ const TICK_MS = 250;
 export function failureText(row: JobRow): string {
   const refused = row.error ? storedExportOutcome(row.error) : undefined;
   if (refused) return translateMessage(refused);
-  const context: ErrorContext = (ERROR_CONTEXTS as readonly string[]).includes(row.context ?? '') ? row.context as ErrorContext : 'build';
-  const name = row.label.vars?.name;
   const error = rebuiltJobError(row.error ?? { code: null, message: '' });
-  return translateMessage(errorStatus(context, error, name === undefined ? {} : { name: String(name) }));
+  /*
+   * AN ANALYSIS JOB IS NOT A SUPPORT BUILD, and this line used to say it was (found by audit, walk
+   * `r3`). The context stored on the row is the analysis task's own kind - `dental-orient` and the
+   * rest - which is not one of the five shared contexts, so every one of them inherited the default
+   * below and was explained as a build: "generate again to rebuild the supports", for a deck row
+   * that has no supports. `jobVocabulary` maps each kind to the vocabulary that is true of it.
+   *
+   * 'build' remains the last resort, for a job whose context is neither an analysis kind nor one of
+   * the five. That is now a knowing choice rather than an accident, and the mapping is total by
+   * type, so a new analysis kind cannot quietly join the ones that were wrong.
+   */
+  const vocabulary = jobVocabulary(row.context);
+  if (vocabulary === DETECT_CONTEXT) return translateMessage(detectFailureText(error));
+  const name = row.label.vars?.name;
+  return translateMessage(errorStatus(vocabulary ?? 'build', error, name === undefined ? {} : { name: String(name) }));
 }
 
 /** The shared host reports its own stages as codes (no English in shared code); the engine and this app's workers post the English key. */

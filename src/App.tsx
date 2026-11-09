@@ -1286,7 +1286,23 @@ export default function App() {
         {session.mode === 'dental' ? <CommandButton command={command('dental.exit')} run={runCommand} className="nav-exit" /> : null}
       </div>
     </header>
-    {startScreen === 'items' ? <ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
+    {/*
+      * THE BACKGROUND-WORK LIST IS MOUNTED ON THE DECK TOO (found by audit, walk `r3`, G5).
+      *
+      * It lives inside the viewport, and the viewport is not rendered while a start screen is up - so
+      * on the deck, which is where the LONGEST background work in the app runs (one orient per row,
+      * minutes on a full case), the one screen that remembers a failure did not exist. A crashed
+      * analysis worker left its mark on one row's sentence and nowhere else, and W-05's and W-07's
+      * whole argument is that a sentence which the next message can replace is not a screen.
+      *
+      * Two mount points for one panel, and they are exclusive: these branches never render together,
+      * and `jobActivity` is a module singleton, so there is one list either way. The proper fix is to
+      * hoist it to the app root - but `.job-activity` is positioned inside the viewport and three
+      * rules reposition it by viewport state (`viewport--editing`, `viewport--step3`,
+      * `workspace--dental`), so that is a layout change with its own visual check and it must not
+      * ride along with an audit. DEBT, named here, with the cut written down.
+      */}
+    {startScreen === 'items' ? <><JobActivityPanel /><ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
       refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails}
       selectedUnitId={scene.activeUnitId}
       onSelect={(unit) => dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id })}
@@ -1305,7 +1321,7 @@ export default function App() {
         offerUndo({ kind: 'deleteObjects', count: 1 });
       }}
       onBack={() => setStartScreen('drop')}
-      onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} />
+      onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} /></>
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
       onScreen={goStart} onAnyModel={() => setStartScreen(null)} onOpenProject={() => runCommand('project.open')}
       onProjectFile={(file) => void openProject(file)} onStart={startDental}
