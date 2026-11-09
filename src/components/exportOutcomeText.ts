@@ -3,7 +3,7 @@
 import type { Message } from '../i18n';
 
 /**
- * WHY AN EXPORT WROTE NOTHING, IN ONE VOCABULARY FOR EVERY SCREEN THAT SAYS IT.
+ * WHAT AN EXPORT WROTE, OR DID NOT, IN ONE VOCABULARY FOR EVERY SCREEN THAT SAYS IT.
  *
  * These four sentences were constants inside `useExport.ts`, said once to the status line and then
  * replaced by whatever message came next - so the operator could press Export, be refused, press
@@ -19,6 +19,12 @@ import type { Message } from '../i18n';
  * Pure, as the rules under `src/components` are meant to be: a reason and a name in, a `Message`
  * out, no React and no scene. The output is narrower than the input, which is the test this repo
  * applies before any extraction - a reason plus a name becomes one sentence.
+ *
+ * IT WAS `exportRefusalText.ts`, AND THE NAME HAD TO GO. A refusal is decided before anything is
+ * written, which is why all four of its sentences can promise that nothing was. The partial write
+ * below is the opposite event - some files ARE on the operator's disk - and filing it under
+ * "refusal" would have been the same mistake the module exists to undo: two vocabularies for one
+ * question, which is "what came out of the export I just pressed".
  */
 
 /**
@@ -47,17 +53,40 @@ const REFUSAL: { readonly [K in ExportRefusalReason]: string } = {
 export const exportRefusalText = (reason: ExportRefusalReason, name: string): Message =>
   ({ key: REFUSAL[reason], vars: { name } });
 
+/** The code for a write that stopped PART WAY, which is not a refusal and must not read as one. */
+export const EXPORT_PARTIAL_CODE = 'export-partial';
+
 /**
- * The same sentence from what an activity row stored, or `undefined` when the row is not one of
- * these refusals - which is how `failureText` decides whether to use this at all.
+ * ONE FILE LANDED AND THE NEXT WAS REFUSED (walk `r1`, G1).
  *
- * The vars are read defensively because they come back off a stored row rather than from a call:
- * a reason this module does not know is not a refusal it can explain, and inventing a sentence for
- * it would be worse than letting the generic failure text have it.
+ * `useExport` hands each finished file to the browser in a loop, so by the time the second hand-over
+ * is refused the first file is already in the operator's downloads. Every other export failure
+ * sentence in the app ends "Nothing was saved" - true for a refusal and for a worker that failed,
+ * and FALSE here. The walk caught it saying exactly that with `r-cube-printable.stl` already on
+ * disk, and offering "try again", which would have written that file a second time.
+ *
+ * So this sentence carries three facts and a trap: which files are on disk, which one is not, what
+ * to do, and why repeating the whole export is not it.
  */
-export function storedExportRefusal(stored: { code: string | null; vars?: Record<string, string | number> }): Message | undefined {
+const PARTIAL = 'Export incomplete: {saved} saved, {name} refused by the browser. Export the remaining objects one at a time - exporting again would save a second copy of what is already there.';
+
+/** The partial-write sentence: the files that landed, and the one that did not. */
+export const exportPartialText = (saved: readonly string[], name: string): Message =>
+  ({ key: PARTIAL, vars: { saved: saved.join(', '), name } });
+
+/**
+ * The same sentence from what an activity row stored, or `undefined` when the row is neither of
+ * these outcomes - which is how `failureText` decides whether to use this module at all.
+ *
+ * The vars are read defensively because they come back off a stored row rather than from a call: an
+ * outcome this module does not know is not one it can explain, and inventing a sentence for it would
+ * be worse than letting the generic failure text have it.
+ */
+export function storedExportOutcome(stored: { code: string | null; vars?: Record<string, string | number> }): Message | undefined {
+  const name = String(stored.vars?.name ?? '');
+  if (stored.code === EXPORT_PARTIAL_CODE) return exportPartialText(String(stored.vars?.saved ?? '').split(', ').filter(Boolean), name);
   if (stored.code !== EXPORT_REFUSED_CODE) return undefined;
   const reason = stored.vars?.reason;
   if (typeof reason !== 'string' || !(reason in REFUSAL)) return undefined;
-  return exportRefusalText(reason as ExportRefusalReason, String(stored.vars?.name ?? ''));
+  return exportRefusalText(reason as ExportRefusalReason, name);
 }

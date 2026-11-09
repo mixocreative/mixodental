@@ -3,7 +3,7 @@ import { errorStatus } from '@mixo-geocore/editing/errors';
 import { supportsNeedReplanting } from '../state/revisions';
 import { exportStatus, type CheckTally } from '@mixo-geocore/editing/check';
 import { plural, translateMessage, type Message } from '../i18n';
-import { EXPORT_REFUSED_CODE, exportRefusalText, type ExportRefusalReason } from './exportRefusalText';
+import { EXPORT_PARTIAL_CODE, EXPORT_REFUSED_CODE, exportPartialText, exportRefusalText, type ExportRefusalReason } from './exportOutcomeText';
 import { jobActivity } from '@mixo-geocore/host/workers/jobActivity';
 import { WorkerJobError } from '@mixo-geocore/host/workers/WorkerTask';
 import type { PrintScene, PrintUnit } from '../state/project';
@@ -49,16 +49,17 @@ export function useExport(host: {
    * reproduced the same class on the import side). A failed activity row is never dropped and
    * surfaces even if it ended inside the show delay, so that list is the screen that remembers.
    *
-   * The sentences moved to `exportRefusalText.ts` because the list builds its text from an error
+   * The sentences moved to `exportOutcomeText.ts` because the list builds its text from an error
    * CODE, and the generic export failure it would otherwise reach says "the export failed" - a
    * second, vaguer vocabulary for an event the status line describes exactly.
    */
-  const refuse = useCallback((reason: ExportRefusalReason, name: string): void => {
-    const message = exportRefusalText(reason, name);
+  const sayOutcome = useCallback((message: Message, code: string, vars: Record<string, string | number>): void => {
     setStatusMessage(message);
-    jobActivity.begin({ label: { key: 'Exporting {name}', vars: { name } }, context: 'export' })
-      .end(new WorkerJobError(translateMessage(message), EXPORT_REFUSED_CODE, { reason, name }));
+    jobActivity.begin({ label: { key: 'Exporting {name}', vars: { name: String(vars.name ?? '') } }, context: 'export' })
+      .end(new WorkerJobError(translateMessage(message), code, vars));
   }, [setStatusMessage]);
+  const refuse = useCallback((reason: ExportRefusalReason, name: string): void =>
+    sayOutcome(exportRefusalText(reason, name), EXPORT_REFUSED_CODE, { reason, name }), [sayOutcome]);
   const runExport = useCallback(async (kind: ExportKind) => {
     const current = sceneRef.current;
     // A unit changed since its build keeps its supports part (the worker skips an empty one).
@@ -112,13 +113,37 @@ export function useExport(host: {
         if (refusal.reason === 'failed') return refuse('failed', name);
         return refuse('inconclusive', name);
       }
-      for (const file of written) {
-        const url = URL.createObjectURL(new Blob([file.buffer], { type: 'model/stl' }));
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = file.fileName;
-        anchor.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      /*
+       * THE ONE PLACE THIS FUNCTION COMMITS MORE THAN ONCE, and it used to lie about it (walk `r1`,
+       * G1). Each `click()` hands one file to the browser; the first file is in the operator's
+       * downloads before the second hand-over is even attempted. A throw anywhere in this loop went
+       * to the catch below, which says "Nothing was saved" - true of every other export failure in
+       * the app, because every other one happens before a byte is written, and false here. The walk
+       * caught it saying so with the first file already on disk, and advising "try again".
+       *
+       * Chrome refuses several automatic downloads from one gesture, so this is a fault the operator
+       * meets without any help from an audit.
+       *
+       * THE TRAP: A BROWSER THAT BLOCKS QUIETLY DOES NOT THROW, and the page cannot tell. So this is
+       * not a guarantee that every file arrived - it is the narrower and honest claim that what this
+       * loop MANAGED TO HAND OVER is what the operator is told about, and `saved` is the record of it.
+       */
+      const saved: string[] = [];
+      try {
+        for (const file of written) {
+          const url = URL.createObjectURL(new Blob([file.buffer], { type: 'model/stl' }));
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = file.fileName;
+          anchor.click();
+          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+          saved.push(file.fileName);
+        }
+      } catch (error) {
+        // Nothing handed over: the generic export failure below is right, so let it have it.
+        if (saved.length === 0) throw error;
+        const refused = written[saved.length]!.fileName;
+        return sayOutcome(exportPartialText(saved, refused), EXPORT_PARTIAL_CODE, { saved: saved.join(', '), name: refused });
       }
       // The file names and how many supports the files hold, as the status names them.
       const count = units.reduce((sum, [unit]) => sum + unitContacts(unit, builtRef.current.get(unit.id)?.mesh).length, 0);

@@ -6,7 +6,7 @@ import { jobActivity, type JobActivity, type JobRow } from '@mixo-geocore/host/w
 import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
 import { rebuiltJobError } from '../workers/jobErrors';
 import { formatTime } from './formatTime';
-import { storedExportRefusal } from './exportRefusalText';
+import { storedExportOutcome } from './exportOutcomeText';
 
 /** Re-render this often while jobs are listed: the show delay, linger and times are time-driven. */
 const TICK_MS = 250;
@@ -17,12 +17,12 @@ const TICK_MS = 250;
  *
  * AN EXPORT REFUSAL SAYS ITS OWN SENTENCE, not the generic one. `errorStatus` maps an unknown code
  * to "the export failed", which is true and useless beside four sentences that each name the cause
- * and the next step. `exportRefusalText` owns those four, and `useExport` writes the row with the
+ * and the next step. `exportOutcomeText` owns those four, and `useExport` writes the row with the
  * code that leads back to them - so the status line and this list say the same thing about the same
  * event (one thing, one name) instead of the list paraphrasing it.
  */
 export function failureText(row: JobRow): string {
-  const refused = row.error ? storedExportRefusal(row.error) : undefined;
+  const refused = row.error ? storedExportOutcome(row.error) : undefined;
   if (refused) return translateMessage(refused);
   const context: ErrorContext = (ERROR_CONTEXTS as readonly string[]).includes(row.context ?? '') ? row.context as ErrorContext : 'build';
   const name = row.label.vars?.name;
