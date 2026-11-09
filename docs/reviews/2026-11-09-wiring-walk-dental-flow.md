@@ -308,6 +308,20 @@ do. The timeout needed four lines (`__longTimerFloorMs`) and the header needed a
 Neither was a day's work; both had been described as one, because **an unrun row is easier to write
 than to cost.**
 
+**AND W-03 BROKE A CHECK, WHICH ONLY A FULL RUN COULD SHOW.** `m4b` waits for every deck row to
+carry text and then asserts what that text says. "Carries text" meant "has decided" for exactly as
+long as a queued row drew a BLANK — and W-03, this audit's own fix, gave it words ("Waiting its
+turn…"). So the wait began returning at once and the check read the rows mid-flight. It passed on
+`--only=m`, because with nothing before it the batch beat the read by milliseconds, and failed in a
+full walk, where it did not. Three checks shared the flaw — `m4b`, `q5`, and section `r`'s own
+reader, which I had already fixed there after `r2` passed vacuously for the same reason. **The same
+mistake, three times in one day, and the third time in a check I had personally corrected.** There
+is one `rowsSettled` now, and the pending sentences are named in one place.
+
+The cost of that lesson is worth stating plainly: **a fix to what the screen SAYS can silently
+invalidate a test that reads the screen**, and a check that reads a surface is coupled to that
+surface's vocabulary whether or not anyone wrote that down.
+
 **THE TIMEOUT LEVER BROKE A CHECK IN ANOTHER SECTION, and the walk caught it.** `__longTimerFloorMs`
 was first installed by replacing `window.setTimeout` in the init script, at page load. Walk `m4b`
 went red: the batch's first orient never settled, with **no console error** — it simply stopped. A

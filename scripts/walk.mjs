@@ -797,6 +797,29 @@ function makeDriver(page) {
   };
 }
 
+/**
+ * The sentences a deck row shows while it has NOT decided yet (`src/items/detectState.ts`).
+ *
+ * They exist because of W-03: a queued row used to draw the same blank as a row the batch had never
+ * heard of, so "waiting its turn" and "nothing is happening here" were one picture. Giving it words
+ * fixed the screen and broke a CHECK - `m4b` waited for every row to carry non-empty text, which had
+ * meant "settled" only for as long as a pending row said nothing. It passed on an idle machine
+ * because the batch beat the read, and failed in a full walk because it did not.
+ */
+const PENDING_ROW = /Checking the orientation|Waiting its turn/i;
+
+/**
+ * Waits until `count` rows carry a VERDICT - not merely text. One definition, because the same
+ * mistake was made twice in one day: a pending sentence must never satisfy a check about what the
+ * system decided.
+ */
+function rowsSettled(page, count, ms = 240000) {
+  return page.waitForFunction(({ want, pending }) => {
+    const lines = [...document.querySelectorAll('[data-ui^="items-detect-"]')].map((node) => (node.textContent ?? '').trim());
+    return lines.length === want && lines.every((line) => line.length > 0 && !new RegExp(pending, 'i').test(line));
+  }, { want: count, pending: PENDING_ROW.source }, { timeout: ms }).then(() => true, () => false);
+}
+
 // ---- the walk ---------------------------------------------------------------------------------
 
 /** Triangle count of an STL file, binary or ASCII. */
@@ -1338,9 +1361,7 @@ async function walk(url, scratch, dentalFixture) {
        * every row here settles on "No rim found", and what this proves is that each row got its OWN
        * answer rather than one imposed on the list.
        */
-      const detected = await page.waitForFunction(
-        () => [...document.querySelectorAll('[data-ui^="items-detect-"]')].filter((node) => (node.textContent ?? '').trim().length > 0).length === 3,
-        null, { timeout: 240000 }).then(() => true, () => false);
+      const detected = await rowsSettled(page, 3);
       const lines = await page.locator('[data-ui^="items-detect-"]').allInnerTexts();
       check('m4b the batch gives every row its own orientation result',
         detected && lines.length === 3 && lines.every((text) => /No rim found/.test(text)),
@@ -1776,9 +1797,7 @@ async function walk(url, scratch, dentalFixture) {
       await dropOnStart([{ name: 'w-one.stl', text: qCube }, { name: 'w-two.stl', text: qCube }, { name: 'w-three.stl', text: qCube }]);
       await page.getByRole('button', { name: 'Aligner', exact: true }).click();
       await page.waitForFunction(() => document.querySelectorAll('.items-row').length === 3, null, { timeout: 180000 }).catch(() => {});
-      const replayedSettled = await page.waitForFunction(
-        () => [...document.querySelectorAll('[data-ui^="items-detect-"]')].filter((node) => (node.textContent ?? '').trim().length > 0).length === 3,
-        null, { timeout: 240000 }).then(() => true, () => false);
+      const replayedSettled = await rowsSettled(page, 3);
       await d.idle(2000);
       const replayedLines = await page.locator('[data-ui^="items-detect-"]').allInnerTexts();
       const replayCount = await page.evaluate(() => window.__replayed ?? 0);
@@ -1933,11 +1952,7 @@ async function walk(url, scratch, dentalFixture) {
        * the probe proved nothing about either. A pending sentence is the system saying it does not
        * know yet, and it must never satisfy a check about what it decided.
        */
-      const PENDING = 'Checking the orientation|Waiting its turn';
-      const allSettled = (count = 2, ms = 240000) => page.waitForFunction(({ count: want, pending }) => {
-        const lines = [...document.querySelectorAll('[data-ui^="items-detect-"]')].map((node) => (node.textContent ?? '').trim());
-        return lines.length === want && lines.every((line) => line.length > 0 && !new RegExp(pending, 'i').test(line));
-      }, { count, pending: PENDING }, { timeout: ms }).then(() => true, () => false);
+      const allSettled = (count = 2, ms = 240000) => rowsSettled(page, count, ms);
 
       /*
        * G1 - A WRITE REFUSED AFTER AN EARLIER ONE COMMITTED.
