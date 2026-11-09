@@ -10,7 +10,18 @@ assert.ok(existsSync(packageFile), 'Node WASM package must be built before its s
 const require = createRequire(import.meta.url);
 const { engine_version: engineVersion, GeometrySession, center_positions_in_place: centerPositionsInPlace,
   weld_positions_in_place: weldPositionsInPlace, zoned_at: zonedAt, decimate_display: decimateDisplay, BinaryStlSession, AsciiStlSession } = require(packageFile);
-assert.equal(engineVersion(), 14, 'Node WASM and host must agree on the geometry schema');
+/*
+ * THE CHECK IS THE AGREEMENT, NOT A NUMBER. This line read `assert.equal(engineVersion(), 14, …)`
+ * and the engine is at 63, so `npm run wasm:test` - the gate every vendor bump is supposed to pass -
+ * had been failing on its first assertion since engine 15, which means it had not been run. A
+ * constant frozen into a detector ages into a detector nobody runs, and then the rest of this file,
+ * which is the real smoke test, is never reached.
+ *
+ * `HOST_GEOMETRY_VERSION` is what `vendor-geometry.mjs` already compares the engine against, and it
+ * is what the message here has always claimed to be checking.
+ */
+const { HOST_GEOMETRY_VERSION } = await import('../vendor/mixo-geocore/host/geometryVersion.js');
+assert.equal(engineVersion(), HOST_GEOMETRY_VERSION, 'Node WASM and host must agree on the geometry schema');
 
 // The stamp rule behind no-support zones: [centre xyz, normal xyz, radius, 1 paint / 0 erase], the last covering stamp wins.
 const paint = [0, 0, 0, 0, -1, 0, 2, 1];
@@ -148,3 +159,11 @@ limited.free();
   assert.throws(() => dental.manual_dental_area(4, new Uint32Array([1]), true, 'reference-aligner'), { code: 'DETECTED_AREA_EXISTS' });
   assert.throws(() => dental.manual_dental_area(4, new Uint32Array([4]), false, 'reference-aligner'), { code: 'INVALID_INDEX' });
 }
+
+/*
+ * A GATE THAT PASSES IN SILENCE IS A GATE NOBODY CAN TELL RAN. This file had no success line, so a
+ * green `wasm:test` and a `wasm:test` that fell over on its first assertion printed the same thing
+ * to a reader skimming a log - and the first assertion had in fact been failing since engine 15.
+ * Saying what was checked, against which engine, is the cheapest guard against that.
+ */
+console.log(`geometry wasm smoke: engine ${engineVersion()} agrees with the host, and every ABI assertion passed`);
