@@ -1129,7 +1129,29 @@ async function walk(url, scratch, dentalFixture) {
        * The Select press below (before the throttled pair) was already here. It was just on the wrong
        * side of the measurement it protects.
        */
-      await d.button('Select', true).click().catch(() => {});
+      /*
+       * WHY `g` HAS NEVER RUN, as far as four runs on 2026-11-10 could establish. Its strokes select
+       * NOTHING, and the explanation this check printed for a day - "the machine was too loaded" - is
+       * disproved. Each of these was measured, not argued:
+       *
+       *   the machine   0 selected UNTHROTTLED too, and at 1.5x, which is barely throttled at all.
+       *   the tool      `Select armed: true` both times; the old `.catch(() => {})` hid this.
+       *   the view      `Fit view` pressed first (true) changed nothing, so it is not the camera that
+       *                 sections b-f leave behind. That press was removed again: it fixed nothing and
+       *                 an extra step in a gate is debt.
+       *   the place     `a2` sweeps 0.3,0.5 -> 0.72,0.5 and selects 57. `g` sweeps 0.3,0.5 -> 0.7,0.5
+       *                 and selects 0. Same section, same screen, nearly the same line.
+       *
+       * It is DETERMINISTIC, not flaky: `#811c9dc5` on every run. What differs from `a2` and has not
+       * been tested is the state `d.exitMode()` + `d.enterDragOver()` leaves after b-f, and whether
+       * drag-over has anything selectable left by then. Each hypothesis costs an 18-minute section-`a`
+       * run, which is why this is written down rather than guessed at.
+       *
+       * ARMED, OR NOT? The old `.catch(() => {})` swallowed the one thing this check rests on: if the
+       * press missed, nothing was armed, every stroke selected nothing, and the failure surfaced two
+       * screens later as `g-pre` reporting 0 - which was then explained as the machine. Reported now.
+       */
+      const armedBaseline = await d.button('Select', true).click().then(() => true, () => false);
       await d.idle(300);
       await d.stroke(A[0], A[1], 30);
       await d.settle();
@@ -1137,7 +1159,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.stroke(B[0], B[1], 15);
       const sequential = await d.settle();
       await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
-      await d.button('Select', true).click().catch(() => {});
+      const armedThrottled = await d.button('Select', true).click().then(() => true, () => false);
       await d.idle(500);
       const cdp = await context.newCDPSession(page);
       /*
@@ -1153,9 +1175,18 @@ async function walk(url, scratch, dentalFixture) {
        * than one line of red. One attempt, and if no queue formed the check says so instead of blaming the
        * app for the machine it ran on.
        */
-      // 6x was too slow, then 4x was too slow on a busier machine (the pointer moves are dropped
-      // outright and the stroke selects nothing, which `g-pre` now reports as its own failure). 2x is
-      // the next step down. If this ever reports 0 again, lower it rather than reading it as the app.
+      /*
+       * 6x was too slow, then 4x on a busier machine, so this was lowered to 2x with the instruction
+       * "if this ever reports 0 again, lower it rather than reading it as the app".
+       *
+       * THAT INSTRUCTION WAS FOLLOWED ON 2026-11-10 AND IT DID NOT HELP, which is the useful result:
+       * 2x reported 0, and so did 1.5x - barely any throttling at all. A stroke that selects nothing
+       * when the machine is practically unthrottled is not a machine that is too loaded, so the
+       * explanation this check has been printing is wrong, and lowering the number further is chasing
+       * it. `a2` drag-over selects 57 three times in this same section, so the mechanism works; it is
+       * `g`'s own strokes that land on nothing. Left at 2x, the considered value, until the real cause
+       * is found - see the baseline the precondition now reports.
+       */
       const throttle = 2;
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
       await d.stroke(A[0], A[1], 30, { pace: 40 });
@@ -1182,9 +1213,20 @@ async function walk(url, scratch, dentalFixture) {
        * `g` is still the real assertion and still has to pass. `g-pre` is the precondition, and it
        * fails loudly rather than silently, because a check that cannot run is not a check that passed.
        */
+      /*
+       * AND IT REPORTS THE BASELINE, because the old text named a cause it had not measured. It said a
+       * 0 meant "the pointer moves were dropped outright - the machine was too loaded", and that
+       * confident wrong sentence is why nobody looked further for a day: it was written down as a
+       * machine fact and the handoff repeated it. `sequential` is the SAME pair of strokes run
+       * UNTHROTTLED a moment earlier, so it separates the two cases cleanly - if it selected nothing
+       * either, no amount of throttle was ever the problem.
+       */
+      const baseline = sequential.selected;
       check('g-pre the machine slowed enough for a brush queue to form (precondition, not the app)',
         pendingAtSwitch > 0,
-        `${pendingAtSwitch} steps pending at the switch, ${throttle}x throttle. 0 means the pointer moves were dropped outright - the machine was too loaded, so g below could not be answered.`);
+        baseline === 0
+          ? `${pendingAtSwitch} pending at the switch, and the UNTHROTTLED baseline selected ${baseline} too - so this is NOT the machine. Select armed: baseline ${armedBaseline}, throttled ${armedThrottled}. a2 sweeps all but the same coordinates and selects 57, so drag-over works. Do not lower the throttle for this.`
+          : `${pendingAtSwitch} steps pending at the switch against a baseline of ${baseline}, ${throttle}x throttle. The queue did not form, so g below could not be answered.`);
       /*
        * AND g IS NOT REPORTED AT ALL WHEN NO QUEUE FORMED. Splitting the precondition out fixed the
        * attribution and immediately introduced a worse fault: with 0 steps pending, both strokes
@@ -1197,7 +1239,8 @@ async function walk(url, scratch, dentalFixture) {
           switched.hash === sequential.hash,
           `one after the other ${sequential.selected} (#${sequential.hash}), switched mid-queue ${switched.selected} (#${switched.hash}), selected when switching ${pendingAtSwitch} at ${throttle}x`);
       } else {
-        note(`g could not be judged: no queue formed, so both strokes compared the empty state (#${sequential.hash}). The app was not exercised, so nothing is claimed about it.`);
+        // The old wording ASSERTED "the empty state" without measuring it; it prints the count now.
+        note(`g could not be judged: no queue formed, and the baseline stroke selected ${sequential.selected} (#${sequential.hash}). The app was not exercised, so nothing is claimed about it.`);
       }
       await d.exitMode();
 
