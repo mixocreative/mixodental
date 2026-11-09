@@ -856,6 +856,15 @@ async function walk(url, scratch, dentalFixture) {
   await context.addInitScript(() => { try { localStorage.setItem('mixodental.lang', 'en'); } catch { /* storage off */ } });
   await context.addInitScript(faultLevers);
   const page = await context.newPage();
+  /*
+   * A SLOWER MACHINE NEEDS LONGER BEFORE IT CALLS SOMETHING STUCK. Playwright's 30-second default is
+   * generous here and not on a shared runner rendering through SwiftShader, where the same work runs
+   * several times slower: the first sharded CI run lost 80 PASSING checks to a `page.screenshot`
+   * that timed out, which says nothing about the app. A longer default only changes how long a
+   * FAILURE takes to be declared - a passing call returns when it returns - so it costs nothing when
+   * things work and stops the gate inventing failures when the box is slow.
+   */
+  if (process.env.CI) page.setDefaultTimeout(120000);
   const errors = [];
   /** Set by the `crash` listener below; a failure reported after it is a symptom of the crash. */
   let crashed = false;
