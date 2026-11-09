@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DentalRim } from '@mixo-geocore/host/dental/dental';
 import { pathProblems } from '../../core/surfacePath/validate';
+import { resamplePath } from '../../core/surfacePath/resample';
 import { SEED_MAX_ANCHORS, SEED_MIN_ANCHORS, SEED_MIN_GAP_MM, SEED_SPACING_MM, seedRimDraft } from './seedFromDetected';
 
 /** A detected rim as a circle of `count` points of radius `radius` mm in the y = 0 plane. */
@@ -135,5 +136,82 @@ describe('a detected rim as a drawing the operator can edit', () => {
     expect(seedRimDraft(ringRim(0))).toBeUndefined();
     // A rim far smaller than the spacing collapses to fewer than three anchors rather than pretending.
     expect(seedRimDraft(ringRim(8, 0.05))).toBeUndefined();
+  });
+});
+
+/*
+ * THE GATE ON THE CURVE ITSELF: how far the drawn rim strays from the one detection traced.
+ *
+ * This is the measurement that lets the thresholds be 12 mm and 45 degrees instead of 3 mm and 20.
+ * Ground truth is detection's OWN loop - the points the seed was taken from - which beats comparing
+ * visibility-mask cells, because a drawn rim's plane already differs from detection's by 5.6 degrees
+ * and that pollutes any mask count before the curve is even considered.
+ *
+ * The distance is SIGNED about the loop's centre: positive is a BULGE away from it, negative a
+ * cut-in. They are reported apart because they are not equally bad - a bulge puts the support band
+ * off the trim, a cut-in of the same size lands it a little inside, and only the first is the error
+ * this spline was chosen to avoid.
+ */
+describe('how far the drawn curve strays from the rim detection traced', () => {
+  /** The seeded anchors, resampled the way `drawnRim` resamples them, with no surface to project onto. */
+  const curveOf = (rim: DentalRim, spacing = 0.5) => {
+    const path = seedRimDraft(rim)!;
+    return resamplePath(path, spacing, (point) => point)!.points;
+  };
+
+  /*
+   * DISTANCE TO THE TRUTH LINE, NOT TO ITS SAMPLES - and the first version of this got that wrong.
+   * Detection's points sit about 1 mm apart, so measuring to the NEAREST POINT charges every sample
+   * up to half that spacing for being between two of them: it scored a perfect curve at 0.38 mm and
+   * failed a 32 um error. The truth is the polyline those points describe, so the distance is to its
+   * SEGMENTS.
+   */
+  const toSegment = (p: [number, number], a: [number, number], b: [number, number]): number => {
+    const vx = b[0] - a[0];
+    const vz = b[1] - a[1];
+    const len2 = vx * vx + vz * vz;
+    const t = len2 > 0 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * vx + (p[1] - a[1]) * vz) / len2)) : 0;
+    return Math.hypot(p[0] - (a[0] + t * vx), p[1] - (a[1] + t * vz));
+  };
+
+  const strayOf = (rim: DentalRim) => {
+    const count = Math.floor(rim.points.length / 3);
+    const truth: [number, number][] = Array.from({ length: count }, (_, at) => [rim.points[at * 3]!, rim.points[at * 3 + 2]!]);
+    const centre = truth.reduce((sum, [x, z]) => [sum[0] + x / count, sum[1] + z / count], [0, 0]) as [number, number];
+    const truthRadius = truth.reduce((sum, [x, z]) => sum + Math.hypot(x - centre[0], z - centre[1]) / count, 0);
+    const readings = curveOf(rim).map((point) => {
+      const here: [number, number] = [point[0], point[2]];
+      let nearest = Infinity;
+      for (let at = 0; at < truth.length; at += 1) nearest = Math.min(nearest, toSegment(here, truth[at]!, truth[(at + 1) % truth.length]!));
+      // Signed about the loop's centre: positive is a bulge away from it, negative a cut-in.
+      return { nearest, signed: Math.hypot(here[0] - centre[0], here[1] - centre[1]) - truthRadius };
+    });
+    const sorted = readings.map((entry) => entry.nearest).sort((a, b) => a - b);
+    return {
+      median: sorted[Math.floor(sorted.length / 2)]!,
+      max: Math.max(...readings.map((entry) => entry.nearest)),
+      bulge: Math.max(...readings.map((entry) => entry.signed)),
+      cutIn: -Math.min(...readings.map((entry) => entry.signed)),
+    };
+  };
+
+  it('tracks a smooth arch within half a mask cell, on a dozen handles', () => {
+    const arch = ringRim(158, 25);
+    const seeded = seedRimDraft(arch)!;
+    const stray = strayOf(arch);
+    expect(seeded.anchors.length, `handles ${seeded.anchors.length}`).toBeGreaterThanOrEqual(8);
+    expect(seeded.anchors.length, `handles ${seeded.anchors.length}`).toBeLessThanOrEqual(16);
+    expect(stray.median, `median ${stray.median}`).toBeLessThan(0.05);
+    expect(stray.max, `max ${stray.max}`).toBeLessThan(0.2);
+  });
+
+  /*
+   * THE OVERSHOOT GUARD, and the reason the spline is centripetal rather than uniform. A hairpin is
+   * where an unevenly-spaced curve bulges if it is going to, and a bulge off the trim is the error
+   * that reaches the supports. Measured outward, gated well under half a mask cell.
+   */
+  it('does not bulge off a hairpin', () => {
+    const stray = strayOf(ringRim(80, 5));
+    expect(stray.bulge, `bulge ${stray.bulge}, cut-in ${stray.cutIn}`).toBeLessThan(0.1);
   });
 });

@@ -32,28 +32,35 @@ import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
  */
 
 /**
- * The longest a straight run goes without a handle, mm. On the gentle curve of an arch this is the
- * rule that fires, and 3 mm over a radius of about 25 mm is a heading step of under 7 degrees.
+ * The longest a run goes without a handle, mm.
+ *
+ * TWELVE, BECAUSE THE SPAN IS A CURVE. It was 3 while `resamplePath` joined anchors with chords, and
+ * that bought the reference aligner 35 handles - which the owner met and called near-impossible to
+ * edit, correctly. A centripetal Catmull-Rom span misses an arc by about `3*R*theta^4/128` against a
+ * chord's `R*theta^2/8`, so on the arch front (R about 25 mm) 12 mm of curve is 31 um where 3 mm of
+ * chord was 45 um: four times the spacing and a truer line. What decides this number now is where a
+ * human wants something to grab, not how far a straight line strays.
  */
-export const SEED_SPACING_MM = 3;
+export const SEED_SPACING_MM = 12;
 
 /**
  * How much the rim may turn between two handles, degrees - the rule that puts anchors where the
  * curve actually bends instead of spreading them evenly and missing the corners.
  *
- * Twenty, because the error it permits is below what reads the curve. The chord of a turn of theta
- * over radius R misses the arc by `R(1 - cos(theta/2))`: at a molar corner of about 5 mm that is a
- * 1.7 mm chord and **0.08 mm** of sagitta, under one cell of the 96x96 visibility mask the engine
- * rasterises the rim into, and well under the 0.5 mm the curve is resampled at.
+ * FORTY-FIVE, and this threshold changed its meaning rather than its value alone. At 20 it was
+ * bounded by the sagitta of a CHORD across the turn; with a curve between the handles that bound is
+ * gone - at a molar hairpin (R about 5 mm) a 45-degree step costs about 45 um, a sixth of what 3 mm
+ * chords cost there. So it is set by where a person expects a handle: a corner. Eight handles for a
+ * full 360 degrees of turning, wherever the turning happens to be.
  */
-export const SEED_TURN_DEG = 20;
+export const SEED_TURN_DEG = 45;
 
 /**
- * No two handles closer than this, mm. `RIM_GRAB_REACH_MM` is 0.84, so two anchors inside a
- * millimetre of each other are one marker the operator cannot pick apart - a corner that earns three
- * handles must still give them three things to grab.
+ * No two handles closer than this, mm. The marker radius is 0.42 and `RIM_GRAB_REACH_MM` is 0.84, so
+ * at 2 mm two handles are visibly separate and can be picked apart even where a hairpin earns three
+ * of them in quick succession.
  */
-export const SEED_MIN_GAP_MM = 1;
+export const SEED_MIN_GAP_MM = 2;
 
 /** Never fewer than a rim needs to be closed at all, and never more than a person can work with. */
 export const SEED_MIN_ANCHORS = 3;

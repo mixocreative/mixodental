@@ -2868,10 +2868,17 @@ async function walk(url, scratch, dentalFixture) {
        * (`seedRimDraft`). An empty drawing here would mean the operator pressed "correct this" and
        * was handed a bare model with their working rim thrown away - a worse offer than no button.
        *
-       * THE COUNT IS READ, NOT ASSUMED. The reference rim is 158 points at roughly 0.5 mm; seeded at
-       * 3 mm that is about 26 anchors. The assertion is the BOUND rather than the number, because the
-       * exact count is detection's business and would make this a test of the fixture: more than the
-       * three a closed rim needs, and no more than a person can work with.
+       * THE COUNT IS THE POINT, AND THE BOUND IS A HUMAN ONE. The reference rim measures 19 handles
+       * today. It measured 35 while `resamplePath` joined anchors with straight chords, and the owner
+       * met that and called it near-impossible to edit - correctly, because with chords the only way
+       * to hug a curving rim is to crowd the handles. A centripetal curve carries the same shape on
+       * far fewer (`core/surfacePath/spline.ts`), so the thresholds could go to 12 mm and 45 degrees.
+       *
+       * The assertion is a RANGE rather than 19, because the exact count is detection's business and
+       * pinning it would make this a test of the fixture. The range is what a person can work with:
+       * enough handles to correct a local feature, few enough to see them all at once. The fidelity
+       * that range costs is measured separately and precisely in `seedFromDetected.test.ts`, against
+       * detection's own loop.
        */
       const redrawRim = d.button('Redraw the rim');
       const seedableBefore = { badge: (await badge()).trim(), shows: await redrawRim.count() };
@@ -2880,7 +2887,7 @@ async function walk(url, scratch, dentalFixture) {
       const seededAnchors = Number(((await page.locator('[data-ui="rim-point-count-control"]').innerText().catch(() => '0')) ?? '0').trim() || '0');
       const seededBadge = (await badge()).trim();
       check('u9b a DETECTED rim can be redrawn, and the drawing opens with detection own loop already placed',
-        seedableBefore.shows === 1 && /rim/i.test(seededBadge) && seededAnchors > 3 && seededAnchors <= 48,
+        seedableBefore.shows === 1 && /rim/i.test(seededBadge) && seededAnchors >= 8 && seededAnchors <= 24,
         `button shown ${seedableBefore.shows}, badge was ${JSON.stringify(seedableBefore.badge)} now ${JSON.stringify(seededBadge)}, seeded anchors ${seededAnchors}`);
       /*
        * AND THINKING BETTER OF IT MUST COST NOTHING. Cancel is the way back, not Undo: the app's

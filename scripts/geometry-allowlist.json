@@ -58,6 +58,11 @@
     "maxMath": 2,
     "why": "walks a drawn path at a spacing and interpolates each sample and its normal; putting the sample back on the surface is the callers injected pick, not done here"
   },
+  "src/core/surfacePath/spline.ts": {
+    "label": "host-math",
+    "maxMath": 2,
+    "why": "the centripetal Catmull-Rom span between two drawn anchors: knot spacing (one pow, one hypot through vec3) and the Barry-Goldman pyramid, all of it plain interpolation between points the operator placed. It decides nothing about the model - the samples are projected onto the surface by the callers injected pick, and the rim plane, side and mask stay the engine s"
+  },
   "src/dental/areaRisk.ts": {
     "label": "host-adapter"
   },
@@ -76,8 +81,8 @@
   },
   "src/dental/rim/seedFromDetected.ts": {
     "label": "host-math",
-    "maxMath": 1,
-    "why": "walks a DETECTED rim by arc length to pick the anchors the operator will drag: one Math.hypot for the gap between two of its own points. It decides nothing geometric - the points are detections, kept exactly, and the plane, the side and the mask are rebuilt by the engine when the drawing is done"
+    "maxMath": 3,
+    "why": "picks the handles the operator will drag off a DETECTED rim: arc length between its own points, and the heading either side of one measured over a millimetre so scanner jitter does not sprinkle handles along a straight run. Grew from 1 to 3 hits when spacing alone proved to miss corners. It decides nothing geometric - the points are detections, kept exactly, and the plane, the side and the mask are rebuilt by the engine when the drawing is done"
   },
   "src/dental/rim/useRimDrawing.ts": {
     "label": "host-adapter",

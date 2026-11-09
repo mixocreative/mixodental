@@ -1,4 +1,5 @@
-import { add, distance, normalize, scale, subtract, type Vector } from '@mixo-geocore/host/core/vec3';
+import { add, distance, normalize, scale, type Vector } from '@mixo-geocore/host/core/vec3';
+import { centripetalPoint, neighbourIndexes } from './spline';
 import { segments, type SurfacePath } from './path';
 
 /*
@@ -60,17 +61,33 @@ export function resamplePath(path: SurfacePath, spacingMm: number, project: Proj
     // The anchor itself is already on the surface: it is kept exactly, never re-projected.
     points.push(from.position);
 
+    /*
+     * THE SPAN IS A CURVE, NOT A CHORD (2026-11-09), and the reason is editability rather than
+     * smoothness. The anchors are what the operator drags, so their NUMBER decides whether a rim can
+     * be corrected by hand; joined by chords the only way to hug a curving rim is to crowd them, and
+     * adaptive seeding needed 35 on the reference aligner. A curve carries the same shape on about a
+     * dozen. It is also strictly truer for the SAME anchors: a hand-drawn rim at 6.6 mm spacing goes
+     * from roughly 220 um of chord error to about 10 um.
+     *
+     * Centripetal, because seeded anchors are deliberately uneven - dense at a hairpin, sparse along
+     * a run - and the uniform variant can bulge or cusp between unevenly spaced points, which on a
+     * rim puts the support band off the trim. See `spline.ts`.
+     */
+    const [before, after] = neighbourIndexes(i, j, path.anchors.length, path.closed);
+    const p0 = path.anchors[before]!.position;
+    const p3 = path.anchors[after]!.position;
+
     const steps = stepsFor(distance(from.position, to.position), spacingMm, maxPerSegment);
     for (let step = 1; step <= steps; step += 1) {
       const t = step / (steps + 1);
-      const straight = add(from.position, scale(subtract(to.position, from.position), t));
+      const along = centripetalPoint(p0, from.position, to.position, p3, t);
       // The normal is carried across the segment the same way the point is, so a sample near either anchor
       // searches the way that anchor's surface faced.
       const normal = normalize(add(scale(from.normal, 1 - t), scale(to.normal, t)));
       samples += 1;
-      const landed = project(straight, normal);
+      const landed = project(along, normal);
       if (landed) projected += 1;
-      points.push(landed ?? straight);
+      points.push(landed ?? along);
     }
   }
 
