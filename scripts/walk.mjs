@@ -365,6 +365,22 @@ function check(name, ok, detail = '') {
 }
 const note = (text) => console.log(`     ${text}`);
 
+/**
+ * A SLOWER MACHINE NEEDS LONGER BEFORE IT CALLS SOMETHING STUCK, on EVERY page this walk opens.
+ *
+ * Playwright's 30-second default is generous here and not on a shared runner rendering through
+ * SwiftShader, where the same work runs several times slower: one sharded CI run lost 80 PASSING
+ * checks to a `page.screenshot` that timed out, which says nothing about the app. A longer default
+ * only changes how long a FAILURE takes to be declared - a passing call returns when it returns - so
+ * it costs nothing when things work and stops the gate inventing failures when the box is slow.
+ *
+ * SHARED BECAUSE IT WAS MISSED ONCE. That fix went on the main walk's page and not on `walkLocale`'s,
+ * which opens its own context; on 2026-11-09 the locale pass timed out a screenshot at the 30 s
+ * default it had never stopped using, went red with all 39 of its checks passing, and SKIPPED the
+ * Pages deploy. One function, called wherever a page is made, so a third page cannot miss it.
+ */
+const forSlowMachines = (page) => { if (process.env.CI) page.setDefaultTimeout(120000); };
+
 async function freePort(from) {
   for (let port = from; port < from + 40; port += 1) {
     const free = await new Promise((resolve) => {
@@ -857,14 +873,9 @@ async function walk(url, scratch, dentalFixture) {
   await context.addInitScript(faultLevers);
   const page = await context.newPage();
   /*
-   * A SLOWER MACHINE NEEDS LONGER BEFORE IT CALLS SOMETHING STUCK. Playwright's 30-second default is
-   * generous here and not on a shared runner rendering through SwiftShader, where the same work runs
-   * several times slower: the first sharded CI run lost 80 PASSING checks to a `page.screenshot`
-   * that timed out, which says nothing about the app. A longer default only changes how long a
-   * FAILURE takes to be declared - a passing call returns when it returns - so it costs nothing when
-   * things work and stops the gate inventing failures when the box is slow.
+   * Slow machines get longer before anything is called stuck: see `forSlowMachines`.
    */
-  if (process.env.CI) page.setDefaultTimeout(120000);
+  forSlowMachines(page);
   const errors = [];
   /** Set by the `crash` listener below; a failure reported after it is a symptom of the crash. */
   let crashed = false;
@@ -4012,10 +4023,30 @@ function translator(lang) {
 async function walkLocale(url, scratch, lang, dentalFixture) {
   const tr = translator(lang);
   const tag = (name) => `[${lang}] ${name}`;
-  const shot = (page, name) => page.screenshot({ path: path.join(scratch, `${lang}-${name}.png`) });
+  /*
+   * A SCREENSHOT IS EVIDENCE, NOT AN ASSERTION, so it must not be able to fail this walk by itself.
+   * Every `shot` below sits inside the one try/catch that wraps the whole journey, so a single timed
+   * out picture was recorded as `FAIL [lang] locale walk` and abandoned the rest of the pass - which
+   * is how a deploy was skipped on 2026-11-09 for a missing PNG. `forSlowMachines` is the first half
+   * of that fix; this is the half that holds even when a screenshot fails for some other reason.
+   *
+   * NOT SWALLOWED. A WEDGED page also fails to screenshot, so every miss is named as it happens and
+   * counted at the end of the pass, and the checks after it still have to pass on their own - which
+   * is what would actually catch a wedged page, rather than the absence of a picture.
+   */
+  const missedShots = [];
+  const shot = async (page, name) => {
+    try {
+      await page.screenshot({ path: path.join(scratch, `${lang}-${name}.png`) });
+    } catch (error) {
+      missedShots.push(name);
+      note(`[${lang}] screenshot "${name}" missed: ${String(error.message).split('Call log')[0].replace(/\s+/g, ' ').trim()}`);
+    }
+  };
   const context = await browser.newContext({ viewport: VIEWPORT, acceptDownloads: true });
   await context.addInitScript((value) => { try { localStorage.setItem('mixodental.lang', value); } catch { /* storage off */ } }, lang);
   const page = await context.newPage();
+  forSlowMachines(page);
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
@@ -4205,9 +4236,11 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     await shot(page, 'dental-step3-problems');
   } catch (error) {
     check(tag('locale walk'), false, error.message);
-    await shot(page, 'error').catch(() => {});
+    await shot(page, 'error');
   }
   check(tag('h no console errors or warnings'), errors.length === 0, errors.length ? errors.slice(0, 3).join(' || ') : '0 messages');
+  // Said once more at the end, so a miss is not lost in the scroll - and never as a FAIL (see `shot`).
+  if (missedShots.length) note(`[${lang}] ${missedShots.length} screenshot(s) missed: ${missedShots.join(', ')} - evidence only, every check above still had to pass`);
   await context.close();
 }
 
