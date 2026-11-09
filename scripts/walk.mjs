@@ -1153,8 +1153,38 @@ async function walk(url, scratch, dentalFixture) {
        */
       const armedBaseline = await d.button('Select', true).click().then(() => true, () => false);
       await d.idle(300);
-      await d.stroke(A[0], A[1], 30);
+      // IS THERE ANYTHING TO SELECT? The one question four runs never asked. `a2` sweeps these same
+      // coordinates while 429 supports stand; if `drawn` is 0 by the time b-f have run, every stroke
+      // here is sweeping bare plate and no throttle, tool or camera was ever going to change that.
+      /*
+       * SETTLE BEFORE THE FIRST STROKE, EXPLICITLY. This is what `g` was missing, and the way it was
+       * found is a warning in itself: the check began passing the moment two DIAGNOSTIC calls were
+       * added here, because their round-trips happened to give the app the time it needed. Anyone
+       * tidying those away later would have broken it again, and the failure would have surfaced as
+       * `g-pre` reporting 0 and being read as the machine - which is exactly the loop this check has
+       * already been round. The wait is stated here so it cannot be removed by accident.
+       */
       await d.settle();
+      await d.idle(400);
+      const onScreen = await d.props();
+      /*
+       * WHICH CONTROLS ARE ENGAGED, read off the DOM the same way `enterDragOver` verifies itself.
+       * Five causes are out (machine, arming, view, coordinates, 424 supports on screen), and the
+       * comment above says the switch SURVIVES mode changes by design - so what `a2` leaves pressed is
+       * what `g` inherits. If the select STYLE is on click by here, every sweep is a click and selects
+       * nothing, which fits all five results at once.
+       */
+      const engaged = await page.evaluate(() => [...document.querySelectorAll('.edit-bar button[aria-pressed="true"]')]
+        .map((b) => (b.textContent ?? '').trim()).filter(Boolean));
+      await d.stroke(A[0], A[1], 30);
+      /*
+       * THE REAL UNTHROTTLED BASELINE, and it was being thrown away. `sequential` below is read AFTER
+       * the Unselect stroke, so it is the END of the select-then-unselect pair - a 0 there means the
+       * unselect swept everything, which is the expected result, NOT evidence that stroke A failed.
+       * Mistaking one for the other is how "g's strokes select nothing" was concluded on 2026-11-10.
+       * This is the only number that says whether an unthrottled A stroke selects at all.
+       */
+      const unthrottledA = (await d.settle()).selected;
       await d.button('Unselect').click();
       await d.stroke(B[0], B[1], 15);
       const sequential = await d.settle();
@@ -1224,9 +1254,9 @@ async function walk(url, scratch, dentalFixture) {
       const baseline = sequential.selected;
       check('g-pre the machine slowed enough for a brush queue to form (precondition, not the app)',
         pendingAtSwitch > 0,
-        baseline === 0
-          ? `${pendingAtSwitch} pending at the switch, and the UNTHROTTLED baseline selected ${baseline} too - so this is NOT the machine. Select armed: baseline ${armedBaseline}, throttled ${armedThrottled}. a2 sweeps all but the same coordinates and selects 57, so drag-over works. Do not lower the throttle for this.`
-          : `${pendingAtSwitch} steps pending at the switch against a baseline of ${baseline}, ${throttle}x throttle. The queue did not form, so g below could not be answered.`);
+        unthrottledA === 0
+          ? `the UNTHROTTLED A stroke itself selected 0 of ${onScreen.drawn} on screen, so no throttle was ever the problem. Select armed ${armedBaseline}/${armedThrottled}, engaged [${engaged.join(' | ')}], pose ${JSON.stringify(onScreen.activeRotation)}. a2 sweeps all but the same line and selects 57.`
+          : `${pendingAtSwitch} pending at the switch, ${throttle}x throttle, against an unthrottled A of ${unthrottledA} (and ${baseline} left after the unselect pair).`);
       /*
        * AND g IS NOT REPORTED AT ALL WHEN NO QUEUE FORMED. Splitting the precondition out fixed the
        * attribution and immediately introduced a worse fault: with 0 steps pending, both strokes
