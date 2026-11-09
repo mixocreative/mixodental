@@ -259,9 +259,11 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
        */
       return state.mode === 'dental' ? { ...state, tool: event.tool } : state;
     /*
-     * PICKING A TOOL LETS GO OF THE ANCHOR. The selection belongs to Adjust - it is set by Adjust picking
-     * an anchor up and acted on by Delete point - so carrying it into Place would leave a ring on the
-     * drawing with no tool that answers to it, and an index that Place could push out from under.
+     * REOPENING LETS GO OF THE ANCHOR, and the reason outlived the tools that first gave it. A pick is
+     * an INDEX, so one that outlives the drawing it pointed into does not read as nothing: it comes
+     * back the moment enough points exist to fill it, and Delete point lights up aimed at a point the
+     * operator never chose. Walk `u5e2` caught that on Clear, which now clears the pick itself; the
+     * mode opens with nothing picked for the same reason.
      */
     /*
      * Reopening keeps whatever is already drawn: the draft lives on the UNIT, and nothing here
@@ -272,11 +274,15 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
      * `next()` reads that.
      */
     /*
-     * THE TOOL IS CHOSEN BY THE DRAWING, NOT BY HABIT. `appendAnchor` refuses a CLOSED path, so
-     * opening on Place over a closed loop - which is every seeded rim, and every saved drawing come
-     * back to - hands the operator a tool that cannot act. That is the dead-control rule this
-     * codebase has now paid for twice. The caller knows the draft, so it says which tool; `place`
-     * remains the default for an empty or open one, where it is the only thing that can do anything.
+     * AND NOTHING IS CHOSEN FOR THE OPERATOR. This event used to carry the tool a closed loop needed,
+     * because `appendAnchor` refuses a CLOSED path and opening on Place over one - every seeded rim,
+     * and every saved drawing come back to - handed over a tool that could not act, which is the
+     * dead-control rule this codebase has paid for twice. One tool did not fix that, it made it
+     * unsayable: the target under the press decides, so a closed loop has nothing to append to and
+     * needs no tool chosen on its behalf. DO NOT GIVE THIS EVENT A PAYLOAD AGAIN - the caller went on
+     * spreading `tool` onto it for a commit after the field went, and nothing complained, because an
+     * excess property reaches a union through a spread without tripping the check that would catch it
+     * written out in full.
      */
     case 'dentalRimReopen':
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready'
@@ -609,8 +615,10 @@ registerCommands({
    *
    * So the target decides the act (`rim/rimTarget.ts`): a handle is picked up, the drawn line takes
    * a new handle where it is pressed, bare model extends an open loop and turns the view on a closed
-   * one. Every press that lands something picks it up in the same press, which is why the old "only
-   * Place places" rule could go with the tools - there is no release left holding anything to drop.
+   * one. Every press that lands something picks it up in the same press. The old "only Place
+   * places" rule went with the tools, but NOT because a release has nothing left to drop - the browser
+   * fires a click on every release regardless, and judged by target alone that click appended after
+   * each drag (walk `u5d`). `rimTapAt` refuses a click that travelled; that is the rule's successor.
    *
    * What the two keys cost is worth recording: P and A are gone, and nothing replaced them, because
    * a tool you cannot choose needs no shortcut.

@@ -27,7 +27,7 @@ import type { OrientationLayer } from '../../dental/orientationEvidence';
 import { DebugLayerMeshes } from './DebugLayerMeshes';
 import { DentalFaceLayer, DentalPaintLayer, DentalRiskLayer, DentalRegionLines, DentalRimOutline, DentalStampLayer, DentalTipMarkers, type TipMark } from './dentalLayers';
 import { RimDraftLayer } from './RimDraftLayer';
-import { rimTargetAt } from '../../dental/rim/rimTarget';
+import { rimTapAt, rimTargetAt } from '../../dental/rim/rimTarget';
 
 /** A rim not started yet: an open path with nothing on it, so the first press appends. */
 const EMPTY_RIM: SurfacePath = { anchors: [], closed: false };
@@ -366,16 +366,21 @@ export function UnitObject(props: UnitObjectProps) {
     if (rimDrawing) {
       event.stopPropagation();
       /*
-       * ONLY PLACE PLACES. In Adjust the click arrives at the END OF A DRAG - the browser fires it on
-       * release - so letting it through would drop a fresh anchor every time the operator finished
-       * moving one. A right click does nothing in either tool: this mode has no remove-by-right-click,
-       * and a menu-button press should not leave a point behind.
+       * A CLICK THAT ENDS A DRAG IS NOT A TAP. The browser fires `click` on release after every drag,
+       * and it arrives before React has rendered the drag's result, so `unit.rimDraft` here is still
+       * the path from BEFORE the press: the dragged handle at its old spot, the release point bare
+       * surface. Judged by target alone that is `append`, and every drag of a handle ended by dropping
+       * a fourth one under the pointer (walk `u5d`). The old two-tool rule "only Place places" hid this
+       * by swallowing every click in Adjust; `rimTapAt` keeps the protection by the fact the click
+       * actually carries - how far the pointer travelled - so a view turn that starts on the model no
+       * longer leaves a point behind either. A right click does nothing: this mode has no
+       * remove-by-right-click, and a menu-button press should not place a point.
        */
       if (!right && gesture.kind === 'dental-rim') {
         const local = event.object.worldToLocal(event.point.clone());
         // An empty drawing is an OPEN path with no anchors, so the first press appends. Guarding on
         // `unit.rimDraft` here meant the first point of a rim could never be placed at all.
-        const tapped = rimTargetAt(unit.rimDraft ?? EMPTY_RIM, [local.x, local.y, local.z]).kind;
+        const tapped = rimTapAt(unit.rimDraft ?? EMPTY_RIM, [local.x, local.y, local.z], event.delta).kind;
         // Extending an open loop, or joining it: `onRimPoint` already tells those two apart.
         if (tapped === 'append' || tapped === 'close') {
           props.onRimPoint(unit.id, [event.point.x, event.point.y, event.point.z], surfaceNormal(event));

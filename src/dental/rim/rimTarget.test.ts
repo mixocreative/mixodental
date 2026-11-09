@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
-import { RIM_INSERT_CLEAR_MM, RIM_LINE_REACH_MM, rimTargetAt } from './rimTarget';
+import { CLICK_TOLERANCE } from '@mixo-geocore/editing/pick';
+import { RIM_INSERT_CLEAR_MM, RIM_LINE_REACH_MM, rimTapAt, rimTargetAt } from './rimTarget';
 
 const anchor = (x: number, z: number): SurfaceAnchor => ({ position: [x, 0, z], normal: [0, 1, 0] });
 const square = (closed: boolean): SurfacePath =>
@@ -93,5 +94,22 @@ describe('what a press on the rim means', () => {
   it('ignores the line beyond its reach', () => {
     const beyond: Vector = [10, 0, RIM_LINE_REACH_MM * 3];
     expect(rimTargetAt(square(true), beyond).kind).toBe('none');
+  });
+
+  /*
+   * THE CLICK THAT ENDS A DRAG. The browser fires it on release, before React has drawn the drag's
+   * result, so the path it is judged against still has the dragged handle at its OLD spot and the
+   * release point reads as bare surface - `append` on an open loop. Walk `u5d` found a fourth handle
+   * under every released drag the moment the two-tool guard came out. Travel is the fact that tells
+   * the two apart, and it is the same tolerance the click rules already use for an orbit drag.
+   */
+  it('lets a tap through and refuses the click a drag ends with', () => {
+    const open = square(false);
+    const bare: Vector = [50, 0, 50];
+    expect(rimTapAt(open, bare, 0)).toEqual({ kind: 'append' });
+    expect(rimTapAt(open, bare, CLICK_TOLERANCE)).toEqual({ kind: 'append' });
+    expect(rimTapAt(open, bare, CLICK_TOLERANCE + 1)).toEqual({ kind: 'none' });
+    // The release of a long drag lands on a handle's old spot in the stale path: still nothing.
+    expect(rimTapAt(open, [20, 0, 20], 60)).toEqual({ kind: 'none' });
   });
 });

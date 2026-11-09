@@ -1,6 +1,7 @@
 // Copyright (c) Mixo Creative.
 
 import { distance, type Vector } from '@mixo-geocore/host/core/vec3';
+import { CLICK_TOLERANCE } from '@mixo-geocore/editing/pick';
 import { centripetalPoint, neighbourIndexes } from '../../core/surfacePath/spline';
 import { segments, type SurfacePath } from '../../core/surfacePath/path';
 import { RIM_ANCHOR_RADIUS_MM, RIM_GRAB_REACH_MM, grabAnchor } from './rimDraftGeometry';
@@ -15,9 +16,10 @@ import { RIM_ANCHOR_RADIUS_MM, RIM_GRAB_REACH_MM, grabAnchor } from './rimDraftG
  * closed is a fact about the path, not a mode the operator should have to hold in their head.
  *
  * So there is one tool and this function is its whole grammar. Every press that lands something
- * picks it up in the same press - append-and-drag, insert-and-drag, grab-and-drag are one gesture -
- * which is also why the old "ONLY PLACE PLACES" rule could go: there is never a release with
- * anything left to drop.
+ * picks it up in the same press - append-and-drag, insert-and-drag, grab-and-drag are one gesture.
+ * That was first written up as the reason the old "ONLY PLACE PLACES" rule could go, and it was
+ * wrong by one event: the BROWSER still fires a click on every release, and judges nothing. The
+ * click's own guard is `rimTapAt` below; walk `u5d` is how the gap was found.
  *
  * Pure on purpose: a path and a point in, a verdict out, no React, no three.js, no pick. The whole
  * grammar is therefore testable without a browser, which matters because the suite cannot click.
@@ -110,4 +112,22 @@ export function rimTargetAt(path: SurfacePath, point: Vector,
   }
 
   return path.closed ? { kind: 'none' } : { kind: 'append' };
+}
+
+/**
+ * What a CLICK does - the event the browser fires on release - as opposed to a press.
+ *
+ * A CLICK THAT ENDS A DRAG IS NOT A TAP, and it cannot be told from one by looking at the path.
+ * The browser fires `click` on release after every drag, and it arrives BEFORE React has rendered
+ * the drag's result: the path the handler sees is the one from before the press, in which the
+ * dragged handle still sits at its old spot and the release point reads as bare surface. Judged by
+ * target alone, every drag of a handle on an open loop therefore ended by appending a new handle
+ * under the pointer - which is exactly what walk `u5d` found when the two-tool guard ("only Place
+ * places") came out. Pointer travel is the one fact the click carries that the path does not, so a
+ * click that travelled further than the house click tolerance does nothing, whatever it landed on.
+ * The same rule means a view turn that starts on the model no longer drops a point on release.
+ */
+export function rimTapAt(path: SurfacePath, point: Vector, travelPx: number): RimTarget {
+  if (travelPx > CLICK_TOLERANCE) return { kind: 'none' };
+  return rimTargetAt(path, point);
 }
