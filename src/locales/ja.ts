@@ -777,6 +777,8 @@ export const ja: Dictionary = {
   'This rim could not be built from the points as drawn. Move a point and try again.': '描画されたポイントからこの縁を作成できませんでした。ポイントを移動して、もう一度お試しください。',
   'Rim saved.': '縁を保存しました。',
   'Rim saved, but which way the opening faces was unclear. Check the aligner is the right way up before going on.': '縁を保存しましたが、開口部の向きが不明です。続行する前にアライナーの向きが正しいか確認してください。',
+  'Redraw the rim': '縁を再描画',
+  'Edit the detected rim by hand. Its points become yours to drag; the support area shifts slightly, because a drawn rim sets its own plane.': '検出された縁を手動で編集します。ポイントをドラッグして調整できます。描画された縁は独自の平面を設定するため、サポート領域がわずかに移動します。',
   'Draw the rim': '縁を描く',
   'Draw this aligner rim by hand, keeping anything already drawn': '既に描いた内容を保持したまま、このアライナーの縁を手動で描きます',
   'Wait for the aligner to finish reading.': 'アライナーの読み込みが完了するまでお待ちください。',

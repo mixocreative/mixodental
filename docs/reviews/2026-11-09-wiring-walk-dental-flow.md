@@ -369,10 +369,18 @@ remember.
    project reopened tomorrow does not know its last export was refused. A persistent mark on the unit
    is scene state with save-file consequences, so it is written down here as debt with its reason
    rather than taken quietly.
-5. **E4 shipped for flagged rows only.** Pressing Rim on a row the detector flagged `no-rim` now
-   enters rim drawing directly instead of re-running a detection to be told what the row already
-   says. Any other row keeps today's behaviour, which leaves *may a detected rim be redrawn* with the
-   owner — deliberately, since answering it is not needed to ship this half.
+5. **E4 shipped for flagged rows only, and the question it left is now ANSWERED.** Pressing Rim on a
+   row the detector flagged `no-rim` enters rim drawing directly instead of re-running a detection to
+   be told what the row already says. *May a detected rim be redrawn?* The owner's answer, 2026-11-09:
+   **yes.** `dental.rim.enter` no longer hides itself behind `!dentalProposed`; it reads "Redraw the
+   rim" on a detected aligner and seeds the drawing with detection's own loop
+   (`dental/rim/seedFromDetected.ts`, ~15 anchors on the reference aligner, spaced by arc length).
+   The cost is named in the hint rather than discovered: a drawn rim sets its own plane, measured at
+   5.60° from detection's axis, so the support area shifts slightly. Proved in the browser: `u9b`
+   (the press opens the drawing already populated) and `u9c` (backing out leaves the detected rim
+   exactly as it was). **`u9c` caught a false claim of mine on its first run** — I had written that
+   the seeding was one ordinary undo step, and the history is scoped to the mode, so it is not; the
+   comment was corrected rather than the check loosened.
 6. **The repair rail is built and unreachable.** `rowState.verdictOfRepair` and `offersRepair` have
    no caller outside their tests, and nothing in the app calls `repairMesh` — so the engine's hole
    filling (new at 63, `max_fill_loop_mm`) is off because nobody asks for it, not because a number is

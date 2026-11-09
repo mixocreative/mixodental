@@ -84,6 +84,7 @@ import { lockNote, sectionLocked, type Panel } from '@mixo-geocore/editing/locks
 import { editsSupports, initialSession, reduceSession, selectsTips, startsEditing, type SessionEvent } from '@mixo-geocore/editing/session';
 import { acceptsDentalDrop } from './dental/editingMode';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
+import { seedRimDraft } from './dental/rim/seedFromDetected';
 import { ItemsPage } from './items/ItemsPage';
 import { useThumbnails } from './items/useThumbnails';
 import { useBatchDetect } from './items/useBatchDetect';
@@ -965,8 +966,27 @@ export default function App() {
       case 'dental.tool.select': return send({ type: 'setDentalTool', tool: 'select' });
       // Rim define mode. Place and Adjust only change what the next drag means; the drawing itself is
       // scene state, so Close and Clear go through scene commands and the ordinary history undoes them.
-      // The way back in. The drawing on the unit is left alone: that is what coming back is for.
-      case 'dental.rim.enter': return send({ type: 'dentalRimReopen' });
+      /*
+       * The way back in. A drawing already on the unit is left alone - that is what coming back is
+       * for - but an aligner whose rim was DETECTED has none, so it is seeded with detection's own
+       * loop (`seedRimDraft`). Without that, "Redraw the rim" would throw away a working rim and
+       * hand back an empty model, which is a different and much worse offer than correcting one.
+       *
+       * THE WAY BACK IS CANCEL, NOT UNDO, and this comment said the opposite until walk `u9c` proved
+       * it wrong. The history is scoped to the mode ("Nothing to undo here: leave the mode to undo
+       * earlier steps"), and the seed goes in as the mode opens, so Ctrl+Z inside rim define mode
+       * does not reach it. Cancel does, and leaves the detected rim exactly as it was - which is the
+       * property that actually matters, and the one `u9c` now asserts.
+       */
+      case 'dental.rim.enter': {
+        const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
+        const detectedRim = sessionRef.current.dentalProposal?.rim;
+        if (unit && !unit.rimDraft && detectedRim) {
+          const seeded = seedRimDraft(detectedRim);
+          if (seeded) dispatch({ type: 'rim/set', unitId: unit.id, path: seeded });
+        }
+        return send({ type: 'dentalRimReopen' });
+      }
       case 'dental.rim.place': return send({ type: 'setDentalRimTool', tool: 'place' });
       case 'dental.rim.adjust': return send({ type: 'setDentalRimTool', tool: 'adjust' });
       case 'dental.rim.close': {

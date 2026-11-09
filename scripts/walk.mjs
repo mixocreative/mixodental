@@ -2855,6 +2855,51 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForSelector('.print-angle', { timeout: 120000 });
       note(`reference aligner read, oriented and its print angles scanned in ${Math.round((Date.now() - dropped) / 1000)} s`);
       check('u9 the dropped aligner is oriented with no button pressed, and the mesh check is clean', (await page.getByText('holes or non-manifold').count()) === 0 && (await page.getByText('could not be oriented').count()) === 0 && await d.button('Next').isEnabled());
+      /*
+       * A DETECTED RIM CAN BE CORRECTED, AND IT STARTS FROM DETECTION'S OWN LOOP (owner, 2026-11-09).
+       *
+       * Until today "Draw the rim" was HIDDEN once detection produced a proposal - `!dentalProposed`
+       * in its `visible` - so an operator who could see the rim was wrong in one place had no way to
+       * touch it and no recourse but to abandon the model. The rim decides the support area, which
+       * decides where supports land, so that was a gap on the primary quantity.
+       *
+       * The press must do two things, and this checks both, because either alone would be a trap:
+       * open rim define mode, AND arrive with detection's loop already placed as draggable anchors
+       * (`seedRimDraft`). An empty drawing here would mean the operator pressed "correct this" and
+       * was handed a bare model with their working rim thrown away - a worse offer than no button.
+       *
+       * THE COUNT IS READ, NOT ASSUMED. The reference rim is 158 points at roughly 0.5 mm; seeded at
+       * 3 mm that is about 26 anchors. The assertion is the BOUND rather than the number, because the
+       * exact count is detection's business and would make this a test of the fixture: more than the
+       * three a closed rim needs, and no more than a person can work with.
+       */
+      const redrawRim = d.button('Redraw the rim');
+      const seedableBefore = { badge: (await badge()).trim(), shows: await redrawRim.count() };
+      await redrawRim.click();
+      await d.idle(1200);
+      const seededAnchors = Number(((await page.locator('[data-ui="rim-point-count-control"]').innerText().catch(() => '0')) ?? '0').trim() || '0');
+      const seededBadge = (await badge()).trim();
+      check('u9b a DETECTED rim can be redrawn, and the drawing opens with detection own loop already placed',
+        seedableBefore.shows === 1 && /rim/i.test(seededBadge) && seededAnchors > 3 && seededAnchors <= 48,
+        `button shown ${seedableBefore.shows}, badge was ${JSON.stringify(seedableBefore.badge)} now ${JSON.stringify(seededBadge)}, seeded anchors ${seededAnchors}`);
+      /*
+       * AND THINKING BETTER OF IT MUST COST NOTHING. Cancel is the way back, not Undo: the app's
+       * history is scoped to the mode you are in ("Nothing to undo here: leave the mode to undo
+       * earlier steps"), and the seed is placed as the mode opens. I had written in `App.tsx` that
+       * the seed was one ordinary undo step; it is not, this check caught the claim, and the comment
+       * was corrected rather than the check loosened.
+       *
+       * What has to hold is the safety property, and it is the one that matters on the primary
+       * quantity: a Redraw the operator backs out of leaves the DETECTED rim exactly as it was. Step
+       * 1 is back, the orientation still stands, and Next is still on - which it would not be if the
+       * press had replaced the working rim on its way in.
+       */
+      await page.locator('[data-ui="rim-cancel"]').click();
+      await d.idle(1500);
+      const backAtStepOne = (await badge()).trim();
+      check('u9c backing out of Redraw leaves the detected rim exactly as it was',
+        /Step 1/i.test(backAtStepOne) && !/Define the rim/i.test(backAtStepOne) && await d.button('Next').isEnabled(),
+        `badge ${JSON.stringify(backAtStepOne)}, Next enabled ${await d.button('Next').isEnabled()}`);
       const angleDial = page.locator('.print-angle [data-ui="tilt-dial"]');
       const litTicks = await page.locator('.print-angle .tilt-dial-tick.is-on').count();
       const dialRange = await angleDial.evaluate((el) => [Number(el.getAttribute('aria-valuemin')), Number(el.getAttribute('aria-valuemax'))]);

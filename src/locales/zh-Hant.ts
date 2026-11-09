@@ -782,6 +782,8 @@ export const zhHant: Dictionary = {
   'This rim could not be built from the points as drawn. Move a point and try again.': '無法根據繪製的點建立此邊緣。請移動點並重試。',
   'Rim saved.': '已儲存邊緣。',
   'Rim saved, but which way the opening faces was unclear. Check the aligner is the right way up before going on.': '已儲存邊緣，但無法確定開口朝向。請在繼續前確認牙套的方向是否正確。',
+  'Redraw the rim': '重繪邊緣',
+  'Edit the detected rim by hand. Its points become yours to drag; the support area shifts slightly, because a drawn rim sets its own plane.': '手動編輯偵測到的邊緣。其控制點可供拖曳；由於繪製的邊緣會設定自己的平面，支撐區域會稍微偏移。',
   'Draw the rim': '繪製邊緣',
   'Draw this aligner rim by hand, keeping anything already drawn': '手動繪製此牙套邊緣，並保留所有已繪製的內容',
   'Wait for the aligner to finish reading.': '請等待牙套讀取完成。',

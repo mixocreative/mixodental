@@ -101,16 +101,41 @@ describe('rim define mode: the way back in', () => {
   const step1 = (change: Partial<UiState> = {}): UiState =>
     ({ ...READY, mode: 'dental', dentalStage: 'aligner', dentalAlignerReady: true, dentalKind: 'aligner', ...change });
 
-  it('is offered exactly where the dead end is: a read aligner with no detected orientation', () => {
+  /*
+   * A DETECTED RIM MAY NOW BE REDRAWN TOO (owner, 2026-11-09). This test asserted the opposite until
+   * that day - "a detected aligner has a proposal and is never asked" - and it was right to, because
+   * the rule it guarded was the real one. The rule changed: the rim decides the support area, which
+   * decides where supports land, so an operator who can SEE the rim is wrong in one place and cannot
+   * touch it has no recourse but to abandon the model.
+   *
+   * What did not change is everything else the dead end needed, so those rows stay exactly as they
+   * were: not from another step, and never on a denture.
+   */
+  it('is offered on any read aligner, detected or not, and nowhere else', () => {
     expect(resolve('dental.rim.enter', step1()).visible).toBe(true);
     expect(resolve('dental.rim.enter', step1()).enabled).toBe(true);
-    // A detected aligner has a proposal and is never asked.
-    expect(resolve('dental.rim.enter', step1({ dentalProposed: true })).visible).toBe(false);
+    expect(resolve('dental.rim.enter', step1({ dentalProposed: true })).visible).toBe(true);
+    expect(resolve('dental.rim.enter', step1({ dentalProposed: true })).enabled).toBe(true);
     // Dentures do not have this mode at all.
     expect(resolve('dental.rim.enter', step1({ dentalKind: 'denture' })).visible).toBe(false);
     // Nor is it offered from any other step.
     expect(resolve('dental.rim.enter', step1({ dentalStage: 'area' })).visible).toBe(false);
     expect(resolve('dental.rim.enter', step1({ dentalStage: 'rim' })).visible).toBe(false);
+  });
+
+  /*
+   * AND THE TWO PRESSES SAY DIFFERENT THINGS, because they are different acts: one starts a drawing,
+   * the other replaces a rim that already works. The hint on the detected case has to carry the cost
+   * the owner approved it with - the area moves, because a drawn rim sets its own plane - or the
+   * operator meets that fact only after committing to it.
+   */
+  it('names the cost when the rim it would replace was detected', () => {
+    const fresh = resolve('dental.rim.enter', step1());
+    const detected = resolve('dental.rim.enter', step1({ dentalProposed: true }));
+    expect(fresh.label).not.toEqual(detected.label);
+    expect(String(detected.hint)).toMatch(/support area/i);
+    expect(String(detected.hint)).toMatch(/plane/i);
+    expect(String(fresh.hint)).not.toMatch(/support area/i);
   });
 
   it('waits, with a reason, while the aligner is still being read', () => {

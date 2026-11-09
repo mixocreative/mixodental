@@ -572,19 +572,34 @@ registerCommands({
    *
    * OFFERED EXACTLY WHERE THE DEAD END IS: an aligner that is read and has no detected orientation.
    * That one condition covers all three ways an operator arrives there - detection found no rim and
-   * they cancelled out of the drawing, they drew a rim and want it back, or detection could not look
-   * at all. A detected aligner has a proposal and is never asked. Dentures do not have this mode.
+   * they cancelled out of the drawing, they drew a rim and want it back, detection could not look at
+   * all, or - since 2026-11-09 - detection DID find a rim and the operator wants to correct it.
+   * Dentures do not have this mode.
    *
    * It needs no flag of its own. A flag written and never read is what this feature has now had to
    * delete twice, and the state it would describe is already readable from the step itself.
    */
   'dental.rim.enter': {
-    role: 'secondary', label: () => 'Draw the rim', hint: () => 'Draw this aligner rim by hand, keeping anything already drawn',
-    visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind !== 'denture' && !s.dentalProposed,
+    role: 'secondary',
+    /*
+     * A DETECTED RIM MAY NOW BE REDRAWN (owner, 2026-11-09), and the words change with the case
+     * because the two presses are not the same act. On an aligner with no proposal this starts a
+     * drawing. On a detected one it REPLACES a rim that already works, and the operator is owed that
+     * fact before they press it: `seedRimDraft` hands them detection's own loop as anchors, but the
+     * moment they finish, the rim is rebuilt from their curve and its plane is theirs - measured at
+     * 5.60 degrees from detection's axis on the reference aligner, masks agreeing in 8,919 of 9,216
+     * cells (`docs/handoff/geocore-rim-from-points.md`). Small, and not nothing, so it is said rather
+     * than discovered.
+     */
+    label: (s) => (s.dentalProposed ? 'Redraw the rim' : 'Draw the rim'),
+    hint: (s) => (s.dentalProposed
+      ? 'Edit the detected rim by hand. Its points become yours to drag; the support area shifts slightly, because a drawn rim sets its own plane.'
+      : 'Draw this aligner rim by hand, keeping anything already drawn'),
+    visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind !== 'denture',
     enabled: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind !== 'denture'
-      && !s.dentalProposed && Boolean(s.dentalAlignerReady),
+      && Boolean(s.dentalAlignerReady),
     disabledReason: (s) => (s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind !== 'denture'
-      && !s.dentalProposed && !s.dentalAlignerReady ? { key: 'Wait for the aligner to finish reading.' } : undefined),
+      && !s.dentalAlignerReady ? { key: 'Wait for the aligner to finish reading.' } : undefined),
   },
   /*
    * Rim define mode. Two tools with two different words: Place and Adjust. Not Paint (which marks a
