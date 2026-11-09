@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794197744.257475,
-    "seen": 1794198414.0295131,
-    "ast_hash": "6a25fd2a3661ad654dcb7a60762d12f1",
+    "mtime": 1794207895.0882087,
+    "seen": 1794208104.2441485,
+    "ast_hash": "735ac00f644d239f8c9bf822e91d4309",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794198362.254424,
-    "seen": 1794198414.0305126,
-    "ast_hash": "c02a953ff58c61e7b447cb9bb517f8e9",
+    "mtime": 1794206029.8703358,
+    "seen": 1794208104.2451491,
+    "ast_hash": "261856e1a0b06e28285698f1aa965786",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -5869,9 +5869,9 @@
     "semantic_hash": ""
   },
   "docs/reviews/2026-11-09-wiring-walk-dental-flow.md": {
-    "mtime": 1794198347.1785216,
-    "seen": 1794198414.0305126,
-    "ast_hash": "dd72bf38d34101ddb5e137c8d1845c8f",
+    "mtime": 1794208002.3315084,
+    "seen": 1794208104.2451491,
+    "ast_hash": "a562f7f68b3def55dcd2667899384149",
     "semantic_hash": ""
   },
   "artefacts/2026-11-09-screen/identity.txt": {
