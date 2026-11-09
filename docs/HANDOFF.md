@@ -59,6 +59,21 @@ is zero. `rowState.verdictOfRepair` and `offersRepair` have no caller outside th
 repair rail is built and unreachable, named in the review so "fill 0" is never read later as a
 tuned setting.
 
+**W-16, the FOURTH blind spot in the i18n guard, and I walked into it myself** on the pass that
+closed the third: the new `workers/analysisJobVocabulary.ts` owns three user-facing sentences in a
+folder the guard had never globbed. The pattern across all four is one thing - the scope was a list
+of where UI text had been FOUND, never of where it could BE. Every folder under `src/` that could
+hold a `Message` is globbed now; the bill was zero `NOT_UI` entries; proved by planting a sentence
+and watching the guard name it. `b9297a2`
+
+**W-17 IS OPEN AND IT IS THE GATE.** The full walk cannot finish: the browser tab's renderer dies in
+section `e`'s spot search (up to 49 click/undo/right-click cycles, each a rebuild). Three runs in a
+row. **Not from this pass** - it reproduces identically at `48b062d` with that commit's own
+`walk.mjs`, with 29 GB of 61 GB free, so it is neither this work nor system memory. Either an
+operator can lose an unsaved scene while editing, or only this input rate provokes it, and those are
+very different severities. Unknown, and said to be unknown. `page.on('crash')` now names it once as
+itself: the first run had reported it as a `locator.click` timeout on a perfectly healthy button.
+
 **§8, the rule matrix, is written off runs**: eight rules `covered` by a probe or by a test watched
 to fail, one `UNVERIFIED` (external input acted on unverified - the fixture exists, no probe drops
 it), one `UNPROVEN` (a G5 *timeout* specifically; `r3` injected a crash instead and says so), one

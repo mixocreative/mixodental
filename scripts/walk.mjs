@@ -785,8 +785,18 @@ async function walk(url, scratch, dentalFixture) {
   await context.addInitScript(faultLevers);
   const page = await context.newPage();
   const errors = [];
+  /** Set by the `crash` listener below; a failure reported after it is a symptom of the crash. */
+  let crashed = false;
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+  /*
+   * A CRASHED TAB MUST SAY SO, because its symptom is a lie. When the renderer dies, every call
+   * after it fails as whatever Playwright happened to be doing: the first run that hit this reported
+   * `locator.click: Timeout 30000ms exceeded` on a Drag over button that was perfectly fine, and the
+   * next run on the same build reported `Target crashed` from a different call. Two symptoms, one
+   * cause, and the first of them sends the reader after the button.
+   */
+  page.on('crash', () => { crashed = true; errors.push('pageerror: THE BROWSER TAB CRASHED - the failure reported after this is a symptom, not a cause'); });
   const outside = [];
   page.on('request', (r) => {
     const u = new URL(r.url());
@@ -3647,7 +3657,8 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Exit').click();
     }
   } catch (error) {
-    check('walk ran to the end', false, error.message);
+    // The tab's death is reported ONCE, as itself, rather than as whichever control was unlucky.
+    check('walk ran to the end', false, crashed ? `the browser tab CRASHED; the call that reported it was ${error.message}` : error.message);
     await page.screenshot({ path: path.join(scratch, 'walk-error.png') }).catch(() => {});
     note(`screenshot ${path.join(scratch, 'walk-error.png')}`);
   }
