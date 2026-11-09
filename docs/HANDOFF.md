@@ -26,6 +26,11 @@ After every implementation task, record: the completed requirement; changed file
 
 ## Latest completed step (the last two §8 rows, and the gate that could not finish - 2026-11-09)
 
+> **GATE GREEN at `5ed58d4`: the full browser walk is `ALL PASS (185 checks, 2103 s)`, exit 0** - no
+> tab crash, the resume never needed, and `g-pre` passed on an idle machine so `g` was answered too.
+> With tsc 0, 1539 tests, build 0, `gate:real` PASS (13 scans, no differences) and `wasm:test` PASS,
+> every gate this project has is green at the same commit.
+
 **§8 has no unrun rows left: ten covered, one `N/A`.** The two that were written up as future work
 were retired the same day, and neither was a day's work:
 
