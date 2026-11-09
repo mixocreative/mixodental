@@ -61,7 +61,11 @@ jobs:
       matrix:
         sections: ['a', 'm,q', 'r,u,x,l,s']
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    # Section `a` is the long one and earns its own budget: it carries the brush work, a deliberate
+    # 2x CPU THROTTLE (section `g`, on a runner that is already slow), and `e`'s brute-force search
+    # for a spot on the model - up to 49 click/undo cycles, each a support rebuild. The other two
+    # shards finish in about ten minutes.
+    timeout-minutes: ${{ matrix.sections == 'a' && 90 || 45 }}
     env:
       WALK_OUT: walk-out
     steps:
