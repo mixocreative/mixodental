@@ -981,11 +981,16 @@ export default function App() {
       case 'dental.rim.enter': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
         const detectedRim = sessionRef.current.dentalProposal?.rim;
-        if (unit && !unit.rimDraft && detectedRim) {
+        let draft = unit?.rimDraft;
+        if (unit && !draft && detectedRim) {
           const seeded = seedRimDraft(detectedRim);
-          if (seeded) dispatch({ type: 'rim/set', unitId: unit.id, path: seeded });
+          if (seeded) {
+            dispatch({ type: 'rim/set', unitId: unit.id, path: seeded });
+            draft = seeded;
+          }
         }
-        return send({ type: 'dentalRimReopen' });
+        // A closed loop opens on Adjust, because Place cannot add to one (`appendAnchor` refuses it).
+        return send({ type: 'dentalRimReopen', ...(draft?.closed ? { tool: 'adjust' as const } : {}) });
       }
       case 'dental.rim.place': return send({ type: 'setDentalRimTool', tool: 'place' });
       case 'dental.rim.adjust': return send({ type: 'setDentalRimTool', tool: 'adjust' });

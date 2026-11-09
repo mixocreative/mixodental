@@ -7,10 +7,10 @@ import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
 /**
  * A DETECTED RIM, TURNED BACK INTO SOMETHING THE OPERATOR CAN DRAG.
  *
- * Detection returns a dense closed curve (`DentalRim.points`, 158 of them on the reference aligner).
- * Rim define mode works in ANCHORS - a dozen or so points, placed and dragged - so a detected rim
- * cannot be edited until it is expressed in those terms. This is that translation, and it is the
- * whole reason redrawing a detected rim is possible at all rather than starting from an empty model.
+ * Detection returns a dense closed curve (`DentalRim.points`, about 0.5 mm apart). Rim define mode
+ * works in ANCHORS - a handful of points, placed and dragged - so a detected rim cannot be edited
+ * until it is expressed in those terms. This is that translation, and it is the whole reason
+ * redrawing a detected rim is possible at all rather than starting from an empty model.
  *
  * WHAT THE OPERATOR IS TRADING, AND WHY THE UI HAS TO SAY SO. A drawn rim does not reproduce a
  * detected one, and that is measured, not feared: feeding the reference aligner's OWN detected loop
@@ -28,61 +28,124 @@ import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
  * The anchors themselves are never re-projected - `resamplePath` keeps them exactly - and they came
  * off the detected curve, so they are already on the surface to begin with. That leaves the samples
  * BETWEEN them, and the opening direction is the right ray for those: it is the way out of the
- * cavity, so it meets the rim from the side the camera is on. Spacing the anchors closely keeps
- * those chords short enough that the projection has little work to do.
+ * cavity, so it meets the rim from the side the camera is on.
  */
 
 /**
- * How far apart the seeded anchors sit along the rim, mm.
- *
- * Close enough that the chord between two of them hugs a curving rim (the projection of the samples
- * between them is then a correction, not a rescue), and far enough apart that the operator is given
- * a loop they can actually grab rather than a bead of overlapping markers. On the reference aligner's
- * ~79 mm rim this lands around 26 anchors.
+ * The longest a straight run goes without a handle, mm. On the gentle curve of an arch this is the
+ * rule that fires, and 3 mm over a radius of about 25 mm is a heading step of under 7 degrees.
  */
 export const SEED_SPACING_MM = 3;
+
+/**
+ * How much the rim may turn between two handles, degrees - the rule that puts anchors where the
+ * curve actually bends instead of spreading them evenly and missing the corners.
+ *
+ * Twenty, because the error it permits is below what reads the curve. The chord of a turn of theta
+ * over radius R misses the arc by `R(1 - cos(theta/2))`: at a molar corner of about 5 mm that is a
+ * 1.7 mm chord and **0.08 mm** of sagitta, under one cell of the 96x96 visibility mask the engine
+ * rasterises the rim into, and well under the 0.5 mm the curve is resampled at.
+ */
+export const SEED_TURN_DEG = 20;
+
+/**
+ * No two handles closer than this, mm. `RIM_GRAB_REACH_MM` is 0.84, so two anchors inside a
+ * millimetre of each other are one marker the operator cannot pick apart - a corner that earns three
+ * handles must still give them three things to grab.
+ */
+export const SEED_MIN_GAP_MM = 1;
 
 /** Never fewer than a rim needs to be closed at all, and never more than a person can work with. */
 export const SEED_MIN_ANCHORS = 3;
 export const SEED_MAX_ANCHORS = 48;
+
+/**
+ * How far either side of a point its heading is measured over, mm.
+ *
+ * NOT the step between two neighbouring points, and this is the trap the first version walked into.
+ * Detection's points sit about 0.5 mm apart on a real scan and they JITTER; the angle between two
+ * adjacent segments is mostly noise, and summing it drops anchors all along a straight run - clutter
+ * the operator meets as a defect, not as help. Measured over a millimetre, the jitter averages out
+ * and what is left is the heading of the rim.
+ */
+const HEADING_SPAN_MM = 1;
 
 const at = (points: Float32Array, index: number): Vector =>
   [points[index * 3] ?? 0, points[index * 3 + 1] ?? 0, points[index * 3 + 2] ?? 0];
 
 const gap = (a: Vector, b: Vector): number => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
-/**
- * The detected rim as a closed drawing, or `undefined` when there is not enough curve to make one.
- *
- * Walks the loop by ARC LENGTH rather than taking every n-th point: detection's points are not
- * evenly spaced, so an index stride would crowd the anchors where the curve is dense and strand them
- * where it is sparse - which is exactly where an operator wants a handle.
- */
-export function seedRimDraft(rim: DentalRim, spacingMm = SEED_SPACING_MM): SurfacePath | undefined {
+/** The rim's heading at `index`, as a unit vector across `HEADING_SPAN_MM` of curve either side. */
+function headingAt(points: Float32Array, count: number, index: number): Vector | undefined {
+  const step = (from: number, direction: 1 | -1): number => {
+    let walked = 0;
+    let cursor = from;
+    while (walked < HEADING_SPAN_MM / 2) {
+      const next = (cursor + direction + count) % count;
+      walked += gap(at(points, cursor), at(points, next));
+      cursor = next;
+      if (cursor === from) break;
+    }
+    return cursor;
+  };
+  const behind = at(points, step(index, -1));
+  const ahead = at(points, step(index, 1));
+  const length = gap(behind, ahead);
+  if (!(length > 0)) return undefined;
+  return [(ahead[0] - behind[0]) / length, (ahead[1] - behind[1]) / length, (ahead[2] - behind[2]) / length];
+}
+
+const degreesBetween = (a: Vector, b: Vector): number =>
+  (Math.acos(Math.min(1, Math.max(-1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]))) * 180) / Math.PI;
+
+/** One pass of the walk at the given thresholds; `undefined` when there is not enough curve. */
+function walkLoop(rim: DentalRim, spacingMm: number, turnDeg: number): SurfaceAnchor[] | undefined {
   const count = Math.floor(rim.points.length / 3);
   if (count < SEED_MIN_ANCHORS) return undefined;
   const normal = rim.openingDirection;
   const kept: SurfaceAnchor[] = [{ position: at(rim.points, 0), normal }];
+  let heading = headingAt(rim.points, count, 0);
   let since = 0;
   for (let index = 1; index < count; index += 1) {
-    const previous = at(rim.points, index - 1);
-    const here = at(rim.points, index);
-    since += gap(previous, here);
-    if (since < spacingMm) continue;
+    since += gap(at(rim.points, index - 1), at(rim.points, index));
+    // Nothing is ever placed inside the grab reach of the last handle, whatever the curve is doing.
+    if (since < SEED_MIN_GAP_MM) continue;
+    const here = headingAt(rim.points, count, index);
+    const turned = heading && here ? degreesBetween(heading, here) : 0;
+    if (since < spacingMm && turned < turnDeg) continue;
+    kept.push({ position: at(rim.points, index), normal });
+    heading = here;
     since = 0;
-    kept.push({ position: here, normal });
   }
   /*
    * The loop closes back to the first anchor, so a last point that landed almost on top of it is
    * dropped: two anchors a hair apart are one handle the operator cannot separate, and `pathProblems`
    * would rightly complain about the zero-length segment between them.
    */
-  if (kept.length > SEED_MIN_ANCHORS && gap(kept[kept.length - 1]!.position, kept[0]!.position) < spacingMm / 2) kept.pop();
-  if (kept.length < SEED_MIN_ANCHORS) return undefined;
-  // Too dense to work with (a very long rim, or a tiny spacing): thin it evenly rather than refuse.
-  if (kept.length > SEED_MAX_ANCHORS) {
-    const stride = kept.length / SEED_MAX_ANCHORS;
-    return { anchors: Array.from({ length: SEED_MAX_ANCHORS }, (_, slot) => kept[Math.floor(slot * stride)]!), closed: true };
+  if (kept.length > SEED_MIN_ANCHORS && gap(kept[kept.length - 1]!.position, kept[0]!.position) < SEED_MIN_GAP_MM) kept.pop();
+  return kept.length < SEED_MIN_ANCHORS ? undefined : kept;
+}
+
+/**
+ * The detected rim as a closed drawing, or `undefined` when there is not enough curve to make one.
+ *
+ * Walks the loop by ARC LENGTH **and by HEADING**, so the handles land where the rim actually bends:
+ * an index stride would crowd them where detection's points are dense and strand them where they are
+ * sparse, and an arc-length stride alone spaces them evenly and misses the corners - which is exactly
+ * where an operator reaches first.
+ *
+ * TOO MANY HANDLES IS ITS OWN FAILURE, and the way out of it matters. On overflow the thresholds are
+ * raised and the walk is run again, rather than thinning what was kept: thinning removes anchors
+ * evenly, which takes them from the corners that earned them and leaves the straight runs alone -
+ * the opposite of the rule.
+ */
+export function seedRimDraft(rim: DentalRim, spacingMm = SEED_SPACING_MM, turnDeg = SEED_TURN_DEG): SurfacePath | undefined {
+  let anchors = walkLoop(rim, spacingMm, turnDeg);
+  for (let relax = 0; anchors && anchors.length > SEED_MAX_ANCHORS && relax < 8; relax += 1) {
+    spacingMm *= 1.5;
+    turnDeg *= 1.5;
+    anchors = walkLoop(rim, spacingMm, turnDeg);
   }
-  return { anchors: kept, closed: true };
+  if (!anchors) return undefined;
+  return { anchors: anchors.slice(0, SEED_MAX_ANCHORS), closed: true };
 }

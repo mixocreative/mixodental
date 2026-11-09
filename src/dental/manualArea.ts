@@ -19,9 +19,24 @@ export class DetectedAreaExistsError extends Error {
 }
 
 /** The policy of an empty painted-from-scratch area of an aligner type. Refuses when detection found an area. */
-export function manualAreaPolicy(rim: DentalRim, detectedArea: boolean, profileId: string): DentalPolicy {
+export function manualAreaPolicy(rim: DentalRim, detectedArea: boolean, profileId: string,
+  stamps: readonly DentalAllowStamp[] = []): DentalPolicy {
   if (detectedArea) throw new DetectedAreaExistsError();
-  return { kind: 'legacy', origin: 'manual-area', profileId, rim, stamps: [] };
+  /*
+   * STAMPS ARE CARRIED, NOT DROPPED, and this used to hardcode `[]` (found by audit, 2026-11-09).
+   *
+   * That was safe for exactly as long as a hand-drawn rim was only reachable when detection had found
+   * none: no policy, no paint, nothing to lose. The day a DETECTED rim became redrawable, pressing
+   * Done on a unit the operator had painted replaced its policy wholesale and took the paint with it -
+   * silently, with no confirm and no undo offer. That is W-01's class ("accepting an orientation
+   * replaced the dental policy, destroying the painted area") reopened one screen earlier, by a
+   * feature that made a safe-by-accident path live.
+   *
+   * The paint is the operator's own work and it is not a function of the rim, so redrawing the
+   * boundary has no business deleting it. An erase stamp over a face the new rim no longer covers is
+   * harmless: the mask is recomputed from the rim and the stamps together.
+   */
+  return { kind: 'legacy', origin: 'manual-area', profileId, rim, stamps };
 }
 
 /**

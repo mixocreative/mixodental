@@ -3,6 +3,7 @@ import type { DentalRim } from '@mixo-geocore/host/dental/dental';
 import { isManualArea } from '@mixo-geocore/host/dental/dentalPolicy';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { deserializeScene, emptyScene, identityTransform, reduceScene, serializeScene, type PrintUnit } from '../state/project';
+import type { DentalAllowStamp } from '@mixo-geocore/host/dental/dentalPolicy';
 import { DetectedAreaExistsError, manualAreaFaces, manualAreaPolicy } from './manualArea';
 import { REFERENCE_PROFILE } from '../../scripts/test-support/referenceProfile';
 
@@ -55,5 +56,26 @@ describe('a painted-from-scratch support area (no area detected)', () => {
     const loaded = deserializeScene(serializeScene(painted));
     expect(loaded.units[0]!.dental).toMatchObject({ origin: 'manual-area', profileId: REFERENCE_PROFILE, stamps: [{ kind: 'allow' }] });
     expect(isManualArea(loaded.units[0]!.dental!)).toBe(true);
+  });
+});
+
+/*
+ * THE PAINT SURVIVES A REDRAWN RIM (found by audit, 2026-11-09). `manualAreaPolicy` hardcoded
+ * `stamps: []`, which was safe only while a hand-drawn rim was unreachable on a unit that had any -
+ * a rim was drawn when detection found none, so there was no policy and no paint. Making a DETECTED
+ * rim redrawable made that path live, and pressing Done then destroyed the operator's painted area
+ * silently. W-01's class, one screen earlier.
+ */
+describe('a redrawn rim keeps what the operator painted', () => {
+  const stamp = (x: number): DentalAllowStamp => ({ center: [x, 0, 0], radius: 1, normal: [0, 1, 0], kind: 'allow' });
+
+  it('carries the stamps it is given onto the new policy', () => {
+    const painted = [stamp(0), stamp(2)];
+    const policy = manualAreaPolicy(rim, false, REFERENCE_PROFILE, painted);
+    expect(policy.stamps).toEqual(painted);
+  });
+
+  it('still defaults to none, so the no-rim path is unchanged', () => {
+    expect(manualAreaPolicy(rim, false, REFERENCE_PROFILE).stamps).toEqual([]);
   });
 });

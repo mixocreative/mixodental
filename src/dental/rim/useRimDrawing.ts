@@ -108,7 +108,8 @@ export function useRimDrawing({ session, scene, dispatch, send, setStatus }: {
    * model for the life of the app against a call that may never come again.
    *
    * What lands is a `manualAreaPolicy`: the rim is the operator's, and there is no detected area to go
-   * with it. The same presets a detected rim sets are set here, through the same exported function, so
+   * with it - but the operator's PAINT is carried across, because redrawing a boundary is no reason to
+   * delete the area they marked by hand (see `manualAreaPolicy`). The same presets a detected rim sets are set here, through the same exported function, so
    * the two ways into Step 1 cannot drift apart. The draft is cleared - it has become the rim, and a
    * leftover drawing would be shown over the thing it turned into.
    *
@@ -131,7 +132,8 @@ export function useRimDrawing({ session, scene, dispatch, send, setStatus }: {
 
     dispatch({ type: 'batch', commands: [
       ...presetCommands(unit, profile),
-      { type: 'dental/set', unitId, policy: manualAreaPolicy(outcome.rim, false, profile) },
+      // The operator's paint survives the redraw: it is their work, and it is not a function of the rim.
+      { type: 'dental/set', unitId, policy: manualAreaPolicy(outcome.rim, false, profile, unit.dental?.stamps ?? []) },
       { type: 'rim/clear', unitId },
     ] });
     send({ type: 'dentalRimDefined' });

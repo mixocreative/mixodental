@@ -75,7 +75,7 @@ export type DentalEvent =
    * mean both "the detector gave up" and "the operator asked to come back", and the notices it
    * carries belong only to the first. Both are live, and they say different things.
    */
-  | { type: 'dentalRimReopen' }
+  | { type: 'dentalRimReopen'; tool?: DentalRimTool }
   | { type: 'setDentalRimTool'; tool: DentalRimTool }
   /**
    * Picks out one anchor of the drawing, or lets go of it (`undefined`). Set by Adjust picking an anchor
@@ -275,9 +275,16 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
      * Nothing is flagged on the session: whether this aligner is hand-drawn is the unit policy, and
      * `next()` reads that.
      */
+    /*
+     * THE TOOL IS CHOSEN BY THE DRAWING, NOT BY HABIT. `appendAnchor` refuses a CLOSED path, so
+     * opening on Place over a closed loop - which is every seeded rim, and every saved drawing come
+     * back to - hands the operator a tool that cannot act. That is the dead-control rule this
+     * codebase has now paid for twice. The caller knows the draft, so it says which tool; `place`
+     * remains the default for an empty or open one, where it is the only thing that can do anything.
+     */
     case 'dentalRimReopen':
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready'
-        ? { ...state, dentalStage: 'rim', dentalRimTool: 'place', dentalRimSelected: undefined }
+        ? { ...state, dentalStage: 'rim', dentalRimTool: event.tool ?? 'place', dentalRimSelected: undefined }
         : state;
     case 'setDentalRimTool':
       return state.mode === 'dental' && state.dentalStage === 'rim'

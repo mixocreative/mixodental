@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DentalRim } from '@mixo-geocore/host/dental/dental';
 import { pathProblems } from '../../core/surfacePath/validate';
-import { SEED_MAX_ANCHORS, SEED_MIN_ANCHORS, SEED_SPACING_MM, seedRimDraft } from './seedFromDetected';
+import { SEED_MAX_ANCHORS, SEED_MIN_ANCHORS, SEED_MIN_GAP_MM, SEED_SPACING_MM, seedRimDraft } from './seedFromDetected';
 
 /** A detected rim as a circle of `count` points of radius `radius` mm in the y = 0 plane. */
 function ringRim(count: number, radius = 12.6): DentalRim {
@@ -14,6 +14,31 @@ function ringRim(count: number, radius = 12.6): DentalRim {
   return { boundaryKind: 'lower-edge-loop', points, openingDirection: [0, 1, 0], centroid: [0, 0, 0],
     tangent: [1, 0, 0], bitangent: [0, 0, 1], visibilityMask: new Uint8Array(0), visibilityResolution: 0,
     visibilityMin: [0, 0], visibilityMax: [0, 0] };
+}
+
+/** Half the length of the stadium's straight sides, mm. */
+const STADIUM_HALF = 30;
+
+/** Two straight runs joined by two semicircles: the shape where "by arc length" and "by heading" differ. */
+function stadiumRim(radius = 6): DentalRim {
+  const points: number[] = [];
+  const push = (x: number, z: number) => points.push(x, 0, z);
+  const step = 0.5;
+  for (let x = -STADIUM_HALF; x < STADIUM_HALF; x += step) push(x, radius);
+  for (let angle = 0; angle < Math.PI; angle += step / radius) push(STADIUM_HALF + Math.sin(angle) * radius, Math.cos(angle) * radius);
+  for (let x = STADIUM_HALF; x > -STADIUM_HALF; x -= step) push(x, -radius);
+  for (let angle = 0; angle < Math.PI; angle += step / radius) push(-STADIUM_HALF - Math.sin(angle) * radius, -Math.cos(angle) * radius);
+  return { ...ringRim(3), points: new Float32Array(points) };
+}
+
+/** A long straight run with scanner-sized noise on it, and short ends to close the loop. */
+function jitteredStraight(): DentalRim {
+  const points: number[] = [];
+  let seed = 7;
+  const noise = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return ((seed / 2147483648) - 0.5) * 0.1; };
+  for (let x = -STADIUM_HALF; x < STADIUM_HALF; x += 0.5) points.push(x, 0, noise());
+  for (let x = STADIUM_HALF; x > -STADIUM_HALF; x -= 0.5) points.push(x, 0, 8 + noise());
+  return { ...ringRim(3), points: new Float32Array(points) };
 }
 
 const spacings = (path: { anchors: readonly { position: readonly number[] }[] }): number[] =>
@@ -44,12 +69,48 @@ describe('a detected rim as a drawing the operator can edit', () => {
    * that earns its place is the bound: no gap much larger than the spacing (the projection between
    * two anchors has to be a correction, not a rescue) and none at zero (two handles in one place).
    */
-  it('spaces the anchors along the rim, with no pair on top of each other', () => {
-    const seeded = seedRimDraft(ringRim(400))!;
-    for (const gap of spacings(seeded)) {
-      expect(gap).toBeGreaterThan(SEED_SPACING_MM / 2);
-      expect(gap).toBeLessThan(SEED_SPACING_MM * 2);
+  it('never puts two handles inside the grab reach of each other', () => {
+    for (const rim of [ringRim(400), stadiumRim(), jitteredStraight()]) {
+      const seeded = seedRimDraft(rim);
+      if (!seeded) continue;
+      for (const between of spacings(seeded)) expect(between).toBeGreaterThanOrEqual(SEED_MIN_GAP_MM * 0.99);
     }
+  });
+
+  /*
+   * THE RULE, ON A SHAPE THAT HAS BOTH: a stadium is two straight runs joined by two semicircles.
+   * The straights must be spaced by arc length alone and the bends must be denser, because that is
+   * the whole point of measuring heading - an arc-length stride would space them identically and
+   * miss the corners, which is exactly where an operator reaches first.
+   */
+  it('puts more handles on the bends than on the straights', () => {
+    const seeded = seedRimDraft(stadiumRim())!;
+    const onBend = seeded.anchors.filter((anchor) => Math.abs(anchor.position[0]!) > STADIUM_HALF - 0.001).length;
+    const onStraight = seeded.anchors.length - onBend;
+    /*
+     * DENSITY, NOT SHARE, and the first version of this test got that wrong. This stadium's straights
+     * are 120 mm against 37.7 mm of bend, so even spacing already gives the bends only ~24% of the
+     * anchors and a "more than half" assertion fails on a rule that is working perfectly. What the
+     * rule promises is handles per millimetre WHERE THE RIM TURNS, so that is what is measured.
+     */
+    const bendDensity = onBend / (2 * Math.PI * 6);
+    const straightDensity = onStraight / (STADIUM_HALF * 4);
+    expect(onStraight).toBeGreaterThan(0);
+    expect(bendDensity / straightDensity).toBeGreaterThan(1.2);
+  });
+
+  /*
+   * AND THE TRAP THAT RULE WALKS INTO IF IT IS WRITTEN THE OBVIOUS WAY. Detection's points sit about
+   * 0.5 mm apart on a real scan and they JITTER; summing the turn between neighbouring segments is
+   * mostly noise, and it sprinkles handles along a dead straight run - clutter the operator meets as
+   * a defect. Heading is measured over a millimetre of curve for this reason, and this is the test
+   * that fails if that ever becomes a per-point difference again.
+   */
+  it('is not fooled by scanner jitter on a straight run', () => {
+    const seeded = seedRimDraft(jitteredStraight())!;
+    const straightRun = seeded.anchors.filter((anchor) => Math.abs(anchor.position[2]!) < 0.4).length;
+    const ideal = (STADIUM_HALF * 2) / SEED_SPACING_MM;
+    expect(straightRun).toBeLessThan(ideal * 2);
   });
 
   it('stays workable on a rim long enough to flood it with handles', () => {
