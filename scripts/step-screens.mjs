@@ -25,9 +25,9 @@ import { DentureSettingsSection } from '../src/denture/settings/DentureSettingsS
 import { DEFAULT_DENTURE_OPTIONS } from '../src/denture/settings/dentureOptions';
 import { PartsList } from '../src/denture/parts/PartsList';
 import { DentalBar } from '../src/components/DentalBar';
-import { DEFAULT_PROFILE_ID, profileById } from '@mixo-geocore/host/dental/alignerProfiles';
+import { DEFAULT_PROFILE_ID, profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { DentalRimStep } from '../src/dental/rim/DentalRimStep';
-import { rimToolText } from '../src/dental/rim/rimStepText';
+import { rimBadgeText } from '../src/dental/rim/rimStepText';
 // Registers the dental command rows, which the rim step resolves its keys and their reasons from.
 import '../src/dental/editingMode';
 
@@ -102,7 +102,8 @@ const SCREENS = [
 
 /** The ui the rim step reads: one drawing, at one moment. */
 const rimUi = (over = {}) => ({
-  mode: 'dental', dentalStage: 'rim', dentalKind: 'aligner', dentalRimTool: 'place', dentalRimAnchors: 0,
+  // No tool here: `rimToolText(ui.dentalRimTool)` and this field went with Place and Adjust (`5ba0041`).
+  mode: 'dental', dentalStage: 'rim', dentalKind: 'aligner', dentalRimAnchors: 0,
   selection: 0, customisedActive: 0, addAction: 'add', tool: 'add', method: 'click', dragAction: 'select',
   canUndo: false, active: true, supported: true, ...over,
 });
@@ -114,14 +115,16 @@ const rimUi = (over = {}) => ({
 const RIM_SCREENS = [
   ['aligner-step1-rim-empty', 'Rim define mode - just opened, nothing placed yet', rimUi()],
   ['aligner-step1-rim-open', 'Rim define mode - seven points down, the loop still open', rimUi({ dentalRimAnchors: 7 })],
-  ['aligner-step1-rim-adjusting', 'Rim define mode - Adjust in hand, moving a point', rimUi({ dentalRimAnchors: 12, dentalRimTool: 'adjust' })],
+  // Was "Adjust in hand", a state that no longer exists. What varies now is whether a point is PICKED,
+  // because that is the only thing that turns Delete point on.
+  ['aligner-step1-rim-picked', 'Rim define mode - a point picked, so Delete point is on', rimUi({ dentalRimAnchors: 12, dentalRimClosed: true, dentalRimSelected: 4 })],
   ['aligner-step1-rim-crossing', 'Rim define mode - the loop is closed but crosses itself', rimUi({ dentalRimAnchors: 9, dentalRimClosed: true, dentalRimProblem: 'SELF_INTERSECTING' })],
   ['aligner-step1-rim-ready', 'Rim define mode - a sound rim, Done on', rimUi({ dentalRimAnchors: 14, dentalRimClosed: true })],
 ].map(([name, caption, ui]) => [name, caption, () => ({
   chrome: [
     h('div', { key: 'f', className: 'edit-frame', 'aria-hidden': 'true' }),
     h('div', { key: 'b', className: 'edit-badge', role: 'status' },
-      'Step 1 \u00b7 Define the rim', h('span', { key: 's' }, 'upper-7'), h('b', { key: 'w' }, rimToolText(ui.dentalRimTool))),
+      'Step 1 \u00b7 Define the rim', h('span', { key: 's' }, 'upper-7'), h('b', { key: 'w' }, rimBadgeText(ui.dentalRimClosed === true))),
   ],
   /*
    * The mode as the DOOR leaves it: the "why you are here" line, and anything orientation found on the
@@ -152,15 +155,34 @@ const AREA_SCREENS = [
     areaUi({ tool: 'add' }), { brush: undefined, edit: { kind: 'add', remove: false } }],
   ['aligner-step2-picked', 'Aligner Step 2 - Select in hand with three tips picked',
     areaUi({ tool: 'select', selection: 3 }), { brush: undefined, edit: { kind: 'pick' } }],
-].map(([name, caption, ui, gesture]) => [name, caption, () => ({
+  /*
+   * A PAINTED AREA, which is precisely a state nobody can reach without the right case. It needs an
+   * aligner whose area detection found nothing, or a rim drawn by hand - and then the three strip
+   * sliders have no strip to size, so they are shown-and-disabled with the reason beside them
+   * (`useDentalTuning.tunable`). It is the state those controls spend most of their life in on a
+   * difficult case, and until this screen existed a designer had never seen it.
+   */
+  ['aligner-step2-painted-area', 'Aligner Step 2 - a PAINTED area: the strip sliders are shown-and-disabled, with the reason',
+    areaUi({ tool: 'paint' }), { brush: { radius: 2, kind: 'allow' }, edit: undefined }, { tuningFixed: true }],
+].map(([name, caption, ui, gesture, extra]) => [name, caption, () => ({
   chrome: [],
   dock: h(DentalBar, {
     key: 'p', ui, unitName: 'upper-7', send: noop, run: noop,
     gesture: { kind: 'dental-area', notices: [], ...gesture },
     tipCount: 72, previewStatus: 'ready',
     tuning: { stripWidthMm: 3, positionMm: 0.25, density: 1 },
-    tuningLimits: profileById(DEFAULT_PROFILE_ID)?.defaults,
+    /*
+     * `profileData`, NOT `profileById`. They are different functions on different types: `profileById`
+     * returns an `AlignerProfile`, which has no `defaults`, so `?.defaults` was quietly `undefined` -
+     * and `DentalBar` renders the Support area panel only when it has both a tuning AND its limits.
+     * So the three strip sliders, among the most important controls in this step, had NEVER appeared
+     * in a single designer screen, and nothing said so: an optional chain yielding undefined met a
+     * render guard that skips in silence. `useDentalTuning` uses `profileData` for exactly this value.
+     */
+    tuningLimits: profileData(DEFAULT_PROFILE_ID).defaults,
     clickReach: { value: 1, onChange: noop },
+    // Per-screen overrides, so a state that differs only in a dock prop needs no second builder.
+    ...(extra ?? {}),
   }),
 }), true]);
 
