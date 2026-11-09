@@ -105,9 +105,27 @@ function faultLevers() {
    * code under test is the same code: `WorkerTask.timeout` -> `restart` -> the job fails as 'timeout'.
    */
   window.__longTimerFloorMs = 0;
+  /*
+   * INSTALLED ON DEMAND, NEVER AT LOAD, and that is not tidiness - it is a bug this cost a run to
+   * find. The first version replaced `window.setTimeout` in this init script, and walk `m4b` went
+   * red: the batch's first orient never settled, with no console error. A PURE PASS-THROUGH wrapper
+   * did it too, so it is not the clamp's logic - something at page-load time needs `setTimeout` to
+   * be the native function, and whatever that is, the walk does not get to break it for the other
+   * 170 checks. Installed after the page has loaded, nothing notices.
+   *
+   * `r5` arms it, uses it, and restores it, and its claim does not rest on the clamp: it asserts the
+   * worker's answer was produced and HELD before the timer fires, so "the far side succeeded" is
+   * established by the hold, not assumed from the lever.
+   */
   const realSetTimeout = window.setTimeout.bind(window);
-  window.setTimeout = (fn, delay, ...rest) =>
-    realSetTimeout(fn, window.__longTimerFloorMs && delay >= 60000 ? window.__longTimerFloorMs : delay, ...rest);
+  window.__slowJobTimers = (ms) => {
+    window.__longTimerFloorMs = ms;
+    window.setTimeout = (fn, delay, ...rest) => realSetTimeout(fn, ms && delay >= 60000 ? ms : delay, ...rest);
+  };
+  window.__restoreJobTimers = () => {
+    window.__longTimerFloorMs = 0;
+    window.setTimeout = realSetTimeout;
+  };
   /** The worker fails on THIS side while its answer is still held: the local half of G5. */
   window.__faultCrash = (which = window.__faultHold) => {
     const targets = live.filter((entry) => which && entry.name.includes(which)).map((entry) => entry.ref.deref()).filter(Boolean);
@@ -1892,7 +1910,7 @@ async function walk(url, scratch, dentalFixture) {
         // Both levers are armed HERE, after the navigation and before the purpose press that starts
         // the jobs. r5 first set the timer floor before calling this and lost it to the `goto` above -
         // the very trap written down two comments up, walked into an hour after writing it.
-        if (timerFloorMs) await page.evaluate((ms) => { window.__longTimerFloorMs = ms; }, timerFloorMs);
+        if (timerFloorMs) await page.evaluate((ms) => window.__slowJobTimers(ms), timerFloorMs);
         await page.evaluate(({ dropped }) => {
           const transfer = new DataTransfer();
           for (const file of dropped) transfer.items.add(new File([file.text], file.name));
@@ -2202,7 +2220,7 @@ async function walk(url, scratch, dentalFixture) {
       const timedOutActivity = await activityRows();
       // And now the answer the worker had produced all along, delivered to a job that has already failed.
       const releasedAfterTimeout = await page.evaluate(() => window.__faultRelease('fifo'));
-      await page.evaluate(() => { window.__faultHold = ''; window.__longTimerFloorMs = 0; });
+      await page.evaluate(() => { window.__faultHold = ''; window.__restoreJobTimers(); });
       await d.idle(2500);
       const settledAfterTimeout = await allSettled();
       const timeoutRows = await detectLines();

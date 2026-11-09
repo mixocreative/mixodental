@@ -266,7 +266,7 @@ commit. A register where every row says `READ` is a code review, which is what t
 | **W-14** | L3 | Background work | Stalled job → its own row | `vendor/mixo-geocore/host/workers/jobActivity.ts:221` | **A job stuck for ever reads `Aligner oriented · 100%`,** with no elapsed time: a finished job and a job that will never finish draw the same row. The signal for this exists — `showElapsed` — and is wired to `state === 'indeterminate'`, the one state a job that reported progress and then stopped cannot be in. A live control that cannot fire for the failure it was written for. **Vendored geocore, which this repo consumes as built**, so it is handed over, not patched. | **REPRODUCED** `r4` → **HANDED OVER** `docs/handoff/geocore-stuck-job-elapsed.md` | LOW |
 | **W-15** | L3 | The audit's own instruments | Vendored engine → its gate | `scripts/geometry-wasm-smoke.mjs` | **S20 again, and in the gate the owner named for the geocore increment.** Its first assertion was `engineVersion() === 14` against an engine at 63, so `npm run wasm:test` had been exiting on line one since engine 15 — the ABI smoke test below it has not run in forty-eight engine versions, and nothing said so. A constant frozen into a detector ages into a detector nobody runs. It now compares against `HOST_GEOMETRY_VERSION`, which is what its own message always claimed, and prints what it verified. | **REPRODUCED** (ran it) → **FIXED** `c715de8` | MEDIUM |
 | **W-16** | L3 | The audit's own instruments | UI string → translation guard, again | `src/i18n.test.ts` | **The FOURTH blind spot in this guard, found on the pass that closed the third, and walked into by the person closing it.** `workers/analysisJobVocabulary.ts` was added an hour earlier to fix W-13; it owns three user-facing sentences and sits in a folder the guard had never globbed, so its translations were added by hand and nothing would have noticed a fourth sentence beside them. The pattern across all four misses is one: **the scope was always a list of the places UI text had been FOUND, never of the places it could BE** — while `speaks()` has answered the second question all along. Every folder under `src/` that could hold a `Message` is globbed now; the bill was zero `NOT_UI` entries. **Proved to be looking**, as W-10 was: a sentence planted in that module, the guard fails on it by name, the module restored byte-for-byte. | **REPRODUCED** (planted) → **FIXED** `b9297a2` | MEDIUM |
-| **W-17** | L1 | The browser under the editor | — | Chromium's GPU stack, not this repo | **THE RELEASE GATE COULD NOT FINISH: the tab died.** Chromium's GPU command buffer goes invalid under SwiftShader — `GPU state invalid after WaitForGetOffsetInRange` — and takes the renderer with it, in section `a`. **Not from this pass, and not the machine:** it reproduces at `48b062d` with that commit's own `walk.mjs`, on Chromium 1243 and 1248 alike, with the JS heap at **36 MB of 3586**, four Workers made, and the browser's biggest process at **719 MB** of 61 GB. `--in-process-gpu` made it crash sooner and `--disable-gpu-watchdog` changed nothing, so **the cause is open and is not guessed at here.** What is fixed is the gate's RESPONSE: one dead tab used to take 170 other checks with it, so a crash in the first section hid every answer the walk had. The run now retries the dead section once in a fresh browser and then carries on from the next, as often as it must — and **never turns green for it**: the crash is already a FAIL, the exit code stays 1, and the summary names the sections left unfinished. Recovering the COVERAGE is the point; recovering the VERDICT would be the defect this doctrine exists to catch. | **REPRODUCED** (5 runs) → **CONTAINED**, cause open | needs triage |
+| **W-17** | L1 | The browser under the editor | — | Chromium's GPU stack, not this repo | **THE RELEASE GATE COULD NOT FINISH: the tab died.** Chromium's GPU command buffer goes invalid under SwiftShader — `GPU state invalid after WaitForGetOffsetInRange` — and takes the renderer with it, in section `a`. **Not from this pass, and not the machine:** it reproduces at `48b062d` with that commit's own `walk.mjs`, on Chromium 1243 and 1248 alike, with the JS heap at **36 MB of 3586**, four Workers made, and the browser's biggest process at **719 MB** of 61 GB. `--in-process-gpu` made it crash sooner and `--disable-gpu-watchdog` changed nothing. **The pattern that did show is LOAD:** every crash happened while a test suite, `gate:real` or another walk ran beside it, and the run on an otherwise idle machine walked straight through `a`. A software rasteriser is CPU-bound, and starving it is the one thing all five crashes had in common — so the walk is non-parallel with any other suite, the way this project already treats the test suite. The cause is narrowed, not closed. What is fixed is the gate's RESPONSE: one dead tab used to take 170 other checks with it, so a crash in the first section hid every answer the walk had. The run now retries the dead section once in a fresh browser and then carries on from the next, as often as it must — and **never turns green for it**: the crash is already a FAIL, the exit code stays 1, and the summary names the sections left unfinished. Recovering the COVERAGE is the point; recovering the VERDICT would be the defect this doctrine exists to catch. | **REPRODUCED** (5 runs) → **CONTAINED**, cause open | needs triage |
 
 ### Verified controls — named, so the next audit does not re-derive them
 
@@ -308,6 +308,20 @@ do. The timeout needed four lines (`__longTimerFloorMs`) and the header needed a
 Neither was a day's work; both had been described as one, because **an unrun row is easier to write
 than to cost.**
 
+**THE TIMEOUT LEVER BROKE A CHECK IN ANOTHER SECTION, and the walk caught it.** `__longTimerFloorMs`
+was first installed by replacing `window.setTimeout` in the init script, at page load. Walk `m4b`
+went red: the batch's first orient never settled, with **no console error** — it simply stopped. A
+*pure pass-through* wrapper did it too, so the clamp's logic was innocent; something at load time
+needs `setTimeout` to be the native function. The lever is installed on demand now and removed after,
+and `m4b` is green.
+
+Two things are worth keeping from that. **The harness is code, and it gets the same treatment as the
+code it tests** — it was found by the gate, bisected against `48b062d`'s own `walk.mjs` to prove the
+app was innocent, and fixed, not worked around. And **a lever that changes global behaviour for the
+whole run will be paid for by a check that has nothing to do with it**, which is the cost model for
+every lever in §6b: hold, crash and download all touch one object each, and this one touched the
+page.
+
 **A lever armed before a navigation is not armed.** `r5` failed its first run because it set the
 timer floor and then called a helper that begins with `page.goto` — which re-runs the init script and
 resets every lever. That trap was already written down two comments above the line that fell into it,
@@ -320,10 +334,13 @@ remember.
    under SwiftShader (`GPU state invalid after WaitForGetOffsetInRange`) and takes the renderer with
    it, in section `a`. Not this repo: it reproduces at `48b062d` with that commit's own `walk.mjs`,
    on two Chromium builds, with the JS heap at 36 MB of 3586 and the browser's biggest process at
-   719 MB. `--in-process-gpu` made it worse and `--disable-gpu-watchdog` did nothing, so **the cause
-   is still open** — the next things to try are a smaller viewport, `--disable-gpu-compositing`, and
-   a build with hardware GL. What is fixed is the gate's response: it retries the section once in a
-   fresh browser and then carries on, and never turns green for it.
+   719 MB. `--in-process-gpu` made it worse and `--disable-gpu-watchdog` did nothing. **What did
+   show is load:** all five crashes happened with a test suite, `gate:real` or another walk running
+   beside it, and an idle machine walked straight through `a` — a software rasteriser is CPU-bound,
+   and starving it is the one thing they had in common. So: run the walk alone. If it returns on an
+   idle machine, try a smaller viewport, `--disable-gpu-compositing`, and a build with hardware GL.
+   What is already fixed is the gate's response: it retries the section once in a fresh browser and
+   then carries on, and never turns green for it.
 
 2. **W-14 is with geocore** (`docs/handoff/geocore-stuck-job-elapsed.md`): a job stuck for ever reads
    `100%` with no elapsed time, because `showElapsed` is wired to the one state it cannot be in. When
