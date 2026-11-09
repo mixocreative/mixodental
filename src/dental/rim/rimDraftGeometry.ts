@@ -1,5 +1,7 @@
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
 import { segments } from '../../core/surfacePath/path';
+import { SPAN_SAMPLES, spanCurve } from '../../core/surfacePath/spline';
 
 /*
  * The drawn rim's geometry, as plain numbers.
@@ -37,25 +39,45 @@ export const anchorCentres = (path: SurfacePath, liftMm = RIM_DRAFT_LIFT_MM): re
   path.anchors.map((anchor) => anchorCentre(anchor, liftMm));
 
 /**
- * The chord run as a flat position array: one pair of points per segment, for a `lineSegments`.
+ * The drawn line as a flat position array: `SPAN_SAMPLES` pairs per segment, for a `lineSegments`.
+ *
+ * THE CURVE, NOT THE CHORD, and the reason is not how it looks. A press is resolved against the same
+ * `spanCurve` (`rimTarget.nearestOnCurve`), so a straight line drawn here meant the operator could
+ * press the line they could SEE and have nothing happen: 1.14 mm of disagreement on a 15 mm radius at
+ * the seeded 12 mm spacing, past the 1 mm `RIM_LINE_REACH_MM` allows. One sampler now serves the
+ * drawing and the pick, which is what makes that gap unable to come back; `SPAN_SAMPLES` carries the
+ * measurements.
  *
  * SEGMENTS, not one continuous strip, because `segments()` already says which pairs are joined and
  * whether the closing pair exists. Drawing it as a strip would mean a second rule about the loop here,
  * and the two could drift apart - the line would close when the path did not, or the reverse.
  *
- * This is the straight chord between anchors, NOT the finished rim. The rim is the chord resampled onto
- * the surface (`resamplePath`), which needs the mesh; until Done can build that, the chord is an honest
- * sketch of what the operator has said so far and never pretends to lie on the model.
+ * It runs through the LIFTED anchor centres, so it passes exactly through the markers the operator
+ * sees. That leaves it `RIM_DRAFT_LIFT_MM` (0.06 mm) off the curve the pick measures - two orders of
+ * magnitude inside the pick's reach, and the lift is what stops the line being swallowed by the model.
+ * It is still NOT the finished rim: the rim is this curve resampled ONTO the surface (`resamplePath`),
+ * which needs the mesh, so between the handles this runs through the model rather than over it.
  */
-export function chordPositions(path: SurfacePath, liftMm = RIM_DRAFT_LIFT_MM): Float32Array {
-  const centres = anchorCentres(path, liftMm);
-  const pairs = segments(path);
-  const out = new Float32Array(pairs.length * 6);
-  pairs.forEach(([from, to], index) => {
-    const a = centres[from]!;
-    const b = centres[to]!;
-    out.set(a, index * 6);
-    out.set(b, index * 6 + 3);
+export function linePositions(path: SurfacePath, liftMm = RIM_DRAFT_LIFT_MM): Float32Array {
+  // The curve is taken through the lifted centres, so the drawn line meets the drawn markers exactly.
+  const lifted: SurfacePath = {
+    closed: path.closed,
+    anchors: path.anchors.map((anchor) => {
+      const [x, y, z] = anchorCentre(anchor, liftMm);
+      return { position: [x, y, z] as Vector, normal: anchor.normal };
+    }),
+  };
+  const spans = segments(path);
+  const out = new Float32Array(spans.length * SPAN_SAMPLES * 6);
+  let at = 0;
+  spans.forEach(([from, to]) => {
+    const curve = spanCurve(lifted, from, to);
+    // One pair per sub-chord: sample n to sample n+1, so `lineSegments` draws an unbroken span.
+    for (let step = 0; step < SPAN_SAMPLES; step += 1) {
+      out.set(curve[step]!, at);
+      out.set(curve[step + 1]!, at + 3);
+      at += 6;
+    }
   });
   return out;
 }

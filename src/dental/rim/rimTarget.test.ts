@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
 import { CLICK_TOLERANCE } from '@mixo-geocore/editing/pick';
+import { linePositions } from './rimDraftGeometry';
 import { RIM_INSERT_CLEAR_MM, RIM_LINE_REACH_MM, rimTapAt, rimTargetAt } from './rimTarget';
 
 const anchor = (x: number, z: number): SurfaceAnchor => ({ position: [x, 0, z], normal: [0, 1, 0] });
@@ -59,6 +60,35 @@ describe('what a press on the rim means', () => {
     const undershoot = 20 - Math.hypot(target.position[0], target.position[2]);
     expect(undershoot, `undershoot ${undershoot}, predicted ${predicted}`).toBeGreaterThan(predicted * 0.7);
     expect(undershoot, `undershoot ${undershoot}, predicted ${predicted}`).toBeLessThan(predicted * 1.3);
+  });
+
+  /*
+   * THE LINE ON SCREEN IS THE LINE A PRESS IS MEASURED AGAINST, and for one commit it was not.
+   * `rimDraftGeometry` drew straight chords between the handles while this file measured the curve. At
+   * the 3 mm spacing anchors were first seeded at, the two were 0.046 mm apart and invisible; seeding
+   * at 12 mm (`seedFromDetected`) made the spans four times longer and the error goes as `R*theta^2/8`
+   * - 0.73 mm on a 25 mm radius, 0.98 mm on 20 mm, and **1.14 mm on 15 mm, past `RIM_LINE_REACH_MM`,
+   * so a press on the drawn line returned `none` and turned the camera instead of inserting**. The two
+   * now walk the same `spanCurve`, and this is the check that says so: NO point of the drawn line may
+   * be dead. It fails on the radii an arch actually has if the drawing and the pick are ever split
+   * again, which a shared sampler alone would not tell anyone.
+   */
+  it('leaves no dead spot on the line the operator can see', () => {
+    for (const radius of [40, 30, 25, 20, 15, 12]) {
+      // The handle count adaptive seeding lands on at 12 mm of arc, which is where the gap bit.
+      const loop = ring(Math.max(6, Math.round((Math.PI * 2 * radius) / 12)), radius);
+      const line = linePositions(loop, 0);
+      for (let pair = 0; pair < line.length / 6; pair += 1) {
+        const mid: Vector = [
+          (line[pair * 6]! + line[pair * 6 + 3]!) / 2,
+          (line[pair * 6 + 1]! + line[pair * 6 + 4]!) / 2,
+          (line[pair * 6 + 2]! + line[pair * 6 + 5]!) / 2,
+        ];
+        const { kind } = rimTargetAt(loop, mid);
+        // `handle` near one is right; `none` means the operator pressed the line and nothing happened.
+        expect(kind, `R=${radius}mm, drawn sub-chord ${pair} resolved to ${kind}`).not.toBe('none');
+      }
+    }
   });
 
   /*

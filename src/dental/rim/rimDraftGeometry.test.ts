@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
-import { RIM_ANCHOR_RADIUS_MM, RIM_DRAFT_LIFT_MM, RIM_GRAB_REACH_MM, anchorCentre, anchorCentres, chordPositions, closesLoop, grabAnchor, nearestAnchor } from './rimDraftGeometry';
+import { SPAN_SAMPLES } from '../../core/surfacePath/spline';
+import { RIM_ANCHOR_RADIUS_MM, RIM_DRAFT_LIFT_MM, RIM_GRAB_REACH_MM, anchorCentre, anchorCentres, closesLoop, grabAnchor, linePositions, nearestAnchor } from './rimDraftGeometry';
+
+/** Float32 keeps about seven digits, and a spline endpoint is a mix of two equal values, not a copy. */
+const closeToAll = (got: Float32Array, want: readonly number[], from = 0) =>
+  want.forEach((value, i) => expect(got[from + i]).toBeCloseTo(value, 5));
 
 const at = (x: number, y: number, z: number, normal: readonly [number, number, number] = [0, 1, 0]): SurfaceAnchor =>
   ({ position: [x, y, z], normal: [...normal] });
@@ -26,24 +31,45 @@ describe('the drawn rim as geometry', () => {
     expect(anchorCentre(at(4, 5, 6, [0, 0, 0]))).toEqual([4, 5, 6]);
   });
 
-  it('defaults the lift to the shared constant, so the chord and the markers never disagree', () => {
+  it('defaults the lift to the shared constant, so the line and the markers never disagree', () => {
     const only = path([at(0, 0, 0)]);
     expect(anchorCentres(only)[0]).toEqual([0, RIM_DRAFT_LIFT_MM, 0]);
   });
 
-  it('draws one chord pair per segment, and the closing pair only when the loop is closed', () => {
+  it('draws a run of pairs per segment, and the closing run only when the loop is closed', () => {
     const three = [at(0, 0, 0), at(1, 0, 0), at(1, 0, 1)];
-    // Open: two segments, six numbers each.
-    expect(chordPositions(path(three), 0)).toEqual(new Float32Array([0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1]));
-    // Closed: a third segment appears, and it runs from the LAST anchor back to the first.
-    const closed = chordPositions(path(three, true), 0);
-    expect(closed).toHaveLength(18);
-    expect([...closed.slice(12)]).toEqual([1, 0, 1, 0, 0, 0]);
+    const open = linePositions(path(three), 0);
+    // Two segments, `SPAN_SAMPLES` sub-chords each, six numbers a sub-chord.
+    expect(open).toHaveLength(2 * SPAN_SAMPLES * 6);
+    // The line starts ON the first anchor and ends ON the last: a span's ends are its anchors exactly,
+    // which is what lets the drawn line meet the markers and the pick agree about where a span is.
+    closeToAll(open, [0, 0, 0]);
+    closeToAll(open, [1, 0, 1], open.length - 3);
+    // Closed: a third segment appears, and it comes back round to the first anchor.
+    const closed = linePositions(path(three, true), 0);
+    expect(closed).toHaveLength(3 * SPAN_SAMPLES * 6);
+    closeToAll(closed, [0, 0, 0], closed.length - 3);
+  });
+
+  /*
+   * A CURVE THROUGH POINTS IN A LINE MUST STAY IN THAT LINE. Nothing here is bending, so a sample off
+   * the axis would be the spline inventing a shape the operator never drew - and since a press is
+   * measured against these same samples, it would move the pressable line away from the handles. This
+   * is the cheap guard on the centripetal choice: the uniform variant can bulge between uneven points.
+   */
+  it('draws a straight run straight', () => {
+    const line = linePositions(path([at(0, 0, 0), at(1, 0, 0), at(3, 0, 0)]), 0);
+    for (let i = 0; i < line.length; i += 3) {
+      expect(line[i + 1], `sample ${i / 3} left the axis`).toBeCloseTo(0, 6);
+      expect(line[i + 2], `sample ${i / 3} left the axis`).toBeCloseTo(0, 6);
+      expect(line[i]!, `sample ${i / 3} ran past the ends`).toBeGreaterThanOrEqual(-1e-5);
+      expect(line[i]!, `sample ${i / 3} ran past the ends`).toBeLessThanOrEqual(3 + 1e-5);
+    }
   });
 
   it('draws nothing for a path that cannot have a segment yet', () => {
-    expect(chordPositions(path([]), 0)).toHaveLength(0);
-    expect(chordPositions(path([at(0, 0, 0)]), 0)).toHaveLength(0);
+    expect(linePositions(path([]), 0)).toHaveLength(0);
+    expect(linePositions(path([at(0, 0, 0)]), 0)).toHaveLength(0);
   });
 
   it('finds the nearest anchor, and nothing at all on an empty path', () => {
