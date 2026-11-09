@@ -3347,11 +3347,13 @@ async function walk(url, scratch, dentalFixture) {
        * lands depends on the print angle the step was entered with.
        */
       let picked = { selected: 0 };
+      /** The sweep that actually caught supports: a line PROVED to cross the model, which x8 reuses. */
+      let crossing;
       const sweeps = [0.42, 0.52, 0.62, 0.34, 0.7].map((fy) => [[0.32, fy], [0.78, fy]]);
       for (const [from, to] of [...sweeps, [[0.34, 0.34], [0.76, 0.68]], [[0.34, 0.68], [0.76, 0.34]]]) {
         await d.stroke(from, to, 24);
         picked = await d.settle();
-        if (picked.selected > 0) break;
+        if (picked.selected > 0) { crossing = [from, to]; break; }
       }
       await page.screenshot({ path: path.join(scratch, 'ux-b-x6.png') });
       note(`x6 edit-count "${(await page.locator('.edit-count').allInnerTexts()).join('|')}", status "${await d.status()}"`);
@@ -3368,7 +3370,19 @@ async function walk(url, scratch, dentalFixture) {
       // The print angle (F) decides where the aligner sits in view: a few fixed spots, then a grid,
       // all left of the Step 3 panel (a click on the panel would change the tool).
       const grid = Array.from({ length: 12 }, (_, i) => 0.08 + i * 0.04).flatMap((x) => Array.from({ length: 8 }, (_, j) => [x, 0.36 + j * 0.04]));
-      for (const point of [[0.5, 0.3], [0.5, 0.7], [0.3, 0.5], [0.4, 0.4], [0.35, 0.65], ...grid]) {
+      /*
+       * START WHERE THE MODEL IS KNOWN TO BE. x6 above found a sweep that selected supports, so that
+       * line crosses the aligner - which the fixed spots and the grid below only GUESS at. The guess
+       * is good enough on this machine and was not in CI, where x8 went red with `manual 0 -> 0`
+       * twice: the aligner sits where the print angle puts it, and a blind grid can miss it while
+       * every other check on the page passes. Walking the proven line first costs nothing when the
+       * guess would have worked anyway.
+       */
+      const along = crossing ? Array.from({ length: 11 }, (_, step) => {
+        const t = step / 10;
+        return [crossing[0][0] + (crossing[1][0] - crossing[0][0]) * t, crossing[0][1] + (crossing[1][1] - crossing[0][1]) * t];
+      }) : [];
+      for (const point of [...along, [0.5, 0.3], [0.5, 0.7], [0.3, 0.5], [0.4, 0.4], [0.35, 0.65], ...grid]) {
         const [px, py] = d.at(...point);
         await page.mouse.click(px, py);
         // A slow runner needs longer for the click's effect to reach the counts than this machine
