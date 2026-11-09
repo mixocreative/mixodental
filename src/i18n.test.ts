@@ -51,7 +51,20 @@ const DECK_UI_FILES = uiFilesIn('./deck/');
  * which is worth saying - the shadow was in the instrument, not in the work.
  */
 const COMPONENTS_UI_FILES = uiFilesIn('./components/');
-const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/DebugSection.tsx', './components/useDebugLayers.ts', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx', './dental/editingMode.ts', './components/PlatePanel.tsx', './components/usePlateArrange.ts', './components/viewport/UnresolvedBubbles.tsx', './supports/unresolved/unresolvedText.ts', ...DENTURE_UI_FILES, ...DENTAL_UI_FILES, ...ITEMS_UI_FILES, ...DECK_UI_FILES, ...COMPONENTS_UI_FILES];
+/*
+ * AND `./workers/`, WHICH IS THE FOURTH TIME - and this one I walked into myself, on the very pass
+ * that widened the guard to `./components/`. `workers/analysisJobVocabulary.ts` was added to stop a
+ * failed orientation check being explained as a support build (W-13), it owns three user-facing
+ * sentences, and it sits in a folder this test had never globbed. Its translations were added by
+ * hand and NOTHING would have noticed a fourth sentence added beside them.
+ *
+ * The pattern across all four misses is one thing: the scope was always a list of the places UI text
+ * had been FOUND, never of the places it could BE. `speaks()` already answers the second question -
+ * a module that builds a `Message` owns UI words - so every folder under `src/` that could hold one
+ * is globbed now, and the bill for this one was zero entries in `NOT_UI`.
+ */
+const WORKERS_UI_FILES = uiFilesIn('./workers/');
+const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/DebugSection.tsx', './components/useDebugLayers.ts', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx', './dental/editingMode.ts', './components/PlatePanel.tsx', './components/usePlateArrange.ts', './components/viewport/UnresolvedBubbles.tsx', './supports/unresolved/unresolvedText.ts', ...DENTURE_UI_FILES, ...DENTAL_UI_FILES, ...ITEMS_UI_FILES, ...DECK_UI_FILES, ...COMPONENTS_UI_FILES, ...WORKERS_UI_FILES];
 /** Quoted literals in UI files that are not shown to the user. */
 const NOT_UI = new Set(['Tab', 'Esc', 'Escape', 'Enter', 'Delete', 'Backspace', 'Unit', 'Mixo supports', 'ArrowUp', 'ArrowDown', 'CodedError', 'ProjectFileError', 'TimeoutError', '{error}', 'AbortError',
   // Not sentences: two font families a stylesheet names, and a modifier key. All three arrived with
