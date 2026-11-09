@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794243899.1243649,
-    "seen": 1794245366.2913277,
-    "ast_hash": "4f6a04f57c746c87aa3a18494067a221",
+    "mtime": 1794245603.0290508,
+    "seen": 1794246100.5110075,
+    "ast_hash": "8da95fe0e50cafe0d402dc61b586e9c9",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -618,15 +618,15 @@
     "semantic_hash": ""
   },
   "src/state/project.test.ts": {
-    "mtime": 1794148404.1123135,
-    "seen": 1794150794.672841,
-    "ast_hash": "9f0fbea23e7f89880d08f45562ecd412",
+    "mtime": 1794245729.0818486,
+    "seen": 1794246100.5110075,
+    "ast_hash": "ac07d540c0a15d95bfb3a1a99ea54e09",
     "semantic_hash": ""
   },
   "src/state/project.ts": {
-    "mtime": 1794148227.252168,
-    "seen": 1794150794.672841,
-    "ast_hash": "04d706b3da0dde9a15652d65daa47548",
+    "mtime": 1794245741.5642445,
+    "seen": 1794246100.5110075,
+    "ast_hash": "6bffaaff661d8c2ff569607b09f76a11",
     "semantic_hash": ""
   },
   "src/state/projectFile.test.ts": {
@@ -5311,9 +5311,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-05-rim-define-mode.md": {
-    "mtime": 1794244292.758798,
-    "seen": 1794245366.2913277,
-    "ast_hash": "fce9ce2ee8bddf6ecaf2e597cb72f9be",
+    "mtime": 1794245763.4066155,
+    "seen": 1794246100.5120075,
+    "ast_hash": "0cb1f4124755b8152cf1a94cada4c9dc",
     "semantic_hash": ""
   },
   "docs/design/2026-11-05-verdict-staleness-and-orient-ways.md": {
@@ -5959,9 +5959,9 @@
     "semantic_hash": ""
   },
   "docs/handoff/geocore-region-from-drawn-rim.md": {
-    "mtime": 1794227773.6712224,
-    "seen": 1794236959.2500827,
-    "ast_hash": "4b19faa3d792e8b2f1e23c59785b8f95",
+    "mtime": 1794245798.537665,
+    "seen": 1794246100.5120075,
+    "ast_hash": "aef7cc97e5e4c83aae7171f1eda5ce8a",
     "semantic_hash": ""
   }
 }
