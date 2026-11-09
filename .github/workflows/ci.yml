@@ -1,5 +1,5 @@
-# One pipeline for every push and pull request: app tests plus the production build, the
-# browser walk, and (main only) the GitHub Pages deploy, which waits for both checks to pass.
+# One pipeline per MILESTONE: app tests plus the production build, the browser walk, and the
+# GitHub Pages deploy, which waits for both checks to pass. Day-to-day pushes are checked locally.
 name: CI
 
 on:
@@ -75,7 +75,15 @@ jobs:
 
   deploy:
     name: Deploy GitHub Pages
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # THIS CONDITION COULD NOT FIRE, AND NOTHING SAID SO. It read
+    # `github.event_name == 'push' && github.ref == 'refs/heads/main'`, which was right while CI ran
+    # on every push to main - and the owner narrowed the triggers to milestones on 2026-11-02 without
+    # it. A milestone TAG push has `refs/tags/...`, and `workflow_dispatch` is not a `push`, so from
+    # that day no run could deploy: the site stayed on 2026-11-01 and the only sign was its age.
+    # A deploy that cannot run is the same defect class as a guard that cannot fire - it just hides
+    # for longer, because nobody checks a gate that has nothing to say.
+    # It now matches the triggers, and still refuses to publish from a branch that is not main.
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/milestone-')
     needs: [test, walk]
     runs-on: ubuntu-24.04
     permissions:
