@@ -5959,9 +5959,15 @@
     "semantic_hash": ""
   },
   "docs/handoff/geocore-region-from-drawn-rim.md": {
-    "mtime": 1794245798.537665,
-    "seen": 1794246100.5120075,
-    "ast_hash": "aef7cc97e5e4c83aae7171f1eda5ce8a",
+    "mtime": 1794265079.7577145,
+    "seen": 1794265122.6310835,
+    "ast_hash": "776dfb64103e7d7ca2a659bb86e2494f",
+    "semantic_hash": ""
+  },
+  "src/vendorCapabilities.test.ts": {
+    "mtime": 1794264918.8037992,
+    "seen": 1794265122.6300838,
+    "ast_hash": "1517bfd7335c0b3f9a46f2fd509578de",
     "semantic_hash": ""
   }
 }
