@@ -1,6 +1,7 @@
 // Copyright (c) Mixo Creative.
 
 import { add, distance, scale, type Vector } from '@mixo-geocore/host/core/vec3';
+import type { SurfacePath } from './path';
 
 /**
  * A CENTRIPETAL CATMULL-ROM CURVE THROUGH THE ANCHORS, which is what lets a dozen handles describe a
@@ -35,6 +36,41 @@ import { add, distance, scale, type Vector } from '@mixo-geocore/host/core/vec3'
 
 /** Knot spacing exponent: 0.5 is the centripetal variant (0 uniform, 1 chordal). */
 const ALPHA = 0.5;
+
+/**
+ * How many points a span is sampled at where the curve is DRAWN or MEASURED at a fixed density, as
+ * opposed to resampled onto the surface at a spacing in millimetres (`resample.ts`).
+ *
+ * ONE NUMBER FOR BOTH, AND THAT IS THE WHOLE REASON IT LIVES HERE. The line the operator presses on
+ * has to be the line they can SEE, and it was not until 2026-11-09: `rimDraftGeometry` drew straight
+ * chords between the handles while `rimTarget` measured a press against this curve. While anchors
+ * were seeded 3 mm apart the two were 0.046 mm apart and nobody could see the difference. Seeding at
+ * 12 mm made the spans four times longer, and the gap between a chord and its arc goes as
+ * `R*theta^2/8`: measured on rings at that spacing, R=25 mm put the drawn line 0.73 mm from the
+ * curve, R=20 mm 0.98 mm, and **R=15 mm 1.14 mm - past `RIM_LINE_REACH_MM`, so a press on the line
+ * the operator could see returned `none` and turned the camera instead of inserting a handle.** The
+ * two widest arcs only worked because 1 mm of reach happened to cover the error.
+ *
+ * Twelve is enough that the drawn sub-chords are invisible (the same arithmetic, over a twelfth of a
+ * span, is under a micron) and small enough that a press costs one pass of a few hundred distances.
+ */
+export const SPAN_SAMPLES = 12;
+
+/**
+ * The points along the span `from`..`to` of `path`, BOTH anchors included - `samples + 1` of them.
+ *
+ * The neighbours come from the path, so a closed loop curves across its seam and an open one ends in
+ * the chord it was drawn as (`neighbourIndexes`). Callers that need a spacing in millimetres, or the
+ * samples put back on the model, want `resamplePath` instead; this is the fixed-density walk.
+ */
+export function spanCurve(path: SurfacePath, from: number, to: number, samples = SPAN_SAMPLES): Vector[] {
+  const [before, after] = neighbourIndexes(from, to, path.anchors.length, path.closed);
+  const p0 = path.anchors[before]!.position;
+  const p1 = path.anchors[from]!.position;
+  const p2 = path.anchors[to]!.position;
+  const p3 = path.anchors[after]!.position;
+  return Array.from({ length: samples + 1 }, (_, step) => centripetalPoint(p0, p1, p2, p3, step / samples));
+}
 
 /**
  * The point at `s` (0..1) along the span from `p1` to `p2`, curved by its neighbours `p0` and `p3`.

@@ -2,7 +2,7 @@
 
 import { distance, type Vector } from '@mixo-geocore/host/core/vec3';
 import { CLICK_TOLERANCE } from '@mixo-geocore/editing/pick';
-import { centripetalPoint, neighbourIndexes } from '../../core/surfacePath/spline';
+import { spanCurve } from '../../core/surfacePath/spline';
 import { segments, type SurfacePath } from '../../core/surfacePath/path';
 import { RIM_ANCHOR_RADIUS_MM, RIM_GRAB_REACH_MM, grabAnchor } from './rimDraftGeometry';
 
@@ -59,20 +59,17 @@ export const RIM_LINE_REACH_MM = 1;
  */
 export const RIM_INSERT_CLEAR_MM = 2;
 
-/** How many points each span is sampled at when looking for the nearest point on the drawn curve. */
-const SPAN_SAMPLES = 12;
-
-/** The nearest point on the drawn curve: which span, where along it, and how far the press was. */
+/**
+ * The nearest point on the drawn curve: which span, where along it, and how far the press was.
+ *
+ * Walks `spanCurve`, which is the SAME sampler `rimDraftGeometry.linePositions` draws with. That is
+ * not tidiness: a press is judged on exactly the points the operator was shown, so the two cannot
+ * drift apart the way a chord drawn against a measured curve did (see `SPAN_SAMPLES`).
+ */
 function nearestOnCurve(path: SurfacePath, point: Vector): { span: [number, number]; position: Vector; away: number } | undefined {
   let best: { span: [number, number]; position: Vector; away: number } | undefined;
   for (const [from, to] of segments(path)) {
-    const [before, after] = neighbourIndexes(from, to, path.anchors.length, path.closed);
-    const p0 = path.anchors[before]!.position;
-    const p1 = path.anchors[from]!.position;
-    const p2 = path.anchors[to]!.position;
-    const p3 = path.anchors[after]!.position;
-    for (let step = 0; step <= SPAN_SAMPLES; step += 1) {
-      const along = centripetalPoint(p0, p1, p2, p3, step / SPAN_SAMPLES);
+    for (const along of spanCurve(path, from, to)) {
       const away = distance(along, point);
       if (!best || away < best.away) best = { span: [from, to], position: along, away };
     }
