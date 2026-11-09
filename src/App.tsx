@@ -981,19 +981,19 @@ export default function App() {
       case 'dental.rim.enter': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
         const detectedRim = sessionRef.current.dentalProposal?.rim;
-        let draft = unit?.rimDraft;
-        if (unit && !draft && detectedRim) {
+        if (unit && !unit.rimDraft && detectedRim) {
           const seeded = seedRimDraft(detectedRim);
-          if (seeded) {
-            dispatch({ type: 'rim/set', unitId: unit.id, path: seeded });
-            draft = seeded;
-          }
+          if (seeded) dispatch({ type: 'rim/set', unitId: unit.id, path: seeded });
         }
-        // A closed loop opens on Adjust, because Place cannot add to one (`appendAnchor` refuses it).
-        return send({ type: 'dentalRimReopen', ...(draft?.closed ? { tool: 'adjust' as const } : {}) });
+        /*
+         * NOTHING IS CHOSEN ON THE WAY IN. This used to send the tool a closed loop needed, because
+         * `appendAnchor` refuses a closed path and opening on Place handed over a control that could
+         * not act. One tool did not fix that, it made it unsayable: the target under the press decides
+         * (`dental/rim/rimTarget.ts`), so a closed loop simply has nothing to append to. The event has
+         * no payload - it was still being passed one, silently dropped, when this was cleaned up.
+         */
+        return send({ type: 'dentalRimReopen' });
       }
-      case 'dental.rim.place': return send({ type: 'setDentalRimTool', tool: 'place' });
-      case 'dental.rim.adjust': return send({ type: 'setDentalRimTool', tool: 'adjust' });
       case 'dental.rim.close': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
         const closed = unit?.rimDraft && closePath(unit.rimDraft);
@@ -1006,6 +1006,14 @@ export default function App() {
       case 'dental.rim.clear': {
         const unitId = sessionRef.current.dentalUnitId;
         if (unitId) dispatch({ type: 'rim/clear', unitId });
+        /*
+         * AND THE PICK GOES WITH THE POINTS. `rimDeleteReason` only bounds-checks the picked index, so
+         * a pick left behind by Clear reads as "nothing picked" while the drawing is empty and comes
+         * BACK the moment enough new points exist to fill its index - Delete point then lights up
+         * aimed at a point the operator never touched (walk `u5e2`). The Adjust button used to reset
+         * the pick as a side effect of choosing a tool; with the tools gone, Clear has to say so itself.
+         */
+        send({ type: 'setDentalRimSelected', at: undefined });
         return;
       }
       case 'edit.add': return send({ type: 'setAddAction', action: 'add' });
@@ -1209,7 +1217,7 @@ export default function App() {
   // What the registry's rules read (editing/commands); Undo stops at the mode's floor.
   const ui: UiState = {
     mode: editMode, activeName: activeUnit?.name, supported: scene.units.some((unit) => unit.supports), zones: activeUnit?.zones.length ?? 0, exporting, active: Boolean(activeUnit), heavy: activeHeavy, units: scene.units.length, selectedObjects: selectedCount, tool: session.tool, addAction: session.addAction, method: session.selectStyle, dragAction: effectiveBrushMode(session.brushMode, session.shiftHeld),
-    selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalBuildFailed: Boolean(activeUnit && failedBuilds.get(activeUnit.id) === activeUnit), dentalStage: session.dentalStage, dentalRimTool: session.dentalRimTool, ...(session.dentalRimSelected === undefined ? {} : { dentalRimSelected: session.dentalRimSelected }),
+    selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalBuildFailed: Boolean(activeUnit && failedBuilds.get(activeUnit.id) === activeUnit), dentalStage: session.dentalStage, ...(session.dentalRimSelected === undefined ? {} : { dentalRimSelected: session.dentalRimSelected }),
     dentalRimAnchors: activeUnit?.rimDraft?.anchors.length ?? 0, dentalRimClosed: activeUnit?.rimDraft?.closed ?? false,
     ...(activeUnit?.rimDraft && pathProblems(activeUnit.rimDraft)[0] ? { dentalRimProblem: pathProblems(activeUnit.rimDraft)[0] } : {}), dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: orientFlow.tilt?.unitId === activeUnit?.id && (orientFlow.tilt?.status === 'scanning' || (orientFlow.tilt?.status === 'ready' && orientFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal) || (denture.active && denture.orient.proposed), dentalKind: denture.active ? 'denture' : 'aligner', dentureResolvable: activeMesh?.unresolved?.filter(denture.supports.resolvable).length ?? 0, canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
   };

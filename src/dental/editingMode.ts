@@ -33,7 +33,6 @@ export type DentalStage = 'aligner' | 'rim' | 'area' | 'review';
  * surface and to picking objects, and reusing either for placing boundary points would tell a reader the
  * wrong thing about what the drag does.
  */
-export type DentalRimTool = 'place' | 'adjust';
 /** Step 1 itself: waiting for a file, reading and orienting it, or showing the oriented aligner. */
 export type DentalAligner = 'prompt' | 'loading' | 'ready';
 /** A message the dental bar shows in a step; `bad-file` carries the import error line. */
@@ -75,8 +74,7 @@ export type DentalEvent =
    * mean both "the detector gave up" and "the operator asked to come back", and the notices it
    * carries belong only to the first. Both are live, and they say different things.
    */
-  | { type: 'dentalRimReopen'; tool?: DentalRimTool }
-  | { type: 'setDentalRimTool'; tool: DentalRimTool }
+  | { type: 'dentalRimReopen' }
   /**
    * Picks out one anchor of the drawing, or lets go of it (`undefined`). Set by Adjust picking an anchor
    * up, so the gesture that moves a point is the same one that chooses it - there is no separate select
@@ -130,7 +128,7 @@ export type DentalGesture =
   | { kind: 'dental-aligner'; phase: DentalAligner; proposal: Proposal | undefined; notices: readonly DentalNotice[]; profile: string | undefined }
   | { kind: 'dental-area'; brush: { radius: number; kind: 'allow' | 'erase' } | undefined; edit: EditGesture | undefined; notices: readonly DentalNotice[] }
   /** Rim define mode. The drawn path itself is scene state, so it reaches the panel as a prop, not through here. */
-  | { kind: 'dental-rim'; tool: DentalRimTool; selected: number | undefined; notices: readonly DentalNotice[] }
+  | { kind: 'dental-rim'; selected: number | undefined; notices: readonly DentalNotice[] }
   /** Step 3 always has a tool in hand: it rests on Select, which changes nothing until asked. */
   | { kind: 'dental-review'; edit: EditGesture | undefined };
 
@@ -155,7 +153,6 @@ declare module '@mixo-geocore/editing/session' {
     /** The aligner Steps 1 to 3 work on, once it is read (Exit clears only this one). */
     dentalUnitId: string | undefined;
     /** Rim define mode's current tool. */
-    dentalRimTool: DentalRimTool;
     /**
      * Rim define mode: which anchor is picked out, as an index into the drawn path, or none.
      *
@@ -177,7 +174,7 @@ declare module '@mixo-geocore/editing/commands' {
     'supports.dentalAuto': true;
     'dental.useDetected': true; 'dental.next': true; 'dental.generate': true; 'dental.back': true; 'dental.exit': true; 'dental.finish': true; 'dental.addAnother': true; 'dental.export': true;
     'dental.tool.paint': true; 'dental.tool.erase': true; 'dental.tool.add': true; 'dental.tool.select': true;
-    'dental.rim.enter': true; 'dental.rim.place': true; 'dental.rim.adjust': true; 'dental.rim.close': true; 'dental.rim.clear': true; 'dental.rim.deletePoint': true; 'dental.rim.done': true;
+    'dental.rim.enter': true; 'dental.rim.close': true; 'dental.rim.clear': true; 'dental.rim.deletePoint': true; 'dental.rim.done': true;
   }
   interface UiState {
     /** The reviewed dental contact placement matches the current model and paint. */
@@ -195,7 +192,6 @@ declare module '@mixo-geocore/editing/commands' {
     /** Dental Step 3: the last build of the current model and settings failed or was cancelled; no build is coming until a change. */
     dentalBuildFailed?: boolean;
     /** Rim define mode: the tool in hand. */
-    dentalRimTool?: DentalRimTool;
     /** Rim define mode: the anchor picked out, so Delete point has a subject (and a reason when it has none). */
     dentalRimSelected?: number;
     /** Rim define mode: how many anchors the operator has placed. */
@@ -212,7 +208,7 @@ declare module '@mixo-geocore/editing/commands' {
 
 const isDentalEvent = (event: SessionEvent): event is DentalEvent => DENTAL_EVENTS.has(event.type);
 const DENTAL_EVENTS = new Set<string>(['startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
-  'dentalOrientFailed', 'dentalRimNeeded', 'dentalRimReopen', 'setDentalRimTool', 'setDentalRimSelected', 'setDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
+  'dentalOrientFailed', 'dentalRimNeeded', 'dentalRimReopen', 'setDentalRimSelected', 'setDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
   'addAnotherDental', 'exportedDental', 'backDental', 'setDentalRadius']);
 
 const finished = (state: EditSession, unitId: string): readonly string[] => (state.dentalFinished.includes(unitId) ? state.dentalFinished : [...state.dentalFinished, unitId]);
@@ -247,7 +243,7 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
       */
     case 'dentalRimNeeded':
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'loading'
-        ? { ...state, dentalStage: 'rim', dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: event.notices, dentalRimTool: 'place', dentalRimSelected: undefined }
+        ? { ...state, dentalStage: 'rim', dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: event.notices, dentalRimSelected: undefined }
         : state;
     case 'setDentalTool':
       /*
@@ -263,9 +259,11 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
        */
       return state.mode === 'dental' ? { ...state, tool: event.tool } : state;
     /*
-     * PICKING A TOOL LETS GO OF THE ANCHOR. The selection belongs to Adjust - it is set by Adjust picking
-     * an anchor up and acted on by Delete point - so carrying it into Place would leave a ring on the
-     * drawing with no tool that answers to it, and an index that Place could push out from under.
+     * REOPENING LETS GO OF THE ANCHOR, and the reason outlived the tools that first gave it. A pick is
+     * an INDEX, so one that outlives the drawing it pointed into does not read as nothing: it comes
+     * back the moment enough points exist to fill it, and Delete point lights up aimed at a point the
+     * operator never chose. Walk `u5e2` caught that on Clear, which now clears the pick itself; the
+     * mode opens with nothing picked for the same reason.
      */
     /*
      * Reopening keeps whatever is already drawn: the draft lives on the UNIT, and nothing here
@@ -276,19 +274,20 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
      * `next()` reads that.
      */
     /*
-     * THE TOOL IS CHOSEN BY THE DRAWING, NOT BY HABIT. `appendAnchor` refuses a CLOSED path, so
-     * opening on Place over a closed loop - which is every seeded rim, and every saved drawing come
-     * back to - hands the operator a tool that cannot act. That is the dead-control rule this
-     * codebase has now paid for twice. The caller knows the draft, so it says which tool; `place`
-     * remains the default for an empty or open one, where it is the only thing that can do anything.
+     * AND NOTHING IS CHOSEN FOR THE OPERATOR. This event used to carry the tool a closed loop needed,
+     * because `appendAnchor` refuses a CLOSED path and opening on Place over one - every seeded rim,
+     * and every saved drawing come back to - handed over a tool that could not act, which is the
+     * dead-control rule this codebase has paid for twice. One tool did not fix that, it made it
+     * unsayable: the target under the press decides, so a closed loop has nothing to append to and
+     * needs no tool chosen on its behalf. DO NOT GIVE THIS EVENT A PAYLOAD AGAIN - the caller went on
+     * spreading `tool` onto it for a commit after the field went, and nothing complained, because an
+     * excess property reaches a union through a spread without tripping the check that would catch it
+     * written out in full.
      */
     case 'dentalRimReopen':
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready'
-        ? { ...state, dentalStage: 'rim', dentalRimTool: event.tool ?? 'place', dentalRimSelected: undefined }
+        ? { ...state, dentalStage: 'rim', dentalRimSelected: undefined }
         : state;
-    case 'setDentalRimTool':
-      return state.mode === 'dental' && state.dentalStage === 'rim'
-        ? { ...state, dentalRimTool: event.tool, dentalRimSelected: undefined } : state;
     case 'setDentalRimSelected':
       return state.mode === 'dental' && state.dentalStage === 'rim' ? { ...state, dentalRimSelected: event.at } : state;
     // Done: back to Step 1 with the operator's rim; the unit policy is what records that it is theirs.
@@ -386,7 +385,7 @@ function areaGesture(session: EditSession): Gesture {
 function dentalGesture(session: EditSession): Gesture {
   switch (session.dentalStage) {
     case 'aligner': return { kind: 'dental-aligner', phase: session.dentalAligner, proposal: session.dentalProposal, notices: session.dentalNotices, profile: session.dentalProfile };
-    case 'rim': return { kind: 'dental-rim', tool: session.dentalRimTool, selected: session.dentalRimSelected, notices: session.dentalNotices };
+    case 'rim': return { kind: 'dental-rim', selected: session.dentalRimSelected, notices: session.dentalNotices };
     case 'area': return areaGesture(session);
     case 'review': return { kind: 'dental-review', edit: editGesture(session) };
   }
@@ -401,7 +400,7 @@ const rim = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' &&
 
 registerEditMode({
   id: 'dental',
-  initial: { dentalStage: 'aligner', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimTool: 'place', dentalRimSelected: undefined },
+  initial: { dentalStage: 'aligner', dentalProfile: undefined, dentalAligner: 'prompt', dentalNotices: [], dentalProposal: undefined, dentalRadius: 2, dentalFinished: [], dentalUnitId: undefined, dentalRimSelected: undefined },
   // Paint and Erase are Step 2's own tools: no other mode starts on one.
   tools: ['paint', 'erase'],
   reduce: (state, event, kit) => (isDentalEvent(event) ? reduceDental(state, event, kit) : undefined),
@@ -427,9 +426,7 @@ registerEditMode({
     // Dental Step 2 has four tools (P, E, A, S); Step 3 reuses the support tools. In both, Delete removes the selection and the first Esc drops it.
     const inArea = area(ui);
     const inReview = reviewing(ui);
-    // The two tools of rim define mode. Each of these also has a visible button in the bar.
-    if (rim(ui) && !ctrl && lower === 'p') return runKey('dental.rim.place');
-    if (rim(ui) && !ctrl && lower === 'a') return runKey('dental.rim.adjust');
+    // Rim define mode has no tool keys: it has one tool, and the target under the press decides.
     if (inArea && !ctrl && lower === 'p') return runKey('dental.tool.paint');
     if (inArea && !ctrl && lower === 'e') return runKey('dental.tool.erase');
     if (inArea && !ctrl && lower === 'a') return runKey('dental.tool.add');
@@ -609,20 +606,23 @@ registerCommands({
       && !s.dentalAlignerReady ? { key: 'Wait for the aligner to finish reading.' } : undefined),
   },
   /*
-   * Rim define mode. Two tools with two different words: Place and Adjust. Not Paint (which marks a
-   * surface) and not Select (which picks objects) - a reader who sees a familiar word expects the familiar
-   * gesture, and these are neither.
+   * RIM DEFINE MODE HAS ONE TOOL, AND IT IS THE MODE ITSELF (owner, 2026-11-09).
+   *
+   * There were two, Place and Adjust, whose meaning flipped on whether the loop was closed: Place
+   * appended to an open path and could do NOTHING to a closed one, so a seeded rim - always closed -
+   * opened on a tool that could not act. The owner named the real fault: creating a rim and
+   * correcting one should be the same interaction, not two modes with different rules.
+   *
+   * So the target decides the act (`rim/rimTarget.ts`): a handle is picked up, the drawn line takes
+   * a new handle where it is pressed, bare model extends an open loop and turns the view on a closed
+   * one. Every press that lands something picks it up in the same press. The old "only Place
+   * places" rule went with the tools, but NOT because a release has nothing left to drop - the browser
+   * fires a click on every release regardless, and judged by target alone that click appended after
+   * each drag (walk `u5d`). `rimTapAt` refuses a click that travelled; that is the rule's successor.
+   *
+   * What the two keys cost is worth recording: P and A are gone, and nothing replaced them, because
+   * a tool you cannot choose needs no shortcut.
    */
-  'dental.rim.place': {
-    role: 'secondary', shortcut: 'P', label: () => 'Place', hint: () => 'Click along the rim; each click puts a point on the model',
-    visible: rim, enabled: rim, disabledReason: never, pressed: (s) => s.dentalRimTool === 'place',
-  },
-  'dental.rim.adjust': {
-    role: 'secondary', shortcut: 'A', label: () => 'Adjust', hint: () => 'Drag a point to move it along the model',
-    visible: rim, enabled: (s) => rim(s) && (s.dentalRimAnchors ?? 0) > 0,
-    disabledReason: (s) => (rim(s) && (s.dentalRimAnchors ?? 0) === 0 ? { key: 'Place a point first.' } : undefined),
-    pressed: (s) => s.dentalRimTool === 'adjust',
-  },
   'dental.rim.close': {
     role: 'secondary', label: () => 'Close loop', hint: () => 'Join the last point back to the first',
     // Shown only while there is a loop left to close: a key that can never apply again is noise.

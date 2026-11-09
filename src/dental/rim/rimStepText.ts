@@ -54,18 +54,26 @@ export function rimDeleteReason(state: {
    * checked here rather than left to fail silently in the handler. A button that does nothing when
    * pressed is the thing this whole control was written to avoid.
    */
-  if (state.dentalRimSelected === undefined || state.dentalRimSelected >= anchors) return 'Pick a point with Adjust first.';
+  if (state.dentalRimSelected === undefined || state.dentalRimSelected >= anchors) return 'Pick a point first.';
   if (state.dentalRimClosed && anchors - 1 < MIN_CLOSED_ANCHORS) {
     return 'A closed rim needs at least three points. Press Clear to start this rim again.';
   }
   return undefined;
 }
 
-/** The mode's badge: what the current tool does, in words. */
-export function rimToolText(tool: 'place' | 'adjust'): string {
-  return tool === 'place'
-    ? 'Click along the rim to place points.'
-    : 'Drag a point to move it along the model.';
+/**
+ * The mode's badge: what a press will do, in words.
+ *
+ * ONE SENTENCE, BECAUSE THERE IS ONE TOOL. It used to take the armed tool and say either "click to
+ * place" or "drag to move" - two half-truths that depended on a mode the operator had to choose. The
+ * target decides now (`rimTarget.ts`), so the sentence depends on the only thing that really changes
+ * what a press can do: whether the loop is joined. A closed loop cannot be extended, so it does not
+ * offer; an open one is still being drawn, so it leads with that and names its own way to finish.
+ */
+export function rimBadgeText(closed: boolean): string {
+  return closed
+    ? 'Drag a point to move it. Click the line to add a point.'
+    : 'Click the model to add points, and the first point to close the loop. Click the line to add one between.';
 }
 
 /**

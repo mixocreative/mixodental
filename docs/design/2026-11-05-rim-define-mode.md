@@ -38,6 +38,28 @@ for that, and the sections below are history.
 - **The opening side.** When the engine reports `rim-side-uncertain` the host says so in the status
   line. `flip` is a parameter on the engine call with no control wired to it, and nothing persists
   the uncertainty, so a wrong side is corrected by drawing the rim again rather than by a toggle.
+- **ONE TOOL, AND THE TARGET UNDER THE PRESS DECIDES** (`dental/rim/rimTarget.ts`, 2026-11-09).
+  Place and Adjust are **gone**, and so are the P and A keys, so section 6's two-tool reasoning below
+  is history: a press on a handle drags it, a press on the drawn line inserts a handle there and drags
+  it in the same gesture, a press on bare model extends an open loop, and a press on bare model with
+  the loop closed turns the view. The protection the two tools gave by accident still has to be paid
+  for explicitly: the browser fires a `click` on every release, judged against the path from *before*
+  the press, so a drag used to drop a stray handle where it ended (walk `u5d`). `rimTapAt` refuses a
+  click that travelled further than `CLICK_TOLERANCE`, which is the rule the rest of the app's clicks
+  already use.
+- **THE DRAWN LINE IS THE PRESSED LINE**, which took a second fix on the same day. The draft layer drew
+  straight chords between the handles while a press was resolved against the curve, and the gap goes as
+  `R*theta^2/8`: invisible at the 3 mm spacing anchors were first seeded at (0.046 mm), but **1.14 mm on
+  a 15 mm radius at 12 mm spacing - past the 1 mm the pick allows, so a press on the line the operator
+  could SEE turned the camera instead of inserting a handle.** Both now walk one sampler,
+  `spanCurve` in `core/surfacePath/spline.ts`, so they cannot drift apart again; `rimTarget.test.ts`
+  asserts no point of the drawn line is dead, across the curvatures an arch has.
+- **A DETECTED RIM IS REDRAWABLE**, so this mode is no longer only for shapes with no findable rim.
+  Draw the rim seeds the draft from the detected loop (`dental/rim/seedFromDetected.ts`): a handle
+  every 12 mm of arc and one wherever the rim turns 45 degrees, joined by a centripetal Catmull-Rom
+  curve, capped at 48. It is a REPLACEMENT, not a lossless edit - the drawn loop's axis came back
+  5.60 degrees from detection's on the reference aligner - and the command says so before the operator
+  commits.
 - **What is left:** a flip control, and the state it would need. See "What is left" at the end.
 
 
@@ -246,6 +268,13 @@ rim anchors is neither. Two tools:
 
 - **Place** — click on the model adds an anchor at the surface hit.
 - **Adjust** — drag an existing anchor; it stays on the surface.
+
+**SUPERSEDED, 2026-11-09. There is one tool and it has no name, because the operator never chooses
+it.** Two tools meant the gesture depended on what was in hand rather than on what was under the
+pointer, and the cost was a dead control: Place over a closed loop could not act, because
+`appendAnchor` refuses a closed path. The target under the press decides instead
+(`dental/rim/rimTarget.ts`) — see "ONE TOOL" in **As shipped**. The naming rule this section argues
+from still holds; it simply has one fewer thing to name.
 
 ### The two ways out: Cancel and Done
 

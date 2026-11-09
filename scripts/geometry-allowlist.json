@@ -22,8 +22,8 @@
   },
   "src/components/viewport/UnitObject.tsx": {
     "label": "host-math",
-    "maxMath": 5,
-    "why": "three.js raycast/hover normals for the viewport, and the rim anchor drag (render and hit-testing only)"
+    "maxMath": 6,
+    "why": "the dental viewport object: puts a world-space pick into unit-local coordinates and normalises a face normal, for painting, zones, tips and the rim. Grew from 5 to 6 when a rim press stopped asking an armed tool what it meant and started asking where it landed (rim/rimTarget.ts), which needs the surface normal at the press to seat an inserted handle"
   },
   "src/components/viewport/UnresolvedBubbles.tsx": {
     "label": "host-adapter"
@@ -78,6 +78,11 @@
     "label": "host-math",
     "maxMath": 3,
     "why": "where the drawn rim sits for the viewport: the lift off the surface along an anchor normal, and the two reach tests (nearest anchor, close-the-loop). Render and hit-testing only - the rim the ENGINE is given is resampled by core/surfacePath, not here"
+  },
+  "src/dental/rim/rimTarget.ts": {
+    "label": "host-math",
+    "maxMath": 0,
+    "why": "what a press on the rim means: whether it landed on a handle, on the drawn line, or on bare model. It compares distances through vec3 and samples the span curve through core/surfacePath/spline; it decides an INTERACTION, never geometry - the point it hands back is one the curve already passes through, and the rim the engine is given is resampled and rebuilt as before"
   },
   "src/dental/rim/seedFromDetected.ts": {
     "label": "host-math",

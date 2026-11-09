@@ -202,8 +202,8 @@ function asciiStl(name, positions, indices) {
 /** A closed unit cube: no cavity, so orientation fails. */
 const CUBE_POSITIONS = [-1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1];
 const CUBE_INDICES = [0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 1, 2, 6, 1, 6, 5, 2, 3, 7, 2, 7, 6, 3, 0, 4, 3, 4, 7];
-function cubeStl() {
-  return asciiStl('cube', CUBE_POSITIONS, CUBE_INDICES);
+function cubeStl(scale = 1) {
+  return asciiStl('cube', CUBE_POSITIONS.map((value) => value * scale), CUBE_INDICES);
 }
 /**
  * The same cube with its last face left off: ten triangles instead of twelve, so the solid is OPEN.
@@ -2341,6 +2341,15 @@ async function walk(url, scratch, dentalFixture) {
       const notModel = path.join(scratch, 'notes.txt');
       const holed = path.join(scratch, 'holed.stl');
       writeFileSync(cube, cubeStl());
+      /*
+       * THE RIM GESTURES NEED A SHAPE WITH ROOM. `cube.stl` is 2 mm across, and no two handles may sit
+       * inside `RIM_GRAB_REACH_MM` (0.84 mm) of each other - a press that near one grabs it instead of
+       * adding another, which is the one-tool grammar working as designed. Three handles a grab reach
+       * apart simply do not fit on 2 mm, so the drawing checks get a 12 mm cube: still no rim to
+       * detect, and enough surface to express the gesture a person would actually make.
+       */
+      const roomyCube = path.join(scratch, 'roomy-cube.stl');
+      writeFileSync(roomyCube, cubeStl(6));
       writeFileSync(cup, cupStl());
       writeFileSync(badStl, 'solid x\nthis is not a mesh\n');
       writeFileSync(notModel, 'not a model');
@@ -2432,7 +2441,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(1500);
       check('u4 a broken STL is refused in place, Step 1 stays, nothing is added', (await badge()).includes('Step 1 · Aligner') && await page.getByText('Place the aligner file here').isVisible() && (await objects()) === '0', `status "${await d.status()}", objects ${await objects()}`);
 
-      await drop(cube);
+      await drop(roomyCube);
       /*
        * NO RIM FOUND IS NO LONGER A DEAD END. Step 1 used to stop at "could not be oriented
        * automatically" and let Next refuse with "No aligner opening was found" - a notice with nowhere
@@ -2455,11 +2464,24 @@ async function walk(url, scratch, dentalFixture) {
        * would quietly leave a fourth anchor behind every time the operator moved one.
        */
       await d.measureCanvas();
-      const rimSpots = [[0.42, 0.44], [0.52, 0.44], [0.47, 0.54]];
+      /*
+       * SPREAD WIDER THAN A HANDLE'S GRAB REACH, which these spots were not until the tools went away.
+       * They sat 0.1 of the canvas apart - about 0.66 mm on this 2 mm cube - and `RIM_GRAB_REACH_MM`
+       * is 0.84, so under the one-tool grammar every click after the first landed ON the previous
+       * handle and picked it up instead of appending. That is the grammar working (two handles inside
+       * a grab reach are one handle nobody can separate), and the fixture asking for something a
+       * person could not do either.
+       */
+      const rimSpots = [[0.40, 0.42], [0.55, 0.42], [0.47, 0.57]];
       for (const spot of rimSpots) { await d.stroke(spot, spot, 1); await d.idle(300); }
       const rimPoints = async () => ((await page.locator('[data-ui="rim-point-count-control"]').innerText()) ?? '').trim();
-      check('u5c Place puts one anchor down per click on the model', (await rimPoints()) === '3', `points ${await rimPoints()}`);
-      await d.button('Adjust').click();
+      check('u5c a click on bare model puts one anchor down, while the loop is open', (await rimPoints()) === '3', `points ${await rimPoints()}`);
+      /*
+       * NO TOOL IS CHOSEN HERE ANY MORE, and that is the change: Place and Adjust are gone, and what a
+       * press does is decided by what it landed on (`dental/rim/rimTarget.ts`). The presses below are
+       * unchanged - a drag that starts on an anchor still moves it - because the grammar was built to
+       * keep every gesture that already worked.
+       */
       /*
        * A LONG DRAG, AND THE REASON IS A BUG THAT USED TO HELP. This dragged to [0.37, 0.38], about
        * 0.33 mm on a 2 mm cube - inside `closesLoop`'s reach of 0.67 mm - and u5e below still saw the
@@ -2468,18 +2490,25 @@ async function walk(url, scratch, dentalFixture) {
        * the pointer goes, so the drag has to be long enough to mean something on its own: this one is
        * about 1.6 mm, clear of both the close reach and `grabAnchor`'s 0.84 mm.
        */
-      await d.stroke(rimSpots[0], [0.60, 0.70], 10);
+      /*
+       * THE LAST ANCHOR, NOT THE FIRST, and that is the one-tool grammar rather than a tuning choice.
+       * While a loop is OPEN its first handle is the way to CLOSE it (`rimTargetAt` answers `close`
+       * there, as `closesLoop` always has), so a press on it joins the loop instead of picking it up.
+       * Dragging it was the old Adjust tool's privilege; now the target decides, and the first handle's
+       * meaning while open is "finish". So the drag takes the last one, which has no second job.
+       */
+      await d.stroke(rimSpots[2], [0.62, 0.72], 10);
       await d.idle(500);
-      check('u5d a drag in Adjust adds nothing: the click the release fires is not a new anchor', (await rimPoints()) === '3', `points ${await rimPoints()}`);
+      check('u5d a drag moves an anchor and adds nothing: the click its release fires is not a new one', (await rimPoints()) === '3', `points ${await rimPoints()}`);
 
       /*
        * AND THE ANCHOR REALLY LEFT. The count alone cannot show that - an anchor that never moved would
-       * also read 3 - so this asks the dock a question only a vacated spot can answer. Back in Place, a
-       * click where the first anchor USED to be either lands on it and closes the loop (if it is still
-       * sitting there) or finds bare surface and adds a fourth. Four points, still open, means it moved.
+       * also read 3 - so this asks the dock a question only a vacated spot can answer: a click where the
+       * dragged anchor USED to be finds bare surface and adds a fourth. Four points, still open, means
+       * it moved. (It is the last anchor's spot, for the reason above: the first one's would close the
+       * loop rather than answer anything.)
        */
-      await d.button('Place').click();
-      await d.stroke(rimSpots[0], rimSpots[0], 1);
+      await d.stroke(rimSpots[2], rimSpots[2], 1);
       await d.idle(400);
       const rimLoop = ((await page.locator('[data-ui="rim-loop-state-control"]').innerText()) ?? '').trim();
       check('u5e the dragged anchor really left its old spot, which is now bare surface',
@@ -2500,7 +2529,6 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(300);
       const squareSpots = [[0.40, 0.36], [0.60, 0.36], [0.60, 0.64], [0.40, 0.64]];
       for (const spot of squareSpots) { await d.stroke(spot, spot, 1); await d.idle(300); }
-      await d.button('Adjust').click();
       await d.idle(200);
       const deleteKey = d.button('Delete point');
       check('u5e2 Delete point waits for a point to be picked, and is shown greyed rather than hidden',
@@ -2522,19 +2550,30 @@ async function walk(url, scratch, dentalFixture) {
        * to be and Delete point stays OFF, because nothing is in reach to pick up. The second press, on a
        * corner never touched, turns it back on - without which the first half would also pass if picking
        * had simply stopped working.
+       *
+       * THE FIRST PRESS NOW ALSO ADDS A POINT, and that is the one-tool grammar answering the same
+       * question a second way: on an OPEN loop a tap on bare surface appends (`rimTargetAt`), and it
+       * can only have appended because the spot WAS bare. Under the old tools this press happened in
+       * Adjust, where a click placed nothing, so the count stayed at 3; it reads 4 now, and asserting 3
+       * here would be asserting the tool that no longer exists.
        */
       await d.stroke(squareSpots[1], squareSpots[1], 1);
       await d.idle(300);
       const goneSpotOff = !(await deleteKey.isEnabled());
+      const afterGoneSpot = await rimPoints();
       await d.stroke(squareSpots[3], squareSpots[3], 1);
       await d.idle(300);
       check('u5e5 the deleted point really left its own spot, and the others stayed',
-        goneSpotOff && (await deleteKey.isEnabled()) && (await rimPoints()) === '3',
-        `old spot picks ${goneSpotOff ? 'nothing' : 'something'}, points ${await rimPoints()}`);
+        goneSpotOff && afterGoneSpot === '4' && (await deleteKey.isEnabled()) && (await rimPoints()) === '4',
+        `old spot picks ${goneSpotOff ? 'nothing' : 'something'} and reads ${afterGoneSpot} points, then ${await rimPoints()}`);
 
-      // BACK INTO PLACE before anything below draws again: a click in Adjust moves points, it does not
-      // make them, so the triangle below would never be placed and Close loop would wait out its timeout.
-      await d.button('Place').click();
+      /*
+       * THERE IS NO TOOL TO GO BACK TO, and this idle is all that is left of the step that did it.
+       * It used to press Place: a click in Adjust moved points rather than making them, so the
+       * triangle below was never drawn and Close loop waited out its timeout - the toll the two tools
+       * charged on every check that drew after one that adjusted. The wait stays, to let React draw
+       * the press above before Clear below reads the drawing.
+       */
       await d.idle(200);
 
       /*

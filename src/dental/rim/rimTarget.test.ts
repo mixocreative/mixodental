@@ -1,0 +1,145 @@
+import { describe, expect, it } from 'vitest';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
+import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
+import { CLICK_TOLERANCE } from '@mixo-geocore/editing/pick';
+import { linePositions } from './rimDraftGeometry';
+import { RIM_INSERT_CLEAR_MM, RIM_LINE_REACH_MM, rimTapAt, rimTargetAt } from './rimTarget';
+
+const anchor = (x: number, z: number): SurfaceAnchor => ({ position: [x, 0, z], normal: [0, 1, 0] });
+const square = (closed: boolean): SurfacePath =>
+  ({ anchors: [anchor(0, 0), anchor(20, 0), anchor(20, 20), anchor(0, 20)], closed });
+
+describe('what a press on the rim means', () => {
+  /*
+   * THE RULE THE WHOLE GRAMMAR RESTS ON: a handle always wins. A press that nearly hits one must
+   * become a DRAG of it, never a new handle a fraction of a millimetre away - the operator would not
+   * see that until the shape went wrong, which is the silent-failure shape this project keeps
+   * finding. Both routes to it are tested: inside the marker's grab reach, and on the line but too
+   * close to a handle to be a new one.
+   */
+  it('gives a near miss on a handle to that handle, not to a new one', () => {
+    expect(rimTargetAt(square(true), [0.3, 0, 0])).toEqual({ kind: 'handle', at: 0 });
+    // On the line between handle 0 and 1, but within the insert clearance of handle 0.
+    expect(rimTargetAt(square(true), [RIM_INSERT_CLEAR_MM / 2, 0, 0])).toEqual({ kind: 'handle', at: 0 });
+    expect(rimTargetAt(square(true), [20 - RIM_INSERT_CLEAR_MM / 2, 0, 0])).toEqual({ kind: 'handle', at: 1 });
+  });
+
+  /*
+   * A RING, NOT THE SQUARE, AND THE FIRST VERSION OF THIS TEST GOT IT WRONG. The curve between two
+   * corners of a square bows well away from the chord between them, so a press on the chord's
+   * midpoint is nowhere near the line and correctly resolved to nothing. On a ring of anchors the
+   * curve runs within microns of the circle through them, so a press at that radius is independent
+   * ground truth for "on the line" rather than the code checked against itself.
+   */
+  const ring = (count: number, radius: number): SurfacePath => ({
+    anchors: Array.from({ length: count }, (_, at) => {
+      const angle = (at / count) * Math.PI * 2;
+      return anchor(Math.cos(angle) * radius, Math.sin(angle) * radius);
+    }),
+    closed: true,
+  });
+
+  it('inserts where the line is pressed, clear of the handles, and says where it goes', () => {
+    const loop = ring(8, 20);
+    // Midway between handles 0 and 1 in angle, at the ring's own radius: on the curve, far from both.
+    const half = Math.PI / 8;
+    const target = rimTargetAt(loop, [Math.cos(half) * 20, 0, Math.sin(half) * 20]);
+    expect(target.kind, JSON.stringify(target)).toBe('insert');
+    if (target.kind !== 'insert') return;
+    // Between handles 0 and 1, so it takes index 1 and pushes the rest along.
+    expect(target.at).toBe(1);
+    /*
+     * AND THE POINT SITS WHERE THE DOCUMENTED CURVE PUTS IT. A centripetal Catmull-Rom span runs
+     * slightly INSIDE the arc through its anchors, by about `3*R*theta^4/128` at mid-span - the
+     * formula `spline.ts` justifies the 12 mm seeding spacing with. At eight handles on a 20 mm ring
+     * that predicts 0.178 mm and the curve delivers 0.17. Asserting the prediction rather than a
+     * rounded radius makes this a check of the claim, not just of the arithmetic.
+     */
+    const theta = (Math.PI * 2) / 8;
+    const predicted = (3 * 20 * theta ** 4) / 128;
+    const undershoot = 20 - Math.hypot(target.position[0], target.position[2]);
+    expect(undershoot, `undershoot ${undershoot}, predicted ${predicted}`).toBeGreaterThan(predicted * 0.7);
+    expect(undershoot, `undershoot ${undershoot}, predicted ${predicted}`).toBeLessThan(predicted * 1.3);
+  });
+
+  /*
+   * THE LINE ON SCREEN IS THE LINE A PRESS IS MEASURED AGAINST, and for one commit it was not.
+   * `rimDraftGeometry` drew straight chords between the handles while this file measured the curve. At
+   * the 3 mm spacing anchors were first seeded at, the two were 0.046 mm apart and invisible; seeding
+   * at 12 mm (`seedFromDetected`) made the spans four times longer and the error goes as `R*theta^2/8`
+   * - 0.73 mm on a 25 mm radius, 0.98 mm on 20 mm, and **1.14 mm on 15 mm, past `RIM_LINE_REACH_MM`,
+   * so a press on the drawn line returned `none` and turned the camera instead of inserting**. The two
+   * now walk the same `spanCurve`, and this is the check that says so: NO point of the drawn line may
+   * be dead. It fails on the radii an arch actually has if the drawing and the pick are ever split
+   * again, which a shared sampler alone would not tell anyone.
+   */
+  it('leaves no dead spot on the line the operator can see', () => {
+    for (const radius of [40, 30, 25, 20, 15, 12]) {
+      // The handle count adaptive seeding lands on at 12 mm of arc, which is where the gap bit.
+      const loop = ring(Math.max(6, Math.round((Math.PI * 2 * radius) / 12)), radius);
+      const line = linePositions(loop, 0);
+      for (let pair = 0; pair < line.length / 6; pair += 1) {
+        const mid: Vector = [
+          (line[pair * 6]! + line[pair * 6 + 3]!) / 2,
+          (line[pair * 6 + 1]! + line[pair * 6 + 4]!) / 2,
+          (line[pair * 6 + 2]! + line[pair * 6 + 5]!) / 2,
+        ];
+        const { kind } = rimTargetAt(loop, mid);
+        // `handle` near one is right; `none` means the operator pressed the line and nothing happened.
+        expect(kind, `R=${radius}mm, drawn sub-chord ${pair} resolved to ${kind}`).not.toBe('none');
+      }
+    }
+  });
+
+  /*
+   * A press that is on NEITHER falls through, and what it falls through to is the whole difference
+   * between a loop still being drawn and one being corrected. On a closed loop nothing is appended -
+   * the model becomes the camera handle, which is the drawing-program behaviour reached without an
+   * empty hand.
+   */
+  it('appends on an open loop and does nothing on a closed one', () => {
+    expect(rimTargetAt(square(false), [50, 0, 50])).toEqual({ kind: 'append' });
+    expect(rimTargetAt(square(true), [50, 0, 50])).toEqual({ kind: 'none' });
+  });
+
+  it('starts a rim from nothing by appending', () => {
+    expect(rimTargetAt({ anchors: [], closed: false }, [1, 0, 1])).toEqual({ kind: 'append' });
+  });
+
+  /*
+   * THE ONE ASYMMETRY THAT STAYS, and it is inherent rather than a mode: while a loop is open its
+   * first handle is the way to CLOSE it. Relocating that handle waits until the loop is joined, and
+   * the same press on a closed loop grabs it as any other.
+   */
+  it('closes an open loop from its first handle, and grabs it once closed', () => {
+    expect(rimTargetAt(square(false), [0.2, 0, 0])).toEqual({ kind: 'close' });
+    expect(rimTargetAt(square(true), [0.2, 0, 0])).toEqual({ kind: 'handle', at: 0 });
+  });
+
+  it('will not close a loop that has too few points to be one', () => {
+    const two: SurfacePath = { anchors: [anchor(0, 0), anchor(20, 0)], closed: false };
+    expect(rimTargetAt(two, [0.2, 0, 0])).toEqual({ kind: 'handle', at: 0 });
+  });
+
+  it('ignores the line beyond its reach', () => {
+    const beyond: Vector = [10, 0, RIM_LINE_REACH_MM * 3];
+    expect(rimTargetAt(square(true), beyond).kind).toBe('none');
+  });
+
+  /*
+   * THE CLICK THAT ENDS A DRAG. The browser fires it on release, before React has drawn the drag's
+   * result, so the path it is judged against still has the dragged handle at its OLD spot and the
+   * release point reads as bare surface - `append` on an open loop. Walk `u5d` found a fourth handle
+   * under every released drag the moment the two-tool guard came out. Travel is the fact that tells
+   * the two apart, and it is the same tolerance the click rules already use for an orbit drag.
+   */
+  it('lets a tap through and refuses the click a drag ends with', () => {
+    const open = square(false);
+    const bare: Vector = [50, 0, 50];
+    expect(rimTapAt(open, bare, 0)).toEqual({ kind: 'append' });
+    expect(rimTapAt(open, bare, CLICK_TOLERANCE)).toEqual({ kind: 'append' });
+    expect(rimTapAt(open, bare, CLICK_TOLERANCE + 1)).toEqual({ kind: 'none' });
+    // The release of a long drag lands on a handle's old spot in the stale path: still nothing.
+    expect(rimTapAt(open, [20, 0, 20], 60)).toEqual({ kind: 'none' });
+  });
+});

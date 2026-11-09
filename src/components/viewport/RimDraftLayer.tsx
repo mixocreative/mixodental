@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
-import { RIM_ANCHOR_RADIUS_MM, anchorCentre, anchorCentres, chordPositions } from '../../dental/rim/rimDraftGeometry';
+import { RIM_ANCHOR_RADIUS_MM, anchorCentre, anchorCentres, linePositions } from '../../dental/rim/rimDraftGeometry';
 import { SEE_THROUGH } from './style';
 import { usePreviewColours } from './sceneColours';
 
@@ -9,7 +9,7 @@ import { usePreviewColours } from './sceneColours';
  * THE RIM THE OPERATOR IS DRAWING, on the model.
  *
  * Anchors are CONTENT, not UI accent, so they are the same red a selected support is: solid for one that
- * is placed, see-through for the one under the pointer that is not placed yet. The chord between them is
+ * is placed, see-through for the one under the pointer that is not placed yet. The line between them is
  * the same red as a hairline, so the whole drawing reads as one shape rather than beads on a string.
  *
  * Everything is drawn with `depthTest` off and a high `renderOrder`, so an anchor on the far side of the
@@ -17,8 +17,9 @@ import { usePreviewColours } from './sceneColours';
  * a drawing that disappeared as it went round the back would be impossible to judge.
  *
  * Nothing here is pickable (`raycast` returns undefined everywhere). The model underneath is what the
- * pointer talks to - the mode decides what a hit MEANS from the path and the tool, not from which marker
- * the ray happened to touch, so a marker that caught clicks would steal them from the surface.
+ * pointer talks to - the mode decides what a hit MEANS from the path alone (`rimTarget.ts`; there is no
+ * tool any more), not from which marker the ray happened to touch, so a marker that caught clicks would
+ * steal them from the surface.
  */
 export function RimDraftLayer({ path, preview, selected }: {
   path: SurfacePath;
@@ -29,17 +30,19 @@ export function RimDraftLayer({ path, preview, selected }: {
 }) {
   const colours = usePreviewColours();
   const centres = useMemo(() => anchorCentres(path), [path]);
-  const chord = useMemo(() => {
+  // The drawn line, rebuilt only when the drawing changes. It is the CURVE through the handles, the
+  // same samples a press is measured against (`rimDraftGeometry.linePositions`), not a chord run.
+  const line = useMemo(() => {
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(chordPositions(path), 3));
+    geometry.setAttribute('position', new THREE.BufferAttribute(linePositions(path), 3));
     return geometry;
   }, [path]);
-  useEffect(() => () => chord.dispose(), [chord]);
+  useEffect(() => () => line.dispose(), [line]);
   const previewCentre = useMemo(() => (preview ? anchorCentre(preview) : undefined), [preview]);
 
   if (centres.length === 0 && previewCentre === undefined) return null;
   return <group raycast={() => undefined} renderOrder={18}>
-    {centres.length > 1 && <lineSegments geometry={chord} raycast={() => undefined}>
+    {centres.length > 1 && <lineSegments geometry={line} raycast={() => undefined}>
       <lineBasicMaterial color={colours.remove} transparent opacity={0.9} depthTest={false} depthWrite={false} />
     </lineSegments>}
     {centres.map((centre, at) => <mesh key={at} position={centre} raycast={() => undefined}>

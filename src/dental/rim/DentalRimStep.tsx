@@ -5,24 +5,21 @@ import { resolve } from '@mixo-geocore/editing/commands';
 import { CommandButton } from '../../components/CommandButton';
 import { Panel } from '../../components/Panel';
 import { Field } from '../../components/Field';
-import { Segmented } from '../../components/Segmented';
 import { t } from '../../i18n';
 import { rimDoneReason, rimLoopText } from './rimStepText';
-import type { DentalRimTool } from '../editingMode';
 
 /*
  * The dock of rim define mode: the Step 1 detour where the operator draws the rim detection could not find.
  *
  * Built the way Step 1 and Step 2's docks are - titled `Panel` widgets, a readout in the mono face, prose
- * ranged left - and ordered the way a tool mode is: the tool in hand, then what has been drawn, then the
- * keys that act on it, with Done as the step's one primary at the foot.
+ * ranged left - and ordered the way this mode works: what has been drawn, then the keys that act on it,
+ * with Done as the step's one primary at the foot. There is no tool row, because there is one tool and
+ * the target under the press decides what it does.
  *
  * Everything it shows comes from `ui` and the command registry, so the labels, hints, shortcuts and
  * disabled reasons are the registry's in every language, and this file holds no wording of its own
  * (`rimStepText.ts` has the sentences).
  */
-
-const RIM_TOOLS: readonly DentalRimTool[] = ['place', 'adjust'];
 
 export function DentalRimStep({ ui, run, notices = [] }: {
   ui: UiState;
@@ -46,20 +43,13 @@ export function DentalRimStep({ ui, run, notices = [] }: {
       <p className="edit-note" data-ui="rim-why" role="status">{t('Orientation could not find a rim on this aligner, so you draw it here.')}</p>
       {/* Anything else orientation found still applies to the shape being drawn on. */}
       {notices.map((notice) => <p key={notice.kind} className="edit-note" data-ui="rim-notice" role="alert">{noticeText(notice)}</p>)}
-      <Panel title={t('Tool')} ui="rim-tool">
-        <div className="edit-row">
-          <Segmented label={t('Rim tools')} value={ui.dentalRimTool ?? 'place'} onChange={(tool) => run(`dental.rim.${tool}` as CommandId)}
-            options={RIM_TOOLS.map((tool) => {
-              const command = resolve(`dental.rim.${tool}` as CommandId, ui);
-              /*
-               * Words, no icon. Step 2's tools carry one because `tool-<name>.svg` already draws each of
-               * them; Place and Adjust have no drawing yet, and a borrowed icon would say the wrong thing
-               * about the gesture. Two short words in the operator's language are clearer than either.
-               */
-              return { value: tool, label: t(command.label), hint: command.hint, ...(command.shortcut ? { shortcut: command.shortcut } : {}) };
-            })} />
-        </div>
-      </Panel>
+      {/*
+        THE TOOL PANEL IS GONE, AND THAT IS THE FEATURE (owner, 2026-11-09). Place and Adjust were two
+        tools whose meaning flipped on whether the loop was closed - Place could do nothing at all to a
+        closed one, so a seeded rim opened on a dead control. The target under the press decides now
+        (`rimTarget.ts`), so there is nothing to choose and nothing to show: the badge says what a press
+        will do, and the hovering ghost shows where it would land.
+      */}
 
       <Panel title={t('The rim')} ui="rim-shape">
         {/*
