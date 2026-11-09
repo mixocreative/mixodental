@@ -6,7 +6,19 @@ Status: owner-approved direction (2026-10-27); revised after two independent rev
 
 Ship mixoDental with **every 3D calculation in one Rust/WASM core**, modular so generic (non-dental) use has every capability and dental mode only supplies policy data. Keep the stack minimal: Rust core + thin TypeScript host + Vite + Vitest + one browser walk.
 
-"Ship" = every **software gate** below passes on one revision, then the owner approves merge and deploy. **Clinical/print validation** (more patient STLs, physical prints) is a separate track that decides how dental mode is labelled, not whether the code ships.
+"Ship" = every **software gate** below passes on one revision, then the owner approves merge and deploy.
+
+**Which gate runs where (2026-11-09).** *Locally, on the shipped revision:* the full baseline set —
+`tsc`, `npm test`, `npm run build`, `npm run walk` **in full including section `a`**, `gate:real` (the
+real patient scans, which can only run here), and `wasm:test`. *In CI, on a `milestone-*` tag:* tests
+and the production build, plus the browser walk sharded `m,q` and `r,u,x,l,s` — the deck, both fault
+injection passes, the dental flow and its export, and the start screen — then the GitHub Pages deploy,
+which waits for both. **Section `a` is deliberately not in CI**: it is where every environmental
+failure has come from (a 30-minute overrun, a 45-minute cancel, the W-17 renderer crash), because it
+carries a 2x CPU throttle and a 49-cycle search on a runner several times slower than the dev machine.
+A gate that goes red for the runner every time gets routed around, which is worse than not having it.
+The owner's rule: **a milestone tag goes on a revision whose full local walk passed**, and the log is
+committed with it. **Clinical/print validation** (more patient STLs, physical prints) is a separate track that decides how dental mode is labelled, not whether the code ships.
 
 ## Architecture rules (every unit)
 

@@ -24,7 +24,29 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (the last two §8 rows, and the gate that could not finish - 2026-11-09)
+## Latest completed step (the deploy that had been dead for eight days - 2026-11-09)
+
+> **THE SITE WAS 242 COMMITS BEHIND, AND NOTHING SAID SO.** The last real GitHub Pages deployment is
+> `5e4c7a6`, 2026-11-01 15:34. On 2026-11-02 the CI triggers were narrowed to `milestone-*` tags plus
+> `workflow_dispatch`, and **two** copies of the same condition were left behind - the `deploy` job
+> and the `upload-pages-artifact` step - both reading
+> `github.event_name == 'push' && github.ref == 'refs/heads/main'`. A tag push carries `refs/tags/…`
+> and a dispatch is not a `push`, so from that day no run could publish. The only symptom was the
+> site's age. Fixing one copy was worse than fixing none: the run went green and the site did not
+> move.
+>
+> So the owner's hand-testing of the edge-rim review ran against a build in which **the tool rail had
+> no click handler at all** (`a9b52b0`), **accepting an orientation destroyed the painted support area
+> and the Step 3 tuning** (`4fe4efa`), and **supports planted before the model was turned were
+> exported anyway** (`c643f3c`). The review was not going wrong; the build was.
+>
+> **Where each gate runs is now written down in `docs/SHIP-PLAN.md` §Ship.** CI keeps the walk
+> blocking the deploy, sharded `m,q` and `r,u,x,l,s`; section `a` runs in the full local walk only,
+> because it is where every environmental failure came from and a gate that reddens for the runner
+> gets routed around. The owner's rule: a milestone tag goes on a revision whose full local walk
+> passed - `ALL PASS (185 checks)` on the app code at `a341a28`.
+
+## Previous completed step (the last two §8 rows, and the gate that could not finish - 2026-11-09)
 
 > **GATE GREEN at `5ed58d4`: the full browser walk is `ALL PASS (185 checks, 2103 s)`, exit 0** - no
 > tab crash, the resume never needed, and `g-pre` passed on an idle machine so `g` was answered too.
