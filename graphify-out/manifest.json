@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794245603.0290508,
-    "seen": 1794246100.5110075,
-    "ast_hash": "8da95fe0e50cafe0d402dc61b586e9c9",
+    "mtime": 1794249541.082382,
+    "seen": 1794249732.8672533,
+    "ast_hash": "23b744ea87c1948889e11581936b58cc",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -5059,9 +5059,9 @@
     "semantic_hash": ""
   },
   "src/commandWiring.test.ts": {
-    "mtime": 1793899616.0172415,
-    "seen": 1793902315.4000866,
-    "ast_hash": "d0b53f09279002704354e12912352adc",
+    "mtime": 1794249532.6024814,
+    "seen": 1794249732.8672533,
+    "ast_hash": "427a103a3c077868594950958ba9cb82",
     "semantic_hash": ""
   },
   "src/components/ConfirmModal.tsx": {
