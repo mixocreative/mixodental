@@ -47,6 +47,13 @@ for that, and the sections below are history.
   the press, so a drag used to drop a stray handle where it ended (walk `u5d`). `rimTapAt` refuses a
   click that travelled further than `CLICK_TOLERANCE`, which is the rule the rest of the app's clicks
   already use.
+- **THE DRAWN LINE IS THE PRESSED LINE**, which took a second fix on the same day. The draft layer drew
+  straight chords between the handles while a press was resolved against the curve, and the gap goes as
+  `R*theta^2/8`: invisible at the 3 mm spacing anchors were first seeded at (0.046 mm), but **1.14 mm on
+  a 15 mm radius at 12 mm spacing - past the 1 mm the pick allows, so a press on the line the operator
+  could SEE turned the camera instead of inserting a handle.** Both now walk one sampler,
+  `spanCurve` in `core/surfacePath/spline.ts`, so they cannot drift apart again; `rimTarget.test.ts`
+  asserts no point of the drawn line is dead, across the curvatures an arch has.
 - **A DETECTED RIM IS REDRAWABLE**, so this mode is no longer only for shapes with no findable rim.
   Draw the rim seeds the draft from the detected loop (`dental/rim/seedFromDetected.ts`): a handle
   every 12 mm of arc and one wherever the rim turns 45 degrees, joined by a centripetal Catmull-Rom
