@@ -981,16 +981,18 @@ export default function App() {
       case 'dental.rim.enter': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
         const detectedRim = sessionRef.current.dentalProposal?.rim;
-        let draft = unit?.rimDraft;
-        if (unit && !draft && detectedRim) {
+        if (unit && !unit.rimDraft && detectedRim) {
           const seeded = seedRimDraft(detectedRim);
-          if (seeded) {
-            dispatch({ type: 'rim/set', unitId: unit.id, path: seeded });
-            draft = seeded;
-          }
+          if (seeded) dispatch({ type: 'rim/set', unitId: unit.id, path: seeded });
         }
-        // A closed loop opens on Adjust, because Place cannot add to one (`appendAnchor` refuses it).
-        return send({ type: 'dentalRimReopen', ...(draft?.closed ? { tool: 'adjust' as const } : {}) });
+        /*
+         * NOTHING IS CHOSEN ON THE WAY IN. This used to send the tool a closed loop needed, because
+         * `appendAnchor` refuses a closed path and opening on Place handed over a control that could
+         * not act. One tool did not fix that, it made it unsayable: the target under the press decides
+         * (`dental/rim/rimTarget.ts`), so a closed loop simply has nothing to append to. The event has
+         * no payload - it was still being passed one, silently dropped, when this was cleaned up.
+         */
+        return send({ type: 'dentalRimReopen' });
       }
       case 'dental.rim.close': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
@@ -1004,6 +1006,14 @@ export default function App() {
       case 'dental.rim.clear': {
         const unitId = sessionRef.current.dentalUnitId;
         if (unitId) dispatch({ type: 'rim/clear', unitId });
+        /*
+         * AND THE PICK GOES WITH THE POINTS. `rimDeleteReason` only bounds-checks the picked index, so
+         * a pick left behind by Clear reads as "nothing picked" while the drawing is empty and comes
+         * BACK the moment enough new points exist to fill its index - Delete point then lights up
+         * aimed at a point the operator never touched (walk `u5e2`). The Adjust button used to reset
+         * the pick as a side effect of choosing a tool; with the tools gone, Clear has to say so itself.
+         */
+        send({ type: 'setDentalRimSelected', at: undefined });
         return;
       }
       case 'edit.add': return send({ type: 'setAddAction', action: 'add' });

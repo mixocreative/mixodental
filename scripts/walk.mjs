@@ -2550,18 +2550,30 @@ async function walk(url, scratch, dentalFixture) {
        * to be and Delete point stays OFF, because nothing is in reach to pick up. The second press, on a
        * corner never touched, turns it back on - without which the first half would also pass if picking
        * had simply stopped working.
+       *
+       * THE FIRST PRESS NOW ALSO ADDS A POINT, and that is the one-tool grammar answering the same
+       * question a second way: on an OPEN loop a tap on bare surface appends (`rimTargetAt`), and it
+       * can only have appended because the spot WAS bare. Under the old tools this press happened in
+       * Adjust, where a click placed nothing, so the count stayed at 3; it reads 4 now, and asserting 3
+       * here would be asserting the tool that no longer exists.
        */
       await d.stroke(squareSpots[1], squareSpots[1], 1);
       await d.idle(300);
       const goneSpotOff = !(await deleteKey.isEnabled());
+      const afterGoneSpot = await rimPoints();
       await d.stroke(squareSpots[3], squareSpots[3], 1);
       await d.idle(300);
       check('u5e5 the deleted point really left its own spot, and the others stayed',
-        goneSpotOff && (await deleteKey.isEnabled()) && (await rimPoints()) === '3',
-        `old spot picks ${goneSpotOff ? 'nothing' : 'something'}, points ${await rimPoints()}`);
+        goneSpotOff && afterGoneSpot === '4' && (await deleteKey.isEnabled()) && (await rimPoints()) === '4',
+        `old spot picks ${goneSpotOff ? 'nothing' : 'something'} and reads ${afterGoneSpot} points, then ${await rimPoints()}`);
 
-      // BACK INTO PLACE before anything below draws again: a click in Adjust moves points, it does not
-      // make them, so the triangle below would never be placed and Close loop would wait out its timeout.
+      /*
+       * THERE IS NO TOOL TO GO BACK TO, and this idle is all that is left of the step that did it.
+       * It used to press Place: a click in Adjust moved points rather than making them, so the
+       * triangle below was never drawn and Close loop waited out its timeout - the toll the two tools
+       * charged on every check that drew after one that adjusted. The wait stays, to let React draw
+       * the press above before Clear below reads the drawing.
+       */
       await d.idle(200);
 
       /*
