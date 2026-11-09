@@ -33,6 +33,22 @@ export function useDentalTuning(unit: PrintUnit | undefined, active: boolean, an
   // The aligner type's own defaults and slider limits (profile data).
   const tuning = busy && draft ? draft.tuning : policy ? (policy.kind === 'two-contour' ? policy.tuning : undefined) ?? defaultDentalTuning(policy.profileId) : undefined;
   const limits = policy ? profileData(policy.profileId).defaults : undefined;
+  /*
+   * WHETHER THESE NUMBERS CAN DO ANYTHING, which the view used to have no way of knowing.
+   *
+   * `tuning` above falls back to the aligner type's defaults for ANY policy, so the strip controls
+   * rendered for a manual-area policy too - and `change` below returns on the first line for one.
+   * Three sliders appeared, the operator dragged them, the thumb sprang back (the value comes from
+   * the policy, not from a draft that was never set) and nothing was said. That is the dead-control
+   * rule this codebase keeps paying for, and it reached BOTH manual-area routes: a hand-drawn rim,
+   * and - more often - detection finding a rim but no area (`useDentalFlow`).
+   *
+   * A manual area is PAINT, not a strip of a given width around a detected edge, so there is nothing
+   * for a width or a position to mean. Retuning one needs an engine entry point that does not exist
+   * yet (`dental_region_from_rim`, `docs/handoff/geocore-region-from-drawn-rim.md`); until it lands
+   * the honest UI is shown-and-disabled with the reason said, which is what this boolean buys.
+   */
+  const tunable = policy?.kind === 'two-contour';
   const change = useCallback((next: DentalTuning) => {
     if (!active || !unit || unit.dental?.kind !== 'two-contour') return;
     setError(false);
@@ -63,5 +79,5 @@ export function useDentalTuning(unit: PrintUnit | undefined, active: boolean, an
     }, 180);
     return () => { live = false; window.clearTimeout(timer); client?.cancel(key); };
   }, [analysis, busy, dispatch, draft, policy, unit, unitName]);
-  return { tuning, limits, busy, error, change };
+  return { tuning, limits, busy, error, change, tunable };
 }

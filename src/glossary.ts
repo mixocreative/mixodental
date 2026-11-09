@@ -59,4 +59,8 @@ export const SURFACE_TOOL_TEXTS: readonly string[] = [
   'Supports attach underneath: turn the view (Bottom view) to paint where they are.',
   'Support area is marked. Press Next, or paint to adjust.',
   'Drag on the model to paint; drag empty space to rotate the view. The final generation may leave out tips whose supports touch an unapproved face.',
+  // The note under the strip sliders when they are shown-and-disabled: it names the two brushes as
+  // the way to change a PAINTED support area, which is the surface-tool sense the words are reserved
+  // for - it just says "area" rather than "dental area", because the panel it sits in already does.
+  'These sizes shape a strip around a detected edge. This area is painted, so change it with Paint and Erase.',
 ];

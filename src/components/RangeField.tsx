@@ -9,8 +9,13 @@ import { Field } from './Field';
  *
  * `label`, `unit` and `hint` are i18n keys, `unit` shows the value as {n}; `ui` is the field's stable name.
  * `onAdjust` hears the slider being held or moved (true) and let go (false).
+ *
+ * `disabled` is SHOWN-AND-DISABLED, the house rule for a control with nothing to act on: it stays in
+ * the row, greyed, rather than appearing and disappearing under the pointer, and the caller says why
+ * beside it. A real `disabled` attribute, not `aria-disabled`, so the track cannot be dragged or
+ * tabbed to either.
  */
-export function RangeField({ layout, label, ui, unit, hint: hintKey, value, min, max, step, onChange, onAdjust, band, display }: {
+export function RangeField({ layout, label, ui, unit, hint: hintKey, value, min, max, step, onChange, onAdjust, band, display, disabled = false }: {
   layout: 'row' | 'stack';
   label: string;
   /** The field's stable name, e.g. `aligner-tip-size`. */
@@ -27,9 +32,11 @@ export function RangeField({ layout, label, ui, unit, hint: hintKey, value, min,
   band?: readonly [number, number] | undefined;
   /** The value as shown (default: the value itself). */
   display?: string | number;
+  /** Shown but not operable, because there is nothing for it to change. The caller says why. */
+  disabled?: boolean;
 }) {
   const slider = <input
-    type="range" min={min} max={max} step={step} value={value}
+    type="range" min={min} max={max} step={step} value={value} disabled={disabled}
     onChange={(event) => { onChange(Number(event.target.value)); onAdjust?.(true); }}
     onPointerDown={() => onAdjust?.(true)}
     onPointerUp={() => onAdjust?.(false)}

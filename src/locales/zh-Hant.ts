@@ -618,6 +618,7 @@ export const zhHant: Dictionary = {
   'Aligner contact strip': '牙套接觸帶',
   'Area width': '區域寬度',
   'Area position': '區域位置',
+  'These sizes shape a strip around a detected edge. This area is painted, so change it with Paint and Erase.': '這些尺寸會塑造偵測到的邊緣周圍的帶狀區域。此區域為塗刷而成，請使用「塗刷」與「擦除」進行修改。',
   'Width of the support area along each edge': '沿各邊緣的支撐區域寬度',
   'Higher moves the support area farther onto the outer surface; lower moves it toward and across the edge': '數值越大，支撐區域越往外側表面移；數值越小，越靠近並跨過邊緣',
   'Paint dental support area anywhere on the aligner': '在牙套任意位置塗刷支撐區域',

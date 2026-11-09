@@ -146,6 +146,31 @@ const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true,
     expect(askHtml).toContain('Discard and go back');
   });
 
+  /*
+   * A PAINTED AREA HAS NO STRIP TO SIZE, and these three used to say otherwise. `useDentalTuning`
+   * falls the tuning back to the aligner type's defaults for ANY policy, so the controls rendered for
+   * a manual-area unit while its `change` returned on the first line - drag, thumb springs back,
+   * nothing said. Both halves are pinned here: the controls are DISABLED rather than gone (the house
+   * rule, so they still teach what tuning is), and the reason is on screen beside them.
+   */
+  it('shows the strip controls disabled, with the reason, when the area is painted', () => {
+    const area = { kind: 'dental-area', brush: { kind: 'allow', radius: 2 }, edit: undefined, notices: [] } as Gesture & { kind: 'dental-area' };
+    const render = (tuningFixed: boolean) => renderToStaticMarkup(<DentalBar gesture={area} unitName="sample"
+      ui={{ mode: 'dental', dentalPreviewReady: true } as UiState} send={() => {}} run={() => {}} tuningFixed={tuningFixed}
+      tuning={{ positionMm: 0.7, stripWidthMm: 1, density: 1 }} tuningLimits={profileData('reference-aligner').defaults} onTuningChange={() => {}} />);
+    const fixed = render(true);
+    // Still there, and still named: vanishing would teach "this area has no strip" silently.
+    for (const word of ['Area width', 'Area position', 'Support density']) expect(fixed).toContain(word);
+    expect(fixed).toContain('disabled');
+    expect(fixed).toContain('This area is painted');
+    expect(fixed).toContain('dental-area-fixed');
+    // A detected area tunes as before: no disabled slider and no reason to give.
+    const live = render(false);
+    expect(live).not.toContain('disabled');
+    expect(live).not.toContain('This area is painted');
+    expect(live).toContain('type="range"');
+  });
+
   it('shows live area width, area position and density, and Paint / Erase anywhere', () => {
     const area = { kind: 'dental-area', brush: { kind: 'allow', radius: 2 }, edit: undefined, notices: [] } as Gesture & { kind: 'dental-area' };
     const html = renderToStaticMarkup(<DentalBar gesture={area} unitName="sample"

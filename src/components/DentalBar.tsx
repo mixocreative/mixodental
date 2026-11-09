@@ -35,7 +35,7 @@ const AREA_TOOLS = ['select', 'paint', 'erase', 'add'] as const;
 
 /** Dental Auto Generate chrome: review the detector first, then mark only permitted support area. */
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
-  lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, onTuningChange,
+  lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, tuningFixed = false, onTuningChange,
   review, clickReach, tilt, onTilt, free, restore, orientExtra, dentureReview, areaExtra, risks, onShowRisk, send, run }: {
   gesture: Extract<Gesture, { kind: 'dental-aligner' | 'dental-rim' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
@@ -53,6 +53,12 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   tuningLimits?: Readonly<ProfileDefaults> | undefined;
   tuningBusy?: boolean;
   tuningError?: boolean;
+  /**
+   * The strip cannot be retuned, because the area is the operator's paint rather than a strip around
+   * a detected edge (`useDentalTuning.tunable`). Shown-and-disabled with the reason, per the house
+   * rule - the controls still say what tuning IS, and vanishing would teach that silently.
+   */
+  tuningFixed?: boolean;
   onTuningChange?: (tuning: DentalTuning) => void;
   /** Step 3's settings, results and actions. */
   review?: DentalReview;
@@ -160,17 +166,23 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
       </div>
       </Panel>
       {tuning && tuningLimits && <Panel title={t('Support area')} ui="dental-area-shape">
-      <div className="edit-row dental-tuning" role="group" aria-label={t('Aligner contact strip')}>
+      <div className={`edit-row dental-tuning${tuningFixed ? ' is-fixed' : ''}`} role="group" aria-label={t('Aligner contact strip')}>
         <RangeField layout="row" label="Area width" ui="dental-area-width" unit="{n} mm" hint="Width of the support area along each edge"
-          min={tuningLimits.stripWidthMinMm} max={tuningLimits.stripWidthMaxMm} step={0.1} value={tuning.stripWidthMm}
+          min={tuningLimits.stripWidthMinMm} max={tuningLimits.stripWidthMaxMm} step={0.1} value={tuning.stripWidthMm} disabled={tuningFixed}
           onChange={(stripWidthMm) => onTuningChange?.({ ...tuning, stripWidthMm })} />
         <RangeField layout="row" label="Area position" ui="dental-area-position" unit="{n} mm" hint="Higher moves the support area farther onto the outer surface; lower moves it toward and across the edge"
-          min={tuningLimits.positionMinMm} max={tuningLimits.positionMaxMm} step={0.05} value={tuning.positionMm}
+          min={tuningLimits.positionMinMm} max={tuningLimits.positionMaxMm} step={0.05} value={tuning.positionMm} disabled={tuningFixed}
           onChange={(positionMm) => onTuningChange?.({ ...tuning, positionMm })} />
         <RangeField layout="row" label="Support density" ui="dental-support-density" unit="{n}×" hint="Higher density places proposed tips closer together"
-          min={tuningLimits.densityMin} max={tuningLimits.densityMax} step={0.1} value={tuning.density}
+          min={tuningLimits.densityMin} max={tuningLimits.densityMax} step={0.1} value={tuning.density} disabled={tuningFixed}
           onChange={(density) => onTuningChange?.({ ...tuning, density })} />
       </div>
+      {/*
+        THE REASON, said where the dead controls were. Without it these three greyed out with no
+        explanation, which is the same silence as leaving them live and inert - the operator cannot
+        tell "not for this area" from "broken".
+      */}
+      {tuningFixed && <p className="edit-note" role="note" data-ui="dental-area-fixed">{t('These sizes shape a strip around a detected edge. This area is painted, so change it with Paint and Erase.')}</p>}
       </Panel>}
       {tuningBusy && <p className="edit-note" role="status">{t('Updating support area and tips…')}</p>}
       {tuningError && <p className="edit-note" role="alert">{t('Could not update the support strip. The previous area is still active.')}</p>}

@@ -445,7 +445,7 @@ Style by `[data-ui="name"]`. `{kind}` is `denture` or `aligner`; in `problem-ite
 | Supports step, the settings of a block | `{kind}-tip-size`, `{kind}-pillar-size`, `{kind}-lift-height`, `{kind}-raft`, `{kind}-tree-branches`, `{kind}-cross-braces`, `{kind}-id-label-text` |
 | Right panel, every setting | `setting-{key}` for the setting of that name (`setting-liftHeight`, `setting-scatterSpacing`, `setting-contactShape`...), plus `setting-preset` and `setting-roof-mode` |
 | Right panel, the groups | `setting-group-{title}` from the group's English title: `setting-group-auto-placement`, `-tree-supports`, `-contact-tip`, `-pillar`, `-foot`, `-bracing`, `-raft`, `-roof`, `-cage`, `-id-label`, `-advanced` |
-| Edit bar and area tools | `dental-brush-size`, `dental-area-width`, `dental-area-position`, `dental-support-density`, `surface-brush-size`, `select-circle-size`, `click-reach` |
+| Edit bar and area tools | `dental-brush-size`, `dental-area-width`, `dental-area-position`, `dental-support-density`, `dental-area-fixed` (the note under those three sliders when they are shown-and-disabled, because the area is painted rather than a strip around a detected edge), `surface-brush-size`, `select-circle-size`, `click-reach` |
 | Debug layers (3D view) | `debug-layers`, `debug-layer-{id}` |
 | Layout | `plate-panel`, `plate-cases`, `plate-arrange`. **The build plate is retired** — exports are per-object, so the slicer packs the real plate. `plate-printer`, `plate-printer-select`, `plate-size` and `plate-unplaced*` went with it, along with the plate outline in the 3D view |
 | Viewport | `unresolved-bubble`, `landing-mark` |

@@ -685,6 +685,11 @@ footer.on-scene button { pointer-events: auto; }
 .range-track { position: relative; display: inline-flex; align-items: center; }
 .range-band { position: absolute; top: 50%; height: 6px; transform: translateY(-50%); background: var(--kraft); border-radius: var(--radius); pointer-events: none; }
 .range-track input { position: relative; background: transparent; }
+/* A SLIDER WITH NOTHING TO ACT ON stays in the row, greyed, with its reason beside it (the house
+   rule: shown-and-disabled, never appearing and disappearing under the pointer). The same muted
+   colour and opacity a disabled button takes, so "off" reads the same wherever it appears. */
+.dental-tuning.is-fixed input[type='range'] { opacity: .55; cursor: not-allowed; }
+.dental-tuning.is-fixed output { color: var(--muted); }
 .print-angle { position: relative; }
 /* PUT BACK sits in the dial's bottom-right corner: a round key with a picture, the one control that is about
    the step rather than about the angle, so it is beside the dial and not in the column of keys below it. */
