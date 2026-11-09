@@ -24,7 +24,53 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (G2/G4 fault injection, and what it caught - 2026-11-09)
+## Latest completed step (G1/G3/G5/G7, the geocore increment, and the §8 matrix - 2026-11-09)
+
+**Every applicable fault class has now been injected.** G1, G3, G5 and G7 had stood `UNPROVEN`
+because the walk's only worker lever could DELAY a reply and none of those four is a delay. Two
+levers closed that, and all four then ran in **44 seconds** (`npm run walk -- --only=r`).
+
+- `window.__faultHold` / `__faultRelease(order)` / `__faultCrash()` — a settling reply is swallowed
+  and kept, then delivered when and in what order the walk says. Newest first is G3; crashing this
+  side with the answer still held is G5; never releasing is G7.
+- `window.__faultDownload = n` — the n-th download is refused. Not a worker lever, and that is the
+  point: the export's reply has long settled by the time the first file commits, so no worker lever
+  can reach the write that follows a write. Chrome refuses several automatic downloads from one
+  gesture by itself, so this fault arrives without an auditor.
+
+**Five defects, four fixed here:**
+
+| | |
+|---|---|
+| **W-11** HIGH | The export's file loop is the one place it commits more than once, and it denied doing so: the first file was in the operator's downloads while the app said *"Nothing was saved; try again"* - which would have written that file a second time. `exportRefusalText.ts` became `exportOutcomeText.ts`, because a refusal is decided before anything is written and a partial write is the opposite event. `f6daa93` |
+| **W-12** MEDIUM | The background-work list is rendered inside the viewport, which is not rendered while a start screen is up - so on the DECK, where the longest background work in the app runs, the screen that remembers failures did not exist. W-05 and W-07 were both fixed onto that list. `873b923` |
+| **W-13** MEDIUM | Which W-12's fix then revealed: `failureText` defaulted an unknown context to `build`, so a failed orientation check read *"generate again to rebuild the supports"* for a deck row with no supports. `analysisJobVocabulary.ts`, total by type. `873b923` |
+| **W-14** LOW | A job stuck for ever reads `Aligner oriented · 100%` with no elapsed time. `showElapsed` exists and is wired to `state === 'indeterminate'`, the one state such a job cannot be in - a live control that cannot fire for its own failure. **Vendored geocore**, handed over: `docs/handoff/geocore-stuck-job-elapsed.md` |
+| **W-15** MEDIUM | `npm run wasm:test` asserted `engineVersion() === 14` against an engine at 63, so the gate named for every vendor bump had been exiting on line one since engine 15. It compares against `HOST_GEOMETRY_VERSION` now and prints what it verified. `c715de8` |
+
+**Two new verified controls:** two orients in flight cannot cross (job-id registry, keyed slots, the
+flow's `stale()` token), and a dependency that fails does not take the queue with it nor accept its
+own late answer.
+
+**The geocore 62/63 increment was already done.** Engine 63 at `b5a71ab` is vendored and
+`vendor:check` verifies it; it landed in `cb575b6`. `max_fill_loop_mm` is unused because **nothing
+in the app calls `repairMesh`** - the fill is off because nobody asks for it, not because a number
+is zero. `rowState.verdictOfRepair` and `offersRepair` have no caller outside their tests: the
+repair rail is built and unreachable, named in the review so "fill 0" is never read later as a
+tuned setting.
+
+**§8, the rule matrix, is written off runs**: eight rules `covered` by a probe or by a test watched
+to fail, one `UNVERIFIED` (external input acted on unverified - the fixture exists, no probe drops
+it), one `UNPROVEN` (a G5 *timeout* specifically; `r3` injected a crash instead and says so), one
+`N/A` (G6, with the map row).
+
+**The lesson of the pass:** `UNPROVEN` is a statement about the HARNESS, and it is usually cheaper to
+retire than it looks. Four fault classes had been reported untestable at this tier; the missing
+condition was a page script of forty lines. The corollary, a week after deleting a guard that could
+never fire: the first design of `__faultHold` had `fail` and `reorder` modes, no probe needed
+either, and they were cut before they were written.
+
+## Previous completed step (G2/G4 fault injection, and what it caught - 2026-11-09)
 
 The wiring walk's gap register was all `READ`, which by that doctrine's own rule made it a code
 review rather than an audit. **G2 (replay) and G4 (two actors on one scarce resource) now RUN** -
@@ -82,7 +128,7 @@ playwright, the fixture's sha256 and triangle count): `artefacts/2026-11-09-scre
   its turn…" instead of drawing the same blank as a row the batch has never heard of (and the
   register was wrong about the mechanism - the analysis worker's 10-minute per-job timeout means the
   queue cannot block for ever; the blank was the whole defect). **W-05** the four export refusals
-  moved to a pure `src/components/exportRefusalText.ts` read by both the status line and the activity
+  moved to a pure `src/components/exportOutcomeText.ts` (so named since W-11) read by both the status line and the activity
   list, with a test asserting as a property that every one of them names the model, says nothing was
   written, and ends with the next step - which caught the `replant` sentence never saying it.
   **E4** the rail press now carries its tool (`ItemsPage` discarded it, which was W-02's unnoticed

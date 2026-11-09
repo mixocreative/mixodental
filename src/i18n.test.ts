@@ -42,7 +42,7 @@ const DECK_UI_FILES = uiFilesIn('./deck/');
  * The comment above records the first two misses, both inside folders this test already globbed.
  * The third was a folder it did not glob at all: `src/components/` had an explicit hand-written
  * list, so a new module there owned user-facing sentences and was simply outside the guard.
- * `exportRefusalText.ts` is how it was found - four export refusal sentences, added by an audit,
+ * `exportOutcomeText.ts` (then named `exportRefusalText.ts`) is how it was found - four export refusal sentences, added by an audit,
  * invisible to this test, and its name even matches `SPEAKS`. The explicit list below stays, because
  * it names files that pass text through without writing `key:` themselves; this adds the ones that
  * speak for themselves, by the same rule as the other four folders.

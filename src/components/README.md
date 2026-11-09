@@ -52,9 +52,28 @@ inside its show delay, so it is the screen that remembers.
 | file | its part in that |
 |---|---|
 | `useImportFiles.ts` | `listBudgetRefusal` — a triangle, memory or plate refusal happens before any worker starts, so nothing was ever listed. A file the WORKER refuses was always safe, and that asymmetry is what hid it. |
-| `exportRefusalText.ts` | the four export refusal sentences, pure, read by **both** screens. They live here because the activity list builds its text from an error CODE, and the generic "the export failed" it would otherwise reach is a second, vaguer vocabulary for an event the status line describes exactly. |
-| `useExport.ts` | `refuse(reason, name)` — one call that says it to both. |
-| `JobActivity.tsx` | `failureText` prefers `storedExportRefusal` over the generic text, so the two screens cannot drift. |
+| `exportOutcomeText.ts` | what an export wrote, or did not: the four refusal sentences and the partial-write one, pure, read by **both** screens. They live here because the activity list builds its text from an error CODE, and the generic "the export failed" it would otherwise reach is a second, vaguer vocabulary for an event the status line describes exactly. |
+| `useExport.ts` | `sayOutcome` — one call that says it to both; `refuse(reason, name)` and the write loop's partial report are its two callers. |
+| `JobActivity.tsx` | `failureText` prefers `storedExportOutcome` over the generic text, so the two screens cannot drift. |
+
+### Two more of the same defect, found the same way on 2026-11-09 (§6b)
+
+**A write that stopped part way (W-11).** The export hands each file to the browser in a loop of
+`<a download>.click()`, so the first file is on disk before the second hand-over is attempted — the
+one place this code commits more than once. A throw in that loop reached the generic catch, which
+says *nothing was saved*: true of every export failure that happens before a byte is written, and
+false here. The loop now records what it handed over. The trap is written where the mistake would be
+made: **a browser that blocks quietly does not throw**, so this is the narrow claim that what the
+loop MANAGED to hand over is what the operator is told about, not a guarantee that every file landed.
+
+**The list was not on the deck at all (W-12), and then said the wrong thing (W-13).**
+`JobActivityPanel` is rendered inside the viewport, and the viewport is not rendered while a start
+screen is up — so the screen that remembers did not exist on the deck, which is where the longest
+background work in the app runs. It is mounted there too now (`App.tsx`, two exclusive mount points,
+one singleton registry). Fixing that put a sentence on screen that had been unreachable: every
+dental analysis kind inherited the "support build" vocabulary, because `failureText` defaulted an
+unknown context to `build`. `workers/analysisJobVocabulary.ts` maps each kind to a vocabulary that is
+true of it, total by type.
 
 **What this fix is not.** The activity list is dismissible and session-scoped: a project reopened
 tomorrow does not know its last export was refused. A persistent mark on the unit is scene state

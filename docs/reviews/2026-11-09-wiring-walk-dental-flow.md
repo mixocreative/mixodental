@@ -4,10 +4,17 @@ Reference-guided walk of the deck → flow → deck journeys. This is the compan
 `2026-11-08-cia-deck-and-flow.md`, which swept for defect classes; this one asks whether every
 connection is actually wired, and whether each lifecycle ends somewhere a person can account for.
 
-**Tier: Screen.** §4 map and §5 connections were read on 2026-11-08; **§6 fault injection ran on
-2026-11-09** — G2 and G4 through the front door in a real browser, G1/G3/G5/G7 `UNPROVEN` with the
-lever each needs, G6 `N/A` with the map row that proves it. Six probes: three verified controls,
-three reproduced defects (W-07, W-08, W-09), all three fixed in this pass.
+**Tier: Screen.** §4 map and §5 connections were read on 2026-11-08. **Every applicable fault class
+has now been injected through the front door**, in two passes on 2026-11-09:
+
+- **§6 — G2 and G4.** Six probes, three verified controls, three reproduced defects (W-07, W-08,
+  W-09), all fixed.
+- **§6b — G1, G3, G5 and G7**, once the levers those four needed existed. Five checks in 44 seconds,
+  two verified controls, five defects (W-11 … W-15), four fixed here and one handed to geocore.
+- **G6 is `N/A`** with the map row that proves it; **a G5 *timeout* specifically stays `UNPROVEN`**
+  with its missing condition named in §6b.
+- **§8**, the rule matrix, is now written off those runs: eight rules `covered` by a probe or a test
+  watched to fail, one `UNVERIFIED`, one `UNPROVEN`, one `N/A`.
 
 Said plainly because the distinction is the whole point: until §6 ran, every row of §9 said `READ`,
 and a register where every row is `READ` is a code review wearing an audit's clothes.
@@ -140,6 +147,91 @@ has quietly deleted the evidence that its reading is fallible.
   and costs seven seconds — **a diagnosis that costs eight minutes a question gets guessed at instead
   of asked.**
 
+## §6b — Fault injection, second pass: G1, G3, G5 and G7
+
+Run 2026-11-09 on `873b923`, Screen tier, through the front door in headless Chromium.
+`npm run walk -- --only=r` (`scripts/walk.mjs`, section `r`), **44 seconds for all five checks**;
+`--probes=rN` runs one.
+
+These four were `UNPROVEN` in §6 for a single reason, and it is worth stating because it is the
+shape of most "we could not test that": **the only lever the walk had could DELAY a reply, and none
+of these four faults is a delay.** Two levers were built, and then all four ran the same afternoon.
+
+| Lever | What it does | Serves |
+|---|---|---|
+| `window.__faultHold` + `__faultRelease(order)` | every SETTLING reply from the named worker is swallowed and kept; the walk says when each is delivered, and in which order | G3 (newest first), G5 (with the crash below), G7 (never released) |
+| `window.__faultCrash()` | the worker errors on THIS side, which is what `WorkerTask.wire`'s `onerror` sees | G5's local half |
+| `window.__faultDownload = n` | the n-th `<a download>.click()` is refused | G1 |
+
+`__faultDownload` is not a worker lever and that is the finding behind it: the export's reply has
+long settled by the time the first file commits, so **no worker lever can reach the write that
+follows a write**. A fault class with no lever is not a fault class with no site.
+
+| # | Fault | Site | Injection | What happened | Verdict |
+|---|---|---|---|---|---|
+| **G1** `r1` | A write rejected after an earlier one committed | the export's file loop, `useExport.ts` | two objects, "Each object with model", the second download refused | the first file was in the operator's downloads and the app said *"Export failed (…). **Nothing was saved**; try again, or export one object at a time."* — false, and the advice would have written the landed file twice | **FAIL → W-11** |
+| **G3** `r2` | A reply before its predecessor | the analysis pool, the batch's orient against the flow's | both settling replies held, the NEWER released first | every observer kept its own answer: the flow's screen and the model's rotation matched the clean run exactly, down to the holes notice | **PASS** — verified control |
+| **G5** `r3` | The far side succeeded, this side gave up | `AnalysisClient` + `WorkerTask.restart` | the worker crashed on this side with its answer still held, then the answer released into a client that had given up | the row settled once and stayed settled; the late answer landed nowhere; the batch drained past it and the second row got its own verdict; nothing thrown | **PASS** — verified control |
+| **G5** `r3b` | …and can the operator read it? | the background-work list | the same run, reading the screen | **two defects.** The list is inside the viewport, which is not rendered while a start screen is up — so on the deck it did not exist. Mounted, it then explained an orientation check as a support build | **FAIL → W-12, W-13** |
+| **G7** `r4` | The background job stops | the batch loop, `useBatchDetect` | every orient answer swallowed, twenty seconds (a cube's check takes one or two) | the rows read as pending, never as a verdict; Start and Remove both still worked; a Cancel was offered. But the background-work row read `Aligner oriented · 100%` and goes on reading it for ever | **PASS**, with a gap handed to geocore (W-14) |
+
+**G5's timeout stays `UNPROVEN`, and the swap is named rather than hidden.** The app's real form of
+this is `ANALYSIS_TIMEOUT_MS` — ten minutes — which a walk cannot wait for, so the local half was
+injected as a crash. Same disagreement, same handler (`restart`), seconds instead of minutes; but a
+*timeout* specifically has not been run at this tier. The condition it needs is a page lever over the
+job's own `timeoutMs`, or a build with a short one.
+
+**G6 remains `N/A`** with its map row: no finished record points at an artefact outside the scene —
+the project file packs the meshes it refers to (`useProjectFile.ts`). Recheck if that ever changes.
+
+### What I expected, and what the system did
+
+- **I expected `r1` to find a vague sentence. It found a false one.** My prediction was that the
+  generic "the export failed" would be unhelpful beside a partial write. It was worse than that: it
+  states that nothing was saved while a file is on disk, and offers an action that would duplicate
+  it. A finding that is worse than the reading that motivated the probe is the argument for probes.
+- **`r2` passed on its first run and proved nothing, which is the third time in two days.** The
+  helper that decided "both rows have settled" asked only for non-empty text — so with every answer
+  held, the baseline read `["Checking the orientation…", "Waiting its turn…"]`, and the probe's
+  anti-vacuity guard ("the two answers must differ") was satisfied by two sentences that both mean
+  *I do not know yet*. A pending sentence must never satisfy a check about what was decided. The
+  reader now refuses one, and `openCubeStl` exists so the two models give genuinely different
+  verdicts.
+- **Fixing W-12 created W-13, and that is why they are one commit.** Mounting the list on the deck
+  put a sentence on screen that had been unreachable: every dental analysis kind inherited the
+  "support build" vocabulary, because `failureText` defaulted an unknown context to `build`. A defect
+  that only a fix can expose is an argument for fixing in the same pass that found it.
+- **`r4` corrected me twice.** I had written in the probe that the batch offers no Cancel, because
+  `useBatchDetect` passes no signal; `AnalysisClient` passes one of its own, so it does. And I had
+  not predicted the stuck row at `100%` at all.
+- **The gate for the increment this pass was meant to confirm was itself broken.** `npm run wasm:test`
+  asserted `engineVersion() === 14` against an engine at 63, so it had been failing on its first line
+  since engine 15 and nobody had run it. The vendor bump the owner approved had already landed in
+  `cb575b6`; what had not landed was a gate that could have said so.
+
+## §8 — The rule traceability matrix
+
+One row per rule, not per function. **`Proof` is a run from this audit** — a walk probe, or a unit
+test that was watched to fail — and `Outcome` is `covered` only where that proof ran and passed.
+Where a rule is real and the proof is not, the row says so and names the missing condition; a matrix
+with no `UNVERIFIED` rows in it is usually a matrix whose author stopped at the rules they could
+prove.
+
+| Rule | Code that enforces it | Connected systems | Proof (this audit) | Outcome |
+|---|---|---|---|---|
+| One accepted request leads to exactly one unit of work | `StartScreen.claimHeld` (a ref read-and-emptied in one statement); `WorkerTask.wire` resolves a reply out of `this.jobs`; `ItemRow`'s Remove keyed by unit id | start screen, import, analysis pool, deck | walk `q3` (purpose pressed twice → 3 rows, not 6), `q4` (Remove replayed), `q5` (6 replies redelivered) | **covered** |
+| Two actors on the last of a scarce quota: one wins, the loser is told | `PlateLedger.hold` checks scene + every other hold + its own in one synchronous step; `useImportFiles.listBudgetRefusal` | import, plate ledger, status line, activity list, deck rows | walk `q1` (3.19M × 2 against a 6M plate), `q2` (the loser still accountable) | **covered** |
+| A reply's ORDER never decides which observer gets it | `WorkerTask.wire`'s job-id registry; `AnalysisClient`'s keyed slots; `useDentalFlow`'s `stale()` token and `activeUnitId` check | analysis pool, deck, flow | walk `r2` (two orients in flight, newer released first) | **covered** |
+| Every accepted item reaches a terminal state or a visible queue | `useBatchDetect`'s serial drain; `detectState` (`waiting` says so, W-03); `ANALYSIS_TIMEOUT_MS` behind it | deck rows, analysis pool | walk `r3` (the queue drained past a failed row), `r4` (pending reads as pending) | **covered** |
+| Every unresolved state reaches an operator, on a screen that keeps it | the row's own sentence; `JobActivity` (never drops a failed row) — now mounted on the deck | deck, background-work list, status line | walk `r3b`; `q2` and `r1` are the same rule from the import and export sides | **covered**, with W-14 handed to geocore |
+| A failure is explained in ITS OWN vocabulary, not a neighbour's | `analysisJobVocabulary` (total by type); `exportOutcomeText`; `JobActivity.failureText` | activity list, status line | walk `r3b`; `analysisJobVocabulary.test.ts` and `exportOutcomeText.test.ts`, both watched to fail first | **covered** |
+| What the operator is told about a WRITE is true | `useExport`'s write loop records what it handed over; `exportPartialText` | export worker, browser, status line, activity list | walk `r1` | **covered** |
+| A reversal never exceeds what was done, and never strands the operator | `onRemove` + the undo offer (W-06); the invariant effect "the flow cannot be open on a unit that is not on the plate" (W-09) | deck, scene, session, flow | walk `q4`, `q6` | **covered** |
+| External input is never acted on unverified | `binaryStlTriangles` caps the claimed triangle count by file size, so a lying header is refused as damaged, not as too large; `diagnoseMesh` on every import | import worker, plate, deck rows | **UNVERIFIED at this tier.** The rule is read and the fixture exists (a 200-byte file claiming 4M triangles); no probe in this audit drops one. One `--probes` case away | `UNVERIFIED` |
+| A dependency that times out while the far side succeeded is reconciled, never doubled | `WorkerTask.settle`'s `job.done` guard; `restart` nulls the worker's `onmessage` | analysis pool, deck | **`UNPROVEN` for a timeout specifically.** `r3` ran the same disagreement as a crash; the missing condition is a lever over a job's `timeoutMs` | `UNPROVEN` |
+| A delivered artefact stays retrievable | — | — | **`N/A`** with the map row: no finished record points outside the scene; the project file packs the meshes it refers to (`useProjectFile.ts`) | `N/A` |
+| A detector is proved to be LOOKING (S20) | `i18n.test.ts` (scope widened to `src/components`, W-10); `geometry-wasm-smoke.mjs` (now compares against `HOST_GEOMETRY_VERSION`) | the guards themselves | W-10: an untranslated sentence planted in a new module, and the widened guard named it. W-15: the smoke gate was asserting `=== 14` against engine 63, so it had been failing on its first line since engine 15 | **covered** |
+
 ## §9 — Gap register
 
 **Proof status is now evidence, not reading.** `REPRODUCED` means a fault injection in §6 produced
@@ -159,7 +251,12 @@ commit. A register where every row says `READ` is a code review, which is what t
 | **W-08** | L2 | Intake — purpose | Purpose press → import | `components/StartScreen.tsx` | `choose` read `held` out of its render's closure and cleared it with `setHeld([])`. A state setter schedules a re-render; it takes nothing away from a handler that has already closed over the old value — so two presses in one tick both released the same batch. Walk `q3`: three files, one double-click, **six rows**, each file imported twice and each duplicate counting against the plate and memory budgets. | **REPRODUCED** `q3` → **FIXED** | HIGH |
 | **W-09** | L2 | Reversal / Flow entry | Row → flow, against Remove | `App.tsx` (the flow invariant effect) | Remove and Start reach one unit in one tick easily — both controls are on screen, both aimed at the row the rail shows — and `onStart` closed over a unit **object** rather than a live lookup. Every guard downstream then worked exactly as written and the operator still landed where no screen describes: the selection reducer drops an id the scene has not got, so `activeUnitId` is empty; `startAligner` abandons its orient job; `setStartScreen(null)` had already shut the deck; and the gesture that draws the dental bar needs an active unit, so no step drew either. Probe: deck gone, no badge, the **generic** editor panels up, the mode still on underneath, and the status line talking about an aligner step. Fixed by an invariant on RENDERED state — the flow closes and the deck comes back — **not** by a guard in `startItem`, which cannot see a same-tick removal through a ref that updates on render. | **REPRODUCED** `q6` → **FIXED** | HIGH |
 
-| **W-10** | L3 | The audit's own instruments | UI string → translation guard | `src/i18n.test.ts` | **S20: the detector had a blind spot, and this audit walked into it.** The guard's scope has now been wrong three times; the file records the first two, both modules inside folders it already globbed. The third was a folder it never globbed at all — `src/components/` had a hand-written list, so a new module there owning user-facing sentences sat outside the instrument. Found because **this pass added such a module**: `exportRefusalText.ts`, four refusal sentences, invisible to the guard, its name even matching `SPEAKS`. Closing it cost three `NOT_UI` entries (two font families and a modifier key) and nothing else under `src/components/` was untranslated — the shadow was in the instrument, not in the work. **Proved by planting** an untranslated sentence there: the widened guard fails on it by name, the old one passed. | **FIXED**, with a blind-case test | MEDIUM |
+| **W-10** | L3 | The audit's own instruments | UI string → translation guard | `src/i18n.test.ts` | **S20: the detector had a blind spot, and this audit walked into it.** The guard's scope has now been wrong three times; the file records the first two, both modules inside folders it already globbed. The third was a folder it never globbed at all — `src/components/` had a hand-written list, so a new module there owning user-facing sentences sat outside the instrument. Found because **this pass added such a module**: `exportRefusalText.ts` (now `exportOutcomeText.ts`), four refusal sentences, invisible to the guard, its name even matching `SPEAKS`. Closing it cost three `NOT_UI` entries (two font families and a modifier key) and nothing else under `src/components/` was untranslated — the shadow was in the instrument, not in the work. **Proved by planting** an untranslated sentence there: the widened guard fails on it by name, the old one passed. | **FIXED**, with a blind-case test | MEDIUM |
+| **W-11** | L2 | Export — the write | Files written → operator | `components/useExport.ts` (the file loop) | **The one place the export commits more than once, and it denied doing so.** Each file is handed to the browser by its own `<a download>.click()`, so the first file is in the operator's downloads before the second hand-over is attempted. A throw in that loop went to the generic catch: *"Export failed (…). Nothing was saved; try again, or export one object at a time."* Nothing was saved was false, and "try again" would have written the landed file a second time. Every other export failure happens before a byte is written, which is why every other sentence can promise that — the loop inherited a promise it cannot keep. Chrome refuses multiple automatic downloads from one gesture, so this arrives without an auditor. | **REPRODUCED** `r1` → **FIXED** `f6daa93` | HIGH |
+| **W-12** | L2 | The deck | Background failure → operator | `App.tsx` (the start-screen branch) | **The screen that remembers failures did not exist on the deck.** `JobActivityPanel` is rendered inside the viewport, and the viewport is not rendered while a start screen is up — so on the deck, where the longest background work in the app runs (one orientation check per row, minutes on a full case), a crashed analysis worker left its mark on one row's sentence and nowhere else. W-05 and W-07 were both fixed onto that list on the argument that a status line the next message replaces is not a screen; on this screen there was no list to be fixed onto. | **REPRODUCED** `r3b` → **FIXED** `873b923` | MEDIUM |
+| **W-13** | L3 | The deck | Job context → failure text | `components/JobActivity.tsx` (`failureText`) | **An analysis job was explained as a support build.** `AnalysisClient` reports each job with `context: task.kind` (`dental-orient`, `dental-tilt-scan`, …); none of those is one of the five shared error contexts, and `failureText` defaulted an unknown context to `build` — so a failed orientation check on a deck row with no supports read *"The support worker stopped unexpectedly. Change a setting or generate again to rebuild the supports."* Only visible once W-12 was fixed, which is why both are one commit. | **REPRODUCED** `r3b` → **FIXED** `873b923` | MEDIUM |
+| **W-14** | L3 | Background work | Stalled job → its own row | `vendor/mixo-geocore/host/workers/jobActivity.ts:221` | **A job stuck for ever reads `Aligner oriented · 100%`,** with no elapsed time: a finished job and a job that will never finish draw the same row. The signal for this exists — `showElapsed` — and is wired to `state === 'indeterminate'`, the one state a job that reported progress and then stopped cannot be in. A live control that cannot fire for the failure it was written for. **Vendored geocore, which this repo consumes as built**, so it is handed over, not patched. | **REPRODUCED** `r4` → **HANDED OVER** `docs/handoff/geocore-stuck-job-elapsed.md` | LOW |
+| **W-15** | L3 | The audit's own instruments | Vendored engine → its gate | `scripts/geometry-wasm-smoke.mjs` | **S20 again, and in the gate the owner named for the geocore increment.** Its first assertion was `engineVersion() === 14` against an engine at 63, so `npm run wasm:test` had been exiting on line one since engine 15 — the ABI smoke test below it has not run in forty-eight engine versions, and nothing said so. A constant frozen into a detector ages into a detector nobody runs. It now compares against `HOST_GEOMETRY_VERSION`, which is what its own message always claimed, and prints what it verified. | **REPRODUCED** (ran it) → **FIXED** `c715de8` | MEDIUM |
 
 ### Verified controls — named, so the next audit does not re-derive them
 
@@ -171,6 +268,8 @@ A control is listed here only once a fault injection failed to break it, with th
 | A replayed Remove takes one row, and the right one | the press is keyed by unit id, not by row index (`onRemove={() => onRemove(unit)}`) | walk `q4` |
 | A duplicated worker reply has no second effect | `WorkerTask.wire` resolves the reply's job out of `this.jobs`; a settled job has left that map, and `'stale'` is already a named reply code | walk `q5`, 6 replies redelivered |
 | A failed job's row is never dropped from the activity list | `JobActivity.view` deletes only `outcome !== 'failed'` rows, and surfaces a failure that ended inside the show delay | the mechanism W-05 and W-07 were both fixed onto |
+| Two orients in flight cannot cross: every observer keeps its own answer | `WorkerTask.wire` matches a reply to its job by id, `AnalysisClient` keys its slots, and `useDentalFlow`'s `stale()` token refuses an answer for a job it has moved on from | walk `r2`, newer released first |
+| A dependency that fails does not take the queue with it, and its late answer lands nowhere | `WorkerTask.settle` guards on `job.done` and `restart` nulls the worker's `onmessage`, so a reply that arrives after the client gave up reaches nothing | walk `r3`, crash then release |
 
 ### A note on the harness, because it changed what the audit could ask
 
@@ -180,23 +279,47 @@ the work immediately — the W-09 account above has a probed answer rather than 
 because asking became cheap. Same lesson as `--only` saving a day, one level down; and the same
 danger, so a filtered run says `SOME PASS` and names what ran.
 
+**And then the harness decided which fault classes this audit could have at all.** G1, G3, G5 and G7
+were `UNPROVEN` for an afternoon and then all four ran in 44 seconds, and nothing about the app
+changed in between — what changed is that the walk learned to hold a reply, release it in an order
+of the walk's choosing, crash a worker on this side, and refuse a download. Three of those are one
+lever. The lesson is not "build levers"; it is that **`UNPROVEN` is a statement about the harness,
+and it is usually cheaper to retire than it looks** — four fault classes had been reported as
+untestable at this tier, and the missing condition was a page script of forty lines.
+
+The corollary the pass also earned: **a lever no probe uses is a dead control.** The first design of
+`__faultHold` had `fail` and `reorder` modes as well. Holding expresses both, no probe needed either,
+and they were cut before they were written — a week after deleting a guard in `startItem` that could
+never fire.
+
 ## What runs next
 
-1. **G1, G5 and G7 need a fault lever the walk has not got.** `window.__meshDelay` delays a reply;
-   none of these three can be injected until it can also **fail** one, **reorder** two, and **stop**
-   a worker. One page-level lever (`window.__faultWorker = { fail, reorder, stop }`) covers all
-   three, and it is the cheapest thing on this list.
-2. **G3 (out-of-order arrival)** then follows from the same lever: a build result delivered before
-   its request, against `useSupportBuilds`'s `requested` identity guard — which §5 marks `Y` on
-   reading alone.
-3. **The §8 rule matrix**, with each row's proof from a run rather than from reading. §6 is the
-   method; the matrix is the coverage.
-4. **W-05 and W-07 took the activity list, not a flag on the unit.** That is the minimal honest fix
+1. **A G5 *timeout*, specifically.** `r3` injected the same disagreement as a crash because a walk
+   cannot wait out `ANALYSIS_TIMEOUT_MS` (ten minutes). The missing condition is a lever over a job's
+   own `timeoutMs`, which is one page hook away; §6b holds the row until it runs.
+2. **The `UNVERIFIED` row of §8: external input acted on unverified.** The rule is read and the
+   fixture already exists — a 200-byte file claiming four million triangles, which
+   `binaryStlTriangles` must refuse as DAMAGED rather than as too large. One `--probes` case.
+3. **W-14 is with geocore** (`docs/handoff/geocore-stuck-job-elapsed.md`): a job stuck for ever reads
+   `100%` with no elapsed time, because `showElapsed` is wired to the one state it cannot be in. When
+   a new vendor drop lands, `r4`'s check tightens from "the deck still works" to "the stalled job
+   says how long it has been stalled".
+4. **W-12 was fixed with a second mount point, and the proper fix is named as debt.** The
+   background-work list belongs at the app root, not inside the viewport; moving it there means
+   re-homing three CSS rules that position it by viewport state, which is a layout change with its
+   own visual check and must not ride along with an audit.
+5. **W-05 and W-07 took the activity list, not a flag on the unit.** That is the minimal honest fix
    and it uses the screen the operator already watches, but it is dismissible and session-scoped: a
    project reopened tomorrow does not know its last export was refused. A persistent mark on the unit
    is scene state with save-file consequences, so it is written down here as debt with its reason
    rather than taken quietly.
-5. **E4 shipped for flagged rows only.** Pressing Rim on a row the detector flagged `no-rim` now
+6. **E4 shipped for flagged rows only.** Pressing Rim on a row the detector flagged `no-rim` now
    enters rim drawing directly instead of re-running a detection to be told what the row already
    says. Any other row keeps today's behaviour, which leaves *may a detected rim be redrawn* with the
    owner — deliberately, since answering it is not needed to ship this half.
+7. **The repair rail is built and unreachable.** `rowState.verdictOfRepair` and `offersRepair` have
+   no caller outside their tests, and nothing in the app calls `repairMesh` — so the engine's hole
+   filling (new at 63, `max_fill_loop_mm`) is off because nobody asks for it, not because a number is
+   zero. Not a defect today; named here so that "fill 0" is not later read as a setting that was
+   tuned. `noUnusedLocals` cannot see an unused EXPORT, which is why a grep found it and the compiler
+   did not.
