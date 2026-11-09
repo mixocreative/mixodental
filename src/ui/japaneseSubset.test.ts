@@ -11,8 +11,15 @@ import { describe, expect, it } from 'vitest';
  * This test is the thing that notices.
  */
 
-const ja = new TextDecoder().decode(readFileSync('src/locales/ja.ts'));
-const subset = new TextDecoder().decode(readFileSync('src/assets/fonts/japanese-subset.txt'));
+/*
+ * WHITESPACE IS NOT A GLYPH, and a checkout's line endings are not the locale's. With `core.autocrlf`
+ * on, a Windows checkout can hold `ja.ts` as CRLF while the subset file (written LF by `npm run
+ * fonts`) stays LF, and this test then reported `\r` as "a character the font does not carry" - a red
+ * that meant the machine, on a file nobody had touched. Both sides are compared without whitespace.
+ */
+const glyphs = (text: string): string => text.replace(/\s/g, '');
+const ja = glyphs(new TextDecoder().decode(readFileSync('src/locales/ja.ts')));
+const subset = glyphs(new TextDecoder().decode(readFileSync('src/assets/fonts/japanese-subset.txt')));
 
 describe('the bundled Japanese title face', () => {
   it('carries every character the Japanese locale uses', () => {
