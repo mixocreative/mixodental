@@ -35,15 +35,33 @@ jobs:
       - run: npm run vendor:check
       - run: npm test
       - run: npm run build
-      - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      # The SECOND copy of the dead condition below, and the one that actually starved the deploy:
+      # with no artifact uploaded there is nothing to publish, so `deploy` had nothing to do even
+      # once its own `if` was corrected. One defect, two copies, and fixing one of them proved only
+      # that the run went green while the site stayed eight days old.
+      - if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/milestone-')
         uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
   walk:
-    name: Browser walk
+    # SHARDED, BECAUSE THE WHOLE WALK NO LONGER FITS IN ONE RUNNER'S PATIENCE. It took 8m50s here on
+    # 2026-11-01 and overran 30 minutes on 2026-11-09, having reached only section `a`'s export - a
+    # shared runner rendering through SwiftShader is several times slower than the dev machine, and
+    # the walk has grown two fault-injection sections since.
+    #
+    # The sections are already independent (each opens its own page and fixture), so they shard
+    # cleanly and the three run side by side. COVERAGE IS NOT REDUCED: every section letter appears
+    # exactly once below, each shard exits non-zero on its own failures, and `deploy` needs the whole
+    # matrix. A shard says SOME PASS rather than ALL PASS, which is the walk's own rule for a
+    # filtered run and is why that rule exists.
+    name: Browser walk (${{ matrix.sections }})
+    strategy:
+      fail-fast: false
+      matrix:
+        sections: ['a', 'm,q', 'r,u,x,l,s']
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       WALK_OUT: walk-out
     steps:
@@ -59,16 +77,19 @@ jobs:
       # mistake by hand: reading `$?` after a `grep` on the same line.
       - run: |
           set -o pipefail
-          mkdir -p walk-out && npm run walk 2>&1 | tee walk-out/walk.log
+          mkdir -p walk-out && npm run walk -- --only=${{ matrix.sections }} 2>&1 | tee walk-out/walk.log
       # The locale pass is a SEPARATE run: `walkLocale` replaces the English walk rather than adding
       # to it, so it needs its own invocation. Nothing ran it until now.
-      - run: |
+      # One shard only: the locale pass replaces the English walk rather than adding to it, so
+      # running it in all three would be the same work three times.
+      - if: matrix.sections == 'a'
+        run: |
           set -o pipefail
           npm run walk:locales 2>&1 | tee walk-out/walk-locales.log
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: walk-failure
+          name: walk-failure-${{ strategy.job-index }}
           path: walk-out
           if-no-files-found: warn
           retention-days: 7
