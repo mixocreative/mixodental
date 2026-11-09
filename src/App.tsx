@@ -1338,13 +1338,23 @@ export default function App() {
       * whole argument is that a sentence which the next message can replace is not a screen.
       *
       * Two mount points for one panel, and they are exclusive: these branches never render together,
-      * and `jobActivity` is a module singleton, so there is one list either way. The proper fix is to
-      * hoist it to the app root - but `.job-activity` is positioned inside the viewport and three
-      * rules reposition it by viewport state (`viewport--editing`, `viewport--step3`,
-      * `workspace--dental`), so that is a layout change with its own visual check and it must not
-      * ride along with an audit. DEBT, named here, with the cut written down.
+      * and `jobActivity` is a module singleton, so there is one list either way.
+      *
+      * THE DEBT WAS FILED AGAINST THE WRONG THING. It said the proper fix was to hoist this to the app
+      * root, and that `.job-activity` being positioned by three viewport-state rules
+      * (`viewport--editing`, `viewport--step3`, `workspace--dental`) made it a layout change. But the
+      * root is where those ancestor classes are NOT, so hoisting would mean re-expressing every one of
+      * them on the element itself - work with no behaviour to show for it. Two mounts in exclusive
+      * branches are not the problem.
+      *
+      * WHAT THEY DIFFERED IN WAS, and it was the same silence W-12 is about. The viewport passed
+      * `stagedBar` and this did not, so an ORIENT - the one analysis job a drop or a purpose press
+      * starts here (`useDentalFlow`, label `Orienting {name}`, which `stagePlanOf` gives SCAN_PLAN) -
+      * drew its staged progress in the viewport and a bare row on the deck. The deck is where orients
+      * actually run. Both pass it now, so the two mounts are the same panel rather than two that have
+      * drifted.
       */}
-    {startScreen === 'items' ? <><JobActivityPanel /><ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
+    {startScreen === 'items' ? <><JobActivityPanel stagedBar={stagedJobBar} /><ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
       refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails}
       selectedUnitId={scene.activeUnitId}
       onSelect={(unit) => dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id })}

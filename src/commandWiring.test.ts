@@ -87,3 +87,25 @@ describe('command wiring', () => {
     }
   });
 });
+
+/*
+ * BOTH ACTIVITY LISTS ARE THE SAME PANEL, and for one commit they were not.
+ *
+ * `JobActivityPanel` is mounted twice - once on the deck (the items start screen) and once in the
+ * viewport - in branches that never render together. That is fine. What is not fine is the two
+ * drifting: the viewport passed `stagedBar` and the deck did not, so an ORIENT drew its staged
+ * progress in the viewport and a bare row on the deck, which is where orients actually run
+ * (`useDentalFlow` raises `Orienting {name}`, and `stagePlanOf` gives it SCAN_PLAN).
+ *
+ * That is W-12's own silence one level down: not a missing screen, a screen that is quietly less than
+ * its twin. A prop dropped from one of two call sites is invisible to the type checker, because the
+ * prop is optional for good reason - the kit catalogue renders rows without one.
+ */
+describe('the background-work list', () => {
+  it('is mounted with the staged bar everywhere it is mounted', () => {
+    const app = SOURCES['./App.tsx']!;
+    const mounts = [...app.matchAll(/<JobActivityPanel\b[^/>]*\/>/g)].map((match) => match[0]);
+    expect(mounts.length, 'expected the deck mount and the viewport mount').toBe(2);
+    for (const mount of mounts) expect(mount, mount).toContain('stagedBar=');
+  });
+});
