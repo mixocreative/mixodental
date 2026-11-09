@@ -12,7 +12,7 @@ import { DentalAlignerPrompt, noticeText } from './DentalSteps';
 import { OrientationBar, type DentalFreeControls } from './OrientationBar';
 import { DentalSupportsStep, type DentalReview } from './DentalSupports';
 import { DentalRimStep } from '../dental/rim/DentalRimStep';
-import { rimToolText } from '../dental/rim/rimStepText';
+import { rimBadgeText } from '../dental/rim/rimStepText';
 import { RangeField } from './RangeField';
 import { ClickReachField, SelectStyleSwitch } from './EditBar';
 import { Segmented } from './Segmented';
@@ -106,7 +106,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
       {t('Step 1 · Define the rim')}<span>{unitName}</span>
-      <b>{t(rimToolText(gesture.tool))}</b>
+      <b>{t(rimBadgeText(ui.dentalRimClosed === true))}</b>
     </div>
     <DentalRimStep ui={ui} run={run} notices={gesture.notices} />
   </>;

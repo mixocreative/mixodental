@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gesture } from '@mixo-geocore/editing/gesture';
-import { resolve, type UiState } from '@mixo-geocore/editing/commands';
+import { COMMAND_IDS, resolve, type UiState } from '@mixo-geocore/editing/commands';
 import { keyAction } from '@mixo-geocore/editing/keys';
 import { initialSession, reduceSession, type EditSession, type SessionEvent } from '@mixo-geocore/editing/session';
 import { READY } from './uiFixture';
@@ -19,7 +19,7 @@ const loading = run(initialSession,
 const drawing = run(loading, { type: 'dentalRimNeeded', notices: [{ kind: 'failed' }] });
 
 /** The ui the registry reads while drawing a rim; `at` varies one drawing from another. */
-const at = (change: Partial<UiState>): UiState => ({ ...READY, mode: 'dental', dentalStage: 'rim', dentalRimTool: 'place', dentalRimAnchors: 0, ...change });
+const at = (change: Partial<UiState>): UiState => ({ ...READY, mode: 'dental', dentalStage: 'rim', dentalRimAnchors: 0, ...change });
 
 describe('rim define mode: the stage', () => {
   /*
@@ -33,8 +33,7 @@ describe('rim define mode: the stage', () => {
     expect(drawing.dentalNotices).toEqual([{ kind: 'failed' }]);
     // There is no detector proposal to carry: that is why the operator is here.
     expect(drawing.dentalProposal).toBeUndefined();
-    // It opens on Place, because there is nothing yet to adjust.
-    expect(drawing.dentalRimTool).toBe('place');
+    // There is no tool to open on: the target under a press decides what it does (`rimTarget.ts`).
   });
 
   /*
@@ -54,11 +53,6 @@ describe('rim define mode: the stage', () => {
     expect(run(ready, { type: 'dentalRimNeeded', notices: [] })).toBe(ready);
   });
 
-  it('switches tool, and only inside the mode', () => {
-    expect(run(drawing, { type: 'setDentalRimTool', tool: 'adjust' }).dentalRimTool).toBe('adjust');
-    const left = run(drawing, { type: 'dentalRimDefined' });
-    expect(run(left, { type: 'setDentalRimTool', tool: 'adjust' })).toBe(left);
-  });
 
   it('hands Done back to Step 1, where the aligner is turned by hand', () => {
     const done = run(drawing, { type: 'dentalRimDefined' });
@@ -86,7 +80,7 @@ describe('rim define mode: the stage', () => {
 
   it('hands the canvas its own gesture, and so no support tool and no gizmo', () => {
     const press = gesture(drawing);
-    expect(press).toMatchObject({ kind: 'dental-rim', tool: 'place' });
+    expect(press).toMatchObject({ kind: 'dental-rim' });
     // `gizmoShown` only shows a gizmo for gesture kind 'none' or Free transform: this is neither.
     expect(press.kind).not.toBe('none');
   });
@@ -157,7 +151,6 @@ describe('rim define mode: the way back in', () => {
     expect(run(ready, { type: 'dentalRimNeeded', notices: [] }).dentalStage).toBe('aligner');
     const back = run(ready, { type: 'dentalRimReopen' });
     expect(back.dentalStage).toBe('rim');
-    expect(back.dentalRimTool).toBe('place');
     expect(back.dentalRimSelected).toBeUndefined();
   });
 
@@ -175,13 +168,12 @@ describe('rim define mode: picking an anchor', () => {
    * that the next Place could push out from under.
    */
   it('is let go of when the tool changes', () => {
-    const picked = run(drawing, { type: 'setDentalRimTool', tool: 'adjust' }, { type: 'setDentalRimSelected', at: 3 });
+    const picked = run(drawing, { type: 'setDentalRimSelected', at: 3 });
     expect(picked.dentalRimSelected).toBe(3);
-    expect(run(picked, { type: 'setDentalRimTool', tool: 'place' }).dentalRimSelected).toBeUndefined();
   });
 
   it('is let go of on the way out of the mode, either way out', () => {
-    const picked = run(drawing, { type: 'setDentalRimTool', tool: 'adjust' }, { type: 'setDentalRimSelected', at: 1 });
+    const picked = run(drawing, { type: 'setDentalRimSelected', at: 1 });
     expect(run(picked, { type: 'backDental' }).dentalRimSelected).toBeUndefined();
     expect(run(picked, { type: 'dentalRimDefined' }).dentalRimSelected).toBeUndefined();
   });
@@ -193,20 +185,16 @@ describe('rim define mode: picking an anchor', () => {
 });
 
 describe('rim define mode: its keys', () => {
-  it('offers both tools, and Adjust only once there is a point to adjust', () => {
-    const empty = at({ dentalRimAnchors: 0 });
-    expect(resolve('dental.rim.place', empty).enabled).toBe(true);
-    // Nothing drawn: there is no anchor to pick up, and the reason says the thing to do about it.
-    expect(resolve('dental.rim.adjust', empty).enabled).toBe(false);
-    expect(resolve('dental.rim.adjust', empty).disabledReason?.key).toBe('Place a point first.');
-    const drawn = at({ dentalRimAnchors: 4 });
-    expect(resolve('dental.rim.adjust', drawn).enabled).toBe(true);
-    expect(resolve('dental.rim.adjust', drawn).disabledReason).toBeUndefined();
-  });
-
-  it('shows which tool is in hand', () => {
-    expect(resolve('dental.rim.place', at({ dentalRimTool: 'place' })).pressed).toBe(true);
-    expect(resolve('dental.rim.adjust', at({ dentalRimTool: 'place' })).pressed).toBe(false);
+  /*
+   * THE TWO TOOLS ARE GONE, and their absence is the assertion (owner, 2026-11-09). Place could do
+   * nothing at all to a closed loop, so a seeded rim opened on a dead control; the target under the
+   * press decides now, so there is no tool to offer, press, or shortcut. If either ever comes back
+   * without the model changing, this fails.
+   */
+  it('offers no tool to choose: the target under the press decides', () => {
+    for (const id of ['dental.rim.place', 'dental.rim.adjust']) {
+      expect(COMMAND_IDS as readonly string[], id).not.toContain(id);
+    }
   });
 
   it('offers Close loop from three points, and stops offering it once the loop is closed', () => {
@@ -227,12 +215,12 @@ describe('rim define mode: its keys', () => {
    * as the operator touched anchors would make the row jump under the pointer.
    */
   it('offers Delete point only once an anchor is picked, and says which to do first', () => {
-    const nothingPicked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 5 });
+    const nothingPicked = at({ dentalRimAnchors: 5 });
     expect(resolve('dental.rim.deletePoint', nothingPicked).visible).toBe(true);
     expect(resolve('dental.rim.deletePoint', nothingPicked).enabled).toBe(false);
-    expect(resolve('dental.rim.deletePoint', nothingPicked).disabledReason?.key).toBe('Pick a point with Adjust first.');
+    expect(resolve('dental.rim.deletePoint', nothingPicked).disabledReason?.key).toBe('Pick a point first.');
 
-    const picked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 5, dentalRimSelected: 2 });
+    const picked = at({ dentalRimAnchors: 5, dentalRimSelected: 2 });
     expect(resolve('dental.rim.deletePoint', picked).enabled).toBe(true);
     expect(resolve('dental.rim.deletePoint', picked).disabledReason).toBeUndefined();
     // A danger OUTLINE, never a filled red: the one filled control in this mode is Done.
@@ -245,7 +233,7 @@ describe('rim define mode: its keys', () => {
    * control that opens a loop back up.
    */
   it('will not take the third point out of a closed loop, and says what to do instead', () => {
-    const three = at({ dentalRimTool: 'adjust', dentalRimAnchors: 3, dentalRimClosed: true, dentalRimSelected: 0 });
+    const three = at({ dentalRimAnchors: 3, dentalRimClosed: true, dentalRimSelected: 0 });
     expect(resolve('dental.rim.deletePoint', three).enabled).toBe(false);
     expect(resolve('dental.rim.deletePoint', three).disabledReason?.key)
       .toBe('A closed rim needs at least three points. Press Clear to start this rim again.');
@@ -261,15 +249,15 @@ describe('rim define mode: its keys', () => {
    * not stay lit over nothing and then do nothing when pressed.
    */
   it('goes off when the picked point is no longer there', () => {
-    const picked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 4, dentalRimSelected: 3 });
+    const picked = at({ dentalRimAnchors: 4, dentalRimSelected: 3 });
     expect(resolve('dental.rim.deletePoint', picked).enabled).toBe(true);
-    const undone = at({ dentalRimTool: 'adjust', dentalRimAnchors: 3, dentalRimSelected: 3 });
+    const undone = at({ dentalRimAnchors: 3, dentalRimSelected: 3 });
     expect(resolve('dental.rim.deletePoint', undone).enabled).toBe(false);
-    expect(resolve('dental.rim.deletePoint', undone).disabledReason?.key).toBe('Pick a point with Adjust first.');
+    expect(resolve('dental.rim.deletePoint', undone).disabledReason?.key).toBe('Pick a point first.');
   });
 
   it('deletes the picked point with the Delete key, the same key the steps either side use', () => {
-    const picked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 5, dentalRimSelected: 2 });
+    const picked = at({ dentalRimAnchors: 5, dentalRimSelected: 2 });
     for (const key of ['Delete', 'Backspace']) {
       expect(keyAction({ key, ctrl: false, shift: false, target: null, ui: picked }).command).toBe('dental.rim.deletePoint');
     }
@@ -277,7 +265,7 @@ describe('rim define mode: its keys', () => {
      * And with nothing picked the key does NOTHING, rather than falling through to something else:
      * `keyAction` drops a command that is not enabled, and Delete must never reach the step beneath.
      */
-    const nothingPicked = at({ dentalRimTool: 'adjust', dentalRimAnchors: 5 });
+    const nothingPicked = at({ dentalRimAnchors: 5 });
     expect(keyAction({ key: 'Delete', ctrl: false, shift: false, target: null, ui: nothingPicked }).command).toBeUndefined();
   });
 
@@ -337,7 +325,7 @@ describe('rim define mode: its keys', () => {
   it('keeps its keys out of every other step', () => {
     for (const stage of ['aligner', 'area', 'review'] as const) {
       const elsewhere = at({ dentalStage: stage });
-      for (const id of ['dental.rim.place', 'dental.rim.adjust', 'dental.rim.close', 'dental.rim.clear', 'dental.rim.done'] as const) {
+      for (const id of ['dental.rim.close', 'dental.rim.clear', 'dental.rim.deletePoint', 'dental.rim.done'] as const) {
         expect(resolve(id, elsewhere).visible, `${id} in ${stage}`).toBe(false);
       }
     }

@@ -27,8 +27,11 @@ import type { OrientationLayer } from '../../dental/orientationEvidence';
 import { DebugLayerMeshes } from './DebugLayerMeshes';
 import { DentalFaceLayer, DentalPaintLayer, DentalRiskLayer, DentalRegionLines, DentalRimOutline, DentalStampLayer, DentalTipMarkers, type TipMark } from './dentalLayers';
 import { RimDraftLayer } from './RimDraftLayer';
-import { grabAnchor } from '../../dental/rim/rimDraftGeometry';
-import { moveAnchor, type SurfacePath } from '../../core/surfacePath/path';
+import { rimTargetAt } from '../../dental/rim/rimTarget';
+
+/** A rim not started yet: an open path with nothing on it, so the first press appends. */
+const EMPTY_RIM: SurfacePath = { anchors: [], closed: false };
+import { insertAnchor, moveAnchor, type SurfacePath } from '../../core/surfacePath/path';
 import type { ObjectViewportProps } from './types';
 import { MODEL_MESH, SUPPORT_MESH, useScreenBrush } from './useScreenBrush';
 
@@ -260,14 +263,24 @@ export function UnitObject(props: UnitObjectProps) {
   /** Zone strokes start on the model; Drag over strokes start on the model or a support (`useScreenBrush`). */
   const startStroke = (event: ThreeEvent<PointerEvent>) => {
     /*
-     * ADJUST PICKS UP THE ANCHOR UNDER THE PRESS. A press on bare surface picks up nothing and is left
-     * alone, so it reaches the camera and the view orbits - the house rule that where the drag starts
-     * decides, with the anchor itself as the thing that decides it.
+     * THE TARGET UNDER THE PRESS DECIDES, NOT AN ARMED TOOL (`rim/rimTarget.ts`). A handle is picked
+     * up; the drawn line takes a new handle where it was pressed and picks THAT up, so inserting and
+     * dragging are one gesture; anything else picks up nothing and is left alone, so it reaches the
+     * camera and the view orbits - the house rule that where the drag starts decides.
      */
-    if (rimDrawing && gesture.kind === 'dental-rim' && gesture.tool === 'adjust' && unit.rimDraft) {
+    if (rimDrawing && gesture.kind === 'dental-rim' && unit.rimDraft) {
       const local = event.object.worldToLocal(event.point.clone());
-      const at = grabAnchor(unit.rimDraft, [local.x, local.y, local.z]);
-      if (at === undefined) return;
+      const target = rimTargetAt(unit.rimDraft, [local.x, local.y, local.z]);
+      // Append and close are taps, not drags, and the click handler below still does them.
+      if (target.kind !== 'handle' && target.kind !== 'insert') return;
+      const normal = (event.face?.normal.clone() ?? new THREE.Vector3(0, -1, 0)).normalize();
+      const held = target.kind === 'insert'
+        ? insertAnchor(unit.rimDraft, target.at, { position: target.position, normal: [normal.x, normal.y, normal.z] })
+        : unit.rimDraft;
+      if (!held) return;
+      const at = target.at;
+      // A new handle is a scene edit of its own, so it is on the undo stack before the drag moves it.
+      if (target.kind === 'insert') props.onRimPath(unit.id, held);
       event.stopPropagation();
       /*
        * THE CAMERA IS OUT OF THIS GESTURE, and it takes more than `stopPropagation` to do it.
@@ -277,7 +290,7 @@ export function UnitObject(props: UnitObjectProps) {
        * walk could not see it: the anchor still moves and its old spot is still vacated.
        */
       if (controls) controls.enabled = false;
-      setRimDrag({ at, path: unit.rimDraft });
+      setRimDrag({ at, path: held });
       // The same press picks the anchor out, so Delete point has a subject without a third tool. A press
       // on bare surface leaves the pick alone and orbits: see `onRimSelect` for why it must survive that.
       props.onRimSelect(at);
@@ -358,8 +371,15 @@ export function UnitObject(props: UnitObjectProps) {
        * moving one. A right click does nothing in either tool: this mode has no remove-by-right-click,
        * and a menu-button press should not leave a point behind.
        */
-      if (!right && gesture.kind === 'dental-rim' && gesture.tool === 'place') {
-        props.onRimPoint(unit.id, [event.point.x, event.point.y, event.point.z], surfaceNormal(event));
+      if (!right && gesture.kind === 'dental-rim') {
+        const local = event.object.worldToLocal(event.point.clone());
+        // An empty drawing is an OPEN path with no anchors, so the first press appends. Guarding on
+        // `unit.rimDraft` here meant the first point of a rim could never be placed at all.
+        const tapped = rimTargetAt(unit.rimDraft ?? EMPTY_RIM, [local.x, local.y, local.z]).kind;
+        // Extending an open loop, or joining it: `onRimPoint` already tells those two apart.
+        if (tapped === 'append' || tapped === 'close') {
+          props.onRimPoint(unit.id, [event.point.x, event.point.y, event.point.z], surfaceNormal(event));
+        }
       }
       return;
     }
@@ -456,9 +476,24 @@ export function UnitObject(props: UnitObjectProps) {
     */}
     {(rimDrag?.path ?? unit.rimDraft) && <RimDraftLayer path={rimDrag?.path ?? unit.rimDraft!}
       {...(rimPicked === undefined ? {} : { selected: rimPicked })}
-      {...(rimDrawing && gesture.kind === 'dental-rim' && gesture.tool === 'place' && hover
-        ? { preview: { position: toVector(hover.point), normal: toVector(hover.normal.clone().normalize()) } }
-        : {})} />}
+      {...(() => {
+        /*
+         * THE GHOST IS HOW THE THREE TARGETS TEACH THEMSELVES. It used to appear only in Place, which
+         * meant it only ever said "a point will go here". Now it follows what a press would actually
+         * do: over the drawn line it SNAPS to the line, so the operator sees where a new handle would
+         * land before committing; over bare model on an open loop it sits under the pointer, as
+         * before; over a handle, or over bare model on a closed loop, it is absent - because nothing
+         * would be placed, and the view will turn instead.
+         */
+        if (!rimDrawing || gesture.kind !== 'dental-rim' || !hover || rimDrag) return {};
+        const path = unit.rimDraft;
+        const normal = toVector(hover.normal.clone().normalize());
+        if (!path || path.anchors.length === 0) return { preview: { position: toVector(hover.point), normal } };
+        const target = rimTargetAt(path, toVector(hover.point));
+        if (target.kind === 'insert') return { preview: { position: target.position, normal } };
+        if (target.kind === 'append') return { preview: { position: toVector(hover.point), normal } };
+        return {};
+      })()} />}
     {props.debugLayers && props.debugLayers.length > 0 && <DebugLayerMeshes layers={props.debugLayers} />}
     {areaShown && props.dentalTips && <DentalTipMarkers points={props.dentalTips} {...(tipMarks ? { marks: tipMarks } : {})} />}
     {supportGeometry && <mesh

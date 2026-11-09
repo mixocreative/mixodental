@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { setLanguage, t } from '../../i18n';
-import { rimDoneReason, rimLoopText, rimProblemText, rimToolText } from './rimStepText';
+import { rimBadgeText, rimDoneReason, rimLoopText, rimProblemText } from './rimStepText';
 
 describe('rim define mode words', () => {
   /*
@@ -41,10 +41,18 @@ describe('rim define mode words', () => {
     expect(rimDoneReason({ dentalRimClosed: true, dentalRimAnchors: 8 })).toBeUndefined();
   });
 
-  it('tells the two tools apart in words', () => {
-    expect(rimToolText('place')).not.toBe(rimToolText('adjust'));
-    expect(rimToolText('place')).toMatch(/Click/);
-    expect(rimToolText('adjust')).toMatch(/Drag/);
+  /*
+   * ONE TOOL, SO ONE SENTENCE - and it has to be true of all three things a press can do. An open loop
+   * is still being drawn, so it leads with adding points and names its own way to finish; a closed one
+   * cannot be extended, so it does not offer. Both say that the LINE takes a point, which is the act
+   * that has no other way to be discovered.
+   */
+  it('says what a press will do, and never offers what the path cannot take', () => {
+    expect(rimBadgeText(true)).not.toBe(rimBadgeText(false));
+    expect(rimBadgeText(true)).toMatch(/Drag a point/);
+    expect(rimBadgeText(true)).not.toMatch(/close the loop/);
+    expect(rimBadgeText(false)).toMatch(/close the loop/);
+    for (const closed of [true, false]) expect(rimBadgeText(closed), String(closed)).toMatch(/line/);
   });
 
   /*
@@ -62,7 +70,7 @@ describe('rim define mode words', () => {
         setLanguage(lang);
         const keys = [
           rimProblemText('SELF_INTERSECTING'), rimProblemText('COLLINEAR'), rimProblemText('DEGENERATE_AREA'),
-          rimToolText('place'), rimToolText('adjust'), rimLoopText(true), rimLoopText(false),
+          rimBadgeText(true), rimBadgeText(false), rimLoopText(true), rimLoopText(false),
           rimDoneReason({ dentalRimAnchors: 0 })!, rimDoneReason({ dentalRimAnchors: 3 })!,
         ];
         for (const key of keys) expect(t(key), `${lang}: ${key}`).not.toBe(key);
