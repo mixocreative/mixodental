@@ -34,6 +34,12 @@ jobs:
       # The engine is vendored (vendor/mixo-geocore, built and tested in mixo-geocore): no Rust toolchain here.
       - run: npm run vendor:check
       - run: npm test
+      # THE SCREENS GALLERY IS A SCRIPT, SO NOTHING ELSE CHECKS IT. `npm run screens` had been dead
+      # since `5ba0041` (it called a `rimToolText` that commit deleted) and no gate noticed: it is not
+      # a test, and `tsc` does not typecheck `.mjs`. It renders from fake data - no model, no engine,
+      # no dev server, no patient scan - so it costs seconds, and it is the only thing that would say
+      # a designer-facing screen has stopped building.
+      - run: npm run screens
       - run: npm run build
       # The SECOND copy of the dead condition below, and the one that actually starved the deploy:
       # with no artifact uploaded there is nothing to publish, so `deploy` had nothing to do even
