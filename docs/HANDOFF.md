@@ -24,7 +24,45 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (G1/G3/G5/G7, the geocore increment, and the §8 matrix - 2026-11-09)
+## Latest completed step (the last two §8 rows, and the gate that could not finish - 2026-11-09)
+
+**§8 has no unrun rows left: ten covered, one `N/A`.** The two that were written up as future work
+were retired the same day, and neither was a day's work:
+
+- **G5's TIMEOUT, for real (`r5`).** `ANALYSIS_TIMEOUT_MS` is ten minutes, so `r3` had injected the
+  same disagreement as a crash. `window.__longTimerFloorMs` clamps the DELAY of any timer of a minute
+  or more - never which callback runs - so `r5` takes the real `WorkerTask.timeout` -> `restart`
+  path. Both rows failed, **stayed** failed when their held answers arrived afterwards, and the
+  activity list said *"Checking this model took too long and was stopped. The model is unchanged;
+  open it to run the check again."* - the detection vocabulary W-13 bought, not a support build.
+  Four lines of lever. Nothing else in this app waits a minute on a timer, which is what makes the
+  clamp precise enough to be honest.
+- **External input acted on unverified (`r6`, `r6b`).** A 184-byte binary STL whose header claims
+  **four million** triangles: the header is ignored, the file's own size decides, **2 triangles are
+  counted** and four million is never mentioned. One byte more (185, so the body is not whole
+  50-byte facets) and it is refused as *"a damaged STL file"* with nothing landing.
+  **I had written this rule down wrong** - the old handoff said a 200-byte liar is "refused as
+  damaged"; it is not, it imports as the two triangles it holds. The probe is how I know.
+
+**W-17: the gate could not finish, and now it can.** Chromium's GPU command buffer goes invalid under
+SwiftShader (`GPU state invalid after WaitForGetOffsetInRange`) and takes the renderer with it in
+section `a`. **Not this repo and not the machine:** it reproduces at `48b062d` with that commit's own
+`walk.mjs`, on Chromium 1243 and 1248, with the JS heap at **36 MB of 3586**, four Workers made, and
+the browser's biggest process at **719 MB** of 61 GB free. `--in-process-gpu` made it crash sooner;
+`--disable-gpu-watchdog` changed nothing. **The cause is open and is not guessed at.**
+
+What is fixed is the gate's response. One dead tab used to take 170 other checks with it, so a crash
+in the FIRST section hid every answer the walk had. The run now **retries the dead section once in a
+fresh browser** and then carries on from the next one, as often as it must. It **never turns green
+for it**: the crash is already a FAIL, the exit code stays 1, and the summary names the sections left
+unfinished. Recovering the COVERAGE is the point; recovering the VERDICT would be the defect this
+doctrine exists to catch.
+
+Also: `page.on('crash')` names the crash once as itself. The first run had reported it as
+`locator.click: Timeout 30000ms exceeded` on a perfectly healthy button, which sends the reader after
+the button.
+
+## Previous completed step (G1/G3/G5/G7, the geocore increment, and the §8 matrix - 2026-11-09)
 
 **Every applicable fault class has now been injected.** G1, G3, G5 and G7 had stood `UNPROVEN`
 because the walk's only worker lever could DELAY a reply and none of those four is a delay. Two

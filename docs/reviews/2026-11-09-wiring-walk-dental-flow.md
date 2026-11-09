@@ -11,10 +11,10 @@ has now been injected through the front door**, in two passes on 2026-11-09:
   W-09), all fixed.
 - **§6b — G1, G3, G5 and G7**, once the levers those four needed existed. Five checks in 44 seconds,
   two verified controls, five defects (W-11 … W-15), four fixed here and one handed to geocore.
-- **G6 is `N/A`** with the map row that proves it; **a G5 *timeout* specifically stays `UNPROVEN`**
-  with its missing condition named in §6b.
-- **§8**, the rule matrix, is now written off those runs: eight rules `covered` by a probe or a test
-  watched to fail, one `UNVERIFIED`, one `UNPROVEN`, one `N/A`.
+- **G6 is `N/A`** with the map row that proves it. Nothing is left `UNPROVEN`: G5's *timeout*, the
+  last one, was retired by `__longTimerFloorMs` (§6b, `r5`).
+- **§8**, the rule matrix, is now written off those runs: **ten rules `covered`** by a probe or by a
+  test watched to fail, and one `N/A` with the map row that proves it. No row is left on reading.
 
 Said plainly because the distinction is the whole point: until §6 ran, every row of §9 said `READ`,
 and a register where every row is `READ` is a code review wearing an audit's clothes.
@@ -149,8 +149,8 @@ has quietly deleted the evidence that its reading is fallible.
 
 ## §6b — Fault injection, second pass: G1, G3, G5 and G7
 
-Run 2026-11-09 on `873b923`, Screen tier, through the front door in headless Chromium.
-`npm run walk -- --only=r` (`scripts/walk.mjs`, section `r`), **44 seconds for all five checks**;
+Run 2026-11-09, Screen tier, through the front door in headless Chromium.
+`npm run walk -- --only=r` (`scripts/walk.mjs`, section `r`), **59 seconds for all eight checks**;
 `--probes=rN` runs one.
 
 These four were `UNPROVEN` in §6 for a single reason, and it is worth stating because it is the
@@ -162,6 +162,7 @@ of these four faults is a delay.** Two levers were built, and then all four ran 
 | `window.__faultHold` + `__faultRelease(order)` | every SETTLING reply from the named worker is swallowed and kept; the walk says when each is delivered, and in which order | G3 (newest first), G5 (with the crash below), G7 (never released) |
 | `window.__faultCrash()` | the worker errors on THIS side, which is what `WorkerTask.wire`'s `onerror` sees | G5's local half |
 | `window.__faultDownload = n` | the n-th `<a download>.click()` is refused | G1 |
+| `window.__longTimerFloorMs = ms` | any timer of a minute or more fires after `ms` instead | G5's **timeout**, which is ten minutes in the app |
 
 `__faultDownload` is not a worker lever and that is the finding behind it: the export's reply has
 long settled by the time the first file commits, so **no worker lever can reach the write that
@@ -174,12 +175,17 @@ follows a write**. A fault class with no lever is not a fault class with no site
 | **G5** `r3` | The far side succeeded, this side gave up | `AnalysisClient` + `WorkerTask.restart` | the worker crashed on this side with its answer still held, then the answer released into a client that had given up | the row settled once and stayed settled; the late answer landed nowhere; the batch drained past it and the second row got its own verdict; nothing thrown | **PASS** — verified control |
 | **G5** `r3b` | …and can the operator read it? | the background-work list | the same run, reading the screen | **two defects.** The list is inside the viewport, which is not rendered while a start screen is up — so on the deck it did not exist. Mounted, it then explained an orientation check as a support build | **FAIL → W-12, W-13** |
 | **G7** `r4` | The background job stops | the batch loop, `useBatchDetect` | every orient answer swallowed, twenty seconds (a cube's check takes one or two) | the rows read as pending, never as a verdict; Start and Remove both still worked; a Cancel was offered. But the background-work row read `Aligner oriented · 100%` and goes on reading it for ever | **PASS**, with a gap handed to geocore (W-14) |
+| **G5** `r5` | …and now the TIMEOUT itself | `WorkerTask.timeout` → `restart`, the path the ten minutes really take | the answer held, and the job's own ten-minute timer brought forward to 1.5 s | both rows failed and **stayed** failed when their answers arrived afterwards; the activity list said *"Checking this model took too long and was stopped. The model is unchanged; open it to run the check again."* — the detection vocabulary W-13 bought, not a support build | **PASS** — verified control |
+| **—** `r6` | External input acted on unverified | `binaryStlTriangles`, `core/import/stlHeader.ts` | a 184-byte binary STL whose header claims **four million** triangles | the header is ignored and the file's own size decides: **2 triangles counted**, four million never mentioned, the plate budget never consulted | **PASS** — verified control |
+| **—** `r6b` | …and the shape that really is damaged | the same | 185 bytes, so the body is not a whole number of 50-byte facets | refused as *"a damaged STL file: its size does not match its triangles. Export it again"*, nothing landed, and no budget vocabulary | **PASS** — verified control |
 
-**G5's timeout stays `UNPROVEN`, and the swap is named rather than hidden.** The app's real form of
-this is `ANALYSIS_TIMEOUT_MS` — ten minutes — which a walk cannot wait for, so the local half was
-injected as a crash. Same disagreement, same handler (`restart`), seconds instead of minutes; but a
-*timeout* specifically has not been run at this tier. The condition it needs is a page lever over the
-job's own `timeoutMs`, or a build with a short one.
+**G5's timeout was `UNPROVEN` for about an hour, and then it was not.** The app's real form is
+`ANALYSIS_TIMEOUT_MS` — ten minutes — so `r3` injected the local half as a crash and the swap was
+named rather than hidden. The condition that was missing turned out to be four lines:
+`__longTimerFloorMs` clamps the DELAY of any timer of a minute or more, never which callback runs, so
+`r5` exercises the same `WorkerTask.timeout` → `restart` path the ten minutes would. **Nothing in
+this app waits a minute on a timer except the job timeouts**, which is what makes the clamp precise
+enough to be honest.
 
 **G6 remains `N/A`** with its map row: no finished record points at an artefact outside the scene —
 the project file packs the meshes it refers to (`useProjectFile.ts`). Recheck if that ever changes.
@@ -213,9 +219,11 @@ the project file packs the meshes it refers to (`useProjectFile.ts`). Recheck if
 
 One row per rule, not per function. **`Proof` is a run from this audit** — a walk probe, or a unit
 test that was watched to fail — and `Outcome` is `covered` only where that proof ran and passed.
-Where a rule is real and the proof is not, the row says so and names the missing condition; a matrix
-with no `UNVERIFIED` rows in it is usually a matrix whose author stopped at the rules they could
-prove.
+Where a rule is real and the proof is not, the row says so and names the missing condition. This one
+has no such rows left — but it did when it was first written, and both were retired the same day by
+building what they asked for rather than by lowering the bar: `__longTimerFloorMs` for the timeout,
+a 184-byte fixture for the lying header. **A matrix with no `UNVERIFIED` rows is only worth reading
+if the rows got there by being run.**
 
 | Rule | Code that enforces it | Connected systems | Proof (this audit) | Outcome |
 |---|---|---|---|---|
@@ -227,8 +235,8 @@ prove.
 | A failure is explained in ITS OWN vocabulary, not a neighbour's | `analysisJobVocabulary` (total by type); `exportOutcomeText`; `JobActivity.failureText` | activity list, status line | walk `r3b`; `analysisJobVocabulary.test.ts` and `exportOutcomeText.test.ts`, both watched to fail first | **covered** |
 | What the operator is told about a WRITE is true | `useExport`'s write loop records what it handed over; `exportPartialText` | export worker, browser, status line, activity list | walk `r1` | **covered** |
 | A reversal never exceeds what was done, and never strands the operator | `onRemove` + the undo offer (W-06); the invariant effect "the flow cannot be open on a unit that is not on the plate" (W-09) | deck, scene, session, flow | walk `q4`, `q6` | **covered** |
-| External input is never acted on unverified | `binaryStlTriangles` caps the claimed triangle count by file size, so a lying header is refused as damaged, not as too large; `diagnoseMesh` on every import | import worker, plate, deck rows | **UNVERIFIED at this tier.** The rule is read and the fixture exists (a 200-byte file claiming 4M triangles); no probe in this audit drops one. One `--probes` case away | `UNVERIFIED` |
-| A dependency that times out while the far side succeeded is reconciled, never doubled | `WorkerTask.settle`'s `job.done` guard; `restart` nulls the worker's `onmessage` | analysis pool, deck | **`UNPROVEN` for a timeout specifically.** `r3` ran the same disagreement as a crash; the missing condition is a lever over a job's `timeoutMs` | `UNPROVEN` |
+| External input is never acted on unverified | `binaryStlTriangles` ignores a header whose records do not fit and lets the FILE'S SIZE decide, so a claimed count can never inflate the budget; a size that is not whole facets is refused as damaged | import worker, plate budget, status line | walk `r6` (a header claiming 4,000,000 triangles counted **2**, four million never mentioned) and `r6b` (185 bytes → *"a damaged STL file"*, nothing landed) | **covered** |
+| A dependency that times out while the far side succeeded is reconciled, never doubled | `WorkerTask.timeout` → `restart`; `settle`'s `job.done` guard; `restart` nulls the worker's `onmessage` | analysis pool, deck, background-work list | walk `r5` — the real timeout, brought forward by `__longTimerFloorMs`: both rows failed, STAYED failed when their answers arrived, and said they had timed out. `r3` is the same disagreement reached by a crash | **covered** |
 | A delivered artefact stays retrievable | — | — | **`N/A`** with the map row: no finished record points outside the scene; the project file packs the meshes it refers to (`useProjectFile.ts`) | `N/A` |
 | A detector is proved to be LOOKING (S20) | `i18n.test.ts` (scope widened to `src/components`, W-10); `geometry-wasm-smoke.mjs` (now compares against `HOST_GEOMETRY_VERSION`) | the guards themselves | W-10 and W-16: an untranslated sentence planted in a new module, twice, and the widened guard named it both times. W-15: the smoke gate was asserting `=== 14` against engine 63, so it had been failing on its first line since engine 15 | **covered** |
 
@@ -258,7 +266,7 @@ commit. A register where every row says `READ` is a code review, which is what t
 | **W-14** | L3 | Background work | Stalled job → its own row | `vendor/mixo-geocore/host/workers/jobActivity.ts:221` | **A job stuck for ever reads `Aligner oriented · 100%`,** with no elapsed time: a finished job and a job that will never finish draw the same row. The signal for this exists — `showElapsed` — and is wired to `state === 'indeterminate'`, the one state a job that reported progress and then stopped cannot be in. A live control that cannot fire for the failure it was written for. **Vendored geocore, which this repo consumes as built**, so it is handed over, not patched. | **REPRODUCED** `r4` → **HANDED OVER** `docs/handoff/geocore-stuck-job-elapsed.md` | LOW |
 | **W-15** | L3 | The audit's own instruments | Vendored engine → its gate | `scripts/geometry-wasm-smoke.mjs` | **S20 again, and in the gate the owner named for the geocore increment.** Its first assertion was `engineVersion() === 14` against an engine at 63, so `npm run wasm:test` had been exiting on line one since engine 15 — the ABI smoke test below it has not run in forty-eight engine versions, and nothing said so. A constant frozen into a detector ages into a detector nobody runs. It now compares against `HOST_GEOMETRY_VERSION`, which is what its own message always claimed, and prints what it verified. | **REPRODUCED** (ran it) → **FIXED** `c715de8` | MEDIUM |
 | **W-16** | L3 | The audit's own instruments | UI string → translation guard, again | `src/i18n.test.ts` | **The FOURTH blind spot in this guard, found on the pass that closed the third, and walked into by the person closing it.** `workers/analysisJobVocabulary.ts` was added an hour earlier to fix W-13; it owns three user-facing sentences and sits in a folder the guard had never globbed, so its translations were added by hand and nothing would have noticed a fourth sentence beside them. The pattern across all four misses is one: **the scope was always a list of the places UI text had been FOUND, never of the places it could BE** — while `speaks()` has answered the second question all along. Every folder under `src/` that could hold a `Message` is globbed now; the bill was zero `NOT_UI` entries. **Proved to be looking**, as W-10 was: a sentence planted in that module, the guard fails on it by name, the module restored byte-for-byte. | **REPRODUCED** (planted) → **FIXED** `b9297a2` | MEDIUM |
-| **W-17** | L1 | The editor itself, or the harness driving it | — | `scripts/walk.mjs` section `e`, or the app under it | **THE RELEASE GATE CANNOT FINISH: the browser tab dies.** Three runs in a row of `--only=a` ended with Chromium's renderer gone, during section `e`'s spot search — up to 49 cycles of click, undo, right-click, undo, each one a rebuild. **Not a regression from this pass:** it reproduces identically at `48b062d` with that commit's own `walk.mjs`, and the machine had **29 GB of 61 GB free**, so it is not system memory. It is therefore either a real crash an operator could meet while editing — in which case they lose their unsaved scene — or something only this synthetic input rate provokes, and the two have very different severities. **Unknown, and said to be unknown.** The first run reported it as a `locator.click` timeout on a healthy button, which is why `page.on('crash')` now names it once as itself. | **REPRODUCED** (3 runs, incl. at `48b062d`) → **OPEN**, cause unknown | needs triage |
+| **W-17** | L1 | The browser under the editor | — | Chromium's GPU stack, not this repo | **THE RELEASE GATE COULD NOT FINISH: the tab died.** Chromium's GPU command buffer goes invalid under SwiftShader — `GPU state invalid after WaitForGetOffsetInRange` — and takes the renderer with it, in section `a`. **Not from this pass, and not the machine:** it reproduces at `48b062d` with that commit's own `walk.mjs`, on Chromium 1243 and 1248 alike, with the JS heap at **36 MB of 3586**, four Workers made, and the browser's biggest process at **719 MB** of 61 GB. `--in-process-gpu` made it crash sooner and `--disable-gpu-watchdog` changed nothing, so **the cause is open and is not guessed at here.** What is fixed is the gate's RESPONSE: one dead tab used to take 170 other checks with it, so a crash in the first section hid every answer the walk had. The run now retries the dead section once in a fresh browser and then carries on from the next, as often as it must — and **never turns green for it**: the crash is already a FAIL, the exit code stays 1, and the summary names the sections left unfinished. Recovering the COVERAGE is the point; recovering the VERDICT would be the defect this doctrine exists to catch. | **REPRODUCED** (5 runs) → **CONTAINED**, cause open | needs triage |
 
 ### Verified controls — named, so the next audit does not re-derive them
 
@@ -294,39 +302,47 @@ The corollary the pass also earned: **a lever no probe uses is a dead control.**
 and they were cut before they were written — a week after deleting a guard in `startItem` that could
 never fire.
 
+**And the same thing happened twice more before the day was out.** The last two rows of §8 were the
+`UNPROVEN` timeout and the `UNVERIFIED` lying header, both written up as things a future pass would
+do. The timeout needed four lines (`__longTimerFloorMs`) and the header needed a 184-byte fixture.
+Neither was a day's work; both had been described as one, because **an unrun row is easier to write
+than to cost.**
+
+**A lever armed before a navigation is not armed.** `r5` failed its first run because it set the
+timer floor and then called a helper that begins with `page.goto` — which re-runs the init script and
+resets every lever. That trap was already written down two comments above the line that fell into it,
+by the same author, an hour earlier. It is now a parameter of the helper instead of a thing to
+remember.
+
 ## What runs next
 
-0. **W-17 first, because it is the gate.** The full walk cannot finish: the tab dies in section `e`.
-   Reproduced at `48b062d` with that commit's harness and 29 GB free, so it is neither this pass's
-   doing nor the machine's. The first question is which half it belongs to — run `e` with the spot
-   search cut to a handful of cycles and watch `performance.memory` and the WASM heap across them. If
-   it survives at a lower rate it is a harness artefact; if it dies anyway, an operator editing
-   supports for a few minutes can lose an unsaved scene, and that is a different severity.
+1. **W-17, the tab crash, is contained but not cured.** Chromium's GPU command buffer goes invalid
+   under SwiftShader (`GPU state invalid after WaitForGetOffsetInRange`) and takes the renderer with
+   it, in section `a`. Not this repo: it reproduces at `48b062d` with that commit's own `walk.mjs`,
+   on two Chromium builds, with the JS heap at 36 MB of 3586 and the browser's biggest process at
+   719 MB. `--in-process-gpu` made it worse and `--disable-gpu-watchdog` did nothing, so **the cause
+   is still open** — the next things to try are a smaller viewport, `--disable-gpu-compositing`, and
+   a build with hardware GL. What is fixed is the gate's response: it retries the section once in a
+   fresh browser and then carries on, and never turns green for it.
 
-1. **A G5 *timeout*, specifically.** `r3` injected the same disagreement as a crash because a walk
-   cannot wait out `ANALYSIS_TIMEOUT_MS` (ten minutes). The missing condition is a lever over a job's
-   own `timeoutMs`, which is one page hook away; §6b holds the row until it runs.
-2. **The `UNVERIFIED` row of §8: external input acted on unverified.** The rule is read and the
-   fixture already exists — a 200-byte file claiming four million triangles, which
-   `binaryStlTriangles` must refuse as DAMAGED rather than as too large. One `--probes` case.
-3. **W-14 is with geocore** (`docs/handoff/geocore-stuck-job-elapsed.md`): a job stuck for ever reads
+2. **W-14 is with geocore** (`docs/handoff/geocore-stuck-job-elapsed.md`): a job stuck for ever reads
    `100%` with no elapsed time, because `showElapsed` is wired to the one state it cannot be in. When
    a new vendor drop lands, `r4`'s check tightens from "the deck still works" to "the stalled job
    says how long it has been stalled".
-4. **W-12 was fixed with a second mount point, and the proper fix is named as debt.** The
+3. **W-12 was fixed with a second mount point, and the proper fix is named as debt.** The
    background-work list belongs at the app root, not inside the viewport; moving it there means
    re-homing three CSS rules that position it by viewport state, which is a layout change with its
    own visual check and must not ride along with an audit.
-5. **W-05 and W-07 took the activity list, not a flag on the unit.** That is the minimal honest fix
+4. **W-05 and W-07 took the activity list, not a flag on the unit.** That is the minimal honest fix
    and it uses the screen the operator already watches, but it is dismissible and session-scoped: a
    project reopened tomorrow does not know its last export was refused. A persistent mark on the unit
    is scene state with save-file consequences, so it is written down here as debt with its reason
    rather than taken quietly.
-6. **E4 shipped for flagged rows only.** Pressing Rim on a row the detector flagged `no-rim` now
+5. **E4 shipped for flagged rows only.** Pressing Rim on a row the detector flagged `no-rim` now
    enters rim drawing directly instead of re-running a detection to be told what the row already
    says. Any other row keeps today's behaviour, which leaves *may a detected rim be redrawn* with the
    owner — deliberately, since answering it is not needed to ship this half.
-7. **The repair rail is built and unreachable.** `rowState.verdictOfRepair` and `offersRepair` have
+6. **The repair rail is built and unreachable.** `rowState.verdictOfRepair` and `offersRepair` have
    no caller outside their tests, and nothing in the app calls `repairMesh` — so the engine's hole
    filling (new at 63, `max_fill_loop_mm`) is off because nobody asks for it, not because a number is
    zero. Not a defect today; named here so that "fill 0" is not later read as a setting that was

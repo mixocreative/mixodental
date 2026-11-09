@@ -89,17 +89,37 @@ function faultLevers() {
   };
   /** How many settled replies this side has not been told about. */
   window.__faultHeld = () => held.length;
+  /** How many Workers the page has made since load: the cheapest number for a leak hunt (W-17). */
+  window.__workersMade = () => live.length;
+  /*
+   * A JOB'S OWN TIMEOUT, BROUGHT FORWARD - the missing condition for a real G5.
+   *
+   * `WorkerTask` fails a job with `setTimeout(() => this.timeout(job), opts.timeoutMs ?? …)`, and the
+   * analysis client asks for TEN MINUTES. A walk cannot wait that out, so `r3` injected the same
+   * disagreement as a crash and the review recorded the TIMEOUT itself as UNPROVEN. This retires it:
+   * set `window.__longTimerFloorMs` and any timer of a minute or more fires after that instead.
+   *
+   * A minute is the cut because nothing else in this app waits that long on a timer - the job
+   * timeouts (10 min analysis, 5 min import, the build ceiling) are the only ones, so the lever
+   * reaches them and nothing else. It is a clamp on the DELAY, never on which callback runs, so the
+   * code under test is the same code: `WorkerTask.timeout` -> `restart` -> the job fails as 'timeout'.
+   */
+  window.__longTimerFloorMs = 0;
+  const realSetTimeout = window.setTimeout.bind(window);
+  window.setTimeout = (fn, delay, ...rest) =>
+    realSetTimeout(fn, window.__longTimerFloorMs && delay >= 60000 ? window.__longTimerFloorMs : delay, ...rest);
   /** The worker fails on THIS side while its answer is still held: the local half of G5. */
   window.__faultCrash = (which = window.__faultHold) => {
-    const targets = live.filter((entry) => which && entry.name.includes(which));
-    for (const entry of targets) entry.target.dispatchEvent(new ErrorEvent('error', { message: 'worker crashed (injected)' }));
+    const targets = live.filter((entry) => which && entry.name.includes(which)).map((entry) => entry.ref.deref()).filter(Boolean);
+    for (const target of targets) target.dispatchEvent(new ErrorEvent('error', { message: 'worker crashed (injected)' }));
     return targets.length;
   };
   window.Worker = class extends Real {
     constructor(url, options) {
       super(url, options);
       const name = String(url);
-      live.push({ name, target: this });
+      // A WeakRef, so the harness never keeps a terminated worker (and its heap) alive on its own.
+      live.push({ name, ref: new WeakRef(this) });
       this.addEventListener('message', (event) => {
         if (event.redelivered) return;
         const reply = event.data;
@@ -260,8 +280,17 @@ const BASE = {
  */
 const ONLY = new Set((process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length) ?? '')
   .split(',').map((name) => name.trim()).filter(Boolean));
+/** The sections in the order `walk()` runs them, which is what a resume after a crash walks forward through. */
+const SECTION_ORDER = ['a', 'm', 'q', 'r', 'u', 'x', 'l', 's'];
+/**
+ * The sections this pass may run. It is `ONLY` for an ordinary run, and is narrowed by the crash
+ * resume at the bottom of this file so the second browser picks up where the dead one stopped.
+ */
+let active = ONLY;
 /** True when `section` is one the caller asked for; with no `--only` every section runs. */
-const runs = (section) => ONLY.size === 0 || ONLY.has(section);
+const runs = (section) => active.size === 0 || active.has(section);
+/** The section being walked, so a crash can say which one died and the resume knows where to start. */
+let currentSection = '';
 /*
  * AND WITHIN THE FAULT-INJECTION SECTIONS, ONE PROBE AT A TIME.
  *
@@ -774,6 +803,8 @@ async function exportSupports(d, dir) {
   return stlTriangles(readFileSync(file));
 }
 
+/** Sections whose tab crashed; the summary names them so a resumed run can never read as a whole one. */
+const resumed = [];
 /** The browser and Vite the run owns, so a signal or a throw anywhere still stops both. */
 let browser;
 let vite;
@@ -811,6 +842,7 @@ async function walk(url, scratch, dentalFixture) {
      * with it (checked: not one of its names is read after this block ends).
      */
     if (runs('a')) {
+      currentSection = 'a';
       let early;
       await d.generate(url, (seen) => { early = seen; });
       check('i Drag over pressed while the first build runs says so',
@@ -1209,6 +1241,7 @@ async function walk(url, scratch, dentalFixture) {
 
     // m. A drop of several files where one is bad: its own section, so it can be re-run in a minute.
     if (runs('m')) {
+      currentSection = 'm';
       /*
        * ONE BAD FILE IN A DROP IS ITS OWN FAILURE, NOT THE DROP'S. The read loop used to sit in a
        * single try, so any refusal aborted the whole drop and added NOTHING - throwing away the files
@@ -1566,6 +1599,7 @@ async function walk(url, scratch, dentalFixture) {
      * reason they are not one check.
      */
     if (runs('q')) {
+      currentSection = 'q';
       const qCube = cubeStl();
       const dropOnStart = (names) => page.evaluate(({ files }) => {
         const transfer = new DataTransfer();
@@ -1835,6 +1869,7 @@ async function walk(url, scratch, dentalFixture) {
      * generating supports (`useRegenerate`) or the denture orient, neither of which happens here.
      */
     if (runs('r')) {
+      currentSection = 'r';
       const rCube = cubeStl();
       const rCup = cupStl();
       const rOpenCube = openCubeStl();
@@ -1850,10 +1885,14 @@ async function walk(url, scratch, dentalFixture) {
        * `hold` is set AFTER the navigation on purpose: the lever script runs on every page load, so a
        * hold set before a `goto` is wiped by it - which cost one run to learn.
        */
-      const twoRowDeck = async ({ hold = false, files = [{ name: 'r-cube.stl', text: rCube }, { name: 'r-cup.stl', text: rCup }] } = {}) => {
+      const twoRowDeck = async ({ hold = false, timerFloorMs = 0, files = [{ name: 'r-cube.stl', text: rCube }, { name: 'r-cup.stl', text: rCup }] } = {}) => {
         await page.goto(url);
         await page.waitForSelector('.start-screen', { timeout: 60000 });
         if (hold) await page.evaluate(() => { window.__faultHold = 'analysisWorker'; });
+        // Both levers are armed HERE, after the navigation and before the purpose press that starts
+        // the jobs. r5 first set the timer floor before calling this and lost it to the `goto` above -
+        // the very trap written down two comments up, walked into an hour after writing it.
+        if (timerFloorMs) await page.evaluate((ms) => { window.__longTimerFloorMs = ms; }, timerFloorMs);
         await page.evaluate(({ dropped }) => {
           const transfer = new DataTransfer();
           for (const file of dropped) transfer.items.add(new File([file.text], file.name));
@@ -2136,11 +2175,123 @@ async function walk(url, scratch, dentalFixture) {
         `answers swallowed ${stalled.held}, rows ${JSON.stringify(stalled.lines)}, Start enabled ${stalled.startEnabled}, rows removable ${stalled.removable}, background work ${JSON.stringify(stalled.activity)}, cancels offered ${stalled.cancels}`);
       if (stalled.activity.some((row) => /100%/.test(row))) note('r4 known gap: the stalled job still reads 100% with no elapsed time - docs/handoff/geocore-stuck-job-elapsed.md');
       }
+      /*
+       * G5, THE REAL ONE: A LOCAL TIMEOUT WHILE THE FAR SIDE SUCCEEDED.
+       *
+       * `r3` injected this disagreement as a crash, because `ANALYSIS_TIMEOUT_MS` is ten minutes and
+       * a walk cannot wait that out - so the review recorded the TIMEOUT itself as `UNPROVEN` with
+       * the missing condition named. `window.__longTimerFloorMs` is that condition: a timer of a
+       * minute or more fires after a second and a half instead, and nothing else in this app waits
+       * that long on a timer, so the lever reaches the job timeouts and nothing else.
+       *
+       * The worker's answer is held the whole time. So the far side finished, this side ran out of
+       * patience, and then the answer arrives at a client that has already failed the job - which is
+       * the disagreement G5 is about, now with the handler the ten-minute path would really use
+       * (`WorkerTask.timeout` -> `restart`, not `onerror`).
+       */
+      if (probes('r5')) {
+      const timeoutErrors = [];
+      const onTimeoutConsole = (message) => { if (message.type() === 'error') timeoutErrors.push(message.text()); };
+      page.on('console', onTimeoutConsole);
+      page.on('pageerror', (error) => timeoutErrors.push(String(error)));
+      await twoRowDeck({ hold: true, timerFloorMs: 1500 });
+      const heldForTimeout = await page.waitForFunction(() => (window.__faultHeld?.() ?? 0) >= 1, null, { timeout: 240000 }).then(() => true, () => false);
+      // The job's ten minutes, which are now a second and a half.
+      await d.idle(5000);
+      const afterTimeout = await detectLines();
+      const timedOutActivity = await activityRows();
+      // And now the answer the worker had produced all along, delivered to a job that has already failed.
+      const releasedAfterTimeout = await page.evaluate(() => window.__faultRelease('fifo'));
+      await page.evaluate(() => { window.__faultHold = ''; window.__longTimerFloorMs = 0; });
+      await d.idle(2500);
+      const settledAfterTimeout = await allSettled();
+      const timeoutRows = await detectLines();
+      page.off('console', onTimeoutConsole);
+      /*
+       * THE SENTENCE IS PART OF THE CLAIM. A job that ran out of time must be explained as one - the
+       * detection vocabulary's own timeout line - and not as a support build, which is what every
+       * analysis job used to be told it was (W-13). The row that failed must also stay failed once
+       * the late answer lands: one effect per event.
+       */
+      check('r5 G5 a job that ran out of time stays failed when its answer finally arrives, and says it timed out',
+        heldForTimeout && settledAfterTimeout && timeoutRows.length === 2
+          && timedOutActivity.some((row) => /took too long/i.test(row))
+          && timedOutActivity.every((row) => !/rebuild the supports|generate again/i.test(row))
+          && timeoutErrors.length === 0,
+        `held ${heldForTimeout}, rows at the timeout ${JSON.stringify(afterTimeout)}, activity ${JSON.stringify(timedOutActivity)}, late answers released ${releasedAfterTimeout}, rows now ${JSON.stringify(timeoutRows)}, console errors ${JSON.stringify(timeoutErrors)}`);
+      }
+
+      /*
+       * EXTERNAL INPUT IS NEVER ACTED ON UNVERIFIED - the one rule §8 carried as `UNVERIFIED`.
+       *
+       * A binary STL states its own triangle count in four bytes of its header, and that number is
+       * untrusted input in the only sense that matters: it can be wrong, by accident or on purpose.
+       * The dangerous reading is the credulous one - believe four million triangles, and the file
+       * either consumes the plate's whole budget before a byte is parsed or is refused for a size it
+       * does not have.
+       *
+       * `binaryStlTriangles` never returns more triangles than the file can hold: a header whose
+       * records do not fit is ignored and the file's own size decides. So the claim under test is
+       * NOT that such a file is refused - it is that the lie never reaches the budget.
+       *
+       * I WROTE THE RULE DOWN WRONG FIRST, and the probe is why I know. The handoff said a 200-byte
+       * file claiming four million triangles is "refused as damaged"; it is not, it imports as the
+       * two triangles it actually holds. Damaged is the OTHER case, r6b: a size that is not a whole
+       * number of triangles, which cannot be anything but broken.
+       */
+      if (probes('r6')) {
+      const liar = path.join(scratch, 'r-liar.stl');
+      const header = Buffer.alloc(184);
+      header.write('binary STL whose header lies about its triangle count', 0, 'latin1');
+      header.writeUInt32LE(4000000, 80);
+      writeFileSync(liar, header);
+      await page.goto(url);
+      await enterEditor(page);
+      await page.setInputFiles('.drop input[type=file]', [liar]);
+      await d.idle(3000);
+      const lied = await page.evaluate(() => ({
+        status: document.querySelector('footer strong')?.innerText ?? '',
+        footer: document.querySelector('footer')?.innerText ?? '',
+      }));
+      const claimed = /4[,.]?000[,.]?000/.test(lied.footer) || /4[,.]?000[,.]?000/.test(lied.status);
+      const triangles = Number((/([\d,]+) triangles/.exec(lied.footer)?.[1] ?? '-1').replace(/,/g, ''));
+      check('r6 a binary STL header claiming four million triangles never reaches the plate budget',
+        !claimed && triangles >= 0 && triangles < 100 && !/the limit is|plate would hold|too large/i.test(lied.status),
+        `triangles counted ${triangles}, four million mentioned ${claimed}, status ${JSON.stringify(lied.status)}`);
+      }
+
+      /*
+       * AND THE CASE THAT IS GENUINELY DAMAGED (r6b). One byte more, so the bytes after the header
+       * are not a whole number of 50-byte facets: the header cannot be believed and neither can the
+       * size, which is the only shape `binaryStlTriangles` refuses outright. It must say DAMAGED -
+       * the operator's next step is to export the file again - and must not reach for the budget
+       * vocabulary, which would send them to delete objects off a healthy plate.
+       */
+      if (probes('r6b')) {
+      const truncated = path.join(scratch, 'r-truncated.stl');
+      const odd = Buffer.alloc(185);
+      odd.write('binary STL truncated mid-facet', 0, 'latin1');
+      odd.writeUInt32LE(4000000, 80);
+      writeFileSync(truncated, odd);
+      await page.goto(url);
+      await enterEditor(page);
+      await page.setInputFiles('.drop input[type=file]', [truncated]);
+      await d.idle(3000);
+      const broken = await page.evaluate(() => ({
+        status: document.querySelector('footer strong')?.innerText ?? '',
+        objects: /(\d+) objects?/.exec(document.querySelector('footer')?.innerText ?? '')?.[1] ?? '?',
+      }));
+      check('r6b a binary STL whose size is not whole triangles is refused as damaged, and nothing lands',
+        broken.objects === '0' && /damaged/i.test(broken.status) && !/the limit is|plate would hold|too large/i.test(broken.status),
+        `objects ${broken.objects}, status ${JSON.stringify(broken.status)}`);
+      }
+
       if (PROBES.size > 0) note(`fault injection filtered to ${[...PROBES].join(', ')} - not the whole section`);
     }
 
     // u. Dental flow, Step 1 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).
     if (runs('u')) {
+      currentSection = 'u';
       const reference = PUBLIC_ALIGNER;
       const cube = path.join(scratch, 'cube.stl');
       const cup = path.join(scratch, 'cup.stl');
@@ -2983,6 +3134,7 @@ async function walk(url, scratch, dentalFixture) {
 
     // x. Dental flow, Step 3 and finish: two aligners end to end (the repo's reference aligner twice).
     if (runs('x')) {
+      currentSection = 'x';
       const reference = PUBLIC_ALIGNER;
       const drop = (file) => page.setInputFiles('input[aria-label="Choose aligner file"]', file);
       const stepTo = async (text, ms = 20000) => page.waitForFunction((word) => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes(word.toLowerCase()), text, { timeout: ms });
@@ -3297,6 +3449,7 @@ async function walk(url, scratch, dentalFixture) {
     // l. The dental flow against the REAL case fixture, when this machine has one - a separate section from
     // `u`, which runs the same flow on the reference aligner that ships with the repo.
     if (runs('l') && dentalFixture) {
+      currentSection = 'l';
       // The Dental lane never checks a patient model into the repository: the fixture is read in place from
       // wherever it already lives (see PUBLIC_ALIGNER / CASE_01_ALIGNER at the top).
       await page.goto(url);
@@ -3416,6 +3569,7 @@ async function walk(url, scratch, dentalFixture) {
 
     // s. The full-screen start (ST): task, aligner type, file; Back and Escape; drops; Any model.
     if (runs('s')) {
+      currentSection = 's';
       const reference = dentalFixture ?? PUBLIC_ALIGNER;
       /*
        * ONE SELECTOR PER PAGE, each matching only that page. The old map had
@@ -3676,6 +3830,8 @@ async function walk(url, scratch, dentalFixture) {
   }
   check('h no request leaves localhost', outside.length === 0, outside.length ? outside.slice(0, 3).join(' || ') : '0 external requests');
   check('h no console errors or warnings', errors.length === 0, errors.length ? errors.slice(0, 3).join(' || ') : '0 messages');
+  // The section a crashed tab died in, for the resume below; undefined when the tab was alive at the end.
+  return crashed ? currentSection : undefined;
 }
 
 
@@ -3925,7 +4081,45 @@ try {
   if (LOCALES) {
     browser = await launch();
     for (const lang of LOCALES.split(',').map((item) => item.trim()).filter(Boolean)) await walkLocale(url, scratch, lang, dentalFixture);
-  } else await walk(url, scratch, dentalFixture);
+  } else {
+    /*
+     * A CRASHED TAB LOSES THE REST OF THE RUN, AND IT USED TO LOSE ALL OF IT.
+     *
+     * The renderer dies in section `a` on this machine (W-17): Chromium's GPU command buffer goes
+     * invalid under SwiftShader - `GPU state invalid after WaitForGetOffsetInRange` - and takes the
+     * page with it. It is not the app and it is not this repo: it reproduces at 48b062d with that
+     * commit's own walk.mjs, on two different Chromium builds, with the JS heap at 36 MB of 3586 and
+     * the browser's biggest process at 719 MB. `--in-process-gpu` and `--disable-gpu-watchdog` did
+     * not help, so the cause is not yet known and is NOT guessed at here.
+     *
+     * What IS fixed is the gate's response. One dead tab used to take 170 checks with it, so a crash
+     * in the FIRST section hid every other answer the walk had. The run now reopens a browser, gives
+     * the dead section ONE retry (skipping it outright would lose its coverage on every run on this
+     * machine), and then carries on from the next one, as often as it must.
+     *
+     * IT NEVER TURNS THE RUN GREEN. The crash is already a FAIL in `results`, so the exit code stays
+     * 1 and the summary says the run was resumed and which section is unfinished. Recovering the
+     * COVERAGE is the point; recovering the VERDICT would be the bug this doctrine exists to catch.
+     */
+    let died = await walk(url, scratch, dentalFixture);
+    /** Sections already given their one retry, so a section that always crashes cannot loop. */
+    const retried = new Set();
+    while (died) {
+      const rest = SECTION_ORDER.slice(SECTION_ORDER.indexOf(died) + 1).filter((section) => ONLY.size === 0 || ONLY.has(section));
+      // ONE retry of the dead section in a fresh browser, because skipping it loses its coverage on
+      // every run; twice in a row and it is unfinished, which the summary then says.
+      const retry = !retried.has(died);
+      retried.add(died);
+      if (!retry) resumed.push(died);
+      const next = retry ? [died, ...rest] : rest;
+      note(retry ? `section ${died} lost its tab; retrying it once in a fresh browser, then ${rest.join(',') || 'the end'}`
+        : `section ${died} lost its tab twice; it is unfinished, resuming ${rest.join(',') || 'the end'}`);
+      if (next.length === 0) break;
+      await browser?.close().catch(() => {});
+      active = new Set(next);
+      died = await walk(url, scratch, dentalFixture);
+    }
+  }
 } catch (error) {
   check('walk setup', false, error.message);
 } finally {
@@ -3936,5 +4130,7 @@ if (failed === 0 && !process.env.WALK_OUT && !LOCALES) rmSync(scratch, { recursi
 // A filtered run never says ALL PASS: it covered part of the walk, and the line has to say so.
 const scope = ONLY.size === 0 ? '' : ` [only ${[...ONLY].join(',')}]`;
 const verdict = failed > 0 ? `${failed} FAIL` : ONLY.size === 0 ? 'ALL PASS' : 'SOME PASS';
-console.log(`${verdict} (${results.length} checks, ${Math.round((Date.now() - started) / 1000)} s)${scope}`);
+// A resumed run names the sections it could not finish, so its check count can never read as full coverage.
+const after = resumed.length ? ` [the tab crashed in ${resumed.join(',')}; ${resumed.length === 1 ? 'that section is' : 'those sections are'} unfinished, the rest ran in a fresh browser]` : '';
+console.log(`${verdict} (${results.length} checks, ${Math.round((Date.now() - started) / 1000)} s)${scope}${after}`);
 process.exit(failed === 0 ? 0 : 1);
