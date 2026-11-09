@@ -23,39 +23,114 @@ const CASE_01_ALIGNER = path.join(ROOT, 'dentalwork', 'fixtures', 'case-001', 'a
 const VIEWPORT = { width: 1440, height: 900 };
 
 /**
- * Page script: two levers on what a worker's replies do, both off by default.
+ * Page script: the levers on what a worker's replies do, and on what the browser accepts. All off by
+ * default. They are the condition of §6 of the wiring review: a fault class with no lever is reported
+ * `UNPROVEN`, never "skipped", so each lever here exists to retire one of those rows.
  *
  * `window.__meshDelay` holds the MESH worker's replies back that many ms, so the first build can be
  * pressed on while it runs. The reply is swallowed and re-dispatched later: it arrives LATE, once.
  *
- * `window.__replayWorker` is the fault-injection lever (G2, section `q`): every reply from the
- * worker whose URL contains that substring is dispatched a SECOND time, without the first being
- * swallowed. So the job settles and is then told again that it has settled, which is what a
- * duplicate message from a channel actually looks like. `window.__replayed` counts them, so a check
- * can prove the fault arrived rather than assume it - a replay test that never replayed is the
- * vacuous pass this section exists to avoid.
+ * `window.__replayWorker` is the G2 lever (section `q`): every reply from the worker whose URL
+ * contains that substring is dispatched a SECOND time, without the first being swallowed. So the job
+ * settles and is then told again that it has settled, which is what a duplicate message from a
+ * channel actually looks like. `window.__replayed` counts them.
+ *
+ * `window.__faultHold` is the other half of a channel's vocabulary, and section `r`'s whole lever:
+ * every SETTLING reply (`done`, `error`) from the named worker is swallowed and KEPT, and the walk
+ * decides when - and in what order - each one is delivered. Progress replies still arrive, so the
+ * fault is "the work finished and this side was never told", not "the worker went quiet".
+ *
+ *   window.__faultHold = 'analysisWorker'   nothing settles from that worker until released
+ *   window.__faultRelease('lifo')           the NEWEST held reply first  -> G3, a reply before its predecessor
+ *   window.__faultCrash()                   the worker fails on this side -> G5, far side's answer still held
+ *   (never releasing)                       the detector has stopped      -> G7
+ *
+ * One hold-and-release pair covers three fault classes because all three ask the same question of a
+ * channel - of order, of disagreement, of silence. There is deliberately no `fail` or `reorder` mode:
+ * holding expresses both, and a lever no probe uses is a dead control wearing safety's clothes.
+ *
+ * `window.__faultDownload = n` is the G1 lever, and it is not a worker fault at all. The export hands
+ * each finished file to the browser in a LOOP of `<a download>.click()` (`useExport.ts`), so the
+ * reply has long settled by the time the first file commits; no worker lever can reach the write
+ * that follows it. Refusing the n-th download is also not contrived - Chrome blocks multiple
+ * automatic downloads from one gesture on its own, which is this fault arriving unbidden.
+ *
+ * Every lever counts what it did (`__replayed`, `__faultSeen`, `__downloads`), so a probe can prove
+ * the fault ARRIVED rather than assume it. An injection test that never injected is the vacuous pass
+ * this section exists to avoid.
  */
-function slowMeshWorker() {
+function faultLevers() {
   const Real = window.Worker;
   window.__meshDelay = 0;
   window.__replayWorker = '';
   window.__replayed = 0;
+  window.__faultHold = '';
+  window.__faultSeen = 0;
+  window.__faultDownload = 0;
+  window.__downloads = 0;
+  /** Settling replies the hold is keeping, oldest first, each with the worker it has to go back to. */
+  const held = [];
+  /** Every worker made since load, so `__faultCrash` can reach the ones under test. */
+  const live = [];
+  const deliver = (entry) => {
+    const again = new MessageEvent('message', { data: entry.data });
+    again.redelivered = true;
+    entry.target.dispatchEvent(again);
+  };
+  /**
+   * Deliver held replies and say how many went: 'lifo' newest first (which is a reply arriving
+   * before the one it was supposed to follow), 'fifo' in the order they were produced.
+   */
+  window.__faultRelease = (order = 'fifo', count = held.length) => {
+    const batch = [];
+    for (let at = 0; at < count && held.length > 0; at += 1) batch.push(order === 'lifo' ? held.pop() : held.shift());
+    for (const entry of batch) deliver(entry);
+    return batch.length;
+  };
+  /** How many settled replies this side has not been told about. */
+  window.__faultHeld = () => held.length;
+  /** The worker fails on THIS side while its answer is still held: the local half of G5. */
+  window.__faultCrash = (which = window.__faultHold) => {
+    const targets = live.filter((entry) => which && entry.name.includes(which));
+    for (const entry of targets) entry.target.dispatchEvent(new ErrorEvent('error', { message: 'worker crashed (injected)' }));
+    return targets.length;
+  };
   window.Worker = class extends Real {
     constructor(url, options) {
       super(url, options);
       const name = String(url);
+      live.push({ name, target: this });
       this.addEventListener('message', (event) => {
         if (event.redelivered) return;
+        const reply = event.data;
+        const type = reply && typeof reply === 'object' ? reply.type : undefined;
+        if (window.__faultHold && name.includes(window.__faultHold) && (type === 'done' || type === 'error')) {
+          event.stopImmediatePropagation();
+          window.__faultSeen += 1;
+          held.push({ target: this, data: reply });
+          return;
+        }
         if (window.__replayWorker && name.includes(window.__replayWorker)) {
           window.__replayed += 1;
-          setTimeout(() => { const again = new MessageEvent('message', { data: event.data }); again.redelivered = true; this.dispatchEvent(again); }, 0);
+          setTimeout(() => { const again = new MessageEvent('message', { data: reply }); again.redelivered = true; this.dispatchEvent(again); }, 0);
           return;
         }
         if (!name.includes('meshWorker') || !window.__meshDelay) return;
         event.stopImmediatePropagation();
-        setTimeout(() => { const again = new MessageEvent('message', { data: event.data }); again.redelivered = true; this.dispatchEvent(again); }, window.__meshDelay);
+        setTimeout(() => { const again = new MessageEvent('message', { data: reply }); again.redelivered = true; this.dispatchEvent(again); }, window.__meshDelay);
       });
     }
+  };
+  /*
+   * The write boundary. Only anchors carrying a `download` are touched, so an ordinary link click is
+   * never affected - the lever has to be aimed at the export's write loop and nothing else.
+   */
+  const click = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function patchedClick() {
+    if (!this.download) return click.call(this);
+    window.__downloads += 1;
+    if (window.__faultDownload && window.__downloads >= window.__faultDownload) throw new Error(`download of ${this.download} refused (injected)`);
+    return click.call(this);
   };
 }
 
@@ -87,10 +162,21 @@ function asciiStl(name, positions, indices) {
   return lines.join('\n');
 }
 /** A closed unit cube: no cavity, so orientation fails. */
+const CUBE_POSITIONS = [-1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1];
+const CUBE_INDICES = [0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 1, 2, 6, 1, 6, 5, 2, 3, 7, 2, 7, 6, 3, 0, 4, 3, 4, 7];
 function cubeStl() {
-  const p = [-1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1];
-  const i = [0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 1, 2, 6, 1, 6, 5, 2, 3, 7, 2, 7, 6, 3, 0, 4, 3, 4, 7];
-  return asciiStl('cube', p, i);
+  return asciiStl('cube', CUBE_POSITIONS, CUBE_INDICES);
+}
+/**
+ * The same cube with its last face left off: ten triangles instead of twelve, so the solid is OPEN.
+ *
+ * It exists for section `r`'s G3 probe, which needs two models whose detection answers DIFFER - a
+ * reply crossed with another is invisible if both say the same thing. A closed cube comes back "No
+ * rim found. Draw one to continue."; an open one fails the dental mesh check, so `detectStateOf`
+ * calls it unusable and the row reads "Could not check the orientation." Two answers, two screens.
+ */
+function openCubeStl() {
+  return asciiStl('open-cube', CUBE_POSITIONS, CUBE_INDICES.slice(0, 30));
 }
 /** A closed, manifold thick cup: it has a cavity opening but no central opening, so a type that insists on one is offered a switch. */
 function cupStl() {
@@ -166,18 +252,22 @@ const BASE = {
  * The section letters are the ones the comments in `walk()` already use: `a` for the plain editor (a-k
  * and i), `u` for the dental flow up to Step 2 on the reference aligner, `x` for Step 3 and finishing,
  * `l` for the same flow against the real case fixture where the machine has one, `s` for the start screen,
- * `m` for the drop and the deck, and `q` for the deliberate fault injection (G2 replay, G4 two actors
- * on one scarce resource) that turns the wiring walk's gap register from READ into reproduced.
+ * `m` for the drop and the deck, and `q` and `r` for the deliberate fault injection that turns the
+ * wiring walk's gap register from READ into reproduced: `q` for G2 (replay) and G4 (two actors on
+ * one scarce resource), `r` for G1 (a write refused after an earlier one committed), G3 (a reply
+ * before its predecessor), G5 (the far side succeeded while this side gave up) and G7 (the
+ * background job stops).
  */
 const ONLY = new Set((process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length) ?? '')
   .split(',').map((name) => name.trim()).filter(Boolean));
 /** True when `section` is one the caller asked for; with no `--only` every section runs. */
 const runs = (section) => ONLY.size === 0 || ONLY.has(section);
 /*
- * AND WITHIN THE FAULT-INJECTION SECTION, ONE PROBE AT A TIME.
+ * AND WITHIN THE FAULT-INJECTION SECTIONS, ONE PROBE AT A TIME.
  *
  *   npm run walk -- --only=q                 all six probes, about eight minutes
  *   npm run walk -- --only=q --probes=q6     one probe, about thirty seconds
+ *   npm run walk -- --only=r --probes=r2     the same, in the second pass
  *
  * `--only` cut a full walk to a section and that saved a day; this cuts a section to a probe, for
  * the same reason and with the same danger. q1 and q2 are one group because q2 reads the world q1
@@ -692,7 +782,7 @@ async function walk(url, scratch, dentalFixture) {
   browser = await launch();
   const context = await browser.newContext({ viewport: VIEWPORT, acceptDownloads: true });
   await context.addInitScript(() => { try { localStorage.setItem('mixodental.lang', 'en'); } catch { /* storage off */ } });
-  await context.addInitScript(slowMeshWorker);
+  await context.addInitScript(faultLevers);
   const page = await context.newPage();
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });
@@ -1715,6 +1805,329 @@ async function walk(url, scratch, dentalFixture) {
       if (PROBES.size > 0) note(`fault injection filtered to ${[...PROBES].join(', ')} - not the whole section`);
     }
 
+    /*
+     * r. DELIBERATE FAULT INJECTION, SECOND PASS: G1 (a write rejected after an earlier one
+     * committed), G3 (a reply before its predecessor), G5 (a dependency times out while the far side
+     * succeeded) and G7 (the background job stops).
+     *
+     * These four stood as `UNPROVEN` in §6 of the wiring review for one reason: the walk's only
+     * worker lever DELAYED a reply, and none of these faults is a delay. `window.__faultHold` and
+     * `window.__faultDownload` (see `faultLevers` at the top of this file) are the missing
+     * conditions, and this section is what they were built for.
+     *
+     * The two acceptable outcomes are §6's, unchanged: the system recovers by itself to a state every
+     * observer agrees on, or the problem is on the operator's screen in words they can act on. A
+     * status line the next message replaces is not a screen - W-05 and W-07 were both that.
+     *
+     * HOLDING EVERY ANALYSIS REPLY IS SAFE ON THIS JOURNEY, which is why the lever needs no filter
+     * beyond the worker's name: the only analysis jobs a drop and a purpose press start are the
+     * batch's orients and the flow's. Placement goes through the same worker but is only reached by
+     * generating supports (`useRegenerate`) or the denture orient, neither of which happens here.
+     */
+    if (runs('r')) {
+      const rCube = cubeStl();
+      const rCup = cupStl();
+      const rOpenCube = openCubeStl();
+      const twoModels = [path.join(scratch, 'r-cube.stl'), path.join(scratch, 'r-cup.stl')];
+      writeFileSync(twoModels[0], rCube);
+      writeFileSync(twoModels[1], rCup);
+      /**
+       * Two models on the deck with their purpose chosen, and the detection about to run. The pair is
+       * a parameter because G3 needs the two answers to DIFFER and the other probes do not care:
+       * `[rAligner, rCube]` is a real aligner against a cube, which orient to visibly different
+       * things, while a cube and a cup are seconds cheaper and enough for G5 and G7.
+       *
+       * `hold` is set AFTER the navigation on purpose: the lever script runs on every page load, so a
+       * hold set before a `goto` is wiped by it - which cost one run to learn.
+       */
+      const twoRowDeck = async ({ hold = false, files = [{ name: 'r-cube.stl', text: rCube }, { name: 'r-cup.stl', text: rCup }] } = {}) => {
+        await page.goto(url);
+        await page.waitForSelector('.start-screen', { timeout: 60000 });
+        if (hold) await page.evaluate(() => { window.__faultHold = 'analysisWorker'; });
+        await page.evaluate(({ dropped }) => {
+          const transfer = new DataTransfer();
+          for (const file of dropped) transfer.items.add(new File([file.text], file.name));
+          document.querySelector('.start-screen').dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
+        }, { dropped: files });
+        await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+        await page.waitForFunction((count) => document.querySelectorAll('.items-row').length === count, files.length, { timeout: 180000 });
+      };
+      /** What the rows say about themselves, in row order: the deck's only answer per model. */
+      const detectLines = () => page.locator('[data-ui^="items-detect-"]').allInnerTexts();
+      /** The background-work list, which is the screen that REMEMBERS a failure (W-05, W-07). */
+      const activityRows = () => page.evaluate(() => [...document.querySelectorAll('.job-activity .job-row')]
+        .map((row) => `${row.dataset.state}: ${(row.textContent ?? '').trim()}`));
+      /**
+       * Every row carries a VERDICT, which is the terminal-state claim three probes make.
+       *
+       * It used to ask only for non-empty text, and r2 passed on the strength of it: with the lever
+       * holding every answer, the rows read "Checking the orientation…" and "Waiting its turn…" -
+       * both non-empty, so "settled" was true and "the two rows say different things" was true, and
+       * the probe proved nothing about either. A pending sentence is the system saying it does not
+       * know yet, and it must never satisfy a check about what it decided.
+       */
+      const PENDING = 'Checking the orientation|Waiting its turn';
+      const allSettled = (count = 2, ms = 240000) => page.waitForFunction(({ count: want, pending }) => {
+        const lines = [...document.querySelectorAll('[data-ui^="items-detect-"]')].map((node) => (node.textContent ?? '').trim());
+        return lines.length === want && lines.every((line) => line.length > 0 && !new RegExp(pending, 'i').test(line));
+      }, { count, pending: PENDING }, { timeout: ms }).then(() => true, () => false);
+
+      /*
+       * G1 - A WRITE REFUSED AFTER AN EARLIER ONE COMMITTED.
+       *
+       * "Each object with model" plans ONE FILE PER OBJECT (`planExport`), and `useExport` hands them
+       * over in a loop: a Blob URL, an `<a download>`, `.click()`, one file at a time. The first
+       * click has already put a file in the operator's downloads by the time the second runs, so this
+       * is the journey's one true multi-step commit - and the step after the first commit can fail.
+       *
+       * THE INJECTION IS NOT HYPOTHETICAL. Chrome refuses multiple automatic downloads from a single
+       * gesture unless the site is allowed them; `window.__faultDownload = 2` is that refusal, made
+       * deterministic. What is being asked is not whether the browser can refuse - it is whether the
+       * operator can tell afterwards WHICH of the two files they now have.
+       *
+       * No supports are generated: a model-and-supports plan includes the model part whether or not
+       * the unit has supports, so two objects give two files either way, and the probe costs seconds.
+       */
+      if (probes('r1')) {
+      await page.goto(url);
+      await enterEditor(page);
+      await page.setInputFiles('.drop input[type=file]', twoModels);
+      await page.waitForFunction(() => /2 objects/.test(document.querySelector('footer')?.innerText ?? ''), null, { timeout: 180000 });
+      await d.quiet();
+      await d.idle(500);
+      const firstFile = page.waitForEvent('download', { timeout: 120000 }).then((download) => download.suggestedFilename(), () => '');
+      await page.evaluate(() => { window.__faultDownload = 2; });
+      await page.getByRole('button', { name: 'Each object with model' }).click();
+      const landed = await firstFile;
+      await d.idle(4000);
+      const partial = await page.evaluate(() => ({
+        attempted: window.__downloads ?? 0,
+        status: document.querySelector('footer strong')?.innerText ?? '',
+      }));
+      const partialRows = await activityRows();
+      await page.evaluate(() => { window.__faultDownload = 0; });
+      /*
+       * THE ASSERTION IS THE POSITIVE ONE (q6's lesson). Not "the status line does not lie" - a list
+       * of the wrong screens I can imagine - but: can the operator find out that one file was written
+       * and one was not? Naming the file that landed, or saying the export was partial, either
+       * passes. A single generic failure sentence after a file has already been written does not: it
+       * says nothing came out, and something did.
+       */
+      const saysPartial = (text) => {
+        const said = String(text ?? '').toLowerCase();
+        return (landed.length > 0 && said.includes(landed.toLowerCase())) || /partly|partial|1 of 2|one of the two|some of the files/.test(said);
+      };
+      check('r1 G1 a download refused after the first file landed tells the operator which files were written',
+        partial.attempted >= 2 && landed.length > 0 && (saysPartial(partial.status) || partialRows.some(saysPartial)),
+        `downloads attempted ${partial.attempted}, file that landed ${JSON.stringify(landed)}, status ${JSON.stringify(partial.status)}, activity ${JSON.stringify(partialRows)}`);
+      }
+
+      /*
+       * G3 - A REPLY BEFORE ITS PREDECESSOR.
+       *
+       * Two replies are in flight at once in exactly one place on the deck journey, and finding that
+       * out was most of this probe's work: the batch loop is strictly SERIAL by design
+       * (`useBatchDetect`: a row's "Checking the orientation…" must be true when it says so) and
+       * `meshClient` runs one job at a time, so neither has a pair to reorder. The pair is the batch's
+       * orient of one row and the FLOW's orient of another, which the analysis pool runs side by side
+       * under different keys (`batch-orient:<id>` and `dental-orient:<id>`).
+       *
+       * So: hold both settling replies, then release the NEWER one first. The flow's answer arrives
+       * before the batch's, which was produced first - a reply before its predecessor, injected at
+       * the channel instead of hoped for from a timing race.
+       *
+       * THE TWO MODELS MUST ORIENT TO DIFFERENT THINGS, which is what `openCubeStl` is for. A closed
+       * cube answers "No rim found. Draw one to continue." and the flow hands over to rim drawing; an
+       * open one fails the mesh check, so the row reads "Could not check the orientation." and the
+       * flow says so instead. With two identical answers a crossed reply would look exactly like a
+       * correct one, and this probe would be unfalsifiable.
+       *
+       * THE PROBE COMPUTES ITS OWN EXPECTATION. A clean run of the same two files records both row
+       * verdicts and where the flow lands on row 2; the faulted run must reproduce them. Nothing here
+       * hard-codes what a cube orients to - and the check asserts that the two baseline verdicts
+       * DIFFER, so the discrimination is proved in the same run that relies on it.
+       *
+       * THE FIRST VERSION OF THIS CHECK PASSED AND PROVED NOTHING, for the third time in two days in
+       * this family. the settled reader asked only for non-empty row text, so with the lever holding every
+       * answer the baseline read ["Checking the orientation…", "Waiting its turn…"] - and "the two
+       * rows differ" was satisfied by two sentences that both mean "I do not know yet". The settled
+       * reader now refuses a pending sentence, and the precondition is part of the claim rather than
+       * a hope: `settledClean`, `bothHeld` and `baseline[0] !== baseline[1]` all have to hold.
+       */
+      if (probes('r2')) {
+      const pair = [{ name: 'r-closed.stl', text: rCube }, { name: 'r-open.stl', text: rOpenCube }];
+      await twoRowDeck({ files: pair });
+      const settledClean = await allSettled();
+      const baseline = await detectLines();
+      await page.locator('.items-row').nth(1).click();
+      await page.locator('[data-ui="items-start"]').click();
+      await page.waitForFunction(() => /Step|could not|unusable/i.test(document.body.innerText), null, { timeout: 240000 }).catch(() => {});
+      await d.idle(2000);
+      const baselineScreen = await page.evaluate(() => ({
+        badge: (document.querySelector('.edit-badge')?.textContent ?? '').trim(),
+        alerts: [...document.querySelectorAll('[role="alert"]')].map((node) => (node.textContent ?? '').trim()).join(' | '),
+        rotation: null,
+      }));
+      baselineScreen.rotation = (await d.props()).activeRotation ?? null;
+
+      await twoRowDeck({ hold: true, files: pair });
+      // The batch's orient of row 1 has been produced and held; the row still says it is checking.
+      await page.waitForFunction(() => (window.__faultHeld?.() ?? 0) >= 1, null, { timeout: 240000 }).catch(() => {});
+      const heldWhileWaiting = await detectLines();
+      await page.locator('.items-row').nth(1).click();
+      await page.locator('[data-ui="items-start"]').click();
+      // And now the flow's orient of row 2, produced second.
+      const bothHeld = await page.waitForFunction(() => (window.__faultHeld?.() ?? 0) >= 2, null, { timeout: 240000 }).then(() => true, () => false);
+      // The newer reply first, then the older: the flow is answered before the batch that asked first.
+      const releasedLate = await page.evaluate(() => ({ newest: window.__faultRelease('lifo', 1), rest: window.__faultRelease('fifo') }));
+      await page.evaluate(() => { window.__faultHold = ''; });
+      await page.waitForFunction(() => /Step|could not|unusable/i.test(document.body.innerText), null, { timeout: 120000 }).catch(() => {});
+      await d.idle(2500);
+      const reordered = await page.evaluate(() => ({
+        badge: (document.querySelector('.edit-badge')?.textContent ?? '').trim(),
+        alerts: [...document.querySelectorAll('[role="alert"]')].map((node) => (node.textContent ?? '').trim()).join(' | '),
+        rotation: null,
+      }));
+      reordered.rotation = (await d.props()).activeRotation ?? null;
+      const injected = await page.evaluate(() => window.__faultSeen ?? 0);
+      check('r2 G3 two orients in flight and the newer answered first: every observer still gets its own answer',
+        settledClean && bothHeld && injected >= 2 && baseline.length === 2 && baseline[0] !== baseline[1]
+          && reordered.badge === baselineScreen.badge && reordered.alerts === baselineScreen.alerts
+          && JSON.stringify(reordered.rotation) === JSON.stringify(baselineScreen.rotation),
+        `settled cleanly ${settledClean}, replies held ${injected}, released ${JSON.stringify(releasedLate)}, baseline verdicts ${JSON.stringify(baseline)}, rows while held ${JSON.stringify(heldWhileWaiting)}, flow after the reorder ${JSON.stringify(reordered)}, flow in the clean run ${JSON.stringify(baselineScreen)}`);
+      }
+
+      /*
+       * G5 - THE FAR SIDE SUCCEEDED AND THIS SIDE GAVE UP.
+       *
+       * The app's real form of this is `ANALYSIS_TIMEOUT_MS`: ten minutes, after which the worker is
+       * restarted and the job fails - while that worker may well have finished the work and posted
+       * its answer. A walk cannot wait ten minutes, so the local half is injected as a CRASH on this
+       * side (`window.__faultCrash`, which is what `WorkerTask.wire`'s `onerror` sees) with the far
+       * side's answer still held. Same disagreement, same handler (`restart`), seconds instead of
+       * minutes. The condition that was swapped is named rather than hidden: it is a crash, not a
+       * timeout, so a TIMEOUT at this tier stays UNPROVEN and says so in the report.
+       *
+       * Then the held answer is released INTO a client that has already given up on it. Three things
+       * must hold: the row reaches a terminal state with words, the answer that arrived too late does
+       * not land as well (one effect per event, never two), and the rest of the batch still drains - a
+       * dependency that failed must not take the queue with it.
+       */
+      if (probes('r3')) {
+      const lateErrors = [];
+      const onLateConsole = (message) => { if (message.type() === 'error') lateErrors.push(message.text()); };
+      const onLatePageError = (error) => lateErrors.push(String(error));
+      page.on('console', onLateConsole);
+      page.on('pageerror', onLatePageError);
+      await twoRowDeck({ hold: true });
+      const firstHeld = await page.waitForFunction(() => (window.__faultHeld?.() ?? 0) >= 1, null, { timeout: 240000 }).then(() => true, () => false);
+      const crashed = await page.evaluate(() => window.__faultCrash());
+      await d.idle(2500);
+      const afterCrash = await detectLines();
+      // The answer the worker had already produced, handed to a client that has given up on it.
+      const releasedAfterCrash = await page.evaluate(() => window.__faultRelease('fifo'));
+      await page.evaluate(() => { window.__faultHold = ''; });
+      await d.idle(2000);
+      const settled = await allSettled();
+      const lateRows = await detectLines();
+      const lateActivity = await activityRows();
+      /*
+       * The list is mounted on the deck by a SECOND mount point (`App.tsx`), and `.job-activity` is
+       * absolutely positioned against the viewport it normally lives in - so where it lands here is a
+       * question a reading of the CSS cannot answer. The shot is the answer, and the box is checked
+       * against the deck's own rows below.
+       */
+      await page.screenshot({ path: path.join(scratch, 'r3-deck-activity.png') });
+      const panel = await page.evaluate(() => {
+        const node = document.querySelector('.job-activity');
+        const rows = document.querySelector('.items-list');
+        const box = (element) => (element ? element.getBoundingClientRect() : null);
+        const one = box(node);
+        const list = box(rows);
+        return !one || !list ? null : {
+          panel: { x: Math.round(one.x), y: Math.round(one.y), w: Math.round(one.width), h: Math.round(one.height) },
+          rows: { x: Math.round(list.x), y: Math.round(list.y), w: Math.round(list.width), h: Math.round(list.height) },
+          onScreen: one.top >= 0 && one.left >= 0 && one.bottom <= window.innerHeight && one.right <= window.innerWidth,
+          overlapsRows: one.left < list.right && one.right > list.left && one.top < list.bottom && one.bottom > list.top,
+        };
+      });
+      page.off('console', onLateConsole);
+      page.off('pageerror', onLatePageError);
+      /*
+       * BOTH ROWS, not just the one that failed: the second row is how the queue proves it survived
+       * the first row's failure. `lateErrors` is read here rather than left to section `h`, which runs
+       * at the end of the whole walk and would attribute a throw to whatever ran last.
+       */
+      check('r3 G5 a crash with the far side answer still in flight settles each row once, and the queue drains',
+        firstHeld && crashed > 0 && settled && lateRows.length === 2 && lateRows.every((line) => line.trim().length > 0) && lateErrors.length === 0,
+        `workers crashed ${crashed}, rows right after the crash ${JSON.stringify(afterCrash)}, late answers released ${releasedAfterCrash}, rows now ${JSON.stringify(lateRows)}, console errors ${JSON.stringify(lateErrors)}`);
+      /*
+       * THE SECOND CLAIM, AND IT IS A DIFFERENT ONE (q1/q2's rule). The first asks what the SYSTEM did
+       * with a failure; this asks whether the operator can read it. Both halves were defects:
+       * the background-work list was not mounted on the deck at all, so a crashed analysis worker left
+       * its mark on one row's sentence and nowhere else; and once mounted it explained an orientation
+       * check as a support build, because the activity list defaulted an unknown context to "build".
+       * So the check reads the words as well as the box - a list in the right corner saying the wrong
+       * thing is not a screen either.
+       */
+      check('r3b G5 and the failure is readable on the deck: in the background-work list, in its own words',
+        lateActivity.length > 0 && lateActivity.every((row) => !/rebuild the supports|generate again/i.test(row))
+          && Boolean(panel?.onScreen) && !panel?.overlapsRows,
+        `activity ${JSON.stringify(lateActivity)}, panel ${JSON.stringify(panel)}`);
+      }
+
+      /*
+       * G7 - THE BACKGROUND JOB STOPS, for longer than its period.
+       *
+       * `window.__faultHold` and no release: every orient the worker finishes is swallowed, so the
+       * batch loop blocks on its first row for ever. A cube's detection takes a second or two, so
+       * twenty seconds is already far past its period.
+       *
+       * WHAT THE DOCTRINE ASKS IS NOT "IS THERE A SPINNER". It is whether the good day and the bad day
+       * look different, and whether the operator can act. So the claim has three parts: the pending
+       * work still reads as pending, no row has been given a verdict it never received, and the deck
+       * is still usable - the operator can start the row themselves instead of waiting on a detector
+       * that has stopped.
+       *
+       * TWO THINGS I HAD WRONG UNTIL THE PROBE ANSWERED, and they are the reason the detail prints
+       * more than the check asserts (S10: diagnose from a probe, not from a reading).
+       *
+       * 1. I expected NO Cancel, because `useBatchDetect` passes no AbortSignal. One is offered:
+       *    `AnalysisClient.submit` passes a controller of its own, so `cancellable` is true. The
+       *    operator is not trapped, and the detail counts them rather than assuming.
+       * 2. The background-work row reads `Aligner oriented · 100%` and goes on reading it for as long
+       *    as the job is stuck, with no elapsed time - a finished job and a job that will never
+       *    finish draw the same row. `JobActivity.view` has the signal for this and wires it to
+       *    `state === 'indeterminate'`, which is the one state that cannot happen here: a job that
+       *    reported progress and then stopped is determinate. That control cannot fire for the
+       *    failure it was written for, and it lives in vendored geocore, which this repo consumes as
+       *    built - so it is handed over rather than patched: `docs/handoff/geocore-stuck-job-elapsed.md`.
+       *    The check below does not fail on it; the release gate must not go red on a known gap in
+       *    someone else's code, and the detail and the note are how it stays known.
+       */
+      if (probes('r4')) {
+      await twoRowDeck({ hold: true });
+      await page.waitForFunction(() => (window.__faultHeld?.() ?? 0) >= 1, null, { timeout: 240000 }).catch(() => {});
+      await d.idle(20000);
+      const stalled = await page.evaluate(() => ({
+        held: window.__faultHeld?.() ?? 0,
+        lines: [...document.querySelectorAll('[data-ui^="items-detect-"]')].map((node) => (node.textContent ?? '').trim()),
+        startEnabled: !document.querySelector('[data-ui="items-start"]')?.disabled,
+        removable: document.querySelectorAll('.items-row .remove:not([disabled])').length,
+        activity: [...document.querySelectorAll('.job-activity .job-row')].map((row) => (row.textContent ?? '').trim()),
+        cancels: document.querySelectorAll('.job-activity .job-row button').length,
+      }));
+      // Pending, never a verdict: the words a settled row uses must not be on screen for these.
+      const verdicts = /upright|turned|no rim found|could not/i;
+      const stillPending = stalled.lines.every((line) => line.length === 0 || !verdicts.test(line));
+      await page.evaluate(() => { window.__faultHold = ''; });
+      check('r4 G7 a detector that has stopped reads as pending, not as a verdict, and the deck still works',
+        stalled.held >= 1 && stillPending && stalled.startEnabled && stalled.removable === 2,
+        `answers swallowed ${stalled.held}, rows ${JSON.stringify(stalled.lines)}, Start enabled ${stalled.startEnabled}, rows removable ${stalled.removable}, background work ${JSON.stringify(stalled.activity)}, cancels offered ${stalled.cancels}`);
+      if (stalled.activity.some((row) => /100%/.test(row))) note('r4 known gap: the stalled job still reads 100% with no elapsed time - docs/handoff/geocore-stuck-job-elapsed.md');
+      }
+      if (PROBES.size > 0) note(`fault injection filtered to ${[...PROBES].join(', ')} - not the whole section`);
+    }
 
     // u. Dental flow, Step 1 to Step 2 (the repo's reference aligner; synthetic files for the failure branches).
     if (runs('u')) {
