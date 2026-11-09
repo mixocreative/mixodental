@@ -3013,9 +3013,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1794223448.68118,
-    "seen": 1794236959.2485695,
-    "ast_hash": "1ab3c9bc210fe0fa4bae7df21cb18983",
+    "mtime": 1794246543.9253812,
+    "seen": 1794246597.1618996,
+    "ast_hash": "0a3d1d00bce1f4225ee82e48fdc02db6",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/README.md": {
@@ -5053,9 +5053,9 @@
     "semantic_hash": ""
   },
   "scripts/step-screens.mjs": {
-    "mtime": 1793899493.0448556,
-    "seen": 1793902315.4000866,
-    "ast_hash": "8653b9c90a3526819c53ec56c9e73674",
+    "mtime": 1794246479.2401104,
+    "seen": 1794246597.1625154,
+    "ast_hash": "87d76ee88d71fe2044b16ea277431867",
     "semantic_hash": ""
   },
   "src/commandWiring.test.ts": {
