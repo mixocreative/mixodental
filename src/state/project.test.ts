@@ -453,6 +453,52 @@ describe('stamping a tool revision as work is accepted', () => {
     expect(revisionsOf(redrawn)!.area).toBeGreaterThan(revisionsOf(accepted)!.area!);
   });
 
+  /*
+   * WHOSE DRAWING IS IT. The seed of a detected rim and the operator's own loop are the same shape, so
+   * the only moment the difference is knowable is when the seed is made - after that no amount of
+   * measuring can recover it, and guessing would either strand a stale trace or destroy hand work.
+   * `rimDraftSeeded` is that one bit, and all three transitions are pinned: set by the seed, dropped
+   * by the first edit, gone with the drawing, and carried through a save.
+   */
+  it('remembers that a draft is an untouched seed, and forgets the moment it is edited', () => {
+    const loop = { anchors: [anchor, anchor, anchor], closed: true };
+    const seeded = reduceScene(added(), { type: 'rim/set', unitId: 'unit-a', path: loop, seeded: true });
+    expect(seeded.units[0]!.rimDraftSeeded).toBe(true);
+
+    // An operator edit is a `rim/set` with no `seeded`: the drawing becomes theirs and stays theirs.
+    const edited = reduceScene(seeded, { type: 'rim/set', unitId: 'unit-a', path: loop });
+    expect(edited.units[0]!.rimDraftSeeded).toBeUndefined();
+    expect(edited.units[0]!.rimDraft).toBeDefined();
+
+    // Clear takes the flag with the drawing; a flag over no drawing would re-trace on the next entry.
+    const cleared = reduceScene(seeded, { type: 'rim/clear', unitId: 'unit-a' });
+    expect(cleared.units[0]!.rimDraft).toBeUndefined();
+    expect(cleared.units[0]!.rimDraftSeeded).toBeUndefined();
+
+    // It has to SURVIVE A SAVE, or reopening a project turns an untouched seed into the operator's.
+    expect(deserializeScene(serializeScene(seeded)).units[0]!.rimDraftSeeded).toBe(true);
+    // And a project saved before this existed reads as the operator's, which withholds the re-trace.
+    expect(deserializeScene(serializeScene(edited)).units[0]!.rimDraftSeeded).toBeUndefined();
+
+    /*
+     * A FILE MAY NOT GRANT ITSELF PERMISSION TO REPLACE THE DRAWING. This flag is what lets entry
+     * re-trace a draft, so a saved file claiming it over a loop the operator drew by hand would have
+     * that work re-traced away on the next entry. Only exactly `true`, and only beside a draft,
+     * survives the load - which is what `normalizeUnit` taking it OUT of its own spread buys, and the
+     * whole reason it is taken out rather than merely re-added.
+     */
+    const forged = (patch: Record<string, unknown>) => {
+      const file = JSON.parse(serializeScene(seeded)) as { units: Record<string, unknown>[] };
+      Object.assign(file.units[0]!, patch);
+      return deserializeScene(JSON.stringify(file)).units[0]!.rimDraftSeeded;
+    };
+    for (const junk of ['yes', 1, {}, null]) expect(forged({ rimDraftSeeded: junk }), JSON.stringify(junk)).toBeUndefined();
+    // Nor over nothing: a flag with no drawing would re-trace on the next entry for no reason at all.
+    expect(forged({ rimDraftSeeded: true, rimDraft: undefined })).toBeUndefined();
+    // The control: the same round trip, unpatched, does keep it - or the four above prove nothing.
+    expect(forged({})).toBe(true);
+  });
+
   it('makes everything below a re-orientation read stale, without throwing the work away', async () => {
     const { staleTools } = await import('./revisions');
     let scene = turn(added(), [0, 0.5, 0]);

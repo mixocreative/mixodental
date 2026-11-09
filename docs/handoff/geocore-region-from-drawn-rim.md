@@ -13,13 +13,22 @@ and across the edge") and **Support density**. They are the right controls and t
 
 They work **only for a detected rim**. `useDentalTuning` reads tuning from a `two-contour` policy and
 returns early for anything else; a hand-drawn rim lands a `manualAreaPolicy` instead —
-`kind: 'legacy'`, `origin: 'manual-area'`, `stamps: []` — because, in `useRimDrawing.onRimDone`'s own
-words, *"the rim is the operator's, and there is no detected area to go with it."* So Step 2 opens
-empty to be painted, and the two sliders still **render, still move, and steer nothing**: they fall
-back to the profile's defaults and no effect consumes them.
+`kind: 'legacy'`, `origin: 'manual-area'`, carrying whatever stamps the operator had — because, in
+`useRimDrawing.onRimDone`'s own words, *"the rim is the operator's, and there is no detected area to go
+with it."* So Step 2 opens empty to be painted.
 
-That is a dead control in the exact sense this project's audit doctrine uses, and the host cannot fix
-it alone — it has no band to control, because nothing proposes a region from a given rim.
+**AND IT IS WIDER THAN A DRAWN RIM, which is worth knowing before costing this.** The same
+`manualAreaPolicy` is set when detection finds a rim but **no area** (`useDentalFlow`), and that is
+the more common route by far. Both reach the same dead end.
+
+**What the host did in the meantime (`bcf8583`, 2026-11-09), so this is not read as still broken.**
+The three sliders used to render, move and steer nothing — the operator dragged one, the thumb sprang
+back and nothing was said. They are now **shown-and-disabled** with the reason on screen ("This area
+is painted, so change it with Paint and Erase"), which is the house rule for a control with nothing to
+act on. That is honest, not fixed: the operator still cannot size a band around a rim they drew, and
+the host cannot give them one, because nothing proposes a region from a given rim. **Landing the entry
+point below is what makes those three sliders live for a hand-drawn rim and for every aligner whose
+area was never detected** — `useDentalTuning.tunable` is the single host-side switch that flips.
 
 ## Why the host cannot do it
 

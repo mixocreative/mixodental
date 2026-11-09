@@ -981,9 +981,18 @@ export default function App() {
       case 'dental.rim.enter': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
         const detectedRim = sessionRef.current.dentalProposal?.rim;
-        if (unit && !unit.rimDraft && detectedRim) {
+        /*
+         * SEED WHEN THERE IS NOTHING, AND RE-SEED WHEN WHAT IS THERE IS ONLY AN OLD SEED.
+         *
+         * The second half is the fix for a stale trace. `rim/clear` runs on Clear and Done only, so a
+         * seed survives Cancel; re-orienting then changes the detected rim and this opened on a loop
+         * tracing the rim that had been replaced. An UNTOUCHED seed is not the operator's work - the
+         * first edit drops `rimDraftSeeded` - so replacing it destroys nothing, and re-seeding is
+         * idempotent when detection has not moved. A draft the operator has touched is never replaced.
+         */
+        if (unit && detectedRim && (!unit.rimDraft || unit.rimDraftSeeded === true)) {
           const seeded = seedRimDraft(detectedRim);
-          if (seeded) dispatch({ type: 'rim/set', unitId: unit.id, path: seeded });
+          if (seeded) dispatch({ type: 'rim/set', unitId: unit.id, path: seeded, seeded: true });
         }
         /*
          * NOTHING IS CHOSEN ON THE WAY IN. This used to send the tool a closed loop needed, because

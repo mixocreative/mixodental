@@ -62,6 +62,21 @@ export interface PrintUnit {
    */
   rimDraft?: SurfacePath;
   /**
+   * The draft is a TRACE OF THE DETECTED RIM THAT NOBODY HAS TOUCHED, not the operator's own drawing.
+   *
+   * WHY THIS HAD TO BE RECORDED RATHER THAN GUESSED. Draw the rim seeds the draft from detection, and
+   * `rim/clear` runs on Clear and Done only - so after Cancel the seed stays, and re-orienting to a
+   * DIFFERENT rim left Draw the rim opening on a loop that traced the rim it had replaced. Every fix
+   * that works it out afterwards needs a threshold ("is this draft near enough to the new rim?"), and
+   * clearing it unasked would silently destroy hand work, which is the `f10b512` class and worse than
+   * the staleness. So the one fact nobody can recover later is stored when it is still known: the
+   * first operator edit dispatches `rim/set` WITHOUT this flag and the draft becomes theirs for good.
+   *
+   * Absent on projects saved before this existed, which reads as "the operator's" - the safe default,
+   * since it only ever withholds the automatic re-trace.
+   */
+  rimDraftSeeded?: boolean;
+  /**
    * WHICH TOOL'S WORK IS NEWER THAN WHICH, so the rail can say "out of date" instead of throwing the
    * work away (`src/deck/revisions.ts`). One counter per unit; a tool is stale when its number is
    * below the newest revision anywhere ABOVE it in the chain - not merely below its neighbour's,
@@ -139,7 +154,8 @@ export type SceneCommand =
    * closing, opening - because `src/core/surfacePath` has already worked out the new path and the scene
    * only has to hold it. One edit is then one undo step by construction, with nothing to coalesce.
    */
-  | { type: 'rim/set'; unitId: string; path: SurfacePath }
+  /** `seeded`: this path is a trace of the detected rim, not the operator's work (see `rimDraftSeeded`). */
+  | { type: 'rim/set'; unitId: string; path: SurfacePath; seeded?: boolean }
   | { type: 'rim/clear'; unitId: string }
   /** A denture unit's policy (Step 1 accept, the model-landing allow list, the denture settings). */
   | { type: 'denture/set'; unitId: string; denture: DentureState }
@@ -285,10 +301,12 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
        *     one batch, so the rim's revision was written and then deleted in the same step.
        * The rim is accepted when it is promoted into `unit.dental`, which is where it is stamped.
        */
-      return updateUnit(scene, command.unitId, (unit) => ({ ...unit, rimDraft: path }));
+      // Any set WITHOUT `seeded` is an operator edit, so the flag goes: the drawing is theirs now.
+      return updateUnit(scene, command.unitId, ({ rimDraftSeeded: _was, ...unit }) =>
+        ({ ...unit, rimDraft: path, ...(command.seeded ? { rimDraftSeeded: true } : {}) }));
     }
     case 'rim/clear':
-      return updateUnit(scene, command.unitId, ({ rimDraft: _rimDraft, ...unit }) => unit);
+      return updateUnit(scene, command.unitId, ({ rimDraft: _rimDraft, rimDraftSeeded: _seeded, ...unit }) => unit);
     case 'denture/set':
       return updateUnit(scene, command.unitId, (unit) => ({ ...unit, denture: normalizeDentureState(command.denture) }));
     case 'denture/clear':
@@ -419,7 +437,7 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
   // reject a value that is present has to be removed first: `...(ok ? { x } : {})` adds nothing on
   // the reject branch, so the bad value `...unit` already copied in would survive. Every other
   // optional field here is safe only because its `{}` branch means "the key was absent anyway".
-  const { diagnosis, revisions, ...rest } = unit;
+  const { diagnosis, revisions, rimDraftSeeded, ...rest } = unit;
   return migrateRemovals({
     ...rest,
     source: copyMesh ? cloneMesh(unit.source, 'source') : checkedMesh(unit.source, 'source'),
@@ -430,6 +448,17 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
     // A loaded draft goes through the same gate as one made by `rim/set`: a file can be hand-edited
     // or written by an older build, and an unchecked path reaches the engine the moment Done is pressed.
     ...(unit.rimDraft ? { rimDraft: cloneSurfacePath(unit.rimDraft) } : {}),
+    /*
+     * REMOVED FROM THE SPREAD ABOVE FIRST, which is the only reason this line is a gate rather than
+     * decoration - the warning at the top of this function, learned the hard way and then walked into
+     * again here. `...(ok ? { x } : {})` adds nothing on the reject branch, so a bad value that
+     * `...rest` had already copied would have survived it untouched.
+     *
+     * It is worth gating because the flag GRANTS PERMISSION TO REPLACE the drawing: a saved file
+     * claiming it over a loop the operator drew by hand would have that work re-traced away on the
+     * next entry. So it is carried only as exactly `true`, and only alongside a draft.
+     */
+    ...(unit.rimDraft && rimDraftSeeded === true ? { rimDraftSeeded: true as const } : {}),
     ...(unit.supports === undefined ? {} : { supports: normalizeSupportMesh(unit.supports) }),
     ...(unit.placement === undefined ? {} : { placement: normalizePlacement(unit.placement) }),
     manual: cloneJsonValue(unit.manual ?? []) as unknown as SupportPoint[],
