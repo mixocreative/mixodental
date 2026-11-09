@@ -60,6 +60,19 @@ for that, and the sections below are history.
   curve, capped at 48. It is a REPLACEMENT, not a lossless edit - the drawn loop's axis came back
   5.60 degrees from detection's on the reference aligner - and the command says so before the operator
   commits.
+- **DEBT, NOT TAKEN: a cancelled look leaves a seed behind, and a later re-orientation makes it
+  stale.** Draw the rim seeds the draft with `rim/set`, and `rim/clear` runs on Clear and Done only -
+  nothing clears it when the orientation changes. So: enter, Cancel, re-orient (or change the aligner
+  type) to a DIFFERENT detected rim, press Draw the rim, and `dental.rim.enter` finds a draft already
+  there, does not re-seed, and opens on a loop tracing the rim that was replaced. Recoverable, but
+  obscurely: Clear empties the draft, and re-entering then seeds from the current detection.
+  **Why it is not fixed here.** Every clean fix has to tell an untouched seed from the operator's own
+  hand work, and nothing on the draft records which it is. Guessing geometrically means a threshold;
+  clearing it on re-orientation would silently discard hand work, which is the class of `f10b512`
+  (redrawing a detected rim destroyed the painted area) and is worse than the staleness. The one
+  structurally correct answer - seed into transient state and persist on first edit - reverses a
+  deliberate decision recorded above: the draft is `PrintUnit.rimDraft`, SCENE state, so the ordinary
+  history undoes each anchor and the drawing is saved with the project. That trade is the owner's.
 - **What is left:** a flip control, and the state it would need. See "What is left" at the end.
 
 
