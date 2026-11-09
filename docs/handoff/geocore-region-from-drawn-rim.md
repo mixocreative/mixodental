@@ -21,6 +21,12 @@ with it."* So Step 2 opens empty to be painted.
 `manualAreaPolicy` is set when detection finds a rim but **no area** (`useDentalFlow`), and that is
 the more common route by far. Both reach the same dead end.
 
+**The host will know the day this lands, without anyone remembering to look.**
+`src/vendorCapabilities.test.ts` watches the vendored engine's TypeScript surface for
+`dental_region_from_rim` and FAILS when it appears - an inverted check, because a workaround that
+keeps passing is exactly how a delivered capability goes unnoticed. The failure message carries the
+undo list, so the bump that turns it red is good news with instructions attached.
+
 **What the host did in the meantime (`bcf8583`, 2026-11-09), so this is not read as still broken.**
 The three sliders used to render, move and steer nothing — the operator dragged one, the thumb sprang
 back and nothing was said. They are now **shown-and-disabled** with the reason on screen ("This area
