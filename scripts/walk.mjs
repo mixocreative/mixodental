@@ -3371,7 +3371,10 @@ async function walk(url, scratch, dentalFixture) {
       for (const point of [[0.5, 0.3], [0.5, 0.7], [0.3, 0.5], [0.4, 0.4], [0.35, 0.65], ...grid]) {
         const [px, py] = d.at(...point);
         await page.mouse.click(px, py);
-        await d.idle(500);
+        // A slow runner needs longer for the click's effect to reach the counts than this machine
+        // does: x8 went red in CI with `manual 0 -> 0` and the PREVIOUS action's status still on
+        // screen, which is what "the add had not landed yet" looks like from here.
+        await d.idle(process.env.CI ? 1500 : 500);
         if ((await d.counts()).manual > afterDelete.manual) { added = true; break; }
       }
       const handWork = await d.counts();
