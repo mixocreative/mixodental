@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794248959.7591455,
-    "seen": 1794249241.7542055,
-    "ast_hash": "68406c41d86b6352369a01a549cc73d5",
+    "mtime": 1794255372.8866765,
+    "seen": 1794255447.5020108,
+    "ast_hash": "05e37f67396bc81370d5d9dfd9f1abc1",
     "semantic_hash": ""
   },
   "src/App.tsx": {
