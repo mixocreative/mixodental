@@ -7,7 +7,7 @@ import { acceptCommands } from '../denture/steps/orient/acceptCommands';
 import { DENTURE_PROFILE_ID } from '../denture/jobKind';
 import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { DEFAULT_DENTURE_OPTIONS } from '../denture/settings/dentureOptions';
-import { backNeedsConfirm, discardManualCommands, exitCommands, keptDentalWork, manualEditCounts, startsDentalStep } from './flow';
+import { backNeedsConfirm, discardManualCommands, exitCommands, keepsManualArea, keptDentalWork, manualEditCounts, startsDentalStep } from './flow';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u1', manual: [], deleted: [], contactSettings: {}, ...over }) as unknown as PrintUnit;
 
@@ -18,6 +18,35 @@ const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u1', manual: [], deleted
  * are kept. `backNeedsConfirm` could not catch it: it reads `manual`, `deleted` and `contactSettings`,
  * never `dental.stamps`, so the guard was blind to a whole class of hand work.
  */
+/*
+ * STEP 1'S NEXT, AND WHOSE AREA WINS. This used to be "there is no proposal", which held only while a
+ * hand-drawn rim implied a failed detection. Once a DETECTED rim could be redrawn, Done left a proposal
+ * in hand, the test said no, and detection rebuilt the policy over the loop just drawn - dropping the
+ * operator's paint with it, because the rebuild carries no stamps. The walk covered entry and Cancel
+ * (`u9b`, `u9c`) and never Done then Next, so it stayed green.
+ */
+describe('whether Step 1 goes on with the area the unit already has', () => {
+  const manual = (over: Record<string, unknown> = {}) => unit({
+    dental: { kind: 'legacy', origin: 'manual-area', profileId: 'p', stamps: [], rim: {} },
+    ...over,
+  } as unknown as Partial<PrintUnit>);
+
+  it('goes straight on with a manual area of the current type, proposal or not', () => {
+    expect(keepsManualArea(manual(), 'p')).toBe(true);
+  });
+
+  it('re-detects when the appliance type changed, because another type may find an area', () => {
+    expect(keepsManualArea(manual(), 'other-profile')).toBe(false);
+  });
+
+  it('re-detects for a detected area, a unit with no policy, and with no type chosen', () => {
+    const detected = unit({ dental: { kind: 'two-contour', profileId: 'p', stamps: [], tuning: {}, region: {}, rim: {} } } as unknown as Partial<PrintUnit>);
+    expect(keepsManualArea(detected, 'p'), 'a detected area belongs to detection, which refreshes it').toBe(false);
+    expect(keepsManualArea(unit(), 'p')).toBe(false);
+    expect(keepsManualArea(manual(), undefined)).toBe(false);
+  });
+});
+
 describe('what a re-accepted orientation carries over', () => {
   const painted = (over: Record<string, unknown> = {}) => unit({
     dental: { kind: 'two-contour', profileId: 'p', stamps: [{ at: 1 }], tuning: { density: 3 }, region: {}, rim: {} },

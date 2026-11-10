@@ -8,9 +8,9 @@ import type { DentalNotice } from '../dental/editingMode';
 import type { AnalysisClient } from '../workers/analysisClient';
 import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
-import { isManualArea } from '@mixo-geocore/host/dental/dentalPolicy';
 import { keptDentalWork } from '../dental/flow';
 import { manualAreaPolicy } from '../dental/manualArea';
+import { keepsManualArea } from '../dental/flow';
 import { dentalStructureOf, dentalSupportSettings } from '../dental/supportPreset';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
@@ -322,7 +322,23 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
      * saved the rim and Next then said "no aligner opening was found". Walk `u5i` is why that cannot
      * return, and `u5k` is why reopening cannot bring it back.
      */
-    if (!proposal && profile && unit.dental && isManualArea(unit.dental)) {
+    /*
+     * THE UNIT'S OWN RIM WINS, AND `!proposal` IS WHY IT DID NOT. `dentalRimDefined` keeps the
+     * proposal, so REDRAWING a rim detection had found left one in hand - this branch was skipped, and
+     * the two-contour branch below rebuilt the policy from `proposal.rim` and the detected region,
+     * overwriting the loop the operator had just drawn and dropping their paint with it. The button
+     * promised the opposite. `u9b`/`u9c` covered entry and Cancel, never Done then Next.
+     *
+     * The profile is the guard that `!proposal` was standing in for. Detection is worth re-running
+     * when the aligner TYPE changed, because a different type may find an area where this one found
+     * none; it is never worth re-running to overwrite the operator. So: a manual area of the CURRENT
+     * type goes straight on, whoever made it, and a type change still falls through to detection.
+     *
+     * It fixes the re-accept path too. Coming Back from Step 2 and pressing Next used to reach the
+     * no-area branch again, which rebuilt the policy with no stamps and wiped the painted area - W-01's
+     * class. That branch is no longer reached for an unchanged type.
+     */
+    if (keepsManualArea(unit, profile)) {
       send({ type: 'acceptDentalOrientation', noArea: true });
       requestView('bottom');
       return;
@@ -347,7 +363,10 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
       if (!region || region.kind !== 'proposal') {
         // No area detected: Step 2 opens empty, with its message; Next stays off until something is marked.
         // Owner decision: paint may create the area from scratch, only because detection found none.
-        dispatch({ type: 'batch', commands: [...presetCommands(unit, profile), { type: 'dental/set', unitId: unit.id, policy: manualAreaPolicy(proposal.rim, false, profile) }] });
+        // THE PAINT IS CARRIED, as it is everywhere else a policy is replaced (`useRimDrawing` does the
+        // same). Reaching here with stamps means the type changed under a painted area; dropping them
+        // would be W-01 again, and the paint is the operator's work, not a function of the rim.
+        dispatch({ type: 'batch', commands: [...presetCommands(unit, profile), { type: 'dental/set', unitId: unit.id, policy: manualAreaPolicy(proposal.rim, false, profile, unit.dental?.stamps ?? []) }] });
         send({ type: 'acceptDentalOrientation', noArea: true });
         requestView('bottom');
         return;

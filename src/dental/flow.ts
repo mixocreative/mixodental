@@ -1,3 +1,4 @@
+import { isManualArea } from '@mixo-geocore/host/dental/dentalPolicy';
 import type { PrintUnit, SceneCommand } from '../state/project';
 
 /** How much hand work Step 3 holds on an aligner: supports added, automatic ones removed, supports with their own settings. */
@@ -35,6 +36,24 @@ export function keptDentalWork(unit: Pick<PrintUnit, 'dental'>, profileId: strin
   return policy !== undefined && policy.kind === 'two-contour' && policy.profileId === profileId
     ? { stamps: policy.stamps, tuning: policy.tuning }
     : undefined;
+}
+
+/**
+ * Whether Step 1's Next should go STRAIGHT ON with the area this unit already has, instead of
+ * detecting over the top of it.
+ *
+ * THE RULE IS THE UNIT'S OWN WORK WINS, and the flow used to express it as "there is no proposal".
+ * That held only while a hand-drawn rim implied a failed detection. The moment a DETECTED rim could be
+ * redrawn, Done left a proposal in hand, the test said no, and detection rebuilt the policy over the
+ * loop the operator had just drawn - taking their paint with it, because the rebuild carries no stamps.
+ *
+ * The profile is what `!proposal` was standing in for. Re-detecting is worth it when the aligner TYPE
+ * changed, since another type may find an area where this one found none; it is never worth it to
+ * overwrite the operator. Same shape as `keptDentalWork` above, and for the same reason.
+ */
+export function keepsManualArea(unit: Pick<PrintUnit, 'dental'>, profileId: string | undefined): boolean {
+  const policy = unit.dental;
+  return policy !== undefined && profileId !== undefined && isManualArea(policy) && policy.profileId === profileId;
 }
 
 /** Back from Step 3 once confirmed: the hand work goes, the supports follow the next Generate. */
