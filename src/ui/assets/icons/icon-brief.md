@@ -33,7 +33,14 @@ icon loader does to every file, so artwork that ignores them cannot ship.
 6. **Readable large.** These are shown big on a high-resolution screen; the pixel look is a STYLE, not
    a size constraint. Do not optimise for 16 px.
 
-## Priority 1 — the deck tool rail (these unblock the app)
+## Already drawn — this is what a REPLACEMENT must keep
+
+Everything in the next two sections exists and is in the app. They are kept here because each one
+names the single idea its drawing has to carry: a replacement that loses that idea is worse than no
+replacement, however much better it looks. The style book shows all of them at their real sizes with
+the path of each file — `npm run dev`, then `/mixodental/kit.html`.
+
+## The deck tool rail — Rule A, drawn
 
 Four buttons sit in a row. They must be distinguishable **from each other at a glance**, which matters
 more than any one of them being a perfect picture. `tool-orient` already exists — match its weight.
@@ -65,7 +72,7 @@ standing on a **solid base line**. Think scaffolding under a bridge, not a tree.
 
 (`tool-orient.svg` exists: a box with a turn arrow.)
 
-## Priority 2 — the rim-mode cursor
+## The rim-mode cursor — Rule A, drawn and wired
 
 In rim define mode a press means three different things, and today all three show a plain crosshair.
 
@@ -81,19 +88,21 @@ model it adds one at the end. All three today show a plain system crosshair, whi
 Draw it on the same 24 × 24 grid but keep it **light** — a cursor sits over artwork and must not blot
 it out. Hotspot at the centre.
 
-## Priority 3 — item kinds (only when the app can prepare that item)
+## Still to draw — item kinds, Rule B (only when the app can prepare that item)
 
-Three exist and work (`aligner`, `denture`, `generic`). The rest are for later. **The trap: in one
+The three that exist (`aligner`, `denture`, `generic`) are drawn isometric on the 24 grid and shown at
+72px. Match them: `scripts/pixel-icons.mjs` has the arch builder, and `--preview` prints a drawing as
+text and writes nothing, which is the only honest way to judge one. The rest below are for later. **The trap: in one
 colour, half of these are the same horseshoe.** Each one below names the single feature that tells it
 from its neighbours — draw that feature clearly and the rest loosely, not the other way round.
 
 | File | Subject | The one feature that distinguishes it |
 | --- | --- | --- |
-| `aligner.svg` | Clear tooth-shaped shell, top-down horseshoe | **Segmented** — a visible gap per tooth, thin walls, nothing inside |
+| ~~`aligner.svg`~~ drawn | Isometric shell | **THIN** — a narrow band, a tall wall, nothing inside |
 | `retainer.svg` | Same shell | **A wire** running across the opening |
 | `night-guard.svg` | Same shell | **Thick and unbroken** — one continuous piece, no segmentation |
-| `denture.svg` | Full denture, arch of teeth on a gum | **Bulk** — a solid gum body behind the tooth row |
-| `generic.svg` / `model.svg` | A dental study model | **A solid flat base** the arch stands on — the only one with a plinth |
+| ~~`denture.svg`~~ drawn | Isometric denture | **BULK** — a gum body nearly twice the aligner's band, with a tooth row standing on it |
+| ~~`generic.svg`~~ drawn | Isometric study model | **THE PLINTH** — the only one of the three standing on a slab |
 | `surgical-guide.svg` | Arch with drill guides | **Round holes punched through** the band |
 | `crown-bridge.svg` | Two or three joined crowns | **Small, free-standing** — no arch at all |
 | `abutment.svg` | Implant abutment | **Tall and vertical**, a screw thread at the bottom |
