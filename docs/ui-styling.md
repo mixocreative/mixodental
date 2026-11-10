@@ -475,7 +475,9 @@ The kind follows the SIZE, not taste. Both kinds are drawn on the same **24 x 24
 
 24px is also Material's standard icon size and the WCAG 2.5.8 minimum target size, so the rule and the convention agree. The next honest step up is 48px (2x), which needs the icon stacked above the word rather than beside it.
 
-**Colour is not a choice.** `scopeIcon` (`src/ui/iconSvg.ts`) rewrites every fill and stroke in every file to `currentColor`, so an icon always takes the colour of the place it sits in and can never be off-palette. A colourful icon is therefore not a file you can drop in — it needs a second asset path that does not exist. Judge every drawing in black on white.
+**Colour: one ink by default, tokens if you ask for them.** `scopeIcon` (`src/ui/iconSvg.ts`) rewrites colour **literals** — `#1b2a4a`, `rgb(...)`, `hsl(...)` — to `currentColor`, so a drawing exported from a vector tool arrives as one ink and can never be off-palette. It does **not** touch `fill="var(--accent)"`: a paint written as a theme token survives, in an attribute and inside a `<style>` block alike (verified, 2026-11-10). So **tonal key art is possible today with no new machinery** — `currentColor` for the body plus one or two `var(--token)` fills — and it follows both themes, the pressed state and the disabled state, which a free-colour icon would not.
+
+Two things follow. A vector tool writes hex, so somebody swaps hex for `var()` by hand, per file. And free colour — a palette of its own, like the isometric reference art — is still not available and is not worth building: it breaks the theme switch and every inverted state. Judge a one-ink drawing in black on white.
 
 **Four of the files are generated, not drawn.** `tool-rim.svg`, `tool-area.svg`, `tool-supports.svg` and `cursor-rim.svg` come out of `scripts/pixel-icons.mjs` (`node scripts/pixel-icons.mjs`, or `--preview` to print them as text and write nothing). A hand edit to those four is lost the next time anyone runs it: change the generator instead. Every other file in the folder is a drawing and is edited as a drawing.
 

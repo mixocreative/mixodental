@@ -1,5 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ICON_CATALOGUE } from './iconCatalogue';
 
 /*
  * The house rules for the icon folder (src/ui/assets/icons/README.md), held to by a test so the set stays a
@@ -8,10 +10,19 @@ import { describe, expect, it } from 'vitest';
  * wrong. These rules are about the FILES.
  */
 
-/** Every icon file, as text, keyed by its name. */
+/**
+ * Every icon file, as text, keyed by its name - read FROM DISK, not through `import.meta.glob(...?raw)`.
+ *
+ * The glob is what the app uses and it is right for the app, but under the test runner it is not a
+ * trustworthy read: `uiStylingDoc.test.ts` already notes that a `.css?raw` comes back empty there, and
+ * while proving these guards a forged icon file came back as its previous contents, so the guard passed
+ * on a file that was broken on disk. A guard that reads a cache is not a guard. `readdirSync` also means
+ * a file added to the folder is seen without a rebuild.
+ */
+const DIR = 'src/ui/assets/icons';
 const ICONS = Object.fromEntries(
-  Object.entries(import.meta.glob<string>('./assets/icons/*.svg', { query: '?raw', import: 'default', eager: true }))
-    .map(([path, text]) => [path.replace(/.*\//, ''), text]),
+  readdirSync(DIR).filter((name) => name.endsWith('.svg'))
+    .map((name) => [name, new TextDecoder().decode(readFileSync(join(DIR, name)))]),
 );
 
 const names = Object.keys(ICONS);
@@ -47,22 +58,45 @@ describe('the icon folder', () => {
 /*
  * THE PIXEL-ART SET, and the one rule the rest of the folder does not have to keep.
  *
- * `scripts/pixel-icons.mjs` draws a few icons as pixel art in vector: a 24 x 24 grid, ten units a fake
+ * `scripts/pixel-icons.mjs` scaffolds a few icons as pixel art in vector: a 24 x 24 grid, ten units a fake
  * pixel, on a 240 artboard. Two things can quietly break that and neither shows up as an error - a hand
- * edit that lands a rect off the grid, and a CSS size that is not a whole multiple of 24, which makes
+ * edit that lands a shape off the grid, and a CSS size that is not a whole multiple of 24, which makes
  * every fake pixel straddle a real one. The second one is what made the rail's icons look badly drawn
  * when they were only badly sized, so both are held here rather than in a comment.
  *
- * A pixel-art file is the one marked `shape-rendering="crispEdges"`; the Lucide and hand-drawn icons in
- * the same folder are not pixel art and none of this binds them.
+ * WHICH FILES ARE PIXEL ART IS DECLARED, in `src/ui/iconCatalogue.ts`, and is deliberately not read from
+ * the file. It used to be read from `shape-rendering="crispEdges"`, and that is an attribute a vector tool
+ * drops on export: a designer who opened one of these and saved it would have silently taken the file out
+ * of the guarded set at exactly the moment the guard was needed. The attribute stays in the files, but the
+ * CSS sets it too (`--pixel-icon-*` rules), so an export without it still renders crisp.
  */
 const GRID = 24;
 const CELL = 10;
-const PIXEL_ART = names.filter((name) => ICONS[name].includes('shape-rendering="crispEdges"'));
+const PIXEL_ART = ICON_CATALOGUE.filter((entry) => entry.pixel).map((entry) => `${entry.name}.svg`);
+
+/**
+ * Every number in a pixel-art file that is NOT a whole fake pixel.
+ *
+ * Deliberately not read attribute by attribute. A pixel-art icon is made of whole fake pixels and nothing
+ * else, so EVERY number in it is a multiple of ten - which means the check needs no list of attributes to
+ * keep up to date, and catches a run of squares however the exporter chose to write it: `<rect>`, a
+ * `<path>` with a `d`, a `<polygon>` with `points`. The attribute-by-attribute version of this missed a
+ * `<path>` outright.
+ *
+ * The root `<svg>` tag is dropped first: its viewBox is the artboard, not a shape, and `0 0 240 240` would
+ * otherwise be read as geometry. Anything else with a number in it - a stroke width, an opacity - is a
+ * thing a pixel-art file should not have, so being told about it is the point rather than a false alarm.
+ */
+function offGrid(file: string): string[] {
+  // Everything after the root tag's closing `>`: its viewBox is the artboard and `w3.org` holds a 3.
+  const body = file.slice(file.indexOf('>', file.indexOf('<svg')) + 1);
+  return [...body.matchAll(/-?\d+(?:\.\d+)?/g)].map(([n]) => n).filter((n) => Number(n) % CELL !== 0);
+}
 
 describe('the pixel-art icons', () => {
-  it('has some, or the generator stopped being used', () => {
+  it('has some, and every declared one is really in the folder', () => {
     expect(PIXEL_ART.length).toBeGreaterThan(0);
+    expect(PIXEL_ART.filter((name) => !names.includes(name))).toEqual([]);
   });
 
   it('draws every one on the same artboard', () => {
@@ -70,18 +104,12 @@ describe('the pixel-art icons', () => {
     expect(wrong).toEqual([]);
   });
 
-  // Every rect is a whole number of fake pixels, at a whole fake pixel: one off-grid value and the icon
-  // no longer lines up with the others at any size.
-  it('keeps every rect on the grid', () => {
-    const offenders: string[] = [];
-    for (const name of PIXEL_ART) {
-      for (const [tag] of ICONS[name].matchAll(/<rect\b[^>]*>/g)) {
-        const off = ['x', 'y', 'width', 'height']
-          .map((attr) => [attr, new RegExp(` ${attr}="([^"]*)"`).exec(tag)?.[1]] as const)
-          .filter(([, value]) => value !== undefined && Number(value) % CELL !== 0);
-        if (off.length > 0) offenders.push(`${name}: ${off.map(([attr, value]) => `${attr}=${value}`).join(' ')}`);
-      }
-    }
+  // One off-grid number and the icon no longer lines up with the others at any size.
+  it('keeps every shape on the grid', () => {
+    const offenders = PIXEL_ART
+      .map((name) => [name, offGrid(ICONS[name])] as const)
+      .filter(([, bad]) => bad.length > 0)
+      .map(([name, bad]) => `${name}: ${bad.join(' ')}`);
     expect(offenders).toEqual([]);
   });
 });

@@ -15,7 +15,7 @@
  *
  * THE FAKE PIXEL IS 10 UNITS on a 240 artboard: a 24 x 24 grid, shared by every icon here.
  */
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -157,6 +157,7 @@ const svg = (grid) => `<?xml version="1.0" encoding="UTF-8"?>
 `;
 
 const preview = process.argv.includes('--preview');
+const force = process.argv.includes('--force');
 for (const [name, build] of Object.entries(ICONS)) {
   const grid = build();
   if (preview) {
@@ -164,6 +165,13 @@ for (const [name, build] of Object.entries(ICONS)) {
     for (const row of grid) console.log(row.map((on) => (on ? '##' : '. ')).join(''));
     continue;
   }
-  writeFileSync(join(INTO, `${name}.svg`), svg(grid));
-  console.log(`${name}.svg: ${rects(grid).length} rects, ${N}x${N} grid, ${CELL} units a pixel`);
+  const file = join(INTO, `${name}.svg`);
+  // A drawing in the folder outranks this script: see the header. --force is for changing the
+  // generator itself, and it says out loud that it is throwing away whatever was there.
+  if (existsSync(file) && !force) {
+    console.log(`${name}.svg: KEPT - the file exists and IS the source. --force to overwrite`);
+    continue;
+  }
+  writeFileSync(file, svg(grid));
+  console.log(`${name}.svg: ${force ? 'OVERWRITTEN' : 'written'} - ${rects(grid).length} rects, ${N}x${N} grid, ${CELL} units a pixel`);
 }

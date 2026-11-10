@@ -5,9 +5,12 @@ icon loader does to every file, so artwork that ignores them cannot ship.
 
 ## Non-negotiable rules
 
-1. **ONE COLOUR.** The loader (`scopeIcon`) rewrites every fill and stroke to `currentColor`, so the
-   icon takes the colour of the place it sits in. No gradients, no shading, no second colour, no
-   "white highlight". Draw it as a single-colour silhouette and judge it in black on white.
+1. **ONE COLOUR.** The loader (`scopeIcon`) rewrites every colour you write — hex, `rgb()`, `hsl()` —
+   to `currentColor`, so the icon takes the colour of the place it sits in. No gradients, no shading,
+   no second colour, no "white highlight". Draw it as a single-colour silhouette and judge it in black
+   on white. (A paint written as `fill="var(--accent)"` is left alone, so a second TONE from the app's
+   own palette is possible later — but do not use it unless you were asked for it by name: hand in one
+   ink.)
 2. **Pixel-art look, vector output.** Everything lands on a **24 × 24 pixel grid**, every pixel the
    same size, no half pixels and no anti-aliased edges. Deliver SVG where each pixel is a `<rect>` on
    a 10-unit grid (`viewBox="0 0 240 240"`), or deliver a 24 × 24 PNG and we will trace it. The app

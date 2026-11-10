@@ -1628,8 +1628,13 @@ dialog.terms .terms-item > span { flex: none; }
  */
 /* The rail's icons are the pixel-art set, so they take the inline pixel size, not `.tool-icon`'s
    18px: see --pixel-icon-inline for why a fraction of a pixel smears. 24px is also Material's
-   standard icon size and the WCAG 2.5.8 minimum target, so the rule and the convention agree. */
-.tool-rail .tool svg { width: var(--pixel-icon-inline); height: var(--pixel-icon-inline); flex: none; }
+   standard icon size and the WCAG 2.5.8 minimum target, so the rule and the convention agree.
+   `shape-rendering` is set HERE as well as in the files: it is an attribute a vector tool drops on
+   export, and a redrawn icon must not start anti-aliasing itself because of that. */
+.tool-rail .tool svg {
+  width: var(--pixel-icon-inline); height: var(--pixel-icon-inline); flex: none;
+  shape-rendering: crispEdges;
+}
 .tool-rail { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
 .tool-rail .tool {
   min-height: var(--row-height);
