@@ -1142,10 +1142,23 @@ async function walk(url, scratch, dentalFixture) {
        *   the place     `a2` sweeps 0.3,0.5 -> 0.72,0.5 and selects 57. `g` sweeps 0.3,0.5 -> 0.7,0.5
        *                 and selects 0. Same section, same screen, nearly the same line.
        *
-       * It is DETERMINISTIC, not flaky: `#811c9dc5` on every run. What differs from `a2` and has not
-       * been tested is the state `d.exitMode()` + `d.enterDragOver()` leaves after b-f, and whether
-       * drag-over has anything selectable left by then. Each hypothesis costs an 18-minute section-`a`
-       * run, which is why this is written down rather than guessed at.
+       * IT IS NOT DETERMINISTIC. This said "DETERMINISTIC, not flaky: `#811c9dc5` on every run", and
+       * three clean full runs of the same code since have disagreed with that and with each other:
+       *
+       *   2026-11-10 (the four runs above)   0 selected   #811c9dc5
+       *   2026-11-10, later                 56 selected   #14da8dce
+       *   2026-11-11                         4 selected   #ff3c123b
+       *
+       * In every one of them `a1` generated 429 supports against a 429 baseline and `a2` selected
+       * 57, 57, 57 sweeping nearly the same line - so the model, the tool and the coordinates are
+       * steady and it is `g`'s stroke alone that lands on a VARYING amount of model.
+       *
+       * That closes off the fixed causes ruled out one by one above, and leaves the one hypothesis
+       * never tested: the state `d.exitMode()` + `d.enterDragOver()` leaves after b-f, and whether
+       * drag-over has anything selectable left by then. A varying count fits leftover state or timing;
+       * it does not fit a wrong coordinate, a wrong camera or an unarmed tool, each of which would be
+       * wrong by the same amount every time. Each hypothesis costs an 18-minute section-`a` run, which
+       * is why this is written down rather than guessed at - and why the numbers above are kept.
        *
        * ARMED, OR NOT? The old `.catch(() => {})` swallowed the one thing this check rests on: if the
        * press missed, nothing was armed, every stroke selected nothing, and the failure surfaced two
