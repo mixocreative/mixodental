@@ -24,7 +24,45 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (the deploy that had been dead for eight days - 2026-11-09)
+## Latest completed step (the overnight integrity audit - 2026-11-11)
+
+> A whole-repository `/cia` audit of `41f8d7f`, run unattended while the owner slept. The report is
+> **`cia-audit-report.md`** at the root; the evidence it cites is committed under
+> `artefacts/2026-11-11-screen/`.
+>
+> **The gate ran whole on this commit, which is the first time since `1b3b178`:** tsc 0,
+> `vendor:check` 0, `npm test` 0 (1588 passed / 1 skipped, 217 files - 1590 after the audit's own
+> test), `check:duplicates` 0, `screens` 0 (19), `build` 0, `wasm:test` 0, `gate:real` **PASS
+> (13 scans, no differences)**, and the **full walk 185 PASS / 1 FAIL (186 checks, 1863 s)** - the
+> FAIL being `g-pre`, which names itself *"(precondition, not the app)"*. Its unthrottled baseline
+> this run was **0**, a fourth distinct value (0, 56, 4, 0), so the non-determinism `walk.mjs`
+> records is confirmed rather than resolved. No tab crash: the walk ran with nothing beside it.
+>
+> **Seventeen findings. The two HIGH ones are the same hole from two sides.** A browser with no
+> WebGL2 **empties the page** - `#root` to 0 children, no text, no surface at all - because there is
+> no capability check, no error boundary and no `window.onerror` anywhere in `src/`; proved with a
+> control pass beside it (`artefacts/2026-11-11-screen/nogl-blocked.png`). And **the print-angle
+> confirm cannot say no**: `confirmPick` returning `undefined` (no tilt in the tried set produces a
+> build that holds) and a confirm that threw both reach the same `accept()` as "the first pick was
+> confirmed", so Step 2 opens identically in all three cases (`useDentalFlow.ts:398-409`).
+>
+> **Two fixed here**, each its own commit with its test watched to fail first: the deck row's picture
+> now follows a rotation (it was keyed on mesh identity alone, so every row the batch turned kept its
+> pre-orientation photo beside the words "Turned upright."), and a stranded unterminated docblock in
+> `scripts/test-support/dentalExpect.ts` that had swallowed its neighbour's description.
+>
+> **One boundary moved from class (b) to class (e).** The exported STL - the product's only
+> deliverable - was proved against nothing but our own reader
+> (`export.test.ts`: *"writes STL Z-up and reads it back Y-up unchanged"*, which is the
+> self-consistent codec). A real Step-3 export of 408,308 triangles, written tonight through the
+> app's own button, now reads correctly in **trimesh**: Z-up on the plate, consistent winding,
+> positive signed volume. `verify-exported-stl.py` is eight assertions and should become a suite
+> test over a checked-in export.
+>
+> Nothing was pushed, and no dependency was bumped: the four `npm audit` advisories are all
+> devDependencies (vitest, @vitest/mocker, tinypool, vite) and none reaches the shipped bundle.
+
+## Previous completed step (the deploy that had been dead for eight days - 2026-11-09)
 
 > **THE SITE WAS 242 COMMITS BEHIND, AND NOTHING SAID SO.** The last real GitHub Pages deployment is
 > `5e4c7a6`, 2026-11-01 15:34. On 2026-11-02 the CI triggers were narrowed to `milestone-*` tags plus
