@@ -1,0 +1,48 @@
+{
+  "head": "41f8d7fc4d493eb9da211a070eec04bf2ba65be8",
+  "url": "http://127.0.0.1:5290/mixodental/",
+  "control": {
+    "nogl": false,
+    "clicked": true,
+    "dropped": true,
+    "atStart": {
+      "where": "start screen",
+      "rootChildren": 1,
+      "canvases": 0,
+      "text": "DENTAL Resin Support Studio English 繁體中文 日本語 What are you making? Aligner Denture Any model Open a saved project 0 objects Drop one or more files, or choose what to make. Terms"
+    },
+    "atWorkspace": {
+      "where": "after a model is dropped",
+      "rootChildren": 1,
+      "canvases": 1,
+      "text": "DENTAL Resin Support Studio English 繁體中文 日本語 Undo Redo Wireframe Import models STL, GLB or glTF. Files stay on this device. Open project Save project Objects 1 A cube – Select all Delete Layout 1 object Arrange objects Transform Select Move Rotate Supports for 1 selected Generate supportsAligner Support ProductionClear manual editsRemove supports Modes Edit supports No-support zones None Check sup"
+    },
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  "blocked": {
+    "nogl": true,
+    "clicked": true,
+    "dropped": false,
+    "atStart": {
+      "where": "start screen",
+      "rootChildren": 1,
+      "canvases": 0,
+      "text": "DENTAL Resin Support Studio English 繁體中文 日本語 What are you making? Aligner Denture Any model Open a saved project 0 objects Drop one or more files, or choose what to make. Terms"
+    },
+    "atWorkspace": {
+      "where": "after a model is dropped",
+      "rootChildren": 0,
+      "canvases": 0,
+      "text": ""
+    },
+    "consoleErrors": [
+      "THREE.WebGLRenderer: Error creating WebGL context.",
+      "The above error occurred in the <ForwardRef(Canvas)> component:\n\n    at Canvas (http://127.0.0.1:5290/mixodental/node_modules/.vite/deps/chunk-Y7HNGDZ5.js?v=27a10427:18687:3)\n    at FiberProvider (http://127.0.0.1:5290/mixodental/node_modules/.vite/deps/chunk-Y7HNGDZ5.js?v=27a10427:18621:21)\n    at "
+    ],
+    "pageErrors": [
+      "Error creating WebGL context.",
+      "Error creating WebGL context."
+    ]
+  }
+}

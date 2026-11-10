@@ -1,0 +1,12 @@
+cia audit run, 2026-11-11, Screen tier
+HEAD at the start:     41f8d7fc4d493eb9da211a070eec04bf2ba65be8
+tree at the start:     clean
+node:                  v22.15.1
+playwright-core:       1.64.1
+vendored engine:       63
+
+the export the S24 check read (deleted after hashing: 20,415,484 bytes is not repo-sized,
+and 'npm run walk -- --only=x' with WALK_OUT set reproduces it):
+1152da8abd0005e84fe971dff8930c24bc55f1dfb54860dc35f94359e9211d6d *step3-export.stl
+  408,308 triangles; written by the app's own Step 3 export button in headless Chromium
+  from docs/dental-reference/reference-aligner.stl

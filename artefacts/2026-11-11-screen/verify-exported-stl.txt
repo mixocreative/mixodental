@@ -1,0 +1,7 @@
+artefacts/2026-11-11-screen/step3-export.stl
+  PASS header count equals what an independent parser finds: header 408308, trimesh 408308
+  PASS stands on the plate at z = 0 and rises in +z (Z-up, as a slicer assumes): z -0.000001 .. 43.192, x 4.776 .. 82.362, y -19.970 .. 31.995
+  PASS winding is consistent: True
+  PASS normals point outward (positive signed volume): signed volume 8202.301 mm^3
+
+1 of 1 file(s) pass
