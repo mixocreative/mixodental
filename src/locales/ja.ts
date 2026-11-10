@@ -800,6 +800,7 @@ export const ja: Dictionary = {
   'Take every point away and start the rim again': 'すべてのポイントを削除して縁をやり直します',
   'There are no points to clear.': 'クリアするポイントがありません。',
   'Use this rim, then turn the aligner by hand': 'この縁を使用し、手動でアライナーを回転させます',
+  'Use this rim and keep the detected orientation': 'この縁を使用し、検出された向きを保持します',
   'Define the rim': '縁の定義',
   'Rim tools': '縁ツール',
   'The rim': '縁',

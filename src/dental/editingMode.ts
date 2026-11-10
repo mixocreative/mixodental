@@ -656,7 +656,14 @@ registerCommands({
    * `rimDoneReason` says which of the three things is in the way, in the operator's own language.
    */
   'dental.rim.done': {
-    role: 'primary', label: () => 'Done', hint: () => 'Use this rim, then turn the aligner by hand',
+    role: 'primary', label: () => 'Done',
+    /*
+     * THE HINT HAS TO KNOW WHICH RIM THIS IS. "turn the aligner by hand" is true only when detection
+     * found nothing - the case this mode was built for. REDRAWING a rim detection did find leaves the
+     * orientation standing, and `keepsManualArea` now carries the drawn rim through Next without
+     * touching it, so promising a hand turn there is simply wrong.
+     */
+    hint: (s) => (s.dentalProposed ? 'Use this rim and keep the detected orientation' : 'Use this rim, then turn the aligner by hand'),
     visible: rim, enabled: (s) => rim(s) && rimDoneReason(s) === undefined,
     disabledReason: (s) => {
       if (!rim(s)) return undefined;

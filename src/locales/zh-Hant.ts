@@ -805,6 +805,7 @@ export const zhHant: Dictionary = {
   'Take every point away and start the rim again': '清除所有點並重新繪製邊緣',
   'There are no points to clear.': '沒有可清除的點。',
   'Use this rim, then turn the aligner by hand': '使用此邊緣，然後手動旋轉牙套',
+  'Use this rim and keep the detected orientation': '使用此邊緣，並保留偵測到的方向',
   'Define the rim': '定義邊緣',
   'Rim tools': '邊緣工具',
   'The rim': '邊緣',
