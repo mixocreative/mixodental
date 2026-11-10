@@ -25,6 +25,7 @@ import { DentureSettingsSection } from '../src/denture/settings/DentureSettingsS
 import { DEFAULT_DENTURE_OPTIONS } from '../src/denture/settings/dentureOptions';
 import { PartsList } from '../src/denture/parts/PartsList';
 import { DentalBar } from '../src/components/DentalBar';
+import { ToolRail } from '../src/deck/ToolRail';
 import { DEFAULT_PROFILE_ID, profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { DentalRimStep } from '../src/dental/rim/DentalRimStep';
 import { rimBadgeText } from '../src/dental/rim/rimStepText';
@@ -187,6 +188,17 @@ const AREA_SCREENS = [
 }), true]);
 
 SCREENS.push(...AREA_SCREENS);
+
+/*
+ * THE DECK'S TOOL RAIL, in the four states it can be in at once. It is the one surface a designer
+ * cannot otherwise reach without importing a model and getting it into each state in turn, and it is
+ * where the rail's own rule lives: greyed, busy and stale must never resemble each other.
+ */
+SCREENS.push(['deck-tool-rail', 'The deck tool rail - ready, busy, stale and unavailable together', () => ({
+  chrome: [],
+  dock: h('div', { key: 'p', style: { padding: '18px' } },
+    h(ToolRail, { key: 'a', facts: { tools: ['orient', 'rim', 'area', 'supports'], oriented: true, hasRim: true, areaAccepted: false, stale: ['rim'], runningTool: 'area' }, onPick: noop })),
+}), true]);
 
 SCREENS.push(...RIM_SCREENS);
 

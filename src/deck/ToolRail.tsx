@@ -1,4 +1,5 @@
-import { t, translateMessage } from '../i18n';
+import { t, translateMessage } from '../i18n';
+import { Icon } from '../ui/Icon';
 import { hint } from '../components/hint';
 import { railReason, railStates, type ToolFacts, type ToolState } from './toolState';
 import type { ToolId } from '../state/tools';
@@ -13,11 +14,23 @@ import type { ToolId } from '../state/tools';
  * not resemble each other. A disabled tool is `disabled`, so it cannot be pressed and reads as grey.
  * A busy tool is pressable and says it is working - press it and you see progress, not grey.
  *
- * WORDS, NOT ICONS. `src/ui/assets/icons/` has `orient` and nothing for the other three, and the
- * icon system is file-driven precisely so a designer owns those drawings rather than code inventing
- * them. One icon beside three bare words looks broken, so all four are words until the files exist;
- * adding them later needs no change here. The house style allows plain word buttons for exactly this.
+ * ICONS AND WORDS, now that all four files exist. This said WORDS, NOT ICONS for as long as
+ * `src/ui/assets/icons/` had `orient` and nothing for the other three - one icon beside three bare
+ * words looks broken, so none of them had one. `tool-rim`, `tool-area` and `tool-supports` closed
+ * that, and the word stays beside each: the rail is where the operator learns the four steps, and a
+ * bare glyph teaches nobody. The icon is `aria-hidden`, so the button still reads as its word.
  */
+
+/**
+ * The file each tool's icon lives in. `orient` keeps its own name because the Orientation bar uses
+ * the same drawing; the three drawn for this rail carry the `tool-` prefix the others use.
+ */
+const ICON: { readonly [K in ToolId]: string } = {
+  orient: 'orient',
+  rim: 'tool-rim',
+  area: 'tool-area',
+  supports: 'tool-supports',
+};
 
 /** What a tool's state adds to its button: the class, whether it can be pressed, and its hover line. */
 function look(state: ToolState): { className: string; disabled: boolean; note: string | undefined } {
@@ -69,7 +82,7 @@ export function ToolRail({ facts, onPick }: {
         // a tool further down the chain still owes an answer to "why not this one".
         {...(state.kind === 'unavailable' ? { title: translateMessage(state.because) }
           : says ? hint(says) : {})}
-      >{t(LABEL[tool])}</button>;
+      ><Icon name={ICON[tool]} className="tool-icon" />{t(LABEL[tool])}</button>;
     })}
     {/*
       ONE line, for the first tool that cannot be used - which is the next thing to do. Four at once
