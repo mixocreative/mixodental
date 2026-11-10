@@ -30,3 +30,33 @@
   border: 1px dashed var(--line);
   border-radius: var(--radius);
 }
+
+/*
+ * THE ICON SHEET (src/kit/IconSheet.tsx): the designer's working view of src/ui/assets/icons/.
+ *
+ * The sizes here are the APP's tokens, not numbers picked for this page - an icon shown at a size the app
+ * never uses teaches the wrong thing, and a pixel-art icon shown at a size that is not a whole multiple of
+ * its 24 grid looks badly drawn when it is only badly sized (see --pixel-icon-* in src/styles.css).
+ */
+.icon-sheet-rule { margin: 0 0 12px; max-width: 76ch; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.icon-sheet-card { gap: 6px; }
+.icon-sheet-shows { display: flex; align-items: flex-end; gap: 8px; }
+/* Resting: the icon on paper, as it sits in a panel. */
+.icon-sheet-show {
+  display: grid; place-items: center; padding: 8px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+  color: var(--ink);
+}
+/* Pressed: paper on ink. Every icon is one colour and inverts here, so both ways round must read. */
+.icon-sheet-show.is-pressed { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.icon-sheet-show--big { margin-left: auto; }
+.icon-sheet-inline { width: var(--pixel-icon-inline); height: var(--pixel-icon-inline); shape-rendering: crispEdges; }
+.icon-sheet-key { width: var(--pixel-icon-key); height: var(--pixel-icon-key); shape-rendering: crispEdges; }
+/* The line glyphs have no one size in the app; 20px is the middle of the 14-20px they are used at. */
+.icon-sheet-free { width: 20px; height: 20px; }
+/* x3 of the inline size: still a whole multiple of the grid, and the fake pixels become visible. */
+.icon-sheet-big { width: calc(var(--pixel-icon-inline) * 3); height: calc(var(--pixel-icon-inline) * 3); shape-rendering: crispEdges; }
+.icon-sheet-name { margin: 0; font-size: 12px; font-weight: 700; }
+.icon-sheet-flag { font-weight: 400; color: var(--warning); }
+/* The path is the point of the card: it is what the designer edits, so it is set to be copied. */
+.icon-sheet-file { margin: 0; font-family: var(--font-mono, monospace); font-size: 11px; color: var(--ink); user-select: all; }

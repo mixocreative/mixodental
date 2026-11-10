@@ -12,6 +12,7 @@ import { stagedJobBar } from '../denture/progress/StagedProgress';
 import { Progress } from '../progress/Progress';
 import { PROGRESS_STYLE, PROGRESS_TYPES, progressLayout, type ProgressType } from '../progress/progressTypes';
 import { reviewLine } from '../denture/steps/supports/reviewLineText';
+import { IconSheet } from './IconSheet';
 
 /*
  * Every shared control of the app in its states, built from the real components and styled by src/styles.css
@@ -99,6 +100,10 @@ export function Catalogue() {
         {LANGS.map((entry) => <option key={entry.lang} value={entry.lang}>{entry.label}</option>)}
       </select>
     </header>
+
+    {/* ICONS FIRST, because they are the one thing on this page a designer changes by replacing a FILE -
+        no code, no developer. Each card prints the path to edit. The controls below are CSS and TSX. */}
+    <IconSheet />
 
     <Section title="Buttons" ui="kit-buttons">
       <Card caption="primary / primary disabled">
