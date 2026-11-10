@@ -21,8 +21,8 @@ the difference is how many real pixels each fake pixel gets.
 | | Rule A - inline | Rule B - key art |
 | --- | --- | --- |
 | Where | A tool or cursor glyph beside a word: the deck rail, the step tools, a cursor | The art on a choice key: an item type |
-| Shown at | `--pixel-icon-inline`, **24px = 1x** the grid | `--pixel-icon-key`, **72px = 3x** the grid |
-| Style | **Flat and front-on.** At 1x a third dimension has nowhere to go | **Isometric and chunky allowed** - 3x is where that look appears |
+| Shown at | `--pixel-icon-inline`, **24px = 1x** the grid | `--pixel-icon-key`, **96px = 4x** the grid |
+| Style | **Flat and front-on.** At 1x a third dimension has nowhere to go | **Isometric and chunky allowed** - 4x is where that look appears |
 | Detail | The least that carries the idea | More, but still a silhouette |
 | Colour | one ink | one ink, or a second TONE from the palette (below) |
 

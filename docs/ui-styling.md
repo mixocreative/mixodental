@@ -154,7 +154,7 @@ Set the look of the DOM. They are the mixo-app-style tokens (paper, ink, hairlin
 | `--dur` | `.15s` | Duration of hover and chevron transitions | Buttons, collapsible chevrons |
 | `--row-height` | `24px` | Height of one list row | `.panel .unit`, and the Items row. **Not** `--row`, which is `22px` and belongs to the batch-review viewer's own table below — the app and that viewer are different densities, so the names are kept apart |
 | `--pixel-icon-inline` | `24px` | Display size of a PIXEL-ART icon standing beside a word: a tool or a cursor glyph. **Must stay a whole multiple of 24** — see Icons below | `.tool-rail .tool svg` |
-| `--pixel-icon-key` | `72px` | Display size of the art on a choice key: an item type. 3x the grid, which is where the chunky isometric look appears | `.choice-key-art` |
+| `--pixel-icon-key` | `96px` | Display size of the art on a choice key: an item type. 4x the grid, which is where the chunky isometric look appears | `.choice-key-art` |
 
 ### The docks (the 3D view's grid)
 
@@ -471,9 +471,9 @@ The kind follows the SIZE, not taste. Both kinds are drawn on the same **24 x 24
 | | Rule A — inline | Rule B — key art |
 | --- | --- | --- |
 | Where | A tool or cursor glyph beside a word: the deck rail, the step tools, a cursor | The art on a choice key: an item type (aligner, denture, any model) |
-| Shown at | `--pixel-icon-inline`, **24px = 1x** the grid | `--pixel-icon-key`, **72px = 3x** the grid |
-| Real pixels per fake pixel | one | nine |
-| Style | **Flat and front-on.** At 1x there is no room for a third dimension: an isometric shape loses its own edges and reads as noise | **Isometric allowed, and encouraged.** 3x is where the chunky Teenage-Engineering look actually appears, so a box can have a top and a side |
+| Shown at | `--pixel-icon-inline`, **24px = 1x** the grid | `--pixel-icon-key`, **96px = 4x** the grid |
+| Real pixels per fake pixel | one | sixteen |
+| Style | **Flat and front-on.** At 1x there is no room for a third dimension: an isometric shape loses its own edges and reads as noise | **Isometric allowed, and encouraged.** 4x is where the chunky Teenage-Engineering look actually appears, so a box can have a top and a side |
 | Detail | As little as carries the idea. Four icons side by side must be told apart at a glance, which matters more than any one being a good picture | More, but still a silhouette: a hole is a real hole |
 | Colour | one, always (below) | one, always (below) |
 

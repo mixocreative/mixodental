@@ -24,8 +24,8 @@ icon loader does to every file, so artwork that ignores them cannot ship.
    | | Rule A — inline | Rule B — key art |
    | --- | --- | --- |
    | What | A tool or cursor glyph beside a word | The art on a choice key: an item type |
-   | Shown at | **24 px = 1×** the grid | **72 px = 3×** the grid |
-   | Style | **Flat and front-on.** At 1× a third dimension has nowhere to go: an isometric shape loses its own edges and reads as noise | **Isometric, chunky, Teenage Engineering.** At 3× a box can have a top and a side and still read |
+   | Shown at | **24 px = 1×** the grid | **96 px = 4×** the grid |
+   | Style | **Flat and front-on.** At 1× a third dimension has nowhere to go: an isometric shape loses its own edges and reads as noise | **Isometric, chunky, Teenage Engineering.** At 4× a box can have a top and a side and still read |
    | Detail | The least that carries the idea — four of these sit side by side and must be told apart at a glance | More, but still a silhouette |
 
    Everything in "Priority 1" and "Priority 2" below is **Rule A**. Everything in "Priority 3" (the
@@ -91,7 +91,7 @@ it out. Hotspot at the centre.
 ## Still to draw — item kinds, Rule B (only when the app can prepare that item)
 
 The three that exist (`aligner`, `denture`, `generic`) are drawn isometric on the 24 grid and shown at
-72px. Match them: `scripts/pixel-icons.mjs` has the arch builder, and `--preview` prints a drawing as
+96px. Match them: `scripts/pixel-icons.mjs` has the arch builder, and `--preview` prints a drawing as
 text and writes nothing, which is the only honest way to judge one. The rest below are for later. **The trap: in one
 colour, half of these are the same horseshoe.** Each one below names the single feature that tells it
 from its neighbours — draw that feature clearly and the rest loosely, not the other way round.

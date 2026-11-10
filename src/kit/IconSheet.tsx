@@ -28,8 +28,8 @@ const RULES: Record<IconSlot, { title: string; rule: string }> = {
     rule: 'One CSS pixel per fake pixel, beside a word at text size. FLAT AND FRONT-ON: at 1x a third dimension has nowhere to go and an isometric shape loses its own edges. These must be told apart from each other at a glance, which matters more than any one being a good picture.',
   },
   key: {
-    title: 'Rule B - key art, 72px (3x the grid)',
-    rule: 'Nine real pixels per fake one, on a choice key. ISOMETRIC AND CHUNKY belong here - this is the size where that look appears at all. More detail than Rule A, but still a silhouette: a hole must be a real hole.',
+    title: 'Rule B - key art, 96px (4x the grid)',
+    rule: 'Sixteen real pixels per fake one, on a choice key. ISOMETRIC AND CHUNKY belong here - this is the size where that look appears at all. More detail than Rule A, but still a silhouette: a hole must be a real hole.',
   },
   free: {
     title: 'Line glyphs - sized by whatever they sit in',

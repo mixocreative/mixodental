@@ -19,7 +19,7 @@
 export type IconSlot =
   /** Rule A: beside a word, at 24px - one CSS pixel per fake pixel, so flat and front-on. */
   | 'inline'
-  /** Rule B: the art on a choice key, at 72px - nine real pixels per fake one, so isometric reads. */
+  /** Rule B: the art on a choice key, at 96px - sixteen real pixels per fake one, so isometric reads. */
   | 'key'
   /** Neither rule: a line glyph sized by whatever uses it (a back arrow, a warning sign, a cursor). */
   | 'free';
@@ -54,7 +54,7 @@ export type IconEntry = {
 };
 
 export const ICON_CATALOGUE: IconEntry[] = [
-  // The item types: the big choices on the start screen, at 72px - Rule B, and the only isometric drawings
+  // The item types: the big choices on the start screen, at 96px - Rule B, and the only isometric drawings
   // in the app. In one colour all three are nearly the same horseshoe, so each `where` names the one
   // feature that tells it from its neighbours, and that feature is what a redrawing must keep.
   { name: 'aligner', slot: 'key', source: 'generated', pixel: true, where: 'Start screen, first big choice: Aligner. THIN - a narrow band with a tall wall and nothing inside' },

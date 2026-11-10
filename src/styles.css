@@ -44,13 +44,15 @@
    * There are two sizes because there are two kinds of icon, and the kind follows the size:
    *   inline (1x)  a tool or cursor glyph beside a word. One CSS pixel per fake pixel, so the
    *                drawing must be FLAT and FRONT-ON - an isometric shape has no room to read.
-   *   key    (3x)  the art on a choice key: an item type. Three CSS pixels per fake pixel, which is
+   *   key    (4x)  the art on a choice key: an item type. Sixteen real pixels per fake one, which is
    *                where the chunky isometric look actually appears, so that style is allowed here.
+   *                It was 3x (72px) until the owner asked for bigger on 2026-11-10; 4x is the next
+   *                whole step, and the key's min-height absorbs the extra 24px.
    * src/ui/assets/icons/README.md carries both rules in full. `src/ui/icons.test.ts` fails if a
    * size here stops being a whole multiple.
    */
   --pixel-icon-inline: 24px;
-  --pixel-icon-key: 72px;
+  --pixel-icon-key: 96px;
   /* Round C marks in the viewport: an unresolved point, and a support landed on the model by tier. */
   --unresolved: var(--warning);
   --landing-allowed: var(--success);
@@ -1474,7 +1476,7 @@ dialog.terms .terms-item > span { flex: none; }
   color: var(--ink);
   text-align: center; white-space: normal;
 }
-/* 3x the icon grid, so isometric pixel art can live here as well as the flat drawings that do now. */
+/* 4x the icon grid: whole multiples only, or the fake pixels land on fractions of real ones. */
 .choice-key-art { width: var(--pixel-icon-key); height: var(--pixel-icon-key); flex: none; transition: color var(--dur, .15s); }
 /* The word and its line are one group, so the gap above them is the art's gap, not theirs. */
 .choice-key-words { display: grid; gap: 4px; }
