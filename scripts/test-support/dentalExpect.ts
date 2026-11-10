@@ -36,9 +36,6 @@ export function rotationToPlateDown(openingDirection: Vector): Vector {
   ];
 }
 
-/**
- * Experimental aligner preset calibrated to the owner-approved, already-correct reference pose.
-
 /** Whether a unit-local point projects into the detected cavity visibility footprint. */
 export function rimContainsPoint(rim: DentalRim, point: Vector): boolean {
   const delta = subtract(point, rim.centroid);
