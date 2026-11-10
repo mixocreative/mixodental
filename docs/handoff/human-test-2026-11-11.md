@@ -32,11 +32,13 @@ A test can check that an icon is on its grid. It cannot check that it looks like
 - **Start screen, three keys.** Cover the words. Can you name each one? The model and the block are
   easy; **aligner against denture is the pair to watch** — they were the two closest at every earlier
   attempt.
-- **In the style book, the five item drawings together.** Three of them are now pale shells — aligner,
-  retainer, night guard — and that is the cluster to judge. The retainer's wire does survive the grid
-  (a dark line across the opening). **Aligner against night guard is the close one:** the difference is
-  "segmented" against "thick and unbroken", and at 144px that is subtle. If it does not read, the
-  night guard needs a feature drawn harder, not a better trace.
+- **In the style book, the five item drawings together.** Three are pale shells — aligner, retainer,
+  night guard. The retainer's wire survives the grid (a dark line across the opening). **The night
+  guard does NOT read as its own object, and that is settled rather than open:** the reference draws
+  it as very nearly its own aligner, so it needs a different reference DRAWING, not another trace.
+  Erasing the divisions, flattening the tones and a heavier outline were all tried and reverted — the
+  last of those broke the uniform-outline rule, which is the one that matters. Nothing to judge here
+  except whether you want to generate a new reference for it.
 - **The same three on a pressed key.** Click one and look before the screen changes. They are coloured
   art, so they do NOT invert — only the one-ink glyphs do. Decide whether that is right.
 - **The deck rail**, with a model loaded. Four buttons in a row: can you tell them apart at a glance?
