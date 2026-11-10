@@ -10,11 +10,14 @@ describe('the designer catalogue page', () => {
   it('renders every section without throwing', () => {
     const html = renderToStaticMarkup(<Catalogue />);
     for (const section of ['kit-icons-key', 'kit-icons-inline', 'kit-icons-free', 'kit-buttons', 'kit-fields', 'kit-dial', 'kit-status', 'kit-progress', 'kit-panels']) expect(html).toContain(`data-ui="${section}"`);
-    // ONE CARD PER ICON, and it carries the path. The sheet exists to tell a designer which file to edit,
-    // so a card that renders a drawing and no path is the sheet failing at its only job.
+    // ONE CARD PER ICON, and it carries the path OF THE RIGHT FOLDER. The sheet exists to tell a
+    // designer which file to edit, so a card that renders the coloured art while printing an
+    // `assets/icons/` path would send them to edit a file the app no longer reads - which is worse
+    // than printing no path at all, because they would not find out until nothing changed.
     for (const entry of ICON_CATALOGUE) {
       expect(html, entry.name).toContain(`data-ui="kit-icon-${entry.name}"`);
-      expect(html, entry.name).toContain(`src/ui/assets/icons/${entry.name}.svg`);
+      const folder = entry.slot === 'key' ? 'art' : 'icons';
+      expect(html, entry.name).toContain(`src/ui/assets/${folder}/${entry.name}.svg`);
     }
     expect(html.match(/icon-sheet-card/g)).toHaveLength(ICON_CATALOGUE.length);
     // Six dials, the staged bars, the status dots in every state.

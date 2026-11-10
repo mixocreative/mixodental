@@ -13,40 +13,32 @@ A table lived here instead and had already rotted: `drop-file`, `next` and `rest
 not in it, because a table in a README is checked by nobody. `src/ui/iconCatalogue.test.ts` fails when a file
 has no entry or an entry has no file, so that cannot happen again.
 
-## Two rules, because there are two kinds of icon
+## Two sets, and the folder is the rule
 
-The kind follows the SIZE, not taste. Both are drawn on the same **24 x 24 grid** so the set stays a set;
-the difference is how many real pixels each fake pixel gets.
-
-| | Rule A - inline | Rule B - key art |
+| | `assets/icons/` (here) | `assets/art/` |
 | --- | --- | --- |
-| Where | A tool or cursor glyph beside a word: the deck rail, the step tools, a cursor | The art on a choice key: an item type |
-| Shown at | `--pixel-icon-inline`, **24px = 1x** the grid | `--pixel-icon-key`, **96px = 4x** the grid |
-| Style | **Flat and front-on.** At 1x a third dimension has nowhere to go | **Isometric and chunky allowed** - 4x is where that look appears |
-| Detail | The least that carries the idea | More, but still a silhouette |
-| Colour | one ink | one ink, or a second TONE from the palette (below) |
+| Drawn by | `src/ui/Icon.tsx` | `src/ui/Art.tsx` |
+| Colour | **one ink** - every fill and stroke becomes `currentColor` | **its own**, kept as drawn |
+| Grid | 24 | 64, on a 640 artboard |
+| Shown at | 24px (1x) - `--pixel-icon-inline` | 128px (2x) - `--pixel-icon-key` |
+| For | tool and cursor glyphs beside a word | the art on a choice key: an item type |
 
-**A pixel-art icon is shown at a whole multiple of its grid or not at all.** At any other size each fake
-pixel straddles a real one and the edges blur, which reads as a badly DRAWN icon when it is only a badly
-SIZED one. The rail's three icons sat at the shared `.tool-icon` 18px for a while - 0.75 of a CSS pixel each
-- and no redrawing would have fixed them. Two cases in `src/ui/icons.test.ts` hold the rule: every
-`--pixel-icon-*` token in `src/styles.css` is a multiple of 24, and every rect in a pixel-art file is on the
-grid. 24px is also Material's standard icon size and the WCAG 2.5.8 minimum target, so the rule and the
-convention agree; 48px (2x) is the next step up and needs the icon above the word, not beside it.
+One ink is not a limitation for a glyph beside a word, it is the point: it inverts with its key and can
+never be off-palette. It IS a limitation for a picture of an object - six rounds of drawing the item
+types in a single colour produced an archway every time, because the teeth, the keyline and the shading
+are the whole of what makes a dental arch readable. Those moved to `../art/`; this folder is unchanged.
 
-**Colour: one ink, and what the loader actually does.** `scopeIcon` rewrites colour LITERALS - `#1b2a4a`,
-`rgb(...)`, `hsl(...)` - to `currentColor`, which is why a file exported from a vector tool arrives on
-palette whatever the designer painted it. It does NOT touch `fill="var(--accent)"`: a paint written as a
-theme token survives, in an attribute and inside a `<style>` block alike. So tonal key art needs no new
-machinery - `currentColor` for the body plus a `var(--token)` fill - and it still follows both themes and
-every inverted state. Free colour, a palette of the icon's own, is the thing that is NOT available: it
-would break the theme switch and the pressed state, and nothing here is waiting for it.
+**A pixel-art file is shown at a whole multiple of ITS OWN grid or not at all.** At any other size each
+fake pixel straddles a real one and the edges blur, which reads as a badly DRAWN icon when it is only a
+badly SIZED one. The rail's three icons sat at the shared `.tool-icon` 18px for a while - 0.75 of a CSS
+pixel each - and no redrawing would have fixed them. `src/ui/icons.test.ts` holds this folder's grid and
+both tokens; `src/ui/art.test.ts` holds the other folder's. 24px is also Material's standard icon size
+and the WCAG 2.5.8 minimum target, so the rule and the convention agree here.
 
 **Four files here are generated, not drawn.** `tool-rim.svg`, `tool-area.svg`, `tool-supports.svg` and
-`cursor-rim.svg` come out of `scripts/pixel-icons.mjs` - `node scripts/pixel-icons.mjs` writes them, and
-`--preview` prints them as text and writes nothing, which is the only honest way to judge one. **A hand edit
-to those four is lost the next time anyone runs it:** change the generator. Every other file here is a
-drawing and is edited as a drawing.
+`cursor-rim.svg` come out of `scripts/pixel-icons.mjs` - `node scripts/pixel-icons.mjs` writes the ones
+that do not exist yet, `--preview` prints them as text and writes nothing, and `--force` overwrites.
+**A hand edit to those four survives** unless someone passes `--force`: the files are the source.
 
 ## Where a new icon comes from
 

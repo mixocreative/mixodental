@@ -5,7 +5,7 @@ icon loader does to every file, so artwork that ignores them cannot ship.
 
 ## Non-negotiable rules
 
-1. **ONE COLOUR.** The loader (`scopeIcon`) rewrites every colour you write — hex, `rgb()`, `hsl()` —
+1. **ONE COLOUR — FOR SET A ONLY (see rule 5).** The loader (`scopeIcon`) rewrites every colour you write — hex, `rgb()`, `hsl()` —
    to `currentColor`, so the icon takes the colour of the place it sits in. No gradients, no shading,
    no second colour, no "white highlight". Draw it as a single-colour silhouette and judge it in black
    on white. (A paint written as `fill="var(--accent)"` is left alone, so a second TONE from the app's
@@ -19,17 +19,24 @@ icon loader does to every file, so artwork that ignores them cannot ship.
 3. **Square canvas, nothing touching the edge.** Keep one pixel of margin all round.
 4. **It must work as a silhouette.** No interior outlines that rely on a lighter fill behind them. A
    hole must be a real hole.
-5. **TWO RULES, and the size decides which.** Do not mix them.
+5. **TWO SETS, and they are different jobs.** Do not mix them.
 
-   | | Rule A — inline | Rule B — key art |
+   | | Set A — one-ink glyphs | Set B — coloured art |
    | --- | --- | --- |
-   | What | A tool or cursor glyph beside a word | The art on a choice key: an item type |
-   | Shown at | **24 px = 1×** the grid | **96 px = 4×** the grid |
-   | Style | **Flat and front-on.** At 1× a third dimension has nowhere to go: an isometric shape loses its own edges and reads as noise | **Isometric, chunky, Teenage Engineering.** At 4× a box can have a top and a side and still read |
-   | Detail | The least that carries the idea — four of these sit side by side and must be told apart at a glance | More, but still a silhouette |
+   | Folder | `src/ui/assets/icons/` | `src/ui/assets/art/` |
+   | What | a tool or cursor glyph beside a word | the art on a choice key: an item type |
+   | Grid | **24**, artboard 240 | **64**, artboard 640 |
+   | Shown at | **24 px = 1×** | **128 px = 2×** |
+   | Colour | one — rule 1 above applies | **its own**, with a keyline and a few tones |
+   | Style | flat and front-on: at 1× a third dimension has nowhere to go | a picture of the object, from above and in front |
 
-   Everything in "Priority 1" and "Priority 2" below is **Rule A**. Everything in "Priority 3" (the
-   item kinds) is **Rule B**.
+   Rule 1 (one colour) binds **Set A only**. Set B keeps what it was drawn with, because six rounds of
+   drawing a dental arch in a single colour produced an archway every time: the teeth, the keyline and
+   the shading are the whole of what makes it readable. And the 64 grid is arithmetic, not taste —
+   fourteen tooth cells need about 50 pixels of arch perimeter and 24 gives about 27.
+
+   Everything in "the deck tool rail" and "the rim-mode cursor" below is **Set A**. Everything under
+   "item kinds" is **Set B**.
 6. **Readable large.** These are shown big on a high-resolution screen; the pixel look is a STYLE, not
    a size constraint. Do not optimise for 16 px.
 

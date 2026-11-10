@@ -7,8 +7,19 @@ import { ICON_CATALOGUE } from './iconCatalogue';
  * with no entry is simply absent from the style book - invisible, and exactly how the README's prose table
  * came to be missing three icons that had shipped.
  */
-const FILES = Object.keys(import.meta.glob('./assets/icons/*.svg', { eager: true }))
+/*
+ * BOTH FOLDERS, because the catalogue covers both sets and the slot says which: `key` is the coloured
+ * art, everything else is the one-ink icons. Checking only `assets/icons/` would have reported the three
+ * item types as missing the moment they moved, which is the catalogue being wrong about the thing it
+ * exists to be right about.
+ */
+const named = (dir: string) => Object.keys(import.meta.glob('./assets/*/*.svg', { eager: true }))
+  .filter((path) => path.includes(`/${dir}/`))
   .map((path) => path.replace(/.*\//, '').replace(/\.svg$/, ''));
+const ICON_FILES = named('icons');
+const ART_FILES = named('art');
+const FILES = [...ICON_FILES, ...ART_FILES];
+const folderOf = (slot: string) => (slot === 'key' ? ART_FILES : ICON_FILES);
 
 describe('the icon catalogue', () => {
   it('has an entry for every file in the folder', () => {
@@ -16,9 +27,9 @@ describe('the icon catalogue', () => {
     expect(FILES.filter((name) => !listed.has(name))).toEqual([]);
   });
 
-  it('has a file for every entry', () => {
-    const onDisk = new Set(FILES);
-    expect(ICON_CATALOGUE.filter((entry) => !onDisk.has(entry.name)).map((entry) => entry.name)).toEqual([]);
+  it('has a file for every entry, in the folder its slot says', () => {
+    const wrong = ICON_CATALOGUE.filter((entry) => !folderOf(entry.slot).includes(entry.name)).map((entry) => entry.name);
+    expect(wrong).toEqual([]);
   });
 
   it('names each icon once', () => {

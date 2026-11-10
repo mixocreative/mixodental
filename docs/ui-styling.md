@@ -464,28 +464,35 @@ its real size, resting and pressed, with the path of the file to edit. A prose t
 folder README and had already gone three icons out of date; `src/ui/iconCatalogue.test.ts` now fails when
 the list and the folder disagree.
 
-### Two rules, because there are two kinds of icon
+### Two sets, and the folder is the rule
 
-The kind follows the SIZE, not taste. Both kinds are drawn on the same **24 x 24 grid** so the set stays a set, and the difference is how many real pixels each fake pixel gets.
-
-| | Rule A — inline | Rule B — key art |
+| | `src/ui/assets/icons/` | `src/ui/assets/art/` |
 | --- | --- | --- |
-| Where | A tool or cursor glyph beside a word: the deck rail, the step tools, a cursor | The art on a choice key: an item type (aligner, denture, any model) |
-| Shown at | `--pixel-icon-inline`, **24px = 1x** the grid | `--pixel-icon-key`, **96px = 4x** the grid |
-| Real pixels per fake pixel | one | sixteen |
-| Style | **Flat and front-on.** At 1x there is no room for a third dimension: an isometric shape loses its own edges and reads as noise | **Isometric allowed, and encouraged.** 4x is where the chunky Teenage-Engineering look actually appears, so a box can have a top and a side |
-| Detail | As little as carries the idea. Four icons side by side must be told apart at a glance, which matters more than any one being a good picture | More, but still a silhouette: a hole is a real hole |
-| Colour | one, always (below) | one, always (below) |
+| Drawn by | `src/ui/Icon.tsx` | `src/ui/Art.tsx` |
+| Colour | **one ink** — every fill and stroke becomes `currentColor`, so it takes the colour of the place it sits in and can never be off-palette | **its own**, kept exactly as drawn |
+| Grid | 24, on a 240 artboard | 64, on a 640 artboard — a fake pixel is ten units on both |
+| Shown at | `--pixel-icon-inline`, 24px = **1x** | `--pixel-icon-key`, 128px = **2x** |
+| Style | flat and front-on: at 1x a third dimension has nowhere to go | a picture of an object, with a keyline and a few tones |
+| For | tool and cursor glyphs beside a word | the art on a choice key: an item type |
 
-**Why the multiple matters, and it is the whole reason these tokens exist.** Pixel art must be displayed at a whole multiple of its grid. At any other size each fake pixel straddles a real one and the edges blur — which reads as a *badly drawn* icon when it is only a badly *sized* one. The rail's icons sat at the shared `.tool-icon` 18px for a while: 0.75 of a CSS pixel each, and no amount of redrawing would have fixed them. `src/ui/icons.test.ts` fails if a `--pixel-icon-*` token stops being a multiple of 24, and if any rect in a pixel-art file leaves the grid.
+One ink is not a limitation for a glyph beside a word — it is the point, because it inverts with its key.
+It is a limitation for a picture of an object: six rounds of drawing the three item types in a single
+colour produced an archway every time, since the teeth, the keyline and the shading are the whole of what
+makes a dental arch readable. Hence two components and two folders rather than a flag.
 
-24px is also Material's standard icon size and the WCAG 2.5.8 minimum target size, so the rule and the convention agree. The next honest step up is 48px (2x), which needs the icon stacked above the word rather than beside it.
+**A pixel-art file is shown at a whole multiple of its own grid or not at all.** At any other size each
+fake pixel straddles a real one and the edges blur — which reads as a *badly drawn* icon when it is only a
+badly *sized* one. The rail's icons sat at the shared `.tool-icon` 18px for a while: 0.75 of a CSS pixel
+each, and no amount of redrawing would have fixed them. `src/ui/icons.test.ts` fails if either token stops
+being a whole multiple of its own set's grid, and if any shape in a one-ink pixel file leaves the 24 grid;
+`src/ui/art.test.ts` does the same for the 64 grid. 24px is also Material's standard icon size and the
+WCAG 2.5.8 minimum target size, so the rule and the convention agree there.
 
-**Colour: one ink by default, tokens if you ask for them.** `scopeIcon` (`src/ui/iconSvg.ts`) rewrites colour **literals** — `#1b2a4a`, `rgb(...)`, `hsl(...)` — to `currentColor`, so a drawing exported from a vector tool arrives as one ink and can never be off-palette. It does **not** touch `fill="var(--accent)"`: a paint written as a theme token survives, in an attribute and inside a `<style>` block alike (verified, 2026-11-10). So **tonal key art is possible today with no new machinery** — `currentColor` for the body plus one or two `var(--token)` fills — and it follows both themes, the pressed state and the disabled state, which a free-colour icon would not.
+**The 64 grid is not a style choice.** Fourteen tooth cells need about 50 pixels of arch perimeter and a
+24 grid has about 27, so on 24 the teeth never fitted and every attempt collapsed into the one silhouette
+that survives at that size: an archway. That, not the projection, is why the first isometric set failed.
 
-Two things follow. A vector tool writes hex, so somebody swaps hex for `var()` by hand, per file. And free colour — a palette of its own, like the isometric reference art — is still not available and is not worth building: it breaks the theme switch and every inverted state. Judge a one-ink drawing in black on white.
-
-**Four of the files are generated, not drawn.** `tool-rim.svg`, `tool-area.svg`, `tool-supports.svg` and `cursor-rim.svg` come out of `scripts/pixel-icons.mjs` (`node scripts/pixel-icons.mjs`, or `--preview` to print them as text and write nothing). A hand edit to those four is lost the next time anyone runs it: change the generator instead. Every other file in the folder is a drawing and is edited as a drawing.
+**Some files are made by a script, and the FILE is still the source.** `tool-rim.svg`, `tool-area.svg`, `tool-supports.svg` and `cursor-rim.svg` are scaffolded by `scripts/pixel-icons.mjs`, which refuses to overwrite a file that exists (`--force` to mean it) and takes `--preview` to print a drawing as text without writing anything. The three item types in `assets/art/` are traced from the owner's reference by `scripts/trace-art.py`. Either way, replacing the file by hand is the supported way to change the picture.
 
 ## The module map
 

@@ -51,8 +51,15 @@ function dropArtboard(body: string, viewBox: string | undefined): string {
   });
 }
 
-/** One icon's body, made its own: see the three guarantees above. `viewBox` comes from the file's root tag. */
-export function scopeIcon(name: string, body: string, viewBox?: string): string {
+/**
+ * The body of a file, made its own - and, when `oneInk`, reduced to a single colour.
+ *
+ * ONE IMPLEMENTATION, TWO ENTRY POINTS, because the two sets differ in exactly one step and nothing
+ * else. Doing the colour pass a second time from OUTSIDE this function looked tidier and shipped a
+ * half-converted file: the attribute pass rewrote its colours while the stylesheet kept its own. The
+ * colour decision belongs inside the single pass over the file, where it always was.
+ */
+function scope(name: string, body: string, viewBox: string | undefined, oneInk: boolean): string {
   const classes = classesOf(body);
   let out = dropArtboard(body, viewBox);
 
@@ -65,10 +72,24 @@ export function scopeIcon(name: string, body: string, viewBox?: string): string 
     `class="${list.trim().split(/\s+/).filter(Boolean).map((token) => `${name}-${token}`).join(' ')}"`);
 
   out = out.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (_, css: string) => {
-    let scoped = css.replace(COLOUR, 'currentColor');
+    let scoped = oneInk ? css.replace(COLOUR, 'currentColor') : css;
     for (const token of classes) scoped = scoped.replace(new RegExp(`\\.${token.replace(/[^\w-]/g, '\\$&')}\\b`, 'g'), `.${name}-${token}`);
     return `<style>${scoped}</style>`;
   });
 
-  return out.replace(PAINT, (_, attr: string, value: string) => `${attr}="${asCurrent(value)}"`);
+  return oneInk ? out.replace(PAINT, (_, attr: string, value: string) => `${attr}="${asCurrent(value)}"`) : out;
 }
+
+/**
+ * Names made the file's own, COLOUR LEFT ALONE: the coloured pixel art in `src/ui/assets/art/`, drawn
+ * by `src/ui/Art.tsx`.
+ *
+ * An item type is a picture of a thing, and six rounds proved a dental arch in a single colour is
+ * indistinguishable from an archway - the teeth, the keyline and the shading are the whole of what
+ * makes it readable. It still needs its ids and class names scoped, because two files that both call
+ * a class `cls-1` will paint each other, which is guarantee 1 above.
+ */
+export const scopeNames = (name: string, body: string, viewBox?: string): string => scope(name, body, viewBox, false);
+
+/** One icon's body, made its own: see the three guarantees above. `viewBox` comes from the file's root tag. */
+export const scopeIcon = (name: string, body: string, viewBox?: string): string => scope(name, body, viewBox, true);

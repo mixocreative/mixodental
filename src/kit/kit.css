@@ -51,7 +51,9 @@
 .icon-sheet-show.is-pressed { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .icon-sheet-show--big { margin-left: auto; }
 .icon-sheet-inline { width: var(--pixel-icon-inline); height: var(--pixel-icon-inline); shape-rendering: crispEdges; }
+/* The coloured art, at the size the key really draws it. crispEdges keeps the fake pixels square. */
 .icon-sheet-key { width: var(--pixel-icon-key); height: var(--pixel-icon-key); shape-rendering: crispEdges; }
+.icon-sheet-card { grid-column: span 2; }
 /* The line glyphs have no one size in the app; 20px is the middle of the 14-20px they are used at. */
 .icon-sheet-free { width: 20px; height: 20px; }
 /* x3 of the inline size: still a whole multiple of the grid, and the fake pixels become visible. */

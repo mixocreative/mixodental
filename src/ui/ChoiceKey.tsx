@@ -1,4 +1,4 @@
-import { Icon } from './Icon';
+import { Art } from './Art';
 
 /**
  * ONE key for "pick one of these": the big choices on the start screen, and the aligner types on the type
@@ -11,8 +11,9 @@ import { Icon } from './Icon';
  * one drew its art at 72px and the other at 120px. Nothing about that was a decision - it was two places
  * drifting.
  *
- * `icon` is the name of a file in `src/ui/assets/icons/` (see `src/ui/Icon.tsx`): replace the file to replace
- * the picture, no code change. `label` and `note` arrive already translated, from the caller that owns the
+ * `icon` is the name of a file in `src/ui/assets/art/` (see `src/ui/Art.tsx`): replace the file to replace
+ * the picture, no code change. It is ART, not an Icon - coloured pixel art rather than one ink - because
+ * the item types are pictures of objects and a dental arch in a single colour reads as an archway. `label` and `note` arrive already translated, from the caller that owns the
  * words. There is deliberately NO prop that singles a key out as the main one: a filled key among plain ones
  * reads as a recommendation, and the reader is choosing what they came to make.
  */
@@ -29,7 +30,7 @@ export function ChoiceKey({ icon, label, note, ui, pressed, onChoose }: {
 }) {
   return <button type="button" className="choice-key" data-ui={ui}
     {...(pressed === undefined ? {} : { 'aria-pressed': pressed })} onClick={onChoose}>
-    <Icon name={icon} className="choice-key-art" />
+    <Art name={icon} className="choice-key-art" />
     <span className="choice-key-words">
       <span className="choice-key-label">{label}</span>
       {note ? <small className="choice-key-note">{note}</small> : null}

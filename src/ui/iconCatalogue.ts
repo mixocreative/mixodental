@@ -17,9 +17,12 @@
  * `src/styles.css` holds the sizes as `--pixel-icon-*`; the two rules are in the icon folder's README.
  */
 export type IconSlot =
-  /** Rule A: beside a word, at 24px - one CSS pixel per fake pixel, so flat and front-on. */
+  /** Rule A: beside a word, at 24px - one CSS pixel per fake pixel, so flat, front-on and ONE INK. */
   | 'inline'
-  /** Rule B: the art on a choice key, at 96px - sixteen real pixels per fake one, so isometric reads. */
+  /**
+   * Rule B: the COLOURED art on a choice key, at 128px on a 64 grid - two real pixels per fake one.
+   * The file lives in `src/ui/assets/art/`, not `assets/icons/`, and keeps its own colours.
+   */
   | 'key'
   /** Neither rule: a line glyph sized by whatever uses it (a back arrow, a warning sign, a cursor). */
   | 'free';
@@ -31,7 +34,12 @@ export type IconSource =
   /** Taken from Lucide by `npm run icons:add`. Replace it the same way, or re-run that. */
   | 'lucide'
   /** Written by `scripts/pixel-icons.mjs`. A HAND EDIT IS LOST on the next run: change the generator. */
-  | 'generated';
+  | 'generated'
+  /**
+   * Traced from the owner's reference art by `scripts/trace-art.py`: crop, average down to the grid,
+   * clean, quantise. Re-run it to retrace, or replace the file by hand - the FILE is the source.
+   */
+  | 'traced';
 
 export type IconEntry = {
   /** The file's name without `.svg`, which is also the name `<Icon name=...>` takes. */
@@ -55,21 +63,17 @@ export type IconEntry = {
 
 export const ICON_CATALOGUE: IconEntry[] = [
   /*
-   * The item types: the big choices on the start screen, at 96px.
+   * The item types: the big choices on the start screen, at 128px - and the ONLY entries whose files
+   * live in `src/ui/assets/art/`, drawn by `Art` rather than `Icon`, keeping their own colours.
    *
-   * THESE ARE THE DESIGNER'S LINE DRAWINGS, back after an isometric pixel version was tried and
-   * withdrawn on 2026-11-10. The lesson is worth more than the attempt: a dental arch is recognised
-   * from ABOVE, and tilting it into isometric puts the teeth over the horizon, so all three came out
-   * as archways - a croquet hoop, a shaggy arch and a tombstone. They passed every guard in the repo,
-   * because no test can ask "does this look like a denture".
-   *
-   * So Rule B's SIZE is settled (96px, 4x the grid) and Rule B's STYLE is not. A replacement has to be
-   * judged by eye, side by side, before it goes anywhere near the app - which is what the style book's
-   * icon sheet is for.
+   * They are coloured because six rounds of one-ink drawing proved a dental arch in a single colour is
+   * indistinguishable from an archway: the teeth, the keyline and the shading are the whole of what
+   * makes an item type readable. The slot says which folder - `key` is art, everything else is icons -
+   * so there is no second field to keep in step and no way for the two to disagree.
    */
-  { name: 'aligner', slot: 'key', source: 'drawn', where: 'Start screen, first big choice: Aligner. A tooth-shaped shell, segmented - thin walls, nothing inside' },
-  { name: 'denture', slot: 'key', source: 'drawn', where: 'Start screen, middle big choice: Denture. BULK - a solid gum body behind the tooth row' },
-  { name: 'generic', slot: 'key', source: 'drawn', where: 'Start screen, third big choice: Any model. A study model on a solid flat base - the only one with a plinth' },
+  { name: 'aligner', slot: 'key', source: 'traced', where: 'Start screen, first big choice: Aligner. A clear segmented shell, seen from above and in front' },
+  { name: 'denture', slot: 'key', source: 'traced', where: 'Start screen, middle big choice: Denture. A full arch of teeth on a gum body - the bulky one' },
+  { name: 'generic', slot: 'key', source: 'traced', where: 'Start screen, third big choice: Any model. A study model on a solid base - the only one with a plinth' },
 
   // The deck rail: the four steps, each a word with its picture. Rule A, and the three pixel ones.
   { name: 'orient', slot: 'inline', source: 'drawn', where: 'Deck rail: Orient. Also the Auto orientation key in the orientation bar - a box with a turn arrow' },

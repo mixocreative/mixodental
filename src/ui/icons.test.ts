@@ -30,7 +30,9 @@ const names = Object.keys(ICONS);
 describe('the icon folder', () => {
   it('holds the icons the app draws with', () => {
     expect(names.length).toBeGreaterThan(0);
-    for (const name of ['aligner.svg', 'denture.svg', 'generic.svg', 'back.svg']) expect(names).toContain(name);
+    // The three item types moved to `assets/art/` when they became coloured; `src/ui/art.test.ts`
+    // holds that folder. What is left here is the one-ink set, and these are its load-bearing files.
+    for (const name of ['back.svg', 'next.svg', 'orient.svg', 'tool-rim.svg']) expect(names).toContain(name);
   });
 
   // The size comes from the app's CSS (`.choice-key-art`, `.start-back-art`...). A width or height on the root
@@ -116,15 +118,25 @@ describe('the pixel-art icons', () => {
 
 describe('the pixel-art display sizes in src/styles.css', () => {
   const CSS = new TextDecoder().decode(readFileSync('src/styles.css'));
-  const sizes = [...CSS.matchAll(/--pixel-icon-[\w-]+:\s*(\d+)px/g)].map(([whole, px]) => [whole.split(':')[0]!.trim(), Number(px)] as const);
+  // A template literal eats a lone backslash, so `\s` there is just the letter s and the pattern
+  // matched nothing. Build the pattern from a plain string instead of fighting the escaping.
+  const px = (token: string) => Number(new RegExp(token + ':\\s*(\\d+)px').exec(CSS)?.[1]);
 
-  it('declares them', () => {
-    expect(sizes.length).toBeGreaterThan(0);
+  /*
+   * TWO SETS, TWO GRIDS, and each display size has to be a whole multiple of ITS OWN grid - not of 24.
+   * This test asserted 24 for both while the key art moved to a 64 grid, which would have passed the
+   * old 72px and 96px and failed the correct 128px. A guard that is right about the wrong thing is
+   * worse than none, because it argues confidently against the fix.
+   */
+  it('shows each set at a whole multiple of its own grid', () => {
+    expect(px('--pixel-icon-inline') % 24).toBe(0);   // src/ui/assets/icons, 24 grid
+    expect(px('--pixel-icon-key') % 64).toBe(0);      // src/ui/assets/art, 64 grid
   });
 
-  // The whole point of the token: a pixel-art icon shown at a fraction of its grid has blurred edges, and
-  // no redrawing fixes it. 18px (0.75 of a pixel each) is the mistake this test exists to stop repeating.
-  it('makes every one a whole multiple of the grid', () => {
-    expect(sizes.filter(([, px]) => px % GRID !== 0)).toEqual([]);
+  // The whole point of the tokens: a pixel-art icon shown at a fraction of its grid has blurred edges and
+  // no redrawing fixes it. 18px on the rail - 0.75 of a pixel each - is the mistake they exist to stop.
+  it('declares both of them', () => {
+    expect(px('--pixel-icon-inline')).toBeGreaterThan(0);
+    expect(px('--pixel-icon-key')).toBeGreaterThan(0);
   });
 });
