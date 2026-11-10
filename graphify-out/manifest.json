@@ -6019,15 +6019,15 @@
     "semantic_hash": ""
   },
   "src/ui/iconCatalogue.ts": {
-    "mtime": 1794327957.3943064,
-    "seen": 1794331499.6863458,
-    "ast_hash": "7931333afd86a34bb40b2bbb3a4445eb",
+    "mtime": 1794332089.029878,
+    "seen": 1794333448.9137368,
+    "ast_hash": "5a2c02d0eeeeb3a3e746f215e7b44daf",
     "semantic_hash": ""
   },
   "scripts/trace-art.py": {
-    "mtime": 1794327848.9182527,
-    "seen": 1794331499.6863458,
-    "ast_hash": "0af7290b0dc30a71ec233915a1f183c0",
+    "mtime": 1794332070.2175906,
+    "seen": 1794333448.9137368,
+    "ast_hash": "d4c8880d3a33b22c9cd4766bc63b1462",
     "semantic_hash": ""
   },
   "src/ui/Art.tsx": {
@@ -6043,9 +6043,9 @@
     "semantic_hash": ""
   },
   "src/ui/assets/art/README.md": {
-    "mtime": 1794327895.6995184,
-    "seen": 1794331499.68735,
-    "ast_hash": "0e40c7b0a3b32c9afaa25157d9ddee43",
+    "mtime": 1794332089.029878,
+    "seen": 1794333448.9137368,
+    "ast_hash": "d88eb5512acf95c9b0f4ffb8c0ee272d",
     "semantic_hash": ""
   },
   "src/ui/assets/art/aligner.svg": {
@@ -6091,21 +6091,21 @@
     "semantic_hash": ""
   },
   "docs/handoff/human-test-2026-11-11.md": {
-    "mtime": 1794328055.9817822,
-    "seen": 1794331499.68735,
-    "ast_hash": "9eac3088ba84e876cf8ad4f2abed1385",
+    "mtime": 1794332284.9277365,
+    "seen": 1794333448.9137368,
+    "ast_hash": "c0a5f067e8e187d220610240bde48862",
     "semantic_hash": ""
   },
   "src/ui/assets/art/night-guard.svg": {
-    "mtime": 1794327957.3264947,
-    "seen": 1794331499.68735,
+    "mtime": 1794332043.111594,
+    "seen": 1794333448.9137368,
     "ast_hash": "e22c4b3e7056c4fd36e7464b230b33df",
     "semantic_hash": ""
   },
   "src/ui/assets/art/retainer.svg": {
-    "mtime": 1794327957.3194797,
-    "seen": 1794331499.68735,
-    "ast_hash": "8beaba9f5635384524c370fbaaa40e6d",
+    "mtime": 1794333376.783745,
+    "seen": 1794333448.9137368,
+    "ast_hash": "016b095c4e5ccc26fbf90921c5eedc35",
     "semantic_hash": ""
   }
 }
