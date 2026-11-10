@@ -120,15 +120,15 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794261324.3515973,
-    "seen": 1794264829.103157,
-    "ast_hash": "0d1227b0a093cf1d6e3baf8b38056a47",
+    "mtime": 1794295755.4699707,
+    "seen": 1794296135.4932742,
+    "ast_hash": "85dc47e00394d5f8ba07277490adad31",
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794249541.082382,
-    "seen": 1794249732.8672533,
-    "ast_hash": "23b744ea87c1948889e11581936b58cc",
+    "mtime": 1794295755.4689736,
+    "seen": 1794296135.4932742,
+    "ast_hash": "7a7db6348e98df1b91aa838d1efd4fec",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
