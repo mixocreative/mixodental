@@ -238,23 +238,26 @@ const ICONS = {
     return g;
   },
   /*
-   * ALIGNER: a THIN shell. Its one distinguishing feature against the two below is lightness - a narrow
-   * band with a tall wall and nothing inside, which is what an aligner is.
+   * THE THREE ITEM TYPES WERE HERE, AND WERE WITHDRAWN ON 2026-11-10. Keeping the reason, because the
+   * next person will have the same idea.
+   *
+   * They were built on the arch helpers above, in 2:1 isometric, and they came out as ARCHWAYS - the
+   * owner's words were a croquet hoop, a shaggy arch and a tombstone on a plinth. The cause is not the
+   * code: A DENTAL ARCH IS RECOGNISED FROM ABOVE. Tilt it and the teeth go over the horizon, and what
+   * is left is the silhouette of a doorway, which every arch shares. The three distinguishing features
+   * the brief names - thin, bulky, on a plinth - are all still there and none of them survives the
+   * projection.
+   *
+   * What also failed, in the same session, was judging them from `--preview`. ASCII at 1:1 shows INTENT
+   * and the eye fills in the rest; the same grids at 96px on a white key did not read at all. The
+   * preview is still the right tool for the flat glyphs above, where the shape IS the silhouette.
+   *
+   * So isometric is not banned - it earned `generic`'s plinth, the one part that read - but an isometric
+   * dental arch is a dead end, and an item icon has to be judged by eye, side by side, at its real size,
+   * BEFORE it is wired into the app. That is what the style book's icon sheet exists for.
+   *
+   * The arch helpers below are left in place: they cost nothing and the next attempt will want them.
    */
-  aligner: () => archShell({ r: 7.5, legTo: 6, wall: 5, band: 2 }),
-
-  /*
-   * DENTURE: BULK, and a tooth row on top of it. The band is the gum and is nearly twice the aligner's,
-   * and seven teeth stand on the skyline. Seven is not a style choice: at this radius the back arc is
-   * about 22 fake pixels round, so six to seven two-pixel teeth is the most that can read as separate.
-   */
-  denture: () => archShell({ r: 7, legTo: 5, wall: 5, band: 3, teeth: 7, toothH: 2 }),
-
-  /*
-   * GENERIC: a study model, and the ONLY one with a plinth. That slab is the whole icon - in one colour
-   * the arch above it is nearly the aligner's, so the base is what a reader actually tells it by.
-   */
-  generic: () => archShell({ r: 6.5, legTo: 4, wall: 3, band: 3, plinth: 5 }),
 };
 
 /** Horizontal runs, so a row of pixels is one rect instead of twenty-four. */

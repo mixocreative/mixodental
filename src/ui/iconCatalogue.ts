@@ -54,12 +54,22 @@ export type IconEntry = {
 };
 
 export const ICON_CATALOGUE: IconEntry[] = [
-  // The item types: the big choices on the start screen, at 96px - Rule B, and the only isometric drawings
-  // in the app. In one colour all three are nearly the same horseshoe, so each `where` names the one
-  // feature that tells it from its neighbours, and that feature is what a redrawing must keep.
-  { name: 'aligner', slot: 'key', source: 'generated', pixel: true, where: 'Start screen, first big choice: Aligner. THIN - a narrow band with a tall wall and nothing inside' },
-  { name: 'denture', slot: 'key', source: 'generated', pixel: true, where: 'Start screen, middle big choice: Denture. BULK - a gum body nearly twice as deep as the aligner band, with a tooth row standing on it' },
-  { name: 'generic', slot: 'key', source: 'generated', pixel: true, where: 'Start screen, third big choice: Any model. THE PLINTH - the only one of the three standing on a slab' },
+  /*
+   * The item types: the big choices on the start screen, at 96px.
+   *
+   * THESE ARE THE DESIGNER'S LINE DRAWINGS, back after an isometric pixel version was tried and
+   * withdrawn on 2026-11-10. The lesson is worth more than the attempt: a dental arch is recognised
+   * from ABOVE, and tilting it into isometric puts the teeth over the horizon, so all three came out
+   * as archways - a croquet hoop, a shaggy arch and a tombstone. They passed every guard in the repo,
+   * because no test can ask "does this look like a denture".
+   *
+   * So Rule B's SIZE is settled (96px, 4x the grid) and Rule B's STYLE is not. A replacement has to be
+   * judged by eye, side by side, before it goes anywhere near the app - which is what the style book's
+   * icon sheet is for.
+   */
+  { name: 'aligner', slot: 'key', source: 'drawn', where: 'Start screen, first big choice: Aligner. A tooth-shaped shell, segmented - thin walls, nothing inside' },
+  { name: 'denture', slot: 'key', source: 'drawn', where: 'Start screen, middle big choice: Denture. BULK - a solid gum body behind the tooth row' },
+  { name: 'generic', slot: 'key', source: 'drawn', where: 'Start screen, third big choice: Any model. A study model on a solid flat base - the only one with a plinth' },
 
   // The deck rail: the four steps, each a word with its picture. Rule A, and the three pixel ones.
   { name: 'orient', slot: 'inline', source: 'drawn', where: 'Deck rail: Orient. Also the Auto orientation key in the orientation bar - a box with a turn arrow' },
