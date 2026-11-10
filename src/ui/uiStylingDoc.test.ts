@@ -13,7 +13,11 @@ import doc from '../../docs/ui-styling.md?raw';
 const STYLESHEETS = ['src/styles.css', 'src/styles/layout.css', 'src/styles/theme.css', 'src/fonts.css', 'src/kit/kit.css', 'dentalwork/batch-review/tokens.css', 'dentalwork/batch-review/base.css'];
 const SOURCES: Record<string, string> = {
   ...import.meta.glob<string>('../**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true }),
-  ...Object.fromEntries(STYLESHEETS.map((path) => [path, new TextDecoder().decode(readFileSync(path))])),
+  // Comments stripped: a token NAMED in a comment is not a token the code uses, and counting one made
+  // this demand a doc row for a property that had just been deleted - the comment explaining the
+  // deletion was the only thing left mentioning it.
+  ...Object.fromEntries(STYLESHEETS.map((path) =>
+    [path, new TextDecoder().decode(readFileSync(path)).replace(/\/\*[\s\S]*?\*\//g, ' ')])),
 };
 const isTest = (path: string) => /\.test\.tsx?$/.test(path);
 

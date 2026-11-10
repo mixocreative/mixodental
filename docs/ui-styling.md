@@ -153,7 +153,6 @@ Set the look of the DOM. They are the mixo-app-style tokens (paper, ink, hairlin
 | `--radius` | `2px` | Corner radius of every control | Buttons, cards, bands |
 | `--dur` | `.15s` | Duration of hover and chevron transitions | Buttons, collapsible chevrons |
 | `--row-height` | `24px` | Height of one list row | `.panel .unit`, and the Items row. **Not** `--row`, which is `22px` and belongs to the batch-review viewer's own table below — the app and that viewer are different densities, so the names are kept apart |
-| `--pixel-icon-inline` | `24px` | Display size of a PIXEL-ART icon standing beside a word: a tool or a cursor glyph. **Must stay a whole multiple of 24** — see Icons below | `.tool-rail .tool svg` |
 | `--pixel-icon-key` | `144px` | Display size of the COLOURED art on a choice key: an item type, on a 48 grid. 3x, so each cell gets nine real pixels | `.choice-key-art` |
 
 ### The docks (the 3D view's grid)
