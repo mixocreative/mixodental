@@ -35,6 +35,22 @@
      stay different on purpose: two tokens called `--row` meaning two heights would be worse than
      neither, and docs/ui-styling.md's guard only checks that a name appears SOMEWHERE in the page. */
   --row-height: 24px;
+  /*
+   * PIXEL-ART ICON SIZES, and the one rule that makes them: a pixel-art icon is drawn on a 24 x 24
+   * grid (`scripts/pixel-icons.mjs`), so IT MUST BE DISPLAYED AT A WHOLE MULTIPLE OF 24 or every
+   * fake pixel straddles a real one and the edges blur. That reads as a bad drawing, which is why
+   * the rail's icons looked wrong at the shared `.tool-icon` 18px - 0.75 of a CSS pixel each.
+   *
+   * There are two sizes because there are two kinds of icon, and the kind follows the size:
+   *   inline (1x)  a tool or cursor glyph beside a word. One CSS pixel per fake pixel, so the
+   *                drawing must be FLAT and FRONT-ON - an isometric shape has no room to read.
+   *   key    (3x)  the art on a choice key: an item type. Three CSS pixels per fake pixel, which is
+   *                where the chunky isometric look actually appears, so that style is allowed here.
+   * src/ui/assets/icons/README.md carries both rules in full. `src/ui/icons.test.ts` fails if a
+   * size here stops being a whole multiple.
+   */
+  --pixel-icon-inline: 24px;
+  --pixel-icon-key: 72px;
   /* Round C marks in the viewport: an unresolved point, and a support landed on the model by tier. */
   --unresolved: var(--warning);
   --landing-allowed: var(--success);
@@ -1458,7 +1474,8 @@ dialog.terms .terms-item > span { flex: none; }
   color: var(--ink);
   text-align: center; white-space: normal;
 }
-.choice-key-art { width: 72px; height: 72px; flex: none; transition: color var(--dur, .15s); }
+/* 3x the icon grid, so isometric pixel art can live here as well as the flat drawings that do now. */
+.choice-key-art { width: var(--pixel-icon-key); height: var(--pixel-icon-key); flex: none; transition: color var(--dur, .15s); }
 /* The word and its line are one group, so the gap above them is the art's gap, not theirs. */
 .choice-key-words { display: grid; gap: 4px; }
 .choice-key-label { font-size: 14px; letter-spacing: .04em; }
@@ -1609,10 +1626,18 @@ dialog.terms .terms-item > span { flex: none; }
  * The open tool is an INK FILL, never red: red is the one primary action, and an active tab or
  * pressed toggle is ink. Hover is sunken, with no colour.
  */
+/* The rail's icons are the pixel-art set, so they take the inline pixel size, not `.tool-icon`'s
+   18px: see --pixel-icon-inline for why a fraction of a pixel smears. 24px is also Material's
+   standard icon size and the WCAG 2.5.8 minimum target, so the rule and the convention agree. */
+.tool-rail .tool svg { width: var(--pixel-icon-inline); height: var(--pixel-icon-inline); flex: none; }
 .tool-rail { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
 .tool-rail .tool {
   min-height: var(--row-height);
   padding: 0 8px;
+  /* The icon leads, the word follows: one row, so the glyph cannot drift off the text baseline. */
+  display: flex;
+  align-items: center;
+  gap: 8px;
   text-align: left;
   border: 1px solid transparent;
   border-radius: 2px;

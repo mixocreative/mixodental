@@ -10,12 +10,23 @@ icon loader does to every file, so artwork that ignores them cannot ship.
    "white highlight". Draw it as a single-colour silhouette and judge it in black on white.
 2. **Pixel-art look, vector output.** Everything lands on a **24 × 24 pixel grid**, every pixel the
    same size, no half pixels and no anti-aliased edges. Deliver SVG where each pixel is a `<rect>` on
-   a 10-unit grid (`viewBox="0 0 240 240"`), or deliver a 24 × 24 PNG and we will trace it.
+   a 10-unit grid (`viewBox="0 0 240 240"`), or deliver a 24 × 24 PNG and we will trace it. The app
+   shows these at a **whole multiple** of the grid (24, 48, 72…) and never between, because a fake
+   pixel landing on 0.75 of a real one blurs — which looks like a bad drawing, not a bad size.
 3. **Square canvas, nothing touching the edge.** Keep one pixel of margin all round.
 4. **It must work as a silhouette.** No interior outlines that rely on a lighter fill behind them. A
    hole must be a real hole.
-5. **Flat and front-on or simple isometric** — pick one and keep it across the whole set. Teenage
-   Engineering, not product photography.
+5. **TWO RULES, and the size decides which.** Do not mix them.
+
+   | | Rule A — inline | Rule B — key art |
+   | --- | --- | --- |
+   | What | A tool or cursor glyph beside a word | The art on a choice key: an item type |
+   | Shown at | **24 px = 1×** the grid | **72 px = 3×** the grid |
+   | Style | **Flat and front-on.** At 1× a third dimension has nowhere to go: an isometric shape loses its own edges and reads as noise | **Isometric, chunky, Teenage Engineering.** At 3× a box can have a top and a side and still read |
+   | Detail | The least that carries the idea — four of these sit side by side and must be told apart at a glance | More, but still a silhouette |
+
+   Everything in "Priority 1" and "Priority 2" below is **Rule A**. Everything in "Priority 3" (the
+   item kinds) is **Rule B**.
 6. **Readable large.** These are shown big on a high-resolution screen; the pixel look is a STYLE, not
    a size constraint. Do not optimise for 16 px.
 

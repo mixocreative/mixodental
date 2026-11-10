@@ -153,6 +153,8 @@ Set the look of the DOM. They are the mixo-app-style tokens (paper, ink, hairlin
 | `--radius` | `2px` | Corner radius of every control | Buttons, cards, bands |
 | `--dur` | `.15s` | Duration of hover and chevron transitions | Buttons, collapsible chevrons |
 | `--row-height` | `24px` | Height of one list row | `.panel .unit`, and the Items row. **Not** `--row`, which is `22px` and belongs to the batch-review viewer's own table below — the app and that viewer are different densities, so the names are kept apart |
+| `--pixel-icon-inline` | `24px` | Display size of a PIXEL-ART icon standing beside a word: a tool or a cursor glyph. **Must stay a whole multiple of 24** — see Icons below | `.tool-rail .tool svg` |
+| `--pixel-icon-key` | `72px` | Display size of the art on a choice key: an item type. 3x the grid, which is where the chunky isometric look appears | `.choice-key-art` |
 
 ### The docks (the 3D view's grid)
 
@@ -455,6 +457,27 @@ Add a `data-ui` to any element you add or touch; a command button takes it from 
 ## Icons
 
 Every icon is one SVG file in `src/ui/assets/icons/`, drawn by `src/ui/Icon.tsx` (`<Icon name="orient" />` finds `orient.svg`). To change an icon, replace its file; keep the file name, draw with `currentColor`, no fixed colour and no width or height on the root. The full list, where each appears and the rules for a replacement are in `src/ui/assets/icons/README.md`. `Icon` takes only a name and a class: size and colour come from CSS.
+
+### Two rules, because there are two kinds of icon
+
+The kind follows the SIZE, not taste. Both kinds are drawn on the same **24 x 24 grid** so the set stays a set, and the difference is how many real pixels each fake pixel gets.
+
+| | Rule A — inline | Rule B — key art |
+| --- | --- | --- |
+| Where | A tool or cursor glyph beside a word: the deck rail, the step tools, a cursor | The art on a choice key: an item type (aligner, denture, any model) |
+| Shown at | `--pixel-icon-inline`, **24px = 1x** the grid | `--pixel-icon-key`, **72px = 3x** the grid |
+| Real pixels per fake pixel | one | nine |
+| Style | **Flat and front-on.** At 1x there is no room for a third dimension: an isometric shape loses its own edges and reads as noise | **Isometric allowed, and encouraged.** 3x is where the chunky Teenage-Engineering look actually appears, so a box can have a top and a side |
+| Detail | As little as carries the idea. Four icons side by side must be told apart at a glance, which matters more than any one being a good picture | More, but still a silhouette: a hole is a real hole |
+| Colour | one, always (below) | one, always (below) |
+
+**Why the multiple matters, and it is the whole reason these tokens exist.** Pixel art must be displayed at a whole multiple of its grid. At any other size each fake pixel straddles a real one and the edges blur — which reads as a *badly drawn* icon when it is only a badly *sized* one. The rail's icons sat at the shared `.tool-icon` 18px for a while: 0.75 of a CSS pixel each, and no amount of redrawing would have fixed them. `src/ui/icons.test.ts` fails if a `--pixel-icon-*` token stops being a multiple of 24, and if any rect in a pixel-art file leaves the grid.
+
+24px is also Material's standard icon size and the WCAG 2.5.8 minimum target size, so the rule and the convention agree. The next honest step up is 48px (2x), which needs the icon stacked above the word rather than beside it.
+
+**Colour is not a choice.** `scopeIcon` (`src/ui/iconSvg.ts`) rewrites every fill and stroke in every file to `currentColor`, so an icon always takes the colour of the place it sits in and can never be off-palette. A colourful icon is therefore not a file you can drop in — it needs a second asset path that does not exist. Judge every drawing in black on white.
+
+**Four of the files are generated, not drawn.** `tool-rim.svg`, `tool-area.svg`, `tool-supports.svg` and `cursor-rim.svg` come out of `scripts/pixel-icons.mjs` (`node scripts/pixel-icons.mjs`, or `--preview` to print them as text and write nothing). A hand edit to those four is lost the next time anyone runs it: change the generator instead. Every other file in the folder is a drawing and is edited as a drawing.
 
 ## The module map
 

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 /*
@@ -40,5 +41,62 @@ describe('the icon folder', () => {
       .filter(([, found]) => found.length > 0)
       .map(([name, found]) => `${name}: ${[...new Set(found)].join(' ')}`);
     expect(offenders).toEqual([]);
+  });
+});
+
+/*
+ * THE PIXEL-ART SET, and the one rule the rest of the folder does not have to keep.
+ *
+ * `scripts/pixel-icons.mjs` draws a few icons as pixel art in vector: a 24 x 24 grid, ten units a fake
+ * pixel, on a 240 artboard. Two things can quietly break that and neither shows up as an error - a hand
+ * edit that lands a rect off the grid, and a CSS size that is not a whole multiple of 24, which makes
+ * every fake pixel straddle a real one. The second one is what made the rail's icons look badly drawn
+ * when they were only badly sized, so both are held here rather than in a comment.
+ *
+ * A pixel-art file is the one marked `shape-rendering="crispEdges"`; the Lucide and hand-drawn icons in
+ * the same folder are not pixel art and none of this binds them.
+ */
+const GRID = 24;
+const CELL = 10;
+const PIXEL_ART = names.filter((name) => ICONS[name].includes('shape-rendering="crispEdges"'));
+
+describe('the pixel-art icons', () => {
+  it('has some, or the generator stopped being used', () => {
+    expect(PIXEL_ART.length).toBeGreaterThan(0);
+  });
+
+  it('draws every one on the same artboard', () => {
+    const wrong = PIXEL_ART.filter((name) => !ICONS[name].includes(`viewBox="0 0 ${GRID * CELL} ${GRID * CELL}"`));
+    expect(wrong).toEqual([]);
+  });
+
+  // Every rect is a whole number of fake pixels, at a whole fake pixel: one off-grid value and the icon
+  // no longer lines up with the others at any size.
+  it('keeps every rect on the grid', () => {
+    const offenders: string[] = [];
+    for (const name of PIXEL_ART) {
+      for (const [tag] of ICONS[name].matchAll(/<rect\b[^>]*>/g)) {
+        const off = ['x', 'y', 'width', 'height']
+          .map((attr) => [attr, new RegExp(` ${attr}="([^"]*)"`).exec(tag)?.[1]] as const)
+          .filter(([, value]) => value !== undefined && Number(value) % CELL !== 0);
+        if (off.length > 0) offenders.push(`${name}: ${off.map(([attr, value]) => `${attr}=${value}`).join(' ')}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('the pixel-art display sizes in src/styles.css', () => {
+  const CSS = new TextDecoder().decode(readFileSync('src/styles.css'));
+  const sizes = [...CSS.matchAll(/--pixel-icon-[\w-]+:\s*(\d+)px/g)].map(([whole, px]) => [whole.split(':')[0]!.trim(), Number(px)] as const);
+
+  it('declares them', () => {
+    expect(sizes.length).toBeGreaterThan(0);
+  });
+
+  // The whole point of the token: a pixel-art icon shown at a fraction of its grid has blurred edges, and
+  // no redrawing fixes it. 18px (0.75 of a pixel each) is the mistake this test exists to stop repeating.
+  it('makes every one a whole multiple of the grid', () => {
+    expect(sizes.filter(([, px]) => px % GRID !== 0)).toEqual([]);
   });
 });
