@@ -4021,9 +4021,9 @@
     "semantic_hash": ""
   },
   "src/ui/assets/icons/README.md": {
-    "mtime": 1794316310.4705791,
-    "seen": 1794316528.2189934,
-    "ast_hash": "54f44d7eeeafcf63b5268cab032f159c",
+    "mtime": 1794319166.0202346,
+    "seen": 1794319601.3438406,
+    "ast_hash": "7f09b4847a8abe3422cba3f7fc59b405",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/profileSelect.ts": {
@@ -4729,9 +4729,9 @@
     "semantic_hash": ""
   },
   "docs/ui-styling.md": {
-    "mtime": 1794316332.500389,
-    "seen": 1794316528.2189934,
-    "ast_hash": "6db6b45302bd29a9f1495a6c002d02c6",
+    "mtime": 1794319189.3112671,
+    "seen": 1794319601.3438406,
+    "ast_hash": "9cc7b8cee75fe3f5697623329e3d728a",
     "semantic_hash": ""
   },
   "dentalwork/baselines/real-scan-baseline.json": {
@@ -5263,9 +5263,9 @@
     "semantic_hash": ""
   },
   "src/ui/icons.test.ts": {
-    "mtime": 1794316184.2858818,
-    "seen": 1794316528.2189934,
-    "ast_hash": "6527f89ca6e753ff3d1f4407289cc0a3",
+    "mtime": 1794319098.2841754,
+    "seen": 1794319601.3438406,
+    "ast_hash": "2d39599119f65d8d7d045727406b64f2",
     "semantic_hash": ""
   },
   "src/ui/japaneseSubset.test.ts": {
@@ -5964,52 +5964,46 @@
     "ast_hash": "e23ba5251c104a5fd06e1cee452ca87a",
     "semantic_hash": ""
   },
-  "scripts/pixel-icons.mjs": {
-    "mtime": 1794313511.9112105,
-    "seen": 1794316528.2179885,
-    "ast_hash": "e7bde486010131acb5635bcbe6c3b42e",
-    "semantic_hash": ""
-  },
   "src/ui/assets/icons/icon-brief.md": {
-    "mtime": 1794316358.8014455,
-    "seen": 1794316528.2189934,
-    "ast_hash": "c29c11f02ace26840adf88ad4049403c",
+    "mtime": 1794318826.3750448,
+    "seen": 1794319601.3438406,
+    "ast_hash": "3b6479bc76513a3843a2641ad651a2ac",
     "semantic_hash": ""
   },
   "src/ui/assets/icons/cursor-rim.svg": {
-    "mtime": 1794306944.2890587,
-    "seen": 1794307433.448539,
-    "ast_hash": "b93d9849efe8f8aaa59de97324346d12",
+    "mtime": 1794318959.6740236,
+    "seen": 1794319601.3438406,
+    "ast_hash": "a85282f1072e50251baba76bbc101754",
     "semantic_hash": ""
   },
   "src/ui/assets/icons/tool-area.svg": {
-    "mtime": 1794306944.28755,
-    "seen": 1794307433.448539,
-    "ast_hash": "4313b685a3e7bd1decaf067214954646",
+    "mtime": 1794318959.614971,
+    "seen": 1794319601.3438406,
+    "ast_hash": "44d5437e01c86561b74f42d9b6c8771a",
     "semantic_hash": ""
   },
   "src/ui/assets/icons/tool-rim.svg": {
-    "mtime": 1794306944.2853644,
-    "seen": 1794307433.448539,
-    "ast_hash": "53346b6bd7a6a00f1ae756b0ea206470",
+    "mtime": 1794318959.5859115,
+    "seen": 1794319601.3438406,
+    "ast_hash": "3998df562874c8f797b45fef170c1885",
     "semantic_hash": ""
   },
   "src/ui/assets/icons/tool-supports.svg": {
-    "mtime": 1794306944.2890587,
-    "seen": 1794307433.448539,
-    "ast_hash": "19dacbf8e6cba77bc417c6ea9630efa8",
+    "mtime": 1794318959.6458006,
+    "seen": 1794319601.3438406,
+    "ast_hash": "de3f8147c33c152b51e2b1aac614bee3",
     "semantic_hash": ""
   },
   "src/components/viewport/cursorStyle.test.ts": {
-    "mtime": 1794307203.197776,
-    "seen": 1794307433.448539,
-    "ast_hash": "ec66820054d505123fba382bc46fe65d",
+    "mtime": 1794319361.466975,
+    "seen": 1794319601.3438406,
+    "ast_hash": "6b746ef16c5493adfe3ea959d64fb567",
     "semantic_hash": ""
   },
   "src/kit/IconSheet.tsx": {
-    "mtime": 1794316231.587059,
-    "seen": 1794316528.2189934,
-    "ast_hash": "4b02770bda77de755876833f4b6841cd",
+    "mtime": 1794319037.8450663,
+    "seen": 1794319601.3438406,
+    "ast_hash": "bfd0b0e8a59f39261a59eaf7c31913fe",
     "semantic_hash": ""
   },
   "src/kit/Section.tsx": {
@@ -6025,15 +6019,15 @@
     "semantic_hash": ""
   },
   "src/ui/iconCatalogue.ts": {
-    "mtime": 1794316184.1344633,
-    "seen": 1794316528.2189934,
-    "ast_hash": "513790ad51bfaa803317781ae18fedfa",
+    "mtime": 1794319012.6159704,
+    "seen": 1794319601.3438406,
+    "ast_hash": "583edc89de3598c64ba080923fdac5fd",
     "semantic_hash": ""
   },
   "scripts/trace-art.py": {
-    "mtime": 1794317672.9399977,
-    "seen": 1794318097.3162563,
-    "ast_hash": "330af66d3ca7b162b394756d477d8d1a",
+    "mtime": 1794319098.2161891,
+    "seen": 1794319601.3438406,
+    "ast_hash": "acf9529e531d0a6e8bd342ed2394a54f",
     "semantic_hash": ""
   },
   "src/ui/Art.tsx": {
@@ -6043,33 +6037,45 @@
     "semantic_hash": ""
   },
   "src/ui/art.test.ts": {
-    "mtime": 1794317697.2638338,
-    "seen": 1794318097.3177595,
-    "ast_hash": "c57e1d67cd7b3b898dfc115d6e5b5c65",
+    "mtime": 1794319134.847331,
+    "seen": 1794319601.3438406,
+    "ast_hash": "5811f7343557e92e92ef9a1c9f1f8553",
     "semantic_hash": ""
   },
   "src/ui/assets/art/README.md": {
-    "mtime": 1794317737.805461,
-    "seen": 1794318097.3177595,
-    "ast_hash": "c459303845c0687ed168af80b402ddc0",
+    "mtime": 1794319166.0202346,
+    "seen": 1794319601.3438406,
+    "ast_hash": "ea6fae88582b4663e6cb8b68b5bde5d0",
     "semantic_hash": ""
   },
   "src/ui/assets/art/aligner.svg": {
-    "mtime": 1794317673.3844664,
-    "seen": 1794318097.3177595,
-    "ast_hash": "96e44e8cf0b8d36b6c3ea5061e450435",
+    "mtime": 1794319098.6906886,
+    "seen": 1794319601.3438406,
+    "ast_hash": "c50b086ad82256f5c14cb12716f3aafc",
     "semantic_hash": ""
   },
   "src/ui/assets/art/denture.svg": {
-    "mtime": 1794317673.8434732,
-    "seen": 1794318097.3177595,
-    "ast_hash": "de422da6701793dee4b21dc8948da66a",
+    "mtime": 1794319147.2105138,
+    "seen": 1794319601.3438406,
+    "ast_hash": "ac001cecbdd016b450b403196fccc10d",
     "semantic_hash": ""
   },
   "src/ui/assets/art/generic.svg": {
-    "mtime": 1794317720.1292515,
-    "seen": 1794318097.3177595,
-    "ast_hash": "cc369daaa3c1a73119e278cf17af9d1a",
+    "mtime": 1794318773.2088974,
+    "seen": 1794319601.3438406,
+    "ast_hash": "345a2c32cf190a3b5892fd2eff9b4376",
+    "semantic_hash": ""
+  },
+  "scripts/art-block.mjs": {
+    "mtime": 1794318771.850309,
+    "seen": 1794319601.3428361,
+    "ast_hash": "38dc9bc75dfce706081bc48f72b9d873",
+    "semantic_hash": ""
+  },
+  "src/ui/assets/art/dental-model.svg": {
+    "mtime": 1794319099.5264287,
+    "seen": 1794319601.3438406,
+    "ast_hash": "7cc33a45e791b9592f3565c426d012eb",
     "semantic_hash": ""
   }
 }

@@ -1,17 +1,17 @@
 # Graph Report - mixodental  (2026-11-10)
 
 ## Corpus Check
-- 966 files · ~1,013,805 words
+- 966 files · ~1,008,797 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 55 file(s) not represented in the graph (top: .stl 26, (none) 8, .css 6)
 
 ## Summary
-- 8087 nodes · 19537 edges · 734 communities (221 shown, 513 thin omitted)
-- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 1483 edges (avg confidence: 0.93)
+- 8072 nodes · 19507 edges · 750 communities (227 shown, 523 thin omitted)
+- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 1485 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f73c66ba`
+- Built from commit: `6e5aa50a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -20,16 +20,16 @@
 - Support editing UI spec (for re-implementation in mixomesh / Babylon.js)
 - pkg-node/mixo_geometry_wasm.js
 - dentureReviewLayers.ts
-- flow.test.ts
+- export.ts
 - Generation
 - Handoff
-- commands.ts
-- useDentureOrient.ts
+- editingMode.ts
+- dialSync.ts
 - profilesWithoutOpening
 - vitest
-- partRoles.ts
-- 0b. THE JOB DECK — the shape this document had wrong
-- useExport.ts
+- react
+- Import, items and the end of the flow
+- status.ts
 - Web Resin Support Parity Design
 - geometryClient.ts
 - App.tsx
@@ -38,13 +38,13 @@
 - state/project.ts
 - Public API
 - PolicyHandle
-- useExport.ts
+- unitContacts
 - gizmoStyle.ts
-- supports/contactEdits.ts
+- PlacementSession
 - decodeDentureReview
 - walk.mjs
 - getArrayF64FromWasm0
-- useProjectFile.ts
+- benchScene.test.ts
 - compare_supported.py
 - 機能
 - path.ts
@@ -58,11 +58,11 @@
 - supportParityHarness.ts
 - ObjectViewport.tsx
 - measure-heavy.mjs
-- jobActivity.ts
+- useExport.ts
 - AnalysisClient
-- resultPath.test.ts
+- tokenColour.ts
 - host-example.mjs
-- UnitObject.tsx
+- Vector
 - takeFromExternrefTable0
 - 🟡 Major
 - DentureReviewResult
@@ -74,12 +74,12 @@
 - DentalRegionResultLike
 - extract-sup-contacts.py
 - repairMesh.ts
-- validate.ts
+- resample.ts
 - dentalwork/README.md
 - geometry-wasm-smoke.mjs
 - Support ship gates implementation plan
-- measure-rim-loops.mjs
-- Blockers
+- islandReport.ts
+- StartScreen.tsx
 - seedFromDetected.ts
 - rayLayers.ts
 - Dental support rework: geometry, orientation, and three-step review
@@ -88,8 +88,8 @@
 - 功能
 - PolicyHandle
 - DentalOrientResult
-- WorkerLike
-- projectFile.ts
+- resultPath.test.ts
+- PrintScene
 - bookkeepingSnapshot
 - DentureReviewResult
 - budget.ts
@@ -98,24 +98,24 @@
 - peelReport.ts
 - 2026-10-21-heavy-mesh-mixodental.md
 - perf-baseline.mjs
-- tipsOf
+- Review Focus
 - referenceStep3.ts
 - src/progress: the three kinds of waiting
 - regenerate.ts
 - Design System: Mixo Supports
-- DentalRim
-- ItemsPage.tsx
+- facingNormal
+- unitFacts.test.ts
 - DentureOrientResult
-- glossary.test.ts
+- i18n.ts
 - Dental rework handoff
 - SurfacePath
 - DentureTiltPaths
 - Support selection in Support Edit Mode — design
 - probe-dental-edges.ts
-- DentalRimResult
+- rimOf
 - uiStylingDoc.test.ts
 - TiltDial.tsx
-- analysis/types.ts
+- unitSupports.ts
 - conventions.ts
 - dental-reference
 - getArrayU32FromWasm0
@@ -132,30 +132,30 @@
 - useDentureSupports.ts
 - 2. Screen anatomy and wireframes
 - 8. Accessibility and keyboard
-- walk
+- NumberField
 - geometry-guard.mjs
 - Design critic
-- GenericPolicyResult
+- The job deck — the rail, and what it is allowed to say
 - BrushMode
-- gen-fonts-css.mjs
+- ref_node_path
 - Object Mode and Viewport Import Design
 - __wbg_get_imports
-- phaseStages.test.ts
+- 0b. THE JOB DECK — the shape this document had wrong
 - GenericPlacement
 - Reusable surface brush design
 - trace-art.py
 - Support modules: who owns what
 - imports.test.ts
 - DentureOrientResultLike
-- useDentalFlow.ts
-- Mechanics this builds on
+- arrange.ts
+- viewportPort.ts
 - mixoDental
 - Styling the UI, the CSS and the 3D colours
-- Dental contour contacts implementation plan
+- estimate.ts
 - PlateArrangement
 - PolicyHandle
-- supports/zones.ts
-- dentalEngine.ts
+- Stroke
+- DentalOrientResultLike
 - TermsDialog.tsx
 - UI spec and NN/g heuristics check (Release 2)
 - sceneColours.ts
@@ -173,37 +173,37 @@
 - Required task closure
 - scripts
 - deploy
-- DentureTiltPaths
+- pkg-browser/mixo_geometry_wasm.d.ts
 - getArrayU32FromWasm0
 - PickIndex
 - Verification — 2026-10-20
-- IconSheet.tsx
-- TriangleMesh
+- batch.ts
+- meshWorker.ts
 - package.json
 - DentureAreaResult
 - Resin Supports v1 Design
-- 🟡 Major
+- Stage 5 — Initial zoom-out review
 - Rust/WASM geometry core: architecture as shipped
 - updates
 - DentureOrientResult
-- pixel-icons.mjs
-- rigidMove.ts
-- SupportMeshClient
+- dentalPlacementSeed.ts
+- BrushPort
+- meshClient.ts
 - Catalogue.tsx
 - PlateArrangement
-- DentalReviewBlocks.tsx
+- step-screens.mjs
 - How Mixo Supports handles an aligner, in plain language
 - Dental support work: shipped state
 - printerProfiles.ts
-- geometryVersion.js
+- geometryClient.ts
 - Designer guide: run and keep working on mixoDental
 - DentureTiltPaths
 - Dental support algorithm (shipped state)
 - GeometrySession
 - dental-reference/README.md
-- mixomesh performance audit — for mixoDental adoption
+- serveTask
 - DentureTiltPaths
-- sceneMap.ts
+- DentureReviewPanel.test.tsx
 - GeometrySession
 - remove_degenerate_triangles
 - Goldfish context — review of `docs/design/2026-11-07-import-and-items-flow.md`
@@ -223,7 +223,7 @@
 - dentureReview.ts
 - DentalRimResult
 - GenericPlacement
-- faceMaskOverlay.ts
+- brushBench.ts
 - denture_profile_ids
 - PolicyHandle
 - LegacyFillLike
@@ -246,16 +246,16 @@
 - DentureOrientResult
 - make-heavy-meshes.ts
 - MeshRepairResult
-- 🔴 Blockers
+- DentalRimOutline
 - getArrayF32FromWasm0
 - Resin Supports Core Implementation Plan
 - MeshRepairResult
 - DentalRimResult
 - vitest
 - denturereviewresult_allowed_mask
-- AddFlash.tsx
+- rimStepText.ts
 - KeyedQueue
-- src/core — portable support core
+- unitFacts.ts
 - denturereviewresult_down_edges
 - DentalRegionResult
 - 8. Sequence
@@ -265,7 +265,7 @@
 - BinaryStlSession
 - denturearearesult_areas
 - denturearearesult_mask
-- Art.tsx
+- goldens.test.ts
 - CIA integrity audit: the denture flow (2026-11-02)
 - denturereviewresult_box_
 - generation_take_left_out_ids
@@ -282,7 +282,7 @@
 - denturereviewresult_tips
 - geometrysession_denture_compare_areas
 - geometrysession_denture_review
-- vite.config.ts
+- Command
 - __wbg_denturearearesult_free
 - DentalTiltScanResult
 - DentalTiltScanResult
@@ -297,7 +297,7 @@
 - SupportBuild
 - denturereviewresult_chain_points
 - Diagnosis
-- Roadmap after the ship (from 2026-10-28)
+- Steps in order
 - denturereviewresult_chain_sizes
 - denturereviewresult_down_mask
 - Diagnosis
@@ -305,7 +305,7 @@
 - denturereviewresult_lows_unreached
 - denturereviewresult_lows_unreached_faces
 - denturereviewresult_no_support_mask
-- pkg-browser/mixo_geometry_wasm.d.ts
+- HandWork
 - DentureOrientResult
 - denturereviewresult_released
 - denturereviewresult_unsupportable
@@ -323,11 +323,12 @@
 - denturereviewresult_rim_sizes
 - denturereviewresult_up_decision
 - 12. Owner-confirmable rules and open questions
-- walkLocale
+- Diagnosis
 - ci.yml
 - GenericPlacement
 - DentalOpeningResult
 - Majors
+- README.md
 - denturereviewresult_low_tip_points
 - denturereviewresult_low_tip_reasons
 - denturereviewresult_rim_band_mask
@@ -337,11 +338,11 @@
 - denturereviewresult_symmetry_plane
 - pkg-node/package.json
 - LegacyFill
-- plateLayout.test.ts
-- StagedProgress.test.tsx
+- Geometry inventory
+- nextItem
 - getArrayF32FromWasm0
 - SupportProblems
-- @fontsource/noto-serif-jp@^5.3.1
+- No-support zones — design
 - BodySegmentsResult
 - denturereviewresult_area_regions
 - generation_contact_fits
@@ -600,7 +601,7 @@
 - geometrysession_denture_review_ruled
 - policyhandle_island_facts
 - policyhandle_islands_note
-- playwright-core
+- @react-three/fiber
 - denturereviewresult_sockets_cancelled_by_r2
 - dentaltiltscanresult_counted_lows
 - denturereviewresult_rim_lows_facing_up
@@ -639,10 +640,11 @@
 - denturereviewresult_lows_not_down_facing
 - denturereviewresult_tips_dropped_facing_up
 - denturereviewresult_tips_skipped_fold
-- isModelFile
+- tools.ts
 - denturereviewresult_face_parts
 - denturereviewresult_part_list
-- Icon brief — hand this to whoever (or whatever) draws them
+- revisions.ts
+- Generic and dental support ship gates
 - Folder review
 - policyhandle_face_parts
 - policyhandle_part_list
@@ -650,6 +652,7 @@
 - Open decisions for the owner
 - DentalBandsResult
 - Icons
+- mixoDental
 - arrange_plate
 - denturelivetilt_new
 - denturereviewresult_drain_mask
@@ -678,11 +681,15 @@
 - Review Focus
 - HandWork
 - pkg-node/mixo_geometry_wasm.d.ts
+- mixoDental
 - DentureAreaResult
 - scope
-- DentalOpeningResult
+- useFreeTransform.ts
+- DentalBandsResult
 - BinaryStlSession
-- src/scenes: which scenes exist, and which are switched on
+- MeshDiagnosis
+- layerColours.ts
+- art-block.mjs
 - EditAnswer
 - AsciiStlSession
 - dentalrimresult_flipped
@@ -694,19 +701,25 @@
 - dentalrimresult_take_visibility_mask
 - geometrysession_dental_rim_from_points
 - __wbg_dentalrimresult_free
+- thumbnail.test.ts
 - SupportProblemsHandle
 - BinaryStlSession
 - useSupportChecks.ts
 - Dental contour contact design
 - MeshDiagnosis
+- FakeWorker
 - MeshDiagnosis
+- SupportProblems
 - MeshDiagnosis
 - WeldResult
+- WeldResult
 - concurrency
-- 6. Copy
+- SupportProblems
 - AsciiStlSession
 - True
-- icons.test.ts
+- Handoff to mixo-geocore: propose a support region from a rim the operator DREW
+- layoutFile.test.ts
+- diagnoseImported.test.ts
 - ref_node_url
 - SupportProblems
 - FaceOverlay
@@ -732,18 +745,22 @@
 - __wbg_meshdiagnosis_free
 - __wbg_meshrepairresult_free
 - DentureLiveTilt
-- Art — the coloured pixel-art set
+- DentureLiveTiltLike
+- 10. Stitch
+- DentureAreaResultLike
 - Object Mode Viewport Import Implementation Plan
+- AsciiStlSession
 - 3. Left panel brush-up
+- Session
+- OrientationSession
+- HoverProbe
 - prepare-dental-reference.mjs
-- jobRunner.ts
+- TriangleMesh
 - useDebugLayers.ts
-- BodySegmentsResult
 - DentureLiveTilt
 - supports/mesh.ts
-- FaceOverlay
+- pipeline.ts
 - settings.ts
-- dentalRegion.ts
 
 ## God Nodes (most connected - your core abstractions)
 1. `vitest` - 219 edges
@@ -762,145 +779,141 @@
   docs/dental-rework-handoff.md → scripts/test-support/dentalExpect.ts
 - `4. Worker jobs` --references--> `buildSupportMesh()`  [INFERRED]
   docs/migration/README.md → scripts/test-support/rustSupports.ts
+- `Icons and tooltips` --references--> `note()`  [INFERRED]
+  docs/design/2026-11-07-import-and-items-flow.md → scripts/walk.mjs
 - `M8 — Selection-then-entry ordering is unstated, and the obvious code is broken — 🟡` --references--> `DentalBar()`  [INFERRED]
   egm_round4_implementation_report.md → src/components/DentalBar.tsx
 - `4. Where each screen lives` --references--> `PrintAngleField()`  [INFERRED]
   docs/designer-guide.md → src/components/DentalSteps.tsx
-- `4. Component Stylings` --references--> `Field()`  [INFERRED]
-  DESIGN.md → src/components/Field.tsx
 
 ## Import Cycles
 - None detected.
 
-## Communities (734 total, 513 thin omitted)
+## Communities (750 total, 523 thin omitted)
 
 ### Community 0 - "reviewCase.ts"
-Cohesion: 0.08
-Nodes (27): main(), stlsUnder(), writeSummary(), boundsCentre(), CONTACT_MAPPING_LIMIT_MM, orientationGlb(), currentRuleNames(), dentureLayers() (+19 more)
+Cohesion: 0.07
+Nodes (37): boundsCentre(), CONTACT_MAPPING_LIMIT_MM, orientationGlb(), peelReport, dentureLayers(), reviewProfileId(), shapeNote(), explainReason() (+29 more)
 
 ### Community 1 - "Support editing UI spec (for re-implementation in mixomesh / Babylon.js)"
-Cohesion: 0.12
-Nodes (15): Reusable Surface Brush Implementation Plan, Task 1: Pure shared stamp helper, Task 2: Reuse the contract in zones without behavior change, Task 3: Dental profile uses the same contract, not zone commands, Task 4: Profiled UI extraction at the dental-flow stage, Task 5: Verification and trail, 1. State diagram, 2. Key table (`keyAction`, first match wins) (+7 more)
+Cohesion: 0.20
+Nodes (9): 2. Key table (`keyAction`, first match wins), 3. Pick table (`pickAction`, `missAction`), 5. Status message keys (en / zh-Hant / ja), 6. Colours and opacity, 7. Cursor and tolerances, 8. Camera numbers (`editing/view.ts`), 9. Conventions and the Babylon adapter, Support editing UI spec (for re-implementation in mixomesh / Babylon.js) (+1 more)
 
 ### Community 2 - "pkg-node/mixo_geometry_wasm.js"
-Cohesion: 0.05
-Nodes (59): addToExternrefTable0(), arrange_plate(), AsciiStlSession, _assertClass(), body_segments(), build_pick_index(), cachedTextDecoder, cachedTextEncoder (+51 more)
+Cohesion: 0.06
+Nodes (57): addToExternrefTable0(), arrange_plate(), _assertClass(), body_segments(), build_pick_index(), cachedTextDecoder, cachedTextEncoder, center_positions_in_place() (+49 more)
 
 ### Community 3 - "dentureReviewLayers.ts"
-Cohesion: 0.07
-Nodes (50): boxEdges(), coneTriangles(), CONTACTS_FORMAT, DentureDetail, dentureReviewDetail(), describeUp(), displayedMatrix(), displayedPositions() (+42 more)
+Cohesion: 0.09
+Nodes (39): boxEdges(), coneTriangles(), CONTACTS_FORMAT, DentureDetail, dentureReviewDetail(), describeUp(), displayedContactCheck(), displayedMatrix() (+31 more)
 
-### Community 4 - "flow.test.ts"
-Cohesion: 0.10
-Nodes (37): historyReducer(), startsDentalStep(), denturePlay(), unit(), unit, cancelSceneEdit(), canUndo(), createSceneHistory() (+29 more)
+### Community 4 - "export.ts"
+Cohesion: 0.20
+Nodes (13): Files the doc makes claims about, emptyScene, contact, cube, scene, PrintScene, encodeStl(), ExportKind (+5 more)
 
 ### Community 5 - "Generation"
 Cohesion: 0.05
-Nodes (8): dental_profile_ids(), denture_profile_ids(), Generation, getArrayJsValueFromWasm0(), HandWork, position_ids(), rule_names(), support_settings_layout()
+Nodes (9): dental_profile_ids(), denture_profile_ids(), Generation, getArrayJsValueFromWasm0(), HandWork, hiding_removal_ids(), position_ids(), rule_names() (+1 more)
 
 ### Community 6 - "Handoff"
 Cohesion: 0.10
 Nodes (21): Completed task log, Continuity protocol, Current decision, Explicitly deferred, Handoff, Latest completed step (the deploy that had been dead for eight days - 2026-11-09), Open, in the order I would take them, Previous completed step (+13 more)
 
-### Community 7 - "commands.ts"
-Cohesion: 0.03
-Nodes (57): WHAT WAS BUILT, 2026-11-08 — read this before the four increments below, §4 — The lifecycle state map, Pressing a tool, area(), areaGesture(), areaTool(), DENTAL_EVENTS, DentalAligner (+49 more)
+### Community 7 - "editingMode.ts"
+Cohesion: 0.05
+Nodes (45): The steps become TABS, not a dissolved sequence, Where this corrects Fable, against the code, 🟡 Major 4 — no change surface, areaGesture(), areaTool(), DENTAL_EVENTS, DentalAligner, DentalEvent (+37 more)
 
-### Community 8 - "useDentureOrient.ts"
-Cohesion: 0.07
-Nodes (27): What only the engine can do, and why this call exists, isAbort(), FrameScheduler, liveTiltThrottle, dialFollowsPose(), Ready, samePose(), rows (+19 more)
+### Community 8 - "dialSync.ts"
+Cohesion: 0.32
+Nodes (5): dialFollowsPose(), Ready, samePose(), rows, Vector
 
 ### Community 9 - "profilesWithoutOpening"
-Cohesion: 0.09
-Nodes (22): 1. 🔴 Cancel leaves an orphan drawing, and the comment licensing the overlay says it doesn't, 3. 🟡 The Adjust drag never takes the camera out of the gesture, 4. 🟡 Delete point can be lit over a stale index, 5. 🟡 The Cancel hint is false, in three languages, 6. 🟡 After Cancel, Step 1 is a dead end with no explanation, Code defects — verified, ranked, 🟡 Major 8 — Delete point can be enabled over a stale index, 2. An orientation that failed offered no way out (+14 more)
+Cohesion: 0.11
+Nodes (18): 1. 🔴 Cancel leaves an orphan drawing, and the comment licensing the overlay says it doesn't, 3. 🟡 The Adjust drag never takes the camera out of the gesture, 5. 🟡 The Cancel hint is false, in three languages, 6. 🟡 After Cancel, Step 1 is a dead end with no explanation, Code defects — verified, ranked, Confirmed true, and worth keeping, Consolidated review — `docs/design/2026-11-05-rim-define-mode.md`, Rejected, demoted and refuted — on the record (+10 more)
 
 ### Community 10 - "vitest"
-Cohesion: 0.04
-Nodes (41): CASE_002, CASE_ALIGNER_DIR, scratch, vitest, has, SCANS, nodeEngine, useNodeEngine() (+33 more)
+Cohesion: 0.05
+Nodes (23): react-dom, vitest, LanguageSelect(), list(), outside, SOURCES, LiveTipSummary(), LANGS (+15 more)
 
-### Community 11 - "partRoles.ts"
-Cohesion: 0.12
-Nodes (22): FaceTintLayer(), DentureParts, dentureAddOnTint(), masks, mesh, addOnFaceMask(), orderedParts(), placementParts() (+14 more)
+### Community 11 - "react"
+Cohesion: 0.11
+Nodes (31): react, ConfirmModal(), AREA_TOOLS, DentalAlignerPrompt(), noticeText(), PrintAngleField(), TILT_RULE_NAMES, tiltFlags() (+23 more)
 
-### Community 12 - "0b. THE JOB DECK — the shape this document had wrong"
-Cohesion: 0.08
-Nodes (25): 0. The problem, the measure, and what is out of scope, 0b. THE JOB DECK — the shape this document had wrong, 7. The UI, in house terms, 9. Still open, Classes the walk already depends on, `data-ui`, and why the row is the hard case, Drop (page 1), House style, and the three-language constraint (+17 more)
-
-### Community 13 - "useExport.ts"
+### Community 12 - "Import, items and the end of the flow"
 Cohesion: 0.10
-Nodes (30): 11. Feedback, errors and forgiveness (Task 12), formatTime(), failureText(), HOST_STAGES, rowText(), stageKey(), Two more of the same defect, found the same way on 2026-11-09 (§6b), Where a refusal goes, and why it is said twice (+22 more)
+Nodes (20): 0. The problem, the measure, and what is out of scope, 10. Dissolving the step machine, 4. Where the flow ends, 7. The UI, in house terms, 9. Still open, Classes the walk already depends on, `data-ui`, and why the row is the hard case, Drop (page 1) (+12 more)
+
+### Community 13 - "status.ts"
+Cohesion: 0.10
+Nodes (28): 1. What mixomesh takes, run(), run(), run(), run(), active, after(), run() (+20 more)
 
 ### Community 14 - "Web Resin Support Parity Design"
 Cohesion: 0.18
 Nodes (10): Continuity protocol, Data model, Explicit exclusions, Export, Geometry and placement, Goal, Interaction and history, User workflow (+2 more)
 
 ### Community 15 - "geometryClient.ts"
-Cohesion: 0.06
-Nodes (41): ALIGNER, BrushCase, BrushFixture, pct(), run(), stats(), estimateStl(), Gltf (+33 more)
+Cohesion: 0.08
+Nodes (30): binaryStlTriangles(), FACET_BYTES, HEADER_BYTES, headerCount(), looksLikeText(), StlEmptyError, StlFormatError, stlKind (+22 more)
 
 ### Community 16 - "App.tsx"
-Cohesion: 0.04
-Nodes (71): 4. Where the flow ends, Export writes the file and stays on Step 3, The bug this introduced, and the fix, Two things E1a found in the code, against what was expected of it, What that event does and does not mean, Previous completed step (the support build cycle, split by one test — 2026-11-08), The rule this step added to `src/components/README.md`, 6. Editing rules wiring (+63 more)
+Cohesion: 0.05
+Nodes (70): Two things E1a found in the code, against what was expected of it, 6. Editing rules wiring, 8 — The release condition is not maintained: `built` is missing from the effect's dependencies, 1. State diagram, App(), EXPORT_IDS, exportKindOf(), HEAVY_JOBS (+62 more)
 
 ### Community 17 - "alignerProfiles.ts"
 Cohesion: 0.06
-Nodes (40): AlignerProfileData, DEFAULT_KEYS, LANGS, numbers(), object(), parseAlignerProfile(), POSE_KEYS, ProfileDefaults (+32 more)
+Nodes (44): ALIGNER_PROFILES, AlignerProfileData, DEFAULT_KEYS, Lang, LANGS, numbers(), object(), parseAlignerProfile() (+36 more)
 
 ### Community 18 - "Generation"
 Cohesion: 0.06
 Nodes (5): denture_profile_ids(), Generation, getArrayJsValueFromWasm0(), HandWork, rule_names()
 
 ### Community 19 - "state/project.ts"
-Cohesion: 0.11
-Nodes (38): 2. 🔴 `rimDraft` is written to the project file, unvalidated, and a code comment denies it, What this pass checked, and how, migrateOverhangAngle(), OLD_SCATTER_ANGLE_DEFAULT, checkedMesh(), cloneDentalPolicy(), cloneDentalStamp(), cloneJsonValue() (+30 more)
+Cohesion: 0.05
+Nodes (78): 2. 🔴 `rimDraft` is written to the project file, unvalidated, and a code comment denies it, What this pass checked, and how, historyReducer(), denturePlay(), DentureState, acceptCommands(), unit, unit (+70 more)
 
 ### Community 20 - "Public API"
 Cohesion: 0.18
-Nodes (13): 5.2 Picking: `faceId` → `contactAtTriangle`, seededRays(), fromLeftHanded(), fromLeftHandedMatrix(), fromLeftHandedVector(), toLeftHanded(), toLeftHandedMatrix(), toLeftHandedVector() (+5 more)
+Nodes (15): 5.1 Support mesh, 5.2 Picking: `faceId` → `contactAtTriangle`, 5.3 Selection bodies, 5.4 Tips only: `tipsOf`, 5.5 No-support zone layer: vertex colours, 5.6 Rings, ghost tip, remove targets, 5.8 Camera, 5. Babylon render recipes (+7 more)
 
 ### Community 21 - "PolicyHandle"
-Cohesion: 0.04
+Cohesion: 0.05
 Nodes (3): TestPolicyHandle, DentalSession, PolicyHandle
 
-### Community 22 - "useExport.ts"
-Cohesion: 0.09
-Nodes (34): 5. Who frees the memory, The seam is already vendored — no geocore change, What eviction actually costs, stated rather than denied, 12 — FALSE CLAIM (partly): the four narrowings. Three are sound; `useFixSpot` is not, Check supports, Data, Flow and UI, Goal (+26 more)
+### Community 22 - "unitContacts"
+Cohesion: 0.06
+Nodes (55): 🔴 Blocker 2 — a side-uncertain rim cannot be corrected, 5. Who frees the memory, The seam is already vendored — no geocore change, Two facts revision 2 stated and then dropped, What eviction actually costs, stated rather than denied, Previous completed step (App.tsx broken into modules — 2026-11-08), Previous completed step (the support build cycle, split by one test — 2026-11-08), The rule this step added to `src/components/README.md` (+47 more)
 
 ### Community 23 - "gizmoStyle.ts"
-Cohesion: 0.12
-Nodes (20): DROPPED_HANDLE, dropScreenRing(), FREE_HANDLE, FREE_TOKEN, GizmoStyleReport, holdColour(), hoverRotateRing(), Painted (+12 more)
-
-### Community 24 - "supports/contactEdits.ts"
-Cohesion: 0.09
-Nodes (19): migrateRemovals(), RekeyedHandWork, contactsHiddenByMarkers(), engine(), flat(), hidingRemovals(), positionId(), rekeyHandWork() (+11 more)
+Cohesion: 0.13
+Nodes (19): DROPPED_HANDLE, dropScreenRing(), FREE_HANDLE, FREE_TOKEN, GizmoStyleReport, holdColour(), Painted, paintHandle() (+11 more)
 
 ### Community 26 - "walk.mjs"
-Cohesion: 0.08
-Nodes (24): BASE, CASE_01_ALIGNER, CUBE_INDICES, CUBE_POSITIONS, exportSupports(), FIXTURE, HEAVY_PLATE_STL, installedChromium() (+16 more)
+Cohesion: 0.05
+Nodes (59): What letting the walk through uncovered: Next cannot work after a failure, 6. What the reorder costs, The alternative weighed, The bug this measurement found, unrelated to the plan, 20 — `isModelFile`'s doc comment is false twice, and a `.glb` is silently discarded, A note on the harness, because it changed what the audit could ask, What I expected, and what the system did, What checks it (+51 more)
 
 ### Community 27 - "getArrayF64FromWasm0"
 Cohesion: 0.05
 Nodes (4): DentureReviewResult, getArrayF64FromWasm0(), getArrayU8FromWasm0(), MeshRepairResult
 
-### Community 28 - "useProjectFile.ts"
-Cohesion: 0.20
-Nodes (17): OpenHost, openProjectFile(), SavePicker, useProjectFile(), packProject(), PROJECT_EXTENSION, projectFileName(), sameUnits() (+9 more)
+### Community 28 - "benchScene.test.ts"
+Cohesion: 0.10
+Nodes (26): BENCH_ARRIVALS, BENCH_MODE, BENCH_PROPERTIES, BENCH_REGIONS, BenchArrival, BenchProperty, BenchRegionSpec, onBench() (+18 more)
 
 ### Community 29 - "compare_supported.py"
 Cohesion: 0.16
 Nodes (8): compare(), connected_face_components(), _face_keys(), load_binary_stl(), main(), match_reference_faces(), _quantiles(), CompareSupportedTest
 
 ### Community 30 - "機能"
-Cohesion: 0.13
-Nodes (15): mixoDental, mixoDental の特長, [▶ mixoDental を開く](https://mixocreative.github.io/mixodental/), よく付いて、きれいに外れる接点, サポートのない箇所を確認, サポート編集モード, スマートフォン、タブレット、3 言語, フィードバック (+7 more)
+Cohesion: 0.25
+Nodes (8): よく付いて、きれいに外れる接点, サポートのない箇所を確認, サポート編集モード, スマートフォン、タブレット、3 言語, 機能, 自動サポート, 複数のファイルを一度に, 読み込みと書き出し
 
 ### Community 31 - "path.ts"
-Cohesion: 0.24
-Nodes (17): What is left, presetCommands(), appendAnchor(), closePath(), emptyPath(), hasAnchor(), insertAnchor(), MIN_CLOSED_ANCHORS (+9 more)
+Cohesion: 0.21
+Nodes (19): 🔴 Blocker 1 — the flip control has no specified moment, and the two possible moments are different features, presetCommands(), appendAnchor(), closePath(), emptyPath(), hasAnchor(), insertAnchor(), MIN_CLOSED_ANCHORS (+11 more)
 
 ### Community 32 - "dentureCore.ts"
-Cohesion: 0.07
-Nodes (58): buildDentureReview(), DentureReview, LEGACY_RULE_NAMES, DIR, buildDenture(), candidatesOf(), checkModelLanding(), liftedFrame() (+50 more)
+Cohesion: 0.04
+Nodes (96): buildDentureReview(), DentureReview, LEGACY_RULE_NAMES, 2026-10-25 automatic-pillar clearance and modularity checkpoint, Ctor, buildDentalAt(), dentalFrameAt(), DIR (+88 more)
 
 ### Community 33 - "probe.py"
 Cohesion: 0.12
@@ -911,8 +924,8 @@ Cohesion: 0.11
 Nodes (23): 2. Setup, args, BASELINE, hashOutputs(), kindsAt, compareRuns(), diffRecords(), formatDifferences() (+15 more)
 
 ### Community 36 - "useScreenBrush.ts"
-Cohesion: 0.07
-Nodes (38): Baseline evidence, before the port (historical), Current execution paths, Decisions taken at U0 (all resolved), Geometry inventory, Import ABI notes, 4. Strokes (`createStroke`), a, b (+30 more)
+Cohesion: 0.12
+Nodes (24): a, b, c, inverse, local, rustRaycast(), handles, loadWithIndex() (+16 more)
 
 ### Community 37 - "Features"
 Cohesion: 0.22
@@ -920,39 +933,39 @@ Nodes (9): Aligner supports (preview), Automatic supports, Check for unsupported
 
 ### Community 38 - "prepareImport.ts"
 Cohesion: 0.08
-Nodes (32): 10. three.js boundary, cluster(), decimate(), nextPowerOfTwo(), centreInPlace(), geometryToMesh(), importGltfUnits(), weldPositions() (+24 more)
+Nodes (38): 10. three.js boundary, 1. Can each unstarted step be started from the text alone?, 2. Ordering, 3. Exit criteria, 4. Section 9 "Still open", Answers to the five questions, Code reuse the plan should name, M14 — Step 9 cannot reuse `prepare()`, and the doc does not say what replaces it — 🟡 (+30 more)
 
 ### Community 39 - "supportParityHarness.ts"
-Cohesion: 0.05
-Nodes (65): 11.4 Data shape (proposal), buildSnapshot(), hashText(), SnapshotInput, split(), stride(), idsHash(), placementSnapshot() (+57 more)
+Cohesion: 0.06
+Nodes (46): buildSnapshot(), hashText(), SnapshotInput, split(), stride(), idsHash(), placementSnapshot(), positionId() (+38 more)
 
 ### Community 40 - "ObjectViewport.tsx"
-Cohesion: 0.09
-Nodes (38): 8. Proposed Task 5 (ordered, no behaviour change), 8. Camera numbers (`editing/view.ts`), dependencies, react@^18.3.1, react-dom@^18.3.1, @react-three/drei@^9.120.0, @react-three/fiber@^8.17.10, three@^0.173.0 (+30 more)
+Cohesion: 0.11
+Nodes (29): 8. Proposed Task 5 (ordered, no behaviour change), Task 6: Fit view button and wrap-up, acceptModelFile(), gizmoShown(), isTransformMode(), ObjectViewport(), transformFromObject(), UnitTransformControls() (+21 more)
 
 ### Community 41 - "measure-heavy.mjs"
 Cohesion: 0.16
 Nodes (12): Cdp, FILES, measure(), PORT, ROOT, RUNTIME, SHOTS, sleep() (+4 more)
 
-### Community 42 - "jobActivity.ts"
-Cohesion: 0.06
-Nodes (25): MA-14. "While the Start scene is up, the row owns the import" is a cross-cutting change the measure does not require, job(), label, mesh(), file, workerOf(), CANCEL_LINGER_MS, Entry (+17 more)
+### Community 42 - "useExport.ts"
+Cohesion: 0.05
+Nodes (48): 3. What happens to a file on import, Component-wise, and the trap, Diagnose in the worker; repair on a press, Filling, Row progress — and which surface owns it, Three limits the strip must not contradict, §9 — Gap register, B15 — The `JobActivity` suppression mechanism does not exist and is unspecified — Severity: 🔴 (+40 more)
 
 ### Community 43 - "AnalysisClient"
 Cohesion: 0.14
-Nodes (7): BUILDING THE DECK: four increments, and two of them are smaller than this document assumed, Two things on a row, kept apart, AnalysisClient, abortError(), TriangleGate, Waiter, JobLabel
+Nodes (7): BUILDING THE DECK: four increments, and two of them are smaller than this document assumed, Two things on a row, kept apart, AnalysisClient, transferableCopy(), abortError(), TriangleGate, JobLabel
 
-### Community 44 - "resultPath.test.ts"
-Cohesion: 0.12
-Nodes (15): 11.0 Prerequisite bugs (fix before any per-support work), 11.1 Today (verified), 11.2 Rules, 11.3 Wireframes (right panel, 300 px), 11.5 Undo, 11.6 Port, 11.7 Copy (proposed, all **[new]**), 11.8 Build order (+7 more)
+### Community 44 - "tokenColour.ts"
+Cohesion: 0.23
+Nodes (14): How the 3D scene reads the tokens, PrintAngleArc(), PrintAngleMark(), hexString(), isStyleNode(), listeners, NEUTRAL_COLOUR, observeDocument() (+6 more)
 
 ### Community 45 - "host-example.mjs"
 Cohesion: 0.05
 Nodes (39): angle, body, checked, composed, contacts, engine, ENUMS, facing (+31 more)
 
-### Community 46 - "UnitObject.tsx"
-Cohesion: 0.09
-Nodes (48): 🔴 BLOCKER 3 — Deselecting releases the unit you are *currently reviewing*, in the ordinary one-aligner flow, Task 3: Deferred bug sweep, Task 3: Painting and the blue layer in the viewport, Task 4: Click select and red bodies in the viewport, Task 5: Brush select, DentalFaceLayer(), DentalPaintLayer(), DentalRiskLayer() (+40 more)
+### Community 46 - "Vector"
+Cohesion: 0.03
+Nodes (125): RayInputs, What is validated and what is not, Inventory, Reviewed with no geometry (all host-adapter), 2026-10-28 Review fixes: "Supports left out", Rust `zoned_at`, docs matched to the code, 1. Framework coupling (core), 2. Data formats and coordinate conventions, 3. Workers (+117 more)
 
 ### Community 47 - "takeFromExternrefTable0"
 Cohesion: 0.06
@@ -960,19 +973,19 @@ Nodes (46): addToExternrefTable0(), arrange_plate(), _assertClass(), body_segmen
 
 ### Community 48 - "🟡 Major"
 Cohesion: 0.06
-Nodes (17): MA-11. A saved verdict now outlives the session, and no surface reads it, MA-13. §5's "do not discover them" cost list omits two consumers, MA-15. The Drop page accepting GLB/glTF is scope creep against §0, MA-17. The level-1 visible label is forbidden but never stated, and the one new glossary term is left unwritten, MA-18. The Drop page's order of operations is unstated, MA-19. The neutral row tone is simultaneously "the answer" and an open question, MA-20. §6's section-`s` line numbers are wrong by 30–65 lines, MA-22. §6 and §7 duplicate the same paragraph near-verbatim (+9 more)
+Nodes (18): MA-11. A saved verdict now outlives the session, and no surface reads it, MA-13. §5's "do not discover them" cost list omits two consumers, MA-14. "While the Start scene is up, the row owns the import" is a cross-cutting change the measure does not require, MA-15. The Drop page accepting GLB/glTF is scope creep against §0, MA-17. The level-1 visible label is forbidden but never stated, and the one new glossary term is left unwritten, MA-18. The Drop page's order of operations is unstated, MA-19. The neutral row tone is simultaneously "the answer" and an open question, MA-20. §6's section-`s` line numbers are wrong by 30–65 lines (+10 more)
 
 ### Community 50 - "third-party-notices.mjs"
 Cohesion: 0.23
 Nodes (15): cargoMetadata(), collect(), visit(), isCopyleft(), licenceOf(), licenceTexts(), locate(), main() (+7 more)
 
 ### Community 51 - "ItemsPage.tsx"
-Cohesion: 0.05
-Nodes (63): F1 — The tool rail had no click handler at all. HIGH, CONFIRMED, 10 — FALSE CLAIM: "the five reachable row states". Only three can reach a row, BL-4. §3 puts the classifier in the one folder a guard refuses, MA-1. "Two tables, each exhaustive over its own report" — there are three sources, MA-7. The nine→three fill-reason collapse is attributed to a classifier that does not do it, M17 — The Items page after a project reload is unspecified — 🟡, M4 — `DiagnoseReport | CodedError` is not the classifier's input type — 🟡, DEFECTIVE (+55 more)
+Cohesion: 0.08
+Nodes (41): Previous completed step (G1/G3/G5/G7, the geocore increment, and the §8 matrix - 2026-11-09), 10 — FALSE CLAIM: "the five reachable row states". Only three can reach a row, What runs next, BL-4. §3 puts the classifier in the one folder a guard refuses, BL-6. Not one operator sentence is supplied, in any of the three languages, MA-1. "Two tables, each exhaustive over its own report" — there are three sources, MA-7. The nine→three fill-reason collapse is attributed to a classifier that does not do it, B9 — The row cap is a prerequisite of step 11 and is owned by no step — Severity: 🔴 (+33 more)
 
 ### Community 52 - "commands.ts"
-Cohesion: 0.03
-Nodes (134): 1. Scenes and pages — the vocabulary, The increments, The steps become TABS, not a dissolved sequence, Task 2: Selection helpers, BENCH_ARRIVALS, BENCH_MODE, BENCH_PROPERTIES, BENCH_REGIONS (+126 more)
+Cohesion: 0.04
+Nodes (83): Task 5: Editing rules out of App (keys, session, status), SOURCES, UNWIRED, BOOLS, COMMAND_IDS, MODES, area, step3 (+75 more)
 
 ### Community 54 - "check-no-duplicates.mjs"
 Cohesion: 0.22
@@ -984,19 +997,19 @@ Nodes (24): compilerOptions, allowJs, allowSyntheticDefaultImports, checkJs, esM
 
 ### Community 56 - "DentalRegionResultLike"
 Cohesion: 0.20
-Nodes (4): DentalRegionResultLike, contactsOf(), proposalOf(), retuneDentalSupportRegion()
+Nodes (3): DentalRegionResultLike, contactsOf(), proposalOf()
 
 ### Community 57 - "extract-sup-contacts.py"
 Cohesion: 0.18
 Nodes (13): apply(), closest_on_mesh(), closest_point_triangles(), cluster_points(), exact_fit(), icp_point_to_plane(), icp_point_to_point(), kabsch() (+5 more)
 
 ### Community 58 - "repairMesh.ts"
-Cohesion: 0.07
-Nodes (25): What runs next, Goldfish Review Report — Round 4, feature spec, Named guesses, collected, Project-rule compliance, Suggested order for revision 6, Verified correct — do not re-litigate, B3 — `MAX_FILL_LOOP_MM` does not exist; step 5 is marked DONE with an unmet exit, and step 9 depends on it — Severity: 🔴, BODY_SCALARS (+17 more)
+Cohesion: 0.08
+Nodes (22): B3 — `MAX_FILL_LOOP_MM` does not exist; step 5 is marked DONE with an unmet exit, and step 9 depends on it — Severity: 🔴, report(), result(), BODY_SCALARS, decodeFills(), decodeReport(), decodeSteps(), diagnoseMesh() (+14 more)
 
-### Community 59 - "validate.ts"
-Cohesion: 0.29
-Nodes (12): The geometry it builds on, pathLength(), MIN_OPEN_ANCHORS, segments(), crosses(), MIN_SHAPE_RATIO, pathProblems(), pathUsable() (+4 more)
+### Community 59 - "resample.ts"
+Cohesion: 0.24
+Nodes (11): Modules, pathPointArray(), resamplePath(), stepsFor(), centripetalPoint(), neighbourIndexes(), add(), distance() (+3 more)
 
 ### Community 61 - "geometry-wasm-smoke.mjs"
 Cohesion: 0.08
@@ -1006,77 +1019,77 @@ Nodes (24): asciiBytes, asciiMesh, asciiStream, binaryStl, display, emptyAscii, 
 Cohesion: 0.10
 Nodes (20): Current status and next exact action, Ownership map, Phase 0 — lock baseline and bootstrap, Phase 1 — shared mesh and editor geometry, Phase 2 — automatic analysis and dental intent, Phase 3 — all support geometry and safety, Phase 4 — one core everywhere; remove old runtime, Rules for every task (+12 more)
 
-### Community 63 - "measure-rim-loops.mjs"
-Cohesion: 0.14
-Nodes (7): CASES, every, files, packagePath, require, ROOT, sorted
+### Community 63 - "islandReport.ts"
+Cohesion: 0.23
+Nodes (12): describeIsland(), describeUnresolved(), islandPoints(), IslandSettle, IslandSummary, summariseIslands(), DentureIsland, ISLAND_STRIDE (+4 more)
 
-### Community 64 - "Blockers"
-Cohesion: 0.05
-Nodes (43): 17 — `takesOne` has no test and no walk check at all, BL-10. The row-height token has no name and no value, and §7 then quotes the forbidden table, BL-11. §1's "the entry already exists" describes a flow whose entry predicate is never satisfied, BL-2. `fill-disabled` is called unreachable; it is now the universal case, BL-3. "all eight row states" — there are nine, BL-5. The repair-vs-diagnose-only valve has already fired, and §3 still argues the old way, BL-6. Not one operator sentence is supplied, in any of the three languages, BL-7. Neither new page's layout is specified (+35 more)
+### Community 64 - "StartScreen.tsx"
+Cohesion: 0.07
+Nodes (34): 1. Scenes and pages — the vocabulary, B10 — 7a-remaining has no exit criterion; the one it inherits already passes and asserts the opposite flow — Severity: 🔴, B11 — Line 791 delegates a design decision, and line 802 contradicts line 790 — Severity: 🔴, B12 — 7a-remaining and 7b own the same three edits, and the union literal after each step is never stated — Severity: 🔴, B13 — 7b's exit is unreachable in the doc's own order, and 7b and 7d both claim the walk rewrite — Severity: 🔴, B17 — "Start screen up with a live dental session" is a new state with undefined consequences — Severity: 🔴, B18 — 6a hands two design decisions to the implementer, one phrased as "decide" — Severity: 🔴, B19 — 7b never says how the session enters dental mode for the FIRST item, and the rule it gives is unusable there — Severity: 🔴 (+26 more)
 
 ### Community 65 - "seedFromDetected.ts"
 Cohesion: 0.22
 Nodes (14): at(), degreesBetween(), gap(), headingAt(), SEED_MAX_ANCHORS, SEED_MIN_ANCHORS, SEED_MIN_GAP_MM, SEED_SPACING_MM (+6 more)
 
 ### Community 66 - "rayLayers.ts"
-Cohesion: 0.17
-Nodes (25): layer(), LAYER_COLOURS, tokenNumber(), TOKENS, tokensCss, add(), Arrow, ARROW_VERTICES (+17 more)
+Cohesion: 0.29
+Nodes (18): add(), Arrow, ARROW_VERTICES, arrowSegments(), basis(), castRay(), cross(), dot() (+10 more)
 
 ### Community 67 - "Dental support rework: geometry, orientation, and three-step review"
-Cohesion: 0.14
-Nodes (14): 0. Reproduction and ground truth — required before changing heuristics, 1. Orientation proposal: preserve opening recovery, add signed front and calibrated tilt, 2. Segment the true inner/lower support region, not just a 2D projection, 3. Three-stage UI and tip preview, 4. Release gate and handoff, Current implementation and diagnosis boundaries, Dental support rework: geometry, orientation, and three-step review, Feasibility decision (+6 more)
+Cohesion: 0.15
+Nodes (13): 0. Reproduction and ground truth — required before changing heuristics, 1. Orientation proposal: preserve opening recovery, add signed front and calibrated tilt, 2. Segment the true inner/lower support region, not just a 2D projection, 3. Three-stage UI and tip preview, 4. Release gate and handoff, Current implementation and diagnosis boundaries, Dental support rework: geometry, orientation, and three-step review, Feasibility decision (+5 more)
 
 ### Community 68 - "stageModel.ts"
-Cohesion: 0.17
-Nodes (24): Previous completed step (G1/G3/G5/G7, the geocore increment, and the §8 matrix - 2026-11-09), StagedBar(), useStageState(), cancel(), clamp01(), EASE_CAP, fail(), finish() (+16 more)
+Cohesion: 0.10
+Nodes (39): formatTime(), phaseStages(), PostStage, Post, run(), StagedBar(), stagedJobBar(), html() (+31 more)
 
 ### Community 69 - "SLASG / Resin UV node logic (reference)"
 Cohesion: 0.15
 Nodes (13): 1. Contact points, 2. Columns: SLASG_Line, 3. Tubes: SLASG_Realizer, 4. Bracing: SLASG_Truss2, 5. Tree: SLASG_Tree2, 6. Raft: SLASG_Raft, 7. Label: MIXO_Label, 8. Top level: SLASG_SupportGenerator_Mixo (no stacking) (+5 more)
 
 ### Community 70 - "功能"
-Cohesion: 0.13
-Nodes (15): mixoDental, 一次處理多個檔案, 使用方式, 功能, 匯入與匯出, 好印又好拆的接觸點, 意見回饋, 手機、平板與三種語言 (+7 more)
+Cohesion: 0.25
+Nodes (8): 一次處理多個檔案, 功能, 匯入與匯出, 好印又好拆的接觸點, 手機、平板與三種語言, 支撐編輯模式, 檢查缺少支撐的地方, 自動支撐
 
 ### Community 71 - "PolicyHandle"
 Cohesion: 0.06
 Nodes (3): getStringFromWasm0(), PolicyHandle, Reroute
 
-### Community 73 - "WorkerLike"
-Cohesion: 0.11
-Nodes (6): FakeWorker, pool(), client(), PausedWorker, releaseSessions(), WorkerLike
+### Community 73 - "resultPath.test.ts"
+Cohesion: 0.07
+Nodes (19): job(), label, mesh(), client(), label, PausedWorker, previewJob(), releaseSessions() (+11 more)
 
-### Community 74 - "projectFile.ts"
-Cohesion: 0.15
-Nodes (19): goodFile, host(), junkFile, assertSoundMeshes(), decodeProject(), GZIP_MAGIC, inflate(), PROJECT_APP (+11 more)
+### Community 74 - "PrintScene"
+Cohesion: 0.09
+Nodes (45): OpenHost, openProjectFile(), goodFile, host(), junkFile, Why a hook and not a module function, SavePicker, useProjectFile() (+37 more)
 
 ### Community 75 - "bookkeepingSnapshot"
-Cohesion: 0.33
-Nodes (3): bookkeepingSnapshot(), Impl, plainOf()
+Cohesion: 0.20
+Nodes (9): base, bookkeeping, bookkeepingSnapshot(), Impl, placementSnapshot(), plainOf(), settingsVariants, AddTipPlan (+1 more)
 
 ### Community 77 - "budget.ts"
 Cohesion: 0.05
-Nodes (61): 3. What happens to a file on import, Component-wise, and the trap, Diagnose in the worker; repair on a press, Filling, Row progress — and which surface owns it, The import pipeline is already multi-file, The row's state — by which report, and exhaustive, Three limits the strip must not contradict (+53 more)
+Nodes (71): The import pipeline is already multi-file, The row's state — by which report, and exhaustive, Previous completed step (G2/G4 fault injection, and what it caught - 2026-11-09), What this step found that nobody asked for, 24 — `LIMIT_TEXT` names the wrong cause, and both translators faithfully translated the error, 11. Feedback, errors and forgiveness (Task 12), MA-2. §0's measure states a memory bound in units of triangles, and §4 contradicts it, B7 — Step 9's capacity re-check is justified by a mechanism that cannot fire, and has no refusal path — Severity: 🔴 (+63 more)
 
 ### Community 78 - "t"
-Cohesion: 0.07
-Nodes (73): 5. Style rules, B3. Step 2 tools (done), M21 — 7a-remaining omits four compile-breaking `StartScreenId` / `File[]` sites — 🟡, react, CommandButton(), ConfirmModal(), AREA_TOOLS, DentalBar() (+65 more)
+Cohesion: 0.09
+Nodes (62): 5. Style rules, B3. Step 2 tools (done), CommandButton(), DentalBar(), BackAskBlock(), EditSupportsBlock(), IdLabelBlock(), NoteProblem() (+54 more)
 
 ### Community 80 - "peelReport.ts"
 Cohesion: 0.14
-Nodes (17): displayedContactCheck(), distancesToSurface(), Gltf, pointTriangleDistance(), readGlbWorldMeshes(), WorldMesh, JOINED, NECK_DIAMETER_MM (+9 more)
+Nodes (15): distancesToSurface(), Gltf, pointTriangleDistance(), readGlbWorldMeshes(), WorldMesh, JOINED, NECK_DIAMETER_MM, PEEL_LAYER_MM (+7 more)
 
 ### Community 82 - "perf-baseline.mjs"
 Cohesion: 0.09
 Nodes (22): ALIGNER, alignerMesh, checkFile, dental, empty, fileBytes, frame, importAligner() (+14 more)
 
-### Community 83 - "tipsOf"
-Cohesion: 0.07
-Nodes (29): 1. Framework coupling (core), 3. Workers, 4. Determinism and tests, 5. Structure quality, 6. Editing behaviour in React components (HEAD), 7. Specs as a UI spec, Babylon migration review — support core and editing behaviour, 5.1 Support mesh (+21 more)
+### Community 83 - "Review Focus"
+Cohesion: 0.14
+Nodes (13): Global Constraints, Release 2: Bug Sweep and Migration Prep — Implementation Plan, Review Focus, Task 10: Clean-room replacements for GPL-derived code, Task 11: Babylon adapter notes + migration README + cia audit, Task 12: NN/g usability set (owner-approved 2026-10-21), Task 1: Golden fixtures, Task 2: Ridge angle bug (+5 more)
 
 ### Community 84 - "referenceStep3.ts"
-Cohesion: 0.12
-Nodes (22): job, out, record(), sha256(), supports, changes, cold, live (+14 more)
+Cohesion: 0.14
+Nodes (17): job, out, record(), sha256(), supports, changes, cold, live (+9 more)
 
 ### Community 85 - "src/progress: the three kinds of waiting"
 Cohesion: 0.18
@@ -1090,45 +1103,49 @@ Nodes (10): customisedSentence(), hasCustomised(), hasEdits(), hasHandWork(), la
 Cohesion: 0.12
 Nodes (15): 1. Visual Theme & Atmosphere, 2. Color Palette & Roles, 3. Typography Rules, 4. Component Stylings, 5. Layout Principles, 6. Stitch Generation Notes, 7. How a step is laid out, and the one place it is inconsistent, Accent & Interactive (+7 more)
 
-### Community 88 - "DentalRim"
-Cohesion: 0.07
-Nodes (29): 2. The flow, 3. The mode's UI, 4. Modularity — the loop is not aligner-only, 5. Verification, 6. Open for the owner — answered, except where marked, Anchors, and the curve between them, Camera only — never the model, Closing the path (+21 more)
+### Community 88 - "facingNormal"
+Cohesion: 0.10
+Nodes (20): 3. The mode's UI, 4. Modularity — the loop is not aligner-only, 5. Verification, 6. Open for the owner — answered, except where marked, 7. What is already in place, and what is genuinely new, Anchors, and the curve between them, Camera only — never the model, Closing the path (+12 more)
 
-### Community 89 - "ItemsPage.tsx"
-Cohesion: 0.06
-Nodes (51): Previous completed step (E0 of dissolving the step machine — 2026-11-08), Previous completed step (the job deck — 2026-11-08), What was wrong in the rules, What was wrong in the structure, Adding a fifth tool, Staleness, The facts come from the work, not from the record, The four states, and the order they are tested in (+43 more)
+### Community 89 - "unitFacts.test.ts"
+Cohesion: 0.14
+Nodes (16): OUTPUT, railReason(), railStates(), fresh, kinds(), oriented, withArea, withRim (+8 more)
 
-### Community 91 - "glossary.test.ts"
-Cohesion: 0.36
-Nodes (6): GLOSSARY, GlossaryEntry, SURFACE_TOOL_TEXTS, SURFACE_TOOL_WORDS, DOCS, KEYS
+### Community 91 - "i18n.ts"
+Cohesion: 0.09
+Nodes (29): F1 — The tool rail had no click handler at all. HIGH, CONFIRMED, UndoToast(), ICON, LABEL, look(), ToolRail(), GLOSSARY, GlossaryEntry (+21 more)
 
 ### Community 92 - "Dental rework handoff"
-Cohesion: 0.07
-Nodes (28): 2026-10-24 geometry and orientation continuation, 2026-10-24 implementation checkpoint (branch `codex/dental-rework`), 2026-10-24 Step 2/3 UI checkpoint, 2026-10-25 contour-contact design shift (active), 2026-10-25 dental sidebar copy checkpoint, 2026-10-25 exact support-body collision diagnosis, 2026-10-25 explanation and retained-method record, 2026-10-25 final-build footprint validation checkpoint (+20 more)
+Cohesion: 0.08
+Nodes (26): 2026-10-24 geometry and orientation continuation, 2026-10-24 implementation checkpoint (branch `codex/dental-rework`), 2026-10-24 Step 2/3 UI checkpoint, 2026-10-25 contour-contact design shift (active), 2026-10-25 dental sidebar copy checkpoint, 2026-10-25 exact support-body collision diagnosis, 2026-10-25 explanation and retained-method record, 2026-10-25 final-build footprint validation checkpoint (+18 more)
 
 ### Community 93 - "SurfacePath"
-Cohesion: 0.14
-Nodes (16): 🟡 Major 6 — the resample's own quality signal is computed and discarded, SurfacePath, pathPointArray(), ProjectToSurface, ResampledPath, resamplePath(), stepsFor(), drawnRim() (+8 more)
+Cohesion: 0.12
+Nodes (24): The geometry it builds on, anchorsInPlane(), pathLength(), pathOf(), square(), toPlane(), SurfacePath, ProjectToSurface (+16 more)
 
 ### Community 95 - "Support selection in Support Edit Mode — design"
 Cohesion: 0.17
 Nodes (11): Camera, Deleting exactly, Edit Mode bar, Feedback, Goal, Naming (owner, 2026-10-21), Out of scope, Problem (+3 more)
 
 ### Community 96 - "probe-dental-edges.ts"
-Cohesion: 0.10
-Nodes (47): bytes, connectorPathsForExport, coordinates, Edge, edges, exportEdgeCandidates(), global, mesh (+39 more)
+Cohesion: 0.11
+Nodes (34): bytes, connectorPathsForExport, coordinates, Edge, edges, exportEdgeCandidates(), global, mesh (+26 more)
+
+### Community 97 - "rimOf"
+Cohesion: 0.16
+Nodes (11): Handoff to mixo-geocore: build a `DentalRim` from operator-drawn points, How to verify it, `openingHint`, and why the host sends it, Reasons (stable codes, not prose), The ask, The input is a general surface loop, not an aligner thing, What mixoDental does meanwhile, What the engine should do with the anchors (+3 more)
 
 ### Community 98 - "uiStylingDoc.test.ts"
-Cohesion: 0.11
-Nodes (16): code principle, graphify, two graphs, two jobs, one source of truth, ascii(), binary(), corpus(), decode(), text() (+8 more)
+Cohesion: 0.12
+Nodes (14): code principle, graphify, two graphs, two jobs, one source of truth, ascii(), binary(), corpus(), decode(), text() (+6 more)
 
 ### Community 99 - "TiltDial.tsx"
 Cohesion: 0.24
 Nodes (14): angleVar(), degrees(), oneDecimal(), TiltDial(), angleToValue(), ARC_HALF_DEG, arcPath(), DIAL_TICK_COUNT (+6 more)
 
-### Community 100 - "analysis/types.ts"
+### Community 100 - "unitSupports.ts"
 Cohesion: 0.05
-Nodes (83): Runtime contract, Progress, Task 4: switch placement and policy safely, manualKey(), sameArray(), samePlacementInputs(), Seed, seedDentalPlacement() (+75 more)
+Nodes (76): Runtime contract, 11.0 Prerequisite bugs (fix before any per-support work), 11.1 Today (verified), 11.2 Rules, 11.3 Wireframes (right panel, 300 px), 11.4 Data shape (proposal), 11.5 Undo, 11.6 Port (+68 more)
 
 ### Community 101 - "conventions.ts"
 Cohesion: 0.33
@@ -1140,75 +1157,79 @@ Nodes (6): dental-reference, Interface, Invariants, Overview, Side Effects, Veri
 
 ### Community 103 - "getArrayU32FromWasm0"
 Cohesion: 0.04
-Nodes (7): DentalRegionResult, DentalTiltScanResult, getArrayU32FromWasm0(), getUint32ArrayMemory0(), PlateArrangement, remesh_cache_stats(), SupportBuild
+Nodes (8): DentalRegionResult, DentalTiltScanResult, getArrayU32FromWasm0(), getUint32ArrayMemory0(), PickIndex, PlateArrangement, remesh_cache_stats(), SupportBuild
 
 ### Community 104 - "WorkerTask"
 Cohesion: 0.13
-Nodes (18): §1 — The question, written for this system, §5 — Seven questions, per connection on the primary flow, §6 — Fault injection: G2 (replay) and G4 (two actors on one scarce resource), §6b — Fault injection, second pass: G1, G3, G5 and G7, §8 — The rule traceability matrix, §9 — Gap register, Verified controls — named, so the next audit does not re-derive them, What I expected, and what the system did (+10 more)
+Nodes (15): §1 — The question, written for this system, §5 — Seven questions, per connection on the primary flow, §6 — Fault injection: G2 (replay) and G4 (two actors on one scarce resource), §6b — Fault injection, second pass: G1, G3, G5 and G7, §8 — The rule traceability matrix, Verified controls — named, so the next audit does not re-derive them, What I expected, and what the system did, Wiring walk — the dental flow, 2026-11-09 (+7 more)
 
 ### Community 105 - "Ship plan — one Rust geometry core, generic engine, dental as policy data"
 Cohesion: 0.17
 Nodes (13): Adding an aligner type, Aligner profiles, Architecture rules (every unit), Contracts, Dental UX flow (owner spec, 2026-10-27), External validation (owner-supplied, separate track), Goal, Owner answers (2026-10-27) (+5 more)
 
 ### Community 106 - "Resolution — review of `docs/design/2026-11-07-import-and-items-flow.md`"
-Cohesion: 0.14
-Nodes (13): C1 — "No problem statement, goals, non-goals or success measure" · CONTEST IN PART · design, C2 — "The Alternatives Rule is not met for the Items row and upload-first" · ACCEPTED, recorded as a contest only because I first wanted to argue it · design, C3 — "Engine-implementation altitude in an app-flow plan" · CONTEST · zoom-out (self-flagged as weak), C4 — "`data-ui` per row may be implementation detail" · CONTEST REJECTED — accepted instead, Contested, F1 — `ledger` cannot draw what §3 specifies · PROPOSE FIX · **7 of 7 reviewers**, F2 — Export wrote the file and Exit destroyed the work · **FIXED IN CODE** · design critic, F3 — Import repair was never decided, and would have departed silently from a stated rule · PROPOSE FIX · 4 reviewers (+5 more)
+Cohesion: 0.09
+Nodes (22): Accepted, with the decision each forces, C1 — "No problem statement, goals, non-goals or success measure" · CONTEST IN PART · design, C2 — "The Alternatives Rule is not met for the Items row and upload-first" · ACCEPTED, recorded as a contest only because I first wanted to argue it · design, C3 — "Engine-implementation altitude in an app-flow plan" · CONTEST · zoom-out (self-flagged as weak), C4 — "`data-ui` per row may be implementation detail" · CONTEST REJECTED — accepted instead, Contested, F10 — Import already welds · PROPOSE FIX · codebase-details, F11 — The export cliff is bounded · PROPOSE FIX · codebase-details (+14 more)
 
 ### Community 109 - "mixoDental UI structure"
-Cohesion: 0.14
-Nodes (13): 10.1 How this maps to Stitch, 10.2 Screen prompts, 10.3 What must not be uploaded, 10. Stitch, 13. UI behaviour audit, 14. Project files (Save and Open), 1. Purpose, audience, principles, 9.1 Diff list (+5 more)
+Cohesion: 0.13
+Nodes (14): 13. UI behaviour audit, 14. Project files (Save and Open), 1. Purpose, audience, principles, 6.1 Naming rules, 6.2 Header, left panel, viewport, modes, 6.3 Right panel (inventory, unchanged), 6.4 Footer, status line and badge per state, 6. Copy (+6 more)
 
 ### Community 110 - "5. Command registry"
 Cohesion: 0.20
 Nodes (10): 5.1 Shape, 5.2 Header, 5.3 Left panel, 5.4 Right panel (summary; inventory only), 5.5 Viewport (any state), 5.6 Support Edit Mode (edit bar, badge), 5.7 No-support zones (zones bar, badge), 5.8 Keyboard-only bindings (+2 more)
 
 ### Community 111 - "fixtures.ts"
-Cohesion: 0.18
-Nodes (17): baseName(), importStl(), add(), binaryStl(), cross(), dot(), GoldenFixture, GoldenVariant (+9 more)
+Cohesion: 0.21
+Nodes (15): baseName(), importStl(), add(), binaryStl(), cross(), dot(), normalize(), round6() (+7 more)
 
 ### Community 112 - "dentalKind.ts"
-Cohesion: 0.10
-Nodes (32): 10. Dissolving the step machine, THE BOUNDARY: one unit at a time. A shared plate is a different project., THE DECK IS THE QUEUE — the owner's conclusion, and it settles the multi-failure case, The ruling that unblocked it: the guard belongs to Apply, not to navigation, What survives, Where this corrects Fable, against the code, MA-26. About a fifth of §0–§7 argues with text the implementer cannot read, F5 — `DentalKind` is vendored, has two values, and "Model only" has no representation · PROPOSE FIX · 4 reviewers (+24 more)
+Cohesion: 0.18
+Nodes (17): 2. Appliance and Type — per run, not per row, Icons and tooltips, What survives, Why per-row was dropped, MA-26. About a fifth of §0–§7 argues with text the implementer cannot read, F5 — `DentalKind` is vendored, has two values, and "Model only" has no representation · PROPOSE FIX · 4 reviewers, DENTURE, KIND_TEXT_KEYS (+9 more)
 
 ### Community 113 - "thumbnail.ts"
-Cohesion: 0.12
-Nodes (20): EGM review — the job deck, the tool rail, and the revisions model, Open, and deliberately not done, The walk check that was passing because of the bug, What was removed, build(), drawThumbnail(), Rig, viewportColours (+12 more)
+Cohesion: 0.16
+Nodes (18): Previous completed step (the job deck — 2026-11-08), EGM review — the job deck, the tool rail, and the revisions model, Open, and deliberately not done, The walk check that was passing because of the bug, What was removed, What was wrong in the structure, build(), drawThumbnail() (+10 more)
 
 ### Community 114 - "test-support"
 Cohesion: 0.29
 Nodes (6): Interface, Invariants, Overview, Side Effects, test-support, Verification
 
 ### Community 115 - "useDentureSupports.ts"
-Cohesion: 0.14
-Nodes (27): DentureMesh, allFinish(), awaitedBuild(), landedFinish(), PendingRebuild, pointFinish(), REBUILD_STATUS_KEYS, StatusLine (+19 more)
+Cohesion: 0.05
+Nodes (58): faceMaskContourSegments(), faceMaskOverlay(), OverlayEngine, ready(), FACE_TINT_OPACITY, FaceTintLayer(), BubbleResolve, Landed (+50 more)
 
 ### Community 116 - "2. Screen anatomy and wireframes"
 Cohesion: 0.29
 Nodes (7): 2.1 Regions (desktop, 1366 × 768), 2.2 Wireframe legend, 2.3 The bench — no mode ("setup" in this document), 2.4 Support Edit Mode, Add tool, 2.5 Support Edit Mode, Select → Drag over, 37 supports selected, 2.6 No-support zones (focus mode), 2. Screen anatomy and wireframes
 
 ### Community 117 - "8. Accessibility and keyboard"
-Cohesion: 0.20
-Nodes (8): 8.1 Focus order, 8.2 Mode entry and exit, 8.3 Inert panels, 8.4 Live regions, 8.5 Keyboard summary, 8.6 Keyboard rules revised, 8. Accessibility and keyboard, KeyTarget
+Cohesion: 0.18
+Nodes (9): 8.1 Focus order, 8.2 Mode entry and exit, 8.3 Inert panels, 8.4 Live regions, 8.5 Keyboard summary, 8.6 Keyboard rules revised, 8. Accessibility and keyboard, KeyTarget (+1 more)
 
-### Community 118 - "walk"
-Cohesion: 0.11
-Nodes (21): 2. Appliance and Type — per run, not per row, Icons and tooltips, Why per-row was dropped, 20 — `isModelFile`'s doc comment is false twice, and a `.glb` is silently discarded, A note on the harness, because it changed what the audit could ask, What I expected, and what the system did, What checks it, MA-16. §2's icon paragraph answers a deleted question, and the art it says is missing exists (+13 more)
+### Community 118 - "NumberField"
+Cohesion: 0.31
+Nodes (12): Field (`src/components/Field.tsx`), Panel (`src/components/Panel.tsx`), The two widgets every panel is built from, NumberField(), clamp(), enteredValue(), escapeValue(), formatNumber() (+4 more)
 
 ### Community 119 - "geometry-guard.mjs"
 Cohesion: 0.20
 Nodes (12): DEV_TOOLS, isTest(), LABELS, MATH_PATTERNS, mathFlag(), NOT_PRODUCTION_SCRIPTS, root, runGuard() (+4 more)
 
 ### Community 120 - "Design critic"
-Cohesion: 0.14
-Nodes (13): 🔴 Blocker 1 — the drawn loop does not bound the permitted area, Design critic, 🟡 Major 10 — switching off the print-angle scan is a second decision wearing one quote, 🟡 Major 11 — no Goals/Non-Goals, no consolidated Risks, no acceptance bar, 🟡 Major 3 — Cancel leaves an orphan drawing, and the code asserts the opposite, 🟡 Major 4 — Done is the one edit Undo cannot reach, 🟡 Major 5 — the Adjust drag never takes the camera out of the gesture, 🟡 Major 7 — validation runs on the anchors; the engine sees the resampled curve (+5 more)
+Cohesion: 0.12
+Nodes (15): 🔴 Blocker 1 — the drawn loop does not bound the permitted area, Design critic, 🟡 Major 10 — switching off the print-angle scan is a second decision wearing one quote, 🟡 Major 11 — no Goals/Non-Goals, no consolidated Risks, no acceptance bar, 🟡 Major 3 — Cancel leaves an orphan drawing, and the code asserts the opposite, 🟡 Major 4 — Done is the one edit Undo cannot reach, 🟡 Major 5 — the Adjust drag never takes the camera out of the gesture, 🟡 Major 6 — the resample's own quality signal is computed and discarded (+7 more)
+
+### Community 121 - "The job deck — the rail, and what it is allowed to say"
+Cohesion: 0.16
+Nodes (13): Adding a fifth tool, Staleness, The facts come from the work, not from the record, The four states, and the order they are tested in, The job deck — the rail, and what it is allowed to say, The job-level line, The press carries the tool (increment E4), The rail, drawn (+5 more)
 
 ### Community 122 - "BrushMode"
-Cohesion: 0.09
-Nodes (15): Brush, BrushPort, BrushScheduler, createBrushScheduler(), flush(), frameBudget(), DragOver, PointerState (+7 more)
+Cohesion: 0.14
+Nodes (11): Brush, BrushScheduler, DragOver, PointerState, BrushJob, createStrokeQueue(), newStroke(), Point (+3 more)
 
-### Community 123 - "gen-fonts-css.mjs"
-Cohesion: 0.20
-Nodes (9): subset-font@^2.9.0, subset-font, FAMILIES, JAPANESE, japaneseText, notes, out, root (+1 more)
+### Community 123 - "ref_node_path"
+Cohesion: 0.07
+Nodes (22): dir, files, FAMILIES, JAPANESE, japaneseText, notes, out, root (+14 more)
 
 ### Community 124 - "Object Mode and Viewport Import Design"
 Cohesion: 0.29
@@ -1218,9 +1239,9 @@ Nodes (6): Boundaries, Goal, Handoff, Interaction, Object Mode and Viewport Impo
 Cohesion: 0.29
 Nodes (7): getDataViewMemory0(), handleError(), initSync(), __wbg_finalize_init(), __wbg_get_imports(), __wbg_init(), __wbg_load()
 
-### Community 126 - "phaseStages.test.ts"
-Cohesion: 0.28
-Nodes (7): phaseStages(), Post, run(), BUILD_PLAN, PLAN_BY_LABEL, SCAN_PLAN, StageDef
+### Community 126 - "0b. THE JOB DECK — the shape this document had wrong"
+Cohesion: 0.15
+Nodes (13): 0b. THE JOB DECK — the shape this document had wrong, One open item this section cannot settle, ONE WORKSPACE, not a deck page and an inspect page, Steps become tools, THE PLATE: a seam for later, but arrangement is load-bearing NOW, THE RAIL CARRIES THE ORDER, by enablement rather than by stepping, The sequence, WHAT WAS BUILT, 2026-11-08 — read this before the four increments below (+5 more)
 
 ### Community 128 - "Reusable surface brush design"
 Cohesion: 0.25
@@ -1234,57 +1255,49 @@ Nodes (8): Contracts for extraction or porting, Ownership map, Safety behavior s
 Cohesion: 0.32
 Nodes (6): allowedTarget(), FORBIDDEN_PACKAGES, GLOBBED, portabilityProblems(), resolveFrom(), SOURCES
 
-### Community 133 - "useDentalFlow.ts"
-Cohesion: 0.05
-Nodes (48): 5. The support area (`field.rs`, `footprint.rs`, `cache.rs`), Handoff to mixo-geocore: propose a support region from a rim the operator DREW, How to prove it, The ask, The gap, stated as the operator meets it, What the host will do with it, Why the host cannot do it, alignerSettings() (+40 more)
+### Community 133 - "arrange.ts"
+Cohesion: 0.09
+Nodes (26): Verified against the tree before adopting, arrangePlateCases(), Builds, editedCases(), footprintKey(), footprintKeys(), plateFootprints(), sameRotation() (+18 more)
 
-### Community 134 - "Mechanics this builds on"
-Cohesion: 0.06
-Nodes (39): 🟢 Nits, Confirmed true, and worth keeping, Consolidated review — `docs/design/2026-11-05-rim-define-mode.md`, Document fixes — the smallest set that works, Rejected, demoted and refuted — on the record, The short version, What the owner is being asked, Why the flip control cannot be built as written (+31 more)
+### Community 134 - "viewportPort.ts"
+Cohesion: 0.14
+Nodes (13): PickSession, point, raycaster, ThreePortOptions, bodySegments, BodySegmentsEngine, BrushView, Point2 (+5 more)
 
 ### Community 135 - "mixoDental"
 Cohesion: 0.25
 Nodes (8): Browser walk, Feedback, For developers, How to use it, License, mixoDental, [▶ Open mixoDental](https://mixocreative.github.io/mixodental/), Why mixoDental
 
 ### Community 136 - "Styling the UI, the CSS and the 3D colours"
-Cohesion: 0.07
-Nodes (26): 3D scene (background, light, grid, plate, model), Batch-review viewer tokens, Edit marks and layers on the model, Field (`src/components/Field.tsx`), How to change a colour, a size or a font, Icons, Panel (`src/components/Panel.tsx`), Print-angle dial (Step 1) (+18 more)
+Cohesion: 0.08
+Nodes (23): 3D scene (background, light, grid, plate, model), Batch-review viewer tokens, Edit marks and layers on the model, How to change a colour, a size or a font, Icons, Print-angle dial (Step 1), States (marks that tell the user where something stands), Styling the UI, the CSS and the 3D colours (+15 more)
 
-### Community 137 - "Dental contour contacts implementation plan"
-Cohesion: 0.25
-Nodes (7): Dental contour contacts implementation plan, Handoff after every checkpoint, Task 0: establish exact contour-face incidence (completed checkpoint), Task 1: freeze current behavior and isolate detection (completed checkpoint), Task 2: classify central-opening state, Task 3: certify exterior-side strips, Task 5: operator flow and validation
+### Community 137 - "estimate.ts"
+Cohesion: 0.23
+Nodes (8): countGltf(), ESTIMATE_HEAD_BYTES, estimateGlb(), estimateStl(), estimateTriangles(), Gltf, scene, TriangleEstimate
 
 ### Community 139 - "PolicyHandle"
 Cohesion: 0.05
-Nodes (3): DentalBandsResult, getStringFromWasm0(), PolicyHandle
-
-### Community 140 - "supports/zones.ts"
-Cohesion: 0.07
-Nodes (30): Inventory, Reviewed with no geometry (all host-adapter), Global Constraints, No-support Zones Implementation Plan, Review Focus, Task 1: Zone model and contact filter, Task 6: Viewport rules out of ObjectViewport (stroke, view, pick), Task 7: Transform math without three, and the UI spec addendum (+22 more)
-
-### Community 141 - "dentalEngine.ts"
-Cohesion: 0.05
-Nodes (21): 1. What a rim has to be, A drawn rim agrees with a detected one on the SIDE, not on the axis — measured, The visibility mask cannot be produced here, and it is not optional, Therefore: this feature needs geocore, The ask, CROSS_CHECK, crossCheckOf(), DentalInconclusiveReason (+13 more)
+Nodes (3): DentalOpeningResult, getStringFromWasm0(), PolicyHandle
 
 ### Community 142 - "TermsDialog.tsx"
 Cohesion: 0.30
 Nodes (7): resolveHref(), TermsDialog(), Text(), Block, Inline, parseTerms(), termsFor()
 
 ### Community 144 - "sceneColours.ts"
-Cohesion: 0.11
-Nodes (27): How the 3D scene reads the tokens, rim, MODEL_TOKENS, PREVIEW_TOKENS, Read, SCENE_TOKENS, SUPPORT_TOKENS, useViewportColours() (+19 more)
+Cohesion: 0.17
+Nodes (14): rim, MODEL_TOKENS, PREVIEW_TOKENS, Read, SCENE_TOKENS, SUPPORT_TOKENS, brushCursor(), brushCursors() (+6 more)
 
 ### Community 146 - "geometry-wasm-bench.mjs"
-Cohesion: 0.13
-Nodes (9): a, b, count, file, js, require, source, triangles (+1 more)
+Cohesion: 0.07
+Nodes (16): a, b, count, file, js, require, source, triangles (+8 more)
 
 ### Community 149 - "SettingsPanel.tsx"
 Cohesion: 0.05
-Nodes (39): BooleanKey, ChoiceKey, DeferNote(), Group, groupUi(), MIXED_CHOICES, NumberKey, PRESET_HINTS (+31 more)
+Nodes (35): DentalReview, BooleanKey, ChoiceKey, Group, groupUi(), MIXED_CHOICES, NumberKey, PRESET_HINTS (+27 more)
 
 ### Community 154 - "Blender parity harness"
-Cohesion: 0.08
-Nodes (20): glyphs(), Blender parity harness, Interface, Invariants, Overview, Side Effects, Verification, Blender parity harness (+12 more)
+Cohesion: 0.07
+Nodes (22): glyphs(), ja, subset, Blender parity harness, Interface, Invariants, Overview, Side Effects (+14 more)
 
 ### Community 155 - "vendor-geometry.mjs"
 Cohesion: 0.11
@@ -1302,6 +1315,10 @@ Nodes (16): scripts, build, check:duplicates, dev, fonts, gate:real, host-exampl
 Cohesion: 0.18
 Nodes (11): environment, if, name, needs, permissions, runs-on, name, url (+3 more)
 
+### Community 159 - "pkg-browser/mixo_geometry_wasm.d.ts"
+Cohesion: 0.07
+Nodes (6): BodySegmentsResult, DentureTiltPaths, FaceOverlay, InitInput, InitOutput, SyncInitInput
+
 ### Community 161 - "getArrayU32FromWasm0"
 Cohesion: 0.04
 Nodes (5): BodySegmentsResult, DentalRegionResult, DentalTiltScanResult, getArrayU32FromWasm0(), PlateArrangement
@@ -1310,25 +1327,25 @@ Nodes (5): BodySegmentsResult, DentalRegionResult, DentalTiltScanResult, getArra
 Cohesion: 0.50
 Nodes (3): Automated, Browser smoke test, Verification — 2026-10-20
 
-### Community 164 - "IconSheet.tsx"
-Cohesion: 0.36
-Nodes (8): Card(), folderOf(), isArt(), RULES, Shown(), SLOT_CLASS, SLOTS, SOURCE_NOTE
+### Community 164 - "batch.ts"
+Cohesion: 0.23
+Nodes (7): main(), stlsUnder(), writeSummary(), parseKind(), CaseRow, DENTAL_RIM_OVERHANG_ANGLE_DEG, RULE_DEFAULTS
 
-### Community 165 - "TriangleMesh"
-Cohesion: 0.06
-Nodes (43): Recommendations, Budgets & heavy meshes, TriangleMesh, JobTransform, SupportJob, GeneratedSupportMesh, encodeStl(), generateCeilingMs() (+35 more)
+### Community 165 - "meshWorker.ts"
+Cohesion: 0.11
+Nodes (15): MA-12. §5's eviction is disproportionate, and the doc's own cheaper answer is left untaken, BuildSessions, exportFiles(), releaseBuildSessions(), resolveSources(), sessions, sources, throttled() (+7 more)
 
 ### Community 166 - "package.json"
-Cohesion: 0.12
-Nodes (22): devDependencies, @fontsource/atkinson-hyperlegible-next@^5.3.0, @fontsource/noto-serif@^5.3.0, @fontsource/roboto-mono@^5.3.0, lucide-static@^1.68.0, @types/node@^22.20.5, @types/react@^18.3.12, @types/react-dom@^18.3.1 (+14 more)
+Cohesion: 0.09
+Nodes (30): devDependencies, @fontsource/atkinson-hyperlegible-next@^5.3.0, @fontsource/noto-serif@^5.3.0, @fontsource/noto-serif-jp@^5.3.1, @fontsource/roboto-mono@^5.3.0, lucide-static@^1.68.0, playwright-core@^1.64.1, subset-font@^2.9.0 (+22 more)
 
 ### Community 168 - "Resin Supports v1 Design"
 Cohesion: 0.12
 Nodes (15): island(), Problem list (host), Architecture, Client app, Deferred work register, Delivery files, Derived support geometry, Export and validation (+7 more)
 
-### Community 169 - "🟡 Major"
-Cohesion: 0.20
-Nodes (9): 1. Cancel is described wrongly, and what shipped is the dead end the feature exists to remove, 2. Section 6 claims "all answered" over two items that are still questions, 3. The routing question is never closed, and what shipped was neither option offered, 5. Line-number citations have rotted, and the document is built on them, 6. A superseded recommendation left unmarked — the one contradiction not flagged, 🔴 Blocker, 🟡 Major, 🟢 Nit (+1 more)
+### Community 169 - "Stage 5 — Initial zoom-out review"
+Cohesion: 0.33
+Nodes (5): 1. Cancel is described wrongly, and what shipped is the dead end the feature exists to remove, 🔴 Blocker, 🟢 Nit, Stage 5 — Initial zoom-out review, What the reviewer checked, and how
 
 ### Community 170 - "Rust/WASM geometry core: architecture as shipped"
 Cohesion: 0.22
@@ -1338,21 +1355,25 @@ Nodes (9): ABI, Behavioral invariants, Crates and layers, Driving the engine wit
 Cohesion: 0.20
 Nodes (9): patterns, actions, interval, updates, directory, groups, package-ecosystem, schedule (+1 more)
 
-### Community 173 - "pixel-icons.mjs"
-Cohesion: 0.18
-Nodes (18): archShell(), arcPoints(), blank(), centred(), centreline(), despeckle(), force, horseshoe() (+10 more)
+### Community 173 - "dentalPlacementSeed.ts"
+Cohesion: 0.27
+Nodes (9): manualKey(), sameArray(), samePlacementInputs(), seedDentalPlacement(), seededDentalPlacement(), seeds, policy(), region() (+1 more)
 
-### Community 174 - "rigidMove.ts"
-Cohesion: 0.19
-Nodes (13): What this step found that nobody asked for, src/components: the view layer, and what `App.tsx` hands to it, Two rules these hooks are built around, What is still in `App.tsx`, Why a hook and not a module function, useSupportBuilds(), Euler, isRigidPlateMove() (+5 more)
+### Community 174 - "BrushPort"
+Cohesion: 0.18
+Nodes (4): BrushPort, createBrushScheduler(), flush(), frameBudget()
+
+### Community 175 - "meshClient.ts"
+Cohesion: 0.16
+Nodes (15): ExportFilePlan, generateCeilingMs(), ExportResult, exportTimeoutMs(), MeshProgress, Pending, SupportMeshClient, SupportMeshClientOptions (+7 more)
 
 ### Community 176 - "Catalogue.tsx"
-Cohesion: 0.07
-Nodes (44): Files the doc makes claims about, JobActivityPanel(), NumberField(), setLanguage(), Card(), Catalogue(), detailLabel(), DIAL (+36 more)
+Cohesion: 0.06
+Nodes (53): setLanguage(), Card(), Catalogue(), detailLabel(), DIAL, jobRow(), LiveDial(), THEME_LABEL (+45 more)
 
-### Community 178 - "DentalReviewBlocks.tsx"
-Cohesion: 0.05
-Nodes (76): Stage 4 — integrate, and this is the expensive half, 1. The verdict said nothing about being out of date, 3. The walk's `u7` check, A verdict that is out of date, and an orientation that failed, Open for the owner, Verification, What a reader saw, What it does now (+68 more)
+### Community 178 - "step-screens.mjs"
+Cohesion: 0.06
+Nodes (31): Stage 4 — integrate, and this is the expensive half, 1. The verdict said nothing about being out of date, 3. The walk's `u7` check, A verdict that is out of date, and an orientation that failed, Open for the owner, Verification, What a reader saw, What it does now (+23 more)
 
 ### Community 179 - "How Mixo Supports handles an aligner, in plain language"
 Cohesion: 0.22
@@ -1363,32 +1384,32 @@ Cohesion: 0.29
 Nodes (7): Checking many aligners yourself: the folder review, Dental support work: shipped state, Other material, Real-scan gate, Running the review script for one file, The short version, Which document to read
 
 ### Community 181 - "printerProfiles.ts"
-Cohesion: 0.25
-Nodes (10): isObject(), loadPrinter(), parsePrinterProfiles(), plateSizeText(), positive(), printerById(), PrinterProfile, PrinterProfiles (+2 more)
+Cohesion: 0.24
+Nodes (11): isObject(), loadPrinter(), parsePrinterProfiles(), plateSizeText(), positive(), printerById(), PrinterProfile, PrinterProfiles (+3 more)
 
-### Community 182 - "geometryVersion.js"
-Cohesion: 0.32
-Nodes (5): assertGeometryVersion(), GeometryVersionMismatch, HOST_GEOMETRY_VERSION, GEOMETRY_GLUE, GEOMETRY_WASM
+### Community 182 - "geometryClient.ts"
+Cohesion: 0.15
+Nodes (11): assertGeometryVersion(), GeometryVersionMismatch, HOST_GEOMETRY_VERSION, GEOMETRY_GLUE, GEOMETRY_WASM, loadGeometryEngine(), setTransformEngine(), configureGeometry() (+3 more)
 
 ### Community 183 - "Designer guide: run and keep working on mixoDental"
-Cohesion: 0.17
+Cohesion: 0.15
 Nodes (12): 10. More reading, 1. What the app is, 3. Getting models to load, 4. Where each screen lives, 6. How to check your work, 7. Things not to touch, 8. Git workflow, 9. Troubleshooting (+4 more)
 
 ### Community 185 - "Dental support algorithm (shipped state)"
-Cohesion: 0.07
-Nodes (27): 1. Orientation frame (`orient.rs`, `rim.rs`, `pose.rs`), 2. Mesh graph and the outer ridge (`topology.rs`, `contour.rs`), 3. Central opening (`opening.rs`), 4. Face cut and side labels (`region.rs`, `bands.rs`), 6. Contact sampling (`sampling.rs`, `incidence.rs`), 7. Painting, Dental islands outside the policy area, Dental support algorithm (shipped state) (+19 more)
+Cohesion: 0.08
+Nodes (26): 1. Orientation frame (`orient.rs`, `rim.rs`, `pose.rs`), 2. Mesh graph and the outer ridge (`topology.rs`, `contour.rs`), 3. Central opening (`opening.rs`), 4. Face cut and side labels (`region.rs`, `bands.rs`), 6. Contact sampling (`sampling.rs`, `incidence.rs`), 7. Painting, Dental islands outside the policy area, Dental support algorithm (shipped state) (+18 more)
 
 ### Community 187 - "dental-reference/README.md"
 Cohesion: 0.10
-Nodes (13): Candidate sharp-ridge connectors, Detected edge candidates on the neutral reference aligner, Dental rework reference, Review model: proposed outer ridge, opening, and support faces, Measured on this one reference STL, Remaining gate, Two-contour surface partition — diagnostic, not support permission, Body-clearance report (+5 more)
+Nodes (14): Candidate sharp-ridge connectors, Detected edge candidates on the neutral reference aligner, Dental rework reference, Review model: proposed outer ridge, opening, and support faces, Measured on this one reference STL, Remaining gate, Two-contour surface partition — diagnostic, not support permission, Dental contour contacts implementation plan (+6 more)
 
-### Community 188 - "mixomesh performance audit — for mixoDental adoption"
-Cohesion: 0.29
-Nodes (6): mixoDental today — comparison, mixomesh performance audit — for mixoDental adoption, Test run, The 8 areas, Top risks for a 10M-triangle print file (in mixomesh today), Verdict
+### Community 188 - "serveTask"
+Cohesion: 0.12
+Nodes (16): mixoDental today — comparison, mixomesh performance audit — for mixoDental adoption, Recommendations, Test run, The 8 areas, Top risks for a 10M-triangle print file (in mixomesh today), Verdict, geometryToMesh() (+8 more)
 
-### Community 190 - "sceneMap.ts"
-Cohesion: 0.22
-Nodes (13): The modules, enabledScenes(), FLOW_END, FlowEnd, flowEndsAtExport(), SCENE_IDS, sceneEnabled(), SceneFallback (+5 more)
+### Community 190 - "DentureReviewPanel.test.tsx"
+Cohesion: 0.09
+Nodes (24): F18 — Accepted nits, ReviewProblem, reviewWayOn(), render(), review, ui, src/scenes: which scenes exist, and which are switched on, The modules (+16 more)
 
 ### Community 193 - "Goldfish context — review of `docs/design/2026-11-07-import-and-items-flow.md`"
 Cohesion: 0.25
@@ -1400,7 +1421,7 @@ Nodes (12): CIA audit — the deck and the dental flow, 2026-11-08, F2 — Remov
 
 ### Community 197 - "useDentureOrient.ts"
 Cohesion: 0.05
-Nodes (61): Per item, not per plate, LandingHit, LowPoint, AcceptedGroup, ORDER, splitByRule(), splitDentureSpots(), SpotSplit (+53 more)
+Nodes (61): Per item, not per plate, AcceptedGroup, ORDER, splitByRule(), splitDentureSpots(), SpotSplit, nearestFaces(), reasonOfFace() (+53 more)
 
 ### Community 198 - "Going back goes out one level"
 Cohesion: 0.18
@@ -1408,7 +1429,7 @@ Nodes (10): Checked by, Going back goes out one level, In a mode, the way out we
 
 ### Community 199 - "getArrayF64FromWasm0"
 Cohesion: 0.04
-Nodes (6): DentureReviewResult, getArrayF64FromWasm0(), getArrayU8FromWasm0(), MeshDiagnosis, MeshRepairResult, SupportProblems
+Nodes (5): DentureReviewResult, GenericPolicyResult, getArrayF64FromWasm0(), getArrayU8FromWasm0(), MeshRepairResult
 
 ### Community 200 - "walk"
 Cohesion: 0.20
@@ -1423,12 +1444,12 @@ Cohesion: 0.20
 Nodes (10): BATCH, FILES, INLINE_STYLE_EXCEPTIONS, offenders(), read(), rel(), TSX, VIEWPORT (+2 more)
 
 ### Community 208 - "dentureReview.ts"
-Cohesion: 0.15
-Nodes (16): decodeIslands(), policyIslands(), AREA_CLASS, decodeCups(), decodeDeepSockets(), decodePockets(), DeepSocket, DentureAreaComparison (+8 more)
+Cohesion: 0.14
+Nodes (17): decodeIslands(), policyIslands(), AREA_CLASS, decodeCups(), decodeDeepSockets(), decodePockets(), DeepSocket, DentureAreaComparison (+9 more)
 
-### Community 211 - "faceMaskOverlay.ts"
-Cohesion: 0.43
-Nodes (5): faceMaskContourSegments(), faceMaskOverlay(), OverlayEngine, ready(), FACE_TINT_OPACITY
+### Community 211 - "brushBench.ts"
+Cohesion: 0.25
+Nodes (8): ALIGNER, BrushCase, BrushFixture, pct(), run(), stats(), brushHits(), BrushSession
 
 ### Community 216 - "UI handoff: open work as of 2026-11-02"
 Cohesion: 0.18
@@ -1442,9 +1463,9 @@ Nodes (7): 4.1 States, 4.2 Diagram, 4.3 Transitions, 4.4 What each region does p
 Cohesion: 0.40
 Nodes (3): counts, OUT, Vector
 
-### Community 234 - "🔴 Blockers"
-Cohesion: 0.22
-Nodes (8): 1. "Done hands straight to Free transform" is not what shipped, 2. The entry contract is wrong and under-specified, 3. `dentalRimOwn` is named but never specified, 4. No behaviourally significant constant is documented, and the one described is wrong, 5. The surface-following projection rule is documented wrongly, 🔴 Blockers, 🟡 Major, Stage 6 — Comprehension / re-implementation audit
+### Community 234 - "DentalRimOutline"
+Cohesion: 0.10
+Nodes (20): 1. "Done hands straight to Free transform" is not what shipped, 2. The entry contract is wrong and under-specified, 3. `dentalRimOwn` is named but never specified, 4. No behaviourally significant constant is documented, and the one described is wrong, 5. The surface-following projection rule is documented wrongly, 🔴 Blockers, 🟡 Major, 🟢 Nits (+12 more)
 
 ### Community 235 - "getArrayF32FromWasm0"
 Cohesion: 0.08
@@ -1455,44 +1476,32 @@ Cohesion: 0.29
 Nodes (6): Resin Supports Core Implementation Plan, Task 1: Toolchain and typed analysis domain, Task 2: Deterministic placement worker, Task 3: Derived geometry and export, Task 4: Interactive React workspace, Task 5: GitHub Pages, documentation, and release verification
 
 ### Community 239 - "vitest"
-Cohesion: 0.05
-Nodes (68): 2. Frames: right-handed core, left-handed Babylon, 3. Data flow for one object, 4. Worker jobs, 7. Heavy meshes, 8. Open items for the port, Migrating support editing to mixomesh (Babylon.js), reference(), reference() (+60 more)
+Cohesion: 0.04
+Nodes (84): 2. Frames: right-handed core, left-handed Babylon, 3. Data flow for one object, 4. Worker jobs, 7. Heavy meshes, 8. Open items for the port, Migrating support editing to mixomesh (Babylon.js), Read-only orientation probe, 2026-10-24, reference() (+76 more)
 
-### Community 241 - "AddFlash.tsx"
-Cohesion: 0.60
-Nodes (3): AddFlash(), FLASH_MS, flashLook()
+### Community 241 - "rimStepText.ts"
+Cohesion: 0.42
+Nodes (7): 4. 🟡 Delete point can be lit over a stale index, 🟡 Major 8 — Delete point can be enabled over a stale index, The feature under review, rimDeleteReason(), rimDoneReason(), rimLoopText(), rimProblemText()
 
-### Community 243 - "src/core — portable support core"
+### Community 243 - "unitFacts.ts"
 Cohesion: 0.33
-Nodes (5): Conventions, Defined tie rules, Jobs and workers, Licence, src/core — portable support core
+Nodes (8): The increments, Previous completed step (E0 of dissolving the step machine — 2026-11-08), What was wrong in the rules, acceptedPolicy(), hasRim(), isDenture(), oriented(), unitFacts()
 
 ### Community 246 - "8. Sequence"
-Cohesion: 0.05
-Nodes (65): 8. Sequence, Items (page 2), Previous completed step (App.tsx broken into modules — 2026-11-08), 11 — `malformed` asserts inward faces without consulting `windingConsistent`, 13 — FALSE CLAIM: `releasedBuild.ts`'s header asserts a consumer map the same commit retracts, 14 — `takesOne: false` is not an arity option: it flips the drop out of the dental path and refuses it outright, 16 — The verdict→row pipeline is tested link by link and never joined: deleting the carry-over breaks nothing, 18 — The load gate is shape-deep, and both it and its docs overstate what it catches (+57 more)
+Cohesion: 0.07
+Nodes (42): 8. Sequence, Items (page 2), 11 — `malformed` asserts inward faces without consulting `windingConsistent`, 13 — FALSE CLAIM: `releasedBuild.ts`'s header asserts a consumer map the same commit retracts, 14 — `takesOne: false` is not an arity option: it flips the drop out of the dental path and refuses it outright, 16 — The verdict→row pipeline is tested link by link and never joined: deleting the carry-over breaks nothing, 17 — `takesOne` has no test and no walk check at all, 18 — The load gate is shape-deep, and both it and its docs overstate what it catches (+34 more)
 
-### Community 248 - "decodeTiltPaths"
-Cohesion: 0.31
-Nodes (3): DentureTiltPathsLike, decodeTiltPaths(), denturePaths()
-
-### Community 253 - "Art.tsx"
-Cohesion: 0.47
-Nodes (5): Art, FILES, OWN_ATTRS, propName(), scopeNames()
+### Community 253 - "goldens.test.ts"
+Cohesion: 0.28
+Nodes (7): directory, GOLDEN_FIXTURES, STORED, assertFinite(), formatGolden(), goldenDiff(), goldenName()
 
 ### Community 254 - "CIA integrity audit: the denture flow (2026-11-02)"
 Cohesion: 0.29
 Nodes (6): Checked and clean, CIA integrity audit: the denture flow (2026-11-02), Findings, Not walked at this tier, Owner questions, What each fix does
 
-### Community 270 - "vite.config.ts"
-Cohesion: 0.50
-Nodes (3): vite@^6.0.7, vite, VENDOR
-
-### Community 285 - "Roadmap after the ship (from 2026-10-28)"
-Cohesion: 0.22
-Nodes (8): After H: dental-only mixoDental, generic supports in mixomesh (D16), Cross-cutting, Decision log, Deferred until evidence, Principles (owner), Roadmap after the ship (from 2026-10-28), State at d28ffd3 (sources), Verification tiers
-
-### Community 293 - "pkg-browser/mixo_geometry_wasm.d.ts"
-Cohesion: 0.09
-Nodes (6): HandWork, InitInput, InitOutput, SupportProblems, SyncInitInput, WeldResult
+### Community 285 - "Steps in order"
+Cohesion: 0.10
+Nodes (20): After H: dental-only mixoDental, generic supports in mixomesh (D16), B4. Brace pruning (done), Cross-cutting, Decision log, Deferred until evidence, F. Print-angle search (done), H. Host deliverable (0.5 unit), L. Lift as a plate offset (done) (+12 more)
 
 ### Community 303 - "Handoff to mixo-geocore: a job stuck at 100 % must stop looking finished"
 Cohesion: 0.25
@@ -1502,45 +1511,57 @@ Nodes (7): Handoff to mixo-geocore: a job stuck at 100 % must stop looking finis
 Cohesion: 0.33
 Nodes (6): 12.1 Rules to confirm, 12.2 Open questions for the owner, 12.3 Gap list (14 gaps from the plan) and where each is answered, 12.4 Review dissent kept on record, 12.5 Owner answers (2026-10-22), 12. Owner-confirmable rules and open questions
 
-### Community 311 - "walkLocale"
-Cohesion: 0.21
-Nodes (12): 6. What the reorder costs, The alternative weighed, The bug this measurement found, unrelated to the plan, B16 — Removing the type screen breaks four sites 7c never names, including `walk:locales` — Severity: 🔴, addOnUpFacingSpot(), check(), forSlowMachines(), makeDriver() (+4 more)
-
 ### Community 312 - "ci.yml"
 Cohesion: 0.22
 Nodes (8): jobs, test, name, permissions, contents, name, runs-on, timeout-minutes
 
 ### Community 315 - "Majors"
-Cohesion: 0.07
-Nodes (29): MA-21. `enterEditor` has eight call sites, not seven, M12 — "a **successful** export" names a hook that does not exist — 🟡, M13 — Step 9's display re-run has an unstated tier branch and no key cleanup — 🟡, M15 — The Drop/Items failure matrix stops at "one bad file" — 🟡, M16 — Per-row abandonment contradicts the whole-drop cancel, and the arrives-after-removal race is undefined — 🟡, M18 — 6a's exit cannot fail for the thing it guards — 🟡, M19 — 7d has no replacement assertions — 🟡, M1 — `enterEditor`'s call-site count is wrong — 🟡 (+21 more)
+Cohesion: 0.10
+Nodes (20): Aside — not a document finding, Goldfish Review Report — Round 4, M11 — Step 11's exit omits two of `KeptBuild`'s five fields — 🟡, M12 — "a **successful** export" names a hook that does not exist — 🟡, M13 — Step 9's display re-run has an unstated tier branch and no key cleanup — 🟡, M16 — Per-row abandonment contradicts the whole-drop cancel, and the arrives-after-removal race is undefined — 🟡, M18 — 6a's exit cannot fail for the thing it guards — 🟡, M19 — 7d has no replacement assertions — 🟡 (+12 more)
+
+### Community 316 - "README.md"
+Cohesion: 0.22
+Nodes (3): Blender Parity Checklist, Intentionally excluded, Known differences
 
 ### Community 324 - "pkg-node/package.json"
 Cohesion: 0.33
 Nodes (5): files, main, name, types, version
 
-### Community 326 - "plateLayout.test.ts"
-Cohesion: 0.16
-Nodes (14): Verified against the tree before adopting, arrangePlateCases(), Builds, editedCases(), footprintKey(), footprintKeys(), PlateArrangement, plateFootprints() (+6 more)
+### Community 326 - "Geometry inventory"
+Cohesion: 0.29
+Nodes (7): Baseline evidence, before the port (historical), Current execution paths, Decisions taken at U0 (all resolved), Geometry inventory, Import ABI notes, createThreeViewportPort(), port()
 
-### Community 327 - "StagedProgress.test.tsx"
-Cohesion: 0.83
-Nodes (3): stagedJobBar(), html(), row()
+### Community 327 - "nextItem"
+Cohesion: 0.36
+Nodes (5): What is already built, and what this costs, 21 — The Items page's `finished`-dependent code and its tests are unreachable, itemsLeft(), nextItem(), plate
 
 ### Community 328 - "getArrayF32FromWasm0"
-Cohesion: 0.06
-Nodes (7): BodySegmentsResult, Diagnosis, FaceOverlay, getArrayF32FromWasm0(), getFloat32ArrayMemory0(), PickIndex, WeldResult
+Cohesion: 0.07
+Nodes (6): BodySegmentsResult, DentalRimResult, FaceOverlay, getArrayF32FromWasm0(), getFloat32ArrayMemory0(), WeldResult
+
+### Community 330 - "No-support zones — design"
+Cohesion: 0.25
+Nodes (7): Check supports, Data, Flow and UI, Goal, Kept apart from selection (owner), No-support zones — design, Out of scope
 
 ### Community 566 - "Support ship gates implementation plan"
 Cohesion: 0.18
 Nodes (9): Resume rule, Support ship gates implementation plan, Task 1 — Exact topology-birth primitive, Task 2 — Built-support path report, Task 3 — Classify intentional contact reach versus body collision, Task 4 — Shared full-build safety runner and mode policies, Task 5 — Dental coverage and outer-only aligners, Task 6 — UI, performance, and release evidence (+1 more)
 
-### Community 629 - "isModelFile"
-Cohesion: 0.46
-Nodes (6): 19 — A second drop handler on the Items page, diverging from the module written to prevent exactly that, dropAction, isModelFile(), act(), file(), isProject()
+### Community 590 - "@react-three/fiber"
+Cohesion: 0.25
+Nodes (8): dependencies, react@^18.3.1, react-dom@^18.3.1, @react-three/drei@^9.120.0, @react-three/fiber@^8.17.10, three@^0.173.0, @react-three/drei, @react-three/fiber
 
-### Community 632 - "Icon brief — hand this to whoever (or whatever) draws them"
+### Community 629 - "tools.ts"
+Cohesion: 0.36
+Nodes (5): fresh, ready, render(), TOOL_ORDER, toolsFor()
+
+### Community 632 - "revisions.ts"
+Cohesion: 0.46
+Nodes (6): nextRevision(), Revisions, staleTools(), stamped(), supportsNeedReplanting(), inOrder
+
+### Community 633 - "Generic and dental support ship gates"
 Cohesion: 0.29
-Nodes (6): Already drawn — this is what a REPLACEMENT must keep, How to check it before sending it back, Icon brief — hand this to whoever (or whatever) draws them, Still to draw — item kinds, Rule B (only when the app can prepare that item), The deck tool rail — Rule A, drawn, The rim-mode cursor — Rule A, drawn and wired
+Nodes (6): Body-clearance report, Event-based island report (not per-layer slicing), Generic and dental support ship gates, Performance and lifecycle, Scope and ownership, Software acceptance, not clinical certification
 
 ### Community 634 - "Folder review"
 Cohesion: 0.29
@@ -1553,6 +1574,10 @@ Nodes (7): 1. When is a result "blocked"?, 2. Low points outside the support are
 ### Community 640 - "Icons"
 Cohesion: 0.14
 Nodes (13): Actions that are words today, Cursors, which are icons too, Done: the deck rail, and the three item types (2026-11-10), Drawing a new one, Icons, Item kinds, Rules for a replacement, See your change (+5 more)
+
+### Community 641 - "mixoDental"
+Cohesion: 0.29
+Nodes (7): mixoDental, mixoDental の特長, [▶ mixoDental を開く](https://mixocreative.github.io/mixodental/), フィードバック, ライセンス, 使い方, 開発者向け
 
 ### Community 649 - "steps"
 Cohesion: 0.38
@@ -1571,28 +1596,40 @@ Cohesion: 0.29
 Nodes (7): with, cache, if-no-files-found, name, node-version, path, retention-days
 
 ### Community 666 - "Part A — Readiness: could someone be told "finish it" tomorrow?"
-Cohesion: 0.18
-Nodes (10): 🔴 Blocker 1 — the flip control has no specified moment, and the two possible moments are different features, 🔴 Blocker 2 — the state the control needs is thrown away, 🔴 Blocker 3 — two live, contradictory designs for the same control, 🟡 Major 4 — no change surface, 🟡 Major 5 — the uncertain state cannot be reproduced, so the work cannot be verified, 🟡 Major 6 — what they would most likely break: a re-entry that silently does nothing, 🟢 Nits, Part A — Readiness: could someone be told "finish it" tomorrow? (+2 more)
+Cohesion: 0.15
+Nodes (12): 🔴 Blocker 2 — the state the control needs is thrown away, 🔴 Blocker 3 — two live, contradictory designs for the same control, Checked and TRUE — worth keeping, Could not check, 🟡 Major 5 — the uncertain state cannot be reproduced, so the work cannot be verified, 🟡 Major 6 — what they would most likely break: a re-entry that silently does nothing, 🟢 Nits, Nits, all verified (+4 more)
 
 ### Community 667 - "Review Focus"
-Cohesion: 0.25
-Nodes (7): Global Constraints, Review Focus, Support Selection (Step 1) Implementation Plan, Task 1: Exact deletions in the scene model, Task 3: Edit Mode tools, selection state and Delete in App, Task 6: Fit view button and wrap-up, Task 7: Style pass against mixo-app-style
+Cohesion: 0.23
+Nodes (10): Global Constraints, Review Focus, Support Selection (Step 1) Implementation Plan, Task 1: Exact deletions in the scene model, Task 2: Selection helpers, Task 3: Edit Mode tools, selection state and Delete in App, Task 7: Style pass against mixo-app-style, paintSelection() (+2 more)
 
 ### Community 669 - "pkg-node/mixo_geometry_wasm.d.ts"
 Cohesion: 0.10
 Nodes (3): BinaryStlSession, DentureAreaResult, Reroute
 
-### Community 672 - "scope"
-Cohesion: 0.20
-Nodes (13): How an item is started, and the trap in the obvious way, 🟢 Nits, Prioritized Findings, M10 — Step 3 has no status marker, is in fact unstarted, and its exit is unfalsifiable — 🟡, F13 — The wrong `scope` claim is in three places, and `SceneScope`'s justification is now void · PROPOSE FIX · 3 reviewers, PAINT(), SceneScope, Non-negotiable rules (+5 more)
+### Community 670 - "mixoDental"
+Cohesion: 0.29
+Nodes (7): mixoDental, 使用方式, 意見回饋, 授權, 為什麼選 mixoDental, [▶ 開啟 mixoDental](https://mixocreative.github.io/mixodental/), 開發者
 
-### Community 677 - "src/scenes: which scenes exist, and which are switched on"
-Cohesion: 0.33
-Nodes (5): src/scenes: which scenes exist, and which are switched on, The planned multi-object workflow, What changed: where the flow ends, Why the table is data, not a comment, Why this is a route and not "the bench is off"
+### Community 672 - "scope"
+Cohesion: 0.06
+Nodes (34): How an item is started, and the trap in the obvious way, BL-10. The row-height token has no name and no value, and §7 then quotes the forbidden table, BL-11. §1's "the entry already exists" describes a flow whose entry predicate is never satisfied, BL-2. `fill-disabled` is called unreachable; it is now the universal case, BL-3. "all eight row states" — there are nine, BL-5. The repair-vs-diagnose-only valve has already fired, and §3 still argues the old way, BL-7. Neither new page's layout is specified, BL-8. "Preview" is used once and defined nowhere — and it is a peak-memory decision (+26 more)
+
+### Community 673 - "useFreeTransform.ts"
+Cohesion: 0.43
+Nodes (5): FREE_OFF, FreeAction, freeReducer(), FreeState, useFreeTransform()
+
+### Community 677 - "layerColours.ts"
+Cohesion: 0.40
+Nodes (5): layer(), LAYER_COLOURS, tokenNumber(), TOKENS, tokensCss
+
+### Community 678 - "art-block.mjs"
+Cohesion: 0.40
+Nodes (4): g, layers, runs(), solid
 
 ### Community 693 - "useSupportChecks.ts"
-Cohesion: 0.07
-Nodes (54): 🔴 Blocker 2 — a side-uncertain rim cannot be corrected, Appendix A. Verified against the code, 1. What mixomesh takes, Final fix re-review Minors, New Breakage in the Fix Diff, Not fixed in final round (implementer list), Open from /cia 2026-10-22 (fix/tips-and-drag-select), Release 3 backlog (deferred Minors from Release 2 reviews) (+46 more)
+Cohesion: 0.14
+Nodes (29): Appendix A. Verified against the code, Final fix re-review Minors, New Breakage in the Fix Diff, Not fixed in final round (implementer list), Open from /cia 2026-10-22 (fix/tips-and-drag-select), Release 3 backlog (deferred Minors from Release 2 reviews), FixTarget, useFixSpot() (+21 more)
 
 ### Community 694 - "Dental contour contact design"
 Cohesion: 0.29
@@ -1602,29 +1639,33 @@ Nodes (6): Dental contour contact design, Detector contracts, Operator rule, Rev
 Cohesion: 0.67
 Nodes (4): concurrency, cancel-in-progress, group, concurrency
 
-### Community 703 - "6. Copy"
-Cohesion: 0.40
-Nodes (5): 6.1 Naming rules, 6.2 Header, left panel, viewport, modes, 6.3 Right panel (inventory, unchanged), 6.4 Footer, status line and badge per state, 6. Copy
-
 ### Community 705 - "True"
 Cohesion: 0.50
 Nodes (4): tags, True, push, workflow_dispatch
 
-### Community 706 - "icons.test.ts"
-Cohesion: 0.14
-Nodes (10): ICON_CATALOGUE, IconEntry, IconSlot, IconSource, ART_FILES, FILES, ICON_FILES, ICONS (+2 more)
+### Community 706 - "Handoff to mixo-geocore: propose a support region from a rim the operator DREW"
+Cohesion: 0.40
+Nodes (4): Handoff to mixo-geocore: propose a support region from a rim the operator DREW, How to prove it, The ask, Why the host cannot do it
+
+### Community 707 - "layoutFile.test.ts"
+Cohesion: 0.40
+Nodes (4): KNOBS, LAYOUT, STYLES, THEME
+
+### Community 708 - "diagnoseImported.test.ts"
+Cohesion: 0.40
+Nodes (3): engine, TETRA_FACES, TETRA_POINTS
 
 ### Community 709 - "ref_node_url"
-Cohesion: 0.08
-Nodes (22): [folder], here, lan, roots, server, types, FROM, house (+14 more)
+Cohesion: 0.10
+Nodes (17): currentRuleNames(), dentureDir, scratch, [folder], here, lan, roots, server (+9 more)
 
 ### Community 712 - "SurfacePath"
-Cohesion: 0.13
-Nodes (28): 🟢 Nits, As shipped, The feature under review, centripetalPoint(), neighbourIndexes(), SPAN_SAMPLES, spanCurve(), `rim/`: drawing a rim by hand (+20 more)
+Cohesion: 0.12
+Nodes (29): Document fixes — the smallest set that works, 🟢 Nits, As shipped, Mechanics this builds on, FALSE, RimDraftLayer(), segments(), SPAN_SAMPLES (+21 more)
 
-### Community 736 - "Art — the coloured pixel-art set"
+### Community 735 - "10. Stitch"
 Cohesion: 0.50
-Nodes (3): Art — the coloured pixel-art set, Rules for a file here, Where these came from
+Nodes (4): 10.1 How this maps to Stitch, 10.2 Screen prompts, 10.3 What must not be uploaded, 10. Stitch
 
 ### Community 737 - "Object Mode Viewport Import Implementation Plan"
 Cohesion: 0.40
@@ -1638,45 +1679,45 @@ Nodes (4): 3.1 Proposed order and why, 3.2 Before / after inventory, 3.3 The Cli
 Cohesion: 0.50
 Nodes (3): copy, onDisk, original
 
-### Community 745 - "jobRunner.ts"
-Cohesion: 0.06
-Nodes (70): 2026-10-25 automatic-pillar clearance and modularity checkpoint, Task 8: Core jobs off `PrintUnit` + WorkerTask-contract runner, dentalPolicyOf(), still, AREA_RISK_DELAY_MS, AreaRisks, NONE, AddedAt (+62 more)
+### Community 745 - "TriangleMesh"
+Cohesion: 0.04
+Nodes (110): 1. What a rim has to be, 2. The flow, A drawn rim agrees with a detected one on the SIDE, not on the axis — measured, Do not fabricate a proposal's diagnostics, The visibility mask cannot be produced here, and it is not optional, Therefore: this feature needs geocore, What only the engine can do, and why this call exists, Task 8: Core jobs off `PrintUnit` + WorkerTask-contract runner (+102 more)
 
 ### Community 746 - "useDebugLayers.ts"
-Cohesion: 0.10
-Nodes (27): AngleEvidenceBlock(), DebugSection(), DebugSectionProps, swatchColor(), layers, computed, DEBUG_OPEN_KEY, DebugLayers (+19 more)
+Cohesion: 0.12
+Nodes (22): AngleEvidenceBlock(), DebugSection(), DebugSectionProps, swatchColor(), layers, computed, DEBUG_OPEN_KEY, DebugLayers (+14 more)
 
 ### Community 752 - "supports/mesh.ts"
 Cohesion: 0.03
-Nodes (91): 2. Data formats and coordinate conventions, Task 2: Zones mode in App, SupportBuildOptions, Case, manualShelf, Options, slabBase, slabCases (+83 more)
+Nodes (99): Previous step (background building and progress bar), nodeEngine, buildSupportMesh(), emptyMesh(), SupportBuildOptions, Case, CASES, manualShelf (+91 more)
 
-### Community 754 - "settings.ts"
-Cohesion: 0.06
-Nodes (49): Blender Parity Checklist, Intentionally excluded, Known differences, Contact tip shapes (web and Blender add-on done; add-on b82ad6b, not pushed), Previous step (background building and progress bar), directory, GOLDEN_FIXTURES, STORED (+41 more)
+### Community 754 - "pipeline.ts"
+Cohesion: 0.24
+Nodes (14): GoldenFixture, GoldenVariant, bytesHash(), check(), Fnv1a, GoldenSnapshot, importedUnit(), meshHash() (+6 more)
 
-### Community 756 - "dentalRegion.ts"
-Cohesion: 0.09
-Nodes (38): appSettings(), buildDentalReview(), DentalReviewBuild, DiagnosticReviewContacts, pickPrintAngle(), PrintAngle, Region, bytes (+30 more)
+### Community 756 - "settings.ts"
+Cohesion: 0.05
+Nodes (66): 5. The support area (`field.rs`, `footprint.rs`, `cache.rs`), 2026-10-26 active continuation: local rim-resampling diagnostic and Step 2 controls, Contact tip shapes (web and Blender add-on done; add-on b82ad6b, not pushed), The gap, stated as the operator meets it, What the host will do with it, B2. Suggested tips and even belt spacing (done), appSettings(), buildDentalReview() (+58 more)
 
 ## Knowledge Gaps
 - **403 isolated node(s):** `memory`, `__wbg_asciistlsession_free`, `__wbg_binarystlsession_free`, `__wbg_bodysegmentsresult_free`, `__wbg_dentalbandsresult_free` (+398 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 3484 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **513 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 3479 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **523 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `vitest` connect `vitest` to `reviewCase.ts`, `dentureReviewLayers.ts`, `flow.test.ts`, `commands.ts`, `useDentureOrient.ts`, `partRoles.ts`, `0b. THE JOB DECK — the shape this document had wrong`, `useExport.ts`, `geometryClient.ts`, `App.tsx`, `state/project.ts`, `Public API`, `useExport.ts`, `gizmoStyle.ts`, `path.ts`, `dentureCore.ts`, `real-scan-gate.mjs`, `useScreenBrush.ts`, `prepareImport.ts`, `supportParityHarness.ts`, `ObjectViewport.tsx`, `jobActivity.ts`, `resultPath.test.ts`, `third-party-notices.mjs`, `ItemsPage.tsx`, `commands.ts`, `check-no-duplicates.mjs`, `validate.ts`, `seedFromDetected.ts`, `stageModel.ts`, `projectFile.ts`, `budget.ts`, `t`, `peelReport.ts`, `ItemsPage.tsx`, `glossary.test.ts`, `SurfacePath`, `probe-dental-edges.ts`, `uiStylingDoc.test.ts`, `TiltDial.tsx`, `analysis/types.ts`, `dentalKind.ts`, `thumbnail.ts`, `useDentureSupports.ts`, `isModelFile`, `geometry-guard.mjs`, `phaseStages.test.ts`, `imports.test.ts`, `useDentalFlow.ts`, `Mechanics this builds on`, `supports/zones.ts`, `TermsDialog.tsx`, `sceneColours.ts`, `SettingsPanel.tsx`, `scope`, `package.json`, `rigidMove.ts`, `Catalogue.tsx`, `DentalReviewBlocks.tsx`, `useSupportChecks.ts`, `printerProfiles.ts`, `sceneMap.ts`, `icons.test.ts`, `useDentureOrient.ts`, `SurfacePath`, `noColourLiterals.test.ts`, `jobRunner.ts`, `useDebugLayers.ts`, `vitest`, `supports/mesh.ts`, `AddFlash.tsx`, `settings.ts`, `KeyedQueue`, `dentalRegion.ts`, `8. Sequence`, `vite.config.ts`, `plateLayout.test.ts`, `StagedProgress.test.tsx`?**
-  _High betweenness centrality (0.098) - this node is a cross-community bridge._
+- **Why does `vitest` connect `vitest` to `reviewCase.ts`, `export.ts`, `editingMode.ts`, `dialSync.ts`, `react`, `status.ts`, `geometryClient.ts`, `App.tsx`, `state/project.ts`, `Public API`, `unitContacts`, `gizmoStyle.ts`, `benchScene.test.ts`, `path.ts`, `dentureCore.ts`, `real-scan-gate.mjs`, `prepareImport.ts`, `supportParityHarness.ts`, `ObjectViewport.tsx`, `useExport.ts`, `tokenColour.ts`, `Vector`, `third-party-notices.mjs`, `ItemsPage.tsx`, `commands.ts`, `check-no-duplicates.mjs`, `repairMesh.ts`, `resample.ts`, `islandReport.ts`, `StartScreen.tsx`, `seedFromDetected.ts`, `stageModel.ts`, `resultPath.test.ts`, `PrintScene`, `budget.ts`, `t`, `peelReport.ts`, `unitFacts.test.ts`, `i18n.ts`, `SurfacePath`, `probe-dental-edges.ts`, `uiStylingDoc.test.ts`, `TiltDial.tsx`, `unitSupports.ts`, `dentalKind.ts`, `useDentureSupports.ts`, `tools.ts`, `geometry-guard.mjs`, `revisions.ts`, `ref_node_path`, `imports.test.ts`, `arrange.ts`, `estimate.ts`, `TermsDialog.tsx`, `sceneColours.ts`, `SettingsPanel.tsx`, `Blender parity harness`, `scope`, `useFreeTransform.ts`, `batch.ts`, `package.json`, `dentalPlacementSeed.ts`, `Catalogue.tsx`, `step-screens.mjs`, `thumbnail.test.ts`, `printerProfiles.ts`, `DentureReviewPanel.test.tsx`, `layoutFile.test.ts`, `diagnoseImported.test.ts`, `ref_node_url`, `useDentureOrient.ts`, `SurfacePath`, `noColourLiterals.test.ts`, `TriangleMesh`, `useDebugLayers.ts`, `vitest`, `supports/mesh.ts`, `rimStepText.ts`, `KeyedQueue`, `settings.ts`, `8. Sequence`, `goldens.test.ts`, `Geometry inventory`, `nextItem`?**
+  _High betweenness centrality (0.130) - this node is a cross-community bridge._
 - **Are the 8 inferred relationships involving `TriangleMesh` (e.g. with `1. Framework coupling (core)` and `2. Data formats and coordinate conventions`) actually correct?**
   _`TriangleMesh` has 8 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `memory`, `__wbg_asciistlsession_free`, `__wbg_binarystlsession_free` to the rest of the system?**
   _403 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `reviewCase.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.08414634146341464 - nodes in this community are weakly interconnected._
-- **Why does `Progress` connect `analysis/types.ts` to `useDentalFlow.ts`, `supports/zones.ts`, `geometryClient.ts`, `alignerProfiles.ts`, `useExport.ts`, `useScreenBrush.ts`, `Resin Supports v1 Design`, `resultPath.test.ts`, `UnitObject.tsx`, `SupportMeshClient`, `Dental support algorithm (shipped state)`, `DentalRim`, `probe-dental-edges.ts`, `getArrayU32FromWasm0`, `jobRunner.ts`, `Ship plan — one Rust geometry core, generic engine, dental as policy data`, `vitest`, `supports/mesh.ts`, `dentalRegion.ts`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+  _Cohesion score 0.06748911465892599 - nodes in this community are weakly interconnected._
+- **Why does `TriangleMesh` connect `TriangleMesh` to `reviewCase.ts`, `dentureReviewLayers.ts`, `export.ts`, `arrange.ts`, `geometryClient.ts`, `App.tsx`, `state/project.ts`, `Public API`, `dentureCore.ts`, `meshWorker.ts`, `prepareImport.ts`, `supportParityHarness.ts`, `AnalysisClient`, `Vector`, `meshClient.ts`, `thumbnail.test.ts`, `resample.ts`, `serveTask`, `rayLayers.ts`, `useDentureOrient.ts`, `resultPath.test.ts`, `dentureReview.ts`, `Review Focus`, `probe-dental-edges.ts`, `unitSupports.ts`, `useDebugLayers.ts`, `vitest`, `supports/mesh.ts`, `thumbnail.ts`, `fixtures.ts`, `useDentureSupports.ts`, `settings.ts`, `pipeline.ts`, `8. Sequence`?**
+  _High betweenness centrality (0.036) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `App()` (e.g. with `What it does now` and `Completed task log`) actually correct?**
   _`App()` has 5 INFERRED edges - model-reasoned connections that need verification._
-- **Should `Support editing UI spec (for re-implementation in mixomesh / Babylon.js)` be split into smaller, more focused modules?**
-  _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._
+- **Should `pkg-node/mixo_geometry_wasm.js` be split into smaller, more focused modules?**
+  _Cohesion score 0.05712143928035982 - nodes in this community are weakly interconnected._
