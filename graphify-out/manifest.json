@@ -4723,15 +4723,15 @@
     "semantic_hash": ""
   },
   "src/ui/uiStylingDoc.test.ts": {
-    "mtime": 1793788856.7733417,
-    "seen": 1793902315.4000866,
-    "ast_hash": "87c0804183e1b253a579a2dc07833da7",
+    "mtime": 1794324145.8149643,
+    "seen": 1794324401.892428,
+    "ast_hash": "1c794f8a8fc4100a6399cbb29ffa01f5",
     "semantic_hash": ""
   },
   "docs/ui-styling.md": {
-    "mtime": 1794319189.3112671,
-    "seen": 1794319601.3438406,
-    "ast_hash": "9cc7b8cee75fe3f5697623329e3d728a",
+    "mtime": 1794323810.1705816,
+    "seen": 1794324401.892428,
+    "ast_hash": "ed91480f08180c1ec8314a0be0d5b627",
     "semantic_hash": ""
   },
   "dentalwork/baselines/real-scan-baseline.json": {
@@ -6076,6 +6076,12 @@
     "mtime": 1794319099.5264287,
     "seen": 1794319601.3438406,
     "ast_hash": "7cc33a45e791b9592f3565c426d012eb",
+    "semantic_hash": ""
+  },
+  "src/ui/cssTokens.test.ts": {
+    "mtime": 1794323885.6236882,
+    "seen": 1794324401.892428,
+    "ast_hash": "fb19836aa99941b925f9d71a5172780e",
     "semantic_hash": ""
   }
 }
