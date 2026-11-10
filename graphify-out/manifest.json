@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794223480.3841887,
-    "seen": 1794236959.2500827,
-    "ast_hash": "be22918ec30993e8632af026d74f566d",
+    "mtime": 1794355154.464435,
+    "seen": 1794355174.190521,
+    "ast_hash": "3f260341b3a081a96fa010d760eaf716",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -2755,9 +2755,9 @@
     "semantic_hash": ""
   },
   "scripts/test-support/dentalExpect.ts": {
-    "mtime": 1793268306.349652,
-    "seen": 1793268328.170727,
-    "ast_hash": "4ae876554c904308dbc190185078b005",
+    "mtime": 1794354396.6835942,
+    "seen": 1794355174.1895227,
+    "ast_hash": "e894f5a65484516730a7a05594a80ed5",
     "semantic_hash": ""
   },
   "scripts/fixtures/golden/generic/bookkeeping.json": {
@@ -4993,9 +4993,9 @@
     "semantic_hash": ""
   },
   "src/ui/theme.ts": {
-    "mtime": 1793711337.8350065,
-    "seen": 1793711342.255864,
-    "ast_hash": "52050fe267b4d922d3cac5fc98845c98",
+    "mtime": 1794351969.805079,
+    "seen": 1794355174.1895227,
+    "ast_hash": "e4048bd97ba6e5158c8a96bbc069cd42",
     "semantic_hash": ""
   },
   "src/ui/theme.test.ts": {
@@ -5527,9 +5527,9 @@
     "semantic_hash": ""
   },
   "src/items/README.md": {
-    "mtime": 1794090208.983086,
-    "seen": 1794095721.438297,
-    "ast_hash": "39c17c04191ba03369387d219ffb5ec4",
+    "mtime": 1794355068.2871325,
+    "seen": 1794355174.190521,
+    "ast_hash": "c095feeed377b9ad7205171acc10d1dd",
     "semantic_hash": ""
   },
   "src/components/startDrop.test.ts": {
@@ -5545,9 +5545,9 @@
     "semantic_hash": ""
   },
   "src/items/ItemsPage.test.tsx": {
-    "mtime": 1794159969.5802922,
-    "seen": 1794163324.5866404,
-    "ast_hash": "33cb3f0b2a1fb651ed962f0dffa4c89f",
+    "mtime": 1794354933.096982,
+    "seen": 1794355174.1895227,
+    "ast_hash": "99efe6ff3536299e85c0e3ce6744ba6c",
     "semantic_hash": ""
   },
   "src/items/ItemsPage.tsx": {
@@ -5725,15 +5725,15 @@
     "semantic_hash": ""
   },
   "src/items/thumbnail.test.ts": {
-    "mtime": 1794090129.6789205,
-    "seen": 1794095721.438297,
-    "ast_hash": "666503e8ddb5e59846b872e3ac6bf55f",
+    "mtime": 1794354339.8164008,
+    "seen": 1794355174.1895227,
+    "ast_hash": "524eb52039c77e97b6fdee058e58676e",
     "semantic_hash": ""
   },
   "src/items/thumbnail.ts": {
-    "mtime": 1794090129.6789205,
-    "seen": 1794095721.438297,
-    "ast_hash": "eeef0e536103b3908954d0cba1c98e41",
+    "mtime": 1794354372.121834,
+    "seen": 1794355174.1895227,
+    "ast_hash": "7bb61baeb96228b03c3d988943c505b0",
     "semantic_hash": ""
   },
   "src/items/useBatchDetect.ts": {
@@ -5743,9 +5743,9 @@
     "semantic_hash": ""
   },
   "src/items/useThumbnails.ts": {
-    "mtime": 1794090170.815295,
-    "seen": 1794095721.438297,
-    "ast_hash": "be5fafc007abf0961d5ca237a29ce99a",
+    "mtime": 1794354379.8357277,
+    "seen": 1794355174.1895227,
+    "ast_hash": "f5f48dad8e7c6edd6ee3de2dcb9f0cbe",
     "semantic_hash": ""
   },
   "src/deck/README.md": {
@@ -6106,6 +6106,60 @@
     "mtime": 1794334833.7072465,
     "seen": 1794335140.2676282,
     "ast_hash": "8e3c1d30caa26e50c8cced1096327c9e",
+    "semantic_hash": ""
+  },
+  "artefacts/2026-11-11-screen/probe-nogl.json": {
+    "mtime": 1794352083.810003,
+    "seen": 1794355174.1895227,
+    "ast_hash": "656ae9b89f4ba08717454a7598b1fd3f",
+    "semantic_hash": ""
+  },
+  "artefacts/2026-11-11-screen/probe-nogl.mjs": {
+    "mtime": 1794352058.5254955,
+    "seen": 1794355174.1895227,
+    "ast_hash": "ee839870cda238308cc3b4662956c3e5",
+    "semantic_hash": ""
+  },
+  "artefacts/2026-11-11-screen/verify-exported-stl.py": {
+    "mtime": 1794354305.9872649,
+    "seen": 1794355174.1895227,
+    "ast_hash": "baec5f40702592b9d838674202ab12b2",
+    "semantic_hash": ""
+  },
+  "artefacts/2026-11-11-screen/identity.txt": {
+    "mtime": 1794355002.8715713,
+    "seen": 1794355174.190521,
+    "ast_hash": "1a8bdb1397bafe4c2e75952d1e8e8c61",
+    "semantic_hash": ""
+  },
+  "artefacts/2026-11-11-screen/verify-exported-stl.txt": {
+    "mtime": 1794354307.627702,
+    "seen": 1794355174.190521,
+    "ast_hash": "6e0439d3a68944d4bc0df9036be25dc2",
+    "semantic_hash": ""
+  },
+  "artefacts/2026-11-11-screen/walk-full.txt": {
+    "mtime": 1794355002.528892,
+    "seen": 1794355174.190521,
+    "ast_hash": "4bdcc54f046a48733b28e818551d84a2",
+    "semantic_hash": ""
+  },
+  "cia-audit-report.md": {
+    "mtime": 1794355034.165587,
+    "seen": 1794355174.190521,
+    "ast_hash": "5b583df8a4048c243b104d5d0cb246d3",
+    "semantic_hash": ""
+  },
+  "artefacts/2026-11-11-screen/nogl-blocked.png": {
+    "mtime": 1794352083.7763226,
+    "seen": 1794355174.190521,
+    "ast_hash": "82fe22cbd04ecd412485248ab84bda15",
+    "semantic_hash": ""
+  },
+  "artefacts/2026-11-11-screen/nogl-control.png": {
+    "mtime": 1794352075.3222065,
+    "seen": 1794355174.190521,
+    "ast_hash": "b803de3026458f1cfbf1adf9a97f4d74",
     "semantic_hash": ""
   }
 }
