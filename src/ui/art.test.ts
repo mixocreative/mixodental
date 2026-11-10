@@ -44,17 +44,35 @@ describe('the coloured art folder', () => {
    * the others and will blur at any size, and nothing else would say so.
    */
   it('keeps every shape on the grid', () => {
-    // ONLY the rect coordinates. "Every number in the file" works for the one-ink icons, where the only
-    // numbers ARE geometry; here the colours are hex and `#1a2b3c` is full of digits that are not
-    // coordinates at all. The tracer emits nothing but rects, so this reads exactly what it should.
+    /*
+     * ONLY the rect coordinates. "Every number in the file" works for the one-ink icons, where the only
+     * numbers ARE geometry; here the colours are hex and `#1a2b3c` is full of digits that are not
+     * coordinates at all.
+     *
+     * AND THE TRANSFORM IS RESOLVED FIRST. A hand-drawn file from Illustrator writes a rotated cell as a
+     * rect in its own coordinates plus `translate(a b) rotate(90)`, and reading the raw attributes called
+     * fifteen of sixteen such cells off-grid when every one of them lands exactly on it. A guard that
+     * cries wolf on a designer's file is a guard somebody switches off - which costs more than the one
+     * genuine fault it also found. Any other transform form is reported rather than assumed harmless.
+     */
+    const resolved = (tag: string) => {
+      const num = (attr: string) => Number(new RegExp(`[ ]${attr}="([^"]*)"`).exec(tag)?.[1] ?? 0);
+      const [x, y, w, h] = [num('x'), num('y'), num('width'), num('height')];
+      const t = /transform="([^"]*)"/.exec(tag)?.[1];
+      if (t === undefined) return { box: [x, y, w, h], unknown: null };
+      const spin = /^translate\((-?[\d.]+) (-?[\d.]+)\) rotate\(90\)$/.exec(t);
+      if (!spin) return { box: [x, y, w, h], unknown: t };
+      const [tx, ty] = [Number(spin[1]), Number(spin[2])];
+      return { box: [tx - (y + h), ty + x, h, w], unknown: null };   // rotate(90): (x,y) -> (-y, x)
+    };
     const offenders = names
       .map((n) => {
         const bad: string[] = [];
         for (const [tag] of FILES[n].matchAll(/<rect[^>]*>/g)) {
-          for (const attr of ['x', 'y', 'width', 'height']) {
-            const v = new RegExp(`[ ]${attr}="([^"]*)"`).exec(tag)?.[1];
-            if (v !== undefined && Number(v) % CELL !== 0) bad.push(`${attr}=${v}`);
-          }
+          const { box, unknown } = resolved(tag);
+          if (unknown !== null) bad.push(`transform the test cannot resolve: ${unknown}`);
+          const off = box.filter((v) => v % CELL !== 0);
+          if (off.length > 0) bad.push(`[${box.join(' ')}]`);
         }
         return [n, bad] as const;
       })

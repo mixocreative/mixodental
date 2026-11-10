@@ -66,18 +66,24 @@ everything the outline does not enclose, takes the outline's own cells as the in
 black, quantises the body alone, and draws the outline last. The header of that script says why each step
 is there - every one of them is a thing the step before it got wrong.
 
-### Known: the night guard does not read as its own object
+### Two of these are HAND-DRAWN, and that is the loop working
 
-It is very nearly the aligner, and that is **the reference's doing, not the trace's**. The sheet draws both
-as clear segmented shells - "thin shell · open" and "thin shell · durable" - so a faithful trace is
-faithfully indistinguishable.
+`retainer.svg` and `night-guard.svg` are Adobe Illustrator exports, not traces. The traced night guard
+came out indistinguishable from the aligner - the reference sheet draws both as clear segmented shells -
+and the answer was to draw it, which is what this folder is for: **replace the file and the app shows the
+new picture, no code change.** Their commands are listed above only as how they STARTED.
 
-Three ways round it were tried and all are gone: erasing the interior division lines (barely changed it,
-because the segmentation is the facet SHADING, not the lines), flattening to two tones (the same object,
-slightly flatter), and a heavier outline (it read as a bolder icon rather than a thicker object, and it
-broke the uniform outline, which is the rule). **The fix is a different reference drawing for the night
-guard** - one that shows it as the thick unbroken slab the brief describes. Until then the file ships
-marked unused, and the style book shows the problem rather than hiding it.
+Two things a hand-drawn file brings that a trace does not, both handled:
+
+- **Class names.** Illustrator writes `.st0`, `.st1` and a `<style>` block, and two files using the same
+  names paint each other. `scopeNames` prefixes them per file, which is guarantee 1 in `src/ui/iconSvg.ts`.
+  Inline two raw exports on one page without it and you get a speckled mess - worth knowing, because that
+  is what a quick side-by-side comparison page does.
+- **Transforms.** A rotated cell comes out as a rect in its own coordinates plus
+  `translate(a b) rotate(90)`. The grid test resolves that before checking, because reading the raw
+  attributes called fifteen of sixteen such cells off-grid when every one of them lands exactly on it.
+  **Never round the raw x/y of a transformed rect** - that moves the shape rather than the rounding
+  error. It was done once here and the test caught it.
 
 **Generated**, for a shape that is abstract - `generic`, the plain block for "Any model":
 

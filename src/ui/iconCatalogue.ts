@@ -95,8 +95,8 @@ export const ICON_CATALOGUE: IconEntry[] = [
    * these needs. The art exists so that when the kinds land they do not also need drawing, and the
    * style book marks all three unused so nobody draws a second one.
    */
-  { name: 'retainer', slot: 'key', source: 'traced', unwired: true, where: 'A thin shell with a WIRE across the opening - the feature that tells it from an aligner. No screen offers it yet' },
-  { name: 'night-guard', slot: 'key', source: 'traced', unwired: true, where: 'A thick unbroken shell. KNOWN PROBLEM: it does not read as its own object - the reference draws it as very nearly its own aligner, so it needs a different reference drawing, not a different trace. No screen offers it yet' },
+  { name: 'retainer', slot: 'key', source: 'drawn', unwired: true, where: 'A thin shell with a WIRE across the opening - the feature that tells it from an aligner. Hand-drawn; no screen offers it yet' },
+  { name: 'night-guard', slot: 'key', source: 'drawn', unwired: true, where: 'A thick unbroken shell, smooth where the aligner is segmented. Hand-drawn after the traced one came out indistinguishable from the aligner; no screen offers it yet' },
 
   // The deck rail: the four steps, each a word with its picture. All Rule A, all smooth line icons.
   { name: 'orient', slot: 'inline', source: 'drawn', where: 'Deck rail: Orient. Also the Auto orientation key in the orientation bar - a box with a turn arrow' },
