@@ -7,7 +7,8 @@ WHY TRACE RATHER THAN GENERATE. The rail's glyphs are abstract diagrams - a path
 with holes - and a generator draws those well because there is no correct look to miss. An item type has
 to be RECOGNISED, and that needs per-pixel judgement a formula cannot reach: tooth cells that change
 width from molar to incisor, real perspective, and tones where a swept band has one. Six rounds of
-parametric drawing produced an archway every time; `scripts/pixel-icons.mjs` records what and why.
+parametric drawing produced an archway every time. Generate what is abstract, trace what must be
+RECOGNISED - `scripts/art-block.mjs` is the other half of that split.
 
 THE PIPELINE, and every step is here because the step before it was not enough:
 
@@ -50,7 +51,7 @@ if not art.any():
     raise SystemExit(f"{NAME}: nothing but background in that box")
 
 
-def despeckle(mask, value):
+def despeckle(mask):
     """
     A cell that disagrees with almost every neighbour is noise, not detail; a one-cell hole in the
     silhouette is an artefact of averaging a thin feature. Both are what separates pixel art from a
@@ -67,7 +68,7 @@ def despeckle(mask, value):
     return out
 
 
-art = despeckle(art, True)
+art = despeckle(art)
 
 
 # ---- 2 & 3. the object is what the outline encloses; the shadow is what it does not -----------------
@@ -178,7 +179,7 @@ for y in range(th):
 # straddled the outline and the fill. A broken outline is what makes pixel art read as a smudge rather
 # than an object, so it is redrawn as one ring of one colour round everything that touches the outside.
 #
-# TWO CELLS THICK, INWARD. One cell is four real pixels at 128px and reads as a hairline next to art
+# TWO CELLS THICK, INWARD. One cell is three real pixels at 144px and reads as a hairline next to art
 # this chunky; two is what gives it the weight the reference has. It grows inward on purpose - growing
 # outward would push the drawing past the margin and change its size, and the silhouette is already
 # where it should be.

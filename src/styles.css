@@ -1471,8 +1471,10 @@ dialog.terms .terms-item > span { flex: none; }
   color: var(--ink);
   text-align: center; white-space: normal;
 }
-/* 4x the icon grid: whole multiples only, or the fake pixels land on fractions of real ones. */
-.choice-key-art { width: var(--pixel-icon-key); height: var(--pixel-icon-key); flex: none; transition: color var(--dur, .15s); }
+/* 3x the 48 grid: whole multiples only, or the cells land on fractions of real pixels. No colour
+   transition - this is the COLOURED set and paints with its own fills, so `color` reaches nothing here.
+   It was live when the key art was an `Icon`. */
+.choice-key-art { width: var(--pixel-icon-key); height: var(--pixel-icon-key); flex: none; }
 /* The word and its line are one group, so the gap above them is the art's gap, not theirs. */
 .choice-key-words { display: grid; gap: 4px; }
 .choice-key-label { font-size: 14px; letter-spacing: .04em; }

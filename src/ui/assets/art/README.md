@@ -7,8 +7,8 @@ ink. Nothing else distinguishes them, which is why they are separate folders rat
 | --- | --- | --- |
 | Drawn by | `src/ui/Icon.tsx` | `src/ui/Art.tsx` |
 | Colour | every fill and stroke becomes `currentColor`, so it takes the colour of the place it sits in | **its own**, kept exactly as drawn |
-| Grid | 24 x 24 cells, 240 artboard | **48 x 48 cells**, 480 artboard — a cell is ten units on both |
-| Shown at | 24px (1x) | **144px (3x)** — `--pixel-icon-key` |
+| Style | smooth line icons, Lucide house style on `0 0 24 24` | **pixel art**, 48 x 48 cells on a 480 artboard — a cell is ten units |
+| Shown at | 14–24px, whatever the place uses | **144px (3x)** — `--pixel-icon-key` |
 | Used for | tool and cursor glyphs beside a word | the art on a choice key: an item type |
 
 **Why two sets at all.** A glyph beside a word has to invert with its key and can never be off-palette, so
@@ -18,14 +18,17 @@ a keyline and a few tones are what make it read.
 
 ## Rules for a file here
 
-Each is held by a test in `src/ui/art.test.ts`, and each was proved by breaking a file on purpose and
-watching the test fail.
+Rules 1, 2, 5, 6 and 7 are held by a test in `src/ui/art.test.ts`, each proved by breaking a file on
+purpose and watching it fail. **Rules 3, 4 and 8 are not testable** - how thick an outline looks, whether
+a shadow is gone, whether the thing reads at 144px - so they are held by the tracer that writes the files
+and by the style book, where you look at them. Saying otherwise would be the worst of both.
 
 1. **48 x 48 grid, `viewBox="0 0 480 480"`, every rect coordinate a multiple of 10.** That is what keeps
    it crisp at 144px: three real pixels per cell, exactly.
 2. **No `width` or `height` on the root.** The CSS sizes it.
 3. **A clear black outline, TWO cells thick, and only ONE black.** One cell is three real pixels at 144px
-   and reads as a hairline beside art this chunky (six at 144px on the 48 grid, which is why it reads). It grows INWARD - outward would push the drawing past
+   and reads as a hairline beside art this chunky; two gives it six, which is the weight the reference
+   has. It grows INWARD - outward would push the drawing past
    the margin - and only the outer silhouette grows: thickening the interior keylines as well closed the
    two-cell gaps between one tooth and the next, and the tooth row became a black band. One black, not
    two: the reference's own keyline is dark, so quantising it with the body spent a slot on a second
@@ -66,7 +69,8 @@ node scripts/art-block.mjs src/ui/assets/art/generic.svg
 
 **Which to reach for.** Trace a thing that must be RECOGNISED - a denture, an aligner, a study model -
 because a formula cannot reach the per-pixel judgement that makes it readable: six rounds of computing
-a dental arch produced an archway every time, and `scripts/pixel-icons.mjs` records what and why.
+a dental arch produced an archway every time - the teeth never fitted a 24 grid and one ink left an
+arch indistinguishable from a doorway.
 Generate a shape that is abstract - a block, a path with handles, a strip with holes - because there is
 no correct version to miss and a generator gets the angles exactly right where a hand would wobble.
 

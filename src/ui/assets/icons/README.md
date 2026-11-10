@@ -69,15 +69,14 @@ drawings, because no icon set has those.
 - Keep a square-ish `viewBox` (for example `0 0 24 24`).
 - Draw with `stroke="currentColor"` and `fill="currentColor"` (or `fill="none"`). Never use a fixed colour. The app colours the icon from the text colour around it, so it turns paper-coloured on a pressed button.
 - Draw in outline only. The set is line art in one colour, and a filled shape beside outlined ones reads as a different kind of thing, so a fill is never used to single an icon out.
-- The choice-key icons share one `viewBox` (`0 0 300 300`) and one art size in the CSS (`.choice-key-art`), so every big choice looks like one set. A replacement keeps that box.
 - Do not put `width` or `height` on the root `<svg>`. The size comes from the app's CSS.
 - No embedded bitmaps (no `<image>`, no base64 PNG or JPEG). Vector paths only.
 - One root `<svg>` per file. Comments are allowed.
 
 ## Drawing a new one
 
-Most icons here come from [lucide](https://lucide.dev) (`lucide-static`, already a dependency), and the
-table above names the lucide icon behind each. Reach for lucide first: it has the common concepts and
+Most icons here come from [lucide](https://lucide.dev) (`lucide-static`, already a dependency), and
+`src/ui/iconCatalogue.ts` names the lucide icon behind each. Reach for lucide first: it has the common concepts and
 they already agree with each other. These rules are for the ones it cannot supply, which here means the
 dental ones - an aligner, a denture, a print-orientation box.
 
@@ -109,8 +108,8 @@ different number to match:
 
 So `warning.svg` is not an outlier to be tidied away: at 14px a 1.7 would come out near 1.0px and look
 thin and broken beside everything else. **Before changing a weight to match the table, work out what it
-renders at.** None of this binds the pixel-art icons, which have no strokes at all - they are whole fake
-pixels and nothing else, which is what `src/ui/icons.test.ts` checks.
+renders at.** None of this binds the COLOURED art in `../art/`, which has no strokes at all - it is whole
+cells and nothing else, which is what `src/ui/art.test.ts` checks.
 
 ## See your change
 
@@ -126,8 +125,8 @@ has no drawing, or one the code says in a comment it is waiting for.
 
 The rail's three icons and the three start-screen item types are drawn, and the rail uses them with the
 word kept beside each - the rail is where the operator learns the four steps, and a bare glyph teaches
-nobody. All seven are pixel art on the 24 grid; the item types are the isometric Rule B drawings and the
-rail's are flat Rule A. `npm run screens` renders `deck-tool-rail.html`, the only way to see the rail in
+nobody. The rail's three are smooth line icons in this folder; the item types are coloured pixel art in
+`../art/`. `npm run screens` renders `deck-tool-rail.html`, the only way to see the rail in
 all four states without importing a model.
 
 ### Item kinds
@@ -138,12 +137,12 @@ custom abutment, wax-up, gingiva mask, bracket transfer tray, impression tray** 
 until the app can actually prepare that item — an icon for a kind the pipeline cannot build is a
 promise the app does not keep.
 
-When one is drawn it follows **Rule B** and the three that exist: pixel art on the 24 grid, isometric,
+When one is drawn it follows the **coloured art** set and the four that exist: a 48 grid at 144px,
 built around the ONE feature that tells it from its neighbours. In a single colour almost all of these
 are the same horseshoe, so that feature is the whole icon — the aligner is thin, the denture has bulk
 and a tooth row, the model has a plinth, and a retainer would be the one with a wire across the opening.
-`scripts/pixel-icons.mjs` has the arch builder; `--preview` prints a drawing as text and writes nothing,
-which is the only honest way to judge one before it ships.
+`scripts/trace-art.py` traces one from the owner's reference sheet; judge it in the style book, at its
+real size, before it ships.
 
 ### Actions that are words today
 

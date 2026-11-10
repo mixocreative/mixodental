@@ -32,6 +32,11 @@ A test can check that an icon is on its grid. It cannot check that it looks like
 - **Start screen, three keys.** Cover the words. Can you name each one? The model and the block are
   easy; **aligner against denture is the pair to watch** — they were the two closest at every earlier
   attempt.
+- **In the style book, the five item drawings together.** Three of them are now pale shells — aligner,
+  retainer, night guard — and that is the cluster to judge. The retainer's wire does survive the grid
+  (a dark line across the opening). **Aligner against night guard is the close one:** the difference is
+  "segmented" against "thick and unbroken", and at 144px that is subtle. If it does not read, the
+  night guard needs a feature drawn harder, not a better trace.
 - **The same three on a pressed key.** Click one and look before the screen changes. They are coloured
   art, so they do NOT invert — only the one-ink glyphs do. Decide whether that is right.
 - **The deck rail**, with a model loaded. Four buttons in a row: can you tell them apart at a glance?
@@ -79,8 +84,14 @@ Static, no Node needed: `npm run screens`, then open `.stitch/screens/index.html
 - **`dental-model` is drawn but not wired.** No screen offers that choice. The art exists so that when
   a Dental Model item kind appears it does not need drawing; until then the style book marks it unused.
   **This is a product decision, not a drawing one.**
-- **The nine other item kinds are not drawn** — retainer, night guard, surgical guide, crown & bridge,
-  abutment, wax-up, gingiva mask, bracket tray, impression tray. They are all on the reference sheet
+- **Three more types are drawn and WAITING ON THE ENGINE** — dental model, retainer, night guard. The
+  art is in `src/ui/assets/art/` and marked unused in the style book. `DentalKind` is `'aligner' |
+  'denture'` in the vendored engine and the profiles are generated from Rust JSON that is not in this
+  repo, so no item type can be added from here at all. `docs/handoff/geocore-item-kinds.md` says what
+  each of the three needs, and they are not the same size: two are probably one profile file each, the
+  dental model is a new kind with its own pipeline.
+- **The six other item kinds are not drawn** — surgical guide, crown & bridge, abutment, wax-up,
+  gingiva mask, bracket tray, impression tray. They are all on the reference sheet
   and each is one `scripts/trace-art.py` command. They are deliberately left: the folder's own rule is
   that an icon for a kind the pipeline cannot build is a promise the app does not keep.
 - **`g-pre` fails on the local walk** and passes on CI. It is the harness being unable to slow this

@@ -5,7 +5,7 @@ import { writeFileSync } from 'node:fs';
  * Generated rather than traced, and that is the right way round for this one. Tracing is for things that
  * must be RECOGNISED - a denture, an aligner - where a formula cannot reach the judgement. A block is
  * abstract: there is no correct block to miss, every edge is a straight line, and the generator gets the
- * isometric angles exactly right where a hand would wobble. Same rules as the traced art: 64 grid, one
+ * isometric angles exactly right where a hand would wobble. Same rules as the traced art: 48 grid, one
  * black outline, solid inside, at most five colours.
  */
 const N = 48, CELL = 10;
@@ -22,7 +22,7 @@ for (let x = cx - rx; x <= cx + rx; x += 1) {
   for (let y = Math.floor(midY) + 1; y <= Math.floor(midY) + H; y += 1) put(x, y, x < cx ? LEFT : RIGHT);
 }
 // The outline, drawn last: TWO cells thick round everything, grown inward, exactly as the traced art
-// does it. One cell is four real pixels at 128px and reads as a hairline beside art this chunky.
+// does it. One cell is three real pixels at 144px and reads as a hairline beside art this chunky.
 const OUTLINE = 2;
 const solid = g.map((r) => r.map((v) => v !== ''));
 for (let pass = 0; pass < OUTLINE; pass += 1) {

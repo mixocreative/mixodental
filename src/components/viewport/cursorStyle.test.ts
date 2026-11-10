@@ -23,9 +23,14 @@ describe('the rim-mode cursor', () => {
     // The file's own artboard, whatever it is - it was a 240 pixel-art grid and is now a 24 line icon,
     // and pinning the number here made this fail for the drawing changing rather than for breaking.
     expect(svg).toMatch(/viewBox="0 0 \d+ \d+"/);
-    // The drawing itself, not an empty shell: the crosshair arms and the open square at the centre.
-    expect(svg).toContain('<rect');
-    expect(svg).toContain('<path');
+    /*
+     * The drawing itself, not an empty shell - but WHICH primitives it uses is the drawing's business.
+     * This pinned `<rect>` and `<path>` two lines after the comment above explains why the viewBox is
+     * deliberately not pinned, which is the same mistake in the same test: a redrawn cursor using
+     * `<circle>` would have failed for changing rather than for breaking.
+     */
+    expect(svg).toMatch(/<(rect|path|circle|ellipse|line|polygon|polyline)\b/);
+    expect(svg.length).toBeGreaterThan(200);
   });
 
   it('still orbits off the model, where a drag turns the view', () => {

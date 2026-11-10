@@ -337,7 +337,7 @@ Previews, selection, the dental support area, check findings and the brush curso
 | `--mark-island` | `var(--danger)` | Island finding | Sphere on an island with no support |
 | `--mark-overhang` | `#d97706` | Overhang finding | Sphere on an overhang that needs a support |
 | `--mark-outside` | `#6b7280` | Support outside the model or omitted | Grey-blue sphere on the finding |
-| `--cursor-outline` | `#1f1b17` | Brush cursor outline | The brush icon drawn on the canvas |
+| `--cursor-outline` | `#1f1b17` | Cursor outline | The brush icons drawn on the canvas, and the rim cursor built from `cursor-rim.svg` (`src/components/viewport/style.ts`) |
 | `--cursor-fill` | `var(--surface)` | Brush cursor body | The brush icon drawn on the canvas |
 
 ## How the 3D scene reads the tokens

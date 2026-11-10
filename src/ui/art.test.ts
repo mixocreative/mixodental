@@ -108,8 +108,15 @@ describe('the coloured art folder', () => {
       const cells = Array.from({ length: GRID }, () => Array.from({ length: GRID }, () => false));
       for (const [tag] of FILES[name].matchAll(/<rect[^>]*>/g)) {
         const at = (attr: string) => Number(new RegExp(`[ ]${attr}="([^"]*)"`).exec(tag)?.[1] ?? 0) / CELL;
-        const [x, y, w, h] = [at('x'), at('y'), at('width'), at('height')];
-        for (let dy = 0; dy < h; dy += 1) for (let dx = 0; dx < w; dx += 1) cells[y + dy][x + dx] = true;
+        // Rounded, and the row looked up before it is written to. An off-grid file gives a fractional
+        // index here, and `cells[12.3][x] = true` threw `Cannot set properties of undefined` - the run
+        // still went red, but with a message naming nothing. The grid test above is what reports that
+        // fault properly; this one must not die on its way to asking a different question.
+        const [x, y, w, h] = [at('x'), at('y'), at('width'), at('height')].map(Math.round);
+        for (let dy = 0; dy < h; dy += 1) for (let dx = 0; dx < w; dx += 1) {
+          const row = cells[y + dy];
+          if (row && x + dx < GRID) row[x + dx] = true;
+        }
       }
       const seen = Array.from({ length: GRID }, () => Array.from({ length: GRID }, () => false));
       const stack: [number, number][] = [];

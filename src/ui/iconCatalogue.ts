@@ -14,7 +14,8 @@
 
 /**
  * The slot an icon draws in, which is what fixes its size - and so, for pixel art, its whole style.
- * `src/styles.css` holds the sizes as `--pixel-icon-*`; the two rules are in the icon folder's README.
+ * `src/styles.css` holds the key size as `--pixel-icon-key`; the inline and free sizes are literals in the
+ * rules that use them, because no grid binds a smooth line icon. Both sets' rules are in the folder READMEs.
  */
 export type IconSlot =
   /**
@@ -31,7 +32,7 @@ export type IconSlot =
    * The file lives in `src/ui/assets/art/`, not `assets/icons/`, and keeps its own colours.
    */
   | 'key'
-  /** Neither rule: a line glyph sized by whatever uses it (a back arrow, a warning sign, a cursor). */
+  /** Neither rule: a line glyph sized by whatever uses it, 14-20px (a back arrow, a warning sign). */
   | 'free';
 
 /** Where the drawing came from, which decides how it is CHANGED. */
@@ -40,7 +41,8 @@ export type IconSource =
   | 'drawn'
   /** Taken from Lucide by `npm run icons:add`. Replace it the same way, or re-run that. */
   | 'lucide'
-  /** Written by `scripts/pixel-icons.mjs`. A HAND EDIT IS LOST on the next run: change the generator. */
+  /** Written by `scripts/art-block.mjs`, for a shape that is abstract enough to compute. Re-run it, or
+   *  replace the file by hand - the FILE is the source either way. */
   | 'generated'
   /**
    * Traced from the owner's reference art by `scripts/trace-art.py`: crop, average down to the grid,
@@ -49,7 +51,8 @@ export type IconSource =
   | 'traced';
 
 export type IconEntry = {
-  /** The file's name without `.svg`, which is also the name `<Icon name=...>` takes. */
+  /** The file's name without `.svg`, which is also the name `<Icon name=...>` takes - or `<Art name=...>`
+   *  for a `key` entry, whose file lives in the other folder. */
   name: string;
   slot: IconSlot;
   source: IconSource;
@@ -85,8 +88,17 @@ export const ICON_CATALOGUE: IconEntry[] = [
    * of a study model and to be standing in for a choice that means something else.
    */
   { name: 'dental-model', slot: 'key', source: 'traced', unwired: true, where: 'A study model on a solid base - the only one of the four with a plinth. No screen offers it yet' },
+  /*
+   * DRAWN AND WAITING ON THE ENGINE. `DentalKind` is `'aligner' | 'denture'` in the vendored engine and
+   * the profiles behind each kind are generated from Rust JSON that is not in this repo, so a new item
+   * type cannot be added from here at all - see `docs/handoff/geocore-item-kinds.md` for what each of
+   * these needs. The art exists so that when the kinds land they do not also need drawing, and the
+   * style book marks all three unused so nobody draws a second one.
+   */
+  { name: 'retainer', slot: 'key', source: 'traced', unwired: true, where: 'A thin shell with a WIRE across the opening - the feature that tells it from an aligner. No screen offers it yet' },
+  { name: 'night-guard', slot: 'key', source: 'traced', unwired: true, where: 'A thick unbroken shell - no segmentation, which is what tells it from an aligner. No screen offers it yet' },
 
-  // The deck rail: the four steps, each a word with its picture. Rule A, and the three pixel ones.
+  // The deck rail: the four steps, each a word with its picture. All Rule A, all smooth line icons.
   { name: 'orient', slot: 'inline', source: 'drawn', where: 'Deck rail: Orient. Also the Auto orientation key in the orientation bar - a box with a turn arrow' },
   { name: 'tool-rim', slot: 'inline', source: 'drawn', where: 'Deck rail: Rim. A path with square handles - the trim edge and the points that shape it' },
   { name: 'tool-area', slot: 'inline', source: 'drawn', where: 'Deck rail: Area. A perforated strip - the band where tips may touch, with the tips on its middle line' },

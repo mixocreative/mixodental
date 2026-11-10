@@ -28,11 +28,21 @@ const CSS = Object.fromEntries(STYLESHEETS.map((path) =>
  * Tokens declared anywhere: in any stylesheet (`--x: ...`), or named as a string in TS/TSX, which is how
  * a value that changes per element is set - `TiltDial` writes `--tick-angle` onto each tick inline, and
  * no stylesheet ever declares it. Reading only the CSS reported four of those as missing.
+ *
+ * COMMENTS ARE STRIPPED FROM THE TS TOO, and that is not tidiness - without it this test cannot catch the
+ * one fault it was written for. A TS comment naming a token in BACKTICKS looks exactly like a declaration
+ * to the pattern below, and the paragraph above explaining the deletion of `--pixel-icon-inline` named it
+ * in backticks. So the deleted token counted as declared, and the regression would have passed again.
+ *
+ * It was proved "working" against `var(--gone-token)` - a name appearing nowhere - which only showed that
+ * an UNKNOWN token fails. The real fault is a token that was deleted and is still TALKED ABOUT, and a
+ * forgery has to reproduce the fault, not a cousin of it.
  */
 const SOURCES: Record<string, string> = import.meta.glob<string>('../**/*.{ts,tsx}', { query: '?raw', import: 'default', eager: true });
+const uncommented = (text: string) => text.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
 const declared = new Set<string>();
 for (const text of Object.values(CSS)) for (const [, name] of text.matchAll(/^\s*(--[a-z][a-z0-9-]*)\s*:/gm)) declared.add(name);
-for (const text of Object.values(SOURCES)) for (const [, name] of text.matchAll(/['"`](--[a-z][a-z0-9-]*)['"`]/g)) declared.add(name);
+for (const text of Object.values(SOURCES)) for (const [, name] of uncommented(text).matchAll(/['"`](--[a-z][a-z0-9-]*)['"`]/g)) declared.add(name);
 
 describe('the CSS custom properties', () => {
   it('declares some, or this test is reading nothing', () => {

@@ -306,7 +306,7 @@ writeFileSync(join(OUT, 'index.html'), page('mixoDental style book', '', `<div c
   everywhere. Layout and wording are TSX, so those are a request to a developer; the screens below exist so the
   request can be exact.</p>
   <h2>Icons</h2>
-  <ul><li><a href="icons.html">Every icon, both rules, with the path of each file</a> &mdash; <span class="src">src/ui/assets/icons/</span></li></ul>
+  <ul><li><a href="icons.html">Every icon, both sets, with the path of each file</a> &mdash; <span class="src">src/ui/assets/icons/ (one ink)&nbsp;&nbsp;src/ui/assets/art/ (coloured)</span></li></ul>
   <h2>Colours, sizes, type</h2>
   <ul>
     <li>Every custom property, with what it is for &mdash; <span class="src">docs/ui-styling.md</span></li>
@@ -324,7 +324,8 @@ console.log('.stitch/screens/index.html  the style book front page');
 
 writeFileSync(join(OUT, 'icons.html'), page('mixoDental icons', '', `<div class="kit-page">
   <header class="kit-head"><h1>Icons</h1><p>Replace the file a card names and the app draws the new icon - no code change.
-  Every icon is one colour and takes the colour of what it sits on, which is why each is shown resting and pressed.</p></header>
+  TWO SETS: the item art keeps its own colours, and the glyphs are one ink that takes the colour of what it
+  sits on - which is why only those are shown resting AND pressed.</p></header>
   ${renderToStaticMarkup(h(IconSheet))}
 </div>`, readFileSync(join(ROOT, 'src/kit/kit.css'), 'utf8')));
 console.log('.stitch/screens/icons.html  every icon, with its file path');

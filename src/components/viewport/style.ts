@@ -14,7 +14,7 @@ const unselectCursor = () => `url("data:image/svg+xml,${encodeURIComponent(`<svg
 const brushCursors = () => ({ select: brushCursor(tokenCss('--mark-remove')), unselect: unselectCursor(), paint: brushCursor(tokenCss('--mark-zone')), erase: brushCursor(tokenCss('--mark-ring')) });
 
 /**
- * The rim cursor: the pixel-art crosshair with an open square at its centre, from the icon FILE.
+ * The rim cursor: the crosshair with an open square at its centre, drawn from the icon FILE.
  *
  * It is read from `src/ui/assets/icons/cursor-rim.svg` rather than written out here like the brush cursors
  * above, because that file is the one a designer can replace - the whole point of the icon folder. The two
