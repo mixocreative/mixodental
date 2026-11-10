@@ -458,6 +458,12 @@ Add a `data-ui` to any element you add or touch; a command button takes it from 
 
 Every icon is one SVG file in `src/ui/assets/icons/`, drawn by `src/ui/Icon.tsx` (`<Icon name="orient" />` finds `orient.svg`). To change an icon, replace its file; keep the file name, draw with `currentColor`, no fixed colour and no width or height on the root. The full list, where each appears and the rules for a replacement are in `src/ui/assets/icons/README.md`. `Icon` takes only a name and a class: size and colour come from CSS.
 
+**The list of every icon is `src/ui/iconCatalogue.ts`, and the style book renders it** — `npm run dev` then
+`/mixodental/kit.html`, or `npm run screens` for `.stitch/screens/icons.html`. Each card shows the icon at
+its real size, resting and pressed, with the path of the file to edit. A prose table used to live in the
+folder README and had already gone three icons out of date; `src/ui/iconCatalogue.test.ts` now fails when
+the list and the folder disagree.
+
 ### Two rules, because there are two kinds of icon
 
 The kind follows the SIZE, not taste. Both kinds are drawn on the same **24 x 24 grid** so the set stays a set, and the difference is how many real pixels each fake pixel gets.

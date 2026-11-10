@@ -143,6 +143,13 @@ custom abutment, wax-up, gingiva mask, bracket transfer tray, impression tray** 
 until the app can actually prepare that item — an icon for a kind the pipeline cannot build is a
 promise the app does not keep.
 
+When one is drawn it follows **Rule B** and the three that exist: pixel art on the 24 grid, isometric,
+built around the ONE feature that tells it from its neighbours. In a single colour almost all of these
+are the same horseshoe, so that feature is the whole icon — the aligner is thin, the denture has bulk
+and a tooth row, the model has a plinth, and a retainer would be the one with a wire across the opening.
+`scripts/pixel-icons.mjs` has the arch builder; `--preview` prints a drawing as text and writes nothing,
+which is the only honest way to judge one before it ships.
+
 ### Actions that are words today
 
 No icon, and most do not need one — listed so the choice is deliberate rather than forgotten. From the
@@ -155,7 +162,7 @@ two command registries (`src/dental/editingMode.ts`, `editing/commands.ts`):
 ### Cursors, which are icons too
 
 `src/components/viewport/style.ts` draws four, coloured from tokens rather than drawn per theme:
-**select**, **unselect**, **paint**, **erase**. Everything else uses a native cursor — `crosshair`
+**select**, **unselect**, **paint**, **erase**. The rest of the app uses a native cursor — `crosshair`
 where a click places something, `grab` off the model where a drag orbits, `default` for Select.
 
 **Rim define mode is the fifth, and the only one drawn as a file** - `cursor-rim.svg`, built into a

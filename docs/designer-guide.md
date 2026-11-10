@@ -79,15 +79,37 @@ Token tables and how to change a colour, size, font or icon are in `docs/ui-styl
 - **Every word through `t()`.** Write `t('English text')`; the English text is the key. Add the Japanese line to `src/locales/ja.ts` and the Traditional Chinese line to `src/locales/zh-Hant.ts`. Use natural Japanese and natural Taiwan Chinese, not word-for-word translation.
 - **One module, one responsibility.** Small files with a test beside them (`Name.tsx`, `Name.test.tsx`). `App.tsx` only wires; logic goes to a hook or a module.
 - **Keep the module maps current.** A new denture module gets a row in `src/denture/README.md`. A new data-ui name or token goes into `docs/ui-styling.md`.
-- Icons are single SVG files in `src/ui/assets/icons/`, drawn with `currentColor`; see the README there.
+- Icons are single SVG files in `src/ui/assets/icons/`, drawn with `currentColor`. **They are the one thing on the page you can change with no developer at all:** replace the file and the app draws the new icon. The style book shows every one of them beside the path to edit (below); the rules are in the README there.
 
-## Catalogue page
+## The style book
+
+Two views of the same thing, and the icons come first in both because they are the only part a designer
+changes without a developer.
+
+**Live, while you work** - `npm run dev`, then **http://localhost:5173/mixodental/kit.html**. No model and
+no engine. Replace an icon file and the page shows it at once.
+
+**Static, to hand on** - `npm run screens` writes `.stitch/screens/`, starting at `index.html`: the icon
+sheet, and every step screen grouped by flow with the source file of each group printed above it. These are
+built from FAKE DATA, so they are the screens that are safe to send to anyone - no model, no patient scan.
+They are build output and are deleted on every run, so never edit them: the book names the file, and you
+edit the file.
+
+### Icons, in both
+
+Every icon at the size the app really draws it, shown resting AND pressed - an icon is one colour and
+inverts to paper-on-ink on a pressed key, which is the commonest way a drawing fails and cannot be seen
+from the file. The pixel-art ones get a third view at x3 so the grid is visible. Each card prints the file
+path, where the icon appears, and whether it is a drawing, a Lucide glyph or one scaffolded by
+`scripts/pixel-icons.mjs`. Two rules, by size: see `docs/ui-styling.md` and the folder README.
+
+### Controls
 
 - With `npm run dev` running, open **http://localhost:5173/mixodental/kit.html**. No model and no engine are needed.
 - It shows every shared control in its states, built from the real components and `src/styles.css`: buttons (primary, quiet, danger, disabled), the step bar buttons (Free transform, Restore step on and off, Back | Next), sliders (`RangeField`, with and without a band), the segmented toggle, checkboxes, number fields, the print-angle dial (in and out of the stable range, at an end, disabled, and at two `--dial-size` values), the status line with its dot in every state, the staged progress bar (running, done, failed, cancelled), Details, the panel widget in its four shapes (does not collapse / collapsible open / collapsible closed / an Adjust the step owns), and a side panel.
 - The switch at the top right changes the language (EN, 中文, 日本語), so you can check how Japanese and Chinese wrap.
 - To restyle: edit `src/styles.css` (tokens in `:root`, see `docs/ui-styling.md`), save, and the page updates; refresh if it does not. The dials are live: drag them or use the arrow keys.
-- Files: `kit.html` (repo root), `src/kit/Catalogue.tsx` (the page), `src/kit/kit.css` (page layout only). The page is served by the dev server only; `npm run build` does not include it, so it adds nothing to the app bundle. `src/kit/Catalogue.test.tsx` checks that it renders.
+- Files: `kit.html` (repo root), `src/kit/Catalogue.tsx` (the page), `src/kit/IconSheet.tsx` (the icons), `src/kit/Section.tsx` (one titled band, and the page's only hand-written `h2`), `src/kit/kit.css` (page layout only). The page is served by the dev server only; `npm run build` does not include it, so it adds nothing to the app bundle. `src/kit/Catalogue.test.tsx` checks that it renders.
 - When you add or change a shared control, add it to the catalogue in all its states.
 
 ## 6. How to check your work
@@ -107,7 +129,7 @@ Run these from the repo root before every commit. Timings are from this machine.
 - It drives every control by its stable `data-ui` name, never by a class or the words on screen. Rename a class or let the theme change a label's case and the walk is unaffected; delete or rename a `data-ui` and it stops finding the control. That is the contract: the name is the handle, the class is yours.
 - Never edit a source file while it runs. The dev server hot-reloads the page under it and the run dies with "Execution context was destroyed".
 
-Screenshots: the repo has no designer screenshot script; for single controls use the catalogue page above. `playwright-core` is a dev dependency, but only `scripts/walk.mjs` uses it. Use Chrome devtools: open the device toolbar and set a responsive size.
+Screenshots: `npm run screens` is the designer screenshot source - standalone HTML, real components, fake data. For single controls use the live style book above. `playwright-core` is a dev dependency, but only `scripts/walk.mjs` uses it. Use Chrome devtools: open the device toolbar and set a responsive size.
 
 Window sizes to check every layout at: 900 x 700 (small laptop: panels and bars must not cover the viewport or the Back button) and 1280 x 800. Also check 721 px wide, where the Step 2 panel starts docking on the right (`src/dental/stepPanelInset.ts`). Check all three languages: Japanese and Chinese strings wrap differently. `src/ui/narrowDentalLayout.test.ts` pins the narrow-window rules.
 
