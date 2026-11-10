@@ -57,3 +57,35 @@ Result: on the reference aligner, 102 issues became 14. On the built-in test mod
 **Recommendation.** Run the folder review on 10 to 20 real aligner files that differ from each other: upper and lower, with and without a central opening, with attachments, different trim-line styles, and files from different design software. For each case write right / wrong / unclear for the edges, the support area and any markers. Then print 3 to 5 of them and check the fit. Send the case numbers and notes (not the STLs, unless you approve sharing them). I will tune the detector with those cases and add them as tests.
 
 **You:** collect the files and run `batch-review/run-batch-review.bat` on the folder.
+
+## 6. Auto-orientation after a hand-drawn rim (reopened 2026-11-10)
+
+**Decided 2026-11-05, in the owner's words:** *"self defined rim disabled auto orientation detection."*
+A drawn rim meant no re-detection and no print-angle scan, and the aligner went to Step 2 at whatever
+orientation its file arrived in.
+
+**Reopened by the owner 2026-11-10:** *"wouldn't it be great with auto orientation, it should be able
+to [be] determined after user defined the edge rim?"*
+
+**Now.** The original decision was right for its moment: a drawn rim could not produce a frame. Engine
+61 changed that — `dental_rim_from_points` returns the plane and the opening side. A probe against
+engine 63 confirms a pose derived that way sits **5.60 degrees** from `orient_dental`'s on the
+reference aligner, which is the expected difference between a least-variance axis and the plane of a
+traced loop.
+
+**What it cannot do today.** Every entry point that would deliver it re-runs the detection that
+already failed: `dental_tilt_scan` → `orientation-no-trim`, `propose_dental_region` →
+`orientation-no-trim`. And the pose maths, `dental_pose`, exists only in the test build — it is absent
+from the browser build the app runs. So this is an engine ask, not a host change:
+[`docs/handoff/geocore-orient-from-drawn-rim.md`](../docs/handoff/geocore-orient-from-drawn-rim.md).
+
+**Recommendation — and a correction to the owner's framing.** The owner suggested the rim should come
+FIRST for everyone, then auto-detect, then manual. I recommend against reordering: detection already
+runs free and batched on the Items page, dentures have no rim at all, and the local baseline is 8 of 8
+aligners detecting cleanly — so making everyone draw would replace a good automatic answer with a
+hand-traced one 5.6 degrees off, and slow the common path. The owner's sequence is exactly right for
+the **failure branch**, which is the only place it is needed: detection fails → draw → auto-orient
+from that rim → manual only if the operator disagrees.
+
+**You:** nothing to do until geocore answers. `src/vendorCapabilities.test.ts` fails the day the
+symbols arrive and carries the undo list, so this cannot be forgotten.

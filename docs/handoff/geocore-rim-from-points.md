@@ -126,6 +126,15 @@ test able to prove agreement beyond the fixtures that happen to exist.
 5. **`front` must be absent.** It exists for pose estimation, and this flow switches auto-orientation off
    entirely: a self-defined rim means no re-detection and no print-angle scan.
 
+   > **SUPERSEDED, 2026-11-10.** The owner reversed the decision this rests on. "Auto-orientation off
+   > entirely" was right when a drawn rim could not produce a frame; engine 61 made it one, and a probe
+   > on this engine shows `dental_rim_from_points` + `dental_pose` returning a rotation 5.60 degrees
+   > from `orient_dental`'s on the reference aligner. What a drawn rim should get is the same dial and
+   > scan a detected one gets. The asks are in
+   > [`geocore-orient-from-drawn-rim.md`](geocore-orient-from-drawn-rim.md), including the open
+   > question this point raises: whether an OPEN (non-ring) arch needs a `front`, and whether the
+   > engine derives it from the loop or wants a hint.
+
 ### `openingHint`, and why the host sends it
 
 A plane normal has two directions and only one points out through the opening. Deciding it from the drawn
