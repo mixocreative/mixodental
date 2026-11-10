@@ -32,20 +32,10 @@ A test can check that an icon is on its grid. It cannot check that it looks like
 - **Start screen, three keys.** Cover the words. Can you name each one? The model and the block are
   easy; **aligner against denture is the pair to watch** — they were the two closest at every earlier
   attempt.
-- **In the style book, the five item drawings together.** Three are pale shells — aligner, retainer,
-  night guard. The retainer's wire survives the grid (a dark line across the opening). **The night
-  guard does NOT read as its own object, and that is settled rather than open:** the reference draws
-  it as very nearly its own aligner, so it needs a different reference DRAWING, not another trace.
-  Erasing the divisions, flattening the tones and a heavier outline were all tried and reverted — the
-  last of those broke the uniform-outline rule, which is the one that matters. Nothing to judge here
-  except whether you want to generate a new reference for it.
-- **The same three on a pressed key.** Click one and look before the screen changes. They are coloured
-  art, so they do NOT invert — only the one-ink glyphs do. Decide whether that is right.
-- **The deck rail**, with a model loaded. Four buttons in a row: can you tell them apart at a glance?
-  That matters more than any one being a good picture.
-- **Rim against Area, side by side.** Area is deliberately the Rim arch given a width, because the
-  step's own control is "Area width". Does that relationship read, or does it just look like two
-  similar arches?
+- **In the style book, the five item drawings together.** The retainer and the night guard are now YOUR
+  Illustrator drawings, not traces, and both read as their own objects - the night guard is smooth where
+  the aligner is segmented, and the retainer's wire shows. Judge the set as a set: five pictures, one
+  style? That is the question a test cannot ask.
 
 ## 2. The rim-mode cursor — never seen by a human
 
