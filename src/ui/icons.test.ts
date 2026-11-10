@@ -130,7 +130,7 @@ describe('the pixel-art display sizes in src/styles.css', () => {
    */
   it('shows each set at a whole multiple of its own grid', () => {
     expect(px('--pixel-icon-inline') % 24).toBe(0);   // src/ui/assets/icons, 24 grid
-    expect(px('--pixel-icon-key') % 64).toBe(0);      // src/ui/assets/art, 64 grid
+    expect(px('--pixel-icon-key') % 48).toBe(0);      // src/ui/assets/art, 48 grid
   });
 
   // The whole point of the tokens: a pixel-art icon shown at a fraction of its grid has blurred edges and

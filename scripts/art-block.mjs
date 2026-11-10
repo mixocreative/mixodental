@@ -8,12 +8,12 @@ import { writeFileSync } from 'node:fs';
  * isometric angles exactly right where a hand would wobble. Same rules as the traced art: 64 grid, one
  * black outline, solid inside, at most five colours.
  */
-const N = 64, CELL = 10;
+const N = 48, CELL = 10;
 const INK = '#1a1a20', TOP = '#e8edf2', LEFT = '#b9c6d4', RIGHT = '#8e9eb0';
 const g = Array.from({ length: N }, () => Array.from({ length: N }, () => ''));
 const put = (x, y, v) => { const yy = Math.round(y), xx = Math.round(x); if (yy >= 0 && yy < N && xx >= 0 && xx < N) g[yy][xx] = v; };
 
-const cx = 32, cy = 22, rx = 22, ry = 11, H = 20;   // 2:1 isometric: the top is twice as wide as deep
+const cx = 24, cy = 17, rx = 17, ry = 8.5, H = 15;   // 2:1 isometric: the top is twice as wide as deep
 for (let x = cx - rx; x <= cx + rx; x += 1) {
   const t = Math.abs(x - cx) / rx;
   const topY = cy - ry * (1 - t);        // upper edge of the top face

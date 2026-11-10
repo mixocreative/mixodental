@@ -29,8 +29,8 @@ const RULES: Record<IconSlot, { title: string; rule: string }> = {
     rule: 'One CSS pixel per fake pixel, beside a word at text size. FLAT AND FRONT-ON: at 1x a third dimension has nowhere to go and an isometric shape loses its own edges. These must be told apart from each other at a glance, which matters more than any one being a good picture.',
   },
   key: {
-    title: 'Rule B - key art, COLOURED, 128px (2x a 64 grid)',
-    rule: 'A picture of an object, on a choice key. These keep their own COLOURS - a dental arch in one ink is indistinguishable from an archway, which six rounds of trying proved, so the teeth, the keyline and the shading are the whole of what makes it readable. A 64 grid rather than 24, because fourteen tooth cells need about 50 pixels of arch and 24 gives 27. Files live in src/ui/assets/art/.',
+    title: 'Rule B - key art, COLOURED, 144px (3x a 48 grid)',
+    rule: 'A picture of an object, on a choice key. These keep their own COLOURS - a dental arch in one ink is indistinguishable from an archway, which six rounds of trying proved, so the teeth, the keyline and the shading are the whole of what makes it readable. A 48 grid rather than 24, because fourteen tooth cells need about 50 cells of arch perimeter and 24 gives 27. Files live in src/ui/assets/art/.',
   },
   free: {
     title: 'Line glyphs - sized by whatever they sit in',
@@ -62,7 +62,7 @@ function Shown({ entry, className }: { entry: IconEntry; className: string }) {
 }
 
 function Card({ entry }: { entry: IconEntry }) {
-  // The one-ink set is shown big as well, to judge the drawing. The coloured art is already 128px and
+  // The one-ink set is shown big as well, to judge the drawing. The coloured art is already 144px and
   // carries its own keyline, so a blow-up adds nothing but a wide card.
   const big = entry.pixel === true && !isArt(entry);
   return <div className="kit-card icon-sheet-card" data-ui={`kit-icon-${entry.name}`}>

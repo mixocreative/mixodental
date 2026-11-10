@@ -22,7 +22,7 @@ const FILES = Object.fromEntries(
 const names = Object.keys(FILES);
 
 /** The grid a file is drawn on: a fake pixel is ten units, on every grid, so the artboard says which. */
-const GRID = 64;
+const GRID = 48;
 const CELL = 10;
 
 describe('the coloured art folder', () => {

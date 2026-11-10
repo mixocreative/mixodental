@@ -154,7 +154,7 @@ Set the look of the DOM. They are the mixo-app-style tokens (paper, ink, hairlin
 | `--dur` | `.15s` | Duration of hover and chevron transitions | Buttons, collapsible chevrons |
 | `--row-height` | `24px` | Height of one list row | `.panel .unit`, and the Items row. **Not** `--row`, which is `22px` and belongs to the batch-review viewer's own table below — the app and that viewer are different densities, so the names are kept apart |
 | `--pixel-icon-inline` | `24px` | Display size of a PIXEL-ART icon standing beside a word: a tool or a cursor glyph. **Must stay a whole multiple of 24** — see Icons below | `.tool-rail .tool svg` |
-| `--pixel-icon-key` | `96px` | Display size of the art on a choice key: an item type. 4x the grid, which is where the chunky isometric look appears | `.choice-key-art` |
+| `--pixel-icon-key` | `144px` | Display size of the COLOURED art on a choice key: an item type, on a 48 grid. 3x, so each cell gets nine real pixels | `.choice-key-art` |
 
 ### The docks (the 3D view's grid)
 
@@ -470,8 +470,8 @@ the list and the folder disagree.
 | --- | --- | --- |
 | Drawn by | `src/ui/Icon.tsx` | `src/ui/Art.tsx` |
 | Colour | **one ink** — every fill and stroke becomes `currentColor`, so it takes the colour of the place it sits in and can never be off-palette | **its own**, kept exactly as drawn |
-| Grid | 24, on a 240 artboard | 64, on a 640 artboard — a fake pixel is ten units on both |
-| Shown at | `--pixel-icon-inline`, 24px = **1x** | `--pixel-icon-key`, 128px = **2x** |
+| Grid | 24, on a 240 artboard | 48, on a 480 artboard — a cell is ten units on both |
+| Shown at | `--pixel-icon-inline`, 24px = **1x** | `--pixel-icon-key`, 144px = **3x** |
 | Style | flat and front-on: at 1x a third dimension has nowhere to go | a picture of an object, with a keyline and a few tones |
 | For | tool and cursor glyphs beside a word | the art on a choice key: an item type |
 
@@ -485,10 +485,10 @@ fake pixel straddles a real one and the edges blur — which reads as a *badly d
 badly *sized* one. The rail's icons sat at the shared `.tool-icon` 18px for a while: 0.75 of a CSS pixel
 each, and no amount of redrawing would have fixed them. `src/ui/icons.test.ts` fails if either token stops
 being a whole multiple of its own set's grid, and if any shape in a one-ink pixel file leaves the 24 grid;
-`src/ui/art.test.ts` does the same for the 64 grid. 24px is also Material's standard icon size and the
+`src/ui/art.test.ts` does the same for the 48 grid. 24px is also Material's standard icon size and the
 WCAG 2.5.8 minimum target size, so the rule and the convention agree there.
 
-**The 64 grid is not a style choice.** Fourteen tooth cells need about 50 pixels of arch perimeter and a
+**The finer grid is not a style choice.** Fourteen tooth cells need about 50 cells of arch perimeter and a
 24 grid has about 27, so on 24 the teeth never fitted and every attempt collapsed into the one silhouette
 that survives at that size: an archway. That, not the projection, is why the first isometric set failed.
 

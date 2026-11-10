@@ -25,14 +25,14 @@ icon loader does to every file, so artwork that ignores them cannot ship.
    | --- | --- | --- |
    | Folder | `src/ui/assets/icons/` | `src/ui/assets/art/` |
    | What | a tool or cursor glyph beside a word | the art on a choice key: an item type |
-   | Grid | **24**, artboard 240 | **64**, artboard 640 |
-   | Shown at | **24 px = 1×** | **128 px = 2×** |
+   | Grid | **24**, artboard 240 | **48**, artboard 480 |
+   | Shown at | **24 px = 1×** | **144 px = 3×** |
    | Colour | one — rule 1 above applies | **its own**, with a keyline and a few tones |
    | Style | flat and front-on: at 1× a third dimension has nowhere to go | a picture of the object, from above and in front |
 
    Rule 1 (one colour) binds **Set A only**. Set B keeps what it was drawn with, because six rounds of
    drawing a dental arch in a single colour produced an archway every time: the teeth, the keyline and
-   the shading are the whole of what makes it readable. And the 64 grid is arithmetic, not taste —
+   the shading are the whole of what makes it readable. And the finer grid is arithmetic, not taste —
    fourteen tooth cells need about 50 pixels of arch perimeter and 24 gives about 27.
 
    Everything in "the deck tool rail" and "the rim-mode cursor" below is **Set A**. Everything under

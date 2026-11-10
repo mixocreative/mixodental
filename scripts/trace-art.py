@@ -31,8 +31,8 @@ from PIL import Image
 SRC, OUT, NAME, BOX = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 box = tuple(int(v) for v in BOX.split(','))
 
-N = 64            # the Rule B grid
-CELL = 10         # a fake pixel is ten units on every grid, so "a multiple of ten" is the on-grid test
+N = 48            # the Rule B grid: 48 x 48 cells on a 480 artboard
+CELL = 10         # a cell is ten units on every grid, so "a multiple of ten" is the on-grid test
 BODY = 4          # body colours; the outline is the fifth
 OUTLINE = 2       # how many cells thick the black outline is, grown inward
 INK = (26, 26, 32)

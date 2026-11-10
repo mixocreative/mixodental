@@ -44,15 +44,16 @@
    * There are two sizes because there are two kinds of icon, and the kind follows the size:
    *   inline (1x)  a tool or cursor glyph beside a word. One CSS pixel per fake pixel, so the
    *                drawing must be FLAT and FRONT-ON - an isometric shape has no room to read.
-   *   key    (2x)  the COLOURED pixel art on a choice key: an item type, on a 64 grid rather than 24.
+   *   key    (3x)  the COLOURED pixel art on a choice key: an item type, on a 48 grid rather than 24.
    *                24 was the real reason six rounds of item icons failed - fourteen tooth cells need
-   *                about 50 pixels of arch and a 24 grid has 27, so the teeth never fitted and every
-   *                attempt collapsed into an archway. 64 at 128px is two real pixels per fake one.
+   *                about 50 cells of arch perimeter and a 24 grid has 27, so the teeth never fitted and
+   *                every attempt collapsed into an archway. 48 at 144px is three real pixels per cell,
+   *                which is chunkier than the 64 grid it replaced and the same size on the key.
    * src/ui/assets/icons/README.md carries both rules in full. `src/ui/icons.test.ts` fails if a
    * size here stops being a whole multiple.
    */
   --pixel-icon-inline: 24px;
-  --pixel-icon-key: 128px;
+  --pixel-icon-key: 144px;
   /* Round C marks in the viewport: an unresolved point, and a support landed on the model by tier. */
   --unresolved: var(--warning);
   --landing-allowed: var(--success);

@@ -19,8 +19,8 @@ has no entry or an entry has no file, so that cannot happen again.
 | --- | --- | --- |
 | Drawn by | `src/ui/Icon.tsx` | `src/ui/Art.tsx` |
 | Colour | **one ink** - every fill and stroke becomes `currentColor` | **its own**, kept as drawn |
-| Grid | 24 | 64, on a 640 artboard |
-| Shown at | 24px (1x) - `--pixel-icon-inline` | 128px (2x) - `--pixel-icon-key` |
+| Grid | 24 | 48, on a 480 artboard |
+| Shown at | 24px (1x) - `--pixel-icon-inline` | 144px (3x) - `--pixel-icon-key` |
 | For | tool and cursor glyphs beside a word | the art on a choice key: an item type |
 
 One ink is not a limitation for a glyph beside a word, it is the point: it inverts with its key and can

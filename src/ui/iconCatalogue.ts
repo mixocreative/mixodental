@@ -20,7 +20,7 @@ export type IconSlot =
   /** Rule A: beside a word, at 24px - one CSS pixel per fake pixel, so flat, front-on and ONE INK. */
   | 'inline'
   /**
-   * Rule B: the COLOURED art on a choice key, at 128px on a 64 grid - two real pixels per fake one.
+   * Rule B: the COLOURED art on a choice key, at 144px on a 48 grid - three real pixels per cell.
    * The file lives in `src/ui/assets/art/`, not `assets/icons/`, and keeps its own colours.
    */
   | 'key'
@@ -63,7 +63,7 @@ export type IconEntry = {
 
 export const ICON_CATALOGUE: IconEntry[] = [
   /*
-   * The item types: the big choices on the start screen, at 128px - and the ONLY entries whose files
+   * The item types: the big choices on the start screen, at 144px - and the ONLY entries whose files
    * live in `src/ui/assets/art/`, drawn by `Art` rather than `Icon`, keeping their own colours.
    *
    * They are coloured because six rounds of one-ink drawing proved a dental arch in a single colour is
