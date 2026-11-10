@@ -980,7 +980,14 @@ export default function App() {
        */
       case 'dental.rim.enter': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
-        const detectedRim = sessionRef.current.dentalProposal?.rim;
+        /*
+         * THE UNIT'S OWN RIM IS A SEED TOO, and without it "edit the rim I just confirmed" meant
+         * drawing it again from nothing. Done stores the drawing in the policy and CLEARS the draft,
+         * so on the way back in there is no draft - and on a shape detection could not orient there is
+         * no proposal either, which is exactly the case rim define mode exists for. The operator's own
+         * rim was sitting in `unit.dental.rim` and nothing read it.
+         */
+        const detectedRim = sessionRef.current.dentalProposal?.rim ?? unit?.dental?.rim;
         /*
          * SEED WHEN THERE IS NOTHING, AND RE-SEED WHEN WHAT IS THERE IS ONLY AN OLD SEED.
          *

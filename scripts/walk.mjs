@@ -2765,7 +2765,16 @@ async function walk(url, scratch, dentalFixture) {
         (await drawAgain.isVisible()) && (await drawAgain.isEnabled()));
       await drawAgain.click();
       await page.waitForFunction(() => /Define the rim/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
-      check('u5k2 Draw the rim reopens the mode', (await badge()).includes('Define the rim'), `badge "${(await badge()).slice(0, 34)}"`);
+      /*
+       * AND THE DRAWING IS THERE, which this asked nothing about until 2026-11-10. It checked the
+       * BADGE and stopped, so it stayed green while the canvas came back EMPTY: Done clears the draft
+       * into the policy, and re-entry seeded only from a detection proposal, which a hand-drawn
+       * aligner has not got. Reopening to edit a confirmed rim meant drawing it again from nothing.
+       */
+      const reopened = await rimPoints();
+      check('u5k2 Draw the rim reopens the mode, with the rim that was confirmed still in it',
+        (await badge()).includes('Define the rim') && Number(reopened) > 0,
+        `badge "${(await badge()).slice(0, 34)}", points ${reopened}`);
       await d.button('Cancel').click();
       await stepTo('Step 1 · Aligner');
       await d.button('Next').click();
