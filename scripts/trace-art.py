@@ -35,6 +35,7 @@ N = 48            # the Rule B grid: 48 x 48 cells on a 480 artboard
 CELL = 10         # a cell is ten units on every grid, so "a multiple of ten" is the on-grid test
 BODY = 4          # body colours; the outline is the fifth
 OUTLINE = 2       # how many cells thick the black outline is, grown inward
+FLOOR = 230       # no BODY colour may be darker than this (r+g+b): black inside a tooth row reads as decay
 INK = (26, 26, 32)
 BG = np.array([239, 236, 253])    # the reference sheet's card colour
 
@@ -131,13 +132,34 @@ filled = int((keep & ~art).sum())
 # one just inside it, which is exactly what an outline must not be. The cells the flood treated as the
 # wall ARE the outline, so they take the ink directly and never reach the quantiser; what is quantised is
 # the body alone, which also gives the four colours to the shading rather than to the edge.
-body = keep & ~keyline
-pixels = rgb[body]
-strip = Image.fromarray(pixels.reshape(-1, 1, 3).astype(np.uint8))
+# BLACK ONLY ON THE OUTSIDE. Inking every keyline cell put black between one tooth and the next, and at
+# 144px a black gap in a row of teeth reads as DECAY - the owner's word was rotten. So the ink goes to
+# the outer ring alone, and the reference's interior keylines are quantised with the body, where they
+# come out as a dark tint of its own colour: the separation still reads, as shading rather than as a gap.
+edge = np.zeros_like(keep)
+edge[:-1, :] |= keep[:-1, :] & ~keep[1:, :]
+edge[1:, :] |= keep[1:, :] & ~keep[:-1, :]
+edge[:, :-1] |= keep[:, :-1] & ~keep[:, 1:]
+edge[:, 1:] |= keep[:, 1:] & ~keep[:, :-1]
+edge[0, :] |= keep[0, :]
+edge[-1, :] |= keep[-1, :]
+edge[:, 0] |= keep[:, 0]
+edge[:, -1] |= keep[:, -1]
+
+body = keep & ~edge
+strip = Image.fromarray(rgb[body].reshape(-1, 1, 3).astype(np.uint8))
 palette = np.asarray(strip.quantize(colors=BODY, method=Image.MEDIANCUT).convert("RGB")).astype(int).reshape(-1, 3)
+# And no body colour may be near-black either, or the quantiser simply puts the rot back: the keyline
+# pixels it now sees are dark enough to win a slot. Anything below the floor is lifted toward it along
+# its own hue, so a dark pink stays pink instead of becoming grey.
+floor = np.asarray(palette).sum(axis=1)
+lift = floor < FLOOR
+if lift.any():
+    scale = (FLOOR / np.maximum(floor[lift], 1))[:, None]
+    palette[lift] = np.clip(np.round(palette[lift] * scale), 0, 255)
 pal = np.zeros_like(rgb)
 pal[body] = palette
-pal[keyline & keep] = INK
+pal[edge] = INK
 
 grid = np.full((N, N), -1, dtype=int)
 colours: dict[tuple[int, int, int], int] = {}

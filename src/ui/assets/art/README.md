@@ -36,9 +36,13 @@ watching the test fail.
 5. **Everything inside the outline is a solid colour.** No see-through cells in the middle of the
    object - the key's paper must never show through the drawing. An opening that really IS open, like
    the mouth of a U, reaches the edge of the artboard and is not a hole.
-6. **At most five colours**, one of them the outline. More does not survive the grid: at this size
+6. **BLACK IS THE OUTLINE AND NOTHING ELSE.** Black between one tooth and the next reads as DECAY at
+   the size this ships at, so interior separations are a dark TINT of the body's own colour. The tracer
+   lifts any body colour above a darkness floor, because the quantiser will put the rot back unprompted:
+   the reference's interior keyline pixels are dark enough to win a palette slot on their own.
+7. **At most five colours**, one of them the outline. More does not survive the grid: at this size
    near-duplicate tones read as noise rather than as shading.
-7. **It must read at 144px**, not only when you zoom in. Judge it in the style book, on a key, before it
+8. **It must read at 144px**, not only when you zoom in. Judge it in the style book, on a key, before it
    ships - that is the step that was skipped when an earlier set went in and had to come out again.
 
 ## Where these came from, and which tool to reach for

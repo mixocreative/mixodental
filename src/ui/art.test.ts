@@ -124,4 +124,23 @@ describe('the coloured art folder', () => {
     });
     expect(offenders).toEqual([]);
   });
+
+  /*
+   * ONLY THE OUTLINE IS BLACK. Black between one tooth and the next reads as DECAY at the size this
+   * ships at - the owner's word was rotten - so the interior separations are a dark TINT of the body's
+   * own colour instead. One near-black is the outline; two means the quantiser put the rot back,
+   * which it will do unprompted because the reference's interior keyline pixels are dark enough to
+   * win a palette slot. `scripts/trace-art.py` lifts any body colour above a floor for this reason.
+   */
+  it('uses black for the outline and nothing else', () => {
+    const darkness = (hex: string) => [1, 3, 5].reduce((sum, at) => sum + parseInt(hex.slice(at, at + 2), 16), 0);
+    const offenders = names
+      .map((n) => {
+        const hexes = [...new Set(FILES[n].match(/#[0-9a-fA-F]{6}/g) ?? [])];
+        return [n, hexes.filter((h) => darkness(h) < 230)] as const;
+      })
+      .filter(([, dark]) => dark.length !== 1)
+      .map(([n, dark]) => `${n}: ${dark.length} near-black (${dark.join(' ')})`);
+    expect(offenders).toEqual([]);
+  });
 });

@@ -36,23 +36,17 @@
      neither, and docs/ui-styling.md's guard only checks that a name appears SOMEWHERE in the page. */
   --row-height: 24px;
   /*
-   * PIXEL-ART ICON SIZES, and the one rule that makes them: a pixel-art icon is drawn on a 24 x 24
-   * grid (`scripts/pixel-icons.mjs`), so IT MUST BE DISPLAYED AT A WHOLE MULTIPLE OF 24 or every
-   * fake pixel straddles a real one and the edges blur. That reads as a bad drawing, which is why
-   * the rail's icons looked wrong at the shared `.tool-icon` 18px - 0.75 of a CSS pixel each.
+   * THE COLOURED PIXEL ART on a choice key (`src/ui/assets/art/`), and the one rule that governs it:
+   * it is drawn on a 48 x 48 grid, so IT MUST BE DISPLAYED AT A WHOLE MULTIPLE OF 48 or every cell
+   * straddles a real pixel and the edges blur - which reads as a bad drawing rather than a bad size.
+   * 144 is 3x: nine real pixels a cell.
    *
-   * There are two sizes because there are two kinds of icon, and the kind follows the size:
-   *   inline (1x)  a tool or cursor glyph beside a word. One CSS pixel per fake pixel, so the
-   *                drawing must be FLAT and FRONT-ON - an isometric shape has no room to read.
-   *   key    (3x)  the COLOURED pixel art on a choice key: an item type, on a 48 grid rather than 24.
-   *                24 was the real reason six rounds of item icons failed - fourteen tooth cells need
-   *                about 50 cells of arch perimeter and a 24 grid has 27, so the teeth never fitted and
-   *                every attempt collapsed into an archway. 48 at 144px is three real pixels per cell,
-   *                which is chunkier than the 64 grid it replaced and the same size on the key.
-   * src/ui/assets/icons/README.md carries both rules in full. `src/ui/icons.test.ts` fails if a
-   * size here stops being a whole multiple.
+   * There is no twin for the inline glyphs any more. They were pixel art on a 24 grid for a while and
+   * it was the wrong call - at 24px the pixel look costs detail without buying chunkiness, and they
+   * sat beside a dozen Lucide line icons in the same bars reading as a different set. The grid belongs
+   * to the key art, which is big enough to show it. `src/ui/icons.test.ts` fails if this stops being
+   * a whole multiple; `src/ui/art.test.ts` holds the grid itself.
    */
-  --pixel-icon-inline: 24px;
   --pixel-icon-key: 144px;
   /* Round C marks in the viewport: an unresolved point, and a support landed on the model by tier. */
   --unresolved: var(--warning);
@@ -1629,15 +1623,11 @@ dialog.terms .terms-item > span { flex: none; }
  * The open tool is an INK FILL, never red: red is the one primary action, and an active tab or
  * pressed toggle is ink. Hover is sunken, with no colour.
  */
-/* The rail's icons are the pixel-art set, so they take the inline pixel size, not `.tool-icon`'s
-   18px: see --pixel-icon-inline for why a fraction of a pixel smears. 24px is also Material's
-   standard icon size and the WCAG 2.5.8 minimum target, so the rule and the convention agree.
-   `shape-rendering` is set HERE as well as in the files: it is an attribute a vector tool drops on
-   export, and a redrawn icon must not start anti-aliasing itself because of that. */
-.tool-rail .tool svg {
-  width: var(--pixel-icon-inline); height: var(--pixel-icon-inline); flex: none;
-  shape-rendering: crispEdges;
-}
+/* The rail's icons are 24px, not `.tool-icon`'s 18px: it is Material's standard icon size and the
+   WCAG 2.5.8 minimum target, and the rail is the one place in the app a glyph has to be found rather
+   than merely recognised. They are smooth line icons like the rest of this set - they were pixel art
+   for a while and read as a different set beside the Lucide ones in the same bars. */
+.tool-rail .tool svg { width: 24px; height: 24px; flex: none; }
 .tool-rail { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
 .tool-rail .tool {
   min-height: var(--row-height);

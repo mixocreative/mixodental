@@ -1,31 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="currentColor" shape-rendering="crispEdges">
-  <g>
-    <rect x="110" y="0" width="10" height="10"/>
-    <rect x="110" y="10" width="10" height="10"/>
-    <rect x="110" y="20" width="10" height="10"/>
-    <rect x="110" y="30" width="10" height="10"/>
-    <rect x="110" y="40" width="10" height="10"/>
-    <rect x="110" y="50" width="10" height="10"/>
-    <rect x="80" y="80" width="70" height="10"/>
-    <rect x="80" y="90" width="10" height="10"/>
-    <rect x="140" y="90" width="10" height="10"/>
-    <rect x="80" y="100" width="10" height="10"/>
-    <rect x="140" y="100" width="10" height="10"/>
-    <rect x="0" y="110" width="60" height="10"/>
-    <rect x="80" y="110" width="10" height="10"/>
-    <rect x="140" y="110" width="10" height="10"/>
-    <rect x="180" y="110" width="60" height="10"/>
-    <rect x="80" y="120" width="10" height="10"/>
-    <rect x="140" y="120" width="10" height="10"/>
-    <rect x="80" y="130" width="10" height="10"/>
-    <rect x="140" y="130" width="10" height="10"/>
-    <rect x="80" y="140" width="70" height="10"/>
-    <rect x="110" y="180" width="10" height="10"/>
-    <rect x="110" y="190" width="10" height="10"/>
-    <rect x="110" y="200" width="10" height="10"/>
-    <rect x="110" y="210" width="10" height="10"/>
-    <rect x="110" y="220" width="10" height="10"/>
-    <rect x="110" y="230" width="10" height="10"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+  <!-- A cursor sits over the operator's own work, so it stays light: a crosshair, left open at the
+       centre for the one thing it has to say - a POINT lands here. -->
+  <path d="M12 2v5.5M12 16.5V22M2 12h5.5M16.5 12H22" />
+  <rect x="9.2" y="9.2" width="5.6" height="5.6" />
 </svg>

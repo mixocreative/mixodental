@@ -19,26 +19,29 @@ has no entry or an entry has no file, so that cannot happen again.
 | --- | --- | --- |
 | Drawn by | `src/ui/Icon.tsx` | `src/ui/Art.tsx` |
 | Colour | **one ink** - every fill and stroke becomes `currentColor` | **its own**, kept as drawn |
-| Grid | 24 | 48, on a 480 artboard |
-| Shown at | 24px (1x) - `--pixel-icon-inline` | 144px (3x) - `--pixel-icon-key` |
+| Style | **smooth line icons**, Lucide house style | pixel art on a 48 x 48 grid, 480 artboard |
+| Shown at | 18-24px, whatever the place uses | 144px (3x) - `--pixel-icon-key` |
 | For | tool and cursor glyphs beside a word | the art on a choice key: an item type |
 
 One ink is not a limitation for a glyph beside a word, it is the point: it inverts with its key and can
 never be off-palette. It IS a limitation for a picture of an object - six rounds of drawing the item
 types in a single colour produced an archway every time, because the teeth, the keyline and the shading
-are the whole of what makes a dental arch readable. Those moved to `../art/`; this folder is unchanged.
+are the whole of what makes a dental arch readable. Those moved to `../art/`.
 
-**A pixel-art file is shown at a whole multiple of ITS OWN grid or not at all.** At any other size each
-fake pixel straddles a real one and the edges blur, which reads as a badly DRAWN icon when it is only a
-badly SIZED one. The rail's three icons sat at the shared `.tool-icon` 18px for a while - 0.75 of a CSS
-pixel each - and no redrawing would have fixed them. `src/ui/icons.test.ts` holds this folder's grid and
-both tokens; `src/ui/art.test.ts` holds the other folder's. 24px is also Material's standard icon size
-and the WCAG 2.5.8 minimum target, so the rule and the convention agree here.
+**Everything here is smooth, including the four that were pixel art.** `tool-rim`, `tool-area`,
+`tool-supports` and `cursor-rim` were drawn on a 24 grid for a while and it was the wrong call: they sat
+beside a dozen Lucide line icons in the same bars and read as a different set, and at 24px the pixel
+look costs detail without buying chunkiness. The grid belongs to the key art, which is big enough to
+show it.
 
-**Four files here are generated, not drawn.** `tool-rim.svg`, `tool-area.svg`, `tool-supports.svg` and
-`cursor-rim.svg` come out of `scripts/pixel-icons.mjs` - `node scripts/pixel-icons.mjs` writes the ones
-that do not exist yet, `--preview` prints them as text and writes nothing, and `--force` overwrites.
-**A hand edit to those four survives** unless someone passes `--force`: the files are the source.
+**`tool-area` IS `tool-rim` GIVEN A WIDTH, and that is deliberate.** The Area step's own control reads
+"Area width: width of the support area along each edge" - the area is the rim band widened, and the
+operator's job there is to set that width. Drawing an unrelated shape hid the one relationship they
+need to see. Keep the two arches the same if either is redrawn.
+
+**The rail is 24px**, which is Material's standard icon size and the WCAG 2.5.8 minimum target - the
+rail is the one place in the app a glyph has to be FOUND rather than merely recognised. Everywhere else
+takes `.tool-icon`'s 18px or its own size.
 
 ## Where a new icon comes from
 

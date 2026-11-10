@@ -17,7 +17,14 @@
  * `src/styles.css` holds the sizes as `--pixel-icon-*`; the two rules are in the icon folder's README.
  */
 export type IconSlot =
-  /** Rule A: beside a word, at 24px - one CSS pixel per fake pixel, so flat, front-on and ONE INK. */
+  /**
+   * Rule A: a glyph beside a word, at 24px, ONE INK and drawn SMOOTH in the Lucide house style the
+   * rest of this set uses - `0 0 24 24`, `fill="none"`, `stroke="currentColor"`, 1.7, round caps.
+   *
+   * These were pixel art for a while and it was the wrong call: they sat beside a dozen Lucide line
+   * icons in the same bars and read as a different set, and at 24px the pixel look costs detail
+   * without buying chunkiness. The grid belongs to the key art, which is big enough to show it.
+   */
   | 'inline'
   /**
    * Rule B: the COLOURED art on a choice key, at 144px on a 48 grid - three real pixels per cell.
@@ -50,15 +57,6 @@ export type IconEntry = {
   where: string;
   /** Set only on an icon that is drawn and NOT yet used anywhere: the style book marks those. */
   unwired?: true;
-  /**
-   * The file is PIXEL ART on the 24 x 24 grid, and so is held to the grid by `src/ui/icons.test.ts`.
-   *
-   * Membership is declared HERE rather than read from the file. It used to be read from the file's
-   * `shape-rendering="crispEdges"` attribute, which is a marker a vector tool drops on export - so a
-   * designer who opened one of these in Illustrator and saved it would have quietly taken the file OUT
-   * of the guarded set, which is the one moment the guard exists for.
-   */
-  pixel?: true;
 };
 
 export const ICON_CATALOGUE: IconEntry[] = [
@@ -90,9 +88,9 @@ export const ICON_CATALOGUE: IconEntry[] = [
 
   // The deck rail: the four steps, each a word with its picture. Rule A, and the three pixel ones.
   { name: 'orient', slot: 'inline', source: 'drawn', where: 'Deck rail: Orient. Also the Auto orientation key in the orientation bar - a box with a turn arrow' },
-  { name: 'tool-rim', slot: 'inline', source: 'generated', pixel: true, where: 'Deck rail: Rim. A path with square handles - the trim edge and the points that shape it' },
-  { name: 'tool-area', slot: 'inline', source: 'generated', pixel: true, where: 'Deck rail: Area. A perforated strip - the band where tips may touch, with the tips on its middle line' },
-  { name: 'tool-supports', slot: 'inline', source: 'generated', pixel: true, where: 'Deck rail: Supports. The only side view in the set: a part on pillars above the plate' },
+  { name: 'tool-rim', slot: 'inline', source: 'drawn', where: 'Deck rail: Rim. A path with square handles - the trim edge and the points that shape it' },
+  { name: 'tool-area', slot: 'inline', source: 'drawn', where: 'Deck rail: Area. A perforated strip - the band where tips may touch, with the tips on its middle line' },
+  { name: 'tool-supports', slot: 'inline', source: 'drawn', where: 'Deck rail: Supports. The only side view in the set: a part on pillars above the plate' },
 
   // Step 2's area tools, and the edit bar's select switch. Lucide line glyphs at 18px.
   { name: 'tool-select', slot: 'free', source: 'lucide', where: 'Step 2 area tools: Select (lucide lasso-select)' },
@@ -110,5 +108,5 @@ export const ICON_CATALOGUE: IconEntry[] = [
   { name: 'warning', slot: 'free', source: 'drawn', where: 'Viewport, unresolved-point bubble: a tip, lowest point or island with no support yet' },
 
   // The one icon that is not a page element: it becomes a canvas cursor.
-  { name: 'cursor-rim', slot: 'inline', source: 'generated', pixel: true, where: 'Rim define mode, the pointer over the model: a crosshair round an open square, because a press there places or grabs a POINT. Built into a cursor by src/components/viewport/style.ts' },
+  { name: 'cursor-rim', slot: 'inline', source: 'drawn', where: 'Rim define mode, the pointer over the model: a crosshair round an open square, because a press there places or grabs a POINT. Built into a cursor by src/components/viewport/style.ts' },
 ];

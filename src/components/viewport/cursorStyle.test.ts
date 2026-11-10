@@ -20,9 +20,12 @@ describe('the rim-mode cursor', () => {
     // ignores the theme. The file is full of them; none may survive into the cursor.
     expect(svg).not.toContain('currentColor');
     expect(svg).toMatch(/^<svg width="24" height="24" /);
-    expect(svg).toContain('viewBox="0 0 240 240"');
-    // The drawing itself, not an empty shell: the crosshair and the open square are ~26 rects.
-    expect((svg.match(/<rect/g) ?? []).length).toBeGreaterThan(10);
+    // The file's own artboard, whatever it is - it was a 240 pixel-art grid and is now a 24 line icon,
+    // and pinning the number here made this fail for the drawing changing rather than for breaking.
+    expect(svg).toMatch(/viewBox="0 0 \d+ \d+"/);
+    // The drawing itself, not an empty shell: the crosshair arms and the open square at the centre.
+    expect(svg).toContain('<rect');
+    expect(svg).toContain('<path');
   });
 
   it('still orbits off the model, where a drag turns the view', () => {

@@ -25,8 +25,8 @@ import { Section } from './Section';
 /** The heading and the rule for each group. The ONE place the two rules are stated for a human. */
 const RULES: Record<IconSlot, { title: string; rule: string }> = {
   inline: {
-    title: 'Rule A - inline glyphs, 24px (1x the grid)',
-    rule: 'One CSS pixel per fake pixel, beside a word at text size. FLAT AND FRONT-ON: at 1x a third dimension has nowhere to go and an isometric shape loses its own edges. These must be told apart from each other at a glance, which matters more than any one being a good picture.',
+    title: 'Rule A - inline glyphs, smooth, 24px',
+    rule: 'A glyph beside a word at text size, one ink, drawn SMOOTH in the Lucide house style the rest of this set uses - 0 0 24 24, fill none, stroke currentColor, 1.7, round caps. Four of these were pixel art for a while and read as a different set beside the Lucide icons in the same bars; at this size the pixel look costs detail without buying chunkiness. They must be told apart from EACH OTHER at a glance, which matters more than any one being a good picture - so Area is deliberately the Rim arch given a width, because that is what the tool does.',
   },
   key: {
     title: 'Rule B - key art, COLOURED, 144px (3x a 48 grid)',
@@ -62,9 +62,9 @@ function Shown({ entry, className }: { entry: IconEntry; className: string }) {
 }
 
 function Card({ entry }: { entry: IconEntry }) {
-  // The one-ink set is shown big as well, to judge the drawing. The coloured art is already 144px and
-  // carries its own keyline, so a blow-up adds nothing but a wide card.
-  const big = entry.pixel === true && !isArt(entry);
+  // The coloured art is already 144px and carries its own keyline, so a blow-up adds nothing but a
+  // wide card. The inline glyphs are smooth line icons: there is no grid to inspect.
+  const big = false;
   return <div className="kit-card icon-sheet-card" data-ui={`kit-icon-${entry.name}`}>
     <div className="icon-sheet-shows">
       {/* Resting, then pressed: the same file, inverted, because that is how the app uses it. */}
