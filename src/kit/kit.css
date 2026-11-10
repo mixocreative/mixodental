@@ -38,7 +38,7 @@
  * never uses teaches the wrong thing, and a pixel-art icon shown at a size that is not a whole multiple of
  * its 24 grid looks badly drawn when it is only badly sized (see --pixel-icon-* in src/styles.css).
  */
-.icon-sheet-rule { margin: 0 0 12px; max-width: 76ch; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.kit-section-note, .icon-sheet-rule { margin: 0 0 12px; max-width: 76ch; font-size: 12px; line-height: 1.6; color: var(--muted); }
 .icon-sheet-card { gap: 6px; }
 .icon-sheet-shows { display: flex; align-items: flex-end; gap: 8px; }
 /* Resting: the icon on paper, as it sits in a panel. */

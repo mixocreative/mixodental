@@ -1,5 +1,6 @@
 import { Icon } from '../ui/Icon';
 import { ICON_CATALOGUE, type IconEntry, type IconSlot } from '../ui/iconCatalogue';
+import { Section } from './Section';
 
 /**
  * Every icon the app has, as the designer's working sheet: the drawing, where it appears, and THE PATH OF
@@ -69,10 +70,8 @@ const SLOTS: IconSlot[] = ['key', 'inline', 'free'];
 export function IconSheet() {
   return <>{SLOTS.map((slot) => {
     const entries = ICON_CATALOGUE.filter((entry) => entry.slot === slot);
-    return <section key={slot} className="kit-section" data-ui={`kit-icons-${slot}`}>
-      <h2>{RULES[slot].title}</h2>
-      <p className="icon-sheet-rule">{RULES[slot].rule}</p>
-      <div className="kit-grid">{entries.map((entry) => <Card key={entry.name} entry={entry} />)}</div>
-    </section>;
+    return <Section key={slot} title={RULES[slot].title} ui={`kit-icons-${slot}`} note={RULES[slot].rule}>
+      {entries.map((entry) => <Card key={entry.name} entry={entry} />)}
+    </Section>;
   })}</>;
 }

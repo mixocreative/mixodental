@@ -81,6 +81,111 @@ const rect = (g, x0, y0, x1, y1, on = 1) => {
   return g;
 };
 
+
+/*
+ * RULE B: THE ITEM TYPES, DRAWN ISOMETRIC.
+ *
+ * These are the art on a choice key, shown at 72px - three CSS pixels per fake pixel - and that is the
+ * only reason an isometric drawing is possible at all. At the rail's 24px the same shape loses its own
+ * edges, which is why the four icons above are flat and front-on. One grid, two rules, and the size
+ * decides which: `src/ui/assets/icons/README.md`.
+ *
+ * THE PROJECTION IS 2:1, the pixel-art isometric: depth counts for about 0.62 of a row, so a circle in
+ * plan becomes a squashed ellipse on screen.
+ *
+ * WHAT THE PREVIEW KILLED, in order, because none of it is obvious from the code:
+ *  - Extruding a wall from EVERY point of the arch. In plan the back of the arch is deep, and the
+ *    projection stacks those walls into a solid slab: the arch filled itself in.
+ *  - Defining the top face as an annulus in plan. Beyond the inner radius an annulus has no hole, so the
+ *    back half came out as a solid cap. The top face has to be a TUBE of constant thickness instead.
+ *  - Cutting tooth gaps INTO the band. At this size a notch reads as damage or as dithering - the same
+ *    lesson the flat icons taught. A tooth that STANDS ON the skyline reads, the way a crown does.
+ */
+
+/** The arch centreline in plan: x across, y depth, y < 0 being the back of the mouth. */
+function centreline(count, r, legTo) {
+  const out = [];
+  const arcN = Math.round(count * 0.72);
+  for (let i = 0; i < arcN; i += 1) {
+    const t = Math.PI + (Math.PI * i) / (arcN - 1);
+    out.push({ px: Math.cos(t) * r, py: Math.sin(t) * r, ny: Math.sin(t) });
+  }
+  const legN = Math.round(count * 0.14);
+  for (let i = 1; i <= legN; i += 1) {
+    const y = (legTo * i) / legN;
+    out.push({ px: -r, py: y, ny: 0 }, { px: r, py: y, ny: 0 });
+  }
+  return out;
+}
+
+/**
+ * Fills any single empty pixel that is boxed in on all four sides.
+ *
+ * Geometry produces these honestly - where the arch's inner opening begins, the hole is one pixel wide for
+ * one row before it widens - and at a fake-pixel scale an honest one-pixel hole reads as a CRACK in the
+ * drawing. Nothing else in the icon is one pixel of anything, so there is no legitimate hole to protect.
+ */
+function despeckle(g) {
+  const out = g.map((row) => [...row]);
+  for (let y = 1; y < N - 1; y += 1) for (let x = 1; x < N - 1; x += 1) {
+    if (!g[y][x] && g[y - 1][x] && g[y + 1][x] && g[y][x - 1] && g[y][x + 1]) out[y][x] = 1;
+  }
+  return out;
+}
+
+/** Centres what was drawn, so no icon touches the edge whatever its parameters were. */
+function centred(g) {
+  let top = N, bottom = -1, left = N, right = -1;
+  for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) if (g[y][x]) {
+    top = Math.min(top, y); bottom = Math.max(bottom, y); left = Math.min(left, x); right = Math.max(right, x);
+  }
+  if (bottom < 0) return g;
+  const dy = Math.round((N - 1 - bottom - top) / 2);
+  const dx = Math.round((N - 1 - right - left) / 2);
+  const out = blank();
+  for (let y = 0; y < N; y += 1) for (let x = 0; x < N; x += 1) if (g[y][x]) put(out, x + dx, y + dy);
+  return out;
+}
+
+const SQUASH = 0.62;
+
+/** An arch standing in 2:1 isometric: top face, the wall that faces the viewer, and whatever stands on it. */
+function archShell({ r, legTo, wall, band, teeth = 0, toothH = 0, plinth = 0 }) {
+  const g = blank();
+  const cx = 11.5;
+  const cy = 9;
+  const sy = (py) => cy + py * SQUASH;
+  const lip = Math.floor(band / 2);
+  // The top face, as a tube of constant thickness along the centreline.
+  // Densely sampled: at 700 the aligner's thin band left a one-pixel seam at the apex, which reads as a crack.
+  for (const p of centreline(1600, r, legTo)) square(g, cx + p.px, sy(p.py), band);
+  // The wall, ONLY where the outward face turns toward the viewer. The back arc's wall sits behind its own
+  // top face in a real isometric view, and drawing it anyway is what filled the arch in.
+  for (const p of centreline(700, r, legTo)) {
+    if (p.ny <= -0.25) continue;
+    for (let d = 1; d <= wall; d += 1) put(g, Math.round(cx + p.px), Math.round(sy(p.py)) + lip + d);
+  }
+  // Teeth stand ON the band, two fake pixels wide, so the skyline reads as a row rather than as fringe.
+  for (let i = 0; i < teeth; i += 1) {
+    const t = Math.PI + (Math.PI * (i + 0.5)) / teeth;
+    const px = Math.cos(t) * r;
+    const py = Math.sin(t) * r;
+    for (let d = 1; d <= toothH; d += 1) {
+      put(g, Math.round(cx + px - 0.5), Math.round(sy(py)) - lip - d);
+      put(g, Math.round(cx + px + 0.5), Math.round(sy(py)) - lip - d);
+    }
+  }
+  // The plinth: a slab the arch stands on, with its front edge stepped in so it reads as a solid block.
+  if (plinth) {
+    const top = Math.round(sy(legTo)) + lip + wall + 1;
+    for (let y = top; y < top + plinth; y += 1) {
+      const inset = Math.max(0, y - (top + plinth - 2));
+      for (let x = 2 + inset; x <= 21 - inset; x += 1) put(g, x, y);
+    }
+  }
+  return centred(despeckle(g));
+}
+
 const ICONS = {
   /*
    * RIM: the trim edge as a PATH WITH HANDLES - the pen-tool idea, because that is what the operator
@@ -132,6 +237,24 @@ const ICONS = {
     rect(g, 8, 8, 14, 8); rect(g, 8, 14, 14, 14); rect(g, 8, 8, 8, 14); rect(g, 14, 8, 14, 14);
     return g;
   },
+  /*
+   * ALIGNER: a THIN shell. Its one distinguishing feature against the two below is lightness - a narrow
+   * band with a tall wall and nothing inside, which is what an aligner is.
+   */
+  aligner: () => archShell({ r: 7.5, legTo: 6, wall: 5, band: 2 }),
+
+  /*
+   * DENTURE: BULK, and a tooth row on top of it. The band is the gum and is nearly twice the aligner's,
+   * and seven teeth stand on the skyline. Seven is not a style choice: at this radius the back arc is
+   * about 22 fake pixels round, so six to seven two-pixel teeth is the most that can read as separate.
+   */
+  denture: () => archShell({ r: 7, legTo: 5, wall: 5, band: 3, teeth: 7, toothH: 2 }),
+
+  /*
+   * GENERIC: a study model, and the ONLY one with a plinth. That slab is the whole icon - in one colour
+   * the arch above it is nearly the aligner's, so the base is what a reader actually tells it by.
+   */
+  generic: () => archShell({ r: 6.5, legTo: 4, wall: 3, band: 3, plinth: 5 }),
 };
 
 /** Horizontal runs, so a row of pixels is one rect instead of twenty-four. */

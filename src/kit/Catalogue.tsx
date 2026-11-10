@@ -13,6 +13,7 @@ import { Progress } from '../progress/Progress';
 import { PROGRESS_STYLE, PROGRESS_TYPES, progressLayout, type ProgressType } from '../progress/progressTypes';
 import { reviewLine } from '../denture/steps/supports/reviewLineText';
 import { IconSheet } from './IconSheet';
+import { Section } from './Section';
 
 /*
  * Every shared control of the app in its states, built from the real components and styled by src/styles.css
@@ -23,10 +24,6 @@ import { IconSheet } from './IconSheet';
 /** A captioned box on the page. */
 function Card({ caption, wide = false, children }: { caption: string; wide?: boolean; children: ReactNode }) {
   return <div className={wide ? 'kit-card kit-card--wide' : 'kit-card'}><p className="kit-caption">{caption}</p>{children}</div>;
-}
-
-function Section({ title, ui, children }: { title: string; ui: string; children: ReactNode }) {
-  return <section className="kit-section" data-ui={ui}><h2>{title}</h2><div className="kit-grid">{children}</div></section>;
 }
 
 /** A realistic label for each waiting type, so the cards read like the app and not like a test. */

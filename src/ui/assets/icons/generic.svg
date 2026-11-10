@@ -1,35 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="_圖層_2" data-name="圖層 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
-  <defs>
-    <style>
-      .cls-1 {
-        fill: none;
-        stroke-width: 12px;
-      }
-
-      .cls-1, .cls-2 {
-        stroke: currentColor;
-        stroke-linecap: round;
-        stroke-miterlimit: 10;
-      }
-
-      .cls-3, .cls-2 {
-        fill: none;
-      }
-
-      .cls-2 {
-        stroke-width: 8px;
-      }
-    </style>
-  </defs>
-  <g id="_圖層_1-2" data-name="圖層 1">
-    <g>
-      <g>
-        <path class="cls-1" d="M239.22,194.9v-89.8c0-4.09-2.18-7.87-5.72-9.91l-77.77-44.9c-3.54-2.04-7.91-2.04-11.45,0l-77.77,44.9c-3.54,2.04-5.72,5.82-5.72,9.91v89.8c0,4.09,2.18,7.87,5.72,9.91l77.77,44.9c3.54,2.04,7.91,2.04,11.45,0l77.77-44.9c3.54-2.04,5.72-5.82,5.72-9.91Z"/>
-        <path class="cls-2" d="M78.72,117.25l61.51,33.43c6.02,3.27,9.76,9.57,9.76,16.42v65.58"/>
-        <line class="cls-2" x1="163.72" y1="151" x2="221.99" y2="117.25"/>
-      </g>
-      <rect class="cls-3" width="300" height="300"/>
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="currentColor" shape-rendering="crispEdges">
+  <g>
+    <rect x="90" y="30" width="50" height="10"/>
+    <rect x="60" y="40" width="110" height="10"/>
+    <rect x="40" y="50" width="150" height="10"/>
+    <rect x="40" y="60" width="150" height="10"/>
+    <rect x="40" y="70" width="50" height="10"/>
+    <rect x="140" y="70" width="60" height="10"/>
+    <rect x="40" y="80" width="30" height="10"/>
+    <rect x="160" y="80" width="40" height="10"/>
+    <rect x="40" y="90" width="30" height="10"/>
+    <rect x="160" y="90" width="40" height="10"/>
+    <rect x="40" y="100" width="30" height="10"/>
+    <rect x="170" y="100" width="30" height="10"/>
+    <rect x="40" y="110" width="30" height="10"/>
+    <rect x="170" y="110" width="30" height="10"/>
+    <rect x="40" y="120" width="30" height="10"/>
+    <rect x="170" y="120" width="30" height="10"/>
+    <rect x="50" y="130" width="10" height="10"/>
+    <rect x="180" y="130" width="10" height="10"/>
+    <rect x="50" y="140" width="10" height="10"/>
+    <rect x="180" y="140" width="10" height="10"/>
+    <rect x="50" y="150" width="10" height="10"/>
+    <rect x="180" y="150" width="10" height="10"/>
+    <rect x="20" y="160" width="200" height="10"/>
+    <rect x="20" y="170" width="200" height="10"/>
+    <rect x="20" y="180" width="200" height="10"/>
+    <rect x="20" y="190" width="200" height="10"/>
+    <rect x="30" y="200" width="180" height="10"/>
   </g>
 </svg>

@@ -12,7 +12,7 @@ const FILES = Object.fromEntries(
  * and the two that do not name a screen - the terms dialog's own headings (`.title`, the serif style) and the
  * catalogue's section headings.
  */
-const ALLOWED = ['src/ui/ScreenHeading.tsx', 'src/components/TermsDialog.tsx', 'src/kit/Catalogue.tsx'];
+const ALLOWED = ['src/ui/ScreenHeading.tsx', 'src/components/TermsDialog.tsx', 'src/kit/Section.tsx'];
 
 describe('ScreenHeading', () => {
   it('is one h2 with one class, whatever the screen', () => {

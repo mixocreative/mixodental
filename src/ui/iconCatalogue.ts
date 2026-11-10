@@ -54,10 +54,12 @@ export type IconEntry = {
 };
 
 export const ICON_CATALOGUE: IconEntry[] = [
-  // The item types: the big choices on the start screen. 72px, so Rule B applies to a redrawing.
-  { name: 'aligner', slot: 'key', source: 'drawn', where: 'Start screen, first big choice: Aligner' },
-  { name: 'denture', slot: 'key', source: 'drawn', where: 'Start screen, middle big choice: Denture' },
-  { name: 'generic', slot: 'key', source: 'drawn', where: 'Start screen, third big choice: Any model' },
+  // The item types: the big choices on the start screen, at 72px - Rule B, and the only isometric drawings
+  // in the app. In one colour all three are nearly the same horseshoe, so each `where` names the one
+  // feature that tells it from its neighbours, and that feature is what a redrawing must keep.
+  { name: 'aligner', slot: 'key', source: 'generated', pixel: true, where: 'Start screen, first big choice: Aligner. THIN - a narrow band with a tall wall and nothing inside' },
+  { name: 'denture', slot: 'key', source: 'generated', pixel: true, where: 'Start screen, middle big choice: Denture. BULK - a gum body nearly twice as deep as the aligner band, with a tooth row standing on it' },
+  { name: 'generic', slot: 'key', source: 'generated', pixel: true, where: 'Start screen, third big choice: Any model. THE PLINTH - the only one of the three standing on a slab' },
 
   // The deck rail: the four steps, each a word with its picture. Rule A, and the three pixel ones.
   { name: 'orient', slot: 'inline', source: 'drawn', where: 'Deck rail: Orient. Also the Auto orientation key in the orientation bar - a box with a turn arrow' },
