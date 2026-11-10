@@ -5,14 +5,16 @@ import type { PrintUnit } from '../state/project';
 import { prunedThumbnails, THUMB_FOV, thumbFraming, nextThumbnailToDraw, type ThumbCache } from './thumbnail';
 
 const mesh = (positions: number[]): TriangleMesh => ({ positions: new Float32Array(positions), indices: new Uint32Array([0, 1, 2]) });
-const unit = (id: string, source: TriangleMesh) => ({ id, source } as PrintUnit);
-/** A unit's model: the cache only ever compares these by identity. */
+/** A unit as the cache sees it: its model, and the rotation the picture would be drawn at. */
+const unit = (id: string, source: TriangleMesh, rotation: Vector = [0, 0, 0]) =>
+  ({ id, source, transform: { position: [0, 0, 0], rotation } } as PrintUnit);
+/** A unit's model: the cache compares these by identity. */
 const box = (min: number, max: number) => mesh([min, min, min, max, max, max]);
 /** An axis-aligned box as the scene measures it, which is what the camera is framed from. */
 const bounds = (min: number, max: number) => ({ min: [min, min, min] as Vector, max: [max, max, max] as Vector });
 
-const cacheOf = (entries: readonly (readonly [string, TriangleMesh])[]): ThumbCache =>
-  new Map(entries.map(([id, source]) => [id, { mesh: source, url: `drawn:${id}` }]));
+const cacheOf = (entries: readonly (readonly [string, TriangleMesh, Vector?])[]): ThumbCache =>
+  new Map(entries.map(([id, source, rotation]) => [id, { mesh: source, rotation: rotation ?? [0, 0, 0], url: `drawn:${id}` }]));
 
 describe('which row needs a picture', () => {
   it('is none, once every row has one', () => {
@@ -29,6 +31,25 @@ describe('which row needs a picture', () => {
     const before = box(0, 1);
     const after = box(0, 1); // same numbers, a different mesh: the scene replaced `source`.
     expect(nextThumbnailToDraw([unit('a', after)], cacheOf([['a', before]]))?.id).toBe('a');
+  });
+
+  /*
+   * AND A ROW THE FLOW HAS TURNED, which is the ordinary case on a case of eight and was the one
+   * this cache could not see. The pictures are drawn as soon as the deck is up - tens of
+   * milliseconds each - while the batch orients one row at a time, seconds each, writing a new
+   * `transform` to the same `source`. Keyed on the mesh alone, every turned row kept its
+   * pre-orientation picture while its own line said "Turned upright." and the rail said the
+   * orient step was done: three surfaces on one row, and the picture was the wrong one.
+   */
+  it('is a row the flow has TURNED, even though its model is the same object', () => {
+    const a = box(0, 1);
+    expect(nextThumbnailToDraw([unit('a', a, [0, 0.4, 0])], cacheOf([['a', a]]))?.id).toBe('a');
+  });
+
+  it('is NOT a row that only MOVED: the camera centres on the model, so a move cannot change the picture', () => {
+    const a = box(0, 1);
+    const moved = { id: 'a', source: a, transform: { position: [12, 0, -3], rotation: [0, 0, 0] } } as PrintUnit;
+    expect(nextThumbnailToDraw([moved], cacheOf([['a', a]]))).toBeUndefined();
   });
 });
 

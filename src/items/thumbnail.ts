@@ -37,7 +37,7 @@ import type { PrintUnit } from '../state/project';
  * row stayed uncached `nextThumbnailToDraw` would hand it over again on every pass — a draw loop that
  * never settles. The same shape of bug cost this release a 600 ms re-check that ran for ever.
  */
-export interface Thumbnail { readonly mesh: TriangleMesh; readonly url?: string }
+export interface Thumbnail { readonly mesh: TriangleMesh; readonly rotation: Vector; readonly url?: string }
 
 export type ThumbCache = ReadonlyMap<string, Thumbnail>;
 
@@ -54,14 +54,35 @@ export const THUMB_FOV = 40;
 const THUMB_DIRECTION: Vector = [70, 60, 90];
 
 /**
+ * The rotation a picture was drawn at, compared BY VALUE.
+ *
+ * Not by identity: `transform/set` clones the transform on every write (`state/project.ts`), so an
+ * identity test would redraw every row on a write that changed nothing. And only the ROTATION can
+ * change the picture - `thumbFraming` centres the camera on the model's own box, so a move is
+ * invisible in it, and `ModelTransform` carries no scale.
+ */
+const sameRotation = (a: Vector, b: Vector): boolean => a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+
+/**
  * The next unit whose picture is missing or out of date, or `undefined` when every row has one.
  *
- * Compared by mesh IDENTITY, the same rule `useGeometry` uses for GPU geometry: the scene replaces
- * `source` wholesale rather than mutating it, so identity is the honest test of "this is a different
- * model now" and costs one comparison per row.
+ * The MODEL is compared by identity, the same rule `useGeometry` uses for GPU geometry: the scene
+ * replaces `source` wholesale rather than mutating it, so identity is the honest test of "this is a
+ * different model now" and costs one comparison per row.
+ *
+ * THE ROTATION IS COMPARED TOO, and leaving it out was a defect rather than an economy. The deck
+ * draws its pictures as soon as it is on screen, tens of milliseconds each; the batch then orients
+ * one row at a time, seconds each, writing a new `transform` to the SAME `source`. So on an
+ * ordinary case of eight, every row the batch turned kept its pre-orientation picture while the
+ * line beneath it read "Turned upright." and the rail called the orient step done. This file's own
+ * `thumbFraming` says why that matters: the camera frames the model AS PLACED, so the picture is
+ * one of the row's three statements about orientation, and it was the one that lied.
  */
 export function nextThumbnailToDraw(units: readonly PrintUnit[], cache: ThumbCache): PrintUnit | undefined {
-  return units.find((unit) => cache.get(unit.id)?.mesh !== unit.source);
+  return units.find((unit) => {
+    const drawn = cache.get(unit.id);
+    return drawn === undefined || drawn.mesh !== unit.source || !sameRotation(drawn.rotation, unit.transform.rotation);
+  });
 }
 
 /** Pictures for units that are no longer in the scene are dropped: a closed model keeps no bitmap. */

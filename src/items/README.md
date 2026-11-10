@@ -205,3 +205,12 @@ Two details that are easy to get wrong:
 - **The camera frames the model AS PLACED**, from the box of the mesh with the unit's transform
   applied. Framing the file's own frame would undo the orientation work the row is reporting in words
   on the line below.
+- **So the cache is keyed on the model AND the rotation**, and leaving the rotation out was a defect
+  rather than an economy (found by the 2026-11-11 audit, `cia-audit-report.md` MIXO-16). The pictures
+  are drawn in tens of milliseconds as soon as the deck is up; the batch then orients one row at a
+  time, seconds each, writing a new `transform` to the SAME `source`. Keyed on the mesh alone, every
+  row the batch turned kept its pre-orientation picture while the line beneath it said "Turned
+  upright." The rotation is compared **by value**, not by identity: `transform/set` clones on every
+  write, so an identity test would redraw a row on a write that changed nothing. Only the rotation
+  is compared, because the camera centres on the model's own box — a move cannot change the picture,
+  and `ModelTransform` carries no scale.

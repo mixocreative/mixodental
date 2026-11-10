@@ -4,6 +4,7 @@ import { ItemsPage } from './ItemsPage';
 import type { PrintUnit } from '../state/project';
 import type { ImportDiagnosis } from '../state/diagnosis';
 import type { ImportRefusal } from './rowState';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 
 const mesh = { positions: new Float32Array([0, 0, 0, 10, 20, 30, 0, 20, 0]), indices: new Uint32Array([0, 1, 2]) };
 const verdict = (over: Partial<ImportDiagnosis> = {}): ImportDiagnosis => ({
@@ -222,7 +223,7 @@ describe('the Items page', () => {
     const b = unit('u-b', 'lower.stl', verdict());
     const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[a, b]} refused={[]} detected={new Map()}
-      thumbnails={new Map([['u-a', { mesh: a.source, url: 'data:image/png;base64,AAA' }]])}
+      thumbnails={new Map([['u-a', { mesh: a.source, rotation: [0, 0, 0] as Vector, url: 'data:image/png;base64,AAA' }]])}
       finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
     expect(html).toContain('data-ui="items-shot-u-a"');
@@ -235,7 +236,7 @@ describe('the Items page', () => {
     const a = unit('u-a', 'upper.stl', verdict());
     const html = renderToStaticMarkup(<ItemsPage denture={false}
       units={[a]} refused={[]} detected={new Map()}
-      thumbnails={new Map([['u-a', { mesh: a.source, url: 'data:image/png;base64,AAA' }]])}
+      thumbnails={new Map([['u-a', { mesh: a.source, rotation: [0, 0, 0] as Vector, url: 'data:image/png;base64,AAA' }]])}
       finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} />);
 
     expect(html).toContain('alt=""');

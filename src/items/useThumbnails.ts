@@ -40,7 +40,9 @@ export function useThumbnails(units: readonly PrintUnit[], enabled: boolean): Th
       const url = drawThumbnail(displayMesh(unit.source), unit.transform);
       // Recorded EVEN WITH NO PICTURE: see `Thumbnail`. An unrecorded row would come back on the
       // next pass for ever.
-      setCache((current) => new Map(current).set(unit.id, { mesh: unit.source, ...(url ? { url } : {}) }));
+      // The ROTATION it was drawn at goes in beside the mesh: the batch turns a row after the deck
+      // has drawn it, and without this the picture would never follow (`thumbnail.ts`).
+      setCache((current) => new Map(current).set(unit.id, { mesh: unit.source, rotation: unit.transform.rotation, ...(url ? { url } : {}) }));
     }, 0);
     return () => window.clearTimeout(handle);
   }, [units, cache, enabled]);
