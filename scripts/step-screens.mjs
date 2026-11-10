@@ -267,6 +267,16 @@ for (const [, , files] of GROUPS) for (const file of files) {
   // `npm run screens`, so this needs no test of its own.
   if (!existsSync(join(ROOT, file))) throw new Error(`step-screens: the index names ${file}, which does not exist`);
 }
+/*
+ * AND EVERY SCREEN MUST LAND IN A GROUP. The index lists screens by matching a name prefix, so a screen
+ * whose name matches none of them is written to disk and never linked from anything - present, correct,
+ * and invisible, which is the exact failure this book exists to prevent. Adding a screen is the moment
+ * it would happen, and the author would have no reason to look at the index.
+ */
+const ungrouped = SCREENS.map(([name]) => name).filter((name) => !GROUPS.some(([, prefix]) => name.startsWith(prefix)));
+if (ungrouped.length > 0) {
+  throw new Error(`step-screens: no group matches ${ungrouped.join(', ')} - add a prefix to GROUPS, or the index will not link them`);
+}
 
 const page = (title, head, body, extraCss = '') => `<!doctype html><html lang="en" data-theme="instrument"><head><meta charset="utf-8">
 <title>${title}</title><style>${css}
