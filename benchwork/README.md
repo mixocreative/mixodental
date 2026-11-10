@@ -1,8 +1,12 @@
-# Adding a new kind of printed item
+# The bench
 
-The workbench for shaping a new item type — its detection, its rules, its review — **before any of it
-touches the app.** Aligners and dentures were both built this way after the fact; this is that route
-written down so the next one is a pipeline instead of an archaeology project.
+Where you change how the machine DECIDES — a detection rule, a profile's numbers, a whole new kind of
+printed item — and prove it **before any of it touches the app.** Aligners and dentures were both built
+this way after the fact; this is that route written down so the next one is a pipeline instead of an
+archaeology project.
+
+Two jobs, same loop: **adjust an existing rule**, or **add a new kind**. Change it, run it out of the
+app on real files, look at the geometry, diff it against the baseline. Only then integrate.
 
 No new tooling here. Every stage below runs an existing script. What this file adds is the order, what
 "done" means at each stage, and the integration surface nobody had counted.

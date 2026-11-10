@@ -138,7 +138,7 @@ Never edit a source file while the walk runs: the dev server hot-reloads the pag
 | `src/workers/` | Mesh (preview and export), analysis pool and import workers, each with a typed client |
 | `src/components/` | Viewport, settings panel, job activity list (background work with progress and Cancel), undo toast |
 | `tools/blender-parity/` | Headless Blender scripts that record the reference data the tests compare against |
-| `typework/` | [Adding a new kind of printed item](typework/README.md): shape its detection outside the app, then the integration surface |
+| `benchwork/` | [The bench](benchwork/README.md) (`/benchwork`): shape a rule or a new kind of printed item outside the app, prove it, then integrate |
 | `docs/` | Design notes: [Blender parity](docs/BLENDER_PARITY.md), [SLASG node logic](docs/SLASG_NODE_LOGIC.md), [handoff](docs/HANDOFF.md) |
 
 ## License
