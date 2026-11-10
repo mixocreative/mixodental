@@ -92,3 +92,51 @@ to match the table, work out what it renders at.**
 
 1. Run `npm run dev` from the project folder.
 2. Open the app in the browser. Save your SVG file. The app reloads and shows the new drawing.
+
+## What is still missing
+
+Gathered from the code on 2026-11-10, not from a wishlist: each row below is a control that exists and
+has no drawing, or one the code says in a comment it is waiting for.
+
+### Blocked on a file, and already decided
+
+`src/deck/ToolRail.tsx` says it plainly: *"`src/ui/assets/icons/` has `orient` and nothing for the
+other three, and the icon system is file-driven precisely so a designer owns those drawings rather
+than code inventing them. One icon beside three bare words looks broken, so all four are words until
+the files exist."*
+
+| Needed | For |
+| --- | --- |
+| `tool-rim.svg` | Deck rail: **Rim** |
+| `tool-area.svg` | Deck rail: **Area** |
+| `tool-supports.svg` | Deck rail: **Supports** |
+
+Three files turn the deck rail from words into the icon rail it was designed as. Nothing else in the
+app is waiting on an icon this directly.
+
+### Item kinds
+
+`aligner`, `denture` and `generic` exist (the three start-screen choices). A proposal on 2026-11-10
+adds nine more, in two tiers: **retainer, surgical guide, night guard** (v2), then **crown & bridge,
+custom abutment, wax-up, gingiva mask, bracket transfer tray, impression tray** (v3). None is needed
+until the app can actually prepare that item — an icon for a kind the pipeline cannot build is a
+promise the app does not keep.
+
+### Actions that are words today
+
+No icon, and most do not need one — listed so the choice is deliberate rather than forgotten. From the
+two command registries (`src/dental/editingMode.ts`, `editing/commands.ts`):
+
+- **Dental flow:** Auto orientation (has `orient`), Next (`next`), Back (`back`), Exit, OK, Export STL,
+  Close loop, Clear, Delete point, Done
+- **Editor:** Undo, Redo, Save, Open, Delete, Generate, Fit view, Bottom view, Wireframe, Check
+
+### Cursors, which are icons too
+
+`src/components/viewport/style.ts` draws four, coloured from tokens rather than drawn per theme:
+**select**, **unselect**, **paint**, **erase**. Everything else uses a native cursor — `crosshair`
+where a click places something, `grab` off the model where a drag orbits, `default` for Select.
+
+The gap: **rim define mode borrows `crosshair`** for every press, though the press means three
+different things there (drag a point, insert one on the line, add one at the end). If any cursor is
+worth drawing next after the rail, it is that one.
