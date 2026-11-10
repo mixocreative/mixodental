@@ -11,7 +11,7 @@
 //
 // This is the first slice of the screens gallery (P7e): the states a designer cannot otherwise reach without
 // a real case and several minutes of building.
-import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import React from 'react';
@@ -26,6 +26,7 @@ import { DEFAULT_DENTURE_OPTIONS } from '../src/denture/settings/dentureOptions'
 import { PartsList } from '../src/denture/parts/PartsList';
 import { DentalBar } from '../src/components/DentalBar';
 import { ToolRail } from '../src/deck/ToolRail';
+import { IconSheet } from '../src/kit/IconSheet';
 import { DEFAULT_PROFILE_ID, profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { DentalRimStep } from '../src/dental/rim/DentalRimStep';
 import { rimBadgeText } from '../src/dental/rim/rimStepText';
@@ -239,4 +240,83 @@ for (const [name, caption, build, whole = false] of SCREENS) {
 </body></html>`);
   console.log(`.stitch/screens/${name}.html  ${caption}`);
 }
+
+/*
+ * THE INDEX, AND THE ICON SHEET: the two pages that turn 19 loose files into a style book.
+ *
+ * The owner's ask was "the designer edits there, and it shows where the source is". The honest version of
+ * that, and the only one that survives a rebuild, is: THE BOOK NAMES THE FILE, AND THE DESIGNER EDITS THE
+ * FILE. `.stitch/screens/` is build output and is deleted on every run, so nothing a designer wrote here
+ * could ever have lived. What the book owes them instead is the path - and the path has to be TRUE, which
+ * is why every one below is checked with existsSync and the build fails rather than printing a lie.
+ *
+ * The loops differ per kind, and the index says so rather than promising one:
+ *   icons   replace src/ui/assets/icons/<name>.svg - no developer, no code change.
+ *   tokens  edit the custom property in src/styles.css or src/styles/theme.css.
+ *   layout  CSS yes, structure no: that is TSX and the data-ui contract.
+ */
+const GROUPS = [
+  ['The deck', 'deck-', ['src/deck/ToolRail.tsx', 'src/deck/toolState.ts']],
+  ['Aligner Step 1 - the rim', 'aligner-step1-', ['src/dental/rim/DentalRimStep.tsx', 'src/dental/rim/rimStepText.ts']],
+  ['Aligner Step 2 - the support area', 'aligner-step2-', ['src/components/DentalBar.tsx']],
+  ['Aligner Step 3 - supports', 'aligner-step3-', ['src/components/DentalReviewBlocks.tsx', 'src/components/ReviewSummary.tsx']],
+  ['Denture Step 2', 'denture-step2-', ['src/denture/steps/supports/ResolveSection.tsx', 'src/denture/parts/PartsList.tsx']],
+];
+for (const [, , files] of GROUPS) for (const file of files) {
+  // A renamed component must break the build, not quietly leave the book pointing at nothing. CI runs
+  // `npm run screens`, so this needs no test of its own.
+  if (!existsSync(join(ROOT, file))) throw new Error(`step-screens: the index names ${file}, which does not exist`);
+}
+
+const page = (title, head, body, extraCss = '') => `<!doctype html><html lang="en" data-theme="instrument"><head><meta charset="utf-8">
+<title>${title}</title><style>${css}
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--paper); color: var(--ink); }
+${extraCss}</style></head>
+<body>${head}${body}</body></html>`;
+
+const BOOK_CSS = `
+  .book { max-width: 1100px; margin: 0 auto; padding: 24px 24px 64px; }
+  .book h1 { font-size: 20px; font-weight: 500; margin: 0 0 4px; }
+  .book > p { font-size: 12.5px; line-height: 1.7; color: var(--muted); max-width: 76ch; }
+  .book h2 { font-size: 13px; font-weight: 700; letter-spacing: .06em; margin: 28px 0 6px; }
+  .book .src { font-family: var(--font-mono, monospace); font-size: 11px; color: var(--muted); user-select: all; }
+  .book ul { margin: 8px 0 0; padding-left: 18px; }
+  .book li { font-size: 12.5px; line-height: 1.9; }
+  .book a { color: var(--ink); }
+`;
+
+writeFileSync(join(OUT, 'index.html'), page('mixoDental style book', '', `<div class="book">
+  <h1>mixoDental style book</h1>
+  <p><b>Edit the file this page names, not this page.</b> Everything here is built by <code>npm run screens</code>
+  and deleted on the next run, so it is a mirror of the code and never a place work can live. What it owes you
+  is the path.</p>
+  <p>Icons are the one thing on this page you can change with no developer at all: replace the SVG and the app
+  draws the new drawing. Colours, sizes and spacing are CSS custom properties - edit the value and it follows
+  everywhere. Layout and wording are TSX, so those are a request to a developer; the screens below exist so the
+  request can be exact.</p>
+  <h2>Icons</h2>
+  <ul><li><a href="icons.html">Every icon, both rules, with the path of each file</a> &mdash; <span class="src">src/ui/assets/icons/</span></li></ul>
+  <h2>Colours, sizes, type</h2>
+  <ul>
+    <li>Every custom property, with what it is for &mdash; <span class="src">docs/ui-styling.md</span></li>
+    <li>The app's theme &mdash; <span class="src">src/styles/theme.css</span>; the set underneath &mdash; <span class="src">src/styles.css</span></li>
+    <li>Live, with a theme switch and a language switch &mdash; <span class="src">npm run dev</span>, then <span class="src">/mixodental/kit.html</span></li>
+  </ul>
+${GROUPS.map(([title, prefix, files]) => {
+    const rows = SCREENS.filter(([name]) => name.startsWith(prefix));
+    return `  <h2>${title}</h2>
+  <p class="src">${files.join('  ')}</p>
+  <ul>${rows.map(([name, caption]) => `<li><a href="${name}.html">${caption}</a></li>`).join('\n      ')}</ul>`;
+  }).join('\n')}
+</div>`, BOOK_CSS));
+console.log('.stitch/screens/index.html  the style book front page');
+
+writeFileSync(join(OUT, 'icons.html'), page('mixoDental icons', '', `<div class="kit-page">
+  <header class="kit-head"><h1>Icons</h1><p>Replace the file a card names and the app draws the new icon - no code change.
+  Every icon is one colour and takes the colour of what it sits on, which is why each is shown resting and pressed.</p></header>
+  ${renderToStaticMarkup(h(IconSheet))}
+</div>`, readFileSync(join(ROOT, 'src/kit/kit.css'), 'utf8')));
+console.log('.stitch/screens/icons.html  every icon, with its file path');
+
 console.log(`${SCREENS.length} screens written, from fake data: no model, no patient scan`);
