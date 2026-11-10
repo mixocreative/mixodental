@@ -35,7 +35,13 @@ box = tuple(int(v) for v in BOX.split(','))
 N = 48            # the Rule B grid: 48 x 48 cells on a 480 artboard
 CELL = 10         # a cell is ten units on every grid, so "a multiple of ten" is the on-grid test
 BODY = 4          # body colours; the outline is the fifth
-OUTLINE = 2       # how many cells thick the black outline is, grown inward
+# How many cells thick the black outline is, grown inward. NOT settable per icon, and that was tried:
+# three flags once existed to separate the night guard from the aligner, one of them a heavier outline.
+# The owner's rule is that the outline is UNIFORM across the whole set - a heavier one on a single
+# subject reads as a bolder ICON, not a thicker OBJECT - and the flags did not work anyway. The
+# reference draws a night guard as very nearly its own aligner, and when the source does not separate
+# two subjects, no post-processing will. That is a new reference, not a new option.
+OUTLINE = 2
 FLOOR = 230       # no BODY colour may be darker than this (r+g+b): black inside a tooth row reads as decay
 INK = (26, 26, 32)
 BG = np.array([239, 236, 253])    # the reference sheet's card colour

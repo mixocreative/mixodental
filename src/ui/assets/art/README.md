@@ -50,16 +50,34 @@ and by the style book, where you look at them. Saying otherwise would be the wor
 
 ## Where these came from, and which tool to reach for
 
-**Traced**, from the owner's reference sheet - `aligner`, `denture`, `dental-model`:
+**Traced**, from the owner's reference sheet. The exact command for each, so any of them can be redone:
 
 ```
-python scripts/trace-art.py <sheet.webp> src/ui/assets/art/<name>.svg <name> <x0,y0,x1,y1>
+python scripts/trace-art.py <sheet.webp> src/ui/assets/art/aligner.svg      aligner      55,38,302,222
+python scripts/trace-art.py <sheet.webp> src/ui/assets/art/denture.svg      denture      711,16,945,226
+python scripts/trace-art.py <sheet.webp> src/ui/assets/art/dental-model.svg dental-model 1029,18,1278,220
+python scripts/trace-art.py <sheet.webp> src/ui/assets/art/retainer.svg     retainer     380,38,627,230
+python scripts/trace-art.py <sheet.webp> src/ui/assets/art/night-guard.svg  night-guard  1713,25,1970,230
 ```
 
-It averages down to the grid, despeckles, drops everything the outline does not enclose, takes the
-outline's own cells as the ink so there is exactly ONE black, quantises the body alone to four colours,
-and draws the outline last. The header of that script says why each step is there - every one of them is
-a thing the step before it got wrong.
+The crop box is `x0,y0,x1,y1` on the sheet. **No per-icon options, by rule** - every file is made the same
+way, and the outline is the same two cells on all of them. It averages down to the grid, despeckles, drops
+everything the outline does not enclose, takes the outline's own cells as the ink so there is exactly ONE
+black, quantises the body alone, and draws the outline last. The header of that script says why each step
+is there - every one of them is a thing the step before it got wrong.
+
+### Known: the night guard does not read as its own object
+
+It is very nearly the aligner, and that is **the reference's doing, not the trace's**. The sheet draws both
+as clear segmented shells - "thin shell · open" and "thin shell · durable" - so a faithful trace is
+faithfully indistinguishable.
+
+Three ways round it were tried and all are gone: erasing the interior division lines (barely changed it,
+because the segmentation is the facet SHADING, not the lines), flattening to two tones (the same object,
+slightly flatter), and a heavier outline (it read as a bolder icon rather than a thicker object, and it
+broke the uniform outline, which is the rule). **The fix is a different reference drawing for the night
+guard** - one that shows it as the thick unbroken slab the brief describes. Until then the file ships
+marked unused, and the style book shows the problem rather than hiding it.
 
 **Generated**, for a shape that is abstract - `generic`, the plain block for "Any model":
 
