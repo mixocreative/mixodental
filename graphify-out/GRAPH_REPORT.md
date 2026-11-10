@@ -1,17 +1,17 @@
 # Graph Report - mixodental  (2026-11-11)
 
 ## Corpus Check
-- 969 files · ~1,017,167 words
+- 969 files · ~1,018,757 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 55 file(s) not represented in the graph (top: .stl 26, (none) 8, .css 6)
 
 ## Summary
-- 8098 nodes · 19541 edges · 751 communities (237 shown, 514 thin omitted)
-- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 1493 edges (avg confidence: 0.93)
+- 8098 nodes · 19542 edges · 751 communities (237 shown, 514 thin omitted)
+- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 1494 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6c76abf0`
+- Built from commit: `d4927e6b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1449,8 +1449,8 @@ Cohesion: 0.15
 Nodes (16): decodeIslands(), policyIslands(), AREA_CLASS, decodeCups(), decodeDeepSockets(), decodePockets(), DeepSocket, DentureAreaComparison (+8 more)
 
 ### Community 211 - "scope"
-Cohesion: 0.43
-Nodes (6): PAINT(), asCurrent(), classesOf(), dropArtboard(), scope(), scopeIcon()
+Cohesion: 0.33
+Nodes (8): PAINT(), Non-negotiable rules, asCurrent(), classesOf(), dropArtboard(), scope(), scopeIcon(), scopeNames()
 
 ### Community 214 - "useFreeTransform.ts"
 Cohesion: 0.43
@@ -1509,8 +1509,8 @@ Cohesion: 0.29
 Nodes (6): Checked and clean, CIA integrity audit: the denture flow (2026-11-02), Findings, Not walked at this tier, Owner questions, What each fix does
 
 ### Community 270 - "Art.tsx"
-Cohesion: 0.47
-Nodes (5): Art, FILES, OWN_ATTRS, propName(), scopeNames()
+Cohesion: 0.50
+Nodes (4): Art, FILES, OWN_ATTRS, propName()
 
 ### Community 285 - "Steps in order"
 Cohesion: 0.09
@@ -1657,8 +1657,8 @@ Cohesion: 0.09
 Nodes (45): `boundaryKind` gates authority, not visibility — measured, not assumed, Correction: the overlay gate was real, and it is gone, Task 3: Deferred bug sweep, Task 3: Painting and the blue layer in the viewport, Task 4: Click select and red bodies in the viewport, Task 5: Brush select, Where it meets the rest of the app, DentalFaceLayer() (+37 more)
 
 ### Community 701 - "Icon brief — hand this to whoever (or whatever) draws them"
-Cohesion: 0.25
-Nodes (7): Already drawn — this is what a REPLACEMENT must keep, How to check it before sending it back, Icon brief — hand this to whoever (or whatever) draws them, Non-negotiable rules, Still to draw — item kinds, Rule B (only when the app can prepare that item), The deck tool rail — Rule A, drawn, The rim-mode cursor — Rule A, drawn and wired
+Cohesion: 0.29
+Nodes (6): Already drawn — this is what a REPLACEMENT must keep, How to check it before sending it back, Icon brief — hand this to whoever (or whatever) draws them, Still to draw — item kinds, Rule B (only when the app can prepare that item), The deck tool rail — Rule A, drawn, The rim-mode cursor — Rule A, drawn and wired
 
 ### Community 702 - "concurrency"
 Cohesion: 0.67
@@ -1734,7 +1734,7 @@ Nodes (4): 10.1 How this maps to Stitch, 10.2 Screen prompts, 10.3 What must not
 
 ### Community 771 - "Art — the coloured pixel-art set"
 Cohesion: 0.40
-Nodes (4): Art — the coloured pixel-art set, Known: the night guard does not read as its own object, Rules for a file here, Where these came from, and which tool to reach for
+Nodes (4): Art — the coloured pixel-art set, Rules for a file here, Two of these are HAND-DRAWN, and that is the loop working, Where these came from, and which tool to reach for
 
 ### Community 772 - "vendorCapabilities.test.ts"
 Cohesion: 0.50
@@ -1742,22 +1742,22 @@ Nodes (3): AWAITED, AwaitedCapability, SURFACES
 
 ## Knowledge Gaps
 - **403 isolated node(s):** `memory`, `__wbg_asciistlsession_free`, `__wbg_binarystlsession_free`, `__wbg_bodysegmentsresult_free`, `__wbg_dentalbandsresult_free` (+398 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 3498 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 3497 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **514 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `vitest` connect `vitest` to `reviewCase.ts`, `dentureCore.ts`, `useExport.ts`, `useImportFiles.ts`, `resolveSettings`, `releaseTrigger.test.ts`, `DentalSteps.tsx`, `session.ts`, `keys.ts`, `importWorker.ts`, `App.tsx`, `state/project.ts`, `useDebugLayers.ts`, `gizmoStyle.ts`, `benchScene.test.ts`, `path.ts`, `real-scan-gate.mjs`, `flow.test.ts`, `prepareImport.ts`, `supportParityHarness.ts`, `supports/zones.ts`, `jobActivity.ts`, `TriangleMesh`, `tokenColour.ts`, `ObjectViewport.tsx`, `third-party-notices.mjs`, `8. Sequence`, `editingMode.ts`, `check-no-duplicates.mjs`, `repairMesh.ts`, `rimTarget.ts`, `supportParityHarness.ts`, `islandReport.ts`, `PrintScene`, `seedFromDetected.ts`, `stageModel.ts`, `Public API`, `PrintScene`, `SupportPoint`, `budget.ts`, `t`, `layoutFile.test.ts`, `peelReport.ts`, `arrange.ts`, `ToolRail.tsx`, `ItemsPage.tsx`, `validate.ts`, `probe-dental-edges.ts`, `uiStylingDoc.test.ts`, `TiltDial.tsx`, `unitSupports.ts`, `DentalReviewBlocks.tsx`, `drawnRim.ts`, `thumbnail.ts`, `useDentureSupports.ts`, `i18n.ts`, `geometry-guard.mjs`, `ItemRow.tsx`, `useDentureOrient.ts`, `ref_node_url`, `imports.test.ts`, `arrange.ts`, `viewportPort.ts`, `estimate.ts`, `batch.ts`, `Catalogue.tsx`, `TermsDialog.tsx`, `SettingsPanel.tsx`, `noBrandNames.test.ts`, `threeBoundary.test.ts`, `partRoles.ts`, `weldParity.test.ts`, `glossary.test.ts`, `useSupportChecks.ts`, `dentureTilt.ts`, `printerProfiles.ts`, `projectClient.test.ts`, `sceneMap.ts`, `diagnoseImported.test.ts`, `ref_node_url`, `dentureClient.ts`, `rimDraftGeometry.ts`, `noColourLiterals.test.ts`, `scope`, `useFreeTransform.ts`, `package.json`, `Vector`, `analysis/types.ts`, `ZoneStamp`, `pipeline.ts`, `build.ts`, `🟡 Major`, `jobRunner.ts`, `vendorCapabilities.test.ts`, `Majors`, `iconCatalogue.test.ts`?**
-  _High betweenness centrality (0.121) - this node is a cross-community bridge._
+  _High betweenness centrality (0.123) - this node is a cross-community bridge._
 - **Are the 8 inferred relationships involving `TriangleMesh` (e.g. with `1. Framework coupling (core)` and `2. Data formats and coordinate conventions`) actually correct?**
   _`TriangleMesh` has 8 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `memory`, `__wbg_asciistlsession_free`, `__wbg_binarystlsession_free` to the rest of the system?**
   _403 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `reviewCase.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.08527131782945736 - nodes in this community are weakly interconnected._
-- **Why does `Progress` connect `ZoneStamp` to `probe-dental-edges.ts`, `dentureCore.ts`, `useExport.ts`, `unitSupports.ts`, `meshClient.ts`, `getArrayU32FromWasm0`, `Ship plan — one Rust geometry core, generic engine, dental as policy data`, `jobRunner.ts`, `alignerProfiles.ts`, `vitest`, `build.ts`, `useScreenBrush.ts`, `Dental support algorithm (shipped state)`, `UnitObject`, `geometryClient.ts`?**
-  _High betweenness centrality (0.042) - this node is a cross-community bridge._
+- **Why does `TriangleMesh` connect `TriangleMesh` to `reviewCase.ts`, `dentureCore.ts`, `dentureReviewLayers.ts`, `useExport.ts`, `arrange.ts`, `importWorker.ts`, `addOnTint.tsx`, `state/project.ts`, `vitest`, `useDebugLayers.ts`, `settings.ts`, `flow.test.ts`, `meshClient.ts`, `prepareImport.ts`, `supportParityHarness.ts`, `supports/zones.ts`, `jobActivity.ts`, `weldParity.test.ts`, `dentureTilt.ts`, `UnitObject`, `supportParityHarness.ts`, `projectClient.test.ts`, `rayLayers.ts`, `dentureClient.ts`, `Public API`, `SupportPoint`, `dentureReview.ts`, `Review Focus`, `arrange.ts`, `ItemsPage.tsx`, `probe-dental-edges.ts`, `unitSupports.ts`, `WorkerTask`, `dentalInternals`, `Vector`, `ItemRow.tsx`, `analysis/types.ts`, `thumbnail.ts`, `pipeline.ts`, `AnalysisClient`, `build.ts`, `jobRunner.ts`?**
+  _High betweenness centrality (0.036) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `App()` (e.g. with `What it does now` and `Completed task log`) actually correct?**
   _`App()` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Should `dentureCore.ts` be split into smaller, more focused modules?**
