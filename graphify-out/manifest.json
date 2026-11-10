@@ -4021,9 +4021,9 @@
     "semantic_hash": ""
   },
   "src/ui/assets/icons/README.md": {
-    "mtime": 1793883134.263196,
-    "seen": 1793902315.4000866,
-    "ast_hash": "57601463f94a626a79e9b5bcebd6b581",
+    "mtime": 1794305068.0546527,
+    "seen": 1794305115.8999395,
+    "ast_hash": "d9ecfe977e6d890546476ebcf66be6b1",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/profileSelect.ts": {
@@ -5053,9 +5053,9 @@
     "semantic_hash": ""
   },
   "scripts/step-screens.mjs": {
-    "mtime": 1794246479.2401104,
-    "seen": 1794246597.1625154,
-    "ast_hash": "87d76ee88d71fe2044b16ea277431867",
+    "mtime": 1794304926.8928325,
+    "seen": 1794305115.8999395,
+    "ast_hash": "05cc84a373a70f50c245d3572cbb82db",
     "semantic_hash": ""
   },
   "src/commandWiring.test.ts": {
@@ -5677,9 +5677,9 @@
     "semantic_hash": ""
   },
   "src/deck/ToolRail.tsx": {
-    "mtime": 1794173934.2061238,
-    "seen": 1794178380.6441789,
-    "ast_hash": "bb962f536ebc7b5adbdd290554d88fd0",
+    "mtime": 1794304868.5368576,
+    "seen": 1794305115.8999395,
+    "ast_hash": "dd74523fb9231185ce4f5411abc49e60",
     "semantic_hash": ""
   },
   "src/deck/jobSummary.test.ts": {
@@ -5980,6 +5980,42 @@
     "mtime": 1794300963.4006648,
     "seen": 1794301598.15494,
     "ast_hash": "e23ba5251c104a5fd06e1cee452ca87a",
+    "semantic_hash": ""
+  },
+  "scripts/pixel-icons.mjs": {
+    "mtime": 1794304523.4661882,
+    "seen": 1794305115.8999395,
+    "ast_hash": "ffaa9196939664f4a07d62c6a4edee29",
+    "semantic_hash": ""
+  },
+  "src/ui/assets/icons/icon-brief.md": {
+    "mtime": 1794303657.259378,
+    "seen": 1794305115.8999395,
+    "ast_hash": "6bcca76ffacb5516a24a8d1bf9619180",
+    "semantic_hash": ""
+  },
+  "src/ui/assets/icons/cursor-rim.svg": {
+    "mtime": 1794304532.7062905,
+    "seen": 1794305115.9009402,
+    "ast_hash": "b93d9849efe8f8aaa59de97324346d12",
+    "semantic_hash": ""
+  },
+  "src/ui/assets/icons/tool-area.svg": {
+    "mtime": 1794304532.7052906,
+    "seen": 1794305115.9009402,
+    "ast_hash": "4313b685a3e7bd1decaf067214954646",
+    "semantic_hash": ""
+  },
+  "src/ui/assets/icons/tool-rim.svg": {
+    "mtime": 1794304532.703291,
+    "seen": 1794305115.9009402,
+    "ast_hash": "53346b6bd7a6a00f1ae756b0ea206470",
+    "semantic_hash": ""
+  },
+  "src/ui/assets/icons/tool-supports.svg": {
+    "mtime": 1794304532.7052906,
+    "seen": 1794305115.9009402,
+    "ast_hash": "19dacbf8e6cba77bc417c6ea9630efa8",
     "semantic_hash": ""
   }
 }
