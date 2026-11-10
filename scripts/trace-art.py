@@ -1,123 +1,182 @@
 """
-Trace an icon out of the owner's reference sheet onto the Rule B grid, IN COLOUR.
+Trace one item-type icon out of a reference sheet onto the Rule B grid.
 
-The rail's glyphs stay one ink - they sit beside a word at text size and must take the colour of the
-place they are in. The item types are pictures of objects, and the owner's call is that they are proper
-pixel art, the way a game's inventory icons are: real hues, a keyline, and enough tones to read as a
-solid thing. That needs a second asset path, because `scopeIcon` rewrites every colour by design.
+    python scripts/trace-art.py <sheet.webp> <out.svg> <name> <x0,y0,x1,y1>
 
-Quantising is done in two steps on purpose: average down to the grid first (BOX), THEN pick a palette.
-Picking the palette first and sampling after gives a speckled result, because a 4x4 block of source
-pixels usually spans a keyline and a fill, and whichever one the sample lands on wins the cell.
+WHY TRACE RATHER THAN GENERATE. The rail's glyphs are abstract diagrams - a path with handles, a strip
+with holes - and a generator draws those well because there is no correct look to miss. An item type has
+to be RECOGNISED, and that needs per-pixel judgement a formula cannot reach: tooth cells that change
+width from molar to incisor, real perspective, and tones where a swept band has one. Six rounds of
+parametric drawing produced an archway every time; `scripts/pixel-icons.mjs` records what and why.
+
+THE PIPELINE, and every step is here because the step before it was not enough:
+
+  1. average down to the grid        - sampling instead speckles, because a block of source pixels
+                                       usually spans a keyline and a fill and whichever one the sample
+                                       lands on wins the cell
+  2. despeckle                       - what is left still looks like a small photograph, not pixel art
+  3. drop everything the outline     - the reference casts a shadow, and a shadow implies a light and a
+     does not enclose                 ground plane an icon on a key does not have
+  4. quantise the REMAINS to four    - quantising before step 3 lets the shadow win palette slots
+  5. draw the outline last           - so nothing overwrites it
+
+Four body colours plus the outline is five, which is the owner's limit and about what the grid can
+carry: at this size near-duplicate tones read as noise rather than as shading.
 """
 import sys
+
 import numpy as np
 from PIL import Image
 
-SRC, OUT, NAME, BOX, NCOL = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5])
+SRC, OUT, NAME, BOX = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 box = tuple(int(v) for v in BOX.split(','))
-N, CELL = 64, 10
-BG = np.array([239, 236, 253])
 
+N = 64            # the Rule B grid
+CELL = 10         # a fake pixel is ten units on every grid, so "a multiple of ten" is the on-grid test
+BODY = 4          # body colours; the outline is the fifth
+INK = (26, 26, 32)
+BG = np.array([239, 236, 253])    # the reference sheet's card colour
+
+# ---- 1. average down to the grid, keeping the artwork's aspect and a one-cell margin ----------------
 im = Image.open(SRC).convert("RGB").crop(box)
 w, h = im.size
 scale = min((N - 2) / w, (N - 2) / h)
 tw, th = max(1, round(w * scale)), max(1, round(h * scale))
-small = im.resize((tw, th), Image.BOX)
-a = np.asarray(small).astype(int)
-art = np.abs(a - BG).sum(axis=2) > 60
+rgb = np.asarray(im.resize((tw, th), Image.BOX)).astype(int)
+art = np.abs(rgb - BG).sum(axis=2) > 60
+if not art.any():
+    raise SystemExit(f"{NAME}: nothing but background in that box")
 
-# Palette from the artwork only, so the card's lilac never steals a slot.
-only = Image.fromarray(np.where(art[..., None], a, BG).astype(np.uint8))
-pal = only.quantize(colors=NCOL + 1, method=Image.MEDIANCUT).convert("RGB")
-q = np.asarray(pal).astype(int)
 
-def clean(idx, bgval=-1):
+def despeckle(mask, value):
     """
-    Make a downsampled photograph into PIXEL ART.
-
-    Averaging a drawing down to 64 cells leaves it looking like a small photograph: stray single cells
-    where a highlight caught one block, palette slots a few units apart that read as noise rather than
-    as shading, and a keyline that breaks wherever the average landed between the outline and the fill.
-    Game pixel art is deliberate - every cell is a decision - so the trace is only the first half.
-
-    Three passes, each fixing one of those, in the order that matters: speckles first (so they cannot
-    vote in the next step), then the silhouette, then the keyline drawn last so nothing overwrites it.
+    A cell that disagrees with almost every neighbour is noise, not detail; a one-cell hole in the
+    silhouette is an artefact of averaging a thin feature. Both are what separates pixel art from a
+    small photograph, and both are fixed by looking only at the eight neighbours.
     """
-    out = idx.copy()
-    H, W = idx.shape
-    # 1. A cell that disagrees with almost all of its neighbours is noise, not detail.
+    out = mask.copy()
     for _ in range(2):
         src = out.copy()
-        for y in range(1, H - 1):
-            for x in range(1, W - 1):
-                here = src[y][x]
-                ring = [src[y+dy][x+dx] for dy in (-1,0,1) for dx in (-1,0,1) if (dy or dx)]
-                same = sum(1 for v in ring if v == here)
-                if same <= 1:
-                    vals = [v for v in ring if v != bgval] or ring
-                    out[y][x] = max(set(vals), key=vals.count)
-    # 2. Fill one-cell holes in the silhouette, which average down out of thin features.
-    for y in range(1, H - 1):
-        for x in range(1, W - 1):
-            if out[y][x] != bgval:
-                continue
-            ring = [out[y-1][x], out[y+1][x], out[y][x-1], out[y][x+1]]
-            if all(v != bgval for v in ring):
-                out[y][x] = max(set(ring), key=ring.count)
+        for y in range(1, src.shape[0] - 1):
+            for x in range(1, src.shape[1] - 1):
+                ring = [src[y + dy][x + dx] for dy in (-1, 0, 1) for dx in (-1, 0, 1) if (dy or dx)]
+                if sum(1 for v in ring if v == src[y][x]) <= 1:
+                    out[y][x] = max(set(ring), key=ring.count)
     return out
 
-cells = {}
+
+art = despeckle(art, True)
+
+
+# ---- 2 & 3. the object is what the outline encloses; the shadow is what it does not -----------------
+def enclosed(mask, wall):
+    """
+    Flood from the border through everything that is not `wall`, and return what the flood cannot reach.
+
+    Detecting a cast shadow by COLOUR is guesswork - a grey shadow and a grey highlight are the same
+    grey. By TOPOLOGY it is exact: a shadow lies outside the outline, and the interior of a closed
+    outline cannot be reached from the border. If the outline has a gap the flood leaks in and takes the
+    object with it, which the caller checks for.
+    """
+    H, W = mask.shape
+    seen = np.zeros_like(mask)
+    stack = [(y, x) for y in range(H) for x in (0, W - 1)] + [(y, x) for x in range(W) for y in (0, H - 1)]
+    while stack:
+        y, x = stack.pop()
+        if not (0 <= y < H and 0 <= x < W) or seen[y][x] or wall[y][x]:
+            continue
+        seen[y][x] = True
+        stack.extend(((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)))
+    # EVERYTHING THE FLOOD CANNOT REACH, not just the cells that looked like artwork. Inside the outline
+    # there are no holes: a cell that averaged out to the card colour there is a highlight on the object,
+    # not a window through it, and leaving it transparent punched the paper through the drawing. An
+    # opening that really is open - the mouth of the U - connects to the border, so the flood still
+    # reaches it and it stays clear.
+    return ~seen
+
+
+# WHICH tones count as the outline is not a constant: a denture's is heavy, a clear aligner's is a thin
+# grey line the averaging breaks in places. One fixed threshold closed the first and leaked through the
+# second. So take the THINNEST CLOSED outline - widen a step at a time, stop at the first one the flood
+# cannot pass. The widest would also close, and would swallow real shading into the outline.
+lum = rgb.sum(axis=2)
+keep = None
+for q in (0.22, 0.30, 0.38, 0.46, 0.54, 0.62):
+    candidate = enclosed(art, art & (lum <= np.quantile(lum[art], q)))
+    if candidate.sum() >= art.sum() * 0.45:
+        keep, chosen = candidate, q
+        break
+if keep is None:
+    raise SystemExit(f"{NAME}: no closed outline at any threshold - nothing written")
+# Two different numbers, and subtracting the totals conflated them into a meaningless negative: artwork
+# that fell OUTSIDE the outline is the shadow going, and cells inside it that did not look like artwork
+# are holes being filled. Both are worth seeing when a new icon is traced.
+shadow = int((art & ~keep).sum())
+filled = int((keep & ~art).sum())
+
+# ---- 4. quantise what is left, and only what is left -----------------------------------------------
+# Quantising before the shadow went let it win palette slots, and picking the four most COMMON colours
+# afterwards was worse: on a clear aligner the four commonest are all near-white, so the body vanished
+# into the highlight. Re-quantising the kept cells asks for a spread across the range, which is what
+# shading is.
+# Quantise the KEPT PIXELS ALONE, as a flat strip, rather than the picture with the rest painted out.
+# Painting the rest to the card colour hands that colour a palette slot of its own - which was harmless
+# while near-background cells were skipped, and became a sixth colour the moment every enclosed cell had
+# to be filled. A strip of only the pixels that matter cannot spend a slot on one that does not.
+pixels = rgb[keep]
+strip = Image.fromarray(pixels.reshape(-1, 1, 3).astype(np.uint8))
+palette = np.asarray(strip.quantize(colors=BODY, method=Image.MEDIANCUT).convert("RGB")).astype(int).reshape(-1, 3)
+pal = np.zeros_like(rgb)
+pal[keep] = palette
+
 grid = np.full((N, N), -1, dtype=int)
+colours: dict[tuple[int, int, int], int] = {}
 oy, ox = (N - th) // 2, (N - tw) // 2
 for y in range(th):
     for x in range(tw):
-        if not art[y][x]:
+        if not keep[y][x]:
             continue
-        rgb = tuple(q[y][x])
-        if np.abs(np.array(rgb) - BG).sum() < 40:   # a palette slot that landed on the card colour
-            continue
-        cells.setdefault(rgb, len(cells))
-        grid[oy + y][ox + x] = cells[rgb]
+        # EVERY enclosed cell gets a colour. There was a skip here for slots that landed on the card
+        # colour, and inside the outline that is the one place it must not apply: it left see-through
+        # cells in the middle of the object, so the key's paper showed through the drawing.
+        grid[oy + y][ox + x] = colours.setdefault(tuple(int(v) for v in pal[y][x]), len(colours))
 
-# Merge palette slots that are too close to tell apart: at this size they read as noise, not shading.
-rgbs = [np.array(k, dtype=float) for k in cells]
-remap = {}
-keep = []
-for i, c in enumerate(rgbs):
-    hit = next((j for j in keep if np.abs(rgbs[j] - c).sum() < 22), None)
-    remap[i] = hit if hit is not None else i
-    if hit is None:
-        keep.append(i)
-idx_of = {v: i for i, v in enumerate(cells.values())}
-grid = np.vectorize(lambda v: -1 if v < 0 else remap[v])(grid)
-grid = clean(grid)
+# ---- 5. the outline, drawn last so nothing overwrites it -------------------------------------------
+# The reference's own keyline survives the averaging in places and breaks in others, wherever a cell
+# straddled the outline and the fill. A broken outline is what makes pixel art read as a smudge rather
+# than an object, so it is redrawn as one ring of one colour round everything that touches the outside.
+ink = colours.setdefault(INK, len(colours))
+pad = np.pad(grid, 1, constant_values=-1)
+rim = (grid >= 0) & ((pad[:-2, 1:-1] < 0) | (pad[2:, 1:-1] < 0) | (pad[1:-1, :-2] < 0) | (pad[1:-1, 2:] < 0))
+grid = np.where(rim, ink, grid)
 
-# NO FORCED KEYLINE. Darkening every cell that touches the background was tried and made a crust: this
-# shape is nearly all edge, so the outline swallowed the drawing. The reference already has a keyline and
-# it survives the averaging, which is the whole reason for tracing a drawing rather than computing one.
-used = set(int(v) for v in np.unique(grid) if v >= 0)
-cells = {rgb: i for rgb, i in cells.items() if remap[i] in used and remap[i] == i}
-order = sorted(cells.items(), key=lambda kv: sum(kv[0]))      # darkest first, so the keyline is drawn under
-layers = []
-for rgb, idx in order:
-    out, hexed = [], "#%02x%02x%02x" % rgb
-    for yy in range(N):
+used = {int(v) for v in np.unique(grid) if v >= 0}
+colours = {c: i for c, i in colours.items() if i in used}
+if len(colours) > BODY + 1:
+    raise SystemExit(f"{NAME}: {len(colours)} colours, which is more than the {BODY + 1} allowed")
+
+
+def runs(index):
+    out = []
+    for y in range(N):
         run = 0
-        for xx in range(N + 1):
-            if xx < N and grid[yy][xx] == idx:
+        for x in range(N + 1):
+            if x < N and grid[y][x] == index:
                 run += 1
                 continue
             if run:
-                out.append(f'<rect x="{(xx-run)*CELL}" y="{yy*CELL}" width="{run*CELL}" height="{CELL}"/>')
+                out.append(f'<rect x="{(x - run) * CELL}" y="{y * CELL}" width="{run * CELL}" height="{CELL}"/>')
             run = 0
-    if out:
-        layers.append(f'<g fill="{hexed}">{"".join(out)}</g>')
+    return "".join(out)
 
-svg = f'''<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {N*CELL} {N*CELL}" shape-rendering="crispEdges">
-  {chr(10) + "  " if layers else ""}{(chr(10) + "  ").join(layers)}
-</svg>
-'''
-open(OUT, "w", encoding="utf-8", newline="\n").write(svg)
-print(f"{NAME}: {tw}x{th} cells, {len(cells)} colours, {sum(l.count('<rect') for l in layers)} rects")
+
+# Darkest first, so the outline sits under the fills rather than over them.
+layers = [f'<g fill="#{r:02x}{g:02x}{b:02x}">{runs(i)}</g>' for (r, g, b), i in sorted(colours.items(), key=lambda kv: sum(kv[0]))]
+open(OUT, "w", encoding="utf-8", newline="\n").write(
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {N * CELL} {N * CELL}" shape-rendering="crispEdges">\n  '
+    + "\n  ".join(layers)
+    + "\n</svg>\n"
+)
+print(f"{NAME}: {tw}x{th} cells, {len(colours)} colours, outline at the {int(chosen * 100)}% darkest, "
+      f"{shadow} shadow cells dropped, {filled} holes filled, {sum(l.count('<rect') for l in layers)} rects")

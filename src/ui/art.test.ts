@@ -63,12 +63,65 @@ describe('the coloured art folder', () => {
     expect(offenders).toEqual([]);
   });
 
-  // Few colours on purpose: more does not survive the grid, and at this size near-duplicates read as
-  // noise rather than as shading. The tracer merges them; this is the backstop.
-  it('keeps the palette small', () => {
+  /*
+   * AT MOST FIVE COLOURS, one of them the outline. More does not survive the grid: at this size
+   * near-duplicate tones read as noise rather than as shading, and the tracer's own quantiser is set to
+   * four body colours plus the keyline. This is the backstop for a file replaced by hand.
+   */
+  it('keeps the palette to five', () => {
     const offenders = names
-      .map((n) => [n, new Set((FILES[n].match(/#[0-9a-fA-F]{6}\b/g) ?? []).map((c) => c.toLowerCase())).size] as const)
-      .filter(([, count]) => count > 16);
+      .map((n) => [n, new Set((FILES[n].match(/#[0-9a-fA-F]{6}/g) ?? []).map((c) => c.toLowerCase())).size] as const)
+      .filter(([, count]) => count > 5)
+      .map(([n, count]) => `${n}: ${count}`);
+    expect(offenders).toEqual([]);
+  });
+
+  /*
+   * A CLEAR OUTLINE, and it has to be the darkest thing in the file. A broken or pale keyline is what
+   * makes pixel art read as a smudge rather than an object, and it is the first thing to go when a file
+   * is re-exported from a drawing tool. Checking that SOME colour is near-black is weak but it is the
+   * part a test can see; whether the ring is unbroken is what the style book is for.
+   */
+  it('gives every one a near-black outline colour', () => {
+    /** How dark a `#rrggbb` is: 0 for black, 765 for white. */
+    const darkness = (hex: string) => [1, 3, 5].reduce((sum, at) => sum + parseInt(hex.slice(at, at + 2), 16), 0);
+    const darkest = names.map((n) => {
+      const hexes = [...new Set(FILES[n].match(/#[0-9a-fA-F]{6}/g) ?? [])];
+      return [n, hexes.length === 0 ? -1 : Math.min(...hexes.map(darkness))] as const;
+    });
+    // -1 is no colour found at all, which would make every other check in this file vacuous.
+    expect(darkest.filter(([, d]) => d < 0)).toEqual([]);
+    expect(darkest.filter(([, d]) => d > 180)).toEqual([]);
+  });
+
+  /*
+   * NO HOLES INSIDE THE OUTLINE. Everything the keyline encloses is filled, so the key's paper never
+   * shows through the middle of the drawing - an opening that really is open, like the mouth of the U,
+   * reaches the edge of the artboard and is not a hole.
+   *
+   * Checked the way the tracer builds it: lay the rects onto the grid, flood in from the border, and
+   * any empty cell the flood cannot reach is a hole. That also catches a BROKEN outline for free, since
+   * a gap lets the flood into the middle and leaves nothing unreached.
+   */
+  it('leaves no hole inside the outline', () => {
+    const offenders = names.filter((name) => {
+      const cells = Array.from({ length: GRID }, () => Array.from({ length: GRID }, () => false));
+      for (const [tag] of FILES[name].matchAll(/<rect[^>]*>/g)) {
+        const at = (attr: string) => Number(new RegExp(`[ ]${attr}="([^"]*)"`).exec(tag)?.[1] ?? 0) / CELL;
+        const [x, y, w, h] = [at('x'), at('y'), at('width'), at('height')];
+        for (let dy = 0; dy < h; dy += 1) for (let dx = 0; dx < w; dx += 1) cells[y + dy][x + dx] = true;
+      }
+      const seen = Array.from({ length: GRID }, () => Array.from({ length: GRID }, () => false));
+      const stack: [number, number][] = [];
+      for (let i = 0; i < GRID; i += 1) stack.push([i, 0], [i, GRID - 1], [0, i], [GRID - 1, i]);
+      while (stack.length > 0) {
+        const [y, x] = stack.pop()!;
+        if (y < 0 || y >= GRID || x < 0 || x >= GRID || seen[y][x] || cells[y][x]) continue;
+        seen[y][x] = true;
+        stack.push([y - 1, x], [y + 1, x], [y, x - 1], [y, x + 1]);
+      }
+      return cells.some((row, y) => row.some((on, x) => !on && !seen[y][x]));
+    });
     expect(offenders).toEqual([]);
   });
 });
