@@ -34,6 +34,7 @@ box = tuple(int(v) for v in BOX.split(','))
 N = 64            # the Rule B grid
 CELL = 10         # a fake pixel is ten units on every grid, so "a multiple of ten" is the on-grid test
 BODY = 4          # body colours; the outline is the fifth
+OUTLINE = 2       # how many cells thick the black outline is, grown inward
 INK = (26, 26, 32)
 BG = np.array([239, 236, 253])    # the reference sheet's card colour
 
@@ -102,9 +103,10 @@ def enclosed(mask, wall):
 lum = rgb.sum(axis=2)
 keep = None
 for q in (0.22, 0.30, 0.38, 0.46, 0.54, 0.62):
-    candidate = enclosed(art, art & (lum <= np.quantile(lum[art], q)))
+    wall = art & (lum <= np.quantile(lum[art], q))
+    candidate = enclosed(art, wall)
     if candidate.sum() >= art.sum() * 0.45:
-        keep, chosen = candidate, q
+        keep, chosen, keyline = candidate, q, wall
         break
 if keep is None:
     raise SystemExit(f"{NAME}: no closed outline at any threshold - nothing written")
@@ -123,11 +125,19 @@ filled = int((keep & ~art).sum())
 # Painting the rest to the card colour hands that colour a palette slot of its own - which was harmless
 # while near-background cells were skipped, and became a sixth colour the moment every enclosed cell had
 # to be filled. A strip of only the pixels that matter cannot spend a slot on one that does not.
-pixels = rgb[keep]
+#
+# ONE BLACK, NOT TWO. The reference's own keyline is dark, so quantising it along with the body spent a
+# palette slot on a second near-black - and the outline came out as two shades, a hard edge with a softer
+# one just inside it, which is exactly what an outline must not be. The cells the flood treated as the
+# wall ARE the outline, so they take the ink directly and never reach the quantiser; what is quantised is
+# the body alone, which also gives the four colours to the shading rather than to the edge.
+body = keep & ~keyline
+pixels = rgb[body]
 strip = Image.fromarray(pixels.reshape(-1, 1, 3).astype(np.uint8))
 palette = np.asarray(strip.quantize(colors=BODY, method=Image.MEDIANCUT).convert("RGB")).astype(int).reshape(-1, 3)
 pal = np.zeros_like(rgb)
-pal[keep] = palette
+pal[body] = palette
+pal[keyline & keep] = INK
 
 grid = np.full((N, N), -1, dtype=int)
 colours: dict[tuple[int, int, int], int] = {}
@@ -145,10 +155,22 @@ for y in range(th):
 # The reference's own keyline survives the averaging in places and breaks in others, wherever a cell
 # straddled the outline and the fill. A broken outline is what makes pixel art read as a smudge rather
 # than an object, so it is redrawn as one ring of one colour round everything that touches the outside.
+#
+# TWO CELLS THICK, INWARD. One cell is four real pixels at 128px and reads as a hairline next to art
+# this chunky; two is what gives it the weight the reference has. It grows inward on purpose - growing
+# outward would push the drawing past the margin and change its size, and the silhouette is already
+# where it should be.
+# THE SILHOUETTE ONLY. Growing from every ink cell also doubled the reference's own INTERIOR keylines -
+# the lines between one tooth and the next - and those are two or three cells apart, so the thickening
+# closed the gaps and the tooth row turned into a black band. Only the outer ring grows.
 ink = colours.setdefault(INK, len(colours))
 pad = np.pad(grid, 1, constant_values=-1)
-rim = (grid >= 0) & ((pad[:-2, 1:-1] < 0) | (pad[2:, 1:-1] < 0) | (pad[1:-1, :-2] < 0) | (pad[1:-1, 2:] < 0))
-grid = np.where(rim, ink, grid)
+ring = (grid >= 0) & ((pad[:-2, 1:-1] < 0) | (pad[2:, 1:-1] < 0) | (pad[1:-1, :-2] < 0) | (pad[1:-1, 2:] < 0))
+for _ in range(OUTLINE - 1):
+    pad = np.pad(ring, 1, constant_values=False)
+    nextTo = pad[:-2, 1:-1] | pad[2:, 1:-1] | pad[1:-1, :-2] | pad[1:-1, 2:]
+    ring = ring | ((grid >= 0) & nextTo)
+grid = np.where(ring, ink, grid)
 
 used = {int(v) for v in np.unique(grid) if v >= 0}
 colours = {c: i for c, i in colours.items() if i in used}

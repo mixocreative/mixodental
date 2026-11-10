@@ -24,9 +24,12 @@ watching the test fail.
 1. **64 x 64 grid, `viewBox="0 0 640 640"`, every rect coordinate a multiple of 10.** That is what keeps
    it crisp at 128px: two real pixels per fake one, exactly.
 2. **No `width` or `height` on the root.** The CSS sizes it.
-3. **A clear black outline**, one cell thick, round everything. A broken or pale keyline is what makes
-   pixel art read as a smudge rather than an object, and it is the first thing to go when a file is
-   re-exported from a drawing tool.
+3. **A clear black outline, TWO cells thick, and only ONE black.** One cell is four real pixels at 128px
+   and reads as a hairline beside art this chunky. It grows INWARD - outward would push the drawing past
+   the margin - and only the outer silhouette grows: thickening the interior keylines as well closed the
+   two-cell gaps between one tooth and the next, and the tooth row became a black band. One black, not
+   two: the reference's own keyline is dark, so quantising it with the body spent a slot on a second
+   near-black and the edge came out as a hard line with a softer one just inside it.
 4. **No shadow.** A cast shadow implies a light source and a ground plane that an icon on a key does not
    have, and it spends colours saying so. The tracer removes it by topology: flood in from the border,
    and anything the flood reaches is outside the outline, which is where a shadow is by definition.
@@ -38,17 +41,30 @@ watching the test fail.
 7. **It must read at 128px**, not only when you zoom in. Judge it in the style book, on a key, before it
    ships - that is the step that was skipped when an earlier set went in and had to come out again.
 
-## Where these came from
+## Where these came from, and which tool to reach for
 
-Traced from the owner's own reference sheet:
+**Traced**, from the owner's reference sheet - `aligner`, `denture`, `dental-model`:
 
 ```
 python scripts/trace-art.py <sheet.webp> src/ui/assets/art/<name>.svg <name> <x0,y0,x1,y1>
 ```
 
-It averages down to the grid, despeckles, drops everything the outline does not enclose, quantises what
-is left to four colours, and draws the outline last. The header of that script says why each step is
-there - every one of them is a thing the step before it got wrong. Tracing rather than generating is deliberate.
-A generator draws the abstract rail glyphs well because there is no correct look to miss; an object that
-has to be RECOGNISED needs per-pixel judgement, and `scripts/pixel-icons.mjs` records what six rounds of
-trying to compute one produced instead.
+It averages down to the grid, despeckles, drops everything the outline does not enclose, takes the
+outline's own cells as the ink so there is exactly ONE black, quantises the body alone to four colours,
+and draws the outline last. The header of that script says why each step is there - every one of them is
+a thing the step before it got wrong.
+
+**Generated**, for a shape that is abstract - `generic`, the plain block for "Any model":
+
+```
+node scripts/art-block.mjs src/ui/assets/art/generic.svg
+```
+
+**Which to reach for.** Trace a thing that must be RECOGNISED - a denture, an aligner, a study model -
+because a formula cannot reach the per-pixel judgement that makes it readable: six rounds of computing
+a dental arch produced an archway every time, and `scripts/pixel-icons.mjs` records what and why.
+Generate a shape that is abstract - a block, a path with handles, a strip with holes - because there is
+no correct version to miss and a generator gets the angles exactly right where a hand would wobble.
+
+Either way **the FILE is the source**. Both scripts can be re-run, and a file replaced by hand is just
+as valid: the rules above are held by a test, not by whichever script happened to write it.

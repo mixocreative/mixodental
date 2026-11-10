@@ -73,7 +73,20 @@ export const ICON_CATALOGUE: IconEntry[] = [
    */
   { name: 'aligner', slot: 'key', source: 'traced', where: 'Start screen, first big choice: Aligner. A clear segmented shell, seen from above and in front' },
   { name: 'denture', slot: 'key', source: 'traced', where: 'Start screen, middle big choice: Denture. A full arch of teeth on a gum body - the bulky one' },
-  { name: 'generic', slot: 'key', source: 'traced', where: 'Start screen, third big choice: Any model. A study model on a solid base - the only one with a plinth' },
+  /*
+   * ANY MODEL takes any STL, dental or not, so it gets a plain block rather than a dental object - and
+   * the block is GENERATED where the three dental items are traced. That is the right way round: tracing
+   * is for a thing that must be RECOGNISED, where a formula cannot reach the judgement, and a block is
+   * abstract - there is no correct block to miss and every edge is a straight line the generator gets
+   * exactly right. `scripts/art-block.mjs`.
+   */
+  { name: 'generic', slot: 'key', source: 'generated', where: 'Start screen, third big choice: Any model. A plain isometric block - not a dental object, because this choice takes any STL' },
+  /*
+   * Drawn and waiting on code: there is no Dental Model choice on the start screen yet, so nothing uses
+   * this. It is the file that was called `generic` until 2026-11-10, when it turned out to be a picture
+   * of a study model and to be standing in for a choice that means something else.
+   */
+  { name: 'dental-model', slot: 'key', source: 'traced', unwired: true, where: 'A study model on a solid base - the only one of the four with a plinth. No screen offers it yet' },
 
   // The deck rail: the four steps, each a word with its picture. Rule A, and the three pixel ones.
   { name: 'orient', slot: 'inline', source: 'drawn', where: 'Deck rail: Orient. Also the Auto orientation key in the orientation bar - a box with a turn arrow' },
