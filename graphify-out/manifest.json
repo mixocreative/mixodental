@@ -564,15 +564,15 @@
     "semantic_hash": ""
   },
   "src/locales/ja.ts": {
-    "mtime": 1794244059.4318042,
-    "seen": 1794245366.2913277,
-    "ast_hash": "8449ee1399393858bba3cb4275bb2be0",
+    "mtime": 1794301220.8812578,
+    "seen": 1794301598.1539404,
+    "ast_hash": "baf8d94a40c0a417eb76d907a6977eb5",
     "semantic_hash": ""
   },
   "src/locales/zh-Hant.ts": {
-    "mtime": 1794244075.923087,
-    "seen": 1794245366.2913277,
-    "ast_hash": "67690d1f896f1b019a62590229180579",
+    "mtime": 1794301220.8877761,
+    "seen": 1794301598.1539404,
+    "ast_hash": "5e1898a355e2037e40ae94944ed73699",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -985,9 +985,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1794083245.593103,
-    "seen": 1794085646.9483857,
-    "ast_hash": "2433202a503a77e14de6d3ab3cf956c1",
+    "mtime": 1794301381.454954,
+    "seen": 1794301598.15494,
+    "ast_hash": "49280abd18ae914066699ccd7d38739a",
     "semantic_hash": ""
   },
   "README.zh-Hant.md": {
@@ -1621,9 +1621,9 @@
     "semantic_hash": ""
   },
   "src/dental/flow.ts": {
-    "mtime": 1794163773.1235945,
-    "seen": 1794167982.9637845,
-    "ast_hash": "1a30b85e1a7638d835d861744a846a7a",
+    "mtime": 1794300786.5097687,
+    "seen": 1794301598.1539404,
+    "ast_hash": "d4831e221adc1654f9a161e3794901b2",
     "semantic_hash": ""
   },
   "src/components/DentalSupports.tsx": {
@@ -1669,9 +1669,9 @@
     "semantic_hash": ""
   },
   "src/dental/flow.test.ts": {
-    "mtime": 1794163811.0134368,
-    "seen": 1794167982.9637845,
-    "ast_hash": "fffeb870211098bbc1042834fbd1e171",
+    "mtime": 1794300755.8840375,
+    "seen": 1794301598.1539404,
+    "ast_hash": "82c9f1dbcd70f12786118d5f3f0f2e88",
     "semantic_hash": ""
   },
   "scripts/test-support/supportParityHarness.ts": {
@@ -2929,9 +2929,9 @@
     "semantic_hash": ""
   },
   "src/components/useDentalFlow.ts": {
-    "mtime": 1794173855.0459702,
-    "seen": 1794178380.6441789,
-    "ast_hash": "3a2dc0f0ffdf0ad0984e16d9ce2d5331",
+    "mtime": 1794300719.1721992,
+    "seen": 1794301598.1539404,
+    "ast_hash": "6e05455db2cdfefebd106b452459c93f",
     "semantic_hash": ""
   },
   "scripts/dental-region-review/profile.ts": {
@@ -3025,9 +3025,9 @@
     "semantic_hash": ""
   },
   "dentalwork/open-decisions.md": {
-    "mtime": 1793257773.8855422,
-    "seen": 1793257795.672711,
-    "ast_hash": "e2dfc015d0d29368d75e238e408aa8e1",
+    "mtime": 1794301115.7127044,
+    "seen": 1794301598.15494,
+    "ast_hash": "d42deeec3efaaa13888a676ef9b01f85",
     "semantic_hash": ""
   },
   "src/dental/supportPreset.ts": {
@@ -3769,9 +3769,9 @@
     "semantic_hash": ""
   },
   "src/dental/editingMode.ts": {
-    "mtime": 1794238538.130753,
-    "seen": 1794245366.2913277,
-    "ast_hash": "a4e078b76acd0b9272f307528cc704bc",
+    "mtime": 1794301130.9345965,
+    "seen": 1794301598.1539404,
+    "ast_hash": "f95394609bb86c050353a00eae2a4dbf",
     "semantic_hash": ""
   },
   "src/workers/engineSource.ts": {
@@ -5323,9 +5323,9 @@
     "semantic_hash": ""
   },
   "docs/handoff/geocore-rim-from-points.md": {
-    "mtime": 1793901200.9673378,
-    "seen": 1793902315.4000866,
-    "ast_hash": "ccd3894b389aadb5fc9e665405864508",
+    "mtime": 1794301087.624889,
+    "seen": 1794301598.15494,
+    "ast_hash": "1b41638eee0cbb1a5c65252a6163fade",
     "semantic_hash": ""
   },
   "src/assets/fonts/japanese-subset.txt": {
@@ -5965,9 +5965,21 @@
     "semantic_hash": ""
   },
   "src/vendorCapabilities.test.ts": {
-    "mtime": 1794264918.8037992,
-    "seen": 1794265122.6300838,
-    "ast_hash": "1517bfd7335c0b3f9a46f2fd509578de",
+    "mtime": 1794301046.240514,
+    "seen": 1794301598.1539404,
+    "ast_hash": "6614ebe0364540996158d403283af651",
+    "semantic_hash": ""
+  },
+  "benchwork/README.md": {
+    "mtime": 1794301381.527244,
+    "seen": 1794301598.15494,
+    "ast_hash": "f815b015b1e771ceadaa061cb81fdbae",
+    "semantic_hash": ""
+  },
+  "docs/handoff/geocore-orient-from-drawn-rim.md": {
+    "mtime": 1794300963.4006648,
+    "seen": 1794301598.15494,
+    "ast_hash": "e23ba5251c104a5fd06e1cee452ca87a",
     "semantic_hash": ""
   }
 }
