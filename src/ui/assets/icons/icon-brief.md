@@ -24,11 +24,30 @@ icon loader does to every file, so artwork that ignores them cannot ship.
 Four buttons sit in a row. They must be distinguishable **from each other at a glance**, which matters
 more than any one of them being a perfect picture. `tool-orient` already exists — match its weight.
 
-| File | Subject | Must read as | Keep it apart from |
-| --- | --- | --- | --- |
-| `tool-rim.svg` | The edge line around a dental arch — a horseshoe **outline** with small square handles on it | "the boundary, with points you can move" | `tool-area`: this is a LINE with handles, not a filled region |
-| `tool-area.svg` | A horseshoe band **filled in**, a solid strip following the arch | "a painted region on the surface" | `tool-rim`: no handles, no open line — a solid band |
-| `tool-supports.svg` | Two or three thin **pillars standing under a flat shelf**, like props under a ledge | "things holding the model up from below" | Everything else: this is the only vertical/side view |
+**`tool-rim.svg` — the trim edge, and the points that define it.**
+The rim is the aligner's trim line: the edge that runs all the way round the shell. The app either
+finds it or the operator draws it by placing points along it and dragging them. So: a horseshoe
+**outline, one pixel thick**, with 4–6 small **square handles sitting on the line itself**. It is a
+path with grab-points, not a shape. Nothing filled.
+
+**`tool-area.svg` — the narrow strip where support tips are allowed.**
+Not "a region on the model" — it is a **narrow band that runs ALONG the rim, just outside it**, and
+the support tips sit on that band's **middle line**. The operator widens it, shifts it across the
+edge, and paints extra onto it. So: a horseshoe **band of 2–3 pixels thickness** with a **row of
+single-pixel dots running down its centre**. Those dots are the point of the icon — they are what
+makes it "where supports may touch" rather than "a coloured area".
+
+**`tool-supports.svg` — the pillars that hold the model off the plate.**
+Tips touch the aligner, thin pillars run down from them to the build plate, and a raft sits at the
+bottom. This is the **only icon in the set drawn from the SIDE**, which is most of what tells it from
+the other three. So: a **flat shelf across the top**, 2–4 **thin vertical pillars** dropping from it,
+standing on a **solid base line**. Think scaffolding under a bridge, not a tree.
+
+| File | One-line test |
+| --- | --- |
+| `tool-rim.svg` | "a line with points I can move" — outline + handles, nothing filled |
+| `tool-area.svg` | "a strip with tips on it" — band + a row of dots down its centre |
+| `tool-supports.svg` | "props holding something up" — side view, shelf + pillars + base |
 
 (`tool-orient.svg` exists: a box with a turn arrow.)
 
@@ -38,7 +57,12 @@ In rim define mode a press means three different things, and today all three sho
 
 | File | Subject | Must read as |
 | --- | --- | --- |
-| `cursor-rim.svg` | A crosshair with a small square handle at its centre | "press here and you will grab or place a point" |
+**What a press does there:** on a point it grabs it, on the drawn line it inserts a new point, on bare
+model it adds one at the end. All three today show a plain system crosshair, which says none of it.
+
+| File | Subject | Must read as |
+| --- | --- | --- |
+| `cursor-rim.svg` | A fine crosshair with a **small open square at its centre** | "there is a point here, or there will be" |
 
 Draw it on the same 24 × 24 grid but keep it **light** — a cursor sits over artwork and must not blot
 it out. Hotspot at the centre.
