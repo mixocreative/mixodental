@@ -6031,9 +6031,9 @@
     "semantic_hash": ""
   },
   "scripts/trace-art.py": {
-    "mtime": 1794315854.0417395,
-    "seen": 1794316528.2179885,
-    "ast_hash": "710a245a2493e22ca087f2fc77f1e0f5",
+    "mtime": 1794317672.9399977,
+    "seen": 1794318097.3162563,
+    "ast_hash": "330af66d3ca7b162b394756d477d8d1a",
     "semantic_hash": ""
   },
   "src/ui/Art.tsx": {
@@ -6043,33 +6043,33 @@
     "semantic_hash": ""
   },
   "src/ui/art.test.ts": {
-    "mtime": 1794315999.6868796,
-    "seen": 1794316528.2189934,
-    "ast_hash": "a39a839c08f15046e5bbe9186d74af5e",
+    "mtime": 1794317697.2638338,
+    "seen": 1794318097.3177595,
+    "ast_hash": "c57e1d67cd7b3b898dfc115d6e5b5c65",
     "semantic_hash": ""
   },
   "src/ui/assets/art/README.md": {
-    "mtime": 1794315730.7892888,
-    "seen": 1794316528.2189934,
-    "ast_hash": "53358c1a90636040cb7bc60d8da645b7",
+    "mtime": 1794317737.805461,
+    "seen": 1794318097.3177595,
+    "ast_hash": "c459303845c0687ed168af80b402ddc0",
     "semantic_hash": ""
   },
   "src/ui/assets/art/aligner.svg": {
-    "mtime": 1794315854.462486,
-    "seen": 1794316528.2189934,
-    "ast_hash": "b26cf14d1b68576d7d1d7c47dc33d2da",
+    "mtime": 1794317673.3844664,
+    "seen": 1794318097.3177595,
+    "ast_hash": "96e44e8cf0b8d36b6c3ea5061e450435",
     "semantic_hash": ""
   },
   "src/ui/assets/art/denture.svg": {
-    "mtime": 1794315854.872879,
-    "seen": 1794316528.2189934,
-    "ast_hash": "0a96005dac428be8ee68f8d80a4804f1",
+    "mtime": 1794317673.8434732,
+    "seen": 1794318097.3177595,
+    "ast_hash": "de422da6701793dee4b21dc8948da66a",
     "semantic_hash": ""
   },
   "src/ui/assets/art/generic.svg": {
-    "mtime": 1794315855.2893732,
-    "seen": 1794316528.2189934,
-    "ast_hash": "54bdd94802cdf69adae5672efa9947fe",
+    "mtime": 1794317720.1292515,
+    "seen": 1794318097.3177595,
+    "ast_hash": "cc369daaa3c1a73119e278cf17af9d1a",
     "semantic_hash": ""
   }
 }
