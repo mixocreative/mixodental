@@ -24,7 +24,68 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (the overnight integrity audit - 2026-11-11)
+## Latest completed step (the audit's three mechanical fixes - 2026-11-12)
+
+> The three findings from `cia-audit-report.md` that needed no decision from the owner, each its own
+> commit with its guard watched to fail first.
+>
+> **The gate after them:** tsc 0, `npm test` 0 (**219 files, 1603 passed / 1 skipped** - the three
+> guards add 13 tests to the audit night's 1590), `check:duplicates` 0 (442 src modules against 110
+> vendored), and `gate:real` **PASS (13 scan(s), all kinds), no differences, 211 s**. The walk was
+> **not** run: it takes ~30 minutes and nothing here touches a screen. Each gate was redirected to a
+> file and its exit code read on the producing line - never through `tail`, which is the recorded
+> trap that already swallowed one failure.
+>
+> **MIXO-01 - the memory cap only ever saw the header's claim.** `assertMemoryCapacity` had exactly
+> one call site, inside `if (estimate)`. After the file was read the triangle cap was re-checked (for
+> glTF) and the plate cap was re-checked; memory was not, so an STL whose header understates it
+> reached the scene unmeasured. It is now asserted on the counted triangles, **per file** rather than
+> on the drop's running total - `adding` would refuse a legal file because an earlier one was large,
+> which is the plate cap's job. It cannot prevent the read, and the comment says so: what it prevents
+> is the scene accepting the file and every later pass over it.
+>
+> The guard is the rule, not the line: `src/components/importCapacity.test.ts` reads the source and
+> fails if any `assert*Capacity` in the estimate branch is missing from the counted pass, so a cap
+> added to one pass and forgotten in the other cannot ship. A line in `src/components/README.md` was
+> wrong (a budget refusal no longer always precedes a worker) and was corrected in the same commit.
+>
+> **MIXO-07 - `gate:real` exited 0 when it was blind.** `if (scans.length === 0)` printed
+> *"skipped, no local scans"* and passed, so a green gate meant either "13 scans agreed" or "this
+> machine has none", with one exit code for both; the early return also jumped over the baseline,
+> the only thing that knows how much should have run. Finding nothing now **fails** and names the
+> folders it looked in. `--allow-no-scans` lets a machine that is meant not to have them pass, and
+> the verdict then reads **NOT RUN**, never PASS. Every verdict line states how many scans ran and
+> whether `--kinds` narrowed it.
+>
+> **Checked rather than assumed: a PARTIAL run was never the silent case**, so nothing was added for
+> it - `compareRuns` already reports an in-scope baseline case that did not run as a difference, now
+> pinned by a test beside the new rule. The new decision is a pure function, `scanCoverage`, and both
+> script branches were proved end to end by running the gate from a scratch root with no fixtures:
+> exit 1 and *"verified NOTHING"* without the flag, exit 0 and *"NOT RUN"* with it.
+>
+> **MIXO-13 - the one deliverable was proved only by its own writer.** `export.test.ts` writes with
+> `encodeStl` and reads back with our own importer, which shows the two halves agree and nothing
+> more; a reflection in the write would pass it and reach the slicer inside out.
+> `src/supports/exportBytes.test.ts` imports `encodeStl` and **nothing that parses** - its reader is
+> written from the binary-STL format alone, and its properties are restated from geometry (the
+> divergence theorem for volume, directed-edge counting for winding, the conventional
+> `(b-a) x (c-a)` normal where the writer computes the algebraically equal `(c-b) x (a-b)`).
+>
+> Two things stop it being a guard nobody has watched. The 4 mm cube **proves itself first** - the
+> first assertion re-derives its volume in plate space, so the oracle's input is checked before the
+> oracle judges the output. And one test **mirrors a real export** and requires -64 mm3 back, which
+> also shows edge counting is blind to a mirror (the vertices are visited in the same order), so
+> signed volume is the assertion that carries the finding. No binary fixture was checked in:
+> generating the bytes from the live writer tests the current one rather than a frozen sample. The
+> real 408,308-triangle export under `artefacts/2026-11-11-screen/` stays the stronger occasional
+> check, read by **trimesh** - a parser nobody here wrote.
+>
+> **Still the owner's, unchanged by this:** MIXO-04 (no WebGL2 empties the page - no capability
+> check, no error boundary, no `window.onerror` in `src/`), MIXO-02 (the print-angle confirm cannot
+> say no), MIXO-05 (the browser floor is undeclared), MIXO-06 (a held multi-file drop is discarded),
+> `Aligner.stl`, and support generation living in three places.
+
+## Previous completed step (the overnight integrity audit - 2026-11-11)
 
 > A whole-repository `/cia` audit of `41f8d7f`, run unattended while the owner slept. The report is
 > **`cia-audit-report.md`** at the root; the evidence it cites is committed under
