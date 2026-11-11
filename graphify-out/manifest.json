@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794439355.021037,
-    "seen": 1794439414.883901,
-    "ast_hash": "5c39f224e99b611555143313beebcd8c",
+    "mtime": 1794440052.9830174,
+    "seen": 1794440139.5829442,
+    "ast_hash": "0aff8fedee2e6f1c16d4131a52cc34dc",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -3847,9 +3847,9 @@
     "semantic_hash": ""
   },
   "dentalwork/batch-review/reviewCase.test.ts": {
-    "mtime": 1794438118.3794436,
-    "seen": 1794439414.8825047,
-    "ast_hash": "08f752e8db4799339017383d05a6809e",
+    "mtime": 1794439645.6232102,
+    "seen": 1794440139.5537746,
+    "ast_hash": "ff834892a8faf7eddeb6c1fbce7d58fc",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/reviewCase.ts": {
@@ -4027,9 +4027,9 @@
     "semantic_hash": ""
   },
   "dentalwork/batch-review/profileSelect.test.ts": {
-    "mtime": 1794438125.713764,
-    "seen": 1794439414.8825047,
-    "ast_hash": "d961d5df3d5d04f81964a2c365a3aaa8",
+    "mtime": 1794439645.6232102,
+    "seen": 1794440139.5537746,
+    "ast_hash": "0e45e571575f657f552f725899a8e969",
     "semantic_hash": ""
   },
   "src/components/LanguageSelect.test.tsx": {
@@ -4741,9 +4741,9 @@
     "semantic_hash": ""
   },
   "scripts/real-scan-gate.mjs": {
-    "mtime": 1794417124.6286418,
-    "seen": 1794417799.374725,
-    "ast_hash": "2d1426ea451b061301da875a62506fcb",
+    "mtime": 1794439645.6232102,
+    "seen": 1794440139.5537746,
+    "ast_hash": "5d4c3e1190e08a614c569ad8c9d8c058",
     "semantic_hash": ""
   },
   "scripts/real-scan-gate.test.mjs": {
@@ -6139,9 +6139,9 @@
     "semantic_hash": ""
   },
   "cia-audit-report.md": {
-    "mtime": 1794439319.612454,
-    "seen": 1794439414.883901,
-    "ast_hash": "f74ae5625537f6f266b6acb4eb844533",
+    "mtime": 1794440084.2994938,
+    "seen": 1794440139.5829442,
+    "ast_hash": "7d2c3c6871e4ec9f5358ccf6e8d98ed1",
     "semantic_hash": ""
   },
   "artefacts/2026-11-11-screen/nogl-blocked.png": {
@@ -6229,9 +6229,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-12-three-repo-refactor-plan.md": {
-    "mtime": 1794435108.8426864,
-    "seen": 1794439414.883901,
-    "ast_hash": "0f911e85ec3f61c20a1175b940bad9ca",
+    "mtime": 1794440040.8057406,
+    "seen": 1794440139.5829442,
+    "ast_hash": "d2dcce8865f5766e9e863b88fb39b722",
     "semantic_hash": ""
   },
   "docs/handoff/morning-2026-11-12.md": {
@@ -6240,16 +6240,16 @@
     "ast_hash": "6287595086fd5f78c9ed9110c9ff945d",
     "semantic_hash": ""
   },
-  "dentalwork/batch-review/viteNodeCli.ts": {
-    "mtime": 1794438118.3021717,
-    "seen": 1794439414.8825047,
-    "ast_hash": "9f83874ec73aed81d9bd21afd2cde332",
-    "semantic_hash": ""
-  },
   "scripts/real-scan-tier.mjs": {
     "mtime": 1794438507.7837129,
     "seen": 1794439414.8828974,
     "ast_hash": "1bf96fbe5d6df2a16cba722298cc1e74",
+    "semantic_hash": ""
+  },
+  "scripts/viteNodeCli.mjs": {
+    "mtime": 1794439622.6360948,
+    "seen": 1794440139.5537746,
+    "ast_hash": "52a24363b353f1a59f194abbb2c4488b",
     "semantic_hash": ""
   }
 }
