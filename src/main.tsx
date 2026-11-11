@@ -17,6 +17,22 @@ startTheme();
 const root = createRoot(document.getElementById('root')!);
 
 /**
+ * Stand down the pre-module last resort (`index.html`).
+ *
+ * That banner exists for the case this file never runs at all - a bundle that fails to load or parse
+ * on a browser below the declared floor - so the moment anything of ours renders, it has done its
+ * job and must go. It is removed rather than hidden: `createRoot().render()` does NOT clear the
+ * container's children in React 18, and a hidden element is one `hidden` attribute away from being
+ * on screen under a working app.
+ *
+ * The timer goes too, or a slow-but-successful start would accuse itself after eight seconds.
+ */
+function bootDone(): void {
+  clearTimeout((window as unknown as { __mixoBootTimer?: number }).__mixoBootTimer);
+  document.getElementById('boot')?.remove();
+}
+
+/**
  * Show the stopped screen instead of the app.
  *
  * The language is set HERE and not left to `App`: these two paths render without `App` ever
@@ -25,6 +41,7 @@ const root = createRoot(document.getElementById('root')!);
  * happy path below is unchanged.
  */
 function stop(reason: StopReason, detail?: string): void {
+  bootDone();
   setLanguage(detectLanguage());
   root.render(<Stopped reason={reason} detail={detail} />);
 }
@@ -58,7 +75,10 @@ if (!hasWebGL2()) {
   // Interactive maths (transforms, pick, brush) is synchronous Rust: the engine is ready before the
   // first render. A REJECTION used to end here unhandled, with nothing rendered and nothing said.
   void geometryReady().then(
-    () => root.render(<StrictMode><AppBoundary><App /></AppBoundary></StrictMode>),
+    () => {
+      bootDone();
+      root.render(<StrictMode><AppBoundary><App /></AppBoundary></StrictMode>);
+    },
     (error: unknown) => {
       console.error('mixoDental: the geometry engine did not load:', error);
       stop('engine', message(error));

@@ -1,1 +1,127 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>mixoDental</title><link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg"/></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>mixoDental</title>
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+    <style>
+      /*
+       * THE LAST RESORT, AND THE ONLY STYLES THAT CANNOT LIVE IN src/styles.css.
+       *
+       * This banner's job is to appear when the module bundle never ran, which is exactly when the
+       * stylesheet - imported by main.tsx - never loaded either. So it carries its own, inline, with
+       * literal colours and no custom properties: the one surface in this app that may not depend on
+       * anything the app loads.
+       */
+      /* Styled by CLASS, not id: the <noscript> copy below is a second element and two elements may
+         not share one id. Only the live banner carries `id="boot"`, which is what the script and
+         `main.tsx` reach for. */
+      .boot { max-width: 34rem; margin: 10vh auto; padding: 24px; font: 16px/1.6 system-ui, sans-serif; color: #15171a; background: #ffffff; border: 1px solid #d7d9dd; border-radius: 10px; text-align: left; }
+      .boot p { margin: 0 0 10px; }
+      .boot p:last-child { margin: 0; }
+      .boot code { font: 13px/1.4 ui-monospace, monospace; color: #5b6069; }
+      @media (prefers-color-scheme: dark) {
+        .boot { color: #e8eaed; background: #1b1d21; border-color: #33363c; }
+        .boot code { color: #9aa0a8; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!--
+      A FAILURE BEFORE REACT MOUNTS STILL HAS TO SAY SOMETHING.
+
+      Last night's fix gave the app a capability check and a root error boundary, but both live inside
+      `src/main.tsx` - so neither runs when the module itself fails to load or parse, which is exactly
+      what a browser below the declared floor does (audit MIXO-03: Chrome/Edge 93, Firefox 114,
+      Safari 15.4). Before this, that case was the blank white page all over again, by a route the
+      boundary cannot reach. The sibling app mixoMesh has had this for a while
+      (`src/app/entry.js`, a window error listener plus a catch on the boot import writing into
+      static markup); the 2026-11-12 three-repo plan says to take it.
+
+      IT SITS OUTSIDE #root ON PURPOSE. React 18's `createRoot(container).render()` does not clear
+      the container's existing children, so a banner placed inside #root would still be on screen
+      underneath a working app. `main.tsx` removes this element once React has rendered.
+
+      THE WORDS ARE IN ALL THREE LANGUAGES, which is the one place this app does not use `t()`. It
+      cannot: `src/i18n.ts` is in the bundle that just failed. Three short lines need no logic and
+      cannot pick the wrong one.
+    -->
+    <div id="boot" class="boot" hidden>
+      <p>mixoDental could not start in this browser. It needs a recent Chrome, Edge, Firefox or Safari.</p>
+      <p lang="ja">mixoDental をこのブラウザで起動できませんでした。最新の Chrome、Edge、Firefox、Safari が必要です。</p>
+      <p lang="zh-Hant">mixoDental 無法在這個瀏覽器啟動。需要較新版本的 Chrome、Edge、Firefox 或 Safari。</p>
+      <p><code id="boot-detail"></code></p>
+    </div>
+
+    <noscript>
+      <div class="boot">
+        <p>mixoDental needs JavaScript. Nothing is uploaded: the app runs entirely in this browser.</p>
+        <p lang="ja">mixoDental は JavaScript が必要です。ファイルはアップロードされません。すべてこのブラウザ内で処理されます。</p>
+        <p lang="zh-Hant">mixoDental 需要 JavaScript。檔案不會上傳，全部都在這個瀏覽器中處理。</p>
+      </div>
+    </noscript>
+
+    <script>
+      /*
+       * CLASSIC SCRIPT, NOT A MODULE, and deliberately before the module tag.
+       *
+       * A module that fails to parse never runs a line of its own, so nothing inside the bundle can
+       * report that the bundle is broken. This listener is registered by an ordinary script that any
+       * browser back to about 2015 can read, which is the only way to catch it.
+       *
+       * It reveals the banner and never hides it again: `main.tsx` removes the element on a
+       * successful mount, so a late error after the app is up reaches the React boundary instead and
+       * this stays out of the way.
+       */
+      (function () {
+        var shown = false;
+        function show(detail) {
+          if (shown) return;
+          var boot = document.getElementById('boot');
+          if (!boot) return;
+          shown = true;
+          boot.hidden = false;
+          var line = document.getElementById('boot-detail');
+          if (line && detail) line.textContent = String(detail).slice(0, 300);
+        }
+        /*
+         * TWO LISTENERS, AND THE CAPTURING ONE IS THE WHOLE POINT.
+         *
+         * A failed RESOURCE (this page's own module bundle) fires `error` on the element and that
+         * event DOES NOT BUBBLE, so a plain window listener never hears the one failure this banner
+         * exists for. It is only reachable in the capture phase. Learned the hard way: the first
+         * version of this had the bubbling listener alone and the start gate's blocked-module pass
+         * read `bootShown false`.
+         *
+         * Restricted to SCRIPT and LINK targets on purpose. Without that, a 404 favicon or a missing
+         * font would reveal the banner for the instant before React mounts and removes it - a
+         * flash of "could not start" over an app that started.
+         */
+        window.addEventListener('error', function (event) {
+          var tag = event && event.target && event.target.tagName;
+          if (tag === 'SCRIPT' || tag === 'LINK') show('The application files could not be loaded.');
+        }, true);
+        window.addEventListener('error', function (event) {
+          show((event && (event.message || (event.error && event.error.message))) || '');
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+          show((event && event.reason && (event.reason.message || event.reason)) || '');
+        });
+        /*
+         * AND THE SILENT CASE: a bundle that 404s or is blocked fires no error anybody hears on some
+         * browsers. If nothing has mounted a few seconds after the document is ready, say so.
+         * `main.tsx` clears this timer, so a slow-but-working start never shows the banner.
+         */
+        window.__mixoBootTimer = setTimeout(function () {
+          var root = document.getElementById('root');
+          if (root && root.childElementCount === 0) show('The application did not start.');
+        }, 8000);
+      })();
+    </script>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

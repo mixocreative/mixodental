@@ -1,7 +1,17 @@
 /*
- * THE NO-WebGL GATE: a browser without WebGL2 must be TOLD, never shown a blank page.
+ * THE START GATE: every way this app can fail to start must SAY SO, never show a blank page.
  *
  *   npm run gate:nogl
+ *
+ * THE NAME IS NARROWER THAN THE CONTENT, and deliberately left so. It began as the no-WebGL gate
+ * and now has three passes; `docs/handoff/morning-2026-11-12.md` is a dated record that names
+ * `gate:nogl`, and rewriting a dated record to tidy a name is worse than a name that undersells.
+ * The three passes:
+ *
+ *   1. control        - WebGL works: a real canvas mounts and no boot banner is left behind
+ *   2. no WebGL2      - the capability check fires before mount and the stopped screen explains
+ *   3. no entry module - the bundle itself is blocked, so NOTHING of ours runs; `index.html`'s
+ *                        pre-module banner is the only thing that can speak, and it must
  *
  * This is the audit probe `artefacts/2026-11-11-screen/probe-nogl.mjs` turned from a question into a
  * guard. That probe asked what a person sees when `getContext('webgl*')` returns null and found the
@@ -75,10 +85,12 @@ const blockWebGL = () => {
   delete window.WebGLRenderingContext;
 };
 
-async function pass(browser, url, file, { nogl }) {
+async function pass(browser, url, file, { nogl, blockEntry }) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   await context.addInitScript(() => { try { localStorage.setItem('mixodental.lang', 'en'); } catch { /* storage off */ } });
   if (nogl) await context.addInitScript(blockWebGL);
+  // A bundle that never arrives: the case no code of ours can report, because none of it runs.
+  if (blockEntry) await context.route('**/src/main.tsx*', (route) => route.abort());
   const page = await context.newPage();
   const pageErrors = [];
   page.on('pageerror', (e) => pageErrors.push(String(e.message).slice(0, 200)));
@@ -92,6 +104,12 @@ async function pass(browser, url, file, { nogl }) {
     stoppedReason: await page.evaluate(() => document.querySelector('[data-ui="stopped-screen"]')?.getAttribute('data-reason') ?? null),
     stoppedTitle: await page.evaluate(() => document.querySelector('[data-ui="stopped-title"]')?.textContent?.trim() ?? ''),
     stoppedSentence: await page.evaluate(() => document.querySelector('[data-ui="stopped-sentence"]')?.textContent?.trim() ?? ''),
+    // `#boot` is REMOVED on a successful start, not hidden, so its presence is the signal.
+    bootShown: await page.evaluate(() => {
+      const boot = document.getElementById('boot');
+      return boot !== null && !boot.hidden;
+    }),
+    bootText: (await page.evaluate(() => document.getElementById('boot')?.innerText?.replace(/\s+/g, ' ').trim() ?? '')).slice(0, 200),
   });
 
   const atLoad = await read();
@@ -141,6 +159,19 @@ try {
   // A sentence, not a word: this is the line that has to explain the situation to an operator.
   check('no WebGL2: a sentence that explains it', blocked.atLoad.stoppedSentence.split(/\s+/).length > 4, blocked.atLoad.stoppedSentence);
   check('no WebGL2: it never silently tries to draw', blocked.atLoad.canvases === 0, `canvases ${blocked.atLoad.canvases}`);
+
+  // THE CONTROL'S OTHER HALF: a successful start must not leave the pre-module banner behind it.
+  check('control: the boot banner is gone once the app is up', control.atWorkspace.bootShown === false, `bootShown ${control.atWorkspace.bootShown}`);
+  check('no WebGL2: the stopped screen replaces the boot banner, not joins it', blocked.atLoad.bootShown === false, `bootShown ${blocked.atLoad.bootShown}`);
+
+  /*
+   * THE THIRD WAY IN, which neither the capability check nor the error boundary can reach: the
+   * module never loads, so nothing in `src/` runs. Only `index.html` can speak here.
+   */
+  const noEntry = await pass(browser, url, file, { nogl: false, blockEntry: true });
+  check('no entry module: something is on the screen', noEntry.atLoad.bootShown === true, `bootShown ${noEntry.atLoad.bootShown}`);
+  check('no entry module: it says what happened, in words', noEntry.atLoad.bootText.length > 20, `${noEntry.atLoad.bootText.length} chars`);
+  check('no entry module: #root stays empty, as it must', noEntry.atLoad.rootChildren === 0, `rootChildren ${noEntry.atLoad.rootChildren}`);
 
   const failed = results.filter((r) => !r.ok);
   console.log(`\nno-webgl gate: ${results.length - failed.length}/${results.length} PASS at ${execFileSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim()}`);
