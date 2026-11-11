@@ -95,16 +95,49 @@ that rule unimplementable in the layer that owns the words.
 `status.uncalibrated` matters for the same reason: until the puck has a stored zero it reports a raw
 frame, and the app has to say so rather than quietly show a plausible wrong orientation.
 
-### 3. Rows in the command registry — the actual sharing
+### 3. Rows in the command registry — **CORRECTED 2026-11-12, and this part of the ask is withdrawn**
 
-`COMMAND_IDS` already carries `transform.rotate`, `view.fit`, `view.bottom`. Add
-`spatial.connect`, `spatial.rezero`, `spatial.disconnect` and both apps get label, hint, role,
-enabled-reason and i18n key in one place. `ExtraCommandIds` stays for whatever one app needs alone.
+**What this section claimed, and why it was wrong.** It asked for `spatial.connect`,
+`spatial.rezero` and `spatial.disconnect` in `COMMAND_IDS`, on the grounds that *"both apps get
+label, hint, role, enabled-reason and i18n key in one place"*. Two independent reviews of the
+three-repo plan took that apart, and both were right:
 
-`spatial.connect` is also where the capability check belongs as an **enabled-reason**, not an
-app-side `if`: where the host reports no Web Bluetooth, the command resolves disabled with a reason
-the registry already knows how to translate. That is the control the 2026-11-11 audit found this app
-has nowhere — a browser without WebGL2 renders mixoDental as a blank white page (MIXO-04).
+- **"Both apps" is false, and nothing planned makes it true.** mixoMesh imports **17** `editing/`
+  modules — `regenerate`, `addTip`, `shapeEdit`, `session`, `check`, `removal`, `stroke`,
+  `selection`, `islandProblems`, `omittedProblem`, `screenBrush`, `selectionHighlight`, `pick`,
+  `gesture`, `types`, `ViewportPort` — and **not `commands.ts`**, nor `keys.ts`, `modes.ts`,
+  `status.ts` or `toast.ts`. It has its own UI state (`src/panels/supports/supportUi.ts`) and its own
+  status words (`src/supports/live/statusText.ts`). The registry has exactly ONE consumer. A
+  re-vendor is not an adoption: shipping it 64 does not make it call `resolve()`.
+- **The field is `disabledReason`, not "enabled-reason"** (`editing/commands.ts:101`). Someone
+  grepping this document for the name I used finds nothing. A new row also owes **six** required
+  members — `role, label, hint, visible, enabled, disabledReason` — not the four I listed.
+- **The input column was understated.** I wrote "a 4-field record + `UiState` in". `UiState` is not
+  one field: it is **27 required fields** (`commands.ts:36-83`), of which a spatial row would read
+  one or two. The row looked narrow because I shortened its input.
+- **There is already a documented way to do this without touching core**, which I never named:
+  `ExtraCommandIds` (`commands.ts:29`), `registerCommands()` (`:378`, with clash detection and a
+  remover for tests), `commandIds()` merging both (`:396`), and `commandOf` falling through (`:401`).
+  `UiState`'s own comment at `:35` says *"an app mode adds (optional) fields by augmenting it"*.
+- **And the capability check is the transport wearing a plain-data coat.** `spatial.connect` IS the
+  chooser's user gesture, which this document's own layer table assigns to the app: in a browser it
+  must fire inside a click handler for `requestDevice()`, in Electron it needs a
+  `select-bluetooth-device` round trip through the main process. One row, two press shapes. Worse,
+  in Electron the capability is always true, so a shared "no Web Bluetooth here" sentence is a
+  reason that can never be correct there — and because `disabledReason` is defined exactly when a
+  visible command is not enabled, a permanently-false capability would make `spatial.connect`
+  permanently visible-and-disabled in every app that renders the registry. That is a visibility
+  policy, which is an app decision.
+
+**So: parts 1 and 2 of this ask stand. Part 3 is withdrawn.** `host/core/quat.ts` and
+`editing/SpatialPort.ts` are jobs with narrow outputs and belong in geocore. The three command rows
+and the capability fact stay in **mixoDental**, registered through `registerCommands()`, until and
+unless mixoMesh adopts `commands.ts` — and that adoption is its own piece of work with its own cost,
+which no plan has priced.
+
+The capability check itself is still owed, and the audit's point stands: a control that exists
+nowhere is what made a browser with no WebGL2 render a blank page (MIXO-04). It just belongs in the
+app, beside the check that now lives in `src/main.tsx`.
 
 ## The one design question inside this, with a recommendation
 
@@ -146,12 +179,14 @@ Both verify. `node scripts/vendor-geometry.mjs --check` in mixoMesh exits 0:
 apps have in common, **20 differ**, and mixoDental carries 16 the other does not. So `editing/` is a
 layer both apps *vendor*, not a layer both apps are *level on*.
 
-For this ask that means: a new `editing/SpatialPort` and its `COMMAND_IDS` rows land in geocore at 63
-or later. **mixoDental picks them up on its next vendor; mixoMesh picks them up only when it
-re-vendors across 51 ABI versions**, which is its own project and not a side effect of this one. The
-sharing is real in the design and deferred in practice on the mixoMesh side — so write the port for
-geocore, expect mixoDental to use it first, and do not size the work as though both apps light up
-together.
+For this ask that means: a new `editing/SpatialPort` lands in geocore at 63 or later. **mixoDental
+picks it up on its next vendor; mixoMesh picks it up only when it re-vendors across 51 ABI
+versions**, which is its own project and not a side effect of this one.
+
+And the §3 correction above sharpens this rather than softening it: the gap is not the only reason
+mixoMesh would not share the command rows — **it does not import the registry at all**, so levelling
+the engine would not hand it those rows either. Write the port for geocore, expect mixoDental to be
+its only consumer for now, and do not size the work as though both apps light up together.
 
 The one cheerful part: because both stamps exist and both carry `engineVersion`, measuring that gap
 is reading two files. No new mechanism is needed to see it — only the habit of looking.
