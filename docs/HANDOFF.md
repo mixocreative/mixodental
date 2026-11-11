@@ -24,7 +24,52 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (the audit's two HIGH/MEDIUM fixes - 2026-11-12, overnight)
+## Latest completed step (Phase 0 of the three-repo plan - 2026-11-12)
+
+The owner approved **Phase 0 only** of `docs/design/2026-11-12-three-repo-refactor-plan.md`: the work
+that needs no engine release and no vendor step. mixoDental's share was four cross-takes from the
+sibling app; geocore's and mixoMesh's shares ran in their own sessions.
+
+**One panel's crash now costs one panel.** Four regions - the deck, the viewport, the job list and
+the settings panel - each carry a `PanelBoundary`, so a render throw in one leaves the others and the
+real Save command mounted. `AppBoundary` + `rescue.ts` stay the last resort. Taken from mixoMesh's
+`PanelErrorBoundary`, with one deliberate difference: theirs renders `null`, ours renders a named
+sentence, because an empty region is indistinguishable from a region with nothing to show. A test
+fails if that ever regresses to `null`.
+
+**The print-angle confirm can say no (MIXO-02).** `confirmPick` returning `confirmed: undefined` -
+no tilt in the tried set builds supports that hold - and a rejected check both reached the same
+`accept()` as a real confirmation, byte for byte. Three outcomes, one screen. They are now two new
+`dentalNotices` kinds through the channel that already existed; two notices and not one because
+nothing held is an answer about THIS MODEL while the check not finishing is an answer about the RUN.
+**The wording is placeholder and the owner's to change.**
+
+**A failure before React mounts says something.** The capability check and the root boundary both
+live inside `src/main.tsx`, so neither runs when the bundle itself fails to load or parse - which is
+what a below-floor browser does, and was the blank page again by a route the boundary cannot reach.
+`index.html` carries a banner, its own inline styles and a CLASSIC script that reveals it. **The
+capturing listener is the point:** a failed resource fires `error` on the element and that event does
+NOT bubble, so the plain window listener never heard the one failure it exists for. `gate:nogl` grew
+a third pass that blocks the entry module and caught exactly that.
+
+**`npm run gate` leaves a receipt (MIXO-05).** One command for types, vendor, suite, duplicates,
+screens, build, engine smoke, `gate:nogl` and `gate:real`, writing `artefacts/gate/<sha>.json` with
+every exit code, the counts, **whether the tree was dirty**, and the two things it did not run and
+why. It prints the line to paste here, because `artefacts/` is git-ignored. Its first run reported a
+dirty tree correctly and found a real red.
+
+**Gate on `9d117b9` (clean): PASS.** tsc 0 · vendor 0 · test 0 (222 files) · duplicates 0 ·
+screens 0 · build 0 (940 modules) · wasm 0 · nogl 0 (14/14) · real 0 (13 scans). NOT run: walk,
+fonts. 416 s.
+
+**Four forgeries watched to fail first**, and two of my own mistakes found by my own tools: the first
+boot banner used a non-capturing listener and the new gate pass caught it, and the first draft gave
+two elements the same `id`.
+
+**Still the owner's:** the placeholder wording in `DentalSteps.tsx` and `AppBoundary.tsx`, MIXO-06,
+`Aligner.stl`, whether to redeploy, and every phase of the plan after 0.
+
+## Previous completed step (the audit's two HIGH/MEDIUM fixes - 2026-11-12, overnight)
 
 **MIXO-04, the one HIGH that reaches a user: a browser that cannot run this app is now TOLD.**
 Blocking `getContext('webgl*')` used to empty the page - `#root` at zero children, zero canvases, no
