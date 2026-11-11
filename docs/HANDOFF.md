@@ -27,7 +27,9 @@ After every implementation task, record: the completed requirement; changed file
 ## Latest completed step (Phase 0 of the three-repo plan - 2026-11-12)
 
 The owner approved **Phase 0 only** of `docs/design/2026-11-12-three-repo-refactor-plan.md`: the work
-that needs no engine release and no vendor step. mixoDental's share was four cross-takes from the
+that needs no engine release and no vendor step. (**That file is no longer a phased plan.** After
+four EGM reviews it became a decision record plus seven fixes in order, and Phases 1–5 were dropped;
+Phase 0 survives there as section 5, a record of what shipped.) mixoDental's share was four cross-takes from the
 sibling app; geocore's and mixoMesh's shares ran in their own sessions.
 
 **One panel's crash now costs one panel.** Four regions - the deck, the viewport, the job list and
