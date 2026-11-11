@@ -54,6 +54,7 @@ import { useFreeTransform } from './components/useFreeTransform';
 import type { DentalFreeControls } from './components/OrientationBar';
 import { useProjectFile } from './components/useProjectFile';
 import { publishSceneSave } from './rescue';
+import { PanelBoundary } from './components/PanelBoundary';
 import { isProjectFile } from './state/projectFile';
 import { hint } from './components/hint';
 import { isOrientationStep, NO_SUPPORT_MESHES } from './dental/step1View';
@@ -1374,7 +1375,7 @@ export default function App() {
       * actually run. Both pass it now, so the two mounts are the same panel rather than two that have
       * drifted.
       */}
-    {startScreen === 'items' ? <><JobActivityPanel stagedBar={stagedJobBar} /><ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
+    {startScreen === 'items' ? <><PanelBoundary name="deck"><JobActivityPanel stagedBar={stagedJobBar} /><ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
       refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails}
       selectedUnitId={scene.activeUnitId}
       onSelect={(unit) => dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id })}
@@ -1393,7 +1394,7 @@ export default function App() {
         offerUndo({ kind: 'deleteObjects', count: 1 });
       }}
       onBack={() => setStartScreen('drop')}
-      onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} /></>
+      onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} /></PanelBoundary></>
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
       onScreen={goStart} onAnyModel={() => setStartScreen(null)} onOpenProject={() => runCommand('project.open')}
       onProjectFile={(file) => void openProject(file)} onStart={startDental}
@@ -1466,6 +1467,10 @@ export default function App() {
         onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingOver(false); }}
         onDrop={dropImport}
       >
+        {/* The 3D view is the likeliest thing to throw and the costliest to lose: a GL context loss
+            or a render-time error used to unmount the whole tree (MIXO-04). Its own boundary keeps
+            the panels, and so the Save command, alive. */}
+        <PanelBoundary name="viewport">
         <ObjectViewport
           scene={scene}
           supportMeshes={orienting ? NO_SUPPORT_MESHES : supportMeshes}
@@ -1510,6 +1515,7 @@ export default function App() {
           onBelowPlate={onBelowPlate}
           {...(activeUnit && debugShown.length + (denture.orient.tipLayers?.layers.length ?? 0) > 0 ? { debugLayers: { unitId: activeUnit.id, layers: [...debugShown, ...(denture.orient.tipLayers?.unitId === activeUnit.id ? denture.orient.tipLayers.layers : [])] } } : {})}
         />
+        </PanelBoundary>
         {activeUnit && session.mode === 'dental' && session.dentalProfile ? <DebugSection open={debug.open} onOpenChange={debug.setOpen} status={debug.status} layers={debug.layers} visible={debug.visible} onToggle={debug.toggle} {...(stepOneAngle ? { angle: stepOneAngle } : {})} /> : null}
         {orienting ? null : (
           <div className="viewport-view" role="group" aria-label={t('View')}>
@@ -1525,7 +1531,7 @@ export default function App() {
             r3f Canvas has to be a THREE object. */}
         {editMode === 'dental' && (session.dentalStage === 'aligner' || session.dentalStage === 'area' || session.dentalStage === 'review')
           ? <SceneLegend supports={session.dentalStage !== 'aligner' || Boolean(stepOneTips)} /> : null}
-        <JobActivityPanel stagedBar={stagedJobBar} />
+        <PanelBoundary name="jobs"><JobActivityPanel stagedBar={stagedJobBar} /></PanelBoundary>
         {/* The area detector is ONE call into the core: it reports a start and an end and nothing between,
             so this one paces and shows no number. See src/components/SceneProgress.tsx. */}
         {dentalFlow.detectingArea ? <Progress type="step" label={t('Detecting the support area')} />
@@ -1548,6 +1554,7 @@ export default function App() {
       {editMode !== 'dental' ? <aside className="panel right" onClick={blockedClick('right')}>
         {lockNoteOf('right')}
         {!activeUnit && <p className="help">{t('Select an object to edit its settings. Changes apply to every selected object.')}</p>}
+        <PanelBoundary name="settings">
         <SettingsPanel
           settings={activeSettings}
           shape={{ selected: selectedIds.length, ...shapeRegion, onChange: onShapeChange, run: runCommand, band: activeUnit && <ShapeBand supports={bandCounts.supports} customised={bandCounts.customised} ui={ui} run={runCommand} /> }}
@@ -1563,6 +1570,7 @@ export default function App() {
           onPreset={(preset) => changeSettings((settings) => applyPreset(preset, settings), false)}
           onRoofMode={(mode) => changeSettings((settings) => setRoofMode(settings, mode), false)}
         />
+        </PanelBoundary>
         <section className="export" {...(locked('export') ? { inert: '' } : {})}>
           <h3>{t('Export STL')}</h3>
           {EXPORT_IDS.map((id) => <CommandButton key={id} command={command(id)} run={runCommand} />)}

@@ -1072,4 +1072,8 @@ export const ja: Dictionary = {
   'Reload the page to try again. If it keeps happening, your browser may be blocking WebAssembly.': 'ページを再読み込みして、もう一度お試しください。問題が続く場合は、ブラウザが WebAssembly をブロックしている可能性があります。',
   'Your models are still in this page. Save them before reloading - a reload does not keep them.': 'モデルはまだこのページにあります。再読み込みでは保持されないため、再読み込みの前に保存してください。',
   'Reload': '再読み込み',
+  // Phase 0: a stopped panel, and the two print-angle outcomes that used to say nothing (MIXO-02)
+  'This part of the app stopped. The rest still works.': 'アプリのこの部分が停止しました。それ以外の部分は動作しています。',
+  'No print angle passed the check. Supports on this model need a close look before you export.': 'チェックを通過したプリント角度がありません。書き出す前にこのモデルのサポートをよく確認してください。',
+  'The print-angle check could not finish, so this angle is unproven. Check the supports before you export.': 'プリント角度のチェックを完了できなかったため、この角度は未検証です。書き出す前にサポートを確認してください。',
 };

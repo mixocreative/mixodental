@@ -1676,3 +1676,11 @@ dialog.terms .terms-item > span { flex: none; }
 .stopped-text { margin: 0 0 20px; color: var(--muted, #5b6069); }
 .stopped-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .stopped-detail { margin: 20px 0 0; font-family: ui-monospace, monospace; font-size: var(--small-size, 11.5px); color: var(--muted, #5b6069); }
+
+/* ---- A stopped panel (src/components/PanelBoundary.tsx) ------------------
+ *
+ * One panel's crash costs one panel. This is the sentence that stands where it was - NOT an empty
+ * space, which is indistinguishable from a panel with nothing to show. Muted and quiet: the rest of
+ * the app still works, and this must not read like the whole session has failed.
+ */
+.panel-stopped { margin: 8px; padding: 10px 12px; border: 1px dashed var(--line-strong, #b6b9c0); border-radius: var(--radius, 8px); color: var(--muted, #5b6069); font-size: var(--small-size, 11.5px); }

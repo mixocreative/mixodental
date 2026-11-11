@@ -1077,4 +1077,8 @@ export const zhHant: Dictionary = {
   'Reload the page to try again. If it keeps happening, your browser may be blocking WebAssembly.': '重新載入頁面以再試一次。如果情況持續發生，您的瀏覽器可能封鎖了 WebAssembly。',
   'Your models are still in this page. Save them before reloading - a reload does not keep them.': '您的模型仍在此頁面中。請在重新載入前先儲存，重新載入不會保留模型。',
   'Reload': '重新載入',
+  // Phase 0: a stopped panel, and the two print-angle outcomes that used to say nothing (MIXO-02)
+  'This part of the app stopped. The rest still works.': '應用程式的這個部分已停止。其他部分仍可運作。',
+  'No print angle passed the check. Supports on this model need a close look before you export.': '沒有列印角度通過檢查。匯出前請仔細檢查此模型的支撐。',
+  'The print-angle check could not finish, so this angle is unproven. Check the supports before you export.': '列印角度檢查無法完成，因此這個角度未經驗證。匯出前請檢查支撐。',
 };

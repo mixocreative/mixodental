@@ -22,6 +22,7 @@ is why the table below is the fastest way to find where a behaviour lives.
 | `useSupportChecks.ts` | **The support check**: running it, the findings by unit, the list the panel may show, the re-check of an edited unit, and Fix (through `useFixSpot`). |
 | `useFixSpot.ts` | Fix on one check finding: frames the spot, opens Support Edit Mode with Add waiting, and follows the support added through to the re-check. Called from `useSupportChecks`, not beside it. |
 | `useRegenerate.ts` | Placement of automatic contacts: Generate and Regenerate, and the placement settings that regenerate by themselves outside a mode. |
+| `PanelBoundary.tsx` | **One panel's crash costs one panel.** A render throw inside the deck, the viewport, the job list or the settings panel leaves the others — and so the Save command — mounted, with a named sentence where the crashed region was. `src/AppBoundary.tsx` + `src/rescue.ts` stay the last resort, for a throw outside all four. It renders a FACE and not `null`, unlike the sibling app's version it was taken from: an empty region is indistinguishable from a region with nothing to show. |
 | `useExport.ts` | Export: plans the files, builds them at full resolution in the export worker, hands them to the browser, and says what came out. |
 | `useProjectFile.ts` | Save project and Open project: the scene as a `.mixodental` file and back. |
 | `usePlateArrange.ts` | Laying the objects out so they do not overlap. There is no build plate — see the file's own header for what was retired and what seam is kept. |
