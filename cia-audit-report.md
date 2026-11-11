@@ -660,7 +660,7 @@ so a human reading the output can tell; the exit code — which is what a chain 
 **Fix.** Move the early exit below the baseline read, and exit 1 (or print `0 of 13 baseline cases
 ran`) when a baseline with cases in scope exists and no scan was found.
 
-### MIXO-08 — the deepest verification tier is absent everywhere but one laptop, and nothing says how much
+### MIXO-08 — the deepest verification tier is absent everywhere but one laptop, and nothing says how much *(FIXED)*
 **Severity: MEDIUM · Confidence: CONFIRMED · VSM 3\* · Class: vacuous pass (S7)**
 
 **Evidence.** Seven `describe.skipIf` gates (sites on the S7 line) plus `gate:real` all stand on
@@ -672,7 +672,7 @@ whole rule (`Skipped: N` is reported as *N unverified*).
 number that should have. Even a printed line — *"real-scan tier: 0 of 8 ran (fixtures absent)"* —
 would make the absence visible where it currently is not.
 
-### MIXO-09 — the ship plan names production code that is a test helper, and one symbol that does not exist
+### MIXO-09 — the ship plan names production code that is a test helper, and one symbol that does not exist *(FIXED)*
 **Severity: LOW · Confidence: CONFIRMED · VSM 3 → 1 · Class: designed-but-unbuilt (S13c), the plan
 as a scope claim (S14.1) · Site: `docs/SHIP-PLAN.md:191`**
 
@@ -706,7 +706,7 @@ implementation at a time)"* — the shape of a TS-against-Rust parity check. Not
 parity it was written for is not being checked by anything. A proof with no obligation behind it
 (`evidence.md` §E3).
 
-### MIXO-12 — 56 of 58 source-reading guards have no written limits
+### MIXO-12 — 56 of 58 source-reading guards have no written limits *(FIXED)*
 **Severity: MEDIUM · Confidence: CONFIRMED · VSM 3\* · Class: a textual guard with no written limits
 (S21 shape 11)**
 
@@ -739,17 +739,94 @@ is a rotation and not a reflection, so the winding survives — **and this run p
 **Fix.** `artefacts/2026-11-11-screen/verify-exported-stl.py` is eight assertions long; pointed at a
 checked-in exported fixture it becomes a guard the project runs.
 
-### MIXO-14 — two names cover two things each
+### MIXO-14 — two names cover two things each *(FIXED)*
 **Severity: LOW · Confidence: CONFIRMED · Class: one thing, one name (S22.11)**
 See line 2f. `DentalBar.tsx:114,124`, `deck/ToolRail.tsx:50-55`.
 
-### MIXO-15 — four dependency advisories, all dev-only
+### MIXO-15 — four dependency advisories, all dev-only *(FIXED)*
 **Severity: LOW · Confidence: CONFIRMED · Class: environment**
 `npm audit`: 2 critical (`tinypool` prototype pollution → RCE), 2 moderate (`@vitest/mocker` path
 traversal and code injection; `vite` `server.fs.deny` bypass). **All four are devDependencies**;
 none reaches the shipped bundle, which is static files plus the WASM engine. `npm audit fix` takes
 the `vite` one without a breaking change; the other three want `vitest@5`, a major bump.
 **Not applied**: a bundler change the night before a human test is the owner's call.
+
+---
+
+## Fixed after the report, in the `/goal` sweep (2026-11-12, committed, not pushed)
+
+The owner's standing goal: no defect left unfixed, no UX workflow gap, and any decision I could not
+make taken by Fable rather than put to a human. Five findings closed, one new finding found and
+closed on the way, and **two of the five were smaller or different than I filed them** — recorded
+here because an audit that quietly corrects its own over-billing teaches nothing.
+
+### MIXO-15 — taken, and it cleared all four *(FIXED, `b587bda`)*
+vite 6 + vitest 5. `npm audit` went **4 → 0**, both criticals included. I had called the major bump
+the owner's call the night before a human test; with the standing goal in force it is mine, and the
+measurement said it was cheap: **2 failures out of 1627**, one cause. vite-node's CLI moved from the
+package root to `dist/cli.mjs` between majors and two tests held the old literal path. vite-node is
+now a direct devDependency (vitest 5 stopped pulling it in, and `npm run screens` needs it) and
+`dentalwork/batch-review/viteNodeCli.ts` resolves it through the package's own `exports`, so the next
+major cannot move it again. One test also now checks `run.error` before its stderr regex: the real
+fault was "cannot find module" and it surfaced as a regex mismatch.
+
+### MIXO-08 — `npm run gate:tier` *(FIXED, `1f11fb3`)*
+**Seven** `describe.skipIf` blocks, not eight as filed. They hold the only proofs that run on real
+patient scans, and they vanish silently on a machine without the fixtures — vitest prints a bare "N
+skipped" and the receipt captures `Tests N passed` and nothing else. `scripts/real-scan-tier.mjs` is
+a gate step, so the count reaches both the receipt and the handoff line that travels: **6 of 7**
+here. Absence does not fail it; DRIFT does, proved by forging an eighth block. Also corrected a
+README line still claiming `gate:real` "prints skipped and exits 0", which MIXO-07 changed the day
+before.
+
+### MIXO-09 — the row named two things that exist nowhere *(FIXED, `7ae2cf0`)*
+Verified rather than assumed: **`DentalOpeningRaycaster` and `stampFaceGate` appear in no `.ts`,
+`.tsx` or `.rs` file under any spelling** — only in docs and stale graphify reports. U8 ported both
+to Rust `dental/legacy.rs` and the SHIP-PLAN U6a row was never updated. `rimContainsPoint` existed
+once, in test-support, with zero callers; deleted, and `tsc` then named `subtract` and the
+`DentalRim` import as unused, which is why the deletion is safe. The dated entry in
+`docs/dental-rework-handoff.md` keeps its old wording on purpose: it is a log of that day, not a
+status table.
+
+### MIXO-14 — one rename, and four declines with reasons *(FIXED, `3e73eca`)*
+Fable decided, as the goal directs. The rim badge is now `Define the rim` with no number: it is a
+detour off Step 1, not a step of its own, which `src/bench/README.md` had said all along while the
+badge disagreed. It cost nothing — `Define the rim` was already a key in both locales and every
+walk assertion already matches `/Define the rim/`. "Supports" naming the rail tool, the step and the
+meshes was **declined**: it is ordinary English, and splitting it would cost two locales and five
+walk assertions to fix a word nobody misreads. `Step 3 · Supports` against `Step 2 · Supports` was
+declined too — the name is the identity, the number is only the position in that job's sequence.
+Five written rules now sit in `src/components/README.md` so the next screen needs no new decision.
+
+### MIXO-12 — five sites, not fifty-six *(FIXED, `34b5e0f`)*
+I filed "56 of 58 have no written limits" from a count of guards that lacked a numeric floor.
+Measured properly: **31** source-reading guards, of which **16** carry an explicit floor
+(membership or exact list, not just a number) and **13** fail on an empty read because they index
+`[0]!` or `JSON.parse` the result. **Five** genuinely passed on nothing, and those five now have a
+floor. The finding was real; its size was not, and D8's "58 source-reading guards" row in §2d is
+over-counted for the same reason.
+
+Proved rather than asserted: collapsing `ScreenHeading.test.tsx`'s glob to zero matches now fails
+the new floor **while two tests still pass** — and one of those two is the `offenders.toEqual([])`
+guard that was supposed to catch it.
+
+**And one guard was scanning a tree deleted in June.** `core/imports.test.ts` globbed
+`../editing/**` as well as `./**`, but `src/editing/` was deleted at PE.5b (`806aaee`) when every
+local copy moved into the shared engine. The arm matched zero files, its test was still titled
+"scans the support core **and the editing rules**", and a blank line sat where its third assertion
+used to be. This is the sharpest instance of the class in the repo: not a guard that *could* go
+blind, but one that *was*, silently, for months.
+
+### NEW — `SettingsPanel`'s dental variant could not render *(FIXED, `cc03973`)*
+Found while settling the vocabulary, so it is an S22 finding the census missed. `SettingsPanel` took
+a `dentalMode` prop with four branches: it hid five setting groups, dropped Preset and Roof/cage,
+and showed "Dental contact area is set in Step 2… set in Step 3". `App.tsx:1572` renders the panel
+inside `editMode !== 'dental'` and never passed the prop — so dental mode hides the whole panel and
+that variant was unreachable **by construction**, along with a UI string carried in three languages
+that no user could ever see. Its one test was titled "during dental review" and proved a
+configuration the app cannot reach: green forever, guarding nothing. Deleted rather than wired up,
+because hiding the panel is the workflow that ships and `DentalBar` owns those controls. Nothing can
+pass `dentalMode` now, which is why no new guard was added for a rule that was never broken.
 
 ---
 
