@@ -64,12 +64,42 @@ const COMPONENTS_UI_FILES = uiFilesIn('./components/');
  * is globbed now, and the bill for this one was zero entries in `NOT_UI`.
  */
 const WORKERS_UI_FILES = uiFilesIn('./workers/');
-const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/DebugSection.tsx', './components/useDebugLayers.ts', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx', './dental/editingMode.ts', './components/PlatePanel.tsx', './components/usePlateArrange.ts', './components/viewport/UnresolvedBubbles.tsx', './supports/unresolved/unresolvedText.ts', ...DENTURE_UI_FILES, ...DENTAL_UI_FILES, ...ITEMS_UI_FILES, ...DECK_UI_FILES, ...COMPONENTS_UI_FILES, ...WORKERS_UI_FILES];
+/*
+ * AND THEN THE FIFTH TIME, WHICH IS WHY THE SCOPE IS NOW `src/` AND NOT A LIST OF FOLDERS.
+ *
+ * The paragraph above says the pattern out loud - "the scope was always a list of the places UI text
+ * had been FOUND, never of the places it could BE" - and then globs a sixth folder. So the next
+ * module to speak from an unglobbed place was only a matter of which place: `src/AppBoundary.tsx`,
+ * the screen shown when the app cannot start (audit MIXO-04), with six sentences and sitting in the
+ * ROOT of `src/`, where only `./App.tsx` was ever listed by hand.
+ *
+ * `speaks()` already answers the right question. So this globs everything under `src/` and lets it
+ * decide, which is what the four previous paragraphs each described and none of them did.
+ */
+/*
+ * EXCEPT `./kit/`, and this is a scope decision rather than a blind spot.
+ *
+ * `src/kit/` builds the style book at `kit.html` - the page a DESIGNER opens to see every icon,
+ * colour and component with a paragraph explaining each. Its prose is written to the person editing
+ * the app, not to the operator using it, it is English by intent, and translating ten paragraphs of
+ * "from Lucide - npm run icons:add, or replace the file" would be work with no reader.
+ *
+ * It is excluded here, once, by name - not spread across ten `NOT_UI` entries - so the reason is
+ * stated where the decision is made and a new paragraph in the kit needs no maintenance.
+ */
+const ALL_UI_FILES = uiFilesIn('./').filter((file) => !file.startsWith('./kit/'));
+const UI_FILES = ['./App.tsx', './components/RangeField.tsx', './components/Segmented.tsx', './components/EditBar.tsx', './components/DentalBar.tsx', './components/DentalSteps.tsx', './components/StartScreen.tsx', './components/DentalSupports.tsx', './components/ZonesBar.tsx', './components/SurfaceBrushBar.tsx', './components/ModeEntry.tsx', './components/ProblemList.tsx', './components/ObjectList.tsx', './components/SettingsPanel.tsx', './components/JobActivity.tsx', './components/ObjectViewport.tsx', './components/DebugSection.tsx', './components/useDebugLayers.ts', './components/UndoToast.tsx', './components/useFixSpot.ts', './components/useRegenerate.ts', './editing/status.ts', './editing/errors.ts', './editing/toast.ts', './editing/check.ts', './editing/view.ts', './editing/regenerate.ts', './editing/project.ts', './components/useProjectFile.ts', './components/openProject.ts', './editing/shapeEdit.ts', './components/ShapeBand.tsx', './dental/editingMode.ts', './components/PlatePanel.tsx', './components/usePlateArrange.ts', './components/viewport/UnresolvedBubbles.tsx', './supports/unresolved/unresolvedText.ts', ...DENTURE_UI_FILES, ...DENTAL_UI_FILES, ...ITEMS_UI_FILES, ...DECK_UI_FILES, ...COMPONENTS_UI_FILES, ...WORKERS_UI_FILES, ...ALL_UI_FILES];
 /** Quoted literals in UI files that are not shown to the user. */
 const NOT_UI = new Set(['Tab', 'Esc', 'Escape', 'Enter', 'Delete', 'Backspace', 'Unit', 'Mixo supports', 'ArrowUp', 'ArrowDown', 'CodedError', 'ProjectFileError', 'TimeoutError', '{error}', 'AbortError',
   // Not sentences: two font families a stylesheet names, and a modifier key. All three arrived with
   // `./components/` above, and all three are the whole bill for closing that blind spot.
-  'Atkinson Hyperlegible Next', 'Segoe UI', 'Shift']);
+  'Atkinson Hyperlegible Next', 'Segoe UI', 'Shift',
+  // The bill for globbing all of `src/` above, and it is five entries. Two keyboard shortcuts, in
+  // the same class as `Tab` and `Esc` already here, which reach the scraper because `editing/keys.ts`
+  // binds `key: 'z'` and `BUILDS_MESSAGE` cannot tell a keyboard key from a `Message` key. A WebGL
+  // extension name. And two console prefixes from `AppBoundary`/`main`, which are for whoever is
+  // asked to look at a crash, never for the operator - the screen is what speaks to them.
+  'Ctrl+Z', 'Ctrl+Shift+Z', 'WEBGL_lose_context', 'mixoDental stopped:', 'mixoDental: the geometry engine did not load:']);
 
 /** Single-quoted literals that read like UI text: a lowercase letter and a space or capital start. */
 /*
