@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compareRuns, formatDifferences, recordOf, scanCoverage } from './real-scan-gate-lib.mjs';
+import { viteNodeCli } from './viteNodeCli.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(root, 'dentalwork', 'baselines', 'real-scan-baseline.json');
@@ -94,7 +95,7 @@ try {
     rmSync(out, { recursive: true, force: true });
     mkdirSync(out, { recursive: true });
     process.stdout.write(`[${k + 1}/${scans.length}] ${scan.id} ... `);
-    const run = spawnSync(process.execPath, [join(root, 'node_modules', 'vite-node', 'vite-node.mjs'), '--script', join(root, 'dentalwork', 'batch-review', 'batch.ts'),
+    const run = spawnSync(process.execPath, [viteNodeCli, '--script', join(root, 'dentalwork', 'batch-review', 'batch.ts'),
       '--kind', SETS[scan.kind].batchKind, '--out', out, scan.file], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     const summaryFile = join(out, 'summary.json');
     if (!existsSync(summaryFile)) { console.log('FAILED (no summary)'); console.error((run.stderr || '').slice(-600)); process.exit(1); }

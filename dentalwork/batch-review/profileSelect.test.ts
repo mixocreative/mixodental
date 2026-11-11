@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { viteNodeCli } from './viteNodeCli';
+import { viteNodeCli } from '../../scripts/viteNodeCli.mjs';
 import { currentRuleNames, parseKind, reviewProfileId } from './profileSelect';
 import { reviewCase } from './reviewCase';
 
