@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
+import { viteNodeCli } from './viteNodeCli';
 import { currentRuleNames, parseKind, reviewProfileId } from './profileSelect';
 import { reviewCase } from './reviewCase';
 
@@ -38,8 +39,10 @@ describe('kind in the review row', () => {
     expect(row.shapeNote).toBe('');
   });
   it('batch.ts rejects an unknown --kind', () => {
-    const run = spawnSync(process.execPath, ['node_modules/vite-node/vite-node.mjs', '--script', 'dentalwork/batch-review/batch.ts',
+    const run = spawnSync(process.execPath, [viteNodeCli, '--script', 'dentalwork/batch-review/batch.ts',
       '--kind', 'bogus', '--out', scratch, 'docs/dental-reference'], { encoding: 'utf8', timeout: 100_000 });
+    // Check the spawn before the message: a CLI that never started fails here, not as a regex miss.
+    expect(run.error).toBeUndefined();
     expect(run.status).not.toBe(0);
     expect(run.stderr).toMatch(/--kind/);
   });

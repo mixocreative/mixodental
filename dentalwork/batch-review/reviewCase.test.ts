@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
+import { viteNodeCli } from './viteNodeCli';
 import { orientDentalAligner } from '@mixo-geocore/host/dental/dentalOrient';
 import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
 import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
@@ -99,7 +100,7 @@ describe('folder review', () => {
   });
 
   it('batch.ts exits non-zero when the folder holds no STL', () => {
-    const run = spawnSync(process.execPath, ['node_modules/vite-node/vite-node.mjs', '--script', 'dentalwork/batch-review/batch.ts', '--out', join(scratch, 'none'), scratch + '/empty-folder'],
+    const run = spawnSync(process.execPath, [viteNodeCli, '--script', 'dentalwork/batch-review/batch.ts', '--out', join(scratch, 'none'), scratch + '/empty-folder'],
       { encoding: 'utf8', timeout: 60_000 });
     expect(run.error).toBeUndefined();
     expect(run.status).toBe(1);

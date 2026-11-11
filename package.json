@@ -18,7 +18,7 @@
     "walk": "node scripts/walk.mjs",
     "walk:locales": "node scripts/walk.mjs --locales=en,ja,zh-Hant",
     "check:duplicates": "node scripts/check-no-duplicates.mjs",
-"gate": "node scripts/gate.mjs",
+    "gate": "node scripts/gate.mjs",
     "gate:nogl": "node scripts/no-webgl-gate.mjs",
     "gate:real": "node scripts/real-scan-gate.mjs"
   },
@@ -42,7 +42,8 @@
     "subset-font": "^2.9.0",
     "typescript": "^5.7.3",
     "vite": "^6.0.7",
-    "vitest": "^3.0.2"
+    "vite-node": "^6.0.0",
+    "vitest": "^5.1.0"
   },
   "dependencies": {
     "@react-three/drei": "^9.120.0",
