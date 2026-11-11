@@ -59,8 +59,12 @@ why. It prints the line to paste here, because `artefacts/` is git-ignored. Its 
 dirty tree correctly and found a real red.
 
 **Gate on `9d117b9` (clean): PASS.** tsc 0 · vendor 0 · test 0 (222 files) · duplicates 0 ·
-screens 0 · build 0 (940 modules) · wasm 0 · nogl 0 (14/14) · real 0 (13 scans). NOT run: walk,
-fonts. 416 s.
+screens 0 · build 0 (940 modules) · wasm 0 · nogl 0 (14/14) · real 0 (13 scans). 416 s.
+
+**And the walk, run alone afterwards on `5b43f41`: 185 PASS / 1 FAIL / 186 checks / 1994 s** — the
+one FAIL is the known `g-pre` precondition, identical to every clean run since 2026-11-11. That
+matters here more than usual: `index.html` was rewritten whole and `App.tsx`'s render gained four
+boundary wrappers, and every one of the 185 real checks still passes.
 
 **Four forgeries watched to fail first**, and two of my own mistakes found by my own tools: the first
 boot banner used a non-capturing listener and the new gate pass caught it, and the first draft gave
