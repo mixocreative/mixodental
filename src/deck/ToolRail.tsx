@@ -1,4 +1,5 @@
-import { t, translateMessage } from '../i18n';
+import { t, translateMessage } from '../i18n';
+
 import { Icon } from '../ui/Icon';
 import { hint } from '../components/hint';
 import { railReason, railStates, type ToolFacts, type ToolState } from './toolState';
@@ -17,7 +18,7 @@ import type { ToolId } from '../state/tools';
  * ICONS AND WORDS, now that all four files exist. This said WORDS, NOT ICONS for as long as
  * `src/ui/assets/icons/` had `orient` and nothing for the other three - one icon beside three bare
  * words looks broken, so none of them had one. `tool-rim`, `tool-area` and `tool-supports` closed
- * that, and the word stays beside each: the rail is where the operator learns the four steps, and a
+ * that, and the word stays beside each: the rail is where the operator learns the four tools, and a
  * bare glyph teaches nobody. The icon is `aria-hidden`, so the button still reads as its word.
  */
 

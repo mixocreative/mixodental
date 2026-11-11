@@ -126,7 +126,7 @@ const RIM_SCREENS = [
   chrome: [
     h('div', { key: 'f', className: 'edit-frame', 'aria-hidden': 'true' }),
     h('div', { key: 'b', className: 'edit-badge', role: 'status' },
-      'Step 1 \u00b7 Define the rim', h('span', { key: 's' }, 'upper-7'), h('b', { key: 'w' }, rimBadgeText(ui.dentalRimClosed === true))),
+      'Define the rim', h('span', { key: 's' }, 'upper-7'), h('b', { key: 'w' }, rimBadgeText(ui.dentalRimClosed === true))),
   ],
   /*
    * The mode as the DOOR leaves it: the "why you are here" line, and anything orientation found on the

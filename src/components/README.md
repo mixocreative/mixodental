@@ -10,6 +10,46 @@ Two kinds of file live here, and the distinction is worth keeping straight:
 - **Hooks** (`use*.ts`) — one job of the app each, lifted out of `App.tsx`. They hold state, talk to
   the workers, and write the status line. They render nothing.
 
+## Vocabulary: what a screen is called, and when it gets a number
+
+Settled 2026-11-12 (audit MIXO-14). The app's words had started to collide: **"Step 1" named both
+the orientation stage and the rim mode**, so one job had one number on two different screens. Five
+rules, so the next screen can be named without reopening this.
+
+1. **The name is the identity; the number is only the position in this job's Back/Next sequence.**
+   The same named step may carry a different number in another job — Supports is `Step 3` for an
+   aligner and `Step 2` for a denture. That is one name in two positions, not a collision.
+2. **Within one job, a number belongs to exactly one screen.** Only screens that Next lands on get
+   a number at all.
+3. **A detour entered from a step has a name and no number.** Rim define mode is the only one today,
+   and `src/bench/README.md` had already called it "a detour off Step 1, not a step of its own" —
+   the badge was the single place that disagreed, and it now reads `Define the rim`.
+4. **The rail is never numbered.** It lists tools in dependency order (four for an aligner, two for
+   a denture), not steps, so the rail and the badge cannot contradict each other.
+5. **A step may be named after what it produces** — Supports, Support area. The meshes themselves
+   are that word in lower case in running text.
+
+| Thing | Name |
+|---|---|
+| orientation stage, badge | `Step 1 · Aligner` / `Step 1 · Denture` |
+| rim mode, badge | `Define the rim` — no number, by rule 3 |
+| area step, badge | `Step 2 · Support area` |
+| supports step, badge | `Step 3 · Supports` (aligner) / `Step 2 · Supports` (denture) |
+| rail tools | `Orient`, `Rim`, `Supports` |
+| the generated meshes | "supports", lower case |
+
+**What was deliberately NOT renamed, and why.** Every English string in this app is itself the
+translation key, so a reworded string is a key change in `src/locales/{ja,zh-Hant}.ts` and often a
+`scripts/walk.mjs` baseline too. "Supports" naming the rail tool, the step and the meshes is
+ordinary English under rule 5, and splitting it would cost new translations in two locales and five
+walk assertions to fix a word nobody misreads. Likewise `Step 3` vs `Step 2 · Supports`: both are
+truthful under rule 1, and un-numbering every badge would touch about 35 walk assertions and lose
+the progress cue. The rim badge was the only change worth making — and it cost nothing, because
+`Define the rim` was already a key in both locales.
+
+**Recorded debt:** the Step 2 / Step 3 help line in `SettingsPanel.tsx` is wrong for a denture, but
+its `dentalMode` prop is passed only by `SettingsPanel.test.tsx`, so it never renders in the app.
+
 ## The hooks: one job each
 
 `App.tsx` is the composition root. Nearly everything it still does is wiring these together, which

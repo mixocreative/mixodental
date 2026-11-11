@@ -98,7 +98,7 @@ export const ICON_CATALOGUE: IconEntry[] = [
   { name: 'retainer', slot: 'key', source: 'drawn', unwired: true, where: 'A thin shell with a WIRE across the opening - the feature that tells it from an aligner. Hand-drawn; no screen offers it yet' },
   { name: 'night-guard', slot: 'key', source: 'drawn', unwired: true, where: 'A thick unbroken shell, smooth where the aligner is segmented. Hand-drawn after the traced one came out indistinguishable from the aligner; no screen offers it yet' },
 
-  // The deck rail: the four steps, each a word with its picture. All Rule A, all smooth line icons.
+  // The deck rail: the four tools, each a word with its picture. All Rule A, all smooth line icons.
   { name: 'orient', slot: 'inline', source: 'drawn', where: 'Deck rail: Orient. Also the Auto orientation key in the orientation bar - a box with a turn arrow' },
   { name: 'tool-rim', slot: 'inline', source: 'drawn', where: 'Deck rail: Rim. A path with square handles - the trim edge and the points that shape it' },
   { name: 'tool-area', slot: 'inline', source: 'drawn', where: 'Deck rail: Area. A perforated strip - the band where tips may touch, with the tips on its middle line' },

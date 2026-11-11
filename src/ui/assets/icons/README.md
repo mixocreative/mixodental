@@ -124,7 +124,7 @@ has no drawing, or one the code says in a comment it is waiting for.
 ### Done: the deck rail, and the three item types (2026-11-10)
 
 The rail's three icons and the three start-screen item types are drawn, and the rail uses them with the
-word kept beside each - the rail is where the operator learns the four steps, and a bare glyph teaches
+word kept beside each - the rail is where the operator learns the four tools, and a bare glyph teaches
 nobody. The rail's three are smooth line icons in this folder; the item types are coloured pixel art in
 `../art/`. `npm run screens` renders `deck-tool-rail.html`, the only way to see the rail in
 all four states without importing a model.

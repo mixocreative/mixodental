@@ -111,7 +111,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   if (gesture.kind === 'dental-rim') return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      {t('Step 1 · Define the rim')}<span>{unitName}</span>
+      {t('Define the rim')}<span>{unitName}</span>
       <b>{t(rimBadgeText(ui.dentalRimClosed === true))}</b>
     </div>
     <DentalRimStep ui={ui} run={run} notices={gesture.notices} />
