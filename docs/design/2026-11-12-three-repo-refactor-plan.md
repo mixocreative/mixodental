@@ -167,6 +167,67 @@ mixoDental then vendors 64 as an ordinary vendor step, not a phase.
 
 ---
 
+## 3b. The re-vendor of mixoDental to engine 64: deferred, with a trigger (decided 2026-11-12)
+
+Section 1 predicted that "engine 64 ships from this very list". It has: geocore closed all 15 of its
+remaining findings and `crates/geometry-core/src/lib.rs:27` now asserts `engine_version() == 64`.
+mixoDental vendors commit `b5a71ab`, **engine 63**, 19 commits behind.
+
+**Decision: do not re-vendor yet. The trigger is geocore `main` being pushed.** Its 13 commits are
+local only, so vendoring now would stamp `SOURCE.json` with a commit absent from geocore's remote —
+the traceability cost that GEO-001 was about. When that trigger fires, the re-vendor is mixoDental's
+next change, on its own, in the order in the handoff.
+
+**What the decision turned on, and the claim that did not survive checking.** The case for "now" was
+a live defect: geocore reported GEO-002/003 as reachable from a user action — delete every support on
+a unit, press Export, and engine 63's zero-contact branch returns `verdict: clear`, `islands: ok`
+with no revision, which mixoDental's export gate reads as *stale* and reports as *"{name} changed
+while it was being exported"*. A permanent refusal naming a cause that never occurred.
+
+**It is not reachable, and the trace stopped one step short of the answer.** `planExport`
+(`vendor/mixo-geocore/host/supports/export.ts:53`) only gives a unit a supports part when
+`unitContacts(...)` is non-empty, and its own comment says so: a unit "without a live contact (all
+deleted or zoned out) has no supports part, so no file is empty". `useExport.ts:108-109` builds the
+gate's list from supports parts only, so a zero-contact unit never reaches the engine's `empty()`
+branch during export. What the operator actually gets is `useExport.ts:71` — **"Nothing to export:
+{name} has no supports left."** — truthful, naming the unit, and already translated in both locales.
+`src/supports/export.test.ts:59` has guarded it all along ("never plans a supports part for a unit
+whose contacts are all gone").
+
+Two corrections worth keeping, because both were mine to make and neither was obvious:
+
+- **The baseline row was not evidence.** `multipart-10f40a069c2f` records `tipsPlaced: 0`, which
+  looked like the zero-contact route on real patient data. Its `reason` is
+  `diagnostic-band-invalid-face-graph` — a failed diagnostic band, nothing to do with deleted
+  supports. Reading the `reason` field, not just the tip count, is what settled it.
+- **GEO-005, GEO-006 and GEO-008 are not reachable on 63 either.** `assertGeometryVersion` refuses
+  any engine whose number is not the host's, so no code table can be narrower than its Rust enum
+  and no array can be short or mis-strided today. For those three, "63 is fine, 64 is better
+  hygiene" is the honest sentence. They bite on the *next* table value, which is why geocore's
+  AGENTS.md now says adding one bumps the version.
+
+**Engine output does not move**, so this is a contract change and not a geometry change: geocore's
+goldens diff is empty, its 16 snapshots pass byte-for-byte on the rebuilt engine 64, and the whole
+Rust diff is 66 insertions across 7 files with no geometry logic touched.
+
+**What the re-vendor must carry when it happens.** Five mechanical compile errors —
+`ExportUnitResult.triangles` (`src/denture/engine/dentureExport.ts:39`), `UiState.product`/`.ext`
+(`src/App.tsx:1248`), `openFailure`'s third argument (`src/components/openProject.ts:40`),
+`'unknown'` added to `PartRole` and `TipPathState` (`src/denture/parts/partRoles.ts`,
+`src/denture/steps/orient/liveTipLayers.ts`, `LiveTipSummary.tsx`) and to `modelLanded[].tier`
+(`src/supports/unresolved/unresolvedText.ts:59`) — plus **one silent change that `tsc` will not
+catch**: `ExportRefusal['reason']` gains `'nothing-built'`, and `useExport.ts:112-115`'s
+unconditional `return refuse('inconclusive', name)` would swallow it, trading one wrong sentence for
+another. The fix is to return `refusal.reason` itself, which makes every future engine reason a
+compile error, plus one new English string and its ja and zh-Hant translations.
+
+**Left open, written down rather than closed.** Dentures are the one residual: `planExport` reads the
+stored `unit.placement.points` while `buildDenture` recomputes candidates at export time
+(`src/denture/engine/dentureCore.ts:129-130`). If those ever disagree, the 63 behaviour above *is*
+reachable for a denture. No case was found and none was constructed; it is unproven either way.
+
+---
+
 ## 4. The re-vendor of mixoMesh: not scheduled
 
 **The trigger.** Do it when the first of these is true: mixoMesh gets a ship date; mixoMesh needs a

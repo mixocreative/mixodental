@@ -770,6 +770,34 @@ now a direct devDependency (vitest 5 stopped pulling it in, and `npm run screens
 major cannot move it again. One test also now checks `run.error` before its stderr regex: the real
 fault was "cannot find module" and it surfaced as a regex mismatch.
 
+**And I got this one wrong the first time, which the gate caught *(`ff508fa`)*.** The old literal was
+in **three** places, not two. I fixed the two tests, declared the bump clean, and `npm run gate` then
+failed on `real` in **one second**: all 13 real scans died with MODULE_NOT_FOUND, because
+`scripts/real-scan-gate.mjs:97` held the same path. **1628 unit tests passed while the real-scan gate
+was dead** - which is the whole argument for a gate that runs the heavy checks rather than a suite
+that reports green. The resolver is now one module, `scripts/viteNodeCli.mjs`, plain `.mjs` so the
+bare-node gate and the TS tests can share it, and the duplicate is deleted. `gate:real` afterwards:
+**PASS, 13 scans, no differences, 249 s.**
+
+### Engine 64 exists, and mixoDental stays on 63 *(DECIDED, not a finding)*
+geocore closed all 15 of its findings and is now engine 64; mixoDental vendors 63. The re-vendor is
+**deferred, triggered by geocore `main` being pushed** (its 13 commits are local, so vendoring now
+would stamp a commit absent from the remote - the GEO-001 cost). `docs/design/2026-11-12-three-repo-
+refactor-plan.md` section 3b carries the decision, the five compile fixes, the one silent change
+`tsc` will not catch, and the denture residual left open.
+
+**A claim of geocore's that did not survive checking, recorded because believing it would have forced
+an engine swap the day before a human test.** GEO-002/003 was reported as a live defect reachable by
+deleting every support and pressing Export. It is not: `planExport`
+(`vendor/mixo-geocore/host/supports/export.ts:53`) gives a unit a supports part only when
+`unitContacts(...)` is non-empty, so the zero-contact branch is never reached during export, and the
+operator gets `useExport.ts:71` - "Nothing to export: {name} has no supports left." - truthful,
+naming the unit, translated in both locales, and guarded by `src/supports/export.test.ts:59` all
+along. My own supporting evidence was also wrong: `multipart-10f40a069c2f`'s `tipsPlaced: 0` looked
+like the route on real patient data, but its `reason` is `diagnostic-band-invalid-face-graph`. **Two
+agents disagreed and the code settled it** - which is §0's rule that neither graph nor any report is
+authoritative, applied to a report rather than a graph.
+
 ### MIXO-08 — `npm run gate:tier` *(FIXED, `1f11fb3`)*
 **Seven** `describe.skipIf` blocks, not eight as filed. They hold the only proofs that run on real
 patient scans, and they vanish silently on a machine without the fixtures — vitest prints a bare "N

@@ -36,10 +36,16 @@ found on the way. The detail lives in `cia-audit-report.md` under "Fixed after t
 - **`b587bda` MIXO-15** - vite 6 + vitest 5. `npm audit` **4 -> 0**, including both criticals
   (`tinypool` prototype pollution -> RCE, `@vitest/mocker` path traversal). I had called the major
   bump the owner's call; the measurement made it cheap - 2 failures out of 1627, one cause.
-  **vite-node's CLI moved from the package root to `dist/cli.mjs` between majors**, and two tests
-  held the old literal. vite-node is now a DIRECT devDependency (vitest 5 stopped pulling it in,
-  and `npm run screens` needs it) and `dentalwork/batch-review/viteNodeCli.ts` resolves it through
-  the package's own `exports`.
+  **vite-node's CLI moved from the package root to `dist/cli.mjs` between majors**, and the old
+  literal was in **three** places. vite-node is now a DIRECT devDependency (vitest 5 stopped pulling
+  it in, and `npm run screens` needs it).
+- **`ff508fa` - and the gate caught what I missed.** I fixed two of those three sites, called the
+  bump clean, and `npm run gate` then failed on `real` in **one second**: all 13 real scans died
+  with MODULE_NOT_FOUND, because `scripts/real-scan-gate.mjs:97` held the same literal. **This is
+  the argument for running the gate rather than trusting a green suite** - 1628 tests passed while
+  the real-scan gate was dead. The resolver is now ONE module, `scripts/viteNodeCli.mjs`, plain
+  `.mjs` so the bare-node gate and the TS tests can both use it (`allowJs`, Bundler resolution),
+  and the duplicate under `dentalwork/batch-review/` is gone.
 - **`1f11fb3` MIXO-08** - `npm run gate:tier` is a new gate step. **Seven** `describe.skipIf`
   blocks (not eight) hold the only proofs that run on real patient scans, and they vanish silently
   on a machine without the fixtures. The count now reaches the receipt and the handoff line: **6 of
