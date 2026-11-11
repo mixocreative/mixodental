@@ -24,7 +24,55 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (Phase 0 of the three-repo plan - 2026-11-12)
+## Latest completed step (the `/goal` sweep: every open mixoDental finding - 2026-11-12)
+
+Six commits on `main`, `b587bda`..`ddc0965`. The standing goal was: no defect left unfixed, no UX
+workflow gap, and any decision I could not make taken by Fable rather than put to the owner.
+
+**Every open mixoDental finding is closed.** MIXO-08, 09, 12, 14 and 15, plus one new S22 finding
+found on the way. The detail lives in `cia-audit-report.md` under "Fixed after the report, in the
+`/goal` sweep"; what matters here is what changed and what to watch.
+
+- **`b587bda` MIXO-15** - vite 6 + vitest 5. `npm audit` **4 -> 0**, including both criticals
+  (`tinypool` prototype pollution -> RCE, `@vitest/mocker` path traversal). I had called the major
+  bump the owner's call; the measurement made it cheap - 2 failures out of 1627, one cause.
+  **vite-node's CLI moved from the package root to `dist/cli.mjs` between majors**, and two tests
+  held the old literal. vite-node is now a DIRECT devDependency (vitest 5 stopped pulling it in,
+  and `npm run screens` needs it) and `dentalwork/batch-review/viteNodeCli.ts` resolves it through
+  the package's own `exports`.
+- **`1f11fb3` MIXO-08** - `npm run gate:tier` is a new gate step. **Seven** `describe.skipIf`
+  blocks (not eight) hold the only proofs that run on real patient scans, and they vanish silently
+  on a machine without the fixtures. The count now reaches the receipt and the handoff line: **6 of
+  7** here, matching the suite's "1 skipped". DRIFT fails it; absence does not.
+- **`7ae2cf0` MIXO-09** - the SHIP-PLAN U6a row named `DentalOpeningRaycaster` and a "stamp face
+  gate" as production TypeScript. **Neither exists in any source file under any spelling.** U8
+  ported them to Rust `dental/legacy.rs`. `rimContainsPoint` had zero callers and is deleted.
+- **`3e73eca` MIXO-14** - Fable decided. The rim badge is `Define the rim`, no number: a detour off
+  Step 1, not a step of its own. Cost nothing - the key already existed in both locales and every
+  walk assertion already matches `/Define the rim/`. The "Supports" collisions were **declined with
+  reasons**; five naming rules are now written in `src/components/README.md`.
+- **`cc03973` NEW** - `SettingsPanel`'s `dentalMode` variant **could not render**. `App.tsx:1572`
+  renders the panel inside `editMode !== 'dental'` and never passed the prop, so four branches and
+  a UI string in three languages were unreachable by construction. Its one test proved a
+  configuration the app cannot reach. Deleted, prop and all.
+- **`34b5e0f` MIXO-12** - a floor on the five source-reading guards that had none. **The filed "56
+  of 58" was wrong**: 31 guards exist, 16 already floored, 13 fail on an empty read, 5 did not.
+  **And one guard had been blind for months** - `core/imports.test.ts` globbed `../editing/**`, a
+  tree deleted at PE.5b (`806aaee`); the arm matched zero files while its test was still titled
+  "scans the support core and the editing rules".
+
+**Two forgeries, because a floor nobody saw fail is a floor nobody has.** Forging an eighth
+`skipIf` block made `gate:tier` exit 1. Collapsing `ScreenHeading.test.tsx`'s glob to zero matches
+failed the new floor **while two tests still passed** - one of them the `offenders.toEqual([])`
+guard that was supposed to catch it. That is the vacuous pass on screen.
+
+**Worth keeping: the Bash heredoc on this machine eats one level of backslash.** `\\d` arrives as
+`\d`, and `\\r?\\n` arrives as a real newline, which wrote a broken regex into a script before the
+pattern was recognised. Use the Write or Edit tool for anything carrying escapes. Relatedly, git's
+`grep -E` wants its parens escaped differently per shell, so `scripts/real-scan-tier.mjs` counts
+with `git grep -cF` and a fixed string.
+
+## Previous completed step (Phase 0 of the three-repo plan - 2026-11-12)
 
 The owner approved **Phase 0 only** of `docs/design/2026-11-12-three-repo-refactor-plan.md`: the work
 that needs no engine release and no vendor step. (**That file is no longer a phased plan.** After
