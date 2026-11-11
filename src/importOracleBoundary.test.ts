@@ -11,6 +11,9 @@ describe('TS import geometry is gone from production', () => {
   });
 
   it('no production file uses the removed TS weld/parse helpers', () => {
+    // The floor: an empty glob leaves `offenders` empty, so this would pass having read no production code.
+    expect(Object.keys(production).length, 'the production glob should match most of src').toBeGreaterThan(100);
+    expect(Object.keys(production), 'the app entry point').toContain('./App.tsx');
     const offenders = Object.entries(production)
       .filter(([file]) => file !== './importOracleBoundary.test.ts')
       .filter(([, text]) => /ts-oracle|\bweldPositions\b|\bStlWelder\b|\bparseStl\b|\bcentreInPlace\b|\bgeometryToMesh\b|\bimportStl\b/.test(text))

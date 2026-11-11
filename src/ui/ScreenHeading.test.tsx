@@ -15,6 +15,13 @@ const FILES = Object.fromEntries(
 const ALLOWED = ['src/ui/ScreenHeading.tsx', 'src/components/TermsDialog.tsx', 'src/kit/Section.tsx'];
 
 describe('ScreenHeading', () => {
+  it('scans every .tsx under src, and the allowlist still names real files', () => {
+    // The floor: with no matches `offenders` below is empty and the guard passes having read nothing.
+    expect(Object.keys(FILES).length, 'the ../**/*.tsx glob should match most of src').toBeGreaterThan(50);
+    // An allowlist entry whose file was renamed is a dead exemption, so name them here too.
+    for (const file of ALLOWED) expect(Object.keys(FILES), 'allowlisted file').toContain(file);
+  });
+
   it('is one h2 with one class, whatever the screen', () => {
     expect(renderToStaticMarkup(<ScreenHeading>Choose the aligner type</ScreenHeading>))
       .toBe('<h2 class="screen-heading">Choose the aligner type</h2>');

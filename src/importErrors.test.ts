@@ -11,6 +11,12 @@ const WORKER_CLIENTS = import.meta.glob<string>(['./workers/*Client.ts'], { quer
 // editing/errors recognises them so the status line is translated. These fail if a message changes
 // without a code.
 describe('job errors reach the status line as codes', () => {
+  it('reads every worker client', () => {
+    // The floor: the message check below is a for-of, so zero matches asserts nothing and goes green.
+    expect(Object.keys(WORKER_CLIENTS).sort())
+      .toEqual(['./workers/analysisClient.ts', './workers/importClient.ts', './workers/projectClient.ts']);
+  });
+
   it('a model with non-finite vertices', () => {
     const positions = new Float32Array([0, 0, 0, 1, 0, 0, Number.NaN, 1, 0]);
     let thrown: unknown;

@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-// What is left of the support core and the editing rules here must stay portable like the shared
-// packages they sit beside (mixo-geocore host/ and editing/, checked there by its D22 test):
-// no UI framework, no three.js, no DOM, no Vite-only syntax, no app state or app glue.
-const GLOBBED = import.meta.glob<string>(['./**/*.ts', './**/*.tsx', '../editing/**/*.ts', '../editing/**/*.tsx'], { query: '?raw', import: 'default', eager: true });
+// What is left of the support core must stay portable like the shared packages it sits beside
+// (mixo-geocore host/ and editing/, checked there by its own D22 test): no UI framework, no
+// three.js, no DOM, no Vite-only syntax, no app state or app glue.
+//
+// THIS SCANS src/core AND NOTHING ELSE (MIXO-12). It used to glob `../editing/**` too, but
+// `src/editing/` was deleted at PE.5b (806aaee) when every local copy moved into the shared
+// engine - so that arm matched zero files and quietly widened nothing for months. geocore's
+// `tests/d22.test.ts` owns those modules now; `src/dental/editing/` is tests and a fixture, and
+// `threeBoundary.test.ts` covers what production code sits there.
+const GLOBBED = import.meta.glob<string>(['./**/*.ts', './**/*.tsx'], { query: '?raw', import: 'default', eager: true });
 /** Source text of every scanned module (tests included), keyed by its path under src. */
 const SOURCES = Object.fromEntries(Object.entries(GLOBBED)
-  .map(([key, source]) => [key.replace(/^\.\//, 'core/').replace(/^\.\.\//, ''), source] as const)
+  .map(([key, source]) => [key.replace(/^\.\//, 'core/'), source] as const)
   .filter(([file]) => file !== 'core/imports.test.ts'));
 const FORBIDDEN_PACKAGES = [/^react(-dom)?(\/|$)/, /^three(\/|$)/, /^@react-three\//, /^three-mesh-bvh(\/|$)/];
 
@@ -17,7 +23,7 @@ const FORBIDDEN_PACKAGES = [/^react(-dom)?(\/|$)/, /^three(\/|$)/, /^@react-thre
  */
 function allowedTarget(file: string, target: readonly string[]): boolean {
   const path = target.join('/');
-  if (path.startsWith('src/core/') || path.startsWith('src/editing/')) return true;
+  if (path.startsWith('src/core/')) return true;
   // The shared packages themselves (vendored mixo-geocore host/ and editing/).
   if (path.startsWith('vendor/mixo-geocore/host/') || path.startsWith('vendor/mixo-geocore/editing/')) return true;
   if (path.startsWith('tools/') && path.endsWith('.json')) return true;
@@ -69,10 +75,11 @@ function resolveFrom(file: string, specifier: string): string[] | undefined {
 describe('portable modules', () => {
   const files = Object.keys(SOURCES);
 
-  it('scans the support core and the editing rules', () => {
+  it('scans the support core', () => {
+    // The floor: an empty glob gives no offenders below, so the guard would pass having read nothing.
+    expect(files.length, 'src/core should hold far more than a handful of modules').toBeGreaterThan(15);
     expect(files).toContain('core/handedness.ts');
     expect(files).toContain('core/plateLedger.ts');
-
   });
 
   it('import no UI framework, three.js, DOM, bundler-only syntax or app module', () => {
@@ -120,7 +127,6 @@ describe('portabilityProblems', () => {
   it('passes core imports, data files and words in comments', () => {
     expect(check(`import { add } from '../vec3';\nimport type { TriangleMesh } from './types';`, 'core/supports/x.ts')).toEqual([]);
     expect(check(`import reference from '../../../tools/blender-parity/reference.json';`, 'core/supports/x.test.ts')).toEqual([]);
-    expect(check(`import { useCase } from '../../editing/keys';`, 'core/supports/x.ts')).toEqual([]);
     expect(check(`import { GOLDEN_FIXTURES } from '../../goldens/fixtures';`, 'core/analysis/x.test.ts')).toEqual([]);
     expect(check(`// The document itself (no element focused) has no attributes.\n/* window.x */ const a = 1;`)).toEqual([]);
   });

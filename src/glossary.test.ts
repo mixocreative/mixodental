@@ -8,6 +8,12 @@ const KEYS = Object.keys(DICTIONARY['zh-Hant']);
 const DOCS = import.meta.glob<string>(['../docs/migration/*.md'], { query: '?raw', import: 'default', eager: true });
 
 describe('glossary', () => {
+  it('reads the migration docs it checks', () => {
+    // The floor: the tool-word checks over DOCS are for-of loops, so an empty match is green.
+    expect(Object.keys(DOCS), 'the glossary itself lives in that folder')
+      .toContain('../docs/migration/glossary.md');
+  });
+
   it('every translation of a key naming a concept uses that concept term', () => {
     const problems: string[] = [];
     for (const entry of GLOSSARY) {
