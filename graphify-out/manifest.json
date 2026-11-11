@@ -1,8 +1,8 @@
 {
   "package.json": {
-    "mtime": 1794419608.6405618,
-    "seen": 1794422651.4425347,
-    "ast_hash": "d270a36547226a32c4ddc51d4f11a219",
+    "mtime": 1794427967.9456816,
+    "seen": 1794429099.988029,
+    "ast_hash": "3f1441adc7d7f79e272fbb4fff0d6a0a",
     "semantic_hash": ""
   },
   "scripts/dental-reference/compare_supported.py": {
@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794418538.2736013,
-    "seen": 1794422651.443533,
-    "ast_hash": "05fc712e0550f9d868e0c058b4ddf3af",
+    "mtime": 1794427402.3731403,
+    "seen": 1794429099.988029,
+    "ast_hash": "92b5a03f4086b75ea6df9f8b48694fde",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -546,8 +546,8 @@
     "semantic_hash": ""
   },
   "src/i18n.test.ts": {
-    "mtime": 1794418714.8104985,
-    "seen": 1794422651.443533,
+    "mtime": 1794427564.3829815,
+    "seen": 1794429099.988029,
     "ast_hash": "6877d5b72d2f2622ed0786b1a3485762",
     "semantic_hash": ""
   },
@@ -564,21 +564,21 @@
     "semantic_hash": ""
   },
   "src/locales/ja.ts": {
-    "mtime": 1794418899.232054,
-    "seen": 1794422651.443533,
-    "ast_hash": "8aa0c04b66e76b340488980a740032af",
+    "mtime": 1794427645.5274785,
+    "seen": 1794429099.988029,
+    "ast_hash": "f7f6940c178f9329171de2ecee9db448",
     "semantic_hash": ""
   },
   "src/locales/zh-Hant.ts": {
-    "mtime": 1794418899.232054,
-    "seen": 1794422651.443533,
-    "ast_hash": "4ee6e8af806edf656335e6224a3bf598",
+    "mtime": 1794427645.5264785,
+    "seen": 1794429099.988029,
+    "ast_hash": "820ebd3836ed206f755ad4dda1833a91",
     "semantic_hash": ""
   },
   "src/main.tsx": {
-    "mtime": 1794418508.6280735,
-    "seen": 1794422651.443533,
-    "ast_hash": "5f20ce311178b66cfabf6953a88a9526",
+    "mtime": 1794427786.0066626,
+    "seen": 1794429099.988029,
+    "ast_hash": "2ba3f0406fb0f5e25169ebd01ba62ee6",
     "semantic_hash": ""
   },
   "src/noBrandNames.test.ts": {
@@ -985,9 +985,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1794419517.6570942,
-    "seen": 1794422651.443533,
-    "ast_hash": "d267044674527734d5a80c0b9fe99dc2",
+    "mtime": 1794428540.5047717,
+    "seen": 1794429099.988029,
+    "ast_hash": "d91cc62f31f2e16bf94ee1d9a6b6ed74",
     "semantic_hash": ""
   },
   "README.zh-Hant.md": {
@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794420342.7470067,
-    "seen": 1794422651.443533,
-    "ast_hash": "5014610f804f7dcf356b6c0f283f0f1d",
+    "mtime": 1794429039.2230244,
+    "seen": 1794429099.988029,
+    "ast_hash": "b20560644b009a9dec3f65d5be096e9c",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -1267,9 +1267,9 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1793270084.8514016,
-    "seen": 1793270106.436683,
-    "ast_hash": "912c83549920381bcfdb5dd13d1884e6",
+    "mtime": 1794427890.989787,
+    "seen": 1794429099.988029,
+    "ast_hash": "f612cc94fb6e2af20f7e334207839611",
     "semantic_hash": ""
   },
   "public/THIRD-PARTY-NOTICES.txt": {
@@ -1555,9 +1555,9 @@
     "semantic_hash": ""
   },
   "src/components/DentalSteps.tsx": {
-    "mtime": 1794159969.5792906,
-    "seen": 1794163324.5866404,
-    "ast_hash": "7fec567f49a8ef8eb90f941dd8782d0e",
+    "mtime": 1794427523.2651486,
+    "seen": 1794429099.988029,
+    "ast_hash": "6422cb3a7cfc6371981a973aec5de603",
     "semantic_hash": ""
   },
   "src/importOracleBoundary.test.ts": {
@@ -2929,9 +2929,9 @@
     "semantic_hash": ""
   },
   "src/components/useDentalFlow.ts": {
-    "mtime": 1794300719.1721992,
-    "seen": 1794301598.1539404,
-    "ast_hash": "6e05455db2cdfefebd106b452459c93f",
+    "mtime": 1794427544.7493,
+    "seen": 1794429099.988029,
+    "ast_hash": "50a6383519f13022e2013e6d28ba68aa",
     "semantic_hash": ""
   },
   "scripts/dental-region-review/profile.ts": {
@@ -3115,9 +3115,9 @@
     "semantic_hash": ""
   },
   "src/dental/printAngle.test.ts": {
-    "mtime": 1793268306.3279376,
-    "seen": 1793268328.171727,
-    "ast_hash": "1217f19cbe9a48fce084a57af9a32121",
+    "mtime": 1794427697.2228613,
+    "seen": 1794429099.988029,
+    "ast_hash": "42eef83f8ea7ef0c44a90df030590fd5",
     "semantic_hash": ""
   },
   "src/components/StartScreen.tsx": {
@@ -3769,9 +3769,9 @@
     "semantic_hash": ""
   },
   "src/dental/editingMode.ts": {
-    "mtime": 1794301130.9345965,
-    "seen": 1794301598.1539404,
-    "ast_hash": "f95394609bb86c050353a00eae2a4dbf",
+    "mtime": 1794427716.0692947,
+    "seen": 1794429099.988029,
+    "ast_hash": "0f910c40b2a5c2a3c37dec1ef7da520b",
     "semantic_hash": ""
   },
   "src/workers/engineSource.ts": {
@@ -4729,9 +4729,9 @@
     "semantic_hash": ""
   },
   "docs/ui-styling.md": {
-    "mtime": 1794419518.0515058,
-    "seen": 1794422651.4445336,
-    "ast_hash": "2d0162e5ad2640270593f586b08940ea",
+    "mtime": 1794428529.9004152,
+    "seen": 1794429099.988029,
+    "ast_hash": "4e5402f55b66ddec6d1918ece0cc30c9",
     "semantic_hash": ""
   },
   "dentalwork/baselines/real-scan-baseline.json": {
@@ -5311,9 +5311,9 @@
     "semantic_hash": ""
   },
   "src/assets/fonts/japanese-subset.txt": {
-    "mtime": 1794419784.7629576,
-    "seen": 1794422651.4445336,
-    "ast_hash": "770e3950cce0a9b0e41114910b604f42",
+    "mtime": 1794428376.6935563,
+    "seen": 1794429099.988029,
+    "ast_hash": "e96134c957e3b7a401c8d532fffff0eb",
     "semantic_hash": ""
   },
   "src/dental/README.md": {
@@ -5815,9 +5815,9 @@
     "semantic_hash": ""
   },
   "src/components/README.md": {
-    "mtime": 1794416993.197652,
-    "seen": 1794417799.374725,
-    "ast_hash": "286ca08ba9ee961ee46e7c1c33d9df88",
+    "mtime": 1794428529.6708856,
+    "seen": 1794429099.988029,
+    "ast_hash": "695c8dbbbb3182a6a6f19a9a5ba0c390",
     "semantic_hash": ""
   },
   "src/components/useSupportBuilds.ts": {
@@ -6187,9 +6187,9 @@
     "semantic_hash": ""
   },
   "scripts/no-webgl-gate.mjs": {
-    "mtime": 1794419601.5460284,
-    "seen": 1794422651.443533,
-    "ast_hash": "a413a181e670ad6d8706ce12b85cb7ed",
+    "mtime": 1794427830.4565656,
+    "seen": 1794429099.988029,
+    "ast_hash": "f21ad64e0bb8cb84a2ce6f725f94dca2",
     "semantic_hash": ""
   },
   "src/AppBoundary.test.tsx": {
@@ -6214,6 +6214,36 @@
     "mtime": 1794418455.7330046,
     "seen": 1794422651.443533,
     "ast_hash": "032a44d74f0a84d0dfb413f8569d61bd",
+    "semantic_hash": ""
+  },
+  "scripts/gate.mjs": {
+    "mtime": 1794427988.7208107,
+    "seen": 1794429099.988029,
+    "ast_hash": "8251826cb8e45f917155eaf31ac9faf2",
+    "semantic_hash": ""
+  },
+  "src/components/PanelBoundary.test.tsx": {
+    "mtime": 1794427438.900793,
+    "seen": 1794429099.988029,
+    "ast_hash": "8b8843012e56e57bab68eb912c0feb13",
+    "semantic_hash": ""
+  },
+  "src/components/PanelBoundary.tsx": {
+    "mtime": 1794427314.3869712,
+    "seen": 1794429099.988029,
+    "ast_hash": "d74ed1ace6e9d9d346066b3e2b64d1c0",
+    "semantic_hash": ""
+  },
+  "docs/design/2026-11-12-three-repo-refactor-plan.md": {
+    "mtime": 1794427100.6317947,
+    "seen": 1794429099.988029,
+    "ast_hash": "9a6ae942aef3b41a3b4e22dbdf7be8fa",
+    "semantic_hash": ""
+  },
+  "docs/handoff/morning-2026-11-12.md": {
+    "mtime": 1794422744.088106,
+    "seen": 1794429099.988029,
+    "ast_hash": "6287595086fd5f78c9ed9110c9ff945d",
     "semantic_hash": ""
   }
 }
