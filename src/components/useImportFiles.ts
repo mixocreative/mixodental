@@ -197,7 +197,23 @@ export function useImportFiles(host: {
           imported.push(await importer().weld(raw, RUNTIME, label, controller.signal));
         }
           // Counted again from what was read (an estimate may have been short).
-          adding += imported[imported.length - 1]!.reduce((sum, item) => sum + item.mesh.indices.length / 3, 0);
+          const counted = imported[imported.length - 1]!.reduce((sum, item) => sum + item.mesh.indices.length / 3, 0);
+          /*
+           * THE MEMORY CAP IS MEASURED HERE TOO, not only against the estimate above (MIXO-01).
+           * An STL whose header lies, or a glTF whose estimate could not be read at all, reached the
+           * worker on a guess and was then never measured against the memory cap again - the
+           * triangle and plate caps were re-checked here, memory was not.
+           *
+           * This cannot prevent the READ: by this line the mesh is already in memory. What it
+           * prevents is the SCENE accepting the file, and every later pass over it - thumbnail,
+           * orientation, generate - on a mesh the device cannot hold. The triangle re-assert above
+           * is the same shape and just as late.
+           *
+           * Per FILE, never `adding`: the drop's running total would refuse a legal file because an
+           * earlier one in the same drop was large. The plate cap is the cumulative one, by design.
+           */
+          assertMemoryCapacity(file.name, counted, RUNTIME, memoryCap);
+          adding += counted;
           reservation.hold(adding, plateNow(), (plate) => assertPlateCapacity(file.name, plate, RUNTIME));
         } catch (error) {
           if (isAbort(error)) throw error;

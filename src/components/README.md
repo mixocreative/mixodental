@@ -51,10 +51,27 @@ inside its show delay, so it is the screen that remembers.
 
 | file | its part in that |
 |---|---|
-| `useImportFiles.ts` | `listBudgetRefusal` — a triangle, memory or plate refusal happens before any worker starts, so nothing was ever listed. A file the WORKER refuses was always safe, and that asymmetry is what hid it. |
+| `useImportFiles.ts` | `listBudgetRefusal` — a triangle, memory or plate refusal can happen before any worker starts, so nothing was ever listed. A file the WORKER refuses was always safe, and that asymmetry is what hid it. (Each cap is also re-checked after the read — see below.) |
 | `exportOutcomeText.ts` | what an export wrote, or did not: the four refusal sentences and the partial-write one, pure, read by **both** screens. They live here because the activity list builds its text from an error CODE, and the generic "the export failed" it would otherwise reach is a second, vaguer vocabulary for an event the status line describes exactly. |
 | `useExport.ts` | `sayOutcome` — one call that says it to both; `refuse(reason, name)` and the write loop's partial report are its two callers. |
 | `JobActivity.tsx` | `failureText` prefers `storedExportOutcome` over the generic text, so the two screens cannot drift. |
+
+### The import budget is checked twice, and the second pass is the real one
+
+`useImportFiles` refuses a file from the header's **estimate** before anything is parsed, and again
+from the triangles actually **read**. The first pass is a guess: an STL header can lie, and a glTF's
+estimate may not be readable at all. So a cap enforced only on the estimate is a cap the real file
+walks past — and the 2026-11-11 audit found exactly that (`cia-audit-report.md` MIXO-01): the
+triangle and plate caps were re-checked after the read, the **memory** cap was not.
+
+The rule now has a guard rather than a habit. `importCapacity.test.ts` reads the source and fails if
+any `assert*Capacity` in the estimate branch is missing from the counted pass, so a cap added to one
+pass and forgotten in the other cannot ship. It also pins the memory cap to the **file's own** count:
+handed the drop's running total it would refuse a legal file because an earlier one was large, which
+is the plate cap's job and not memory's.
+
+Neither re-check can prevent the read — by then the mesh is in memory. What they prevent is the scene
+accepting the file, and every later pass over it.
 
 ### Two more of the same defect, found the same way on 2026-11-09 (§6b)
 
