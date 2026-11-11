@@ -1,5 +1,31 @@
 # Three-repo refactor plan: mixo-geocore, mixodental, mixomesh
 
+> ## ⚠ READ THIS BEFORE EXECUTING ANYTHING BELOW — reviewed 2026-11-12
+>
+> Four EGM reviewers went through this document against the code. Two things they found make it
+> **unsafe to execute as written**, and both are recorded here rather than silently patched:
+>
+> **1. PHASE 0 IS DONE, AND THIRTEEN PRESENT-TENSE INSTRUCTIONS BELOW ARE NOW HISTORY.** Every
+> cross-take in section 5 and GEO-001 in section 3 item 1 are implemented and pushed in all three
+> repos. **An engineer following section 5 would re-implement or revert working code.** Among them:
+> section 3 item 7's "add `navigator` to that pattern, three characters" is done (and its eslint half
+> has since been done too); section 5's "`gateStorage()` never asks whether this device can draw" is
+> false — mixoMesh has `gpuGate` now; "the `bootstrap()` catch paints an overlay on the viewport
+> only" is false; and `useDentalFlow.ts` already sends three values, not one. Treat sections 3 item 1
+> and 5 as a record of what was done, not as instructions.
+>
+> **2. C9 IS DANGEROUS, NOT MERELY OVER-SCOPED.** Its verdict — "Delete from mixomesh, do not move.
+> Clean job: positions + indices + one limit in, mesh + report out" — is **false about what those
+> 1,644 lines do**. See the row itself for the detail; the short version is that geocore's
+> `repairMesh` returns positions and indices and nothing else, while `MeshRepair.js:163-170` exists
+> precisely because every other per-vertex attribute must reach the new vertex count, a failure
+> already paid for once on twelve real scans.
+>
+> What survived review intact: section 3's ordering (prove the release before adding to it), C1, C2,
+> and the rejections S1, S2 and S6. What was rejected on a reason that does not hold: S3 and S5 — see
+> the review notes in section 6. The plan's durable half is its **rejections**; its phases are the
+> perishable half.
+
 **UNAPPROVED.** A plan only: no code was changed in any repository and nothing was committed.
 Written 2026-11-12 from the three `/cia` reports of 2026-11-11 and 2026-11-12, the engine-gap
 measurement and the spatial-input handoff. Finding ids (`GEO-`, `MIXO-`, `MX-`) are cited, not
@@ -52,7 +78,7 @@ Narrower out than in is a job. About the same is a hub, and moving a hub is moti
 
 | # | Candidate | Has it today | Verdict | Closes |
 |---|---|---|---|---|
-| C9 | **Mesh repair and diagnose** | mixomesh `src/core/repair/` (1,644 lines + the MeshFixLib WASM); geocore `host/core/repairMesh.ts` since engine 62/63 | **Delete from mixomesh, do not move.** Clean job: positions + indices + one limit in, mesh + report out. Gated on C4-C6 (the repair decoder is exactly where GEO-004/005/006 live) and on the 12-scan comparison the adherence report says was never run | the adherence report's "real drift"; *guess:* MX-01, if `diagnose_mesh` welds by position, which I did not read |
+| C9 | **Mesh repair and diagnose** | mixomesh `src/core/repair/` — **1,644 lines across SIX files, measured**: `MeshRepair.js` 656, `GroupRepair.js` 346, `RepairSession.js` 342, `Weld.js` 153, `CapLoops.js` 95, `Diagnose.js` 52, plus the MeshFixLib WASM; geocore `host/core/repairMesh.ts` since engine 62/63 | **⚠ DO NOT EXECUTE THIS ROW. Its verdict was wrong and the error loses user data.** It read "Delete from mixomesh, do not move. Clean job: positions + indices + one limit in, mesh + report out." The line count is exact; **the job description is false.** geocore's `repairMesh` returns `positions: Float32Array; indices: Uint32Array` and **nothing else — no UVs, no uv2, no colour**. `MeshRepair.js:161-170` exists for exactly that reason, and says so: *"Every OTHER per-vertex attribute the mesh carries must end up at the new vertex count too. Real scans carry normals, often tangents and a second UV set… the old write-back left `normal` at the OLD length and Babylon threw 'Invalid typed array length' on the first createNormals / render (12 real scans, 2026-09-18)."* **So this deletion would re-pay a bill mixoMesh already paid once, on the same twelve scans.** Also app-only with no geocore counterpart: `REPAIR_TRIANGLE_CAP` 300k, `REPAIR_TIMEOUT_MS` 60s, the fresh-WASM-instance-per-run workaround for engine state carry-over, the `'no engine:'` unavailability class callers branch on, `repairGroup`/`toLeadMatrix` over multiple parts (which `npm run test:group` exercises today), and `replayGeometryFixes`/history recording. **The real gate is not the 12-scan comparison — it is "geocore can return UVs", which is an engine ask nobody has written.** And that comparison cannot be configured today: `maxFillLoopMm` has no default by design, and the twelve scans are named in no repo, with no path, manifest or harness. The cheap first step nobody proposed: port mixoDental's `scripts/real-scan-gate.mjs`, which already has the right shape including `--allow-no-scans` reporting NOT RUN rather than PASS | nothing, until the engine ask exists |
 | C10 | **Worker job runner and activity list** | mixomesh `src/core/workers/{WorkerTask,serveTask,JobActivity}.js` — **216 / 47 / 193 lines** — beside the vendored `host/workers/{WorkerTask,serveTask,jobActivity}.ts` at **330 / 64 / 239** | **MEASURED 2026-11-12 and real: two live job layers in one app.** The app's own three serve its own workers (Boolean, MeshImport, StlEncode, MeshValidate…) while `src/support-engine/` imports the vendored `serveTask`, `geometryClient` and `meshWorker` for the support engine. So this is not a dead copy — both run. **This corrects the adherence report's "no app code re-implements a `host/` module", which was wrong.** Still not diffed line by line, so whether the app's 216 lines are a subset of the host's 330 or a divergence is open; that diff is the next step, not a deletion | the adherence report's own blind spot |
 
 ### Rows that stay per-app, and why
@@ -242,6 +268,34 @@ All of this is Phase 0. None of it touches `vendor/`, so the gap is irrelevant t
 | A cross-repo CI job checking the two apps against geocore HEAD | Three repos, one owner, CI that fires on tags only (MIXO-05). The Phase 5 local line is the cheap version | A second contributor, or the gap passes two versions again |
 
 ---
+
+## 6b. What four reviews changed, 2026-11-12
+
+The reviews are not in this file; their findings that change a decision are. Ordered by how much.
+
+| Row / section | What review found | Verdict now |
+|---|---|---|
+| **C9** | The deletion would lose per-vertex UVs, uv2 and colour on every repaired scan — see the row | **Do not execute.** Blocked on an engine ask that does not exist |
+| **C3** | mixoMesh imports 17 `editing/` modules and **not `commands.ts`**, so "both apps" was false and nothing planned makes it true. `UiState` is 27 required fields, not one. The field is `disabledReason`, not "enabled-reason". `ExtraCommandIds` + `registerCommands()` already do this without touching core | **Split.** `SpatialRecord` and C2 go in; the three command rows and the capability fact stay in mixoDental. `docs/handoff/geocore-spatial-input.md` §3 is withdrawn |
+| **C1** | Verified clean — three imports, nothing that parses. But it is gated behind Phase 4, which makes section 5 tell mixoMesh to write a copy now and delete it later: **creating duplication to defer a de-duplication.** It would also be the THIRD reader (geocore's own `host/supports/export.test.ts` already parses bytes inline), and retiring mixoMesh's needs a handedness parameter the moved file lacks | **Do it first, not in Phase 4.** Fold in geocore's inline parse while moving |
+| **C5** | The three cited lines are wrong (really `:211`, `:232`, `:283`) and **a strided reader cannot fix the case item 6 says to pin**: `decodeSteps` is not a strided loop, it is a per-index silent zero. Under-scoped too — `dentureReview.ts:291,321` walk a stride-7 array by another idiom | **Rewrite.** A length check in `decodeSteps` is the actual fix |
+| **C4** | The census is honest — exactly nine sites fall back to a neighbour's meaning. But `'unknown'` widens roughly nine public string unions, which the row prices at "2 in → 1 out", and nobody has written the word a user sees | **Keep, re-price.** Two undeclared owner decisions ride in engine 64: the sentences for `'unknown'` and for C7's `'nothing-built'` |
+| **C8** | Not one datum in two places but **two encodings** — eslint takes globs, the test takes regexes. "0 in → 1 list out" is a constant, which is a hub by this plan's own test | **Delete one list, do not add a module.** The `navigator` half of the drift is closed (geocore `45c71f9`) |
+| **C10** | Diffed. Three different answers: `serveTask` is effectively identical (a straight switch), `WorkerTask`'s vendored header says it IS a port of the app's file and the app's 216 lines are a behavioural subset, and **`JobActivity` is a genuine divergent fork** — the app has signal-scoped steps and `blockingJob()` for the overlay, the vendored one has `fractionOf` and lingering failures. Not free even for the easy two: the label type changes from `string` to `JobLabel` at every `run()` site, and two mixoMesh renderers read methods the vendored registry lacks | **Not a deletion.** One test that the two serve-protocols accept each other's messages, then decide `JobActivity` |
+| **Phase 2** | **It destroys its own verification baseline.** Every before/after check needs a measurement at engine 12, and the first step replaces the vendored tree wholesale. Also: decision 1's premise is wrong (`scatterAngle` is a preset key; saved records carry full settings, so existing projects do NOT silently change — new records and preset re-applies do, and pinning 50 flips `preset` to CUSTOM); decision 2 never names the four `minFromUpDeg: 0` sites, which become **180**, not 0; decision 3 names the test file, not the load path (`SupportsPersist.js:36-44`), and `isSupportsRecord` does not enumerate keys, so an old save is restored with two undefineds flowing into the engine as required numbers | **Capture and commit the engine-12 baseline first.** The three decisions need re-stating |
+| **Phase 5** | Comparing a release against a sibling **working tree** cries wolf whenever geocore has unreleased work — and a number that cries wolf is how a gap reaches 51 | **Compare against the newest released tag.** Promote to day one, print only, no threshold |
+| **S3, S5** | Both rejections are right in conclusion and wrong in reason. A type is handed nothing, so "in = out" does not measure it — applied consistently it would disqualify `SpatialRecord`, `Placement`, `PointerRecord` and `StatusMessage`, which geocore already ships. And S5's real job is not the scope list but the **missing staleness report** — three fields in, violations and allowances-that-matched-nothing out, and the second output IS the defect class, the same bug as mixoDental's i18n guard and mixoMesh's MX-07 allowlist | Keep both out, for better reasons: S3 buys zero behaviour change (geocore already ships the vocabulary in `editing/errors.ts`); S5 has no asset to ship in |
+| **Section 3 item 2** | `lib.rs:27` is mis-cited — it is a `test-abi` feature gate. The real literal is in `crates/geometry-core/src/lib.rs:27`, and **line 18 is a fourth site the plan never counts**: the number `engine_version()` returns, which cannot be deleted. Deleting `:27` as instructed removes the only Rust-side assertion. The staleness guard has **no mechanism** — mtime is wrong, because git records none | Re-state before executing |
+
+**One structural note worth keeping.** The table mixes three operations under one test: move a file
+(C1, C2), unify duplicates inside geocore (C4–C6, C8), and fix a defect in place (C7, whose Home
+column reads "stays in `host/`"). The "In → out" column only means anything for the first kind, so
+the true count of cross-repo moves is **two**, not eight.
+
+**And the honest reading of all four together:** this document's value is its rejections and section
+3's ordering. The phases are a week-shaped critical path in front of six fixes that each already
+carry a file, a line, an invariant and a failing test in the audits — and in front of mixoMesh's
+three HIGH findings, one of which destroys the user's unsaved work and appears nowhere here.
 
 ## 7. Not checked
 
