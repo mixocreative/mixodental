@@ -18,8 +18,16 @@
     "walk": "node scripts/walk.mjs",
     "walk:locales": "node scripts/walk.mjs --locales=en,ja,zh-Hant",
     "check:duplicates": "node scripts/check-no-duplicates.mjs",
+    "gate:nogl": "node scripts/no-webgl-gate.mjs",
     "gate:real": "node scripts/real-scan-gate.mjs"
   },
+  "browserslist": [
+    "chrome >= 93",
+    "edge >= 93",
+    "firefox >= 114",
+    "safari >= 15.4",
+    "ios_saf >= 15.4"
+  ],
   "devDependencies": {
     "@fontsource/atkinson-hyperlegible-next": "^5.3.0",
     "@fontsource/noto-serif": "^5.3.0",

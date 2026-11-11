@@ -15,6 +15,25 @@ export default defineConfig({
     },
   },
   build: {
+    /*
+     * THE BROWSER FLOOR, SAID OUT LOUD (audit MIXO-03).
+     *
+     * There was no target and no browserslist, so Vite's default `'modules'` applied - Chrome 87 and
+     * Safari 14 - while the source needed considerably more. The README promises tablets and phones,
+     * which makes the Safari number the one that matters.
+     *
+     * What sets each number, and nothing else does:
+     *   safari 15.4   `crypto.randomUUID` (3 sites), `Object.hasOwn` (1), `Array.prototype.at` (6).
+     *                 esbuild lowers SYNTAX, never these APIs, so no target can rescue an older one.
+     *   chrome / edge 93   `Object.hasOwn`, the last of the three to ship.
+     *   firefox 114   MODULE WORKERS - `new Worker(url, { type: 'module' })` in
+     *                 `src/workers/factories.ts`. Firefox shipped them in 114, long after Chrome 80
+     *                 and Safari 15, and it is the floor nobody would guess. The audit missed it too.
+     *
+     * `src/browserFloor.test.ts` keeps this list and package.json's `browserslist` in step, and
+     * refuses an API newer than the floor.
+     */
+    target: ['chrome93', 'edge93', 'firefox114', 'safari15.4'],
     assetsInlineLimit: (file) => (file.endsWith('.woff2') ? false : undefined),
   },
   test: {

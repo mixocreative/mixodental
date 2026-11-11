@@ -17,7 +17,7 @@ English · [繁體中文](README.zh-Hant.md) · [日本語](README.ja.md)
 
 ## Why mixoDental
 
-- **Works anywhere.** It runs in the browser on Windows, macOS, Linux, ChromeOS, tablets and phones. Open the link and start.
+- **Works anywhere.** It runs in the browser on Windows, macOS, Linux, ChromeOS, tablets and phones. Open the link and start. It needs WebGL2 and module workers, which sets the floor at **Chrome and Edge 93, Firefox 114, Safari 15.4** — declared in `package.json`'s `browserslist` and `vite.config.ts`'s `build.target`, and kept honest by `src/browserFloor.test.ts`. A browser below it is told so on the first screen; before 2026-11-12 it was shown a blank page instead.
 - **Private by design.** Models are read and processed on your device. Nothing is uploaded, and there is no sign-up and no analytics.
 - **Proven geometry.** The support generator matches the Blender SLASG / Resin UV support system, and is checked against real Blender output down to the bit.
 - **Fast on big models.** Heavy work runs in background workers, so the editor stays smooth, and every long task shows a progress bar.
