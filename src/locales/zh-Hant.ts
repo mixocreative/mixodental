@@ -1081,4 +1081,7 @@ export const zhHant: Dictionary = {
   'This part of the app stopped. The rest still works.': '應用程式的這個部分已停止。其他部分仍可運作。',
   'No print angle passed the check. Supports on this model need a close look before you export.': '沒有列印角度通過檢查。匯出前請仔細檢查此模型的支撐。',
   'The print-angle check could not finish, so this angle is unproven. Check the supports before you export.': '列印角度檢查無法完成，因此這個角度未經驗證。匯出前請檢查支撐。',
+  // MIXO-06: the files a start screen counted, when Open a saved project drops them
+  '1 dropped file was not imported: opening a project replaces everything on the plate.': '1 個拖放的檔案未匯入：開啟專案會取代底板上的所有內容。',
+  '{n} dropped files were not imported: opening a project replaces everything on the plate.': '{n} 個拖放的檔案未匯入：開啟專案會取代底板上的所有內容。',
 };

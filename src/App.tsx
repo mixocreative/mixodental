@@ -1396,7 +1396,23 @@ export default function App() {
       onBack={() => setStartScreen('drop')}
       onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} /></PanelBoundary></>
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
-      onScreen={goStart} onAnyModel={() => setStartScreen(null)} onOpenProject={() => runCommand('project.open')}
+      onScreen={goStart}
+      /*
+       * BOTH OF THESE NOW HONOUR THE FILES THE SCREEN COUNTED (audit MIXO-06).
+       *
+       * "Any model" imports the batch as plain models - it is the one purpose with nothing to
+       * detect, so `importFiles` with no profile is exactly right. "Open a saved project" cannot
+       * keep them, because opening replaces the scene; what it owes the operator is to SAY so with
+       * the count, instead of unmounting the screen and taking the files with it.
+       */
+      onAnyModel={(files) => {
+        setStartScreen(null);
+        if (files.length > 0) void importFiles(files, { takesOne: false, onRefused: setRefusedFiles });
+      }}
+      onOpenProject={(files) => {
+        if (files.length > 0) setStatusMessage({ key: '1 dropped file was not imported: opening a project replaces everything on the plate.', other: '{n} dropped files were not imported: opening a project replaces everything on the plate.', vars: { n: files.length } });
+        runCommand('project.open');
+      }}
       onProjectFile={(file) => void openProject(file)} onStart={startDental}
       onFiles={(files, profile) => {
         // The purpose pressed for the whole batch. Held here rather than in the session, because the

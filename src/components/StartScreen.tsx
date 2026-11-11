@@ -37,8 +37,17 @@ export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProje
   lang: Lang;
   /** `kind`: the job kind the file step is for (its status line); absent: the aligner. */
   onScreen: (screen: ChooserScreen, kind?: DentalKind) => void;
-  onAnyModel: () => void;
-  onOpenProject: () => void;
+  /**
+   * Into the workspace with no flow, CARRYING THE HELD BATCH (audit MIXO-06).
+   *
+   * It used to take nothing, so a case of eight dropped files was counted on screen - "8 files
+   * ready" - and then discarded when the operator pressed the one purpose that needs no detection.
+   * They landed in an empty workspace with nothing to undo and no way to tell whether the drop or
+   * the button had failed.
+   */
+  onAnyModel: (files: readonly File[]) => void;
+  /** Opening a project REPLACES the scene, so held files cannot survive it - but they must be named, not dropped in silence (MIXO-06). */
+  onOpenProject: (files: readonly File[]) => void;
   onProjectFile: (file: File) => void;
   onStart: (profile: string, file?: File) => void;
   /**
@@ -158,9 +167,11 @@ export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProje
         {/* The way into the workspace for work with no flow at all - and the ONLY one, which is why it
             stays even though the step flow no longer ends there (src/scenes/sceneMap.ts `doors`).
             Hiding it took Support Edit Mode, zones, the plate panel and every export with it. */}
-        <ChoiceKey icon="generic" label={t('Any model')} ui="start-any-model" onChoose={onAnyModel} />
+        {/* CLAIMED, not read, exactly as `choose` does it: the batch leaves `heldRef` in the same
+            statement, so a double press cannot import it twice (see `claimHeld`). */}
+        <ChoiceKey icon="generic" label={t('Any model')} ui="start-any-model" onChoose={() => { const batch = claimHeld(); setHeld([]); onAnyModel(batch); }} />
       </div>
-      <button type="button" className="link-button" onClick={onOpenProject}>{t('Open a saved project')}</button>
+      <button type="button" className="link-button" onClick={() => { const batch = claimHeld(); setHeld([]); onOpenProject(batch); }}>{t('Open a saved project')}</button>
     </div> : null}
     {screen === 'file' ? <div className="dental-stage">
       <div className="dental-drop">

@@ -1076,4 +1076,7 @@ export const ja: Dictionary = {
   'This part of the app stopped. The rest still works.': 'アプリのこの部分が停止しました。それ以外の部分は動作しています。',
   'No print angle passed the check. Supports on this model need a close look before you export.': 'チェックを通過したプリント角度がありません。書き出す前にこのモデルのサポートをよく確認してください。',
   'The print-angle check could not finish, so this angle is unproven. Check the supports before you export.': 'プリント角度のチェックを完了できなかったため、この角度は未検証です。書き出す前にサポートを確認してください。',
+  // MIXO-06: the files a start screen counted, when Open a saved project drops them
+  '1 dropped file was not imported: opening a project replaces everything on the plate.': 'ドロップされた 1 件のファイルは読み込まれませんでした。プロジェクトを開くとプレート上のすべてが置き換えられます。',
+  '{n} dropped files were not imported: opening a project replaces everything on the plate.': 'ドロップされた {n} 件のファイルは読み込まれませんでした。プロジェクトを開くとプレート上のすべてが置き換えられます。',
 };

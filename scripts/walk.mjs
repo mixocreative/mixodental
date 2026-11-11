@@ -1749,6 +1749,29 @@ async function walk(url, scratch, dentalFixture) {
       check('m10 Rim on a row the detector flagged opens rim drawing, not Step 1 over again',
         inRim && (await page.getByText('Place the aligner file here').count()) === 0,
         `rim panel ${inRim}, badge ${JSON.stringify((await page.locator('.edit-badge').textContent().catch(() => '')) ?? '')}, hint ${JSON.stringify(rimHint ?? '')}, file prompts ${await page.getByText('Place the aligner file here').count()}`);
+
+      /*
+       * m11: "ANY MODEL" KEEPS THE FILES THE SCREEN JUST COUNTED (audit MIXO-06).
+       *
+       * `Aligner` and `Denture` claimed the held batch; `Any model` and `Open a saved project` did
+       * not, so an operator who dropped a case of eight, read "8 files ready" and pressed the one
+       * purpose that needs no detection landed in an EMPTY workspace - 0 objects, no message,
+       * nothing to undo, and no way to tell whether the drop or the button had failed.
+       *
+       * It has to be checked here and not in the suite: the batch lives in a ref that only a real
+       * press can claim, and `environment: 'node'` with `renderToStaticMarkup` cannot click. This is
+       * the same reason `q3` exists for the double-press rule.
+       */
+      await page.goto(url);
+      await page.waitForSelector('.start-screen', { timeout: 60000 });
+      await dropModels([{ name: 'any-one.stl', text: cube }, { name: 'any-two.stl', text: cube }, { name: 'any-three.stl', text: cube }]);
+      await page.waitForSelector('[data-ui="start-held"]', { timeout: 60000 });
+      await page.locator('[data-ui="start-any-model"]').click();
+      const anyModelKept = await page.waitForFunction(
+        () => /(^|\D)3 objects?/.test(document.querySelector('footer')?.innerText ?? ''), null, { timeout: 180000 },
+      ).then(() => true, () => false);
+      check('m11 Any model imports the files the Drop page counted, instead of discarding them',
+        anyModelKept, `footer ${JSON.stringify((await page.locator('footer').innerText().catch(() => '')) ?? '')}`);
     }
 
     /*
