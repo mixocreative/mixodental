@@ -1009,9 +1009,9 @@
     "semantic_hash": ""
   },
   "dentalwork/README.md": {
-    "mtime": 1793597008.7359507,
-    "seen": 1793597575.8001053,
-    "ast_hash": "55a6d5e2792ae81210866d2f250d44c6",
+    "mtime": 1794417172.9131424,
+    "seen": 1794417799.374725,
+    "ast_hash": "227109d7ed7a983d563c3328ec7d879f",
     "semantic_hash": ""
   },
   "dentalwork/fixtures/README.md": {
@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794355154.464435,
-    "seen": 1794355174.190521,
-    "ast_hash": "3f260341b3a081a96fa010d760eaf716",
+    "mtime": 1794417746.8391817,
+    "seen": 1794417799.374725,
+    "ast_hash": "65a949fdd4821888e953c23a0523d7e8",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -4741,21 +4741,21 @@
     "semantic_hash": ""
   },
   "scripts/real-scan-gate-lib.mjs": {
-    "mtime": 1793596860.6003191,
-    "seen": 1793597575.7720518,
-    "ast_hash": "d0f9f344581a241852b9107acaf3118c",
+    "mtime": 1794417098.1783793,
+    "seen": 1794417799.374725,
+    "ast_hash": "53aaea28956afc7207d59112b02c2857",
     "semantic_hash": ""
   },
   "scripts/real-scan-gate.mjs": {
-    "mtime": 1793596878.5867748,
-    "seen": 1793597575.7720518,
-    "ast_hash": "8e4bff6093b5bf2d3b6d7ce67944d028",
+    "mtime": 1794417124.6286418,
+    "seen": 1794417799.374725,
+    "ast_hash": "2d1426ea451b061301da875a62506fcb",
     "semantic_hash": ""
   },
   "scripts/real-scan-gate.test.mjs": {
-    "mtime": 1793596860.622222,
-    "seen": 1793597575.7720518,
-    "ast_hash": "fd45dc11da923ad320608630ee507c3f",
+    "mtime": 1794417082.365834,
+    "seen": 1794417799.374725,
+    "ast_hash": "094024198032779401de6e2504e13c7f",
     "semantic_hash": ""
   },
   "src/denture/engine/dentureClient.test.ts": {
@@ -5803,9 +5803,9 @@
     "semantic_hash": ""
   },
   "src/components/useImportFiles.ts": {
-    "mtime": 1794173660.9244325,
-    "seen": 1794178380.6441789,
-    "ast_hash": "35649c4d9d0566c84001fb9b5a28f777",
+    "mtime": 1794416947.652541,
+    "seen": 1794417799.374725,
+    "ast_hash": "77220e448bec821b56caf55e777b39e5",
     "semantic_hash": ""
   },
   "src/components/useSupportChecks.ts": {
@@ -5815,9 +5815,9 @@
     "semantic_hash": ""
   },
   "src/components/README.md": {
-    "mtime": 1794197650.895397,
-    "seen": 1794198414.0305126,
-    "ast_hash": "a52c381411b867b30fe705b5f19c16ac",
+    "mtime": 1794416993.197652,
+    "seen": 1794417799.374725,
+    "ast_hash": "286ca08ba9ee961ee46e7c1c33d9df88",
     "semantic_hash": ""
   },
   "src/components/useSupportBuilds.ts": {
@@ -6160,6 +6160,30 @@
     "mtime": 1794352075.3222065,
     "seen": 1794355174.190521,
     "ast_hash": "b803de3026458f1cfbf1adf9a97f4d74",
+    "semantic_hash": ""
+  },
+  "src/components/importCapacity.test.ts": {
+    "mtime": 1794416924.109483,
+    "seen": 1794417799.374725,
+    "ast_hash": "fd797602ed6c3309da59ba106e53f862",
+    "semantic_hash": ""
+  },
+  "src/supports/exportBytes.test.ts": {
+    "mtime": 1794417352.5918517,
+    "seen": 1794417799.374725,
+    "ast_hash": "762e40cde9dbab3451459b1860310404",
+    "semantic_hash": ""
+  },
+  "docs/design/2026-11-11-repo-shape-and-the-spatial-puck.md": {
+    "mtime": 1794396708.4082494,
+    "seen": 1794417799.374725,
+    "ast_hash": "d377b6ea334d715eb543a72dd39786e1",
+    "semantic_hash": ""
+  },
+  "docs/handoff/geocore-spatial-input.md": {
+    "mtime": 1794415064.6739,
+    "seen": 1794417799.374725,
+    "ast_hash": "83659884b150411d4ffac9c701611286",
     "semantic_hash": ""
   }
 }
