@@ -378,9 +378,9 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
       const kept = keptDentalWork(unit, profile);
       const policy = { kind: 'two-contour' as const, profileId: profile, rim: proposal.rim, region,
         stamps: kept?.stamps ?? [], tuning: kept?.tuning ?? defaultDentalTuning(profile), structure };
-      const accept = (angleMovedDeg?: number) => {
+      const accept = (angleMovedDeg?: number, angleCheck?: 'none-held' | 'failed') => {
         dispatch({ type: 'batch', commands: [...presetCommands(unit, profile), { type: 'dental/set', unitId: unit.id, policy }] });
-        send({ type: 'acceptDentalOrientation', ...(angleMovedDeg === undefined ? {} : { angleMovedDeg }) });
+        send({ type: 'acceptDentalOrientation', ...(angleMovedDeg === undefined ? {} : { angleMovedDeg }), ...(angleCheck === undefined ? {} : { angleCheck }) });
         requestView('bottom');
       };
       // The print-angle confirm: the automatic pick is built for real; a hand-chosen tilt is kept as chosen.
@@ -405,9 +405,15 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
         order.map((index) => scan.rows[index]!.rotation), { key: 'Checking the print angle of {name}', vars: { name: unitName(unit.id) } }).then((result) => {
         const confirmed = result?.confirmed;
         if (!settled(confirmed)) return;
+        /*
+         * THREE OUTCOMES, THREE ANSWERS (audit MIXO-02). `confirmed` is the index of the first tilt
+         * whose build holds; `undefined` means NONE of the tried set did, and the pick stays. Until
+         * now that case, and a rejected check, both called `accept()` exactly as the confirmed case
+         * does - so the one place the app knows its central claim failed for this model said nothing.
+         */
         const moved = confirmed !== undefined && confirmed > 0 ? Number(tiltLabel(scan.rows[order[confirmed]!]!.tiltDeg)) : undefined;
-        accept(moved);
-      }, () => { if (settled(undefined)) accept(); });
+        accept(moved, confirmed === undefined ? 'none-held' : undefined);
+      }, () => { if (settled(undefined)) accept(undefined, 'failed'); });
     }, () => { if (detectionSeq.current === detection) setStatus('Dental contour detection failed. No support area was approved.'); });
   }, [analysis, dispatch, keepTilt, requestView, send, sceneRef, sessionRef, setStatus, turnTo, unitName]);
 

@@ -40,7 +40,20 @@ export type DentalNotice =
   | { kind: 'bad-file'; message: StatusMessage }
   | { kind: 'failed' } | { kind: 'denture-failed' } | { kind: 'uncertain' } | { kind: 'holes' } | { kind: 'mismatch' } | { kind: 'no-area' }
   /** Step 2: the print-angle confirm moved the automatic pick to this tilt (degrees, shown to 0.1). */
-  | { kind: 'angle-moved'; deg: number };
+  | { kind: 'angle-moved'; deg: number }
+  /*
+   * THE TWO WAYS THE PRINT-ANGLE CONFIRM CAN FAIL, which until now said nothing (audit MIXO-02).
+   *
+   * `confirmPick` returns `confirmed: undefined` when NO tilt in the tried set produces a build that
+   * holds, and the promise can reject outright. Both used to reach the same `accept()` as "the first
+   * pick was confirmed" - three outcomes, one screen - so an operator could paint an area and build
+   * supports on an angle the app had privately judged unusable, and hear about it later from the
+   * Step 3 check or an export refusal, after the work.
+   *
+   * They are two notices and not one because the operator's next move differs: nothing held is an
+   * answer about THIS MODEL, and the check not finishing is an answer about the RUN.
+   */
+  | { kind: 'angle-none-held' } | { kind: 'angle-check-failed' };
 
 type Proposal = Extract<DentalProposal, { kind: 'proposal' }>;
 
@@ -96,7 +109,8 @@ export type DentalEvent =
   | { type: 'dentureOriented'; notices?: readonly DentalNotice[] }
   | { type: 'dentalBadFile'; message: StatusMessage }
   | { type: 'dismissDentalNotice'; kind: DentalNotice['kind'] }
-  | { type: 'acceptDentalOrientation'; noArea?: boolean; angleMovedDeg?: number }
+  /** `angleCheck` is absent when the angle was PROVED; the two values are the outcomes that were silent (MIXO-02). */
+  | { type: 'acceptDentalOrientation'; noArea?: boolean; angleMovedDeg?: number; angleCheck?: 'none-held' | 'failed' }
   | { type: 'acceptDentalArea' }
   /** OK in Step 3: this aligner is finished and the flow ends; it stays on the plate. */
   | { type: 'finishDental'; unitId: string }
@@ -313,7 +327,7 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
         return { ...state, dentalStage: 'review', dentalNotices: [], tool: 'select', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION };
       }
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'ready'
-        ? { ...state, dentalStage: 'area', tool: 'select', addAction: 'add', selection: NO_SELECTION, dentalNotices: [...(event.noArea ? [{ kind: 'no-area' as const }] : []), ...(event.angleMovedDeg === undefined ? [] : [{ kind: 'angle-moved' as const, deg: event.angleMovedDeg }])] }
+        ? { ...state, dentalStage: 'area', tool: 'select', addAction: 'add', selection: NO_SELECTION, dentalNotices: [...(event.noArea ? [{ kind: 'no-area' as const }] : []), ...(event.angleMovedDeg === undefined ? [] : [{ kind: 'angle-moved' as const, deg: event.angleMovedDeg }]), ...(event.angleCheck === undefined ? [] : [{ kind: event.angleCheck === 'none-held' ? 'angle-none-held' as const : 'angle-check-failed' as const }])] }
         : state;
     case 'acceptDentalArea':
       return state.mode === 'dental' && state.dentalStage === 'area'

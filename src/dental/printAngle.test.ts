@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { decodeTiltScan, type TiltRow } from '@mixo-geocore/host/dental/dentalTilt';
 import type { DentalTiltScanResultLike } from '@mixo-geocore/host/dental/dentalEngine';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
-import { tiltFlags, tiltProblems } from '../components/DentalSteps';
+import { noticeText, tiltFlags, tiltProblems } from '../components/DentalSteps';
 import { confirmHolds } from './confirmTilt';
 import { reduceSession, initialSession } from '@mixo-geocore/editing/session';
 
@@ -53,5 +53,46 @@ describe('print angle (docs/ROADMAP.md F)', () => {
     expect(moved.dentalStage).toBe('area');
     expect(moved.dentalNotices).toEqual([{ kind: 'angle-moved', deg: 43.5 }]);
     expect(reduceSession(ready, { type: 'acceptDentalOrientation' }).dentalNotices).toEqual([]);
+  });
+
+  /*
+   * THE CONFIRM CAN SAY NO (audit MIXO-02), and this is the test that fails if it stops being able to.
+   *
+   * `confirmPick` returns `confirmed: undefined` when NO tilt in the tried set builds supports that
+   * hold, and the check itself can reject. Both used to reach the same `accept()` as the confirmed
+   * case - three outcomes, ONE screen - so an operator could paint an area and build on an angle the
+   * app had privately judged unusable, hearing about it later from the Step 3 check or an export
+   * refusal, after the work.
+   *
+   * The assertion is not which words appear - those are placeholder and the owner's to change - but
+   * that the three outcomes are THREE, and that each of the two bad ones has words at all.
+   */
+  it('Step 2 opens saying so when the confirm found nothing, or could not finish', () => {
+    const ready = { ...initialSession, mode: 'dental' as const, dentalStage: 'aligner' as const, dentalAligner: 'ready' as const };
+    const notices = (event: Parameters<typeof reduceSession>[1]) => reduceSession(ready, event).dentalNotices;
+
+    expect(notices({ type: 'acceptDentalOrientation', angleCheck: 'none-held' })).toEqual([{ kind: 'angle-none-held' }]);
+    expect(notices({ type: 'acceptDentalOrientation', angleCheck: 'failed' })).toEqual([{ kind: 'angle-check-failed' }]);
+
+    // Three outcomes, three states. This is the whole finding: before the fix all three were [].
+    const outcomes = [
+      notices({ type: 'acceptDentalOrientation' }),
+      notices({ type: 'acceptDentalOrientation', angleCheck: 'none-held' }),
+      notices({ type: 'acceptDentalOrientation', angleCheck: 'failed' }),
+    ].map((list) => JSON.stringify(list));
+    expect(new Set(outcomes).size, 'the confirmed, nothing-held and did-not-finish cases must differ').toBe(3);
+
+    // A notice nobody has words for is the same silence in a different place.
+    for (const kind of ['angle-none-held', 'angle-check-failed'] as const) {
+      const words = noticeText({ kind });
+      expect(words.trim().split(/\s+/).length, kind).toBeGreaterThan(4);
+    }
+    expect(noticeText({ kind: 'angle-none-held' })).not.toBe(noticeText({ kind: 'angle-check-failed' }));
+  });
+
+  it('still carries a moved angle alongside a failed check, because both can be true', () => {
+    const ready = { ...initialSession, mode: 'dental' as const, dentalStage: 'aligner' as const, dentalAligner: 'ready' as const };
+    expect(reduceSession(ready, { type: 'acceptDentalOrientation', angleMovedDeg: 43.5, angleCheck: 'failed' }).dentalNotices)
+      .toEqual([{ kind: 'angle-moved', deg: 43.5 }, { kind: 'angle-check-failed' }]);
   });
 });

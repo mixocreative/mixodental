@@ -50,6 +50,10 @@ export function noticeText(notice: DentalNotice, kind?: DentalKind): string {
     case 'mismatch': return t('This looks like a different aligner type: no central opening was found.');
     case 'no-area': return t('No support area was detected on this aligner. Mark where supports may go. Next stays off until some area is marked.');
     case 'angle-moved': return t('Print angle moved to {n}°', { n: notice.deg });
+    // PLACEHOLDER WORDING, the owner's to change (MIXO-02). What is not negotiable is that these two
+    // outcomes say something: before this they were byte-for-byte the "confirmed" path.
+    case 'angle-none-held': return t('No print angle passed the check. Supports on this model need a close look before you export.');
+    case 'angle-check-failed': return t('The print-angle check could not finish, so this angle is unproven. Check the supports before you export.');
   }
 }
 
