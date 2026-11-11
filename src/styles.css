@@ -1660,3 +1660,19 @@ dialog.terms .terms-item > span { flex: none; }
 .tool-reason { margin: 6px 0 0; padding: 0 8px; color: var(--muted); font-size: var(--small-size, 11.5px); }
 .items-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
 .items-left { color: var(--muted); font-size: var(--small-size, 11.5px); }
+
+/* ---- The stopped screen (src/AppBoundary.tsx) ----------------------------
+ *
+ * Shown INSTEAD of the app: a browser with no WebGL2, the engine failing to load, or any uncaught
+ * render error. Before this the page simply emptied - zero children, zero text (audit MIXO-04).
+ *
+ * EVERY COLOUR NAMES A TOKEN AND A LITERAL FALLBACK. This is the one surface whose job is to render
+ * when something is already wrong, and a missing custom property is a silent total failure in this
+ * app - an unstyled but legible error screen beats a correctly-themed invisible one.
+ */
+.stopped { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--paper, #f3f3f4); color: var(--ink, #15171a); }
+.stopped-card { max-width: 34rem; text-align: left; background: var(--surface, #ffffff); border: 1px solid var(--line, #d7d9dd); border-radius: var(--radius, 8px); padding: 24px; }
+.stopped-title { margin: 0 0 12px; font-size: 20px; font-weight: 600; line-height: 1.3; }
+.stopped-text { margin: 0 0 20px; color: var(--muted, #5b6069); }
+.stopped-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.stopped-detail { margin: 20px 0 0; font-family: ui-monospace, monospace; font-size: var(--small-size, 11.5px); color: var(--muted, #5b6069); }

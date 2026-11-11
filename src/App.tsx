@@ -53,6 +53,7 @@ import type { UnresolvedPoint } from '@mixo-geocore/host/core/supports/mesh';
 import { useFreeTransform } from './components/useFreeTransform';
 import type { DentalFreeControls } from './components/OrientationBar';
 import { useProjectFile } from './components/useProjectFile';
+import { publishSceneSave } from './rescue';
 import { isProjectFile } from './state/projectFile';
 import { hint } from './components/hint';
 import { isOrientationStep, NO_SUPPORT_MESHES } from './dental/step1View';
@@ -581,6 +582,18 @@ export default function App() {
   }, [pulseLeftPanel]);
   const closeStart = useCallback(() => setStartScreen(null), []);
   const { openProject, saveProject, chooseProject } = useProjectFile({ sceneRef, modeRef: sessionRef, replace: replaceWith, setStatusMessage, offerUndo, refused: refuseWhileBusy, scene, onOpened: closeStart });
+
+  /*
+   * THE SAVE, LEFT WHERE A CRASH CAN STILL REACH IT (audit MIXO-04, `src/rescue.ts`).
+   *
+   * An uncaught render error unmounts this whole tree, so `AppBoundary` renders with no way back
+   * into this component - and the scene lives here and nowhere else. Published only while there IS
+   * something to lose, so the stopped screen never shows a Save button over an empty plate.
+   *
+   * NO CLEANUP, deliberately: the unmount this has to survive IS the crash. Clearing the slot on
+   * the way out would take the save away at the one moment it is needed.
+   */
+  useEffect(() => { publishSceneSave(scene.units.length > 0 ? saveProject : undefined); }, [saveProject, scene.units.length]);
 
   // ---- Commands ------------------------------------------------------------------------
   const forTargets = useCallback((make: (unit: PrintUnit) => SceneCommand | undefined, edit?: string) => {

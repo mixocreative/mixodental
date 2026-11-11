@@ -1064,4 +1064,12 @@ export const ja: Dictionary = {
   "Supports ready. Every point is held.": "サポートができました。すべての点が支えられています。",
   'Waiting its turn…': '順番待ち…',
   'Draw the rim on this model.': 'このモデルに縁を描画します。',
+  // The stopped screen: shown when the app cannot start or a render threw (src/AppBoundary.tsx)
+  'mixoDental cannot start on this device': 'mixoDental はこの端末で起動できません',
+  'The 3D engine did not load': '3D エンジンが読み込まれませんでした',
+  'The workspace stopped': 'ワークスペースが停止しました',
+  'This browser could not start WebGL2 3D graphics, which mixoDental needs to show and prepare models. Try Chrome or Edge on a desktop computer.': 'このブラウザでは、mixoDental がモデルの表示と準備に必要な WebGL2 3D グラフィックスを起動できませんでした。デスクトップ コンピューターで Chrome または Edge をお試しください。',
+  'Reload the page to try again. If it keeps happening, your browser may be blocking WebAssembly.': 'ページを再読み込みして、もう一度お試しください。問題が続く場合は、ブラウザが WebAssembly をブロックしている可能性があります。',
+  'Your models are still in this page. Save them before reloading - a reload does not keep them.': 'モデルはまだこのページにあります。再読み込みでは保持されないため、再読み込みの前に保存してください。',
+  'Reload': '再読み込み',
 };
