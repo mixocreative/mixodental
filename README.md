@@ -100,6 +100,16 @@ npm test         # Vitest suite, including the Blender parity tests
 npm run build    # type-check and production build into dist/
 ```
 
+**One gate, and the receipt it leaves.** `npm run gate` runs types, the vendor check, the suite,
+duplicates, screens, the build, the engine smoke, `gate:nogl` and `gate:real` in one command, writes
+each step's own log and a receipt to `artefacts/gate/<sha>.json` — HEAD's sha, every exit code, the
+counts, **whether the tree was dirty**, and the two things it did NOT run and why — then prints the
+line to paste into `docs/HANDOFF.md`. `npm run gate -- --list` names the steps without running them.
+It exists because nothing outside the person running it could tell a gated revision from an ungated
+one; `artefacts/` is git-ignored, so the handoff line is what travels. It does not run the walk
+(half an hour, and nothing else may run beside it) or `npm run fonts` (which rewrites the subset
+faces — a gate must not change the tree it gates).
+
 **Real-scan gate (local only, never CI).** `npm run gate:real` runs every local real scan (dentures, aligners, multi-part files in `dentalwork/fixtures/case-*`, `-sup` files skipped, one scan at a time) through the folder-review batch and compares tips placed and left out, tips by source, unresolved islands, print angle, verdict and the SHA-256 of every GLB and peel file with `dentalwork/baselines/real-scan-baseline.json`. It exits non-zero on any difference; `-- --kinds denture,aligner,multipart` runs a subset; `-- --update` writes a new baseline (only when a change is meant, and say so in the commit). Required after any engine change, including every `vendor:geometry` bump. It is too slow for `npm test`. Without local scans it prints "skipped" and exits 0. The baseline holds numbers and hashes only, keyed by kind plus a truncated hash of the scan's bytes (no file names).
 
 CI (`.github/workflows/ci.yml`) runs on every push and pull request: Rust tests, app tests, the production build and the browser walk. A push to `main` is deployed to GitHub Pages only after the tests and the walk pass. Dependabot (`.github/dependabot.yml`) opens one pull request a month when a CI action has a new version.
@@ -107,6 +117,7 @@ CI (`.github/workflows/ci.yml`) runs on every push and pull request: Rust tests,
 ### Browser walk
 
 ```bash
+npm run gate     # every check below except the walk, then a receipt under artefacts/gate/
 npm run walk     # about 10 minutes, exit code 1 on any FAIL
 ```
 
