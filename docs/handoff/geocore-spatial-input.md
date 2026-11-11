@@ -126,14 +126,32 @@ registry row, not a redesign. The owner's call either way.
   hand-held device is a port designed twice. The value of this doc today is that the boundary is
   settled before either side is written.
 
-## One risk found while checking this
+## The constraint found while checking this: the two apps are 51 engine versions apart
 
-mixoDental pins its copy of the engine: `vendor/mixo-geocore/SOURCE.json` carries the commit, the
-engine version and a **sha256 per file**, and `VERSION` reads `63`. **mixoMesh's
-`vendor/mixo-geocore/` has neither** — just `editing/` and `host/`, with nothing recording which
-commit they came from.
+**Both apps pin their copy properly.** An earlier revision of this doc claimed mixoMesh had no
+stamp; that was wrong, and it is corrected here rather than quietly dropped so nobody re-derives it.
+mixoMesh's layout simply differs — the engine must be served by Vite, so it sits in
+`public/vendor/mixo-geocore/` with the stamp, while the TypeScript sits in
+`vendor/mixo-geocore/{host,editing}`. Looking only at the latter is what produced the wrong claim.
 
-So the layer the two apps already share is shared with a stamp on one side only, and a drift between
-them would be silent. That is the failure class this project's doctrine refuses by name, and it is
-worth fixing **before** a new shared surface is added on top of it: whatever `editing/` is vendored
-into mixoMesh should carry the same `SOURCE.json`.
+| | stamp | engine | commit |
+|---|---|---|---|
+| mixoDental | `vendor/mixo-geocore/SOURCE.json`, 110 files hashed | **63** | `b5a71ab` |
+| mixoMesh | `public/vendor/mixo-geocore/SOURCE.json`, 97 files hashed | **12** | `6cc5385` |
+
+Both verify. `node scripts/vendor-geometry.mjs --check` in mixoMesh exits 0:
+*"mixo-geocore engine 12 (6cc5385) verified in public/vendor/mixo-geocore and vendor/mixo-geocore."*
+
+**What actually follows is a schedule, not a defect.** Of the 94 `host/` + `editing/` files the two
+apps have in common, **20 differ**, and mixoDental carries 16 the other does not. So `editing/` is a
+layer both apps *vendor*, not a layer both apps are *level on*.
+
+For this ask that means: a new `editing/SpatialPort` and its `COMMAND_IDS` rows land in geocore at 63
+or later. **mixoDental picks them up on its next vendor; mixoMesh picks them up only when it
+re-vendors across 51 ABI versions**, which is its own project and not a side effect of this one. The
+sharing is real in the design and deferred in practice on the mixoMesh side — so write the port for
+geocore, expect mixoDental to use it first, and do not size the work as though both apps light up
+together.
+
+The one cheerful part: because both stamps exist and both carry `engineVersion`, measuring that gap
+is reading two files. No new mechanism is needed to see it — only the habit of looking.
