@@ -20,7 +20,8 @@
     "check:duplicates": "node scripts/check-no-duplicates.mjs",
     "gate": "node scripts/gate.mjs",
     "gate:nogl": "node scripts/no-webgl-gate.mjs",
-    "gate:real": "node scripts/real-scan-gate.mjs"
+    "gate:real": "node scripts/real-scan-gate.mjs",
+    "gate:tier": "node scripts/real-scan-tier.mjs"
   },
   "browserslist": [
     "chrome >= 93",

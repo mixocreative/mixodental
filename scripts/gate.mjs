@@ -48,6 +48,7 @@ const STEPS = [
   { id: 'wasm', what: 'the engine smoke', cmd: ['npm', 'run', 'wasm:test'] },
   { id: 'nogl', what: 'every way the app can fail to START says so', cmd: ['npm', 'run', 'gate:nogl'], count: /gate: (\d+)\/\d+ PASS/ },
   { id: 'real', what: 'the local real scans against their baseline', cmd: ['npm', 'run', 'gate:real'], count: /ran (\d+) scan/ },
+  { id: 'tier', what: 'how many real-scan test blocks this machine could run', cmd: ['npm', 'run', 'gate:tier'], count: /tier: (\d+) of \d+ blocks/ },
 ];
 
 /** Not run by this command, named so the receipt cannot be read as more than it is. */

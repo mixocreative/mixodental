@@ -101,7 +101,8 @@ npm run build    # type-check and production build into dist/
 ```
 
 **One gate, and the receipt it leaves.** `npm run gate` runs types, the vendor check, the suite,
-duplicates, screens, the build, the engine smoke, `gate:nogl` and `gate:real` in one command, writes
+duplicates, screens, the build, the engine smoke, `gate:nogl`, `gate:real` and `gate:tier` in one
+command, writes
 each step's own log and a receipt to `artefacts/gate/<sha>.json` — HEAD's sha, every exit code, the
 counts, **whether the tree was dirty**, and the two things it did NOT run and why — then prints the
 line to paste into `docs/HANDOFF.md`. `npm run gate -- --list` names the steps without running them.
@@ -110,7 +111,14 @@ one; `artefacts/` is git-ignored, so the handoff line is what travels. It does n
 (half an hour, and nothing else may run beside it) or `npm run fonts` (which rewrites the subset
 faces — a gate must not change the tree it gates).
 
-**Real-scan gate (local only, never CI).** `npm run gate:real` runs every local real scan (dentures, aligners, multi-part files in `dentalwork/fixtures/case-*`, `-sup` files skipped, one scan at a time) through the folder-review batch and compares tips placed and left out, tips by source, unresolved islands, print angle, verdict and the SHA-256 of every GLB and peel file with `dentalwork/baselines/real-scan-baseline.json`. It exits non-zero on any difference; `-- --kinds denture,aligner,multipart` runs a subset; `-- --update` writes a new baseline (only when a change is meant, and say so in the commit). Required after any engine change, including every `vendor:geometry` bump. It is too slow for `npm test`. Without local scans it prints "skipped" and exits 0. The baseline holds numbers and hashes only, keyed by kind plus a truncated hash of the scan's bytes (no file names).
+**Real-scan gate (local only, never CI).** `npm run gate:real` runs every local real scan (dentures, aligners, multi-part files in `dentalwork/fixtures/case-*`, `-sup` files skipped, one scan at a time) through the folder-review batch and compares tips placed and left out, tips by source, unresolved islands, print angle, verdict and the SHA-256 of every GLB and peel file with `dentalwork/baselines/real-scan-baseline.json`. It exits non-zero on any difference; `-- --kinds denture,aligner,multipart` runs a subset; `-- --update` writes a new baseline (only when a change is meant, and say so in the commit). Required after any engine change, including every `vendor:geometry` bump. It is too slow for `npm test`. **A run that found no scans at all FAILS** (MIXO-07): a gate that looked at nothing must not exit 0, so a machine that is meant not to have the scans passes `-- --allow-no-scans`, and the word is then NOT RUN, never PASS. A partly present fixture set also fails, by name, because an in-scope baseline case that did not run counts as a difference. The baseline holds numbers and hashes only, keyed by kind plus a truncated hash of the scan's bytes (no file names).
+
+**Real-scan test tier (`npm run gate:tier`).** Seven `describe.skipIf` blocks hold the only proofs that
+run against real patient scans, and they disappear silently on a machine without the fixtures — vitest
+prints a bare "N skipped" and the receipt counts passes only, so the machine that verified least reads
+like the one that verified most (MIXO-08). This names the count and every block it could not run, and
+it is a gate step so the number lands in the receipt and the handoff line. Absence does not fail it;
+an unregistered `skipIf` block does, because that is the silence coming back.
 
 CI (`.github/workflows/ci.yml`) runs on every push and pull request: Rust tests, app tests, the production build and the browser walk. A push to `main` is deployed to GitHub Pages only after the tests and the walk pass. Dependabot (`.github/dependabot.yml`) opens one pull request a month when a CI action has a new version.
 
