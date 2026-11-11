@@ -47,8 +47,15 @@ truthful under rule 1, and un-numbering every badge would touch about 35 walk as
 the progress cue. The rim badge was the only change worth making — and it cost nothing, because
 `Define the rim` was already a key in both locales.
 
-**Recorded debt:** the Step 2 / Step 3 help line in `SettingsPanel.tsx` is wrong for a denture, but
-its `dentalMode` prop is passed only by `SettingsPanel.test.tsx`, so it never renders in the app.
+**And a dead surface the naming question uncovered.** `SettingsPanel` carried a `dentalMode` prop
+with four branches — it hid five setting groups, dropped Preset and Roof/cage, and showed a line
+reading "Dental contact area is set in Step 2… set in Step 3". `App.tsx` renders the panel inside
+`editMode !== 'dental'` and never passed the prop, so **dental mode hides the whole panel** and that
+variant could not render at all. Its one test was titled "during dental review" and proved a
+configuration the app cannot reach. The prop, the four branches, the string in three languages and
+the test are deleted: the app's real answer to "which settings show during dental review" is "none,
+the panel is gone", and `DentalBar` plus `DentalSupportsStep` own those controls. Nothing can pass
+`dentalMode` now, so the variant cannot come back by accident.
 
 ## The hooks: one job each
 

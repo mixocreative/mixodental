@@ -856,7 +856,6 @@ export const ja: Dictionary = {
   'Finished {n} aligners on the plate. Export STL or Save project to keep them.': 'プレート上のアライナー {n} 個を完了しました。STL を書き出すかプロジェクトを保存してください。',
   '{n} aligner finished and ready on the plate. Export STL (right panel) or Save project to keep your work.': 'アライナー {n} 個がプレート上に完成しています。STL の書き出し（右パネル）またはプロジェクトの保存で作業を残してください。',
   '{n} aligners finished and ready on the plate. Export STL (right panel) or Save project to keep your work.': 'アライナー {n} 個がプレート上に完成しています。STL の書き出し（右パネル）またはプロジェクトの保存で作業を残してください。',
-  'Dental contact area is set in Step 2. Tip size, density, lift, raft, trees and braces are set in Step 3.': '接触領域はステップ 2、先端サイズ・密度・持ち上げ・ラフト・ツリー・補強材はステップ 3 で設定します。',
   'Close this note': 'このメモを閉じます。',
   'resin trap': 'レジン溜まり',
   'gap in the rim supports': 'リムのサポートの隙間',

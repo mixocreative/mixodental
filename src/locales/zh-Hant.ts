@@ -861,7 +861,6 @@ export const zhHant: Dictionary = {
   'Finished {n} aligners on the plate. Export STL or Save project to keep them.': '底板上已完成 {n} 個牙套。匯出 STL 或儲存專案以保留它們。',
   '{n} aligner finished and ready on the plate. Export STL (right panel) or Save project to keep your work.': '底板上已有 {n} 個牙套完成就緒。匯出 STL（右側面板）或儲存專案以保留您的成果。',
   '{n} aligners finished and ready on the plate. Export STL (right panel) or Save project to keep your work.': '底板上已有 {n} 個牙套完成就緒。匯出 STL（右側面板）或儲存專案以保留您的成果。',
-  'Dental contact area is set in Step 2. Tip size, density, lift, raft, trees and braces are set in Step 3.': '牙套接觸區於步驟 2 設定。支撐頭尺寸、密度、提升高度、底筏、樹狀與加強桿於步驟 3 設定。',
   'Close this note': '關閉這則提示',
   'resin trap': '樹脂滯留區',
   'gap in the rim supports': '邊緣支撐缺口',
