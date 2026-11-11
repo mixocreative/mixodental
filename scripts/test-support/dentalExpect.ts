@@ -1,9 +1,12 @@
-import { cross, dot, length, normalize, subtract, type Vector } from '@mixo-geocore/host/core/vec3';
-import type { DentalRim } from '@mixo-geocore/host/dental/dental';
+import { cross, dot, length, normalize, type Vector } from '@mixo-geocore/host/core/vec3';
 
 /*
- * Small pure helpers for dental tests and the disposable orientation probe (kept when the TS oracle was removed:
- * the production detector lives in Rust, these only express an expectation).
+ * One pure helper for dental tests and the disposable orientation probe (kept when the TS oracle was
+ * removed: the production detector lives in Rust, this only expresses an expectation).
+ *
+ * `rimContainsPoint` used to sit beside it and was deleted at MIXO-09: U8 ported the visibility
+ * footprint to Rust `dental/legacy.rs`, and the TS copy stayed behind with no caller for a month
+ * while `docs/SHIP-PLAN.md` still listed it as production code.
  */
 
 /** The shortest Euler XYZ rotation that maps an accepted cavity opening to plate-down. */
@@ -34,18 +37,4 @@ export function rotationToPlateDown(openingDirection: Vector): Vector {
     Math.asin(Math.max(-1, Math.min(1, m13))),
     Math.atan2(-m12, m11),
   ];
-}
-
-/** Whether a unit-local point projects into the detected cavity visibility footprint. */
-export function rimContainsPoint(rim: DentalRim, point: Vector): boolean {
-  const delta = subtract(point, rim.centroid);
-  const u = dot(delta, rim.tangent);
-  const v = dot(delta, rim.bitangent);
-  const width = rim.visibilityMax[0] - rim.visibilityMin[0];
-  const height = rim.visibilityMax[1] - rim.visibilityMin[1];
-  if (!(width > 0) || !(height > 0)) return false;
-  const x = Math.floor(((u - rim.visibilityMin[0]) / width) * rim.visibilityResolution);
-  const y = Math.floor(((v - rim.visibilityMin[1]) / height) * rim.visibilityResolution);
-  if (x < 0 || x >= rim.visibilityResolution || y < 0 || y >= rim.visibilityResolution) return false;
-  return rim.visibilityMask[y * rim.visibilityResolution + x] === 1;
 }
