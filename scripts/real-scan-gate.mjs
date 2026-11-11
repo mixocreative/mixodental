@@ -3,6 +3,7 @@
 //   npm run gate:real                       compare; exit 1 on any difference
 //   npm run gate:real -- --kinds denture    subset (denture, aligner, multipart)
 //   npm run gate:real -- --update           write a new baseline (only when explicitly wanted)
+//   npm run gate:real -- --allow-no-scans   a machine with no scans may pass - as NOT RUN, not PASS
 //
 // Local only, never CI: the scans are patient data and live in git-ignored dentalwork/fixtures. One scan
 // at a time (peak memory). Scans are read in place. The baseline holds numbers and hashes only, keyed by
@@ -13,7 +14,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { compareRuns, formatDifferences, recordOf } from './real-scan-gate-lib.mjs';
+import { compareRuns, formatDifferences, recordOf, scanCoverage } from './real-scan-gate-lib.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(root, 'dentalwork', 'baselines', 'real-scan-baseline.json');
@@ -32,16 +33,45 @@ for (const kind of kinds) if (!SETS[kind]) { console.error(`Unknown kind "${kind
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const scans = [];
+/** Fixture folders this machine does not have, so the run can say what it could not look at. */
+const absent = [];
 for (const kind of kinds) {
   const dir = join(root, SETS[kind].dir);
-  if (!existsSync(dir)) continue;
+  if (!existsSync(dir)) { absent.push(SETS[kind].dir); continue; }
   for (const name of readdirSync(dir).sort()) {
     if (!name.toLowerCase().endsWith('.stl') || name.toLowerCase().includes('-sup')) continue;
     const file = join(dir, name);
     scans.push({ kind, file, id: `${kind}-${sha(readFileSync(file)).slice(0, 12)}` });
   }
 }
-if (scans.length === 0) { console.log('real-scan gate: skipped, no local scans (dentalwork/fixtures/case-*).'); process.exit(0); }
+/** What this run covered, printed on every verdict so a reduced run cannot read like a full one. */
+const scope = kindsAt < 0 ? 'all kinds' : `kinds ${kinds.join(',')}`;
+if (absent.length) console.error(`real-scan gate: no fixture folder for ${absent.join(', ')} - those scans could not run.`);
+
+/*
+ * A GATE THAT LOOKED AT NOTHING MUST NOT EXIT 0 (2026-11-11 audit, MIXO-07).
+ *
+ * This was `console.log('skipped') ; process.exit(0)`, so "gate:real PASS" meant either "13 scans
+ * agreed with the baseline" or "there were no scans on this machine" - the same exit code and a
+ * cheerful line for both. The early exit also jumped over the baseline, which is the one thing that
+ * knows how much SHOULD have run.
+ *
+ * A partial run needs nothing here: `compareRuns` reports an in-scope baseline case that did not run
+ * as a difference, so a half-present fixture set already fails and names the cases it missed
+ * (pinned in real-scan-gate.test.mjs).
+ */
+const coverage = scanCoverage(scans.length, args.includes('--allow-no-scans'));
+if (coverage === 'blind') {
+  console.error(`real-scan gate: FAIL - found no scans at all (${scope}), so it verified NOTHING.`);
+  console.error(`  looked in: ${kinds.map((kind) => SETS[kind].dir).join(', ')}`);
+  console.error('  The scans are patient data and are not in git. Put them back under dentalwork/fixtures/case-*,');
+  console.error('  or pass --allow-no-scans on a machine that is meant not to have them.');
+  process.exit(1);
+}
+if (coverage === 'not-run') {
+  console.log(`real-scan gate: NOT RUN - no local scans (${scope}). It verified NOTHING; --allow-no-scans was given.`);
+  process.exit(0);
+}
 
 function hashOutputs(out) {
   const hashes = {};
@@ -93,5 +123,5 @@ if (update) {
 if (Object.keys(saved.cases).length === 0) { console.error('No baseline yet. Create it with: npm run gate:real -- --update'); process.exit(1); }
 const result = compareRuns(saved, runs, kinds);
 console.log(formatDifferences(result.differences));
-console.log(result.ok ? `real-scan gate: PASS (${scans.length} scans)` : `real-scan gate: FAIL (${result.differences.length} case(s) differ)`);
+console.log(result.ok ? `real-scan gate: PASS (${scans.length} scan(s), ${scope})` : `real-scan gate: FAIL (${result.differences.length} case(s) differ, ${scans.length} scan(s) ran, ${scope})`);
 process.exit(result.ok ? 0 : 1);

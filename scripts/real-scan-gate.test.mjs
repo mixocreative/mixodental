@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareRuns, diffRecords, formatDifferences, recordOf } from './real-scan-gate-lib.mjs';
+import { compareRuns, diffRecords, formatDifferences, recordOf, scanCoverage } from './real-scan-gate-lib.mjs';
 
 const row = { tipsPlaced: 10, tipsLeftOut: 2, islandsUnresolved: 1, printAngleDeg: 30, tipsBySource: 'rim 4 / area 6', unresolvedIslands: '', verdict: 'ok', result: 'built', reason: '', seconds: 12 };
 const rec = (patch = {}, hashes = { 'case-001.glb': 'a'.repeat(64) }) => recordOf({ ...row, ...patch }, hashes);
@@ -33,5 +33,24 @@ describe('real-scan gate compare', () => {
     expect(compareRuns(base(), {}, ['aligner']).differences.map((d) => d.id)).toEqual(['a1']);
     expect(formatDifferences(r.differences)).toContain('denture n1');
     expect(formatDifferences([])).toBe('No differences.');
+  });
+  it('already fails a run that covered only part of the baseline', () => {
+    // Worth pinning next to scanCoverage below: a PARTIAL run was never the silent case. A baseline
+    // case in scope that did not run is a difference, so a half-present fixture set fails by name.
+    expect(compareRuns(base(), { d1: { kind: 'denture', record: rec() } }).differences)
+      .toEqual([{ id: 'a1', kind: 'aligner', problems: [{ field: 'case', was: 'in baseline', now: 'not found / not run' }] }]);
+  });
+});
+
+describe('a gate that verified nothing never says PASS', () => {
+  it('calls an empty run blind unless the operator asked for it, and never calls it PASS', () => {
+    expect(scanCoverage(13, false)).toBe('run');
+    expect(scanCoverage(1, false)).toBe('run');
+    // The audit's hole (MIXO-07): this used to be an exit 0 with a tidy "skipped" line.
+    expect(scanCoverage(0, false)).toBe('blind');
+    // Allowed, but still not a pass: the caller must print NOT RUN for this.
+    expect(scanCoverage(0, true)).toBe('not-run');
+    // The opt-out cannot change the verdict of a run that did look at something.
+    expect(scanCoverage(13, true)).toBe('run');
   });
 });

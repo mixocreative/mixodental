@@ -32,6 +32,16 @@ mixoDental builds supports for dental aligners. This folder explains how that wo
 
 `npm run gate:real` (see the root README) re-runs every local real scan and diffs it against `dentalwork/baselines/real-scan-baseline.json`. Run it after any engine change or vendor bump.
 
+**It can no longer pass without looking at anything.** It used to print `skipped, no local scans` and
+exit 0, so a green gate meant either "every scan agreed" or "this machine has no scans" — the same
+exit code for both (2026-11-11 audit, MIXO-07). Finding no scans is now a **failure** that names the
+folders it looked in. A machine that is meant not to have them passes with
+`npm run gate:real -- --allow-no-scans`, and the verdict then reads **NOT RUN**, never PASS.
+
+A *partial* set was never the silent case and needs no flag: the baseline knows which cases exist, so
+one that did not run is reported as a difference and the gate fails naming it. Every verdict line now
+also states how many scans ran and whether `--kinds` narrowed the run.
+
 ## Running the review script for one file
 
 `run-review.bat` (Windows) asks for the path to an STL and writes one review GLB under `dentalwork/output`, then selects it in File Explorer. `dentalwork/output` is ignored by Git because an STL or a GLB made from it can contain patient geometry. Do not commit a new patient STL or its GLB without the owner's approval.

@@ -1,6 +1,24 @@
 // Pure logic of the real-scan gate (no file or process access): turn a batch row into a baseline
 // record and diff two records. Kept apart so it is unit-tested with synthetic data.
 
+/**
+ * What a run that found `scansFound` scans is allowed to be called.
+ *
+ * The gate used to print a tidy "skipped, no local scans" line and `exit(0)`, so a green
+ * `gate:real` meant EITHER "every scan agreed with the baseline" OR "I looked at nothing", with no
+ * way to tell which (2026-11-11 audit, MIXO-07). Finding nothing is now a failure, and the operator
+ * who legitimately has no scans has to say so — at which point the word is NOT RUN, never PASS.
+ *
+ * A PARTIAL run was never the silent case and needs nothing here: `compareRuns` reports a baseline
+ * case that did not run as a difference, so a half-present fixture set already fails by name.
+ *
+ * @returns 'run' | 'not-run' (allowed, verified nothing) | 'blind' (a failure)
+ */
+export function scanCoverage(scansFound, allowNoScans) {
+  if (scansFound > 0) return 'run';
+  return allowNoScans ? 'not-run' : 'blind';
+}
+
 /** Row fields compared exactly. Timings and file names are deliberately absent. */
 export const NUMBER_FIELDS = ['tipsPlaced', 'tipsLeftOut', 'islandsUnresolved', 'printAngleDeg'];
 export const TEXT_FIELDS = ['tipsBySource', 'unresolvedIslands', 'verdict', 'result', 'reason'];
