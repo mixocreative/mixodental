@@ -24,7 +24,58 @@ After every implementation task, record: the completed requirement; changed file
 - Tasks 6-8 complete the Web Resin Support Parity plan: live support editing UI, export modes, Blender parity checklist, browser verification, deployment.
 - raft reported upside down; output now compared with real Blender (Resin UV, Blender 5.2) and corrected.
 
-## Latest completed step (the audit's three mechanical fixes - 2026-11-12)
+## Latest completed step (the audit's two HIGH/MEDIUM fixes - 2026-11-12, overnight)
+
+**MIXO-04, the one HIGH that reaches a user: a browser that cannot run this app is now TOLD.**
+Blocking `getContext('webgl*')` used to empty the page - `#root` at zero children, zero canvases, no
+text - with two uncaught "Error creating WebGL context." in a console no operator opens. There was no
+capability check, no React error boundary and no `window.onerror` anywhere in `src/`, so the same
+mechanism took an unsaved scene on any render-time throw.
+
+Three ways in, one surface out (`src/AppBoundary.tsx`): no WebGL2, checked in `main.tsx` **before**
+the app mounts; the engine failing to load, which used to leave `geometryReady()` rejected with
+nothing rendered and nothing said (a second blank page by a different route, found while fixing the
+first); and any uncaught render error. **And the scene is rescuable** - `src/rescue.ts` is the slot
+`App` publishes its own `saveProject` into, because a boundary renders instead of the tree that threw
+and cannot reach its state; published only while there is something to lose, and with no cleanup on
+unmount, since the unmount it must survive IS the crash.
+
+**Proved in a real browser:** `npm run gate:nogl` is **9/9**. The measurement that read
+`rootChildren 0, canvases 0, text ""` now reads `rootChildren 1, 187 chars, reason no-webgl2`. The
+control pass still mounts a canvas, which is what makes the other half evidence. **Folding that gate
+into `scripts/walk.mjs` as a section is the remaining piece**, left undone deliberately: the walk is
+4448 lines, it is the release gate, and its own comments ask that nothing be restructured there in
+passing.
+
+**MIXO-03, the browser floor, declared - and the number nobody would guess found.** `build.target`
+and `browserslist` now say **Chrome/Edge 93, Firefox 114, Safari 15.4**. Safari 15.4 comes from
+`crypto.randomUUID`, `Object.hasOwn` and `Array.prototype.at`; **Firefox 114 comes from MODULE
+WORKERS** (`new Worker(url, { type: 'module' })` in `src/workers/factories.ts`) - Chrome shipped them
+in 80 and Safari in 15, Firefox not until 114. The audit named the three APIs and missed this one.
+`src/browserFloor.test.ts` keeps both declarations in step, refuses an API newer than the floor, and
+**states its own limit**, because MIXO-12 found 56 of 58 source-reading guards with no written one.
+
+**The i18n guard's scope was wrong for the fifth time.** It collected UI strings from a LIST of
+folders, and its own comments name the pattern - "the scope was always a list of the places UI text
+had been FOUND, never of the places it could BE" - before globbing a sixth. `src/AppBoundary.tsx`
+sits in the ROOT of `src/`, where only `./App.tsx` was ever listed, so its six sentences were
+invisible. The scope is now all of `src/`, with `./kit/` excluded once by name and five `NOT_UI`
+entries as the whole bill. No shipped string was missing a translation.
+
+**Eight forgeries watched to fail first**, and two of them corrected my own work: a test comparing
+whole renders passed when two reasons shared a sentence, and the first draft of the stopped screen
+used inline styles with colour literals, which `docs/ui-styling.md` rules 1 and 2 forbid outright.
+
+Gate after: tsc 0, `vendor:check` 0, **221 test files all passing**, `check:duplicates` 0, `screens`
+0, `build` 0, `wasm:test` 0, **`gate:real` PASS (13 scans, 251 s, no differences)**, `gate:nogl` 9/9.
+`npm run fonts` re-cut the Japanese subset face, which the suite demanded for two new characters.
+
+**Still the owner's:** MIXO-02 (the print-angle confirm cannot say no - three outcomes, one screen,
+and what the other two should SAY is product), MIXO-06 ("Any model" and "Open a saved project"
+discard a held multi-file drop), `Aligner.stl`, whether to redeploy, and the wording of the stopped
+screen, which is placeholder by design.
+
+## Previous completed step (the audit's three mechanical fixes - 2026-11-12)
 
 > The three findings from `cia-audit-report.md` that needed no decision from the owner, each its own
 > commit with its guard watched to fail first.
