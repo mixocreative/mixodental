@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { BrushView, Point2 } from '@mixo-geocore/editing/screenBrush';
-import type { PointerRecord, SurfacePick, ViewportPort, ViewportSize, ViewRay } from '@mixo-geocore/editing/ViewportPort';
+import type { SurfacePick, ViewportPort, ViewportSize, ViewRay } from '@mixo-geocore/editing/ViewportPort';
 
 /*
  * The three.js implementation of the shared editing seam (mixo-geocore editing/ViewportPort, D22):
@@ -82,22 +82,5 @@ export function createThreeViewportPort(options: ThreePortOptions): ViewportPort
       return { point: [out[2]!, out[3]!, out[4]!], normal: [n[0]! / length + 0, n[1]! / length + 0, n[2]! / length + 0], triangle: face, distance: out[1]! };
     },
     brushView: options.brushView,
-  };
-}
-
-/** A DOM pointer event reduced to what editing needs, relative to `element`'s top-left corner. */
-export function pointerRecord(event: PointerEvent, element: { getBoundingClientRect(): { left: number; top: number } }): PointerRecord {
-  const box = element.getBoundingClientRect();
-  return {
-    pointerId: event.pointerId,
-    x: event.clientX - box.left,
-    y: event.clientY - box.top,
-    button: event.button === 2 ? 'right' : event.button === 1 ? 'middle' : 'left',
-    buttons: event.buttons,
-    shiftKey: event.shiftKey,
-    ctrlKey: event.ctrlKey,
-    altKey: event.altKey,
-    metaKey: event.metaKey,
-    timeStamp: event.timeStamp,
   };
 }
