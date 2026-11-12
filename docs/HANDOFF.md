@@ -36,8 +36,11 @@ green run of `g` with care rather than as settled - its baseline was recorded as
 (0, 56, 4 across three earlier clean runs), so if `g` or `g-pre` fails again it is that known
 flakiness and not these commits.
 
-**Nothing is pushed.** Every commit on `main` from `2c642c5` onward. geocore and mixoMesh are also
-finished and also unpushed - see the end of this section.
+**All four repos are pushed**, on the owner's word, in dependency order - geocore first because
+the others vendor from it, mixoDental last because its push is the Pages deploy: geocore `f00fe23`,
+mixo-app-style `fc11115`, mixoMesh `e67d09e`, mixoDental `eb9c69b`. Each verified by fetch at
+0 ahead / 0 behind. **Pushing geocore fires the engine-64 re-vendor trigger**, so that re-vendor
+(section 3b of `docs/design/2026-11-12-three-repo-refactor-plan.md`) is the next change here.
 
 Six commits on `main`, `b587bda`..`ddc0965`. The standing goal was: no defect left unfixed, no UX
 workflow gap, and any decision I could not make taken by Fable rather than put to the owner.
@@ -113,7 +116,7 @@ page-level overflow at all - `kit.html` never exceeds `document.scrollWidth`. Th
 `.number small { width: 16px }` clipping "mm" and "deg" by about 2px in every number and range row,
 in the app and not only the dev gallery.
 
-### The fourth repo: `mixo-app-style`, fixed at the source *(`fc11115`, not pushed)*
+### The fourth repo: `mixo-app-style`, fixed at the source *(`fc11115`, pushed)*
 
 That `.number small` rule lives in the shared design system (`S:\ai\skills\mixo-app-style`, its own
 repo, junctioned into the three agent skill directories). mixoMesh could only override it in its own
@@ -141,8 +144,9 @@ rule for units - it now says so for units too, with the measurements, plus a don
 **No publish step was needed and none was run.** `hub.ps1 publish` is for a skill with no repo yet
 and it runs `git push`; this skill already has its repo, and all three junctions
 (`~/.claude`, `~/.codex`, `~/.agents`) point at the hub folder, so they serve the fixed rule
-already - verified. `hub.ps1 doctor` reports exactly two things: this skill's one unpushed commit,
-and one uncommitted change in `token-economy-delegation` that is **not mine and was left alone**.
+already - verified. `hub.ps1 doctor` reported exactly two things at the time: this skill's one
+commit (since pushed), and one uncommitted change in `token-economy-delegation` that is **not mine
+and was left alone**.
 
 **A correction to mixoMesh's MX-12 report:** it said the clipping hit "the app too, not just the dev
 gallery". It did not. `index.html` loads the app's own `src/styles/*` tree and **never loads
@@ -151,7 +155,7 @@ app was never affected, the gallery was fixed by the local override, and the onl
 the shared system for future adopters.
 
 **And mixoMesh's copy is re-taken, so no override shadows the upstream fix** (mixoMesh `e67d09e`,
-also unpushed). `scope.mjs`'s own header says what to do - "Never edit the copies; re-copy from
+pushed). `scope.mjs`'s own header says what to do - "Never edit the copies; re-copy from
 `S:\ai\skills\mixo-app-style`, then `node src/kit/styles/scope.mjs`" - and that is what was done.
 Checked before copying: mixoMesh's `base.css` was byte-identical to mixo-app-style `@ bbf53ee` and
 its `tokens.css` is identical to the system today, so **the only drift was the fix itself**; CRLF
