@@ -1,5 +1,28 @@
 # Handoff
 
+## Engine 68 at `1a3d62c`: one mesh fingerprint, and file_parts out of dental/ (2026-11-13, late)
+
+**`file_parts` has moved to `supports::file_parts`** (the debt note said the generic ABI called into
+a dental module). The reason it had not been a `git mv` before is the interesting part: the module
+cached on `dental::denture::model_cache::mesh_key`, a **second mesh fingerprint** living beside
+`core::digest` — one 64-bit word, re-hashing the whole mesh on every lookup (about 9 MB of reads for
+a big aligner), with its own `mix`. Engine 67 made it hot by calling `file_parts` on every placement.
+`core::digest` now owns `mix`/`mesh_word`, both caches key on it, and that is what left the module
+importing core, supports and surface only. `dental::denture::parts` stays as a re-export, so the
+dental steps read unchanged.
+
+**The proof a cache key still tells two meshes apart** is `real 0` on 13 scans here and an unchanged
+baseline in mixoMesh — a key that stopped distinguishing would show as a changed scan or moved
+contacts first, not as a failing unit test.
+
+**The denture residual is closed** (see its own section above): `candidatesOf` does not take `mode`,
+so a preview placement and an export build cannot diverge, and the real-scan test now asserts it.
+
+**One CI-only defect fixed**: the `m9` walk check waited 30 s for a badge that appears behind a
+DETECTION, and failed on a GPU-less runner while passing in seconds locally. This file's convention
+for anything engine-backed is 60 s; m9 was one of four at 30. A correctness claim should not carry an
+arbitrary speed threshold.
+
 ## Engine 68, and the overlap rule on the generic path (2026-11-13)
 
 **Engine 68 is vendored here and the gate is green.** Two engine changes reach this app:
