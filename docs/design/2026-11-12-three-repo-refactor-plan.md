@@ -303,7 +303,11 @@ condition has to go, so the promotion is not a pure move.
 
 **In order:**
 
-1. Promote `surface::parts::split` out of `dental/` into the shared surface path.
+1. ~~Promote `surface::parts::split` out of `dental/`~~ - **wrong, corrected 2026-11-12 by Fable:
+   it already lives in the shared path at `crates/geometry-core/src/surface/parts.rs:218`.** What is
+   still inside `dental/` is `hidden_faces`, `inside_other` and the "any `Fused`" condition
+   (`dental/denture/parts.rs:80`). So step 1 is only: give the generic policy access to the part
+   list that already exists.
 2. Promote `hidden_faces` / `inside_other` with it, and drop the "only when something is fused"
    condition.
 3. Make the **generic** policy consume the part list and the hidden mask the way the dental policy
