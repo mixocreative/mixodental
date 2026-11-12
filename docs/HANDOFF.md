@@ -14,14 +14,22 @@
    along UV seams) arrived as one part per face. Found by mixoMesh's baseline, not by anything here:
    this app's STL import welds, so it was never exposed.
 
-**What this app does NOT do yet, and the reason.** `PlacementResult.buried` carries the count of
-contacts the rule dropped, and mixoMesh shows it as a verdict chip. **This app reports it nowhere.**
-That is a named gap, not an oversight: the surface here would be a new `SupportProblem` kind (the
-check's own list), the positions would have to come back from the engine with it, and the case is
-rare in dental work -- a welded scan is one part, so the rule fires only on a multi-mesh generic
-object. Building it tonight, untested against a real one, would have been worse than naming it. The
-test when it is built: an object with two overlapping meshes should list "N contacts left out: inside
-another mesh", with Show framing the overlap.
+**The gap is closed, and in the shared layer rather than here.** `landedStatus` now appends
+*"{n} contacts were left out: they sit inside another mesh of the object."* (`editing/regenerate.ts`,
+`landPlacements` carrying the count), so this app says it through the status line it already has --
+no new problem kind, no new plumbing, one sentence to translate. mixoMesh gets the same sentence plus
+its verdict chip, which is the persistent view of the same fact; this app has only the status line,
+which is why the sentence belongs in `editing/` and not in either app.
+
+`withTail` appends at the END of the sentence chain, because writing `then` directly would have
+dropped the hand-work report on exactly the regenerations that have the most to say -- and the test
+in `src/supports/landing.test.ts` asserts that case, plus that both locales carry the key. **That
+key reaches ja.ts / zh-Hant.ts only through a shared helper, so no scanner sees it**: `walk:locales`
+would never visit a buried-contact placement, which is why the assertion is in the unit test.
+
+Still a positions gap, named deliberately: the sentence gives a COUNT, not a Show button. Framing the
+overlap needs the dropped positions back from the engine, and the case is rare in dental work (a
+welded scan is one part), so it waits for an object that can exercise it.
 
 **Also still open here:** the denture residual (unproven whether `planExport`'s stored points and
 `buildDenture`'s recomputed candidates agree -- no longer load-bearing, since a disagreement ends in

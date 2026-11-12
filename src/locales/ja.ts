@@ -100,6 +100,7 @@ export const ja: Dictionary = {
   'Regenerating {name}.': '{name} を再生成しています。',
   'Regenerating {n} objects.': '{n} 個のオブジェクトを再生成しています。',
   'Generated supports for {n} objects.': '{n} 個のオブジェクトのサポートを生成しました。',
+  '{n} contacts were left out: they sit inside another mesh of the object.': '{n} 個の接触点を除外しました：オブジェクトの別のメッシュ内部に位置しています。',
   '{n} customised kept, {m} reset.': '個別設定 {n} 本を保持、{m} 本をリセット。',
   'Regenerated {n} objects.': '{n} 個のオブジェクトを再生成しました。',
   'Regenerated {n} objects. Hand edits kept: {added} added, {removed} removed. Removals reset: {reset}.': '{n} 個のオブジェクトを再生成しました。保持した手動編集：追加 {added} 本、削除 {removed} 本。リセットした削除：{reset} 本。',

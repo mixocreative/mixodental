@@ -5,6 +5,8 @@ import { landedStatus } from '@mixo-geocore/editing/regenerate';
 import { reduceScene, type PrintUnit } from '../state/project';
 import { landPlacements } from '@mixo-geocore/editing/landing';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
+import { ja } from '../locales/ja';
+import { zhHant } from '../locales/zh-Hant';
 
 const source: TriangleMesh = {
   positions: new Float32Array([-5, -5, -5, 5, -5, -5, 5, -5, 5, -5, -5, 5, -5, 5, -5, 5, 5, -5, 5, 5, 5, -5, 5, 5]),
@@ -52,9 +54,32 @@ describe('landPlacements (objects regenerated together land as one step)', () =>
 
 describe('landedStatus', () => {
   const report = { added: 1, removed: 2, reset: 0, customisedKept: 0, customisedReset: 0 };
+  const KEY = '{n} contacts were left out: they sit inside another mesh of the object.';
 
   it('reads as the single-object line for one object', () => {
     expect(landedStatus([{ name: 'A', placed: 4 }])).toEqual({ key: '{name}: {n} automatic contacts generated.', vars: { name: 'A', n: 4 } });
+  });
+
+  it('says how many contacts the overlap rule left out, in every language', () => {
+    // This app has no verdict row, so the status line is the ONLY place an operator can learn why an
+    // overlap between two meshes of one object has no supports. Those contacts never reach the
+    // build, so no "supports left out" count mentions them.
+    const one = landedStatus([{ name: 'A', placed: 30, buried: 9 }]);
+    expect(one.then).toEqual({ key: KEY, vars: { n: 9 } });
+    // A sentence already there must survive in front of it: appending over `then` would drop the
+    // report on exactly the regenerations that have the most to say. (`report` above keeps no
+    // customised supports, so it adds no sentence of its own -- this one does.)
+    const customised = { added: 1, removed: 0, reset: 0, customisedKept: 2, customisedReset: 1 };
+    const both = landedStatus([{ name: 'A', placed: 30, report: customised, buried: 4 }]);
+    expect(both.then?.key).toBe('{n} customised kept, {m} reset.');
+    expect(both.then?.then).toEqual({ key: KEY, vars: { n: 4 } });
+    // And nothing is said when none was buried.
+    expect(landedStatus([{ name: 'A', placed: 4 }]).then).toBeUndefined();
+    // The key reaches the locales only through a shared helper, so no scanner sees it: assert it.
+    for (const [name, dictionary] of [['ja', ja], ['zh-Hant', zhHant]] as const) {
+      expect(dictionary[KEY], `${name} is missing the overlap sentence`).toBeTruthy();
+      expect(dictionary[KEY]).toContain('{n}');
+    }
   });
 
   it('sums the hand work of several regenerated objects into one line', () => {
