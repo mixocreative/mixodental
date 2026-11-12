@@ -148,10 +148,22 @@ and one uncommitted change in `token-economy-delegation` that is **not mine and 
 gallery". It did not. `index.html` loads the app's own `src/styles/*` tree and **never loads
 `kit.css` or `kit.scoped.css`** - only `kit.html`, through `src/kit/gallery/main.tsx`, does. So the
 app was never affected, the gallery was fixed by the local override, and the only real exposure was
-the shared system for future adopters. mixoMesh's `kit.scoped.css` is still generated from
-mixo-app-style `@ bbf53ee` (pre-fix), so its `kit.css` override stays necessary until someone
-re-copies `base.css` and regenerates - **debt, not a defect**, and deliberately not done here: that
-is a style re-vendor into a repo whose full Electron suite is not runnable from this session.
+the shared system for future adopters.
+
+**And mixoMesh's copy is re-taken, so no override shadows the upstream fix** (mixoMesh `e67d09e`,
+also unpushed). `scope.mjs`'s own header says what to do - "Never edit the copies; re-copy from
+`S:\ai\skills\mixo-app-style`, then `node src/kit/styles/scope.mjs`" - and that is what was done.
+Checked before copying: mixoMesh's `base.css` was byte-identical to mixo-app-style `@ bbf53ee` and
+its `tokens.css` is identical to the system today, so **the only drift was the fix itself**; CRLF
+endings were preserved so the diff is the one rule. The local override is deleted rather than left
+as a harmless duplicate, because an override sitting on top of an upstream fix is how a copy
+silently diverges from the system it is meant to copy - and it was *worse* than the upstream fix
+anyway: it reserved 16px, below the 20.4px `mm` actually needs.
+
+Green after: typecheck 0, lint 0, vitest 219/219, `scope.test.ts` 2/2 (every selector still scoped
+under `.mx-kit`), `test:ui-style` PASS including its own MX-12 overflow check, `test:browser` PASS.
+The owner's uncommitted `AGENTS.md`/`CLAUDE.md` and untracked `.runs/` + `graphify-out/` are
+untouched.
 
 
 ## Previous completed step (Phase 0 of the three-repo plan - 2026-11-12)
