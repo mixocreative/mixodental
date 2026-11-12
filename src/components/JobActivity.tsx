@@ -61,6 +61,10 @@ export function rowText(row: JobRow): { label: string; meta: string } {
   if (row.state === 'cancelled') return { label: t('{label}: cancelled. Supports unchanged.', { label }), meta: '' };
   if (row.cancelling) return { label, meta: t('Cancelling…') };
   const meta: string[] = [];
+  // FIRST, so it is not the part that gets truncated: this job has no worker (GEO-012), so the
+  // window is frozen until it ends - on the reference denture about 8 s. The ABSENCE of a worker
+  // is not something the operator can act on; this is.
+  if (row.inline) meta.push(t('this window will not respond until it finishes'));
   if (row.percent !== null) meta.push(`${row.percent}%`);
   if (row.remainingMs !== null) meta.push(t('about {time} left', { time: formatTime(row.remainingMs) }));
   else if (row.showElapsed) meta.push(t('{time} so far', { time: formatTime(row.elapsedMs) }));
