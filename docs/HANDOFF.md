@@ -36,7 +36,7 @@ green run of `g` with care rather than as settled - its baseline was recorded as
 (0, 56, 4 across three earlier clean runs), so if `g` or `g-pre` fails again it is that known
 flakiness and not these commits.
 
-**Nothing is pushed.** 14 commits on `main`, `2c642c5`..(this one). geocore and mixoMesh are also
+**Nothing is pushed.** Every commit on `main` from `2c642c5` onward. geocore and mixoMesh are also
 finished and also unpushed - see the end of this section.
 
 Six commits on `main`, `b587bda`..`ddc0965`. The standing goal was: no defect left unfixed, no UX
