@@ -14,7 +14,7 @@ describe('partRoles', () => {
 
   it('orders target, add-ons (larger first), debris and counts the roles', () => {
     expect(orderedParts(parts).map((entry) => entry.id)).toEqual([0, 7, 2, 4]);
-    expect(roleCounts(parts)).toEqual({ target: 1, fused: 0, addOn: 2, debris: 1 });
+    expect(roleCounts(parts)).toEqual({ target: 1, fused: 0, addOn: 2, debris: 1, unknown: 0 });
   });
 
   it('puts fused parts right after the target, tints them with the add-ons, and reads the parts of an aligner placement', () => {

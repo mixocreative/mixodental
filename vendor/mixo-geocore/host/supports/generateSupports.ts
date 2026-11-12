@@ -156,10 +156,16 @@ interface Generation {
   take_model_landed_ids(): string[]; take_model_landed_tiers(): Uint8Array; take_model_landed_points(): Float64Array;
   take_unresolved_ids(): string[]; take_unresolved_streams(): string[]; take_unresolved_points(): Float64Array; take_unresolved_reasons(): string[];
   take_unresolved_best_gaps(): Float64Array; take_unresolved_needed(): Float64Array;
-  /** Engine 51; optional so test doubles may omit them. */
-  take_unresolved_kinds?(): string[]; take_unresolved_normals?(): Float64Array;
-  /** Engine 53; optional so test doubles may omit it. */
-  take_footprint?(): Float64Array;
+  /*
+   * Engine 51 and 53. REQUIRED (GEO-008): they were optional "so test doubles may omit them", but
+   * `assertGeometryVersion` refuses any engine that is not this host's, so no real engine could ever
+   * reach the fallbacks - they were production branches that existed only for fakes, which is the
+   * inverse of coverage. One of them invented geometry: a short `normals` array yielded a
+   * fabricated straight-down normal, and that normal is what the app hands to `reroute_support` to
+   * re-aim a support, so a sideways overhang got a reroute aimed into the model.
+   */
+  take_unresolved_kinds(): string[]; take_unresolved_normals(): Float64Array;
+  take_footprint(): Float64Array;
   status(): number; reason(): string; stop_reason(): string; take_issues(): Uint32Array;
   take_island_heights(): Float64Array; take_island_vertices(): Uint32Array; take_island_status(): Uint8Array; island_reason(): string;
   take_rings(): Float64Array; trials(): number; revision(): number; free(): void;
@@ -181,21 +187,48 @@ export interface GenerateSession extends PolicySession {
 const PARTS: readonly SupportPart[] = [
   'tip', 'neck', 'pillar', 'foot', 'brace', 'raft', 'tree-branch', 'tree-trunk', 'roof', 'column', 'roof-brace', 'cross-bar', 'cage-ring', 'label',
 ];
+// GEO-005: STATUS already HAS an honest unknown - `inconclusive` - so an unrecognised status code
+// falls back to it rather than to a second unknown member. That also keeps the export gate's
+// refusal working: `inconclusive` is refused, `'unknown'` would have to teach every consumer.
 const STATUS = ['clear', 'blocked', 'inconclusive'] as const;
 const NO_CONTACT = 0xffffffff;
 // Issue rows (u32 x ISSUE_STRIDE): contact index (NO_CONTACT none), part code, model face,
 // blocked 0/1, origin code (ISSUE_ORIGIN). Status / island codes index STATUS / ISLAND_STATUS.
 const ISSUE_STRIDE = 5;
 const ISSUE_ORIGIN = ['auto', 'manual', 'structural'] as const;
+// Index 0 is the engine's "no tier", which is why the table starts with `undefined`. GEO-005: an
+// unknown code (and a tier 0 that should not reach here) is `unknown`, not "other surface".
 const LANDING_TIERS = [undefined, 'allowed', 'other', 'no-support'] as const;
 const ISLAND_STATUS = ['resolved', 'unresolved', 'manual-only', 'outside-policy'] as const;
 
-/** A flat footprint (`take_footprint`) as loops relative to the unit's plate position `origin` (plan x, z). */
+/**
+ * The reason a zero-contact build carries in its verdict and island report: the engine was never
+ * asked (GEO-003). It is a code, not display text - the app translates it like every other reason.
+ */
+export const NOT_JUDGED = 'not judged: no contacts';
+
+/**
+ * A flat footprint (`take_footprint`) as loops relative to the unit's plate position `origin`
+ * (plan x, z). Empty in, empty out: a build with no footprint is a legal state.
+ *
+ * GEO-006: the cursor reads its loop count and its point counts OUT OF THE DATA, so a truncated
+ * array used to walk past the end and push NaN coordinates into the loops `arrange_plate` is then
+ * asked to pack. The bounds below refuse instead, which is what the engine's own `INVALID_LENGTH`
+ * would have done had the truncation happened on its side.
+ *
+ * @throws RangeError when a count does not fit the array
+ */
 export function unpackFootprint(flat: Float64Array, origin: readonly [number, number]): Array<Array<[number, number]>> {
   const loops: Array<Array<[number, number]>> = [];
+  if (flat.length === 0) return loops;
+  const count = flat[0]!;
+  if (!Number.isInteger(count) || count < 0) throw new RangeError(`footprint: ${count} is not a loop count`);
   let at = 1;
-  for (let l = 0; l < (flat[0] ?? 0); l++) {
+  for (let l = 0; l < count; l++) {
     const n = flat[at++]!;
+    if (!Number.isInteger(n) || n < 0 || at + n * 2 > flat.length) {
+      throw new RangeError(`footprint loop ${l}: ${n} points do not fit the remaining ${flat.length - at} values`);
+    }
     const loop: Array<[number, number]> = [];
     for (let k = 0; k < n; k++, at += 2) loop.push([flat[at]! - origin[0], flat[at + 1]! - origin[1]]);
     loops.push(loop);
@@ -203,12 +236,18 @@ export function unpackFootprint(flat: Float64Array, origin: readonly [number, nu
   return loops;
 }
 
-/** The engine's phase names are checked here, so a phase it adds without a host update never reaches the app untyped. */
-const isPhase = (name: string): name is GeneratePhase => (GENERATE_PHASES as readonly string[]).includes(name);
+/**
+ * The engine's phase name as one the app can switch on: its own, or `unknown`.
+ *
+ * GEO-015: this used to DROP a name the host did not know, so a phase added to the engine without a
+ * host update reported nothing at all and the bar stopped moving mid-build. Forwarding `unknown`
+ * keeps the bar alive and lets the app say it cannot name the step.
+ */
+export const phaseOf = (name: string): GeneratePhase => ((GENERATE_PHASES as readonly string[]).includes(name) ? name as GeneratePhase : 'unknown');
 
 /** The wasm callback for an `onPhase` (undefined without one: the engine then reports nothing). */
-function phaseListener(onPhase: GeneratePhaseCallback | undefined): ((name: string, done: number, total: number) => void) | undefined {
-  return onPhase && ((name, done, total) => { if (isPhase(name)) onPhase(name, done, total); });
+export function phaseListener(onPhase: GeneratePhaseCallback | undefined): ((name: string, done: number, total: number) => void) | undefined {
+  return onPhase && ((name, done, total) => onPhase(phaseOf(name), done, total));
 }
 
 /** The kind of an unresolved entry: the engine's word (engine 51), else read from the id and stream as engine 50 named them. */
@@ -223,11 +262,29 @@ export const frameArray = (frame: JobTransform): Float64Array => Float64Array.of
 
 /** Contacts are in the build frame (`options.frame` applied); the policy is made from the unit-local model. */
 export function generateSupports(contacts: readonly SupportContact[], settings: Readonly<LiveSupportSettings>, policy: MakePolicy, options: GenerateOptions): GenerateOutput {
-  const empty = (): GenerateOutput => ({
-    mesh: { positions: new Float32Array(), indices: new Uint32Array(), parts: [], components: [], dropped: [], droppedByZones: [],
-      verdict: { status: 'clear', issues: [] }, islands: { status: 'ok', islands: [] } },
-    rings: [], fallback: [], trials: 0, revision: options.revision ?? 0,
-  });
+  // No contacts: the engine is never called, so this return must not answer in its name.
+  //
+  // GEO-003: it used to say `verdict: clear` and `islands: ok` - the exact output of a check that
+  // examined everything and found nothing, from a check that examined nothing. The island verdict is
+  // a property of the MODEL, not of the contacts (Rust `island_verdict` walks the topology and says
+  // `Inconclusive` when it cannot), so `ok` here was a judgement nobody made. One model, two answers,
+  // measured: asked, the knot fixture reports `inconclusive: non-manifold edge`; not asked, it
+  // reported `ok`.
+  //
+  // GEO-002: `revision` went on the output and not on the MESH, which is the field every consumer
+  // judges freshness by (`meshClient.fresh`, `meshWorker.exportFiles`, `exportGate`). `undefined`
+  // compared unequal to the revision asked for, so a build that WAS the newest was refused `stale`
+  // for ever, and the documented remedy - export again - produced the same refusal every time. It is
+  // carried onto the mesh rather than made a required option because every caller already passes it;
+  // a required field would ripple through every call site to fix a one-line omission.
+  const empty = (): GenerateOutput => {
+    const revision = options.revision ?? 0;
+    return {
+      mesh: { revision, positions: new Float32Array(), indices: new Uint32Array(), parts: [], components: [], dropped: [], droppedByZones: [],
+        verdict: { status: 'inconclusive', reason: NOT_JUDGED, issues: [] }, islands: { status: 'inconclusive', reason: NOT_JUDGED } },
+      rings: [], fallback: [], trials: 0, revision,
+    };
+  };
   if (contacts.length === 0) return empty();
   const { model } = options;
   options.onProgress?.(0.05, PROGRESS_STAGE.samplingNormals);
@@ -264,21 +321,21 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
       for (let k = 0; k < issues.length; k += ISSUE_STRIDE) {
         found.push({
           ...(issues[k] === NO_CONTACT ? {} : { contactId: ids[issues[k]!]! }),
-          part: PARTS[issues[k + 1]!]!, modelFace: issues[k + 2]!, blocked: issues[k + 3] === 1, origin: ISSUE_ORIGIN[issues[k + 4]!]!,
+          part: PARTS[issues[k + 1]!] ?? 'unknown', modelFace: issues[k + 2]!, blocked: issues[k + 3] === 1, origin: ISSUE_ORIGIN[issues[k + 4]!] ?? 'unknown',
         });
       }
       // A build the time rule stopped says so in full ("stopped: no progress for 30 s"), not by the short code.
       const stop = result.stop_reason();
       const worded = (code: string) => (stop && code.startsWith('stopped') ? stop : code);
       const reason = worded(result.reason());
-      const verdict: SupportVerdict = { status: STATUS[result.status()]!, ...(reason ? { reason } : {}), issues: found };
+      const verdict: SupportVerdict = { status: STATUS[result.status()] ?? 'inconclusive', ...(reason ? { reason } : {}), issues: found };
       const islandReason = worded(result.island_reason());
       const heights = result.take_island_heights();
       const vertices = result.take_island_vertices();
       const status = result.take_island_status();
       const islands = islandReason
         ? { status: 'inconclusive' as const, reason: islandReason }
-        : { status: 'ok' as const, islands: Array.from(heights, (height, k) => ({ height, vertex: vertices[k]!, status: ISLAND_STATUS[status[k]!]! })) };
+        : { status: 'ok' as const, islands: Array.from(heights, (height, k) => ({ height, vertex: vertices[k]!, status: ISLAND_STATUS[status[k]!] ?? 'unknown' })) };
       const rows = result.take_rings();
       const rings: RingMeasure[] = [];
       for (let k = 0; k < rows.length; k += 5) {
@@ -303,9 +360,9 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
           const ids = result.take_model_landed_ids();
           const tiers = result.take_model_landed_tiers();
           const points = result.take_model_landed_points();
-          return ids.map((id, k) => ({ id, tier: LANDING_TIERS[tiers[k]!] ?? 'other', position: [points[k * 3]!, points[k * 3 + 1]!, points[k * 3 + 2]!] as [number, number, number] }));
+          return ids.map((id, k) => ({ id, tier: LANDING_TIERS[tiers[k]!] ?? 'unknown', position: [points[k * 3]!, points[k * 3 + 1]!, points[k * 3 + 2]!] as [number, number, number] }));
         })(),
-        footprint: unpackFootprint(result.take_footprint?.() ?? new Float64Array(), options.frame ? [options.frame.position[0], options.frame.position[2]] : [0, 0]),
+        footprint: unpackFootprint(result.take_footprint(), options.frame ? [options.frame.position[0], options.frame.position[2]] : [0, 0]),
         unresolved: (() => {
           const ids = result.take_unresolved_ids();
           const streams = result.take_unresolved_streams();
@@ -313,11 +370,13 @@ export function generateSupports(contacts: readonly SupportContact[], settings: 
           const reasons = result.take_unresolved_reasons();
           const gaps = result.take_unresolved_best_gaps();
           const needed = result.take_unresolved_needed();
-          const kinds = result.take_unresolved_kinds?.() ?? [];
-          const normals = result.take_unresolved_normals?.() ?? new Float64Array();
+          const kinds = result.take_unresolved_kinds();
+          const normals = result.take_unresolved_normals();
           return ids.map((id, k): UnresolvedPoint => ({
             id, kind: unresolvedKind(kinds[k], id, streams[k]!), stream: streams[k]!, position: [points[k * 3]!, points[k * 3 + 1]!, points[k * 3 + 2]!],
-            normal: normals.length >= k * 3 + 3 ? [normals[k * 3]!, normals[k * 3 + 1]!, normals[k * 3 + 2]!] : [0, -1, 0],
+            // GEO-008: `null`, never a plausible number. The package's own pattern for a value the
+            // engine did not give is `bestGapMm` on the next line - a nullable, not an invention.
+            normal: normals.length >= k * 3 + 3 ? [normals[k * 3]!, normals[k * 3 + 1]!, normals[k * 3 + 2]!] : null,
             heightMm: points[k * 3 + 1]! - (options.plateY ?? 0),
             reason: reasons[k]!, bestGapMm: Number.isNaN(gaps[k]!) ? null : gaps[k]!, neededMm: needed[k]!,
           }));

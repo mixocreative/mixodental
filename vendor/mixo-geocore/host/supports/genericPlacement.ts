@@ -48,7 +48,7 @@ export function placeGeneric(mesh: TriangleMesh, settings: PlacementSettings, ru
         regionId: -1,
         position: [positions[k * 3]!, positions[k * 3 + 1]!, positions[k * 3 + 2]!],
         normal: [normals[k * 3]!, normals[k * 3 + 1]!, normals[k * 3 + 2]!],
-        source: SOURCES[sources[k]!]!,
+        source: SOURCES[sources[k]!] ?? 'unknown',
       }));
       // Regions come in CSR form: region r owns faces[starts[r] .. starts[r + 1]).
       const faces = result.take_region_faces();

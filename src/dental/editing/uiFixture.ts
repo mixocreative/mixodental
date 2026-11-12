@@ -1,8 +1,11 @@
 import type { UiState } from '@mixo-geocore/editing/commands';
 import type { EditMode } from '@mixo-geocore/editing/types';
+import { PRODUCT_NAMING } from '../../productNaming';
 
 /** A state with an active, supported object selected and nothing running: the base the tests vary. */
 export const READY: UiState = {
+  ...PRODUCT_NAMING,
+  ...PRODUCT_NAMING,
   mode: 'off', active: true, heavy: undefined, units: 1, activeName: 'A', supported: true, zones: 2, exporting: false, selectedObjects: 1, tool: 'add', addAction: 'add', method: 'click', dragAction: 'select', selection: 0, customisedActive: 0, customisedSelected: 0, customisedTargeted: 0, customisedOthers: 0, activeSupported: true,
   canUndo: true, canRedo: true, undoStep: undefined, redoStep: undefined, modelsVisible: true, wireframe: false, generated: false, generating: false,
 };

@@ -7,7 +7,7 @@ import { stagedJobBar } from './StagedProgress';
 
 const row = (over: Partial<JobRow>): JobRow => ({
   id: 1, label: { key: 'Building supports for {name}', vars: { name: 'Case 1' } }, stage: null, state: 'indeterminate', fraction: null, percent: null,
-  elapsedMs: 12_000, showElapsed: false, remainingMs: null, cancellable: true, cancelling: false, blocking: false, context: 'build', error: null, ...over,
+  elapsedMs: 12_000, showElapsed: false, remainingMs: null, cancellable: true, cancelling: false, blocking: false, context: 'build', error: null, inline: false, ...over,
 });
 const html = (over: Partial<JobRow>) => renderToStaticMarkup(<>{stagedJobBar(row(over))}</>);
 

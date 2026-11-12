@@ -5,6 +5,7 @@ import { packRules } from '../supports/generateRules';
 import { withDentalMesh, type DentureReviewResultLike } from './dentalEngine';
 import { decodeIslands, type DentureIsland } from './dentureIslands';
 import { partsOf, type DenturePart } from './dentureParts';
+import { records } from '../core/arity';
 
 /*
  * Review layers of the owner denture rules (Rust `dental::denture::review` through
@@ -16,6 +17,15 @@ import { partsOf, type DenturePart } from './dentureParts';
 /** Stream codes of a tip's `stream`. */
 /** Source tags: `low` low point, `area` down-facing area grid, `rim` along the rim, `hole` around a hole loop, `island` the lowest vertex of an island (`bar`, `light` are the old streams). */
 export const TIP_STREAM = ['low', 'area', 'bar', 'light', 'rim', 'hole', 'island'] as const;
+
+/**
+ * The stream a tip reports. `unknown` is NOT in `TIP_STREAM`: that array is the engine's code space,
+ * indexed by code, so putting `unknown` in it would give code 7 a meaning the engine never assigned.
+ */
+export type TipStream = (typeof TIP_STREAM)[number] | 'unknown';
+
+/** The stream a tip's code names, `unknown` for a code this version does not know (GEO-005). */
+export const tipStreamOf = (code: number | undefined): TipStream => TIP_STREAM[code ?? -1] ?? 'unknown';
 
 /** One line segment. */
 export type Segment = [Vector, Vector];
@@ -89,7 +99,7 @@ export interface DentureReview {
   /** Overhang candidates, per face: 1 when within 60 degrees of straight down for the reviewed plate normal. */
   downMask: Uint8Array;
   /** Tips on an overhang with no free path to the plate: not built, never rooted on the model. */
-  unsupportable: { position: Vector; normal: Vector; stream: (typeof TIP_STREAM)[number]; face: number }[];
+  unsupportable: { position: Vector; normal: Vector; stream: TipStream; face: number }[];
   /** Low points after the tilt outside the allowed area (left unsupported), with the face each sits on. */
   lowsOutside: { position: Vector; face: number }[];
   /** Lowest points that got a tip and the clause that admitted each (`lowTipReason`): in the allowed area, outside the no-support zone, or within profile `lowRimBandMm` of the rim; `anywhere` only under rule `lowOutsideAllowed` 2 (even in the no-support zone). Under the default rule a low point in the no-support zone and farther from the rim gets none and stays in `lowsOutside`. */
@@ -124,7 +134,7 @@ export interface DentureReview {
   /** The oriented pose's plate normal in the mesh frame; down is its reverse. */
   up: Vector;
   /** The tips; `face` is the mesh face each stands on. */
-  tips: { position: Vector; normal: Vector; stream: (typeof TIP_STREAM)[number]; face: number }[];
+  tips: { position: Vector; normal: Vector; stream: TipStream; face: number }[];
   /** The rim (low points joined over the mesh edges, engine 20): one or more ordered polylines; `edges` are the mesh edge ids (segment k joins point k and k + 1, a closed line's last segment closes it). Absent without a rim. */
   rimLoops?: { lines: { points: Vector[]; edges: number[]; closed: boolean }[]; lengthMm: number; allTheWayRound: boolean; largestGapDeg: number };
   /** Hole outlines (hit points around each hole seen along the teeth axis, canonical pose) with the hole area and the count of faces next to it. */
@@ -288,7 +298,9 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
       downMask: result.down_mask(),
       unsupportable: (() => {
         const u = result.unsupportable();
-        return Array.from({ length: u.length / 7 }, (_, k) => ({ position: triple(u, k * 7), normal: triple(u, k * 7 + 3), stream: TIP_STREAM[u[k * 7 + 6]!]!, face: -1 }));
+        // GEO-006: `u.length / 7` on a truncated array is fractional, and `Array.from` rounds it
+        // down - the last point vanished rather than being reported as a bad array.
+        return Array.from({ length: records(u, 7, 'review unsupportable array') }, (_, k) => ({ position: triple(u, k * 7), normal: triple(u, k * 7 + 3), stream: tipStreamOf(u[k * 7 + 6]), face: -1 }));
       })(),
       released: result.released(),
       rimLowsFacingUp: result.rim_lows_facing_up(),
@@ -318,7 +330,8 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
       rimPlane: rimPlane.length === 6 ? { point: triple(rimPlane, 0), normal: triple(rimPlane, 3) } : undefined,
       symmetryPlane: { point: triple(symmetry, 0), normal: triple(symmetry, 3) },
       up: triple(result.up(), 0),
-      tips: Array.from({ length: tips.length / 7 }, (_, k) => ({ position: triple(tips, k * 7), normal: triple(tips, k * 7 + 3), stream: TIP_STREAM[tips[k * 7 + 6]!]!, face: faces[k]! })),
+      // GEO-006: the same truncation, on the array the operator's tip list is built from.
+      tips: Array.from({ length: records(tips, 7, 'review tip array') }, (_, k) => ({ position: triple(tips, k * 7), normal: triple(tips, k * 7 + 3), stream: tipStreamOf(tips[k * 7 + 6]), face: faces[k]! })),
       pillar: { tipBall: pillar[0]!, frustumBase: pillar[1]!, neckLength: pillar[2]!, pillarDiameter: pillar[3]!, lift: pillar[4]! },
     };
   } finally {

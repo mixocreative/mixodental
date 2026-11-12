@@ -5,7 +5,7 @@ import { failureText, rowText } from './JobActivity';
 
 const row = (overrides: Partial<JobRow>): JobRow => ({
   id: 1, label: { key: 'Importing {name}', vars: { name: 'statue.stl' } }, stage: null, state: 'indeterminate', fraction: null, percent: null,
-  elapsedMs: 500, showElapsed: false, remainingMs: null, cancellable: false, cancelling: false, blocking: false, context: 'import', error: null, ...overrides,
+  elapsedMs: 500, showElapsed: false, remainingMs: null, cancellable: false, cancelling: false, blocking: false, context: 'import', error: null, inline: false, ...overrides,
 });
 
 describe('job activity texts', () => {

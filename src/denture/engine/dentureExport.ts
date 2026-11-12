@@ -36,7 +36,10 @@ export function exportFiles(units: readonly ExportUnitJob[], files: readonly Exp
     const built = unit.denture ? buildDenture({ ...unit.denture, mode: 'export', revision }) : runSupportJob(unit.generic!, undefined, revision);
     supports.set(unit.unitId, built);
     onProgress?.((0.8 * (k + 1)) / needed.length);
-    return { unitId: unit.unitId, revision: built.revision ?? -1, verdict: built.verdict?.status ?? 'inconclusive', islands: built.islands?.status === 'inconclusive' ? 'inconclusive' : 'ok' };
+    // `triangles` is what engine 64's gate reads to tell "the build produced nothing" from "no
+    // result came back" - the two used to be one refusal, and it named a cause that had not
+    // happened (GEO-002). Counted from the mesh it actually built, never claimed.
+    return { unitId: unit.unitId, revision: built.revision ?? -1, triangles: built.indices.length / 3, verdict: built.verdict?.status ?? 'inconclusive', islands: built.islands?.status === 'inconclusive' ? 'inconclusive' : 'ok' };
   });
   const byId = new Map(units.map((unit) => [unit.unitId, unit]));
   const written = files.flatMap((file) => {

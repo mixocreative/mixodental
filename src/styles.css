@@ -57,6 +57,8 @@
   --tip-path: var(--success);
   --tip-fallback: var(--warning);
   --tip-none: var(--danger);
+  /* engine-64 fallback state: neutral on purpose - it reports "no information", not a verdict. */
+  --tip-unknown: var(--muted);
   /* Denture Step 2: the subtle tint of add-on parts (hooks, attachments) on the model and in the parts list. */
   --part-addon: var(--blue);
   --progress-staged-fill: var(--red);
@@ -474,6 +476,7 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
 .tip-swatch--path { background: var(--tip-path); }
 .tip-swatch--fallback { background: var(--tip-fallback); }
 .tip-swatch--none { background: var(--tip-none); }
+.tip-swatch--unknown { background: var(--tip-unknown); }
 /* Denture Step 2: the denture settings block. */
 .denture-parts-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 12px; }
 .denture-part { display: grid; grid-template-columns: 10px 1fr auto auto; align-items: center; gap: 6px; }

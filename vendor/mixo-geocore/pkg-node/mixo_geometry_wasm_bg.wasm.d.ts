@@ -328,6 +328,7 @@ export const meshrepairresult_take_loops_after: (a: number) => [number, number];
 export const meshrepairresult_take_loops_before: (a: number) => [number, number];
 export const meshrepairresult_take_positions: (a: number) => [number, number];
 export const meshrepairresult_take_steps: (a: number) => [number, number];
+export const phase_names: () => [number, number];
 export const pickindex_take_bounds: (a: number) => [number, number];
 export const pickindex_take_links: (a: number) => [number, number];
 export const pickindex_take_order: (a: number) => [number, number];
@@ -371,6 +372,7 @@ export const remap_deleted_ids: (a: number, b: number, c: number, d: number, e: 
 export const remesh_cache_stats: () => [number, number];
 export const remove_degenerate_triangles: (a: number, b: number, c: number, d: number) => [number, number, number];
 export const repair_mesh: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
+export const repair_strides: () => [number, number];
 export const reroute_landing_point: (a: number) => [number, number];
 export const reroute_landing_tier: (a: number) => number;
 export const reroute_refusal: (a: number) => [number, number];

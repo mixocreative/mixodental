@@ -9,7 +9,7 @@ import { packSettings, packZones } from './supportBuildWasm';
  * the plate is shaded where a pillar may stand (`pillarReach`).
  */
 
-export type PieceKind = 'tip' | 'neck' | 'rod' | 'transition' | 'trunk' | 'joint' | 'brace' | 'foot';
+export type PieceKind = 'tip' | 'neck' | 'rod' | 'transition' | 'trunk' | 'joint' | 'brace' | 'foot' | 'unknown';
 const KINDS: readonly PieceKind[] = ['tip', 'neck', 'rod', 'transition', 'trunk', 'joint', 'brace', 'foot'];
 const PIECE_STRIDE = 9;
 const LANDING_TIERS = [undefined, 'allowed', 'other', 'no-support'] as const;
@@ -94,7 +94,7 @@ export function decodePieces(flat: Float64Array): SkeletonPiece[] {
   const out: SkeletonPiece[] = [];
   for (let i = 0; i + PIECE_STRIDE <= flat.length; i += PIECE_STRIDE) {
     out.push({
-      kind: KINDS[flat[i]!] ?? 'rod',
+      kind: KINDS[flat[i]!] ?? 'unknown',
       a: [flat[i + 1]!, flat[i + 2]!, flat[i + 3]!],
       b: [flat[i + 4]!, flat[i + 5]!, flat[i + 6]!],
       ra: flat[i + 7]!, rb: flat[i + 8]!,

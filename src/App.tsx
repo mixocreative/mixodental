@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Progress } from './progress/Progress';
+import { PRODUCT_NAMING } from './productNaming';
 import { useSlowJob } from './ui/useSlowJob';
 import { angleEvidence } from './dental/angleEvidence';
 import { SceneLegend } from './components/SceneLegend';
@@ -1246,6 +1247,7 @@ export default function App() {
   const scopePending = !generating && !regenQueued && scopeUnits.some(placementPending);
   // What the registry's rules read (editing/commands); Undo stops at the mode's floor.
   const ui: UiState = {
+    ...PRODUCT_NAMING,
     mode: editMode, activeName: activeUnit?.name, supported: scene.units.some((unit) => unit.supports), zones: activeUnit?.zones.length ?? 0, exporting, active: Boolean(activeUnit), heavy: activeHeavy, units: scene.units.length, selectedObjects: selectedCount, tool: session.tool, addAction: session.addAction, method: session.selectStyle, dragAction: effectiveBrushMode(session.brushMode, session.shiftHeld),
     selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalBuildFailed: Boolean(activeUnit && failedBuilds.get(activeUnit.id) === activeUnit), dentalStage: session.dentalStage, ...(session.dentalRimSelected === undefined ? {} : { dentalRimSelected: session.dentalRimSelected }),
     dentalRimAnchors: activeUnit?.rimDraft?.anchors.length ?? 0, dentalRimClosed: activeUnit?.rimDraft?.closed ?? false,

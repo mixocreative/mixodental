@@ -30,7 +30,7 @@ export interface TiltRow {
 }
 
 /** Why the pick was made: a robust tilt exists, only a passing one, or no tilt passes. */
-export type TiltPickReason = 'robust' | 'passing' | 'failing';
+export type TiltPickReason = 'robust' | 'passing' | 'failing' | 'unknown';
 
 /** A lowest point no support can reach at the picked tilt (denture scan): where it is (mesh frame, mm) and why. */
 export interface BoxedPoint {
@@ -109,7 +109,7 @@ export function decodeTiltScan(result: DentalTiltScanResultLike): TiltScan {
       });
     }
     const band = result.band();
-    return { kind: 'scan', startDeg: result.start_deg(), rows, order: [...result.order()], reason: REASONS[result.pick_reason()] ?? 'failing',
+    return { kind: 'scan', startDeg: result.start_deg(), rows, order: [...result.order()], reason: REASONS[result.pick_reason()] ?? 'unknown',
       band: band.length === 2 ? [band[0]!, band[1]!] : undefined, boxed: decodeBoxed(result) };
   } finally {
     result.free();

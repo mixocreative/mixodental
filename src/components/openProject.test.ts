@@ -45,7 +45,13 @@ describe('open project', () => {
   it('reports a file that cannot be read, leaves the plate alone and ends the job', async () => {
     const { jobs, calls, host: h } = host();
     await openProjectFile(junkFile, h);
-    expect(calls.status).toHaveBeenCalledWith(expect.objectContaining({ key: expect.stringContaining('not a mixoDental project') }));
+    // The key is parameterised now (GEO-011), so the guard moved to what actually matters: the app
+    // passes its OWN product name and extension into the shared sentence. A key check alone would
+    // pass with the vars empty, which on screen reads "is not a {product} project".
+    expect(calls.status).toHaveBeenCalledWith(expect.objectContaining({
+      key: expect.stringContaining('is not a {product} project'),
+      vars: expect.objectContaining({ product: 'mixoDental', ext: '.mixodental' }),
+    }));
     expect(calls.replace).not.toHaveBeenCalled();
     expect(idle(jobs)).toMatchObject([{ state: 'failed' }]);
   });

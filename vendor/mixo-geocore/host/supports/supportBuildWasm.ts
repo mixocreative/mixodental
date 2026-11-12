@@ -141,7 +141,7 @@ export function decodeComponents(tags: Uint32Array, reach: Float64Array, intents
     const intentStart = tags[t + 6]! * 9;
     const intentCount = tags[t + 7]!;
     components.push({
-      part: PARTS[tags[t]!]!,
+      part: PARTS[tags[t]!] ?? 'unknown',
       ...(contact === NO_CONTACT ? {} : { contactId: idOf(contact) }),
       ...(origin === 0 ? {} : { origin: origin === 2 ? 'manual' as const : 'auto' as const }),
       start: tags[t + 4]!,

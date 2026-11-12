@@ -22,7 +22,7 @@ export function scanDentureTilts(mesh: TriangleMesh, profile: string, settings: 
 }
 
 /** How a tip fares in the landing-circle check: a rod to the plate at the normal clearance, only at the last-resort clearance, or none. */
-export type TipPathState = 'path' | 'fallback' | 'none';
+export type TipPathState = 'path' | 'fallback' | 'none' | 'unknown';
 const PATH_STATES: readonly TipPathState[] = ['path', 'fallback', 'none'];
 
 /** One tilt for the live view: where its tips stand, how each fares, and the tilt's rotation. */
@@ -51,7 +51,7 @@ function decodeTiltPaths(tiltDeg: number, r: DentureTiltPathsLike): TiltPaths {
     const rotation = r.rotation();
     const tips = Array.from({ length: states.length }, (_, k) => ({
       position: [flat[k * 7]!, flat[k * 7 + 1]!, flat[k * 7 + 2]!] as Vector, normal: [flat[k * 7 + 3]!, flat[k * 7 + 4]!, flat[k * 7 + 5]!] as Vector,
-      stream: flat[k * 7 + 6]!, state: PATH_STATES[states[k]!] ?? 'none',
+      stream: flat[k * 7 + 6]!, state: PATH_STATES[states[k]!] ?? 'unknown',
     }));
     return { kind: 'paths', tiltDeg, rotation: [rotation[0]!, rotation[1]!, rotation[2]!], tips, counts: { lowsWithout: c[0]!, without: c[1]!, fallbacks: c[2]!, tips: c[3]! }, overhangMm2: r.overhang_mm2() };
   } finally {

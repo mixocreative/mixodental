@@ -5,6 +5,10 @@ import { generateSupports, type GenerateOptions, type GenerateOutput, type MakeP
 /*
  * UNUSED HELPER (measured no gain 2026-10-30: more lift left the same tips out on every case and tripled the build time;
  * the mixodental batch builds once at the profile lift). Kept for a later case where lift does route tips.
+ * REGISTERED: docs/GAP-REGISTER.md section F carries the measurement, its date and the condition that
+ * would wire it - a comment in the file itself is the one place a person asking "what are we carrying
+ * and why" will not look (GEO-016). Its three tests in dentureGenerate.test.ts keep it compiling,
+ * which is the whole cost; if the row goes, so does the code.
  *
  * Denture support build with the extra-lift retry (owner rule, 2026-10-30). A denture is built at the
  * profile's lift (3.5 mm). When automatic tips are left out for lack of a route at that lift, the same

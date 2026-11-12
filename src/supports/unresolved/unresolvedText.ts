@@ -60,4 +60,7 @@ export const LANDING_TIER_TEXT = {
   allowed: 'Supported from the model surface, in the allowed area.',
   other: 'Supported from the model surface, outside the allowed area.',
   'no-support': 'Supported from the model surface, in a no-support zone.',
+  // engine-64 fallback: the support IS on the model surface, which is the part that matters for
+  // the print; only the area's name is missing. Say exactly that rather than guessing a tier.
+  unknown: 'Supported from the model surface, in an area this version cannot name.',
 } as const;

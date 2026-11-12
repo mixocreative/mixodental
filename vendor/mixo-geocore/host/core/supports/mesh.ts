@@ -48,7 +48,9 @@ export type SupportPart =
   | 'tip' | 'neck' | 'pillar' | 'foot' | 'brace' | 'raft'
   | 'tree-branch' | 'tree-trunk'
   | 'roof' | 'column' | 'roof-brace' | 'cross-bar' | 'cage-ring'
-  | 'label';
+  | 'label'
+  /** A part code this host version does not know (GEO-005): never another part's meaning. */
+  | 'unknown';
 
 /** Source-model contacts a built component intentionally approaches; not a collision exemption. */
 export type ContactIntent =
@@ -98,7 +100,7 @@ export interface SupportVerdict {
 
 /** Island verdict from the built-path graph: `resolved` only when verified supports reach the plate. */
 export type IslandReport =
-  | { status: 'ok'; islands: Array<{ height: number; vertex: number; status: 'resolved' | 'unresolved' | 'manual-only' | 'outside-policy' }> }
+  | { status: 'ok'; islands: Array<{ height: number; vertex: number; status: 'resolved' | 'unresolved' | 'manual-only' | 'outside-policy' | 'unknown' }> }
   | { status: 'inconclusive'; reason: string };
 
 /** Dental (host/dental): the final built contacts on one rim of a two-contour aligner. */
@@ -135,8 +137,12 @@ export interface UnresolvedPoint {
   stream: string;
   /** Plate frame, mm. */
   position: [number, number, number];
-  /** The outward surface normal there (plate frame; an island: straight down): the tip normal for the one-tip edit `rerouteSupport`. */
-  normal: [number, number, number];
+  /**
+   * The outward surface normal there (plate frame; an island: straight down): the tip normal for the
+   * one-tip edit `rerouteSupport`. `null` when the engine reported no direction for this point -
+   * refuse the reroute with that, never aim it somewhere plausible (GEO-008).
+   */
+  normal: [number, number, number] | null;
   /** Height above the plate, mm (the position's y minus the plate's). */
   heightMm: number;
   /** Why, in words. */
@@ -162,7 +168,7 @@ export interface GeneratedSupportMesh extends TriangleMesh {
   /** Rule contactFit (engine 45): the built contact ends by fit state (fitted: measured and within tolerance; seat: an edge or ridge under the contact, analytic end; unconverged: analytic end); all zero with the rule off. */
   contactFits?: { fitted: number; seat: number; unconverged: number };
   /** Denture builds with the dental model landing (`dentalModelLanding` or the allow list): tips supported from the model's own surface, with the landing tier (allowed area, other surface, no-support zone) and the landing point (plate frame, mm). Empty when off. */
-  modelLanded?: { id: string; tier: 'allowed' | 'other' | 'no-support'; position: [number, number, number] }[];
+  modelLanded?: { id: string; tier: 'allowed' | 'other' | 'no-support' | 'unknown'; position: [number, number, number] }[];
   /** Every tip still left out and every island no support reaches: where, which stream, why, and the best gap found (the largest clearance, mm, at which a route from the plate still exists; `null`: none found or not searched) against the gap the build needs. What the UI bubble's tooltip shows. */
   unresolved?: UnresolvedPoint[];
   /** The case's footprint on the plate (engine 53): the space-map raft outline (model shadow joined with the foot discs, grown by the raft expand), closed loops in plan (x, z) mm relative to the unit's plate position at build time. What plate auto-arrange packs (`editing/arrange.ts arrangeOnPlate`). */

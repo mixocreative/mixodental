@@ -11,11 +11,11 @@ const paths: Extract<TiltPaths, { kind: 'paths' }> = { kind: 'paths', tiltDeg: 1
 
 describe('liveTipLayers', () => {
   it('counts tips per path state', () => {
-    expect(tipCounts(paths)).toEqual({ path: 2, fallback: 0, none: 1 });
+    expect(tipCounts(paths)).toEqual({ path: 2, fallback: 0, none: 1, unknown: 0 });
   });
 
   it('draws one coloured layer per state that has tips, an octahedron on each tip', () => {
-    const layers = liveTipLayers(paths, { path: 1, fallback: 2, none: 3 }, 0.5);
+    const layers = liveTipLayers(paths, { path: 1, fallback: 2, none: 3, unknown: 4 }, 0.5);
     expect(layers.map((layer) => [layer.name, layer.color])).toEqual([['Live tips: path', 1], ['Live tips: none', 3]]);
     expect(layers[0]!.positions.length).toBe(2 * 6 * 3);
     expect(layers[0]!.indices.length).toBe(2 * 24);

@@ -6,7 +6,7 @@ import type { TipColours } from './liveTipLayers';
  * designer changes them in one place.
  */
 
-/** The three path-state colours from the document's tokens. */
+/** The path-state colours from the document's tokens (`unknown` is the engine-64 fallback). */
 export function tipColours(): TipColours {
-  return { path: tokenColour('--tip-path'), fallback: tokenColour('--tip-fallback'), none: tokenColour('--tip-none') };
+  return { path: tokenColour('--tip-path'), fallback: tokenColour('--tip-fallback'), none: tokenColour('--tip-none'), unknown: tokenColour('--tip-unknown') };
 }

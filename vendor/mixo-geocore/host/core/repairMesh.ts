@@ -1,3 +1,5 @@
+import { exact, records } from './arity';
+
 /*
  * Mesh repair on import (engine 63): the decoder for `repair_mesh` and `diagnose_mesh`. The engine
  * packs its report as flat f64 arrays (the layouts are in crates/geometry-wasm/src/repair.rs and
@@ -63,6 +65,8 @@ export interface RepairReport {
 /** Why a boundary loop was, or was not, filled. `''` when it was. */
 export type FillReason =
   | ''
+  /** An outcome code this host version does not know (GEO-005): never another reason's meaning. */
+  | 'unknown'
   | 'fill-too-long'
   | 'fill-non-planar'
   | 'fill-self-intersecting'
@@ -73,7 +77,7 @@ export type FillReason =
   | 'fill-disabled';
 
 /** Which patch closed a loop. */
-export type FillStrategy = 'none' | 'triangle' | 'ear-clip' | 'min-area';
+export type FillStrategy = 'none' | 'triangle' | 'ear-clip' | 'min-area' | 'unknown';
 
 /** One boundary loop the fill step looked at, and what became of it. */
 export interface LoopFill {
@@ -206,9 +210,15 @@ const empty: RepairReport = {
 };
 
 function decodeReport(mesh: Float64Array, bodyValues: Float64Array, loopValues: Float64Array): RepairReport {
-  if (mesh.length < MESH_SCALARS) return { ...empty, bodies: [] };
+  // An EMPTY roll-up is the engine's `blank()`: the side of an abandoned repair that was never
+  // measured (repair.rs). `watertight` is then false, which fails closed. Any OTHER length is drift
+  // or truncation, and the all-zero report it used to produce reads as a measured clean mesh.
+  if (mesh.length === 0) return { ...empty, bodies: [] };
+  exact(mesh, MESH_SCALARS, 'repair mesh roll-up');
   const bodies: RepairBody[] = [];
-  for (let at = 0; at + BODY_SCALARS <= bodyValues.length; at += BODY_SCALARS) {
+  const bodyCount = records(bodyValues, BODY_SCALARS, 'repair body array');
+  for (let b = 0; b < bodyCount; b++) {
+    const at = b * BODY_SCALARS;
     const v = bodyValues.subarray(at, at + BODY_SCALARS);
     bodies.push({
       id: v[0],
@@ -229,7 +239,9 @@ function decodeReport(mesh: Float64Array, bodyValues: Float64Array, loopValues: 
     });
   }
   const byId = new Map(bodies.map((body) => [body.id, body]));
-  for (let at = 0; at + LOOP_SCALARS <= loopValues.length; at += LOOP_SCALARS) {
+  const loopCount = records(loopValues, LOOP_SCALARS, 'repair boundary-loop array');
+  for (let l = 0; l < loopCount; l++) {
+    const at = l * LOOP_SCALARS;
     byId.get(loopValues[at])?.loopLengthsMm.push(loopValues[at + 1]);
   }
   return {
@@ -249,7 +261,11 @@ function decodeReport(mesh: Float64Array, bodyValues: Float64Array, loopValues: 
 }
 
 function decodeSteps(values: Float64Array): RepairSteps {
-  const at = (k: number) => (k < values.length ? values[k] : 0);
+  // The step array is ALWAYS `STEP_SCALARS` long, all zero when the repair was abandoned
+  // (repair.rs), so a short one is never a legal state - and it used to decode as a healthy run
+  // that filled nothing. This is the `loopsLeftOpen: 0` case GEO-006 exists to pin.
+  exact(values, STEP_SCALARS, 'repair step array');
+  const at = (k: number) => values[k]!;
   return {
     weldVerticesMerged: at(0),
     weldBoundaryLoopsBefore: at(1),
@@ -280,7 +296,10 @@ function decodeSteps(values: Float64Array): RepairSteps {
 
 function decodeFills(values: Float64Array): LoopFill[] {
   const out: LoopFill[] = [];
-  for (let at = 0; at + FILL_SCALARS <= values.length; at += FILL_SCALARS) {
+  // Empty is legal (the engine reports no fills when the repair was abandoned); a remainder is not.
+  const count = records(values, FILL_SCALARS, 'repair fill array');
+  for (let k = 0; k < count; k++) {
+    const at = k * FILL_SCALARS;
     const v = values.subarray(at, at + FILL_SCALARS);
     out.push({
       body: v[0],
@@ -288,8 +307,10 @@ function decodeFills(values: Float64Array): LoopFill[] {
       edges: v[2],
       flatness: v[3],
       filled: v[4] === 0,
-      reason: reasons[v[4]] ?? 'fill-degenerate',
-      strategy: strategies[v[5]] ?? 'none',
+      // GEO-005: `fill-degenerate` said "the rim had no area" about a hole left open for a reason
+      // this version cannot read, and `none` said "nothing closed it" while `filled` may be true.
+      reason: reasons[v[4]] ?? 'unknown',
+      strategy: strategies[v[5]] ?? 'unknown',
       trianglesAdded: v[6],
     });
   }

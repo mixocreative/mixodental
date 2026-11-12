@@ -11,8 +11,10 @@ import type { DentureParts } from '../engine/dentureCore';
  */
 
 /** The list's words per role (English keys). */
-export const ROLE_LABEL: Record<PartRole, string> = { target: 'Target', fused: 'Fused', addOn: 'Add-on', debris: 'Debris' };
-const ROLE_ORDER: Record<PartRole, number> = { target: 0, fused: 1, addOn: 2, debris: 3 };
+export const ROLE_LABEL: Record<PartRole, string> = { target: 'Target', fused: 'Fused', addOn: 'Add-on', debris: 'Debris', unknown: 'Unrecognised part' };
+// `unknown` sorts last: `debris` says "ignore this", `unknown` says "this build cannot say what it
+// is", which is less information rather than more, and it must never outrank a part with a role.
+const ROLE_ORDER: Record<PartRole, number> = { target: 0, fused: 1, addOn: 2, debris: 3, unknown: 4 };
 
 /** The list shows only when the file has more than one part. */
 export const showsPartsList = (parts: DentureParts | undefined): parts is DentureParts => (parts?.parts.length ?? 0) > 1;
@@ -24,7 +26,7 @@ export function orderedParts(parts: readonly DenturePart[]): DenturePart[] {
 
 /** How many parts of each role. */
 export function roleCounts(parts: readonly DenturePart[]): Record<PartRole, number> {
-  const counts: Record<PartRole, number> = { target: 0, fused: 0, addOn: 0, debris: 0 };
+  const counts: Record<PartRole, number> = { target: 0, fused: 0, addOn: 0, debris: 0, unknown: 0 };
   for (const part of parts) counts[part.role] += 1;
   return counts;
 }

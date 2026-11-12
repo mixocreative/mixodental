@@ -1491,6 +1491,15 @@ export function manual_dental_area(face_count: number, painted_faces: Uint32Arra
 export function manual_dental_area_from_stamps(positions: Float32Array, indices: Uint32Array, stamps: Float64Array, detected: boolean, profile: string): Uint8Array;
 
 /**
+ * The build phase names `generate`'s `on_phase` callback reports, in the order a first (unrepaired)
+ * build runs them (`mixo_geometry_core::supports::phase::Phase::ALL`). Engine 64, for GEO-015: the
+ * host held a second hand-written copy of this list (`GENERATE_PHASES` in host/core/progress.ts)
+ * and the gate between them DROPPED a name it did not know, so a phase added here without a host
+ * update left the operator's bar sitting still on a build that was working fine.
+ */
+export function phase_names(): string[];
+
+/**
  * Placement matrix (f64[16]) of a position (mm) and Euler XYZ rotation (radians).
  */
 export function placement_matrix(position: Float64Array, rotation: Float64Array): Float64Array;
@@ -1543,6 +1552,16 @@ export function remove_degenerate_triangles(positions: Float32Array, indices: Ui
  * engine has no default for it on purpose - the number comes from measured rim lengths.
  */
 export function repair_mesh(positions: Float32Array, indices: Uint32Array, max_fill_loop_mm: number): MeshRepairResult;
+
+/**
+ * The five stride constants above, in this order: mesh roll-up, per body, per boundary loop, step
+ * array, per fill. Engine 64, for GEO-004: the host declared the same five numbers independently
+ * (`host/core/repairMesh.ts`), and no gate compared them - the Rust side was proved against the
+ * Rust constants and the host side against a fake that emitted whatever the host expected. Exported
+ * so the host's copies are CHECKED rather than restated; `host/core/repairMesh.contract.test.ts`
+ * is the consumer. Add a value to any layout here and that test goes red.
+ */
+export function repair_strides(): Uint32Array;
 
 /**
  * The names of the planner rules `generate`'s `rules` array overrides, in array order

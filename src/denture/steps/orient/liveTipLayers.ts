@@ -12,12 +12,14 @@ export type TipColours = Record<TipPathState, number>;
 
 /** What the bar says about one tilt: tips per path state. */
 export function tipCounts(paths: Extract<TiltPaths, { kind: 'paths' }>): Record<TipPathState, number> {
-  const counts: Record<TipPathState, number> = { path: 0, fallback: 0, none: 0 };
+  const counts: Record<TipPathState, number> = { path: 0, fallback: 0, none: 0, unknown: 0 };
   for (const tip of paths.tips) counts[tip.state] += 1;
   return counts;
 }
 
-const STATES: readonly TipPathState[] = ['path', 'fallback', 'none'];
+// 'unknown' is in the list on purpose: a tip whose state this build does not recognise still
+// EXISTS, and a tip that renders nothing is exactly the silent failure this app audits for.
+const STATES: readonly TipPathState[] = ['path', 'fallback', 'none', 'unknown'];
 /** Octahedron corners (unit radius) and faces. */
 const CORNERS = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]] as const;
 const FACES = [0, 2, 4, 2, 1, 4, 1, 3, 4, 3, 0, 4, 2, 0, 5, 1, 2, 5, 3, 1, 5, 0, 3, 5];

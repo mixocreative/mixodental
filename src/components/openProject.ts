@@ -3,6 +3,7 @@ import type { PrintScene } from '../state/project';
 import { triangleCountOf } from '../state/projectFile';
 import { MODELS_IGNORED, openedStatus, openFailure, ProjectTooLarge } from '@mixo-geocore/editing/project';
 import { importRefusal } from '@mixo-geocore/editing/status';
+import { PRODUCT_NAMING } from '../productNaming';
 import type { EditMode, StatusMessage } from '@mixo-geocore/editing/types';
 import type { UndoAction } from '@mixo-geocore/editing/toast';
 
@@ -37,7 +38,7 @@ export async function openProjectFile(file: File, host: OpenHost, modelsIgnored 
     if (hadObjects) host.offerUndo({ kind: 'openProject', name: file.name });
     return true;
   } catch (error) {
-    host.setStatusMessage(openFailure(error, file.name));
+    host.setStatusMessage(openFailure(error, file.name, PRODUCT_NAMING));
     return false;
   }
 }

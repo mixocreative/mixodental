@@ -200,6 +200,7 @@ Colours with a meaning. Each is an alias of a UI token by default; give it a col
 | `--tip-path` | `var(--success)` | Live tip with a route to the plate (Step 1) | Tips in the viewport and the legend under the dial |
 | `--tip-fallback` | `var(--warning)` | Live tip with only the fallback clearance (Step 1) | Tips in the viewport and the legend under the dial |
 | `--tip-none` | `var(--danger)` | Live tip with no route (Step 1) | Tips in the viewport and the legend under the dial |
+| `--tip-unknown` | `var(--muted)` | Live tip whose path state this build does not recognise (engine-64 fallback) | Tips in the viewport and the legend under the dial |
 | `--part-addon` | `var(--blue)` | Add-on parts of a denture (hooks, attachments) | Tint on the model (Step 2) and in the parts list |
 | `--progress-staged-fill` | `var(--red)` | Fill of the staged bar | The bar of a denture scan or support build in the background-work list |
 | `--progress-staged-track` | `var(--line)` | Track behind the staged bar | Same bar, the part not yet reached |

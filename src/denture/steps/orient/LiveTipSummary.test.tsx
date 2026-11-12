@@ -4,7 +4,7 @@ import { LiveTipSummary } from './LiveTipSummary';
 
 describe('LiveTipSummary', () => {
   it('lists the tips per path state with named swatches', () => {
-    const html = renderToStaticMarkup(<LiveTipSummary counts={{ path: 90, fallback: 5, none: 2 }} />);
+    const html = renderToStaticMarkup(<LiveTipSummary counts={{ path: 90, fallback: 5, none: 2, unknown: 0 }} />);
     expect(html).toContain('data-ui="denture-live-tips"');
     expect(html).toContain('90 with a path');
     expect(html).toContain('tip-swatch--none');

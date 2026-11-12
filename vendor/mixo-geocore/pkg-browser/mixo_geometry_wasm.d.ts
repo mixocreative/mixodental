@@ -1353,6 +1353,15 @@ export function invert_matrix(matrix: Float64Array): Float64Array;
 export function live_mesh_handles(): number;
 
 /**
+ * The build phase names `generate`'s `on_phase` callback reports, in the order a first (unrepaired)
+ * build runs them (`mixo_geometry_core::supports::phase::Phase::ALL`). Engine 64, for GEO-015: the
+ * host held a second hand-written copy of this list (`GENERATE_PHASES` in host/core/progress.ts)
+ * and the gate between them DROPPED a name it did not know, so a phase added here without a host
+ * update left the operator's bar sitting still on a build that was working fine.
+ */
+export function phase_names(): string[];
+
+/**
  * Placement matrix (f64[16]) of a position (mm) and Euler XYZ rotation (radians).
  */
 export function placement_matrix(position: Float64Array, rotation: Float64Array): Float64Array;
@@ -1394,6 +1403,16 @@ export function remove_degenerate_triangles(positions: Float32Array, indices: Ui
  * engine has no default for it on purpose - the number comes from measured rim lengths.
  */
 export function repair_mesh(positions: Float32Array, indices: Uint32Array, max_fill_loop_mm: number): MeshRepairResult;
+
+/**
+ * The five stride constants above, in this order: mesh roll-up, per body, per boundary loop, step
+ * array, per fill. Engine 64, for GEO-004: the host declared the same five numbers independently
+ * (`host/core/repairMesh.ts`), and no gate compared them - the Rust side was proved against the
+ * Rust constants and the host side against a fake that emitted whatever the host expected. Exported
+ * so the host's copies are CHECKED rather than restated; `host/core/repairMesh.contract.test.ts`
+ * is the consumer. Add a value to any layout here and that test goes red.
+ */
+export function repair_strides(): Uint32Array;
 
 /**
  * The names of the planner rules `generate`'s `rules` array overrides, in array order
@@ -1733,6 +1752,7 @@ export interface InitOutput {
     readonly meshrepairresult_take_loops_before: (a: number) => [number, number];
     readonly meshrepairresult_take_positions: (a: number) => [number, number];
     readonly meshrepairresult_take_steps: (a: number) => [number, number];
+    readonly phase_names: () => [number, number];
     readonly pickindex_take_bounds: (a: number) => [number, number];
     readonly pickindex_take_links: (a: number) => [number, number];
     readonly pickindex_take_order: (a: number) => [number, number];
@@ -1770,6 +1790,7 @@ export interface InitOutput {
     readonly remap_deleted_ids: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
     readonly remove_degenerate_triangles: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly repair_mesh: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
+    readonly repair_strides: () => [number, number];
     readonly reroute_landing_point: (a: number) => [number, number];
     readonly reroute_landing_tier: (a: number) => number;
     readonly reroute_refusal: (a: number) => [number, number];

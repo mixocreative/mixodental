@@ -12,7 +12,7 @@
 /** Numbers per part in the flat list (Rust `FileParts::list`). */
 export const PART_STRIDE = 6;
 
-export type PartRole = 'target' | 'addOn' | 'debris' | 'fused';
+export type PartRole = 'target' | 'addOn' | 'debris' | 'fused' | 'unknown';
 
 const ROLES: readonly PartRole[] = ['target', 'addOn', 'debris', 'fused'];
 
@@ -39,7 +39,7 @@ export interface DenturePart {
 export function decodeParts(flat: ArrayLike<number>): DenturePart[] {
   return Array.from({ length: Math.floor(flat.length / PART_STRIDE) }, (_, k) => {
     const at = k * PART_STRIDE;
-    return { id: flat[at]!, role: ROLES[flat[at + 1]!] ?? 'debris', triangles: flat[at + 2]!, volumeMm3: flat[at + 3]!, areaMm2: flat[at + 4]!, tips: flat[at + 5]! };
+    return { id: flat[at]!, role: ROLES[flat[at + 1]!] ?? 'unknown', triangles: flat[at + 2]!, volumeMm3: flat[at + 3]!, areaMm2: flat[at + 4]!, tips: flat[at + 5]! };
   });
 }
 

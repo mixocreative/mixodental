@@ -5092,6 +5092,22 @@ function manual_dental_area_from_stamps(positions, indices, stamps, detected, pr
 exports.manual_dental_area_from_stamps = manual_dental_area_from_stamps;
 
 /**
+ * The build phase names `generate`'s `on_phase` callback reports, in the order a first (unrepaired)
+ * build runs them (`mixo_geometry_core::supports::phase::Phase::ALL`). Engine 64, for GEO-015: the
+ * host held a second hand-written copy of this list (`GENERATE_PHASES` in host/core/progress.ts)
+ * and the gate between them DROPPED a name it did not know, so a phase added here without a host
+ * update left the operator's bar sitting still on a build that was working fine.
+ * @returns {string[]}
+ */
+function phase_names() {
+    const ret = wasm.phase_names();
+    var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+exports.phase_names = phase_names;
+
+/**
  * Placement matrix (f64[16]) of a position (mm) and Euler XYZ rotation (radians).
  * @param {Float64Array} position
  * @param {Float64Array} rotation
@@ -5304,6 +5320,23 @@ function repair_mesh(positions, indices, max_fill_loop_mm) {
     return MeshRepairResult.__wrap(ret[0]);
 }
 exports.repair_mesh = repair_mesh;
+
+/**
+ * The five stride constants above, in this order: mesh roll-up, per body, per boundary loop, step
+ * array, per fill. Engine 64, for GEO-004: the host declared the same five numbers independently
+ * (`host/core/repairMesh.ts`), and no gate compared them - the Rust side was proved against the
+ * Rust constants and the host side against a fake that emitted whatever the host expected. Exported
+ * so the host's copies are CHECKED rather than restated; `host/core/repairMesh.contract.test.ts`
+ * is the consumer. Add a value to any layout here and that test goes red.
+ * @returns {Uint32Array}
+ */
+function repair_strides() {
+    const ret = wasm.repair_strides();
+    var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+exports.repair_strides = repair_strides;
 
 /**
  * The names of the planner rules `generate`'s `rules` array overrides, in array order

@@ -22,6 +22,38 @@
 // 20: denture review rim = low points joined over the mesh (rim_loops/rim_sizes/rim_closed/rim_edges/rim_info), holes by an axis ray grid (hole_outlines/hole_sizes/hole_info/hole_band_mask); rim_loop, rim_bridged, hole_loops, hole_edges removed.
 
 /** Must equal the Rust `engine_version()`; both change together on any ABI change. */
+// 64: the engine-63 audit's fixes, the ones that change what the host tells an app
+// (docs/cia-audit-2026-11-12.md). Each line below was added by the commit that shipped it.
+// New ABI export `repair_strides()`: the five repair layout strides, so host/core/repairMesh.ts's
+// copies are checked rather than restated (GEO-004).
+// A build with no contacts no longer answers for the engine: its verdict and island report are
+// `inconclusive` with reason `not judged: no contacts` instead of `clear` / `ok`, its `mesh.revision`
+// is set like every other return path, and the export gate has a fourth refusal reason
+// `nothing-built` (its result row carries `triangles`) - GEO-002, GEO-003.
+// Every engine code table in host/ and editing/ has an `unknown` member and every lookup falls back
+// to it (or to the table's own existing honest unknown), so a code this version does not know is
+// reported as unknown rather than as a neighbour's meaning - GEO-005. Unions widened: SupportPart,
+// SupportIssue.origin, the per-island status, modelLanded.tier, FillReason, FillStrategy,
+// DentalArchKind, TiltPickReason, IslandState, PartRole, TipPathState, PieceKind,
+// SupportPointSource, and the review's tip stream (now the type `TipStream`).
+// The repair decoders and `unpackFootprint` refuse a short or mis-strided array instead of padding
+// it with zeros, dropping the trailing record or walking past the end into NaN - a RangeError, as
+// fatal as the engine's own INVALID_LENGTH, which the host already throws through these functions
+// (GEO-006).
+// `editing/` takes the product name and the project file extension from the app instead of naming
+// mixoDental in four shared i18n keys: `UiState.product` / `UiState.ext` (both required) and
+// `openFailure(error, name, { product, ext })` - GEO-011.
+// A job that ran on the CALLING thread because no Web Worker could be created says so:
+// `JobRow.inline`, and that row offers no Cancel because nothing can interrupt it (GEO-012).
+// `take_unresolved_kinds`, `take_unresolved_normals` and `take_footprint` are REQUIRED members, and
+// an unresolved point the engine gave no direction for carries `normal: null` instead of a
+// fabricated straight-down one - GEO-008.
+// New ABI export `phase_names()`: the build phase names in the engine's own order, so
+// host/core/progress.ts's `GENERATE_PHASES` is a copy that is CHECKED rather than a second
+// hand-written list; and a phase name the host does not know is forwarded as `'unknown'` with its
+// counts rather than dropped in silence, so the progress bar no longer freezes on a working build
+// (GEO-015). The channel itself and the "a listener changes nothing" invariant now have a test at
+// the seam (GEO-014).
 // 63: hole filling, repair slice 2 (`crates/geometry-core/src/repair/fill.rs`): `repair_mesh(positions, indices, max_fill_loop_mm)` takes a THIRD argument - the longest boundary rim (mm) the caller permits to be closed. There is no default and 0 (or any non-positive or non-finite value) fills nothing: the number belongs to measured rim lengths on real files, which `diagnose_mesh`'s `take_loops()` (body id, length mm per loop) already reports. A patch uses only the vertices of its own rim and only one physical body, adds no vertex and is all-or-nothing per loop; a three-edge rim becomes one triangle, a near-planar rim (bend under 10% of its reach) is ear-clipped in its own plane, a rim up to 35% takes the minimum-area triangulation of the 3D polygon, and anything beyond that - or crossing itself, or over 256 edges, or not a closed loop - is LEFT OPEN and reported. New `MeshRepairResult::take_fills()`: 7 scalars per loop (body, length mm, edges, flatness, outcome, strategy, triangles added), outcome 0 filled / 1 fill-too-long / 2 fill-non-planar / 3 fill-self-intersecting / 4 fill-too-many-edges / 5 fill-not-a-loop / 6 fill-degenerate / 7 fill-spans-bodies / 8 fill-disabled, strategy 0 none / 1 triangle / 2 ear-clip / 3 min-area. `take_steps()` is now 24 scalars (the fill's limit, loops considered, filled, left open and patch triangles inserted before the noise-shell values). `after.watertight` still means every body closed, so one loop left open keeps it false. Host decoder: host/core/repairMesh.ts.
 // 62: mesh repair on import, slice 1 (`crates/geometry-core/src/repair/`): `diagnose_mesh(positions, indices)` -> `MeshDiagnosis` (`take_mesh` 12 scalars, `take_bodies` 14 per physical body, `take_loops` 2 per boundary loop) replaces the single `mesh_ok` bit with a per-body report (triangles, vertices, signed volume, area, box diagonal, closed, boundary loops and each loop's length, non-manifold edges, bowtie vertices, consistent winding, noise shell); `repair_mesh(positions, indices)` -> `MeshRepairResult` (`ok`, `reason`, `changed`, `take_positions`, `take_indices`, `take_before`/`take_after`, `take_bodies_before`/`take_bodies_after`, `take_loops_before`/`take_loops_after`, `take_steps` 19 scalars) welds coincident vertices, drops collapsed triangles (the existing rule), splits non-manifold edges and bowtie vertices, makes the winding consistent per body and outward for the closed ones, and marks the bodies under 0.001 mm3 as noise. A PHYSICAL BODY (a piece separated by a 0.005 mm gap, `Tolerance::BodyGap`) is invariant: the wrapper checks between steps, and a step that would move a face between bodies abandons the repair - `ok() === false`, `reason()` `body-invariant:<weld|degenerate|manifold|winding>`, the file handed back unchanged (not a throw). Holes are measured, never filled (slice 2); noise shells are reported, never dropped. A clean mesh comes back bit-identical with `changed() === false`. Host decoder: host/core/repairMesh.ts.
 // 61: `dental_rim_from_points(model, points, flip, profile)` -> `DentalRimResult` (`ok`, `reason`, `rim_scalars` as an orient result's 22, `take_rim_points`, `take_visibility_mask`, `floor_offset`, `flipped`): the rim for a loop the operator drew on the surface, for an aligner whose rim detection found none. Same rasteriser, same mask shape; the opening's side comes from the floor rule, not the loop's winding.
@@ -50,7 +82,7 @@
 // 38: the self-supporting overhang rule (rules overhangSelfSupport, overhangMinAreaMm2, overhangMaxReachMm, overhangMinAngleDeg, appended: 89 rule names); off by default, so a build without it is unchanged; the review result has `self_support_faces()` and `self_support_info()`; the tilt scan honours it.
 // 37: the plate outline and the grid raft (rules raftGrid, raftMapOutline, raftGridBottomMm, raftGridTopMm, raftRibMm, raftRibPitchMm, raftRimMm, raftPadMarginMm, appended: 85 rule names); both switches default off, so a build without them is unchanged.
 // 36: opt-in R1b, the steep no-support ray (rule noSupportSteepDeg, appended: 77 rule names; the review result has `no_support_steep_mask()` and `no_support_steep_deg()`).
-export const HOST_GEOMETRY_VERSION = 63;
+export const HOST_GEOMETRY_VERSION = 64;
 
 /** Thrown when the loaded engine's `engine_version()` is not `HOST_GEOMETRY_VERSION` (code 'geometry-version-mismatch'). */
 export class GeometryVersionMismatch extends Error {

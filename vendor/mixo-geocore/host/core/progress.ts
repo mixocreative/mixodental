@@ -30,8 +30,17 @@ export const PROGRESS_STAGE = {
  */
 export const GENERATE_PHASES = ['preparing', 'routing', 'placing', 'bracing', 'raft', 'checking', 'judging', 'finishing', 'writing'] as const;
 
-/** One of the `GENERATE_PHASES`. */
-export type GeneratePhase = (typeof GENERATE_PHASES)[number];
+/**
+ * One of the `GENERATE_PHASES`, or `unknown` for a phase name this host version does not know.
+ *
+ * GEO-015: `GENERATE_PHASES` is a second copy of the engine's `Phase::ALL`, and the gate that checked
+ * a name against it DROPPED the ones it did not know - no error, no counter, no log. The engine then
+ * spent that phase (which may be `routing`, half the wall clock on a denture) reporting nothing, and
+ * the operator's bar sat still on a build that was working fine. An unknown name is now forwarded as
+ * `unknown` with its counts, so the bar moves and the app can say it cannot name the step. Since
+ * engine 64 the engine exports `phase_names()`, and `tests/enginePhases.test.ts` pins this copy to it.
+ */
+export type GeneratePhase = (typeof GENERATE_PHASES)[number] | 'unknown';
 
 /**
  * Called by `generateSupports` as the engine enters a phase and as it counts tips inside one.

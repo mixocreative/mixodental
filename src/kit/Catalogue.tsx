@@ -43,7 +43,7 @@ function detailLabel(type: ProgressType): string {
 function jobRow(id: number, labelKey: string, stage: string | null, state: JobRow['state'], fraction: number | null, elapsedMs: number): JobRow {
   return {
     id, label: { key: labelKey, vars: { name: 'denture' } }, stage, state, fraction, percent: fraction === null ? null : Math.round(fraction * 100), elapsedMs,
-    showElapsed: true, remainingMs: null, cancellable: true, cancelling: false, blocking: false, context: null, error: null,
+    showElapsed: true, remainingMs: null, cancellable: true, cancelling: false, blocking: false, context: null, error: null, inline: false,
   };
 }
 

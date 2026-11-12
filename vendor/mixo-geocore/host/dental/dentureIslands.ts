@@ -13,7 +13,7 @@ import type { Vector } from '../core/vec3';
 export const ISLAND_STRIDE = 9;
 
 /** How an island stands. `leftOut` is set by `settleIslands`, never by the engine's plan. */
-export type IslandState = 'tipped' | 'servedNearby' | 'belowMinSize' | 'noSupportZone' | 'outsideAllowed' | 'noFace' | 'touchesPart' | 'leftOut';
+export type IslandState = 'tipped' | 'servedNearby' | 'belowMinSize' | 'noSupportZone' | 'outsideAllowed' | 'noFace' | 'touchesPart' | 'leftOut' | 'unknown';
 
 const STATES: readonly IslandState[] = ['tipped', 'servedNearby', 'belowMinSize', 'noSupportZone', 'outsideAllowed', 'noFace', 'touchesPart'];
 const REASONS: Record<IslandState, string> = {
@@ -25,6 +25,9 @@ const REASONS: Record<IslandState, string> = {
   noFace: 'no usable face',
   touchesPart: 'touches another part',
   leftOut: 'left out',
+  // GEO-005: the sentence says what happened - the engine reported a state this version does not
+  // know - rather than guessing which of the eight it meant.
+  unknown: 'the engine reported a state this version does not recognise',
 };
 
 /** One island, for the review to draw. */
@@ -52,7 +55,8 @@ export interface DentureIsland {
 export function decodeIslands(flat: ArrayLike<number>): DentureIsland[] {
   return Array.from({ length: Math.floor(flat.length / ISLAND_STRIDE) }, (_, k) => {
     const at = k * ISLAND_STRIDE;
-    const state = STATES[flat[at + 6]!] ?? 'noFace';
+    // GEO-005: not `noFace`, which would show the operator a reason the engine never gave.
+    const state = STATES[flat[at + 6]!] ?? 'unknown';
     const tip = flat[at + 7]!;
     const face = flat[at + 8]!;
     const nearest = flat[at + 5]!;
