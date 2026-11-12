@@ -22,6 +22,13 @@
 // 20: denture review rim = low points joined over the mesh (rim_loops/rim_sizes/rim_closed/rim_edges/rim_info), holes by an axis ray grid (hole_outlines/hole_sizes/hole_info/hole_band_mask); rim_loop, rim_bridged, hole_loops, hole_edges removed.
 
 /** Must equal the Rust `engine_version()`; both change together on any ABI change. */
+// 65: `LoopOutcome::Crack` = 9 (`fill-crack`): a rim of three or more edges enclosing no area is
+// a crack, reported apart from `fill-degenerate`, which now means only "fewer than three edges".
+// 65: new ABI export `part_tips(positions, indices, settings, rules, debrisMm, target)` ->
+// PartTipsResult: tips on every non-debris part's EXPOSED faces, with per-tip part and face,
+// the part rows, the per-face part map and the hidden mask. `target` is the host's declared
+// target part (-1 = the engine's largest), which outranks the engine's pick in the reported
+// roles. Host side: host/supports/partTips.ts.
 // 64: the engine-63 audit's fixes, the ones that change what the host tells an app
 // (docs/cia-audit-2026-11-12.md). Each line below was added by the commit that shipped it.
 // New ABI export `repair_strides()`: the five repair layout strides, so host/core/repairMesh.ts's
@@ -82,7 +89,7 @@
 // 38: the self-supporting overhang rule (rules overhangSelfSupport, overhangMinAreaMm2, overhangMaxReachMm, overhangMinAngleDeg, appended: 89 rule names); off by default, so a build without it is unchanged; the review result has `self_support_faces()` and `self_support_info()`; the tilt scan honours it.
 // 37: the plate outline and the grid raft (rules raftGrid, raftMapOutline, raftGridBottomMm, raftGridTopMm, raftRibMm, raftRibPitchMm, raftRimMm, raftPadMarginMm, appended: 85 rule names); both switches default off, so a build without them is unchanged.
 // 36: opt-in R1b, the steep no-support ray (rule noSupportSteepDeg, appended: 77 rule names; the review result has `no_support_steep_mask()` and `no_support_steep_deg()`).
-export const HOST_GEOMETRY_VERSION = 64;
+export const HOST_GEOMETRY_VERSION = 65;
 
 /** Thrown when the loaded engine's `engine_version()` is not `HOST_GEOMETRY_VERSION` (code 'geometry-version-mismatch'). */
 export class GeometryVersionMismatch extends Error {

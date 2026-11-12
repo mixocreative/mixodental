@@ -74,7 +74,9 @@ export type FillReason =
   | 'fill-not-a-loop'
   | 'fill-degenerate'
   | 'fill-spans-bodies'
-  | 'fill-disabled';
+  | 'fill-disabled'
+  /** The rim encloses no area: a crack, whose two sides sit too far apart for the weld to merge. */
+  | 'fill-crack';
 
 /** Which patch closed a loop. */
 export type FillStrategy = 'none' | 'triangle' | 'ear-clip' | 'min-area' | 'unknown';
@@ -190,6 +192,7 @@ const reasons: FillReason[] = [
   'fill-degenerate',
   'fill-spans-bodies',
   'fill-disabled',
+  'fill-crack',
 ];
 
 const strategies: FillStrategy[] = ['none', 'triangle', 'ear-clip', 'min-area'];

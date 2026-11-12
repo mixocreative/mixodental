@@ -1167,6 +1167,49 @@ export class MeshRepairResult {
 }
 
 /**
+ * Tips per part, plus what the operator has to be shown to understand them.
+ */
+export class PartTipsResult {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Part id of each file face.
+     */
+    take_face_parts(): Uint32Array;
+    /**
+     * 1 where a file face is buried inside another part. This is what the viewport tints, and what
+     * lets the app tell an operator WHY a face got no tip.
+     */
+    take_hidden(): Uint8Array;
+    /**
+     * `part<N>-<position id>`, one per tip, in part order.
+     */
+    take_ids(): string[];
+    /**
+     * Tip normals, xyz f64 — what the neck is aimed by.
+     */
+    take_normals(): Float64Array;
+    /**
+     * `PART_STRIDE` numbers per part: id, role, triangles, volume mm3, area mm2, tips. The same row
+     * shape the dental parts list uses, so a host that decodes one decodes both.
+     */
+    take_part_list(): Float64Array;
+    /**
+     * Tip points, xyz f64.
+     */
+    take_positions(): Float64Array;
+    /**
+     * The file face each tip stands on.
+     */
+    take_tip_faces(): Uint32Array;
+    /**
+     * Which part each tip belongs to. Without this a host cannot attribute a tip.
+     */
+    take_tip_parts(): Uint32Array;
+}
+
+/**
  * A mesh's pick index as flat arrays: per node `min xyz, max xyz` (`bounds`) and `start, count`
  * (`links`), then the triangle permutation (`order`). Transferable between realms.
  */
@@ -1489,6 +1532,19 @@ export function manual_dental_area(face_count: number, painted_faces: Uint32Arra
  * `manual_dental_area` from ordered brush stamps (8 numbers each).
  */
 export function manual_dental_area_from_stamps(positions: Float32Array, indices: Uint32Array, stamps: Float64Array, detected: boolean, profile: string): Uint8Array;
+
+/**
+ * Tips on every part's exposed faces.
+ *
+ * `target` is the host's declared target part, or `-1` to let the engine pick the largest. It is
+ * here rather than added later on purpose: the engine ranks by volume, the operator's active object
+ * is not necessarily that part, and in an editor a merge makes the active object the lead. Only the
+ * host can settle the three.
+ *
+ * A `debris` part gets no tips, which is a DENTAL judgement about scan noise; a generic caller that
+ * wants every part supported passes a `debris_mm` of 0.
+ */
+export function part_tips(positions: Float32Array, indices: Uint32Array, settings: Float64Array, rules: Float64Array, debris_mm: number, target: number): PartTipsResult;
 
 /**
  * The build phase names `generate`'s `on_phase` callback reports, in the order a first (unrepaired)

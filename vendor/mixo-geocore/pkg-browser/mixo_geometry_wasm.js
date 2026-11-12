@@ -3554,6 +3554,111 @@ export class MeshRepairResult {
 if (Symbol.dispose) MeshRepairResult.prototype[Symbol.dispose] = MeshRepairResult.prototype.free;
 
 /**
+ * Tips per part, plus what the operator has to be shown to understand them.
+ */
+export class PartTipsResult {
+    static __wrap(ptr) {
+        const obj = Object.create(PartTipsResult.prototype);
+        obj.__wbg_ptr = ptr;
+        PartTipsResultFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        PartTipsResultFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_parttipsresult_free(ptr, 0);
+    }
+    /**
+     * Part id of each file face.
+     * @returns {Uint32Array}
+     */
+    take_face_parts() {
+        const ret = wasm.parttipsresult_take_face_parts(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * 1 where a file face is buried inside another part. This is what the viewport tints, and what
+     * lets the app tell an operator WHY a face got no tip.
+     * @returns {Uint8Array}
+     */
+    take_hidden() {
+        const ret = wasm.parttipsresult_take_hidden(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * `part<N>-<position id>`, one per tip, in part order.
+     * @returns {string[]}
+     */
+    take_ids() {
+        const ret = wasm.parttipsresult_take_ids(this.__wbg_ptr);
+        var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]);
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Tip normals, xyz f64 — what the neck is aimed by.
+     * @returns {Float64Array}
+     */
+    take_normals() {
+        const ret = wasm.parttipsresult_take_normals(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * `PART_STRIDE` numbers per part: id, role, triangles, volume mm3, area mm2, tips. The same row
+     * shape the dental parts list uses, so a host that decodes one decodes both.
+     * @returns {Float64Array}
+     */
+    take_part_list() {
+        const ret = wasm.parttipsresult_take_part_list(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * Tip points, xyz f64.
+     * @returns {Float64Array}
+     */
+    take_positions() {
+        const ret = wasm.parttipsresult_take_positions(this.__wbg_ptr);
+        var v1 = getArrayF64FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
+        return v1;
+    }
+    /**
+     * The file face each tip stands on.
+     * @returns {Uint32Array}
+     */
+    take_tip_faces() {
+        const ret = wasm.parttipsresult_take_tip_faces(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+    /**
+     * Which part each tip belongs to. Without this a host cannot attribute a tip.
+     * @returns {Uint32Array}
+     */
+    take_tip_parts() {
+        const ret = wasm.parttipsresult_take_tip_parts(this.__wbg_ptr);
+        var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+        return v1;
+    }
+}
+if (Symbol.dispose) PartTipsResult.prototype[Symbol.dispose] = PartTipsResult.prototype.free;
+
+/**
  * A mesh's pick index as flat arrays: per node `min xyz, max xyz` (`bounds`) and `start, count`
  * (`links`), then the triangle permutation (`order`). Transferable between realms.
  */
@@ -4419,6 +4524,40 @@ export function live_mesh_handles() {
 }
 
 /**
+ * Tips on every part's exposed faces.
+ *
+ * `target` is the host's declared target part, or `-1` to let the engine pick the largest. It is
+ * here rather than added later on purpose: the engine ranks by volume, the operator's active object
+ * is not necessarily that part, and in an editor a merge makes the active object the lead. Only the
+ * host can settle the three.
+ *
+ * A `debris` part gets no tips, which is a DENTAL judgement about scan noise; a generic caller that
+ * wants every part supported passes a `debris_mm` of 0.
+ * @param {Float32Array} positions
+ * @param {Uint32Array} indices
+ * @param {Float64Array} settings
+ * @param {Float64Array} rules
+ * @param {number} debris_mm
+ * @param {number} target
+ * @returns {PartTipsResult}
+ */
+export function part_tips(positions, indices, settings, rules, debris_mm, target) {
+    const ptr0 = passArrayF32ToWasm0(positions, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray32ToWasm0(indices, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passArrayF64ToWasm0(settings, wasm.__wbindgen_malloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ptr3 = passArrayF64ToWasm0(rules, wasm.__wbindgen_malloc);
+    const len3 = WASM_VECTOR_LEN;
+    const ret = wasm.part_tips(ptr0, len0, ptr1, len1, ptr2, len2, ptr3, len3, debris_mm, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return PartTipsResult.__wrap(ret[0]);
+}
+
+/**
  * The build phase names `generate`'s `on_phase` callback reports, in the order a first (unrepaired)
  * build runs them (`mixo_geometry_core::supports::phase::Phase::ALL`). Engine 64, for GEO-015: the
  * host held a second hand-written copy of this list (`GENERATE_PHASES` in host/core/progress.ts)
@@ -4883,6 +5022,9 @@ const MeshDiagnosisFinalization = (typeof FinalizationRegistry === 'undefined')
 const MeshRepairResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_meshrepairresult_free(ptr, 1));
+const PartTipsResultFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_parttipsresult_free(ptr, 1));
 const PickIndexFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_pickindex_free(ptr, 1));

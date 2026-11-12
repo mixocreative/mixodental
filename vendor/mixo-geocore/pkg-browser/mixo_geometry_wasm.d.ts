@@ -1101,6 +1101,49 @@ export class MeshRepairResult {
 }
 
 /**
+ * Tips per part, plus what the operator has to be shown to understand them.
+ */
+export class PartTipsResult {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Part id of each file face.
+     */
+    take_face_parts(): Uint32Array;
+    /**
+     * 1 where a file face is buried inside another part. This is what the viewport tints, and what
+     * lets the app tell an operator WHY a face got no tip.
+     */
+    take_hidden(): Uint8Array;
+    /**
+     * `part<N>-<position id>`, one per tip, in part order.
+     */
+    take_ids(): string[];
+    /**
+     * Tip normals, xyz f64 — what the neck is aimed by.
+     */
+    take_normals(): Float64Array;
+    /**
+     * `PART_STRIDE` numbers per part: id, role, triangles, volume mm3, area mm2, tips. The same row
+     * shape the dental parts list uses, so a host that decodes one decodes both.
+     */
+    take_part_list(): Float64Array;
+    /**
+     * Tip points, xyz f64.
+     */
+    take_positions(): Float64Array;
+    /**
+     * The file face each tip stands on.
+     */
+    take_tip_faces(): Uint32Array;
+    /**
+     * Which part each tip belongs to. Without this a host cannot attribute a tip.
+     */
+    take_tip_parts(): Uint32Array;
+}
+
+/**
  * A mesh's pick index as flat arrays: per node `min xyz, max xyz` (`bounds`) and `start, count`
  * (`links`), then the triangle permutation (`order`). Transferable between realms.
  */
@@ -1353,6 +1396,19 @@ export function invert_matrix(matrix: Float64Array): Float64Array;
 export function live_mesh_handles(): number;
 
 /**
+ * Tips on every part's exposed faces.
+ *
+ * `target` is the host's declared target part, or `-1` to let the engine pick the largest. It is
+ * here rather than added later on purpose: the engine ranks by volume, the operator's active object
+ * is not necessarily that part, and in an editor a merge makes the active object the lead. Only the
+ * host can settle the three.
+ *
+ * A `debris` part gets no tips, which is a DENTAL judgement about scan noise; a generic caller that
+ * wants every part supported passes a `debris_mm` of 0.
+ */
+export function part_tips(positions: Float32Array, indices: Uint32Array, settings: Float64Array, rules: Float64Array, debris_mm: number, target: number): PartTipsResult;
+
+/**
  * The build phase names `generate`'s `on_phase` callback reports, in the order a first (unrepaired)
  * build runs them (`mixo_geometry_core::supports::phase::Phase::ALL`). Engine 64, for GEO-015: the
  * host held a second hand-written copy of this list (`GENERATE_PHASES` in host/core/progress.ts)
@@ -1475,6 +1531,7 @@ export interface InitOutput {
     readonly __wbg_legacyfill_free: (a: number, b: number) => void;
     readonly __wbg_meshdiagnosis_free: (a: number, b: number) => void;
     readonly __wbg_meshrepairresult_free: (a: number, b: number) => void;
+    readonly __wbg_parttipsresult_free: (a: number, b: number) => void;
     readonly __wbg_pickindex_free: (a: number, b: number) => void;
     readonly __wbg_platearrangement_free: (a: number, b: number) => void;
     readonly __wbg_policyhandle_free: (a: number, b: number) => void;
@@ -1752,6 +1809,15 @@ export interface InitOutput {
     readonly meshrepairresult_take_loops_before: (a: number) => [number, number];
     readonly meshrepairresult_take_positions: (a: number) => [number, number];
     readonly meshrepairresult_take_steps: (a: number) => [number, number];
+    readonly part_tips: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number, number];
+    readonly parttipsresult_take_face_parts: (a: number) => [number, number];
+    readonly parttipsresult_take_hidden: (a: number) => [number, number];
+    readonly parttipsresult_take_ids: (a: number) => [number, number];
+    readonly parttipsresult_take_normals: (a: number) => [number, number];
+    readonly parttipsresult_take_part_list: (a: number) => [number, number];
+    readonly parttipsresult_take_positions: (a: number) => [number, number];
+    readonly parttipsresult_take_tip_faces: (a: number) => [number, number];
+    readonly parttipsresult_take_tip_parts: (a: number) => [number, number];
     readonly phase_names: () => [number, number];
     readonly pickindex_take_bounds: (a: number) => [number, number];
     readonly pickindex_take_links: (a: number) => [number, number];
