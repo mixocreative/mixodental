@@ -1,5 +1,33 @@
 # Handoff
 
+## Engine 68, and the overlap rule on the generic path (2026-11-13)
+
+**Engine 68 is vendored here and the gate is green.** Two engine changes reach this app:
+
+1. **Engine 67 — every generic placement honours the overlap rule.** `runPlacementJob` drops the
+   contacts `contacts_buried` marks, so an object whose file holds several meshes gets no support
+   where they overlap. In this app that path serves generic (non-dental) objects AND the first half
+   of `dental-place`, plus `areaRisks`. A single-part model costs nothing: the engine returns
+   all-false without a test, which is why the real-scan gate is unchanged.
+2. **Engine 68 — the two part bindings weld before splitting.** `surface::parts::split` never welds
+   and assumes the import weld has run; the ABI above it ran none, so a render mesh (vertices split
+   along UV seams) arrived as one part per face. Found by mixoMesh's baseline, not by anything here:
+   this app's STL import welds, so it was never exposed.
+
+**What this app does NOT do yet, and the reason.** `PlacementResult.buried` carries the count of
+contacts the rule dropped, and mixoMesh shows it as a verdict chip. **This app reports it nowhere.**
+That is a named gap, not an oversight: the surface here would be a new `SupportProblem` kind (the
+check's own list), the positions would have to come back from the engine with it, and the case is
+rare in dental work -- a welded scan is one part, so the rule fires only on a multi-mesh generic
+object. Building it tonight, untested against a real one, would have been worse than naming it. The
+test when it is built: an object with two overlapping meshes should list "N contacts left out: inside
+another mesh", with Show framing the overlap.
+
+**Also still open here:** the denture residual (unproven whether `planExport`'s stored points and
+`buildDenture`'s recomputed candidates agree -- no longer load-bearing, since a disagreement ends in
+`nothing-built`), and `file_parts` still living in `dental/` so the generic ABI calls into a dental
+module.
+
 ## Engine 65, and what CI could not install (2026-11-12, later)
 
 **Engine 65 is vendored (`4fb67ed`) and the gate is green**: tsc 0, 1628 tests, duplicates 0,

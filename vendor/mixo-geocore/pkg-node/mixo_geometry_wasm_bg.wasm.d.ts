@@ -48,6 +48,7 @@ export const bodysegmentsresult_take_points: (a: number) => [number, number];
 export const build_pick_index: (a: number, b: number, c: number, d: number) => [number, number, number];
 export const center_positions_in_place: (a: number, b: number, c: any) => [number, number, number, number];
 export const check_support_problems: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number];
+export const contacts_buried: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number, number];
 export const contacts_hidden_by_marker_ids: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
 export const decimate_display: (a: number, b: number, c: number, d: number, e: number) => [number, number, number];
 export const dental_allowed_vertices: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number) => [number, number, number, number];
