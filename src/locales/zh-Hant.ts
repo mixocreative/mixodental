@@ -530,6 +530,8 @@ export const zhHant: Dictionary = {
   '1 low point lies outside the allowed support area and is left to the denture shape.': '有 1 個最低點位於允許的支撐區域外，並交由假牙形狀決定。',
   '{n} low points lie outside the allowed support area and are left to the denture shape.': '有 {n} 個最低點位於允許的支撐區域外，並交由假牙形狀決定。',
   '1 support was left out because it would cross the model or break a placement rule.': '已省略 1 個支撐，因為它會穿過模型或違反放置規則。',
+  '1 contact was left out: it sits inside another mesh of this object, where no support can reach.': '已省略 1 個接觸點：它位於此物件的另一個網格內部，支撐無法到達。',
+  '{n} contacts were left out: they sit inside another mesh of this object, where no support can reach.': '已省略 {n} 個接觸點：它們位於此物件的另一個網格內部，支撐無法到達。',
   '{n} supports were left out because they would cross the model or break a placement rule.': '已省略 {n} 個支撐，因為它們會穿過模型或違反放置規則。',
   'Unsupported island': '未支撐孤島',
   'Could not judge islands on this mesh': '無法判斷此網格上的孤島',

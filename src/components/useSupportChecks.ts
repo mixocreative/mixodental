@@ -12,6 +12,8 @@ import { checkJobOf, currentBuild, orientationOf, resolveSettings, unitContacts,
 import { builtGeometry, type HeldBuild } from '../plate/releasedBuild';
 import { islandProblems } from '@mixo-geocore/editing/islandProblems';
 import { omittedProblems } from '@mixo-geocore/editing/omittedProblem';
+import { buriedProblems } from '@mixo-geocore/editing/buriedProblem';
+import { buriedOf, forgetBuried } from '../supports/buriedCache';
 import { splitDentureSpots } from '../denture/check/dentureSpots';
 import type { DentureClient } from '../denture/engine/dentureClient';
 import { checkStatus, joinRun, runToken, tallyChecks, uncovered, type CheckTally } from '@mixo-geocore/editing/check';
@@ -101,6 +103,9 @@ export function useSupportChecks(host: {
 
   /** A unit left the scene: its findings go with it, or the list would name an object that is gone. */
   const forgetProblems = useCallback((unitId: string) => setProblems((current) => {
+    // The overlap positions go too: an id can come back on a new unit, and a finding that outlived
+    // its unit would point at geometry that is not there.
+    forgetBuried(unitId);
     if (!current.has(unitId)) return current;
     const next = new Map(current);
     next.delete(unitId);
@@ -137,14 +142,20 @@ export function useSupportChecks(host: {
       const islands = islandProblems(mesh?.islands, unit.source.positions).map((problem) => ({
         ...problem, unitId: unit.id, inZone: problem.kind === 'island' && problemInZone(unit.zones, problem.position, down),
       }));
-      const items = [...islands, ...omittedProblems(unitContacts(unit, undefined), mesh).map((problem) => ({ ...problem, unitId: unit.id, inZone: false })), ...acceptedRows, ...overhangs];
+      const items = [...islands,
+        ...omittedProblems(unitContacts(unit, undefined), mesh).map((problem) => ({ ...problem, unitId: unit.id, inZone: false })),
+        // Already in the unit frame (`buriedCache`), so unlike `found` these are not mapped again.
+        ...buriedProblems(buriedOf(unit.id)).map((problem) => ({ ...problem, unitId: unit.id, inZone: false })),
+        ...acceptedRows, ...overhangs];
       setProblems((current) => new Map(current).set(unit.id, { unit, mesh, items }));
       // No current build: the island verdict is not known yet, so this check is not complete (never clean);
       // the re-check below runs once the build lands and lists what it finds.
       if (!mesh) return undefined;
       const unjudged = items.filter((problem) => problem.kind === 'unjudged').length;
       // Low points outside the policy's area are informational: never a spot that may print unsupported.
-      const outside = items.filter((problem) => problem.kind === 'outside' || problem.kind === 'omitted').length;
+      // Informational kinds: never a spot that may print unsupported. `buried` belongs here because
+      // the surface is inside another mesh -- unreachable by design, not a coverage failure.
+      const outside = items.filter((problem) => problem.kind === 'outside' || problem.kind === 'omitted' || problem.kind === 'buried').length;
       const inZone = items.filter((problem) => problem.inZone).length;
       return { spots: items.length - inZone - unjudged - outside, inZone, unjudged };
     }));

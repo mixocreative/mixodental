@@ -526,6 +526,8 @@ export const ja: Dictionary = {
   '1 low point lies outside the allowed support area and is left to the denture shape.': '最下点 1 か所が許可されたサポート領域の外にあり、義歯の形状に委ねられます。',
   '{n} low points lie outside the allowed support area and are left to the denture shape.': '最下点 {n} か所が許可されたサポート領域の外にあり、義歯の形状に委ねられます。',
   '1 support was left out because it would cross the model or break a placement rule.': 'モデルを貫通する、または配置ルールに反するため、サポート 1 本を省略しました。',
+  '1 contact was left out: it sits inside another mesh of this object, where no support can reach.': 'このオブジェクトの別のメッシュ内部にあり、サポートが届かないため、接触点 1 か所を省略しました。',
+  '{n} contacts were left out: they sit inside another mesh of this object, where no support can reach.': 'このオブジェクトの別のメッシュ内部にあり、サポートが届かないため、接触点 {n} か所を省略しました。',
   '{n} supports were left out because they would cross the model or break a placement rule.': 'モデルを貫通する、または配置ルールに反するため、サポート {n} 本を省略しました。',
   'Unsupported island': 'サポートされていないアイランド',
   'Could not judge islands on this mesh': 'このメッシュではアイランドを判定できません',

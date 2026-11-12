@@ -14,6 +14,8 @@ import { dentalPlacementJobOf, orientationOf, placementJobOf, resolveSettings } 
 import type { AnalysisClient } from '../workers/analysisClient';
 import type { DentalTipPreview } from './useDentalPreview';
 import { codedJobError } from '../workers/jobErrors';
+import { inverseTransformPoint } from '@mixo-geocore/host/state/transform';
+import { rememberBuried } from '../supports/buriedCache';
 import { isAbort, RUNTIME, triangleCount, type SetStatus } from './appShared';
 
 /**
@@ -80,7 +82,15 @@ export function useRegenerate(host: {
     });
     // Objects placed together land together: one history step, so one Undo covers them all.
     void Promise.all(finished).then((results) => {
-      const { commands, landed, again } = landPlacements(sceneRef.current.units, results.filter((entry) => entry !== undefined));
+      const placed = results.filter((entry) => entry !== undefined);
+      // Where the overlap rule dropped contacts, in the UNIT frame (the placement reports them in
+      // the turned frame, as it does every position). The check has no other way to learn it: those
+      // contacts are deliberately absent from the unit's record, which is what keeps every saved
+      // contact id valid.
+      for (const entry of placed) {
+        rememberBuried(entry.unitId, entry.result.buried?.map((point) => inverseTransformPoint(entry.orientation, point)));
+      }
+      const { commands, landed, again } = landPlacements(sceneRef.current.units, placed);
       // A rotation made meanwhile turned the contacts away: place again for the new orientation.
       if (again.length > 0) {
         generate(again.map((unit) => unit.id), cause);

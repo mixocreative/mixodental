@@ -14,6 +14,9 @@
   "src/components/useFixSpot.ts": {
     "label": "host-adapter"
   },
+  "src/components/useRegenerate.ts": {
+    "label": "host-adapter"
+  },
   "src/components/useSupportChecks.ts": {
     "label": "host-adapter"
   },
@@ -130,6 +133,9 @@
     "label": "host-adapter"
   },
   "src/state/project.ts": {
+    "label": "host-adapter"
+  },
+  "src/supports/buriedCache.ts": {
     "label": "host-adapter"
   },
   "src/supports/useSupportEdits.ts": {
