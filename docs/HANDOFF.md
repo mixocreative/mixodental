@@ -26,6 +26,19 @@ After every implementation task, record: the completed requirement; changed file
 
 ## Latest completed step (the `/goal` sweep: every open mixoDental finding - 2026-11-12)
 
+**Gate on `8daef4f` (clean): PASS.** tsc 0 · vendor 0 · test 0 (1628) · duplicates 0 · screens 0 ·
+build 0 (940) · wasm 0 · nogl 0 (14) · real 0 (**13 scans, no differences, 245 s**) · tier 0 (6).
+NOT run: walk (below), fonts.
+
+**Full walk: ALL PASS, 188 checks, 1,743 s.** Better than the standing baseline of 185 PASS / 1 FAIL
+/ 186: **the known `g-pre` precondition passed this run**, and the count rose to 188. Treat one
+green run of `g` with care rather than as settled - its baseline was recorded as non-deterministic
+(0, 56, 4 across three earlier clean runs), so if `g` or `g-pre` fails again it is that known
+flakiness and not these commits.
+
+**Nothing is pushed.** 14 commits on `main`, `2c642c5`..(this one). geocore and mixoMesh are also
+finished and also unpushed - see the end of this section.
+
 Six commits on `main`, `b587bda`..`ddc0965`. The standing goal was: no defect left unfixed, no UX
 workflow gap, and any decision I could not make taken by Fable rather than put to the owner.
 
@@ -77,6 +90,37 @@ guard that was supposed to catch it. That is the vacuous pass on screen.
 pattern was recognised. Use the Write or Edit tool for anything carrying escapes. Relatedly, git's
 `grep -E` wants its parens escaped differently per shell, so `scripts/real-scan-tier.mjs` counts
 with `git grep -cF` and a fixed string.
+
+### The other two repos finished the same sweep, and neither is pushed
+
+**geocore** (`S:\ai\mixo-geocore`, `f00fe23`, 13 ahead of `origin/main`): all 15 remaining findings
+closed, GEO-002 through GEO-016, and `crates/geometry-core/src/lib.rs:27` now asserts
+`engine_version() == 64`. mixoDental stays on 63 - section 3b of
+`docs/design/2026-11-12-three-repo-refactor-plan.md` carries that decision, its trigger (geocore
+being pushed), the five compile fixes the re-vendor needs, the one silent change `tsc` will not
+catch, and the denture residual left open.
+
+**mixoMesh** (`S:\ai\mixomesh`, `839cfd8`, 6 ahead of `origin/master`): all 13 cia findings closed
+plus the MX-02 autosave debt. Its gates: typecheck 0, lint 0, node 1122/1122, vitest 219/219,
+consumers 283/283, and the export, repair, supports-export, ui-style and browser smokes 0. The
+Electron suite variants were not run. The owner's uncommitted `AGENTS.md`/`CLAUDE.md` and untracked
+`.runs/` + `graphify-out/` are byte-for-byte as they were found.
+
+Three findings there were wider or different than filed, which is worth knowing before reading that
+report: MX-05 was five writers colliding, not two; MX-09 was fourteen orphan exports, not eight (six
+were used inside their own module, so only the `export` keyword came off); and MX-12 was not a
+page-level overflow at all - `kit.html` never exceeds `document.scrollWidth`. The real bug is
+`.number small { width: 16px }` clipping "mm" and "deg" by about 2px in every number and range row,
+in the app and not only the dev gallery.
+
+**One piece of work is owed outside these three repos.** That `.number small` rule lives in the
+shared `mixo-app-style` design system (`S:\ai\skills\mixo-app-style`, its own repo, junctioned into
+the agent skill directories). mixoMesh could only override it in its own `kit.css`, because its
+`base.css` and `kit.scoped.css` are verbatim copies and the rule is "copy, never re-derive". Fixing
+it at the source needs the `skills-hub` workflow (`hub.ps1 publish`), not a hand copy - and the fix
+should not be the 2px workaround: a fixed `width` on a text label is the actual mistake, and longer
+units than "deg" exist in this family of tools.
+
 
 ## Previous completed step (Phase 0 of the three-repo plan - 2026-11-12)
 
