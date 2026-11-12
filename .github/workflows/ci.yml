@@ -30,6 +30,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # THE LOCKFILE IS WRITTEN BY npm 11 AND MUST BE INSTALLED BY npm 11. node 22 ships npm 10,
+      # and the two disagree about peer dependencies: the nested vite 8 that `vite-node` needs peers
+      # on `esbuild ^0.27 || ^0.28`; npm 11 satisfies it without recording a second esbuild, npm 10
+      # demands one, and `npm ci` then refuses the lock as out of sync - which is what failed runs
+      # 43221943454 and 43226892753 on 2026-11-12, both before a single test ran. Pinning npm rather
+      # than moving node, because the node version is what the app is tested under and is not the
+      # thing that disagrees.
+      - run: npm install -g npm@11
       - run: npm ci
       # The engine is vendored (vendor/mixo-geocore, built and tested in mixo-geocore): no Rust toolchain here.
       - run: npm run vendor:check
@@ -84,6 +92,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # THE LOCKFILE IS WRITTEN BY npm 11 AND MUST BE INSTALLED BY npm 11. node 22 ships npm 10,
+      # and the two disagree about peer dependencies: the nested vite 8 that `vite-node` needs peers
+      # on `esbuild ^0.27 || ^0.28`; npm 11 satisfies it without recording a second esbuild, npm 10
+      # demands one, and `npm ci` then refuses the lock as out of sync - which is what failed runs
+      # 43221943454 and 43226892753 on 2026-11-12, both before a single test ran. Pinning npm rather
+      # than moving node, because the node version is what the app is tested under and is not the
+      # thing that disagrees.
+      - run: npm install -g npm@11
       - run: npm ci
       - run: npx playwright-core install --with-deps chromium
       # PIPEFAIL, OR THE GATE IS DECORATION. `npm run walk | tee` returns TEE's status, so a failing
