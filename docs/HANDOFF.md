@@ -113,13 +113,45 @@ page-level overflow at all - `kit.html` never exceeds `document.scrollWidth`. Th
 `.number small { width: 16px }` clipping "mm" and "deg" by about 2px in every number and range row,
 in the app and not only the dev gallery.
 
-**One piece of work is owed outside these three repos.** That `.number small` rule lives in the
-shared `mixo-app-style` design system (`S:\ai\skills\mixo-app-style`, its own repo, junctioned into
-the agent skill directories). mixoMesh could only override it in its own `kit.css`, because its
-`base.css` and `kit.scoped.css` are verbatim copies and the rule is "copy, never re-derive". Fixing
-it at the source needs the `skills-hub` workflow (`hub.ps1 publish`), not a hand copy - and the fix
-should not be the 2px workaround: a fixed `width` on a text label is the actual mistake, and longer
-units than "deg" exist in this family of tools.
+### The fourth repo: `mixo-app-style`, fixed at the source *(`fc11115`, not pushed)*
+
+That `.number small` rule lives in the shared design system (`S:\ai\skills\mixo-app-style`, its own
+repo, junctioned into the three agent skill directories). mixoMesh could only override it in its own
+`kit.css`, because `base.css` and `kit.scoped.css` there are verbatim copies and the rule is "copy,
+never re-derive". **It is now fixed upstream**, so no future adopter inherits it.
+
+**Measured in headless Chromium rather than taken on report**, using the same `playwright-core` the
+walk drives (a dev server for a folder outside the project was refused, and was not needed). At
+`--fs-sm` (11px): `%` 10.1px, `µm` 17.1, `deg` 19.0, **`mm` 20.4**, **`mm/s` 29.8** - against a
+16px box. So the clip was **4.4px on `mm`, not the 2px filed**, and `mm/s` rendered as `mm/` with
+the `s` cut clean off. The before/after screenshots show it.
+
+**The rule was wrong twice over**, which is why the fix is not a bigger number: `.number` is a flex
+row, so `width: 16px` was a *basis* that `flex-shrink: 1` could squeeze even further. It now reads
+`flex: none; min-width: 2em; white-space: nowrap`. `flex: none` is the actual fix; `min-width: 2em`
+keeps the floor the fixed width was really buying - **the input column lining up across rows, which
+was real and had to be preserved** (one shared right edge, measured before and after) - and 2em
+rather than 22px so it follows `--fs-sm` instead of silently clipping again when that changes. A
+unit wider than the floor steps its own row out a few px instead of losing characters.
+
+`preview.html` only ever showed `mm`, which is how a 4px clip went unseen; it now carries `deg`, `%`
+and `mm/s`. `SKILL.md` already said "never clip" about field labels and the stylesheet broke that
+rule for units - it now says so for units too, with the measurements, plus a don't/do row.
+
+**No publish step was needed and none was run.** `hub.ps1 publish` is for a skill with no repo yet
+and it runs `git push`; this skill already has its repo, and all three junctions
+(`~/.claude`, `~/.codex`, `~/.agents`) point at the hub folder, so they serve the fixed rule
+already - verified. `hub.ps1 doctor` reports exactly two things: this skill's one unpushed commit,
+and one uncommitted change in `token-economy-delegation` that is **not mine and was left alone**.
+
+**A correction to mixoMesh's MX-12 report:** it said the clipping hit "the app too, not just the dev
+gallery". It did not. `index.html` loads the app's own `src/styles/*` tree and **never loads
+`kit.css` or `kit.scoped.css`** - only `kit.html`, through `src/kit/gallery/main.tsx`, does. So the
+app was never affected, the gallery was fixed by the local override, and the only real exposure was
+the shared system for future adopters. mixoMesh's `kit.scoped.css` is still generated from
+mixo-app-style `@ bbf53ee` (pre-fix), so its `kit.css` override stays necessary until someone
+re-copies `base.css` and regenerates - **debt, not a defect**, and deliberately not done here: that
+is a style re-vendor into a repo whose full Electron suite is not runnable from this session.
 
 
 ## Previous completed step (Phase 0 of the three-repo plan - 2026-11-12)
