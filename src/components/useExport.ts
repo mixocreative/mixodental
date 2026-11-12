@@ -109,9 +109,11 @@ export function useExport(host: {
       const refusal = exportRefusal(outcome, [...new Set(withSupports)], (unitId) => sceneRef.current.units.find((candidate) => candidate.id === unitId) === units.find(([unit]) => unit.id === unitId)?.[0]);
       if (refusal) {
         const name = units.find(([unit]) => unit.id === refusal.unitId)?.[0].name ?? refusal.unitId;
-        if (refusal.reason === 'stale') return refuse('stale', name);
-        if (refusal.reason === 'failed') return refuse('failed', name);
-        return refuse('inconclusive', name);
+        // The gate's reason, not a translation of it: this chain used to end in an unconditional
+        // `refuse('inconclusive')`, so engine 64's new `nothing-built` would have been reported as
+        // a safety check that timed out. Passing it straight through makes the next reason
+        // upstream a compile error in `ExportRefusalReason` instead.
+        return refuse(refusal.reason, name);
       }
       /*
        * THE ONE PLACE THIS FUNCTION COMMITS MORE THAN ONCE, and it used to lie about it (walk `r1`,

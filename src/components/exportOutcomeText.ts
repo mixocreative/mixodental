@@ -28,11 +28,18 @@ import type { Message } from '../i18n';
  */
 
 /**
- * Why nothing was written. `stale`, `failed` and `inconclusive` come from the export gate
- * (`host/supports/exportGate`); `replant` is refused before the job starts, by the orientation
- * revision, so it is not one of the gate's.
+ * Why nothing was written. `stale`, `failed`, `inconclusive` and `nothing-built` come from the
+ * export gate (`host/supports/exportGate`); `replant` is refused before the job starts, by the
+ * orientation revision, so it is not one of the gate's.
+ *
+ * THIS UNION MUST COVER EVERY GATE REASON, and `useExport` passes `refusal.reason` straight in so
+ * that a reason added upstream is a COMPILE error here rather than a wrong sentence. It used to
+ * translate the gate's reason through a chain of `if`s ending in an unconditional
+ * `refuse('inconclusive')`, which would have reported a timeout for `nothing-built` - engine 64
+ * added that reason precisely because the old code refused an empty build as `stale`, naming a
+ * cause that had not happened (GEO-002).
  */
-export type ExportRefusalReason = 'stale' | 'failed' | 'inconclusive' | 'replant';
+export type ExportRefusalReason = 'stale' | 'failed' | 'inconclusive' | 'replant' | 'nothing-built';
 
 /** The code the activity list recognises as "one of these four", so it does not fall back to the generic failure. */
 export const EXPORT_REFUSED_CODE = 'export-refused';
@@ -47,6 +54,10 @@ const REFUSAL: { readonly [K in ExportRefusalReason]: string } = {
   failed: 'Export refused: the supports of {name} were not built, so nothing was written. Generate again, then export.',
   replant: 'Export refused: the supports on {name} were planted before the model was turned, so they would not hold. Nothing was written; regenerate them, then export.',
   inconclusive: 'Export refused: the safety check of {name} could not reach a verdict (it ran out of time or could not judge a crossing), so nothing was written. Generate again, or use fewer supports.',
+  // Distinct from `failed`, which is "no result came back for this unit". This one is "the build
+  // ran and produced no support geometry", so there was nothing to judge either - which is why the
+  // gate reports it ahead of `inconclusive` (host/supports/exportGate.ts:46-48).
+  'nothing-built': 'Export refused: the build produced no support geometry for {name}, so there was nothing to check and nothing was written. Generate supports, then export.',
 };
 
 /** The refusal sentence for `reason`, naming `name`. */

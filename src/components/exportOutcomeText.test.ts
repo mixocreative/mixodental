@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EXPORT_PARTIAL_CODE, EXPORT_REFUSED_CODE, exportPartialText, exportRefusalText, storedExportOutcome, type ExportRefusalReason } from './exportOutcomeText';
 
-const REASONS: readonly ExportRefusalReason[] = ['stale', 'failed', 'inconclusive', 'replant'];
+const REASONS: readonly ExportRefusalReason[] = ['stale', 'failed', 'inconclusive', 'replant', 'nothing-built'];
 
 describe('what an export wrote, or did not', () => {
   /*
