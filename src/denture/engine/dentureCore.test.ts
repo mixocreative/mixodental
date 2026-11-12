@@ -49,6 +49,28 @@ describe.skipIf(!SMALLEST)('denture pipeline (local real scan)', () => {
     const ids = new Set(points.map((point) => point.id));
     // Every contact the build names is a unit (position) id, never a policy id.
     for (const component of built.components) if (component.contactId) expect(ids.has(component.contactId)).toBe(true);
+    /*
+     * THE RESIDUAL, closed here (it was "unproven whether `planExport`'s stored points and
+     * `buildDenture`'s recomputed candidates agree", docs/HANDOFF.md).
+     *
+     * The export builds the same unit again at full resolution — `buildDenture({ ...job, mode:
+     * 'export' })` — and recomputes the policy's candidates instead of reading the stored points. If
+     * the two disagreed, an exported file would carry supports the operator never reviewed.
+     *
+     * They cannot, and the reason is structural rather than lucky: `candidatesOf` is a function of
+     * (mesh, policy, frame, rules, manual) and `mode` is not among them — it reaches
+     * `generateSupports` only. This asserts the consequence on a real scan, so a future change that
+     * DOES make the candidates mode-dependent fails here instead of in an exported file.
+     */
+    const exported = buildDenture({ ...job, mode: 'export' });
+    const contactsOf = (mesh: typeof built) => [...new Set(mesh.components.flatMap((c) => (c.contactId ? [c.contactId] : [])))].sort();
+    // Non-empty FIRST: two empty sets are equal, and that is the shape this assertion would
+    // otherwise pass in — the vacuous pass this repo keeps finding.
+    expect(contactsOf(exported).length).toBeGreaterThan(20);
+    expect(contactsOf(exported)).toEqual(contactsOf(built));
+    // And every one of them is a stored placement id, so the export supports what was reviewed.
+    for (const id of contactsOf(exported)) expect(ids.has(id)).toBe(true);
+
     // A deleted tip is gone from the next build.
     const gone = points.find((point) => built.components.some((component) => component.contactId === point.id))!.id;
     const without = buildDenture({ ...job, hand: { ...job.hand, deleted: [gone] } });

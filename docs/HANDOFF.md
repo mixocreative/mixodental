@@ -31,38 +31,26 @@ Still a positions gap, named deliberately: the sentence gives a COUNT, not a Sho
 overlap needs the dropped positions back from the engine, and the case is rare in dental work (a
 welded scan is one part), so it waits for an object that can exercise it.
 
-### The denture residual: still open, and here is exactly how to close it
+### The denture residual is CLOSED (2026-11-13)
 
-Looked at again on 2026-11-13 and deliberately not closed. Writing down what the look found, so the
-next session does not repeat it:
+**The question was** whether `planExport`'s stored points and `buildDenture`'s recomputed candidates
+agree. They do, and the reason is structural rather than lucky: `candidatesOf` is a function of
+(mesh, policy, frame, rules, manual), and **`mode` is not among them** — it reaches
+`generateSupports` only. A preview placement and an export build therefore cannot diverge there.
 
-**The question.** `buildDenture` recomputes the policy's candidates at export time
-(`candidatesOf(handle, frame)` in `src/denture/engine/dentureCore.ts`), while the Step-3 placement
-stored its own points. Nothing proves the two are the same set. The id spaces differ, which is why
-`policyIds` / `unitIdOf` exist to map between them -- and a mapping layer is where a disagreement
-would hide.
+**The proof is a test, not this paragraph.** `src/denture/engine/dentureCore.test.ts` now builds the
+same real scan twice, `mode: 'preview'` and `mode: 'export'`, and asserts the contact id sets are
+identical and that every one is a stored placement id — so the export supports what the operator
+reviewed. It asserts the set is non-empty FIRST, because two empty sets are equal and that is the
+vacuous pass this repo keeps finding.
 
-**Why it is not urgent.** A disagreement now ends in `nothing-built` (engine 64's gate), which is
-true and actionable, instead of 63's "changed while it was being exported" -- a cause that had not
-happened. And the real-scan gate shows the export is at least STABLE: the baseline holds the SHA-256
-of every exported STL for 13 scans and they match run after run.
+A future change that makes the candidates mode-dependent now fails there, rather than in an exported
+file.
 
-**What stability does not prove** is agreement. Each path could be deterministic and still disagree
-with the other.
-
-**The cheapest proof, costed.** The batch review (`dentalwork/batch-review/reviewCase.ts`) builds
-supports once, through the REVIEW path, so it never exercises `buildDenture({ mode: 'export' })`. To
-settle it: recompute the candidates from the policy handle after the review and compare the id SET
-with `review.placement.points`, then record the verdict as a new TEXT_FIELD in
-`scripts/real-scan-gate-lib.mjs` so any disagreement shows up per scan on real data. That needs
-`candidatesOf` exported from `dentureCore`, one extra engine call per scan (the candidate list, NOT a
-second build), and a baseline update -- which must be read, not accepted, because it touches patient
-scans. Half an hour, and not worth spending before the U5 work the owner asked for.
-
-**Also still open here:** the denture residual (unproven whether `planExport`'s stored points and
-`buildDenture`'s recomputed candidates agree -- no longer load-bearing, since a disagreement ends in
-`nothing-built`), and `file_parts` still living in `dental/` so the generic ABI calls into a dental
-module.
+**What the earlier note got wrong, worth keeping:** it costed this as a batch-harness change with a
+new gate field and a baseline update on patient data. That was the wrong instrument. The claim is
+about the code's shape, so it belongs where the two functions are called — and a test that already
+drove both of them was three lines short of proving it.
 
 ## Engine 65, and what CI could not install (2026-11-12, later)
 
