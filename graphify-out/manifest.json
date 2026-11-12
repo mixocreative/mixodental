@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794436951.2482944,
-    "seen": 1794439414.8828974,
-    "ast_hash": "44f2c3db6815f6cd3fec44b36b38c7b1",
+    "mtime": 1794467524.666412,
+    "seen": 1794470121.5860338,
+    "ast_hash": "e73f384f0c347b6c2c54db27169d30d5",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -162,15 +162,15 @@
     "semantic_hash": ""
   },
   "src/components/JobActivity.test.ts": {
-    "mtime": 1793268727.180411,
-    "seen": 1793268749.089852,
-    "ast_hash": "b1a818bb65a4667464d2acb753239d04",
+    "mtime": 1794467689.9256752,
+    "seen": 1794470121.5860338,
+    "ast_hash": "69dbb26a4700590f71f89cafba3fdb5b",
     "semantic_hash": ""
   },
   "src/components/JobActivity.tsx": {
-    "mtime": 1794197650.8948214,
-    "seen": 1794198414.0295131,
-    "ast_hash": "7c2230be65cf84a95cd7dadf04f788a6",
+    "mtime": 1794467689.9256752,
+    "seen": 1794470121.5860338,
+    "ast_hash": "8f647a6462e67bddfbff6774f76e0639",
     "semantic_hash": ""
   },
   "src/components/KeyCaps.tsx": {
@@ -282,15 +282,15 @@
     "semantic_hash": "0a9df54962a456e5d0923bfb029205e2"
   },
   "src/components/openProject.test.ts": {
-    "mtime": 1793270085.619316,
-    "seen": 1793270106.436683,
-    "ast_hash": "730265cdc0271a37b1b3a8af6ccdad0e",
+    "mtime": 1794468699.6393986,
+    "seen": 1794470121.5860338,
+    "ast_hash": "e2fa9894f58cab633ad99bef64416b0f",
     "semantic_hash": ""
   },
   "src/components/openProject.ts": {
-    "mtime": 1793268306.314432,
-    "seen": 1793268328.171727,
-    "ast_hash": "7370488328587dbc12125aef00c72c5e",
+    "mtime": 1794467580.9358132,
+    "seen": 1794470121.5860338,
+    "ast_hash": "61144d998c12579ca10b69d627294579",
     "semantic_hash": ""
   },
   "src/components/useDentalPreview.test.ts": {
@@ -312,9 +312,9 @@
     "semantic_hash": ""
   },
   "src/components/useExport.ts": {
-    "mtime": 1794197650.895397,
-    "seen": 1794198414.0295131,
-    "ast_hash": "33d59d73443987ff63e641effb9012a5",
+    "mtime": 1794467306.284901,
+    "seen": 1794470121.5860338,
+    "ast_hash": "0a42da0cd50d92ea358a4ee4d4c34b75",
     "semantic_hash": ""
   },
   "src/components/useFixSpot.ts": {
@@ -564,15 +564,15 @@
     "semantic_hash": ""
   },
   "src/locales/ja.ts": {
-    "mtime": 1794439044.795627,
-    "seen": 1794439414.8828974,
-    "ast_hash": "96afab9f3fc5a0a4e1068496712fab9a",
+    "mtime": 1794468699.6378956,
+    "seen": 1794470121.5865588,
+    "ast_hash": "551470fa5e5e7f4abdbeb2d3f3f86adf",
     "semantic_hash": ""
   },
   "src/locales/zh-Hant.ts": {
-    "mtime": 1794439044.797137,
-    "seen": 1794439414.8828974,
-    "ast_hash": "a540b7883d6857b149c18a252230e6a1",
+    "mtime": 1794469290.2813096,
+    "seen": 1794470121.5865588,
+    "ast_hash": "3901075601f05dcdaffd15a6625c1f0e",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -1045,9 +1045,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOFF.md": {
-    "mtime": 1794440052.9830174,
-    "seen": 1794440139.5829442,
-    "ast_hash": "0aff8fedee2e6f1c16d4131a52cc34dc",
+    "mtime": 1794465047.8247738,
+    "seen": 1794470121.5865588,
+    "ast_hash": "ba674cfec800b6c58ea6316bce94b52e",
     "semantic_hash": ""
   },
   "docs/SLASG_NODE_LOGIC.md": {
@@ -3139,500 +3139,500 @@
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/SOURCE.json": {
-    "mtime": 1794000788.1713684,
-    "seen": 1794008080.1872241,
-    "ast_hash": "1a6ded41ecdda3cd4f40b8d4ad43fcdc",
+    "mtime": 1794467311.506851,
+    "seen": 1794470121.5865588,
+    "ast_hash": "52a46db3e2d3a6bfea6f3d2b3351efbf",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/ViewportPort.ts": {
-    "mtime": 1794000788.021631,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3560805,
+    "seen": 1794470121.5865588,
     "ast_hash": "dd51df94dda5956a7f38b997a969922b",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/addTip.ts": {
-    "mtime": 1794000788.0106966,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3360345,
+    "seen": 1794470121.5865588,
     "ast_hash": "dae892719cd0aa50cabc4e700d3b1a8f",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/arrange.ts": {
-    "mtime": 1794000788.0106966,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3370402,
+    "seen": 1794470121.5865588,
     "ast_hash": "e1fddd3d2a544e9b358f3e0a46ee1620",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/brushScheduler.ts": {
-    "mtime": 1794000788.0106966,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3370402,
+    "seen": 1794470121.5865588,
     "ast_hash": "d6bbc877a0f14648c1d97639ac99aedc",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/check.ts": {
-    "mtime": 1794000788.0116954,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3380435,
+    "seen": 1794470121.5865588,
     "ast_hash": "1bdd8ddad4129a76043c4ec53f61d1f1",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/commands.ts": {
-    "mtime": 1794000788.0116954,
-    "seen": 1794008080.1872241,
-    "ast_hash": "e4ed381320490cf316858cfc6ae4bcf3",
+    "mtime": 1794467311.3380435,
+    "seen": 1794470121.5865588,
+    "ast_hash": "be09a6ea6036b2438359b7bfbbd33984",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/contactEdits.ts": {
-    "mtime": 1794000788.0116954,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3390436,
+    "seen": 1794470121.5865588,
     "ast_hash": "8a2ae124d18aefbddf6610ce10842762",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/dragOver.ts": {
-    "mtime": 1794000788.0126963,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3400435,
+    "seen": 1794470121.5865588,
     "ast_hash": "7299899a648e0968be5d6152ee154e45",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/errors.ts": {
-    "mtime": 1794000788.0126963,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3400435,
+    "seen": 1794470121.5865588,
     "ast_hash": "d748d6ba183f7b0817480363c91c06cf",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/genericPlacement.ts": {
-    "mtime": 1794000788.0126963,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3410437,
+    "seen": 1794470121.5865588,
     "ast_hash": "2637386c9f5d3d4e02c8004de7f3f5c2",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/genericPolicy.ts": {
-    "mtime": 1794000788.0136967,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3415463,
+    "seen": 1794470121.5865588,
     "ast_hash": "ca2678b2efc83fb15a67be8dca8bb1a9",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/gesture.ts": {
-    "mtime": 1794000788.0136967,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3415463,
+    "seen": 1794470121.5865588,
     "ast_hash": "bcaffb5c970f0d34e9da5ee19f6ef975",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/hoverProbe.ts": {
-    "mtime": 1794000788.0136967,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3425505,
+    "seen": 1794470121.5865588,
     "ast_hash": "6064276be80b1d6d08f15453bb8d318c",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/islandProblems.ts": {
-    "mtime": 1794000788.0136967,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3425505,
+    "seen": 1794470121.5865588,
     "ast_hash": "62578d7fb5f6f5233283d480fb4a47de",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/keys.ts": {
-    "mtime": 1794000788.0136967,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3435497,
+    "seen": 1794470121.5865588,
     "ast_hash": "4a25f498232cc775baaa55832cec39f4",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/landing.ts": {
-    "mtime": 1794000788.0151198,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3435497,
+    "seen": 1794470121.5865588,
     "ast_hash": "0e67e7834d473110a2e8cfe26757ca44",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/locks.ts": {
-    "mtime": 1794000788.0151198,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.34455,
+    "seen": 1794470121.5865588,
     "ast_hash": "52ea77f5ffecb59446b1ea6fd454b2b8",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/numberInput.ts": {
-    "mtime": 1794000788.0161195,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3450532,
+    "seen": 1794470121.5865588,
     "ast_hash": "7ca4c7250b83eb236ea95e47f0f9ed4d",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/omittedProblem.ts": {
-    "mtime": 1794000788.0161195,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.346056,
+    "seen": 1794470121.5865588,
     "ast_hash": "81aa0b5e51e902b2226583e012c20b17",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/pick.ts": {
-    "mtime": 1794000788.0161195,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3465652,
+    "seen": 1794470121.5865588,
     "ast_hash": "5f86e03fe7ca26408e18022f827e6876",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/project.ts": {
-    "mtime": 1794000788.0171187,
-    "seen": 1794008080.1872241,
-    "ast_hash": "058fe4a9f970c072cbe617d31acf723f",
+    "mtime": 1794467311.3465652,
+    "seen": 1794470121.5865588,
+    "ast_hash": "c832048f90f8fc749ce99de5508f1bf9",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/regenerate.ts": {
-    "mtime": 1794000788.0171187,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3475688,
+    "seen": 1794470121.5865588,
     "ast_hash": "ad17dc2efc35d3d2c6f67fec03159566",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/removal.ts": {
-    "mtime": 1794000788.0171187,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3475688,
+    "seen": 1794470121.5865588,
     "ast_hash": "ccac1ac9e52cfe668a9179c12a38e84a",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/screenBrush.ts": {
-    "mtime": 1794000788.0171187,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.348569,
+    "seen": 1794470121.5865588,
     "ast_hash": "216c70eaa4c33f5a8e7ad988832ca5ce",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/selection.ts": {
-    "mtime": 1794000788.0181186,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3495696,
+    "seen": 1794470121.5865588,
     "ast_hash": "c6d94417bee5c9f83aae3fedda1510a2",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/selectionHighlight.ts": {
-    "mtime": 1794000788.0181186,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.350569,
+    "seen": 1794470121.5865588,
     "ast_hash": "530b345448f6827b0b9bcfb069bb2fe5",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/session.ts": {
-    "mtime": 1794000788.0181186,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3510728,
+    "seen": 1794470121.5865588,
     "ast_hash": "3469ea2b5d66cd0b44ea759e95b388f3",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/shapeEdit.ts": {
-    "mtime": 1794000788.0191193,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3520741,
+    "seen": 1794470121.5865588,
     "ast_hash": "08e1462eecb112d3383ec40861835e52",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/status.ts": {
-    "mtime": 1794000788.0191193,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3520741,
+    "seen": 1794470121.5865588,
     "ast_hash": "2a9445560d35a45595c31ee62a86f3ce",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/stroke.ts": {
-    "mtime": 1794000788.0191193,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3530743,
+    "seen": 1794470121.5865588,
     "ast_hash": "8aff07925e22f25edff63aff92ac9edc",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/strokeQueue.ts": {
-    "mtime": 1794000788.0201235,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3530743,
+    "seen": 1794470121.5865588,
     "ast_hash": "692ef3731ffb8b32d56cdedf2e030e0a",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/surfaceBrush.ts": {
-    "mtime": 1794000788.0201235,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3540742,
+    "seen": 1794470121.5865588,
     "ast_hash": "0394b07416265d41020e12b3135eb1e7",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/toast.ts": {
-    "mtime": 1794000788.0206292,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3540742,
+    "seen": 1794470121.5865588,
     "ast_hash": "c1705a8c5c016abf164c229637ec3898",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/types.ts": {
-    "mtime": 1794000788.0206292,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3550744,
+    "seen": 1794470121.5865588,
     "ast_hash": "6a2b9ab0fd044bffc923f132f19db2bb",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/view.ts": {
-    "mtime": 1794000788.0206292,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3560805,
+    "seen": 1794470121.5865588,
     "ast_hash": "a4babb9389c0f66c3e180b9709549718",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/zones.ts": {
-    "mtime": 1794000788.021631,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3570848,
+    "seen": 1794470121.5865588,
     "ast_hash": "680c8072a20988346a73813de47c8e8f",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/analysis/mesh.ts": {
-    "mtime": 1794000787.9840953,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.287896,
+    "seen": 1794470121.5865588,
     "ast_hash": "57b4511a3570cc0b9ea24388d6789aa9",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/analysis/supportCheck.ts": {
-    "mtime": 1794000787.9850936,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.287896,
+    "seen": 1794470121.5865588,
     "ast_hash": "eb9dfbfd6592760503f266b196c67324",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/analysis/types.ts": {
-    "mtime": 1794000787.9850936,
-    "seen": 1794008080.1872241,
-    "ast_hash": "c179a0338632bd2c96d14e69f81932cd",
+    "mtime": 1794467311.2888973,
+    "seen": 1794470121.5865588,
+    "ast_hash": "24ab61f0bdb9a00e7d13fd05f72ee0de",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/budget.ts": {
-    "mtime": 1794000787.9850936,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2904005,
+    "seen": 1794470121.5865588,
     "ast_hash": "530274b3aec8f6fbee819475dc8b0b56",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/jobGate.ts": {
-    "mtime": 1794000787.9850936,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2914035,
+    "seen": 1794470121.5865588,
     "ast_hash": "f65fd69789ce3fb7c73a8457fd755336",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/jobs.ts": {
-    "mtime": 1794000787.9850936,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2919147,
+    "seen": 1794470121.5865588,
     "ast_hash": "d0b68f490b19f9c6c9d4dd607575bdc7",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/progress.ts": {
-    "mtime": 1794000787.9870903,
-    "seen": 1794008080.1872241,
-    "ast_hash": "d542220c5c99c2e1e4cf10cdf82cd14a",
+    "mtime": 1794467311.2919147,
+    "seen": 1794470121.5865588,
+    "ast_hash": "3c00d12908f0f6f7d6d54842e6dfad7c",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/supports/mesh.ts": {
-    "mtime": 1794000787.9886494,
-    "seen": 1794008080.1872241,
-    "ast_hash": "46c0202f6765423fa79a81c7970c7a3e",
+    "mtime": 1794467311.293918,
+    "seen": 1794470121.5865588,
+    "ast_hash": "77bf030bcf504664573ce62b01c5e368",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/supports/meshQuery.ts": {
-    "mtime": 1794000787.9886494,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2949207,
+    "seen": 1794470121.5865588,
     "ast_hash": "0d46c7af6a02011d1f9f6ce75eb47e99",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/supports/settings.ts": {
-    "mtime": 1794000787.9891627,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2949207,
+    "seen": 1794470121.5865588,
     "ast_hash": "7f6dc96aa5b18d8da594bf5ba68fef01",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/supports/zones.ts": {
-    "mtime": 1794000787.9896786,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2964242,
+    "seen": 1794470121.5865588,
     "ast_hash": "fab7e26f739b7fd6224f87bddbe24aef",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/transform.ts": {
-    "mtime": 1794000787.9896786,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2964242,
+    "seen": 1794470121.5865588,
     "ast_hash": "3293c938bc2828350dbddeb20f5fdf44",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/vec3.ts": {
-    "mtime": 1794000787.990193,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2974281,
+    "seen": 1794470121.5865588,
     "ast_hash": "726b8fc582358f81b10a8d74c53e0f79",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/geometryVersion.js": {
-    "mtime": 1794000787.999115,
-    "seen": 1794008080.1872241,
-    "ast_hash": "77ca53228c08a90360032c46d1166bfb",
+    "mtime": 1794467311.3149643,
+    "seen": 1794470121.5865588,
+    "ast_hash": "aa8353740fe83f2f9965c6de80ee0051",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/loadGeometry.js": {
-    "mtime": 1794000788.0001152,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.315967,
+    "seen": 1794470121.5865588,
     "ast_hash": "6259acb93801078b00e0dec1e774fa4f",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/state/projectTypes.ts": {
-    "mtime": 1794000788.0001152,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.315967,
+    "seen": 1794470121.5865588,
     "ast_hash": "c4bc18a905413a7ab518ebb7a33d0939",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/state/transform.ts": {
-    "mtime": 1794000788.0011148,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.316971,
+    "seen": 1794470121.5865588,
     "ast_hash": "99b3d2cbc85c8c3af01fecddf30e2e94",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/state/transformEngine.ts": {
-    "mtime": 1794000788.0011148,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.317971,
+    "seen": 1794470121.5865588,
     "ast_hash": "c20a1358fa2601034f1f259a3e5c03de",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/checkSupports.ts": {
-    "mtime": 1794000788.0011148,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.317971,
+    "seen": 1794470121.5865588,
     "ast_hash": "f8310cfee82c9d6a4abba220d1747982",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/contactEdits.ts": {
-    "mtime": 1794000788.002115,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3189714,
+    "seen": 1794470121.5865588,
     "ast_hash": "1c42a24d9759b86b4812e827ab80b227",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/export.ts": {
-    "mtime": 1794000788.002115,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3204777,
+    "seen": 1794470121.5865588,
     "ast_hash": "cc21aa0b2d8def36ecd588d25659f098",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/exportGate.ts": {
-    "mtime": 1794000788.002115,
-    "seen": 1794008080.187743,
-    "ast_hash": "a4746c35426f463facddd0a314f09cef",
+    "mtime": 1794467311.3204777,
+    "seen": 1794470121.5865588,
+    "ast_hash": "bcfe0f6612edc26e88b5cb84b4096d38",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/generateSupports.ts": {
-    "mtime": 1794000788.0036185,
-    "seen": 1794008080.187743,
-    "ast_hash": "ff180450d99c26f10cc62ba9b06a314e",
+    "mtime": 1794467311.3224826,
+    "seen": 1794470121.5865588,
+    "ast_hash": "6ae2d1a1d807425ab9521370f6cffe7e",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/genericPlacement.ts": {
-    "mtime": 1794000788.0046237,
-    "seen": 1794008080.187743,
-    "ast_hash": "751fa7a8f9676e50429a30dc8bf66206",
+    "mtime": 1794467311.3229852,
+    "seen": 1794470121.5865588,
+    "ast_hash": "fbf6381a9beb617a094c2e18eb8f422b",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/genericPolicy.ts": {
-    "mtime": 1794000788.0046237,
-    "seen": 1794008080.187743,
-    "ast_hash": "26bd0ba01c26dedfaa4ac0ff64ab1513",
+    "mtime": 1794467311.3234944,
+    "seen": 1794470121.5865588,
+    "ast_hash": "02156ca3530f6aad54d5793cb3579e93",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/jobRunner.ts": {
-    "mtime": 1794000788.0046237,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3240023,
+    "seen": 1794470121.5865588,
     "ast_hash": "d6917d74e9de14d7aab8cdb6492d14bc",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/supportBuildWasm.ts": {
-    "mtime": 1794000788.0061264,
-    "seen": 1794008080.187743,
-    "ast_hash": "52f0a72f48482d136d7f013a1c2e8597",
+    "mtime": 1794467311.325006,
+    "seen": 1794470121.5865588,
+    "ast_hash": "6b45bc085293331b036412a89afd71bb",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/supportEngine.ts": {
-    "mtime": 1794000788.0061264,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3260088,
+    "seen": 1794470121.5865588,
     "ast_hash": "78d80f7a999ca1110e7c89ef35bd0959",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/supportFrame.ts": {
-    "mtime": 1794000788.0061264,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3265135,
+    "seen": 1794470121.5865588,
     "ast_hash": "df165630646d7c69eba3816120a9ce0a",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/unitSupports.ts": {
-    "mtime": 1794000788.0061264,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3265135,
+    "seen": 1794470121.5865588,
     "ast_hash": "2d17df9b8d2a9fa41cd2fa10caa7befe",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/zoneCheck.ts": {
-    "mtime": 1794000788.0071306,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3280168,
+    "seen": 1794470121.5865588,
     "ast_hash": "d6f2cc706a207efd2cb8271da8fdc7ba",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/workers/WorkerTask.ts": {
-    "mtime": 1794000788.0096917,
-    "seen": 1794008080.187743,
-    "ast_hash": "46e6fab49e06e98cbee1cf1acc2b2075",
+    "mtime": 1794467311.3350341,
+    "seen": 1794470121.5865588,
+    "ast_hash": "e1b004a6bb3a471b7b6b9c143d5dc463",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/workers/buildSessions.ts": {
-    "mtime": 1794000788.0071306,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3280168,
+    "seen": 1794470121.5865588,
     "ast_hash": "1def91f69f5fa9f43073cbef502713c0",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/workers/geometryClient.ts": {
-    "mtime": 1794000788.0071306,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3290217,
+    "seen": 1794470121.5865588,
     "ast_hash": "8d4243e37f161c4e6c45f461ac874c31",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/workers/jobActivity.ts": {
-    "mtime": 1794000788.0081308,
-    "seen": 1794008080.187743,
-    "ast_hash": "9e7fca40c166240db8224ba2c8fa86ec",
+    "mtime": 1794467311.3300202,
+    "seen": 1794470121.5865588,
+    "ast_hash": "5df7995f4b65295318da70f7a1bcd6b9",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/workers/meshClient.ts": {
-    "mtime": 1794000788.0081308,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3315232,
+    "seen": 1794470121.5865588,
     "ast_hash": "7c03591d4f3b15222e4761bf4f113547",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/workers/meshProtocol.ts": {
-    "mtime": 1794000788.0081308,
-    "seen": 1794008080.187743,
-    "ast_hash": "5ad26ec208d7cf549d6a17550604b365",
+    "mtime": 1794467311.3325274,
+    "seen": 1794470121.5865588,
+    "ast_hash": "fb3368a4039d1c16dcaff5736934c932",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/workers/meshWorker.ts": {
-    "mtime": 1794000788.0091314,
-    "seen": 1794008080.187743,
-    "ast_hash": "5c99751ffff1c135bec419a876023127",
+    "mtime": 1794467311.333031,
+    "seen": 1794470121.5865588,
+    "ast_hash": "37cfc27f2765d8f5d225e479dcfc592e",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/workers/serveTask.ts": {
-    "mtime": 1794000788.0091314,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3340347,
+    "seen": 1794470121.5865588,
     "ast_hash": "3252295d3691c48ee66db695770b73cf",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/workers/sourceCache.ts": {
-    "mtime": 1794000788.0096917,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3340347,
+    "seen": 1794470121.5865588,
     "ast_hash": "5bb181b1ec743c8fcb11886b3f1a8f5e",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/pkg-browser/mixo_geometry_wasm.d.ts": {
-    "mtime": 1794000787.9780877,
-    "seen": 1794008080.187743,
-    "ast_hash": "500980d9076f76c7b9e0695d1a367f38",
+    "mtime": 1794467311.2813778,
+    "seen": 1794470121.5865588,
+    "ast_hash": "f426859f7e65ef3fe4fbbe839284ca3b",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/pkg-browser/mixo_geometry_wasm.js": {
-    "mtime": 1794000787.9760854,
-    "seen": 1794008080.187743,
-    "ast_hash": "d7be6178ae8b1925050ff72373cd6183",
+    "mtime": 1794467311.2793784,
+    "seen": 1794470121.5865588,
+    "ast_hash": "37d08e9f6bcc6b0adcc9cca964bcea06",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/pkg-node/mixo_geometry_wasm.d.ts": {
-    "mtime": 1794000787.9815874,
-    "seen": 1794008080.187743,
-    "ast_hash": "6ef6e872b6a223c769ca51ac6cb96d3b",
+    "mtime": 1794467311.2838855,
+    "seen": 1794470121.5865588,
+    "ast_hash": "baec2525715671beac3e02c8ce4f0655",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/pkg-node/mixo_geometry_wasm.js": {
-    "mtime": 1794000787.9790857,
-    "seen": 1794008080.187743,
-    "ast_hash": "adc8afdc65da3e6c65407e63f059f896",
+    "mtime": 1794467311.2813778,
+    "seen": 1794470121.5865588,
+    "ast_hash": "7f49d5c6bbfff8709ee2fe5ac8351866",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/pkg-node/mixo_geometry_wasm_bg.wasm.d.ts": {
-    "mtime": 1794000787.9815874,
-    "seen": 1794008080.187743,
-    "ast_hash": "93c36fdfbc081bed0a81c43942cbdf73",
+    "mtime": 1794467311.2838855,
+    "seen": 1794470121.5865588,
+    "ast_hash": "ab946ed9c210b12cf4e97c086e2a7125",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/pkg-node/package.json": {
-    "mtime": 1794000787.9815874,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.2848854,
+    "seen": 1794470121.5865588,
     "ast_hash": "0bfb6a81cd03011e652143db77cfafe5",
     "semantic_hash": ""
   },
@@ -3655,110 +3655,110 @@
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/editing/modes.ts": {
-    "mtime": 1794000788.0151198,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3450532,
+    "seen": 1794470121.5865588,
     "ast_hash": "12fc4492e70d475684de3a70a949fe5b",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/alignerProfiles.ts": {
-    "mtime": 1794000787.9907126,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2984276,
+    "seen": 1794470121.5865588,
     "ast_hash": "a8d479cee2c4c0e100502627ac883820",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dental.ts": {
-    "mtime": 1794000787.9907126,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2984276,
+    "seen": 1794470121.5865588,
     "ast_hash": "bd623319c4db3dfe9e977657827b2814",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalContactBand.ts": {
-    "mtime": 1794000787.9912274,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2994287,
+    "seen": 1794470121.5865588,
     "ast_hash": "7d3a245ca8145c4640963ee3f0b743a9",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalContactFootprint.ts": {
-    "mtime": 1794000787.99174,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.2994287,
+    "seen": 1794470121.5865588,
     "ast_hash": "54085a08925ef72607d7af21319883a5",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalContourContacts.ts": {
-    "mtime": 1794000787.9922705,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.300933,
+    "seen": 1794470121.5865588,
     "ast_hash": "f37868c0e800823be5c8345c07f01578",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalContours.ts": {
-    "mtime": 1794000787.9922705,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3019402,
+    "seen": 1794470121.5865588,
     "ast_hash": "aa092fb65d866f1e416efab67d8d744e",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalEngine.ts": {
-    "mtime": 1794000787.99279,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3019402,
+    "seen": 1794470121.5865588,
     "ast_hash": "0c3c5248f82ad2ee76f0417157757aa1",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalOrient.ts": {
-    "mtime": 1794000787.9932983,
-    "seen": 1794008080.1872241,
-    "ast_hash": "7d884f8cc023fb3795d02675be88b8a0",
+    "mtime": 1794467311.303938,
+    "seen": 1794470121.5865588,
+    "ast_hash": "abef65f3ba9fe82ad7e53e422713ab54",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalPolicy.ts": {
-    "mtime": 1794000787.993967,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.303938,
+    "seen": 1794470121.5865588,
     "ast_hash": "26c732846507b0d685241d32839dcd41",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalRegion.ts": {
-    "mtime": 1794000787.993967,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.303938,
+    "seen": 1794470121.5865588,
     "ast_hash": "5132eda9548f48106d35e84867ef482d",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalTilt.ts": {
-    "mtime": 1794000787.994486,
-    "seen": 1794008080.1872241,
-    "ast_hash": "b7ceee940016e05f74efc59b227e4aec",
+    "mtime": 1794467311.3054407,
+    "seen": 1794470121.5865588,
+    "ast_hash": "f128f61a6f0ef55cf920dd20e30fe7df",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalTuning.ts": {
-    "mtime": 1794000787.994486,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3059516,
+    "seen": 1794470121.5865588,
     "ast_hash": "e354e3d3ac926f6d77ed45bd75d01967",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/label.ts": {
-    "mtime": 1794000787.9981108,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3114607,
+    "seen": 1794470121.5865588,
     "ast_hash": "8f1bb4a7be7041385a8879c1653f7dcf",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/legacyArea.ts": {
-    "mtime": 1794000787.9981108,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3124607,
+    "seen": 1794470121.5865588,
     "ast_hash": "cbfb15f7284bf083701173deafef708c",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/placement.ts": {
-    "mtime": 1794000787.999115,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3134608,
+    "seen": 1794470121.5865588,
     "ast_hash": "e78e088d3ebd644f53fa20838e7d4fed",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/profileFiles.ts": {
-    "mtime": 1794000787.999115,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3134608,
+    "seen": 1794470121.5865588,
     "ast_hash": "2e0b1cea13b8008801d366cfdef77918",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/tuning.ts": {
-    "mtime": 1794000787.999115,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.314461,
+    "seen": 1794470121.5865588,
     "ast_hash": "317e7d24c9a791811f7deeb53574a197",
     "semantic_hash": ""
   },
@@ -3823,9 +3823,9 @@
     "semantic_hash": ""
   },
   "src/dental/editing/uiFixture.ts": {
-    "mtime": 1793268306.3354583,
-    "seen": 1793268698.622336,
-    "ast_hash": "5fd509735f5e91565ca1b0c8901e9fcd",
+    "mtime": 1794467607.8313649,
+    "seen": 1794470121.5860338,
+    "ast_hash": "829e5a372c9c458439f54b524f6342c1",
     "semantic_hash": ""
   },
   "scripts/check-no-duplicates.mjs": {
@@ -3907,8 +3907,8 @@
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/removeDegenerate.ts": {
-    "mtime": 1794000787.9876163,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.292918,
+    "seen": 1794470121.5865588,
     "ast_hash": "0f04aedae874a2d65404b94877045890",
     "semantic_hash": ""
   },
@@ -3961,39 +3961,39 @@
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentalKind.ts": {
-    "mtime": 1794000787.9932983,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3029382,
+    "seen": 1794470121.5865588,
     "ast_hash": "f32fe6bdb351b631caa926daffad925d",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentureOrient.ts": {
-    "mtime": 1794000787.9955184,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.306955,
+    "seen": 1794470121.5865588,
     "ast_hash": "b24aa566d8da8bf6738b8257189ec5ad",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/denturePolicy.ts": {
-    "mtime": 1794000787.9960377,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.308955,
+    "seen": 1794470121.5865588,
     "ast_hash": "60bf35aaee1c355dd01e5126fdd35db0",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentureProfileFiles.ts": {
-    "mtime": 1794000787.9970763,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3099554,
+    "seen": 1794470121.5865588,
     "ast_hash": "d326205c32e6b417d62a01393e1b5765",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentureProfiles.ts": {
-    "mtime": 1794000787.9970763,
-    "seen": 1794008080.1872241,
+    "mtime": 1794467311.3104591,
+    "seen": 1794470121.5865588,
     "ast_hash": "ecc58ef9ef35d0d1ac357dacdffb00f3",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentureTilt.ts": {
-    "mtime": 1794000787.9981108,
-    "seen": 1794008080.1872241,
-    "ast_hash": "78397fa72a51a12d8d800976f0ed37f4",
+    "mtime": 1794467311.3114607,
+    "seen": 1794470121.5865588,
+    "ast_hash": "dcac94f05b150179f9573b51b03c042e",
     "semantic_hash": ""
   },
   "src/ui/Icon.tsx": {
@@ -4117,9 +4117,9 @@
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentureReview.ts": {
-    "mtime": 1794000787.9975922,
-    "seen": 1794008080.1872241,
-    "ast_hash": "303eebb2d0a1bab5ad0f9f526656caa8",
+    "mtime": 1794467311.3104591,
+    "seen": 1794470121.5865588,
+    "ast_hash": "bff7ce800d2a460471cf753fbedcdcf2",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/dentureReviewLayers.ts": {
@@ -4135,14 +4135,14 @@
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentureGenerate.ts": {
-    "mtime": 1794000787.995001,
-    "seen": 1794008080.1872241,
-    "ast_hash": "612a553f9543f1c8e504c98bc5758ccc",
+    "mtime": 1794467311.3059516,
+    "seen": 1794470121.5865588,
+    "ast_hash": "64c8955c1bfecb6684ba7b760ca6e2e8",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/generateLimits.ts": {
-    "mtime": 1794000788.0036185,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3204777,
+    "seen": 1794470121.5865588,
     "ast_hash": "ba164d3e75bf01cfa1bfe9cc75a3421e",
     "semantic_hash": ""
   },
@@ -4159,21 +4159,21 @@
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/editSupport.ts": {
-    "mtime": 1794000788.002115,
-    "seen": 1794008080.1872241,
-    "ast_hash": "32c8614fcac070521c828ffb9123b7e2",
+    "mtime": 1794467311.3194747,
+    "seen": 1794470121.5865588,
+    "ast_hash": "5cb93fb059cadce761208fd77b7f7277",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/generateRules.ts": {
-    "mtime": 1794000788.0036185,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.321481,
+    "seen": 1794470121.5865588,
     "ast_hash": "e009df8eaa7d7a76b28e4c6805222389",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentureIslands.ts": {
-    "mtime": 1794000787.9955184,
-    "seen": 1794008080.1872241,
-    "ast_hash": "4fc2c02aa58f4c88358de76a80ca2c2b",
+    "mtime": 1794467311.306955,
+    "seen": 1794470121.5865588,
+    "ast_hash": "22dd3174425f19f8dc62371381fd6ed3",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/islandReport.test.ts": {
@@ -4201,14 +4201,14 @@
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentureParts.ts": {
-    "mtime": 1794000787.9960377,
-    "seen": 1794008080.1872241,
-    "ast_hash": "298946cf1cd4f6e41ab8eaf3fad49855",
+    "mtime": 1794467311.3079555,
+    "seen": 1794470121.5865588,
+    "ast_hash": "9cc3004c2ddd22aa5218996af54f3871",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/supports/plateArrange.ts": {
-    "mtime": 1794000788.0046237,
-    "seen": 1794008080.187743,
+    "mtime": 1794467311.3240023,
+    "seen": 1794470121.5865588,
     "ast_hash": "3e093eefc0923cac2453d3e7614ca3d6",
     "semantic_hash": ""
   },
@@ -4237,9 +4237,9 @@
     "semantic_hash": ""
   },
   "src/supports/unresolved/unresolvedText.ts": {
-    "mtime": 1793572765.037417,
-    "seen": 1793572785.2330158,
-    "ast_hash": "3dee09388c0c788d300f979b88cad45d",
+    "mtime": 1794467581.0588386,
+    "seen": 1794470121.5865588,
+    "ast_hash": "81431dc0ec598b89922a84b66669aad7",
     "semantic_hash": ""
   },
   "src/ui/assets/icons/warning.svg": {
@@ -4423,27 +4423,27 @@
     "semantic_hash": ""
   },
   "src/denture/steps/orient/liveTipLayers.test.ts": {
-    "mtime": 1793561443.343132,
-    "seen": 1793561462.7623348,
-    "ast_hash": "87650f0cc9e110ad2e5fbebe7259c091",
+    "mtime": 1794467689.9331906,
+    "seen": 1794470121.5860338,
+    "ast_hash": "7100b522d5bb6bec168a84d048cd354e",
     "semantic_hash": ""
   },
   "src/denture/steps/orient/liveTipLayers.ts": {
-    "mtime": 1793561443.3240035,
-    "seen": 1793561462.7623348,
-    "ast_hash": "ccdb4b08e3df5340ef93290909b40571",
+    "mtime": 1794467581.0487454,
+    "seen": 1794470121.5860338,
+    "ast_hash": "39dcc0b06d2bc76b3166e028de2686c5",
     "semantic_hash": ""
   },
   "src/denture/steps/orient/tipColours.test.ts": {
-    "mtime": 1793563260.4955182,
-    "seen": 1793563279.4166412,
-    "ast_hash": "b97f257a27a16bbe875dc21a1775f8a1",
+    "mtime": 1794468699.6393986,
+    "seen": 1794470121.5860338,
+    "ast_hash": "036c5bb312b0e9042a222af83f1f5bbc",
     "semantic_hash": ""
   },
   "src/denture/steps/orient/tipColours.ts": {
-    "mtime": 1793563260.4645016,
-    "seen": 1793563279.4166412,
-    "ast_hash": "770f71b5b0f1af45273795a07456006a",
+    "mtime": 1794467581.0417218,
+    "seen": 1794470121.5860338,
+    "ast_hash": "36223e7e14ed15eea16f65c345182488",
     "semantic_hash": ""
   },
   "src/denture/steps/orient/acceptCommands.test.ts": {
@@ -4465,9 +4465,9 @@
     "semantic_hash": ""
   },
   "src/denture/steps/orient/LiveTipSummary.test.tsx": {
-    "mtime": 1793561530.8294947,
-    "seen": 1793561553.448125,
-    "ast_hash": "dbb80f57a47aa7402d12509a8a948a80",
+    "mtime": 1794467689.9331906,
+    "seen": 1794470121.5860338,
+    "ast_hash": "3d3e1c00214717b0eb91decc3cd425cc",
     "semantic_hash": ""
   },
   "src/denture/steps/orient/LiveTipSummary.tsx": {
@@ -4513,9 +4513,9 @@
     "semantic_hash": ""
   },
   "src/denture/engine/dentureExport.ts": {
-    "mtime": 1793562381.844796,
-    "seen": 1793562415.385092,
-    "ast_hash": "4dcad0a3bf7ff9aa48930b5256588e3a",
+    "mtime": 1794467581.0588386,
+    "seen": 1794470121.5860338,
+    "ast_hash": "7fd5fa55081d07ad6a28579f11411262",
     "semantic_hash": ""
   },
   "src/denture/state/dentureCommands.ts": {
@@ -4615,15 +4615,15 @@
     "semantic_hash": ""
   },
   "src/denture/parts/partRoles.test.ts": {
-    "mtime": 1793570230.5729196,
-    "seen": 1793570249.814649,
-    "ast_hash": "7d01c10f6c3f41b76e69c2463fee55ee",
+    "mtime": 1794468699.6393986,
+    "seen": 1794470121.5860338,
+    "ast_hash": "df65d5a28c6060e97146b2fb9a89b330",
     "semantic_hash": ""
   },
   "src/denture/parts/partRoles.ts": {
-    "mtime": 1793571059.7410514,
-    "seen": 1793571093.4537978,
-    "ast_hash": "d5ecadd68ef52c7d328bfe64b88bade6",
+    "mtime": 1794467581.035211,
+    "seen": 1794470121.5860338,
+    "ast_hash": "935f2e46bebccf0d6a7a90e2cb207da9",
     "semantic_hash": ""
   },
   "src/denture/parts/addOnTint.test.tsx": {
@@ -4723,9 +4723,9 @@
     "semantic_hash": ""
   },
   "docs/ui-styling.md": {
-    "mtime": 1794428529.9004152,
-    "seen": 1794429099.988029,
-    "ast_hash": "4e5402f55b66ddec6d1918ece0cc30c9",
+    "mtime": 1794468699.640403,
+    "seen": 1794470121.5865588,
+    "ast_hash": "ad614e85d082884a276d7305a37a770d",
     "semantic_hash": ""
   },
   "dentalwork/baselines/real-scan-baseline.json": {
@@ -4783,9 +4783,9 @@
     "semantic_hash": ""
   },
   "src/denture/progress/StagedProgress.test.tsx": {
-    "mtime": 1793604744.5665998,
-    "seen": 1793604770.2408428,
-    "ast_hash": "9b0343129913798c129912ce586de85d",
+    "mtime": 1794467689.9256752,
+    "seen": 1794470121.5860338,
+    "ast_hash": "67090ec3d6eea1f514befbb714f73adc",
     "semantic_hash": ""
   },
   "src/denture/progress/StagedProgress.tsx": {
@@ -4969,9 +4969,9 @@
     "semantic_hash": ""
   },
   "src/kit/Catalogue.tsx": {
-    "mtime": 1794306993.7178912,
-    "seen": 1794307433.448539,
-    "ast_hash": "e4fd060efe3510f4243973ebba76beb5",
+    "mtime": 1794467689.9261794,
+    "seen": 1794470121.5860338,
+    "ast_hash": "f062969d36d12ecd0f97bc073d4eb018",
     "semantic_hash": ""
   },
   "src/kit/main.tsx": {
@@ -5305,9 +5305,9 @@
     "semantic_hash": ""
   },
   "src/assets/fonts/japanese-subset.txt": {
-    "mtime": 1794437135.4012668,
-    "seen": 1794439414.883901,
-    "ast_hash": "0efdc8ea7ad0c60daa2c0af1ff5bb978",
+    "mtime": 1794469054.5818007,
+    "seen": 1794470121.5865588,
+    "ast_hash": "c69bd53827b1608c1a926e4225abbc4c",
     "semantic_hash": ""
   },
   "src/dental/README.md": {
@@ -5515,9 +5515,9 @@
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/core/repairMesh.ts": {
-    "mtime": 1794000787.9881322,
-    "seen": 1794008080.1872241,
-    "ast_hash": "4b4cfbb75f5d1f402ab31ea82c648840",
+    "mtime": 1794467311.293918,
+    "seen": 1794470121.5865588,
+    "ast_hash": "7674fcefbf9b7aa73f5c0310cac71097",
     "semantic_hash": ""
   },
   "src/items/README.md": {
@@ -5875,15 +5875,15 @@
     "semantic_hash": ""
   },
   "src/components/exportOutcomeText.test.ts": {
-    "mtime": 1794197650.895397,
-    "seen": 1794198414.0295131,
-    "ast_hash": "f0493be5a7c6cac73e2f5611e302ef00",
+    "mtime": 1794467306.2919145,
+    "seen": 1794470121.5860338,
+    "ast_hash": "bc59306f9e42555d492dd65e33dd64bd",
     "semantic_hash": ""
   },
   "src/components/exportOutcomeText.ts": {
-    "mtime": 1794197650.895397,
-    "seen": 1794198414.0295131,
-    "ast_hash": "ba27eff8d8842aaed551f2f7a0c31a5e",
+    "mtime": 1794467306.2843966,
+    "seen": 1794470121.5860338,
+    "ast_hash": "b32141f5a457ae2592c295a425a46fa4",
     "semantic_hash": ""
   },
   "src/workers/analysisJobVocabulary.test.ts": {
@@ -6229,9 +6229,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-12-three-repo-refactor-plan.md": {
-    "mtime": 1794440040.8057406,
-    "seen": 1794440139.5829442,
-    "ast_hash": "d2dcce8865f5766e9e863b88fb39b722",
+    "mtime": 1794470120.389983,
+    "seen": 1794470121.5865588,
+    "ast_hash": "d7d6e1b20bc8fc368bdae43fbb05fb27",
     "semantic_hash": ""
   },
   "docs/handoff/morning-2026-11-12.md": {
@@ -6250,6 +6250,18 @@
     "mtime": 1794439622.6360948,
     "seen": 1794440139.5537746,
     "ast_hash": "52a24363b353f1a59f194abbb2c4488b",
+    "semantic_hash": ""
+  },
+  "src/productNaming.ts": {
+    "mtime": 1794467511.6773148,
+    "seen": 1794470121.5865588,
+    "ast_hash": "23cc938c25f2dab43d0a9c70c626048c",
+    "semantic_hash": ""
+  },
+  "vendor/mixo-geocore/host/core/arity.ts": {
+    "mtime": 1794467311.2898972,
+    "seen": 1794470121.5865588,
+    "ast_hash": "5ff84d825dac0b43fbec939ea086f3ca",
     "semantic_hash": ""
   }
 }

@@ -226,6 +226,138 @@ stored `unit.placement.points` while `buildDenture` recomputes candidates at exp
 (`src/denture/engine/dentureCore.ts:129-130`). If those ever disagree, the 63 behaviour above *is*
 reachable for a denture. No case was found and none was constructed; it is unproven either way.
 
+### DONE, 2026-11-12. What the plan above got wrong, and what the residual turned into
+
+**The re-vendor is landed**: `vendor/mixo-geocore/SOURCE.json` stamps `f00fe23`, engine 64, and the
+commit is on geocore's remote, which was the whole point of the trigger. Gate on the tree: **PASS** -
+tsc 0, 1628 tests, duplicates, screens, build 941, wasm, nogl 14, **real 0 (13 scans, no
+differences)**, tier 6. That real-scan line is the evidence for the claim above that engine output
+does not move; it was a prediction when written and is a measurement now.
+
+**Five compile errors was wrong; there were eight sites.** The six predicted ones were right. Two
+were not on the list at all:
+
+- **`JobRow.inline` became required** (GEO-012), which three hand-built row literals had to set -
+  and, far more important, **nothing in the app read it**. The field exists to tell the operator that
+  a job is running on the calling thread because no Web Worker could be created, so the window will
+  freeze for about 8 s. Taking the field and dropping the sentence would have left a degraded
+  environment indistinguishable from a slow machine. Fixed in `03ee898`, reported first in the meta
+  line so truncation cannot eat it. **This is the one real UX gap the re-vendor turned up, and a
+  type-error list could never have found it** - the compiler was satisfied by `inline: false` in
+  three fixtures.
+- **`modelLanded[].tier` needed its sentence in `UnresolvedBubbles.tsx:30`**, not only in
+  `unresolvedText.ts:59` as written above.
+
+**The one silent change was exactly as predicted**, which is worth saying because the rest of this
+section is corrections: `ExportRefusal` gained `'nothing-built'` and `useExport`'s unconditional
+`return refuse('inconclusive', name)` would have swallowed it. Fixed by passing `refusal.reason`
+through (`6e6dc7c`), so the next reason upstream is a compile error here instead of a wrong sentence.
+
+**The denture residual is closed, but not the way the paragraph above expected.** It was never
+proven that `planExport`'s stored points and `buildDenture`'s recomputed candidates agree - that is
+still unproven either way. What changed is the CONSEQUENCE of them disagreeing. On 63 a zero-contact
+denture build reached the gate as `stale` and the operator was told the unit "changed while it was
+being exported", a cause that had not happened. On 64, with the fall-through fixed, the same build is
+refused as `nothing-built`: *"the build produced no support geometry for {name}, so there was nothing
+to check and nothing was written. Generate supports, then export."* True, actionable, and translated.
+So the residual no longer bites whether or not the two agree. Proving they agree is still worth
+doing; it is no longer load-bearing.
+
+**Three guards corrected machine output in this change**, which is the argument for having them:
+`glossary.test.ts` caught the zh refusal using 生成 for Generate (this project's term is 產生; 生成
+is the JA term), `japaneseSubset.test.ts` caught 名/識/答 falling outside the bundled face, and
+`uiStylingDoc.test.ts` demanded `--tip-unknown` be documented. One fault no guard caught: the
+translation came back with the **simplified 内** inside otherwise correct Taiwan wording, because the
+mainland-term test matches whole words rather than characters.
+
+---
+
+## 3c. The next geocore change: one notion of "how many meshes", shared by both policies
+
+**Decided by the owner, 2026-11-12, who also set the order: geocore first, before any further app
+review.** Both apps vendor from geocore, so fixing it upstream costs one re-vendor each instead of
+two app-side workarounds that then have to be unwound.
+
+**The requirement, in the owner's terms:** faces where two meshes of one object intersect get no
+supports. A dental main object keeps its special treatment (dental tips on the target), while the
+other meshes on it DO get supports - on their exposed faces only. The same rule applies to generic
+supports: a body and an arm as two meshes of one object get no support in the overlap, and the system
+still knows which is the body and which is the arm.
+
+**Most of this already exists, and it is locked inside `dental/`.**
+`crates/geometry-core/src/dental/denture/parts.rs` has `hidden_faces(mesh, &split)` (`:281`) - "a
+fused part's faces inside or touching another part are hidden: no tips there" - deciding by
+`inside_other` (`:434`), a vertical-ray parity test against the other closed part. The roles already
+encode the owner's split: `target` gets the dental tips, `fused` (overlaps or touches the target) is
+printed with it and gets generic tips **on its exposed faces only**, `addOn` gets generic tips on its
+own faces, `debris` gets none, and `genericTipParts` (`:203`) names which parts get generic tips.
+`crates/geometry-core/src/generic/` is three files and has **no notion of parts, bodies or hidden
+faces at all** - its only `parts` reference is `supports::parts::column::ContactKind`, which is
+support geometry.
+
+**One gap found while checking, and it matters precisely for the generic case.** `parts.rs:80`
+computes the hidden mask **only if some part is `fused`**, i.e. only if something overlaps the
+*target*. Two add-ons that overlap each other but not the target get no mask, so both would get tips
+inside their shared volume. Rare in a dental file; the normal case for a body and two arms. That
+condition has to go, so the promotion is not a pure move.
+
+**In order:**
+
+1. Promote `surface::parts::split` out of `dental/` into the shared surface path.
+2. Promote `hidden_faces` / `inside_other` with it, and drop the "only when something is fused"
+   condition.
+3. Make the **generic** policy consume the part list and the hidden mask the way the dental policy
+   does, so "outward-facing" means outward *per part* and buried faces get nothing.
+4. Point **repair** at `parts::split` instead of `repair::bodies`. That is the same fix: `bodies`
+   clusters by proximity at 0.005 mm and its header assumes bodies are at least 0.05 mm apart, so a
+   touching hook is ONE body to repair while it is TWO parts to supports. See 3d.
+5. Surface the part count and roles to the operator before generate and before repair.
+
+Bumps the engine to 65; both apps re-vendor. mixoMesh needs this to have generic support generation
+at all: its own notion of parts (`logicalObjectPartIds`) reads the scene graph - MultiMaterial split
+or glTF multi-primitive sharing a `logicalObjectId` - which is file provenance, and **an STL carries
+none**.
+
+---
+
+## 3d. Repair versus independent bodies: measured, and worse than assumed
+
+**Fable ran engine 64's `repair_mesh` on synthetic denture-and-hook cases on 2026-11-12.** Two
+claims that had been made in this session's discussion are wrong, and the wrong one was the
+reassuring one.
+
+- **Identical coordinates have no guard.** `weld_map` merges every bit-identical position
+  unconditionally (`core/proximity.rs:219-220`); the edge / no-more-than-two-faces guard exists only
+  in the NEAR pass (`:271-301`). geocore's own code says so: `surface/parts.rs:5` reads "the import
+  weld merged their coincident corners, so an edge can carry three or more faces".
+- **What saves closed shells is the later non-manifold split** (`repair/manifold.rs:55-72` with
+  `repair/topology.rs:87-105`), which gives every fan of faces its own vertex copy - not the weld.
+  It works for contact at a point or a line.
+- **Two measured failures on exactly the denture-and-hook case:** a shared *patch* of identical
+  triangulation makes every patch edge four-faced, so the patch is **torn off both shells** - two
+  watertight solids became six open pieces, and with fill on, 8 triangles were invented and it
+  reported watertight. And if either shell is **open** where they meet, the two **fuse into one
+  closed shell, reported watertight, with no alarm**.
+- `pair_around` (`surface/parts.rs:110`) resolves the shared-patch case correctly. The manifold step
+  does not call it. So supports and repair disagree on the owner's exact case: two parts, one body.
+- **A fill cannot span two bodies**, for three reasons, none of which is the body label: a rim is
+  walked over shared vertex indices only (`topology.rs:178-235`), the manifold split runs first, and
+  a patch names only its own rim's vertices (`fill.rs:14-17`). Two limits remain: the patch is never
+  tested for intersection with anything (`fill.rs:46-47`), so a cap on the denture can pass through
+  the hook; and if the weld already fused two open rims there is nothing left to protect.
+- `merge_near` / `Tolerance::Repair` **has no callers**, confirmed. Leave it that way: it has no
+  topology guard and would collapse real short edges.
+- **The honest guarantee geocore can give today: closed shells are never fused.** An open hook
+  seated on the denture, or a denture with a hole where the hook sits, becomes one body and nothing
+  reports it. In a format with no provenance a crack and two open shells meeting rim-to-rim are the
+  same data, and no tolerance can separate them.
+
+**So repair stays an explicit operator action, never a step at load.** What runs at load is the
+lossless half - weld at noise scale, split parts, diagnose, report - which is what mixoDental does
+today (`src/workers/prepareImport.ts:78-79` diagnoses; nothing in `src` calls `repair_mesh`, so the
+tear-off and fuse cases above are latent until a Repair button is wired). Repair itself belongs
+behind an operator action, per part, with before/after counts and the option to decline.
+
 ---
 
 ## 4. The re-vendor of mixoMesh: not scheduled

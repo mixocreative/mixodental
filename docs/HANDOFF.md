@@ -1,5 +1,49 @@
 # Handoff
 
+## Engine 64 is vendored, and the next geocore change is specified (2026-11-12)
+
+**The deferred re-vendor is DONE** - `vendor/mixo-geocore/SOURCE.json` stamps `f00fe23`, engine 64,
+a commit that is on geocore's remote (which was the trigger). **Gate: PASS** - tsc 0 · 1628 tests ·
+duplicates 0 · screens 0 · build 941 · wasm 0 · nogl 14 · **real 0 (13 scans, no differences)** ·
+tier 6. NOT run: walk, fonts. The real-scan line is the evidence that engine output did not move.
+
+Four commits: `b9fd6f7` the vendor bump and every site `tsc` named, `6e6dc7c` the refusal reason the
+type system could not catch, `03ee898` the inline-job freeze notice, `2139793` the ja and zh-Hant
+strings plus the re-cut Japanese face.
+
+**Section 3b of `docs/design/2026-11-12-three-repo-refactor-plan.md` is closed there, with what the
+plan got wrong**: it predicted five compile sites and there were eight. The two it missed matter -
+`JobRow.inline` became required AND **nothing in the app read it**, so a job with no Web Worker
+froze the window for ~8 s with no sentence saying so (GEO-012). A type-error list could not have
+found that; `inline: false` in three fixtures satisfies the compiler. The denture residual is closed
+sideways: it is still unproven whether `planExport`'s stored points and `buildDenture`'s recomputed
+candidates agree, but a disagreement now ends in `nothing-built` - true and actionable - instead of
+63's "changed while it was being exported", a cause that had not happened.
+
+**NEXT, and the owner set the order: geocore first, before any further app review.** Sections **3c**
+and **3d** of the decision record hold it.
+
+- **3c - one notion of "how many meshes", shared by both policies.** Faces where two meshes of one
+  object intersect get no supports; the dental target keeps its dental tips while the other meshes
+  get supports on their EXPOSED faces only; and the same rule reaches generic supports, so a body
+  and an arm get nothing in the overlap and the system still knows which is which. Most of this
+  exists and is locked inside `dental/`: `hidden_faces` / `inside_other`
+  (`dental/denture/parts.rs:281,434`) and the target/fused/addOn/debris roles. `generic/` has no
+  notion of parts at all. One real gap found: `parts.rs:80` computes the hidden mask only when some
+  part is `fused`, so two add-ons overlapping each other get no mask - that condition has to go.
+  Bumps the engine to 65; both apps re-vendor. **mixoMesh needs it to have generic support
+  generation at all**, because its own notion of parts reads the scene graph and an STL carries no
+  provenance.
+- **3d - repair versus independent bodies, now measured rather than assumed.** Fable ran engine 64
+  on synthetic denture-and-hook cases. Identical coordinates have NO weld guard
+  (`core/proximity.rs:219-220`); what saves closed shells is the later non-manifold split. A shared
+  patch of identical triangulation is **torn off both shells** (two watertight solids became six
+  open pieces; with fill on, 8 triangles invented and reported watertight), and two **open** rims
+  meeting **fuse silently and report watertight**. The honest guarantee is only: closed shells are
+  never fused. `merge_near` still has no callers - leave it that way. So **repair stays an explicit
+  operator action, never a step at load**; what belongs at load is the lossless half (weld, split
+  parts, diagnose, report), which is what the import does today.
+
 ## Current decision
 
 Approved scope is Web Resin Support Parity: a local, multi-object browser editor that reproduces Blender's live Resin UV support workflow. Every imported mesh is a print unit with a derived support group that moves and rotates together with its model. The browser must support generation, settings/presets, manual editing, removal/regeneration, undo/redo, and separate or whole-scene export.
