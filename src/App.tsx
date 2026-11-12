@@ -1,3 +1,26 @@
+/*
+ * The app shell: the screens, the modes, and the wiring between the scene, the workers and the
+ * viewport.
+ *
+ * DEBT, NAMED 2026-11-12: 1611 lines, over this project's ~1000-line line where the cut is taken
+ * rather than named. It is named here anyway because the obvious cut is the wrong one, and writing
+ * that down is worth more than a line count.
+ *
+ * NOT the cut: lifting the `ui: UiState` literal into a `buildUiState(...)`. `UiState` has about
+ * fifty fields and they are derived from the scene, the session, the denture state, the history and
+ * half a dozen flags - so a builder would need nearly as much handed in as it hands back. That is a
+ * HUB, not a job, and this repo's test is that a module is clean when its output is NARROWER than
+ * its input. It is the same reason `built` and `failedBuilds` stayed here while `buildViews` and
+ * `useSupportBuilds` were extracted.
+ *
+ * THE CUT: the dental facts inside that literal - `dentalRimAnchors`, `dentalRimClosed`,
+ * `dentalRimProblem`, `dentalAlignerReady`, `dentalTiltBusy`, `dentalProposed`, `dentalKind`,
+ * `dentureResolvable`, `dentalStage` and the rest. Three structures in (the active unit, the
+ * session, the denture state), a handful of scalars out: narrower out than in, pure, and testable
+ * with no framework. Take it after the engine-65 work lands (sections 3c/3d of
+ * docs/design/2026-11-12-three-repo-refactor-plan.md) - cutting the shell while the engine moves
+ * underneath it produces a diff nobody can review.
+ */
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Progress } from './progress/Progress';
 import { PRODUCT_NAMING } from './productNaming';
