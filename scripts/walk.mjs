@@ -1698,7 +1698,15 @@ async function walk(url, scratch, dentalFixture) {
        * m8 left up is all it needs, and nothing after it wants the deck back.
        */
       await page.locator('[data-ui="tool-orient"]').click();
-      const railOpened = await page.waitForFunction(() => /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 30000 })
+      /*
+       * 60 s, not 30: this press starts a DETECTION (the comment below says so), and the badge only
+       * reads "Step 1" once the dock mounts behind it. On a CI runner with no GPU that is several
+       * times slower than locally, and it timed out there at 30 s while passing in seconds on a
+       * workstation (run 43296261945). The claim here is that the press REACHES the flow, which is
+       * not a claim about speed, so the budget follows this file's own convention for anything the
+       * engine is behind rather than sitting at a third of it.
+       */
+      const railOpened = await page.waitForFunction(() => /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 60000 })
         .then(() => true, () => false);
       /*
        * WHAT THIS CHECK PROVES, AND WHAT IT DOES NOT. It proves the press REACHES the flow, which is
