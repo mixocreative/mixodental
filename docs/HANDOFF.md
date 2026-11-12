@@ -42,6 +42,18 @@ mixo-app-style `fc11115`, mixoMesh `e67d09e`, mixoDental `eb9c69b`. Each verifie
 0 ahead / 0 behind. **Pushing geocore fires the engine-64 re-vendor trigger**, so that re-vendor
 (section 3b of `docs/design/2026-11-12-three-repo-refactor-plan.md`) is the next change here.
 
+**A CORRECTION I OWE THE OWNER: pushing `main` is NOT the deploy, and I said it was.**
+`.github/workflows/ci.yml` starts on `milestone-*` tags and `workflow_dispatch` only - "Every
+day-to-day push is checked locally with the full test set instead" (owner, 2026-11-02). The `deploy`
+job's own `if` allows `main`, which is what misled me, but the workflow never *starts* on a push to
+`main`, so that condition is never evaluated. Verified against the API: the latest `github-pages`
+deployment is **`50e25f8`, 2026-11-10 14:43 UTC**, and `gh run list` shows no run for `eb9c69b` or
+`14e53d8`. **So the shipped code is pushed but not live.** Going live needs one of two deliberate
+acts, and both are the owner's call: push a `milestone-<name>` tag, or dispatch CI by hand
+(Actions > CI > Run workflow). Note the order the workflow enforces - `deploy` needs `test` AND
+`walk`, so a dispatch runs the browser walk in CI before publishing.
+
+
 Six commits on `main`, `b587bda`..`ddc0965`. The standing goal was: no defect left unfixed, no UX
 workflow gap, and any decision I could not make taken by Fable rather than put to the owner.
 
