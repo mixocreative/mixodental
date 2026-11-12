@@ -1,5 +1,36 @@
 # Handoff
 
+## Engine 65, and what CI could not install (2026-11-12, later)
+
+**Engine 65 is vendored (`4fb67ed`) and the gate is green**: tsc 0, 1628 tests, duplicates 0,
+screens 0, build 941, wasm 0, nogl 14, **real 0 (13 scans, no differences, 224 s)**, tier 6. No app
+changes were needed -- 65 is additive -- and the new `fill-crack` reason is correctly invisible here,
+because `rowText.ts` says repair is cut and `rowIsReachable` refuses the row.
+
+**THE SITE IS LIVE AGAIN, and the reason it was not is worth keeping.** The live deployment was
+`50e25f8` of 2026-11-10 until 13:44 UTC today, when CI finally completed and published `8e88275`.
+Three separate things had to be fixed to get there, and none of them was visible to the local gate:
+
+1. **A push to `main` does not deploy.** `.github/workflows/ci.yml` starts on `milestone-*` tags and
+   `workflow_dispatch` only. The owner's decision, 2026-11-02. The deploy job's own `if` allows
+   `main`, which is what misled me. **Decided with the owner: the tag stays as the audit trail and
+   the dispatch is the normal route** -- nothing in the workflow needed changing for that.
+2. **`npm ci` could not install this repo at all**, and had not been able to since the vitest-5 bump.
+   The lock recorded `vite-node@6.0.0`, which needs `vite ^8`, while the only vite in the lock was
+   6.4.6. Regenerated from scratch (`5f009f0`) so it carries the nested vite 8.3.8 -- and the esbuild
+   complaint vanished with it, because vite 8.3.8 uses rolldown. **One wrong turn recorded:** pinning
+   `vite-node` to `^3.2.4` keeps a single vite but that version has NO `./cli` export, so 13 tests
+   stopped running and the real-scan gate died in zero seconds.
+3. **The lock must be installed by the npm major that wrote it** (`8e88275`). npm 11 writes it here;
+   node 22 brings npm 10; they disagree about the nested vite 8's `esbuild ^0.27 || ^0.28` peer. CI
+   now installs npm 11 before `npm ci`. Pinning npm rather than node, because node is what the app is
+   tested under and is not the thing that disagrees.
+
+**Still open here:** the denture residual (unproven whether `planExport`'s stored points and
+`buildDenture`'s recomputed candidates agree -- no longer load-bearing, since a disagreement now ends
+in `nothing-built`), and `file_parts` still living in `dental/` so the generic ABI calls into a dental
+module (named at the top of `crates/geometry-wasm/src/part_tips.rs` in geocore).
+
 ## Engine 64 is vendored, and the next geocore change is specified (2026-11-12)
 
 **The deferred re-vendor is DONE** - `vendor/mixo-geocore/SOURCE.json` stamps `f00fe23`, engine 64,
