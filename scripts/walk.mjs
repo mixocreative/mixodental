@@ -4498,6 +4498,33 @@ if (unknownProbes.length) {
   check(`no such probe ${unknownProbes.map((name) => `'${name}'`).join(', ')}`, false,
     `names this run offered: ${[...probesAsked].sort().join(', ') || 'none - no section with probes ran'}`);
 }
+/*
+ * THE NUMBER OF CHECKS IS PART OF THE RESULT, NOT A FOOTNOTE TO IT.
+ *
+ * `ALL PASS` says nothing about coverage. A walk that lost half its checks to a refactor, a bad
+ * merge or an early `return` reports `ALL PASS` exactly as happily as a complete one — and on a
+ * file this size that is the likeliest way it breaks. This repo has already shipped once under a
+ * receipt that read PASS while the thing it was meant to prove had not run.
+ *
+ * So a complete run asserts the number of checks it is supposed to produce. This guard is also the
+ * precondition for ever splitting this file (`docs/size-debt.md`): a move that drops a check would
+ * otherwise still say ALL PASS, and the split would hide the very thing it must not.
+ *
+ * WHEN YOU ADD OR REMOVE A CHECK ON PURPOSE, change this number in the same commit and say why in
+ * the message. That is the entire maintenance cost, and it buys the one guarantee this file cannot
+ * otherwise give: that it still runs everything it used to.
+ *
+ * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
+ * less by design, and each already says so in the verdict line.
+ */
+const EXPECTED_CHECKS = 188;
+const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
+if (complete && results.length !== EXPECTED_CHECKS) {
+  check('walk check count', false,
+    `${results.length} checks ran, ${EXPECTED_CHECKS} expected.`
+    + ' A complete walk must still register every check it used to.'
+    + ' If you added or removed one on purpose, update EXPECTED_CHECKS in the same commit.');
+}
 const failedNow = results.filter((r) => !r.ok).length;
 const verdict = failedNow > 0 ? `${failedNow} FAIL` : ONLY.size === 0 ? 'ALL PASS' : 'SOME PASS';
 // A resumed run names the sections it could not finish, so its check count can never read as full coverage.

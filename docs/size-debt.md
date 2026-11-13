@@ -3,9 +3,9 @@
 The rule (the owner's code principle, rule 5): **size is debt with a date.** Over ~600 lines a
 file is named here with its next cut written down; over ~1000 the cut is taken, not named.
 
-**Status, honestly: two files are over the cut limit and neither cut has been taken.** A live
-violation of rule 5, recorded here under rule 8 — *debt not taken is written down with the
-reason*. Both reasons are specific and below, and neither is "no time".
+**Status: two files over the cut limit. The guard that makes the first one safe to cut has landed;
+the second is measured as not takeable** — the extraction would make a hub, and rule 1 comes
+before rule 5.
 
 Measured by `cia`'s `tools/maintainability.py` (rule M2). Re-measure with:
 
@@ -13,46 +13,62 @@ Measured by `cia`'s `tools/maintainability.py` (rule M2). Re-measure with:
 python ~/.claude/skills/cia/tools/maintainability.py S:/ai/mixodental --rule=M2
 ```
 
-## Over the cut limit (~1000) — the cut is owed
+## `scripts/walk.mjs` — 4,534 lines. Guard landed 2026-11-14; split owed.
 
-### `scripts/walk.mjs` — 4,507 lines
+**The guard, and why it came first.** `walk.mjs` is half this repo's ship evidence, and until
+2026-11-14 nothing asserted how many checks it ran. A check that stopped running — an early
+`return`, a bad merge, or a move during exactly the split proposed below — changed nothing it
+reported: it printed a smaller number on the same `ALL PASS` line and exited 0. This repo has
+already shipped once under a receipt that read PASS while the thing it was meant to prove had not
+run, so the split was refused until the count was asserted.
 
-**The next cut, concretely.** The file already has its boundaries marked by its own comments:
+It now asserts `EXPECTED_CHECKS = 188` on any complete run. `--only`, `--probes`, `--locales` and
+a crash resume each walk less by design and are excluded, and each already says so in the verdict
+line. **Change the number in the same commit as any check you add or remove.**
+
+**The next cut**, now safe to make, at the file's own comment boundaries:
 
 | Lines | Becomes | Why it is a clean cut |
 |---|---|---|
-| 62–274 | `scripts/walk/fixtures.mjs` | `faultLevers`, `heavyPlateFixture`, `asciiStl`, `cubeStl`, `openCubeStl`, `cupStl` — pure mesh builders, no page, no browser |
-| 475–869 (`// ---- page helpers`) | `scripts/walk/page.mjs` | the Playwright-facing helpers. One job: driving a page |
-| 4,179+ (`// ---- locale walk`) | `scripts/walk/locales.mjs` | already a separate run (`npm run walk:locales`) |
-| the rest | `walk.mjs`, the runner plus the sections | section selection, `check()`, the report |
+| 182–274 | `scripts/walk/fixtures.mjs` | `heavyPlateFixture`, `asciiStl`, `cubeStl`, `openCubeStl`, `cupStl` — mesh builders, no page, no browser |
+| the `// ---- page helpers` block | `scripts/walk/page.mjs` | the Playwright-facing helpers. One job: driving a page |
+| the `// ---- locale walk` block | `scripts/walk/locales.mjs` | already a separate run (`npm run walk:locales`) |
+| the rest | `walk.mjs`, the runner plus the sections | section selection, `check()`, the verdict |
 
-**The reason it is not taken yet, and it is the real one:** this file *is* half the ship evidence.
-A check that silently stops running after a move is strictly worse than a 4,500-line file, and
-nothing currently asserts the total. **So the cut's first commit is not a move — it is a count
-assertion**: `walk.mjs` must fail if the number of checks it registers differs from the recorded
-188. With that in place the moves are safe and can be made one at a time. Without it, the refactor
-can delete coverage and still report `ALL PASS`, which is the exact failure mode this repo has
-already paid for once.
+**Do it one block at a time, running the full walk after each**, and let `EXPECTED_CHECKS` be the
+proof: if a move loses a check, the walk now fails instead of congratulating itself. The boundaries
+above are a reading of the comments, not a measurement — several of these blocks reference `check`,
+`note` and `walk` in their own comments, so measure each one before moving it.
 
-### `src/App.tsx` — 1,635 lines
+## `src/App.tsx` — 1,635 lines. NOT takeable; the measurement is the reason.
 
-**The shape of the problem:** it is not 1,635 lines of many functions. It is one `App()` component
-from line 178 to the end. So the cut is custom hooks, which this repo already does — `src/plate/
-buildViews.ts` and `src/components/useSupportBuilds.ts` came out of here.
+Rule 1 of the principle: *a module is clean when its output is narrower than its input; a module
+that needs nearly as much handed in as it hands back is a hub, not a job.* Rule 1 comes before
+rule 5.
 
-**The next cut, concretely:** the next hook out is the **export/command dispatch** around
-`exportKindOf` and the command wiring — it has a narrow input (the command id and the current
-scene) and a narrow output (what to run), which passes the hub test. After that, the history
-reducer (`historyReducer` at line 140, already a standalone function) moves to `src/state/` beside
-`project.ts` and gets its own test.
+**The shape of the problem:** this is not 1,635 lines of many functions. It is one `App()`
+component from line 178 to the end, and **twenty hooks have already been extracted out of it** —
+`useImportFiles`, `useSupportChecks`, `useExport`, `useRegenerate`, `useDentalPreview`,
+`useDentalFlow`, `useDentureJob`, `useFreeTransform`, `useProjectFile`, `useRimDrawing`,
+`useSupportEdits`, `useThumbnails`, `useBatchDetect` and the rest. What remains is the wiring that
+holds them together, which is what an application shell is.
 
-**What must NOT be extracted, with the reason** (this is the part worth reading before trying):
-the `built` and `failedBuilds` maps stay in `App.tsx`. Pulling them into a module needs nearly as
-many host fields handed in as it hands back — a hub, not a job — so moving them is motion that
-looks like modularity and leaves the code worse. That judgement is also recorded in `CLAUDE.md`,
-and it is the repo's worked example of the principle's first rule.
+**What must NOT be extracted, with the reason** — this is the repo's worked example of rule 1, and
+it is also recorded in `CLAUDE.md`: the `built` and `failedBuilds` maps stay here. A module for
+them needs nearly as many host fields handed in as it hands back (~12 in, ~10 out, with 32 read
+sites in `App.tsx`), so moving them is motion that looks like modularity and leaves the code worse.
+`src/plate/buildViews.ts` and `src/components/useSupportBuilds.ts` are what came out of that area
+*instead*, and they passed the test.
 
-## Over the debt limit (~600), named, no cut owed yet
+**The one clean extraction left, and it is not a cut:** `historyReducer` (line 140) is already a
+top-level pure function. It belongs in `src/state/` beside `project.ts`, with its own test — a
+pure reducer nothing tests today. Worth doing for the test, not for the line count.
+
+**The shape change that would make a real cut possible** (a redesign, not a refactor, and its own
+plan): one reducer per area instead of one component holding every area's wiring. That is a
+different review from this register.
+
+## In the debt band (~600–1000), named, no cut owed
 
 `src/state/project.ts` (730) · `scripts/probe-dental-edges.ts` (700) ·
 `src/dental/editingMode.ts` (694) · `src/state/project.test.ts` (628).
