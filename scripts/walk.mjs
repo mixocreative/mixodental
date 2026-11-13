@@ -748,7 +748,11 @@ function makeDriver(page) {
     for (const [from, to] of lines) {
       await stroke(from, to, 30);
       const picked = await settle();
-      if (picked.selected >= want) return picked;
+      // `line` is reported so a caller can REUSE the line that worked. `g` needs that: it strokes
+      // the same line twice (unthrottled, then throttled) and the comparison is only meaningful if
+      // both land on supports. Additive, so every existing caller that reads `.selected` is
+      // unaffected.
+      if (picked.selected >= want) return { ...picked, line: [from, to] };
       if (picked.selected > best.selected) best = { line: [from, to], selected: picked.selected };
       await button('Clear selection').click({ timeout: 3000 }).catch(() => {});
       await idle(300);
@@ -756,7 +760,7 @@ function makeDriver(page) {
     if (!best.line) throw new Error('no stroke over the canvas selected a single support');
     // None reached `want`, so take the best line again and keep what it picks up.
     await stroke(best.line[0], best.line[1], 30);
-    return settle();
+    return { ...(await settle()), line: best.line };
   };
   const editButton = () => page.locator('.panel.left .mode-button').locator('xpath=preceding-sibling::button[1]');
   const zonesButton = () => page.locator('aside.left h3', { hasText: /^Modes$/ }).locator('xpath=..').locator('button').nth(1);
@@ -1117,7 +1121,23 @@ async function walk(url, scratch, dentalFixture) {
 
       // g. Select to Unselect mid-queue, under CPU throttle: the same result as the steps one after the other.
       await d.enterDragOver();
-      const A = [[0.3, 0.5], [0.7, 0.5]];
+      /*
+       * `A` IS FOUND, NOT ASSUMED, and that is the whole of the `g-pre` fix (2026-11-13).
+       *
+       * It used to be the fixed line `[[0.3,0.5],[0.7,0.5]]` — which is `a2`'s line, chosen in the
+       * FRONT view, before section `c` painted a no-support zone through the middle of the model.
+       * By the time `g` runs, two things have changed and the comment above section `f` states both:
+       * `c` has taken that middle strip out, and `f` switched to **Bottom view**, which `g` inherits.
+       * So the sweep crossed exactly the strip whose supports were removed, in a different camera,
+       * and selected 0 of 423 while the tool sat armed and engaged — which was then read as "the
+       * machine is too fast" for four passes.
+       *
+       * `a5` is the proof: it runs in the SAME Bottom view, uses `strokeUntilSelected`, and passes.
+       * `g`'s line was simply the first entry of that same search list. So `g` searches too, and
+       * keeps the line it finds for BOTH strokes, so the throttled-vs-unthrottled comparison this
+       * check exists to make still happens on one line.
+       */
+      let A = [[0.3, 0.5], [0.7, 0.5]];
       const B = [[0.45, 0.4], [0.55, 0.6]];
       /*
        * START ON SELECT, SAID OUT LOUD. The switch survives mode changes by design
@@ -1165,6 +1185,13 @@ async function walk(url, scratch, dentalFixture) {
        * screens later as `g-pre` reporting 0 - which was then explained as the machine. Reported now.
        */
       const armedBaseline = await d.button('Select', true).click().then(() => true, () => false);
+      await d.idle(300);
+      // Find a line that actually crosses supports in the view `g` inherited, now that Select is
+      // armed (before this point `a2` may have left Unselect pressed, and a search would find
+      // nothing). `found.selected` is itself an unthrottled stroke landing on supports.
+      const found = await d.strokeUntilSelected(1);
+      if (found.line) A = found.line;
+      await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
       await d.idle(300);
       // IS THERE ANYTHING TO SELECT? The one question four runs never asked. `a2` sweeps these same
       // coordinates while 429 supports stand; if `drawn` is 0 by the time b-f have run, every stroke
