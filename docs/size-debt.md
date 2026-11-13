@@ -3,9 +3,10 @@
 The rule (the owner's code principle, rule 5): **size is debt with a date.** Over ~600 lines a
 file is named here with its next cut written down; over ~1000 the cut is taken, not named.
 
-**Status: two files over the cut limit. The guard that makes the first one safe to cut has landed;
-the second is measured as not takeable** — the extraction would make a hub, and rule 1 comes
-before rule 5.
+**Status: two files over the cut limit, and BOTH are measured as not takeable by moving text** —
+each extraction would make a hub, and rule 1 of the principle comes before rule 5. Both carry
+their measurement below, and the shape change that would make a cut possible. The vacuous-pass
+guard on the walk landed anyway, on its own merit.
 
 Measured by `cia`'s `tools/maintainability.py` (rule M2). Re-measure with:
 
@@ -13,7 +14,7 @@ Measured by `cia`'s `tools/maintainability.py` (rule M2). Re-measure with:
 python ~/.claude/skills/cia/tools/maintainability.py S:/ai/mixodental --rule=M2
 ```
 
-## `scripts/walk.mjs` — 4,534 lines. Guard landed 2026-11-14; split owed.
+## `scripts/walk.mjs` — 4,534 lines. Guarded 2026-11-14, and NOT takeable by moving text.
 
 **The guard, and why it came first.** `walk.mjs` is half this repo's ship evidence, and until
 2026-11-14 nothing asserted how many checks it ran. A check that stopped running — an early
@@ -26,19 +27,27 @@ It now asserts `EXPECTED_CHECKS = 188` on any complete run. `--only`, `--probes`
 a crash resume each walk less by design and are excluded, and each already says so in the verdict
 line. **Change the number in the same commit as any check you add or remove.**
 
-**The next cut**, now safe to make, at the file's own comment boundaries:
+**Why the split was then refused.** The comment boundaries suggest three clean blocks. Measured
+against the bindings declared earlier in the file, with comments stripped so the count is real:
 
-| Lines | Becomes | Why it is a clean cut |
-|---|---|---|
-| 182–274 | `scripts/walk/fixtures.mjs` | `heavyPlateFixture`, `asciiStl`, `cubeStl`, `openCubeStl`, `cupStl` — mesh builders, no page, no browser |
-| the `// ---- page helpers` block | `scripts/walk/page.mjs` | the Playwright-facing helpers. One job: driving a page |
-| the `// ---- locale walk` block | `scripts/walk/locales.mjs` | already a separate run (`npm run walk:locales`) |
-| the rest | `walk.mjs`, the runner plus the sections | section selection, `check()`, the verdict |
+| Block | Earlier bindings it references |
+|---|---|
+| fixtures (182–274) | **5** of 18 — `HEAVY_PLATE_STL`, `ROOT`, and three parameter-name collisions |
+| page helpers (475–869) | **15** of 54 |
+| locale walk (4,179+) | **114** of 502, `page` alone 69 times |
 
-**Do it one block at a time, running the full walk after each**, and let `EXPECTED_CHECKS` be the
-proof: if a move loses a check, the walk now fails instead of congratulating itself. The boundaries
-above are a reading of the comments, not a measurement — several of these blocks reference `check`,
-`note` and `walk` in their own comments, so measure each one before moving it.
+Only the fixtures are cleanly separable, and 93 lines out of 4,534 is not a cut. This file is a
+single ordered browser session: each section builds on the scene the previous sections left, which
+is what a walk IS. Handing the locale block a context of a hundred and fourteen things is the hub
+rule 1 forbids.
+
+**The shape change that would make a cut possible** (a rewrite of the walk, not a move): make each
+section self-sufficient — own fixture, own scene, own teardown — so sections can run in any order.
+That costs a browser boot per section against a 2,309-second walk, and is a different review with
+its own plan.
+
+**If anyone does attempt it anyway**, `EXPECTED_CHECKS` is the proof: a move that loses a check now
+fails the walk instead of congratulating itself. Move one block, run the full walk, repeat.
 
 ## `src/App.tsx` — 1,635 lines. NOT takeable; the measurement is the reason.
 
