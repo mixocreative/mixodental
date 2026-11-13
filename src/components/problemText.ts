@@ -40,9 +40,25 @@ export function problemText(
       return plural(n,
         kindText('1 low point lies outside the dental support area and is left to the aligner shape.', kindOf?.(problem.unitId)),
         kindText('{n} low points lie outside the dental support area and are left to the aligner shape.', kindOf?.(problem.unitId)));
-    default:
+    case 'overhang':
       return t('Uncovered overhang');
+    default:
+      /*
+       * EXHAUSTIVE ON PURPOSE. This was `default: return t('Uncovered overhang')`, which read as a
+       * sensible fallback and was a trap: a SEVENTH kind added to `SupportProblem` would have
+       * rendered MISLABELLED as "Uncovered overhang" -- a wrong sentence, which is worse than a
+       * missing one, because nothing looks broken and the operator acts on it.
+       *
+       * The assignment below makes tsc refuse a new kind here instead, at the moment it is added.
+       * `overhang` now has its own case so the compiler can see all six are handled.
+       */
+      return assertNever(problem.kind);
   }
+}
+
+/** A kind the union says cannot exist. Compile-time guard; at runtime, name what arrived. */
+function assertNever(kind: never): never {
+  throw new Error(`problemText: unhandled problem kind ${JSON.stringify(kind)}`);
 }
 
 /** Findings with nothing to fix: informational, so the row offers Show but no Fix. */
