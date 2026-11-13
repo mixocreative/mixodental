@@ -57,6 +57,21 @@ const NOT_RUN = {
   fonts: 'npm run fonts - rewrites the subset faces; a gate must not change the tree it gates',
 };
 
+/*
+ * Of the above, the ones the SHIP DEFINITION REQUIRES on the shipped revision -- so a PASS that says
+ * nothing about them is a receipt that reads complete and is not.
+ *
+ * This is not hypothetical. On 2026-11-13 a vendor bump shipped and deployed with 92% of the
+ * automatic supports gone, and the receipt for it said `PASS` on the same line as `NOT run: walk`.
+ * CI could not catch it either: it runs the walk in two shards (`m,q` and `r,u,x,l,s`) and the
+ * section that catches generate counts is `a`, which is local only. The walk WOULD have caught it in
+ * one line (`a1 auto 35` against a 429 baseline). Nothing was hidden -- it was just not said loudly
+ * enough to stop a green-looking receipt travelling into a handoff.
+ *
+ * `fonts` is deliberately NOT here: it rewrites the tree, and a gate must not change what it gates.
+ */
+const SHIP_REQUIRES_NOT_RUN = ['walk'];
+
 if (process.argv.includes('--list')) {
   for (const step of STEPS) console.log(`${step.id.padEnd(11)} ${step.what}`);
   console.log('\nnot run:');
@@ -94,14 +109,21 @@ const receipt = {
   seconds: Math.round((Date.now() - started) / 1000),
   steps: results,
   notRun: NOT_RUN,
-  verdict: failed.length === 0 ? 'PASS' : `FAIL: ${failed.map((row) => row.id).join(', ')}`,
+  /*
+   * A gate that did not run a check the ship definition requires has not cleared the revision for
+   * shipping, however green its own steps were. Same shape as `tree` above: the verdict leads with
+   * the word a reader greps for and then says what would otherwise mislead them.
+   */
+  verdict: failed.length !== 0
+    ? `FAIL: ${failed.map((row) => row.id).join(', ')}`
+    : `PASS (INCOMPLETE - the ship definition also requires ${SHIP_REQUIRES_NOT_RUN.join(', ')}, not run here)`,
 };
 const file = path.join(OUT, `${head.slice(0, 7)}.json`);
 writeFileSync(file, `${JSON.stringify(receipt, null, 2)}\n`);
 
 console.log(`\n${receipt.verdict} - ${head.slice(0, 7)}, tree ${receipt.tree}, ${receipt.seconds}s`);
 console.log(`receipt: ${path.relative(ROOT, file).replace(/\\/g, '/')}`);
-console.log(`NOT run: ${Object.keys(NOT_RUN).join(', ')} (see the receipt for why)`);
+console.log(`NOT run: ${Object.keys(NOT_RUN).map((id) => (SHIP_REQUIRES_NOT_RUN.includes(id) ? `${id} (SHIPPING NEEDS IT)` : id)).join(', ')} (see the receipt for why)`);
 
 /*
  * AND THE LINE TO PASTE, because `artefacts/` is git-ignored.
