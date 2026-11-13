@@ -93,6 +93,18 @@ Static, no Node needed: `npm run screens`, then open `.stitch/screens/index.html
   stroke selected 0 of 423 while the tool sat armed and engaged. `g` now finds a line that actually
   crosses supports, the way `a5` already did in that same view. The local walk is ALL PASS, 188/188.
 
+  **CORRECTED AGAIN, 2026-11-14: that fix was real but only half the story, and `g` is now RETIRED.**
+  Finding the line fixed the stroke -- it lands on supports, 53-56 of them, the same as `a5` on the
+  same screen -- but it did not make a mid-queue state reachable. Three identical isolated runs at
+  one rate on one idle machine gave three different answers: pending 55 against an unthrottled 55
+  (the stroke had already finished, so the earlier 188/188 above included a VACUOUS pass), pending
+  251 where that line reaches about 56, and pending 0 with the stroke selecting nothing. At 2x no
+  queue formed at all. An instrumented run cleared the harness of distorting input -- the page
+  received 33 moves on a dead-straight line, bbox [530,546,896,546] -- so there is simply no
+  reliable mid-queue moment to catch from outside the app. The rule is now tested where it can be
+  tested deterministically: mixo-geocore `editing/strokeQueue.test.ts`, eight cases, no browser,
+  3 ms. The walk is ALL PASS at **186** checks, and `EXPECTED_CHECKS` carries the reason.
+
 ## If something looks wrong
 
 The style book is the fastest way to tell a drawing problem from a wiring problem: if an icon looks

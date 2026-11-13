@@ -14,7 +14,7 @@ Measured by `cia`'s `tools/maintainability.py` (rule M2). Re-measure with:
 python ~/.claude/skills/cia/tools/maintainability.py S:/ai/mixodental --rule=M2
 ```
 
-## `scripts/walk.mjs` — 4,534 → 4,468. One block taken; the rest NOT takeable.
+## `scripts/walk.mjs` — 4,534 → 4,332. One block taken, one check retired; the rest NOT takeable.
 
 **The guard, and why it came first.** `walk.mjs` is half this repo's ship evidence, and until
 2026-11-14 nothing asserted how many checks it ran. A check that stopped running — an early
@@ -39,6 +39,14 @@ against the bindings declared earlier in the file, with comments stripped so the
 This file is a single ordered browser session: each section builds on the scene the previous
 sections left, which is what a walk IS. Handing the locale block a context of a hundred and
 fourteen things is the hub rule 1 forbids.
+
+**A check was retired, which is the other way a file gets smaller.** `g` and `g-pre` (298 lines)
+are gone. The rule they chased -- a queued brush step keeps the mode it was made with, so pressing
+Unselect mid-stroke does not unselect the remainder -- is tested deterministically in mixo-geocore
+`editing/strokeQueue.test.ts`, which owns the queue: eight cases, no browser, 3 ms. `g` was spending
+thirty minutes racing a CPU throttle to re-prove it, and three identical isolated runs returned
+three different answers (55/55, 251/53, 0/0), so it had never once run meaningfully. The walk's
+check count moved 188 -> 186 with the reason beside the number.
 
 **The fixtures block was taken** (`scripts/walk/fixtures.mjs`, 84 lines): the synthetic mesh
 builders and the heavy-plate generator, which open no page and know nothing about checks.

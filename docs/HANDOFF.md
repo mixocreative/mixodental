@@ -190,11 +190,23 @@ After every implementation task, record: the completed requirement; changed file
 build 0 (940) · wasm 0 · nogl 0 (14) · real 0 (**13 scans, no differences, 245 s**) · tier 0 (6).
 NOT run: walk (below), fonts.
 
-**Full walk: ALL PASS, 188 checks, 1,743 s.** Better than the standing baseline of 185 PASS / 1 FAIL
-/ 186: **the known `g-pre` precondition passed this run**, and the count rose to 188. Treat one
-green run of `g` with care rather than as settled - its baseline was recorded as non-deterministic
-(0, 56, 4 across three earlier clean runs), so if `g` or `g-pre` fails again it is that known
-flakiness and not these commits.
+**Full walk: ALL PASS, 186 checks, 1,901 s** (2026-11-14). The count was 188 and is now 186
+because **`g` and `g-pre` are retired**, and the caution this entry used to carry about them -
+"treat one green run of `g` with care, its baseline was recorded as non-deterministic (0, 56, 4
+across three earlier clean runs)" - turned out to be the whole story rather than a caveat.
+
+Three further identical isolated runs, one rate, one idle machine, gave three more answers: pending
+55 against an unthrottled 55 (the stroke had finished, so the earlier 188/188 contained a VACUOUS
+pass), pending 251 where that line reaches about 56, and pending 0 with the stroke selecting
+nothing. At 2x no queue formed at all. An instrumented run cleared the harness - the page received
+33 pointer moves on a dead-straight line, bbox [530,546,896,546] - so there is no reliable
+mid-queue moment to catch from outside the app, and a CPU-throttle race is the wrong instrument.
+
+The rule itself is not lost; it is tested where it is deterministic. mixo-geocore
+`editing/strokeQueue.test.ts` owns `createStrokeQueue` and asserts that a queued step keeps the mode
+it was made with, in both directions: eight cases, no browser, 3 ms. `walk.mjs` carries the
+evidence and a "do not re-add a throttled version" note, and `EXPECTED_CHECKS = 186` carries the
+reason beside the number.
 
 **All four repos are pushed**, on the owner's word, in dependency order - geocore first because
 the others vendor from it, mixoDental last because its push is the Pages deploy: geocore `f00fe23`,
@@ -801,9 +813,15 @@ authoritative over the code. **CGC's queries are MCP-only, so they come online i
 
 - **`npm run walk -- --only=m` runs one section in ~22 s.** A day of 30-minute full runs went by
   before I noticed the flag.
-- `g-pre` is a machine-load precondition, not the app. It fails on most runs and leaves `g`
-  unanswered; it passed once, at 167 checks ALL PASS. Never report a `g-pre` failure as a regression,
-  and never call a run green without saying `g` went unanswered.
+- ~~`g-pre` is a machine-load precondition, not the app. It fails on most runs and leaves `g`
+  unanswered. Never report a `g-pre` failure as a regression.~~ **Both checks were RETIRED on
+  2026-11-14; do not go looking for them.** The lesson generalises and is the reason this bullet
+  stays: **a check that depends on ambient machine load is not a check.** `g-pre` "failed on most
+  runs" for weeks and the standing advice was to discount it, which is the state a release gate
+  must never be in -- a red nobody investigates is indistinguishable from a green nobody earns, and
+  the one run where it passed turned out to be vacuous. If a rule needs a timing race to observe,
+  test it at the layer that owns the timing: this one moved to mixo-geocore
+  `editing/strokeQueue.test.ts`, eight cases, no browser, 3 ms.
 - **A check whose own cleanup can fail is worse than no check.** A mid-sequence check that returned
   via `Back` timed out and took the twelve checks below it with it.
 - **One check per claim.** A check that borrows another's claim can pass while the thing it implies is

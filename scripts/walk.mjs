@@ -322,6 +322,19 @@ const ERASE_RESIDUE = 2;
 const WAY_ON = 'Export STL';
 
 const results = [];
+/*
+ * Checks a complete run deliberately did NOT register, because their precondition was not met.
+ *
+ * A conditional check is not drift, and the count guard at the foot of this file cannot tell the
+ * two apart on its own: it saw 187 of 188 on 2026-11-14 and reported drift when the truth was one
+ * designed skip. So a skip is COUNTED and the guard checks `ran + skipped`. An unexplained
+ * shortfall still fails; an explained one does not.
+ *
+ * No check increments this today -- the one that did (`g`) has been retired. It is kept because the
+ * next conditional check will need it, and because a guard that only tolerates what it has already
+ * seen is a guard that fails the first honest skip.
+ */
+let skippedByDesign = 0;
 const started = Date.now();
 function check(name, ok, detail = '') {
   results.push({ name, ok });
@@ -436,6 +449,10 @@ function readProps() {
   const drawn = mesh ? new Set(mesh.components.map((c) => c.contactId).filter(Boolean)) : new Set();
   return {
     selected: out.selection?.length ?? -1,
+    // The ids, not just how many. A count cannot tell "the same supports, still selected" from
+    // "two hundred supports this line never crosses", and on 2026-11-14 that difference was the
+    // whole question: a throttled stroke reported 251 where the line reaches about 56.
+    selectedIds: out.selection ? [...out.selection] : [],
     hash: out.selection ? hash(out.selection) : '',
     tris: mesh ? mesh.indices.length / 3 : -1,
     drawn: drawn.size,
@@ -675,6 +692,20 @@ function makeDriver(page) {
     return (await zones()) - before;
   };
 
+  /*
+   * Finds a sweep line that actually crosses supports, and LEAVES WHAT IT SELECTED SELECTED.
+   *
+   * THE CONTRACT, because getting it wrong cost a check its life. On success this returns
+   * immediately with its own selection live, and on each miss it clicks `Clear selection`. So the
+   * state afterwards is "whatever the line that worked picked up" -- which is exactly what the
+   * three callers below want, since each consumes `.selected` or deletes what is selected.
+   *
+   * A CALLER THAT RE-STROKES `.line` AND MEASURES AGAIN IS MEASURING THIS RESIDUE PLUS ITS OWN
+   * STROKE. The retired `g` did that and produced 55, 251 and 0 on three identical runs before
+   * anyone realised the baseline was never the line's own count. If you need a clean measurement
+   * of one line, clear first and ASSERT the selection is empty before you stroke -- do not assume
+   * the clear landed.
+   */
   const strokeUntilSelected = async (want = 3) => {
     const lines = [
       [[0.30, 0.50], [0.72, 0.50]], [[0.30, 0.42], [0.72, 0.42]], [[0.30, 0.58], [0.72, 0.58]],
@@ -691,7 +722,11 @@ function makeDriver(page) {
       // unaffected.
       if (picked.selected >= want) return { ...picked, line: [from, to] };
       if (picked.selected > best.selected) best = { line: [from, to], selected: picked.selected };
-      await button('Clear selection').click({ timeout: 3000 }).catch(() => {});
+      // A SWALLOWED CLEAR POISONS THE NEXT ITERATION'S COUNT, so a failure is said out loud rather
+      // than hidden. It is still not fatal -- the search can carry on and the caller may not care --
+      // but a reader chasing a strange count needs to know this happened.
+      await button('Clear selection').click({ timeout: 3000 })
+        .catch((err) => note(`strokeUntilSelected: Clear selection failed between candidate lines (${err?.message ?? err}); the next line's count includes what this one left`));
       await idle(300);
     }
     if (!best.line) throw new Error('no stroke over the canvas selected a single support');
@@ -709,9 +744,11 @@ function makeDriver(page) {
     await page.mouse.down({ button: which ?? 'left' });
     for (let i = 0; i <= moves; i += 1) {
       await page.mouse.move(...at(from[0] + (to[0] - from[0]) * i / moves, from[1] + (to[1] - from[1]) * i / moves));
-      // `pace` spaces the moves out. Under the CPU throttle below, moves sent as fast as the driver can
-      // send them are simply dropped, and the stroke selects nothing at all - which is not the queue this
-      // check is about.
+      // `pace` spaces the moves out, for a caller that needs the app to see the moves arrive one at
+      // a time rather than as a burst. Sent as fast as the driver can send them, moves can be
+      // coalesced or dropped and the stroke then selects less than the line it swept, or nothing.
+      // (The CPU-throttle race this used to serve was retired on 2026-11-14 - see section g's note
+      // - but the pacing is still the honest way to make a stroke arrive as a stroke.)
       if (pace) await idle(pace);
     }
     await page.mouse.up({ button: which ?? 'left' });
@@ -1056,200 +1093,43 @@ async function walk(url, scratch, dentalFixture) {
       check('f4 Undo brings them back', unreset.customised === chosen.selected, `customised ${unreset.customised}`);
       await d.exitMode();
 
-      // g. Select to Unselect mid-queue, under CPU throttle: the same result as the steps one after the other.
-      await d.enterDragOver();
       /*
-       * `A` IS FOUND, NOT ASSUMED, and that is the whole of the `g-pre` fix (2026-11-13).
+       * g AND g-pre ARE RETIRED (2026-11-14). The rule is still tested; it is tested somewhere it
+       * can be tested deterministically.
        *
-       * It used to be the fixed line `[[0.3,0.5],[0.7,0.5]]` — which is `a2`'s line, chosen in the
-       * FRONT view, before section `c` painted a no-support zone through the middle of the model.
-       * By the time `g` runs, two things have changed and the comment above section `f` states both:
-       * `c` has taken that middle strip out, and `f` switched to **Bottom view**, which `g` inherits.
-       * So the sweep crossed exactly the strip whose supports were removed, in a different camera,
-       * and selected 0 of 423 while the tool sat armed and engaged — which was then read as "the
-       * machine is too fast" for four passes.
+       * THE RULE: a queued brush step keeps the mode it was made with, so pressing Unselect while a
+       * Select stroke is still draining must not unselect that stroke's remainder.
        *
-       * `a5` is the proof: it runs in the SAME Bottom view, uses `strokeUntilSelected`, and passes.
-       * `g`'s line was simply the first entry of that same search list. So `g` searches too, and
-       * keeps the line it finds for BOTH strokes, so the throttled-vs-unthrottled comparison this
-       * check exists to make still happens on one line.
+       * WHERE IT IS TESTED NOW: mixo-geocore `editing/strokeQueue.test.ts`, which owns
+       * `createStrokeQueue` -- the queue this very rule lives in. The case is named
+       * "a step keeps the brush mode and radius it was made with (switching to Unselect mid-queue
+       * does not unselect the old stroke's remainder)", with a companion for the opposite
+       * direction. Eight cases, no browser, 3 ms. The layer is renderer-free by design, which is
+       * exactly the "pure before stateful" the code principle asks for.
+       *
+       * WHY IT LEFT THIS WALK, measured rather than argued. `g` tried to produce a mid-queue state
+       * by slowing the CPU and racing the tool switch against it. That race cannot be made
+       * reliable, and the evidence is three identical isolated runs at one rate on one idle
+       * machine:
+       *
+       *   pending 55, unthrottled 55    the stroke had already finished; nothing was mid-queue
+       *   pending 251, unthrottled 53   251 selected where this line reaches about 56
+       *   pending 0, unthrottled 0      the stroke selected nothing at all
+       *
+       * At 2x no queue formed at all. So in every run the check either proved nothing or measured
+       * something other than the rule, and the two runs whose precondition once passed are now
+       * known to have been vacuous. The instrumented run settled the last doubt: the page received
+       * 33 pointer moves on a dead-straight line (bbox [530,546,896,546]), so input delivery was
+       * never the problem -- there is simply no reliable mid-queue moment to catch from out here.
+       *
+       * The pointer-geometry recorder and the id-set reporting added while diagnosing this are
+       * kept: `d.props()` returns `selectedIds`, which is what told a count apart from WHICH
+       * supports, and the next check that needs it will not have to build it again.
+       *
+       * DO NOT RE-ADD A THROTTLED VERSION. If this rule ever needs a browser-level check, give the
+       * app a deterministic way to enqueue steps and switch the tool in one tick, and assert on
+       * that. A CPU-throttle race is the wrong instrument and has now cost four wrong diagnoses.
        */
-      let A = [[0.3, 0.5], [0.7, 0.5]];
-      const B = [[0.45, 0.4], [0.55, 0.6]];
-      /*
-       * START ON SELECT, SAID OUT LOUD. The switch survives mode changes by design
-       * (docs/design/ui-structure.md 4.1: the tool, method, switch and sizes all do), and `a2` above
-       * ENDS with Unselect pressed. So this check used to begin on whatever a2 left behind: the first
-       * stroke unselected from an empty selection, `sequential` came back 0, and the second pair gave
-       * the same 0 with the same hash - which reads as a broken app and is a broken test.
-       *
-       * The Select press below (before the throttled pair) was already here. It was just on the wrong
-       * side of the measurement it protects.
-       */
-      /*
-       * WHY `g` HAS NEVER RUN, as far as four runs on 2026-11-10 could establish. Its strokes select
-       * NOTHING, and the explanation this check printed for a day - "the machine was too loaded" - is
-       * disproved. Each of these was measured, not argued:
-       *
-       *   the machine   0 selected UNTHROTTLED too, and at 1.5x, which is barely throttled at all.
-       *   the tool      `Select armed: true` both times; the old `.catch(() => {})` hid this.
-       *   the view      `Fit view` pressed first (true) changed nothing, so it is not the camera that
-       *                 sections b-f leave behind. That press was removed again: it fixed nothing and
-       *                 an extra step in a gate is debt.
-       *   the place     `a2` sweeps 0.3,0.5 -> 0.72,0.5 and selects 57. `g` sweeps 0.3,0.5 -> 0.7,0.5
-       *                 and selects 0. Same section, same screen, nearly the same line.
-       *
-       * IT IS NOT DETERMINISTIC. This said "DETERMINISTIC, not flaky: `#811c9dc5` on every run", and
-       * three clean full runs of the same code since have disagreed with that and with each other:
-       *
-       *   2026-11-10 (the four runs above)   0 selected   #811c9dc5
-       *   2026-11-10, later                 56 selected   #14da8dce
-       *   2026-11-11                         4 selected   #ff3c123b
-       *
-       * In every one of them `a1` generated 429 supports against a 429 baseline and `a2` selected
-       * 57, 57, 57 sweeping nearly the same line - so the model, the tool and the coordinates are
-       * steady and it is `g`'s stroke alone that lands on a VARYING amount of model.
-       *
-       * That closes off the fixed causes ruled out one by one above, and leaves the one hypothesis
-       * never tested: the state `d.exitMode()` + `d.enterDragOver()` leaves after b-f, and whether
-       * drag-over has anything selectable left by then. A varying count fits leftover state or timing;
-       * it does not fit a wrong coordinate, a wrong camera or an unarmed tool, each of which would be
-       * wrong by the same amount every time. Each hypothesis costs an 18-minute section-`a` run, which
-       * is why this is written down rather than guessed at - and why the numbers above are kept.
-       *
-       * ARMED, OR NOT? The old `.catch(() => {})` swallowed the one thing this check rests on: if the
-       * press missed, nothing was armed, every stroke selected nothing, and the failure surfaced two
-       * screens later as `g-pre` reporting 0 - which was then explained as the machine. Reported now.
-       */
-      const armedBaseline = await d.button('Select', true).click().then(() => true, () => false);
-      await d.idle(300);
-      // Find a line that actually crosses supports in the view `g` inherited, now that Select is
-      // armed (before this point `a2` may have left Unselect pressed, and a search would find
-      // nothing). `found.selected` is itself an unthrottled stroke landing on supports.
-      const found = await d.strokeUntilSelected(1);
-      if (found.line) A = found.line;
-      await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
-      await d.idle(300);
-      // IS THERE ANYTHING TO SELECT? The one question four runs never asked. `a2` sweeps these same
-      // coordinates while 429 supports stand; if `drawn` is 0 by the time b-f have run, every stroke
-      // here is sweeping bare plate and no throttle, tool or camera was ever going to change that.
-      /*
-       * SETTLE BEFORE THE FIRST STROKE, EXPLICITLY. This is what `g` was missing, and the way it was
-       * found is a warning in itself: the check began passing the moment two DIAGNOSTIC calls were
-       * added here, because their round-trips happened to give the app the time it needed. Anyone
-       * tidying those away later would have broken it again, and the failure would have surfaced as
-       * `g-pre` reporting 0 and being read as the machine - which is exactly the loop this check has
-       * already been round. The wait is stated here so it cannot be removed by accident.
-       */
-      await d.settle();
-      await d.idle(400);
-      const onScreen = await d.props();
-      /*
-       * WHICH CONTROLS ARE ENGAGED, read off the DOM the same way `enterDragOver` verifies itself.
-       * Five causes are out (machine, arming, view, coordinates, 424 supports on screen), and the
-       * comment above says the switch SURVIVES mode changes by design - so what `a2` leaves pressed is
-       * what `g` inherits. If the select STYLE is on click by here, every sweep is a click and selects
-       * nothing, which fits all five results at once.
-       */
-      const engaged = await page.evaluate(() => [...document.querySelectorAll('.edit-bar button[aria-pressed="true"]')]
-        .map((b) => (b.textContent ?? '').trim()).filter(Boolean));
-      await d.stroke(A[0], A[1], 30);
-      /*
-       * THE REAL UNTHROTTLED BASELINE, and it was being thrown away. `sequential` below is read AFTER
-       * the Unselect stroke, so it is the END of the select-then-unselect pair - a 0 there means the
-       * unselect swept everything, which is the expected result, NOT evidence that stroke A failed.
-       * Mistaking one for the other is how "g's strokes select nothing" was concluded on 2026-11-10.
-       * This is the only number that says whether an unthrottled A stroke selects at all.
-       */
-      const unthrottledA = (await d.settle()).selected;
-      await d.button('Unselect').click();
-      await d.stroke(B[0], B[1], 15);
-      const sequential = await d.settle();
-      await d.button('Clear selection').click({ timeout: 3000 }).catch(() => {});
-      const armedThrottled = await d.button('Select', true).click().then(() => true, () => false);
-      await d.idle(500);
-      const cdp = await context.newCDPSession(page);
-      /*
-       * ONE throttled stroke, not a hunt for the right rate.
-       *
-       * This check needs the machine slowed enough for a queue of brush steps to form, so the tool switch
-       * has something to land in the middle of. Too slow and the pointer moves are dropped outright and
-       * the stroke selects nothing - which is how this failed on this machine at 4x, after already being
-       * lowered from 6x for the same reason.
-       *
-       * Trying several rates in turn looked like the answer and was worse: three 30-move strokes under
-       * heavy throttle exhausted the renderer and CRASHED the tab, which costs every check after it rather
-       * than one line of red. One attempt, and if no queue formed the check says so instead of blaming the
-       * app for the machine it ran on.
-       */
-      /*
-       * 6x was too slow, then 4x on a busier machine, so this was lowered to 2x with the instruction
-       * "if this ever reports 0 again, lower it rather than reading it as the app".
-       *
-       * THAT INSTRUCTION WAS FOLLOWED ON 2026-11-10 AND IT DID NOT HELP, which is the useful result:
-       * 2x reported 0, and so did 1.5x - barely any throttling at all. A stroke that selects nothing
-       * when the machine is practically unthrottled is not a machine that is too loaded, so the
-       * explanation this check has been printing is wrong, and lowering the number further is chasing
-       * it. `a2` drag-over selects 57 three times in this same section, so the mechanism works; it is
-       * `g`'s own strokes that land on nothing. Left at 2x, the considered value, until the real cause
-       * is found - see the baseline the precondition now reports.
-       */
-      const throttle = 2;
-      await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
-      await d.stroke(A[0], A[1], 30, { pace: 40 });
-      const pendingAtSwitch = (await d.props()).selected;
-      await d.button('Unselect').click();
-      await d.stroke(B[0], B[1], 15, { pace: 40 });
-      // Let it run at full speed again BEFORE settling: the queue formed under throttle, which is the point,
-      // but it has to finish for the check to see where the switch landed.
-      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-      const switched = await d.settle();
-      // A queue that never formed cannot answer the question, and saying so is better than a red line that
-      // blames the app for the machine.
-      /*
-       * TWO CHECKS, BECAUSE THIS WAS TWO QUESTIONS IN ONE LINE - and that is why `g` spent this whole
-       * session being called flaky, then deterministic, then flaky again. The conflated form failed
-       * whenever EITHER the app disagreed with itself OR the harness could not slow the machine enough
-       * to build a queue, and the failure text could not tell you which.
-       *
-       * Measured, not reasoned: at the run that prompted this split, both hashes were #811c9dc5 -
-       * identical, so the app assertion HELD - while `pendingAtSwitch` was 0, meaning no queue ever
-       * formed. One number says the app is right; the other says the test could not run. They cannot
-       * share a verdict.
-       *
-       * `g` is still the real assertion and still has to pass. `g-pre` is the precondition, and it
-       * fails loudly rather than silently, because a check that cannot run is not a check that passed.
-       */
-      /*
-       * AND IT REPORTS THE BASELINE, because the old text named a cause it had not measured. It said a
-       * 0 meant "the pointer moves were dropped outright - the machine was too loaded", and that
-       * confident wrong sentence is why nobody looked further for a day: it was written down as a
-       * machine fact and the handoff repeated it. `sequential` is the SAME pair of strokes run
-       * UNTHROTTLED a moment earlier, so it separates the two cases cleanly - if it selected nothing
-       * either, no amount of throttle was ever the problem.
-       */
-      const baseline = sequential.selected;
-      check('g-pre the machine slowed enough for a brush queue to form (precondition, not the app)',
-        pendingAtSwitch > 0,
-        unthrottledA === 0
-          ? `the UNTHROTTLED A stroke itself selected 0 of ${onScreen.drawn} on screen, so no throttle was ever the problem. Select armed ${armedBaseline}/${armedThrottled}, engaged [${engaged.join(' | ')}], pose ${JSON.stringify(onScreen.activeRotation)}. a2 sweeps all but the same line and selects 57.`
-          : `${pendingAtSwitch} pending at the switch, ${throttle}x throttle, against an unthrottled A of ${unthrottledA} (and ${baseline} left after the unselect pair).`);
-      /*
-       * AND g IS NOT REPORTED AT ALL WHEN NO QUEUE FORMED. Splitting the precondition out fixed the
-       * attribution and immediately introduced a worse fault: with 0 steps pending, both strokes
-       * compare the EMPTY state, the hashes match trivially, and `g` printed PASS - a vacuous pass,
-       * claiming the app is right about something it never exercised. A green that means nothing is
-       * more dangerous than a red that means the machine, because only one of them gets investigated.
-       */
-      if (pendingAtSwitch > 0) {
-        check('g Select to Unselect mid-queue keeps the earlier steps as Select',
-          switched.hash === sequential.hash,
-          `one after the other ${sequential.selected} (#${sequential.hash}), switched mid-queue ${switched.selected} (#${switched.hash}), selected when switching ${pendingAtSwitch} at ${throttle}x`);
-      } else {
-        // The old wording ASSERTED "the empty state" without measuring it; it prints the count now.
-        note(`g could not be judged: no queue formed, and the baseline stroke selected ${sequential.selected} (#${sequential.hash}). The app was not exercised, so nothing is claimed about it.`);
-      }
-      await d.exitMode();
 
       // k. Select them from another object: the active object has none, the first selected object with customised supports takes over.
       await page.setInputFiles('.drop input[type=file]', FIXTURE);
@@ -4454,12 +4334,13 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 188;
+const EXPECTED_CHECKS = 186;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
-if (complete && results.length !== EXPECTED_CHECKS) {
+if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,
-    `${results.length} checks ran, ${EXPECTED_CHECKS} expected.`
-    + ' A complete walk must still register every check it used to.'
+    `${results.length} checks ran and ${skippedByDesign} were skipped by design,`
+    + ` which is ${results.length + skippedByDesign} of the ${EXPECTED_CHECKS} expected.`
+    + ' A complete walk must still account for every check it used to.'
     + ' If you added or removed one on purpose, update EXPECTED_CHECKS in the same commit.');
 }
 const failedNow = results.filter((r) => !r.ok).length;
