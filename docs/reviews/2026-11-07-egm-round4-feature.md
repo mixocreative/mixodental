@@ -4,7 +4,7 @@
 **Out of scope here:** §8 (588–860) and §9 — reviewed concurrently by a second synthesizer.
 **Reviewers:** `egm-design`, `egm-structural`, `egm-style`, `egm-zoom-out`, `egm-comprehension`
 **Standards:** feature-spec (design, structural), zoom-out, re-implementation (comprehension)
-**Artifact:** `S:/ai/mixodental/egm_round4_feature_report.md`
+**Artifact:** `S:/ai/mixodental/docs/reviews/2026-11-07-egm-round4-feature.md`
 
 **Counts after deduplication: 11 🔴 Blocker · 26 🟡 Major · 15 🟢 Nit.**
 
@@ -506,7 +506,7 @@ No page layout, no operator sentence in any of the three languages, no preview d
 
 #### MA-26. About a fifth of §0–§7 argues with text the implementer cannot read
 * **Lens:** style · **Scope:** lines 26–30, 58–62, 69–70, 99, 108–112, 150–157, 226–227, 256, 269–271, 276–278, 288–289, 304–307, 366–370, 377–384, 412–414, 432–434, 445–448, 456–461, 478, 484–490, 512
-* Line 3 already names `goldfish_review_report.md` as the record of findings and dispositions.
+* Line 3 already names `docs/reviews/2026-11-07-egm-goldfish-review.md` as the record of findings and dispositions.
   Proposed rule, applied uniformly: **a revision reference survives only where it changes what to
   build; everything else moves to the review report.** By that rule:
   * Lines 26–30: the only live content is one clause — stream each file into a unit before reading the

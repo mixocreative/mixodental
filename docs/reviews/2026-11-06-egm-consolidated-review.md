@@ -1,10 +1,10 @@
 # Consolidated review — `docs/design/2026-11-05-rim-define-mode.md`
 
 **Date:** 2026-11-06 · **Range:** whole file (1–538) · **Preset:** consolidated, all five stages
-**Stage reports:** `zoom_out_report.md`, `comprehension_report.md`, `critic_report.md`,
-`intermediate_zoom_out_report.md`, `implementation_readiness_report.md`
+**Stage reports:** `docs/reviews/2026-11-06-egm-zoom-out.md`, `docs/reviews/2026-11-06-egm-comprehension.md`, `docs/reviews/2026-11-06-egm-critic.md`,
+`docs/reviews/2026-11-06-egm-zoom-out-intermediate.md`, `docs/reviews/2026-11-06-egm-implementation-readiness.md`
 **Reviewers:** 8, each in a fresh context with no conversation history, given a reading list
-(`egm-goldfish-context.md`) rather than the repository tree.
+(`docs/reviews/2026-11-06-2026-11-06-egm-goldfish-context.md`) rather than the repository tree.
 
 > An earlier, smaller review of this document ran the same morning; its report is in git history at
 > `9987118`. Its two findings are closed: the hand-drawn rim reaching Step 2 (`ded4521`) and the rim

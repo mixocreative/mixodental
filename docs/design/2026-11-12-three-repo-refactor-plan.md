@@ -10,7 +10,7 @@ Decision delegated by the owner to this document's author after four EGM reviews
 code was changed in any repository by this file. The file keeps its name because other documents and
 one test header cite it by path; the section numbers they cite (3, 5, 6, 6b) still hold the same subjects.
 
-Sources: `S:\ai\mixodental\cia-audit-report.md`, `S:\ai\mixo-geocore\docs\cia-audit-2026-11-12.md`,
+Sources: `S:\ai\mixodental\docs/reviews/2026-11-11-cia-audit.md`, `S:\ai\mixo-geocore\docs\cia-audit-2026-11-12.md`,
 `S:\ai\mixomesh\docs\cia-audit-2026-11-12.md`, `S:\ai\mixomesh\docs\geocore-adherence-2026-11-12.md`,
 `S:\ai\mixodental\docs\handoff\geocore-spatial-input.md`. Finding ids (`GEO-`, `MIXO-`, `MX-`) are
 cited, not re-derived.

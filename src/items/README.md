@@ -206,7 +206,7 @@ Two details that are easy to get wrong:
   applied. Framing the file's own frame would undo the orientation work the row is reporting in words
   on the line below.
 - **So the cache is keyed on the model AND the rotation**, and leaving the rotation out was a defect
-  rather than an economy (found by the 2026-11-11 audit, `cia-audit-report.md` MIXO-16). The pictures
+  rather than an economy (found by the 2026-11-11 audit, `docs/reviews/2026-11-11-cia-audit.md` MIXO-16). The pictures
   are drawn in tens of milliseconds as soon as the deck is up; the batch then orients one row at a
   time, seconds each, writing a new `transform` to the SAME `source`. Keyed on the mesh alone, every
   row the batch turned kept its pre-orientation picture while the line beneath it said "Turned

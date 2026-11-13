@@ -86,9 +86,12 @@ Static, no Node needed: `npm run screens`, then open `.stitch/screens/index.html
   gingiva mask, bracket tray, impression tray. They are all on the reference sheet
   and each is one `scripts/trace-art.py` command. They are deliberately left: the folder's own rule is
   that an icon for a kind the pipeline cannot build is a promise the app does not keep.
-- **`g-pre` fails on the local walk** and passes on CI. It is the harness being unable to slow this
-  machine enough for a brush queue to form, not a defect — the same run reports the app selecting 56
-  supports with the throttle off. CI's slower runners meet the precondition.
+- ~~**`g-pre` fails on the local walk** and passes on CI. It is the harness being unable to slow
+  this machine enough for a brush queue to form.~~ **That explanation was wrong, and `g-pre` is now
+  FIXED (2026-11-13, `58ee6ca`).** It was never about machine speed: `g` swept a hard-coded line
+  that section `c` had emptied of supports, in the Bottom view section `f` switches to, so the
+  stroke selected 0 of 423 while the tool sat armed and engaged. `g` now finds a line that actually
+  crosses supports, the way `a5` already did in that same view. The local walk is ALL PASS, 188/188.
 
 ## If something looks wrong
 

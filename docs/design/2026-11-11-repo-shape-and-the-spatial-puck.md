@@ -163,7 +163,7 @@ The names are the problem, not the layout:
    the project already does exactly this for `src/components`, `src/items` and `src/deck`.
 2. **Move the thirteen loose reports** into `docs/reviews/`, renamed to the convention that folder
    already uses (`YYYY-MM-DD-<tool>-<topic>.md`). That is the twelve EGM/goldfish/zoom-out reports
-   (223 KB, arrived 6–7 November) **and `cia-audit-report.md`, which the auditor added to the pile
+   (223 KB, arrived 6–7 November) **and `docs/reviews/2026-11-11-cia-audit.md`, which the auditor added to the pile
    last night**. Checked: the only live document that cites any of them is
    `docs/design/2026-11-07-import-and-items-flow.md` — one link. The rest cite each other, so they
    travel together. *(Fable said `docs/HANDOFF.md` and `src/items/README.md` cite them too; grep says

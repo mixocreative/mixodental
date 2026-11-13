@@ -1,6 +1,6 @@
 # Import, items and the end of the flow
 
-**Revision 5, after three rounds of seven-reviewer review**; `goldfish_review_report.md` (repo root) records the findings
+**Revision 5, after three rounds of seven-reviewer review**; `docs/reviews/2026-11-07-egm-goldfish-review.md` (repo root) records the findings
 and their dispositions. The second round changed the shape of the feature, not just its claims: the
 per-row Appliance column is **gone** from this release (§2), and the memory split §5 asked geocore for
 is **already vendored** (§5).

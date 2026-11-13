@@ -27,17 +27,27 @@ arbitrary speed threshold.
 
 **Engine 68 is vendored here and the gate is green.** Two engine changes reach this app:
 
-1. **Engine 67 — every generic placement honours the overlap rule.** `runPlacementJob` drops the
-   contacts `contacts_buried` marks, so an object whose file holds several meshes gets no support
-   where they overlap. In this app that path serves generic (non-dental) objects AND the first half
-   of `dental-place`, plus `areaRisks`. A single-part model costs nothing: the engine returns
-   all-false without a test, which is why the real-scan gate is unchanged.
+1. ~~**Engine 67 — every generic placement honours the overlap rule.**~~ **REVERSED THE SAME DAY,
+   and this is the important entry on the page.** `runPlacementJob` no longer calls `dropBuried`
+   (geocore `68b006e`, vendored here in `ca75265`). The claim that "a single-part model costs
+   nothing: the engine returns all-false without a test" is TRUE of the predicate and was the wrong
+   thing to lean on: the walk fixture `scripts/fixtures/knot.stl` **is not one solid** — 588
+   connected components, 8,666 non-manifold edges, its two biggest shells interleaving — so the rule
+   fired as designed and took **92% of the automatic supports** with it (`a1 auto 429` → `auto 35`)
+   on a build that had already deployed. The dental paths were never affected, which is why
+   `gate:real` stayed green over it and only the browser walk caught it.
+
+   **Settled, permanently:** the overlap rule takes its parts from the CALLER, never from topology —
+   written once in geocore `host/supports/README.md`, so no re-land conditioned on shell count,
+   manifoldness or weld tolerance gets past it. `contactsBuried` keeps the two callers that DECLARE
+   their parts: the dental path (single-shell scans, engine 50) and mixoMesh's cross-object check.
 2. **Engine 68 — the two part bindings weld before splitting.** `surface::parts::split` never welds
    and assumes the import weld has run; the ABI above it ran none, so a render mesh (vertices split
    along UV seams) arrived as one part per face. Found by mixoMesh's baseline, not by anything here:
    this app's STL import welds, so it was never exposed.
 
-**The gap is closed, and in the shared layer rather than here.** `landedStatus` now appends
+**The gap is closed, and in the shared layer rather than here** — and it now reports only for the
+dental path, since the generic one no longer drops anything (see above). `landedStatus` appends
 *"{n} contacts were left out: they sit inside another mesh of the object."* (`editing/regenerate.ts`,
 `landPlacements` carrying the count), so this app says it through the status line it already has --
 no new problem kind, no new plumbing, one sentence to translate. mixoMesh gets the same sentence plus
@@ -208,7 +218,7 @@ Six commits on `main`, `b587bda`..`ddc0965`. The standing goal was: no defect le
 workflow gap, and any decision I could not make taken by Fable rather than put to the owner.
 
 **Every open mixoDental finding is closed.** MIXO-08, 09, 12, 14 and 15, plus one new S22 finding
-found on the way. The detail lives in `cia-audit-report.md` under "Fixed after the report, in the
+found on the way. The detail lives in `docs/reviews/2026-11-11-cia-audit.md` under "Fixed after the report, in the
 `/goal` sweep"; what matters here is what changed and what to watch.
 
 - **`b587bda` MIXO-15** - vite 6 + vitest 5. `npm audit` **4 -> 0**, including both criticals
@@ -436,7 +446,7 @@ screen, which is placeholder by design.
 
 ## Previous completed step (the audit's three mechanical fixes - 2026-11-12)
 
-> The three findings from `cia-audit-report.md` that needed no decision from the owner, each its own
+> The three findings from `docs/reviews/2026-11-11-cia-audit.md` that needed no decision from the owner, each its own
 > commit with its guard watched to fail first.
 >
 > **The gate after them:** tsc 0, `npm test` 0 (**219 files, 1603 passed / 1 skipped** - the three
@@ -498,7 +508,7 @@ screen, which is placeholder by design.
 ## Previous completed step (the overnight integrity audit - 2026-11-11)
 
 > A whole-repository `/cia` audit of `41f8d7f`, run unattended while the owner slept. The report is
-> **`cia-audit-report.md`** at the root; the evidence it cites is committed under
+> **`docs/reviews/2026-11-11-cia-audit.md`** at the root; the evidence it cites is committed under
 > `artefacts/2026-11-11-screen/`.
 >
 > **The gate ran whole on this commit, which is the first time since `1b3b178`:** tsc 0,

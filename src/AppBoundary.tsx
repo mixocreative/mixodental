@@ -7,7 +7,7 @@ import { sceneSave } from './rescue';
  *
  * Until the 2026-11-11 audit it had none. A browser with no WebGL2 pressed one button and got a
  * blank white page - `#root` with zero children and zero text - while two uncaught
- * "Error creating WebGL context." sat in a console no operator opens (`cia-audit-report.md`
+ * "Error creating WebGL context." sat in a console no operator opens (`docs/reviews/2026-11-11-cia-audit.md`
  * MIXO-04, proved by `artefacts/2026-11-11-screen/probe-nogl.mjs`, whose control pass is what makes
  * the blank one evidence). `grep` for `componentDidCatch`, `ErrorBoundary`, `window.onerror` over
  * `src/` returned nothing at all, and React unmounts the WHOLE tree on an uncaught render error -

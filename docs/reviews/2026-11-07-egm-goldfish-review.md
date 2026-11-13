@@ -1,7 +1,7 @@
 # Resolution — review of `docs/design/2026-11-07-import-and-items-flow.md`
 
 Seven Goldfish reviewers (zoom-out, design, structural, style, comprehension, implementation-readiness,
-codebase-details) on the full file, with `egm-goldfish-context-import-flow.md` as the reading list.
+codebase-details) on the full file, with `docs/reviews/2026-11-07-2026-11-07-2026-11-06-egm-goldfish-context-import-flow.md` as the reading list.
 
 Each finding below is **PROPOSE FIX** or **CONTEST**. Contests carry my reasoning; they are not
 dismissals. Convergence is noted where several reviewers found the same thing independently, because

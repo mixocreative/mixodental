@@ -109,7 +109,7 @@ inside its show delay, so it is the screen that remembers.
 `useImportFiles` refuses a file from the header's **estimate** before anything is parsed, and again
 from the triangles actually **read**. The first pass is a guess: an STL header can lie, and a glTF's
 estimate may not be readable at all. So a cap enforced only on the estimate is a cap the real file
-walks past — and the 2026-11-11 audit found exactly that (`cia-audit-report.md` MIXO-01): the
+walks past — and the 2026-11-11 audit found exactly that (`docs/reviews/2026-11-11-cia-audit.md` MIXO-01): the
 triangle and plate caps were re-checked after the read, the **memory** cap was not.
 
 The rule now has a guard rather than a habit. `importCapacity.test.ts` reads the source and fails if

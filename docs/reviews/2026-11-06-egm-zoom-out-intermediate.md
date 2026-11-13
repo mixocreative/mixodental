@@ -1,7 +1,7 @@
 # Stage 8 — Intermediate zoom-out (whole-shape)
 
 **Target:** `docs/design/2026-11-05-rim-define-mode.md`, lines 1–538
-**Read first:** `zoom_out_report.md`, `comprehension_report.md`, `critic_report.md`
+**Read first:** `docs/reviews/2026-11-06-egm-zoom-out.md`, `docs/reviews/2026-11-06-egm-comprehension.md`, `docs/reviews/2026-11-06-egm-critic.md`
 **Date:** 2026-11-06
 
 This pass was asked four questions the earlier stages could not answer, because each saw only its

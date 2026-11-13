@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
  * `useImportFiles` refuses a file twice: once from the header's estimate, before anything is parsed,
  * and once from the triangles actually read. The first pass is a guess - an STL header can lie, and a
  * glTF's estimate may not be readable at all - so a rule enforced only there is a rule the real file
- * can walk past. The 2026-11-11 audit found exactly that (`cia-audit-report.md` MIXO-01): the
+ * can walk past. The 2026-11-11 audit found exactly that (`docs/reviews/2026-11-11-cia-audit.md` MIXO-01): the
  * triangle and plate caps were re-asserted after the read and the MEMORY cap was not, so a mesh too
  * large for the device reached the scene whenever the header understated it.
  *

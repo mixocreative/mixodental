@@ -2,7 +2,7 @@
 
 Two swarms, split at the plan's real boundary. Feature spec (§0–§7): 11 🔴 / 26 🟡 / 15 🟢, five
 reviewers. Implementation plan (§8–§9): 24 🔴 / 23 🟡 / 12 🟢, five reviewers. Reports:
-`egm_round4_feature_report.md`, `egm_round4_implementation_report.md`.
+`docs/reviews/2026-11-07-egm-round4-feature.md`, `docs/reviews/2026-11-07-egm-round4-implementation.md`.
 
 **The bar is not met and this round proves it, so the honest headline is: zero of the seven unstarted
 steps were startable from the text alone.** Round 4 was not a polish round.
