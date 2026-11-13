@@ -14,7 +14,7 @@ Measured by `cia`'s `tools/maintainability.py` (rule M2). Re-measure with:
 python ~/.claude/skills/cia/tools/maintainability.py S:/ai/mixodental --rule=M2
 ```
 
-## `scripts/walk.mjs` — 4,534 lines. Guarded 2026-11-14, and NOT takeable by moving text.
+## `scripts/walk.mjs` — 4,534 → 4,468. One block taken; the rest NOT takeable.
 
 **The guard, and why it came first.** `walk.mjs` is half this repo's ship evidence, and until
 2026-11-14 nothing asserted how many checks it ran. A check that stopped running — an early
@@ -36,10 +36,14 @@ against the bindings declared earlier in the file, with comments stripped so the
 | page helpers (475–869) | **15** of 54 |
 | locale walk (4,179+) | **114** of 502, `page` alone 69 times |
 
-Only the fixtures are cleanly separable, and 93 lines out of 4,534 is not a cut. This file is a
-single ordered browser session: each section builds on the scene the previous sections left, which
-is what a walk IS. Handing the locale block a context of a hundred and fourteen things is the hub
-rule 1 forbids.
+This file is a single ordered browser session: each section builds on the scene the previous
+sections left, which is what a walk IS. Handing the locale block a context of a hundred and
+fourteen things is the hub rule 1 forbids.
+
+**The fixtures block was taken** (`scripts/walk/fixtures.mjs`, 84 lines): the synthetic mesh
+builders and the heavy-plate generator, which open no page and know nothing about checks.
+`heavyPlateFixture` takes `note` rather than importing it, so the module does not reach back into
+the walk for a logger. The file is still far over the limit and this entry stays.
 
 **The shape change that would make a cut possible** (a rewrite of the walk, not a move): make each
 section self-sufficient — own fixture, own scene, own teardown — so sections can run in any order.
