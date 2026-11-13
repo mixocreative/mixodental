@@ -9,6 +9,7 @@ corrected in place with the correction marked, so a reader can tell what was bel
 |---|---|---|
 | `HANDOFF.md` | the running engineering handoff: what landed, what it cost, what is open | picking the work back up |
 | `SHIP-PLAN.md` · `ROADMAP.md` | the ordered plan, and the longer arc | deciding what is next |
+| `size-debt.md` | every file over ~600 lines with its next cut named, and which cuts are owed | before adding to a long file -- add at the seam |
 | `VERIFICATION.md` | what the gate and the walk each prove, and what neither does | before claiming something is verified |
 | `designer-guide.md` · `ui-styling.md` | the UI vocabulary and the styling rules | touching anything the operator sees |
 | `BLENDER_PARITY.md` · `SLASG_NODE_LOGIC.md` | the external references the engine is checked against | changing geometry or placement |
@@ -31,6 +32,15 @@ found something is part of how much weight it carries.
 Undated files at the top level are **living** documents: they are kept current, and a stale one is a
 defect. The dated ones are the opposite, and correcting them in place without marking the correction
 is how a record stops being a record.
+
+## The code's own maps
+
+`docs/` is not the only map. Every folder past ~20 files carries its own README, closer to the code
+than anything here: `src/` (the entry, the copy modules, and the eleven architectural guards),
+`scripts/` (the gate's own steps), `scripts/test-support/`, and every folder under `src/`. Start
+there for "where is X"; come here for "why is X this way".
+`python ~/.claude/skills/cia/tools/maintainability.py S:/ai/mixodental` checks that a folder past
+the limit has one.
 
 ## One thing worth knowing before you trust a green run
 
