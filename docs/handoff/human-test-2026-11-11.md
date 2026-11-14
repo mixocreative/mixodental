@@ -3,8 +3,17 @@
 Written the night before, after the icon and style-book session. Everything below is here for one
 reason: **a test already covers it, or it needs eyes.** Nothing is listed twice.
 
-The app is deployed at <https://mixocreative.github.io/mixodental/> (commit `50e25f8`). Give it a
-moment on first load — the bundle is 1.8 MB and the page is blank while it parses.
+The app is deployed at <https://mixocreative.github.io/mixodental/>. Give it a moment on first load —
+the bundle is 1.9 MB and the page is blank while it parses.
+
+> **The commit was `50e25f8` when this was written, and that line went stale twice without anyone
+> noticing — which is the trap worth naming at the top of a review list, because a review of the
+> wrong build is worse than no review.** The live site is now **`a5c9f1d`**, published by CI run
+> `43603544738` on 2026-11-14, and verified by content rather than by a green job: CI built
+> `assets/index-s1NJwrCR.js` and `assets/index-DooE4DA2.css`, and those are the two files the live
+> page asks for. **Check it before you review** — `curl -s https://mixocreative.github.io/mixodental/
+> | grep -o 'assets/index-[^"]*'` against the hashes your own `npm run build` prints. The alternative
+> is `npm run dev` and <http://localhost:5173/mixodental/>, which is always the code in front of you.
 
 ---
 

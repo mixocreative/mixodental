@@ -1,5 +1,45 @@
 # Handoff
 
+## Redeployed on `a5c9f1d`, and the deployed-commit line had been wrong for days (2026-11-14)
+
+**The site is `a5c9f1d`, and it is verified by content rather than by a green job.** CI run
+`43603544738` (`workflow_dispatch` on `main`) built `assets/index-s1NJwrCR.js` (1,929.59 kB) and
+`assets/index-DooE4DA2.css`, and those are the two files the live page asks for:
+
+```bash
+curl -s https://mixocreative.github.io/mixodental/ | grep -o 'assets/index-[^"]*'
+```
+
+All four jobs succeeded, and the counts reconcile with every earlier run: **220 files / 1627 tests
+passed, 3 files / 10 tests skipped (223 / 1637)**; walk shards `SOME PASS (28 checks, 115 s)` and
+`SOME PASS (127 checks, 1034 s)`, locales `ALL PASS (39 checks, 948 s)` — 28 + 127 + 39 with section
+`a` local-only by design, so no shard passed on fewer checks than it owes. `SOME PASS` is what
+`--only=` prints and is not a pass of the ship gate.
+
+**The ship gate ran here, on the shipped revision, and is green:** `npm run gate` **PASS 10/10** —
+tsc 0 · vendor 0 · test 0 (1636) · duplicates 0 · screens 0 · build 0 (944) · wasm 0 · nogl 0 (14) ·
+real 0 (13) · tier 0 (6), clean tree, 344 s, receipt `artefacts/gate/a5c9f1d.json` — then the full
+walk alone: **ALL PASS (186 checks, 1941 s)**, zero FAIL lines, exit 0. 186 is exactly
+`EXPECTED_CHECKS`, so nothing stopped running quietly.
+
+**Local against CI reconciles once, exactly:** both collect **1637** tests across **223** files.
+Local runs 1636 and skips 1; CI runs 1627 and skips 10, and the extra 9 are the real-scan tests that
+need the owner's git-ignored scans — which is why `gate:real` (13 scans, 218 s) only exists here.
+
+**The thing worth keeping from this is not the deploy.** `docs/handoff/human-test-2026-11-11.md` told
+a reviewer the site was `50e25f8`, and it had moved off that twice since — once to `8e88275`, then to
+`dfd6e15` at 02:46 on 2026-11-14 — so a human UI review would have been run against a build nobody
+meant to review, and nothing in the repo would have said so. **A review of the wrong build is worse
+than no review**, because it produces confident findings about code that is not shipped. That file
+and `morning-2026-11-12.md` now carry the live commit, the one-command check above, and the note that
+the line went stale twice unnoticed. **Debt not taken:** nothing yet *fails* when a doc names a
+deployed commit that is not deployed; the check is a line a human must run, which is weaker than a
+gate and is recorded here as such.
+
+**And the redeploy question is closed.** What stays the owner's: the placeholder wording of the two
+print-angle notices in `DentalSteps.tsx` (MIXO-02's code is done, three outcomes are three notices),
+the stopped screen in `AppBoundary.tsx`, MIXO-06, `Aligner.stl`, and the unused `dental-model` art.
+
 ## Engine 68 at `1a3d62c`: one mesh fingerprint, and file_parts out of dental/ (2026-11-13, late)
 
 **`file_parts` has moved to `supports::file_parts`** (the debt note said the generic ABI called into
