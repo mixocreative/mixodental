@@ -1488,20 +1488,30 @@ async function walk(url, scratch, dentalFixture) {
        * changed nothing: the state had already come and gone, and the shard went red on a commit
        * that was fine. Sections `u` and `s` wait for either ending for this same reason.
        *
-       * Accepting rim-define does NOT weaken the claim - it strengthens it. In the broken app
-       * `startItem` returned before `startDentalAligner`, so the model was never read, orientation
-       * never ran, and rim mode could never open: the ONLY reachable state was Step 1 with the
-       * "choose a file" prompt. Arriving in rim-define is itself evidence the read happened, and the
-       * absence of the prompt is still what is asserted, because it is false in the broken app and
-       * true in the fixed one at both endings.
+       * So WAIT FOR THE SETTLED STATE, NOT FOR WHICHEVER ARRIVES FIRST. The first fix here accepted
+       * either ending, and section `s` already records why that is the wrong answer: *"a cube ALWAYS
+       * fails orientation, so rim mode always opens: wait FOR it, rather than for whichever arrives
+       * first"*. Accepting either leaves the sampling to decide which branch a machine exercises -
+       * and it did: CI run 43542842937 reported `step-1` while the local probe reported
+       * `rim-define`, so neither machine was testing what the other tested. One settled state, one
+       * branch, same on every runner.
+       *
+       * Rim-define is also the STRONGER assertion, which is why it is the one to wait for. In the
+       * broken app `startItem` returned before `startDentalAligner`, so the model was never read,
+       * orientation never ran, and rim mode could NEVER open: the only reachable state was Step 1
+       * with the "choose a file" prompt. So `inRim` is positive evidence that the read happened,
+       * where the prompt's absence alone is only evidence that it was not asked for. Both are
+       * asserted, and the broken app fails the first.
+       *
+       * No explicit timeout: this inherits `forSlowMachines`, 120 s on CI, because a cap below the
+       * CI default can only ever be a false red. The failure is caught rather than thrown so a
+       * regression reports as a FAIL line naming the state, not as a walk that died mid-section.
        */
-      const ending = await page.waitForFunction(() => {
-        if (document.querySelector('[data-ui="rim-why"]')) return 'rim-define';
-        return /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? '') ? 'step-1' : false;
-      }).then((handle) => handle.jsonValue());
+      const startReachedRim = await page.waitForSelector('[data-ui="rim-why"]').then(() => true, () => false);
       const askedForFile = await page.getByText('Place the aligner file here').count();
       check('m5b Start opens the row and reads it, rather than asking for a file already on the plate',
-        askedForFile === 0, `"choose a file" prompts on screen ${askedForFile}, ending ${ending}`);
+        startReachedRim && askedForFile === 0,
+        `rim panel ${startReachedRim}, "choose a file" prompts on screen ${askedForFile}, badge ${JSON.stringify((await page.locator('.edit-badge').textContent().catch(() => '')) ?? '')}`);
 
       /*
        * A DROP WHERE EVERY FILE IS REFUSED MUST NOT OPEN AN EMPTY PAGE. It used to: the switch was
@@ -1583,15 +1593,25 @@ async function walk(url, scratch, dentalFixture) {
        */
       await page.locator('[data-ui="tool-orient"]').click();
       /*
-       * 60 s, not 30: this press starts a DETECTION (the comment below says so), and the badge only
-       * reads "Step 1" once the dock mounts behind it. On a CI runner with no GPU that is several
-       * times slower than locally, and it timed out there at 30 s while passing in seconds on a
-       * workstation (run 43296261945). The claim here is that the press REACHES the flow, which is
-       * not a claim about speed, so the budget follows this file's own convention for anything the
-       * engine is behind rather than sitting at a third of it.
+       * THE DOCK'S EXISTENCE IS THE CLAIM, NOT ITS TEXT. This used to wait for the badge to read
+       * "Step 1", which is a state a cube row passes THROUGH: the press starts a detection that
+       * ends in rim-define, and the badge is written as soon as the dock mounts, before the model is
+       * handed over. Waiting on text that is replaced makes the check a coin toss on a slow runner,
+       * because `waitForFunction` polls on `requestAnimationFrame` and a runner rendering through
+       * SwiftShader at a few frames per second takes FEWER samples than a workstation - it steps
+       * over a transient rather than dwelling on it. `m5b` carries the long version of that trap.
+       *
+       * This check claims only that the press REACHES the flow; which tool opens is `m10`'s claim
+       * and this one does not borrow it. The dock being mounted at all is exactly that claim, it is
+       * settled rather than transient, and it is true at both endings - so there is one branch here
+       * and every machine exercises it. `.edit-badge` is the dock's own element: lines 2433 and 3313
+       * test its ABSENCE to detect the dock closing.
+       *
+       * No explicit timeout, so it inherits `forSlowMachines` (120 s on CI). The earlier 30 s cap
+       * went red on CI while passing in seconds on a workstation (run 43296261945); 60 s was the
+       * same bet at twice the stake, and the fix was never a bigger number.
        */
-      const railOpened = await page.waitForFunction(() => /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 60000 })
-        .then(() => true, () => false);
+      const railOpened = await page.waitForSelector('.edit-badge').then(() => true, () => false);
       /*
        * WHAT THIS CHECK PROVES, AND WHAT IT DOES NOT. It proves the press REACHES the flow, which is
        * the whole of the defect: the button had no handler, so it did nothing at all.
