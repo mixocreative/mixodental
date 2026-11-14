@@ -37,7 +37,16 @@ python ~/.claude/skills/cia/tools/maintainability.py S:/ai/mixodental --rule=M2
 > A future reader — or a future automated check — that reads these as outstanding work should
 > read this block first.
 
-## `scripts/walk.mjs` — 4,534 → 4,332. One block taken, one check retired; the rest NOT takeable.
+## `scripts/walk.mjs` — 4,534 → 4,351. One block taken, one check retired; the rest NOT takeable.
+
+> **The count has since grown back to 4,399, and deliberately.** Two commits of CI forensics
+> (`a404512`, and the `m5b` fix of 2026-11-14) added about seventy lines, nearly all of them
+> comment naming a trap that cost a red shard to find: a `waitForFunction` polling on
+> `requestAnimationFrame` takes FEWER samples on a slow runner, so it steps over a transient state
+> instead of dwelling on it, and raising the timeout cannot help. Those lines are the cheapest
+> defence against the same false red being re-diagnosed from scratch, so they are not size debt
+> being paid off — they are rule 4 (*comments say WHY and name the trap*) being paid for. The
+> figures above are the measurement of the CODE, which has not grown.
 
 **The guard, and why it came first.** `walk.mjs` is half this repo's ship evidence, and until
 2026-11-14 nothing asserted how many checks it ran. A check that stopped running — an early
@@ -46,7 +55,9 @@ reported: it printed a smaller number on the same `ALL PASS` line and exited 0. 
 already shipped once under a receipt that read PASS while the thing it was meant to prove had not
 run, so the split was refused until the count was asserted.
 
-It now asserts `EXPECTED_CHECKS = 188` on any complete run. `--only`, `--probes`, `--locales` and
+It now asserts `EXPECTED_CHECKS = 186` on any complete run — 188 until 2026-11-14, when `g` and
+`g-pre` retired to `mixo-geocore`'s `editing/strokeQueue.test.ts`, where the same rule is tested
+deterministically in 3 ms without a browser. `--only`, `--probes`, `--locales` and
 a crash resume each walk less by design and are excluded, and each already says so in the verdict
 line. **Change the number in the same commit as any check you add or remove.**
 

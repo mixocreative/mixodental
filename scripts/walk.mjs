@@ -1474,14 +1474,34 @@ async function walk(url, scratch, dentalFixture) {
        * and the fixed app, so a check that read only the badge would have passed throughout.
        */
       await page.locator('[data-ui="items-start"]').click();
-      // No explicit timeout: this inherits `forSlowMachines`, which gives CI 120 s because a shared
-      // runner rendering through SwiftShader is several times slower than a workstation. A
-      // hard-coded 30000 here opted out of exactly that and timed out twice on CI's `m,q` shard,
-      // each time a FALSE RED on a commit that was fine - once on a documentation-only change.
-      await page.waitForFunction(() => /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? ''));
+      /*
+       * WAIT FOR EITHER ENDING, NEVER FOR THE TRANSIENT BADGE. These rows are cubes, so the batch
+       * answered "No rim found" for every one of them (`m4b`), and Step 1 answers that state by
+       * handing straight over to rim drawing. "Step 1" is therefore a state the app passes THROUGH,
+       * and the comment on `m9` above records why: the badge is written as soon as the dock mounts,
+       * before the model is handed over.
+       *
+       * Waiting on it alone is the bug this comment exists to stop coming back. `waitForFunction`
+       * polls on `requestAnimationFrame`, so a runner rendering through SwiftShader at a few frames
+       * per second takes FEWER samples than a workstation, not more - a slow machine steps over a
+       * transient instead of dwelling on it. That is why raising the cap from 30 s to CI's 120 s
+       * changed nothing: the state had already come and gone, and the shard went red on a commit
+       * that was fine. Sections `u` and `s` wait for either ending for this same reason.
+       *
+       * Accepting rim-define does NOT weaken the claim - it strengthens it. In the broken app
+       * `startItem` returned before `startDentalAligner`, so the model was never read, orientation
+       * never ran, and rim mode could never open: the ONLY reachable state was Step 1 with the
+       * "choose a file" prompt. Arriving in rim-define is itself evidence the read happened, and the
+       * absence of the prompt is still what is asserted, because it is false in the broken app and
+       * true in the fixed one at both endings.
+       */
+      const ending = await page.waitForFunction(() => {
+        if (document.querySelector('[data-ui="rim-why"]')) return 'rim-define';
+        return /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? '') ? 'step-1' : false;
+      }).then((handle) => handle.jsonValue());
       const askedForFile = await page.getByText('Place the aligner file here').count();
       check('m5b Start opens the row and reads it, rather than asking for a file already on the plate',
-        askedForFile === 0, `"choose a file" prompts on screen ${askedForFile}`);
+        askedForFile === 0, `"choose a file" prompts on screen ${askedForFile}, ending ${ending}`);
 
       /*
        * A DROP WHERE EVERY FILE IS REFUSED MUST NOT OPEN AN EMPTY PAGE. It used to: the switch was
