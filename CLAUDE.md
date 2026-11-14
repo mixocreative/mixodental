@@ -70,3 +70,55 @@ source means the index is stale: rebuild it, do not file a finding against the c
 **And neither is the first tool for an unused binding.** `tsconfig.json` sets `noUnusedLocals` and
 `noUnusedParameters`, so a binding nothing reads fails the build. That is cheaper and more certain
 than either graph, and it is what finally named the dead tool rail.
+
+## CI is milestones-only, and that is a DECISION — do not "fix" it
+
+Owner's ruling, recorded in `.github/workflows/ci.yml` on 2026-11-02 and repeated verbatim in
+`mixo-geocore`:
+
+> *Milestones only: push a tag `milestone-<name>`, or run it by hand. Every day-to-day push is
+> checked locally with the full test set instead.*
+
+So **a push to `main` runs nothing at all.** No run appears, no run fails, and the Actions page
+looks exactly as it did before. That is working as designed, not a broken trigger — if an audit
+flags it, escalate it to the owner rather than changing the trigger. The local run is the gate; CI
+is the milestone receipt.
+
+**The rule this exists to enforce: never report a push as done on this repo until one of these is
+true.** Both of them failed on 2026-11-14, which is the only reason this section exists — four
+repos were pushed, zero runs were read, and two of them had no run to read.
+
+1. **The local gate ran green**, which is what the owner's decision assumes:
+
+```bash
+npm run vendor:check && npm test && npm run screens && npm run build && npm run walk
+```
+
+`npm run walk` is the part that matters and the part that gets skipped. It asserts
+`EXPECTED_CHECKS = 186` on a complete run, so a check that silently stopped running fails it
+instead of printing a smaller number on the same `ALL PASS` line. `--only=` walks less **by
+design** and says so in its verdict line: `SOME PASS` is not a pass of this gate.
+
+2. **Or a dispatched run was read to completion** — dispatching is not reading:
+
+```bash
+gh workflow run CI --ref main && gh run list --limit 1
+```
+
+```bash
+gh run watch <id> --exit-status && gh run view <id> --json jobs --jq '.jobs[] | "\(.conclusion)  \(.name)"'
+```
+
+Green is not the evidence; the **check counts** are. A shard that passed with fewer checks than the
+local run passed vacuously. On a failure, download the artifact before theorising — on 2026-11-14 a
+screenshot settled in one look what two of my theories had got wrong:
+
+```bash
+gh run download <id> -n walk-failure-0
+```
+
+**Timeouts are not the fix for a flaky wait.** `waitForFunction` polls on `requestAnimationFrame`,
+so a runner rendering through SwiftShader at a few frames per second takes *fewer* samples than
+this workstation: it steps **over** a transient state rather than dwelling on it. Raising a cap
+from 30 s to 120 s changed nothing twice. Wait for the **settled** state instead — `m5b`, `m9`,
+`s` and `u` in `scripts/walk.mjs` all carry the long version of this trap.
