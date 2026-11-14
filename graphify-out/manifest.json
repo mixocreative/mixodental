@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794608956.6560216,
-    "seen": 1794609323.5194619,
-    "ast_hash": "d65853f5050fa8e9c42f6dbad94d1e3c",
+    "mtime": 1794620793.6079836,
+    "seen": 1794620944.217752,
+    "ast_hash": "56890b7bcfc182d15e0fd71afbdf20e4",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -6331,9 +6331,9 @@
     "semantic_hash": ""
   },
   "docs/size-debt.md": {
-    "mtime": 1794608858.536125,
-    "seen": 1794609323.520459,
-    "ast_hash": "b9696c81ea46f606c1474d2263c56c51",
+    "mtime": 1794620890.3867593,
+    "seen": 1794620944.2187567,
+    "ast_hash": "07da94945f394d9a4ba7068ec678239f",
     "semantic_hash": ""
   },
   "scripts/README.md": {
