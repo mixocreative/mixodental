@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794620793.6079836,
-    "seen": 1794620944.217752,
-    "ast_hash": "56890b7bcfc182d15e0fd71afbdf20e4",
+    "mtime": 1794622240.3603766,
+    "seen": 1794624382.3506076,
+    "ast_hash": "88c46958ae7186695c92d334116b60de",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -967,9 +967,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1794160454.1808827,
-    "seen": 1794163324.5866404,
-    "ast_hash": "7d32d73f2fa2c201107ab2ceb0df0d40",
+    "mtime": 1794622348.3315914,
+    "seen": 1794624382.3516083,
+    "ast_hash": "c8d739d36eaa87fe3ca98e71928cc93a",
     "semantic_hash": ""
   },
   "DESIGN.md": {
