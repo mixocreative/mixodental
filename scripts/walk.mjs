@@ -356,6 +356,22 @@ const note = (text) => console.log(`     ${text}`);
  * default it had never stopped using, went red with all 39 of its checks passing, and SKIPPED the
  * Pages deploy. One function, called wherever a page is made, so a third page cannot miss it.
  */
+/*
+ * CI IS SEVERAL TIMES SLOWER THAN A WORKSTATION, so it waits four times as long before calling
+ * anything stuck. A shared runner renders through SwiftShader.
+ *
+ * THE RULE FOR CALL SITES, written here because breaking it costs a false red on someone else's
+ * commit: a wait for a state the app ALWAYS reaches takes NO explicit timeout, so it inherits the
+ * 120 s. An explicit timeout is an opt-OUT of that, and is only correct when the short wait is the
+ * point -- a transient that is gone within seconds, or a `.catch(() => {})` probe for something
+ * that may legitimately be absent.
+ *
+ * Five call sites had it backwards (2026-11-14) and capped deterministic waits at 30 s and 20 s,
+ * below Playwright's own default. One of them failed the `m,q` shard twice, the second time on a
+ * DOCUMENTATION-ONLY commit -- a red that said nothing about the code it was testing. Roughly fifty
+ * other call sites carry explicit timeouts of 60 s and above, which have not misfired; they are
+ * left alone rather than swept, and this note is the rule a new one should be judged against.
+ */
 const forSlowMachines = (page) => { if (process.env.CI) page.setDefaultTimeout(120000); };
 
 async function freePort(from) {
@@ -1458,7 +1474,11 @@ async function walk(url, scratch, dentalFixture) {
        * and the fixed app, so a check that read only the badge would have passed throughout.
        */
       await page.locator('[data-ui="items-start"]').click();
-      await page.waitForFunction(() => /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 30000 });
+      // No explicit timeout: this inherits `forSlowMachines`, which gives CI 120 s because a shared
+      // runner rendering through SwiftShader is several times slower than a workstation. A
+      // hard-coded 30000 here opted out of exactly that and timed out twice on CI's `m,q` shard,
+      // each time a FALSE RED on a commit that was fine - once on a documentation-only change.
+      await page.waitForFunction(() => /Step 1/.test(document.querySelector('.edit-badge')?.textContent ?? ''));
       const askedForFile = await page.getByText('Place the aligner file here').count();
       check('m5b Start opens the row and reads it, rather than asking for a file already on the plate',
         askedForFile === 0, `"choose a file" prompts on screen ${askedForFile}`);
@@ -2750,7 +2770,9 @@ async function walk(url, scratch, dentalFixture) {
          * Step 1 OFFERS A WAY OUT rather than continuing as if nothing were wrong. On the mismatch
          * ending the way out is naming the aligner type; on the rim ending it is the mode itself.
          */
-        await page.waitForSelector('[data-ui="orient-ways-mismatch"], [data-ui="rim-why"]', { timeout: 30000 });
+        // Inherits `forSlowMachines` (120 s on CI): one of these two endings always arrives, so a
+        // cap below the CI default can only ever be a false red on a slow runner.
+        await page.waitForSelector('[data-ui="orient-ways-mismatch"], [data-ui="rim-why"]');
         const ways = (await page.locator('[data-ui="rim-why"]').count()) > 0 ? 'rim' : 'mismatch';
         // One profile is embedded and it insists on an opening, so the row explains itself instead of switching.
         const offered = ways === 'rim' ? 1
@@ -3931,9 +3953,12 @@ async function walk(url, scratch, dentalFixture) {
        * whichever arrives first. Section `u` has the same helper (`leaveRimIfOpen`) for the same
        * reason; it is local to that block.
        */
-      await page.waitForSelector('[data-ui="rim-why"]', { timeout: 30000 });
+      // Inherits `forSlowMachines`: a cube ALWAYS fails orientation, so this state always arrives.
+      await page.waitForSelector('[data-ui="rim-why"]');
       await d.button('Cancel').click();
-      await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 20000 });
+      // Inherits `forSlowMachines`: 20 s was tighter than Playwright's own default, on a wait for a
+      // badge the app always reaches after Cancel.
+      await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''));
       await d.quiet();
       await d.idle(300);
       await backFromStepOneToDrop();
@@ -3954,9 +3979,12 @@ async function walk(url, scratch, dentalFixture) {
       check('s18 an STL dropped on the file screen enters Step 1 on the derived type',
         (await page.locator('.start-screen').count()) === 0);
       // The cube fails orientation and opens rim define mode, which takes Back away: leave it first.
-      await page.waitForSelector('[data-ui="rim-why"]', { timeout: 30000 });
+      // Inherits `forSlowMachines`: a cube ALWAYS fails orientation, so this state always arrives.
+      await page.waitForSelector('[data-ui="rim-why"]');
       await d.button('Cancel').click();
-      await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 20000 });
+      // Inherits `forSlowMachines`: 20 s was tighter than Playwright's own default, on a wait for a
+      // badge the app always reaches after Cancel.
+      await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''));
       await d.quiet();
       await d.idle(300);
       await backFromStepOneToDrop();
