@@ -218,54 +218,6 @@ Edge order on an R of 1000+ faces is a different kind of exception, by design an
 tie: Blender splits edges over 8 hash maps there, so the ridge points enter the merge in a
 different order. The web order is pinned. Everything else must match bit for bit.
 
-## Licence
-
-**How it was written.** Task 10 replaced the earlier GPL-derived code: the point BVH, k-d tree
-merge, hash, RNG, vertex normals and legacy ridges. The replacement was a single-person clean
-room. The same agent read the GPL-derived files, wrote a behavioural spec of their public
-interfaces and observable outputs, and then wrote the new code from that spec and the public
-sources below, without reopening the old bodies.
-(`.superpowers/sdd/2026-10-21-migration-prep/task-10-cleanroom-spec.md`).
-Some formulas follow the spec statement for statement because bit parity forced it:
-- the lookup3 mix;
-- the srand48 LCG;
-- Newell face normals and the angle-weighted sum in single precision.
-
-For a stricter process, someone who has not seen the old code can re-implement from the spec.
-
-**Independently written** (no Blender source):
-- `analysis/nearestPoint.ts` (branch-and-bound k-d tree);
-- `analysis/mergeByDistance.ts` (uniform grid);
-- `analysis/legacyRidges.ts`;
-- `analysis/vertexNormals.ts`;
-- `analysis/random.ts`;
-- the stage helpers in `analysis/placement.ts`.
-
-**Sources:**
-- Bob Jenkins, lookup3.c `hashword` (public domain).
-- POSIX `srand48`/`lrand48` (the 48-bit LCG constants are the standard's).
-- Newell's method for polygon normals.
-- Angle-weighted vertex normals (Thürmer and Wüthrich, 1998).
-- Bentley's k-d tree with branch-and-bound nearest search.
-- Uniform-grid neighbour search.
-
-**Third-party code that needs attribution:**
-- `core/acosf.ts` is ported from FreeBSD msun `e_acosf.c`. Its notice is kept in the file:
-  "Copyright (C) 1993 by Sun Microsystems, Inc. All rights reserved. Developed at SunPro, a Sun
-  Microsystems, Inc. business. Permission to use, copy, modify, and distribute this software is
-  freely granted, provided that this notice is preserved." The float conversion is by Ian
-  Lance Taylor, Cygnus Support.
-- `supports/remesh.ts` ports OpenVDB's `VolumeToMesh` and its `meshToVolume` band handling.
-  `supports/openvdbTables.ts` holds OpenVDB lookup tables (Apache-2.0, Copyright Contributors
-  to the OpenVDB Project). Keep that notice.
-
-**Label font.** `supports/labelFont.json` holds Inter Regular glyph outlines exported by
-`tools/fonts/export_label_font.py`. The source is the official Inter 4.1 static TTF
-(SIL OFL-1.1, Copyright (c) 2016 The Inter Project Authors). The licence text is in
-`tools/fonts/LICENSE-Inter.txt`; version, hashes and the reason the static file is used are in
-`tools/fonts/README.md`. The add-on's MIXO_Label uses the same file. This replaces Blender's
-built-in "Bfont", whose licence could not be established.
-
 ## Jobs and workers
 
 The app runs the jobs in Web Workers through `src/workers/WorkerTask.ts`, a port of mixomesh's

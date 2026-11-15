@@ -41,7 +41,6 @@ Covered: placement rules and `composeContacts` id semantics (`placement.test.ts:
 - Sizes: `supports/mesh.ts` 1126 lines (contacts, columns, trees, braces, raft, labels, MeshBuilder, earClip, hull) and `remesh.ts` 1021 — split mesh.ts into `builder.ts`, `columns.ts`, `raftMesh.ts`, `label.ts`, `geom2d.ts`.
 - Duplicated vector helpers in 7 files (`mesh.ts:1118-1126`, `placement.ts:358-364`, `edgeAnchors.ts:166-171`, `remesh.ts:1012-1018`, `autotree.ts:229-238`, `roof.ts:187`, `selection.ts:70`); `closestOnTriangle` twice (`autotree.ts:203`, `remesh.ts:902`). Extract `core/vec3.ts`.
 - Dead/odd: orphan duplicate JSDoc line above `tipsOf` (`mesh.ts:345`); `PlacementSettings.sharpEdgeAngleDegrees` is validated (`placement.ts:135`) but `edgeAnchors` uses a fixed `SHARP_ANGLE` (`edgeAnchors.ts:21`) — the setting (fed from `scatterRidgeAngle`, `settings.ts:321`) has no effect on placement.
-- **Licence risk:** `blenderBvh.ts`, `kdtree.ts`, Blender hash (`placement.ts:303`) and the Blender-behaviour ports in remesh are translations of Blender C source (GPL-2.0-or-later) → likely derivative works; shipping them in a proprietary mixomesh is a GPL exposure. OpenVDB tables (`openvdbTables.ts:1`) are Apache-2.0/MPL — attribution only. Bfont data (`bfont.ts`) needs its font licence checked. Option: clean-room replacements (generic BVH/kd-tree) giving up exact tie-breaking parity, or get legal advice.
 
 ## 6. Editing behaviour in React components (HEAD)
 
