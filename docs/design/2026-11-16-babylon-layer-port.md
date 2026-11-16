@@ -216,6 +216,22 @@ simplification of it. Say so in a comment rather than quietly matching it.
    and `brushHits`. Lower risk to the three.js path, but the two agree only while someone keeps
    them agreeing — the exact failure mode the rule exists to prevent.
 
+**MEASURED, AND IT DOWNGRADES THE RISK I FIRST CLAIMED.** I described route 1 as "a 341-line
+shared-file refactor", which overstates it. The r3f coupling in that hook is narrow and countable:
+
+- **four** `useThree` calls (`gl`, `camera`, `scene`);
+- `gl` is used ONLY as `gl.domElement`, i.e. as the canvas, in three places;
+- `camera`, `scene` and `options.group` appear ONLY inside the single `screenBrushView(...)` call.
+
+Everything else in the hook — the scheduler, the drag-over, the hover refresh, the resting point,
+the Shift tracking, the no-bodies report — is already renderer-free and would not be touched.
+
+So route 1 is really: **inject two things.** Replace `gl.domElement` with a `canvas` option, replace
+the `screenBrushView(...)` call with a `makeView(bodies)` option, and leave `useScreenBrush`'s
+three.js caller supplying both exactly as it does now. The Babylon view then supplies its own
+canvas and a view built on the support-group clip. That is a small, reviewable change whose
+three.js path is unchanged by construction — not the rewrite I implied.
+
 Route 1 is correct. It is recorded here rather than attempted at the end of a long session because
 a hasty refactor of the shared hook is how the three.js brush would acquire a subtle fault, and
 that brush is what the walk's `g`-series checks exercise.
