@@ -1538,7 +1538,7 @@ export default function App() {
           gesture={canvasGesture(press)}
           gizmoMode={gizmoMode}
           rotationGizmo={orienting && free.free}
-          {...(denture.active && activeUnit && session.dentalStage === 'review' && addOnTint ? { unitOverlay: { unitId: activeUnit.id, node: addOnTint } } : {})}
+          {...(denture.active && activeUnit && session.dentalStage === 'review' && addOnTint ? { unitTint: { unitId: activeUnit.id, ...addOnTint } } : {})}
           {...(denture.active && activeUnit?.denture && editMode === 'dental' && session.dentalStage === 'review' ? { bubbleResolve: { unitId: activeUnit.id, resolvable: denture.supports.resolvable, onResolve: (point: UnresolvedPoint) => denture.supports.resolve(activeUnit.id, point) } } : {})}
           modelVisible={modelVisible}
           wireframe={wireframe}

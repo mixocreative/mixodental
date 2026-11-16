@@ -15,6 +15,7 @@ import { useViewportColours } from './viewport/sceneColours';
 import { UnitObject } from './viewport/UnitObject';
 import { PlateOutline } from './viewport/PlateOutline';
 import { UnresolvedBubbles } from './viewport/UnresolvedBubbles';
+import { FaceTintLayer } from './viewport/FaceTintLayer';
 import { generationTransform } from '@mixo-geocore/host/supports/unitSupports';
 
 export function acceptModelFile(file: File): boolean {
@@ -172,7 +173,7 @@ export default function ObjectViewport(props: ObjectViewportProps) {
         : null;
     })}
     {props.printAngle ? <PrintAngleMark unitId={props.printAngle.unitId} deg={props.printAngle.deg} /> : null}
-    {props.unitOverlay ? scene.units.filter((unit) => unit.id === props.unitOverlay!.unitId).map((unit) => <group key={`overlay:${unit.id}`} position={unit.transform.position} rotation={unit.transform.rotation}>{props.unitOverlay!.node}</group>) : null}
+    {props.unitTint ? scene.units.filter((unit) => unit.id === props.unitTint!.unitId).map((unit) => <group key={`overlay:${unit.id}`} position={unit.transform.position} rotation={unit.transform.rotation}><FaceTintLayer mesh={unit.source} mask={props.unitTint!.mask} colour={new THREE.Color(props.unitTint!.colour).getHex()} /></group>) : null}
     {activeId && activeGroup?.unitId === activeId && gizmo && <UnitTransformControls
       mode={gizmo}
       object={activeGroup.group}

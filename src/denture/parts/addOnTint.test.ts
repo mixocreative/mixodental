@@ -12,6 +12,7 @@ describe('dentureAddOnTint', () => {
     expect(dentureAddOnTint(mesh, undefined)).toBeUndefined();
     expect(dentureAddOnTint(mesh, built([part(0, 'target')]))).toBeUndefined();
     expect(dentureAddOnTint(mesh, built([part(0, 'target'), part(1, 'debris')]))).toBeUndefined();
-    expect(dentureAddOnTint(mesh, built([part(0, 'target'), part(1, 'addOn')]))).toBeDefined();
+    // Now DATA, not a viewport node: the mask is what the two renderers each draw for themselves.
+    expect(dentureAddOnTint(mesh, built([part(0, 'target'), part(1, 'addOn')]))?.mask).toBeInstanceOf(Uint8Array);
   });
 });

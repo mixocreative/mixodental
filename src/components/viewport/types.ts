@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import type { BubbleResolve } from './UnresolvedBubbles';
 import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
 import type { SupportPoint } from '@mixo-geocore/host/core/analysis/types';
@@ -48,8 +47,13 @@ export interface ObjectViewportProps {
   rotationGizmo?: boolean;
   /** Denture Step 2: the active unit's resolvable bubbles are buttons (support from the model surface). */
   bubbleResolve?: { unitId: string } & BubbleResolve;
-  /** A unit's own see-through layer, drawn in its space (the denture's add-on part tint). */
-  unitOverlay?: { unitId: string; node: ReactNode };
+  /**
+   * A unit's own see-through face tint, drawn in its space (the denture's add-on parts): which of
+   * its faces to tint, and in what colour. DATA, not a viewport node -- it used to be a `ReactNode`
+   * holding r3f elements, which made this the one prop of the 3D view that no second renderer could
+   * draw. Each view draws it with its own geometry.
+   */
+  unitTint?: { unitId: string; mask: Uint8Array; colour: string };
   modelVisible: boolean;
   wireframe: boolean;
   onSelect: (unitId: string | null, additive: boolean) => void;
