@@ -1,4 +1,5 @@
 import { Color3, Mesh, MeshBuilder, StandardMaterial, TransformNode, Vector3, VertexData, type LinesMesh, type Scene } from '@babylonjs/core';
+import { linearColour3 } from './linearColour';
 import { Constants } from '@babylonjs/core/Engines/constants';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import type { DentalRim } from '@mixo-geocore/host/dental/dental';
@@ -16,16 +17,34 @@ import type { AreaRisk } from '../../../dental/areaRisk';
 const RISK_Z_OFFSET = -3;
 /** The rim sits this far along the opening direction, clear of the surface it traces. */
 const RIM_LIFT = 0.035;
-/** The outer, fainter loop: a soft edge so the line does not look like a one-pixel artefact. */
-const RIM_GLOW = { scale: 1.001, alpha: 0.22 } as const;
-const RIM_ALPHA = 0.9;
+/** The outer loop, a hair wider: it gives the rim weight so it does not read as a one-pixel artefact. */
+const RIM_GLOW = { scale: 1.001, alpha: 1 } as const;
+/*
+ * BOTH LOOPS ARE OPAQUE HERE, WHERE three DRAWS THEM AT 0.9 AND 0.22, AND THE DIFFERENCE WAS
+ * MEASURED RATHER THAN CHOSEN.
+ *
+ * A one-pixel Babylon line at 0.9 with a fainter copy over it came out 255/214/255 for
+ * `--mark-area-edge` -- a near-white where a magenta line belongs. The walk's `u5j` looks for that
+ * colour on the model: it found NONE of it here and 122 pixels of it in the three.js view. Forced
+ * to a pure green, the line measured 177/255/183 -- lifted on the two channels that should
+ * have been zero -- so the colour WAS reaching the shader and the blending was eating it. One
+ * opaque pass measured 0/255/0 exactly.
+ *
+ * A one-pixel line is nearly all partial coverage, and Babylon resolves that coverage against
+ * whatever is already there; two see-through passes over a light model leave almost no pixel at
+ * full strength. Opaque passes do, and the second at 1.001 gives the line the weight three gets
+ * from its own rasteriser: 105 pixels of the exact token colour against three's 122.
+ *
+ * So this is not a style change. It is the same line, drawn so that it is the colour it says it is.
+ */
+const RIM_ALPHA = 1;
 
 /** An unlit flat colour; Babylon's stand-in for three's MeshBasicMaterial. */
 function flat(name: string, scene: Scene, colour: string, alpha: number): StandardMaterial {
   const material = new StandardMaterial(name, scene);
   material.disableLighting = true;
   material.diffuseColor = Color3.Black();
-  material.emissiveColor = Color3.FromHexString(colour);
+  material.emissiveColor = linearColour3(colour);
   material.alpha = alpha;
   material.disableDepthWrite = true;
   material.backFaceCulling = false;
@@ -126,7 +145,9 @@ export function drawDentalRim(scene: Scene, input: DentalRimInput): () => void {
 
   const colour = Color3.FromHexString(input.colour);
   const built: LinesMesh[] = [];
-  for (const [which, alpha, scale] of [['line', RIM_ALPHA, 1], ['glow', RIM_GLOW.alpha, RIM_GLOW.scale]] as const) {
+  // The halo first, the solid core last: drawn the other way round, the faint copy lifts the line
+  // it is meant to soften and the colour washes out (see RIM_ALPHA).
+  for (const [which, alpha, scale] of [['glow', RIM_GLOW.alpha, RIM_GLOW.scale], ['line', RIM_ALPHA, 1]] as const) {
     const loop = MeshBuilder.CreateLines(`${input.name}-${which}`, { points, updatable: false }, scene);
     loop.color = colour;
     loop.alpha = alpha;
@@ -135,7 +156,13 @@ export function drawDentalRim(scene: Scene, input: DentalRimInput): () => void {
     loop.isPickable = false;
     // three draws the rim with depthTest off: a boundary hidden inside the model it bounds is read
     // as "there is no boundary here", which is the opposite of what it says.
-    if (loop.material) loop.material.depthFunction = Constants.ALWAYS;
+    if (loop.material) {
+      loop.material.depthFunction = Constants.ALWAYS;
+      // Stated rather than inherited: a line that blends ADDITIVELY over a light model clips two
+      // channels and comes out near white, which is how `--mark-area-edge` rendered as
+      // 255/186/255 instead of its magenta and why `u5j` found none of it.
+      loop.material.alphaMode = Constants.ALPHA_COMBINE;
+    }
     loop.renderingGroupId = 1;
     built.push(loop);
   }

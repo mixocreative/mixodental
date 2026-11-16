@@ -584,11 +584,17 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * the same job -- brush stamps on a surface -- with a different vocabulary: `allow` fills
        * where a zone's `paint` does. Opacity 0.7 is `UnitObject`'s own number for these layers.
        */
-      const area = props.dentalAreaPreview?.unitId === unit.id ? props.dentalAreaPreview.policy : undefined;
+      /*
+       * THE ACCEPTED POLICY FIRST, THEN THE PREVIEW, which is `UnitObject`'s own `areaPolicy`. This
+       * view read only the preview, so once Step 1 handed a policy over and the preview went away,
+       * every area layer vanished with it -- the drawing was saved and invisible.
+       */
+      const area = unit.dental ?? (props.dentalAreaPreview?.unitId === unit.id ? props.dentalAreaPreview.policy : undefined);
       /*
        * A two-contour policy carries a DETECTED region, so it gets the face tint and the exact trim
        * lines; the brush stamps on top are the same surface-stamp layer the zones use. Any other
-       * policy kind has stamps and nothing else to draw.
+       * policy kind -- a hand-drawn rim is always one, because a drawn loop claims no detection it
+       * did not earn -- has its stamps and the rim outline.
        */
       if (area?.kind === 'two-contour') {
         disposers.push(drawDentalFace(scene, {
@@ -609,6 +615,20 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         }));
         // The rim wears the EDGE colour, never the area fill: in Step 2 the operator paints the
         // area in that fill, and a boundary wearing it would vanish into their first stroke.
+        disposers.push(drawDentalRim(scene, {
+          name: `${unit.id}-dental-rim`,
+          parent: node,
+          rim: area.rim,
+          colour: colours.preview.areaEdge,
+        }));
+      } else if (area) {
+        /*
+         * THE RIM THE OPERATOR DREW, and the check that caught its absence is `u5j`: it measures the
+         * edge colour on the canvas, and this view showed zero pixels of it. three draws
+         * `DentalRimOutline` on exactly this branch, in the same edge colour, for the same reason --
+         * a rim that cannot be seen in Step 2 means rim define mode only moved the dead end one
+         * screen later.
+         */
         disposers.push(drawDentalRim(scene, {
           name: `${unit.id}-dental-rim`,
           parent: node,

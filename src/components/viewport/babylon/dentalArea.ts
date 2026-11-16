@@ -1,4 +1,5 @@
 import { Color3, Constants, Mesh, MeshBuilder, StandardMaterial, VertexBuffer, VertexData, Vector3, type LinesMesh, type Scene, type TransformNode } from '@babylonjs/core';
+import { linearColour3 } from './linearColour';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { buildVertexGrid, stampVertices } from '@mixo-geocore/host/core/supports/zones';
 import { dentalContactMask, type DentalAllowStamp, type DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
@@ -83,7 +84,7 @@ export function drawDentalFace(scene: Scene, input: DentalFaceInput): () => void
   const material = new StandardMaterial(`${input.name}-material`, scene);
   material.disableLighting = true;
   material.diffuseColor = Color3.Black();
-  material.emissiveColor = Color3.FromHexString(input.colour);
+  material.emissiveColor = linearColour3(input.colour);
   // Double-sided, as three's is: the operator looks into the aligner from underneath.
   material.backFaceCulling = false;
   material.disableDepthWrite = true;

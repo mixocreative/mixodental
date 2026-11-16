@@ -1,4 +1,5 @@
 import { Color3, Mesh, StandardMaterial, VertexData, type Scene, type TransformNode } from '@babylonjs/core';
+import { linearColour3 } from './linearColour';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { faceMaskOverlay } from '../faceMaskOverlay';
 import { FACE_TINT_OPACITY } from '../FaceTintLayer';
@@ -53,7 +54,7 @@ export function drawFaceTint(scene: Scene, input: FaceTintInput): () => void {
   const material = new StandardMaterial(`${input.name}-material`, scene);
   material.disableLighting = true;
   material.diffuseColor = Color3.Black();
-  material.emissiveColor = Color3.FromHexString(input.colour);
+  material.emissiveColor = linearColour3(input.colour);
   material.alpha = FACE_TINT_OPACITY;
   // Double-sided, as three's is: a denture is looked into as well as at.
   material.backFaceCulling = false;

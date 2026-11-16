@@ -1,4 +1,5 @@
 import { Color3, Constants, Mesh, MeshBuilder, StandardMaterial, VertexData, type Scene, type TransformNode } from '@babylonjs/core';
+import { linearColour3 } from './linearColour';
 import type { SupportProblem } from '@mixo-geocore/host/core/analysis/supportCheck';
 import type { OrientationLayer } from '../../../dental/orientationEvidence';
 import type { PreviewColours } from '../sceneColours';
@@ -17,7 +18,7 @@ function overlayMaterial(name: string, scene: Scene, colour: string, alpha: numb
   const material = new StandardMaterial(name, scene);
   material.disableLighting = true;
   material.diffuseColor = Color3.Black();
-  material.emissiveColor = Color3.FromHexString(colour);
+  material.emissiveColor = linearColour3(colour);
   material.alpha = alpha;
   material.backFaceCulling = false;
   material.disableDepthWrite = true;

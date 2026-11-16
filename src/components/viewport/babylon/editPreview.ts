@@ -1,4 +1,5 @@
 import { Color3, MeshBuilder, Quaternion, StandardMaterial, Vector3, type Mesh, type Scene } from '@babylonjs/core';
+import { linearColour3 } from './linearColour';
 import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import type { Gesture } from '@mixo-geocore/editing/gesture';
 import { contactToRemove } from '@mixo-geocore/editing/removal';
@@ -130,7 +131,7 @@ export function attachEditPreview(scene: Scene, input: EditPreviewInput): () => 
     const point = new Vector3(...hit.world.point);
 
     const drawn = ringFor(radius);
-    ringMaterial.emissiveColor = Color3.FromHexString(removing ? colours.remove : colours.ring);
+    ringMaterial.emissiveColor = linearColour3(removing ? colours.remove : colours.ring);
     // three's torus has its axis on +Z; Babylon's is on +Y. Same ring, different `from`.
     Quaternion.FromUnitVectorsToRef(Vector3.Up(), normal, drawn.rotationQuaternion!);
     drawn.position.copyFrom(point);
@@ -142,7 +143,7 @@ export function attachEditPreview(scene: Scene, input: EditPreviewInput): () => 
       const target = contactToRemove(input.contactsFor(hit.unitId), hit.point, radius);
       const at = target && pointer.toWorld(hit.unitId, [target.position[0]!, target.position[1]!, target.position[2]!]);
       if (at) {
-        doomedMaterial.emissiveColor = Color3.FromHexString(colours.remove);
+        doomedMaterial.emissiveColor = linearColour3(colours.remove);
         const size = Math.max(0.25, settings.pillarDiameter * 0.45);
         doomed.scaling.setAll(size);
         doomed.position.set(...at);
@@ -154,7 +155,7 @@ export function attachEditPreview(scene: Scene, input: EditPreviewInput): () => 
     }
     doomed.isVisible = false;
     const length = settings.neckLength;
-    coneMaterial.emissiveColor = Color3.FromHexString(colours.add);
+    coneMaterial.emissiveColor = linearColour3(colours.add);
     cone.scaling.set(settings.pillarDiameter, length, settings.pillarDiameter);
     // Half a length out along the normal, pointing back INTO the surface, so its apex meets it.
     cone.position.copyFrom(point.add(normal.scale(length / 2)));

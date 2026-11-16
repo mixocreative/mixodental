@@ -1,4 +1,5 @@
 import { Color3, Constants, MeshBuilder, Quaternion, StandardMaterial, Vector3, type Mesh, type Scene, type TransformNode } from '@babylonjs/core';
+import { linearColour3 } from './linearColour';
 import type { PlateSize } from '@mixo-geocore/editing/arrange';
 import type { AddedAt } from '../AddFlash';
 import { flashLook } from '../flash';
@@ -62,7 +63,7 @@ export function drawAddFlash(scene: Scene, input: AddFlashInput): () => void {
   const material = new StandardMaterial(`${input.name}-material`, scene);
   material.disableLighting = true;
   material.diffuseColor = Color3.Black();
-  material.emissiveColor = Color3.FromHexString(input.colour);
+  material.emissiveColor = linearColour3(input.colour);
   material.disableDepthWrite = true;
   // three draws the flash with depthTest off, so it reads over the support it marks.
   material.depthFunction = Constants.ALWAYS;

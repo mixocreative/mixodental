@@ -1,4 +1,5 @@
 import { Color3, Mesh, StandardMaterial, VertexBuffer, VertexData, type Scene, type TransformNode } from '@babylonjs/core';
+import { linearColour3 } from './linearColour';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { FULL_TIER_MAX } from '@mixo-geocore/host/core/budget';
 import { stampVertices, type ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
@@ -120,7 +121,7 @@ export function drawSurfaceStamps(scene: Scene, input: SurfaceStampsInput): () =
   // would dim it exactly where the model is dark.
   material.disableLighting = true;
   material.diffuseColor = Color3.Black();
-  material.emissiveColor = Color3.FromHexString(input.colour);
+  material.emissiveColor = linearColour3(input.colour);
   material.backFaceCulling = false;
   material.disableDepthWrite = true;
   material.zOffset = Z_OFFSET;
