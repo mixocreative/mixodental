@@ -36,6 +36,16 @@ behaviour and not the pixels, and the verdict line names the renderer whenever i
 default — a Babylon receipt can never be read as the three.js gate. `npm run gate` and CLAUDE.md's
 local gate still mean the three.js run until three.js is gone.
 
+**Both runs are green, 2026-11-17 on `be1103d`:**
+
+```
+ALL PASS (186 checks, 1702 s)
+ALL PASS (186 checks, 1543 s) [renderer: babylon]
+```
+
+Every check runs against both views now, so the Babylon view is proved the way the shipping one is
+proved. three.js can be removed when the owner says so, not because anything still needs it.
+
 **What the first Babylon walk found, and not one of them was where it hurt.** Read this table
 before adding a layer to this view; every row is a fault that only a second renderer could expose,
 and every one was measured rather than reasoned out:
