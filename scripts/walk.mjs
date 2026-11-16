@@ -516,7 +516,7 @@ function readProps() {
     dentalContacts: unit?.dental?.kind === 'two-contour' ? unit.dental.region.contacts?.length ?? -1 : -1,
     dentalTuning: unit?.dental?.kind === 'two-contour' ? unit.dental.tuning : undefined,
     ids: out.selection ?? [],
-    units: (out.scene?.units ?? []).map((u) => ({ id: u.id, label: u.settings?.labelText ?? '', supports: Boolean(u.supports), dental: Boolean(u.dental), pos: [...u.transform.position], manual: u.manual.length, deleted: u.deleted.length })),
+    units: (out.scene?.units ?? []).map((u) => ({ id: u.id, label: u.settings?.labelText ?? '', supports: Boolean(u.supports), dental: Boolean(u.dental), pos: [...u.transform.position], manual: u.manual.length, deleted: u.deleted.length, lastManual: u.manual.length ? u.manual[u.manual.length - 1].position.map((v) => Math.round(v * 1000) / 1000) : null })),
   };
 }
 
@@ -3291,7 +3291,7 @@ async function walk(url, scratch, dentalFixture) {
         // Add with a tiny reach lands on the exact hit; the tip is a manual one and survives a density change.
         await setReach('0.1');
         const exact = await addSomewhere();
-        check('b3d Add on the aligner places a manual tip at the hit and says so', exact !== undefined && exact.now.deleted === exact.was.deleted && exact.status === 'Support added.', exact ? `manual ${exact.was.manual} -> ${exact.now.manual}, deleted ${exact.was.deleted} -> ${exact.now.deleted}, status "${exact.status}"` : 'no spot took a tip');
+        check('b3d Add on the aligner places a manual tip at the hit and says so', exact !== undefined && exact.now.deleted === exact.was.deleted && exact.status === 'Support added.', exact ? `manual ${exact.was.manual} -> ${exact.now.manual}, deleted ${exact.was.deleted} -> ${exact.now.deleted}, status "${exact.status}", at ${exact.spot.join(',')}, tip ${JSON.stringify(exact.now.lastManual)}` : 'no spot took a tip');
         await nudge('Support density', 1);
         const kept = await unitNow();
         check('b3e a manual tip survives a density change', exact !== undefined && kept.manual === exact.now.manual, `manual ${exact?.now.manual} -> ${kept.manual}`);

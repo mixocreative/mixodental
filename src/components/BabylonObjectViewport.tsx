@@ -37,6 +37,7 @@ import { drawPrintAngle } from './viewport/babylon/printAngle';
 import { tokenCss } from '../ui/tokenColour';
 import { AnchoredDom, type AnchoredItem } from './viewport/babylon/AnchoredDom';
 import { bubblePointsFor } from './viewport/babylon/bubblePoints';
+import { displayMesh } from '../state/meshExtras';
 import { UnresolvedBubble, LandingMark } from './viewport/UnresolvedBubbles';
 import { useCallback, useMemo, useState } from 'react';
 import { tipsOf } from '@mixo-geocore/host/core/supports/meshQuery';
@@ -271,7 +272,9 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       // units effect DREW (`drawnSupports`), which in tips view is only the tips.
       units: () => propsRef.current.scene.units.map((unit) => ({
         id: unit.id,
-        source: unit.source,
+        // The mesh that is DRAWN, which for a heavy import is its simplified copy: the pointer must
+        // answer about the surface on screen, as three's raycast does by construction.
+        source: displayMesh(unit.source),
         transform: unit.transform,
         ...(drawnSupports.current.get(unit.id) ? { supports: drawnSupports.current.get(unit.id)! } : {}),
       })),
@@ -474,6 +477,14 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * unit by moving a single node, with everything attached following for free rather than by
        * three separate pieces of code remembering to agree.
        */
+      const shown = displayMesh(unit.source);
+      /*
+       * The surface overlays are built against the SOURCE mesh's triangles, so they only fit a unit
+       * that is drawn at full detail. `UnitObject` gates every one of them on `shown === unit.source`
+       * for exactly that reason, and so does this: an overlay stretched over a simplified copy is a
+       * drawing that says something the model does not.
+       */
+      const overlaysFit = shown === unit.source;
       const node = new TransformNode(`${unit.id}-unit`, scene);
       const { position, rotationQuaternion } = babylonPlacement(unit.transform);
       node.position = position;
@@ -484,7 +495,15 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       const mesh = new Mesh(unit.id, scene);
       mesh.parent = node;
       built.push(mesh);
-      applyGeometry(mesh, unit.source);
+      /*
+       * THE DISPLAY COPY, NOT THE SOURCE, and the two must be the same mesh here as in the other
+       * view. A heavy import gets a simplified copy and `UnitObject` both DRAWS and PICKS that one;
+       * this view drew and picked the full mesh, so a click at the same screen point landed on a
+       * different triangle. The walk said so from the dental flow: at the same spot, 0.38/0.47,
+       * three reported "Support added." and this view reported "This spot faces up" -- one surface,
+       * two answers, because they were not the same surface.
+       */
+      applyGeometry(mesh, shown);
       // PBR, not StandardMaterial: the three.js view draws with MeshStandardMaterial, whose
       // metalness/roughness response Babylon's StandardMaterial does not share. Its defaults are
       // metalness 0 and roughness 1, so those are the numbers to match, not ones chosen by eye.
@@ -556,7 +575,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * The denture's add-on parts, tinted on the model's own faces. Drawn from a mask and a
        * colour, which is why it can be drawn here at all: the prop used to carry an r3f element.
        */
-      if (props.unitTint?.unitId === unit.id) {
+      if (overlaysFit && props.unitTint?.unitId === unit.id) {
         disposers.push(drawFaceTint(scene, {
           name: `${unit.id}-unit-tint`,
           mesh: unit.source,
@@ -567,7 +586,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       }
 
       // The no-support zones, painted see-through over the model.
-      if (unit.zones.length > 0) {
+      if (overlaysFit && unit.zones.length > 0) {
         disposers.push(drawSurfaceStamps(scene, {
           name: `${unit.id}-zones`,
           mesh: unit.source,
@@ -596,7 +615,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * policy kind -- a hand-drawn rim is always one, because a drawn loop claims no detection it
        * did not earn -- has its stamps and the rim outline.
        */
-      if (area?.kind === 'two-contour') {
+      if (overlaysFit && area?.kind === 'two-contour') {
         disposers.push(drawDentalFace(scene, {
           name: `${unit.id}-dental-face`,
           mesh: unit.source,
@@ -621,7 +640,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
           rim: area.rim,
           colour: colours.preview.areaEdge,
         }));
-      } else if (area) {
+      } else if (overlaysFit && area) {
         /*
          * THE RIM THE OPERATOR DREW, and the check that caught its absence is `u5j`: it measures the
          * edge colour on the canvas, and this view showed zero pixels of it. three draws
@@ -709,7 +728,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
 
       // Overhang low points outside the permitted area. Display only: supports and export ignore it.
       const risks = props.dentalRisks?.unitId === unit.id ? props.dentalRisks.risks : undefined;
-      if (risks && risks.length > 0) {
+      if (overlaysFit && risks && risks.length > 0) {
         disposers.push(drawDentalRisks(scene, {
           name: `${unit.id}-dental-risks`,
           mesh: unit.source,
@@ -719,7 +738,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
           opacity: 0.85,
         }));
       }
-      if (area && area.stamps.length > 0) {
+      if (overlaysFit && area && area.stamps.length > 0) {
         disposers.push(drawSurfaceStamps(scene, {
           name: `${unit.id}-dental-area`,
           mesh: unit.source,
@@ -855,15 +874,16 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const [brushBodies] = useState(() => createBrushBodies({
     camera: () => cameraRef.current,
     pointer: () => pointerRef.current,
+    // The DRAWN mesh again: three's occluders are the meshes on screen, found by walking the scene.
     units: () => propsRef.current.scene.units.flatMap((unit) => {
       const node = unitNodes.current.get(unit.id);
-      return node ? [{ id: unit.id, source: unit.source, node }] : [];
+      return node ? [{ id: unit.id, source: displayMesh(unit.source), node }] : [];
     }),
     brushed: () => {
       const id = propsRef.current.scene.activeUnitId;
       const unit = id ? propsRef.current.scene.units.find((candidate) => candidate.id === id) : undefined;
       const node = unit ? unitNodes.current.get(unit.id) : undefined;
-      return unit && node ? { id: unit.id, source: unit.source, node } : undefined;
+      return unit && node ? { id: unit.id, source: displayMesh(unit.source), node } : undefined;
     },
     modelVisible: () => propsRef.current.modelVisible,
   }));
