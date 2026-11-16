@@ -41,15 +41,15 @@
     "maxMath": 1,
     "why": "one hypot: how far the pointer travelled between press and release, which CLICK_TOLERANCE turns into the difference between a click and an orbit drag that began on the model. r3f hands this over as event.delta; Babylon has to measure it"
   },
+  "src/components/viewport/babylon/paintStroke.ts": {
+    "label": "host-adapter"
+  },
   "src/components/viewport/babylon/surfacePointer.ts": {
     "label": "host-math",
     "maxMath": 2,
     "why": "the two frame conversions every Babylon layer shares: the world ray into the picked unit's own frame (the engine's session mesh is loaded from that unit's positions), and the hit back out to world space for drawing. Held in ONE module so the two frames cannot come to disagree between layers"
   },
   "src/components/viewport/babylon/transformGizmo.ts": {
-    "label": "host-adapter"
-  },
-  "src/components/viewport/babylon/zoneBrush.ts": {
     "label": "host-adapter"
   },
   "src/components/viewport/babylonTransform.ts": {

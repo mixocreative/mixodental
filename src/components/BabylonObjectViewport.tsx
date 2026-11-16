@@ -25,7 +25,7 @@ import { drawSurfaceStamps } from './viewport/babylon/surfaceStamps';
 import { drawDentalFace, drawDentalRegionLines } from './viewport/babylon/dentalArea';
 import { drawDentalRim, drawDentalRisks } from './viewport/babylon/dentalMarks';
 import { drawTipMarkers } from './viewport/babylon/tipMarkers';
-import { attachZoneBrush } from './viewport/babylon/zoneBrush';
+import { attachSurfaceBrush, type ActiveBrush } from './viewport/babylon/paintStroke';
 import { attachEditClicks } from './viewport/babylon/editClicks';
 import { attachCameraViews, type CameraViews } from './viewport/babylon/cameraViews';
 import { attachEditPreview } from './viewport/babylon/editPreview';
@@ -205,12 +205,31 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     });
     const gesture = () => propsRef.current.gesture;
     const detach = [
-      attachZoneBrush({
+      attachSurfaceBrush({
         canvas,
         camera,
         pointer,
-        gesture,
-        onZoneStroke: (unitId, stamps) => propsRef.current.onZoneStroke(unitId, stamps),
+        /*
+         * Which brush is in hand, and where its stroke goes. Zones and the dental area are the
+         * same gesture on the same canvas, and the kinds stay in their own domain's vocabulary --
+         * `paint`/`erase` for a zone, `allow`/`erase` for dental -- exactly as the three.js view
+         * keeps them.
+         */
+        brush: (): ActiveBrush | undefined => {
+          const current = propsRef.current.gesture;
+          if (current.kind === 'zones') {
+            return {
+              radius: current.brush.radius,
+              kind: current.brush.kind,
+              commit: (unitId, stamps) => propsRef.current.onZoneStroke(unitId, stamps as never),
+            };
+          }
+          if (current.kind === 'dental-area' && current.brush) {
+            const { radius, kind } = current.brush;
+            return { radius, kind, commit: (unitId, stamps) => propsRef.current.onDentalStroke(unitId, stamps as never) };
+          }
+          return undefined;
+        },
       }),
       (() => {
         const views = attachCameraViews(scene, {

@@ -96,8 +96,19 @@ export function createSurfacePointer(options: {
     canvas,
     session: () => sharedSession() ?? undefined,
     mesh: (handle) => meshes.get(handle),
-    // The support brush's clip and eye. The zone and tip paths do not read it, but it is part of
-    // the port, and a stub here would be a trap set for whoever wires the support brush next.
+    /*
+     * NOT THE SUPPORT BRUSH'S VIEW, and whoever wires that brush must not use this one.
+     *
+     * `useScreenBrush` needs the clip matrix of the SUPPORT GROUP -- projection x view x the unit's
+     * world matrix -- and the eye expressed in that group's space, because `brushHits` works in
+     * support-local coordinates. What follows is the camera's own clip and eye, with no unit
+     * transform in it, which is correct for anything asking "where is this on screen" and WRONG
+     * for the brush the moment a unit is not at the origin.
+     *
+     * It is here because `ViewportPort` requires the method and the paths that use this pointer
+     * (zones, tips, clicks) never call it. The brush should build its own port with the right
+     * matrix, exactly as the three.js view does.
+     */
     brushView: () => ({
       clip: Array.from(camera.getViewMatrix().multiply(camera.getProjectionMatrix()).m),
       eye: [camera.globalPosition.x, camera.globalPosition.y, camera.globalPosition.z],
