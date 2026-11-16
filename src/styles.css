@@ -360,6 +360,11 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
    two can be compared by flipping the flag and nothing else moves. */
 .babylon-viewport { position: relative; width: 100%; height: 100%; }
 .babylon-viewport > canvas { width: 100%; height: 100%; display: block; outline: none; }
+/* DOM anchored to points in the Babylon scene (the angle reading, the unresolved bubbles). It
+   covers the canvas and passes pointer events through; each anchored element turns them back on
+   for itself if it needs them. */
+.babylon-overlay { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.babylon-overlay > * { position: absolute; left: 0; top: 0; }
 .viewport canvas { height: 100% !important; }
 .viewport--dropping { outline: 1px solid var(--ink); outline-offset: -12px; }
 .viewport-drop-overlay {

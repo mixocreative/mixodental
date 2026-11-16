@@ -36,6 +36,9 @@
     "maxMath": 1,
     "why": "the right-inset pan, copied from cameras.tsx rather than re-derived: how far to slide camera and target along the camera's own right axis so a model centres in the width a panel leaves. Every other number here -- the framing distance, the bounds sphere, the spot view, the plate crossing -- comes from geocore's renderer-free editing/view"
   },
+  "src/components/viewport/babylon/domAnchor.ts": {
+    "label": "host-adapter"
+  },
   "src/components/viewport/babylon/editClicks.ts": {
     "label": "host-math",
     "maxMath": 1,
@@ -43,6 +46,11 @@
   },
   "src/components/viewport/babylon/paintStroke.ts": {
     "label": "host-adapter"
+  },
+  "src/components/viewport/babylon/printAngle.ts": {
+    "label": "host-math",
+    "maxMath": 1,
+    "why": "the arc itself: points swept from the plate line to the model's tilt, and the reading placed half way round it. Copied from PrintAngleArc.tsx rather than re-derived, including the rule that it stands under the model's own footprint so the mark cannot fall outside whatever the camera framed"
   },
   "src/components/viewport/babylon/surfacePointer.ts": {
     "label": "host-math",

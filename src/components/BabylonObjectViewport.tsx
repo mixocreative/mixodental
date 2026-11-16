@@ -27,6 +27,9 @@ import { drawDentalRim, drawDentalRisks } from './viewport/babylon/dentalMarks';
 import { drawTipMarkers } from './viewport/babylon/tipMarkers';
 import { drawAddFlash, drawPlateOutline } from './viewport/babylon/sceneMarks';
 import { drawDebugLayers, drawProblemMarks } from './viewport/babylon/checkMarks';
+import { createDomAnchors, type DomAnchors } from './viewport/babylon/domAnchor';
+import { drawPrintAngle } from './viewport/babylon/printAngle';
+import { tokenCss } from '../ui/tokenColour';
 import { tipsOf } from '@mixo-geocore/host/core/supports/meshQuery';
 import { resolveSettings as resolveUnitSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { attachSurfaceBrush, type ActiveBrush } from './viewport/babylon/paintStroke';
@@ -97,6 +100,9 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const unitNodes = useRef(new Map<string, TransformNode>());
   const gizmoRef = useRef<TransformGizmo | null>(null);
   const camerasRef = useRef<CameraViews | null>(null);
+  const anchorsRef = useRef<DomAnchors | null>(null);
+  /** Where DOM anchored to 3D points is mounted: an overlay the size of the canvas. */
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const colours = useViewportColours();
   // Read by the pointer layers, which are attached once and must still see today's tokens.
   const coloursRef = useRef(colours);
@@ -235,6 +241,14 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
           return undefined;
         },
       }),
+      (() => {
+        const anchors = createDomAnchors(scene, pointer.port);
+        anchorsRef.current = anchors;
+        return () => {
+          anchorsRef.current = null;
+          anchors.dispose();
+        };
+      })(),
       (() => {
         const views = attachCameraViews(scene, {
           camera,
@@ -524,6 +538,22 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * other two need the tip selection plumbed through and that is a prop this view does not take
        * yet. Scale 0.42 is three's number for the plain set.
        */
+      // The print angle, on the plate beside the model, with its reading as real DOM.
+      const anchors = anchorsRef.current;
+      const overlay = overlayRef.current;
+      if (props.printAngle?.unitId === unit.id && anchors && overlay) {
+        disposers.push(drawPrintAngle({
+          name: `${unit.id}-print-angle`,
+          scene,
+          parent: node,
+          anchors,
+          host: overlay,
+          bounds: node.getHierarchyBoundingVectors(true),
+          deg: props.printAngle.deg,
+          colour: tokenCss('--angle-mark'),
+        }));
+      }
+
       // Support-check findings on this unit, and Step 1's evidence layers.
       const found = props.problems.filter((problem) => problem.unitId === unit.id);
       if (found.length > 0) {
@@ -597,7 +627,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       }
       nodes.clear();
     };
-  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks, props.dentalTips, props.tipsView, props.added, props.plate, props.problems, props.debugLayers]);
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks, props.dentalTips, props.tipsView, props.added, props.plate, props.problems, props.debugLayers, props.printAngle]);
 
   /*
    * Which unit the gizmo is on, and in which mode. DECLARED AFTER THE UNITS EFFECT ON PURPOSE:
@@ -620,6 +650,9 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
 
   return (
     <div className="babylon-viewport" data-ui="viewport-babylon">
+      {/* DOM anchored to points in the scene (the angle reading, the bubbles) lives here, over the
+          canvas: real text in the page, so it takes the app's fonts and can be read aloud. */}
+      <div ref={overlayRef} className="babylon-overlay" data-ui="viewport-babylon-overlay" />
       <canvas
         ref={canvasRef}
         data-ui="viewport-babylon-canvas"
