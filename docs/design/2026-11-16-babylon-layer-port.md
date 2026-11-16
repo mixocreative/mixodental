@@ -184,6 +184,47 @@ Also already in hand: `gizmoShown(gesture, gizmoMode, rotationGizmo)` is exporte
 `ObjectViewport.tsx` and is renderer-free, so the visibility rule needs no porting; and the camera
 must stand down during a gizmo drag exactly as it does during a brush stroke.
 
+### The drag-over brush: the last three props, and why it is its own job
+
+`onPaint`, `onShift` and `onNoBodies` are one piece, not three, and it is the only remaining part
+of the viewport that cannot be written by adapting a decision function in an afternoon. What is
+established:
+
+**The decisions are all renderer-free and ready:** `bodySegments` / `tipSegments` turn supports into
+screen-space segments, `brushHits` answers what a swept circle covered, `createBrushScheduler`
+paces the work across frames, and `createDragOver` owns the gesture (a press on empty space belongs
+to the CAMERA and ends any open stroke; the mode is LATCHED at the press, so Shift changing
+mid-stroke does not change what that stroke does).
+
+**What is genuinely renderer-specific is small:** a `view` with `frame()` returning the hit test,
+built from the port's `brushView` — the clip matrix of the SUPPORT GROUP (projection x view x the
+unit's world matrix) and the eye in that group's space, because `brushHits` works in support-local
+coordinates. `surfacePointer`'s `brushView` is NOT that and says so at the line.
+
+**A finding that shrinks the job: occluders are dormant.** `screenBrushView` gathers meshes with
+`userData.occluder`, and NOTHING in `src/` sets it — so `visibleOccluders()` always returns an
+empty list. Passing `[]` is therefore faithful to what the three.js view actually does today, not a
+simplification of it. Say so in a comment rather than quietly matching it.
+
+**The obstacle, and the two honest routes.** `useScreenBrush` is a React hook bound to r3f through
+`useThree` (gl, camera, scene), so it cannot simply be called from the Babylon view:
+
+1. **Refactor it to take its view and its canvas injected**, so BOTH views use one hook. This is the
+   only route that makes the brush identical *by construction*, which is the rule everything else
+   here follows. It is a change to a 341-line shared file and must be walked.
+2. **Reimplement the orchestration on the Babylon side**, reusing the scheduler, `createDragOver`
+   and `brushHits`. Lower risk to the three.js path, but the two agree only while someone keeps
+   them agreeing — the exact failure mode the rule exists to prevent.
+
+Route 1 is correct. It is recorded here rather than attempted at the end of a long session because
+a hasty refactor of the shared hook is how the three.js brush would acquire a subtle fault, and
+that brush is what the walk's `g`-series checks exercise.
+
+**And `unitOverlay`, the one prop that cannot be ported as it stands:** it is typed `ReactNode` and
+mounted inside a 3D group. If what it carries is r3f elements, the INTERFACE is renderer-bound, not
+the implementation, and it must pass data instead. If it is plain DOM, `AnchoredDom` already takes
+it. Decide which it is before wiring it — the denture add-on tint is the only caller.
+
 ### Wiring the remaining 25 props, and the rule that makes the two views identical
 
 **THE OWNER'S REQUIREMENT, 2026-11-16: the user flow, the UX, the UI and the tool modes must be
