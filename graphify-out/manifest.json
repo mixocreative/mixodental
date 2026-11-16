@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794800775.985243,
-    "seen": 1794801048.4372432,
-    "ast_hash": "4152858007c69db6faa61598e47b3bfb",
+    "mtime": 1794847076.9259086,
+    "seen": 1794851504.0562568,
+    "ast_hash": "6cf05c225ec23f02cfab88e84f38c197",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -204,9 +204,9 @@
     "semantic_hash": ""
   },
   "src/components/ObjectViewport.tsx": {
-    "mtime": 1793942940.7675736,
-    "seen": 1793944627.1648912,
-    "ast_hash": "cf2eb0fb224a9138e3c8c2ed446c6c33",
+    "mtime": 1794847083.975096,
+    "seen": 1794851504.0562568,
+    "ast_hash": "d1744d443d5f2b2e44c3ee28c0ee81cf",
     "semantic_hash": ""
   },
   "src/components/ProblemList.tsx": {
@@ -402,15 +402,15 @@
     "semantic_hash": ""
   },
   "src/components/viewport/types.ts": {
-    "mtime": 1793942979.4145172,
-    "seen": 1793944627.1648912,
-    "ast_hash": "49557e3bcf2632a4c09877d6e3056128",
+    "mtime": 1794847098.2930439,
+    "seen": 1794851504.0562568,
+    "ast_hash": "f206a2a6b17289ca591e905229641b13",
     "semantic_hash": ""
   },
   "src/components/viewport/useScreenBrush.ts": {
-    "mtime": 1793268940.8085587,
-    "seen": 1793268959.9457123,
-    "ast_hash": "3b5bc83d6fda3b4a5188383b2af44586",
+    "mtime": 1794846195.9092185,
+    "seen": 1794851504.0562568,
+    "ast_hash": "6091a5bc198d355ad6217564dbee8cd2",
     "semantic_hash": ""
   },
   "src/core/analysis/dental.test.ts": {
@@ -1513,9 +1513,9 @@
     "semantic_hash": ""
   },
   "scripts/geometry-allowlist.json": {
-    "mtime": 1794799674.909705,
-    "seen": 1794799853.847908,
-    "ast_hash": "d5bf210472a7882e1da9389210a3834e",
+    "mtime": 1794849071.5083444,
+    "seen": 1794851504.0562568,
+    "ast_hash": "daee132ed19314fddd639297ee2794a1",
     "semantic_hash": ""
   },
   "docs/SHIP-PLAN.md": {
@@ -4626,18 +4626,6 @@
     "ast_hash": "935f2e46bebccf0d6a7a90e2cb207da9",
     "semantic_hash": ""
   },
-  "src/denture/parts/addOnTint.test.tsx": {
-    "mtime": 1793563313.4399755,
-    "seen": 1793563339.0681946,
-    "ast_hash": "0a66f33e61c301dc66b38226a2dca1d9",
-    "semantic_hash": ""
-  },
-  "src/denture/parts/addOnTint.tsx": {
-    "mtime": 1793563466.4502547,
-    "seen": 1793563500.021421,
-    "ast_hash": "7ac00ed030eda359ae5cee099f667e12",
-    "semantic_hash": ""
-  },
   "src/components/viewport/FaceTintLayer.tsx": {
     "mtime": 1793563466.4492562,
     "seen": 1793563500.0159135,
@@ -6199,9 +6187,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/README.md": {
-    "mtime": 1794801403.431313,
-    "seen": 1794801714.114025,
-    "ast_hash": "d503592e51c3242c28e8b02b8fb0774f",
+    "mtime": 1794847421.7433155,
+    "seen": 1794851504.0562568,
+    "ast_hash": "0ad9a08b5bf678505fc9718ea8c0267f",
     "semantic_hash": ""
   },
   "src/state/README.md": {
@@ -6361,21 +6349,21 @@
     "semantic_hash": ""
   },
   "src/components/viewport/babylonTransform.test.ts": {
-    "mtime": 1794799553.4025643,
-    "seen": 1794799853.847908,
-    "ast_hash": "6b862de3c50f82a5e70c9b6a04fa6fa0",
+    "mtime": 1794819125.228081,
+    "seen": 1794851504.0562568,
+    "ast_hash": "8003ebb00ca7a350678071a550e2c527",
     "semantic_hash": ""
   },
   "src/components/viewport/babylonTransform.ts": {
-    "mtime": 1794799485.8430085,
-    "seen": 1794799853.847908,
-    "ast_hash": "52d0b3c3ff52d3f7aaf1f9d925d5cf5d",
+    "mtime": 1794819125.179385,
+    "seen": 1794851504.0562568,
+    "ast_hash": "a1229a14205269e39a0a23514d341e67",
     "semantic_hash": ""
   },
   "src/components/viewport/babylonViewportPort.ts": {
-    "mtime": 1794799057.956439,
-    "seen": 1794799853.847908,
-    "ast_hash": "3e583e9b8236aae4c1cdd5250b810bd1",
+    "mtime": 1794807600.7519338,
+    "seen": 1794851504.0562568,
+    "ast_hash": "03ead3d8cba394b48d24d7ca7553da4b",
     "semantic_hash": ""
   },
   "src/components/viewport/enginePick.ts": {
@@ -6397,9 +6385,9 @@
     "semantic_hash": ""
   },
   "src/components/BabylonObjectViewport.tsx": {
-    "mtime": 1794801393.486185,
-    "seen": 1794801714.1125233,
-    "ast_hash": "8f45071732b7787edcbb947ecc9cfec2",
+    "mtime": 1794847438.0081694,
+    "seen": 1794851504.0562568,
+    "ast_hash": "753ba6b04040aa112bd1866f2f7f115e",
     "semantic_hash": ""
   },
   "src/ui/assets/icons/language.svg": {
@@ -6418,6 +6406,204 @@
     "mtime": 1794800756.9432712,
     "seen": 1794801048.4382408,
     "ast_hash": "cb876e7eea9425efb4552bfcce360bc2",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/AnchoredDom.tsx": {
+    "mtime": 1794842950.1420896,
+    "seen": 1794851504.0562568,
+    "ast_hash": "ac45c35f1ab0865c58b202d882962811",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/brushBodies.test.ts": {
+    "mtime": 1794846796.4402766,
+    "seen": 1794851504.0562568,
+    "ast_hash": "7747073142c4c74f50b0dae9c465b7f9",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/brushBodies.ts": {
+    "mtime": 1794846748.3293173,
+    "seen": 1794851504.0562568,
+    "ast_hash": "18363b1623ccf19d990e52daa6bd7c10",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/bubblePoints.ts": {
+    "mtime": 1794842937.3121285,
+    "seen": 1794851504.0562568,
+    "ast_hash": "4dd67dda59b7bd321fb90ff36a567d62",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/cameraViews.ts": {
+    "mtime": 1794839867.7630346,
+    "seen": 1794851504.0562568,
+    "ast_hash": "f521bff5203dad54ae99fc05823718be",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/checkMarks.ts": {
+    "mtime": 1794842041.0370843,
+    "seen": 1794851504.0562568,
+    "ast_hash": "a78d2aadef699bc81a1d69a6003248ce",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/dentalArea.ts": {
+    "mtime": 1794831857.530912,
+    "seen": 1794851504.0562568,
+    "ast_hash": "cc50b8f706e083ecd71c06f232e90f2b",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/dentalMarks.ts": {
+    "mtime": 1794834213.7059667,
+    "seen": 1794851504.0562568,
+    "ast_hash": "77a5fb59e08dcc7844c325a912bbfd10",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/domAnchor.ts": {
+    "mtime": 1794842206.8289428,
+    "seen": 1794851504.0562568,
+    "ast_hash": "224cd49dd556c1485b5fab48db539eb3",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/editClicks.ts": {
+    "mtime": 1794843252.7844338,
+    "seen": 1794851504.0562568,
+    "ast_hash": "d5b0c5d77679994d1397a1449acd346f",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/editPreview.ts": {
+    "mtime": 1794816533.2005448,
+    "seen": 1794851504.0562568,
+    "ast_hash": "f03d7f213518f37a7de5c80180285896",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/faceTint.ts": {
+    "mtime": 1794847058.5955782,
+    "seen": 1794851504.0562568,
+    "ast_hash": "736264cad8a89281d5c86a4c5ea00704",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/linearColour.test.ts": {
+    "mtime": 1794816735.0359807,
+    "seen": 1794851504.0562568,
+    "ast_hash": "9dc1fa83c33a9cdd29c83be2b1b2cdb1",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/linearColour.ts": {
+    "mtime": 1794816720.25935,
+    "seen": 1794851504.0562568,
+    "ast_hash": "b0ff282699a585362707cfb8e9a5bc22",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/paintStroke.ts": {
+    "mtime": 1794840811.5959826,
+    "seen": 1794851504.0562568,
+    "ast_hash": "c844ccf13855704d5b2c893f95c957e5",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/printAngle.ts": {
+    "mtime": 1794842231.194722,
+    "seen": 1794851504.0562568,
+    "ast_hash": "651bfc9adaa64b7c35b0fd854fa6c214",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/rimDraw.ts": {
+    "mtime": 1794843456.7191577,
+    "seen": 1794851504.0562568,
+    "ast_hash": "ca669d5b457d3bc15f176628566cd722",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/rimLayer.ts": {
+    "mtime": 1794843505.405854,
+    "seen": 1794851504.0562568,
+    "ast_hash": "b74de914d841399231617f689c6a8b60",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/sceneMarks.ts": {
+    "mtime": 1794841384.6492493,
+    "seen": 1794851504.0562568,
+    "ast_hash": "79fe22162d464ce696f60c030170c925",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/selectionColours.ts": {
+    "mtime": 1794816768.690777,
+    "seen": 1794851504.0562568,
+    "ast_hash": "12350614ee4fe34ef05ba3dedb9126e2",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/sessionHandles.ts": {
+    "mtime": 1794807750.1269205,
+    "seen": 1794851504.0562568,
+    "ast_hash": "2e8e2d964938d68961449afdda6b51fc",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/supportFrame.test.ts": {
+    "mtime": 1794824604.9566696,
+    "seen": 1794851504.0562568,
+    "ast_hash": "45f69501f5a1d36f1e48a0d95691a515",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/surfacePointer.ts": {
+    "mtime": 1794840595.5001638,
+    "seen": 1794851504.0562568,
+    "ast_hash": "4dab6dfdb9996e26ebe4084c1ce75a86",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/surfaceStamps.test.ts": {
+    "mtime": 1794829519.2210035,
+    "seen": 1794851504.0562568,
+    "ast_hash": "cc58b3fe361b7d42e11201dd21f9d6c6",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/surfaceStamps.ts": {
+    "mtime": 1794829533.0842102,
+    "seen": 1794851504.0562568,
+    "ast_hash": "2636f024baf8dd205ee74e3e7f13da4f",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/tipMarkers.ts": {
+    "mtime": 1794836594.8468175,
+    "seen": 1794851504.0562568,
+    "ast_hash": "c0c25b25f5082e873cc24d53612c1009",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/babylon/transformGizmo.ts": {
+    "mtime": 1794824219.6505291,
+    "seen": 1794851504.0562568,
+    "ast_hash": "9baf924cfcd4db825aab66299a0a0c55",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/useBrushOverlay.ts": {
+    "mtime": 1794846149.8997517,
+    "seen": 1794851504.0562568,
+    "ast_hash": "363f7399aa0a509f9d19fbabbfa0ab76",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/vertexNormals.test.ts": {
+    "mtime": 1794804742.4186144,
+    "seen": 1794851504.0562568,
+    "ast_hash": "982266c47b848a753786a16f429c512f",
+    "semantic_hash": ""
+  },
+  "src/components/viewport/vertexNormals.ts": {
+    "mtime": 1794804709.152901,
+    "seen": 1794851504.0562568,
+    "ast_hash": "8537d42254b61ae70a35a4f1f0dfbb48",
+    "semantic_hash": ""
+  },
+  "src/denture/parts/addOnTint.test.ts": {
+    "mtime": 1794847044.1279604,
+    "seen": 1794851504.0562568,
+    "ast_hash": "af733d5f7918d049e0ed0acfd8585a75",
+    "semantic_hash": ""
+  },
+  "src/denture/parts/addOnTint.ts": {
+    "mtime": 1794847030.634445,
+    "seen": 1794851504.0562568,
+    "ast_hash": "fe609135265582439d34242d887ccc99",
+    "semantic_hash": ""
+  },
+  "docs/design/2026-11-16-babylon-layer-port.md": {
+    "mtime": 1794847460.4053583,
+    "seen": 1794851504.0562568,
+    "ast_hash": "93c8ad599ffc86d636f89bb336c1e1cd",
     "semantic_hash": ""
   }
 }
