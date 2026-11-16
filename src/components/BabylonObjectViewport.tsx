@@ -28,6 +28,7 @@ import { drawTipMarkers } from './viewport/babylon/tipMarkers';
 import { drawAddFlash, drawPlateOutline } from './viewport/babylon/sceneMarks';
 import { drawDebugLayers, drawProblemMarks } from './viewport/babylon/checkMarks';
 import { createDomAnchors, type DomAnchors } from './viewport/babylon/domAnchor';
+import type { SurfacePath } from '../core/surfacePath/path';
 import { drawPrintAngle } from './viewport/babylon/printAngle';
 import { tokenCss } from '../ui/tokenColour';
 import { AnchoredDom, type AnchoredItem } from './viewport/babylon/AnchoredDom';
@@ -38,6 +39,8 @@ import { tipsOf } from '@mixo-geocore/host/core/supports/meshQuery';
 import { resolveSettings as resolveUnitSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { attachSurfaceBrush, type ActiveBrush } from './viewport/babylon/paintStroke';
 import { attachEditClicks } from './viewport/babylon/editClicks';
+import { attachRimDraw } from './viewport/babylon/rimDraw';
+import { drawRimDraft } from './viewport/babylon/rimLayer';
 import { attachCameraViews, type CameraViews } from './viewport/babylon/cameraViews';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer, type SurfacePointer } from './viewport/babylon/surfacePointer';
@@ -106,6 +109,8 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const camerasRef = useRef<CameraViews | null>(null);
   const anchorsRef = useRef<DomAnchors | null>(null);
   const pointerRef = useRef<SurfacePointer | null>(null);
+  /** The rim as it is being dragged, so the drawn line follows the pointer mid-gesture. */
+  const [rimDrag, setRimDrag] = useState<SurfacePath | undefined>(undefined);
   /** Where DOM anchored to 3D points is mounted: an overlay the size of the canvas. */
   const overlayRef = useRef<HTMLDivElement | null>(null);
   // The scene is built in an effect, so the first render has no overlay or anchors yet. This flips
@@ -290,6 +295,24 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * view's handlers adapt to. Sharing the decision is what makes the two views behave
        * identically; matching them by hand would hold only until one of them changed.
        */
+      /*
+       * Rim define mode takes the pointer whole while it is on: the target UNDER THE PRESS decides
+       * what happens, and `rimTapAt` / `rimTargetAt` make that decision for both renderers.
+       */
+      attachRimDraw({
+        canvas,
+        camera,
+        pointer,
+        drawing: () => propsRef.current.gesture.kind === 'dental-rim',
+        draft: () => {
+          const active = propsRef.current.scene.units.find((unit) => unit.id === propsRef.current.scene.activeUnitId);
+          return active ? { unitId: active.id, path: active.rimDraft } : undefined;
+        },
+        onRimPoint: (unitId, point, normal) => propsRef.current.onRimPoint(unitId, point, normal),
+        onRimPath: (unitId, path) => propsRef.current.onRimPath(unitId, path),
+        onRimSelect: (at) => propsRef.current.onRimSelect(at),
+        onDragPath: setRimDrag,
+      }),
       attachEditClicks({
         canvas,
         pointer,
@@ -551,6 +574,22 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * other two need the tip selection plumbed through and that is a prop this view does not take
        * yet. Scale 0.42 is three's number for the plain set.
        */
+      /*
+       * The rim being drawn. Mid-drag the path comes from the drag rather than the unit, so the
+       * line follows the pointer; the unit's own draft only catches up when the drag is dropped.
+       */
+      const drawnRim = rimDrag ?? unit.rimDraft;
+      if (drawnRim && propsRef.current.scene.activeUnitId === unit.id) {
+        const gestureNow = props.gesture;
+        disposers.push(drawRimDraft(scene, {
+          name: `${unit.id}-rim-draft`,
+          parent: node,
+          path: drawnRim,
+          ...(gestureNow.kind === 'dental-rim' && gestureNow.selected !== undefined ? { selected: gestureNow.selected } : {}),
+          colour: colours.preview.remove,
+        }));
+      }
+
       // The print angle, on the plate beside the model, with its reading as real DOM.
       const anchors = anchorsRef.current;
       const overlay = overlayRef.current;
@@ -640,7 +679,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       }
       nodes.clear();
     };
-  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks, props.dentalTips, props.tipsView, props.added, props.plate, props.problems, props.debugLayers, props.printAngle]);
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks, props.dentalTips, props.tipsView, props.added, props.plate, props.problems, props.debugLayers, props.printAngle, rimDrag]);
 
   /*
    * Which unit the gizmo is on, and in which mode. DECLARED AFTER THE UNITS EFFECT ON PURPOSE:

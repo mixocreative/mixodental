@@ -58,6 +58,11 @@
     "maxMath": 1,
     "why": "the arc itself: points swept from the plate line to the model's tilt, and the reading placed half way round it. Copied from PrintAngleArc.tsx rather than re-derived, including the rule that it stands under the model's own footprint so the mark cannot fall outside whatever the camera framed"
   },
+  "src/components/viewport/babylon/rimDraw.ts": {
+    "label": "host-math",
+    "maxMath": 1,
+    "why": "one hypot: how far the pointer travelled during a press, which rimTapAt turns into the difference between placing an anchor and ending a drag. Without it, dragging a handle would drop a fresh anchor wherever it was released"
+  },
   "src/components/viewport/babylon/surfacePointer.ts": {
     "label": "host-math",
     "maxMath": 2,
