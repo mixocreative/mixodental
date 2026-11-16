@@ -480,3 +480,70 @@ means rewriting the walk to drive whichever renderer it is pointed at. That is t
 for this whole migration, and until it is written the Babylon view is a preview however complete it
 looks. Only then does three.js come out — `three`, `@react-three/fiber`, `@react-three/drei`, and
 the 2,480 lines in `src/components/viewport/` that use them.
+
+## 2026-11-17 — the walk drives either renderer, and what it found
+
+`npm run walk -- --renderer=babylon` runs the same 186 checks against the Babylon view. **One file,
+two runs**, because a second walk file would have drifted from this one within a week and would have
+proved only that the two views agree about whatever somebody remembered to copy. Almost every check
+is the app's behaviour — counts, status lines, what Undo brings back — and does not care which
+library drew the pixels, so the flag only changes the base URL: the renderer switch is read from the
+address on every load and deliberately not remembered, so every `page.goto(url)` carries it.
+
+**The verdict line names the renderer whenever it is not the default.** A Babylon receipt must never
+be readable as the three.js gate, which is what `npm run gate` and CLAUDE.md still mean.
+
+### Five faults, and not one of them was where it hurt
+
+The first Babylon run died at check 73 with five rim failures. None of them was about the rim.
+
+1. **The edit clicks ran in rim define mode.** three's `UnitObject` returns before `pickFor` while a
+   rim is being drawn; this view had no such guard, so every click that placed an anchor also added
+   a support. A probe counted fifteen. Fifteen supports grew the unit's bounding box fourfold; the
+   camera fit framed the supports rather than the model; the walk aims at canvas FRACTIONS, so its
+   clicks then missed the model altogether. One missing guard, five failing checks, none of them
+   about the thing that was wrong. The rule is named once now (`clickOwner.ts`) and both views ask
+   it.
+
+2. **The camera fit was declared before the units effect**, so the fit that arrives with a freshly
+   imported model found no node and did nothing. The same trap as the gizmo, in the same file.
+   Proved by measurement: with Fit pressed by hand the two views' models covered exactly the same
+   canvas cells, which said the arithmetic was never wrong and the ordering was.
+
+3. **The area layers read only the PREVIEW**, never the accepted policy, so once Step 1 handed its
+   policy over every one of them vanished — the drawing was saved and invisible. No check caught
+   this directly; it fell out of chasing (4).
+
+4. **A one-pixel line at 0.9 alpha renders near-white here.** `u5j` measures the area-edge token on
+   the model: zero pixels in this view, 122 in three. Forced to a pure green the line measured
+   177/255/183 — lifted on the two channels that should have been zero — so the colour reached the
+   shader and the blending ate it. One opaque pass measured 0/255/0 exactly. Both loops are opaque
+   now and the rim measures 105 pixels of the exact token.
+
+5. **Babylon drew and picked the full mesh where three draws and picks the simplified DISPLAY copy.**
+   `b3d` adds a support at one canvas point on the real aligner: three answered "Support added." and
+   this view answered "This spot faces up, so a tip here may not hold." One spot, two answers,
+   because they were not the same surface. The display copy is what is drawn, picked and used as a
+   brush occluder now, and the surface overlays are gated on `shown === unit.source` exactly as
+   `UnitObject` gates them.
+
+### The probes, which are worth more than the fixes
+
+Three throwaway scripts did the work, and each asked the APP rather than the picture:
+
+- **a canvas-fraction hit grid** — click a grid of points, watch the rim count, print where the
+  model is. That is what turned "the rim is broken" into "the model is three times too small";
+- **a React-props read** (the walk's own `readProps` trick) — both views reported the same policy
+  kind, the same sixty rim points and the same opening direction, which said the drawing was
+  reaching the screen and arriving the wrong colour;
+- **a forced colour** — set the rim green and measure. The answer was lifted on exactly the channels
+  that should have been zero, which is a blending fact, not a colour fact.
+
+### Still open, and quantified
+
+The two views land the same click **0.19 mm apart** on the same face (`b3d`: tip at
+-23.352/2.246/-0.952 against -23.299/2.122/-1.081). An `ArcRotateCamera` is placed through alpha,
+beta and radius, so it cannot land on three's exact position. It is within a face everywhere the
+walk looks. The zone brush also lands a stroke differently on the knot (three: one stroke, six
+supports hidden; Babylon: two strokes, seven) — the check is relational and passes either way, and
+the cause has not been chased.

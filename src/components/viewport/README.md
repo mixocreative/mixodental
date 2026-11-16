@@ -30,17 +30,34 @@ Babylon view it reaches; App picks one component or the other at module load, an
 migration, not a list of layers: a layer can be "drawn" and still be unreachable because the prop
 that feeds it was never read. Keep it honest the same way — count the props.
 
-What is NOT done is the finish line: **`scripts/walk.mjs` drives three.js, not Babylon.** Until it
-drives either renderer, nothing here is proved the way the shipping view is proved, and three.js
-cannot be removed. That is the next job, and it is the only one that gates the removal.
+**The walk drives either renderer.** `npm run walk -- --renderer=babylon` runs the same 186 checks
+against the Babylon view. The flag only changes the base URL, because the checks are the app's
+behaviour and not the pixels, and the verdict line names the renderer whenever it is not the
+default — a Babylon receipt can never be read as the three.js gate. `npm run gate` and CLAUDE.md's
+local gate still mean the three.js run until three.js is gone.
 
-Two visuals are built as DATA but not yet DRAWN, both the same missing piece — a second,
-see-through pass over the support bodies:
+**What the first Babylon walk found, and not one of them was where it hurt.** Read this table
+before adding a layer to this view; every row is a fault that only a second renderer could expose,
+and every one was measured rather than reasoned out:
 
-| Not drawn | What it is | Three's version |
-|---|---|---|
-| the Drag over ghost | the supports under the circle that a sweep would change, see-through | `brushPreview().ghost`, drawn by `SupportBodies` |
-| the tip solid/ghost split | Step 2's selected and hovered tips, at a larger scale | `UnitObject`'s three tip sets |
+| What the walk said | What was wrong |
+|---|---|
+| five rim checks failing with "points 1" | the edit clicks ran in rim define mode, so every click that placed an anchor **also added a support**. Fifteen supports grew the unit's bounds fourfold, the camera framed those instead of the model, and the walk's canvas-fraction clicks then missed it. The rule is shared now: `clickOwner.ts` |
+| the same, and the model three times too small | the camera effect was declared BEFORE the units effect, so the fit that arrives with a fresh model found no node and did nothing. Second time in this file; the gizmo had it too |
+| "the drawn rim is visible … 0 px of the colour" | a one-pixel line at 0.9 alpha with a fainter copy over it leaves almost no pixel at full strength here. Both loops are opaque now, and the rim measures 105 px of the exact token against three's 122 |
+| nothing — no check caught it | this view read only the dental area PREVIEW, so once Step 1 handed its policy over every area layer vanished. It reads the accepted policy first now |
+| "Add … says so": three said "Support added.", Babylon said "This spot faces up" | a heavy import gets a simplified DISPLAY copy, and `UnitObject` draws and picks that one. This view drew and picked the full mesh, so the same pixel met a different triangle |
+
+**Both see-through overlays are drawn.** `babylon/supportBodies.ts` ports `SupportBodies`, and it is
+the one layer that deliberately differs in its mechanics: it REMAPS the vertices it needs rather
+than sharing the support mesh's buffers, because Babylon has no safe way to hand one `VertexBuffer`
+to two meshes. `splitTipMarks` in `tipMarkSplit.ts` decides the tips' three states for BOTH views.
+
+**The one difference still measured, and it is not a defect yet:** the two views land a click
+0.19 mm apart on the same face (`b3d`, tip at -23.352/2.246/-0.952 against -23.299/2.122/-1.081).
+An `ArcRotateCamera` is placed through alpha, beta and radius, so `place()` cannot land the camera
+on three's exact position. It is within a face everywhere the walk looks; if a check ever starts
+flickering near a boundary, this is why.
 
 **A trap for anyone testing this by hand: supports take about 16 seconds to build on the knot
 fixture, and the panel enables "Remove supports" within 2.** Wait on the data, not on the button —
