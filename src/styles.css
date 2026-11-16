@@ -648,15 +648,47 @@ footer.on-scene button { pointer-events: auto; }
 .panel, .units { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 
 /* ---- Language switch ------------------------------------------------------ */
+/*
+ * A globe, not a word. The picker used to be a dropdown showing the current language in its own
+ * name, so its width was set by the longest of them; it is one 36px key now, and the nav bar keeps
+ * the difference.
+ *
+ * The native <select> is still here, laid invisibly over the icon rather than replaced by a custom
+ * menu. That is deliberate: the open list, the keyboard, the type-ahead and the screen-reader
+ * announcement stay the platform's own, each language is still named in its own script when the
+ * list is open, and this costs no JavaScript and no state. A hand-built listbox would have to earn
+ * all of that back, and the usual way it fails is silently, for the people who need it most.
+ */
 .lang-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
   height: 36px;
-  padding: 0 28px 0 10px;
   border: 1px solid var(--line);
   background: var(--surface);
   border-radius: var(--radius);
+  color: var(--ink);
+}
+.lang-select:hover { border-color: var(--line-strong); background: var(--raised); }
+/* The focus ring belongs on the key, because the thing actually focused is invisible. */
+.lang-select:focus-within { outline: 1px solid var(--ink); outline-offset: 2px; }
+.lang-select > svg { width: 18px; height: 18px; flex: none; pointer-events: none; }
+.lang-select > select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  appearance: none;
   font-size: 12px;
   cursor: pointer;
 }
+.lang-select > select:focus-visible { outline: 0; }
 .nav-exit { height: 36px; margin-left: 8px; }
 
 /* ---- Support check ---------------------------------------------------------- */

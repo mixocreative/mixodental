@@ -118,6 +118,7 @@ export const ICON_CATALOGUE: IconEntry[] = [
   { name: 'restore', slot: 'free', source: 'lucide', where: 'Restore step: the round key that puts a finished step back in hand' },
   { name: 'drop-file', slot: 'free', source: 'lucide', where: 'Start screen and Step 0: the Choose STL file key' },
   { name: 'warning', slot: 'free', source: 'drawn', where: 'Viewport, unresolved-point bubble: a tip, lowest point or island with no support yet' },
+  { name: 'language', slot: 'free', source: 'lucide', where: 'Nav bar: the language key (lucide globe). It replaced a dropdown as wide as the longest language name; the names themselves are still in the open list' },
 
   // The one icon that is not a page element: it becomes a canvas cursor.
   { name: 'cursor-rim', slot: 'inline', source: 'drawn', where: 'Rim define mode, the pointer over the model: a crosshair round an open square, because a press there places or grabs a POINT. Built into a cursor by src/components/viewport/style.ts' },
