@@ -184,6 +184,39 @@ Also already in hand: `gizmoShown(gesture, gizmoMode, rotationGizmo)` is exporte
 `ObjectViewport.tsx` and is renderer-free, so the visibility rule needs no porting; and the camera
 must stand down during a gizmo drag exactly as it does during a brush stroke.
 
+### The dental layers: SEVEN components, not one
+
+`dentalLayers.tsx` is the biggest remaining piece and it is not a single layer. Take them
+separately; two of them are nearly free because the Babylon port already has the path.
+
+| Component | What it needs |
+|---|---|
+| `DentalStampLayer`, `DentalPaintLayer` | Both wrap `SurfaceStampLayer` — the SAME stamp-to-vertices path `babylon/zoneLayer.ts` already ports. Do these first; they should be a few lines each once the zone layer is generalised to take a colour and a stamp list |
+| `DentalFaceLayer` | The real work. See below |
+| `DentalRegionLines` | Rust `faceMaskContourSegments(mesh, pairs)` for `region.outerEdges` and `region.openingEdges`, drawn as two line sets: outer in `--mark-ring`, opening in `--mark-area-edge`, both `depthTest: false`, `depthWrite: false`. Its comment says why it matters: **exact mesh edges, not a planar proxy for a non-planar dental trim** |
+| `DentalRiskLayer` | A disc on each overhang low point outside the permitted area. Display only — supports and export never read it |
+| `DentalRimOutline` | The rim as drawn |
+| `DentalTipMarkers` / `TipInstances` | Step 2's tip preview, INSTANCED cones. Babylon's equivalent is thin instances, not one mesh each |
+
+**`DentalFaceLayer`, and the trick in it worth copying rather than reinventing.** The geometry comes
+from Rust: `faceMaskOverlay(mesh, dentalContactMask(policy, triangleCount))` returns positions and
+normals with a separate vertex per approved triangle corner. The layer is then masked **by ALPHA in
+the vertex colours alone** — one uniform colour (`--mark-area-permitted`) with each vertex's alpha
+set to 255 or 0 from a `Uint8Array` mask. No geometry is rebuilt when the painted area changes.
+
+The mask is updated **incrementally**: if the new stamp list extends the applied one (same kinds,
+`sameStamp` on each), only the new stamps are laid; anything else resets the mask to 1 and replays.
+`stampVertices` is reused with `allow` mapped to `paint` and the other kind to `erase`.
+
+Material: basic/unlit, vertex colours ON, **double-sided**, transparent at the given opacity,
+`depthWrite: false`, `polygonOffset -2/-2` (Babylon: `zOffset = -2`), renderOrder 16.
+
+**A Babylon-specific note, and it is the mirror of a trap already met.** This layer NEEDS
+`hasVertexAlpha = true`, because its whole masking mechanism is vertex alpha. The support mesh in
+`BabylonObjectViewport` sets `hasVertexAlpha = false` for the opposite reason — its vertex colours
+are opaque and letting Babylon infer alpha blending there would be both slower and wrong. Same flag,
+opposite answers, for reasons that are not interchangeable.
+
 ### Layer 1's data path, so nobody re-derives it
 
 Every step but the last is renderer-free and already written. The Babylon work is the final draw.
