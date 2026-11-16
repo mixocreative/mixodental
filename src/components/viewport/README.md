@@ -20,7 +20,31 @@ added to it is added to both. three.js leaves when the last layer is Babylon, no
 
 `src/ui/renderer.ts` is the switch: `?renderer=babylon` in the address, three.js otherwise. It is
 deliberately not remembered between visits — a half-migrated renderer that sticks produces bug
-reports about the renderer nobody shipped.
+reports about the renderer nobody shipped. `src/components/BabylonObjectViewport.tsx` is the
+Babylon view it reaches; App picks one component or the other at module load, and both take
+`ObjectViewportProps`, so the switch is one line.
+
+### What the Babylon view still owes
+
+Drawn today: the models, lit and framed as three.js frames them, orbitable, clickable to select —
+verified against the three.js view on the same fixture, landing at the same position, size and
+camera angle. **Not drawn yet**, and this list is the migration's to-do:
+
+| Still three.js only | Where it lives today |
+|---|---|
+| support bodies, ghost tip, remove ring, highlights | `supportLayers.tsx` |
+| the dental paint, face tint and region lines | `dentalLayers.tsx` |
+| the rim being drawn | `RimDraftLayer.tsx` |
+| the translate/rotate gizmo and its restyle | `UnitObject.tsx`, `gizmoStyle.ts` |
+| unresolved bubbles, add flash, print-angle arc, thumbnail | `UnresolvedBubbles.tsx`, `AddFlash.tsx`, `PrintAngleArc.tsx`, `drawThumbnail.ts` |
+| the floor grid | drei `Grid` in `ObjectViewport.tsx` — Babylon's equivalent needs `@babylonjs/materials` |
+
+**One open defect, measured not guessed:** against `scripts/fixtures/knot.stl` the Babylon view
+shows about 1,100 dark speckles inside the model's silhouette that the three.js view does not.
+Both cull back faces, so the likely cause is winding — Babylon inverts its culling convention when
+`useRightHandedSystem` is true. **Do not "fix" it by turning culling off**: that hides an inverted
+mesh rather than correcting one, and an inverted mesh exports inside out. Settle it with
+`sideOrientation` when the model material is ported.
 | `types.ts` | the view's own types |
 | `sessionMesh.ts` | three.js geometries in the shared Rust session, by geometry: loaded on first use |
 | `geometry.ts` | GPU geometry for a mesh, freed when the mesh changes or the view unmounts |

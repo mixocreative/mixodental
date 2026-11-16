@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1794476110.7471542,
-    "seen": 1794507459.8422716,
-    "ast_hash": "730f7e2ecd64130fb96f44df9c64cfe7",
+    "mtime": 1794800775.985243,
+    "seen": 1794801048.4372432,
+    "ast_hash": "4152858007c69db6faa61598e47b3bfb",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -4039,9 +4039,9 @@
     "semantic_hash": ""
   },
   "src/components/LanguageSelect.tsx": {
-    "mtime": 1793306823.8839672,
-    "seen": 1793306865.0805023,
-    "ast_hash": "4556d551474b627f5136ecec1c7985bb",
+    "mtime": 1794800471.8484633,
+    "seen": 1794801048.4372432,
+    "ast_hash": "eaefcd1402be14f21d79e12f1c5f45d3",
     "semantic_hash": ""
   },
   "src/dental/step1View.test.ts": {
@@ -4711,9 +4711,9 @@
     "semantic_hash": ""
   },
   "src/ui/noColourLiterals.test.ts": {
-    "mtime": 1793961221.7817125,
-    "seen": 1793961369.632811,
-    "ast_hash": "f4e3621a48f84d6ef1c8639450a37b7c",
+    "mtime": 1794800522.3714004,
+    "seen": 1794801048.4372432,
+    "ast_hash": "29b9cd3d5bad44f56cb336f0372f9fc2",
     "semantic_hash": ""
   },
   "src/ui/uiStylingDoc.test.ts": {
@@ -5941,9 +5941,9 @@
     "semantic_hash": ""
   },
   "src/ui/iconCatalogue.ts": {
-    "mtime": 1794438907.8017502,
-    "seen": 1794439414.8828974,
-    "ast_hash": "856253b9fa2b61ed009f88246639304d",
+    "mtime": 1794800785.9271266,
+    "seen": 1794801048.4372432,
+    "ast_hash": "e2a0faeece27ab9f035da26166ff2b34",
     "semantic_hash": ""
   },
   "scripts/trace-art.py": {
@@ -6199,9 +6199,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/README.md": {
-    "mtime": 1794799774.7526696,
-    "seen": 1794799853.8489108,
-    "ast_hash": "b73de7b03784de22dec9db7a6bc8e765",
+    "mtime": 1794800972.8397148,
+    "seen": 1794801048.4382408,
+    "ast_hash": "c65fa2082870e0d7cec6595dc679295d",
     "semantic_hash": ""
   },
   "src/state/README.md": {
@@ -6394,6 +6394,30 @@
     "mtime": 1794799339.696229,
     "seen": 1794799853.8489108,
     "ast_hash": "5820232da302aa91d2d2357d8fd03ed9",
+    "semantic_hash": ""
+  },
+  "src/components/BabylonObjectViewport.tsx": {
+    "mtime": 1794800512.4594288,
+    "seen": 1794801048.4372432,
+    "ast_hash": "6f3954d1bcd5ba9497a26d49dde2fd3e",
+    "semantic_hash": ""
+  },
+  "src/ui/assets/icons/language.svg": {
+    "mtime": 1794800422.2070124,
+    "seen": 1794801048.4382408,
+    "ast_hash": "0dd4dcfdfb303f07ac457d0f0736026b",
+    "semantic_hash": ""
+  },
+  "src/ui/assets/icons/redo.svg": {
+    "mtime": 1794800757.4800477,
+    "seen": 1794801048.4382408,
+    "ast_hash": "794d1ea62a539cb31ff02d647512c828",
+    "semantic_hash": ""
+  },
+  "src/ui/assets/icons/undo.svg": {
+    "mtime": 1794800756.9432712,
+    "seen": 1794801048.4382408,
+    "ast_hash": "cb876e7eea9425efb4552bfcce360bc2",
     "semantic_hash": ""
   }
 }
