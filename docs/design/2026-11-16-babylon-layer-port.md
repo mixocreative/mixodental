@@ -82,7 +82,22 @@ the one that makes layer 1 visible:
 5. On pointer up, call `props.onZoneStroke(unitId, stamps)` — one call per drag, so one drag is one
    step on the history.
 
-**The two obstacles, both real:**
+**THREE obstacles, and the third is the one that will cost a day if it is met rather than read.**
+
+- **`pick` works in the UNIT'S LOCAL FRAME, not world space, whatever `ViewportPort`'s comment
+  says.** Its wording — "rays and hits are world space" — is true of `screenToRay` and false of
+  `pick`: the session mesh is loaded from the unit's own positions, so the ray must be converted
+  into that unit's frame first and the hit comes back in it. `useScreenBrush.ts:77` says it out
+  loud, "support-local → world → model-local (a rigid placement: distances carry over)", and
+  `rustRaycast.ts` does the same inverse-matrix step. Hand it a world ray and it returns a confident
+  hit on the wrong triangle for every unit that is not at the origin — which reads as a picking bug
+  and is a frame bug. Noted at the top of `babylonViewportPort.ts` as well.
+- **`useScreenBrush.ts` is the three.js view's real consumer of the port**, not the editing package:
+  `ViewportPort.ts` is the only file in geocore's `editing/` that mentions the interface at all, so
+  the seam is a contract the apps honour rather than one the shared code calls. The Babylon layer 0
+  is therefore the Babylon counterpart of `useScreenBrush`, and that file is the thing to read.
+
+**The two obstacles already known:**
 
 - **Picking needs an engine session handle, not `scene.pick`.** The port's contract is explicit:
   the app answers through the engine session "never through its renderer's own picking, so both

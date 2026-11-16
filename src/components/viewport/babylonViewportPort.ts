@@ -10,6 +10,16 @@ import { enginePick, type EnginePickOptions } from './enginePick';
  * test can hold both to the same answers. Picking goes through the engine session, not Babylon's
  * own `scene.pick`, so both renderers hit the same triangle.
  *
+ * WHICH FRAME `pick` WORKS IN, because the interface's own wording will mislead you.
+ * `ViewportPort`'s comment says "rays and hits are world space". That is true of `screenToRay`,
+ * whose ray comes out in world space, and NOT of `pick`: the session mesh is loaded from the unit's
+ * own positions, so the ray handed in must be in THAT UNIT'S LOCAL FRAME and the point and normal
+ * come back in it too. `useScreenBrush.ts` spells the conversion out at its line 77 --
+ * "support-local -> world -> model-local (a rigid placement: distances carry over)" -- and
+ * `rustRaycast.ts` does the same inverse-matrix step before calling the engine. Hand `pick` a world
+ * ray and it will return a confident hit on the wrong triangle whenever a unit is not at the
+ * origin, which looks like a picking bug and is a frame bug.
+ *
  * THE SCENE MUST BE RIGHT-HANDED: `scene.useRightHandedSystem = true`. Babylon's default is
  * left-handed, and in a left-handed scene every value crossing this port needs mirroring in Z
  * (`src/core/handedness.ts` is that mirror, written for exactly this case). Right-handed keeps the
