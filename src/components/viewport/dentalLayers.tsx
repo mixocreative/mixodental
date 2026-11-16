@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import type { SupportPoint, TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { buildVertexGrid, sameStamp, stampVertices, type VertexGrid } from '@mixo-geocore/host/core/supports/zones';
 import type { DentalRim } from '@mixo-geocore/host/dental/dental';
 import { legacyBaselineVertices } from '@mixo-geocore/host/dental/legacyArea';
@@ -10,6 +10,7 @@ import { usePreviewColours } from './sceneColours';
 import { faceMaskContourSegments, faceMaskOverlay } from './faceMaskOverlay';
 import { SurfaceStampLayer } from './supportLayers';
 import { TIP_MARKER_GEOMETRY, tipMarkerMaterials } from './warmMaterials';
+import { splitTipMarks, TIP_SCALE, type TipMark, type TipMarks } from './tipMarkSplit';
 
 /* The dental flow's layers on the aligner: the support area and its paint, the detected edges, the rim and the Step 2 tip preview. Display only. */
 
@@ -160,10 +161,10 @@ export function DentalRimOutline({ rim }: { rim: DentalRim }) {
   </group>;
 }
 
-/** A tip as the markers need it (the preview's points and Step 2's contacts both fit). */
-export type TipMark = Pick<SupportPoint, 'id' | 'position' | 'normal'>;
-/** Tips shown selected (solid red), or previewed under Drag over (`ghost`, red to select or grey to unselect). */
-export interface TipMarks { solid: ReadonlySet<string>; ghost: readonly string[]; ghostTone: 'remove' | 'ring' }
+// The types and the three-way split live in `tipMarkSplit.ts`, renderer-free, because the Babylon
+// view must show the same cones in the same three states. Re-exported so this file's callers are
+// unchanged.
+export type { TipMark, TipMarks } from './tipMarkSplit';
 
 /** The axis the cone geometry's body runs along; every instance's turn is measured from it. */
 const UP = new THREE.Vector3(0, 1, 0);
@@ -202,18 +203,12 @@ function TipInstances({ points, material, scale }: { points: readonly TipMark[];
 /** Step 2's actual reviewed contact set, drawn directly without building any support body. */
 export function DentalTipMarkers({ points, marks }: { points: readonly TipMark[]; marks?: TipMarks }) {
   const preview = usePreviewColours();
-  const { plain, solid, ghost } = useMemo(() => {
-    if (!marks) return { plain: points, solid: [] as TipMark[], ghost: [] as TipMark[] };
-    const ghosted = new Set(marks.ghost);
-    const out = { plain: [] as TipMark[], solid: [] as TipMark[], ghost: [] as TipMark[] };
-    for (const point of points) (marks.solid.has(point.id) ? out.solid : ghosted.has(point.id) ? out.ghost : out.plain).push(point);
-    return out;
-  }, [points, marks]);
+  const { plain, solid, ghost } = useMemo(() => splitTipMarks(points, marks), [points, marks]);
   const materials = tipMarkerMaterials(preview);
   return <>
-    <TipInstances points={plain} material={materials.plain} scale={0.42} />
-    <TipInstances points={solid} material={materials.remove} scale={0.6} />
-    <TipInstances points={ghost} material={materials[marks?.ghostTone ?? 'remove']} scale={0.6} />
+    <TipInstances points={plain} material={materials.plain} scale={TIP_SCALE.plain} />
+    <TipInstances points={solid} material={materials.remove} scale={TIP_SCALE.marked} />
+    <TipInstances points={ghost} material={materials[marks?.ghostTone ?? 'remove']} scale={TIP_SCALE.marked} />
   </>;
 }
 

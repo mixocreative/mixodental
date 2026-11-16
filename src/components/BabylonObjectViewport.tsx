@@ -20,12 +20,15 @@ import {
 } from '@babylonjs/core';
 import { GridMaterial } from '@babylonjs/materials/grid';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import { babylonPlacement } from './viewport/babylonTransform';
 import { drawSurfaceStamps } from './viewport/babylon/surfaceStamps';
 import { drawDentalFace, drawDentalRegionLines } from './viewport/babylon/dentalArea';
 import { drawDentalRim, drawDentalRisks } from './viewport/babylon/dentalMarks';
 import { drawTipMarkers } from './viewport/babylon/tipMarkers';
 import { drawFaceTint } from './viewport/babylon/faceTint';
+import { drawSupportBodies } from './viewport/babylon/supportBodies';
+import { splitTipMarks, TIP_SCALE, type TipMarks } from './viewport/tipMarkSplit';
 import { drawAddFlash, drawPlateOutline } from './viewport/babylon/sceneMarks';
 import { drawDebugLayers, drawProblemMarks } from './viewport/babylon/checkMarks';
 import { createDomAnchors, type DomAnchors } from './viewport/babylon/domAnchor';
@@ -55,7 +58,7 @@ import { useBrushOverlay } from './viewport/useBrushOverlay';
 import { createBrushBodies } from './viewport/babylon/brushBodies';
 import { resolveSettings, unitContacts } from '@mixo-geocore/host/supports/unitSupports';
 import { releaseHandle } from './viewport/babylon/sessionHandles';
-import { ZONE_OPACITY } from './viewport/style';
+import { SEE_THROUGH, ZONE_OPACITY } from './viewport/style';
 import { useViewportColours, type ViewportColours } from './viewport/sceneColours';
 import { canvasCursor } from './viewport/style';
 import type { ObjectViewportProps } from './viewport/types';
@@ -100,6 +103,25 @@ function applyGeometry(mesh: Mesh, source: TriangleMesh): void {
   data.applyToMesh(mesh);
 }
 
+/*
+ * An overlay that redraws on its OWN schedule, outside the units effect.
+ *
+ * It exists because of one measurement: Drag over changes its preview every frame, and the units
+ * effect rebuilds every mesh in the scene. Anything that follows the brush must therefore be drawn
+ * and disposed apart from it. `redraw` is set during render (so it reads today's values), called at
+ * the end of the units effect (so a fresh scene is never a frame behind) and from the overlay's own
+ * small effect, whose dependencies are only what IT draws from.
+ */
+function useOverlaySlot(): { drawn: { current: (() => void) | undefined }; redraw: { current: () => void } } {
+  const drawn = useRef<(() => void) | undefined>(undefined);
+  const redraw = useRef(() => {});
+  useEffect(() => () => {
+    drawn.current?.();
+    drawn.current = undefined;
+  }, []);
+  return { drawn, redraw };
+}
+
 export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   /*
@@ -127,7 +149,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
    * three.js view picks is whatever mesh is on screen -- it raycasts the drawn objects -- and a
    * pointer that answered from the full build would let a click land on a strut nobody can see.
    */
-  const drawnSupports = useRef(new Map<string, TriangleMesh>());
+  const drawnSupports = useRef(new Map<string, GeneratedSupportMesh>());
   /** Per-unit selection highlights, recoloured without rebuilding the meshes (see the apply effect). */
   const highlights = useRef(new Map<string, SelectionColours>());
   /** Recolours every highlight for the selection as it is now. Set with the brush, below. */
@@ -683,17 +705,6 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         }));
       }
 
-      const tips = props.dentalTips?.unitId === unit.id ? props.dentalTips.points : undefined;
-      if (tips && tips.length > 0) {
-        disposers.push(drawTipMarkers(scene, {
-          name: `${unit.id}-dental-tips`,
-          parent: node,
-          points: tips,
-          colour: colours.preview.supportTip,
-          scale: 0.42,
-        }));
-      }
-
       // Overhang low points outside the permitted area. Display only: supports and export ignore it.
       const risks = props.dentalRisks?.unitId === unit.id ? props.dentalRisks.risks : undefined;
       if (risks && risks.length > 0) {
@@ -719,7 +730,13 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       }
     }
     paintHighlights.current();
+    ghost.redraw.current();
+    tipLayer.redraw.current();
     return () => {
+      ghost.drawn.current?.();
+      ghost.drawn.current = undefined;
+      tipLayer.drawn.current?.();
+      tipLayer.drawn.current = undefined;
       for (const dispose of disposers) dispose();
       for (const thing of built) {
         if (thing instanceof Mesh) thing.material?.dispose();
@@ -861,6 +878,62 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   };
   // Recolouring only, never rebuilding: this is what lets a stroke preview at frame rate.
   useEffect(() => paintHighlights.current(), [preview.solid, printScene.selectedUnitIds, printScene.units, colours]);
+
+  /*
+   * DRAG OVER'S GHOST: the whole bodies of the supports the circle would change, see-through, red
+   * where a sweep would select and grey where it would unselect. `UnitObject` draws it with the
+   * same set and the same tone, from the same `brushPreview`.
+   *
+   * It is off while a surface is being painted, exactly as three has it: in zones or dental-area
+   * mode the operator is working on the model, and support bodies lit up under the brush would be
+   * answering a question nobody asked.
+   */
+  const surfacePainting = props.gesture.kind === 'zones' || props.gesture.kind === 'dental-area';
+  const ghost = useOverlaySlot();
+  ghost.redraw.current = () => {
+    ghost.drawn.current?.();
+    ghost.drawn.current = undefined;
+    const scene = sceneRef.current;
+    const id = printScene.activeUnitId;
+    const node = id ? unitNodes.current.get(id) : undefined;
+    const supports = id ? drawnSupports.current.get(id) : undefined;
+    if (!scene || !node || !supports || !brushEditing || surfacePainting || preview.ghost.length === 0) return;
+    ghost.drawn.current = drawSupportBodies(scene, {
+      name: `${id}-brush-ghost`,
+      supports,
+      parent: node,
+      ids: preview.ghost,
+      opacity: SEE_THROUGH,
+      colour: colours.preview[preview.ghostTone],
+    });
+  };
+  useEffect(() => ghost.redraw.current(), [preview.ghost, preview.ghostTone, brushEditing, surfacePainting, printScene.activeUnitId, colours]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /*
+   * STEP 2'S TIP MARKERS, in their three states. The split is `splitTipMarks`, renderer-free, so
+   * the two views put the same cones in the same states; only the drawing differs. Solid wins over
+   * ghost, and that order is the rule rather than a detail -- see the module.
+   */
+  const tipMarks = useMemo((): TipMarks | undefined => (props.dentalArea === true
+    ? { solid: preview.solid, ghost: preview.ghost, ghostTone: preview.ghostTone }
+    : undefined), [props.dentalArea, preview]);
+  const tipLayer = useOverlaySlot();
+  tipLayer.redraw.current = () => {
+    tipLayer.drawn.current?.();
+    tipLayer.drawn.current = undefined;
+    const scene = sceneRef.current;
+    const shown = props.dentalTips;
+    const node = shown ? unitNodes.current.get(shown.unitId) : undefined;
+    if (!scene || !shown || !node || shown.points.length === 0) return;
+    const sets = splitTipMarks(shown.points, tipMarks);
+    const drawn = [
+      drawTipMarkers(scene, { name: `${shown.unitId}-dental-tips`, parent: node, points: sets.plain, colour: colours.preview.supportTip, scale: TIP_SCALE.plain }),
+      drawTipMarkers(scene, { name: `${shown.unitId}-dental-tips-solid`, parent: node, points: sets.solid, colour: colours.preview.remove, scale: TIP_SCALE.marked }),
+      drawTipMarkers(scene, { name: `${shown.unitId}-dental-tips-ghost`, parent: node, points: sets.ghost, colour: colours.preview[tipMarks?.ghostTone ?? 'remove'], scale: TIP_SCALE.marked }),
+    ];
+    tipLayer.drawn.current = () => { for (const dispose of drawn) dispose(); };
+  };
+  useEffect(() => tipLayer.redraw.current(), [props.dentalTips, tipMarks, colours]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
    * The unresolved points and model-landed supports, as the SAME React components the three.js
