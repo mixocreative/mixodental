@@ -26,18 +26,25 @@ Babylon view it reaches; App picks one component or the other at module load, an
 
 ### What the Babylon view still owes
 
-Drawn today: the models, lit and framed as three.js frames them, orbitable, clickable to select —
-verified against the three.js view on the same fixture, landing at the same position, size and
-camera angle. **Not drawn yet**, and this list is the migration's to-do:
+Drawn today: the models, the built supports and the floor grid, lit and framed as three.js frames
+them, orbitable, clickable to select — verified against the three.js view on the same fixture,
+landing at the same position, size and camera angle. **Not drawn yet**, and this list is the
+migration's to-do:
 
 | Still three.js only | Where it lives today |
 |---|---|
-| support bodies, ghost tip, remove ring, highlights | `supportLayers.tsx` |
+| the ghost tip, remove ring, selection highlight, zone stamps | `supportLayers.tsx` |
 | the dental paint, face tint and region lines | `dentalLayers.tsx` |
 | the rim being drawn | `RimDraftLayer.tsx` |
 | the translate/rotate gizmo and its restyle | `UnitObject.tsx`, `gizmoStyle.ts` |
 | unresolved bubbles, add flash, print-angle arc, thumbnail | `UnresolvedBubbles.tsx`, `AddFlash.tsx`, `PrintAngleArc.tsx`, `drawThumbnail.ts` |
-| the floor grid | drei `Grid` in `ObjectViewport.tsx` — Babylon's equivalent needs `@babylonjs/materials` |
+
+**The support frame is a trap worth reading before touching it.** Support bodies are drawn under
+`generationTransform(unit)` — the transform they were *generated* at — not under the unit's current
+one. Move a unit after generating and the supports stay in the old frame until they are rebuilt,
+which is what the engine's caches are keyed on. Using `unit.transform` would silently re-seat every
+support the moment the operator nudged the model, and the picture would look plausible while lying
+about where the printed supports will be.
 
 **One open defect, measured not guessed:** against `scripts/fixtures/knot.stl` the Babylon view
 shows about 1,100 dark speckles inside the model's silhouette that the three.js view does not.

@@ -19,6 +19,7 @@ import {
 } from '@babylonjs/core';
 import { GridMaterial } from '@babylonjs/materials/grid';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import { generationTransform } from '@mixo-geocore/host/supports/unitSupports';
 import { babylonPlacement } from './viewport/babylonTransform';
 import { useViewportColours, type ViewportColours } from './viewport/sceneColours';
 import { canvasCursor } from './viewport/style';
@@ -28,11 +29,12 @@ import type { ObjectViewportProps } from './viewport/types';
  * The Babylon.js 3D view, reached by `?renderer=babylon` (src/ui/renderer.ts). The three.js view
  * in `ObjectViewport.tsx` is still the one the walk proves and the one a visitor gets.
  *
- * WHAT THIS DRAWS TODAY, and nothing else: the models, lit and framed as three.js frames them,
- * orbitable, clickable to select. It acts on `scene`, `modelVisible`, `wireframe`, `gesture` and
- * `onSelect`. Supports, zone stamps, the dental layers, the rim, the gizmo, the bubbles and the
- * grid are NOT drawn -- that list is the migration's to-do, and `src/components/viewport/README.md`
- * carries it where a reader will find it.
+ * WHAT THIS DRAWS TODAY: the models, the built supports and the floor grid, lit and framed as
+ * three.js frames them, orbitable, clickable to select. It acts on `scene`, `supportMeshes`,
+ * `modelVisible`, `wireframe`, `gesture` and `onSelect`. The zone stamps, the dental layers, the
+ * rim, the gizmo, the bubbles, the edit previews and the print-angle arc are NOT drawn -- that
+ * list is the migration's to-do, and `src/components/viewport/README.md` carries it where a reader
+ * will find it.
  *
  * There is deliberately no on-screen "preview" notice: a sentence here is a user-facing string and
  * would need the owner's wording in three languages (src/i18n.test.ts globs this folder) for
@@ -66,7 +68,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sceneRef = useRef<Scene | null>(null);
   const colours = useViewportColours();
-  const { scene: printScene, modelVisible, wireframe } = props;
+  const { scene: printScene, supportMeshes, modelVisible, wireframe } = props;
   const onSelect = props.onSelect;
 
   // The engine, scene, camera and lights: built once, disposed once. Nothing in here depends on the
@@ -164,13 +166,15 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     }
   }, [colours]);
 
-  // One mesh per unit, rebuilt when the units change. Disposed on the way out, because a Babylon
-  // mesh holds GPU buffers that no garbage collector frees.
+  // One mesh per unit and one for its built supports, rebuilt when either changes. Disposed on the
+  // way out, because a Babylon mesh holds GPU buffers that no garbage collector frees.
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
-    const built = printScene.units.map((unit) => {
+    const built: Mesh[] = [];
+    for (const unit of printScene.units) {
       const mesh = new Mesh(unit.id, scene);
+      built.push(mesh);
       applyGeometry(mesh, unit.source);
       const { position, rotationQuaternion } = babylonPlacement(unit.transform);
       mesh.position = position;
@@ -191,15 +195,42 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       // when the model material is ported properly.
       mesh.material = material;
       mesh.isVisible = modelVisible;
-      return mesh;
-    });
+
+      /*
+       * The built supports for this unit, when there are any.
+       *
+       * THE TRAP, and it is not obvious: supports are drawn under `generationTransform(unit)`, the
+       * transform they were GENERATED at, not the unit's current one. Move a unit after generating
+       * and the supports stay in the old frame until they are rebuilt, which is what the three.js
+       * view does and what the engine's caches are keyed on. Using `unit.transform` here would
+       * silently re-seat every support on the model the moment the operator nudged it, and the
+       * picture would look plausible while being a lie about where the printed supports will be.
+       */
+      const supports = supportMeshes.get(unit.id);
+      if (supports && supports.indices.length > 0) {
+        const supportMesh = new Mesh(`${unit.id}-supports`, scene);
+        built.push(supportMesh);
+        applyGeometry(supportMesh, supports);
+        const frame = babylonPlacement(generationTransform(unit));
+        supportMesh.position = frame.position;
+        supportMesh.rotationQuaternion = frame.rotationQuaternion;
+        const supportMaterial = new PBRMaterial(`${unit.id}-supports-material`, scene);
+        supportMaterial.albedoColor = Color3.FromHexString(
+          printScene.selectedUnitIds.includes(unit.id) ? colours.support.selectedObject : colours.support.idle,
+        );
+        supportMaterial.metallic = 0;
+        supportMaterial.roughness = 1;
+        supportMesh.material = supportMaterial;
+        supportMesh.isPickable = false;
+      }
+    }
     return () => {
       for (const mesh of built) {
         mesh.material?.dispose();
         mesh.dispose();
       }
     };
-  }, [printScene, colours, modelVisible, wireframe]);
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe]);
 
   return (
     <div className="babylon-viewport" data-ui="viewport-babylon">
