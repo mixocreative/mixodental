@@ -46,6 +46,7 @@ const INLINE_STYLE_EXCEPTIONS: Record<string, string> = {
   'src/ui/parts/TiltDial.tsx': 'each tick and the knob dot are turned by an angle computed from the value and range (--tick-angle, --knob-angle); colours and sizes stay in styles.css',
   'src/components/viewport/CirclePreview.tsx': 'the brush circle size is the brush radius in pixels',
   'src/components/ObjectViewport.tsx': 'the canvas cursor changes with the gesture (its colours are tokens, read in style.ts)',
+  'src/components/BabylonObjectViewport.tsx': 'the canvas cursor changes with the gesture, the same exception and the same `canvasCursor` as the three.js view',
 };
 
 describe('no colour literals outside the token files', () => {

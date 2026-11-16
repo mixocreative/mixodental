@@ -37,6 +37,8 @@ import { ImportClient } from './workers/importClient';
 import { createAnalysisWorker, createImportWorker, createMeshWorker } from './workers/factories';
 import { SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
 import ObjectViewport from './components/ObjectViewport';
+import BabylonObjectViewport from './components/BabylonObjectViewport';
+import { readRenderer } from './ui/renderer';
 import DebugSection from './components/DebugSection';
 import { useDebugLayers, visibleLayers } from './components/useDebugLayers';
 import { CirclePreview } from './components/viewport/CirclePreview';
@@ -174,6 +176,14 @@ const VIEWPORT_CLASS: Record<GestureKind, string> = {
 const HEAVY_JOBS = new TriangleGate(refusalLimit(RUNTIME));
 /** A stable empty list, so the batch hook's effect does not re-run on every render. */
 const NO_UNITS: readonly PrintUnit[] = [];
+
+/*
+ * Which renderer draws the 3D view, read ONCE at module load (src/ui/renderer.ts): three.js, or
+ * Babylon with `?renderer=babylon`. Read once on purpose -- swapping renderers mid-session would
+ * tear down a live scene and the engine session's meshes with it, so the choice changes on reload
+ * and only on reload. Both components take `ObjectViewportProps`, so this is the whole switch.
+ */
+const Viewport = readRenderer() === 'babylon' ? BabylonObjectViewport : ObjectViewport;
 
 export default function App() {
   const [history, dispatchHistory] = useReducer(historyReducer, emptyScene, createSceneHistory);
@@ -1512,7 +1522,7 @@ export default function App() {
             or a render-time error used to unmount the whole tree (MIXO-04). Its own boundary keeps
             the panels, and so the Save command, alive. */}
         <PanelBoundary name="viewport">
-        <ObjectViewport
+        <Viewport
           scene={scene}
           supportMeshes={orienting ? NO_SUPPORT_MESHES : supportMeshes}
           {...(shownPreview ? { dentalTips: { unitId: shownPreview.unitId, points: areaContacts } }
