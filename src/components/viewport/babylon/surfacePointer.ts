@@ -42,6 +42,13 @@ export interface SurfaceHit {
 export interface SurfacePointer {
   /** The nearest unit under a canvas point, or undefined for a miss. */
   hitAt(x: number, y: number): SurfaceHit | undefined;
+  /**
+   * A unit-local point in world space. Here rather than in the layers because this module already
+   * owns the frame rule, and a layer converting for itself is how the frames come to disagree --
+   * a contact marker drawn a transform out of step with the model is a bug you SEE and cannot
+   * explain.
+   */
+  toWorld(unitId: string, point: Vector): Vector | undefined;
   /** The port itself, for the few things that want a ray or a projection rather than a hit. */
   port: ViewportPort;
 }
@@ -85,6 +92,12 @@ export function createSurfacePointer(options: {
 
   return {
     port,
+    toWorld(unitId, point) {
+      const unit = options.units().find((candidate) => candidate.id === unitId);
+      if (!unit) return undefined;
+      const out = Vector3.TransformCoordinates(new Vector3(...point), worldMatrix(unit.transform));
+      return [out.x, out.y, out.z];
+    },
     hitAt(x, y) {
       const ray = port.screenToRay([x, y]);
       if (!ray) return undefined;

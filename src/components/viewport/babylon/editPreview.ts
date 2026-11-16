@@ -1,6 +1,7 @@
 import { Color3, MeshBuilder, Quaternion, StandardMaterial, Vector3, type Mesh, type Scene } from '@babylonjs/core';
 import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import type { Gesture } from '@mixo-geocore/editing/gesture';
+import { contactToRemove } from '@mixo-geocore/editing/removal';
 import type { PreviewColours } from '../sceneColours';
 import type { SurfacePointer } from './surfacePointer';
 
@@ -21,6 +22,10 @@ import type { SurfacePointer } from './surfacePointer';
  * three's torus has its axis on +Z and Babylon's on +Y, which is why the ring's `from` vector
  * differs from the three.js code it is ported from while the result is the same.
  *
+ * The doomed marker answers "which one?": with the remove tool, the contact a click would actually
+ * take gets a sphere on it. `contactToRemove` in geocore `editing/removal` decides that, by the
+ * same reach the ring shows, so the marker and the ring cannot tell the operator different things.
+ *
  * NOT PIXEL-VERIFIED, and said plainly. The draw path is proven -- the same Babylon mesh-and-
  * material path renders the models, the grid, the supports and the zone overlay, and an enlarged
  * marker produced 5,384 unmistakable pixels. What is NOT confirmed by measurement is this layer's
@@ -29,9 +34,6 @@ import type { SurfacePointer } from './surfacePointer';
  * told from that noise; the design doc records the floor. Verify it by eye in a wide window, or by
  * enlarging the ring until it clears the floor.
  *
- * STILL MISSING: the doomed marker -- the sphere on the contact a remove click would take
- * (`contactToRemove` in geocore `editing/removal`). It needs the unit's contacts plumbed through,
- * which this does not have yet, so a remove click still gives no sign of WHICH support would go.
  */
 
 const RING_TESSELLATION = 48;
@@ -48,6 +50,8 @@ export interface EditPreviewInput {
   colours: () => PreviewColours;
   /** The hovered unit's resolved settings, for the sizes. Undefined while it has none. */
   settingsFor: (unitId: string) => LiveSupportSettings | undefined;
+  /** The hovered unit's contacts, unit-local, for working out which one a remove click would take. */
+  contactsFor: (unitId: string) => readonly { id: string; position: readonly number[] }[];
 }
 
 /** An unlit flat colour, Babylon's stand-in for three's MeshBasicMaterial. */
@@ -97,9 +101,18 @@ export function attachEditPreview(scene: Scene, input: EditPreviewInput): () => 
   cone.isPickable = false;
   cone.isVisible = false;
 
+  // The doomed marker: built once at unit size and scaled, because a sphere scales honestly where
+  // a torus does not.
+  const doomed: Mesh = MeshBuilder.CreateSphere('edit-doomed', { diameter: 2, segments: 10 }, scene);
+  const doomedMaterial = flat('edit-doomed-material', scene, 0.9, false);
+  doomed.material = doomedMaterial;
+  doomed.isPickable = false;
+  doomed.isVisible = false;
+
   const hide = () => {
     if (ring) ring.isVisible = false;
     cone.isVisible = false;
+    doomed.isVisible = false;
   };
 
   const onMove = (event: PointerEvent) => {
@@ -125,8 +138,21 @@ export function attachEditPreview(scene: Scene, input: EditPreviewInput): () => 
 
     if (removing) {
       cone.isVisible = false;
+      // Which support would go. The reach is the ring's radius, so the mark and the ring agree.
+      const target = contactToRemove(input.contactsFor(hit.unitId), hit.point, radius);
+      const at = target && pointer.toWorld(hit.unitId, [target.position[0]!, target.position[1]!, target.position[2]!]);
+      if (at) {
+        doomedMaterial.emissiveColor = Color3.FromHexString(colours.remove);
+        const size = Math.max(0.25, settings.pillarDiameter * 0.45);
+        doomed.scaling.setAll(size);
+        doomed.position.set(...at);
+        doomed.isVisible = true;
+      } else {
+        doomed.isVisible = false;
+      }
       return;
     }
+    doomed.isVisible = false;
     const length = settings.neckLength;
     coneMaterial.emissiveColor = Color3.FromHexString(colours.add);
     cone.scaling.set(settings.pillarDiameter, length, settings.pillarDiameter);
@@ -143,6 +169,8 @@ export function attachEditPreview(scene: Scene, input: EditPreviewInput): () => 
     canvas.removeEventListener('pointerleave', hide);
     ringMaterial.dispose();
     coneMaterial.dispose();
+    doomedMaterial.dispose();
+    doomed.dispose();
     ring?.dispose();
     cone.dispose();
   };

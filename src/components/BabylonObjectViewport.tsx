@@ -25,7 +25,7 @@ import { drawZones } from './viewport/babylon/zoneLayer';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer } from './viewport/babylon/surfacePointer';
-import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
+import { resolveSettings, unitContacts } from '@mixo-geocore/host/supports/unitSupports';
 import { releaseHandle } from './viewport/babylon/sessionHandles';
 import { ZONE_OPACITY } from './viewport/style';
 import { useViewportColours, type ViewportColours } from './viewport/sceneColours';
@@ -197,6 +197,10 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         settingsFor: (unitId) => {
           const unit = propsRef.current.scene.units.find((u) => u.id === unitId);
           return unit ? resolveSettings(unit.settings) : undefined;
+        },
+        contactsFor: (unitId) => {
+          const unit = propsRef.current.scene.units.find((u) => u.id === unitId);
+          return unit ? unitContacts(unit, propsRef.current.supportMeshes.get(unitId)) : [];
         },
       }),
     ];
