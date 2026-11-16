@@ -69,6 +69,22 @@ Every step but the last is renderer-free and already written. The Babylon work i
 4. Draw that index subset as its own Babylon mesh, see-through, in `--mark-zone`. A small painted
    spot stays a small draw.
 
+**The numbers, all from `supportLayers.tsx` — copy them, do not re-choose them:**
+
+| Constant | Value | Why it is that |
+|---|---|---|
+| `OVERLAY_MAX_EDGE` | `1` mm | So a 2 mm brush dab shows on coarse faces |
+| `OVERLAY_MAX_TRIANGLES` | `1_500_000` | The refinement's budget |
+| `ZONE_GRID_CELL` | `2` mm | About one brush dab |
+| refinement cut-off | `maxEdge = Infinity` once the mesh has `FULL_TIER_MAX` triangles or more | A big enough mesh is already fine enough; refining it is cost for nothing |
+| `ZONE_OPACITY` | `{ full: 0.7, faint: 0.3 }` — `src/components/viewport/style.ts` | Faint in Support Edit Mode, full in zones mode |
+
+The three.js material to match is `meshStandardMaterial` with `emissive` the same colour at
+`emissiveIntensity` 0.35, `metalness` 0, `roughness` 0.8, `polygonOffset` −2/−2, and `depthWrite`
+off while see-through. The polygon offset is what stops the overlay z-fighting the model it sits on;
+Babylon's equivalent is `zOffset` on the material, and leaving it out is the obvious way to get a
+shimmering overlay that looks like a driver bug.
+
 **What mixoMesh already has in Babylon** and should be read before writing 2 and 3:
 `src/supports/layers/pointerLayers.ts`, `supportMeshLayer.ts`, `zoneOverlay.ts`,
 `BabylonViewportPort.ts`, `live/supportInteraction.ts`, `live/supportCamera.ts`. It has **nothing**
