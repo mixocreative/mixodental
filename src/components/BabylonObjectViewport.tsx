@@ -21,7 +21,7 @@ import {
 import { GridMaterial } from '@babylonjs/materials/grid';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { babylonPlacement } from './viewport/babylonTransform';
-import { drawZones } from './viewport/babylon/zoneLayer';
+import { drawSurfaceStamps } from './viewport/babylon/surfaceStamps';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer } from './viewport/babylon/surfacePointer';
@@ -361,15 +361,34 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         );
       }
 
-      // The no-support zones, painted see-through over the model (layer 1 of the port).
+      // The no-support zones, painted see-through over the model.
       if (unit.zones.length > 0) {
-        disposers.push(drawZones(scene, {
+        disposers.push(drawSurfaceStamps(scene, {
           name: `${unit.id}-zones`,
           mesh: unit.source,
-          zones: unit.zones,
           parent: node,
+          stamps: unit.zones,
+          filledKind: 'paint',
           colour: colours.preview.zone,
           opacity: zoneOpacity,
+        }));
+      }
+
+      /*
+       * The dental support area being painted in Step 2. Same module as the zones, because it IS
+       * the same job -- brush stamps on a surface -- with a different vocabulary: `allow` fills
+       * where a zone's `paint` does. Opacity 0.7 is `UnitObject`'s own number for these layers.
+       */
+      const area = props.dentalAreaPreview?.unitId === unit.id ? props.dentalAreaPreview.policy : undefined;
+      if (area && area.stamps.length > 0) {
+        disposers.push(drawSurfaceStamps(scene, {
+          name: `${unit.id}-dental-area`,
+          mesh: unit.source,
+          parent: node,
+          stamps: area.stamps,
+          filledKind: 'allow',
+          colour: colours.preview.areaPermitted,
+          opacity: 0.7,
         }));
       }
     }
@@ -381,7 +400,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       }
       nodes.clear();
     };
-  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection]);
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview]);
 
   /*
    * Which unit the gizmo is on, and in which mode. DECLARED AFTER THE UNITS EFFECT ON PURPOSE:
