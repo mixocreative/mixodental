@@ -23,6 +23,8 @@ import { generationTransform } from '@mixo-geocore/host/supports/unitSupports';
 import { babylonPlacement } from './viewport/babylonTransform';
 import { drawZones } from './viewport/babylon/zoneLayer';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
+import { attachGhostTip } from './viewport/babylon/ghostTip';
+import { createSurfacePointer } from './viewport/babylon/surfacePointer';
 import { releaseHandle } from './viewport/babylon/sessionHandles';
 import { ZONE_OPACITY } from './viewport/style';
 import { useViewportColours, type ViewportColours } from './viewport/sceneColours';
@@ -78,6 +80,9 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   /** Meshes this view has (or may have) loaded into the engine session, so they can be given back. */
   const loaded = useRef(new Set<TriangleMesh>());
   const colours = useViewportColours();
+  // Read by the pointer layers, which are attached once and must still see today's tokens.
+  const coloursRef = useRef(colours);
+  coloursRef.current = colours;
   const { scene: printScene, supportMeshes, modelVisible, wireframe } = props;
   const onSelect = props.onSelect;
 
@@ -169,13 +174,28 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     const canvas = canvasRef.current;
     const camera = cameraRef.current;
     if (!canvas || !camera) return;
-    return attachZoneBrush({
-      canvas,
-      camera,
-      units: () => propsRef.current.scene.units,
-      gesture: () => propsRef.current.gesture,
-      onZoneStroke: (unitId, stamps) => propsRef.current.onZoneStroke(unitId, stamps),
-    });
+    const scene = sceneRef.current;
+    if (!scene) return;
+    // One pointer for every layer that asks what is under the cursor, so the frame conversion it
+    // holds cannot come to differ between them.
+    const pointer = createSurfacePointer({ canvas, camera, units: () => propsRef.current.scene.units });
+    const gesture = () => propsRef.current.gesture;
+    const detach = [
+      attachZoneBrush({
+        canvas,
+        camera,
+        pointer,
+        gesture,
+        onZoneStroke: (unitId, stamps) => propsRef.current.onZoneStroke(unitId, stamps),
+      }),
+      attachGhostTip(scene, {
+        canvas,
+        pointer,
+        gesture,
+        colours: () => ({ add: coloursRef.current.preview.supportTip, remove: coloursRef.current.preview.remove }),
+      }),
+    ];
+    return () => { for (const off of detach) off(); };
   }, []);
 
   /*
