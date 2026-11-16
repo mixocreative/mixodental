@@ -11,11 +11,13 @@ import {
   HemisphericLight,
   ImageProcessingConfiguration,
   Mesh,
+  MeshBuilder,
   PBRMaterial,
   Scene,
   Vector3,
   VertexData,
 } from '@babylonjs/core';
+import { GridMaterial } from '@babylonjs/materials/grid';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { babylonPlacement } from './viewport/babylonTransform';
 import { useViewportColours, type ViewportColours } from './viewport/sceneColours';
@@ -100,6 +102,28 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     const fill = new DirectionalLight('fill', new Vector3(50, -30, 40).normalize(), scene);
     fill.intensity = 0.45;
 
+    /*
+     * The floor. The three.js view uses drei's infinite shader grid; this is a large ground with
+     * Babylon's GridMaterial, matched on the numbers that are visible rather than on the
+     * implementation: a line every 5mm (`gridRatio`) and a heavier one every 25mm, which is
+     * `majorUnitFrequency` 5 because 25 / 5 = 5.
+     *
+     * Not culled on the back face, because the app has a Bottom view that looks up at the plate
+     * from underneath, and a one-sided floor would vanish exactly when the operator is checking
+     * what touches it.
+     *
+     * shortcut: 1000mm square and no distance fade, where drei's grid is infinite and fades at
+     * 400mm. At the framed camera the edge is well outside the view; revisit if a plate or a scene
+     * ever gets big enough to show it.
+     */
+    const floor = MeshBuilder.CreateGround('floor', { width: 1000, height: 1000 }, scene);
+    const grid = new GridMaterial('floor-grid', scene);
+    grid.gridRatio = 5;
+    grid.majorUnitFrequency = 5;
+    grid.backFaceCulling = false;
+    floor.material = grid;
+    floor.isPickable = false;
+
     sceneRef.current = scene;
     engine.runRenderLoop(() => scene.render());
     const onResize = () => engine.resize();
@@ -127,6 +151,16 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     if (sky) {
       sky.diffuse = Color3.FromHexString(colours.scene.lightSky);
       sky.groundColor = Color3.FromHexString(colours.scene.lightGround);
+    }
+    const grid = scene.getMaterialByName('floor-grid') as GridMaterial | null;
+    if (grid) {
+      // `mainColor` is the floor between the lines, so it is the scene background: the grid has to
+      // sit ON the background, not on a second surface a shade away from it.
+      grid.mainColor = Color3.FromHexString(colours.scene.background);
+      grid.lineColor = Color3.FromHexString(colours.scene.gridSection);
+      // The minor lines are the lighter token; GridMaterial has one line colour and a visibility
+      // for the minors, so the ratio is what carries the difference the two tokens describe.
+      grid.minorUnitVisibility = 0.45;
     }
   }, [colours]);
 
