@@ -42,13 +42,32 @@ The order is by what an operator loses without it, not by what is easy.
 
 | # | Layer | three source | Geometry source | Notes |
 |---|---|---|---|---|
-| 1 | Zone stamps (no-support zones) | `supportLayers.tsx` | **renderer-free already**: `overlayMesh.ts` → Rust `refine_for_overlay` + `buildVertexGrid` | Needs per-vertex colours from the zone stamps; that evaluation is the real work, not the drawing |
+| 1 | Zone stamps (no-support zones) | `supportLayers.tsx` | **renderer-free already** — see the exact path below | The evaluation is the real work; the drawing is a mesh like any other |
 | 2 | Ghost tip, remove ring, brush circle | `supportLayers.tsx`, `CirclePreview.tsx` | `warmMaterials.ts` cone geometry is three-specific and tiny to rebuild | This is what makes the view an editor rather than a viewer |
 | 3 | Selection highlight / stale / tips-only | `supportLayers.tsx` | recolouring vertex ranges in place | mixoMesh's `supports/layers/supportMeshLayer.ts` does this job in Babylon already — read it first |
 | 4 | Dental paint, face tint, region lines | `dentalLayers.tsx` | **renderer-free already**: `faceMaskOverlay.ts` → Rust `face_mask_overlay`, `face_mask_contour_segments` | No Babylon equivalent exists in mixoMesh; this is dental-only work |
 | 5 | The rim being drawn | `RimDraftLayer.tsx` | `src/core/surfacePath/` is renderer-free | |
 | 6 | The gizmo | `UnitObject.tsx`, `gizmoStyle.ts` | Babylon `GizmoManager` | `gizmoStyle.ts`'s token and constant tables survive; only the three drawing goes |
 | 7 | Bubbles, add flash, print-angle arc, thumbnail | their own files | mixed | `UnresolvedBubbles` is HTML in a 3D group — Babylon needs a different approach (screen-space projection through `worldToScreen`, which the port already answers) |
+
+### Layer 1's data path, so nobody re-derives it
+
+Every step but the last is renderer-free and already written. The Babylon work is the final draw.
+
+1. `zoneOverlay(mesh, maxEdge, maxTriangles, cellSize)` — `src/components/viewport/overlayMesh.ts`.
+   Returns a **refined** copy of the mesh (Rust `refine_for_overlay`: long edges split at their
+   midpoints, no cracks, winding kept) plus its `VertexGrid`. Cached per mesh object. The refinement
+   is why a 2 mm brush dab shows on a face made of a few large triangles — **mixoMesh does not
+   refine and says so (its P5), so its overlay is not the thing to copy here.**
+2. `stampVertices(stamp, positions, normals, out, grid)` —
+   `vendor/mixo-geocore/host/core/supports/zones.ts`. Lays each `ZoneStamp` into a `Uint8Array`,
+   one byte per vertex; `kind: 'paint'` writes 1 and erase writes 0, so the **last covering stamp
+   wins** simply by applying them in order.
+3. Triangles with at least one zoned vertex become the draw list. mixoMesh's
+   `zonedTriangles(indices, zoned)` in `src/supports/layers/zoneOverlay.ts` is exactly this and is
+   worth reading, as is its `vertexNormals`.
+4. Draw that index subset as its own Babylon mesh, see-through, in `--mark-zone`. A small painted
+   spot stays a small draw.
 
 **What mixoMesh already has in Babylon** and should be read before writing 2 and 3:
 `src/supports/layers/pointerLayers.ts`, `supportMeshLayer.ts`, `zoneOverlay.ts`,
