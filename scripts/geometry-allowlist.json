@@ -31,6 +31,12 @@
   "src/components/viewport/UnresolvedBubbles.tsx": {
     "label": "host-adapter"
   },
+  "src/components/viewport/babylon/AnchoredDom.tsx": {
+    "label": "host-adapter"
+  },
+  "src/components/viewport/babylon/bubblePoints.ts": {
+    "label": "host-adapter"
+  },
   "src/components/viewport/babylon/cameraViews.ts": {
     "label": "host-math",
     "maxMath": 1,

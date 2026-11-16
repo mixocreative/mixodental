@@ -30,13 +30,17 @@ import { drawDebugLayers, drawProblemMarks } from './viewport/babylon/checkMarks
 import { createDomAnchors, type DomAnchors } from './viewport/babylon/domAnchor';
 import { drawPrintAngle } from './viewport/babylon/printAngle';
 import { tokenCss } from '../ui/tokenColour';
+import { AnchoredDom, type AnchoredItem } from './viewport/babylon/AnchoredDom';
+import { bubblePointsFor } from './viewport/babylon/bubblePoints';
+import { UnresolvedBubble, LandingMark } from './viewport/UnresolvedBubbles';
+import { useMemo, useState } from 'react';
 import { tipsOf } from '@mixo-geocore/host/core/supports/meshQuery';
 import { resolveSettings as resolveUnitSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { attachSurfaceBrush, type ActiveBrush } from './viewport/babylon/paintStroke';
 import { attachEditClicks } from './viewport/babylon/editClicks';
 import { attachCameraViews, type CameraViews } from './viewport/babylon/cameraViews';
 import { attachEditPreview } from './viewport/babylon/editPreview';
-import { createSurfacePointer } from './viewport/babylon/surfacePointer';
+import { createSurfacePointer, type SurfacePointer } from './viewport/babylon/surfacePointer';
 import { createSelectionColours } from './viewport/babylon/selectionColours';
 import { attachTransformGizmo, type TransformGizmo } from './viewport/babylon/transformGizmo';
 import { gizmoShown } from './ObjectViewport';
@@ -101,8 +105,12 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const gizmoRef = useRef<TransformGizmo | null>(null);
   const camerasRef = useRef<CameraViews | null>(null);
   const anchorsRef = useRef<DomAnchors | null>(null);
+  const pointerRef = useRef<SurfacePointer | null>(null);
   /** Where DOM anchored to 3D points is mounted: an overlay the size of the canvas. */
   const overlayRef = useRef<HTMLDivElement | null>(null);
+  // The scene is built in an effect, so the first render has no overlay or anchors yet. This flips
+  // once they exist, which is what lets the anchored DOM mount at all.
+  const [sceneReady, setSceneReady] = useState(false);
   const colours = useViewportColours();
   // Read by the pointer layers, which are attached once and must still see today's tokens.
   const coloursRef = useRef(colours);
@@ -213,6 +221,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         ...(propsRef.current.supportMeshes.get(unit.id) ? { supports: propsRef.current.supportMeshes.get(unit.id)! } : {}),
       })),
     });
+    pointerRef.current = pointer;
     const gesture = () => propsRef.current.gesture;
     const detach = [
       attachSurfaceBrush({
@@ -244,7 +253,9 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       (() => {
         const anchors = createDomAnchors(scene, pointer.port);
         anchorsRef.current = anchors;
+        setSceneReady(true);
         return () => {
+          setSceneReady(false);
           anchorsRef.current = null;
           anchors.dispose();
         };
@@ -648,11 +659,42 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     gizmo.show(activeId, activeId ? unitNodes.current.get(activeId) : undefined, kind);
   }, [props.gesture, props.gizmoMode, props.rotationGizmo, printScene.activeUnitId, printScene.units]);
 
+  /*
+   * The unresolved points and model-landed supports, as the SAME React components the three.js
+   * view mounts -- one bubble, not two that resemble each other. Only the positioning differs.
+   */
+  const anchored = useMemo((): AnchoredItem[] => {
+    if (!sceneReady) return [];
+    const out: AnchoredItem[] = [];
+    for (const unit of printScene.units) {
+      const { unresolved, landed } = bubblePointsFor(unit, supportMeshes.get(unit.id));
+      const resolve = props.bubbleResolve?.unitId === unit.id ? props.bubbleResolve : undefined;
+      for (const item of unresolved) {
+        out.push({
+          key: `${unit.id}:${item.key}`,
+          className: 'unresolved-anchor',
+          at: () => pointerRef.current?.toWorld(unit.id, item.at),
+          node: <UnresolvedBubble point={item.point} {...(resolve?.resolvable(item.point) ? { onResolve: resolve.onResolve } : {})} />,
+        });
+      }
+      for (const item of landed) {
+        out.push({
+          key: `${unit.id}:${item.key}`,
+          className: 'landing-anchor',
+          at: () => pointerRef.current?.toWorld(unit.id, item.at),
+          node: <LandingMark landed={item.entry} />,
+        });
+      }
+    }
+    return out;
+  }, [sceneReady, printScene.units, supportMeshes, props.bubbleResolve]);
+
   return (
     <div className="babylon-viewport" data-ui="viewport-babylon">
       {/* DOM anchored to points in the scene (the angle reading, the bubbles) lives here, over the
           canvas: real text in the page, so it takes the app's fonts and can be read aloud. */}
       <div ref={overlayRef} className="babylon-overlay" data-ui="viewport-babylon-overlay" />
+      <AnchoredDom host={overlayRef.current} anchors={anchorsRef.current} items={anchored} />
       <canvas
         ref={canvasRef}
         data-ui="viewport-babylon-canvas"
