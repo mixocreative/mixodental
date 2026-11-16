@@ -25,6 +25,9 @@ import { drawSurfaceStamps } from './viewport/babylon/surfaceStamps';
 import { drawDentalFace, drawDentalRegionLines } from './viewport/babylon/dentalArea';
 import { drawDentalRim, drawDentalRisks } from './viewport/babylon/dentalMarks';
 import { drawTipMarkers } from './viewport/babylon/tipMarkers';
+import { drawAddFlash, drawPlateOutline } from './viewport/babylon/sceneMarks';
+import { tipsOf } from '@mixo-geocore/host/core/supports/meshQuery';
+import { resolveSettings as resolveUnitSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { attachSurfaceBrush, type ActiveBrush } from './viewport/babylon/paintStroke';
 import { attachEditClicks } from './viewport/babylon/editClicks';
 import { attachCameraViews, type CameraViews } from './viewport/babylon/cameraViews';
@@ -372,6 +375,8 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     if (!scene) return;
     const built: Array<Mesh | TransformNode> = [];
     const disposers: Array<() => void> = [];
+    // The build plate, when a printer is chosen. Scene-level: it belongs to no unit.
+    if (props.plate) disposers.push(drawPlateOutline(scene, 'plate-outline', props.plate, colours.preview.plate));
     const nodes = unitNodes.current;
     nodes.clear();
     // Zones read full in zones mode and faint elsewhere, exactly as the three.js view decides it.
@@ -427,7 +432,13 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * which things like `UnresolvedBubbles` are given so they can reason about it -- and it is
        * not where the bodies are drawn. Using it left the supports behind whenever a model moved.
        */
-      const supports = supportMeshes.get(unit.id);
+      /*
+       * TIPS ONLY: the bodies come off and only the contact tips are drawn, which is how an
+       * operator checks a crowded model. `tipsOf` is geocore's and returns the tip geometry as a
+       * mesh of its own, so the two views show the same subset rather than two similar ones.
+       */
+      const built0 = supportMeshes.get(unit.id);
+      const supports = built0 && props.tipsView ? tipsOf(built0) : built0;
       if (supports && supports.indices.length > 0) {
         const supportMesh = new Mesh(`${unit.id}-supports`, scene);
         supportMesh.parent = node;
@@ -512,6 +523,17 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * other two need the tip selection plumbed through and that is a prop this view does not take
        * yet. Scale 0.42 is three's number for the plain set.
        */
+      // The ring that opens where a support was just added.
+      if (props.added?.unitId === unit.id) {
+        disposers.push(drawAddFlash(scene, {
+          name: `${unit.id}-add-flash`,
+          parent: node,
+          at: props.added,
+          radius: resolveUnitSettings(unit.settings).pillarDiameter,
+          colour: colours.preview.remove,
+        }));
+      }
+
       const tips = props.dentalTips?.unitId === unit.id ? props.dentalTips.points : undefined;
       if (tips && tips.length > 0) {
         disposers.push(drawTipMarkers(scene, {
@@ -555,7 +577,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       }
       nodes.clear();
     };
-  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks, props.dentalTips]);
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks, props.dentalTips, props.tipsView, props.added, props.plate]);
 
   /*
    * Which unit the gizmo is on, and in which mode. DECLARED AFTER THE UNITS EFFECT ON PURPOSE:
