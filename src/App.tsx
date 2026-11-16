@@ -39,6 +39,7 @@ import { SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
 import ObjectViewport from './components/ObjectViewport';
 import BabylonObjectViewport from './components/BabylonObjectViewport';
 import { readRenderer } from './ui/renderer';
+import { Icon } from './ui/Icon';
 import DebugSection from './components/DebugSection';
 import { useDebugLayers, visibleLayers } from './components/useDebugLayers';
 import { CirclePreview } from './components/viewport/CirclePreview';
@@ -1374,8 +1375,8 @@ export default function App() {
             would stand permanently dead. The step's own way back is Restore, in its panel.
           */}
           {editMode === 'dental' && session.dentalStage === 'aligner' ? null : <div className="toolbar-group">
-            <CommandButton command={command('history.undo')} run={runCommand} />
-            <CommandButton command={command('history.redo')} run={runCommand} />
+            <CommandButton command={command('history.undo')} run={runCommand} className="icon-key" uiName="nav-undo" labelHidden><Icon name="undo" /></CommandButton>
+            <CommandButton command={command('history.redo')} run={runCommand} className="icon-key" uiName="nav-redo" labelHidden><Icon name="redo" /></CommandButton>
           </div>}
           <div className="toolbar-group">
             <CommandButton command={command('view.wireframe')} run={runCommand} />

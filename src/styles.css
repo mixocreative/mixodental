@@ -199,6 +199,22 @@ h1 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: .08em; }
 .brand small { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
 .header-actions { display: flex; align-items: center; gap: 16px; }
 .toolbar-group { display: flex; gap: 6px; }
+/*
+ * A key that shows its picture alone (CommandButton `labelHidden`). Square, so a row of them reads
+ * as a row of keys rather than as words of different lengths. The word is not gone: it is still in
+ * the button for a screen reader and for the walk, and the hint puts it under the pointer.
+ * Only for actions whose glyph is universal -- undo and redo. An icon the reader has to learn
+ * costs more than the width it saves, which is why Wireframe beside them is still a word.
+ */
+.icon-key {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-key > svg { width: 17px; height: 17px; flex: none; }
 .toolbar-group + .toolbar-group { padding-left: 16px; border-left: 1px solid var(--line); }
 
 /* ---- Workspace ----------------------------------------------------------- */
