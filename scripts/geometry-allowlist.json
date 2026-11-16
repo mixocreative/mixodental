@@ -31,6 +31,11 @@
   "src/components/viewport/UnresolvedBubbles.tsx": {
     "label": "host-adapter"
   },
+  "src/components/viewport/babylon/cameraViews.ts": {
+    "label": "host-math",
+    "maxMath": 1,
+    "why": "the right-inset pan, copied from cameras.tsx rather than re-derived: how far to slide camera and target along the camera's own right axis so a model centres in the width a panel leaves. Every other number here -- the framing distance, the bounds sphere, the spot view, the plate crossing -- comes from geocore's renderer-free editing/view"
+  },
   "src/components/viewport/babylon/editClicks.ts": {
     "label": "host-math",
     "maxMath": 1,

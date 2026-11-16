@@ -27,6 +27,7 @@ import { drawDentalRim, drawDentalRisks } from './viewport/babylon/dentalMarks';
 import { drawTipMarkers } from './viewport/babylon/tipMarkers';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
 import { attachEditClicks } from './viewport/babylon/editClicks';
+import { attachCameraViews, type CameraViews } from './viewport/babylon/cameraViews';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer } from './viewport/babylon/surfacePointer';
 import { createSelectionColours } from './viewport/babylon/selectionColours';
@@ -91,6 +92,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   /** The node carrying each unit's transform, which is what the gizmo moves. */
   const unitNodes = useRef(new Map<string, TransformNode>());
   const gizmoRef = useRef<TransformGizmo | null>(null);
+  const camerasRef = useRef<CameraViews | null>(null);
   const colours = useViewportColours();
   // Read by the pointer layers, which are attached once and must still see today's tokens.
   const coloursRef = useRef(colours);
@@ -211,6 +213,19 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         onZoneStroke: (unitId, stamps) => propsRef.current.onZoneStroke(unitId, stamps),
       }),
       (() => {
+        const views = attachCameraViews(scene, {
+          camera,
+          canvas,
+          nodeFor: (unitId) => unitNodes.current.get(unitId),
+          onBelowPlate: (value) => propsRef.current.onBelowPlate(value),
+        });
+        camerasRef.current = views;
+        return () => {
+          camerasRef.current = null;
+          views.dispose();
+        };
+      })(),
+      (() => {
         const gizmo = attachTransformGizmo(scene, {
           canvas,
           camera,
@@ -289,6 +304,24 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     };
   }, []);
 
+
+  /*
+   * Fit / Bottom / side, and "Show me". Keyed on `seq` exactly as the three.js view is: a REPEATED
+   * request carries a new seq, which is what lets pressing Fit twice frame twice.
+   */
+  useEffect(() => {
+    const views = camerasRef.current;
+    const request = props.viewRequest;
+    if (!views || !request) return;
+    const ids = printScene.selectedUnitIds.length > 0 ? printScene.selectedUnitIds : printScene.units.map((unit) => unit.id);
+    views.frame(request, ids);
+  }, [props.viewRequest?.seq]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const views = camerasRef.current;
+    if (!views || !props.focus) return;
+    views.focus(props.focus);
+  }, [props.focus?.seq]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The lights and background take their colours from the same CSS tokens as the DOM, re-read
   // whenever a token changes, so a theme switch recolours this scene exactly as it does the other.
