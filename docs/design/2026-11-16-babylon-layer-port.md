@@ -226,7 +226,29 @@ shared-file refactor", which overstates it. The r3f coupling in that hook is nar
 Everything else in the hook — the scheduler, the drag-over, the hover refresh, the resting point,
 the Shift tracking, the no-bodies report — is already renderer-free and would not be touched.
 
-So route 1 is really: **inject two things.** Replace `gl.domElement` with a `canvas` option, replace
+**CORRECTED AGAIN, and the pattern matters more than the number.** There is a THIRD coupling I
+missed on the first read: `objectAt` uses `createObjectTest()`, which is three.js to the bone — a
+`THREE.Raycaster`, `traverseVisible`, and meshes marked `userData.strokeStart`. It answers "is this
+canvas point on the object", counting the model, a support under the pointer, and a support the
+circle reaches from nearby (a support BEHIND the model does not count).
+
+I have now revised this estimate upward twice, each time after reading further into the same file.
+That is the signal to stop estimating from partial reads — not a reason to hurry the change through.
+
+**The complete, verified injection list is three points:**
+
+| Inject | Replaces | Babylon's answer |
+|---|---|---|
+| `canvas` | `gl.domElement`, used in three places | its own canvas |
+| `makeView(bodies)` | the single `screenBrushView(...)` call | a view over the support-group clip |
+| `objectAt(at, radius)` | `createObjectTest()` + `group` + `camera` | `pointer.hitAll(x, y)` — a model or support hit counts — sampling the same `SUPPORT_REACH` shares at the same `AROUND_ANGLES`, where only a `'support'` answer counts away from the centre |
+
+With those three passed in, the rest of the hook — scheduler, drag-over, hover probe, resting point,
+Shift latching, the no-bodies report, the brush circle element — is renderer-free and moves whole
+into a shared hook. `useScreenBrush` stays as the thin three.js wrapper that calls `useThree` and
+supplies the three, which is also what keeps its path unchanged by construction.
+
+So route 1 is really: **inject three things.** Replace `gl.domElement` with a `canvas` option, replace
 the `screenBrushView(...)` call with a `makeView(bodies)` option, and leave `useScreenBrush`'s
 three.js caller supplying both exactly as it does now. The Babylon view then supplies its own
 canvas and a view built on the support-group clip. That is a small, reviewable change whose
