@@ -211,6 +211,18 @@ gl.readPixels(...)  // then: distinct colour count, modal (background) share, da
 A layer that draws something moves the distinct-colour count and the background share. The model
 path, the grid and the supports were each proved this way.
 
+**THE CANVAS ALTERNATES BETWEEN TWO FRAMES, so pixel diffing has a floor.** With nothing moving
+and the pointer parked off the model, consecutive reads of the Babylon canvas go `0, 605, 0, 605, 0`
+— two states, 605 pixels apart, swapping. Frames of the same parity are byte-identical, and a
+genuinely idle scene with no pointer events at all diffs to **0**, so the scene itself is stable.
+It is the read that alternates. Consequences for anyone measuring a layer here:
+
+- **only a difference well above ~605 pixels means anything**; a hairline ring does not clear it;
+- take several frames and compare same-parity ones, or enlarge the thing you are testing until it
+  is unmistakable (the ghost tip needed 20 mm to produce 5,384 unambiguous pixels);
+- the app's OWN state is the better oracle where it exists — the zone brush was proved by the
+  control reading "Painted", not by counting pixels.
+
 **Two traps, both of which cost a verification round here:**
 
 1. **Supports take about 16 seconds to build on the knot fixture, and the panel enables "Remove

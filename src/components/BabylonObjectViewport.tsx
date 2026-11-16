@@ -23,8 +23,9 @@ import { generationTransform } from '@mixo-geocore/host/supports/unitSupports';
 import { babylonPlacement } from './viewport/babylonTransform';
 import { drawZones } from './viewport/babylon/zoneLayer';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
-import { attachGhostTip } from './viewport/babylon/ghostTip';
+import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer } from './viewport/babylon/surfacePointer';
+import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { releaseHandle } from './viewport/babylon/sessionHandles';
 import { ZONE_OPACITY } from './viewport/style';
 import { useViewportColours, type ViewportColours } from './viewport/sceneColours';
@@ -188,11 +189,15 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         gesture,
         onZoneStroke: (unitId, stamps) => propsRef.current.onZoneStroke(unitId, stamps),
       }),
-      attachGhostTip(scene, {
+      attachEditPreview(scene, {
         canvas,
         pointer,
         gesture,
-        colours: () => ({ add: coloursRef.current.preview.supportTip, remove: coloursRef.current.preview.remove }),
+        colours: () => coloursRef.current.preview,
+        settingsFor: (unitId) => {
+          const unit = propsRef.current.scene.units.find((u) => u.id === unitId);
+          return unit ? resolveSettings(unit.settings) : undefined;
+        },
       }),
     ];
     return () => { for (const off of detach) off(); };
