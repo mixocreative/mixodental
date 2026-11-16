@@ -49,7 +49,7 @@ distinct colours, and the background's share did not move, which is how an orbit
 
 | Still three.js only | Where it lives today |
 |---|---|
-| the remove ring and the selection highlight | `supportLayers.tsx` (the zone stamps and the ghost tip are DONE — `babylon/zoneLayer.ts`, `babylon/ghostTip.ts`) |
+| ~~the edit preview and the selection highlight~~ | **DONE** — `babylon/editPreview.ts` (ring, cone, doomed marker), `babylon/selectionColours.ts`, `babylon/zoneLayer.ts` |
 | the dental paint, face tint and region lines | `dentalLayers.tsx` |
 | the rim being drawn | `RimDraftLayer.tsx` |
 | the translate/rotate gizmo and its restyle | `UnitObject.tsx`, `gizmoStyle.ts` |
