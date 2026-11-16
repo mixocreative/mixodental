@@ -303,6 +303,8 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
           return { id: unit.id, active: propsRef.current.scene.activeUnitId === unit.id, ...(supports ? { supports } : {}) };
         },
         gizmoDragging: () => false,
+        stepTwo: () => propsRef.current.dentalArea === true,
+        onPickTip: (unitId, point) => propsRef.current.onPickTip(unitId, point),
         onSelect: (unitId, additive) => propsRef.current.onSelect(unitId, additive),
         onAddContact: (unitId, point, normal) => propsRef.current.onAddContact(unitId, point, normal),
         onErase: (unitId, point) => propsRef.current.onErase(unitId, point),

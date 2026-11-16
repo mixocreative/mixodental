@@ -46,6 +46,9 @@ export interface EditClicksInput {
   unitFor: (unitId: string) => EditClickUnit | undefined;
   /** Whether a gizmo drag is in progress, which suppresses a miss. */
   gizmoDragging: () => boolean;
+  /** Dental Step 2 is on (`dentalArea`), which changes what two of the actions mean. */
+  stepTwo: () => boolean;
+  onPickTip: (unitId: string, point: Vector) => void;
   onSelect: (unitId: string | null, additive: boolean) => void;
   onAddContact: (unitId: string, point: Vector, normal: Vector) => void;
   onErase: (unitId: string, point: Vector) => void;
@@ -95,6 +98,20 @@ export function attachEditClicks(input: EditClicksInput): () => void {
 
       // `pass` means this hit does not take the click; whatever is behind it gets a turn.
       if (action.type === 'pass') continue;
+      const stepTwo = input.stepTwo();
+      /*
+       * TWO ACTIONS MEAN SOMETHING ELSE IN DENTAL STEP 2, and both rules come from `UnitObject`:
+       *
+       *  - a `miss` on the model while the Select tool is in hand picks the TIP nearest the click,
+       *    within Click reach. That is the whole of Step 2's "Select -> Click";
+       *  - `erase` does nothing at all, because Step 2 removes only through a selection and
+       *    Delete. Letting it through would delete a support with a right-click in a step whose
+       *    rules say it cannot be done that way.
+       */
+      if (stepTwo && action.type === 'miss' && candidate.kind === 'model' && input.gesture().kind === 'pick') {
+        return input.onPickTip(unit.id, candidate.world.point);
+      }
+      if (stepTwo && action.type === 'erase') return;
       if (action.type === 'none') return;
       if (action.type === 'select') return input.onSelect(unit.id, action.additive);
       if (action.type === 'miss') return input.onEditMiss();
