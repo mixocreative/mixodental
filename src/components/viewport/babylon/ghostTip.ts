@@ -7,6 +7,15 @@ import type { SurfacePointer } from './surfacePointer';
  * land, and in which colour -- the add tone normally, the remove tone when the click would take one
  * away. Layer 2 of the Babylon port.
  *
+ * INCOMPLETE, AND NAMED AS SUCH. `EditPreview` in `supportLayers.tsx` draws THREE things and this
+ * draws one of them, approximately: there is no RING (the element that is always on screen), no
+ * doomed marker showing which support a remove click would take, the cone is a fixed 1 x 2 mm
+ * instead of the unit's `pillarDiameter` x `neckLength`, the token is `--mark-support-tip` where
+ * `EditPreview`'s cone uses `--mark-add`, and these are LIT materials where all three of the
+ * originals are unlit basic ones with their own depth and opacity rules. The full table is in
+ * docs/design/2026-11-16-babylon-layer-port.md. Treat what is here as a placeholder that proves the
+ * pointer path, not as the ported layer.
+ *
  * THE SHAPE IS NOT DECORATION. The three.js view uses `ConeGeometry(1, 2, 10)` turned so the APEX
  * sits at the origin and the body runs along +Y, so the point of the cone marks the exact spot the
  * support would meet the model and the body shows which way it would leave. Babylon's cone is

@@ -112,6 +112,48 @@ the one that makes layer 1 visible:
 mixoMesh's `src/supports/live/supportInteraction.ts` (361 lines) is the same job over its own port
 and should be read before writing this — bearing in mind it is unchecked JavaScript.
 
+### Layer 2 is NOT finished, and the Babylon marker is an approximation
+
+Read `EditPreview` in `supportLayers.tsx` before touching this again. It draws **three** things, and
+the Babylon `ghostTip.ts` matches none of them exactly — it draws a plausible marker, not that one.
+
+| Element | When | Geometry | Material |
+|---|---|---|---|
+| **the ring** | always | torus at the hover point, radius = the brush radius or `settings.eraseRadius`, tube `max(0.03, radius * 0.025)`, 6 × 48. Its +Z is turned to the surface normal | `ringMaterial(colour)` — **basic, unlit**, `depthTest: false`, opacity 0.85, renderOrder 20 |
+| **the add cone** | only when NOT removing and no brush | at `point + normal * (neckLength / 2)`, radius `settings.pillarDiameter / 2`, height `settings.neckLength`, 16 sides. Its +Y is turned to the **negated** normal, so it points INTO the surface | basic, `--mark-add`, opacity 0.55, `depthWrite: false`, renderOrder 19 |
+| **the doomed marker** | when a click would remove a contact | sphere at that contact, radius `max(0.25, pillarDiameter * 0.45)`, 12 × 8 | basic, `--mark-remove`, `depthTest: false`, opacity 0.9, renderOrder 21 |
+
+**What the current Babylon version gets wrong**, all of it honest debt rather than a mystery:
+
+- it draws **no ring at all**, and the ring is the element that is always on screen;
+- its cone is a fixed 1 mm × 2 mm instead of `pillarDiameter` × `neckLength` from the unit's
+  resolved settings, which is why it needed enlarging to 20 mm before it could even be measured;
+- it uses `--mark-support-tip`, where `EditPreview`'s cone uses **`--mark-add`** — a different
+  token;
+- it uses a lit PBR material where all three of these are **unlit basic** materials with their own
+  depth and opacity rules, which is what keeps them readable on top of the model;
+- it has no doomed marker, so nothing shows WHICH support a remove click would take.
+
+`contactToRemove(contacts, point, radius)` is the renderer-free rule behind the doomed marker, and
+`resolveSettings(unit.settings)` gives the sizes. Neither needs rewriting.
+
+### Layer 3, the selection highlight: recolour in place, do not rebuild
+
+`useSelectionColors` in `supportLayers.tsx`. The support bodies are ONE mesh, and selecting a
+support repaints its vertices rather than drawing anything new:
+
+1. `contactVertexRuns(supports)` maps each contact id to its vertex ranges in that single mesh.
+2. A `color` vertex attribute is written in place — `--support-picked` over the selected runs, the
+   base colour over the rest.
+3. `selectionDelta(previous, now)` repaints ONLY what changed. A full repaint happens on a fresh
+   geometry, a base-colour change or a token revision, and otherwise never. On a mesh with hundreds
+   of supports that difference is the whole budget.
+
+**The trap: `linearBytes`.** Vertex colours go in LINEAR space, not sRGB. Write the token's bytes
+straight in and every selected support comes out the wrong shade — close enough to look like a
+palette choice rather than a bug. Babylon's vertex colours need the same treatment, so reuse that
+helper rather than writing bytes by hand.
+
 ### Layer 1's data path, so nobody re-derives it
 
 Every step but the last is renderer-free and already written. The Babylon work is the final draw.
