@@ -25,6 +25,7 @@ import { drawZones } from './viewport/babylon/zoneLayer';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer } from './viewport/babylon/surfacePointer';
+import { createSelectionColours } from './viewport/babylon/selectionColours';
 import { resolveSettings, unitContacts } from '@mixo-geocore/host/supports/unitSupports';
 import { releaseHandle } from './viewport/babylon/sessionHandles';
 import { ZONE_OPACITY } from './viewport/style';
@@ -308,13 +309,23 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         supportMesh.position = frame.position;
         supportMesh.rotationQuaternion = frame.rotationQuaternion;
         const supportMaterial = new PBRMaterial(`${unit.id}-supports-material`, scene);
-        supportMaterial.albedoColor = Color3.FromHexString(
-          printScene.selectedUnitIds.includes(unit.id) ? colours.support.selectedObject : colours.support.idle,
-        );
         supportMaterial.metallic = 0;
         supportMaterial.roughness = 1;
         supportMesh.material = supportMaterial;
         supportMesh.isPickable = false;
+        /*
+         * The selection highlight recolours this one mesh's vertices rather than drawing a second
+         * mesh of the selected bodies. The material's albedo stays WHITE here, because a PBR
+         * albedo multiplies the vertex colour: tint it as well and every support comes out the
+         * product of two colours, which looks like the selection tone is wrong.
+         */
+        supportMaterial.albedoColor = Color3.White();
+        const highlight = createSelectionColours(supportMesh, supports);
+        highlight.apply(
+          printScene.selectedUnitIds.includes(unit.id) ? props.selection : new Set<string>(),
+          printScene.selectedUnitIds.includes(unit.id) ? colours.support.selectedObject : colours.support.idle,
+          colours.support.picked,
+        );
       }
 
       // The no-support zones, painted see-through over the model (layer 1 of the port).
@@ -336,7 +347,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         mesh.dispose();
       }
     };
-  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind]);
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection]);
 
   return (
     <div className="babylon-viewport" data-ui="viewport-babylon">
