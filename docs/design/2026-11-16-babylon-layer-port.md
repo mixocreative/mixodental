@@ -63,6 +63,40 @@ The rest of the order is by what an operator loses without it, not by what is ea
 | 6 | The gizmo | `UnitObject.tsx`, `gizmoStyle.ts` | Babylon `GizmoManager` | `gizmoStyle.ts`'s token and constant tables survive; only the three drawing goes |
 | 7 | Bubbles, add flash, print-angle arc, thumbnail | their own files | mixed | `UnresolvedBubbles` is HTML in a 3D group — Babylon needs a different approach (screen-space projection through `worldToScreen`, which the port already answers) |
 
+### Layer 0's design, worked out and not yet built
+
+Everything below was established by reading; none of it needs discovering again.
+
+**The zone brush, end to end** — the smallest input path that proves the whole thing, because it is
+the one that makes layer 1 visible:
+
+1. `props.gesture.kind === 'zones'` carries `brush: { radius, kind }`. That is the only signal
+   needed to know a drag paints rather than orbits.
+2. On pointer down and move, `BabylonViewportPort.screenToRay([x, y])` then `pick(handle, ray)`
+   gives a world-space point and surface normal.
+3. `nextStamp(last, point, radius)` (geocore `editing/zones`) says whether the brush has moved far
+   enough — half a radius — to lay a new dab. Do not invent this spacing.
+4. Convert the point and normal to **unit-local** space (the inverse of the unit's transform) and
+   build a `ZoneStamp { center, radius, normal, kind }`. The normal is load-bearing: it is what
+   keeps the far side of a thin wall out of the zone.
+5. On pointer up, call `props.onZoneStroke(unitId, stamps)` — one call per drag, so one drag is one
+   step on the history.
+
+**The two obstacles, both real:**
+
+- **Picking needs an engine session handle, not `scene.pick`.** The port's contract is explicit:
+  the app answers through the engine session "never through its renderer's own picking, so both
+  apps pick identically". `sessionMesh.ts` does this for three.js and is tied to a three geometry's
+  `dispose` event, so the Babylon view needs its own handle lifecycle — load the unit's mesh into
+  the session, keep the handle, release it when the mesh goes. Using `scene.pick` instead would be
+  quicker and would make the two renderers disagree about which triangle was hit, which is the one
+  thing this seam exists to prevent.
+- **The camera must yield.** `camera.attachControl(canvas, true)` currently keeps every drag. It has
+  to stand down while a gesture owns the pointer, and take over again when it does not.
+
+mixoMesh's `src/supports/live/supportInteraction.ts` (361 lines) is the same job over its own port
+and should be read before writing this — bearing in mind it is unchecked JavaScript.
+
 ### Layer 1's data path, so nobody re-derives it
 
 Every step but the last is renderer-free and already written. The Babylon work is the final draw.
