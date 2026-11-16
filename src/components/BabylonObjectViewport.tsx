@@ -24,6 +24,7 @@ import { babylonPlacement } from './viewport/babylonTransform';
 import { drawSurfaceStamps } from './viewport/babylon/surfaceStamps';
 import { drawDentalFace, drawDentalRegionLines } from './viewport/babylon/dentalArea';
 import { drawDentalRim, drawDentalRisks } from './viewport/babylon/dentalMarks';
+import { drawTipMarkers } from './viewport/babylon/tipMarkers';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer } from './viewport/babylon/surfacePointer';
@@ -414,6 +415,25 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         }));
       }
 
+      /*
+       * Step 2's reviewed contacts, drawn as cone markers without building any support body.
+       *
+       * The solid/ghost split is NOT done: three draws three sets -- plain, selected (solid red at
+       * a larger scale) and the drag-over ghost -- and this draws only the plain one, because the
+       * other two need the tip selection plumbed through and that is a prop this view does not take
+       * yet. Scale 0.42 is three's number for the plain set.
+       */
+      const tips = props.dentalTips?.unitId === unit.id ? props.dentalTips.points : undefined;
+      if (tips && tips.length > 0) {
+        disposers.push(drawTipMarkers(scene, {
+          name: `${unit.id}-dental-tips`,
+          parent: node,
+          points: tips,
+          colour: colours.preview.supportTip,
+          scale: 0.42,
+        }));
+      }
+
       // Overhang low points outside the permitted area. Display only: supports and export ignore it.
       const risks = props.dentalRisks?.unitId === unit.id ? props.dentalRisks.risks : undefined;
       if (risks && risks.length > 0) {
@@ -446,7 +466,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       }
       nodes.clear();
     };
-  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks]);
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks, props.dentalTips]);
 
   /*
    * Which unit the gizmo is on, and in which mode. DECLARED AFTER THE UNITS EFFECT ON PURPOSE:
