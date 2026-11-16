@@ -184,6 +184,20 @@ Also already in hand: `gizmoShown(gesture, gizmoMode, rotationGizmo)` is exporte
 `ObjectViewport.tsx` and is renderer-free, so the visibility rule needs no porting; and the camera
 must stand down during a gizmo drag exactly as it does during a brush stroke.
 
+### The dental layers: SEVEN components — six built, one to wire
+
+**Built:** the area and paint (`babylon/surfaceStamps.ts`, which generalised the zone layer and
+serves all three stamp callers), the face tint and the region trim lines (`babylon/dentalArea.ts`),
+the rim outline and the overhang risk patches (`babylon/dentalMarks.ts`). The tip markers
+(`babylon/tipMarkers.ts`) are written and typecheck; only the wiring is left, and the
+solid/ghost split needs the selection plumbed.
+
+**None of the dental set is verified by eye.** They need a TWO-CONTOUR policy, which the knot
+fixture does not produce — load `docs/dental-reference/reference-aligner.stl` or a case under
+`dentalwork/fixtures/` and run the dental flow to Step 2.
+
+### The original reading, kept for the detail
+
 ### The dental layers: SEVEN components, not one
 
 `dentalLayers.tsx` is the biggest remaining piece and it is not a single layer. Take them
