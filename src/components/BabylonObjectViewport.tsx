@@ -249,19 +249,6 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     };
   }, []);
 
-  /*
-   * Which unit the gizmo is on, and in which mode. `gizmoShown` is the three.js view's own rule,
-   * exported and renderer-free, so the two views cannot come to disagree about when a gizmo is
-   * offered -- which is the sort of difference an operator reads as the app being in a different
-   * state than it is.
-   */
-  useEffect(() => {
-    const gizmo = gizmoRef.current;
-    if (!gizmo) return;
-    const kind = gizmoShown(props.gesture, props.gizmoMode, props.rotationGizmo === true);
-    const activeId = printScene.activeUnitId ?? undefined;
-    gizmo.show(activeId, activeId ? unitNodes.current.get(activeId) : undefined, kind);
-  }, [props.gesture, props.gizmoMode, props.rotationGizmo, printScene.activeUnitId, printScene.units]);
 
   // The lights and background take their colours from the same CSS tokens as the DOM, re-read
   // whenever a token changes, so a theme switch recolours this scene exactly as it does the other.
@@ -395,6 +382,25 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       nodes.clear();
     };
   }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection]);
+
+  /*
+   * Which unit the gizmo is on, and in which mode. DECLARED AFTER THE UNITS EFFECT ON PURPOSE:
+   * effects run in declaration order, and this one reads the node map that effect fills. Put it
+   * earlier and on first load it finds an empty map, so the gizmo does not appear until some
+   * unrelated re-render happens to run it again -- which is exactly how it behaved before.
+   *
+   * Which unit the gizmo is on, and in which mode. `gizmoShown` is the three.js view's own rule,
+   * exported and renderer-free, so the two views cannot come to disagree about when a gizmo is
+   * offered -- which is the sort of difference an operator reads as the app being in a different
+   * state than it is.
+   */
+  useEffect(() => {
+    const gizmo = gizmoRef.current;
+    if (!gizmo) return;
+    const kind = gizmoShown(props.gesture, props.gizmoMode, props.rotationGizmo === true);
+    const activeId = printScene.activeUnitId ?? undefined;
+    gizmo.show(activeId, activeId ? unitNodes.current.get(activeId) : undefined, kind);
+  }, [props.gesture, props.gizmoMode, props.rotationGizmo, printScene.activeUnitId, printScene.units]);
 
   return (
     <div className="babylon-viewport" data-ui="viewport-babylon">
