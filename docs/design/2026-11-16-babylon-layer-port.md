@@ -184,6 +184,45 @@ Also already in hand: `gizmoShown(gesture, gizmoMode, rotationGizmo)` is exporte
 `ObjectViewport.tsx` and is renderer-free, so the visibility rule needs no porting; and the camera
 must stand down during a gizmo drag exactly as it does during a brush stroke.
 
+### Wiring the remaining 25 props, and the rule that makes the two views identical
+
+**THE OWNER'S REQUIREMENT, 2026-11-16: the user flow, the UX, the UI and the tool modes must be
+IDENTICAL, not merely equivalent.** That settles how this is written, not just how much:
+
+> **Import the decision. Adapt only the input.** Every rule about what an interaction MEANS is
+> already renderer-free — `pickAction` (`editing/pick`), `missAction`, `rimTapAt`, `gizmoShown`,
+> `frameView` / `spotView` / `belowPlate` (`editing/view`), `brushHits`, `nextStamp`. The three.js
+> handlers are ADAPTERS over those, not logic. Call the same functions with the same inputs and the
+> two views agree by construction; reimplement any of them "to match" and they agree only until
+> someone changes one.
+
+The Babylon view uses **15 of the 40** `ObjectViewportProps`. That count, not the layer count, is
+the honest measure of this migration: most of what remains is interaction, not pixels.
+
+| Decision | Already renderer-free in | What Babylon must supply |
+|---|---|---|
+| what a click means (add / erase / select / pass) | `pickAction`, via `UnitObject`'s thin `pickFor` | hit kind (`model` or `support`), button, ctrl, shift, **travel**, mode, tool, active, contact |
+| what a click on the rim means | `rimTapAt` | the tapped point in UNIT-LOCAL space, and travel |
+| a click that hit nothing | `missAction` | button, and whether a gizmo is dragging |
+| camera framing (fit / bottom / side / focus) | `frameView`, `spotView`, `boundsSphere`, `belowPlate` | bounds of the selected units, canvas size, right-hand inset |
+| drag-over support selection | `brushHits` + the port's `brushView` | nothing new — the port already answers `brushView` |
+
+**Three things Babylon must grow:**
+
+1. **Support picking, and a hit to a CONTACT ID.** The support mesh is `isPickable: false` today and
+   nothing maps a hit to a contact. `contactVertexRuns` (already used by the selection highlight)
+   maps contact ids to vertex ranges, so triangle-to-contact is a lookup away.
+2. **`travel` per press.** r3f hands `event.delta`; here it must be tracked from pointerdown. It is
+   load-bearing, not cosmetic — it is what stops a view turn that began on the model from leaving a
+   rim point behind (walk `u5d`).
+3. **A DOM overlay anchored to a 3D point.** `UnresolvedBubbles` uses drei's `<Html>`; the port's
+   `worldToScreen` is what drei does internally. It is the only mechanism here that is genuinely
+   different, so do it EARLY rather than last.
+
+**One prop cannot be ported as it stands:** `unitOverlay.node` is typed `ReactNode` and mounted
+inside a 3D group. If it carries r3f elements the INTERFACE is renderer-bound, not just the
+implementation, and it must pass data instead. It is the only one of the 40 with that problem.
+
 ### The dental layers: SEVEN components — six built, one to wire
 
 **Built:** the area and paint (`babylon/surfaceStamps.ts`, which generalised the zone layer and
