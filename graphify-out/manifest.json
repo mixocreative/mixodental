@@ -1,8 +1,8 @@
 {
   "package.json": {
-    "mtime": 1794799177.4400475,
-    "seen": 1794799853.847908,
-    "ast_hash": "9cc33e16387e2f0d4452fc7d2c304f1f",
+    "mtime": 1794801086.1230552,
+    "seen": 1794801714.1125233,
+    "ast_hash": "0217efcbf2d0776a44f8f5c6f5934a36",
     "semantic_hash": ""
   },
   "scripts/dental-reference/compare_supported.py": {
@@ -6199,9 +6199,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/README.md": {
-    "mtime": 1794800972.8397148,
-    "seen": 1794801048.4382408,
-    "ast_hash": "c65fa2082870e0d7cec6595dc679295d",
+    "mtime": 1794801403.431313,
+    "seen": 1794801714.114025,
+    "ast_hash": "d503592e51c3242c28e8b02b8fb0774f",
     "semantic_hash": ""
   },
   "src/state/README.md": {
@@ -6397,9 +6397,9 @@
     "semantic_hash": ""
   },
   "src/components/BabylonObjectViewport.tsx": {
-    "mtime": 1794800512.4594288,
-    "seen": 1794801048.4372432,
-    "ast_hash": "6f3954d1bcd5ba9497a26d49dde2fd3e",
+    "mtime": 1794801393.486185,
+    "seen": 1794801714.1125233,
+    "ast_hash": "8f45071732b7787edcbb947ecc9cfec2",
     "semantic_hash": ""
   },
   "src/ui/assets/icons/language.svg": {
