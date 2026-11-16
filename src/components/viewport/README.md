@@ -55,12 +55,16 @@ distinct colours, and the background's share did not move, which is how an orbit
 | the translate/rotate gizmo and its restyle | `UnitObject.tsx`, `gizmoStyle.ts` |
 | unresolved bubbles, add flash, print-angle arc, thumbnail | `UnresolvedBubbles.tsx`, `AddFlash.tsx`, `PrintAngleArc.tsx`, `drawThumbnail.ts` |
 
-**The support frame is a trap worth reading before touching it.** Support bodies are drawn under
-`generationTransform(unit)` — the transform they were *generated* at — not under the unit's current
-one. Move a unit after generating and the supports stay in the old frame until they are rebuilt,
-which is what the engine's caches are keyed on. Using `unit.transform` would silently re-seat every
-support the moment the operator nudged the model, and the picture would look plausible while lying
-about where the printed supports will be.
+**The support frame, and the wrong answer that sounded right.** Support bodies are drawn at
+`unit.transform`, the same transform as the model: `UnitObject` puts ONE group at `unit.transform`
+and draws the model and `SupportBodies` inside it, and `SupportBodies` applies no transform of its
+own. The geometry is unit-local, so supports are rigidly attached and travel with the model.
+
+`generationTransform(unit)` is **data, not a position** — the frame the supports were generated in,
+handed to things like `UnresolvedBubbles` so they can reason about it. The Babylon view drew
+supports there for several commits, with a confident comment explaining why, and the effect would
+have been supports left behind whenever a model moved. Corrected once `SupportBodies` was read
+rather than assumed.
 
 **A defect that was real, and whose obvious cause was wrong.** An earlier draft showed about 1,100
 dark speckles inside the model's silhouette. Winding was the convincing suspect — Babylon inverts

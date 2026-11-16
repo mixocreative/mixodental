@@ -19,7 +19,6 @@ import {
 } from '@babylonjs/core';
 import { GridMaterial } from '@babylonjs/materials/grid';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
-import { generationTransform } from '@mixo-geocore/host/supports/unitSupports';
 import { babylonPlacement } from './viewport/babylonTransform';
 import { drawZones } from './viewport/babylon/zoneLayer';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
@@ -293,19 +292,22 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       /*
        * The built supports for this unit, when there are any.
        *
-       * THE TRAP, and it is not obvious: supports are drawn under `generationTransform(unit)`, the
-       * transform they were GENERATED at, not the unit's current one. Move a unit after generating
-       * and the supports stay in the old frame until they are rebuilt, which is what the three.js
-       * view does and what the engine's caches are keyed on. Using `unit.transform` here would
-       * silently re-seat every support on the model the moment the operator nudged it, and the
-       * picture would look plausible while being a lie about where the printed supports will be.
+       * They sit at `unit.transform`, the SAME transform as the model, because that is what the
+       * three.js view does: `UnitObject` puts one group at `unit.transform` and draws the model and
+       * `SupportBodies` inside it, and `SupportBodies` applies no transform of its own. The support
+       * geometry is unit-local, so it is rigidly attached and travels with the model.
+       *
+       * An earlier version of this used `generationTransform(unit)` and argued for it at length.
+       * That was wrong. `generationTransform` is DATA -- the frame the supports were generated in,
+       * which things like `UnresolvedBubbles` are given so they can reason about it -- and it is
+       * not where the bodies are drawn. Using it left the supports behind whenever a model moved.
        */
       const supports = supportMeshes.get(unit.id);
       if (supports && supports.indices.length > 0) {
         const supportMesh = new Mesh(`${unit.id}-supports`, scene);
         built.push(supportMesh);
         applyGeometry(supportMesh, supports);
-        const frame = babylonPlacement(generationTransform(unit));
+        const frame = babylonPlacement(unit.transform);
         supportMesh.position = frame.position;
         supportMesh.rotationQuaternion = frame.rotationQuaternion;
         const supportMaterial = new PBRMaterial(`${unit.id}-supports-material`, scene);

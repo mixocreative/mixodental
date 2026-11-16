@@ -168,10 +168,17 @@ GROUP (`UnitObject` reports it through `onGroup`, and `ObjectViewport` passes it
 and the support mesh are siblings with no parent — so building the gizmo means first giving each
 unit a `TransformNode` and deciding what hangs off it.
 
-That decision is the whole job, because **the supports are drawn in `generationTransform(unit)`,
-not `unit.transform`**. Parent them to the same node as the model and a gizmo drag moves supports
-that have not been regenerated, which is a lie about where they will print — the exact rule
-`d6d3f9f` exists to protect. Read how `UnitObject` arranges its group before writing any of this.
+That decision is **simpler than an earlier version of this file claimed**, and the correction is
+worth keeping. `UnitObject` puts ONE group at `unit.transform` and draws the model AND
+`SupportBodies` inside it, and `SupportBodies` applies no transform of its own — so both hang off
+the same node, and a gizmo drag should move both. That is right: the support geometry is unit-local
+and rigidly attached, so supports travel with the model.
+
+`generationTransform(unit)` is **data, not a position** — the frame the supports were generated in,
+handed to things like `UnresolvedBubbles` so they can reason about it. This file, the folder README
+and `d6d3f9f`'s commit message all previously said supports were *drawn* there, with a confident
+argument for it. They were wrong, and the effect in the Babylon view was supports left behind
+whenever a model moved.
 
 Also already in hand: `gizmoShown(gesture, gizmoMode, rotationGizmo)` is exported from
 `ObjectViewport.tsx` and is renderer-free, so the visibility rule needs no porting; and the camera
