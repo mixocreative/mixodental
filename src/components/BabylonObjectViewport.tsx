@@ -26,6 +26,7 @@ import { drawDentalFace, drawDentalRegionLines } from './viewport/babylon/dental
 import { drawDentalRim, drawDentalRisks } from './viewport/babylon/dentalMarks';
 import { drawTipMarkers } from './viewport/babylon/tipMarkers';
 import { drawAddFlash, drawPlateOutline } from './viewport/babylon/sceneMarks';
+import { drawDebugLayers, drawProblemMarks } from './viewport/babylon/checkMarks';
 import { tipsOf } from '@mixo-geocore/host/core/supports/meshQuery';
 import { resolveSettings as resolveUnitSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { attachSurfaceBrush, type ActiveBrush } from './viewport/babylon/paintStroke';
@@ -523,6 +524,25 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * other two need the tip selection plumbed through and that is a prop this view does not take
        * yet. Scale 0.42 is three's number for the plain set.
        */
+      // Support-check findings on this unit, and Step 1's evidence layers.
+      const found = props.problems.filter((problem) => problem.unitId === unit.id);
+      if (found.length > 0) {
+        disposers.push(drawProblemMarks(scene, {
+          name: `${unit.id}-problems`,
+          parent: node,
+          problems: found,
+          colours: colours.preview,
+          opacity: 0.55,
+        }));
+      }
+      if (props.debugLayers?.unitId === unit.id && props.debugLayers.layers.length > 0) {
+        disposers.push(drawDebugLayers(scene, {
+          name: `${unit.id}-debug`,
+          parent: node,
+          layers: props.debugLayers.layers,
+        }));
+      }
+
       // The ring that opens where a support was just added.
       if (props.added?.unitId === unit.id) {
         disposers.push(drawAddFlash(scene, {
@@ -577,7 +597,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       }
       nodes.clear();
     };
-  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks, props.dentalTips, props.tipsView, props.added, props.plate]);
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks, props.dentalTips, props.tipsView, props.added, props.plate, props.problems, props.debugLayers]);
 
   /*
    * Which unit the gizmo is on, and in which mode. DECLARED AFTER THE UNITS EFFECT ON PURPOSE:
