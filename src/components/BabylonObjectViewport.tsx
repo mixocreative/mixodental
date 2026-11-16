@@ -22,6 +22,8 @@ import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { generationTransform } from '@mixo-geocore/host/supports/unitSupports';
 import { babylonPlacement } from './viewport/babylonTransform';
 import { drawZones } from './viewport/babylon/zoneLayer';
+import { attachZoneBrush } from './viewport/babylon/zoneBrush';
+import { releaseHandle } from './viewport/babylon/sessionHandles';
 import { ZONE_OPACITY } from './viewport/style';
 import { useViewportColours, type ViewportColours } from './viewport/sceneColours';
 import { canvasCursor } from './viewport/style';
@@ -69,6 +71,12 @@ function applyGeometry(mesh: Mesh, source: TriangleMesh): void {
 export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sceneRef = useRef<Scene | null>(null);
+  const cameraRef = useRef<ArcRotateCamera | null>(null);
+  // Read by the pointer handlers, which are attached once and must still see today's props.
+  const propsRef = useRef(props);
+  propsRef.current = props;
+  /** Meshes this view has (or may have) loaded into the engine session, so they can be given back. */
+  const loaded = useRef(new Set<TriangleMesh>());
   const colours = useViewportColours();
   const { scene: printScene, supportMeshes, modelVisible, wireframe } = props;
   const onSelect = props.onSelect;
@@ -134,6 +142,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     floor.isPickable = false;
 
     sceneRef.current = scene;
+    cameraRef.current = camera;
     engine.runRenderLoop(() => scene.render());
     const onResize = () => engine.resize();
     window.addEventListener('resize', onResize);
@@ -145,8 +154,51 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       window.removeEventListener('resize', onResize);
       engine.stopRenderLoop();
       sceneRef.current = null;
+      cameraRef.current = null;
       scene.dispose();
       engine.dispose();
+    };
+  }, []);
+
+  /*
+   * The zone brush (layer 0): the pointer path from a press on the canvas to one stroke on the
+   * history. Attached once, because tearing pointer handlers down and rebuilding them on every
+   * prop change is how a drag in flight loses its own pointerup.
+   */
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const camera = cameraRef.current;
+    if (!canvas || !camera) return;
+    return attachZoneBrush({
+      canvas,
+      camera,
+      units: () => propsRef.current.scene.units,
+      gesture: () => propsRef.current.gesture,
+      onZoneStroke: (unitId, stamps) => propsRef.current.onZoneStroke(unitId, stamps),
+    });
+  }, []);
+
+  /*
+   * Engine session handles are given back when a unit leaves and when the view does. Without this
+   * every model ever imported stays loaded in the engine for the rest of the session, and these
+   * are patient scans.
+   */
+  useEffect(() => {
+    const here = new Set(printScene.units.map((unit) => unit.source));
+    for (const mesh of loaded.current) {
+      if (!here.has(mesh)) {
+        releaseHandle(mesh);
+        loaded.current.delete(mesh);
+      }
+    }
+    for (const mesh of here) loaded.current.add(mesh);
+  }, [printScene.units]);
+
+  useEffect(() => {
+    const held = loaded.current;
+    return () => {
+      for (const mesh of held) releaseHandle(mesh);
+      held.clear();
     };
   }, []);
 

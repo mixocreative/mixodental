@@ -31,6 +31,11 @@
   "src/components/viewport/UnresolvedBubbles.tsx": {
     "label": "host-adapter"
   },
+  "src/components/viewport/babylon/zoneBrush.ts": {
+    "label": "host-math",
+    "maxMath": 1,
+    "why": "one frame conversion: the world ray from screenToRay into the picked unit's own frame, because the engine's session mesh is loaded from that unit's positions (ViewportPort's comment saying hits are world space is true of screenToRay and not of pick)"
+  },
   "src/components/viewport/babylon/zoneLayer.ts": {
     "label": "host-adapter"
   },
