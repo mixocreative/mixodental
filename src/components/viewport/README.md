@@ -35,6 +35,11 @@ fixture, and the panel enables "Remove supports" within 2.** Wait on the data, n
 the mesh is `0/0` for most of that time, and a shorter wait reads as "supports are not drawn" when
 they simply are not built yet. That mistake cost a whole verification round here.
 
+**Everything that asks what is under the pointer goes through `babylon/surfacePointer.ts`.** It
+holds the frame rule in one place — `port.pick` works in the picked unit's OWN frame, drawing
+happens in world space — and hands back both, so two layers cannot come to disagree about where the
+same hit is.
+
 **The Babylon view can be painted in.** `babylon/zoneBrush.ts` is the pointer path: a press reaches
 the editing code and comes back as one stroke on the history, and the camera yields while a gesture
 owns the pointer. Proved by one drag — the zones control read "Painted", the canvas went 350 → 597
@@ -44,7 +49,7 @@ distinct colours, and the background's share did not move, which is how an orbit
 
 | Still three.js only | Where it lives today |
 |---|---|
-| the ghost tip, remove ring, selection highlight | `supportLayers.tsx` (the zone stamps are DONE — `babylon/zoneLayer.ts`) |
+| the remove ring and the selection highlight | `supportLayers.tsx` (the zone stamps and the ghost tip are DONE — `babylon/zoneLayer.ts`, `babylon/ghostTip.ts`) |
 | the dental paint, face tint and region lines | `dentalLayers.tsx` |
 | the rim being drawn | `RimDraftLayer.tsx` |
 | the translate/rotate gizmo and its restyle | `UnitObject.tsx`, `gizmoStyle.ts` |
