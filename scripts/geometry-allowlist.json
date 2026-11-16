@@ -43,7 +43,9 @@
     "label": "host-adapter"
   },
   "src/components/viewport/babylonTransform.ts": {
-    "label": "host-adapter"
+    "label": "host-math",
+    "maxMath": 4,
+    "why": "the Euler/quaternion conversion both ways between a ModelTransform and a Babylon mesh. three stores an XYZ Euler and Babylon's own toEulerAngles is yaw-pitch-roll, a DIFFERENT decomposition of the same rotation, so neither direction can be delegated to the library; the matrix extraction is three's own, held against it by the test"
   },
   "src/components/viewport/babylonViewportPort.ts": {
     "label": "host-math",

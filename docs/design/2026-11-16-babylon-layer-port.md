@@ -154,6 +154,29 @@ straight in and every selected support comes out the wrong shade — close enoug
 palette choice rather than a bug. Babylon's vertex colours need the same treatment, so reuse that
 helper rather than writing bytes by hand.
 
+### The gizmo: the conversion is done, the PARENTING is the open question
+
+`eulerFromQuaternion` / `transformFromMesh` in `babylonTransform.ts` are written and tested, so
+reading a dragged mesh back into a `ModelTransform` is solved — including the part that would have
+been silently wrong, since Babylon's `toEulerAngles` returns yaw-pitch-roll, a different
+decomposition of the same rotation. Feed that into a `ModelTransform` and the numbers look
+reasonable, round-trip into a different rotation, and the model jumps when anything re-reads it.
+
+**What is NOT solved, and must not be guessed at:** the three.js gizmo attaches to the unit's
+GROUP (`UnitObject` reports it through `onGroup`, and `ObjectViewport` passes it to
+`TransformControls`), not to a mesh. The Babylon view currently has no equivalent — the model mesh
+and the support mesh are siblings with no parent — so building the gizmo means first giving each
+unit a `TransformNode` and deciding what hangs off it.
+
+That decision is the whole job, because **the supports are drawn in `generationTransform(unit)`,
+not `unit.transform`**. Parent them to the same node as the model and a gizmo drag moves supports
+that have not been regenerated, which is a lie about where they will print — the exact rule
+`d6d3f9f` exists to protect. Read how `UnitObject` arranges its group before writing any of this.
+
+Also already in hand: `gizmoShown(gesture, gizmoMode, rotationGizmo)` is exported from
+`ObjectViewport.tsx` and is renderer-free, so the visibility rule needs no porting; and the camera
+must stand down during a gizmo drag exactly as it does during a brush stroke.
+
 ### Layer 1's data path, so nobody re-derives it
 
 Every step but the last is renderer-free and already written. The Babylon work is the final draw.

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Matrix, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { describe, expect, it } from 'vitest';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
-import { babylonPlacement, rotationQuaternion } from './babylonTransform';
+import { babylonPlacement, eulerFromQuaternion, rotationQuaternion } from './babylonTransform';
 
 /*
  * The contract: a unit placed by the Babylon path lands exactly where the three.js path puts it.
@@ -58,5 +58,36 @@ describe('a unit placed on a Babylon mesh', () => {
     const correct = Matrix.Identity();
     rotationQuaternion(rotation).toRotationMatrix(correct);
     expect(naive.m[0]).not.toBeCloseTo(correct.m[0]!, 3);
+  });
+});
+
+describe('reading a rotation back off a mesh', () => {
+  it.each(TRANSFORMS)('round-trips through three.js’ own Euler: %s', (_name, transform) => {
+    const back = eulerFromQuaternion(rotationQuaternion(transform.rotation));
+    // Not the same NUMBERS necessarily -- several Eulers name one rotation -- so compare the
+    // rotation itself, which is what anything downstream actually uses.
+    const mine = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...back, 'XYZ'));
+    const theirs = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...transform.rotation, 'XYZ'));
+    for (let at = 0; at < 16; at += 1) expect(mine.elements[at]).toBeCloseTo(theirs.elements[at]!, 6);
+  });
+
+  it('agrees with three.js element for element on a compound rotation', () => {
+    const rotation: ModelTransform['rotation'] = [0.4, -1.1, 2.3];
+    const q = rotationQuaternion(rotation);
+    const theirs = new THREE.Euler().setFromQuaternion(
+      new THREE.Quaternion(q.x, q.y, q.z, q.w),
+      'XYZ',
+    );
+    const [x, y, z] = eulerFromQuaternion(q);
+    expect(x).toBeCloseTo(theirs.x, 6);
+    expect(y).toBeCloseTo(theirs.y, 6);
+    expect(z).toBeCloseTo(theirs.z, 6);
+  });
+
+  it('does not return Babylon’s yaw-pitch-roll, which is a different decomposition', () => {
+    const q = rotationQuaternion([0.4, -1.1, 2.3]);
+    const babylon = q.toEulerAngles();
+    const [x] = eulerFromQuaternion(q);
+    expect(Math.abs(babylon.x - x)).toBeGreaterThan(0.01);
   });
 });
