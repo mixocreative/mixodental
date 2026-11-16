@@ -31,6 +31,9 @@
   "src/components/viewport/UnresolvedBubbles.tsx": {
     "label": "host-adapter"
   },
+  "src/components/viewport/babylonTransform.ts": {
+    "label": "host-adapter"
+  },
   "src/components/viewport/babylonViewportPort.ts": {
     "label": "host-math",
     "maxMath": 1,

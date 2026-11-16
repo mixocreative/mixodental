@@ -16,6 +16,11 @@ added to it is added to both. three.js leaves when the last layer is Babylon, no
 | `viewportPort.ts` | **the three.js implementation of the shared editing seam** (`vendor/mixo-geocore/editing/ViewportPort`, rule D22). geocore owns the editing logic in plain data; each app implements this port over its own renderer |
 | `babylonViewportPort.ts` | **the Babylon implementation of the same seam**, the twin of the above. Needs `scene.useRightHandedSystem = true`: Babylon's default left-handed frame would need every value mirrored in Z (`src/core/handedness.ts`), and right-handed keeps the core, three.js and the Rust engine in one frame instead |
 | `enginePick.ts` | the engine session's pick result decoded into a `SurfacePick`, renderer-free. **Both ports share it**, so the triangle-winding rule for the hit normal cannot be fixed in one renderer and left wrong in the other |
+| `babylonTransform.ts` | a unit's `ModelTransform` placed on a Babylon mesh. It exists for one trap: the rotation is a three.js XYZ Euler and Babylon's `mesh.rotation` is yaw-pitch-roll, so copying the three numbers across is right for one axis and silently wrong for any compound rotation. Its test holds the result against three's own matrix |
+
+`src/ui/renderer.ts` is the switch: `?renderer=babylon` in the address, three.js otherwise. It is
+deliberately not remembered between visits — a half-migrated renderer that sticks produces bug
+reports about the renderer nobody shipped.
 | `types.ts` | the view's own types |
 | `sessionMesh.ts` | three.js geometries in the shared Rust session, by geometry: loaded on first use |
 | `geometry.ts` | GPU geometry for a mesh, freed when the mesh changes or the view unmounts |
