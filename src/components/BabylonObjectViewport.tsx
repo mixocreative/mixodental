@@ -26,11 +26,13 @@ import { drawDentalFace, drawDentalRegionLines } from './viewport/babylon/dental
 import { drawDentalRim, drawDentalRisks } from './viewport/babylon/dentalMarks';
 import { drawTipMarkers } from './viewport/babylon/tipMarkers';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
+import { attachEditClicks } from './viewport/babylon/editClicks';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer } from './viewport/babylon/surfacePointer';
 import { createSelectionColours } from './viewport/babylon/selectionColours';
 import { attachTransformGizmo, type TransformGizmo } from './viewport/babylon/transformGizmo';
 import { gizmoShown } from './ObjectViewport';
+import { gestureMode } from '@mixo-geocore/editing/gesture';
 import { resolveSettings, unitContacts } from '@mixo-geocore/host/supports/unitSupports';
 import { releaseHandle } from './viewport/babylon/sessionHandles';
 import { ZONE_OPACITY } from './viewport/style';
@@ -94,7 +96,6 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const coloursRef = useRef(colours);
   coloursRef.current = colours;
   const { scene: printScene, supportMeshes, modelVisible, wireframe } = props;
-  const onSelect = props.onSelect;
 
   // The engine, scene, camera and lights: built once, disposed once. Nothing in here depends on the
   // props, so a scene change never rebuilds the renderer.
@@ -188,7 +189,18 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     if (!scene) return;
     // One pointer for every layer that asks what is under the cursor, so the frame conversion it
     // holds cannot come to differ between them.
-    const pointer = createSurfacePointer({ canvas, camera, units: () => propsRef.current.scene.units });
+    const pointer = createSurfacePointer({
+      canvas,
+      camera,
+      // `PrintUnit.supports` is the stored descriptor; the BUILT geometry a click can land on is in
+      // `supportMeshes`, so the pointer is handed that instead.
+      units: () => propsRef.current.scene.units.map((unit) => ({
+        id: unit.id,
+        source: unit.source,
+        transform: unit.transform,
+        ...(propsRef.current.supportMeshes.get(unit.id) ? { supports: propsRef.current.supportMeshes.get(unit.id)! } : {}),
+      })),
+    });
     const gesture = () => propsRef.current.gesture;
     const detach = [
       attachZoneBrush({
@@ -210,6 +222,31 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
           gizmo.dispose();
         };
       })(),
+      /*
+       * What a click MEANS is decided by geocore's `pickAction`, the same function the three.js
+       * view's handlers adapt to. Sharing the decision is what makes the two views behave
+       * identically; matching them by hand would hold only until one of them changed.
+       */
+      attachEditClicks({
+        canvas,
+        pointer,
+        gesture,
+        mode: () => gestureMode(propsRef.current.gesture),
+        liveTool: () => propsRef.current.liveTool?.(),
+        unitFor: (unitId) => {
+          const unit = propsRef.current.scene.units.find((u) => u.id === unitId);
+          if (!unit) return undefined;
+          const supports = propsRef.current.supportMeshes.get(unitId);
+          return { id: unit.id, active: propsRef.current.scene.activeUnitId === unit.id, ...(supports ? { supports } : {}) };
+        },
+        gizmoDragging: () => false,
+        onSelect: (unitId, additive) => propsRef.current.onSelect(unitId, additive),
+        onAddContact: (unitId, point, normal) => propsRef.current.onAddContact(unitId, point, normal),
+        onErase: (unitId, point) => propsRef.current.onErase(unitId, point),
+        onRemoveContact: (unitId, contactId) => propsRef.current.onRemoveContact(unitId, contactId),
+        onToggleContact: (unitId, contactId) => propsRef.current.onToggleContact(unitId, contactId),
+        onEditMiss: () => propsRef.current.onEditMiss(),
+      }),
       attachEditPreview(scene, {
         canvas,
         pointer,
@@ -497,13 +534,6 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         // be a class IS one, in styles.css (docs/ui-styling.md rules 1 and 2).
         style={{ cursor: canvasCursor(props.gesture, false) }}
         onContextMenu={(event) => event.preventDefault()}
-        onPointerDown={(event) => {
-          const scene = sceneRef.current;
-          if (!scene || event.button !== 0) return;
-          const hit = scene.pick(event.nativeEvent.offsetX, event.nativeEvent.offsetY);
-          const unitId = hit?.hit ? (hit.pickedMesh?.name ?? null) : null;
-          onSelect(unitId, event.shiftKey);
-        }}
       />
     </div>
   );

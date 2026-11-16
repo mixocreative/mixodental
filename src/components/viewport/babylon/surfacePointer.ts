@@ -26,6 +26,14 @@ export interface PointerUnit {
   id: string;
   source: TriangleMesh;
   transform: ModelTransform;
+  /** The built supports, so a click can land on a strut and not only on the model. */
+  supports?: TriangleMesh;
+}
+
+/** One thing under the pointer. `triangle` indexes the mesh that was hit, in ITS own order. */
+export interface SurfaceCandidate extends SurfaceHit {
+  kind: 'model' | 'support';
+  triangle: number;
 }
 
 export interface SurfaceHit {
@@ -42,6 +50,14 @@ export interface SurfaceHit {
 export interface SurfacePointer {
   /** The nearest unit under a canvas point, or undefined for a miss. */
   hitAt(x: number, y: number): SurfaceHit | undefined;
+  /**
+   * Everything under a canvas point, NEAREST FIRST, across every unit's model and supports.
+   *
+   * A list rather than one hit, because a support triangle that belongs to no contact (a brace,
+   * the raft, a label) does not take the click: three lets it fall through to whatever is behind,
+   * via r3f's event propagation, and a nearest-hit pick would swallow it instead.
+   */
+  hitAll(x: number, y: number): SurfaceCandidate[];
   /**
    * A unit-local point in world space. Here rather than in the layers because this module already
    * owns the frame rule, and a layer converting for itself is how the frames come to disagree --
@@ -98,28 +114,38 @@ export function createSurfacePointer(options: {
       const out = Vector3.TransformCoordinates(new Vector3(...point), worldMatrix(unit.transform));
       return [out.x, out.y, out.z];
     },
-    hitAt(x, y) {
+    hitAll(x, y) {
       const ray = port.screenToRay([x, y]);
-      if (!ray) return undefined;
-      let best: SurfaceHit | undefined;
+      if (!ray) return [];
+      const found: SurfaceCandidate[] = [];
       for (const unit of options.units()) {
-        const handle = handleFor(unit.source);
-        if (handle === undefined) continue;
-        meshes.set(handle, unit.source);
         const world = worldMatrix(unit.transform);
-        const hit = port.pick(handle, rayInto(ray, world.clone().invert()));
-        if (!hit || (best && hit.distance >= best.distance)) continue;
-        const point = Vector3.TransformCoordinates(new Vector3(...hit.point), world);
-        const normal = Vector3.TransformNormal(new Vector3(...hit.normal), world).normalize();
-        best = {
-          unitId: unit.id,
-          point: hit.point,
-          normal: hit.normal,
-          world: { point: [point.x, point.y, point.z], normal: [normal.x, normal.y, normal.z] },
-          distance: hit.distance,
-        };
+        const local = rayInto(ray, world.clone().invert());
+        for (const [kind, mesh] of [['model', unit.source], ['support', unit.supports]] as const) {
+          if (!mesh) continue;
+          const handle = handleFor(mesh);
+          if (handle === undefined) continue;
+          meshes.set(handle, mesh);
+          const hit = port.pick(handle, local);
+          if (!hit) continue;
+          const point = Vector3.TransformCoordinates(new Vector3(...hit.point), world);
+          const normal = Vector3.TransformNormal(new Vector3(...hit.normal), world).normalize();
+          found.push({
+            kind,
+            unitId: unit.id,
+            triangle: hit.triangle,
+            point: hit.point,
+            normal: hit.normal,
+            world: { point: [point.x, point.y, point.z], normal: [normal.x, normal.y, normal.z] },
+            distance: hit.distance,
+          });
+        }
       }
-      return best;
+      return found.sort((a, b) => a.distance - b.distance);
+    },
+    hitAt(x, y) {
+      // The nearest MODEL hit: the brush and the markers paint on the model, never on a strut.
+      return this.hitAll(x, y).find((candidate) => candidate.kind === 'model');
     },
   };
 }

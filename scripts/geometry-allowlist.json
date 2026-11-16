@@ -31,6 +31,11 @@
   "src/components/viewport/UnresolvedBubbles.tsx": {
     "label": "host-adapter"
   },
+  "src/components/viewport/babylon/editClicks.ts": {
+    "label": "host-math",
+    "maxMath": 1,
+    "why": "one hypot: how far the pointer travelled between press and release, which CLICK_TOLERANCE turns into the difference between a click and an orbit drag that began on the model. r3f hands this over as event.delta; Babylon has to measure it"
+  },
   "src/components/viewport/babylon/surfacePointer.ts": {
     "label": "host-math",
     "maxMath": 2,
