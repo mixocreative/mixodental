@@ -23,6 +23,7 @@ import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { babylonPlacement } from './viewport/babylonTransform';
 import { drawSurfaceStamps } from './viewport/babylon/surfaceStamps';
 import { drawDentalFace, drawDentalRegionLines } from './viewport/babylon/dentalArea';
+import { drawDentalRim, drawDentalRisks } from './viewport/babylon/dentalMarks';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer } from './viewport/babylon/surfacePointer';
@@ -403,6 +404,27 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
           outerColour: colours.preview.ring,
           openingColour: colours.preview.areaEdge,
         }));
+        // The rim wears the EDGE colour, never the area fill: in Step 2 the operator paints the
+        // area in that fill, and a boundary wearing it would vanish into their first stroke.
+        disposers.push(drawDentalRim(scene, {
+          name: `${unit.id}-dental-rim`,
+          parent: node,
+          rim: area.rim,
+          colour: colours.preview.areaEdge,
+        }));
+      }
+
+      // Overhang low points outside the permitted area. Display only: supports and export ignore it.
+      const risks = props.dentalRisks?.unitId === unit.id ? props.dentalRisks.risks : undefined;
+      if (risks && risks.length > 0) {
+        disposers.push(drawDentalRisks(scene, {
+          name: `${unit.id}-dental-risks`,
+          mesh: unit.source,
+          parent: node,
+          risks,
+          colour: colours.preview.riskOutside,
+          opacity: 0.85,
+        }));
       }
       if (area && area.stamps.length > 0) {
         disposers.push(drawSurfaceStamps(scene, {
@@ -424,7 +446,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       }
       nodes.clear();
     };
-  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview]);
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks]);
 
   /*
    * Which unit the gizmo is on, and in which mode. DECLARED AFTER THE UNITS EFFECT ON PURPOSE:
