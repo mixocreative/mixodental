@@ -22,6 +22,7 @@ import { GridMaterial } from '@babylonjs/materials/grid';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { babylonPlacement } from './viewport/babylonTransform';
 import { drawSurfaceStamps } from './viewport/babylon/surfaceStamps';
+import { drawDentalFace, drawDentalRegionLines } from './viewport/babylon/dentalArea';
 import { attachZoneBrush } from './viewport/babylon/zoneBrush';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer } from './viewport/babylon/surfacePointer';
@@ -380,6 +381,29 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        * where a zone's `paint` does. Opacity 0.7 is `UnitObject`'s own number for these layers.
        */
       const area = props.dentalAreaPreview?.unitId === unit.id ? props.dentalAreaPreview.policy : undefined;
+      /*
+       * A two-contour policy carries a DETECTED region, so it gets the face tint and the exact trim
+       * lines; the brush stamps on top are the same surface-stamp layer the zones use. Any other
+       * policy kind has stamps and nothing else to draw.
+       */
+      if (area?.kind === 'two-contour') {
+        disposers.push(drawDentalFace(scene, {
+          name: `${unit.id}-dental-face`,
+          mesh: unit.source,
+          parent: node,
+          policy: area,
+          colour: colours.preview.areaPermitted,
+          opacity: 0.7,
+        }));
+        disposers.push(drawDentalRegionLines(scene, {
+          name: `${unit.id}-dental-lines`,
+          mesh: unit.source,
+          parent: node,
+          policy: area,
+          outerColour: colours.preview.ring,
+          openingColour: colours.preview.areaEdge,
+        }));
+      }
       if (area && area.stamps.length > 0) {
         disposers.push(drawSurfaceStamps(scene, {
           name: `${unit.id}-dental-area`,

@@ -50,7 +50,7 @@ distinct colours, and the background's share did not move, which is how an orbit
 | Still three.js only | Where it lives today |
 |---|---|
 | ~~the edit preview, the selection highlight, the gizmo~~ | **DONE** — `babylon/editPreview.ts` (ring, cone, doomed marker), `babylon/selectionColours.ts`, `babylon/surfaceStamps.ts`, `babylon/transformGizmo.ts` |
-| the dental FACE tint and region lines (the paint is DONE) | `dentalLayers.tsx` — `DentalFaceLayer`, `DentalRegionLines`, plus the risk, rim and tip-marker layers |
+| the dental risk discs, rim outline and tip markers | `dentalLayers.tsx` — the area, its face tint and its region lines are DONE (`babylon/surfaceStamps.ts`, `babylon/dentalArea.ts`) |
 | the rim being drawn | `RimDraftLayer.tsx` |
 | the translate/rotate gizmo and its restyle | `UnitObject.tsx`, `gizmoStyle.ts` |
 | unresolved bubbles, add flash, print-angle arc, thumbnail | `UnresolvedBubbles.tsx`, `AddFlash.tsx`, `PrintAngleArc.tsx`, `drawThumbnail.ts` |
