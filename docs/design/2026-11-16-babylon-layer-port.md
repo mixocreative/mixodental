@@ -207,6 +207,23 @@ the honest measure of this migration: most of what remains is interaction, not p
 | camera framing (fit / bottom / side / focus) | `frameView`, `spotView`, `boundsSphere`, `belowPlate` | bounds of the selected units, canvas size, right-hand inset |
 | drag-over support selection | `brushHits` + the port's `brushView` | nothing new — the port already answers `brushView` |
 
+**How a support hit becomes a contact, now read rather than guessed.** `contactAtTriangle(supports,
+faceIndex)` is renderer-free, and the engine pick already returns a triangle index — so it is
+`handleFor(supports)` then `contactAtTriangle(supports, hit.triangle)`, with the support mesh loaded
+into the session like the model. **But a subtlety that is easy to miss and changes behaviour:**
+braces, the raft and labels belong to NO contact, and in three the pick then *continues behind
+them* to whatever is further back. r3f gets that from event propagation; Babylon's nearest-hit pick
+does not, so a no-contact support hit has to fall through to the next candidate rather than being
+swallowed. Swallow it and clicking a brace does nothing where it used to select the model.
+
+**The rim drag, and the house rule it encodes.** `rimTargetAt` and `insertAnchor` are renderer-free:
+the target UNDER THE PRESS decides, not an armed tool. A handle is picked up; bare line takes a new
+handle and picks THAT up, so inserting and dragging are one gesture; anything else picks up nothing
+and is left for the camera, because **where the drag starts decides**. An inserted handle goes on
+the undo stack before the drag moves it. And the camera must be turned off BY HAND for the
+duration — three's comment is explicit that `stopPropagation` is not enough, because OrbitControls
+listens on the canvas, not the object tree. The Babylon zone brush already does exactly this.
+
 **Three things Babylon must grow:**
 
 1. **Support picking, and a hit to a CONTACT ID.** The support mesh is `isPickable: false` today and
