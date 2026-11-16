@@ -4,6 +4,7 @@ import type { EditMode } from '@mixo-geocore/editing/types';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import { contactAtTriangle } from '@mixo-geocore/host/core/supports/meshQuery';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
+import { modeOwnsClick } from '../clickOwner';
 import type { SurfacePointer } from './surfacePointer';
 
 /*
@@ -21,6 +22,13 @@ import type { SurfacePointer } from './surfacePointer';
  * orbit drag that happened to start on the model. r3f hands this over as `event.delta`; here it is
  * measured from the press. Without it, every view turn that began on a model would also act as a
  * click on it.
+ *
+ * SOME MODES TAKE THE CLICK WHOLE, and leaving that out cost a walk. Rim define mode and the dental
+ * area brush own every click while they are on; `modeOwnsClick` is the shared rule and both views
+ * ask it. Without it, every click that placed a rim anchor here ALSO added a support -- fifteen of
+ * them, which grew the unit's bounds fourfold, which made the camera fit frame the supports rather
+ * than the model, which made the walk's canvas-fraction clicks miss it. One missing guard, five
+ * failing checks, none of them about the thing that was wrong.
  *
  * A SUPPORT HIT THAT BELONGS TO NO CONTACT FALLS THROUGH. Braces, the raft and labels are support
  * geometry owned by no contact, and three lets the pick continue BEHIND them -- r3f gets that from
@@ -71,6 +79,8 @@ export function attachEditClicks(input: EditClicksInput): () => void {
     press = undefined;
     const travel = start ? Math.hypot(event.clientX - start.x, event.clientY - start.y) : 0;
     const gesture = input.gesture();
+    // Rim define mode and the dental area brush own the click: none of the readings below applies.
+    if (modeOwnsClick(gesture.kind)) return;
     const mode = input.mode();
     const tool = clickTool(input.liveTool(), {
       tool: gesture.kind === 'add' ? 'add' : 'select',

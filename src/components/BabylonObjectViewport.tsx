@@ -428,24 +428,6 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   }, []);
 
 
-  /*
-   * Fit / Bottom / side, and "Show me". Keyed on `seq` exactly as the three.js view is: a REPEATED
-   * request carries a new seq, which is what lets pressing Fit twice frame twice.
-   */
-  useEffect(() => {
-    const views = camerasRef.current;
-    const request = props.viewRequest;
-    if (!views || !request) return;
-    const ids = printScene.selectedUnitIds.length > 0 ? printScene.selectedUnitIds : printScene.units.map((unit) => unit.id);
-    views.frame(request, ids);
-  }, [props.viewRequest?.seq]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const views = camerasRef.current;
-    if (!views || !props.focus) return;
-    views.focus(props.focus);
-  }, [props.focus?.seq]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // The lights and background take their colours from the same CSS tokens as the DOM, re-read
   // whenever a token changes, so a theme switch recolours this scene exactly as it does the other.
   useEffect(() => {
@@ -749,6 +731,37 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     // `props.selection` is deliberately NOT a dependency: the highlight is recoloured in place by
     // the effect below, and a stroke's preview changes it every frame.
   }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.dentalAreaPreview, props.dentalRisks, props.dentalTips, props.tipsView, props.added, props.plate, props.problems, props.debugLayers, props.printAngle, props.unitTint, rimDrag]);
+
+  /*
+   * Fit / Bottom / side, and "Show me". Keyed on `seq` exactly as the three.js view is: a REPEATED
+   * request carries a new seq, which is what lets pressing Fit twice frame twice.
+   *
+   * DECLARED AFTER THE UNITS EFFECT, FOR THE SECOND TIME IN THIS FILE AND THE SAME REASON. Effects
+   * run in declaration order, and framing reads the node map the units effect fills. Declared
+   * earlier, the fit that arrives WITH a freshly imported model found no node and did nothing: the
+   * camera stayed where it was and the model sat tiny in the middle of the view. It looked like a
+   * camera bug and was an ordering bug, and it cost the Babylon walk five rim checks -- the walk
+   * aims at canvas fractions, so a model framed three times too small is a model the clicks miss.
+   *
+   * Proved by measurement, not by reading: with Fit pressed by hand the two views' models cover
+   * exactly the same canvas cells, to the resolution of the probe. The arithmetic was never wrong.
+   */
+  useEffect(() => {
+    const views = camerasRef.current;
+    const request = props.viewRequest;
+    if (!views || !request) return;
+    const ids = printScene.selectedUnitIds.length > 0 ? printScene.selectedUnitIds : printScene.units.map((unit) => unit.id);
+    views.frame(request, ids);
+    // Keyed on `seq` ALONE, as three is. Adding the units here would re-frame whenever they
+    // changed -- a camera that jumps when supports are generated -- and the ordering above is what
+    // makes the first fit land, not a wider dependency.
+  }, [props.viewRequest?.seq]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const views = camerasRef.current;
+    if (!views || !props.focus) return;
+    views.focus(props.focus);
+  }, [props.focus?.seq]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
    * Which unit the gizmo is on, and in which mode. DECLARED AFTER THE UNITS EFFECT ON PURPOSE:

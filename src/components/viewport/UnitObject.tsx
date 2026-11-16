@@ -11,6 +11,7 @@ import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { gestureMode } from '@mixo-geocore/editing/gesture';
 import { clickTool, pickAction, type PickInput } from '@mixo-geocore/editing/pick';
 import { brushPreview } from '@mixo-geocore/editing/selection';
+import { modeOwnsClick } from './clickOwner';
 import { appendSurfaceStamps } from '@mixo-geocore/editing/surfaceBrush';
 import { createStroke, zoneFill } from '@mixo-geocore/editing/stroke';
 import { displayMesh } from '../../state/meshExtras';
@@ -386,10 +387,10 @@ export function UnitObject(props: UnitObjectProps) {
           props.onRimPoint(unit.id, [event.point.x, event.point.y, event.point.z], surfaceNormal(event));
         }
       }
-      return;
     }
-    // Paint and Erase work through the stroke; the click that ends one is not an Add.
-    if (dentalPainting) return;
+    // Rim define mode and the dental area brush take the click whole (`clickOwner.ts`, shared with
+    // the Babylon view): none of the edit readings below applies in either.
+    if (modeOwnsClick(gesture.kind)) return;
     const action = pickFor(event, 'model', right, false);
     if (action.type === 'pass') return;
     // Step 2 removes only through a selection and Delete: a right or Ctrl click does nothing there.
