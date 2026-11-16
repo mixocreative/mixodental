@@ -177,6 +177,28 @@ function faultLevers() {
 
 const FIRST_PORT = 5260;
 
+/*
+ * WHICH RENDERER THE WALK DRIVES. `--renderer=babylon` appends `?renderer=babylon` to the base URL,
+ * and every `page.goto(url)` in this file carries it, so the whole walk runs against that view.
+ *
+ * THIS IS THE MIGRATION'S ACCEPTANCE TEST, and the reason it is one flag rather than a second walk:
+ * the checks are the APP's behaviour -- counts, status lines, what Undo brings back -- and almost
+ * none of them care which library drew the pixels. A second file would drift from this one within a
+ * week and would prove the two views agree about nothing except what somebody remembered to copy.
+ * One file, two runs, the same 186 checks.
+ *
+ * A BABYLON RUN IS NOT THE THREE.JS GATE AND MUST NEVER BE READ AS ONE. The verdict line names the
+ * renderer whenever it is not the default, so a receipt cannot be mistaken for the other run's.
+ * `npm run gate` and `CLAUDE.md`'s local gate both mean the default (three.js) run until three.js
+ * is gone.
+ */
+const RENDERERS = ['three', 'babylon'];
+const RENDERER = (process.argv.find((arg) => arg.startsWith('--renderer='))?.slice('--renderer='.length) ?? 'three').trim();
+if (!RENDERERS.includes(RENDERER)) {
+  console.error(`walk: --renderer=${RENDERER} is not one of ${RENDERERS.join(', ')}`);
+  process.exit(2);
+}
+
 
 
 /**
@@ -213,6 +235,7 @@ const BASE = {
  *
  *   npm run walk                 every section, as always
  *   npm run walk -- --only=u,x   the dental sections only
+ *   npm run walk -- --renderer=babylon   the whole walk against the Babylon view
  *
  * A full walk takes half an hour, because between its checks it does the app's real work: reading a
  * 374k-triangle aligner, orienting it, scanning every print angle, detecting the area, generating
@@ -4321,9 +4344,12 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 try {
   const port = await freePort(FIRST_PORT);
   vite = startVite(port);
-  const url = `http://127.0.0.1:${port}/mixodental/`;
+  // The switch is read from the address on every load (`src/ui/renderer.ts`), deliberately not
+  // remembered, so carrying it on the base URL is what makes every `page.goto(url)` land in the
+  // same view.
+  const url = `http://127.0.0.1:${port}/mixodental/${RENDERER === 'babylon' ? '?renderer=babylon' : ''}`;
   await waitFor(url, vite);
-  console.log(`walk on ${url}`);
+  console.log(`walk on ${url}${RENDERER === 'three' ? '' : ` [renderer: ${RENDERER}]`}`);
   const dentalFixture = process.env.DENTAL_WALK_FIXTURE ?? (existsSync(CASE_01_ALIGNER) ? CASE_01_ALIGNER : undefined);
   if (dentalFixture) console.log(`dental fixture: ${path.relative(ROOT, dentalFixture)}`);
   if (LOCALES) {
@@ -4377,6 +4403,8 @@ const failed = results.filter((r) => !r.ok).length;
 if (failed === 0 && !process.env.WALK_OUT && !LOCALES) rmSync(scratch, { recursive: true, force: true });
 // A filtered run never says ALL PASS: it covered part of the walk, and the line has to say so.
 const scope = ONLY.size === 0 ? '' : ` [only ${[...ONLY].join(',')}]`;
+// Named whenever it is not the default, so a Babylon receipt can never be read as the three.js gate.
+const renderer = RENDERER === 'three' ? '' : ` [renderer: ${RENDERER}]`;
 // A probe name nothing recognised: say so, and never let the run read as green (see `probesAsked`).
 const unknownProbes = [...PROBES].filter((name) => !probesAsked.has(name));
 if (unknownProbes.length) {
@@ -4415,5 +4443,5 @@ const failedNow = results.filter((r) => !r.ok).length;
 const verdict = failedNow > 0 ? `${failedNow} FAIL` : ONLY.size === 0 ? 'ALL PASS' : 'SOME PASS';
 // A resumed run names the sections it could not finish, so its check count can never read as full coverage.
 const after = resumed.length ? ` [the tab crashed in ${resumed.join(',')}; ${resumed.length === 1 ? 'that section is' : 'those sections are'} unfinished, the rest ran in a fresh browser]` : '';
-console.log(`${verdict} (${results.length} checks, ${Math.round((Date.now() - started) / 1000)} s)${scope}${after}`);
+console.log(`${verdict} (${results.length} checks, ${Math.round((Date.now() - started) / 1000)} s)${scope}${renderer}${after}`);
 process.exit(failedNow === 0 ? 0 : 1);
