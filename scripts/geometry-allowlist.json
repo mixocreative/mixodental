@@ -36,10 +36,10 @@
     "maxMath": 2,
     "why": "the two frame conversions every Babylon layer shares: the world ray into the picked unit's own frame (the engine's session mesh is loaded from that unit's positions), and the hit back out to world space for drawing. Held in ONE module so the two frames cannot come to disagree between layers"
   },
-  "src/components/viewport/babylon/zoneBrush.ts": {
+  "src/components/viewport/babylon/transformGizmo.ts": {
     "label": "host-adapter"
   },
-  "src/components/viewport/babylon/zoneLayer.ts": {
+  "src/components/viewport/babylon/zoneBrush.ts": {
     "label": "host-adapter"
   },
   "src/components/viewport/babylonTransform.ts": {

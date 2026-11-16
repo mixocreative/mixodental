@@ -17,10 +17,9 @@ const SOURCE = import.meta.glob<string>('../../BabylonObjectViewport.tsx', { que
  * not, because no check moves a model that already has supports. It would have shipped as
  * "supports stay behind when you drag a model".
  *
- * So the guard is on the SOURCE, the way `noColourLiterals` and the i18n guard are: this file may
- * not reach for the generation frame at all. If a future layer genuinely needs it -- the unresolved
- * bubbles do, as DATA -- pass it in rather than importing it here, and change this test with a
- * reason beside it.
+ * So the guard is on the SOURCE, the way `noColourLiterals` and the i18n guard are. If a future
+ * layer genuinely needs the generation frame -- the unresolved bubbles do, as DATA -- pass it in
+ * rather than importing it here, and change this test with a reason beside it.
  */
 describe('the Babylon view draws supports in the unit frame', () => {
   const source = Object.values(SOURCE)[0] ?? '';
@@ -30,16 +29,30 @@ describe('the Babylon view draws supports in the unit frame', () => {
   });
 
   it('does not place anything by the generation frame', () => {
-    // Comments are stripped first: the file EXPLAINS this mistake in prose, and a guard that fired
-    // on its own explanation would push the next person to delete the explanation.
+    // Comments stripped for THIS one only: the file explains the mistake in prose, and a guard that
+    // fired on its own explanation would push the next person to delete the explanation.
     const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
     expect(code).not.toMatch(/\bgenerationTransform\b/);
   });
 
-  it('places the supports by the unit transform, the same one the model uses', () => {
-    // Both the model and the support mesh take `babylonPlacement(unit.transform)`. If one of them
-    // ever takes something else, this count drops and the next person is told why here.
-    const placements = source.match(/babylonPlacement\(unit\.transform\)/g) ?? [];
-    expect(placements.length).toBeGreaterThanOrEqual(2);
+  it('hangs the model and the supports off the SAME node, which is stronger than matching them', () => {
+    /*
+     * This assertion was changed once, on purpose, and the reason is the point of it.
+     *
+     * It used to count two separate `babylonPlacement(unit.transform)` calls -- one for the model,
+     * one for the supports -- and check they matched. They now share a single `TransformNode`
+     * carrying the unit's transform, so there is nothing left to keep in step: the supports cannot
+     * disagree with the model about where the unit is, because neither of them is placed at all.
+     * That is the arrangement `UnitObject` has always had with its group, and it is what the gizmo
+     * moves.
+     *
+     * Read RAW, unlike the assertion above: no comment in that file contains these lines, and
+     * stripping is what made an earlier draft of this fail against code that was plainly present.
+     */
+    expect(source).toContain('node.position = position');
+    expect(source).toContain('mesh.parent = node');
+    expect(source).toContain('supportMesh.parent = node');
+    // And nothing places the support mesh itself any more.
+    expect(source).not.toMatch(/supportMesh\.position\s*=/);
   });
 });

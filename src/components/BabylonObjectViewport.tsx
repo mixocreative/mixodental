@@ -14,6 +14,7 @@ import {
   MeshBuilder,
   PBRMaterial,
   Scene,
+  TransformNode,
   Vector3,
   VertexData,
 } from '@babylonjs/core';
@@ -25,6 +26,8 @@ import { attachZoneBrush } from './viewport/babylon/zoneBrush';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer } from './viewport/babylon/surfacePointer';
 import { createSelectionColours } from './viewport/babylon/selectionColours';
+import { attachTransformGizmo, type TransformGizmo } from './viewport/babylon/transformGizmo';
+import { gizmoShown } from './ObjectViewport';
 import { resolveSettings, unitContacts } from '@mixo-geocore/host/supports/unitSupports';
 import { releaseHandle } from './viewport/babylon/sessionHandles';
 import { ZONE_OPACITY } from './viewport/style';
@@ -80,6 +83,9 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   propsRef.current = props;
   /** Meshes this view has (or may have) loaded into the engine session, so they can be given back. */
   const loaded = useRef(new Set<TriangleMesh>());
+  /** The node carrying each unit's transform, which is what the gizmo moves. */
+  const unitNodes = useRef(new Map<string, TransformNode>());
+  const gizmoRef = useRef<TransformGizmo | null>(null);
   const colours = useViewportColours();
   // Read by the pointer layers, which are attached once and must still see today's tokens.
   const coloursRef = useRef(colours);
@@ -189,6 +195,18 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         gesture,
         onZoneStroke: (unitId, stamps) => propsRef.current.onZoneStroke(unitId, stamps),
       }),
+      (() => {
+        const gizmo = attachTransformGizmo(scene, {
+          canvas,
+          camera,
+          onCommit: (unitId, transform) => propsRef.current.onTransform(unitId, transform),
+        });
+        gizmoRef.current = gizmo;
+        return () => {
+          gizmoRef.current = null;
+          gizmo.dispose();
+        };
+      })(),
       attachEditPreview(scene, {
         canvas,
         pointer,
@@ -231,6 +249,20 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     };
   }, []);
 
+  /*
+   * Which unit the gizmo is on, and in which mode. `gizmoShown` is the three.js view's own rule,
+   * exported and renderer-free, so the two views cannot come to disagree about when a gizmo is
+   * offered -- which is the sort of difference an operator reads as the app being in a different
+   * state than it is.
+   */
+  useEffect(() => {
+    const gizmo = gizmoRef.current;
+    if (!gizmo) return;
+    const kind = gizmoShown(props.gesture, props.gizmoMode, props.rotationGizmo === true);
+    const activeId = printScene.activeUnitId ?? undefined;
+    gizmo.show(activeId, activeId ? unitNodes.current.get(activeId) : undefined, kind);
+  }, [props.gesture, props.gizmoMode, props.rotationGizmo, printScene.activeUnitId, printScene.units]);
+
   // The lights and background take their colours from the same CSS tokens as the DOM, re-read
   // whenever a token changes, so a theme switch recolours this scene exactly as it does the other.
   useEffect(() => {
@@ -259,17 +291,31 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
-    const built: Mesh[] = [];
+    const built: Array<Mesh | TransformNode> = [];
     const disposers: Array<() => void> = [];
+    const nodes = unitNodes.current;
+    nodes.clear();
     // Zones read full in zones mode and faint elsewhere, exactly as the three.js view decides it.
     const zoneOpacity = ZONE_OPACITY[props.gesture.kind === 'zones' ? 'full' : 'faint'];
     for (const unit of printScene.units) {
+      /*
+       * ONE node per unit, carrying `unit.transform`, with the model, the supports and the zone
+       * overlay hanging off it at local identity. This mirrors `UnitObject`, which puts one group
+       * at `unit.transform` and draws everything inside it -- and it is what lets the gizmo move a
+       * unit by moving a single node, with everything attached following for free rather than by
+       * three separate pieces of code remembering to agree.
+       */
+      const node = new TransformNode(`${unit.id}-unit`, scene);
+      const { position, rotationQuaternion } = babylonPlacement(unit.transform);
+      node.position = position;
+      node.rotationQuaternion = rotationQuaternion;
+      nodes.set(unit.id, node);
+      built.push(node);
+
       const mesh = new Mesh(unit.id, scene);
+      mesh.parent = node;
       built.push(mesh);
       applyGeometry(mesh, unit.source);
-      const { position, rotationQuaternion } = babylonPlacement(unit.transform);
-      mesh.position = position;
-      mesh.rotationQuaternion = rotationQuaternion;
       // PBR, not StandardMaterial: the three.js view draws with MeshStandardMaterial, whose
       // metalness/roughness response Babylon's StandardMaterial does not share. Its defaults are
       // metalness 0 and roughness 1, so those are the numbers to match, not ones chosen by eye.
@@ -305,11 +351,9 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       const supports = supportMeshes.get(unit.id);
       if (supports && supports.indices.length > 0) {
         const supportMesh = new Mesh(`${unit.id}-supports`, scene);
+        supportMesh.parent = node;
         built.push(supportMesh);
         applyGeometry(supportMesh, supports);
-        const frame = babylonPlacement(unit.transform);
-        supportMesh.position = frame.position;
-        supportMesh.rotationQuaternion = frame.rotationQuaternion;
         const supportMaterial = new PBRMaterial(`${unit.id}-supports-material`, scene);
         supportMaterial.metallic = 0;
         supportMaterial.roughness = 1;
@@ -336,7 +380,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
           name: `${unit.id}-zones`,
           mesh: unit.source,
           zones: unit.zones,
-          transform: unit.transform,
+          parent: node,
           colour: colours.preview.zone,
           opacity: zoneOpacity,
         }));
@@ -344,10 +388,11 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     }
     return () => {
       for (const dispose of disposers) dispose();
-      for (const mesh of built) {
-        mesh.material?.dispose();
-        mesh.dispose();
+      for (const thing of built) {
+        if (thing instanceof Mesh) thing.material?.dispose();
+        thing.dispose();
       }
+      nodes.clear();
     };
   }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection]);
 

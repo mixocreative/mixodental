@@ -1,9 +1,7 @@
-import { Color3, Mesh, PBRMaterial, VertexData, type Scene } from '@babylonjs/core';
+import { Color3, Mesh, PBRMaterial, VertexData, type Scene, type TransformNode } from '@babylonjs/core';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { FULL_TIER_MAX } from '@mixo-geocore/host/core/budget';
 import { zonedVertices, type ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
-import type { ModelTransform } from '@mixo-geocore/host/state/transform';
-import { babylonPlacement } from '../babylonTransform';
 import { zoneOverlay } from '../overlayMesh';
 import { vertexNormals } from '../vertexNormals';
 
@@ -41,8 +39,8 @@ export interface ZoneLayerInput {
   mesh: TriangleMesh;
   /** The ordered stamps. Later ones cover earlier ones; `erase` clears. */
   zones: readonly ZoneStamp[];
-  /** The unit's transform, so the overlay sits on the model wherever the model is. */
-  transform: ModelTransform;
+  /** The unit's node. The overlay hangs off it at local identity, so it follows the model. */
+  parent: TransformNode;
   /** `--mark-zone`, read from the tokens by the caller. */
   colour: string;
   /** `ZONE_OPACITY.full` in zones mode, `.faint` in Support Edit Mode (see `style.ts`). */
@@ -98,9 +96,9 @@ export function drawZones(scene: Scene, input: ZoneLayerInput): () => void {
   data.normals = normals;
   data.applyToMesh(layer);
 
-  const { position, rotationQuaternion } = babylonPlacement(input.transform);
-  layer.position = position;
-  layer.rotationQuaternion = rotationQuaternion;
+  // Parented, not placed: the overlay is in the unit's own frame, so it follows whatever the unit
+  // does without this module knowing anything about transforms.
+  layer.parent = input.parent;
   // Picking is the model's job. A click that landed on the overlay and selected nothing would feel
   // like a dead spot on the model.
   layer.isPickable = false;
