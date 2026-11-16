@@ -47,6 +47,7 @@
     "vitest": "^5.1.0"
   },
   "dependencies": {
+    "@babylonjs/core": "9.6.2",
     "@react-three/drei": "^9.120.0",
     "@react-three/fiber": "^8.17.10",
     "react": "^18.3.1",

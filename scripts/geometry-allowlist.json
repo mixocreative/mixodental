@@ -31,8 +31,18 @@
   "src/components/viewport/UnresolvedBubbles.tsx": {
     "label": "host-adapter"
   },
+  "src/components/viewport/babylonViewportPort.ts": {
+    "label": "host-math",
+    "maxMath": 1,
+    "why": "Babylon camera projection for the ViewportPort seam, the twin of viewportPort.ts. It reads only the projection's x and y scales, never its depth row, because Babylon maps near and far to a different range than three.js and a port that read it would answer differently from its twin for the same camera"
+  },
   "src/components/viewport/cameras.tsx": {
     "label": "host-adapter"
+  },
+  "src/components/viewport/enginePick.ts": {
+    "label": "host-math",
+    "maxMath": 1,
+    "why": "the unit normal of one picked triangle, moved here out of viewportPort.ts so the three.js and Babylon ports share one copy of the winding rule rather than each carrying their own, which is how a hit normal gets fixed in one renderer and left inside out in the other"
   },
   "src/components/viewport/types.ts": {
     "label": "host-adapter"
@@ -43,7 +53,7 @@
   "src/components/viewport/viewportPort.ts": {
     "label": "host-math",
     "maxMath": 1,
-    "why": "three.js camera projection for the ViewportPort seam, and the unit normal of one picked triangle (render-side picking answer)"
+    "why": "three.js camera projection for the ViewportPort seam. The picked triangle's normal left here for enginePick.ts, which both this port and the Babylon one share"
   },
   "src/core/handedness.ts": {
     "label": "host-adapter"

@@ -1,13 +1,21 @@
 # `src/components/viewport` — the 3D view
 
-34 files. This is the only folder that knows three.js. Everything above it works in plain data, and
-the seam between the two is `viewportPort.ts`.
+This is the only folder that knows a renderer. Everything above it works in plain data, and the
+seam between the two is the D22 `ViewportPort`.
+
+**Two renderers live here while the app moves from three.js to Babylon.** The owner's decision
+(2026-11-16) is one renderer across the Mixo line, Babylon, so that a human maintains one 3D
+vocabulary instead of two. Until the drawing layers are rebuilt, both ports exist and
+`viewportPort.test.ts` holds them to **identical** answers — that test is the contract, and a case
+added to it is added to both. three.js leaves when the last layer is Babylon, not before.
 
 ## The seam
 
 | file | its one job |
 |---|---|
-| `viewportPort.ts` | **the three.js implementation of the shared editing seam** (`vendor/mixo-geocore/editing/ViewportPort`, rule D22). geocore owns the editing logic in plain data; each app implements this port over its own renderer. mixoMesh implements the same port over Babylon |
+| `viewportPort.ts` | **the three.js implementation of the shared editing seam** (`vendor/mixo-geocore/editing/ViewportPort`, rule D22). geocore owns the editing logic in plain data; each app implements this port over its own renderer |
+| `babylonViewportPort.ts` | **the Babylon implementation of the same seam**, the twin of the above. Needs `scene.useRightHandedSystem = true`: Babylon's default left-handed frame would need every value mirrored in Z (`src/core/handedness.ts`), and right-handed keeps the core, three.js and the Rust engine in one frame instead |
+| `enginePick.ts` | the engine session's pick result decoded into a `SurfacePick`, renderer-free. **Both ports share it**, so the triangle-winding rule for the hit normal cannot be fixed in one renderer and left wrong in the other |
 | `types.ts` | the view's own types |
 | `sessionMesh.ts` | three.js geometries in the shared Rust session, by geometry: loaded on first use |
 | `geometry.ts` | GPU geometry for a mesh, freed when the mesh changes or the view unmounts |
