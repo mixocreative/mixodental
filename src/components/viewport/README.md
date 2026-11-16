@@ -28,8 +28,14 @@ Babylon view it reaches; App picks one component or the other at module load, an
 
 Drawn today: the models, the built supports and the floor grid, lit and framed as three.js frames
 them, orbitable, clickable to select — verified against the three.js view on the same fixture,
-landing at the same position, size and camera angle. **Not drawn yet**, and this list is the
-migration's to-do:
+landing at the same position, size and camera angle.
+
+**A trap for anyone testing this by hand: supports take about 16 seconds to build on the knot
+fixture, and the panel enables "Remove supports" within 2.** Wait on the data, not on the button —
+the mesh is `0/0` for most of that time, and a shorter wait reads as "supports are not drawn" when
+they simply are not built yet. That mistake cost a whole verification round here.
+
+**Not drawn yet**, and this list is the migration's to-do:
 
 | Still three.js only | Where it lives today |
 |---|---|
@@ -46,12 +52,13 @@ which is what the engine's caches are keyed on. Using `unit.transform` would sil
 support the moment the operator nudged the model, and the picture would look plausible while lying
 about where the printed supports will be.
 
-**One open defect, measured not guessed:** against `scripts/fixtures/knot.stl` the Babylon view
-shows about 1,100 dark speckles inside the model's silhouette that the three.js view does not.
-Both cull back faces, so the likely cause is winding — Babylon inverts its culling convention when
-`useRightHandedSystem` is true. **Do not "fix" it by turning culling off**: that hides an inverted
-mesh rather than correcting one, and an inverted mesh exports inside out. Settle it with
-`sideOrientation` when the model material is ported.
+**A defect that was real, and whose obvious cause was wrong.** An earlier draft showed about 1,100
+dark speckles inside the model's silhouette. Winding was the convincing suspect — Babylon inverts
+its culling convention when `useRightHandedSystem` is true, so an inverted mesh fitted the symptom.
+It was not that. The speckles were `StandardMaterial` lit without tone mapping, blowing out and
+clipping; PBR at `MeshStandardMaterial`'s own defaults plus ACES removed them, and the canvas now
+measures **zero** pixels below luminance 90. Culling stays on and no `sideOrientation` is needed.
+Kept here because the wrong answer was the plausible one, and the next renderer symptom will be too.
 | `types.ts` | the view's own types |
 | `sessionMesh.ts` | three.js geometries in the shared Rust session, by geometry: loaded on first use |
 | `geometry.ts` | GPU geometry for a mesh, freed when the mesh changes or the view unmounts |

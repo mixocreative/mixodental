@@ -187,12 +187,14 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       material.metallic = 0;
       material.roughness = 1;
       material.wireframe = wireframe;
-      // OPEN, measured not guessed: against the knot fixture this view shows ~1,100 dark speckles
-      // inside the silhouette that the three.js view does not. Both cull back faces, so the likely
-      // cause is winding — Babylon inverts its culling convention when `useRightHandedSystem` is
-      // true. Do NOT "fix" it by turning culling off: that hides an inverted mesh rather than
-      // correcting it, and an inverted mesh exports inside out. Settle it with `sideOrientation`
-      // when the model material is ported properly.
+      // SETTLED, and worth keeping because the wrong answer was convincing. An earlier draft of
+      // this view showed about 1,100 dark speckles inside the model's silhouette, and the obvious
+      // suspect was winding: Babylon inverts its culling convention when `useRightHandedSystem` is
+      // true, so an inverted mesh was a very plausible story. It was not that. The speckles were
+      // StandardMaterial lit without tone mapping blowing out and clipping; switching to PBR at
+      // MeshStandardMaterial's defaults and turning ACES on removed them, and the canvas now
+      // measures ZERO pixels below luminance 90. The winding is fine, culling stays ON, and
+      // nothing here needs `sideOrientation`.
       mesh.material = material;
       mesh.isVisible = modelVisible;
 
