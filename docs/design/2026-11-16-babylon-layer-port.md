@@ -38,11 +38,24 @@ export function drawX(scene: Scene, input: XInput): () => void;   // returns its
 
 ## The layers, in the order to take them
 
-The order is by what an operator loses without it, not by what is easy.
+**CORRECTED 2026-11-16, by trying it.** This list first put zone stamps at number 1. That order is
+wrong, and the way it was found is worth keeping: the zone layer was written, unit-tested and wired,
+and then **could not be exercised at all** — painting a zone in the Babylon view is impossible,
+because the view has no pointer-to-editing path. The drag orbited the camera and the app recorded
+`None`. So:
+
+> **THE INPUT PATH COMES FIRST. Every visual layer below it is unreachable until it exists,**
+> which means each one can only be unit-tested, never seen, and "it draws" stays an assumption.
+> Two things it owns: routing pointer events through `BabylonViewportPort` into the editing code,
+> and making the ArcRotateCamera YIELD during a gesture — `camera.attachControl` currently orbits
+> through brush strokes, which in the three.js view it does not.
+
+The rest of the order is by what an operator loses without it, not by what is easy.
 
 | # | Layer | three source | Geometry source | Notes |
 |---|---|---|---|---|
-| 1 | Zone stamps (no-support zones) | `supportLayers.tsx` | **renderer-free already** — see the exact path below | The evaluation is the real work; the drawing is a mesh like any other |
+| 0 | **The pointer path + camera yielding** (do this first) | `ObjectViewport.tsx` `onPointerMissed`, `useScreenBrush.ts`, geocore `editing/gesture` | mixoMesh `live/supportInteraction.ts` (361 lines) does exactly this over `BabylonViewportPort` — read it | **Nothing below can be verified until this exists** |
+| 1 | Zone stamps (no-support zones) — WRITTEN, unit-tested, unreachable until layer 0 | `supportLayers.tsx` | **renderer-free already** — see the exact path below | The evaluation is the real work; the drawing is a mesh like any other |
 | 2 | Ghost tip, remove ring, brush circle | `supportLayers.tsx`, `CirclePreview.tsx` | `warmMaterials.ts` cone geometry is three-specific and tiny to rebuild | This is what makes the view an editor rather than a viewer |
 | 3 | Selection highlight / stale / tips-only | `supportLayers.tsx` | recolouring vertex ranges in place | mixoMesh's `supports/layers/supportMeshLayer.ts` does this job in Babylon already — read it first |
 | 4 | Dental paint, face tint, region lines | `dentalLayers.tsx` | **renderer-free already**: `faceMaskOverlay.ts` → Rust `face_mask_overlay`, `face_mask_contour_segments` | No Babylon equivalent exists in mixoMesh; this is dental-only work |

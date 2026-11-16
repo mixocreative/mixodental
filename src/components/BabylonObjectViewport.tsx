@@ -21,6 +21,8 @@ import { GridMaterial } from '@babylonjs/materials/grid';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import { generationTransform } from '@mixo-geocore/host/supports/unitSupports';
 import { babylonPlacement } from './viewport/babylonTransform';
+import { drawZones } from './viewport/babylon/zoneLayer';
+import { ZONE_OPACITY } from './viewport/style';
 import { useViewportColours, type ViewportColours } from './viewport/sceneColours';
 import { canvasCursor } from './viewport/style';
 import type { ObjectViewportProps } from './viewport/types';
@@ -94,6 +96,11 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     camera.fov = (CAMERA.fovDeg * Math.PI) / 180;
     camera.minZ = CAMERA.near;
     camera.maxZ = CAMERA.far;
+    // KNOWN GAP, found by trying to paint a zone and watching the camera orbit instead: this view
+    // has no pointer-to-editing path, so a brush gesture never reaches the editing code and the
+    // camera keeps the drag for itself. In the three.js view a drag in zones mode paints and does
+    // not orbit. Until the pointer path exists (layer 0 of the port plan), every drawing layer here
+    // can be unit-tested and none can be SEEN, because nothing can put data in front of it.
     camera.attachControl(canvas, true);
     camera.panningSensibility = 100;
     camera.wheelDeltaPercentage = 0.02;
@@ -172,6 +179,9 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     const scene = sceneRef.current;
     if (!scene) return;
     const built: Mesh[] = [];
+    const disposers: Array<() => void> = [];
+    // Zones read full in zones mode and faint elsewhere, exactly as the three.js view decides it.
+    const zoneOpacity = ZONE_OPACITY[props.gesture.kind === 'zones' ? 'full' : 'faint'];
     for (const unit of printScene.units) {
       const mesh = new Mesh(unit.id, scene);
       built.push(mesh);
@@ -225,14 +235,27 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         supportMesh.material = supportMaterial;
         supportMesh.isPickable = false;
       }
+
+      // The no-support zones, painted see-through over the model (layer 1 of the port).
+      if (unit.zones.length > 0) {
+        disposers.push(drawZones(scene, {
+          name: `${unit.id}-zones`,
+          mesh: unit.source,
+          zones: unit.zones,
+          transform: unit.transform,
+          colour: colours.preview.zone,
+          opacity: zoneOpacity,
+        }));
+      }
     }
     return () => {
+      for (const dispose of disposers) dispose();
       for (const mesh of built) {
         mesh.material?.dispose();
         mesh.dispose();
       }
     };
-  }, [printScene, supportMeshes, colours, modelVisible, wireframe]);
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind]);
 
   return (
     <div className="babylon-viewport" data-ui="viewport-babylon">
