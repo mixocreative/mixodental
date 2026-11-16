@@ -25,6 +25,7 @@ import { drawSurfaceStamps } from './viewport/babylon/surfaceStamps';
 import { drawDentalFace, drawDentalRegionLines } from './viewport/babylon/dentalArea';
 import { drawDentalRim, drawDentalRisks } from './viewport/babylon/dentalMarks';
 import { drawTipMarkers } from './viewport/babylon/tipMarkers';
+import { drawFaceTint } from './viewport/babylon/faceTint';
 import { drawAddFlash, drawPlateOutline } from './viewport/babylon/sceneMarks';
 import { drawDebugLayers, drawProblemMarks } from './viewport/babylon/checkMarks';
 import { createDomAnchors, type DomAnchors } from './viewport/babylon/domAnchor';
@@ -34,7 +35,7 @@ import { tokenCss } from '../ui/tokenColour';
 import { AnchoredDom, type AnchoredItem } from './viewport/babylon/AnchoredDom';
 import { bubblePointsFor } from './viewport/babylon/bubblePoints';
 import { UnresolvedBubble, LandingMark } from './viewport/UnresolvedBubbles';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { tipsOf } from '@mixo-geocore/host/core/supports/meshQuery';
 import { resolveSettings as resolveUnitSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { attachSurfaceBrush, type ActiveBrush } from './viewport/babylon/paintStroke';
@@ -44,10 +45,14 @@ import { drawRimDraft } from './viewport/babylon/rimLayer';
 import { attachCameraViews, type CameraViews } from './viewport/babylon/cameraViews';
 import { attachEditPreview } from './viewport/babylon/editPreview';
 import { createSurfacePointer, type SurfacePointer } from './viewport/babylon/surfacePointer';
-import { createSelectionColours } from './viewport/babylon/selectionColours';
+import { createSelectionColours, type SelectionColours } from './viewport/babylon/selectionColours';
 import { attachTransformGizmo, type TransformGizmo } from './viewport/babylon/transformGizmo';
 import { gizmoShown } from './ObjectViewport';
 import { gestureMode } from '@mixo-geocore/editing/gesture';
+import { brushPreview } from '@mixo-geocore/editing/selection';
+import { createStroke } from '@mixo-geocore/editing/stroke';
+import { useBrushOverlay } from './viewport/useBrushOverlay';
+import { createBrushBodies } from './viewport/babylon/brushBodies';
 import { resolveSettings, unitContacts } from '@mixo-geocore/host/supports/unitSupports';
 import { releaseHandle } from './viewport/babylon/sessionHandles';
 import { ZONE_OPACITY } from './viewport/style';
@@ -59,12 +64,13 @@ import type { ObjectViewportProps } from './viewport/types';
  * The Babylon.js 3D view, reached by `?renderer=babylon` (src/ui/renderer.ts). The three.js view
  * in `ObjectViewport.tsx` is still the one the walk proves and the one a visitor gets.
  *
- * WHAT THIS DRAWS TODAY: the models, the built supports and the floor grid, lit and framed as
- * three.js frames them, orbitable, clickable to select. It acts on `scene`, `supportMeshes`,
- * `modelVisible`, `wireframe`, `gesture` and `onSelect`. The zone stamps, the dental layers, the
- * rim, the gizmo, the bubbles, the edit previews and the print-angle arc are NOT drawn -- that
- * list is the migration's to-do, and `src/components/viewport/README.md` carries it where a reader
- * will find it.
+ * WHAT THIS DRAWS TODAY: all of it. Every one of the 40 `ObjectViewportProps` is read -- the
+ * models, the supports, the grid, the zone and dental layers, the rim, the gizmo, the bubbles, the
+ * edit preview, the print angle, the clicks and both brushes. That COUNT is the honest measure of
+ * the migration, not a list of layers: a layer can be drawn and still be unreachable because the
+ * prop feeding it was never read. Two visuals remain as data without a drawing (the Drag over
+ * ghost and Step 2's tip solid/ghost split), and the real finish line is `scripts/walk.mjs`, which
+ * drives three.js and not this view. `src/components/viewport/README.md` carries both.
  *
  * There is deliberately no on-screen "preview" notice: a sentence here is a user-facing string and
  * would need the owner's wording in three languages (src/i18n.test.ts globs this folder) for
@@ -96,6 +102,16 @@ function applyGeometry(mesh: Mesh, source: TriangleMesh): void {
 
 export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  /*
+   * The canvas as STATE as well as a ref. The effects here are attached once and read the ref, but
+   * `useBrushOverlay` is a hook outside this component and takes the element as an input: a ref
+   * never re-renders, so the brush would be handed null for the life of the view.
+   */
+  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
+  const setCanvas = useCallback((node: HTMLCanvasElement | null) => {
+    canvasRef.current = node;
+    setCanvasEl(node);
+  }, []);
   const sceneRef = useRef<Scene | null>(null);
   const cameraRef = useRef<ArcRotateCamera | null>(null);
   // Read by the pointer handlers, which are attached once and must still see today's props.
@@ -105,6 +121,17 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const loaded = useRef(new Set<TriangleMesh>());
   /** The node carrying each unit's transform, which is what the gizmo moves. */
   const unitNodes = useRef(new Map<string, TransformNode>());
+  /*
+   * The support geometry actually DRAWN per unit, which in tips view is the tip subset and not the
+   * whole build. The pointer answers from this rather than from `supportMeshes`, because what the
+   * three.js view picks is whatever mesh is on screen -- it raycasts the drawn objects -- and a
+   * pointer that answered from the full build would let a click land on a strut nobody can see.
+   */
+  const drawnSupports = useRef(new Map<string, TriangleMesh>());
+  /** Per-unit selection highlights, recoloured without rebuilding the meshes (see the apply effect). */
+  const highlights = useRef(new Map<string, SelectionColours>());
+  /** Recolours every highlight for the selection as it is now. Set with the brush, below. */
+  const paintHighlights = useRef(() => {});
   const gizmoRef = useRef<TransformGizmo | null>(null);
   const camerasRef = useRef<CameraViews | null>(null);
   const anchorsRef = useRef<DomAnchors | null>(null);
@@ -145,11 +172,12 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     camera.fov = (CAMERA.fovDeg * Math.PI) / 180;
     camera.minZ = CAMERA.near;
     camera.maxZ = CAMERA.far;
-    // KNOWN GAP, found by trying to paint a zone and watching the camera orbit instead: this view
-    // has no pointer-to-editing path, so a brush gesture never reaches the editing code and the
-    // camera keeps the drag for itself. In the three.js view a drag in zones mode paints and does
-    // not orbit. Until the pointer path exists (layer 0 of the port plan), every drawing layer here
-    // can be unit-tested and none can be SEEN, because nothing can put data in front of it.
+    /*
+     * The orbit is attached HERE and taken away by whichever gesture owns the pointer -- the
+     * surface brush, Drag over, a rim drag -- each of which gives it back however its gesture ends.
+     * That handover is the whole reason a drag paints instead of turning the view: three gets it
+     * from r3f's event order, and here it is explicit.
+     */
     camera.attachControl(canvas, true);
     camera.panningSensibility = 100;
     camera.wheelDeltaPercentage = 0.02;
@@ -217,13 +245,13 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     const pointer = createSurfacePointer({
       canvas,
       camera,
-      // `PrintUnit.supports` is the stored descriptor; the BUILT geometry a click can land on is in
-      // `supportMeshes`, so the pointer is handed that instead.
+      // `PrintUnit.supports` is the stored descriptor; the geometry a click can land on is what the
+      // units effect DREW (`drawnSupports`), which in tips view is only the tips.
       units: () => propsRef.current.scene.units.map((unit) => ({
         id: unit.id,
         source: unit.source,
         transform: unit.transform,
-        ...(propsRef.current.supportMeshes.get(unit.id) ? { supports: propsRef.current.supportMeshes.get(unit.id)! } : {}),
+        ...(drawnSupports.current.get(unit.id) ? { supports: drawnSupports.current.get(unit.id)! } : {}),
       })),
     });
     pointerRef.current = pointer;
@@ -430,6 +458,8 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     if (props.plate) disposers.push(drawPlateOutline(scene, 'plate-outline', props.plate, colours.preview.plate));
     const nodes = unitNodes.current;
     nodes.clear();
+    drawnSupports.current.clear();
+    highlights.current.clear();
     // Zones read full in zones mode and faint elsewhere, exactly as the three.js view decides it.
     const zoneOpacity = ZONE_OPACITY[props.gesture.kind === 'zones' ? 'full' : 'faint'];
     for (const unit of printScene.units) {
@@ -490,6 +520,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
        */
       const built0 = supportMeshes.get(unit.id);
       const supports = built0 && props.tipsView ? tipsOf(built0) : built0;
+      if (supports) drawnSupports.current.set(unit.id, supports);
       if (supports && supports.indices.length > 0) {
         const supportMesh = new Mesh(`${unit.id}-supports`, scene);
         supportMesh.parent = node;
@@ -507,12 +538,28 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
          * product of two colours, which looks like the selection tone is wrong.
          */
         supportMaterial.albedoColor = Color3.White();
-        const highlight = createSelectionColours(supportMesh, supports);
-        highlight.apply(
-          printScene.selectedUnitIds.includes(unit.id) ? props.selection : new Set<string>(),
-          printScene.selectedUnitIds.includes(unit.id) ? colours.support.selectedObject : colours.support.idle,
-          colours.support.picked,
-        );
+        /*
+         * The handle is kept and the colouring is done by `paintHighlights` (declared below with
+         * the brush, and called at the end of this effect so a fresh mesh is never drawn white for
+         * a frame). Applying it HERE from `props.selection` was what forced this effect to depend
+         * on the selection -- and Drag over changes its preview every frame, so that would have
+         * meant rebuilding every mesh in the scene on every frame of a stroke.
+         */
+        highlights.current.set(unit.id, createSelectionColours(supportMesh, supports));
+      }
+
+      /*
+       * The denture's add-on parts, tinted on the model's own faces. Drawn from a mask and a
+       * colour, which is why it can be drawn here at all: the prop used to carry an r3f element.
+       */
+      if (props.unitTint?.unitId === unit.id) {
+        disposers.push(drawFaceTint(scene, {
+          name: `${unit.id}-unit-tint`,
+          mesh: unit.source,
+          mask: props.unitTint.mask,
+          parent: node,
+          colour: props.unitTint.colour,
+        }));
       }
 
       // The no-support zones, painted see-through over the model.
@@ -671,6 +718,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         }));
       }
     }
+    paintHighlights.current();
     return () => {
       for (const dispose of disposers) dispose();
       for (const thing of built) {
@@ -678,8 +726,12 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         thing.dispose();
       }
       nodes.clear();
+      drawnSupports.current.clear();
+      highlights.current.clear();
     };
-  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.selection, props.dentalAreaPreview, props.dentalRisks, props.dentalTips, props.tipsView, props.added, props.plate, props.problems, props.debugLayers, props.printAngle, rimDrag]);
+    // `props.selection` is deliberately NOT a dependency: the highlight is recoloured in place by
+    // the effect below, and a stroke's preview changes it every frame.
+  }, [printScene, supportMeshes, colours, modelVisible, wireframe, props.gesture.kind, props.dentalAreaPreview, props.dentalRisks, props.dentalTips, props.tipsView, props.added, props.plate, props.problems, props.debugLayers, props.printAngle, props.unitTint, rimDrag]);
 
   /*
    * Which unit the gizmo is on, and in which mode. DECLARED AFTER THE UNITS EFFECT ON PURPOSE:
@@ -699,6 +751,116 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     const activeId = printScene.activeUnitId ?? undefined;
     gizmo.show(activeId, activeId ? unitNodes.current.get(activeId) : undefined, kind);
   }, [props.gesture, props.gizmoMode, props.rotationGizmo, printScene.activeUnitId, printScene.units]);
+
+  /*
+   * DRAG OVER: the circle that selects supports by sweeping them. The rules, the circle element and
+   * every pointer listener are `useBrushOverlay`'s and shared with the three.js view; what this
+   * supplies is the three things only a renderer can answer (`brushBodies.ts`) and the same inputs
+   * `UnitObject` computes for its own call -- so the two views cannot drift apart on what a sweep
+   * selects, only on what it looks like.
+   */
+  const activeUnit = printScene.units.find((unit) => unit.id === printScene.activeUnitId);
+  const brushEditing = gestureMode(props.gesture) !== 'off' && activeUnit !== undefined;
+  const dragBrush = brushEditing && props.gesture.kind === 'drag' ? props.gesture.brush : undefined;
+  /** The switch's OWN mode: `useBrushOverlay` adds Shift from the pointer, as the other view does. */
+  const switchMode = brushEditing && props.gesture.kind === 'drag' ? props.gesture.base : undefined;
+  const brushRadius = dragBrush?.radius;
+  const switchBrush = useMemo(
+    () => (brushRadius !== undefined && switchMode ? { radius: brushRadius, mode: switchMode } : undefined),
+    [brushRadius, switchMode]);
+  /*
+   * WHICH BODIES THE CIRCLE SWEEPS, copied from `UnitObject` rather than reasoned out again: the
+   * tips alone in tips view, nothing at all while a surface is being painted or in dental Step 2
+   * (where the tips below stand in for bodies that do not exist yet).
+   */
+  const activeBuilt = activeUnit ? supportMeshes.get(activeUnit.id) : undefined;
+  const brushSupports = useMemo(() => {
+    if (props.gesture.kind === 'dental-area' || props.dentalArea === true) return undefined;
+    return activeBuilt && props.tipsView ? tipsOf(activeBuilt) : activeBuilt;
+  }, [activeBuilt, props.tipsView, props.gesture.kind, props.dentalArea]);
+  const brushTips = props.dentalArea === true && activeUnit && props.dentalTips?.unitId === activeUnit.id
+    ? props.dentalTips.points
+    : undefined;
+  /*
+   * A stroke owns the left button from the press until it ends ANYWHERE -- the release is heard on
+   * the window, because a drag that ends off the canvas still has to end, and the orbit has to come
+   * back however it ends or the viewport silently stops turning.
+   */
+  const brushStrokeEnded = useRef(() => {});
+  const [brushStroke] = useState(() => createStroke(() => brushStrokeEnded.current()));
+  const releaseBrush = useCallback(() => void brushStroke.end(), [brushStroke]);
+  brushStrokeEnded.current = () => {
+    window.removeEventListener('pointerup', releaseBrush);
+    window.removeEventListener('pointercancel', releaseBrush);
+    window.removeEventListener('blur', releaseBrush);
+    const canvas = canvasRef.current;
+    if (cameraRef.current && canvas) cameraRef.current.attachControl(canvas, true);
+  };
+  useEffect(() => () => void brushStroke.end(), [brushStroke]);
+  // The brush going away mid-stroke (the tool or the mode changed) ends it at once, so the orbit is
+  // back without waiting for a release -- `UnitObject` does the same, for the same reason.
+  useEffect(() => {
+    if (!switchBrush) brushStroke.end();
+  }, [switchBrush, brushStroke]);
+  const [brushBodies] = useState(() => createBrushBodies({
+    camera: () => cameraRef.current,
+    pointer: () => pointerRef.current,
+    units: () => propsRef.current.scene.units.flatMap((unit) => {
+      const node = unitNodes.current.get(unit.id);
+      return node ? [{ id: unit.id, source: unit.source, node }] : [];
+    }),
+    brushed: () => {
+      const id = propsRef.current.scene.activeUnitId;
+      const unit = id ? propsRef.current.scene.units.find((candidate) => candidate.id === id) : undefined;
+      const node = unit ? unitNodes.current.get(unit.id) : undefined;
+      return unit && node ? { id: unit.id, source: unit.source, node } : undefined;
+    },
+    modelVisible: () => propsRef.current.modelVisible,
+  }));
+  const { brushed, over: brushOver } = useBrushOverlay({
+    brush: switchBrush,
+    supports: brushSupports,
+    tips: brushTips,
+    selection: props.selection,
+    stroke: brushStroke,
+    beginStroke: () => {
+      cameraRef.current?.detachControl();
+      window.addEventListener('pointerup', releaseBrush);
+      window.addEventListener('pointercancel', releaseBrush);
+      window.addEventListener('blur', releaseBrush);
+    },
+    onShift: (held) => propsRef.current.onShift(held),
+    onPaint: (ids, mode) => {
+      const id = propsRef.current.scene.activeUnitId;
+      if (id) propsRef.current.onPaint(id, ids, mode);
+    },
+    onNoBodies: () => propsRef.current.onNoBodies(),
+    canvas: canvasEl,
+    makeView: brushBodies.makeView,
+    objectAt: brushBodies.objectAt,
+  });
+  /*
+   * What the sweep shows BEFORE it commits. `brushPreview` is geocore's, so both views agree about
+   * which supports read as selected mid-stroke. Its `ghost` set -- the see-through bodies the circle
+   * would change -- is NOT drawn here: that needs a second, see-through pass over the support
+   * bodies, which is the same missing piece as the tip solid/ghost split, and it is listed as such
+   * in `src/components/viewport/README.md`.
+   */
+  const preview = useMemo(() => brushPreview(props.selection, brushed, dragBrush?.mode), [props.selection, brushed, dragBrush?.mode]);
+  paintHighlights.current = () => {
+    for (const unit of printScene.units) {
+      const highlight = highlights.current.get(unit.id);
+      if (!highlight) continue;
+      const mine = printScene.selectedUnitIds.includes(unit.id);
+      highlight.apply(
+        mine ? preview.solid : new Set<string>(),
+        mine ? colours.support.selectedObject : colours.support.idle,
+        colours.support.picked,
+      );
+    }
+  };
+  // Recolouring only, never rebuilding: this is what lets a stroke preview at frame rate.
+  useEffect(() => paintHighlights.current(), [preview.solid, printScene.selectedUnitIds, printScene.units, colours]);
 
   /*
    * The unresolved points and model-landed supports, as the SAME React components the three.js
@@ -737,12 +899,12 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       <div ref={overlayRef} className="babylon-overlay" data-ui="viewport-babylon-overlay" />
       <AnchoredDom host={overlayRef.current} anchors={anchorsRef.current} items={anchored} />
       <canvas
-        ref={canvasRef}
+        ref={setCanvas}
         data-ui="viewport-babylon-canvas"
         // The ONLY inline style here, and the same exception the three.js view holds: the cursor is
         // computed from the gesture at run time, so no class can hold it. Everything else that could
         // be a class IS one, in styles.css (docs/ui-styling.md rules 1 and 2).
-        style={{ cursor: canvasCursor(props.gesture, false) }}
+        style={{ cursor: canvasCursor(props.gesture, brushOver) }}
         onContextMenu={(event) => event.preventDefault()}
       />
     </div>

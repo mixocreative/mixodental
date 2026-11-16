@@ -34,6 +34,9 @@
   "src/components/viewport/babylon/AnchoredDom.tsx": {
     "label": "host-adapter"
   },
+  "src/components/viewport/babylon/brushBodies.ts": {
+    "label": "host-adapter"
+  },
   "src/components/viewport/babylon/bubblePoints.ts": {
     "label": "host-adapter"
   },

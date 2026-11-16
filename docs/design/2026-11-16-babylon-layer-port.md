@@ -258,10 +258,37 @@ Route 1 is correct. It is recorded here rather than attempted at the end of a lo
 a hasty refactor of the shared hook is how the three.js brush would acquire a subtle fault, and
 that brush is what the walk's `g`-series checks exercise.
 
-**And `unitOverlay`, the one prop that cannot be ported as it stands:** it is typed `ReactNode` and
-mounted inside a 3D group. If what it carries is r3f elements, the INTERFACE is renderer-bound, not
-the implementation, and it must pass data instead. If it is plain DOM, `AnchoredDom` already takes
-it. Decide which it is before wiring it — the denture add-on tint is the only caller.
+#### DONE, 2026-11-17 — and the estimate was wrong in the one way that mattered
+
+Injection alone could **not** have worked, and nothing above spotted it: `useScreenBrush` calls
+`useThree`, which THROWS outside an r3f `<Canvas>`. A Babylon component calling it would not have
+been subtly wrong, it would not have rendered. So the hook had to come apart, and it did:
+`useBrushOverlay.ts` holds everything renderer-free, `useScreenBrush.ts` is the three.js wrapper
+(unchanged in behaviour by construction — it supplies the same three things it used to compute
+inline), `babylon/brushBodies.ts` is the Babylon one.
+
+The third injection point, `objectAt`, was found by reading rather than by estimating, and so was
+the detail that makes it faithful: the three.js test raycasts from the brushed unit's OWN group, so
+another unit in front does not block a stroke. `hitAll` answers for the whole scene, so the Babylon
+version filters to that unit and takes its nearest hit.
+
+**The one invisible risk, now tested.** Babylon multiplies matrices the opposite way round from
+three.js, so the brush clip chain is `world.multiply(view).multiply(projection)`. Written the
+three.js way it still produces a plausible matrix and a confident hit, wrong only once a unit leaves
+the origin — exactly the class of bug that shipped the support frame. `brushBodies.test.ts` holds
+both the clip and the eye against three.js' own matrices, and asserts the habitual order is NOT
+what the code does.
+
+**A performance fault found while wiring it, and fixed at the root.** The Babylon units effect
+depended on `props.selection`, rebuilding every mesh in the scene when it changed. Drag over changes
+its preview every frame, so a stroke would have rebuilt the whole scene at frame rate. The selection
+handles are now kept in a ref and recoloured in place (`paintHighlights`), and `props.selection` is
+off that effect's dependency list — which is what `useSelectionColors` already does for three.
+
+**`unitOverlay` carried r3f elements**, so the INTERFACE was renderer-bound, not the implementation.
+It is now `unitTint: { unitId, mask, colour }` — data — and each view draws it with its own geometry
+(`FaceTintLayer` in three, `babylon/faceTint.ts` in Babylon). `dentureAddOnTint` returns the mask and
+the colour instead of a node; it was the only caller.
 
 ### Wiring the remaining 25 props, and the rule that makes the two views identical
 
@@ -315,9 +342,10 @@ listens on the canvas, not the object tree. The Babylon zone brush already does 
    `worldToScreen` is what drei does internally. It is the only mechanism here that is genuinely
    different, so do it EARLY rather than last.
 
-**One prop cannot be ported as it stands:** `unitOverlay.node` is typed `ReactNode` and mounted
-inside a 3D group. If it carries r3f elements the INTERFACE is renderer-bound, not just the
-implementation, and it must pass data instead. It is the only one of the 40 with that problem.
+**One prop could not be ported as it stood:** `unitOverlay.node` was typed `ReactNode` and mounted
+inside a 3D group, carrying r3f elements — so the INTERFACE was renderer-bound, not just the
+implementation. Settled 2026-11-17 by passing data: `unitTint: { unitId, mask, colour }`, drawn by
+each view's own face-tint layer. It was the only one of the 40 with that problem.
 
 ### The dental layers: SEVEN components — six built, one to wire
 

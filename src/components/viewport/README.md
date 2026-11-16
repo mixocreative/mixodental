@@ -26,9 +26,21 @@ Babylon view it reaches; App picks one component or the other at module load, an
 
 ### What the Babylon view still owes
 
-Drawn today: the models, the built supports and the floor grid, lit and framed as three.js frames
-them, orbitable, clickable to select — verified against the three.js view on the same fixture,
-landing at the same position, size and camera angle.
+**Every one of the 40 `ObjectViewportProps` is wired.** That count is the honest measure of this
+migration, not a list of layers: a layer can be "drawn" and still be unreachable because the prop
+that feeds it was never read. Keep it honest the same way — count the props.
+
+What is NOT done is the finish line: **`scripts/walk.mjs` drives three.js, not Babylon.** Until it
+drives either renderer, nothing here is proved the way the shipping view is proved, and three.js
+cannot be removed. That is the next job, and it is the only one that gates the removal.
+
+Two visuals are built as DATA but not yet DRAWN, both the same missing piece — a second,
+see-through pass over the support bodies:
+
+| Not drawn | What it is | Three's version |
+|---|---|---|
+| the Drag over ghost | the supports under the circle that a sweep would change, see-through | `brushPreview().ghost`, drawn by `SupportBodies` |
+| the tip solid/ghost split | Step 2's selected and hovered tips, at a larger scale | `UnitObject`'s three tip sets |
 
 **A trap for anyone testing this by hand: supports take about 16 seconds to build on the knot
 fixture, and the panel enables "Remove supports" within 2.** Wait on the data, not on the button —
@@ -38,22 +50,28 @@ they simply are not built yet. That mistake cost a whole verification round here
 **Everything that asks what is under the pointer goes through `babylon/surfacePointer.ts`.** It
 holds the frame rule in one place — `port.pick` works in the picked unit's OWN frame, drawing
 happens in world space — and hands back both, so two layers cannot come to disagree about where the
-same hit is.
+same hit is. It answers from the geometry the view actually DREW (`drawnSupports`), not from
+`supportMeshes`: in tips view the bodies come off, and a pointer answering from the full build would
+let a click land on a strut nobody can see.
 
-**The Babylon view can be painted in.** `babylon/zoneBrush.ts` is the pointer path: a press reaches
-the editing code and comes back as one stroke on the history, and the camera yields while a gesture
-owns the pointer. Proved by one drag — the zones control read "Painted", the canvas went 350 → 597
-distinct colours, and the background's share did not move, which is how an orbit would have shown.
+**The Babylon view can be painted in.** `babylon/paintStroke.ts` is the surface-brush pointer path:
+a press reaches the editing code and comes back as one stroke on the history, and the camera yields
+while a gesture owns the pointer. Proved by one drag — the zones control read "Painted", the canvas
+went 350 → 597 distinct colours, and the background's share did not move, which is how an orbit
+would have shown.
 
-**Not drawn yet**, and this list is the migration's to-do:
+**Drag over is SHARED, not ported.** `useBrushOverlay.ts` holds the circle, the listeners, the hover
+probe and the resting point with no renderer in it; `useScreenBrush.ts` is the three.js wrapper and
+`babylon/brushBodies.ts` the Babylon one. Each supplies exactly three things — the canvas, a view
+over the support bodies, and "is the object under this point" — so the two views cannot disagree
+about what a sweep selects. The split was necessary rather than tidy: the hook called `useThree`,
+which throws outside an r3f `<Canvas>`, so injection alone could not have worked.
 
-| Still three.js only | Where it lives today |
-|---|---|
-| ~~the edit preview, the selection highlight, the gizmo~~ | **DONE** — `babylon/editPreview.ts` (ring, cone, doomed marker), `babylon/selectionColours.ts`, `babylon/surfaceStamps.ts`, `babylon/transformGizmo.ts` |
-| ~~the dental layers~~ | **DONE** — `babylon/surfaceStamps.ts` (area and paint), `babylon/dentalArea.ts` (face tint, trim lines), `babylon/dentalMarks.ts` (rim, risks), `babylon/tipMarkers.ts`. The tip markers' solid/ghost split still needs the tip selection plumbed |
-| the rim being drawn | `RimDraftLayer.tsx` |
-| the translate/rotate gizmo and its restyle | `UnitObject.tsx`, `gizmoStyle.ts` |
-| unresolved bubbles, add flash, print-angle arc, thumbnail | `UnresolvedBubbles.tsx`, `AddFlash.tsx`, `PrintAngleArc.tsx`, `drawThumbnail.ts` |
+**The clip chain is the one thing in that port you cannot see.** Babylon multiplies the opposite way
+round from three.js, so the brush's `projection x view x world` is written
+`world.multiply(view).multiply(projection)`. The wrong order still yields a plausible matrix and a
+confident hit — wrong only once a unit is off the origin. `babylon/brushBodies.test.ts` holds it
+against three.js' own matrices.
 
 **The support frame, and the wrong answer that sounded right.** Support bodies are drawn at
 `unit.transform`, the same transform as the model: `UnitObject` puts ONE group at `unit.transform`
