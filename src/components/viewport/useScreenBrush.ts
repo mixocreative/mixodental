@@ -1,18 +1,18 @@
 import { useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import * as THREE from 'three';
-import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
-import { createBrushScheduler, type Brush, type FrameTest } from '@mixo-geocore/editing/brushScheduler';
-import { createDragOver } from '@mixo-geocore/editing/dragOver';
-import { createHoverProbe } from '@mixo-geocore/editing/hoverProbe';
-import { takesText } from '@mixo-geocore/editing/keys';
-import { effectiveBrushMode } from '@mixo-geocore/editing/selection';
-import { bodySegments, brushHits, type BodySegments, type BrushOccluder } from '@mixo-geocore/editing/screenBrush';
-import type { Stroke } from '@mixo-geocore/editing/stroke';
-import type { BrushMode } from '@mixo-geocore/editing/types';
-import { geometryNow, sharedSession } from '@mixo-geocore/host/workers/geometryClient';
+import { brushHits, type BodySegments, type BrushOccluder } from '@mixo-geocore/editing/screenBrush';
+import { sharedSession } from '@mixo-geocore/host/workers/geometryClient';
 import { sessionHandle } from './sessionMesh';
+import { AROUND_ANGLES, SUPPORT_REACH, useBrushOverlay, type BrushBodyView, type BrushOverlayOptions } from './useBrushOverlay';
 import { createThreeViewportPort } from './viewportPort';
+
+/*
+ * Drag over for the three.js view: the THREE things `useBrushOverlay` needs from a renderer, and
+ * nothing else. Everything about the brush that is not three -- the circle, the listeners, the
+ * hover probe, the resting point -- lives in `useBrushOverlay.ts` and is shared with the Babylon
+ * view, so the two cannot drift apart.
+ */
 
 /**
  * Marks on the model mesh and the support mesh of an object (their `userData`). Models hide
@@ -21,10 +21,6 @@ import { createThreeViewportPort } from './viewportPort';
  */
 export const MODEL_MESH = { occluder: true, strokeStart: 'model' };
 export const SUPPORT_MESH = { strokeStart: 'support' };
-
-/** Samples around the pointer (as shares of the circle's radius) that may reach a support: a support is thin. */
-const SUPPORT_REACH = [1, 0.5] as const;
-const AROUND_ANGLES = Array.from({ length: 8 }, (_, step) => (step * Math.PI * 2) / 8);
 
 /**
  * Whether a point on the canvas is on the object: its model or a support under the pointer, or
@@ -60,7 +56,7 @@ function createObjectTest() {
  * the camera in support-local space, and each visible model's mesh with its support → model matrix.
  * The view reaches the shared brush through the three.js ViewportPort (`viewportPort.ts`, the editing seam).
  */
-function screenBrushView(bodies: BodySegments, camera: THREE.Camera, scene: THREE.Scene, group: { current: THREE.Group | null }, canvas: HTMLCanvasElement) {
+function screenBrushView(bodies: BodySegments, camera: THREE.Camera, scene: THREE.Scene, group: { current: THREE.Group | null }, canvas: HTMLCanvasElement): BrushBodyView {
   const matrix = new THREE.Matrix4();
   const inverseGroup = new THREE.Matrix4();
   const toModel = new THREE.Matrix4();
@@ -96,7 +92,7 @@ function screenBrushView(bodies: BodySegments, camera: THREE.Camera, scene: THRE
     resize(width: number, height: number) {
       size = { width, height };
     },
-    frame(): FrameTest | undefined {
+    frame() {
       const session = sharedSession();
       if (!group.current || !session) return undefined;
       const view = port.brushView();
@@ -106,236 +102,22 @@ function screenBrushView(bodies: BodySegments, camera: THREE.Camera, scene: THRE
   };
 }
 
-/**
- * Dental Step 2 has tips but no support bodies: each tip stands as a short stub off the surface along its
- * normal (clear of the model it sits on), so Drag over finds it as it finds a support.
- */
-export function tipSegments(tips: readonly { id: string; position: readonly number[]; normal: readonly number[] }[]): BodySegments {
-  const points = new Float32Array(tips.length * 6);
-  tips.forEach((tip, k) => {
-    for (let axis = 0; axis < 3; axis += 1) {
-      points[k * 6 + axis] = tip.position[axis]! + tip.normal[axis]! * 0.15;
-      points[k * 6 + 3 + axis] = tip.position[axis]! + tip.normal[axis]! * 0.5;
-    }
-  });
-  return { ids: tips.map((tip) => tip.id), first: Uint32Array.from({ length: tips.length + 1 }, (_, k) => k), points };
-}
-
-/** Dev builds time each frame of hit tests (read with performance.getEntriesByName('mixo-brush-frame')). */
-const measureBrushFrame = import.meta.env?.DEV ? (start: number) => void performance.measure('mixo-brush-frame', { start }) : undefined;
-
-/**
- * Drag over in screen space (hit rules: editing/screenBrush; pointer rules: editing/dragOver; frame loop: editing/brushScheduler):
- * a circle of `brush.radius` px follows the pointer over the canvas; supports of the active object
- * whose body it passes over, and that are not hidden behind a model there, are previewed and,
- * while the left button is held, painted. A stroke starts only on the model or a support (a press
- * on empty space orbits, and shows no circle); right and middle drags always orbit.
- */
-export function useScreenBrush(options: {
-  /** `mode` is the Select | Unselect switch; Shift flips it as the pointer reports it (`event.shiftKey`). */
-  brush: Brush | undefined;
-  supports: GeneratedSupportMesh | undefined;
-  /** Without support bodies (dental Step 2): the tips to select. */
-  tips?: readonly { id: string; position: readonly number[]; normal: readonly number[] }[] | undefined;
+/** Drag over over the three.js canvas. The rules are `useBrushOverlay`'s; this supplies the three. */
+export function useScreenBrush(options: Omit<BrushOverlayOptions, 'canvas' | 'makeView' | 'objectAt'> & {
   group: { current: THREE.Group | null };
-  selection: ReadonlySet<string>;
-  stroke: Stroke;
-  beginStroke: () => void;
-  /** Whether Shift is down, as the latest pointer event or Shift key press saw it (the switch shows it). */
-  onShift: (held: boolean) => void;
-  onPaint: (ids: readonly string[], mode: BrushMode) => void;
-  /** A press with the brush live while there are no support bodies to hit. */
-  onNoBodies: () => void;
 }): { brushed: readonly string[]; over: boolean } {
   const gl = useThree((state) => state.gl);
   const camera = useThree((state) => state.camera);
   const scene = useThree((state) => state.scene);
-  const [brushed, setBrushed] = useState<readonly string[]>([]);
-  /** The circle is showing: the pointer is over the canvas with the brush live. */
-  const [over, setOver] = useState(false);
-  const wanted = Boolean(options.brush);
-  const bodies = useMemo<BodySegments | undefined>(
-    () => (!wanted ? undefined : options.supports ? bodySegments(geometryNow()!, options.supports) : options.tips ? tipSegments(options.tips) : undefined),
-    [wanted, options.supports, options.tips]);
-  const view = useMemo(() => bodies && screenBrushView(bodies, camera, scene, options.group, gl.domElement), [bodies, camera, scene, options.group, gl]);
-  /** Shows the hover again with the brush as it is now (set while the pointer listeners are attached). */
-  const refreshHover = useRef<() => void>(() => undefined);
-  /** Where the pointer rests over the canvas, outside a stroke: a rebuild of the listeners (new supports) asks about it again. */
-  const resting = useRef<readonly [number, number] | undefined>(undefined);
-  /** The latest `shiftKey` seen on a pointer event or a Shift key press: refreshed by each, never held across them. */
-  const shift = useRef(false);
-  const live = useRef({ options, view });
-  live.current = { options, view };
-  // Outlives the support mesh: a rebuild mid-stroke keeps the queued samples.
-  const [{ scheduler, dragOver }] = useState(() => {
-    const scheduler = createBrushScheduler({
-      frame: () => live.current.view?.frame(),
-      isSelected: (id) => live.current.options.selection.has(id),
-      commit: (ids, mode) => live.current.options.onPaint(ids, mode),
-      preview: setBrushed,
-      now: () => performance.now(),
-      requestFrame: (run) => requestAnimationFrame(run),
-      cancelFrame: (handle) => cancelAnimationFrame(handle),
-      ...(measureBrushFrame ? { measure: measureBrushFrame } : {}),
-    });
-    return { scheduler, dragOver: createDragOver(options.stroke, scheduler, () => live.current.options.beginStroke()) };
-  });
-  // Select ↔ Unselect (the switch, or Shift) with the pointer at rest: the circle and the preview redo at once.
-  const mode = options.brush?.mode;
-  useEffect(() => refreshHover.current(), [mode]);
-  // The brush going off (tool or mode changed): a re-enabled one starts with no resting spot and no Shift.
-  useEffect(() => {
-    if (!wanted) return;
-    const { onShift } = live.current.options;
-    return () => {
-      resting.current = undefined;
-      shift.current = false;
-      onShift(false);
-    };
-  }, [wanted]);
-  useEffect(() => {
-    scheduler.setSupports(bodies?.ids.length);
-  }, [scheduler, bodies]);
-  useEffect(() => () => scheduler.setSupports(undefined), [scheduler]);
-  // No bodies drawn (the first build still running, or none left): the brush has nothing to hit, so the host may say why.
-  const waiting = wanted && (bodies?.ids.length ?? 0) === 0;
-  useEffect(() => {
-    if (!waiting) return;
+  const { group, ...rest } = options;
+  const makeView = useCallback(
+    (bodies: BodySegments) => screenBrushView(bodies, camera, scene, group, gl.domElement),
+    [camera, scene, group, gl]);
+  const objectTest = useMemo(() => createObjectTest(), []);
+  const objectAt = useCallback((at: readonly [number, number], radius: number) => {
+    const root = group.current;
     const canvas = gl.domElement;
-    const press = () => live.current.options.onNoBodies();
-    canvas.addEventListener('pointerdown', press, { capture: true });
-    return () => canvas.removeEventListener('pointerdown', press, { capture: true });
-  }, [waiting, gl]);
-  useEffect(() => {
-    if (!view) return;
-    const canvas = gl.domElement;
-    const host = canvas.parentElement ?? canvas;
-    const circle = document.createElement('div');
-    circle.className = 'brush-circle';
-    circle.hidden = true;
-    host.appendChild(circle);
-    /** The pointer's canvas point; the hit test takes the canvas size it saw before any rule runs. */
-    const locate = (event: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      view.resize(rect.width, rect.height);
-      return [event.clientX - rect.left, event.clientY - rect.top] as const;
-    };
-    const objectTest = createObjectTest();
-    const objectAt = (at: readonly [number, number], radius: number) => {
-      const root = live.current.options.group.current;
-      return Boolean(root) && objectTest(root!, camera, { width: canvas.clientWidth, height: canvas.clientHeight }, at, radius);
-    };
-    /** The brush as the pointer's Shift makes it; one object reused, so a move allocates nothing. */
-    const shifted: Brush = { radius: 0, mode: 'select' };
-    const shiftedBrush = (brush: Brush): Brush => {
-      shifted.radius = brush.radius;
-      shifted.mode = effectiveBrushMode(brush.mode, shift.current);
-      return shifted;
-    };
-    /** A stroke keeps the Shift it started with (its circle too); the next event after it sees the real one. */
-    const seeShift = (held: boolean) => {
-      if (options.stroke.active) return;
-      shift.current = held;
-      live.current.options.onShift(held);
-    };
-    const show = ([x, y]: readonly [number, number], brush: Brush) => {
-      setOver(true);
-      circle.hidden = false;
-      circle.dataset.mode = brush.mode;
-      circle.style.width = circle.style.height = `${brush.radius * 2}px`;
-      circle.style.transform = `translate(${x - brush.radius}px, ${y - brush.radius}px)`;
-    };
-    const hide = () => {
-      setOver(false);
-      circle.hidden = true;
-    };
-    /** The latest hover move, shown again when a frame's rays change what is under the pointer. */
-    let hover: readonly [number, number] | undefined = resting.current;
-    // The rays run once a frame for the latest pointer, not on every move; the circle follows the
-    // pointer meanwhile with the last answer, and a changed answer shows or hides it at the frame.
-    const probe = createHoverProbe({
-      test: objectAt,
-      requestFrame: (run) => requestAnimationFrame(run),
-      cancelFrame: (handle) => cancelAnimationFrame(handle),
-      onAnswer: (onObject) => {
-        const { brush: base } = live.current.options;
-        if (!hover || !base || options.stroke.active) return;
-        const brush = shiftedBrush(base);
-        if (dragOver.move(hover, { held: false, onCanvas: true, onObject }, brush)) show(hover, brush);
-        else hide();
-      },
-    });
-    refreshHover.current = () => {
-      const { brush: base } = live.current.options;
-      if (!base || options.stroke.active) return;
-      const brush = shiftedBrush(base);
-      circle.dataset.mode = brush.mode;
-      if (!hover) return;
-      if (dragOver.move(hover, { held: false, onCanvas: true, onObject: probe.answer }, brush)) show(hover, brush);
-      else hide();
-    };
-    const move = (event: PointerEvent) => {
-      const { brush: base } = live.current.options;
-      if (!base) return;
-      seeShift(event.shiftKey);
-      const brush = shiftedBrush(base);
-      const at = locate(event);
-      const held = (event.buttons & 1) !== 0;
-      const onCanvas = event.target === canvas;
-      // The rays are asked for only when the answer matters: a stroke runs on, and an orbit shows nothing.
-      const ask = onCanvas && !held && !options.stroke.active;
-      if (ask) {
-        hover = at;
-        probe.ask(at, brush.radius);
-      } else {
-        hover = undefined;
-        probe.reset();
-      }
-      resting.current = hover;
-      if (dragOver.move(at, { held, onCanvas, onObject: (ask && probe.answer) || options.stroke.active }, brush)) show(at, brush);
-      else hide();
-    };
-    const down = (event: PointerEvent) => {
-      const { brush: base } = live.current.options;
-      if (!base) return;
-      options.stroke.end();
-      seeShift(event.shiftKey);
-      const brush = shiftedBrush(base);
-      const at = locate(event);
-      if (dragOver.down(event.button, at, brush, event.button === 0 && objectAt(at, brush.radius))) show(at, brush);
-    };
-    // Shift pressed or released with the pointer at rest: the circle and the preview redo. A key in a text field is not the brush's.
-    const key = (event: KeyboardEvent) => {
-      if (event.key !== 'Shift' || takesText(event.target as HTMLElement | null)) return;
-      seeShift(event.shiftKey);
-      refreshHover.current();
-    };
-    const leave = () => {
-      hover = undefined;
-      resting.current = undefined;
-      probe.reset();
-      if (!dragOver.leave()) hide();
-    };
-    // The supports were rebuilt under a resting pointer: the circle is new and hidden, so ask again where it rests.
-    const { brush: current } = live.current.options;
-    if (hover && current) probe.ask(hover, current.radius);
-    // Capture on the canvas: runs before the orbit controls (listening on its parent) see the press.
-    canvas.addEventListener('pointerdown', down, { capture: true });
-    canvas.addEventListener('pointerleave', leave);
-    window.addEventListener('pointermove', move);
-    window.addEventListener('keydown', key);
-    window.addEventListener('keyup', key);
-    return () => {
-      canvas.removeEventListener('pointerdown', down, { capture: true });
-      canvas.removeEventListener('pointerleave', leave);
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('keydown', key);
-      window.removeEventListener('keyup', key);
-      probe.reset();
-      refreshHover.current = () => undefined;
-      circle.remove();
-      setOver(false);
-    };
-  }, [view, gl, camera, dragOver, options.stroke]);
-  return { brushed: bodies ? brushed : [], over };
+    return Boolean(root) && objectTest(root!, camera, { width: canvas.clientWidth, height: canvas.clientHeight }, at, radius);
+  }, [objectTest, camera, gl, group]);
+  return useBrushOverlay({ ...rest, canvas: gl.domElement, makeView, objectAt });
 }

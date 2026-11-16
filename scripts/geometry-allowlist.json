@@ -92,6 +92,9 @@
   "src/components/viewport/types.ts": {
     "label": "host-adapter"
   },
+  "src/components/viewport/useBrushOverlay.ts": {
+    "label": "host-adapter"
+  },
   "src/components/viewport/useScreenBrush.ts": {
     "label": "host-adapter"
   },
