@@ -1,8 +1,8 @@
 {
   "package.json": {
-    "mtime": 1794801086.1230552,
-    "seen": 1794801714.1125233,
-    "ast_hash": "0217efcbf2d0776a44f8f5c6f5934a36",
+    "mtime": 1794898958.833325,
+    "seen": 1794906455.2261827,
+    "ast_hash": "6e21dcc405647901a368dfb921736cdc",
     "semantic_hash": ""
   },
   "scripts/dental-reference/compare_supported.py": {
@@ -354,9 +354,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/UnitObject.tsx": {
-    "mtime": 1794857559.33446,
-    "seen": 1794872271.00065,
-    "ast_hash": "f2988d2cff341f766650861f9c940bd9",
+    "mtime": 1794902889.0835013,
+    "seen": 1794906455.2266874,
+    "ast_hash": "4c2c1d1d5df37fcf2b7cec204cbee114",
     "semantic_hash": ""
   },
   "src/components/viewport/cameras.tsx": {
@@ -6001,9 +6001,9 @@
     "semantic_hash": ""
   },
   "docs/handoff/human-test-2026-11-11.md": {
-    "mtime": 1794898588.5034764,
-    "seen": 1794898643.146618,
-    "ast_hash": "c6c06e03deec149c63cc7649c8e9b0b6",
+    "mtime": 1794902941.6949775,
+    "seen": 1794906455.2276895,
+    "ast_hash": "a6ca95acd02078afab0746fc19189a9b",
     "semantic_hash": ""
   },
   "src/ui/assets/art/night-guard.svg": {
@@ -6187,9 +6187,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/README.md": {
-    "mtime": 1794898588.6271513,
-    "seen": 1794898643.146618,
-    "ast_hash": "e380c81c8bf73f4ce877e15f5d4de918",
+    "mtime": 1794902712.7967339,
+    "seen": 1794906455.2276895,
+    "ast_hash": "9b8e41ca6b8d33e5663374ee816b20c1",
     "semantic_hash": ""
   },
   "src/state/README.md": {
@@ -6646,6 +6646,12 @@
     "mtime": 1794887182.0980203,
     "seen": 1794894272.1257792,
     "ast_hash": "9ad1fa13b188301e094b3a53a8fd2860",
+    "semantic_hash": ""
+  },
+  "scripts/ui-look.mjs": {
+    "mtime": 1794898954.1442935,
+    "seen": 1794906455.2266874,
+    "ast_hash": "69eb3fc75d0c1b725a91cf67b89f5b4e",
     "semantic_hash": ""
   }
 }

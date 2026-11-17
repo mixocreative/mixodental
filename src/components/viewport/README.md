@@ -39,8 +39,8 @@ local gate still mean the three.js run until three.js is gone.
 **Both runs are green, 2026-11-17:**
 
 ```
-ALL PASS (186 checks, 1859 s)
-ALL PASS (186 checks, 1364 s) [renderer: babylon]
+ALL PASS (186 checks, 1774 s)
+ALL PASS (186 checks, 1464 s) [renderer: babylon]
 ```
 
 Every check runs against both views now, so the Babylon view is proved the way the shipping one is
