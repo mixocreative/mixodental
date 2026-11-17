@@ -547,3 +547,60 @@ beta and radius, so it cannot land on three's exact position. It is within a fac
 walk looks. The zone brush also lands a stroke differently on the knot (three: one stroke, six
 supports hidden; Babylon: two strokes, seven) — the check is relational and passes either way, and
 the cause has not been chased.
+
+## 2026-11-17, later — the two differences that were left open, closed
+
+### The zone brush had its own sampling, and that was the whole difference
+
+The walk noted "zones painted over the model (2 strokes landed)" against three's 1, and the check
+around it is relational, so it passed either way. It was not a measurement of the brushes: the
+walk's helper HUNTS for a spot that registers, so its count depends on where each view framed the
+model. A fixed stroke, painted at the same canvas points in both, is the measurement — and the
+first one said 1 against 2.
+
+`attachSurfaceBrush` had reimplemented the stroke instead of importing it. It recorded a hit on the
+press and one every half radius, and turned the lot into stamps on release. `UnitObject` runs
+geocore's `createStroke` with `zoneFill`, which remembers the last centre it laid, decides when the
+next is due, and **fills the gap between two samples with `stampsAlong`** — so a fast drag paints a
+continuous band where sampling alone paints a dotted line. The faster the drag, the more it looked
+like a different tool.
+
+It runs the same stroke object and the same fill rule now. One fixed stroke, both views:
+
+```
+0.36/0.42 -> 0.44/0.42:  +6 stamps (radius 2)   both
+0.40/0.36 -> 0.60/0.36: +11 stamps              both
+0.30/0.50 -> 0.70/0.50: +31 stamps              both
+```
+
+The in-flight stamps are reported to the view as they are laid, too (`onLive`), because
+`UnitObject` draws `[...unit.zones, ...stroke]` and this view drew nothing until the release —
+paint that arrives all at once at the end is a different tool to use. They are drawn from an
+overlay slot rather than the units effect, for the reason that effect already carries: it rebuilds
+every mesh in the scene.
+
+### The 0.19 mm click difference was a camera still moving
+
+`b3d` clicks one canvas point on the aligner and reads where the tip landed. Three runs each:
+
+```
+three    -23.344/2.209/-0.987   -23.350/2.239/-0.959   -23.352/2.246/-0.952   spread 0.04 mm
+babylon  -23.313/2.188/-1.016   -23.299/2.122/-1.081   -23.193/1.654/-1.604   spread 0.70 mm
+```
+
+Babylon's numbers drift steadily in one direction, which is not noise — it is a camera that has not
+stopped. `ArcRotateCamera.inertia` defaults to 0.9: the camera keeps nine tenths of its last
+movement **every frame** after the pointer lets go, and that decays per frame rather than per
+second, so under SwiftShader it glides for seconds. One of the three runs drifted onto an
+upward-facing face and the app said "This spot faces up, so a tip here may not hold." — a real
+failure of a real rule, caused by the view moving after the operator aimed.
+
+With `inertia` and `panningInertia` at zero the tip lands at -22.739/-0.870/3.355 run after run,
+identical to three decimal places. Zero is the only setting whose answer does not depend on the
+frame rate.
+
+Chasing that also turned up the orbit speed: drei turns `2π · dx / clientHeight` and Babylon divides
+by `angularSensibility` (1000), so the same drag turned the view about seven times further in the
+three.js view. `angularSensibilityX/Y` is set from the canvas height now and reset on resize.
+**Panning and zoom are still by eye** — `panningSensibility` 100 against OrbitControls' distance-and-
+fov derivation — and that is debt, recorded rather than left silent.

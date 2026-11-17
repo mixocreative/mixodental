@@ -36,11 +36,11 @@ behaviour and not the pixels, and the verdict line names the renderer whenever i
 default — a Babylon receipt can never be read as the three.js gate. `npm run gate` and CLAUDE.md's
 local gate still mean the three.js run until three.js is gone.
 
-**Both runs are green, 2026-11-17 on `be1103d`:**
+**Both runs are green, 2026-11-17:**
 
 ```
-ALL PASS (186 checks, 1702 s)
-ALL PASS (186 checks, 1543 s) [renderer: babylon]
+ALL PASS (186 checks, 1969 s)
+ALL PASS (186 checks, 1440 s) [renderer: babylon]
 ```
 
 Every check runs against both views now, so the Babylon view is proved the way the shipping one is
@@ -57,6 +57,8 @@ and every one was measured rather than reasoned out:
 | "the drawn rim is visible … 0 px of the colour" | a one-pixel line at 0.9 alpha with a fainter copy over it leaves almost no pixel at full strength here. Both loops are opaque now, and the rim measures 105 px of the exact token against three's 122 |
 | nothing — no check caught it | this view read only the dental area PREVIEW, so once Step 1 handed its policy over every area layer vanished. It reads the accepted policy first now |
 | "Add … says so": three said "Support added.", Babylon said "This spot faces up" | a heavy import gets a simplified DISPLAY copy, and `UnitObject` draws and picks that one. This view drew and picked the full mesh, so the same pixel met a different triangle |
+| the same check, flickering run to run | the camera was still gliding when the click landed — see the inertia note below |
+| "zones painted over the model (2 strokes landed)" against three's 1 | the surface brush had its OWN sampling instead of `createStroke` + `zoneFill`: it stamped on a spacing rule of its own and never filled the gap between two samples, so a fast drag painted a dotted line. Same stroke object and same fill rule now, and one fixed stroke lays the same stamps in both: **+6, +11, +31** on three lines |
 
 **Both see-through overlays are drawn.** `babylon/supportBodies.ts` ports `SupportBodies`, and it is
 the one layer that deliberately differs in its mechanics: it REMAPS the vertices it needs rather

@@ -43,6 +43,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { tipsOf } from '@mixo-geocore/host/core/supports/meshQuery';
 import { resolveSettings as resolveUnitSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { attachSurfaceBrush, type ActiveBrush } from './viewport/babylon/paintStroke';
+import type { SurfaceStamp } from '@mixo-geocore/editing/surfaceBrush';
 import { attachEditClicks } from './viewport/babylon/editClicks';
 import { attachRimDraw } from './viewport/babylon/rimDraw';
 import { drawRimDraft } from './viewport/babylon/rimLayer';
@@ -161,6 +162,8 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const pointerRef = useRef<SurfacePointer | null>(null);
   /** The rim as it is being dragged, so the drawn line follows the pointer mid-gesture. */
   const [rimDrag, setRimDrag] = useState<SurfacePath | undefined>(undefined);
+  /** The surface stamps of the stroke still under the pointer, so the paint appears as it is laid. */
+  const [livePaint, setLivePaint] = useState<{ unitId: string; stamps: readonly SurfaceStamp<string>[] } | undefined>(undefined);
   /** Where DOM anchored to 3D points is mounted: an overlay the size of the canvas. */
   const overlayRef = useRef<HTMLDivElement | null>(null);
   // The scene is built in an effect, so the first render has no overlay or anchors yet. This flips
@@ -204,6 +207,38 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     camera.attachControl(canvas, true);
     camera.panningSensibility = 100;
     camera.wheelDeltaPercentage = 0.02;
+    /*
+     * NO INERTIA, AND THE REASON IS A NUMBER RATHER THAN A PREFERENCE.
+     *
+     * Babylon's default is 0.9: the camera keeps nine tenths of its last movement every FRAME after
+     * the pointer lets go. That decays per frame, not per second, so on a slow renderer it keeps
+     * gliding for seconds. The walk measured it: `b3d` clicks the same canvas point on the same
+     * aligner, and the tip landed within 0.04 mm across three three.js runs and across 0.7 mm
+     * across three Babylon ones -- drifting steadily in one direction, which is a camera still
+     * moving when the click arrives. Once it crossed onto an upward-facing face the app warned
+     * "This spot faces up" and the check failed, which is the operator's problem too: you click
+     * where you aimed and the view has moved on.
+     *
+     * Zero is the only setting whose answer does not depend on the frame rate.
+     */
+    camera.inertia = 0;
+    camera.panningInertia = 0;
+    /*
+     * THE ORBIT TURNS AS FAR PER PIXEL AS THE OTHER VIEW'S, which it did not: drei's OrbitControls
+     * turns `2 * PI * dx / clientHeight` radians -- a full turn per screen height -- while Babylon
+     * divides by `angularSensibility`, 1000 by default. That is about one radian per 1000 pixels
+     * against three's one per 134: the same drag moved the view seven times further there. It is
+     * the most-used gesture in the app, so "largely the same layout" has to include how far a drag
+     * turns it.
+     *
+     * Set from the canvas height, and reset when it changes, because that is what three divides by.
+     */
+    const matchOrbitSpeed = () => {
+      const perRadian = Math.max(canvas.clientHeight, 1) / (2 * Math.PI);
+      camera.angularSensibilityX = perRadian;
+      camera.angularSensibilityY = perRadian;
+    };
+    matchOrbitSpeed();
 
     new HemisphericLight('sky', new Vector3(0, 1, 0), scene).intensity = 1.3;
     const key = new DirectionalLight('key', new Vector3(-40, -80, -30).normalize(), scene);
@@ -236,7 +271,10 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     sceneRef.current = scene;
     cameraRef.current = camera;
     engine.runRenderLoop(() => scene.render());
-    const onResize = () => engine.resize();
+    const onResize = () => {
+      engine.resize();
+      matchOrbitSpeed();
+    };
     window.addEventListener('resize', onResize);
     const observer = new ResizeObserver(onResize);
     observer.observe(canvas);
@@ -307,6 +345,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
           }
           return undefined;
         },
+        onLive: (unitId, stamps) => setLivePaint(unitId && stamps.length > 0 ? { unitId, stamps } : undefined),
       }),
       (() => {
         const anchors = createDomAnchors(scene, pointer.port);
@@ -467,8 +506,6 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     nodes.clear();
     drawnSupports.current.clear();
     highlights.current.clear();
-    // Zones read full in zones mode and faint elsewhere, exactly as the three.js view decides it.
-    const zoneOpacity = ZONE_OPACITY[props.gesture.kind === 'zones' ? 'full' : 'faint'];
     for (const unit of printScene.units) {
       /*
        * ONE node per unit, carrying `unit.transform`, with the model, the supports and the zone
@@ -585,18 +622,6 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         }));
       }
 
-      // The no-support zones, painted see-through over the model.
-      if (overlaysFit && unit.zones.length > 0) {
-        disposers.push(drawSurfaceStamps(scene, {
-          name: `${unit.id}-zones`,
-          mesh: unit.source,
-          parent: node,
-          stamps: unit.zones,
-          filledKind: 'paint',
-          colour: colours.preview.zone,
-          opacity: zoneOpacity,
-        }));
-      }
 
       /*
        * The dental support area being painted in Step 2. Same module as the zones, because it IS
@@ -738,22 +763,14 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
           opacity: 0.85,
         }));
       }
-      if (overlaysFit && area && area.stamps.length > 0) {
-        disposers.push(drawSurfaceStamps(scene, {
-          name: `${unit.id}-dental-area`,
-          mesh: unit.source,
-          parent: node,
-          stamps: area.stamps,
-          filledKind: 'allow',
-          colour: colours.preview.areaPermitted,
-          opacity: 0.7,
-        }));
-      }
     }
     paintHighlights.current();
+    paintLayer.redraw.current();
     ghost.redraw.current();
     tipLayer.redraw.current();
     return () => {
+      paintLayer.drawn.current?.();
+      paintLayer.drawn.current = undefined;
       ghost.drawn.current?.();
       ghost.drawn.current = undefined;
       tipLayer.drawn.current?.();
@@ -931,6 +948,61 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   };
   // Recolouring only, never rebuilding: this is what lets a stroke preview at frame rate.
   useEffect(() => paintHighlights.current(), [preview.solid, printScene.selectedUnitIds, printScene.units, colours]);
+
+  /*
+   * THE SURFACE PAINT -- the no-support zones and the dental support area -- INCLUDING THE STROKE
+   * STILL UNDER THE POINTER.
+   *
+   * It is drawn here rather than in the units effect because it changes at stroke rate, and that
+   * effect rebuilds every mesh in the scene. `UnitObject` keeps the in-flight stamps in state and
+   * draws `[...unit.zones, ...stroke]`; this keeps them in `livePaint` and does the same, so the
+   * paint appears UNDER the pointer in both views instead of arriving at the release in one.
+   */
+  const paintLayer = useOverlaySlot();
+  paintLayer.redraw.current = () => {
+    paintLayer.drawn.current?.();
+    paintLayer.drawn.current = undefined;
+    const scene = sceneRef.current;
+    if (!scene) return;
+    const drawn: Array<() => void> = [];
+    // Zones read full in zones mode and faint elsewhere, exactly as the three.js view decides it.
+    const zoneOpacity = ZONE_OPACITY[props.gesture.kind === 'zones' ? 'full' : 'faint'];
+    for (const unit of printScene.units) {
+      const node = unitNodes.current.get(unit.id);
+      // The same gate the units effect applies: these overlays are built against the SOURCE mesh's
+      // triangles, so they only fit a unit drawn at full detail.
+      if (!node || displayMesh(unit.source) !== unit.source) continue;
+      const live = livePaint?.unitId === unit.id ? livePaint.stamps : undefined;
+      const zoneKind = props.gesture.kind === 'zones';
+      const zones = live && zoneKind ? [...unit.zones, ...live as typeof unit.zones] : unit.zones;
+      if (zones.length > 0) {
+        drawn.push(drawSurfaceStamps(scene, {
+          name: `${unit.id}-zones`,
+          mesh: unit.source,
+          parent: node,
+          stamps: zones,
+          filledKind: 'paint',
+          colour: colours.preview.zone,
+          opacity: zoneOpacity,
+        }));
+      }
+      const policy = unit.dental ?? (props.dentalAreaPreview?.unitId === unit.id ? props.dentalAreaPreview.policy : undefined);
+      const area = policy ? (live && !zoneKind ? [...policy.stamps, ...live as typeof policy.stamps] : policy.stamps) : [];
+      if (area.length > 0) {
+        drawn.push(drawSurfaceStamps(scene, {
+          name: `${unit.id}-dental-area`,
+          mesh: unit.source,
+          parent: node,
+          stamps: area,
+          filledKind: 'allow',
+          colour: colours.preview.areaPermitted,
+          opacity: 0.7,
+        }));
+      }
+    }
+    paintLayer.drawn.current = () => { for (const dispose of drawn) dispose(); };
+  };
+  useEffect(() => paintLayer.redraw.current(), [livePaint, printScene.units, props.gesture.kind, props.dentalAreaPreview, colours]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /*
    * DRAG OVER'S GHOST: the whole bodies of the supports the circle would change, see-through, red
