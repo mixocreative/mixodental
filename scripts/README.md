@@ -57,7 +57,7 @@ ones.
 | `dental-face-labels.ts` · `probe-dental-edges.ts` · `probe-dental-orientation.ts` · `measure-rim-loops.mjs` | the one-off measurements the dental rules cite. Kept because each cost a day to derive |
 | `dental-region-review/` · `dental-reference/` | the region-review tool (own README) and its comparison scripts |
 | `extract-sup-contacts.py` | reads contacts out of reference slicer files. **Those files are reference only, never targets** |
-| `render-dental-diagnostic.py` · `brush_perf.py` · `trace-art.py` · `art-block.mjs` | diagnostics and the art pipeline |
+| `render-dental-diagnostic.py` · `brush_perf.py` · `trace-art.py` · `art-block.mjs` · `flatten-art.py` | diagnostics and the art pipeline |
 | `export-hashes.ts` | hashes of exported output, for comparing runs |
 
 ## Test support
@@ -68,3 +68,8 @@ ones.
 
 `icons.mjs` (`npm run icons:add`) and `gen-fonts-css.mjs` (`npm run fonts`, writes
 `src/fonts.css` — do not hand-edit the output).
+
+`flatten-art.py` (`npm run art`, `npm run art -- --check`) is the step AFTER the owner re-exports an
+item-type drawing from Illustrator: it flattens polygons and rotated rects back onto the 48x48 grid
+`src/ui/assets/art/README.md` promises, refuses to write unless the result paints identical cells, and
+leaves an already-plain file untouched.

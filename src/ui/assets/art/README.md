@@ -100,3 +100,24 @@ no correct version to miss and a generator gets the angles exactly right where a
 
 Either way **the FILE is the source**. Both scripts can be re-run, and a file replaced by hand is just
 as valid: the rules above are held by a test, not by whichever script happened to write it.
+
+### After an Illustrator re-export, run `npm run art`
+
+```
+npm run art            # every drawing in this folder
+npm run art -- --check # say what would change, write nothing
+```
+
+**Edit the drawings however you like and run this afterwards.** Illustrator exports what it reads, not
+what the folder promises: a shape it judges angled comes out as `<polygon>`, and a rect it drew on its
+side comes out with `translate(...) rotate(90)`. Both look right in a browser and both are invisible to
+`src/ui/art.test.ts`, which reads `x/y/width/height` off `<rect>` and nothing else - so on 2026-11-17 a
+redrawn night guard failed "leaves no hole inside the outline" with 58 cells the guard could not see
+into, 57 of them inside polygons. **The drawing was fine. The reader was narrow.**
+
+`scripts/flatten-art.py` answers that by flattening the export back onto the 48x48 grid this folder
+already promises, so the guard, the style book, the tracer and whatever reads these next all see the
+same plain rects. It is lossless HERE, and only here: the drawing is already quantised to the grid and
+`crispEdges` means a cell is either covered or it is not, so there is no in-between to lose. It refuses
+to write unless the flattened file paints exactly the same cells, and it leaves a file that is already
+plain **completely alone** rather than rebuilding it into something equivalent.

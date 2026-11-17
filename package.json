@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "icons:add": "node scripts/icons.mjs",
+    "art": "python scripts/flatten-art.py",
+    "art:check": "python scripts/flatten-art.py --check",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "postbuild": "node scripts/third-party-notices.mjs",
