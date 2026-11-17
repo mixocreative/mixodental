@@ -46,10 +46,19 @@ needed.**
   retainer from an aligner is subtle.** Neither of those two is wired to a screen yet, so it costs
   nothing today and will cost something the day one is.
 - **§2, the cursor. It is not heavy — it is lighter than everything it sits among**, four short
-  strokes and a hollow square against anchor dots several times its size. The one thing worth your
-  eye is in the 6× panel: **its ink and the drawn rim line's ink are the same dark navy**, so at the
-  exact moment it matters — hovering the line to insert a point — the cursor's lower arm and the
-  line are the same colour. If anything there wants changing, it is the colour, not the weight.
+  strokes and a hollow square against anchor dots several times its size. **And looking at it found
+  something else, which is the whole argument for making a thing lookable.**
+
+  I first read the picture as "the cursor's ink and the drawn rim line's ink are the same dark
+  navy". **That was wrong — the rim line is RED.** What shared the cursor's navy was a ring that had
+  no business being there: `EditPreview`, Support Edit Mode's furniture — a ring the size of the
+  erase reach and a teal cone where a support would be ADDED — was drawn in rim define mode, a mode
+  whose only gesture is placing anchors. A dead affordance under the pointer, offering a gesture the
+  mode does not have.
+
+  The Babylon port never drew it (its preview is gated on `gesture.kind === 'add'`), so this was the
+  older renderer catching up to the newer one. Fixed; re-run `npm run look` and rim mode now shows
+  what it owns — anchors, the line between them, and the cursor.
 - **§4, the style book. It passes, and I am the stranger it is written for.** Picking an icon to
   change, the card names `src/ui/assets/art/aligner.svg` and then goes further than the test asked:
   it says *how* the file was made ("traced from the reference by `scripts/trace-art.py` — re-run it,

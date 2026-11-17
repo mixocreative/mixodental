@@ -520,7 +520,21 @@ export function UnitObject(props: UnitObjectProps) {
       <meshPhysicalMaterial key={selectionColored ? 'selection' : 'plain'} color={selectionColored ? modelColours.vertexBase : supportColor} vertexColors={selectionColored}
         metalness={0} roughness={0.38} clearcoat={0.7} clearcoatRoughness={0.25} sheen={0} />
     </mesh>}
-    {takesEdits && hover && !brush && <EditPreview hover={hover} unit={unit} contacts={contacts} {...(zoneBrush || dentalBrush
+    {/*
+      NOT IN RIM DEFINE MODE, and the Babylon view already had this right.
+
+      `EditPreview` is Support Edit Mode's furniture: a ring the size of the erase reach, and a cone
+      where a support would be ADDED. Rim mode places anchors and nothing else -- `modeOwnsClick`
+      says so for the click, and this is the same rule for the hover. Drawn there it offered a
+      gesture the mode does not have, which is the dead-affordance fault this codebase keeps paying
+      for, and it was visible: a dark ring and a teal cone sitting under the pointer among the red
+      anchors, in `npm run look`'s picture of the rim cursor. The Babylon port gates its own preview
+      on `gesture.kind === 'add'`, so it never drew them; this is three catching up.
+
+      The hover itself is still set in rim mode, because the rim layer uses it for the see-through
+      PREVIEW ANCHOR under the pointer. Only the support furniture goes.
+    */}
+    {takesEdits && hover && !brush && !rimDrawing && <EditPreview hover={hover} unit={unit} contacts={contacts} {...(zoneBrush || dentalBrush
       ? { brush: { radius: (zoneBrush ?? dentalBrush)!.radius, color: zoneBrush?.kind === 'paint' ? marks.zone : dentalBrush?.kind === 'allow' ? marks.areaPermitted : marks.ring } }
       : {})} />}
     {editing && !surfacePainting && supports && supportGeometry && <>
