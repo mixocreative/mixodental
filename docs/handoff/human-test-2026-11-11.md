@@ -92,16 +92,34 @@ bullet: a TUNING change does not survive leaving and returning to Step 2.
   | area stamps | 31 | 31 | 31 |
   | detected region (contact faces) | 14,110 | 14,946 | **14,110** |
 
-  So: the stamps and the tuning VALUE are both carried over — `keptDentalWork` in `src/dental/flow.ts`
-  does that, and its comment describes this very class of bug (W-01). What is not carried over is the
-  AREA the tuning produced: the region reverts to its untuned detection, and the tip preview comes
-  back **absent**, not merely smaller. The count reads 0 because `dentalPreview` is undefined, so it
-  is the preview that never returns, not a proposal that returned empty.
+  **The line is `src/components/useDentalFlow.ts:380`:**
 
-  It reproduces in BOTH renderers and on the shipping three.js one, so it is nothing to do with the
-  Babylon work. **It is a bug report, not a question for your eyes** — the only judgement left is
-  whether re-entry should re-derive the area from the kept tuning (the comment in `flow.ts` says the
-  staleness model exists for exactly that) or reset the slider to match what it actually drew.
+  ```js
+  const policy = { kind: 'two-contour', profileId: profile, rim: proposal.rim, region,
+    stamps: kept?.stamps ?? [], tuning: kept?.tuning ?? defaultDentalTuning(profile), structure };
+  ```
+
+  `region` is the freshly DETECTED area; `tuning` is the operator's KEPT number. The two disagree,
+  and a placement on a policy whose strip geometry and tuning disagree finds nowhere to put a tip.
+  The preview is not missing and not failing — `previewStatus` reads `ready` and `tuningError` is
+  false throughout; it ran and placed **nothing**. The walk's run showed 2 rather than 0 only
+  because it had two manual tips by then.
+
+  It reproduces on the shipping three.js renderer, so it is nothing to do with the Babylon work.
+  **Two fixes are coherent and the choice between them is yours:**
+
+  1. **Keep the operator's number and re-derive the area for it.** What `keptDentalWork`'s own
+     comment intends ("the staleness model exists precisely so this does not have to be a
+     deletion"). It needs the retune worker job run once on arrival — the same path the slider
+     already uses (`useDentalTuning`, `retunePlaceDental`) — inside an accept path that currently
+     dispatches synchronously under a detection-sequence guard. Real work, maybe an hour, and the
+     operator sees "Updating dental support area…" once on re-entry.
+  2. **Drop the number so the policy stays coherent** — one line, `tuning: defaultDentalTuning(profile)`.
+     Honest and immediate, and it throws away work the operator did, which is the half of W-01 that
+     comment argued against.
+
+  I did not pick between them: it is a product call on someone else's product, and either takes
+  minutes to implement once made.
 
 - Drag a point along the drawn line. Every point on the visible line should be grabbable — the line
   the app draws and the line it measures a press against are now the same curve.
