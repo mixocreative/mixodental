@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794938920.2976513,
-    "seen": 1794940917.4160724,
-    "ast_hash": "f3db0aba4e0c64934a04121ef79d39c4",
+    "mtime": 1794944609.2001948,
+    "seen": 1794946622.0536196,
+    "ast_hash": "63248b691071f3e5b1dbd6063a791f25",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -5479,9 +5479,9 @@
     "semantic_hash": ""
   },
   "src/items/ItemsPage.tsx": {
-    "mtime": 1794936618.839283,
-    "seen": 1794940917.417576,
-    "ast_hash": "bd76a136b4f5136474dddd0849f7c959",
+    "mtime": 1794940985.8407614,
+    "seen": 1794946622.0536196,
+    "ast_hash": "d2f646615f84ddaa0546ffc0f3406d24",
     "semantic_hash": ""
   },
   "src/items/dropGrain.test.ts": {
@@ -5665,9 +5665,9 @@
     "semantic_hash": ""
   },
   "src/items/ItemRow.tsx": {
-    "mtime": 1794936498.5682657,
-    "seen": 1794940917.417576,
-    "ast_hash": "57b3f3d0a7af3c7bfab10b68b03f4cb3",
+    "mtime": 1794940970.584784,
+    "seen": 1794946622.0536196,
+    "ast_hash": "89e9b2d888e45bf9680fc3c00e80cba2",
     "semantic_hash": ""
   },
   "src/items/RefusedRow.tsx": {
@@ -6679,9 +6679,15 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-17-flow-map.md": {
-    "mtime": 1794939772.541836,
-    "seen": 1794940917.4185803,
-    "ast_hash": "ff586e9549ea90ffa8006344f6084ecf",
+    "mtime": 1794941048.1918266,
+    "seen": 1794946622.0541277,
+    "ast_hash": "b04a968f59250e9800170ea5c1843b3d",
+    "semantic_hash": ""
+  },
+  "docs/handoff/review-walk-2026-11-18.md": {
+    "mtime": 1794941092.26807,
+    "seen": 1794946622.0541277,
+    "ast_hash": "186ff90a735958d68a586fcc5a816976",
     "semantic_hash": ""
   }
 }
