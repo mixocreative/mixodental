@@ -604,3 +604,43 @@ by `angularSensibility` (1000), so the same drag turned the view about seven tim
 three.js view. `angularSensibilityX/Y` is set from the canvas height now and reset on resize.
 **Panning and zoom are still by eye** — `panningSensibility` 100 against OrbitControls' distance-and-
 fov derivation — and that is debt, recorded rather than left silent.
+
+### And then panning and zoom, which were still by eye
+
+Left as debt in the entry above, and it was the wrong call: "largely the same layout" has to include
+how the view MOVES, because turning, panning and zooming are the gestures an operator makes a
+thousand times a day and the ones a different feel is noticed in first.
+
+All three now live in `babylon/orbit.ts`, every number read out of `three-stdlib`'s own source:
+
+```
+turn   2 * PI * dx / clientHeight radians            a whole turn per screen height
+pan    2 * distance * tan(fov / 2) / clientHeight    world units per pixel
+zoom   one notch multiplies the distance by 0.95     whatever size the delta reports
+```
+
+Babylon expresses the first two as SENSIBILITIES — pixels per radian, pixels per world unit — so
+they are reciprocals of three's, and the panning one depends on the distance, so it is recomputed
+every frame from the camera's radius. The zoom is not expressible through Babylon's wheel input at
+all: that input scales by the raw event delta, which a mouse, a trackpad and a tilting wheel all
+report differently, where OrbitControls reads only the SIGN. So the input is removed and the wheel
+handled by hand.
+
+`attachOrbit` also turns ctrl-panning OFF. OrbitControls has no ctrl gesture, and in this app
+ctrl+click toggles a support's selection — a ctrl drag that panned would slide the view under that
+click. Every place that hands the orbit back (the surface brush, a rim drag, the gizmo, the brush's
+stroke end) goes through that one function now, so the terms cannot be re-decided in five places.
+
+**Measured in a browser, against the camera's own numbers:** a 200-pixel pan drag moved the target
+22.225 mm where three's formula wants 22.225, and three wheel notches took the radius to 0.8574 of
+itself where three wants 0.857375.
+
+**A warning about measuring this from pixels, because it cost an hour.** The first attempt compared
+"how much of the canvas is not the background colour" and its centroid, and reported the two views
+panning by 109 px against 53 and zooming by 1.26x against 1.03x — a factor of two, confidently
+wrong. The two GRIDS are not the same object: three's is drei's infinite shader grid with a distance
+fade and Babylon's is a 1000 mm ground, so any yardstick built on canvas coverage moves differently
+in the two under identical camera motion. Ask the camera, not the picture.
+
+Still different, and written down rather than left silent: **middle-drag** dollies in OrbitControls
+and does nothing in Babylon. Nothing in the app or the walk uses it.

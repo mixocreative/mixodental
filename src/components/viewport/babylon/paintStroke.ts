@@ -2,6 +2,7 @@ import type { ArcRotateCamera } from '@babylonjs/core';
 import { createStroke, zoneFill } from '@mixo-geocore/editing/stroke';
 import { appendSurfaceStamps, type SurfaceStamp } from '@mixo-geocore/editing/surfaceBrush';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
+import { attachOrbit } from './orbit';
 import type { SurfacePointer } from './surfacePointer';
 
 /*
@@ -81,7 +82,7 @@ export function attachSurfaceBrush(input: SurfaceBrushInput): () => void {
     // The camera comes back however the stroke ends -- released, cancelled, the window blurred, or
     // the brush taken out of the operator's hand. Leaving the orbit off would be a worse fault than
     // the one this guards: a viewport that silently stops turning.
-    camera.attachControl(canvas, true);
+    attachOrbit(camera, canvas);
     input.onLive(undefined, []);
     if (stroke && stroke.stamps.length > 0) stroke.brush.commit(stroke.unitId, stroke.stamps);
   };

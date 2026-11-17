@@ -2,6 +2,7 @@ import type { ArcRotateCamera } from '@babylonjs/core';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { insertAnchor, moveAnchor, type SurfacePath } from '../../../core/surfacePath/path';
 import { rimTapAt, rimTargetAt } from '../../../dental/rim/rimTarget';
+import { attachOrbit } from './orbit';
 import type { SurfacePointer } from './surfacePointer';
 
 /*
@@ -51,7 +52,7 @@ export function attachRimDraw(input: RimDrawInput): () => void {
   let press: { x: number; y: number } | undefined;
 
   const releaseCamera = () => {
-    camera.attachControl(canvas, true);
+    attachOrbit(camera, canvas);
   };
 
   const drop = () => {

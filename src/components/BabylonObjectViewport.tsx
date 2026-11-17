@@ -32,6 +32,7 @@ import { splitTipMarks, TIP_SCALE, type TipMarks } from './viewport/tipMarkSplit
 import { drawAddFlash, drawPlateOutline } from './viewport/babylon/sceneMarks';
 import { drawDebugLayers, drawProblemMarks } from './viewport/babylon/checkMarks';
 import { createDomAnchors, type DomAnchors } from './viewport/babylon/domAnchor';
+import { angularSensibilityFor, attachOrbit, panningSensibilityFor, zoomedRadius } from './viewport/babylon/orbit';
 import type { SurfacePath } from '../core/surfacePath/path';
 import { drawPrintAngle } from './viewport/babylon/printAngle';
 import { tokenCss } from '../ui/tokenColour';
@@ -204,41 +205,48 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
      * That handover is the whole reason a drag paints instead of turning the view: three gets it
      * from r3f's event order, and here it is explicit.
      */
-    camera.attachControl(canvas, true);
-    camera.panningSensibility = 100;
-    camera.wheelDeltaPercentage = 0.02;
+    attachOrbit(camera, canvas);
     /*
-     * NO INERTIA, AND THE REASON IS A NUMBER RATHER THAN A PREFERENCE.
-     *
-     * Babylon's default is 0.9: the camera keeps nine tenths of its last movement every FRAME after
-     * the pointer lets go. That decays per frame, not per second, so on a slow renderer it keeps
-     * gliding for seconds. The walk measured it: `b3d` clicks the same canvas point on the same
-     * aligner, and the tip landed within 0.04 mm across three three.js runs and across 0.7 mm
-     * across three Babylon ones -- drifting steadily in one direction, which is a camera still
-     * moving when the click arrives. Once it crossed onto an upward-facing face the app warned
-     * "This spot faces up" and the check failed, which is the operator's problem too: you click
-     * where you aimed and the view has moved on.
-     *
-     * Zero is the only setting whose answer does not depend on the frame rate.
+     * HOW THE VIEW MOVES IS `orbit.ts`'s, and every number there is drei's OrbitControls read out of
+     * its source. Turning, panning and zooming are the gestures an operator makes a thousand times
+     * a day; a view that turns seven times too far per pixel (Babylon's default) still works, still
+     * looks right in a screenshot, and feels like a different app the moment anyone uses it.
      */
     camera.inertia = 0;
     camera.panningInertia = 0;
-    /*
-     * THE ORBIT TURNS AS FAR PER PIXEL AS THE OTHER VIEW'S, which it did not: drei's OrbitControls
-     * turns `2 * PI * dx / clientHeight` radians -- a full turn per screen height -- while Babylon
-     * divides by `angularSensibility`, 1000 by default. That is about one radian per 1000 pixels
-     * against three's one per 134: the same drag moved the view seven times further there. It is
-     * the most-used gesture in the app, so "largely the same layout" has to include how far a drag
-     * turns it.
-     *
-     * Set from the canvas height, and reset when it changes, because that is what three divides by.
-     */
     const matchOrbitSpeed = () => {
-      const perRadian = Math.max(canvas.clientHeight, 1) / (2 * Math.PI);
+      const perRadian = angularSensibilityFor(canvas.clientHeight);
       camera.angularSensibilityX = perRadian;
       camera.angularSensibilityY = perRadian;
     };
     matchOrbitSpeed();
+    /*
+     * The panning sensibility is a DISTANCE-dependent number here because three's pan is: it moves
+     * the world by as much as a pixel covers at the target's depth, so a close model pans slowly
+     * and a distant one quickly. Babylon takes one fixed number, so it is recomputed each frame --
+     * the camera's radius is the only input that changes.
+     */
+    const matchPanSpeed = scene.onBeforeRenderObservable.add(() => {
+      camera.panningSensibility = panningSensibilityFor(camera.radius, camera.fov, canvas.clientHeight);
+    });
+    /*
+     * THE WHEEL IS HANDLED HERE, not by Babylon's wheel input, and that input is removed so the two
+     * cannot both answer. Babylon scales by the raw event delta -- which a mouse, a trackpad and a
+     * tilting wheel all report differently -- where OrbitControls reads only the SIGN and always
+     * steps by the same factor. Reading the sign is the only way the two views zoom alike on every
+     * device.
+     */
+    // Babylon keys its attached inputs by simple name, which is how this one is reached and removed.
+    const wheelInput = camera.inputs.attached['mousewheel'];
+    if (wheelInput) camera.inputs.remove(wheelInput);
+    const onWheel = (event: WheelEvent) => {
+      // Detached means a gesture owns the pointer (a stroke, a rim drag, the gizmo). three disables
+      // the whole of OrbitControls for those, wheel included.
+      if (!camera.inputs.attachedToElement || event.deltaY === 0) return;
+      event.preventDefault();
+      camera.radius = zoomedRadius(camera.radius, event.deltaY < 0);
+    };
+    canvas.addEventListener('wheel', onWheel, { passive: false });
 
     new HemisphericLight('sky', new Vector3(0, 1, 0), scene).intensity = 1.3;
     const key = new DirectionalLight('key', new Vector3(-40, -80, -30).normalize(), scene);
@@ -280,6 +288,8 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     observer.observe(canvas);
 
     return () => {
+      canvas.removeEventListener('wheel', onWheel);
+      scene.onBeforeRenderObservable.remove(matchPanSpeed);
       observer.disconnect();
       window.removeEventListener('resize', onResize);
       engine.stopRenderLoop();
@@ -880,7 +890,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     window.removeEventListener('pointercancel', releaseBrush);
     window.removeEventListener('blur', releaseBrush);
     const canvas = canvasRef.current;
-    if (cameraRef.current && canvas) cameraRef.current.attachControl(canvas, true);
+    if (cameraRef.current && canvas) attachOrbit(cameraRef.current, canvas);
   };
   useEffect(() => () => void brushStroke.end(), [brushStroke]);
   // The brush going away mid-stroke (the tool or the mode changed) ends it at once, so the orbit is

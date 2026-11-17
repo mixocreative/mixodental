@@ -39,8 +39,8 @@ local gate still mean the three.js run until three.js is gone.
 **Both runs are green, 2026-11-17:**
 
 ```
-ALL PASS (186 checks, 1969 s)
-ALL PASS (186 checks, 1440 s) [renderer: babylon]
+ALL PASS (186 checks, 1960 s)
+ALL PASS (186 checks, 1435 s) [renderer: babylon]
 ```
 
 Every check runs against both views now, so the Babylon view is proved the way the shipping one is
@@ -65,11 +65,43 @@ the one layer that deliberately differs in its mechanics: it REMAPS the vertices
 than sharing the support mesh's buffers, because Babylon has no safe way to hand one `VertexBuffer`
 to two meshes. `splitTipMarks` in `tipMarkSplit.ts` decides the tips' three states for BOTH views.
 
-**The one difference still measured, and it is not a defect yet:** the two views land a click
-0.19 mm apart on the same face (`b3d`, tip at -23.352/2.246/-0.952 against -23.299/2.122/-1.081).
-An `ArcRotateCamera` is placed through alpha, beta and radius, so `place()` cannot land the camera
-on three's exact position. It is within a face everywhere the walk looks; if a check ever starts
-flickering near a boundary, this is why.
+**HOW THE VIEW MOVES IS `babylon/orbit.ts`'s, and every number in it is drei's OrbitControls read
+out of `three-stdlib`'s source.** Turning, panning and zooming are the gestures an operator makes a
+thousand times a day and the ones a different feel is noticed in first, so "largely the same layout"
+has to include them:
+
+```
+turn   2 * PI * dx / clientHeight radians            a whole turn per screen height
+pan    2 * distance * tan(fov / 2) / clientHeight    world units per pixel
+zoom   one notch multiplies the distance by 0.95     whatever size the delta reports
+```
+
+Babylon expresses the first two as SENSIBILITIES — pixels per radian, pixels per world unit — so
+they are reciprocals, and the panning one depends on the distance and is recomputed each frame. The
+wheel is handled by hand and Babylon's own wheel input removed: it scales by the raw event delta,
+which a mouse, a trackpad and a tilting wheel all report differently. `attachOrbit` also turns
+ctrl-panning off, because OrbitControls has no ctrl gesture and ctrl+click here toggles a support's
+selection. Every place that hands the orbit back goes through that one function.
+
+**And NO INERTIA, which is a correctness matter rather than a feel one.** Babylon keeps nine tenths
+of the last movement every FRAME, decaying per frame rather than per second, so on a slow renderer
+the camera glides for seconds. `b3d` clicks one canvas point and reads where the tip landed: across
+three three.js runs it landed within **0.04 mm**, across three Babylon ones it wandered **0.7 mm**,
+drifting steadily one way until one run drifted onto an upward-facing face and the app — correctly —
+warned about it. At zero inertia the tip lands identically run after run.
+
+Measured against the camera's own numbers: a 200-pixel pan drag moved the target 22.225 mm where
+three's formula wants 22.225, and three wheel notches took the radius to 0.8574 of itself where
+three wants 0.857375.
+
+**A warning about measuring any of this from pixels, because it cost an hour.** The two views' GRIDS
+are not the same object — three's is drei's infinite shader grid with a distance fade, Babylon's is
+a 1000 mm ground — so a yardstick built on "how much of the canvas is not background" moves
+differently in the two under identical camera motion, and says they disagree when they do not. Ask
+the camera, not the picture.
+
+**Middle-drag still differs:** OrbitControls dollies with it, Babylon does nothing. Debt, written
+down; nothing in the app or the walk uses it.
 
 **A trap for anyone testing this by hand: supports take about 16 seconds to build on the knot
 fixture, and the panel enables "Remove supports" within 2.** Wait on the data, not on the button —

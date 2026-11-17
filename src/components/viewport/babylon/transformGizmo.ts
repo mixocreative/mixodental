@@ -1,6 +1,7 @@
 import { GizmoManager, type ArcRotateCamera, type Scene, type TransformNode } from '@babylonjs/core';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { transformFromMesh } from '../babylonTransform';
+import { attachOrbit } from './orbit';
 
 /*
  * Moving and turning a unit. This is the one place Babylon is plainly less work than three.js: the
@@ -48,7 +49,7 @@ export function attachTransformGizmo(scene: Scene, input: TransformGizmoInput): 
     wired.add(gizmo);
     gizmo.onDragStartObservable.add(() => input.camera.detachControl());
     gizmo.onDragEndObservable.add(() => {
-      input.camera.attachControl(input.canvas, true);
+      attachOrbit(input.camera, input.canvas);
       if (on) input.onCommit(on.unitId, transformFromMesh(on.node));
     });
   };
