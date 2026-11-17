@@ -1077,6 +1077,7 @@ export const zhHant: Dictionary = {
   'mixoDental cannot start on this device': 'mixoDental 無法在這台裝置上啟動',
   'The 3D engine did not load': '3D 引擎未載入',
   'The workspace stopped': '工作區已停止',
+  'Reload the page to start again. The plate was empty, so there is nothing to save first.': '請重新載入頁面以重新開始。底板是空的，因此沒有需要事先儲存的內容。',
   'This browser could not start WebGL2 3D graphics, which mixoDental needs to show and prepare models. Try Chrome or Edge on a desktop computer.': '此瀏覽器無法啟動 WebGL2 3D 繪圖功能，而 mixoDental 需要此功能來顯示與準備模型。請在桌上型電腦上嘗試使用 Chrome 或 Edge。',
   'Reload the page to try again. If it keeps happening, your browser may be blocking WebAssembly.': '重新載入頁面以再試一次。如果情況持續發生，您的瀏覽器可能封鎖了 WebAssembly。',
   'Your models are still in this page. Save them before reloading - a reload does not keep them.': '您的模型仍在此頁面中。請在重新載入前先儲存，重新載入不會保留模型。',

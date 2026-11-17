@@ -35,16 +35,50 @@ import { sceneSave } from './rescue';
 /** Why the shell is showing instead of the app. */
 export type StopReason = 'no-webgl2' | 'engine' | 'crash';
 
-const TITLE: Record<StopReason, string> = {
+/*
+ * The two reasons whose words never vary. `crash` is NOT here - it has two faces (`CRASH` below) -
+ * and `Exclude` rather than a comment is what keeps it that way: add `crash` back and the compiler
+ * objects instead of letting the screen have two sources of truth for the same words.
+ */
+const TITLE: Record<Exclude<StopReason, 'crash'>, string> = {
   'no-webgl2': 'mixoDental cannot start on this device',
   engine: 'The 3D engine did not load',
-  crash: 'The workspace stopped',
 };
 
-const SENTENCE: Record<StopReason, string> = {
+const SENTENCE: Record<Exclude<StopReason, 'crash'>, string> = {
   'no-webgl2': 'This browser could not start WebGL2 3D graphics, which mixoDental needs to show and prepare models. Try Chrome or Edge on a desktop computer.',
   engine: 'Reload the page to try again. If it keeps happening, your browser may be blocking WebAssembly.',
-  crash: 'Your models are still in this page. Save them before reloading - a reload does not keep them.',
+};
+
+/*
+ * A CRASH HAS TWO FACES, BECAUSE THE SENTENCE MUST NOT DEMAND WHAT THE SCREEN CANNOT OFFER.
+ *
+ * The Save button is conditional - `App` publishes a saver only while `scene.units.length > 0`
+ * (`rescue.ts`) - and the sentence used to be keyed on the REASON alone. So a render crash on an
+ * empty plate said "Your models are still in this page. Save them before reloading" with no Save
+ * button beside it, Reload as the only action, and no models: it named work that did not exist and
+ * asked for an action it did not afford. Found 2026-11-17 by asking of this screen the question
+ * this app asks of every other one - when this goes wrong, what does the operator see?
+ *
+ * So the words are chosen on THE WORK, which is what the button is chosen on, and the two can no
+ * longer disagree.
+ *
+ * `saveable` IS THE WORDING THAT ALREADY SHIPPED, deliberately unchanged. The register of these
+ * sentences is the owner's (the note at the top of this file, and
+ * `docs/handoff/human-test-2026-11-11.md` §5, which carries the alternates); this fix is the
+ * condition, not the voice, and the split is what makes the old words correct again rather than
+ * merely approved. `empty` is the one new sentence, and it says why there is no Save button beside
+ * it - an absent control that is never explained is the same defect one storey down.
+ */
+const CRASH: Record<'saveable' | 'empty', { readonly title: string; readonly sentence: string }> = {
+  saveable: {
+    title: 'The workspace stopped',
+    sentence: 'Your models are still in this page. Save them before reloading - a reload does not keep them.',
+  },
+  empty: {
+    title: 'The workspace stopped',
+    sentence: 'Reload the page to start again. The plate was empty, so there is nothing to save first.',
+  },
 };
 
 /**
@@ -53,12 +87,16 @@ const SENTENCE: Record<StopReason, string> = {
  */
 export function Stopped({ reason, detail }: { reason: StopReason; detail?: string }): ReactNode {
   const save = sceneSave();
+  // One read of the save decides BOTH the words and the button, so they cannot contradict each other.
+  const words = reason === 'crash'
+    ? CRASH[save ? 'saveable' : 'empty']
+    : { title: TITLE[reason], sentence: SENTENCE[reason] };
   return (
     <div className="stopped" data-ui="stopped-screen" data-reason={reason}>
       {/* Text ranged left, the BOX centred - never the run of words itself. */}
       <div className="stopped-card" role="alert">
-        <h1 className="stopped-title" data-ui="stopped-title">{t(TITLE[reason])}</h1>
-        <p className="stopped-text" data-ui="stopped-sentence">{t(SENTENCE[reason])}</p>
+        <h1 className="stopped-title" data-ui="stopped-title">{t(words.title)}</h1>
+        <p className="stopped-text" data-ui="stopped-sentence">{t(words.sentence)}</p>
         <div className="stopped-actions" data-ui="stopped-actions">
           {save ? <button type="button" className="primary" data-ui="stopped-save" onClick={() => void save()}>{t('Save project')}</button> : null}
           <button type="button" className={save ? undefined : 'primary'} data-ui="stopped-reload" onClick={() => window.location.reload()}>{t('Reload')}</button>

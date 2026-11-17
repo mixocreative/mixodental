@@ -110,6 +110,75 @@ that cannot survive). Only the sentence is open.
 place in the set where the operator can lose something, and it currently says what happened before
 it says what to do. Both alternates lead with the save. That is the line to decide first.
 
+#### The register question turned out to hide a wiring one (2026-11-17)
+
+Fable was consulted on the choice above and picked A's sentence, rejected B, and then asked the
+question none of the three columns asks: **does this screen actually offer the save its sentence
+demands?** It does — `sceneSave()` renders a **Save project** button, primary, with Reload
+secondary. But that button is conditional and **the sentence is not**:
+
+```
+useEffect(() => { publishSceneSave(scene.units.length > 0 ? saveProject : undefined); }, …)
+```
+`src/App.tsx:632` · the slot is `src/rescue.ts` · the screen is `src/AppBoundary.tsx:62-68`
+
+So on an **empty plate** — a render crash on the start screen, or after a project is closed —
+`sceneSave()` is `undefined`, the Save button is not rendered, Reload becomes the primary action,
+and the screen still says *"Your models are still in this page. Save them before reloading."*
+**It names models that do not exist and asks for an action it does not offer.** That is this
+audit's own first law pointed at the audit's own screen, and no wording fixes it: all three
+columns above are equally wrong in that state, because the sentence is keyed on the REASON and the
+affordance is keyed on the WORK.
+
+**The fix is a condition, not a register — and the condition makes the shipped words correct
+again.** `AppBoundary.tsx` now chooses the crash words on the same fact the button is chosen on, so
+the two cannot disagree:
+
+| | with work to save | with nothing to save |
+|---|---|---|
+| title | The workspace stopped | The workspace stopped |
+| sentence | *(unchanged)* Your models are still in this page. Save them before reloading - a reload does not keep them. | **new:** Reload the page to start again. The plate was empty, so there is nothing to save first. |
+
+**The saveable face is deliberately word-for-word what already shipped.** The register is the
+owner's and remains open; this change took the voice decision out rather than making one. The new
+sentence is the only wording added, and it exists to explain the absent Save button — an absent
+control that is never explained is the same defect one storey down.
+
+Guarded by `AppBoundary.test.tsx`, *"never claims models are in the page when the plate was
+empty"*: with no Save button the sentence may not name the operator's models or ask for a save, and
+the two faces must stay two. It is the one place those tests pin English words, and it pins the
+invariant rather than the phrasing.
+
+**Fable's alternate is still on the table and worth reading before you pick.** Its argument: on an
+error screen people read **the title and the button**, so draft A's title — *"Your models are still
+here"* — above a **Reload** button scans as *"safe, so reload"*, because "still" is too quiet to
+carry "for now". Its rewrite leads the title with the verb instead, matching the primary button word
+for word:
+
+> title *Save your models before reloading* · sentence *They are still in this page, but reloading
+> will not keep them.*
+
+That reading applied to draft A. It applies much less to what is now in the code, because in the
+face that offers a save the primary button already says **Save project**, and in the face where
+**Reload** is primary, reloading is the correct thing to do.
+
+**Translated and landed (2026-11-17).** Both keys are in — the English string *is* the key, so
+`ja`, `zh-Hant` and the source literal move together or `src/i18n.test.ts` fails. Gemini refused
+five times (flash 503; pro's daily token quota exhausted) and answered on the sixth, which is why
+the sentence was never hand-written: `zh-Hant` goes through Gemini for Taiwan wording.
+
+**Two things the machine caught that a reader would not, both worth knowing for the next string:**
+
+- **Gemini used 平台 for "plate".** That term appears **zero** times in this app; the established
+  word is **底板**, used 61 times. Corrected to the project's own glossary before insertion — not a
+  rewrite of the translation, an alignment of one term. (The Japanese was already right: プレート,
+  matching its 58 other uses.) Gemini's own skill warns to hand-check for drift, and this is what
+  drift looks like when it is not a mistranslation.
+- **`src/ui/japaneseSubset.test.ts` failed on one glyph.** The bundled Japanese title face is
+  subset to exactly the characters `ja.ts` contains, and 事 (from 事前に) was not among them. The
+  test named its own fix; `npm run fonts` re-cut the face to 639 characters. **A new Japanese
+  string can therefore change a font binary**, which is not obvious from the diff.
+
 ---
 
 ## Already proved by machine — do not spend time here
@@ -141,10 +210,14 @@ A test can check that an icon is on its grid. It cannot check that it looks like
   the aligner is segmented, and the retainer's wire shows. Judge the set as a set: five pictures, one
   style? That is the question a test cannot ask.
 
-## 2. The rim-mode cursor — never seen by a human
+## 2. The rim-mode cursor — now pictured, still worth your own look
 
 `cursor-rim.svg` is wired into rim define mode (`src/components/viewport/style.ts`). The browser
-decodes it and the string is tested, but **nobody has yet looked at it over the model.**
+decodes it and the string is tested. **It had never been looked at over a model by anyone until
+2026-11-17** — a CSS cursor never appears in a screenshot — and `npm run look` now composites it to
+`.stitch/look/rim-cursor.png` at 24 px and at 6×. The reading from that picture, and the dead
+affordance it turned up, are at the top of this file; what is below is what a picture still cannot
+settle, which is how it feels under your own hand.
 
 - Enter rim define mode and move over the model. The cursor should be a crosshair with a small open
   square at its centre, and the square's centre is where the point lands.

@@ -1072,6 +1072,7 @@ export const ja: Dictionary = {
   'mixoDental cannot start on this device': 'mixoDental はこの端末で起動できません',
   'The 3D engine did not load': '3D エンジンが読み込まれませんでした',
   'The workspace stopped': 'ワークスペースが停止しました',
+  'Reload the page to start again. The plate was empty, so there is nothing to save first.': 'ページを再読み込みしてやり直してください。プレートは空だったため、事前に保存するものはありません。',
   'This browser could not start WebGL2 3D graphics, which mixoDental needs to show and prepare models. Try Chrome or Edge on a desktop computer.': 'このブラウザでは、mixoDental がモデルの表示と準備に必要な WebGL2 3D グラフィックスを起動できませんでした。デスクトップ コンピューターで Chrome または Edge をお試しください。',
   'Reload the page to try again. If it keeps happening, your browser may be blocking WebAssembly.': 'ページを再読み込みして、もう一度お試しください。問題が続く場合は、ブラウザが WebAssembly をブロックしている可能性があります。',
   'Your models are still in this page. Save them before reloading - a reload does not keep them.': 'モデルはまだこのページにあります。再読み込みでは保持されないため、再読み込みの前に保存してください。',

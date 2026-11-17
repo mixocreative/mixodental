@@ -76,6 +76,33 @@ describe('the stopped screen', () => {
     expect(html).not.toContain('data-ui="stopped-save"');
   });
 
+  /*
+   * THE RULE THE CRASH SCREEN BROKE UNTIL 2026-11-17: the words may not ask for an action the screen
+   * is not offering. The sentence was keyed on the REASON while the button was keyed on the WORK, so
+   * a crash on an empty plate said "Save them before reloading" beside no Save button and no models.
+   *
+   * This is the one place these tests pin English words, and the pin is the INVARIANT rather than
+   * the wording: reword either face however you like, but the face shown with no Save button may
+   * not name the operator's models or tell them to save. (`en` is set by `afterEach`; a translated
+   * sentence would not match, and translation is not what this guards.)
+   */
+  it('never claims models are in the page when the plate was empty', () => {
+    const sentenceOf = (html: string) => (/data-ui="stopped-sentence">([^<]+)</.exec(html)?.[1] ?? '').toLowerCase();
+
+    const empty = renderToStaticMarkup(<Stopped reason="crash" />);
+    expect(empty).not.toContain('data-ui="stopped-save"');
+    expect(sentenceOf(empty), 'no work and no Save button, so it must not name models or ask for a save')
+      .not.toMatch(/your models|save them/);
+
+    publishSceneSave(async () => {});
+    const saveable = renderToStaticMarkup(<Stopped reason="crash" />);
+    expect(saveable).toContain('data-ui="stopped-save"');
+    expect(sentenceOf(saveable), 'a Save button, so the sentence should point at it').toMatch(/save/);
+
+    // And the two faces must stay two: one sentence for both work states is how this went wrong.
+    expect(sentenceOf(saveable)).not.toBe(sentenceOf(empty));
+  });
+
   it('offers the save ONLY when the scene holds something - never a button it cannot honour', () => {
     expect(renderToStaticMarkup(<Stopped reason="crash" />)).not.toContain('data-ui="stopped-save"');
     publishSceneSave(async () => {});
