@@ -59,7 +59,7 @@ Open (owner; Q1, release timing, was answered: pull request #2 merged to `main` 
 - Reference aligner at default settings, folder review (`dentalwork/batch-review`, run 2026-10-28 by the unit D agent): 94 tips built, 0 left out, 0 crossings, opening gap 4 mm, outer gap 6 mm.
 - Step 2 slider to tip preview 330–339 ms; Step 3 change to preview 1.6–3.0 s, lift 1.25 s after L (E1 bench `scripts/perf/live-bench.mjs`, headless Chromium, median of 3, machine shared with another job). Most of a rebuild is the repair loop: about 5 trials of 0.19 s build + 0.07 s check.
 - `dentalwork/perf-baseline.json` is the **pre-port** comparison (dental Generate 12.2 s, 117 contacts) and stays as history; current numbers go to a new file (step R).
-- Pull request #2 merged to `main` (fbac47f, deployed 2026-10-28). Merges to `main` deploy.
+- Pull request #2 merged to `main` (fbac47f, deployed 2026-10-28). **Merges to `main` no longer deploy** — from 2026-11-02 CI is milestones-only by the owner's decision, so a deploy follows a `milestone-*` tag or a hand-dispatched run, never a push. `README.md` and `docs/designer-guide.md` carry the live rule.
 
 ## Verification tiers
 

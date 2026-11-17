@@ -6,7 +6,8 @@ For a front-end designer who is comfortable with HTML, CSS and React and is new 
 
 - mixoDental builds resin 3D-print supports in the browser. Nothing is uploaded; all work runs on the user's computer.
 - Two dental flows sit beside the generic "Any model" mode: aligner supports and denture supports. Both are previews, not clinically validated.
-- Aligner steps: 0 aligner type, 1 file and orientation (the tilt / print-angle step), 2 support area (paint where tips may stand), 3 supports (build, check, settings, finish).
+- The application level is **not a wizard**: four tools — Orient · Rim · Area · Supports — sit on a rail down the left, and what the operator may press carries the order (`src/deck/README.md`).
+- Aligner steps, inside a tool: 1 file and orientation (the tilt / print-angle step), 2 support area (paint where tips may stand), 3 supports (build, check, settings, finish), plus `rim` — a detour out of Step 1, named and never numbered. **There is no Step 0:** the appliance kind is chosen once per run on the drop screen, because detection takes the profile as an argument and there is nothing to detect against until the purpose is known.
 - Denture steps: start card, 1 orientation (same bar and dial as the aligner), 2 supports (one status line, Details, Adjust, Back | OK). A denture has no support-area step.
 - The 3D engine is not in this repo's source: it is a vendored WebAssembly build (see section 7).
 
@@ -51,7 +52,7 @@ There is no public denture file in the repo. To work on the denture steps, ask t
 
 | Screen or step | Files | Main data-ui names |
 |---|---|---|
-| Start screens (task, aligner type, file) | `src/components/StartScreen.tsx`, `src/components/DentalSteps.tsx` (type step, file drop, `PrintAngleField`), `src/denture/steps/start/DentureChoice.tsx` | `start-denture` |
+| Start screens — `drop`, `items`, `file` (there is no type screen) | `src/components/StartScreen.tsx`, `src/components/DentalSteps.tsx` (file drop, `PrintAngleField`), `src/denture/steps/start/DentureChoice.tsx` | `start-denture` |
 | Aligner Step 1 and denture Step 1: orientation, the tilt step | `src/components/OrientationBar.tsx` (bar, Back / Next), `src/ui/parts/TiltDial.tsx` (the dial, with the big angle number in its middle), `src/components/DentalBar.tsx` (picks the bar per step), denture extras in `src/denture/steps/orient/` | `tilt-dial`, `tilt-dial-value`, `orient-extra`, `denture-live-tips`, `denture-live-tips-path`, `denture-live-tips-fallback`, `denture-live-tips-none`, `restore-step-1` |
 | Aligner Step 2: support area | `src/components/DentalBar.tsx` (tools Paint, Erase, Add, Select), `src/components/SurfaceBrushBar.tsx` | `restore-step-area` |
 | Aligner Step 3: supports | `src/components/DentalSupports.tsx`, verdict `src/components/ReviewSummary.tsx`, blocks in `src/components/DentalReviewBlocks.tsx` | `dental-supports-panel`, `aligner-review-summary`, `aligner-review-line`, `aligner-review-details-toggle`, `aligner-adjust`, `aligner-support-settings`, `aligner-edit-supports`, `aligner-problems`, `aligner-id-label`, `restore-step-2` |

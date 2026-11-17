@@ -39,7 +39,7 @@ python ~/.claude/skills/cia/tools/maintainability.py S:/ai/mixodental --rule=M2
 
 ## `scripts/walk.mjs` — 4,534 → 4,351. One block taken, one check retired; the rest NOT takeable.
 
-> **The count has since grown back to 4,399, and deliberately.** Two commits of CI forensics
+> **The count has since grown back to 4,447, and deliberately.** Two commits of CI forensics
 > (`a404512`, and the `m5b` fix of 2026-11-14) added about seventy lines, nearly all of them
 > comment naming a trap that cost a red shard to find: a `waitForFunction` polling on
 > `requestAnimationFrame` takes FEWER samples on a slow runner, so it steps over a transient state

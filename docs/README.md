@@ -10,7 +10,7 @@ corrected in place with the correction marked, so a reader can tell what was bel
 | `HANDOFF.md` | the running engineering handoff: what landed, what it cost, what is open | picking the work back up |
 | `SHIP-PLAN.md` · `ROADMAP.md` | the ordered plan, and the longer arc | deciding what is next |
 | `size-debt.md` | every file over ~600 lines with its next cut named, and which cuts are owed | before adding to a long file -- add at the seam |
-| `VERIFICATION.md` | what the gate and the walk each prove, and what neither does | before claiming something is verified |
+| `VERIFICATION.md` | a **dated record** (2026-10-20) of the generic flow's first browser smoke test, kept as history | reading what was proved then -- *not* what the gate proves now |
 | `designer-guide.md` · `ui-styling.md` | the UI vocabulary and the styling rules | touching anything the operator sees |
 | `BLENDER_PARITY.md` · `SLASG_NODE_LOGIC.md` | the external references the engine is checked against | changing geometry or placement |
 | `dental-rework-handoff.md` | the dental rework's own handoff | working the dental steps |

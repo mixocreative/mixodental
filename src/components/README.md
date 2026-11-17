@@ -35,7 +35,7 @@ rules, so the next screen can be named without reopening this.
 | rim mode, badge | `Define the rim` — no number, by rule 3 |
 | area step, badge | `Step 2 · Support area` |
 | supports step, badge | `Step 3 · Supports` (aligner) / `Step 2 · Supports` (denture) |
-| rail tools | `Orient`, `Rim`, `Supports` |
+| rail tools | `Orient`, `Rim`, `Area`, `Supports` (aligner) / `Orient`, `Supports` (denture) |
 | the generated meshes | "supports", lower case |
 
 **What was deliberately NOT renamed, and why.** Every English string in this app is itself the

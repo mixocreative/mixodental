@@ -120,7 +120,7 @@ like the one that verified most (MIXO-08). This names the count and every block 
 it is a gate step so the number lands in the receipt and the handoff line. Absence does not fail it;
 an unregistered `skipIf` block does, because that is the silence coming back.
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request: Rust tests, app tests, the production build and the browser walk. A push to `main` is deployed to GitHub Pages only after the tests and the walk pass. Dependabot (`.github/dependabot.yml`) opens one pull request a month when a CI action has a new version.
+CI (`.github/workflows/ci.yml`) runs on **milestones only, by decision** (owner, 2026-11-02): push a tag `milestone-<name>`, or run it by hand from Actions → CI → Run workflow. **A push to `main` runs nothing at all** — no run appears and none fails, which is working as designed, not a broken trigger; every day-to-day push is checked locally with the full set instead (`npm run gate`, then `npm run walk`). When CI does run it does Rust tests, app tests, the production build and the browser walk, and the GitHub Pages deploy waits on the tests and the walk both passing. Dependabot (`.github/dependabot.yml`) opens one pull request a month when a CI action has a new version.
 
 ### Browser walk
 
