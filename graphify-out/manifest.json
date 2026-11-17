@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1794867967.581469,
-    "seen": 1794872271.00065,
-    "ast_hash": "f331a1a8cb200816b320580ef0594123",
+    "mtime": 1794891088.8703284,
+    "seen": 1794894272.1257792,
+    "ast_hash": "8ec0f64bc4f909e386fd6060ad851781",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -6001,9 +6001,9 @@
     "semantic_hash": ""
   },
   "docs/handoff/human-test-2026-11-11.md": {
-    "mtime": 1794666709.5417821,
-    "seen": 1794799853.8489108,
-    "ast_hash": "e099a7817b9ec06c3857a4c2d31b906b",
+    "mtime": 1794891106.994342,
+    "seen": 1794894272.1270952,
+    "ast_hash": "a86445a488ba9bd845f77f20b131664c",
     "semantic_hash": ""
   },
   "src/ui/assets/art/night-guard.svg": {
@@ -6187,9 +6187,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/README.md": {
-    "mtime": 1794887027.5842297,
-    "seen": 1794887082.8181841,
-    "ast_hash": "8a7d9ffec7dfee33fe312b33bf040e46",
+    "mtime": 1794894219.2197933,
+    "seen": 1794894272.1270952,
+    "ast_hash": "c824c4402c84f5b7b9086c0f762ae1ed",
     "semantic_hash": ""
   },
   "src/state/README.md": {
@@ -6385,9 +6385,9 @@
     "semantic_hash": ""
   },
   "src/components/BabylonObjectViewport.tsx": {
-    "mtime": 1794883399.9381683,
-    "seen": 1794887082.8166828,
-    "ast_hash": "51984a45849f01ad8116ff1b0e7ae9dd",
+    "mtime": 1794887257.1535096,
+    "seen": 1794894272.1257792,
+    "ast_hash": "f36a2706bba0436e498dea86d74b3eae",
     "semantic_hash": ""
   },
   "src/ui/assets/icons/language.svg": {
@@ -6601,9 +6601,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-16-babylon-layer-port.md": {
-    "mtime": 1794882738.6940055,
-    "seen": 1794887082.8181841,
-    "ast_hash": "af44eb1b667e26638f4b7bf245416d8a",
+    "mtime": 1794894219.2476707,
+    "seen": 1794894272.1270952,
+    "ast_hash": "9cb88eb82d3ab26752707571a6fb40a4",
     "semantic_hash": ""
   },
   "src/components/viewport/babylon/supportBodies.ts": {
@@ -6637,15 +6637,15 @@
     "semantic_hash": ""
   },
   "src/components/viewport/babylon/orbit.test.ts": {
-    "mtime": 1794882340.4892485,
-    "seen": 1794887082.8166828,
-    "ast_hash": "1a60cca2c6c8cfd2c1562d68f9b4586a",
+    "mtime": 1794887216.1744864,
+    "seen": 1794894272.1257792,
+    "ast_hash": "de46e50a59d89ba351b096cfca225452",
     "semantic_hash": ""
   },
   "src/components/viewport/babylon/orbit.ts": {
-    "mtime": 1794882327.7715647,
-    "seen": 1794887082.8166828,
-    "ast_hash": "1920de305a05b5343e6817ca9a5d6db3",
+    "mtime": 1794887182.0980203,
+    "seen": 1794894272.1257792,
+    "ast_hash": "9ad1fa13b188301e094b3a53a8fd2860",
     "semantic_hash": ""
   }
 }
