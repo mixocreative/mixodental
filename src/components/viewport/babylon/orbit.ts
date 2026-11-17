@@ -13,6 +13,7 @@ import type { ArcRotateCamera } from '@babylonjs/core';
  *   turn   `2 * PI * dx / clientHeight` radians -- a whole turn per screen height
  *   pan    `2 * distance * tan(fov / 2) / clientHeight` world units per pixel
  *   zoom   one wheel notch multiplies the distance by 0.95, whatever size the delta reports
+ *   dolly  a MIDDLE drag steps by that same 0.95, once per move event, by the move's direction
  *
  * Babylon expresses the first two as SENSIBILITIES -- pixels per radian, pixels per world unit --
  * so they are reciprocals of three's, and the panning one depends on the distance, so it has to be
@@ -52,7 +53,69 @@ export function angularSensibilityFor(heightPx: number): number {
   return Math.max(heightPx, 1) / (2 * Math.PI);
 }
 
-/** The distance after one wheel notch: `up` is towards the model. */
+/** The distance after one wheel notch: `towards` is in, on the model. */
 export function zoomedRadius(radius: number, towards: boolean): number {
   return towards ? radius * ZOOM_STEP : radius / ZOOM_STEP;
+}
+
+/**
+ * The two gestures that change the DISTANCE: the wheel, and a middle-button drag. Returns their
+ * detacher.
+ *
+ * NEITHER CAN BE LEFT TO BABYLON. Its wheel input scales by the raw event delta, and it has no
+ * middle-drag gesture at all, where OrbitControls dollies with one. Both are written out of three's
+ * own handlers here:
+ *
+ *   wheel   `event.deltaY < 0 ? dollyIn : dollyOut`, one fixed step either way -- only the SIGN;
+ *   middle  `handleMouseMoveDolly`: one step per MOVE EVENT, in by an upward move and out by a
+ *           downward one. Per event, not per pixel, which is three's own quirk and is kept because
+ *           matching it is the point.
+ *
+ * A gesture that owns the pointer (a stroke, a rim drag, the gizmo) detaches the camera, and three
+ * disables the whole of OrbitControls for those, so both of these check that first.
+ */
+export function attachDolly(camera: ArcRotateCamera, canvas: HTMLCanvasElement): () => void {
+  /** Where the middle drag last was, or undefined when none is running. */
+  let dollyFrom: number | undefined;
+  const live = () => camera.inputs.attachedToElement;
+
+  const onWheel = (event: WheelEvent) => {
+    if (!live() || event.deltaY === 0) return;
+    event.preventDefault();
+    camera.radius = zoomedRadius(camera.radius, event.deltaY < 0);
+  };
+  const onDown = (event: PointerEvent) => {
+    if (!live() || event.button !== 1) return;
+    // Otherwise the browser starts its own middle-click autoscroll over the canvas.
+    event.preventDefault();
+    dollyFrom = event.clientY;
+  };
+  const onMove = (event: PointerEvent) => {
+    if (dollyFrom === undefined) return;
+    if (!live()) {
+      dollyFrom = undefined;
+      return;
+    }
+    const moved = event.clientY - dollyFrom;
+    dollyFrom = event.clientY;
+    if (moved === 0) return;
+    camera.radius = zoomedRadius(camera.radius, moved < 0);
+  };
+  const onUp = () => {
+    dollyFrom = undefined;
+  };
+
+  canvas.addEventListener('wheel', onWheel, { passive: false });
+  canvas.addEventListener('pointerdown', onDown);
+  // On the WINDOW, so a drag that ends off the canvas still ends.
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+  return () => {
+    canvas.removeEventListener('wheel', onWheel);
+    canvas.removeEventListener('pointerdown', onDown);
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+  };
 }

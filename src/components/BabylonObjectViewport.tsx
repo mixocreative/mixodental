@@ -32,7 +32,7 @@ import { splitTipMarks, TIP_SCALE, type TipMarks } from './viewport/tipMarkSplit
 import { drawAddFlash, drawPlateOutline } from './viewport/babylon/sceneMarks';
 import { drawDebugLayers, drawProblemMarks } from './viewport/babylon/checkMarks';
 import { createDomAnchors, type DomAnchors } from './viewport/babylon/domAnchor';
-import { angularSensibilityFor, attachOrbit, panningSensibilityFor, zoomedRadius } from './viewport/babylon/orbit';
+import { angularSensibilityFor, attachDolly, attachOrbit, panningSensibilityFor } from './viewport/babylon/orbit';
 import type { SurfacePath } from '../core/surfacePath/path';
 import { drawPrintAngle } from './viewport/babylon/printAngle';
 import { tokenCss } from '../ui/tokenColour';
@@ -230,23 +230,12 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
       camera.panningSensibility = panningSensibilityFor(camera.radius, camera.fov, canvas.clientHeight);
     });
     /*
-     * THE WHEEL IS HANDLED HERE, not by Babylon's wheel input, and that input is removed so the two
-     * cannot both answer. Babylon scales by the raw event delta -- which a mouse, a trackpad and a
-     * tilting wheel all report differently -- where OrbitControls reads only the SIGN and always
-     * steps by the same factor. Reading the sign is the only way the two views zoom alike on every
-     * device.
+     * The wheel and the middle-drag dolly are `orbit.ts`'s too. Babylon's own wheel input is removed
+     * first so the two cannot both answer; it is keyed by simple name, which is how it is reached.
      */
-    // Babylon keys its attached inputs by simple name, which is how this one is reached and removed.
     const wheelInput = camera.inputs.attached['mousewheel'];
     if (wheelInput) camera.inputs.remove(wheelInput);
-    const onWheel = (event: WheelEvent) => {
-      // Detached means a gesture owns the pointer (a stroke, a rim drag, the gizmo). three disables
-      // the whole of OrbitControls for those, wheel included.
-      if (!camera.inputs.attachedToElement || event.deltaY === 0) return;
-      event.preventDefault();
-      camera.radius = zoomedRadius(camera.radius, event.deltaY < 0);
-    };
-    canvas.addEventListener('wheel', onWheel, { passive: false });
+    const detachDolly = attachDolly(camera, canvas);
 
     new HemisphericLight('sky', new Vector3(0, 1, 0), scene).intensity = 1.3;
     const key = new DirectionalLight('key', new Vector3(-40, -80, -30).normalize(), scene);
@@ -288,7 +277,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
     observer.observe(canvas);
 
     return () => {
-      canvas.removeEventListener('wheel', onWheel);
+      detachDolly();
       scene.onBeforeRenderObservable.remove(matchPanSpeed);
       observer.disconnect();
       window.removeEventListener('resize', onResize);

@@ -60,10 +60,36 @@ decodes it and the string is tested, but **nobody has yet looked at it over the 
 
 These were found and fixed by machine. They want a human once.
 
+**Three of the four are now driven by `npm run walk` on BOTH renderers** (`u5c`..`u5k3`,
+`npm run walk -- --renderer=babylon`), so what is left for a person on those is the FEEL, not the
+fact: drawing a rim where detection fails, Done then editing it, redrawing a confirmed rim, and
+dragging a point along the line all pass, 186 checks, zero failures. The fourth is below.
+
 - Draw a rim by hand on a model the detector fails on, then **press Done, then go back and edit it**.
   The edit used to be refused.
 - **Redraw a rim you have already confirmed**, then press Next. The redraw used to be discarded.
 - **Paint an area, leave the step, come back.** The paint used to be lost on re-accept.
+  **A machine has now driven this one, 2026-11-17, and it narrows to a single look.** Driving Step 2
+  to 108 tips, pressing Back and then Next, and waiting three seconds for the preview to stop
+  moving, in BOTH renderers:
+
+  | | on leaving | on return |
+  |---|---|---|
+  | tips shown | 108 | **2** |
+  | area stamps stored | 104 | 104 |
+  | detected region (contact faces) | 15,943 | **14,110** |
+
+  So the PAINT itself survives — the old bug is still fixed — and the stored area is untouched. What
+  changes is the detected REGION, and with it the tips. Two readings fit those numbers and a person
+  can tell them apart in one glance at the screen:
+
+  - the re-detection after Next legitimately moved the area away from where it was painted, in which
+    case the operator is looking at a correct but unexplained emptiness and wants a notice;
+  - or the tip preview is stale and the area is really still live underneath it.
+
+  **Look at the model on return: is the painted strip still drawn where you put it, with no tips on
+  it?** That is the first reading. If the strip has moved or gone, it is the second. Either way the
+  screen says it immediately and no amount of further measuring will.
 - Drag a point along the drawn line. Every point on the visible line should be grabbable — the line
   the app draws and the line it measures a press against are now the same curve.
 

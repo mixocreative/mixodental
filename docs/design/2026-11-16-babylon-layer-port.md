@@ -644,3 +644,32 @@ in the two under identical camera motion. Ask the camera, not the picture.
 
 Still different, and written down rather than left silent: **middle-drag** dollies in OrbitControls
 and does nothing in Babylon. Nothing in the app or the walk uses it.
+
+### Middle-drag, and the last line of the human list a machine could answer
+
+**Middle-drag** dollies in OrbitControls and did nothing in Babylon. It does now, by the same 0.95
+step as the wheel and once per MOVE EVENT rather than by distance — three's own quirk, kept because
+matching it is the point. Both it and the wheel live in `attachDolly`. Measured in a browser: ten
+upward move events took the radius to 0.5987 of itself against three's `0.95^10` = 0.5987.
+
+**And the human-test list's third rim bullet** — "paint an area, leave the step, come back" — turns
+out to be answerable by machine only as far as the question goes, not as far as the verdict does.
+Driving Step 2 to 108 tips, pressing Back then Next, and waiting three seconds for the preview to
+settle, in BOTH renderers:
+
+| | on leaving | on return |
+|---|---|---|
+| tips shown | 108 | 2 |
+| area stamps stored | 104 | 104 |
+| detected region (contact faces) | 15,943 | 14,110 |
+
+The PAINT survives, so the old bug named on that line is still fixed. What changes is the detected
+REGION, and with it the tips. Two readings fit those numbers — the re-detection after Next
+legitimately moved the area away from the paint (and the operator wants a notice), or the preview is
+stale — and a person can tell them apart in one look at the model. **That look is not something a
+machine can do for them**, so the numbers went into `docs/handoff/human-test-2026-11-11.md` beside
+the bullet rather than into a walk check: a gate must not bless behaviour nobody has ruled on.
+
+The other three bullets on that line ARE machine-answerable and now run on both renderers
+(`u5c`..`u5k3`), which the same file records, so what is left for a person there is the feel rather
+than the fact.

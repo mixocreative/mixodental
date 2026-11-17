@@ -39,8 +39,8 @@ local gate still mean the three.js run until three.js is gone.
 **Both runs are green, 2026-11-17:**
 
 ```
-ALL PASS (186 checks, 1960 s)
-ALL PASS (186 checks, 1435 s) [renderer: babylon]
+ALL PASS (186 checks, 1526 s)
+ALL PASS (186 checks, 1438 s) [renderer: babylon]
 ```
 
 Every check runs against both views now, so the Babylon view is proved the way the shipping one is
@@ -100,8 +100,9 @@ a 1000 mm ground — so a yardstick built on "how much of the canvas is not back
 differently in the two under identical camera motion, and says they disagree when they do not. Ask
 the camera, not the picture.
 
-**Middle-drag still differs:** OrbitControls dollies with it, Babylon does nothing. Debt, written
-down; nothing in the app or the walk uses it.
+**Middle-drag dollies in both now**, by the same step as the wheel and once per move event, which is
+three's own quirk and is kept because matching it is the point. Measured in a browser: ten upward
+move events took the radius to 0.5987 of itself, against three's 0.95^10 = 0.5987.
 
 **A trap for anyone testing this by hand: supports take about 16 seconds to build on the knot
 fixture, and the panel enables "Remove supports" within 2.** Wait on the data, not on the button —

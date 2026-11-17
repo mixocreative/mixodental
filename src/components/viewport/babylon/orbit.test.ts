@@ -37,6 +37,18 @@ describe('the Babylon orbit matches OrbitControls', () => {
     expect(zoomedRadius(zoomedRadius(100, true), false)).toBeCloseTo(100, 10);
   });
 
+  /*
+   * three's middle-drag steps once per MOVE EVENT rather than by distance, which is its own quirk
+   * and is kept because matching it is the point. Ten small moves dolly ten steps; one big move
+   * dollies one.
+   */
+  it('dollies by the same step as the wheel, once per move', () => {
+    let radius = 100;
+    for (let move = 0; move < 10; move += 1) radius = zoomedRadius(radius, true);
+    expect(radius).toBeCloseTo(100 * 0.95 ** 10, 10);
+    expect(zoomedRadius(100, true)).toBeCloseTo(95, 10);
+  });
+
   it('never divides by a camera sitting on its own target', () => {
     expect(Number.isFinite(panningSensibilityFor(0, FOV, HEIGHT))).toBe(true);
     expect(Number.isFinite(angularSensibilityFor(0))).toBe(true);
