@@ -2789,24 +2789,6 @@ async function walk(url, scratch, dentalFixture) {
         (await page.locator('.items-list li').count()) > 0 && (await page.locator('.start-task').count()) === 0,
         `rows ${await page.locator('.items-list li').count()}, drop pages ${await page.locator('.start-task').count()}`);
 
-      /*
-       * ESC ON THE DECK MUST NOT REACH THE FLOW, and until 2026-11-17 it did.
-       *
-       * u5l has just put the Items page over a LIVE session, which is the state this is about. The
-       * app's key handler was not gated on the start screen, so Escape here ran `dental.exit` - which
-       * removes the worked-on unit's supports, hand edits and dental policy - while the deck stayed on
-       * screen and said nothing. The only trace was the exit status line, which is what this asserts
-       * the ABSENCE of: the deck's own line must still be there afterwards.
-       *
-       * No walk check could see it before, because none of them pressed a key on the deck.
-       */
-      await page.keyboard.press('Escape');
-      await d.idle(400);
-      const deckAfterEsc = await page.locator('.items-page').count();
-      const lineAfterEsc = (await page.locator('footer').innerText()).replace(/\s+/g, ' ');
-      check('u5l2 Esc on the deck does nothing to the live session underneath',
-        deckAfterEsc === 1 && !/without supports/i.test(lineAfterEsc),
-        `items pages ${deckAfterEsc}, status "${lineAfterEsc.slice(0, 80)}"`);
 
       /*
        * AND THE BENCH HAS A WAY BACK TOO, which until 2026-11-17 it did not.
@@ -2823,7 +2805,16 @@ async function walk(url, scratch, dentalFixture) {
        * half of this being right.
        */
       await page.locator('[data-ui="items-start"]').click();
-      await stepTo('Step 1 · Aligner', 60000);
+      /*
+       * WAIT FOR THE SETTLED STATE, NOT STEP 1. This row has a HAND-DRAWN rim and no detectable one,
+       * so re-opening it runs orientation, finds no rim again, and hands over to rim define mode -
+       * passing through Step 1 on the way. Waiting for the Step 1 badge waits for a state the app
+       * steps OVER, which is the long-standing trap recorded in this project's CLAUDE.md: it caught
+       * the transient on one run and missed it on the next, and a 60 s cap only made the miss slower.
+       * Any badge means the flow is open, which is all this needs before pressing the way out.
+       */
+      await page.waitForFunction(() => !!document.querySelector('.edit-badge'), null, { timeout: 60000 });
+      await d.idle(400);
       await leaveFlow(page, d);
       await page.waitForFunction(() => !document.querySelector('.edit-badge'), null, { timeout: 10000 });
       const benchKey = page.locator('[data-ui="nav-files"]');
@@ -2835,6 +2826,27 @@ async function walk(url, scratch, dentalFixture) {
       check('u5m the bench offers the way back to the case, so Exit is not a dead end',
         onBench && (await page.locator('.tool-rail').count()) === 1 && (await page.locator('.items-list li').count()) > 0,
         `key on bench ${onBench}, rails ${await page.locator('.tool-rail').count()}, rows ${await page.locator('.items-list li').count()}`);
+      /*
+       * ESC ON THE DECK MUST NOT REACH THE FLOW UNDERNEATH, and until 2026-11-17 it did.
+       *
+       * The app's key handler was not gated on the start screen, so Escape here ran `dental.exit` -
+       * which removes the worked-on unit's supports, hand edits and dental policy - while the deck
+       * stayed on screen and said nothing. The only trace was the exit status line, which is what
+       * this asserts the ABSENCE of.
+       *
+       * WHERE IT LANDS IS A SEPARATE FACT, and it changed on 2026-11-18. The deck has always
+       * answered Escape with its own Back - out to the Drop page - but nothing focused the page on
+       * arrival, so that handler never fired either. Focusing it made the deck's own key work, so
+       * Escape now leaves the deck. That is the deck's documented behaviour, not a regression: what
+       * matters here is that the SESSION is untouched and the operator is not thrown into the flow.
+       */
+      await page.keyboard.press('Escape');
+      await d.idle(500);
+      const lineAfterEsc = (await page.locator('footer').innerText()).replace(/\s+/g, ' ');
+      const onStartScreen = (await page.locator('.start-screen, .items-page').count()) > 0;
+      check('u5l2 Esc on the deck leaves by the deck own key, and never reaches the flow underneath',
+        onStartScreen && !/without supports/i.test(lineAfterEsc),
+        `start screens ${onStartScreen}, status "${lineAfterEsc.slice(0, 80)}"`);
 
       // A CLEAN PLATE for the next fixture, and a reload is deterministic where re-entering a row is
       // not: the rows carry two cubes from above, and everything below assumes one object.

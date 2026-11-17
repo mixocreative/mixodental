@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { plural, t, translateMessage, type Lang } from '../i18n';
 import { ScreenHeading } from '../ui/ScreenHeading';
 import { Icon } from '../ui/Icon';
@@ -150,8 +151,17 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
     return state === 'waiting' || state === 'running';
   }).length;
   const attention = units.filter(needsYou).length;
+  const root = useRef<HTMLDivElement>(null);
 
-  return <div className="items-page" lang={lang} tabIndex={-1}
+  /*
+   * THE PAGE TAKES THE KEYBOARD WHEN IT OPENS, and until now nothing gave it to anyone. Esc here is
+   * a React `onKeyDown` on this div, which only fires from INSIDE it - and arriving from a drop
+   * leaves focus on `<body>`, so Esc reached neither this handler nor the workspace's (which is
+   * gated on the start screen). The Drop page has always done this; the deck was written without it.
+   */
+  useEffect(() => { root.current?.focus(); }, []);
+
+  return <div ref={root} className="items-page" lang={lang} tabIndex={-1}
     onKeyDown={(event) => { if (event.key === 'Escape') onBack(); }}
     onDragOver={(event) => event.preventDefault()}
     onDrop={(event) => {

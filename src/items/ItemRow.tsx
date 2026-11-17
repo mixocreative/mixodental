@@ -81,8 +81,15 @@ export function ItemRow({ unit, done, onRail, detected, thumbnails, onSelect, on
     <span className="verdict" data-ui={`items-verdict-${unit.id}`}>
       {verdict ? translateMessage(verdict) : null}
     </span>
+    {/*
+      A ROW THAT IS ONLY WAITING SAYS NOTHING, because the footer now says it once for the whole
+      case. The aggregate line was added beside these rather than in place of them, so a case of
+      twenty-four still read "Checking 3 of 24" over one "Checking…" and twenty-three "Waiting its
+      turn…" - which is the noise the aggregate was for. `running` stays: that one names the row
+      the robot is actually on, which the ordinal cannot.
+    */}
     <span className={`detect${tone}`} data-ui={`items-detect-${unit.id}`}>
-      {found ? translateMessage(found) : null}
+      {found && detected?.kind !== 'waiting' ? translateMessage(found) : null}
     </span>
     {/*
       REMOVE MUST NOT ALSO SELECT. This button sits inside the row's own `onClick`, so without
