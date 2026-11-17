@@ -124,7 +124,6 @@ import { hasGeometry, type HeldBuild } from './plate/releasedBuild';
 import { useSupportBuilds } from './components/useSupportBuilds';
 import { isBuilding, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
-import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { stepPanelInset } from './dental/stepPanelInset';
 import { backNeedsConfirm, discardManualCommands, exitCommands, exitNeedsConfirm, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
@@ -430,7 +429,7 @@ export default function App() {
    * only while the Items page is up — a batch for a list nobody is looking at would spend the
    * triangle budget the flow itself needs.
    */
-  const batchDetected = useBatchDetect({
+  const { states: batchDetected, retry: retryDetect } = useBatchDetect({
     units: startScreen === 'items' ? scene.units : NO_UNITS,
     profile: batchProfile,
     analysis,
@@ -579,10 +578,10 @@ export default function App() {
     dentalFlow.invalidate();
     denture.orient.invalidate();
     // The worked-on model goes back to a normal one without supports; finished ones stay as they are.
-    const { dentalUnitId, dentalFinished } = sessionRef.current;
+    const { dentalUnitId } = sessionRef.current;
     const current = sceneRef.current.units.find((candidate) => candidate.id === dentalUnitId);
-    if (current && !dentalFinished.includes(current.id)) denture.supports.leave(current.id);
-    const cleanup = exitCommands(current, dentalFinished);
+    if (current) denture.supports.leave(current.id);
+    const cleanup = exitCommands(current);
     if (cleanup.length > 0) dispatch({ type: 'batch', commands: cleanup });
     setBackAsk(false);
     setExitAsk(false);
@@ -1004,9 +1003,9 @@ export default function App() {
          * it goes straight through, because a prompt on the commonest way out of the flow is how an
          * operator is taught to dismiss prompts unread.
          */
-        const { dentalUnitId, dentalFinished } = sessionRef.current;
+        const { dentalUnitId } = sessionRef.current;
         const current = sceneRef.current.units.find((candidate) => candidate.id === dentalUnitId);
-        if (exitNeedsConfirm(current, dentalFinished)) return setExitAsk(true);
+        if (exitNeedsConfirm(current)) return setExitAsk(true);
         return leaveDentalFlow();
       }
       case 'dental.finish': case 'dental.addAnother': {
@@ -1014,10 +1013,15 @@ export default function App() {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === dentalUnitId);
         if (!unit || dentalStage !== 'review' || !unit.supports) return;
         const label = dentalLabelOf(resolveSettings(unit.settings).labelText);
-        const commands: SceneCommand[] = [
-          ...(resolveSettings(unit.settings).labelText === label ? [] : [{ type: 'settings/set' as const, unitId: unit.id, settings: { ...resolveSettings(unit.settings), labelText: label } as SupportSettings }]),
-          ...arrangeAlignerCommands(sceneRef.current.units, [...dentalFinished, unit.id]),
-        ];
+        /*
+         * FINISHING ONE MODEL NO LONGER MOVES THE OTHERS (owner's ruling, 2026-11-18). It used to
+         * re-lay every finished unit plus this one - and `arrangeCommands` MOVES each unit it is
+         * given, which drops that unit's build. So on a case of twenty-four, finishing the seventh
+         * re-arranged and invalidated the six before it. Completing one model is not a reason to
+         * disturb another; arranging is a press of its own, and the deck now carries it.
+         */
+        const commands: SceneCommand[] = resolveSettings(unit.settings).labelText === label ? []
+          : [{ type: 'settings/set' as const, unitId: unit.id, settings: { ...resolveSettings(unit.settings), labelText: label } as SupportSettings }];
         if (commands.length > 0) dispatch({ type: 'batch', commands });
         const count = new Set([...dentalFinished, unit.id]).size;
         if (id === 'dental.addAnother') {
@@ -1199,29 +1203,26 @@ export default function App() {
      * owner's call and is not decided here.
      */
     const rimPressed = tool === 'rim' && batchDetected.get(unit.id)?.kind === 'no-rim' && !isDentureJob(live.dentalProfile);
-    if (live.mode !== 'dental') {
-      setStartScreen(null);
-      /*
-       * TWO FIXES LIVE IN THIS BRANCH, and the comment above this function used to state the premise
-       * that made both wrong: "on the first item the session is still `off`". Mode `off` does NOT
-       * mean nothing has been finished - `finishDental` leaves the mode off and keeps the finished
-       * list - so this branch is also how the SECOND and later items of a case are opened.
-       *
-       *   - `resume` keeps `dentalFinished`. Without it the finished rows lost their mark and
-       *     `exitCommands` stopped sparing them, so Exit on a reopened one removed supports that had
-       *     already been exported.
-       *   - `startDentalAligner` is called here too. It used to `return` instead, and nothing else
-       *     starts the read: the auto-start effect in `useDentalFlow` fires only on a profile CHANGE
-       *     while already loading. So the press landed on Step 1's "choose a file" prompt with the
-       *     row's model already on the plate, and the way on was a second control.
-       */
-      send({ type: 'startDental', profile: live.dentalProfile ?? batchProfile ?? DEFAULT_PROFILE_ID, resume: true });
-      return rimPressed ? dentalFlow.startRimDrawing(unit) : startDentalAligner(unit);
-    }
+    /*
+     * ONE PATH IN, WHATEVER THE SESSION WAS DOING. This used to fork on `mode !== 'dental'`, and the
+     * dental half could only cope with a session parked at Step 1:
+     *   - from Step 3 it sent `addAnotherDental`, which marked the unit being WALKED AWAY FROM as
+     *     finished, with no readiness check - the deck bypasses the command's own `enabled` guard;
+     *   - from Step 2 or rim define mode it sent nothing, and `dentalLoading` is a no-op outside
+     *     stage `aligner`, so the row just opened inherited the previous row's stage and unit id.
+     * Neither was reachable until a door to the deck existed at those stages, and the first version
+     * of `nav-files` opened both in one line - so it was gated to Step 1 as scaffolding.
+     *
+     * The fix is to stop forking. `exit` only sets the mode to `off` (it is `withMode`; the
+     * destructive part lives in the COMMAND, not the event), and `startDental` with `resume` opens
+     * the flow fresh at Step 1 on this unit while keeping what the session should keep. That is
+     * exactly what the non-dental half already did, so the two halves were one path wearing two
+     * coats. With re-entry safe at every stage, the `nav-files` gate comes off.
+     */
     setStartScreen(null);
-    if (live.dentalStage === 'review' && live.dentalUnitId) send({ type: 'addAnotherDental', unitId: live.dentalUnitId });
-    if (rimPressed) return dentalFlow.startRimDrawing(unit);
-    startDentalAligner(unit);
+    send({ type: 'exit' });
+    send({ type: 'startDental', profile: live.dentalProfile ?? batchProfile ?? DEFAULT_PROFILE_ID, resume: true });
+    return rimPressed ? dentalFlow.startRimDrawing(unit) : startDentalAligner(unit);
   };
   /*
    * A RAIL PRESS, from the deck: it opens the MODEL, at the start of its flow.
@@ -1439,19 +1440,13 @@ export default function App() {
           invalidate is the running jobs, for the same reason Back does: the orientation being computed
           belongs to the unit the operator is walking away from.
 
-          ONLY FROM STEP 1, OR OFF THE FLOW ALTOGETHER, and the condition is load-bearing rather than
-          tidy. Re-entry from the deck (`startItem`) can only cope with stage `aligner`:
-            - from `review` it sends `addAnotherDental`, which marks the unit just walked away from
-              FINISHED (`editingMode.ts`) - no readiness check, because the command's own `enabled`
-              guard is bypassed by going through the deck;
-            - from `area` or `rim`, `dentalLoading` is a no-op outside `aligner`, so the row that is
-              opened next inherits the previous unit's stage and unit id.
-          Neither was reachable before this key existed, because every earlier route to the deck ran
-          through Step 1. Offering it mid-flow therefore opens two faults rather than one door; the
-          way out of a step is that step's own Back, which is guarded and which this must not become.
+          IT IS OFFERED AT EVERY STAGE AGAIN. It was gated to Step 1 for one day, as scaffolding
+          around a re-entry path that could only cope with a session parked there - from Step 3 the
+          deck marked the abandoned unit finished, from Step 2 or rim mode the next row inherited the
+          old row's stage. `startItem` no longer forks on the session's stage, so the scaffolding is
+          down: the key means the same thing wherever it is pressed.
         */}
-        {startScreen === null && scene.units.length > 0
-          && (session.mode !== 'dental' || session.dentalStage === 'aligner') ? <button type="button" className="nav-files" data-ui="nav-files"
+        {startScreen === null && scene.units.length > 0 ? <button type="button" className="nav-files" data-ui="nav-files"
           title={t('Your files')}
           onClick={() => { dentalFlow.invalidate(); denture.orient.invalidate(); setStartScreen('items'); }}
         ><Icon name="back" />{t('Your files')}</button> : null}
@@ -1504,11 +1499,20 @@ export default function App() {
       * drifted.
       */}
     {startScreen === 'items' ? <><PanelBoundary name="deck"><JobActivityPanel stagedBar={stagedJobBar} /><ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
-      refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails}
+      refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails} onRetry={retryDetect}
       selectedUnitId={scene.activeUnitId}
       onSelect={(unit) => dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id })}
       denture={isDentureJob(session.dentalProfile ?? batchProfile)}
       onStart={startItem}
+      /*
+       * THE CASE'S OWN WORK, reaching the screen that has the models on it. Both are the bench's
+       * existing presses, passed down rather than reimplemented: `plate.arrange` is pure, and the
+       * export goes through the one `runExport` every other export uses, so a refusal is reported
+       * the same way here as anywhere else. `separate-printable` and not the whole plate, because
+       * this app has no build plate - the slicer packs it.
+       */
+      onArrange={plate.arrange}
+      onExport={() => runCommand('export.separate-printable')}
       /*
        * REMOVE OFFERS UNDO, because deleting on the plate already does and this takes the same thing
        * away (found by audit, W-06). A finished, exported row and its supports went in one click with

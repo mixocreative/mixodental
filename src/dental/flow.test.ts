@@ -107,20 +107,31 @@ describe('dental flow rules', () => {
   });
   it('Exit returns the aligner being worked on to a normal model: no supports, no dental policy', () => {
     const working = unit({ supports: { kind: 'live', data: {} }, dental: { kind: 'two-contour' } as never, deleted: ['a'] });
-    expect(exitCommands(working, [])).toEqual([
+    expect(exitCommands(working)).toEqual([
       { type: 'supports/remove', unitId: 'u1' },
       { type: 'supports/clear-manual', unitId: 'u1' },
       { type: 'dental/clear', unitId: 'u1' },
     ]);
     // Step 2: a policy but no supports yet.
-    expect(exitCommands(unit({ dental: { kind: 'two-contour' } as never }), [])).toEqual([{ type: 'dental/clear', unitId: 'u1' }]);
+    expect(exitCommands(unit({ dental: { kind: 'two-contour' } as never }))).toEqual([{ type: 'dental/clear', unitId: 'u1' }]);
     // Step 1: nothing to clear.
-    expect(exitCommands(unit(), [])).toEqual([]);
+    expect(exitCommands(unit())).toEqual([]);
   });
-  it('Exit keeps a finished aligner exactly as it is', () => {
-    const finished = unit({ supports: { kind: 'live', data: {} }, dental: { kind: 'two-contour' } as never });
-    expect(exitCommands(finished, ['u1'])).toEqual([]);
-    expect(exitCommands(undefined, [])).toEqual([]);
+  /*
+   * IT USED TO SPARE A FINISHED ALIGNER, and that test asserted the opposite of this one. The rule
+   * changed on the owner's ruling of 2026-11-18: a done mark informs, it never blocks a redo. Sparing
+   * meant the press did NOTHING on a model finished earlier and said nothing about why - and the
+   * model whose print failed, or whose file was replaced, is exactly the one it is needed for. The
+   * confirmation protects every unit now, by asking rather than by refusing.
+   */
+  it('Use as any model treats a finished aligner like any other: the done mark is not a lock', () => {
+    const done = unit({ supports: { kind: 'live', data: {} }, dental: { kind: 'two-contour' } as never });
+    expect(exitCommands(done)).toEqual([
+      { type: 'supports/remove', unitId: 'u1' },
+      { type: 'dental/clear', unitId: 'u1' },
+    ]);
+    expect(exitNeedsConfirm(done)).toBe(true);
+    expect(exitCommands(undefined)).toEqual([]);
   });
 
   /*
@@ -130,15 +141,15 @@ describe('dental flow rules', () => {
    * there is not.
    */
   it('Leaving the flow asks first exactly when it would destroy work', () => {
-    expect(exitNeedsConfirm(unit(), [])).toBe(false);
-    expect(exitNeedsConfirm(undefined, [])).toBe(false);
-    expect(exitNeedsConfirm(unit({ supports: { kind: 'live', data: {} } as never }), [])).toBe(true);
-    expect(exitNeedsConfirm(unit({ deleted: ['a'] }), [])).toBe(true);
-    expect(exitNeedsConfirm(unit({ manual: [{ id: 'm' }] as never }), [])).toBe(true);
-    expect(exitNeedsConfirm(unit({ contactSettings: { a: {} } }), [])).toBe(true);
+    expect(exitNeedsConfirm(unit())).toBe(false);
+    expect(exitNeedsConfirm(undefined)).toBe(false);
+    expect(exitNeedsConfirm(unit({ supports: { kind: 'live', data: {} } as never }))).toBe(true);
+    expect(exitNeedsConfirm(unit({ deleted: ['a'] }))).toBe(true);
+    expect(exitNeedsConfirm(unit({ manual: [{ id: 'm' }] as never }))).toBe(true);
+    expect(exitNeedsConfirm(unit({ contactSettings: { a: {} } }))).toBe(true);
     // An area the operator painted themselves. `backNeedsConfirm` is blind to this (see W-01 above),
     // which is the whole reason this is a rule of its own rather than a call to that one.
-    expect(exitNeedsConfirm(unit({ dental: { kind: 'legacy', origin: 'manual-area' } as never }), [])).toBe(true);
+    expect(exitNeedsConfirm(unit({ dental: { kind: 'legacy', origin: 'manual-area' } as never }))).toBe(true);
   });
 
   it('Leaving the flow stays silent at Step 1, where the only cost is a redetect', () => {
@@ -146,14 +157,17 @@ describe('dental flow rules', () => {
     // dialog - the detector runs again in seconds, and a prompt on the commonest way out of the flow
     // is how an operator learns to dismiss prompts without reading them.
     const detected = unit({ dental: { kind: 'two-contour', profileId: 'p' } as never });
-    expect(exitCommands(detected, [])).toEqual([{ type: 'dental/clear', unitId: 'u1' }]);
-    expect(exitNeedsConfirm(detected, [])).toBe(false);
+    expect(exitCommands(detected)).toEqual([{ type: 'dental/clear', unitId: 'u1' }]);
+    expect(exitNeedsConfirm(detected)).toBe(false);
   });
 
-  it('Leaving the flow asks nothing about an aligner already finished, because it keeps it', () => {
+  it('Leaving the flow asks about an aligner already finished too, because it will strip it', () => {
     const done = unit({ supports: { kind: 'live', data: {} } as never, deleted: ['a'] });
-    expect(exitCommands(done, ['u1'])).toEqual([]);
-    expect(exitNeedsConfirm(done, ['u1'])).toBe(false);
+    expect(exitCommands(done)).toEqual([
+      { type: 'supports/remove', unitId: 'u1' },
+      { type: 'supports/clear-manual', unitId: 'u1' },
+    ]);
+    expect(exitNeedsConfirm(done)).toBe(true);
   });
 });
 

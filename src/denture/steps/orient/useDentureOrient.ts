@@ -78,7 +78,7 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     if (!current) return;
     const turned = { ...current, transform: { ...current.transform, rotation } };
     const units = sceneRef.current.units.map((candidate) => (candidate.id === unitId ? turned : candidate));
-    dispatch({ type: 'batch', commands: [{ type: 'transform/set', unitId, transform: turned.transform }, ...arrangeCaseCommands(units, [...sessionRef.current.dentalFinished, unitId])] });
+    dispatch({ type: 'batch', commands: [{ type: 'transform/set', unitId, transform: turned.transform }, ...arrangeCaseCommands(units, [unitId])] });
   }, [dispatch, sceneRef, sessionRef, unitOf]);
 
   /** Asks for the tips of the row shown (through the throttle). */

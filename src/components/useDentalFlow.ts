@@ -109,7 +109,7 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     if (!current) return;
     const turned = { ...current, transform: { ...current.transform, rotation } };
     const units = sceneRef.current.units.map((candidate) => (candidate.id === unitId ? turned : candidate));
-    dispatch({ type: 'batch', commands: [{ type: 'transform/set', unitId, transform: turned.transform }, ...arrangeAlignerCommands(units, [...sessionRef.current.dentalFinished, unitId])] });
+    dispatch({ type: 'batch', commands: [{ type: 'transform/set', unitId, transform: turned.transform }, ...arrangeAlignerCommands(units, [unitId])] });
   }, [dispatch, sceneRef, sessionRef]);
 
   /** Step 1: the print-angle search, once per file, after orientation; the pick becomes the detected pose. */
@@ -192,7 +192,7 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
       const turned = result.rotation && current ? { ...current, transform: { ...current.transform, rotation: result.rotation } } : undefined;
       if (!turned) notices.push({ kind: 'uncertain' });
       const units = sceneRef.current.units.map((candidate) => (turned && candidate.id === unit.id ? turned : candidate));
-      const commands = [...(turned ? [{ type: 'transform/set' as const, unitId: unit.id, transform: turned.transform }] : []), ...arrangeAlignerCommands(units, [...sessionRef.current.dentalFinished, unit.id])];
+      const commands = [...(turned ? [{ type: 'transform/set' as const, unitId: unit.id, transform: turned.transform }] : []), ...arrangeAlignerCommands(units, [unit.id])];
       if (commands.length > 0) dispatch({ type: 'batch', commands });
       setGizmoMode('rotate');
       requestView('fit');

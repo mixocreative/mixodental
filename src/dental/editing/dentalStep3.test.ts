@@ -83,7 +83,7 @@ describe('an exported aligner survives Exit', () => {
   const unit = { id: 'u1', dental: {}, supports: {}, manual: [], deleted: [], contactSettings: {} } as unknown as Parameters<typeof exitCommands>[0];
 
   it('Exit strips an aligner the step never finished', () => {
-    const kinds = exitCommands(unit, []).map((command) => command.type);
+    const kinds = exitCommands(unit).map((command) => command.type);
     expect(kinds).toContain('supports/remove');
     expect(kinds).toContain('dental/clear');
   });
@@ -96,9 +96,16 @@ describe('an exported aligner survives Exit', () => {
     expect(exported.mode).toBe('dental');
   });
 
-  it('and Exit then keeps the supports and the policy it wrote', () => {
+  /*
+   * IT USED TO KEEP THEM, and that is the assertion this replaces. Exporting marked the unit
+   * finished and `exitCommands` then spared it - so the press did nothing, silently. On the owner's
+   * ruling of 2026-11-18 a done mark informs and never blocks, so the supports go here too; what
+   * protects an exported model now is the question the press asks first, not a refusal to act.
+   */
+  it('and Use as any model strips them even after an export, because the mark is not a lock', () => {
     const exported = run(step3, { type: 'acceptDentalArea' }, { type: 'exportedDental', unitId: 'u1' });
-    expect(exitCommands(unit, exported.dentalFinished)).toEqual([]);
+    expect(exported.dentalFinished).toContain('u1');
+    expect(exitCommands(unit).map((command) => command.type)).toContain('supports/remove');
   });
 
   it('refuses to mark anything finished outside Step 3', () => {

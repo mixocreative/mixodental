@@ -91,20 +91,24 @@ export function discardManualCommands(unit: Pick<PrintUnit, 'id' | 'manual' | 'd
  */
 export function exitNeedsConfirm(
   unit: Pick<PrintUnit, 'id' | 'dental' | 'supports' | 'manual' | 'deleted' | 'contactSettings'> | undefined,
-  finished: readonly string[],
 ): boolean {
-  // A finished unit is spared by `exitCommands`, so leaving takes nothing from it and asks nothing.
-  if (!unit || finished.includes(unit.id)) return false;
+  if (!unit) return false;
   return Boolean(unit.supports) || backNeedsConfirm(unit)
     || (unit.dental !== undefined && isManualArea(unit.dental));
 }
 
 /**
- * Exit leaves the aligner being worked on as a normal model: the dental policy and the supports
- * go. An aligner already finished (OK, or Add another aligner) is kept as it is.
+ * Use as any model leaves the worked-on model as a normal one: the dental policy and the supports go.
+ *
+ * IT NO LONGER SPARES A "FINISHED" UNIT, and that is the owner's ruling of 2026-11-18: a done mark
+ * informs, it never blocks a redo. Sparing was protection built before the control asked anything -
+ * it meant the press did NOTHING on a model finished earlier, with no word about why. The
+ * confirmation (`exitNeedsConfirm`) now protects every unit the same way, by telling the operator
+ * what will go and letting them answer. A model whose print failed, whose file was replaced, or
+ * whose supports were wrong is exactly the one you need this press for.
  */
-export function exitCommands(unit: Pick<PrintUnit, 'id' | 'dental' | 'denture' | 'supports' | 'manual' | 'deleted' | 'contactSettings'> | undefined, finished: readonly string[]): SceneCommand[] {
-  if (!unit || finished.includes(unit.id)) return [];
+export function exitCommands(unit: Pick<PrintUnit, 'id' | 'dental' | 'denture' | 'supports' | 'manual' | 'deleted' | 'contactSettings'> | undefined): SceneCommand[] {
+  if (!unit) return [];
   const commands: SceneCommand[] = [];
   if (unit.supports) commands.push({ type: 'supports/remove', unitId: unit.id });
   if (backNeedsConfirm(unit)) commands.push({ type: 'supports/clear-manual', unitId: unit.id });

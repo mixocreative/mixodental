@@ -3741,16 +3741,27 @@ async function walk(url, scratch, dentalFixture) {
        * then emptied the plate behind it. x15-x18 all passed, because not one of them pressed Exit
        * after Export. This check is that press.
        *
-       * Both aligners must survive it, by two different routes: the first was finished by Add
-       * another aligner, the second by the export. Before the fix this came back 1 of 2.
+       * WHAT PROTECTS THE EXPORTED ALIGNER CHANGED ON 2026-11-18, and this check changed with it.
+       * It used to be a REFUSAL: the export marked the unit finished and `exitCommands` then spared
+       * it, so the press silently did nothing and both aligners came back whole. On the owner's
+       * ruling a done mark informs and never blocks a redo - the model whose print failed is exactly
+       * the one you need this press for - so the protection is now the QUESTION the press asks.
+       * Cancel keeps everything; confirming takes the one being left and nothing else.
        */
+      await leaveFlow(page, d, 'exit-ask-cancel');
+      await d.idle(800);
+      const afterCancel = await d.props();
+      const keptOnCancel = afterCancel.units.filter((unit) => unit.supports && unit.dental).length;
+      check('x18b Use as any model after Export asks first, and Cancel keeps both aligners whole',
+        afterCancel.units.length === 2 && keptOnCancel === 2,
+        `units ${afterCancel.units.length}, still supported and dental ${keptOnCancel}`);
       await leaveFlow(page, d);
       await d.idle(1200);
       await d.quiet();
       const afterExit = await d.props();
       const kept = afterExit.units.filter((unit) => unit.supports && unit.dental).length;
-      check('x18b Exit after Export keeps the exported aligner with its supports and its policy',
-        afterExit.units.length === 2 && kept === 2, `units ${afterExit.units.length}, still supported and dental ${kept}`);
+      check('x18b2 confirming strips only the aligner being left: the one finished earlier is untouched',
+        afterExit.units.length === 2 && kept === 1, `units ${afterExit.units.length}, still supported and dental ${kept}`);
       const [first, second] = finished.units;
       check('x19 the two aligners sit apart on the plate', Math.abs(first.pos[0] - second.pos[0]) > 20 || Math.abs(first.pos[2] - second.pos[2]) > 20, `centres ${first.pos.map((v) => v.toFixed(0))} / ${second.pos.map((v) => v.toFixed(0))}`);
     }
@@ -4496,7 +4507,7 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 188;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case
+const EXPECTED_CHECKS = 189;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
 if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,
