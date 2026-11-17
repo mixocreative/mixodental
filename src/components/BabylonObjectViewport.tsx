@@ -64,6 +64,7 @@ import { releaseHandle } from './viewport/babylon/sessionHandles';
 import { SEE_THROUGH, ZONE_OPACITY } from './viewport/style';
 import { useViewportColours, type ViewportColours } from './viewport/sceneColours';
 import { canvasCursor } from './viewport/style';
+import { pointerOnTool } from './viewport/toolSurface';
 import type { ObjectViewportProps } from './viewport/types';
 
 /*
@@ -163,6 +164,13 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
   const pointerRef = useRef<SurfacePointer | null>(null);
   /** The rim as it is being dragged, so the drawn line follows the pointer mid-gesture. */
   const [rimDrag, setRimDrag] = useState<SurfacePath | undefined>(undefined);
+  /*
+   * Whether the pointer sits on the model while rim define mode is open - for the CURSOR only.
+   * `useBrushOverlay`'s `over` cannot answer it: that flag means "the brush circle is showing", and
+   * rim mode has no brush, so this view showed the camera's grab hand over the model (the three.js
+   * view had the same fault, from the same question; `viewport/toolSurface.ts` holds the rule now).
+   */
+  const [rimHover, setRimHover] = useState(false);
   /** The surface stamps of the stroke still under the pointer, so the paint appears as it is laid. */
   const [livePaint, setLivePaint] = useState<{ unitId: string; stamps: readonly SurfaceStamp<string>[] } | undefined>(undefined);
   /** Where DOM anchored to 3D points is mounted: an overlay the size of the canvas. */
@@ -403,6 +411,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         onRimPath: (unitId, path) => propsRef.current.onRimPath(unitId, path),
         onRimSelect: (at) => propsRef.current.onRimSelect(at),
         onDragPath: setRimDrag,
+        onHover: setRimHover,
       }),
       attachEditClicks({
         canvas,
@@ -1101,7 +1110,7 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         // The ONLY inline style here, and the same exception the three.js view holds: the cursor is
         // computed from the gesture at run time, so no class can hold it. Everything else that could
         // be a class IS one, in styles.css (docs/ui-styling.md rules 1 and 2).
-        style={{ cursor: canvasCursor(props.gesture, brushOver) }}
+        style={{ cursor: canvasCursor(props.gesture, pointerOnTool(props.gesture, { hover: rimHover, circleOver: brushOver })) }}
         onContextMenu={(event) => event.preventDefault()}
       />
     </div>

@@ -28,6 +28,7 @@ import type { OrientationLayer } from '../../dental/orientationEvidence';
 import { DebugLayerMeshes } from './DebugLayerMeshes';
 import { DentalFaceLayer, DentalPaintLayer, DentalRiskLayer, DentalRegionLines, DentalRimOutline, DentalStampLayer, DentalTipMarkers, type TipMark } from './dentalLayers';
 import { RimDraftLayer } from './RimDraftLayer';
+import { pointerOnTool } from './toolSurface';
 import { rimTapAt, rimTargetAt } from '../../dental/rim/rimTarget';
 
 /** A rim not started yet: an open path with nothing on it, so the first press appends. */
@@ -224,7 +225,12 @@ export function UnitObject(props: UnitObjectProps) {
     onPaint: (ids, mode) => props.onPaint(unit.id, ids, mode),
     onNoBodies: props.onNoBodies,
   });
-  const brushOver = circleOver || Boolean(hover && (zoneBrush || dentalBrush));
+  /*
+   * "Is the pointer holding a TOOL" - not "is a brush armed", which is what this asked until
+   * 2026-11-17 and why rim define mode, Step 2's Add and Support Edit's Add all showed the camera's
+   * grab hand over the model. `toolSurface.ts` owns the rule and is tested against `canvasCursor`.
+   */
+  const brushOver = pointerOnTool(gesture, { hover: Boolean(hover), circleOver });
   useEffect(() => {
     onBrushOver?.(brushOver);
     return () => onBrushOver?.(false);

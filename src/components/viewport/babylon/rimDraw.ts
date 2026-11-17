@@ -43,6 +43,15 @@ export interface RimDrawInput {
   onRimSelect: (at: number | undefined) => void;
   /** The path to draw while a drag is carrying an anchor, so the line follows the pointer. */
   onDragPath: (path: SurfacePath | undefined) => void;
+  /**
+   * Whether the pointer is on the model this drawing belongs to - for the CURSOR, nothing else.
+   *
+   * Rim define mode showed the camera's grab hand over the model until 2026-11-17, because the
+   * viewport decided "is the pointer holding a tool" from whether a BRUSH was armed, and this mode
+   * has none (`viewport/toolSurface.ts`). The pick that answers it was already being made here on
+   * every move and thrown away unless a drag was running.
+   */
+  onHover: (over: boolean) => void;
 }
 
 /** Attaches rim drawing and returns its detacher. */
@@ -91,7 +100,13 @@ export function attachRimDraw(input: RimDrawInput): () => void {
   };
 
   const onMove = (event: PointerEvent) => {
-    if (!drag) return;
+    if (!drag) {
+      // Not dragging: the same pick still answers the cursor's question, so it is not wasted.
+      if (!input.drawing()) return input.onHover(false);
+      const draft = input.draft();
+      const at = pointer.hitAt(event.offsetX, event.offsetY);
+      return input.onHover(Boolean(draft && at && at.unitId === draft.unitId));
+    }
     const hit = pointer.hitAt(event.offsetX, event.offsetY);
     if (!hit || hit.unitId !== drag.unitId) return;
     const moved = moveAnchor(drag.path, drag.at, { position: hit.point, normal: hit.normal });
@@ -116,8 +131,11 @@ export function attachRimDraw(input: RimDrawInput): () => void {
     }
   };
 
+  // The pointer leaving the canvas must clear the hover, or the tool cursor outlives the pointer.
+  const onLeave = () => input.onHover(false);
   canvas.addEventListener('pointerdown', onDown);
   canvas.addEventListener('pointermove', onMove);
+  canvas.addEventListener('pointerleave', onLeave);
   canvas.addEventListener('pointerup', onClick);
   // On the WINDOW, so a drag that ends outside the canvas still ends.
   window.addEventListener('pointerup', drop);
@@ -125,6 +143,8 @@ export function attachRimDraw(input: RimDrawInput): () => void {
   return () => {
     canvas.removeEventListener('pointerdown', onDown);
     canvas.removeEventListener('pointermove', onMove);
+    canvas.removeEventListener('pointerleave', onLeave);
+    input.onHover(false);
     canvas.removeEventListener('pointerup', onClick);
     window.removeEventListener('pointerup', drop);
     window.removeEventListener('pointercancel', drop);
