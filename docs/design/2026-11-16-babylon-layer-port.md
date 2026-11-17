@@ -693,7 +693,14 @@ its untuned detection and the tip preview comes back ABSENT. The count reads 0 b
 `dentalPreview` is undefined, so it is the preview that never returns rather than a proposal that
 returned empty. The walk's run showed 2 instead of 0 only because that run had two manual tips.
 
-It reproduces on the shipping three.js renderer, so it is nothing to do with this migration. It is
-written up as a bug report beside its bullet rather than fixed here: the branch is a renderer port,
-and the remaining choice -- re-derive the area from the kept tuning, or reset the slider to match
-what it actually drew -- is the owner's.
+The line is `src/components/useDentalFlow.ts:380`: the policy is built with the freshly DETECTED
+`region` and the operator's KEPT `tuning`, and a placement on a policy whose strip geometry and
+tuning disagree finds nowhere to put a tip. `previewStatus` reads `ready` and `tuningError` is false
+throughout -- the preview ran and placed nothing.
+
+It reproduces on the shipping three.js renderer, so it is nothing to do with this migration, and it
+is written up beside its bullet in `docs/handoff/human-test-2026-11-11.md` with the two coherent
+fixes: re-derive the area for the kept tuning (what `keptDentalWork`'s comment intends, and it needs
+the retune job run once on arrival), or drop the tuning so the policy stays coherent (one line, and
+it throws away the operator's work). Choosing between them is a product call, and this branch is a
+renderer port.
