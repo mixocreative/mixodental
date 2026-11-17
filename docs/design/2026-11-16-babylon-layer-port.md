@@ -698,9 +698,12 @@ The line is `src/components/useDentalFlow.ts:380`: the policy is built with the 
 tuning disagree finds nowhere to put a tip. `previewStatus` reads `ready` and `tuningError` is false
 throughout -- the preview ran and placed nothing.
 
-It reproduces on the shipping three.js renderer, so it is nothing to do with this migration, and it
-is written up beside its bullet in `docs/handoff/human-test-2026-11-11.md` with the two coherent
-fixes: re-derive the area for the kept tuning (what `keptDentalWork`'s comment intends, and it needs
-the retune job run once on arrival), or drop the tuning so the policy stays coherent (one line, and
-it throws away the operator's work). Choosing between them is a product call, and this branch is a
-renderer port.
+**Fixed.** `keptDentalWork` brings the REGION back with the tuning, and the accept path takes it
+when the orientation did not move -- the fresh detection when the tilt confirm turned the aligner,
+because a turn really does invalidate the area it was detected for. No product call was needed in
+the end: the codebase had already made it, twice, in that function's own comment ("once set, the
+operator's own choices are kept") and in audit W-01. Keeping the number and discarding the area it
+drew was not a second policy; it was half of the first one.
+
+Same drive, after: tips 104 -> 104 and region 14,946 -> 14,946, where it had been 104 -> 0 and
+14,946 -> 14,110. Both walks green: ALL PASS 186 and ALL PASS 186 [renderer: babylon].

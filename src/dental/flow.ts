@@ -28,13 +28,22 @@ export function backNeedsConfirm(unit: Pick<PrintUnit, 'manual' | 'deleted' | 'c
  * re-orient invalidates is the AREA derived from them, and `revisions` already marks that stale. The
  * staleness model exists precisely so this does not have to be a deletion.
  *
+ * THE REGION COMES BACK WITH THEM, and leaving it out was half a fix. A tuning number is not a
+ * setting the app reads later -- it is the shape of the strip that was DRAWN for it, and the two
+ * only mean anything together. Carrying the number over a freshly detected region left a policy
+ * whose tuning said one width and whose area was another, and a placement on a policy that
+ * disagrees with itself puts a tip nowhere: measured on case-001, nudging Area width and then
+ * pressing Back and Next took the tip preview from 104 to ZERO, with the stamps and the number both
+ * still there and the preview reporting itself ready. The caller takes the region only when the
+ * orientation did NOT move, because a tilt that moved really does invalidate the area.
+ *
  * Only a policy of the same kind AND profile carries over: a different appliance type measures a
  * different area, and marks made for the old one would mean nothing on the new.
  */
 export function keptDentalWork(unit: Pick<PrintUnit, 'dental'>, profileId: string) {
   const policy = unit.dental;
   return policy !== undefined && policy.kind === 'two-contour' && policy.profileId === profileId
-    ? { stamps: policy.stamps, tuning: policy.tuning }
+    ? { stamps: policy.stamps, tuning: policy.tuning, region: policy.region }
     : undefined;
 }
 

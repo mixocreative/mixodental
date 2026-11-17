@@ -92,34 +92,28 @@ bullet: a TUNING change does not survive leaving and returning to Step 2.
   | area stamps | 31 | 31 | 31 |
   | detected region (contact faces) | 14,110 | 14,946 | **14,110** |
 
-  **The line is `src/components/useDentalFlow.ts:380`:**
+  **FIXED, 2026-11-17.** The line was `src/components/useDentalFlow.ts`, where a re-accepted
+  orientation rebuilt the policy with the freshly DETECTED `region` and the operator's KEPT
+  `tuning`. Those two only mean anything together — a tuning number is not a setting read later, it
+  is the shape of the strip that was drawn for it — so the policy disagreed with itself and a
+  placement on it put a tip nowhere. The preview was never missing or failing: `previewStatus` read
+  `ready` and `tuningError` was false throughout. It ran and placed nothing.
 
-  ```js
-  const policy = { kind: 'two-contour', profileId: profile, rim: proposal.rim, region,
-    stamps: kept?.stamps ?? [], tuning: kept?.tuning ?? defaultDentalTuning(profile), structure };
-  ```
+  `keptDentalWork` brings the REGION back with the tuning now, and the accept path takes it when the
+  orientation did not move. It takes the fresh detection when the tilt confirm turned the aligner,
+  because a turn really does invalidate the area it was detected for — and the tilt CHECK still runs
+  against the detected region, so the checker is never handed an area from before a turn.
 
-  `region` is the freshly DETECTED area; `tuning` is the operator's KEPT number. The two disagree,
-  and a placement on a policy whose strip geometry and tuning disagree finds nowhere to put a tip.
-  The preview is not missing and not failing — `previewStatus` reads `ready` and `tuningError` is
-  false throughout; it ran and placed **nothing**. The walk's run showed 2 rather than 0 only
-  because it had two manual tips by then.
+  Measured on case-001, the same drive that found it:
 
-  It reproduces on the shipping three.js renderer, so it is nothing to do with the Babylon work.
-  **Two fixes are coherent and the choice between them is yours:**
+  | | before | after tuning | after Back + Next |
+  |---|---|---|---|
+  | tips shown | 104 | 104 | **104** (was 0) |
+  | area stamps | 31 | 31 | 31 |
+  | detected region (contact faces) | 14,110 | 14,946 | **14,946** (was 14,110) |
 
-  1. **Keep the operator's number and re-derive the area for it.** What `keptDentalWork`'s own
-     comment intends ("the staleness model exists precisely so this does not have to be a
-     deletion"). It needs the retune worker job run once on arrival — the same path the slider
-     already uses (`useDentalTuning`, `retunePlaceDental`) — inside an accept path that currently
-     dispatches synchronously under a detection-sequence guard. Real work, maybe an hour, and the
-     operator sees "Updating dental support area…" once on re-entry.
-  2. **Drop the number so the policy stays coherent** — one line, `tuning: defaultDentalTuning(profile)`.
-     Honest and immediate, and it throws away work the operator did, which is the half of W-01 that
-     comment argued against.
-
-  I did not pick between them: it is a product call on someone else's product, and either takes
-  minutes to implement once made.
+  It was a fault on the shipping three.js renderer, nothing to do with the Babylon work, and both
+  walks are green after it: ALL PASS 186 and ALL PASS 186 [renderer: babylon].
 
 - Drag a point along the drawn line. Every point on the visible line should be grabbable — the line
   the app draws and the line it measures a press against are now the same curve.

@@ -49,12 +49,27 @@ describe('whether Step 1 goes on with the area the unit already has', () => {
 
 describe('what a re-accepted orientation carries over', () => {
   const painted = (over: Record<string, unknown> = {}) => unit({
-    dental: { kind: 'two-contour', profileId: 'p', stamps: [{ at: 1 }], tuning: { density: 3 }, region: {}, rim: {} },
+    dental: { kind: 'two-contour', profileId: 'p', stamps: [{ at: 1 }], tuning: { density: 3 }, region: { contactFaces: [7] }, rim: {} },
     ...over,
   } as unknown as Partial<PrintUnit>);
 
   it('keeps the painted area and the tuning of a policy of the same kind and profile', () => {
-    expect(keptDentalWork(painted(), 'p')).toEqual({ stamps: [{ at: 1 }], tuning: { density: 3 } });
+    expect(keptDentalWork(painted(), 'p')).toEqual({ stamps: [{ at: 1 }], tuning: { density: 3 }, region: { contactFaces: [7] } });
+  });
+
+  /*
+   * THE REGION COMES BACK WITH THE TUNING, and leaving it out was half a fix.
+   *
+   * A tuning number is not a setting read later -- it is the shape of the strip that was DRAWN for
+   * it, and the two only mean anything together. Carried over a freshly detected region, the policy
+   * disagrees with itself and a placement on it puts a tip NOWHERE: measured on case-001, nudging
+   * Area width and then pressing Back and Next took the tip preview from 104 to zero, with the
+   * stamps and the number both still stored and the preview reporting itself ready.
+   */
+  it('brings the region back with the tuning it was drawn for', () => {
+    const kept = keptDentalWork(painted(), 'p');
+    expect(kept?.region, 'the number and the area it drew are one answer, not two').toEqual({ contactFaces: [7] });
+    expect(kept?.tuning).toEqual({ density: 3 });
   });
 
   it('carries nothing over when the appliance type changed', () => {

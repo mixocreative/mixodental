@@ -378,8 +378,23 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
       const kept = keptDentalWork(unit, profile);
       const policy = { kind: 'two-contour' as const, profileId: profile, rim: proposal.rim, region,
         stamps: kept?.stamps ?? [], tuning: kept?.tuning ?? defaultDentalTuning(profile), structure };
+      /*
+       * THE AREA GOES BACK WITH THE TUNING IT WAS DRAWN FOR, when the orientation did not move.
+       *
+       * `policy` above carries the operator's kept tuning over a FRESHLY DETECTED region, and those
+       * two only mean anything together: the number is the shape of a strip, not a setting read
+       * later. A policy that disagrees with itself places no tips at all -- measured on case-001,
+       * nudging Area width and then pressing Back and Next took the preview from 104 tips to ZERO,
+       * with the stamps and the number both still stored and the preview reporting itself ready.
+       *
+       * Only when nothing moved. `angleMovedDeg` is a number exactly when the tilt confirm settled
+       * on a different row and `turnTo` has turned the aligner, and a turn really does invalidate
+       * the area it was detected for. The tilt CHECK still runs against the detected region above,
+       * so this never hands the checker an area from before a turn.
+       */
       const accept = (angleMovedDeg?: number, angleCheck?: 'none-held' | 'failed') => {
-        dispatch({ type: 'batch', commands: [...presetCommands(unit, profile), { type: 'dental/set', unitId: unit.id, policy }] });
+        const settled = angleMovedDeg === undefined && kept?.region ? { ...policy, region: kept.region } : policy;
+        dispatch({ type: 'batch', commands: [...presetCommands(unit, profile), { type: 'dental/set', unitId: unit.id, policy: settled }] });
         send({ type: 'acceptDentalOrientation', ...(angleMovedDeg === undefined ? {} : { angleMovedDeg }), ...(angleCheck === undefined ? {} : { angleCheck }) });
         requestView('bottom');
       };
