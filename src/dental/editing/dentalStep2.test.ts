@@ -121,7 +121,9 @@ describe('dental Step 2 tools (B3)', () => {
     expect(press('Escape', { selection: 2, tool: 'paint' })).toBe('edit.clearSelection');
     expect(press('Escape', { selection: 0, tool: 'paint' })).toBe('dental.tool.select');
     expect(press('Escape', { selection: 0, tool: 'add' })).toBe('dental.tool.select');
-    expect(press('Escape', { selection: 0, tool: 'select' })).toBe('dental.exit');
+    // The last rung is `dental.back` - out one level - because `dental.exit` also DESTROYS the unit's
+    // supports, hand edits and dental policy, so it was never "one level" (see the Esc ladder comment).
+    expect(press('Escape', { selection: 0, tool: 'select' })).toBe('dental.back');
     expect(press('Delete', { selection: 0 })).toBeUndefined();
   });
 });

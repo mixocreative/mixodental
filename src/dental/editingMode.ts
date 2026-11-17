@@ -434,7 +434,7 @@ registerEditMode({
   exitStatus: { key: 'Left the aligner on the plate without supports.' },
   // A new dental step starts with its own line: an error or result of the last step does not follow.
   restatesStatus: (previous, next) => next.dentalStage !== previous.dentalStage || next.dentalAligner !== previous.dentalAligner,
-  busy: { key: 'Use the dental step controls, or press Esc to exit.' },
+  busy: { key: 'Use the dental step controls, or press Esc to go back.' },
   locks: () => true,
   keys: ({ key, ctrl, ui }, { lower, hasSelection }) => {
     // Dental Step 2 has four tools (P, E, A, S); Step 3 reuses the support tools. In both, Delete removes the selection and the first Esc drops it.
@@ -458,12 +458,21 @@ registerEditMode({
      * flow - from inside a tool, or from inside rim define mode - which is a long way to travel for a key
      * a drawing program uses to put the brush down. The rungs, innermost first: a live selection clears
      * (above); a tool that is not Select goes BACK TO SELECT, which is where the step opened and where a
-     * drawing program rests; a mode is left; and only then does Esc leave the flow, which is what the
-     * dental lock note promises (the aligner stays on the plate without supports).
+     * drawing program rests; and then the step itself is left, one step at a time.
+     *
+     * THE LAST RUNG USED TO BE `dental.exit`, AND THAT BROKE THE RULE THE LADDER IS NAMED FOR. Exit is
+     * not one level out - it leaves the whole flow AND removes the model's supports, hand edits and
+     * dental policy (`dental/flow.ts exitCommands`). So the last Esc of a sequence destroyed work, and
+     * on the deck - where a live session can now sit under the Items page - it did so with the screen
+     * unchanged and only a status line to show for it. Reproduced in the browser on 2026-11-17.
+     *
+     * `dental.back` is the honest last rung: out of rim define mode keeping the drawing, out of a step
+     * to the one before, and out of Step 1 to the case. It asks before discarding hand work, which the
+     * command it replaced never did. Leaving the flow for the bench is now a deliberate press on
+     * "Use as any model", never a keystroke.
      */
     if ((inArea || inReview) && key === 'Escape' && ui.tool !== 'select') return runKey('dental.tool.select');
-    if (rim(ui) && key === 'Escape') return runKey('dental.back');
-    if (key === 'Escape') return runKey('dental.exit');
+    if (key === 'Escape') return runKey('dental.back');
     return undefined;
   },
   uiEditsSupports: reviewing,
@@ -545,8 +554,25 @@ registerCommands({
     // step gone is simply "in dental mode" - Step 1's Back is a real way out, handled in `App.tsx`.
     visible: (s) => s.mode === 'dental', enabled: always, disabledReason: never,
   },
+  /*
+   * IT WAS CALLED EXIT, AND EXIT IS A LIE ABOUT WHAT IT DOES (owner's call, 2026-11-17).
+   *
+   * The word says navigation - the way out of a screen, the counterpart of a Back. What the command
+   * actually runs is `exitCommands` (`dental/flow.ts`): the worked-on unit's supports are removed,
+   * its hand edits cleared and its dental policy dropped. So the most destructive control in the
+   * flow wore the one label in the whole app that promises to cost nothing, sat in the header at
+   * every step, and carried Esc's last rung - while Back out of Step 3, which discards strictly
+   * less, has asked for confirmation since the day it was written.
+   *
+   * The capability is RIGHT and stays: it is the only route from a dental-started model to free work
+   * on the bench (the bench's other doors are Any model and opening a project), and "the detection
+   * is wrong, I will support this one by hand" has to remain possible. Only the name was wrong. The
+   * label now says what the press leaves behind, and `exitNeedsConfirm` asks first when that costs
+   * the operator anything.
+   */
   'dental.exit': {
-    role: 'secondary', label: () => 'Exit', hint: (s) => kindText('Leave the dental flow. The aligner stays on the plate without supports', s.dentalKind),
+    role: 'secondary', label: () => 'Use as any model',
+    hint: (s) => kindText('Leave the dental flow and work on this aligner like any other model. Its supports and dental settings are removed', s.dentalKind),
     visible: (s) => s.mode === 'dental', enabled: always, disabledReason: never,
   },
   /*

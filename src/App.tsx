@@ -39,6 +39,7 @@ import { SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
 import ObjectViewport from './components/ObjectViewport';
 import BabylonObjectViewport from './components/BabylonObjectViewport';
 import { readRenderer } from './ui/renderer';
+import { ConfirmModal } from './components/ConfirmModal';
 import { Icon } from './ui/Icon';
 import DebugSection from './components/DebugSection';
 import { useDebugLayers, visibleLayers } from './components/useDebugLayers';
@@ -125,7 +126,7 @@ import { isBuilding, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import { stepPanelInset } from './dental/stepPanelInset';
-import { backNeedsConfirm, discardManualCommands, exitCommands, manualEditCounts, startsDentalStep } from './dental/flow';
+import { backNeedsConfirm, discardManualCommands, exitCommands, exitNeedsConfirm, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import type { DentalReview } from './components/DentalSupports';
 import { BUILDING_STATUS, busyStatus, sessionStatus } from '@mixo-geocore/editing/status';
@@ -283,6 +284,15 @@ export default function App() {
   const [toast, setToast] = useState<UndoToastState>();
   /** Back from Step 3 is waiting for the answer: it would discard hand work. */
   const [backAsk, setBackAsk] = useState(false);
+  /**
+   * Use as any model is waiting for the answer: it would discard supports, hand edits or paint.
+   *
+   * A MODAL, WHERE BACK'S QUESTION IS A BLOCK IN ITS PANEL, and the difference is not taste. Back
+   * belongs to Step 3 and asks inside Step 3's own dock, where the operator is already looking. This
+   * control sits in the HEADER at every step, including rim define mode, which has no dock of its
+   * own to put a question in - so the question has to carry its own surface.
+   */
+  const [exitAsk, setExitAsk] = useState(false);
   /** After OK: how many aligners were finished, until the hint is dismissed. */
   const [doneHint, setDoneHint] = useState<number>();
   const toastSeq = useRef(0);
@@ -551,6 +561,33 @@ export default function App() {
     confirm: () => { orientFlow.markHand(); free.confirm(); }, autoOrient: () => { orientFlow.useDetected(); free.leave(); } };
   // Read at call time: the start screen sends the job and its file in one step, before a render.
   const startDentalAligner = useCallback((unit: PrintUnit) => (isDentureJob(sessionRef.current.dentalProfile) ? denture.orient.start(unit) : dentalFlow.startAligner(unit)), [denture.orient.start, dentalFlow.startAligner]);
+  /*
+   * LEAVING THE FLOW FOR THE BENCH - the second half of Use as any model, once nothing is waiting
+   * on an answer. Called by the command when there is nothing to lose, and by the modal when the
+   * operator says yes, so the two paths cannot drift into doing different things.
+   *
+   * STRAIGHT TO THE WORKSPACE, and FLOW_END does NOT change that. Routing this to the start screen
+   * was tried and the walk caught it: the control promises the model stays on the plate, which is a
+   * promise about the workspace, and landing on a start screen hides the very object it named.
+   * FLOW_END is about where the LAST STEP ends, not about the way out.
+   *
+   * Everything it reads comes from a ref, so the empty dependency list is the honest one rather than
+   * a shortcut: there is no render-scoped value in here to go stale.
+   */
+  const leaveDentalFlow = useCallback(() => {
+    // Whatever Step 1 or Step 2 still reads or detects is dropped.
+    dentalFlow.invalidate();
+    denture.orient.invalidate();
+    // The worked-on model goes back to a normal one without supports; finished ones stay as they are.
+    const { dentalUnitId, dentalFinished } = sessionRef.current;
+    const current = sceneRef.current.units.find((candidate) => candidate.id === dentalUnitId);
+    if (current && !dentalFinished.includes(current.id)) denture.supports.leave(current.id);
+    const cleanup = exitCommands(current, dentalFinished);
+    if (cleanup.length > 0) dispatch({ type: 'batch', commands: cleanup });
+    setBackAsk(false);
+    setExitAsk(false);
+    send({ type: 'exit' });
+  }, [dentalFlow.invalidate, denture.orient.invalidate, denture.supports.leave, dispatch, send]);
 
   /*
    * STEP 1 SHOWS THE SUPPORTS THE ANGLE WOULD NEED, AND PLACES THEM AGAIN EVERY TIME THE ALIGNER TURNS.
@@ -959,24 +996,18 @@ export default function App() {
         return send({ type: 'backDental' });
       }
       case 'dental.exit': {
-        // Whatever Step 1 or Step 2 still reads or detects is dropped.
-        dentalFlow.invalidate();
-        denture.orient.invalidate();
-        // The aligner being worked on goes back to a normal model without supports; finished aligners stay as they are.
+        /*
+         * THE PRESS ASKS; `leaveDentalFlow` ACTS. The two are split because the press is not always
+         * the last word: this control removes the worked-on unit's supports, hand edits and dental
+         * policy, so when there is any of that to lose the modal answers instead and calls the second
+         * half itself. With nothing to lose - Step 1 with a detected orientation and no work on top -
+         * it goes straight through, because a prompt on the commonest way out of the flow is how an
+         * operator is taught to dismiss prompts unread.
+         */
         const { dentalUnitId, dentalFinished } = sessionRef.current;
         const current = sceneRef.current.units.find((candidate) => candidate.id === dentalUnitId);
-        if (current && !dentalFinished.includes(current.id)) denture.supports.leave(current.id);
-        const cleanup = exitCommands(current, dentalFinished);
-        if (cleanup.length > 0) dispatch({ type: 'batch', commands: cleanup });
-        setBackAsk(false);
-        /*
-         * STRAIGHT TO THE WORKSPACE, and FLOW_END does NOT change that. Routing Exit to the start
-         * screen was tried and the walk caught it: this command's own hint promises "the aligner
-         * stays on the plate without supports", which is a promise about the workspace, and landing
-         * on the start screen hides the very object it just told the operator about. FLOW_END is
-         * about where the LAST STEP ends, not about the escape hatch.
-         */
-        return send({ type: 'exit' });
+        if (exitNeedsConfirm(current, dentalFinished)) return setExitAsk(true);
+        return leaveDentalFlow();
       }
       case 'dental.finish': case 'dental.addAnother': {
         const { dentalUnitId, dentalFinished, dentalStage } = sessionRef.current;
@@ -1122,7 +1153,7 @@ export default function App() {
       }
       case 'export.active-printable': case 'export.active-supports': case 'export.separate-printable': case 'export.separate-supports': case 'export.whole-printable': return void runExport(exportKindOf(id));
     }
-  }, [checkSupports, chooseProject, saveProject, clearActiveZones, clearManual, clearSelection, deleteSelected, deleteUnits, dentalPreview, dispatch, generate, generateDental, removeSupports, requestView, resetSelected, runExport, selectCustomised, send, setStatus, undo]);
+  }, [checkSupports, chooseProject, saveProject, clearActiveZones, clearManual, clearSelection, deleteSelected, deleteUnits, dentalPreview, dispatch, generate, generateDental, leaveDentalFlow, removeSupports, requestView, resetSelected, runExport, selectCustomised, send, setStatus, undo]);
 
   /** A start screen was reached. Back goes one step and removes nothing: the loaded aligner stays on the plate. */
   const [startKind, setStartKind] = useState<DentalKind>('aligner');
@@ -1332,6 +1363,14 @@ export default function App() {
       // A modal dialog owns the keyboard while it is open: Escape has to close it, and an editor shortcut
       // that calls preventDefault() behind it would stop the browser doing so.
       if (document.querySelector('dialog[open]')) return;
+      /*
+       * A START SCREEN OWNS THE KEYBOARD TOO, and this handler did not know it. The Drop page and the
+       * Items page each answer Escape on their own root - back a screen, back to Drop - while this one
+       * went on answering for a session that is still live underneath (which `nav-files` and Step 1's
+       * Back both make ordinary). Two handlers, one key, and the workspace's won: on the deck, Escape
+       * ran the flow's exit with the screen unchanged. Verified in the browser on 2026-11-17.
+       */
+      if (startScreen !== null) return;
       const action = keyAction({
         key: event.key,
         ctrl: event.ctrlKey || event.metaKey,
@@ -1344,7 +1383,7 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [runCommand, ui]);
+  }, [runCommand, startScreen, ui]);
   const locked = (section: Parameters<typeof sectionLocked>[0]) => sectionLocked(section, editMode);
   /** Locked sections are inert, so a click on one falls through to its panel: say why and pulse the note. */
   const blockedClick = (panel: Panel) => (event: React.MouseEvent<HTMLElement>) => {
@@ -1382,9 +1421,62 @@ export default function App() {
             <CommandButton command={command('view.wireframe')} run={runCommand} />
           </div>
         </> : null}
+        {/*
+          THE WAY BACK TO THE DECK, which until now did not exist from inside the workspace.
+
+          The deck is reachable on a drop of SEVERAL files (`StartScreen` holds them for the purpose
+          press) and on the recovery effect below - and on nothing else. A single dropped aligner takes
+          the fast path straight into the flow, which is the ordinary case, so the ordinary run never
+          saw the rail at all; and Exit hands the operator the bench, where no control named the deck
+          either. The owner met exactly that on 2026-11-17: *"we used to hv a deck. now its gone."* It
+          was not gone. It had no door.
+
+          IT DOES NOT SEND `exit`, because Exit is not navigation: `exitCommands` (`dental/flow.ts`)
+          removes the worked-on unit's supports, clears its manual edits and drops its dental policy.
+          A key for "show me my files" that quietly undid the work would be the worst kind of door.
+          Step 1's Back established the shape this uses instead - the Items page over a LIVE session -
+          so the session is kept exactly as it is and opening the row again resumes. What it does
+          invalidate is the running jobs, for the same reason Back does: the orientation being computed
+          belongs to the unit the operator is walking away from.
+
+          ONLY FROM STEP 1, OR OFF THE FLOW ALTOGETHER, and the condition is load-bearing rather than
+          tidy. Re-entry from the deck (`startItem`) can only cope with stage `aligner`:
+            - from `review` it sends `addAnotherDental`, which marks the unit just walked away from
+              FINISHED (`editingMode.ts`) - no readiness check, because the command's own `enabled`
+              guard is bypassed by going through the deck;
+            - from `area` or `rim`, `dentalLoading` is a no-op outside `aligner`, so the row that is
+              opened next inherits the previous unit's stage and unit id.
+          Neither was reachable before this key existed, because every earlier route to the deck ran
+          through Step 1. Offering it mid-flow therefore opens two faults rather than one door; the
+          way out of a step is that step's own Back, which is guarded and which this must not become.
+        */}
+        {startScreen === null && scene.units.length > 0
+          && (session.mode !== 'dental' || session.dentalStage === 'aligner') ? <button type="button" className="nav-files" data-ui="nav-files"
+          title={t('Your files')}
+          onClick={() => { dentalFlow.invalidate(); denture.orient.invalidate(); setStartScreen('items'); }}
+        ><Icon name="back" />{t('Your files')}</button> : null}
         {session.mode === 'dental' ? <CommandButton command={command('dental.exit')} run={runCommand} className="nav-exit" /> : null}
       </div>
     </header>
+    {/*
+      THE QUESTION THE WAY OUT NEVER ASKED. `exitNeedsConfirm` decides whether it is asked at all;
+      this only puts it on screen. The sentence names what GOES rather than where the operator lands,
+      because the press's cost is the removal - "Exit" described the destination and that is exactly
+      how the control came to read as navigation.
+
+      The confirming key repeats the control's own words instead of saying Continue: a dialog whose
+      yes-key is generic makes the operator reconstruct what they are agreeing to from the sentence
+      above it, and this one is agreeing to throw work away.
+    */}
+    {exitAsk ? <ConfirmModal label={t('Use as any model')} onCancel={() => setExitAsk(false)}>
+      <p className="confirm-modal-question">{t('This removes the supports and dental settings on this model. It stays on the plate, and anything you have already finished is left alone.')}</p>
+      <div className="confirm-modal-row">
+        <button type="button" data-ui="exit-ask-cancel" title={t('Cancel')} onClick={() => setExitAsk(false)}>{t('Cancel')}</button>
+        <button type="button" className="danger" data-ui="exit-ask-confirm"
+          title={t('This removes the supports and dental settings on this model. It stays on the plate, and anything you have already finished is left alone.')}
+          onClick={leaveDentalFlow}>{t('Use as any model')}</button>
+      </div>
+    </ConfirmModal> : null}
     {/*
       * THE BACKGROUND-WORK LIST IS MOUNTED ON THE DECK TOO (found by audit, walk `r3`, G5).
       *

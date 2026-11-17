@@ -5,6 +5,38 @@ a rail down the left of the deck with the models beside it, and the dependency b
 expressed by **what the operator can press** rather than by marching them through steps. Nothing is
 enforced beyond what is genuinely impossible.
 
+## Three doors, and the one that was missing
+
+The deck is the Items page (`src/items/ItemsPage.tsx`), rendered while `startScreen === 'items'`.
+It is reached by:
+
+1. **A drop of SEVERAL models**, which waits on the Drop page for the purpose press and then lands
+   here. A drop of ONE takes the fast path straight into the flow — the ordinary single-aligner case
+   — and so never passes through the deck at all.
+2. **Back at Step 1**, which brings the deck up over a LIVE session rather than exiting it (E1b, walk
+   `u5l`). It does not send `exit`, because Exit is a destructive per-object action rather than
+   navigation: `exitCommands` in `src/dental/flow.ts` removes the worked-on unit's supports, clears
+   its manual edits and drops its dental policy, sparing only units already in `dentalFinished`.
+3. **`nav-files`, the header's "Your files" key** — added 2026-11-17 because routes 1 and 2 leave a
+   hole an ordinary run falls into. Exit hands the operator the bench with the models still on the
+   plate, and until this key the bench named no way back: a single dropped aligner, exited once, could
+   not reach the deck again at all. The owner reported it as the deck having disappeared, and it had
+   not — it had no door. The key takes route 2's approach exactly: it keeps the session and only
+   invalidates the running jobs, which belong to the unit being walked away from. Walk `u5m`.
+
+**The key is offered at Step 1 and off the flow, and nowhere else.** `startItem`, the deck's own way
+back in, can only cope with a session at stage `aligner`: from `review` it sends `addAnotherDental`,
+which marks the abandoned unit FINISHED with no readiness check, and from `area` or `rim`
+`dentalLoading` is a no-op, so the next row opened inherits the previous unit's stage and id. Every
+route to the deck before this key ran through Step 1, so neither case had ever been reachable — the
+first version of the key made both reachable in one line. The way out of a step is that step's own
+Back, which is guarded; this key must not become a second, unguarded one.
+
+**Correction, same day.** An earlier version of this section said `exit` discards `dentalFinished`.
+It does not: `exit` is `withMode(state, 'off')` and touches nothing else. The list is cleared by
+`startDental` *without* `resume`, which is how the old route lost finished marks, and `startItem`
+always passes `resume`. A comment recording that old fault was read as describing the present one.
+
 | file | what it decides |
 |---|---|
 | `toolState.ts` | each tool's state, the line a greyed one shows, and `railReason` |

@@ -71,6 +71,35 @@ export function discardManualCommands(unit: Pick<PrintUnit, 'id' | 'manual' | 'd
 }
 
 /**
+ * Whether leaving the flow should ask first - because it would throw the operator's work away.
+ *
+ * THE CONTROL WAS CALLED EXIT AND READ AS NAVIGATION. It is not: `exitCommands` below removes the
+ * worked-on unit's supports, clears its hand edits and drops its dental policy. Back out of Step 3
+ * has asked before discarding hand work since it was written (`backNeedsConfirm`), while this -
+ * which discards MORE, and is bound to Esc's last rung - asked nothing at all. A destructive action
+ * that looks like a way out is worse than one that looks destructive, because nobody braces for it.
+ *
+ * IT ASKS ONLY WHEN THERE IS SOMETHING TO LOSE. Leaving at Step 1 with a detected orientation and
+ * nothing else costs the operator a redetect, which is seconds and is the commonest way out of the
+ * flow; a dialog there would train them to dismiss the one that matters. So: built supports, hand
+ * edits, or an area they painted themselves.
+ *
+ * DEBT, NOT TAKEN: a hand-DRAWN rim is not counted, and it should be. `drawnRim` builds an ordinary
+ * `two-contour` policy, indistinguishable from a detected one - `isManualArea` answers only for
+ * painted areas, which are the `legacy` kind. Marking the policy with its origin is the fix and it
+ * is a change to saved project data, so it is not smuggled in here.
+ */
+export function exitNeedsConfirm(
+  unit: Pick<PrintUnit, 'id' | 'dental' | 'supports' | 'manual' | 'deleted' | 'contactSettings'> | undefined,
+  finished: readonly string[],
+): boolean {
+  // A finished unit is spared by `exitCommands`, so leaving takes nothing from it and asks nothing.
+  if (!unit || finished.includes(unit.id)) return false;
+  return Boolean(unit.supports) || backNeedsConfirm(unit)
+    || (unit.dental !== undefined && isManualArea(unit.dental));
+}
+
+/**
  * Exit leaves the aligner being worked on as a normal model: the dental policy and the supports
  * go. An aligner already finished (OK, or Add another aligner) is kept as it is.
  */

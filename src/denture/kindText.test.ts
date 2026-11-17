@@ -35,7 +35,7 @@ describe('kindText', () => {
     const review = { ...READY, mode: 'dental', dentalStage: 'review', dentalKind: 'denture' } as typeof READY;
     expect(resolve('dental.finish', review).hint).toBe('Finish this denture. It stays on the plate with its supports');
     expect(resolve('dental.addAnother', review).label).toBe('Add another denture');
-    expect(resolve('dental.exit', review).hint).toBe('Leave the dental flow. The denture stays on the plate without supports');
-    expect(resolve('dental.exit', { ...review, dentalKind: 'aligner' }).hint).toBe('Leave the dental flow. The aligner stays on the plate without supports');
+    expect(resolve('dental.exit', review).hint).toBe('Leave the dental flow and work on this denture like any other model. Its supports and dental settings are removed');
+    expect(resolve('dental.exit', { ...review, dentalKind: 'aligner' }).hint).toBe('Leave the dental flow and work on this aligner like any other model. Its supports and dental settings are removed');
   });
 });

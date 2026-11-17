@@ -93,7 +93,7 @@ export interface BenchArrival {
  */
 export const BENCH_ARRIVALS: readonly BenchArrival[] = [
   { event: 'start', from: 'Opening the app, or importing a model with nothing started.' },
-  { event: 'exit', from: 'Exit or Escape out of Support Edit Mode, no-support zones, or a dental step.' },
+  { event: 'exit', from: 'Escape or Exit out of Support Edit Mode or no-support zones; "Use as any model" out of a dental step. Escape in a dental step steps BACK (dental.back), it does not come here.' },
   { event: 'leave', from: 'Done out of a mode that finished its own work.' },
   { event: 'finishDental', from: 'OK in dental Step 3. The aligner is finished and keeps its supports. There is no step after this one.' },
   { event: 'activeUnitChanged', from: 'The active object going away - deleted, or undone - which ends the mode that belonged to it.' },

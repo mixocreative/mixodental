@@ -19,7 +19,7 @@ describe('dental Step 3 keys', () => {
   });
   it('with nothing selected Esc exits the flow and Delete does nothing', () => {
     // Resting on Select already: there is no tool rung left, so Esc takes the last one.
-    expect(press('Escape', 0, { tool: 'select' }).command).toBe('dental.exit');
+    expect(press('Escape', 0, { tool: 'select' }).command).toBe('dental.back');
     expect(press('Delete', 0).command).toBeUndefined();
   });
 

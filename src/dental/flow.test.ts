@@ -7,7 +7,7 @@ import { acceptCommands } from '../denture/steps/orient/acceptCommands';
 import { DENTURE_PROFILE_ID } from '../denture/jobKind';
 import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { DEFAULT_DENTURE_OPTIONS } from '../denture/settings/dentureOptions';
-import { backNeedsConfirm, discardManualCommands, exitCommands, keepsManualArea, keptDentalWork, manualEditCounts, startsDentalStep } from './flow';
+import { backNeedsConfirm, discardManualCommands, exitCommands, exitNeedsConfirm, keepsManualArea, keptDentalWork, manualEditCounts, startsDentalStep } from './flow';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u1', manual: [], deleted: [], contactSettings: {}, ...over }) as unknown as PrintUnit;
 
@@ -121,6 +121,39 @@ describe('dental flow rules', () => {
     const finished = unit({ supports: { kind: 'live', data: {} }, dental: { kind: 'two-contour' } as never });
     expect(exitCommands(finished, ['u1'])).toEqual([]);
     expect(exitCommands(undefined, [])).toEqual([]);
+  });
+
+  /*
+   * THE GUARD THE CONTROL NEVER HAD. It was called Exit, read as navigation, removed built supports
+   * and hand edits, and asked nothing - while Back out of Step 3, which discards strictly less, has
+   * always asked. These cases are the rule: ask when there is work to lose, stay out of the way when
+   * there is not.
+   */
+  it('Leaving the flow asks first exactly when it would destroy work', () => {
+    expect(exitNeedsConfirm(unit(), [])).toBe(false);
+    expect(exitNeedsConfirm(undefined, [])).toBe(false);
+    expect(exitNeedsConfirm(unit({ supports: { kind: 'live', data: {} } as never }), [])).toBe(true);
+    expect(exitNeedsConfirm(unit({ deleted: ['a'] }), [])).toBe(true);
+    expect(exitNeedsConfirm(unit({ manual: [{ id: 'm' }] as never }), [])).toBe(true);
+    expect(exitNeedsConfirm(unit({ contactSettings: { a: {} } }), [])).toBe(true);
+    // An area the operator painted themselves. `backNeedsConfirm` is blind to this (see W-01 above),
+    // which is the whole reason this is a rule of its own rather than a call to that one.
+    expect(exitNeedsConfirm(unit({ dental: { kind: 'legacy', origin: 'manual-area' } as never }), [])).toBe(true);
+  });
+
+  it('Leaving the flow stays silent at Step 1, where the only cost is a redetect', () => {
+    // A DETECTED policy and nothing else: `exitCommands` still clears it, and that is not worth a
+    // dialog - the detector runs again in seconds, and a prompt on the commonest way out of the flow
+    // is how an operator learns to dismiss prompts without reading them.
+    const detected = unit({ dental: { kind: 'two-contour', profileId: 'p' } as never });
+    expect(exitCommands(detected, [])).toEqual([{ type: 'dental/clear', unitId: 'u1' }]);
+    expect(exitNeedsConfirm(detected, [])).toBe(false);
+  });
+
+  it('Leaving the flow asks nothing about an aligner already finished, because it keeps it', () => {
+    const done = unit({ supports: { kind: 'live', data: {} } as never, deleted: ['a'] });
+    expect(exitCommands(done, ['u1'])).toEqual([]);
+    expect(exitNeedsConfirm(done, ['u1'])).toBe(false);
   });
 });
 

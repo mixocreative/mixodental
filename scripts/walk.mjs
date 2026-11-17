@@ -456,6 +456,24 @@ async function launch() {
 }
 
 /** The start screen (docs/ROADMAP.md ST) is the first thing the app shows: "Any model" opens the empty editor the scenarios below begin in. */
+/**
+ * The header's way out of the dental flow, answering its question when there is one.
+ *
+ * It was `Exit` and acted at once; it is now `Use as any model` and ASKS first whenever leaving
+ * would remove built supports, hand edits or a painted area (`dental/flow.ts exitNeedsConfirm`).
+ * Every press in this file predates that question, and on 2026-11-17 the walk proved it: the modal
+ * opened behind check `j`, nothing dismissed it, and `<dialog>` intercepted every later click until
+ * the run timed out. The app was right and the presses were stale.
+ *
+ * `answer` picks the key, so a check can prove the question CANCELS as well as confirms.
+ */
+async function leaveFlow(page, d, answer = 'exit-ask-confirm') {
+  await d.button('Use as any model').click();
+  const key = page.locator(`[data-ui="${answer}"]`);
+  // No question is the ordinary case at Step 1, where leaving costs a redetect and nothing else.
+  if (await key.isVisible().catch(() => false)) await key.click();
+}
+
 async function enterEditor(page) {
   await page.getByRole('button', { name: 'Any model', exact: true }).click();
   await page.waitForSelector('.workspace');
@@ -2472,7 +2490,7 @@ async function walk(url, scratch, dentalFixture) {
         panelsShown === 0 && await page.locator('.choice-key').count() === 0 && await page.getByText('Place the aligner file here').isVisible(),
         `panels ${panelsShown}, cards ${await page.locator('.choice-key').count()}`);
       await page.screenshot({ path: path.join(scratch, 'ux-a-step1-entry.png') });
-      await d.button('Exit').click();
+      await leaveFlow(page, d);
       await page.waitForFunction(() => !document.querySelector('.edit-badge'), null, { timeout: 5000 });
       check('u1 Exit at Step 1 leaves the flow with the plate untouched', (await objects()) === '0' && (await page.locator('.panel.left [inert]').count()) === 0, `objects ${await objects()}`);
 
@@ -2770,6 +2788,54 @@ async function walk(url, scratch, dentalFixture) {
       check('u5l Back at Step 1 shows the case instead of ending it: the rows, not the Drop page',
         (await page.locator('.items-list li').count()) > 0 && (await page.locator('.start-task').count()) === 0,
         `rows ${await page.locator('.items-list li').count()}, drop pages ${await page.locator('.start-task').count()}`);
+
+      /*
+       * ESC ON THE DECK MUST NOT REACH THE FLOW, and until 2026-11-17 it did.
+       *
+       * u5l has just put the Items page over a LIVE session, which is the state this is about. The
+       * app's key handler was not gated on the start screen, so Escape here ran `dental.exit` - which
+       * removes the worked-on unit's supports, hand edits and dental policy - while the deck stayed on
+       * screen and said nothing. The only trace was the exit status line, which is what this asserts
+       * the ABSENCE of: the deck's own line must still be there afterwards.
+       *
+       * No walk check could see it before, because none of them pressed a key on the deck.
+       */
+      await page.keyboard.press('Escape');
+      await d.idle(400);
+      const deckAfterEsc = await page.locator('.items-page').count();
+      const lineAfterEsc = (await page.locator('footer').innerText()).replace(/\s+/g, ' ');
+      check('u5l2 Esc on the deck does nothing to the live session underneath',
+        deckAfterEsc === 1 && !/without supports/i.test(lineAfterEsc),
+        `items pages ${deckAfterEsc}, status "${lineAfterEsc.slice(0, 80)}"`);
+
+      /*
+       * AND THE BENCH HAS A WAY BACK TOO, which until 2026-11-17 it did not.
+       *
+       * u5l proves the route Step 1's Back opens. Exit opens no route at all: it hands the operator the
+       * bench, with the models still on the plate and not one control naming the case they belong to.
+       * A single dropped aligner - the ordinary run, the fast path m1b describes - therefore reached
+       * the deck only by going back UP the flow, and an operator who pressed Exit first could not reach
+       * it again at all. The owner reported exactly that, as the deck having disappeared.
+       *
+       * The check walks the real way out and in: open the row, Exit to the bench, and ask the bench for
+       * the case. The absence of the key on an EMPTY plate is asserted by u1 one screen earlier, where
+       * Exit at Step 1 leaves nothing behind - a key offering a case that does not exist is the other
+       * half of this being right.
+       */
+      await page.locator('[data-ui="items-start"]').click();
+      await stepTo('Step 1 · Aligner', 60000);
+      await leaveFlow(page, d);
+      await page.waitForFunction(() => !document.querySelector('.edit-badge'), null, { timeout: 10000 });
+      const benchKey = page.locator('[data-ui="nav-files"]');
+      const onBench = await benchKey.isVisible().catch(() => false);
+      if (onBench) {
+        await benchKey.click();
+        await page.waitForSelector('.items-page', { timeout: 20000 });
+      }
+      check('u5m the bench offers the way back to the case, so Exit is not a dead end',
+        onBench && (await page.locator('.tool-rail').count()) === 1 && (await page.locator('.items-list li').count()) > 0,
+        `key on bench ${onBench}, rails ${await page.locator('.tool-rail').count()}, rows ${await page.locator('.items-list li').count()}`);
+
       // A CLEAN PLATE for the next fixture, and a reload is deterministic where re-entering a row is
       // not: the rows carry two cubes from above, and everything below assumes one object.
       await backToStepOne();
@@ -2784,7 +2850,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Cancel').click();
       await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
       check('u5b Cancel leaves rim define mode and lands back in Step 1, still in the flow',
-        (await badge()).includes('Step 1 · Aligner') && await d.button('Exit').isVisible(), `badge "${(await badge()).slice(0, 30)}"`);
+        (await badge()).includes('Step 1 · Aligner') && await d.button('Use as any model').isVisible(), `badge "${(await badge()).slice(0, 30)}"`);
 
       /*
        * AND STEP 1 SAYS WHAT TO DO. Cancelling with nothing drawn used to leave the operator on a
@@ -3352,7 +3418,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Back').click();
       await stepTo('Step 1 · Aligner');
       check('u11 Back from Step 2 returns to Step 1 with the oriented aligner kept', await d.button('Next').isEnabled() && (await page.getByText('Place the aligner file here').count()) === 0);
-      await d.button('Exit').click();
+      await leaveFlow(page, d);
       await page.waitForFunction(() => !document.querySelector('.edit-badge'), null, { timeout: 5000 });
       const left = await d.counts();
       check('u12 Exit leaves the aligners on the plate without supports', (await page.locator('.panel.left [inert]').count()) === 0 && Number(await objects()) >= 1 && left.auto === 0, `objects ${await objects()}, automatic supports ${left.auto}`);
@@ -3678,7 +3744,7 @@ async function walk(url, scratch, dentalFixture) {
        * Both aligners must survive it, by two different routes: the first was finished by Add
        * another aligner, the second by the export. Before the fix this came back 1 of 2.
        */
-      await d.button('Exit').click();
+      await leaveFlow(page, d);
       await d.idle(1200);
       await d.quiet();
       const afterExit = await d.props();
@@ -4057,7 +4123,7 @@ async function walk(url, scratch, dentalFixture) {
       await atStep1();
       check('s19 dropping again on the file screen enters Step 1, replacing the aligner that stayed', await plateHas(1));
       // Leave the flow so the checks after this block start with no mode on.
-      await d.button('Exit').click();
+      await leaveFlow(page, d);
     }
   } catch (error) {
     // The tab's death is reported ONCE, as itself, rather than as whichever control was unlucky.
@@ -4430,7 +4496,7 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 186;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts
+const EXPECTED_CHECKS = 188;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
 if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,

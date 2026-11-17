@@ -15,7 +15,8 @@ const DENTURE: Readonly<Record<string, string>> = {
   'No orientation was proposed for this aligner.': 'No orientation was proposed for this denture.',
   'Add an aligner first.': 'Add a denture first.',
   'Rotate the aligner to the proposed orientation again': 'Rotate the denture to the proposed orientation again',
-  'Leave the dental flow. The aligner stays on the plate without supports': 'Leave the dental flow. The denture stays on the plate without supports',
+  'Leave the dental flow and work on this aligner like any other model. Its supports and dental settings are removed':
+    'Leave the dental flow and work on this denture like any other model. Its supports and dental settings are removed',
   'Finish this aligner. It stays on the plate with its supports': 'Finish this denture. It stays on the plate with its supports',
   'Add another aligner': 'Add another denture',
   'Finish this aligner and add the next one of the same type': 'Finish this denture and add the next one',

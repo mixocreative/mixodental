@@ -43,15 +43,25 @@ Both review footers (aligner and denture) ask `reviewWayOn()` rather than naming
 flag moves them together and neither is left behind. Set `FLOW_END = 'bench'` to put OK back.
 
 **`dental.exit` is deliberately NOT on that list.** Routing it to the start screen too was built and
-the walk caught it: Exit's own hint promises *"the aligner stays on the plate without supports"*,
-which is a promise about the workspace, and landing on the start screen hides the object it just
-mentioned. `FLOW_END` is about where the last step **ends**, not about the escape hatch.
+the walk caught it: the control promises the model stays on the plate, which is a promise about the
+workspace, and landing on the start screen hides the object it just mentioned. `FLOW_END` is about
+where the last step **ends**, not about the way out.
+
+**It was called Exit until 2026-11-17, and the word was a lie about what it does.** The press runs
+`exitCommands` (`src/dental/flow.ts`): the worked-on unit's supports are removed, its hand edits
+cleared, its dental policy dropped. So the most destructive control in the flow wore the one label
+that promises to cost nothing, sat in the header at every step, and carried Esc's last rung — while
+Back out of Step 3, which discards strictly less, has asked for confirmation since it was written.
+The capability is right and stays: this is the only route from a dental-started model to free work on
+the bench. Only the name was. It now reads **Use as any model**, and `exitNeedsConfirm` asks first
+whenever leaving would cost the operator built supports, hand edits or an area they painted.
 
 **Export writes the file and stays on Step 3. It does not also navigate**, and that is deliberate:
 `runExport` reports a refusal — the model changed, the supports did not build, the safety check could
 not reach a verdict — through the status line and returns exactly as it does on success. A press that
 navigated would walk the operator away from a file that was never written. *Add another aligner* and
-*Exit* remain the two ways on, and both are already honest about where they go.
+*Use as any model* remain the two ways on, and both are now honest about where they go and what
+they cost.
 
 ### Why this is a route and not "the bench is off"
 
