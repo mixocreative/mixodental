@@ -65,11 +65,50 @@ needed.**
   or replace the file"), which is the difference between editing a file and editing a file a
   generator will overwrite. The front page pre-empts the stranger's likeliest mistake too: "Edit the
   file this page names, not this page."
-- **§5, the placeholder wording.** Still yours, and still the only part of this list a machine has
-  nothing to add to. But read as a stranger they already do the job the audits asked of them: the two
-  print-angle notices DO say different things ("No print angle passed the check" is about this model;
-  "The print-angle check could not finish" is about the run), and the stopped screen's crash sentence
-  leads with what the operator can still save. **What is left is voice, not clarity.**
+- **§5, the placeholder wording.** Still yours. Read as a stranger they already do the job the
+  audits asked of them: the two print-angle notices DO say different things ("No print angle passed
+  the check" is about this model; "The print-angle check could not finish" is about the run), and
+  the stopped screen's crash sentence leads with what the operator can still save. **What is left
+  is voice, not clarity** — so the drafts below are a menu, not a recommendation, and nothing here
+  is in the code.
+
+### Drafts for §5, so it is a pick rather than a blank page (2026-11-17)
+
+**None of these shipped.** Each line is the current placeholder, then two alternates that say the
+same fact in a different register. The register is the choice: A keeps the app's habit of leading
+with what the operator can DO; B leads with what happened. Pick one, edit it, or keep what is there
+— all three are already true.
+
+**`AppBoundary.tsx` — the stopped screen.**
+
+| | now | A — act first | B — state first |
+|---|---|---|---|
+| `crash` title | The workspace stopped | Your models are still here | The workspace stopped |
+| `crash` sentence | Your models are still in this page. Save them before reloading - a reload does not keep them. | Save them now — reloading this page will not keep them. | The workspace stopped, but nothing is lost yet: your models are still in this page, and a reload will not keep them. |
+| `engine` title | The 3D engine did not load | The 3D engine did not load | The 3D engine did not load |
+| `engine` sentence | Reload the page to try again. If it keeps happening, your browser may be blocking WebAssembly. | Reload to try again. If it keeps happening, your browser is probably blocking WebAssembly. | The 3D engine could not start. Reloading usually fixes it; if it does not, your browser may be blocking WebAssembly. |
+| `no-webgl2` title | mixoDental cannot start on this device | mixoDental cannot start on this device | This device cannot run mixoDental |
+| `no-webgl2` sentence | This browser could not start WebGL2 3D graphics, which mixoDental needs to show and prepare models. Try Chrome or Edge on a desktop computer. | Open mixoDental in Chrome or Edge on a desktop computer: this browser cannot start the 3D graphics it needs. | This browser could not start WebGL2, the 3D graphics mixoDental needs to show and prepare models. A desktop Chrome or Edge will. |
+
+**`DentalSteps.tsx` — the two print-angle outcomes (MIXO-02).** The distinction the audit asked for
+is THIS MODEL against THE RUN, and all three columns keep it.
+
+| | now | A — act first | B — state first |
+|---|---|---|---|
+| `angle-none-held` | No print angle passed the check. Supports on this model need a close look before you export. | Look at the supports before exporting: no print angle passed the check on this model. | No print angle passed the check for this model. Its supports need a close look before you export. |
+| `angle-check-failed` | The print-angle check could not finish, so this angle is unproven. Check the supports before you export. | Check the supports before exporting: the angle check did not finish, so this angle is unproven. | The print-angle check did not finish. This angle is unproven, not rejected — check the supports before you export. |
+
+**MIXO-06 — the files a start screen counted, dropped by Open a saved project.** The CODE is done
+(`App.tsx`, `StartScreen.tsx`: both now honour the held batch, and this notice is for the one case
+that cannot survive). Only the sentence is open.
+
+| now | A — act first | B — state first |
+|---|---|---|
+| {n} dropped files were not imported: opening a project replaces everything on the plate. | Drop them again after the project opens: opening one replaces everything on the plate, so {n} files were not imported. | Opening a project replaces everything on the plate, so {n} dropped files were not imported. |
+
+**The one thing a stranger would change regardless of register:** the crash sentence is the only
+place in the set where the operator can lose something, and it currently says what happened before
+it says what to do. Both alternates lead with the save. That is the line to decide first.
 
 ---
 
