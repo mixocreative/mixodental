@@ -1621,9 +1621,9 @@
     "semantic_hash": ""
   },
   "src/dental/flow.ts": {
-    "mtime": 1794300786.5097687,
-    "seen": 1794301598.1539404,
-    "ast_hash": "d4831e221adc1654f9a161e3794901b2",
+    "mtime": 1794895369.808556,
+    "seen": 1794898643.146618,
+    "ast_hash": "2910ca714652c2746875ebb5299e2ab5",
     "semantic_hash": ""
   },
   "src/components/DentalSupports.tsx": {
@@ -1669,9 +1669,9 @@
     "semantic_hash": ""
   },
   "src/dental/flow.test.ts": {
-    "mtime": 1794300755.8840375,
-    "seen": 1794301598.1539404,
-    "ast_hash": "82c9f1dbcd70f12786118d5f3f0f2e88",
+    "mtime": 1794895407.4311833,
+    "seen": 1794898643.146618,
+    "ast_hash": "c6f25bf5d27ee1c2e947e466ba20b01a",
     "semantic_hash": ""
   },
   "scripts/test-support/supportParityHarness.ts": {
@@ -2923,9 +2923,9 @@
     "semantic_hash": ""
   },
   "src/components/useDentalFlow.ts": {
-    "mtime": 1794427544.7493,
-    "seen": 1794429099.988029,
-    "ast_hash": "50a6383519f13022e2013e6d28ba68aa",
+    "mtime": 1794895386.3992126,
+    "seen": 1794898643.146618,
+    "ast_hash": "8436c9a24a88a615df4009e6374c58e6",
     "semantic_hash": ""
   },
   "scripts/dental-region-review/profile.ts": {
@@ -6001,9 +6001,9 @@
     "semantic_hash": ""
   },
   "docs/handoff/human-test-2026-11-11.md": {
-    "mtime": 1794891106.994342,
-    "seen": 1794894272.1270952,
-    "ast_hash": "a86445a488ba9bd845f77f20b131664c",
+    "mtime": 1794898588.5034764,
+    "seen": 1794898643.146618,
+    "ast_hash": "c6c06e03deec149c63cc7649c8e9b0b6",
     "semantic_hash": ""
   },
   "src/ui/assets/art/night-guard.svg": {
@@ -6187,9 +6187,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/README.md": {
-    "mtime": 1794894219.2197933,
-    "seen": 1794894272.1270952,
-    "ast_hash": "c824c4402c84f5b7b9086c0f762ae1ed",
+    "mtime": 1794898588.6271513,
+    "seen": 1794898643.146618,
+    "ast_hash": "e380c81c8bf73f4ce877e15f5d4de918",
     "semantic_hash": ""
   },
   "src/state/README.md": {
@@ -6601,9 +6601,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-16-babylon-layer-port.md": {
-    "mtime": 1794894219.2476707,
-    "seen": 1794894272.1270952,
-    "ast_hash": "9cb88eb82d3ab26752707571a6fb40a4",
+    "mtime": 1794898604.3291123,
+    "seen": 1794898643.146618,
+    "ast_hash": "f9b72fa5de6d037195b194a06fbfc799",
     "semantic_hash": ""
   },
   "src/components/viewport/babylon/supportBodies.ts": {
