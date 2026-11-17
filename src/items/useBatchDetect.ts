@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PrintUnit } from '../state/project';
 import type { AnalysisClient } from '../workers/analysisClient';
 import { detectStateOf, type DetectState } from './detectState';
@@ -28,6 +28,7 @@ export function useBatchDetect({ units, profile, analysis, unitName }: {
   const [states, setStates] = useState<ReadonlyMap<string, DetectState>>(new Map());
   /** Units a job has already been queued for, so a re-render never submits twice. */
   const started = useRef(new Set<string>());
+  const [retries, setRetries] = useState(0);
   /**
    * THE QUEUE, and it is a queue because the first version LOST WORK. That one returned early while a
    * loop was running — so units arriving in a LATER render were marked started and then never
@@ -80,7 +81,23 @@ export function useBatchDetect({ units, profile, analysis, unitName }: {
       }
       running.current = false;
     })();
-  }, [units, profile, analysis, unitName]);
+  }, [units, profile, analysis, unitName, retries]);
 
-  return states;
+  /*
+   * A FAILED ROW CAN BE TRIED AGAIN, and until now it could not.
+   *
+   * `started` only ever grows, so a row whose detection failed was never queued a second time: the
+   * only way back was to open it and let the flow re-run orientation in-step, which the row itself
+   * never said. Fable called this the single most important gap in the flow map, and it is - under
+   * review-by-exception these are the rows that ARE the human's job.
+   *
+   * The tick is what makes it work: the effect wakes on `units` changing, and a retry changes no
+   * unit. Forgetting the id without it would leave the row pending until the next drop.
+   */
+  const retry = useCallback((unitId: string) => {
+    started.current.delete(unitId);
+    setRetries((count) => count + 1);
+  }, []);
+
+  return { states, retry };
 }

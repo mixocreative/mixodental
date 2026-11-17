@@ -5,6 +5,22 @@ a rail down the left of the deck with the models beside it, and the dependency b
 expressed by **what the operator can press** rather than by marching them through steps. Nothing is
 enforced beyond what is genuinely impossible.
 
+## What the deck now carries
+
+Beyond the rail and the rows, the case screen owns the work that belongs to the WHOLE case, which
+until 2026-11-18 lived only on the bench - a screen not rendered while a start screen is up, so the
+one page that knows about many models could not finish a case:
+
+| key | what it does |
+|---|---|
+| **Arrange objects** | `plate.arrange`, unchanged; pure, and it never needed the workspace |
+| **Each object with model** | `runExport('separate-printable')`. Per object, because this app has no build plate - the slicer packs it. Off, with its reason, until something has supports |
+
+And three rules for a case of 10-30 rather than 4: the rail and the footer are **pinned**, rows that
+**need a person sort first**, and one **aggregate line** replaces twenty-three "Waiting its turn…".
+A row whose detection FAILED carries **Retry**; `no-rim` does not, because it is the ordinary answer
+for a trimmed arch and its own line already says to draw one.
+
 ## Three doors, and the one that was missing
 
 The deck is the Items page (`src/items/ItemsPage.tsx`), rendered while `startScreen === 'items'`.
@@ -24,7 +40,12 @@ It is reached by:
    not — it had no door. The key takes route 2's approach exactly: it keeps the session and only
    invalidates the running jobs, which belong to the unit being walked away from. Walk `u5m`.
 
-**The key is offered at Step 1 and off the flow, and nowhere else.** `startItem`, the deck's own way
+**(Superseded 2026-11-18: the key is offered everywhere again.)** `startItem` no longer forks on the
+session's stage - it sends `exit` then `startDental` with `resume`, which is what its non-dental half
+always did - so re-entry is safe from any tool and the gate below was scaffolding that has come down.
+The reasoning is kept because it is why the gate existed:
+
+**The key was offered at Step 1 and off the flow, and nowhere else.** `startItem`, the deck's own way
 back in, can only cope with a session at stage `aligner`: from `review` it sends `addAnotherDental`,
 which marks the abandoned unit FINISHED with no readiness check, and from `area` or `rim`
 `dentalLoading` is a no-op, so the next row opened inherits the previous unit's stage and id. Every

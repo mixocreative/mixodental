@@ -21,10 +21,12 @@ import { THUMB_SIZE, type ThumbCache } from './thumbnail';
  * Every part is named for the UNIT, never for the row's position: `items-row-3` would re-point every
  * later row the moment one is removed.
  */
-export function ItemRow({ unit, done, onRail, detected, thumbnails, onSelect, onRemove }: {
+export function ItemRow({ unit, done, onRail, detected, thumbnails, onSelect, onRemove, onRetry }: {
   unit: PrintUnit;
   /** Already through the flow: the row dims rather than disappearing. */
   done: boolean;
+  /** Try this row's detection again; shown only on a row whose detection failed. */
+  onRetry: () => void;
   /** This is the row the rail acts on. Not "visible" - every row is visible. */
   onRail: boolean;
   detected: DetectState | undefined;
@@ -89,6 +91,16 @@ export function ItemRow({ unit, done, onRail, detected, thumbnails, onSelect, on
       session off (`editing/session.ts` reads `event.id` to decide the mode). The reducer now guards
       the same invariant, so this is the local half of a fix that is made in two places on purpose.
     */}
+    {/*
+      A FAILED ROW GETS THE WAY BACK IT NEVER HAD. `useBatchDetect` only ever grew its started set,
+      so a row whose orientation check failed was never queued again - and the row's own line named
+      no next action, which is the rule `src/deck/README.md` holds every greyed or stuck control to.
+      Only on `failed`: `no-rim` is not a failure, it is the ordinary answer for a trimmed arch and
+      its line already says to draw one.
+    */}
+    {detected?.kind === 'failed' ? <button type="button" className="retry" data-ui={`items-retry-${unit.id}`}
+      title={t('Check this file again.')}
+      onClick={(event) => { event.stopPropagation(); onRetry(); }}>{t('Retry')}</button> : null}
     <button type="button" className="danger remove" data-ui={`items-remove-${unit.id}`}
       title={t('Take this file off the list.')}
       onClick={(event) => { event.stopPropagation(); onRemove(); }}>{t('Remove')}</button>

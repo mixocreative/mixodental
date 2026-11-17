@@ -57,6 +57,7 @@ export function detectSentence(state: DetectState): Message | undefined {
     // tells them the file arrived that way, which is worth knowing when a batch is inconsistent.
     case 'oriented': return { key: state.turned ? 'Turned upright.' : 'Already upright.' };
     case 'no-rim': return { key: 'No rim found. Draw one to continue.' };
-    case 'failed': return { key: 'Could not check the orientation.' };
+    // It names the next thing to do, because the row is one of the few the operator must handle.
+    case 'failed': return { key: 'Could not check the orientation. Press Retry, or open it to orient by hand.' };
   }
 }

@@ -1769,3 +1769,17 @@ dialog.terms .terms-item > span { flex: none; }
  * the app still works, and this must not read like the whole session has failed.
  */
 .panel-stopped { margin: 8px; padding: 10px 12px; border: 1px dashed var(--line-strong, #b6b9c0); border-radius: var(--radius, 8px); color: var(--muted, #5b6069); font-size: var(--small-size, 11.5px); }
+
+/*
+ * THE CASE SCREEN AT TWENTY-FOUR ROWS. It was laid out for four: one scrolling column, so the
+ * case-level keys ended up below every row and the rail scrolled away from the card it acts on.
+ * A stage case is routinely 10-30 models, so both are pinned - the rail to the top of its column,
+ * the keys to the foot of the page - and the list scrolls between them.
+ */
+.items-page .tool-rail { position: sticky; top: 12px; }
+.items-case { display: flex; gap: 8px; justify-content: flex-end; padding: 10px 0 0; }
+.items-case-key { height: 34px; }
+.items-case, .items-foot { position: sticky; bottom: 0; background: var(--paper); z-index: 2; }
+.items-progress, .items-attention { font-size: 13px; color: var(--muted); margin-left: 12px; }
+/* The one line that is about work waiting for a person, so it is the one that is not muted. */
+.items-attention { color: var(--red); }
