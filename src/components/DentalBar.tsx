@@ -12,7 +12,7 @@ import { DentalAlignerPrompt, noticeText } from './DentalSteps';
 import { OrientationBar, type DentalFreeControls } from './OrientationBar';
 import { DentalSupportsStep, type DentalReview } from './DentalSupports';
 import { DentalRimStep } from '../dental/rim/DentalRimStep';
-import { rimBadgeText } from '../dental/rim/rimStepText';
+import { rimNowText } from '../dental/rim/rimStepText';
 import { RangeField } from './RangeField';
 import { ClickReachField, SelectStyleSwitch } from './EditBar';
 import { Segmented } from './Segmented';
@@ -88,7 +88,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      {t(words.title)}<span>{gesture.phase === 'ready' ? unitName : words.profileName}</span>
+      <strong>{t(words.title)}</strong><span>{gesture.phase === 'ready' ? unitName : words.profileName}</span>
       <b>{gesture.phase === 'ready' ? t(words.ready) : t(words.waiting)}</b>
     </div>
     {gesture.phase === 'ready'
@@ -111,8 +111,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   if (gesture.kind === 'dental-rim') return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      {t('Define the rim')}<span>{unitName}</span>
-      <b>{t(rimBadgeText(ui.dentalRimClosed === true))}</b>
+      <strong>{t('Define the rim')}</strong><span>{unitName}</span>
+      <b>{t(rimNowText(ui))}</b>
     </div>
     <DentalRimStep ui={ui} run={run} notices={gesture.notices} />
   </>;
@@ -121,7 +121,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      {t(kind === 'denture' ? 'Step 2 · Supports' : 'Step 3 · Supports')}<span>{unitName}</span>
+      <strong>{t(kind === 'denture' ? 'Step 2 · Supports' : 'Step 3 · Supports')}</strong><span>{unitName}</span>
       <b>{t(kindText('Review the supports, adjust the settings, then press OK.', kind))}</b>
     </div>
     {review && kind === 'denture' && dentureReview
@@ -132,7 +132,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      {t('Step 2 · Support area')}<span>{unitName}</span>
+      <strong>{t('Step 2 · Support area')}</strong><span>{unitName}</span>
       <b>{gesture.notices.some((notice) => notice.kind === 'no-area') ? t('No support area was detected. Mark it, then press Next.') : t('Support area is marked. Press Next, or paint to adjust.')}</b>
     </div>
     <div className="edit-bar dental-brush">

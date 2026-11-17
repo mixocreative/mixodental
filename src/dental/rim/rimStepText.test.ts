@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { setLanguage, t } from '../../i18n';
-import { rimBadgeText, rimDoneReason, rimLoopText, rimProblemText } from './rimStepText';
+import { rimBadgeText, rimDoneReason, rimLoopText, rimProblemText , rimNowText } from './rimStepText';
 
 describe('rim define mode words', () => {
   /*
@@ -77,6 +77,37 @@ describe('rim define mode words', () => {
       }
     } finally {
       setLanguage('en');
+    }
+  });
+});
+
+describe('the badge says what to do now, not just how the tool works', () => {
+  /*
+   * The owner, using it on 2026-11-17: "it is unclear when to close loop, or not, if not how to
+   * accept and done". Both facts were already computed and neither was on screen - the blocker lived
+   * on a disabled button's hover tip, which is nowhere.
+   */
+  it('names the blocker while the loop is open, instead of the tool grammar', () => {
+    expect(rimNowText({ dentalRimAnchors: 0 })).toBe('Place at least three points, then close the loop.');
+    expect(rimNowText({ dentalRimAnchors: 2 })).toBe('Place at least three points, then close the loop.');
+    expect(rimNowText({ dentalRimAnchors: 4 })).toBe('Close the loop to finish the rim.');
+  });
+
+  it('names the fault when the loop is closed but will not build', () => {
+    expect(rimNowText({ dentalRimClosed: true, dentalRimAnchors: 5, dentalRimProblem: 'SELF_INTERSECTING' }))
+      .toBe('This loop crosses itself, so it has no inside. Move the points that cross.');
+  });
+
+  it('tells the operator how to ACCEPT once nothing is in the way', () => {
+    const ready = rimNowText({ dentalRimClosed: true, dentalRimAnchors: 6 });
+    expect(ready).toContain('Done');
+    // And it still carries the grammar, which is the other half of what a first-timer needs.
+    expect(ready).toContain('Drag a point');
+  });
+
+  it('never returns an empty line: there is always a next thing to do', () => {
+    for (const state of [{}, { dentalRimAnchors: 3 }, { dentalRimClosed: true, dentalRimAnchors: 3 }]) {
+      expect(rimNowText(state).trim().length).toBeGreaterThan(0);
     }
   });
 });

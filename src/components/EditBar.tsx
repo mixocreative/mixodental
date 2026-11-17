@@ -47,7 +47,7 @@ export function EditBar({ gesture, unitName, ui, clickReach, send, run }: {
   return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      {t('Support Edit Mode')}<span>{unitName}</span>
+      <strong>{t('Support Edit Mode')}</strong><span>{unitName}</span>
       <b>{t(BADGE[gesture.kind === 'add' && gesture.remove ? 'remove' : gesture.kind === 'drag' && gesture.brush.mode === 'unselect' ? 'dragUnselect' : gesture.kind])}</b>
     </div>
     <div className="edit-bar">

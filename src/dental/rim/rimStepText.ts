@@ -72,8 +72,28 @@ export function rimDeleteReason(state: {
  */
 export function rimBadgeText(closed: boolean): string {
   return closed
-    ? 'Drag a point to move it. Click the line to add a point.'
+    ? 'Drag a point to move it. Click the line to add a point. Press Done when the rim fits.'
     : 'Click the model to add points, and the first point to close the loop. Click the line to add one between.';
+}
+
+/**
+ * WHAT TO DO NOW, in the one place the operator is looking: over the viewport, not on a hover tip.
+ *
+ * The badge used to show the GRAMMAR of the tool and nothing else, while the reason Done was off sat
+ * on the disabled button where it is only found by hovering it. So an operator with four points and
+ * an open loop was told "click the model to add points" by the badge and nothing at all about the
+ * one thing standing between them and finishing. The owner met exactly that on 2026-11-17: *"it is
+ * unclear when to close loop, or not, if not how to accept and done"*.
+ *
+ * This is the deck's own rule about greyed controls (`src/deck/toolState.ts`: a disabled thing must
+ * say why AND what to do) applied to the one control that had been left out of it. A BLOCKER always
+ * wins the line, because it is the next thing to do; with none, the grammar comes back and now ends
+ * by naming the way out.
+ */
+export function rimNowText(state: {
+  dentalRimClosed?: boolean; dentalRimAnchors?: number; dentalRimProblem?: string;
+}): string {
+  return rimDoneReason(state) ?? rimBadgeText(state.dentalRimClosed === true);
 }
 
 /**

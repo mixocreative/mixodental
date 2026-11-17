@@ -412,9 +412,20 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
   top: 14px;
   left: 16px;
   z-index: 3;
+  /*
+   * A COLUMN, AND ONE WIDTH FOR BOTH BLOCKS (owner, 2026-11-17: "both should hv same max width").
+   *
+   * This was a ROW, which fought its own markup: the step name, the file name and the what-to-do-now
+   * block were three flex siblings sitting side by side, so the teal block's width was whatever its
+   * sentence happened to need and never the badge's. `align-items: stretch` is what makes the two
+   * agree; the `max-width` is what stops a long file name - a real one measured 854 px at 1440 -
+   * dragging the whole badge across the viewport and taking the sentence's line length with it.
+   */
   display: flex;
-  gap: 10px;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  max-width: min(420px, calc(100vw - 32px));
   /* Same height and text size as the buttons beside it. */
   padding: 8px 12px;
   line-height: normal;
@@ -426,14 +437,25 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
   letter-spacing: .06em;
   pointer-events: none;
 }
-/* The step's NAME leads the block, at a size that says which step this is from across the room. */
-.edit-badge strong, .edit-badge > :first-child { font-size: 17px; font-weight: 600; letter-spacing: .01em; }
+/*
+ * The step's NAME leads the block, at a size that says which step this is from across the room.
+ *
+ * `> :first-child` USED TO DEFEAT THAT AND SAY THE OPPOSITE. The step name is written as a bare
+ * TEXT NODE in the markup, and a text node is not a child element - so `:first-child` matched the
+ * `<span>` beside it, and the badge put the FILE NAME at 17 px and the step name at 13 px, exactly
+ * backwards from the line above. Measured in the browser on 2026-11-17 and found by the owner's eye
+ * first. The markup now wraps the step name in `<strong>`, which this rule has always named, and the
+ * `:first-child` half is gone rather than left as a trap for the next badge that forgets it.
+ */
+.edit-badge strong { font-size: 17px; font-weight: 600; letter-spacing: .01em; }
 .edit-badge span { opacity: .8; letter-spacing: .02em; font-size: 11.5px; }
 /* WHAT TO DO NOW is a block of its own in the teal, the same teal the way back wears, so the one sentence the
    reader must act on is not the same surface as the step's name above it. */
 .edit-badge b {
   font-weight: 500; letter-spacing: .02em;
-  margin: 2px -12px -8px; padding: 8px 12px;
+  /* -13 and -9, not -12 and -8: the badge's 1px BORDER sits outside its padding, so cancelling the
+     padding alone left this block inset by a hairline on three sides - visible as a thin red seam. */
+  margin: 4px -13px -9px; padding: 8px 12px;
   background: var(--accent-strong, var(--line-strong));
   color: var(--surface);
 }
@@ -714,7 +736,10 @@ footer.on-scene button { pointer-events: auto; }
   cursor: pointer;
 }
 .lang-select > select:focus-visible { outline: 0; }
-.nav-exit { height: 36px; margin-left: 8px; }
+.nav-exit, .nav-files { height: 36px; margin-left: 8px; }
+/* The word beside the arrow, the same pairing the deck's own Back uses, so the two read as one key. */
+.nav-files { display: inline-flex; align-items: center; gap: 6px; }
+.nav-files svg { width: 16px; height: 16px; flex: none; }
 
 /* ---- Support check ---------------------------------------------------------- */
 .problems { list-style: none; margin: 8px 0 0; padding: 0; border-top: 1px solid var(--line); }
