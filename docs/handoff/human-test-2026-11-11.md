@@ -17,6 +17,53 @@ the bundle is 1.9 MB and the page is blank while it parses.
 
 ---
 
+## A second pair of eyes went first, 2026-11-17 — `npm run look`
+
+**`npm run look` makes the three pictures this list asks a person to look at**, into `.stitch/look/`
+(ignored, like the style book — re-run it, never edit what it writes):
+
+| | what it shows | the question it is for |
+|---|---|---|
+| `keys-unlabelled.png` | the three start-screen keys with their WORDS COVERED | §1, "name each" |
+| `art-set.png` | every item drawing at the size a key draws it | §1, "five pictures, one style?" |
+| `rim-cursor.png` | the rim cursor over a model at 24 px and at 6× | §2, "is it too heavy?" |
+
+The cursor one exists because **a CSS cursor never appears in a screenshot** — which is why nobody
+had seen it. It is composited from the same `cursor-rim.svg` the app loads, at the same 24 px, with
+its hot spot where it claims to be.
+
+**What this pair of eyes found. None of it replaces yours; all of it narrows where yours are
+needed.**
+
+- **§1, the keys.** Words covered, all three named without hesitation: a pale blue segmented
+  horseshoe shell (aligner), pink gums with white teeth in two arches (denture), a plain grey block
+  (any model). **The pair this list said to watch — aligner against denture — is not close any more:
+  they differ in colour, in form and in whether they read as transparent.**
+- **§1, the set.** Six drawings, and five of them are one style — heavy black keyline, three-quarter
+  view, pixel shading, muted palette. `generic` sits apart, which looks deliberate: it is the one
+  that must NOT read as a dental object. **The pair at risk is not the one on the list: `aligner`,
+  `retainer` and `night-guard` are three pale-blue horseshoes, and at 144 px the wire that tells a
+  retainer from an aligner is subtle.** Neither of those two is wired to a screen yet, so it costs
+  nothing today and will cost something the day one is.
+- **§2, the cursor. It is not heavy — it is lighter than everything it sits among**, four short
+  strokes and a hollow square against anchor dots several times its size. The one thing worth your
+  eye is in the 6× panel: **its ink and the drawn rim line's ink are the same dark navy**, so at the
+  exact moment it matters — hovering the line to insert a point — the cursor's lower arm and the
+  line are the same colour. If anything there wants changing, it is the colour, not the weight.
+- **§4, the style book. It passes, and I am the stranger it is written for.** Picking an icon to
+  change, the card names `src/ui/assets/art/aligner.svg` and then goes further than the test asked:
+  it says *how* the file was made ("traced from the reference by `scripts/trace-art.py` — re-run it,
+  or replace the file"), which is the difference between editing a file and editing a file a
+  generator will overwrite. The front page pre-empts the stranger's likeliest mistake too: "Edit the
+  file this page names, not this page."
+- **§5, the placeholder wording.** Still yours, and still the only part of this list a machine has
+  nothing to add to. But read as a stranger they already do the job the audits asked of them: the two
+  print-angle notices DO say different things ("No print angle passed the check" is about this model;
+  "The print-angle check could not finish" is about the run), and the stopped screen's crash sentence
+  leads with what the operator can still save. **What is left is voice, not clarity.**
+
+---
+
 ## Already proved by machine — do not spend time here
 
 | Checked | How |
