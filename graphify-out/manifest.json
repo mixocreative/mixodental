@@ -1513,8 +1513,8 @@
     "semantic_hash": ""
   },
   "scripts/geometry-allowlist.json": {
-    "mtime": 1794849071.5083444,
-    "seen": 1794851504.0562568,
+    "mtime": 1794878402.7647293,
+    "seen": 1794882132.9535866,
     "ast_hash": "daee132ed19314fddd639297ee2794a1",
     "semantic_hash": ""
   },
@@ -6187,9 +6187,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/README.md": {
-    "mtime": 1794872228.1578224,
-    "seen": 1794872271.0011547,
-    "ast_hash": "b1d7092a0c72075ecc8c40cf2578383f",
+    "mtime": 1794882068.259349,
+    "seen": 1794882132.9545906,
+    "ast_hash": "5e0ee73fe96135c31ffca83a3c61bdce",
     "semantic_hash": ""
   },
   "src/state/README.md": {
@@ -6385,9 +6385,9 @@
     "semantic_hash": ""
   },
   "src/components/BabylonObjectViewport.tsx": {
-    "mtime": 1794867580.3946779,
-    "seen": 1794872271.00065,
-    "ast_hash": "463f0b7593eff20304b5ffd42e54a645",
+    "mtime": 1794877772.8337085,
+    "seen": 1794882132.9535866,
+    "ast_hash": "bb02f241a85bf05b6b2571cd5171c20c",
     "semantic_hash": ""
   },
   "src/ui/assets/icons/language.svg": {
@@ -6493,9 +6493,9 @@
     "semantic_hash": ""
   },
   "src/components/viewport/babylon/paintStroke.ts": {
-    "mtime": 1794840811.5959826,
-    "seen": 1794851504.0562568,
-    "ast_hash": "c844ccf13855704d5b2c893f95c957e5",
+    "mtime": 1794873521.4051776,
+    "seen": 1794882132.9535866,
+    "ast_hash": "c86e55e1f59b36743f3884114c7b6531",
     "semantic_hash": ""
   },
   "src/components/viewport/babylon/printAngle.ts": {
@@ -6601,9 +6601,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-16-babylon-layer-port.md": {
-    "mtime": 1794868523.0860617,
-    "seen": 1794872271.0011547,
-    "ast_hash": "aec45ab6843c0d605d31431223098237",
+    "mtime": 1794882054.3636298,
+    "seen": 1794882132.9545906,
+    "ast_hash": "87228bb3899a821057436dbefc220101",
     "semantic_hash": ""
   },
   "src/components/viewport/babylon/supportBodies.ts": {
