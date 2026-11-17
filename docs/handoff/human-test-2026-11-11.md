@@ -60,36 +60,49 @@ decodes it and the string is tested, but **nobody has yet looked at it over the 
 
 These were found and fixed by machine. They want a human once.
 
-**Three of the four are now driven by `npm run walk` on BOTH renderers** (`u5c`..`u5k3`,
-`npm run walk -- --renderer=babylon`), so what is left for a person on those is the FEEL, not the
-fact: drawing a rim where detection fails, Done then editing it, redrawing a confirmed rim, and
-dragging a point along the line all pass, 186 checks, zero failures. The fourth is below.
+**All four are now answered by machine, 2026-11-17.** Three are driven by `npm run walk` on BOTH
+renderers (`u5c`..`u5k3`, `npm run walk -- --renderer=babylon`): drawing a rim where detection
+fails, Done then editing it, redrawing a confirmed rim, and dragging a point along the line all
+pass, 186 checks, zero failures. The fourth — the painted area surviving the step — was driven
+directly and also passes. **What is left for a person on this section is the FEEL, not the fact.**
+
+One real fault turned up beside the fourth while proving it, and it is written out under that
+bullet: a TUNING change does not survive leaving and returning to Step 2.
 
 - Draw a rim by hand on a model the detector fails on, then **press Done, then go back and edit it**.
   The edit used to be refused.
 - **Redraw a rim you have already confirmed**, then press Next. The redraw used to be discarded.
 - **Paint an area, leave the step, come back.** The paint used to be lost on re-accept.
-  **A machine has now driven this one, 2026-11-17, and it narrows to a single look.** Driving Step 2
-  to 108 tips, pressing Back and then Next, and waiting three seconds for the preview to stop
-  moving, in BOTH renderers:
+  **ANSWERED BY MACHINE, 2026-11-17, and it needs no human after all: the paint survives.** Driven
+  on `dentalwork/fixtures/case-001/aligner.stl` with nothing else touched — paint one stroke, press
+  Back, press Next:
 
-  | | on leaving | on return |
+  | | before | after Back + Next |
   |---|---|---|
-  | tips shown | 108 | **2** |
-  | area stamps stored | 104 | 104 |
-  | detected region (contact faces) | 15,943 | **14,110** |
+  | tips shown | 104 | **104** |
+  | area stamps | 31 | 31 |
+  | detected region (contact faces) | 14,110 | 14,110 |
 
-  So the PAINT itself survives — the old bug is still fixed — and the stored area is untouched. What
-  changes is the detected REGION, and with it the tips. Two readings fit those numbers and a person
-  can tell them apart in one glance at the screen:
+  **But the same drive found a different fault beside it, and this one is real.** Change a TUNING
+  slider (Area width, two presses) and then leave and come back:
 
-  - the re-detection after Next legitimately moved the area away from where it was painted, in which
-    case the operator is looking at a correct but unexplained emptiness and wants a notice;
-  - or the tip preview is stale and the area is really still live underneath it.
+  | | before | after tuning | after Back + Next |
+  |---|---|---|---|
+  | tips shown | 104 | 104 | **0** |
+  | area stamps | 31 | 31 | 31 |
+  | detected region (contact faces) | 14,110 | 14,946 | **14,110** |
 
-  **Look at the model on return: is the painted strip still drawn where you put it, with no tips on
-  it?** That is the first reading. If the strip has moved or gone, it is the second. Either way the
-  screen says it immediately and no amount of further measuring will.
+  So: the stamps and the tuning VALUE are both carried over — `keptDentalWork` in `src/dental/flow.ts`
+  does that, and its comment describes this very class of bug (W-01). What is not carried over is the
+  AREA the tuning produced: the region reverts to its untuned detection, and the tip preview comes
+  back **absent**, not merely smaller. The count reads 0 because `dentalPreview` is undefined, so it
+  is the preview that never returns, not a proposal that returned empty.
+
+  It reproduces in BOTH renderers and on the shipping three.js one, so it is nothing to do with the
+  Babylon work. **It is a bug report, not a question for your eyes** — the only judgement left is
+  whether re-entry should re-derive the area from the kept tuning (the comment in `flow.ts` says the
+  staleness model exists for exactly that) or reset the slider to match what it actually drew.
+
 - Drag a point along the drawn line. Every point on the visible line should be grabbable — the line
   the app draws and the line it measures a press against are now the same curve.
 

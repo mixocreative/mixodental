@@ -673,3 +673,27 @@ the bullet rather than into a walk check: a gate must not bless behaviour nobody
 The other three bullets on that line ARE machine-answerable and now run on both renderers
 (`u5c`..`u5k3`), which the same file records, so what is left for a person there is the feel rather
 than the fact.
+
+#### The 108-to-2 drop, settled
+
+The entry above left two readings open. Driving the question directly — one aligner, one change at a
+time, nothing else touched — settles it, and the answer is neither of them:
+
+```
+paint one stroke, Back, Next     tips 104 -> 104   stamps 31 -> 31   region 14,110 -> 14,110
+nudge Area width, Back, Next     tips 104 ->   0   stamps 31 -> 31   region 14,946 -> 14,110
+```
+
+**The paint survives.** The bullet in the human-test list that asked about it can be ticked.
+
+**A TUNING change does not.** The stamps and the tuning VALUE are both carried over --
+`keptDentalWork` in `src/dental/flow.ts` does exactly that, and its comment describes this class of
+bug (W-01) from an earlier audit -- but the AREA the tuning produced is not: the region reverts to
+its untuned detection and the tip preview comes back ABSENT. The count reads 0 because
+`dentalPreview` is undefined, so it is the preview that never returns rather than a proposal that
+returned empty. The walk's run showed 2 instead of 0 only because that run had two manual tips.
+
+It reproduces on the shipping three.js renderer, so it is nothing to do with this migration. It is
+written up as a bug report beside its bullet rather than fixed here: the branch is a renderer port,
+and the remaining choice -- re-derive the area from the kept tuning, or reset the slider to match
+what it actually drew -- is the owner's.
