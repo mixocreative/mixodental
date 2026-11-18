@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1795028305.2517874,
-    "seen": 1795030731.8108883,
-    "ast_hash": "554f9d3f8f755d2d21ec80af09488837",
+    "mtime": 1795031301.3986993,
+    "seen": 1795033896.2696757,
+    "ast_hash": "85741b5d070fc91ef86e618630648bef",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -6751,15 +6751,15 @@
     "semantic_hash": ""
   },
   "src/dental/stages.test.ts": {
-    "mtime": 1795004676.8331351,
-    "seen": 1795006943.4248223,
-    "ast_hash": "814c4d16254446fa33c75c628af7e94c",
+    "mtime": 1795031138.4344718,
+    "seen": 1795033896.2706754,
+    "ast_hash": "87e25686746c153ac6782370dccf5d53",
     "semantic_hash": ""
   },
   "src/dental/stages.ts": {
-    "mtime": 1795028028.5754156,
-    "seen": 1795030731.811887,
-    "ast_hash": "51703977f665eb491dae7d45c7b9ab78",
+    "mtime": 1795031216.9421268,
+    "seen": 1795033896.2706754,
+    "ast_hash": "8f49ff1409236b883b2786a20ed1d289",
     "semantic_hash": ""
   },
   "src/autoGen/autoGenText.ts": {
@@ -6835,9 +6835,9 @@
     "semantic_hash": ""
   },
   "src/recipes/RecipeChip.tsx": {
-    "mtime": 1795027957.356367,
-    "seen": 1795030731.811887,
-    "ast_hash": "5e9758aaefcae44c60037b709d8848b7",
+    "mtime": 1795031375.8521233,
+    "seen": 1795033896.2706754,
+    "ast_hash": "2409421e00d8f10a525ae06700a8a575",
     "semantic_hash": ""
   },
   "src/recipes/RecipeRow.tsx": {
@@ -6847,15 +6847,15 @@
     "semantic_hash": ""
   },
   "src/recipes/recipeBook.test.ts": {
-    "mtime": 1795027975.8905063,
-    "seen": 1795030731.811887,
-    "ast_hash": "ebc70ec371a566b79f05f086d63196a5",
+    "mtime": 1795031402.4336212,
+    "seen": 1795033896.2706754,
+    "ast_hash": "684e441c8e00c87c541fb464954e4a01",
     "semantic_hash": ""
   },
   "src/recipes/recipeBook.ts": {
-    "mtime": 1795028271.11388,
-    "seen": 1795030731.811887,
-    "ast_hash": "2a2607012b1fb43923ba39e83e4aa658",
+    "mtime": 1795031375.8596375,
+    "seen": 1795033896.2706754,
+    "ast_hash": "964d747e0bc4e39359f3a4bd35660ddf",
     "semantic_hash": ""
   },
   "src/recipes/supportRecipe.test.ts": {
@@ -6877,9 +6877,9 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-19-recipes-and-review-fixes.md": {
-    "mtime": 1795017499.4972103,
-    "seen": 1795030731.811887,
-    "ast_hash": "9bee50145f2f60c8ab2ba35872ae2f1e",
+    "mtime": 1795033807.610755,
+    "seen": 1795033896.2706754,
+    "ast_hash": "43f8e6897ea6f766276b7518ad551709",
     "semantic_hash": ""
   },
   "docs/reviews/2026-11-18-human-review-walk.md": {
