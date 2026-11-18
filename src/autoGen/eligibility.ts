@@ -61,9 +61,10 @@ export type AutoGenBlock =
    * through the second caller. Blocked here rather than branched there, because "detect over the
    * operator's own work" has no good version.
    *
-   * KNOWN GAP, recorded rather than implied: a hand-DRAWN RIM is not caught. `drawnRim` builds an
-   * ordinary two-contour policy that `isManualArea` cannot tell from a detected one - the debt
-   * `src/dental/flow.ts` already carries, which is a change to saved project data to fix.
+   * A HAND-DRAWN RIM IS CAUGHT TOO, and this used to be recorded here as a known gap. It is not
+   * one: Done in `rim/useRimDrawing.ts` stores `manualAreaPolicy(...)`, a `legacy`/`manual-area`
+   * policy, which is exactly what `isManualArea` answers true for. See `src/dental/flow.ts` for why
+   * the note outlived its bug.
    */
   | 'own-area';
 

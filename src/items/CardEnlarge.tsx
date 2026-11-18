@@ -45,8 +45,10 @@ export function CardEnlarge({ unit, shot, onClose, onOpen }: {
   /*
    * ANY ACCEPTED POLICY COUNTS, not only a two-contour one. A card whose area was PAINTED carries a
    * `legacy` policy (`src/dental/manualArea.ts`), so testing for `two-contour` sent it through the
-   * Step 1 door - the one that re-orients and deletes its supports. Routing a card with supports to
-   * Step 3 can only ever be the safer mistake of the two.
+   * Step 1 door - the one that re-orients and deletes its supports.
+   *
+   * Step 3 now has a panel for such a card: `reviewStructure` in `App.tsx` was widened in the same
+   * breath, because until it was, this door opened onto a step with a badge and no tools.
    */
   const built = unit.supports !== undefined && unit.dental !== undefined;
   const root = useRef<HTMLDivElement>(null);

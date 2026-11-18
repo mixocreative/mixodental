@@ -138,10 +138,15 @@ export function backCommands(unit: BackFields | undefined, profile: string | und
  * flow; a dialog there would train them to dismiss the one that matters. So: built supports, hand
  * edits, or an area they painted themselves.
  *
- * DEBT, NOT TAKEN: a hand-DRAWN rim is not counted, and it should be. `drawnRim` builds an ordinary
- * `two-contour` policy, indistinguishable from a detected one - `isManualArea` answers only for
- * painted areas, which are the `legacy` kind. Marking the policy with its origin is the fix and it
- * is a change to saved project data, so it is not smuggled in here.
+ * A HAND-DRAWN RIM IS COUNTED, and this paragraph used to say it was not. The claim was that
+ * `drawnRim` builds an ordinary `two-contour` policy no different from a detected one. It does not:
+ * `drawnRim` has one caller, `rim/useRimDrawing.ts`, and Done stores `manualAreaPolicy(...)`, which
+ * is `{ kind: 'legacy', origin: 'manual-area' }` - precisely what `isManualArea` tests for. So the
+ * drawn rim already reaches the confirm below, and already blocks auto-gen's `own-area`.
+ *
+ * It was true once, before a DETECTED rim could be redrawn. The trap is the shape of the note, not
+ * its subject: a debt paragraph is read as evidence and survives the fix it was waiting for, so the
+ * next reader builds on a gap that closed. Debt gets re-checked against the code, like any claim.
  */
 export function exitNeedsConfirm(
   unit: Pick<PrintUnit, 'id' | 'dental' | 'supports' | 'manual' | 'deleted' | 'contactSettings'> | undefined,

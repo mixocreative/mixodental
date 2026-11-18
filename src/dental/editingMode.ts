@@ -120,8 +120,12 @@ export type DentalEvent =
    * that has been through the flow once already.
    *
    * THE CALLER OWNS THE PRECONDITION, because a session reducer cannot see the scene: send this only
-   * for a unit that carries a two-contour policy AND supports. Sent for anything else it would open
-   * an empty Step 3, which is a screen with nothing to edit.
+   * for a unit that carries an accepted dental policy AND supports. Sent for anything else it would
+   * open an empty Step 3, which is a screen with nothing to edit.
+   *
+   * ANY ACCEPTED POLICY, not two-contour alone. A painted or hand-drawn area is a `legacy` policy
+   * that reaches Step 3 with real supports on the plate, and the narrow test sent those cards
+   * through Step 1's door instead - which re-orients and deletes the supports they came for.
    */
   | {
     type: 'openDentalSupports'; unitId: string;
