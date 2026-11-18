@@ -101,7 +101,6 @@ import type { ExportKind } from '@mixo-geocore/host/supports/export';
 import type { SupportContact } from '@mixo-geocore/host/core/supports/mesh';
 import { type ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
 import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
-import { defaultDentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
 import { deleteCommands } from './supports/selection';
 import { canvasGesture, gesture, type GestureKind } from '@mixo-geocore/editing/gesture';
 import { TIPS_START, tipsButton, tipsCamera, tipsPress } from '@mixo-geocore/editing/view';
@@ -131,7 +130,7 @@ import { isBuilding, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { stepPanelInset } from './dental/stepPanelInset';
 import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, exitCommands, exitNeedsConfirm, keepsManualArea, manualEditCounts, startsDentalStep } from './dental/flow';
-import { applyRecipeCommands, matchesApplied, recipeStructure } from './dental/stages';
+import { applyRecipeCommands, matchesApplied, recipeStructure, reviewStructureOf } from './dental/stages';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import { dentalLabelCommands } from './dental/stages';
 import type { DentalReview } from './components/DentalSupports';
@@ -1498,10 +1497,22 @@ export default function App() {
   const reviewTuning = dentalTuning.tuning;
   const verdictEntry = activeUnit ? problems.get(activeUnit.id) : undefined;
   const verdictBehind = Boolean(activeUnit && verdictEntry && (verdictEntry.unit !== activeUnit || verdictEntry.mesh !== currentBuild(activeUnit, built.get(activeUnit.id))));
-  // The Tree and Brace switches of an aligner, or the lattice of a denture (its Cross-braces).
-  const reviewStructure = activeUnit?.dental?.kind === 'two-contour' && reviewTuning
-    ? { structure: activeUnit.dental.structure ?? defaultDentalStructure, onStructure: onDentalStructureChange }
-    : activeUnit?.denture ? { structure: { treeEnabled: false, bracesEnabled: activeUnit.denture.policy.lattice }, onStructure: (next: { bracesEnabled: boolean }) => denture.supports.setLattice(activeUnit.id, next.bracesEnabled) } : undefined;
+  /*
+   * The Tree and Brace switches of an aligner, or the lattice of a denture (its Cross-braces).
+   *
+   * EVERY ACCEPTED ALIGNER POLICY, not two-contour alone - because this object is what decides
+   * whether Step 3 has a panel at all (`dentalReview` below is undefined without it), and a painted
+   * or hand-drawn area is a LEGACY policy that reaches Step 3 with real supports on the plate. The
+   * narrow test drew Step 3's badge - "Review the supports... then press OK" - above no tools, no
+   * settings and no OK key, which is a step the operator cannot leave except by going Back.
+   *
+   * The legacy policy has no `structure` of its own, so it shows the one the build actually uses
+   * (`defaultDentalStructure`, as `stages.ts` resolves it) and says it cannot be changed here.
+   */
+  const alignerStructure = reviewTuning ? reviewStructureOf(activeUnit?.dental) : undefined;
+  const reviewStructure = alignerStructure
+    ? { ...alignerStructure, onStructure: onDentalStructureChange }
+    : activeUnit?.denture ? { structure: { treeEnabled: false, bracesEnabled: activeUnit.denture.policy.lattice }, onStructure: (next: { bracesEnabled: boolean }) => denture.supports.setLattice(activeUnit.id, next.bracesEnabled), structureFixed: false } : undefined;
   const dentalReview: DentalReview | undefined = activeUnit && reviewStructure ? {
     settings: activeSettings,
     onSetting: onSettingChange,

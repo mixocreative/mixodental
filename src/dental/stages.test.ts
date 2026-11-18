@@ -1,7 +1,7 @@
 // Copyright (c) Mixo Creative.
 
 import { describe, expect, it } from 'vitest';
-import { acceptCommands, acceptedPolicy, alignerSettings, manualAreaCommands, matchesApplied, presetCommands, settledPolicy } from './stages';
+import { acceptCommands, acceptedPolicy, alignerSettings, manualAreaCommands, matchesApplied, presetCommands, reviewStructureOf, settledPolicy } from './stages';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { RECIPE_KEYS, recipeFrom, typeDefaultRecipe } from '../recipes/supportRecipe';
 import type { PrintUnit, SceneCommand } from '../state/project';
@@ -165,5 +165,42 @@ describe('what a recipe would put on this model', () => {
     } as unknown as Partial<PrintUnit>);
 
     expect(matchesApplied(toggled, PROFILE, thin)).toBe(false);
+  });
+});
+
+/*
+ * STEP 3'S PANEL EXISTS AT ALL, which is what this function really answers.
+ *
+ * The host builds the whole `DentalReview` object around a non-undefined result, so a policy this
+ * rejects gets Step 3's badge over no tools, no settings and no OK key - a step with nothing to do
+ * and no way out but Back, which on an aligner lands at Step 2. A painted or hand-drawn area is a
+ * `legacy` policy and was rejected here, so the operator who painted their own area met exactly
+ * that screen the moment the deck learned to open such a card at Step 3.
+ */
+describe('reviewStructureOf', () => {
+  const legacy = { kind: 'legacy', origin: 'manual-area', profileId: PROFILE, rim, stamps: [] } as unknown as DentalPolicy;
+
+  it('gives a painted or hand-drawn area a panel, with the switches as a readout', () => {
+    expect(reviewStructureOf(legacy)).toEqual({ structure: { treeEnabled: true, bracesEnabled: true }, structureFixed: true });
+  });
+
+  it('keeps a two-contour policy s own switches live', () => {
+    const own = { kind: 'two-contour', profileId: PROFILE, rim, region, structure: { treeEnabled: false, bracesEnabled: true } } as unknown as DentalPolicy;
+
+    expect(reviewStructureOf(own)).toEqual({ structure: { treeEnabled: false, bracesEnabled: true }, structureFixed: false });
+  });
+
+  /*
+   * A two-contour policy saved BEFORE the field existed is still editable - the host dispatches for
+   * any two-contour kind - so it is shown live at the defaults the build would use, not greyed.
+   */
+  it('shows a two-contour policy with no switches saved at the values the build uses, still live', () => {
+    const older = { kind: 'two-contour', profileId: PROFILE, rim, region } as unknown as DentalPolicy;
+
+    expect(reviewStructureOf(older)).toEqual({ structure: { treeEnabled: true, bracesEnabled: true }, structureFixed: false });
+  });
+
+  it('has no panel to offer a unit that has not been through the flow', () => {
+    expect(reviewStructureOf(undefined)).toBeUndefined();
   });
 });

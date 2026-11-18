@@ -203,13 +203,128 @@ npm run walk        ALL PASS (191 checks, 2136 s)
   x0p the step screens and auto-gen build the SAME supports | by hand 94, auto-gen 94
 ```
 
+## Round 5 — the open question was a dead screen
+
+The doc review left one question written at the change rather than answered: Step 3's door was
+widened to accept any accepted dental policy, but `reviewStructure` still required `two-contour`, so
+**could a painted-area card render Step 3 at all?** Asked properly, the answer was no, and it was
+not a theoretical no.
+
+**A painted or hand-drawn aligner does reach Step 3 with supports on the plate.** Done in
+`rim/useRimDrawing.ts` stores `manualAreaPolicy(...)`; paint spreads the existing policy, so the
+kind stays `legacy`; `analysisWorker` falls through to `runPlacementJob` for a legacy policy (which
+`dental/paintedArea.test.ts` exists to pin); and `dental.generate` has no kind test at all. So the
+supports land and the flow accepts the area.
+
+**And Step 3 then drew its badge over an empty step.** `DentalBar` renders "Review the supports…
+then press OK" and *then* `review ? … : null`. With `reviewStructure` undefined there were no tools,
+no settings and no OK key — a step with nothing to do and no way on but Back.
+
+The fix, in the order the decisions came:
+
+| | |
+|---|---|
+| `reviewStructureOf(dental)` in `stages.ts` | The decision as a plain function: `undefined` means Step 3 has no panel, which is what the host builds the whole `DentalReview` around. Four unit tests. |
+| `structureFixed` on `DentalReview` | A `legacy` policy has nowhere to store a structure, so `onDentalStructureChange` returns early and a live checkbox would be a dead control. The pair is shown **disabled with its reason** — the Step 3 twin of `dental-area-fixed`, which Step 2 already does for the strip sliders on a painted area. |
+| `defaultDentalStructure`, not a guess | `makeDentalPolicy` hands Rust `(two-contour ? policy.structure : undefined) ?? defaultDentalStructure`, so Tree on and Brace on is what the build will really use. A readout that disagreed with the supports beside it would be worse than none. |
+| walk `u8p` and `u8q` | The painted path carried to Step 3 for the first time in this file. `EXPECTED_CHECKS` 191 → 193. |
+
+**Three comments asserted a gap that had already closed.** `flow.ts`, `autoGen/eligibility.ts` and
+`editingMode.ts` all said a hand-DRAWN rim builds an ordinary `two-contour` policy that
+`isManualArea` cannot tell from a detected one. It does not: `drawnRim` has one caller, Done stores
+`{ kind: 'legacy', origin: 'manual-area' }`, and that is exactly what `isManualArea` tests. It was
+true once, before a detected rim could be redrawn. **A debt paragraph is read as evidence and
+outlives the bug it was waiting for** — so the drawn rim already reached `exitNeedsConfirm` and
+already blocked auto-gen's `own-area`, while three files said it did not. Debt gets re-checked
+against the code like any other claim.
+
+Two English strings also turned out to be missing their apostrophes — "This model s settings", "this
+recipe s settings". No UI string in `src/` contains an apostrophe, which is how they got mangled, so
+both were reworded rather than escaped. Caught by rebuilding the translation prompt, and worth the
+order: the committed prompt held 51 strings while the guard already wanted 58, so one Gemini request
+— the daily allowance is 20 — would have come back and left the gate red anyway.
+
+## Part 3 — item 7, a real move for a support tip (agreed with Fable, 2026-11-19)
+
+The last unbuilt item of the card-deck plan. There is no `manual/move` today, only add and remove,
+so "move this support" means delete it and add another — losing its own settings and costing two
+undo steps.
+
+**It goes in the THREE.js viewport first, and that is not a compromise.** `src/ui/renderer.ts` sets
+`DEFAULT_RENDERER = 'three'`, commented "the renderer the walk proves", and `npm run walk` defaults
+to three. A gesture written against the Babylon layers would be unreachable in the default app and
+invisible to the gate — the two conditions under which a feature is indistinguishable from one that
+was never written.
+
+**And it is not built twice.** What is written once, renderer-free, is the part that decides
+*meaning*; what is written per renderer is the part that decides *pixels*:
+
+| Written once, in `src/supports/tipMove.ts` | Written per renderer |
+|---|---|
+| may this press begin a move (selected tip, contact, active object, Select + Click) | pointer listeners and the camera lock |
+| what a release means: move, click, or cancel | the model-only raycast |
+| the commands a move makes | drawing the held tip and the target ring |
+
+This is the arrangement `pick.ts` already has with `editClicks.ts`, and the arrangement `rimTarget.ts`
+has with `rimDraw.ts`. **The test of whether the seam held: if either renderer's adapter contains an
+`if` about what the gesture MEANS — the tolerance, selected-only, off-model — the rule has leaked and
+the seam failed.** Babylon follows as its own commit, checked by the same walk check with
+`--renderer=babylon`.
+
+### The rules, and why each one is that way
+
+- **Only a SELECTED tip can be dragged.** Step 3 looks at a forest of pillars and the whole body of
+  a support maps to its contact, so without this every orbit that began on a pillar would move a
+  tip. The cost is that a move is click-then-drag, and that an orbit cannot start on a selected
+  support.
+- **Arm on travel, not on press.** A press on a tip is already `toggle` in `pickAction`. The camera
+  is detached on press, but it is only a move past `CLICK_TOLERANCE` (4 px) — the same line that
+  already separates a click from an orbit everywhere else in this app.
+- **Released off the model: CANCEL, and say so.** `rimDraw` commits its last valid point; a tip must
+  not, because the last valid point on the way off a model is the silhouette edge — a grazing face
+  and the worst place in the scene for a support. Esc cancels too. The target ring is hidden while
+  the pointer is off the model, so the screen shows that nothing will happen.
+- **One undo step**, by dispatching only on drop. Never per pointer move.
+- **Nothing is re-run.** The move makes a new unit object, so `useSupportBuilds` rebuilds on identity
+  and the verdict goes stale by the same identity. `scheduleRegenerate` must NOT be called: it
+  re-places the automatic contacts, and `manual/add` does not call it either.
+
+### An automatic tip moves too, as a second commit
+
+Most tips after Generate are automatic, and nothing on screen marks a manual one apart — a gesture
+that did nothing on most of what the operator grabs would be a worse control than none. But an
+automatic tip **cannot stay automatic**: automatic tips are the placement's output and are
+re-derived on every regenerate, so a moved one has nowhere to live in `placement.points`. So it
+moves as `deleteCommands(unit, [id])` plus `manual/add` in one batch — the shape `addTip` already
+dispatches — carrying its `contactSettings` across, because `deletion/add` strips them.
+
+Three consequences, all of them the kind that make a feature feel broken rather than look broken:
+
+- **The selection must follow the new id.** The moved tip gets a fresh `manual-…` id; without
+  re-selecting it, the selected-only rule demands a fresh click before every further nudge.
+- **`clearManual` must be read first.** If it removes the moved tip without lifting the deletion,
+  clearing hand-added supports leaves a HOLE where the automatic one used to be.
+- **The guard's invariant is not "manual count unchanged".** It is: total tip count unchanged, the
+  selected tip is at the new position, one Undo restores everything; and for the automatic case,
+  manual +1 and deleted +1.
+
+### The guard
+
+One walk check in Step 3: drag a selected tip, assert the position changed, the total count and the
+selection did not, and that a single Undo puts it back. The likeliest break is a release that counts
+as both a move and a click, because two listeners hear the same pointerup — which a unit test of the
+pure function cannot see, and which is the whole reason the walk check exists.
+
 ### Still open
 
-- **The translations.** 51 strings; Gemini's free tier is 20 requests a DAY and it resets around
-  16:00 on 2026-11-19. The prompt is built and waiting (see the handoff memory). Nothing is
-  hand-written, by the owner's standing rule. The prompt is committed at
-  `docs/translation/2026-11-19-missing-strings.txt`, so one request finishes it.
-- **Build-order item 7, a real `manual/move` for a support tip** - untouched. It is a new pointer
-  gesture in the viewport, which is exactly the kind of change this session's evidence says needs a
-  person looking at the screen while it is made, so it was not started at five in the morning.
+- **The translations.** The prompt at `docs/translation/2026-11-19-missing-strings.txt` is rebuilt
+  from the guard's own output rather than kept by hand, because a hand-kept copy went stale within a
+  day. Gemini's free tier is 20 requests a DAY and resets around 16:00 on 2026-11-19. Nothing is
+  hand-written, by the owner's standing rule.
+- **Build-order item 7, a real `manual/move` for a support tip** — designed with Fable, not built,
+  and the reason is now a better one than the hour of the night. `src/ui/renderer.ts` sets
+  `DEFAULT_RENDERER = 'three'` ("the renderer the walk proves") and the walk defaults to three, so a
+  gesture written against the Babylon layers would be unreachable in the default app and invisible
+  to the gate — while writing it for both renderers is the two-implementations defect this document
+  is otherwise about. Which way that goes is the open question, and it is Fable's to answer.
 - The four debts in `src/recipes/README.md`, with their reasons.

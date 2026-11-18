@@ -206,6 +206,29 @@ export const recipeStructure = (unit: PrintUnit, profile: string, recipe: Suppor
   alignerSettings(unit, profile, recipe).structure;
 
 /**
+ * WHAT STEP 3 SHOWS FOR TREE AND BRACE, and whether the operator may change it there.
+ *
+ * `undefined` means this aligner has no Step 3 panel at all - and that answer is load-bearing far
+ * beyond two checkboxes: the host builds the whole `DentalReview` object around it, so returning
+ * nothing draws Step 3's badge ("Review the supports... then press OK") over no tools, no settings
+ * and no way on. That is what testing for `two-contour` here did to a card whose area was PAINTED.
+ *
+ * `structure` IS WHAT THE BUILD WILL USE, not a guess at it. `makeDentalPolicy` hands Rust
+ * `(two-contour ? policy.structure : undefined) ?? defaultDentalStructure`, so a legacy policy and a
+ * two-contour one saved before the field existed are both built with Tree on and Brace on. Showing
+ * anything else here would be a readout that disagrees with the supports beside it.
+ *
+ * `structureFixed` is "there is nowhere to put the answer": only a two-contour policy has a
+ * `structure` field, so `onDentalStructureChange` returns early for the rest and a live checkbox
+ * would be a dead control. The panel greys the pair and says why instead.
+ */
+export function reviewStructureOf(dental: DentalPolicy | undefined): { structure: Readonly<DentalStructure>; structureFixed: boolean } | undefined {
+  if (dental === undefined) return undefined;
+  const own = dental.kind === 'two-contour' ? dental.structure : undefined;
+  return { structure: own ?? defaultDentalStructure, structureFixed: dental.kind !== 'two-contour' };
+}
+
+/**
  * No area was detected, so Step 2 opens empty and the operator paints one.
  *
  * THE PAINT IS CARRIED, as it is everywhere else a policy is replaced (`useRimDrawing` does the

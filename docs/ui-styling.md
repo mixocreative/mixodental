@@ -443,7 +443,7 @@ Style by `[data-ui="name"]`. `{kind}` is `denture` or `aligner`; in `problem-ite
 | Step 2, denture settings (under Adjust) | `denture-settings`, `denture-model-landing`, `denture-model-landing-select`, `denture-low-outside`, `denture-clearance-floor` |
 | Denture Step 2, footer | `denture-review-footer`, `denture-finished-count`, `restore-step-2`, `denture-add-another`, `denture-review-nav`, `denture-review-back`, `denture-review-ok` |
 | Aligner Step 3, status line | `aligner-review-summary` (class `is-building`, `is-failed`, `is-fix`, `is-look` or `is-ready` colours its dot), `aligner-review-line`, `aligner-review-details-toggle`, `aligner-review-details` |
-| Aligner Step 3, Adjust (a collapsible panel) | `aligner-adjust`, `aligner-adjust-title`, `aligner-adjust-body`, `aligner-support-settings`, `aligner-edit-supports`, `aligner-id-label` |
+| Aligner Step 3, Adjust (a collapsible panel) | `aligner-adjust`, `aligner-adjust-title`, `aligner-adjust-body`, `aligner-support-settings`, `aligner-edit-supports`, `aligner-id-label`, `aligner-structure-fixed` (the note under Tree branches and Cross-braces when the pair is shown-and-disabled, because the area was painted or drawn by hand and a `legacy` policy has nowhere to store a structure — the Step 3 twin of `dental-area-fixed`) |
 | Aligner Step 3, behind Details | `aligner-problems`, `aligner-check-run`, `restore-step-2` |
 | Restore step | `restore-step-1` (Step 1), `restore-step-area` (aligner area step), `restore-step-2` (supports step) |
 | Step 2, parts list | `{kind}-parts`, `{kind}-parts-summary`, `{kind}-parts-fused-note`, `{kind}-parts-list`, `{kind}-part-row` |

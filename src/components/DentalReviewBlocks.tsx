@@ -36,6 +36,20 @@ export interface DentalReview {
   onSetting: <K extends SettingKey>(key: K, value: LiveSupportSettings[K], edit?: string) => void;
   structure: Readonly<DentalStructure>;
   onStructure: (structure: DentalStructure) => void;
+  /**
+   * THE SWITCHES ARE A READOUT, NOT A CONTROL, on a painted or hand-drawn area.
+   *
+   * Only a two-contour policy carries a `structure` field; a legacy one (painted from scratch, or a
+   * rim drawn by hand - `dental/manualArea.ts`) has nowhere to put the answer, so the build uses
+   * `defaultDentalStructure` and `onDentalStructureChange` returns without dispatching. Shown live,
+   * the two checkboxes would therefore be dead controls: clicked, unchanged, no explanation.
+   *
+   * So they show what WILL be built, disabled, with the reason beside them - the same bargain
+   * `tuningFixed` already strikes for the contact strip on a painted area. Giving the legacy policy
+   * a `structure` field instead is a change to saved project data, recorded as debt in
+   * `src/recipes/README.md`.
+   */
+  structureFixed: boolean;
   clickReach: { value: number; onChange: (value: number, edit?: string) => void };
   /** A change is on its way to a new verdict (rebuild, re-check, retune): the Problems section shows stale. */
   verdictPending: boolean;
@@ -120,11 +134,12 @@ export function SupportSettingsBlock({ review, kind, onAdjust }: { review: Denta
       <input type="checkbox" checked={settings.raftEnabled} onChange={(event) => onSetting('raftEnabled', event.target.checked)} />
     </Field>
     {kind === 'denture' ? null : <Field label={t('Tree branches')} ui={`${kind}-tree-branches`}>
-      <input type="checkbox" checked={review.structure.treeEnabled} onChange={(event) => review.onStructure({ ...review.structure, treeEnabled: event.target.checked })} />
+      <input type="checkbox" checked={review.structure.treeEnabled} disabled={review.structureFixed} onChange={(event) => review.onStructure({ ...review.structure, treeEnabled: event.target.checked })} />
     </Field>}
     <Field label={t(kindText('Cross-braces', kind))} ui={`${kind}-cross-braces`}>
-      <input type="checkbox" checked={review.structure.bracesEnabled} onChange={(event) => review.onStructure({ ...review.structure, bracesEnabled: event.target.checked })} />
+      <input type="checkbox" checked={review.structure.bracesEnabled} disabled={review.structureFixed} onChange={(event) => review.onStructure({ ...review.structure, bracesEnabled: event.target.checked })} />
     </Field>
+    {review.structureFixed && <p className="edit-note" role="note" data-ui={`${kind}-structure-fixed`}>{t('These switches shape supports grown from a detected edge. This area was made by hand, so they are built as shown and cannot be changed here.')}</p>}
     {/*
       THE RECIPE ROW SITS UNDER THE SETTINGS IT SAVES, which is the whole argument for it being here
       rather than on a screen of its own: "remember these" is a sentence an operator says while

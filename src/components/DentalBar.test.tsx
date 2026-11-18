@@ -72,7 +72,7 @@ const wayOn = () => resolve(reviewWayOn(), stepUi).label;
 const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true, selection: 0, customisedActive: 0, addAction: 'add', tool: 'select', method: 'click', dragAction: 'select', canUndo: false, active: true, supported: true } as unknown as UiState;
     const base = {
       settings: defaultSupportSettings, onSetting: () => {},
-      structure: { treeEnabled: true, bracesEnabled: true }, onStructure: () => {}, clickReach: { value: 1, onChange: () => {} },
+      structure: { treeEnabled: true, bracesEnabled: true }, onStructure: () => {}, structureFixed: false, clickReach: { value: 1, onChange: () => {} },
       verdictPending: false, buildLanded: true, rimGap: undefined, structureFallback: undefined, problems: [], outOfDate: false, rechecking: () => false, unitName: () => 'sample',
       onShow: () => {}, onFix: () => {}, onShowRim: () => {}, finishedCount: 0, backAsk: undefined, onBackConfirm: () => {}, onBackCancel: () => {},
     } satisfies DentalReview;

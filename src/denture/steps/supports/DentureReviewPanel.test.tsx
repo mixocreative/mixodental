@@ -12,7 +12,7 @@ import { DentureReviewPanel } from './DentureReviewPanel';
 const ui = { mode: 'dental', dentalStage: 'review', dentalKind: 'denture', dentalReviewReady: true, dentureResolvable: 0, selection: 0, customisedActive: 0, addAction: 'add', tool: 'add', method: 'click', dragAction: 'select', canUndo: false, active: true, supported: true } as unknown as UiState;
 const review = {
   settings: defaultSupportSettings, onSetting: () => {},
-  structure: { treeEnabled: false, bracesEnabled: true }, onStructure: () => {}, clickReach: { value: 1, onChange: () => {} },
+  structure: { treeEnabled: false, bracesEnabled: true }, onStructure: () => {}, structureFixed: false, clickReach: { value: 1, onChange: () => {} },
   verdictPending: false, buildLanded: true, rimGap: undefined, structureFallback: undefined, problems: [], outOfDate: false, rechecking: () => false, unitName: () => 'sample',
   onShow: () => {}, onFix: () => {}, onShowRim: () => {}, finishedCount: 0, backAsk: undefined, onBackConfirm: () => {}, onBackCancel: () => {},
 } satisfies DentalReview;

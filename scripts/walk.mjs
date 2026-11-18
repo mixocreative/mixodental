@@ -2925,6 +2925,109 @@ async function walk(url, scratch, dentalFixture) {
       check('u5j the drawn rim is visible on the model in Step 2, in the colour the legend names',
         rimDrawn.count > noRimYet.count + 60,
         `${rimDrawn.count} px of ${rimInk} with the rim vs ${noRimYet.count} without, box ${JSON.stringify(rimDrawn.box)}`);
+      /*
+       * u5p AND u5q: AN AREA MADE BY HAND GOES ON TO STEP 3, AND STEP 3 HAS A PANEL FOR IT.
+       *
+       * Every other dental check in this file walks a DETECTED area, which is a `two-contour` policy.
+       * An area the operator made is `legacy` (`src/dental/manualArea.ts`) - whether painted from
+       * scratch or, as here, derived from a rim they drew - and three separate places tested for
+       * `two-contour` when what they meant was "has been through the flow". The card's Open door sent
+       * such a card through STEP 1, which re-orients and deletes the supports it was opened to show;
+       * and `reviewStructure` in `App.tsx` then returned nothing, so Step 3 drew its badge, "Review
+       * the supports... then press OK", above no tools, no settings and no OK key. A step with
+       * nothing to do and no way on but Back.
+       *
+       * WHY NOTHING CAUGHT IT, which is the part worth keeping. No walk had ever carried a hand-made
+       * area past Step 2: u5 draws a rim and goes straight back, u8 and u8b stop at the empty Step 2,
+       * and the whole x section uses the reference aligner, which HAS a detected area. The unit tests
+       * could not have caught it either - the defect was in the host's own expression of a rule that
+       * had no pure form until `reviewStructureOf` was lifted out.
+       *
+       * AND WHY HERE rather than in u8's branch, where it was first written: this machine's fixture
+       * hands Step 1 over to rim define mode, so that branch never executes and two checks sat in it
+       * doing nothing. The drawn rim reaches the same `legacy` policy by the route the gate takes.
+       *
+       * THE HUNT, THIRD COPY, DEBT NOT TAKEN: `paintZoneOnModel` and u10's `paintStroke` do the same
+       * "stroke a grid until the unit's own count moves" dance. They are not merged because the
+       * common part is a six-line loop while the differences are the brush to arm, the counter to
+       * watch and the view to work from - a helper taking all three hands back about as much as it is
+       * given, which is the hub this repo's own rule says not to extract.
+       */
+      /*
+       * FROM BOTTOM VIEW, AND THAT IS NOT A DETAIL - it is the difference between a hunt that lands
+       * on its first stroke and one that orbits a 374k-triangle mesh through software GL fifty times
+       * looking for the model. `paintZoneOnModel` sets the view for exactly this reason, and the app
+       * itself tells the operator supports attach underneath. A miss DRAGS THE VIEW instead of
+       * painting, so every miss also moves the target: a big grid is not a better search, it is a
+       * slower one with worse aim.
+       */
+      await page.getByRole('button', { name: 'Bottom view', exact: true }).click();
+      await d.idle(1500);
+      const brush = page.locator('.dental-brush');
+      await brush.getByRole('button', { name: 'Paint', exact: true }).click();
+      await d.measureCanvas();
+      const stamps = async () => (await d.props()).activeDental?.stamps ?? 0;
+      let landed = 0;
+      hunt: for (const fy of [0.46, 0.52, 0.40, 0.58, 0.34]) {
+        for (const fx of [0.48, 0.40, 0.56, 0.34, 0.62]) {
+          await d.stroke([fx - 0.04, fy], [fx + 0.04, fy], 12);
+          await d.idle(250);
+          if ((await stamps()) > 0) {
+            // It lands here: paint around it, so the area carries enough faces to place tips on.
+            for (const dy of [-0.04, 0, 0.04]) { await d.stroke([fx - 0.09, fy + dy], [fx + 0.09, fy + dy], 18); await d.idle(200); }
+            landed = await stamps();
+            break hunt;
+          }
+          // A miss turned the view rather than painting: put it back, or the next guess aims at nothing.
+          await page.getByRole('button', { name: 'Bottom view', exact: true }).click();
+          await d.idle(500);
+        }
+      }
+      await d.quiet();
+      const tipsReady = landed > 0 && await page
+        .waitForFunction(() => Number(document.querySelector('[data-ui="dental-tip-count"] .num')?.textContent ?? 0) > 0, null, { timeout: 240000 })
+        .then(() => true, () => false);
+      if (!tipsReady) {
+        /*
+         * SKIPPED AND COUNTED. A paint stroke has to find the model from whatever view Step 2 opened
+         * on, and on a model this walk has never painted that is a search, not a certainty. Saying so
+         * and tallying it is the difference between "this machine could not reach the screen" and a
+         * silent two-check hole - which is the exact fault being repaired two branches below.
+         */
+        skippedByDesign += 2;
+        note(`u5p / u5q skipped: no paint stroke reached this model from Step 2's own view (${landed} stamps), so there was no hand-made area to carry into Step 3`);
+      } else {
+        await d.button('Next').click();
+        await stepTo('Step 3 · Supports', 240000);
+        await page.waitForFunction((want) => { const on = [...document.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim().toLowerCase() === want); return on && !on.disabled; }, WAY_ON.toLowerCase(), { timeout: 300000 });
+        await d.quiet();
+        const policy = (await d.props()).activeDental;
+        // The way on, and the Adjust fold that holds the settings: the two things a bare badge had none of.
+        const wayOnThere = await d.button(WAY_ON).isEnabled();
+        const adjust = page.locator('[data-ui="aligner-adjust-title"]');
+        await page.screenshot({ path: path.join(scratch, 'ux-a-step3-hand-made-area.png') });
+        check('u5p an area made by hand reaches Step 3 with a real panel, not a badge over an empty step',
+          policy?.kind === 'legacy' && wayOnThere && (await adjust.count()) === 1,
+          `policy ${JSON.stringify(policy)}, ${WAY_ON} enabled ${wayOnThere}, Adjust ${await adjust.count()}`);
+        await adjust.click();
+        await d.idle(400);
+        const treeInput = page.locator('[data-ui="aligner-tree-branches"] input');
+        const braceInput = page.locator('[data-ui="aligner-cross-braces"] input');
+        const reason = page.locator('[data-ui="aligner-structure-fixed"]');
+        /*
+         * THE PAIR IS THE BEHAVIOUR. A `legacy` policy has nowhere to store a structure, so
+         * `onDentalStructureChange` returns without dispatching and a live switch would be a dead
+         * control - but greyed out with no reason is its own defect, so the sentence is checked
+         * beside the `disabled`. Same bargain Step 2 already strikes for the strip sliders on a
+         * painted area (`dental-area-fixed`), and the switches still read out what the build will
+         * really use, which `makeDentalPolicy` resolves to `defaultDentalStructure`.
+         */
+        check('u5q Step 3 shows Tree and Brace as a disabled readout, with the reason, on an area made by hand',
+          await treeInput.isDisabled() && await braceInput.isDisabled() && await reason.isVisible(),
+          `tree disabled ${await treeInput.isDisabled()}, brace disabled ${await braceInput.isDisabled()}, reason "${(await reason.count()) ? (await reason.innerText()).slice(0, 60) : 'absent'}"`);
+        await d.button('Back').click();
+        await stepTo('Step 2 · Support area', 120000);
+      }
       await d.button('Back').click();
       await stepTo('Step 1 · Aligner');
 
@@ -3134,6 +3237,14 @@ async function walk(url, scratch, dentalFixture) {
           await d.button('Back').click();
           await stepTo('Step 1 · Aligner');
         } else {
+          /*
+           * COUNTED, NOT JUST SAID. `note` only prints: it does not touch `skippedByDesign`, so this
+           * pair went missing from the tally and the walk's own count check could only ever be
+           * calibrated for ONE of the two endings. It passed here because this machine's fixture
+           * takes the rim ending every time; a fixture with a central opening would have run two
+           * extra checks and failed the count with nothing wrong.
+           */
+          skippedByDesign += 2;
           note('u8 / u8b skipped: both need the oriented ending (Step 2 builds its empty area from the orientation proposal), and this fixture was handed to rim define mode instead');
           /*
            * THE OLD DILEMMA HERE IS ANSWERED. This used to press Next against a failure notice whose own
@@ -4810,7 +4921,7 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 191;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison
+const EXPECTED_CHECKS = 195;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison; 195 on 2026-11-19 with u5p and u5q, an area made BY HAND carried through to Step 3 - the one dental path no walk had ever reached - plus the two-check hole in u8's own skip, which `note` printed and nothing counted
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
 if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,
