@@ -20,7 +20,8 @@ import type { PrintUnit } from '../state/project';
  * walk checks `u1a` and `l2g` rest on — the start screens have no panels — which is far more than a
  * row picture should cost.
  *
- * So: ONE renderer for the app, made on first use and kept (`drawThumbnail.ts`), never one per row.
+ * So: ONE renderer for the deck, made on first use and kept (`components/viewport/deckRig.ts`,
+ * shared with the live card view since 2026-11-18), never one per card.
  * Browsers cap GL contexts near sixteen, so per-row contexts would lose a long drop; one is a fixed
  * price. Each model is uploaded, drawn and disposed in turn, so the peak is one model's geometry
  * rather than the whole deck's.

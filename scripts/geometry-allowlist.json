@@ -209,5 +209,14 @@
   },
   "src/workers/analysisProtocol.ts": {
     "label": "host-adapter"
+  },
+  "src/items/orbit.ts": {
+    "label": "host-math",
+    "maxMath": 3,
+    "why": "turning a card's live preview: the still's camera placement converted to spherical coordinates and back, so a drag orbits the model at a fixed radius. HOST MATH BY NATURE - it moves a CAMERA, never a vertex, and nothing here reaches the engine or a mesh. It is pure and fully tested (orbit.test.ts), including the property the handover depends on: with no turn applied it returns thumbFraming's own position exactly, so going live never makes the model appear to jump."
+  },
+  "src/components/viewport/liveCardView.ts": {
+    "label": "host-adapter",
+    "why": "the GL half of the card's live preview: uploads one model to the deck's shared renderer, draws a frame on demand and copies it into the card's own 2D canvas. Three.js only - the bounding box and the camera come from toGeometry and items/orbit.ts, and no geometry is computed here."
   }
 }
