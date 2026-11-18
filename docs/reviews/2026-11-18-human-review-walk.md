@@ -87,6 +87,40 @@ Press **Enlarge** on the card.
 - **Close**, click away, or Escape.
 - There is nothing else to press, deliberately: a look, never an editor.
 
+## 8. Support recipes — the new one
+
+Still on the deck, each card has a small **recipe chip** beside its type. It starts at **Type
+default**, which is what auto-gen has always used.
+
+Open a card at Step 3 and expand **Adjust**. Under the sliders there is a **Support recipe** row:
+
+- Move **Pillar size**, type a name, press **Save as new**. The chip on the card takes that name.
+- The list is kept **on this device** — reload the page and it is still there.
+- Choose a different recipe in that row and **the sliders move at once**: picking **Type default**
+  puts the type's own numbers back. (Measured: 2.4 mm back to 1.4 mm.)
+- **Update recipe** / **Delete recipe** / **Use as default** do what they say. Type default cannot be
+  changed or removed.
+
+Back on the deck, switch a card's chip to your recipe and press **Auto-gen**: the supports are built
+with it, and afterwards the chip is a **readout** naming the recipe that run actually used — not
+whatever the default happens to be later.
+
+> **If a card's settings drift from the recipe it names, the chip says "…, edited".** That matters
+> because auto-gen uses the *recipe*, not your changes — so either Update the recipe or save a new
+> one.
+
+## 9. The one number that proves the whole thing
+
+The gate now walks the same reference aligner **twice**: once through these step screens by hand,
+once through the deck's Auto-gen. It then compares what they built.
+
+```
+x0p the step screens and auto-gen build the SAME supports for the same model | by hand 94, auto-gen 94
+```
+
+That is the claim auto-gen rests on — that it is not quietly making different supports from the
+editor — and it is now checked on every full walk rather than argued for.
+
 ---
 
 ## What else changed that you will not see

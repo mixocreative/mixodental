@@ -404,11 +404,10 @@ front door on the real reference aligner.
 
 ### Open, with reasons
 
-- **Editor-versus-auto-gen numeric parity in the walk.** `m12b` proves the queue runs and lands Step
-  3's state; it does not compare the supports with a hand walk of the same file. The hand walk lives
-  in section `x`, which enters at Step 1 and never passes the deck, so the comparison wants either a
-  second entry in `x` or a value carried between sections. Parity meanwhile is held by construction
-  (one implementation of every decision) plus the node determinism test.
+- ~~**Editor-versus-auto-gen numeric parity in the walk.**~~ **CLOSED 2026-11-19.** Section `m`
+  records what auto-gen built and section `x` compares it with its own hand walk of the same file -
+  the sections run in order, so one value carries between them. Walk `x0p`: **by hand 94, auto-gen
+  94.**
 - **A folder for the export, through `showDirectoryPicker`.** It would also fix Chrome's refusal of
   several automatic downloads from one gesture, which an operator meets unbidden on a case of thirty.
   Not taken because the picker opens a NATIVE dialog no automation can answer and the walk drives
