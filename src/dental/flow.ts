@@ -1,4 +1,5 @@
 import { isManualArea } from '@mixo-geocore/host/dental/dentalPolicy';
+import { stageBeforeSupports } from '../denture/state/dentureStages';
 import type { PrintUnit, SceneCommand } from '../state/project';
 
 /** How much hand work Step 3 holds on an aligner: supports added, automatic ones removed, supports with their own settings. */
@@ -79,32 +80,46 @@ export function discardManualCommands(unit: Pick<PrintUnit, 'id' | 'manual' | 'd
 type BackFields = Pick<PrintUnit, 'id' | 'supports' | 'manual' | 'deleted' | 'contactSettings'>;
 
 /**
- * WHETHER BACK OUT OF STEP 3 HAS SOMETHING TO LOSE - and it is no longer only the hand work.
+ * WHETHER BACK OUT OF STEP 3 REACHES THE ORIENT STEP - which for an ALIGNER IT DOES NOT, and
+ * assuming it did was the worst defect of the 2026-11-18 increment.
  *
- * Back goes to STEP 1, Step 1 is the orient step, and the owner's rule is that a model with supports
- * standing does not enter it: "once support generated, orienting is not allowed and it will remove
- * all support". So the supports are the commonest thing Back costs, and asking only about hand edits
- * meant the operator with a freshly built aligner and no edits at all was asked nothing and lost the
- * build - the quietest possible version of the loudest possible event.
+ * The owner's rule is that a model with supports standing does not enter the orient step ("once
+ * support generated, orienting is not allowed and it will remove all support"), and I read "Back
+ * from Step 3" as that step. It is not: `backDental` sends an aligner from `review` to `area` -
+ * **Step 2** - and only a job with no area step (a denture) lands on the orient stage. The repo's
+ * own `dentureStages.test.ts` says so in one line: `stageBeforeSupports('reference-aligner')` is
+ * `'area'`.
+ *
+ * So for an aligner, Back costs the hand work it has always cost and nothing more - the supports
+ * are still there at Step 2 - and the dialog must not claim a re-orient that is not going to happen.
+ * Found by Fable reading the diff; the walk check I wrote had asserted the false sentence, which is
+ * how a guard enshrines a bug instead of catching it.
  */
-export function backLosesWork(unit: BackFields | undefined): boolean {
-  if (!unit) return false;
-  return Boolean(unit.supports) || backNeedsConfirm(unit);
+export function backEntersOrient(profile: string | undefined): boolean {
+  return stageBeforeSupports(profile) === 'aligner';
 }
 
 /**
- * Back from Step 3 once confirmed: the supports go, and the hand work keyed to their positions goes
- * with them.
- *
- * The reducer would take both anyway the moment Step 1's Next turned the model
- * (`transform/set` in `src/state/project.ts`), and that is the backstop rather than the mechanism:
- * doing it HERE is what makes the warning above honest, because the cost lands when the operator
- * answers for it instead of several clicks later when a detection happens to move the pose.
+ * Whether Back out of Step 3 has something to lose: the hand work always, and the BUILD only when
+ * this Back really does reach the orient step (see above).
  */
-export function backCommands(unit: BackFields | undefined): SceneCommand[] {
+export function backLosesWork(unit: BackFields | undefined, profile: string | undefined): boolean {
+  if (!unit) return false;
+  return (backEntersOrient(profile) && Boolean(unit.supports)) || backNeedsConfirm(unit);
+}
+
+/**
+ * Back from Step 3 once confirmed.
+ *
+ * The supports go ONLY where Back enters the orient step; everywhere else they stay, because
+ * nothing is about to turn the model and removing them would be destroying work for no reason. The
+ * reducer is the rule that matters either way (`transform/set` in `src/state/project.ts`): whenever
+ * a re-orient actually happens, through any door, the supports go with it.
+ */
+export function backCommands(unit: BackFields | undefined, profile: string | undefined): SceneCommand[] {
   if (!unit) return [];
   return [
-    ...(unit.supports ? [{ type: 'supports/remove' as const, unitId: unit.id }] : []),
+    ...(backEntersOrient(profile) && unit.supports ? [{ type: 'supports/remove' as const, unitId: unit.id }] : []),
     ...discardManualCommands(unit),
   ];
 }

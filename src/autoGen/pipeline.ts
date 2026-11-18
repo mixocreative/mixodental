@@ -121,7 +121,14 @@ export async function runAutoGen(unitId: string, profile: string, host: AutoGenH
   const name = started.name;
 
   // 1. Step 1: orient. The answer is judged by the same function the deck's rows are judged by.
-  const answer = await host.engine.dentalOrient(`auto-orient:${unitId}`, started.source, profile, { key: 'Orienting {name}', vars: { name } });
+  /*
+   * EVERY AWAIT CATCHES, AND AT ITS OWN STEP. Three of these had no `.catch` where two others did,
+   * so a worker that rejected - a timeout, a restart, a cancel - fell through to the queue's own
+   * catch and the card said "Generating supports failed" for an ORIENT that never ran. The step is
+   * the only part of a stop the operator can act on.
+   */
+  const answer = await host.engine.dentalOrient(`auto-orient:${unitId}`, started.source, profile, { key: 'Orienting {name}', vars: { name } })
+    .catch(() => undefined);
   if (!host.live(unitId)) return stop('orient', 'gone');
   const outcome = orientOutcome(started, host.scene().units, answer);
   if (outcome.kind === 'failed') return stop('orient', 'failed');
@@ -139,7 +146,8 @@ export async function runAutoGen(unitId: string, profile: string, host: AutoGenH
    * the pose Step 1 found. Stopping here would refuse models the screens accept.
    */
   const scan = await host.engine.dentalTiltScan(`auto-tilt:${unitId}`, oriented.source, profile,
-    tiltScanSettings(oriented, profile), { key: 'Scanning print angles on {name}', vars: { name } });
+    tiltScanSettings(oriented, profile), { key: 'Scanning print angles on {name}', vars: { name } })
+    .catch(() => undefined);
   if (!host.live(unitId)) return stop('orient', 'gone');
   const scanned: Extract<TiltScan, { kind: 'scan' }> | undefined = scan?.kind === 'scan' ? scan : undefined;
   const picked = scanned?.order[0];
@@ -149,7 +157,8 @@ export async function runAutoGen(unitId: string, profile: string, host: AutoGenH
   const atArea = unitOf(scene, unitId);
   if (!atArea) return stop('orient', 'gone');
   const region = await host.engine.dentalRegion(`auto-region:${unitId}`, atArea.source, profile,
-    { key: 'Detecting dental support area on {name}', vars: { name } });
+    { key: 'Detecting dental support area on {name}', vars: { name } })
+    .catch(() => undefined);
   if (!host.live(unitId)) return stop('orient', 'gone');
   if (!region) return stop('area', 'failed');
   /*
@@ -172,14 +181,22 @@ export async function runAutoGen(unitId: string, profile: string, host: AutoGenH
   let angleCheck: 'none-held' | 'failed' | undefined;
   if (scanned && picked !== undefined) {
     const order = confirmOrder(scanned.order, scanned.order.indexOf(picked));
+    /*
+     * THE CHECK'S TWO BAD ANSWERS ARE NOT THE SAME ANSWER, and `.catch(() => undefined)` had
+     * collapsed them. The flow has told them apart since audit MIXO-02: a REJECTION is "the check
+     * could not run", while a resolved result with no `confirmed` is "the check ran and NONE of the
+     * tried angles held", which is the one place the app learns its central claim failed for this
+     * model. One await cannot say both with a single undefined, so the rejection is flagged.
+     */
+    let checkFailed = false;
     const checked = await host.engine.dentalConfirmTilt(`auto-confirm:${unitId}`,
       { mesh: atArea.source, dental: policy, settings, labelText: 'A' },
       order.map((index) => scanned.rows[index]!.rotation),
       { key: 'Checking the print angle of {name}', vars: { name } },
-    ).catch(() => undefined);
+    ).catch(() => { checkFailed = true; return undefined; });
     if (!host.live(unitId)) return stop('orient', 'gone');
     const confirmed = checked?.confirmed;
-    if (checked === undefined) angleCheck = 'failed';
+    if (checkFailed) angleCheck = 'failed';
     else if (confirmed === undefined) angleCheck = 'none-held';
     else if (order[confirmed] !== picked) {
       const index = order[confirmed]!;

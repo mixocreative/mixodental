@@ -376,8 +376,19 @@ describe('stamping a tool revision as work is accepted', () => {
     stamps: [],
   };
 
-  it('records an orientation when the rotation changes', () => {
-    expect(revisionsOf(turn(added(), [0, 0.5, 0]))).toEqual({ orient: 1 });
+  it('records an orientation when the model is RE-ORIENTED', () => {
+    expect(revisionsOf(turn(added(), [0.5, 0, 0]))).toEqual({ orient: 1 });
+  });
+
+  /*
+   * A SPIN ABOUT THE PLATE'S VERTICAL IS NOT A RE-ORIENTATION, and stamping it was a contradiction
+   * from the day the reducer started KEEPING the supports through one: the status line said they
+   * were fine, and the export refused them as planted before a turn. Nothing moves relative to
+   * gravity and the mesh does not move at all, so the rim, the area and the supports are all still
+   * current. The denture keep-and-move rule depends on this (`rigidMove.ts`).
+   */
+  it('records nothing for a spin about the plate s vertical, which dates nothing', () => {
+    expect(turn(added(), [0, 0.5, 0]).units[0]!).not.toHaveProperty('revisions');
   });
 
   /*
@@ -501,7 +512,7 @@ describe('stamping a tool revision as work is accepted', () => {
 
   it('makes everything below a re-orientation read stale, without throwing the work away', async () => {
     const { staleTools } = await import('./revisions');
-    let scene = turn(added(), [0, 0.5, 0]);
+    let scene = turn(added(), [0.5, 0, 0]);
     scene = reduceScene(scene, { type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor, anchor, anchor], closed: true } });
     scene = reduceScene(scene, { type: 'dental/set', unitId: 'unit-a', policy });
     expect(staleTools(revisionsOf(scene) ?? {})).toEqual([]);
@@ -522,7 +533,7 @@ describe('stamping a tool revision as work is accepted', () => {
   });
 
   it('survives a save and reopen, so a reopened project knows what is out of date', () => {
-    const scene = reduceScene(turn(added(), [0, 0.5, 0]), { type: 'dental/set', unitId: 'unit-a', policy });
+    const scene = reduceScene(turn(added(), [0.5, 0, 0]), { type: 'dental/set', unitId: 'unit-a', policy });
 
     expect(deserializeScene(serializeScene(scene))).toEqual(scene);
     expect(revisionsOf(deserializeScene(serializeScene(scene)))).toEqual({ orient: 1, rim: 2, area: 3 });
@@ -667,6 +678,12 @@ describe('a turn and the supports already built', () => {
 
     expect(spun.supports).toBe(stored.supports);
     expect(spun.manual).toHaveLength(1);
+    /*
+     * AND DOES NOT DATE THEM. Keeping the supports while stamping `orient` made the app disagree
+     * with itself about one spin: the status line said they were fine and the EXPORT refused them
+     * as planted before a turn. Nothing moved relative to gravity, so nothing is out of date.
+     */
+    expect(spun.revisions).toBeUndefined();
   });
 
   it('keeps them on a pure slide, and does not even date the rim, so a nudge costs nothing', () => {

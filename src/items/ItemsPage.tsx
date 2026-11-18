@@ -328,7 +328,9 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
 
     {/* A model on its own, full size, over the deck. Unmounted when closed, so it holds nothing. */}
     {enlarged ? <CardEnlarge unit={enlarged} shot={thumbnails.get(enlarged.id)?.url}
-      onClose={() => setEnlargedId(undefined)} /> : null}
+      onClose={() => setEnlargedId(undefined)}
+      /* The card's own Open, so the overlay cannot land somewhere the card would not. */
+      onOpen={() => { setEnlargedId(undefined); onStart(enlarged); }} /> : null}
 
     <div className="items-footer">
       {tally ? <p className="items-tally" data-ui="items-tally">{translateMessage(tally)}</p> : null}

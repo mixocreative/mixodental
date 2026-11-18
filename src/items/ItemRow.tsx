@@ -299,7 +299,14 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
     {autoGenReady && !generating ? <button type="button" className="row-autogen" data-ui={`items-autogen-${unit.id}`}
       title={t('Orient it, find its support area and place its supports, without opening it.')}
       onClick={(event) => { event.stopPropagation(); onAutoGen(); }}>{t('Auto-gen')}</button> : null}
-    {purpose !== undefined ? <button type="button" className="row-open" data-ui={`items-open-${unit.id}`}
+    {/*
+      OPEN IS NOT OFFERED WHILE THIS CARD IS IN THE QUEUE. Opening it under its own run lets the
+      operator turn the model with the gizmo at Step 1 while the placement is in flight - and the
+      pipeline lands those tips against its OWN copy of the scene, so nothing refuses them and the
+      supports belong to a pose that no longer exists. The footer's Start key can still reach the
+      card, which is why `startItem` cancels as well: this is the half that stops it being offered.
+    */}
+    {purpose !== undefined && !generating ? <button type="button" className="row-open" data-ui={`items-open-${unit.id}`}
       title={built ? t('Open Step 3 to add, move or remove its supports.') : t('Orient it and place its supports by hand.')}
       onClick={(event) => { event.stopPropagation(); onOpen(); }}>{built ? t('Edit supports') : t('Open this model')}</button> : null}
     {detected?.kind === 'failed' ? <button type="button" className="retry" data-ui={`items-retry-${unit.id}`}

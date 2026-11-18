@@ -129,7 +129,7 @@ import { useSupportBuilds } from './components/useSupportBuilds';
 import { isBuilding, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { stepPanelInset } from './dental/stepPanelInset';
-import { backCommands, backLosesWork, backNeedsConfirm, exitCommands, exitNeedsConfirm, manualEditCounts, startsDentalStep } from './dental/flow';
+import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, exitCommands, exitNeedsConfirm, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import { dentalLabelCommands } from './dental/stages';
 import type { DentalReview } from './components/DentalSupports';
@@ -1045,9 +1045,23 @@ export default function App() {
         return requestView('fit', stepPanelInset({ mode: 'dental', dentalStage: 'review' }));
       }
       case 'dental.back': {
-        // Going back from Step 3 re-enters the orient step, which costs the supports: ask first.
+        /*
+         * Going back from Step 3 costs the hand work, and the BUILD only for a job whose Back really
+         * reaches the orient step - which an aligner's does not (`backEntersOrient`). Ask first.
+         */
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
-        if (sessionRef.current.dentalStage === 'review' && backLosesWork(unit)) return setBackAsk(true);
+        if (sessionRef.current.dentalStage === 'review' && backLosesWork(unit, sessionRef.current.dentalProfile)) return setBackAsk(true);
+        /*
+         * BACK OUT OF STEP 2 NEEDS A STEP 1 TO GO BACK TO, and a card opened straight at Step 3
+         * (`openDentalSupports`, the auto-gen door) has no proposal: Step 1 would come up saying
+         * "No aligner opening was found. Press Draw the rim" about a model the detector read
+         * perfectly, with the area preview and Use detected dead beside it. Detecting again costs
+         * seconds and is the only honest way to arrive at that screen.
+         */
+        if (sessionRef.current.dentalStage === 'area' && !sessionRef.current.dentalProposal && unit) {
+          send({ type: 'backDental' });
+          return startDentalAligner(unit);
+        }
         /*
          * BACK AT STEP 1 STEPS OUT TO THE CASE, not out of the session (E1b). It used to send `exit`
          * and show the Drop page, which discarded `dentalFinished` - so with a case of eight, going
@@ -1302,6 +1316,13 @@ export default function App() {
      * coats. With re-entry safe at every stage, the `nav-files` gate comes off.
      */
     setStartScreen(null);
+    /*
+     * A RUN IN FLIGHT STOPS BEFORE THE FLOW OPENS. The pipeline checks `live()` after every await,
+     * and that check asks whether the UNIT is still there - not whether the operator is now editing
+     * it. Opening a card mid-run and turning the model would otherwise let the run land tips for the
+     * pose it started from, against its own copy of the scene, with nothing to refuse them.
+     */
+    autoGen.cancel();
     send({ type: 'exit' });
     const profile = live.dentalProfile ?? unitPurposes.get(unit.id) ?? DEFAULT_PROFILE_ID;
     send({ type: 'startDental', profile, resume: true });
@@ -1454,8 +1475,10 @@ export default function App() {
     onFix: fixProblem,
     onShowRim: () => requestView('bottom'),
     finishedCount: session.dentalFinished.length,
-    backAsk: backAsk ? { ...manualEditCounts(activeUnit), supports: Boolean(activeUnit.supports) } : undefined,
-    onBackConfirm: () => { setBackAsk(false); const commands = backCommands(activeUnit); if (commands.length > 0) dispatch({ type: 'batch', commands }); send({ type: 'backDental' }); },
+    backAsk: backAsk
+      ? { ...manualEditCounts(activeUnit), reorients: backEntersOrient(session.dentalProfile) && Boolean(activeUnit.supports) }
+      : undefined,
+    onBackConfirm: () => { setBackAsk(false); const commands = backCommands(activeUnit, sessionRef.current.dentalProfile); if (commands.length > 0) dispatch({ type: 'batch', commands }); send({ type: 'backDental' }); },
     onBackCancel: () => setBackAsk(false),
   } : undefined;
   // Denture Step 2 checks each finished build by itself: its status line counts the problems.

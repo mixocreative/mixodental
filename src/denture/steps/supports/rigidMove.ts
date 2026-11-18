@@ -36,10 +36,14 @@ export function isRigidPlateMove(before: PrintUnit, after: PrintUnit): boolean {
  * the default label: OK writes it out, and the build already used it).
  *
  * `revisions` IS SKIPPED, and it has to be. It is bookkeeping about the ORDER work was accepted in
- * (`src/deck/revisions.ts`) and says nothing about geometry, but a turn stamps it - so comparing it
- * here made every rigid turn of a denture look like a different build and threw away supports that
- * were still perfectly valid. A real-scan parity test caught it. Anything that asks "is this the
- * same build" must ignore this field for the same reason.
+ * (`src/state/revisions.ts`) and says nothing about geometry, but a turn stamped it - so comparing
+ * it here made every rigid turn of a denture look like a different build and threw away supports
+ * that were still perfectly valid. A real-scan parity test caught it. Anything that asks "is this
+ * the same build" must ignore this field for the same reason.
+ *
+ * SINCE 2026-11-19 A VERTICAL TURN NO LONGER STAMPS IT at all (`transform/set` in
+ * `src/state/project.ts`), so this skip has less to do - but it stays, because the rule here is
+ * about what the field MEANS, not about which writers happen to touch it today.
  */
 export function keepsBuild(before: PrintUnit, after: PrintUnit): boolean {
   if (before === after || !before.denture || !before.supports) return false;

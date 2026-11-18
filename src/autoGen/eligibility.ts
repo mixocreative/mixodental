@@ -37,7 +37,34 @@ export type AutoGenBlock =
   /** The check could not run at all. Retry, or open it and orient by hand. */
   | 'failed'
   /** The deck is at its model cap or its memory budget (`src/items/deckBudget.ts`). */
-  | 'full';
+  | 'full'
+  /**
+   * The card already has its supports. Open it instead - the key is for cards that have none.
+   *
+   * THIS IS NOT TIDINESS, it is the one way this queue could destroy work without asking. The
+   * pipeline's first step turns the model to the pose the engine proposes, and since 2026-11-18 a
+   * turn is a re-orient: the reducer deletes the supports AND the hand edits keyed to their
+   * positions. The interactive path asks before it does that (`backLosesWork`); a press on this key
+   * asked nothing. Found by Fable reading the diff, after I had seen it happen on screen and read it
+   * as the cancel rather than as the re-run.
+   *
+   * It also makes Auto-gen all mean what it says: without this, every press re-ran every finished
+   * card in the case, minutes each.
+   */
+  | 'built'
+  /**
+   * The area on this card is the operator's own, painted by hand.
+   *
+   * `useDentalFlow.next` checks `keepsManualArea` and goes straight on with it; the pipeline has no
+   * such branch and would commit a freshly detected area over the top - the `u9` defect, arriving
+   * through the second caller. Blocked here rather than branched there, because "detect over the
+   * operator's own work" has no good version.
+   *
+   * KNOWN GAP, recorded rather than implied: a hand-DRAWN RIM is not caught. `drawnRim` builds an
+   * ordinary two-contour policy that `isManualArea` cannot tell from a detected one - the debt
+   * `src/dental/flow.ts` already carries, which is a change to saved project data to fix.
+   */
+  | 'own-area';
 
 export type AutoGenEligibility = { readonly ready: true } | { readonly ready: false; readonly because: AutoGenBlock };
 
@@ -52,8 +79,21 @@ const READY: AutoGenEligibility = { ready: true };
  * "the check is running", because a card nobody has named is not being checked at all - the detector
  * needs the type to run.
  */
-export function autoGenEligibility(card: { answered: boolean; detect: DetectState | undefined; atCap: boolean }): AutoGenEligibility {
+export function autoGenEligibility(card: {
+  answered: boolean; detect: DetectState | undefined; atCap: boolean;
+  /** This unit already carries supports. */
+  built: boolean;
+  /** This unit's support area is the operator's own painting (`keepsManualArea`). */
+  ownArea: boolean;
+}): AutoGenEligibility {
   if (!card.answered) return { ready: false, because: 'unanswered' };
+  /*
+   * THE OPERATOR'S OWN WORK IS CHECKED BEFORE THE CHECK'S RESULT, because a card carrying a build or
+   * a painted area is one the queue must not touch whatever the detector thinks of it - and the
+   * detector's answer on such a card is stale by definition: it ran before the work existed.
+   */
+  if (card.built) return { ready: false, because: 'built' };
+  if (card.ownArea) return { ready: false, because: 'own-area' };
   if (card.detect === undefined) return { ready: false, because: 'checking' };
   switch (card.detect.kind) {
     case 'waiting':

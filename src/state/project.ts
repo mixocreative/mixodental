@@ -12,7 +12,7 @@ import type { SurfaceAnchor, SurfacePath } from '../core/surfacePath/path';
 import type { ImportDiagnosis } from './diagnosis';
 import { TOOL_ORDER } from './tools';
 import { stamped, type Revisions } from './revisions';
-import { reorients, rotationChanged } from './rotation';
+import { reorients } from './rotation';
 
 export { identityTransform } from '@mixo-geocore/host/state/transform';
 
@@ -241,7 +241,19 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
          * ordinary moves, and stamping on those would mark the rim and the area out of date every
          * time the operator nudged a model across the view - work the move did not affect.
          */
-        if (!rotationChanged(unit.transform.rotation, transform.rotation)) return withRevisions({ ...unit, transform }, unit.revisions);
+        /*
+         * A TURN ABOUT THE PLATE'S VERTICAL DATES NOTHING, and stamping it was a contradiction the
+         * moment this reducer started KEEPING the supports through one.
+         *
+         * The stamp predates that rule, and with it the unit read: supports kept, status line
+         * saying "Object moved with its supports" - and `supportsNeedReplanting` true, so the
+         * EXPORT refused them with "planted before the model was turned, so they would not hold".
+         * The app disagreed with itself about the same spin, and only the export said so, at the
+         * end. A vertical turn does not move the model relative to gravity and does not touch the
+         * mesh, so neither the supports nor the rim nor the area are out of date: nothing is
+         * stamped. (`rigidMove.keepsBuild` ignores `revisions` anyway, and now has less to ignore.)
+         */
+        if (!reorients(unit.transform.rotation, transform.rotation)) return withRevisions({ ...unit, transform }, unit.revisions);
         const marks = stamped(unit.revisions, 'orient', true);
         /*
          * A RE-ORIENT TAKES THE SUPPORTS WITH IT, and this is the ONLY place that decides it, which
@@ -264,7 +276,6 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
          * `orient` stamp above dates the area DERIVED from them, which is what the staleness model
          * is for (`keptDentalWork` in `src/dental/flow.ts` carries that story).
          */
-        if (!reorients(unit.transform.rotation, transform.rotation)) return withRevisions({ ...unit, transform }, marks);
         const { placement: _placement, supports: _supports, ...rest } = unit;
         return withRevisions({ ...rest, transform, manual: [], deleted: [], contactSettings: {} }, stamped(marks, 'supports', false));
       });

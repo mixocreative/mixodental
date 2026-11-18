@@ -4,10 +4,10 @@ import { initialSession, reduceSession, startsEditing, type EditSession, type Se
 import { emptyScene, identityTransform, type PrintScene, type PrintUnit, type SceneCommand } from '../state/project';
 import { canUndo, createSceneHistory, undoScene, withSceneCommand, type SceneHistory } from '../state/history';
 import { acceptCommands } from '../denture/steps/orient/acceptCommands';
-import { DENTURE_PROFILE_ID } from '../denture/jobKind';
 import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { DEFAULT_DENTURE_OPTIONS } from '../denture/settings/dentureOptions';
-import { backNeedsConfirm, discardManualCommands, exitCommands, exitNeedsConfirm, keepsManualArea, keptDentalWork, manualEditCounts, startsDentalStep } from './flow';
+import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, discardManualCommands, exitCommands, exitNeedsConfirm, keepsManualArea, keptDentalWork, manualEditCounts, startsDentalStep } from './flow';
+import { DENTURE_PROFILE_ID } from '../denture/jobKind';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u1', manual: [], deleted: [], contactSettings: {}, ...over }) as unknown as PrintUnit;
 
@@ -237,5 +237,40 @@ describe('undo inside the denture steps (audit 2026-11-02 #1)', () => {
     const undos = denturePlay(false);
     expect(undos.some((scene) => scene.units[0] && !scene.units[0].supports)).toBe(true);
     expect(undos.at(-1)!.units).toHaveLength(0);
+  });
+});
+
+/**
+ * WHERE BACK OUT OF STEP 3 ACTUALLY GOES, which an increment got wrong and a walk check then
+ * enshrined.
+ *
+ * An ALIGNER'S Back lands on Step 2, so its supports are not going anywhere and the dialog must not
+ * say they are. Only a job with no area step - a denture - lands on the orient stage, and that is
+ * the one where the owner's rule bites ("once support generated, orienting is not allowed and it
+ * will remove all support"). This is cheap, it is pure, and it fails the moment the stage spine
+ * changes under it; the browser walk could only ever have caught the sentence.
+ */
+describe('what Back out of Step 3 reaches, and therefore costs', () => {
+  const built = (over: Partial<PrintUnit> = {}): PrintUnit => unit({
+    supports: { kind: 'live', data: {} }, ...over,
+  } as unknown as Partial<PrintUnit>);
+
+  it('an aligner goes back to Step 2, so a build alone is not something Back loses', () => {
+    expect(backEntersOrient('reference-aligner')).toBe(false);
+    expect(backLosesWork(built(), 'reference-aligner')).toBe(false);
+    expect(backCommands(built(), 'reference-aligner')).toEqual([]);
+  });
+
+  it('a denture goes back to the orient step, so the build goes with the hand work', () => {
+    expect(backEntersOrient(DENTURE_PROFILE_ID)).toBe(true);
+    expect(backLosesWork(built(), DENTURE_PROFILE_ID)).toBe(true);
+    expect(backCommands(built(), DENTURE_PROFILE_ID).map((command) => command.type)).toEqual(['supports/remove']);
+  });
+
+  it('asks about hand work on either job, because Step 2 re-places the tips', () => {
+    const handWork = built({ manual: [{ id: 'm' }] as never });
+
+    expect(backLosesWork(handWork, 'reference-aligner')).toBe(true);
+    expect(backCommands(handWork, 'reference-aligner').map((command) => command.type)).toEqual(['supports/clear-manual']);
   });
 });

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, type MutableRefObject } from 'react';
 import { autoGenEligibility } from './eligibility';
+import { keepsManualArea } from '../dental/flow';
 import { runAutoGen, type AutoGenResult, type AutoGenStop } from './pipeline';
 import type { DetectState } from '../items/detectState';
 import type { AnalysisClient } from '../workers/analysisClient';
@@ -78,7 +79,16 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
   purposesRef.current = purposes;
   /** The ids still to run, in the order they were pressed. Held in a ref: the drain loop reads it between awaits. */
   const pending = useRef<string[]>([]);
+  /**
+   * WHICH UNIT IS RUNNING, and SEPARATELY whether a drain loop is alive. These were one variable and
+   * that was a defect: `cancel` cleared it to stop the queue, so a fresh press opened a SECOND drain
+   * while the first was still awaiting a worker - and when the first woke it cleared the marker
+   * again, erasing the second drain's claim, so a third could start and two pipelines could run on
+   * one unit with separate scene copies. One variable answering two questions cannot answer either
+   * reliably.
+   */
   const running = useRef<string | undefined>(undefined);
+  const draining = useRef(false);
   /** Bumped by `cancel`, so a pipeline mid-flight stops at its next step instead of writing its answer. */
   const generation = useRef(0);
 
@@ -101,8 +111,10 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
    * supports attached to the wrong model.
    */
   const drain = useCallback(async () => {
-    if (running.current !== undefined) return;
+    if (draining.current) return;
+    draining.current = true;
     const mine = generation.current;
+    try {
     while (pending.current.length > 0 && generation.current === mine) {
       const unitId = pending.current.shift()!;
       const profile = purposesRef.current.get(unitId);
@@ -159,12 +171,41 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
           ...(result.angleCheck === undefined ? {} : { angleCheck: result.angleCheck }),
         }
         : { kind: 'stopped', stop: result.stop });
+      }
+    } finally {
+      /*
+       * THE LOOP OWNS THE CLEAN-UP, including when it abandons mid-queue. A cancel that happened
+       * while this was awaiting left any work pressed AFTER it in `pending`, and nothing would have
+       * drained that - the new press was refused by this drain's own claim. So the last act of a
+       * stale drain is to let the next one in.
+       */
+      draining.current = false;
+      running.current = undefined;
+      if (generation.current !== mine && pending.current.length > 0) void drain();
     }
   }, [analysis, dispatch, put, sceneRef]);
 
-  const eligible = useCallback((unitId: string) => autoGenEligibility({
-    answered: purposes.has(unitId), detect: detected.get(unitId), atCap,
-  }), [atCap, detected, purposes]);
+  /**
+   * The gate, for one card. The two work facts come from the UNIT rather than from this hook's
+   * state, because they survive a reload and this hook's maps do not: a card generated in a previous
+   * sitting still carries its supports.
+   */
+  const eligible = useCallback((unitId: string) => {
+    const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
+    const profile = purposes.get(unitId);
+    return autoGenEligibility({
+      answered: profile !== undefined,
+      detect: detected.get(unitId),
+      atCap,
+      /*
+       * `sceneRef` IS A RENDER BEHIND, so a card whose run has just landed would still read
+       * un-built for one render - a window in which a second press would re-run it and, being a
+       * re-orient, delete what it had just made. This sitting's own answer closes it.
+       */
+      built: unit?.supports !== undefined || cards.get(unitId)?.kind === 'done',
+      ownArea: unit !== undefined && keepsManualArea(unit, profile),
+    });
+  }, [atCap, cards, detected, purposes, sceneRef]);
 
   const start = useCallback((unitId: string) => {
     if (!eligible(unitId).ready || pending.current.includes(unitId) || running.current === unitId) return;

@@ -1834,10 +1834,18 @@ async function walk(url, scratch, dentalFixture) {
       ).then(() => true, () => false);
       const openKey = page.locator('[data-ui^="items-open-unit-"]').first();
       const openLabel = (await openKey.count()) > 0 ? await openKey.innerText() : '';
-      check('m12 Auto-gen builds a card\u2019s supports without opening it, and the card then offers to EDIT them',
-        placed && /edit/i.test(openLabel),
+      /*
+       * AND THE KEY IS GONE AFTERWARDS. A second press re-runs the pipeline, whose first act is to
+       * turn the model - a re-orient, which DELETES the supports and the hand edits keyed to them,
+       * with nothing asked. The interactive path asks before it does that; this key did not. It is
+       * the one way this queue could destroy work in silence, so its absence is asserted rather
+       * than assumed. (Fable found it in review; I had watched it happen and read it as the cancel.)
+       */
+      const keyGone = (await page.locator('[data-ui^="items-autogen-unit-"]').count()) === 0;
+      check('m12 Auto-gen builds a card\u2019s supports without opening it, then offers to EDIT them and will not run again',
+        placed && /edit/i.test(openLabel) && keyGone,
         `key offered ${offered}, chip "${await page.locator('[data-ui^="items-detect-"]').first().innerText().catch(() => '')}"`
-        + `, line "${await autoGenLine().innerText().catch(() => '')}", open key "${openLabel}"`);
+        + `, line "${await autoGenLine().innerText().catch(() => '')}", open key "${openLabel}", key gone ${keyGone}`);
 
       /*
        * m12b: AND IT OPENS AT STEP 3 (owner's ruling 2). Not a nicety: Step 1 is the ORIENT step and
@@ -3860,10 +3868,22 @@ async function walk(url, scratch, dentalFixture) {
         check('x11 Fix opens Add supports at the spot', addBefore === 'false' && addAfter === 'true', `Add supports pressed ${addBefore} -> ${addAfter}, status "${await d.status()}"`);
       }
 
-      // Back asks first because the build and the hand work would be lost; Stay keeps both.
+      /*
+       * Back asks first because the hand work would be lost; Stay keeps it.
+       *
+       * AND IT MUST NOT CLAIM A RE-ORIENT. An aligner's Back from Step 3 lands on STEP 2
+       * (`stageBeforeSupports('reference-aligner') === 'area'`), so the supports are not going
+       * anywhere. The first version of this check asserted the opposite sentence and passed - a
+       * guard written from what I believed the code did rather than from what it does, which
+       * enshrined the bug instead of catching it. This asserts both halves: what Back does cost,
+       * and what it must not say.
+       */
       await d.button('Back').click();
       const backAsk = await page.locator('.dental-confirm .edit-note').textContent();
-      check('x12 Back from Step 3 warns that re-orienting removes the supports, BEFORE it happens', await page.getByText('Discard and go back').isVisible() && /removes its supports/.test(backAsk), `ask "${backAsk}"`);
+      check('x12 Back from Step 3 names the manual edits it discards, and does NOT claim to re-orient',
+        await page.getByText('Discard and go back').isVisible()
+        && /manual support edits/.test(backAsk) && !/re-orient/i.test(backAsk),
+        `ask "${backAsk}"`);
       await page.getByRole('button', { name: 'Stay' }).click();
       check('x13 Stay keeps Step 3 and the edits', (await page.locator('.edit-badge').textContent()).toLowerCase().includes('step 3 · supports') && (await d.counts()).manual === afterLift.manual);
 

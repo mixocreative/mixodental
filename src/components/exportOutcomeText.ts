@@ -1,6 +1,6 @@
 // Copyright (c) Mixo Creative.
 
-import type { Message } from '../i18n';
+import { translateMessage, type Message } from '../i18n';
 
 /**
  * WHAT AN EXPORT WROTE, OR DID NOT, IN ONE VOCABULARY FOR EVERY SCREEN THAT SAYS IT.
@@ -81,9 +81,29 @@ export const EXPORT_PARTIAL_CODE = 'export-partial';
  */
 const PARTIAL = 'Export incomplete: {saved} saved, {name} refused by the browser. Export the remaining objects one at a time - exporting again would save a second copy of what is already there.';
 
-/** The partial-write sentence: the files that landed, and the one that did not. */
+/** The partial-write sentence: the files that landed, and the one the BROWSER refused. */
 export const exportPartialText = (saved: readonly string[], name: string): Message =>
   ({ key: PARTIAL, vars: { saved: saved.join(', '), name } });
+
+/**
+ * THE SAME SHAPE OF EVENT WITH A DIFFERENT CAUSE, and reusing `PARTIAL` for it told the operator
+ * something false.
+ *
+ * Since the export builds and delivers ONE FILE AT A TIME (`exportBatches.ts`), the safety gate can
+ * refuse a later file after earlier ones are already on disk. That is not the browser refusing a
+ * download: the cause is the gate's own reason - supports that could not be judged, a model that
+ * changed, nothing built - and the advice differs with it. Reusing the browser sentence named a
+ * UNIT where it says "file", dropped the reason entirely, and told the operator to export the rest
+ * one at a time, which for `inconclusive` fails again exactly as before.
+ *
+ * The two sentences are joined rather than merged because the second one is the gate's own wording,
+ * already written and already translated per reason; this adds only what the gate cannot know,
+ * which is what reached the disk before it.
+ */
+const PARTIAL_REFUSED = 'Export incomplete: {saved} saved. {reason}';
+
+export const exportPartialRefusalText = (saved: readonly string[], reason: ExportRefusalReason, name: string): Message =>
+  ({ key: PARTIAL_REFUSED, vars: { saved: saved.join(', '), reason: translateMessage(exportRefusalText(reason, name)) } });
 
 /**
  * The same sentence from what an activity row stored, or `undefined` when the row is neither of

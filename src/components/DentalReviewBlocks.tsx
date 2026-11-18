@@ -56,11 +56,14 @@ export interface DentalReview {
   /** Finished aligners already on the plate, for the Add another aligner line. */
   finishedCount: number;
   /**
-   * Back would lose work: what it would throw away, until the user answers. `supports` is the louder
-   * half - Back re-enters the orient step, and a re-orient removes the build - so it picks a
-   * different sentence rather than being counted alongside the hand edits.
+   * Back would lose work: what it would throw away, until the user answers.
+   *
+   * `reorients` IS NOT "this unit has supports". It is "this Back reaches the ORIENT step AND there
+   * is a build to lose", which for an aligner is never - its Back lands on Step 2 and the supports
+   * stay. Naming the field for the consequence rather than for the unit's state is what stops the
+   * dialog claiming a re-orient that is not going to happen, which is exactly what it did.
    */
-  backAsk: { added: number; removed: number; customised: number; supports: boolean } | undefined;
+  backAsk: { added: number; removed: number; customised: number; reorients: boolean } | undefined;
   onBackConfirm: () => void;
   onBackCancel: () => void;
 }
@@ -171,9 +174,9 @@ export function IdLabelBlock({ review, kind }: { review: DentalReview; kind: Den
  */
 export function BackAskBlock({ review }: { review: DentalReview }) {
   if (!review.backAsk) return null;
-  const { supports, ...counts } = review.backAsk;
+  const { reorients, ...counts } = review.backAsk;
   return <section className="dental-block dental-confirm" role="alertdialog" aria-label={t('Go back?')}>
-    <p className="edit-note" role="alert">{supports
+    <p className="edit-note" role="alert">{reorients
       ? t('Going back re-orients this model, which removes its supports and any manual edits. Undo brings them back. Continue?')
       : t('Going back discards your manual support edits ({added} added, {removed} removed, {customised} with own settings). Continue?', counts)}</p>
     <div className="edit-row">

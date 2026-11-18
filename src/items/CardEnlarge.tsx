@@ -24,12 +24,25 @@ import type { PrintUnit } from '../state/project';
  * because two components each believing they are live would upload two models and the second would
  * silently win - a fault that only shows on a slow machine.
  */
-export function CardEnlarge({ unit, shot, onClose }: {
+export function CardEnlarge({ unit, shot, onClose, onOpen }: {
   readonly unit: PrintUnit;
   /** The cached still, so the box is never empty while the model uploads. */
   readonly shot: string | undefined;
   readonly onClose: () => void;
+  /**
+   * Take this model into the flow, from here.
+   *
+   * WITHOUT IT THIS WAS A DEAD END. The overlay is where you decide whether a model is right -
+   * owner's ruling 7 calls it the safe way to answer "is this right?" BEFORE opening it - and
+   * having answered, the only way on was to close it, find the card again and press a second key.
+   * Owner, 2026-11-19: *"The overlay canvas needs a button to go to the edit mode so user can
+   * orient or edit support."* It is the card's own Open: the same handler, so where it lands - Step
+   * 1, or Step 3 for a model that already has supports - is decided in one place.
+   */
+  readonly onOpen: () => void;
 }) {
+  /* A MODEL WITH SUPPORTS SAYS SO, because it is going somewhere else: Step 3, not Step 1. */
+  const built = unit.supports !== undefined && unit.dental?.kind === 'two-contour';
   const root = useRef<HTMLDivElement>(null);
 
   /*
@@ -55,6 +68,13 @@ export function CardEnlarge({ unit, shot, onClose }: {
         <span className="card-enlarge-name" title={unit.name}>{unit.name}</span>
         {/* A WORD, NOT A GLYPH: there is no close icon in `src/ui/assets/icons`, and inventing one
             to avoid a label would put a new drawing in the set for a single use. */}
+        {/*
+          THE WAY ON IS THE PRIMARY KEY HERE, and Close steps back to being the way out. A reader who
+          has looked and is satisfied wants the editor; one who is not just presses Escape.
+        */}
+        <button type="button" className="primary card-enlarge-open" data-ui="card-enlarge-open"
+          title={built ? t('Open Step 3 to add, move or remove its supports.') : t('Orient it and place its supports by hand.')}
+          onClick={onOpen}>{built ? t('Edit supports') : t('Open this model')}</button>
         <button type="button" className="card-enlarge-close" data-ui="card-enlarge-close"
           onClick={onClose}>{t('Close')}</button>
       </div>

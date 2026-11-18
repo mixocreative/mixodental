@@ -3,7 +3,7 @@ import { errorStatus } from '@mixo-geocore/editing/errors';
 import { supportsNeedReplanting } from '../state/revisions';
 import { exportStatus, type CheckTally } from '@mixo-geocore/editing/check';
 import { plural, translateMessage, type Message } from '../i18n';
-import { EXPORT_PARTIAL_CODE, EXPORT_REFUSED_CODE, exportPartialText, exportRefusalText, type ExportRefusalReason } from './exportOutcomeText';
+import { EXPORT_PARTIAL_CODE, EXPORT_REFUSED_CODE, exportPartialRefusalText, exportPartialText, exportRefusalText, type ExportRefusalReason } from './exportOutcomeText';
 import { jobActivity } from '@mixo-geocore/host/workers/jobActivity';
 import { WorkerJobError } from '@mixo-geocore/host/workers/WorkerTask';
 import type { PrintScene, PrintUnit } from '../state/project';
@@ -99,6 +99,17 @@ export function useExport(host: {
     setStatus('Preparing export at full resolution.');
     const checking = runCheck(units.map(([unit]) => unit)).catch((): CheckTally => ({ spots: 0, inZone: 0, unjudged: 0, incomplete: units.filter(([unit]) => unit.supports).length }));
     const label = { key: files.length === 1 ? 'Exporting {name}' : 'Exporting {n} files', vars: { name: files[0]!.fileName, n: files.length } };
+    /*
+     * `saved` AND `names` LIVE OUTSIDE THE TRY, and that is the whole of a real defect.
+     *
+     * Since the export delivers one file at a time, a worker failure on file 3 of a case happens
+     * with files 1 and 2 already in the operator's downloads - and the catch below says "Nothing was
+     * saved; try again", which is the `r1` lie reachable from every worker failure rather than only
+     * from a blocked download. Declared in the try, they were invisible to the one place that needed
+     * them.
+     */
+    const saved: string[] = [];
+    const names: string[] = [];
     try {
       const jobs = units.map(([unit, index]) => ({ unitId: unit.id, job: supportJobOf(unit, index, 'export'), transform: unit.transform }));
       /** Whether the unit is still exactly the one this export started from (the gate's `stale` test). */
@@ -107,8 +118,6 @@ export function useExport(host: {
       /** The units whose SUPPORTS are in these files: the only ones the gate has anything to judge. */
       const supportsIn = (plans: readonly ExportFilePlan[]) =>
         [...new Set(plans.flatMap((plan) => plan.parts.filter((part) => part.content === 'supports').map((part) => part.unitId)))];
-      const saved: string[] = [];
-      const names: string[] = [];
       /**
        * Hand these files to the browser, in order. Returns the name of the first one the browser
        * REFUSED, so the caller can report what did arrive rather than claiming nothing did.
@@ -174,6 +183,13 @@ export function useExport(host: {
           // Judged per file, against ITS OWN result: each call has its own revision, so a joined
           // result checked against one revision would read every earlier file as stale.
           refusal = exportRefusal(one, supportsIn([batch.file]), unchanged);
+          /*
+           * A BATCH THAT CAME BACK EMPTY IS THAT FILE FAILING. The gate has nothing to judge when no
+           * supports are in the file, so without this the loop passed over it in silence and the
+           * success line named the others - the operator counts N-1 files and is told nothing. The
+           * single-call version said "Nothing to export"; this says which one.
+           */
+          if (!refusal && one.files.length === 0) refusal = { reason: 'failed', unitId: batch.jobs[0]!.unitId };
           if (refusal) break;
           names.push(...one.files.map((file) => file.fileName));
           refused = deliver(one.files);
@@ -195,7 +211,7 @@ export function useExport(host: {
          * refusal would be the old all-or-nothing sentence said over files that are on disk - the
          * same lie walk `r1` caught the download loop telling.
          */
-        if (saved.length > 0) return sayOutcome(exportPartialText(saved, name), EXPORT_PARTIAL_CODE, { saved: saved.join(', '), name });
+        if (saved.length > 0) return sayOutcome(exportPartialRefusalText(saved, refusal.reason, name), EXPORT_PARTIAL_CODE, { saved: saved.join(', '), name });
         // The gate's reason, not a translation of it: this chain used to end in an unconditional
         // `refuse('inconclusive')`, so engine 64's new `nothing-built` would have been reported as
         // a safety check that timed out. Passing it straight through makes the next reason
@@ -206,7 +222,14 @@ export function useExport(host: {
       const count = units.reduce((sum, [unit]) => sum + unitContacts(unit, builtRef.current.get(unit.id)?.mesh).length, 0);
       setStatusMessage(exportStatus(`${names.join(', ')} (${plural(count, '1 support', '{n} supports')})`, await checking));
     } catch (error) {
-      if (isAbort(error)) setStatus('Export cancelled; no file was written.');
+      /*
+       * WHAT ALREADY REACHED THE DISK IS SAID FIRST, whatever went wrong after it. Every sentence
+       * below ends "nothing was written", which is true of every export failure in this app EXCEPT
+       * one that happens part way through a per-file run - and that is now every worker failure,
+       * every timeout and every cancel after the first file.
+       */
+      if (saved.length > 0) sayOutcome(exportPartialText(saved, names[saved.length] ?? ''), EXPORT_PARTIAL_CODE, { saved: saved.join(', '), name: names[saved.length] ?? '' });
+      else if (isAbort(error)) setStatus('Export cancelled; no file was written.');
       else setStatusMessage(errorStatus('export', codedJobError(error)));
     } finally {
       setExporting(false);
