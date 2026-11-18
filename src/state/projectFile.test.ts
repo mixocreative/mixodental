@@ -42,8 +42,13 @@ describe('project file', () => {
   });
 
   it('writes a header that names the app and the version', () => {
+    /*
+     * 2 SINCE 2026-11-18, when meshes moved from JSON number lists to base64. The bump is what makes
+     * an OLDER build refuse this file instead of opening it as an empty plate: without it, that
+     * build finds no `values`, makes a zero-length array, and `assertSoundMeshes` passes it.
+     */
     const file = JSON.parse(encodeProject(sceneOf(worked('u1', 'knot'))));
-    expect([file.app, file.version]).toEqual(['mixodental', 1]);
+    expect([file.app, file.version]).toEqual(['mixodental', 2]);
   });
 
   it('refuses a file without the header, a newer version, a bad version and a missing scene', () => {
@@ -53,11 +58,11 @@ describe('project file', () => {
     expect(codeOf('[1, 2]')).toBe('not-project');
     expect(codeOf(JSON.stringify({ units: [] }))).toBe('not-project');
     expect(codeOf(JSON.stringify({ ...scene, app: 'other' }))).toBe('not-project');
-    expect(codeOf(JSON.stringify({ ...scene, version: 2 }))).toBe('newer');
+    expect(codeOf(JSON.stringify({ ...scene, version: 3 }))).toBe('newer');
     expect(codeOf(JSON.stringify({ ...scene, version: 'x' }))).toBe('damaged');
-    expect(codeOf(JSON.stringify({ app: scene.app, version: 1 }))).toBe('damaged');
+    expect(codeOf(JSON.stringify({ app: scene.app, version: 2 }))).toBe('damaged');
     expect(codeOf(JSON.stringify({ ...scene, scene: { units: [{ id: 5 }], selectedUnitIds: [] } }))).toBe('damaged');
-    try { decodeProject(JSON.stringify({ ...scene, version: 7 })); } catch (error) { expect((error as ProjectFileError).vars).toEqual({ v: 7, max: 1 }); }
+    try { decodeProject(JSON.stringify({ ...scene, version: 7 })); } catch (error) { expect((error as ProjectFileError).vars).toEqual({ v: 7, max: 2 }); }
   });
 
   it('opens both the compressed and the plain file', async () => {

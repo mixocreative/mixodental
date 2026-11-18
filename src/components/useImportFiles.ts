@@ -154,6 +154,9 @@ export function useImportFiles(host: {
     const plateNow = (): PlateScene => ({ ids: new Set(sceneRef.current.units.map((unit) => unit.id)), triangles: sceneRef.current.units.reduce((sum, unit) => sum + triangleCount(unit), 0) });
     try {
       const imported: PreparedMesh[][] = [];
+      /** Each imported group's source file facts, pushed in step with `imported` so refusals,
+          which add to neither, cannot knock the two out of alignment. */
+      const sourceFiles: { name: string; bytes: number; modified: number }[] = [];
       /*
        * ONE BAD FILE IS ITS OWN FAILURE, NOT THE DROP'S.
        *
@@ -184,6 +187,7 @@ export function useImportFiles(host: {
         if (/\.stl$/i.test(file.name)) {
           // The worker reads the file itself, slice by slice.
           imported.push(await importer().readStl(file, file.name, RUNTIME, label, controller.signal));
+          sourceFiles.push({ name: file.name, bytes: file.size, modified: file.lastModified });
         } else {
           const data = await file.arrayBuffer();
           const gltf = await new Promise<{ scene: Object3D }>((resolve, reject) => new GLTFLoader().parse(data, '', resolve, reject));
@@ -192,6 +196,7 @@ export function useImportFiles(host: {
           // Backstop for a glTF the estimate could not read: counted before welding.
           assertTriangleCapacity(file.name, raw.reduce((sum, mesh) => sum + (mesh.indices ? mesh.indices.length : mesh.positions.length / 3) / 3, 0), RUNTIME, true);
           imported.push(await importer().weld(raw, RUNTIME, label, controller.signal));
+          sourceFiles.push({ name: file.name, bytes: file.size, modified: file.lastModified });
         }
           // Counted again from what was read (an estimate may have been short).
           const counted = imported[imported.length - 1]!.reduce((sum, item) => sum + item.mesh.indices.length / 3, 0);
@@ -237,11 +242,18 @@ export function useImportFiles(host: {
       }
       let units = [...sceneRef.current.units];
       const added: PrintUnit[] = [];
-      for (const group of imported) {
+      /*
+       * THE FILE'S SIZE TRAVELS WITH ITS GROUP. `sourceBytes` is pushed in the same two places
+       * `imported` is, inside the same try, so a file that was REFUSED adds to neither and the two
+       * stay in step - which an index taken from the original file list would not, since refusals
+       * leave holes in it.
+       */
+      imported.forEach((group, at) => {
         const placed = placeImportedUnits(group, units, { lift: defaultSupportSettings.liftHeight, createId: () => `unit-${crypto.randomUUID()}` });
-        units = [...units, ...placed];
-        added.push(...placed);
-      }
+        const sized = placed.map((unit) => ({ ...unit, ...(sourceFiles[at] === undefined ? {} : { file: sourceFiles[at] }) }));
+        units = [...units, ...sized];
+        added.push(...sized);
+      });
       // A mode that began while the files were read still ends here, so the new objects are never edited under it.
       if (!dentalDrop) send({ type: 'leave' });
       dispatch({ type: 'batch', commands: [

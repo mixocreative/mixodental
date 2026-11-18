@@ -4,7 +4,16 @@ import { normalizeScene, sceneJsonReplacer, sceneJsonReviver, type PrintScene, t
 
 /** The project file: the scene's own JSON (project.ts) under a header that names the app and the format version. */
 export const PROJECT_APP = 'mixodental';
-export const PROJECT_VERSION = 1;
+/*
+  * 2 SINCE 2026-11-18: meshes are written as base64 rather than as JSON number lists.
+  *
+  * The bump is not bookkeeping. An older build opening a file written by this one passes its own
+  * `newer` refusal (1 > 1 is false), finds no `values`, makes `new Float32Array(undefined)` - zero
+  * length - and that passes `assertSoundMeshes`, so it opens AS AN EMPTY PLATE with no error and no
+  * clue. The refusal machinery and its wording already exist; this is the one character that
+  * reaches them. The current reviver still reads both spellings, so nothing old is orphaned.
+  */
+export const PROJECT_VERSION = 2;
 export const PROJECT_EXTENSION = '.mixodental';
 
 export const isProjectFile = (name: string) => name.toLowerCase().endsWith(PROJECT_EXTENSION);

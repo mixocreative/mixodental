@@ -36,6 +36,24 @@ export interface PrintUnit {
   name: string;
   /** Imported model geometry; the scene owns a private copy that commands never mutate. */
   source: TriangleMesh;
+  /**
+   * WHAT FILE THIS CAME FROM, recorded at import and carried, because the `File` is released the
+   * moment it has been read - by the time a card wants to show "18.7 MB" there is nothing left to
+   * ask. Owner, 2026-11-18: *"instead of triangles, show dimensions and file size"*.
+   *
+   * THREE FACTS, NOT ONE, and the other two are not speculation. `bytes` is what the card shows;
+   * `name` and `modified` are what a restored deck compares against the file still on disk, to tell
+   * "the same file" from "a file that has been re-exported since". Recording only the size now
+   * would mean re-importing every case to get the rest later.
+   *
+   * `bytes` is the FILE's size, not the mesh's cost in memory: an 18.7 MB STL is ~6.4 MiB once
+   * welded (`src/items/deckBudget.ts`). The two are different facts - the card shows the one a lab
+   * recognises off a folder listing, and the deck's budget line shows the other once for the case.
+   *
+   * Optional: a unit from a project saved before this existed has none, and deriving one from the
+   * mesh would be a guess printed as a fact.
+   */
+  file?: { readonly name: string; readonly bytes: number; readonly modified: number };
   transform: ModelTransform;
   settings: SupportSettings;
   placement?: PlacementResult;
@@ -395,17 +413,85 @@ export function deserializeScene(serialized: string): PrintScene {
   return normalizeScene(JSON.parse(serialized, sceneJsonReviver) as PrintScene);
 }
 
+/*
+ * A MESH IS WRITTEN AS BYTES, NOT AS A LIST OF NUMBERS, AND THAT WAS A CRASH.
+ *
+ * This used to be `values: Array.from(value)`, which turns every vertex into decimal TEXT:
+ * `JSON.stringify` then writes about 10-18 characters per float where the float is 4 bytes. One
+ * 374k-triangle aligner came to roughly 18.5 MB of string, so a case reached V8's ~512 MB maximum
+ * string length at about **29 models** - and the failure is the worst kind this app has. The
+ * operator saves at the end of a long session, the tab dies with a string-length error nobody can
+ * act on, and every hand edit goes with it.
+ *
+ * Base64 of the raw bytes is 4 characters per 3 bytes: about 5.3 characters per float against 10-18,
+ * so the same aligner is ~9 MB and the ceiling moves to about **57 models**. It is also far faster
+ * to read back - one decode instead of a million `parseFloat`s.
+ *
+ * DEBT, WRITTEN DOWN RATHER THAN LEFT SILENT: this doubles the headroom, it does not remove the
+ * ceiling. A project file is still ONE JSON string, so a 60-model case of heavy scans can still
+ * reach it. The real fix is a container - JSON for the structure, mesh bytes as separate binary
+ * parts - which is a format change with a migration, and is the next step when cases outgrow this.
+ *
+ * BYTE ORDER: the bytes are written in the platform's order. Every platform this ships to is
+ * little-endian, and a project file moving between architectures is not a case this app has; if it
+ * ever is, the container above is where that gets fixed too.
+ */
+
+/**
+ * `btoa` takes a string, so the bytes are handed over in chunks: `String.fromCharCode(...bytes)`
+ * on a real mesh is a million arguments in one call and overflows the stack.
+ */
+const BASE64_CHUNK = 0x8000;
+
+function toBase64(view: Float32Array | Uint32Array | Uint8Array): string {
+  const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+  let binary = '';
+  for (let at = 0; at < bytes.length; at += BASE64_CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(at, at + BASE64_CHUNK));
+  }
+  return btoa(binary);
+}
+
+/** The bytes back, in a buffer of their own so a Float32Array over it is always aligned. */
+function fromBase64(text: string): Uint8Array {
+  const binary = atob(text);
+  const bytes = new Uint8Array(binary.length);
+  for (let at = 0; at < binary.length; at += 1) bytes[at] = binary.charCodeAt(at);
+  return bytes;
+}
+
 export function sceneJsonReplacer(_key: string, value: unknown): unknown {
-  if (value instanceof Float32Array) return { $printSceneType: 'Float32Array', values: Array.from(value) };
-  if (value instanceof Uint32Array) return { $printSceneType: 'Uint32Array', values: Array.from(value) };
-  if (value instanceof Uint8Array) return { $printSceneType: 'Uint8Array', values: Array.from(value) };
+  if (value instanceof Float32Array) return { $printSceneType: 'Float32Array', b64: toBase64(value) };
+  if (value instanceof Uint32Array) return { $printSceneType: 'Uint32Array', b64: toBase64(value) };
+  if (value instanceof Uint8Array) return { $printSceneType: 'Uint8Array', b64: toBase64(value) };
   return value;
 }
 
 export function sceneJsonReviver(_key: string, value: unknown): unknown {
   if (!isTypedArrayEncoding(value)) return value;
-  if (value.$printSceneType === 'Float32Array') return new Float32Array(value.values);
-  return value.$printSceneType === 'Uint32Array' ? new Uint32Array(value.values) : new Uint8Array(value.values);
+  /*
+   * BOTH FORMATS ARE READ, and the old one is not a fallback to be removed later: every project
+   * file already on a customer's disk holds `values`, and a saved case is the work of a day.
+   */
+  if (value.values !== undefined) {
+    if (value.$printSceneType === 'Float32Array') return new Float32Array(value.values);
+    return value.$printSceneType === 'Uint32Array' ? new Uint32Array(value.values) : new Uint8Array(value.values);
+  }
+  /*
+   * NO FALLBACK HERE, AND THE `?? ''` THAT WAS HERE WAS A SILENT DATA LOSS.
+   *
+   * A node that claims to be a Float32Array and carries no payload - truncated, hand-edited, written
+   * by a build that spelled it differently - became an EMPTY array. Nothing downstream caught it:
+   * `assertSoundMeshes` checks `instanceof` and `length % 3`, and zero passes both. The project
+   * opened with no error at all, the card was a blank frame for ever, and the budget line counted
+   * the unit as nothing. A refusal the operator can act on beats a case that opens empty.
+   */
+  if (typeof value.b64 !== 'string') throw new TypeError(`${value.$printSceneType} entry has no data`);
+  const bytes = fromBase64(value.b64);
+  if (value.$printSceneType === 'Uint8Array') return bytes;
+  return value.$printSceneType === 'Float32Array'
+    ? new Float32Array(bytes.buffer, 0, bytes.byteLength / Float32Array.BYTES_PER_ELEMENT)
+    : new Uint32Array(bytes.buffer, 0, bytes.byteLength / Uint32Array.BYTES_PER_ELEMENT);
 }
 
 /**
@@ -437,7 +523,7 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
   // reject a value that is present has to be removed first: `...(ok ? { x } : {})` adds nothing on
   // the reject branch, so the bad value `...unit` already copied in would survive. Every other
   // optional field here is safe only because its `{}` branch means "the key was absent anyway".
-  const { diagnosis, revisions, rimDraftSeeded, ...rest } = unit;
+  const { diagnosis, revisions, rimDraftSeeded, file, ...rest } = unit;
   return migrateRemovals({
     ...rest,
     source: copyMesh ? cloneMesh(unit.source, 'source') : checkedMesh(unit.source, 'source'),
@@ -448,6 +534,17 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
     // A loaded draft goes through the same gate as one made by `rim/set`: a file can be hand-edited
     // or written by an older build, and an unchecked path reaches the engine the moment Done is pressed.
     ...(unit.rimDraft ? { rimDraft: cloneSurfacePath(unit.rimDraft) } : {}),
+    /*
+     * Taken out of the spread above and gated here, like every other optional field: a project file
+     * can be hand-edited, and a card that prints `NaN MB` is a card nobody trusts again. A bad value
+     * is DROPPED rather than refused - these three facts are a label and a staleness check, not
+     * geometry handed to the engine, so a project should still open without them.
+     */
+    ...(file !== null && typeof file === 'object'
+      && typeof file.name === 'string'
+      && Number.isFinite(file.bytes) && file.bytes >= 0
+      && Number.isFinite(file.modified)
+      ? { file: { name: file.name, bytes: file.bytes, modified: file.modified } } : {}),
     /*
      * REMOVED FROM THE SPREAD ABOVE FIRST, which is the only reason this line is a gate rather than
      * decoration - the warning at the top of this function, learned the hard way and then walked into
@@ -687,12 +784,17 @@ function normalizePair(vector: readonly number[], label: string): [number, numbe
   return [vector[0]!, vector[1]!];
 }
 
-function isTypedArrayEncoding(value: unknown): value is { $printSceneType: 'Float32Array' | 'Uint32Array' | 'Uint8Array'; values: number[] } {
+/** Either shape: `b64` as written since the string-limit fix, `values` as every older file holds. */
+function isTypedArrayEncoding(value: unknown): value is { $printSceneType: 'Float32Array' | 'Uint32Array' | 'Uint8Array'; values?: number[]; b64?: string } {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   const encoded = value as Record<string, unknown>;
-  return (encoded.$printSceneType === 'Float32Array' || encoded.$printSceneType === 'Uint32Array' || encoded.$printSceneType === 'Uint8Array')
-    && Array.isArray(encoded.values)
-    && encoded.values.every((entry) => typeof entry === 'number');
+  if (encoded.$printSceneType !== 'Float32Array' && encoded.$printSceneType !== 'Uint32Array' && encoded.$printSceneType !== 'Uint8Array') return false;
+  // EITHER SHAPE, and the checks stay as strict as they were: `b64` as written since the
+  // string-limit fix, `values` as every older file holds. Nothing else is a typed array - a file
+  // claiming the type with neither payload must fall through and be refused by `normalizeScene`,
+  // not revived as an empty array that passes validation and prints nothing.
+  if (typeof encoded.b64 === 'string') return true;
+  return Array.isArray(encoded.values) && encoded.values.every((entry) => typeof entry === 'number');
 }
 
 function normalizeJsonObject(value: JSONObject): JSONObject {
