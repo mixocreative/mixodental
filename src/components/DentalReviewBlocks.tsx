@@ -14,6 +14,8 @@ import { EditTools } from './EditBar';
 import { Field } from './Field';
 import { hint } from './hint';
 import { Panel } from './Panel';
+import { RecipeRow } from '../recipes/RecipeRow';
+import type { ComponentProps } from 'react';
 import { ProblemList } from './ProblemList';
 import { RangeField } from './RangeField';
 
@@ -64,6 +66,11 @@ export interface DentalReview {
    * dialog claiming a re-orient that is not going to happen, which is exactly what it did.
    */
   backAsk: { added: number; removed: number; customised: number; reorients: boolean } | undefined;
+  /**
+   * The support recipe row under the settings (`src/recipes/`), or absent where it has no meaning -
+   * a denture, which builds through its own flow and is not in the deck's queue.
+   */
+  recipes?: ComponentProps<typeof RecipeRow>;
   onBackConfirm: () => void;
   onBackCancel: () => void;
 }
@@ -118,6 +125,16 @@ export function SupportSettingsBlock({ review, kind, onAdjust }: { review: Denta
     <Field label={t(kindText('Cross-braces', kind))} ui={`${kind}-cross-braces`}>
       <input type="checkbox" checked={review.structure.bracesEnabled} onChange={(event) => review.onStructure({ ...review.structure, bracesEnabled: event.target.checked })} />
     </Field>
+    {/*
+      THE RECIPE ROW SITS UNDER THE SETTINGS IT SAVES, which is the whole argument for it being here
+      rather than on a screen of its own: "remember these" is a sentence an operator says while
+      looking at the numbers (`src/recipes/README.md`).
+
+      ONLY FOR AN ALIGNER for now: auto-gen is the aligner's queue, and a denture's Step 2 builds
+      through its own flow with its own policy. Offering a control that nothing downstream reads
+      would be a dead control, which this app's own standard forbids.
+    */}
+    {kind === 'denture' || !review.recipes ? null : <RecipeRow {...review.recipes} />}
   </Panel>;
 }
 

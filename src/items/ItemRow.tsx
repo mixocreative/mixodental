@@ -4,6 +4,8 @@ import type { PrintUnit } from '../state/project';
 import { detectChip, detectSentence, type DetectState } from './detectState';
 import { autoGenSentence } from '../autoGen/autoGenText';
 import type { AutoGenCard } from '../autoGen/useAutoGen';
+import { RecipeChip } from '../recipes/RecipeChip';
+import type { RecipeBook } from '../recipes/recipeBook';
 import { kindOfProfile } from '@mixo-geocore/host/dental/dentalKind';
 import { sizeSummary, triangleSummary } from './itemSummary';
 import { verdictOfDiagnosis } from './rowState';
@@ -29,7 +31,7 @@ import type { Lang } from '../i18n';
  * Every part is named for the UNIT, never for the row's position: `items-row-3` would re-point every
  * later row the moment one is removed.
  */
-export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, onPurpose, lang, live, onLive, onRelease, onSelect, onOpen, onRemove, onRetry, autoGen, autoGenReady, onAutoGen, onEnlarge }: {
+export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, onPurpose, lang, live, onLive, onRelease, onSelect, onOpen, onRemove, onRetry, autoGen, autoGenReady, onAutoGen, onEnlarge, recipe }: {
   unit: PrintUnit;
   /**
    * WHAT THIS CARD IS: its own answer, absent until somebody gives one.
@@ -86,6 +88,8 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
   onAutoGen: () => void;
   /** Show this model on its own, full size. A look, never an editor (owner's ruling 7). */
   onEnlarge: () => void;
+  /** The support recipe this card builds with, and the control that switches it (`src/recipes/`). */
+  recipe: { book: RecipeBook; problem: boolean; selectedId: string | undefined; onChoose: (recipeId: string) => void };
 }) {
   // No verdict means the unit never went through the import worker, or predates the verdict. The row
   // then shows its size and says nothing about health, which is the honest gap.
@@ -265,6 +269,15 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
     */}
     <span className="row-purpose">
       <PurposeSelect value={purpose} lang={lang} ui={`items-purpose-${unit.id}`} onChange={onPurpose} />
+      {/*
+        THE RECIPE SITS WITH THE TYPE, because they are the two answers that decide what gets built -
+        the type chooses the geometry rules, the recipe chooses the numbers. It appears only once the
+        card has been named, for the same reason Open does: nothing can be generated before then, so
+        a control that changes how it would be is noise.
+      */}
+      {purpose !== undefined ? <RecipeChip unitId={unit.id} book={recipe.book} problem={recipe.problem}
+        selectedId={recipe.selectedId} ran={autoGen?.kind === 'done' ? autoGen.recipeName : undefined}
+        onChoose={recipe.onChoose} /> : null}
     </span>
     {/*
       ONE CELL FOR BOTH KEYS. Retry only exists on a failed row, so it was an EIGHTH child in a

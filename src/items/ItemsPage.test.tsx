@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ItemsPage } from './ItemsPage';
 import type { DetectState } from './detectState';
+import { emptyBook } from '../recipes/recipeBook';
 import type { PrintUnit } from '../state/project';
 import type { ImportDiagnosis } from '../state/diagnosis';
 import type { ImportRefusal } from './rowState';
@@ -23,6 +24,8 @@ const unit = (id: string, name: string, diagnosis?: ImportDiagnosis) =>
 const noAutoGen = {
   autoGen: new Map(), autoGenReady: () => false, onAutoGen: () => {},
   onAutoGenAll: () => {}, autoGenBusy: false, onAutoGenStop: () => {},
+  // A device with nothing saved: Type default and nothing else, which is every test here but the chip's own.
+  recipes: { book: emptyBook(), problem: false, chosen: new Map<string, string>(), onChoose: () => {} },
 };
 
 /** Every unit named as an aligner: the ordinary state of a case being worked. */

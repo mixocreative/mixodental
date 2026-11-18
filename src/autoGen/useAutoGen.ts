@@ -49,6 +49,14 @@ export type AutoGenCard =
     readonly kind: 'done'; readonly tips: number;
     readonly angleMovedDeg?: number;
     readonly angleCheck?: 'none-held' | 'failed';
+    /**
+     * The recipe this run actually built with.
+     *
+     * KEPT RATHER THAN LOOKED UP, because the default can change afterwards: a card that reported
+     * the CURRENT default would relabel itself the moment the operator set a new one, telling them
+     * that supports already on the plate were built with something they have never used.
+     */
+    readonly recipeName: string;
   }
   /** Stopped, with the unit untouched. */
   | { readonly kind: 'stopped'; readonly stop: AutoGenStop };
@@ -185,7 +193,7 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
       if (generation.current !== mine) return;
       put(unitId, result.kind === 'done'
         ? {
-          kind: 'done', tips: result.tips,
+          kind: 'done', tips: result.tips, recipeName: recipe.name,
           ...(result.angleMovedDeg === undefined ? {} : { angleMovedDeg: result.angleMovedDeg }),
           ...(result.angleCheck === undefined ? {} : { angleCheck: result.angleCheck }),
         }

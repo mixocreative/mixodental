@@ -7,6 +7,7 @@ import type { ImportRefusal } from './rowState';
 import { itemsLeft, nextItem } from './nextItem';
 import type { DetectState } from './detectState';
 import type { AutoGenCard } from '../autoGen/useAutoGen';
+import type { RecipeBook } from '../recipes/recipeBook';
 import type { ThumbCache } from './thumbnail';
 import { ItemRow } from './ItemRow';
 import { CardEnlarge } from './CardEnlarge';
@@ -34,7 +35,7 @@ import { deckUsage, formatBytes } from './deckBudget';
  * looked at the first of a set of identically-named elements and reported the rest as missing — a
  * false gap that cost a round of investigation.
  */
-export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, purposes, onPurpose, onPurposeAll, onAnyModel, onSelect, onStart, onRemove, onFiles, onBack, onArrange, onExport, onRetry, autoGen, autoGenReady, onAutoGen, onAutoGenAll, autoGenBusy, onAutoGenStop }: {
+export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, purposes, onPurpose, onPurposeAll, onAnyModel, onSelect, onStart, onRemove, onFiles, onBack, onArrange, onExport, onRetry, autoGen, autoGenReady, onAutoGen, onAutoGenAll, autoGenBusy, onAutoGenStop, recipes }: {
   units: readonly PrintUnit[];
   /**
    * Files that never became units. They are rows too (§3's first table): drop eight, one is broken,
@@ -118,6 +119,8 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   /** Something is running or waiting, so the case key becomes Stop. */
   autoGenBusy: boolean;
   onAutoGenStop: () => void;
+  /** The support recipe book, this sitting's per-card choices, and the control that changes them. */
+  recipes: { book: RecipeBook; problem: boolean; chosen: ReadonlyMap<string, string>; onChoose: (unitId: string, recipeId: string) => void };
 }) {
   /*
    * GATING IS PER ROW NOW, because the answer is. The rail and the primary act through ONE unit's
@@ -322,6 +325,12 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
           autoGenReady={autoGenReady(unit.id)}
           onAutoGen={() => onAutoGen(unit.id)}
           onEnlarge={() => enlarge(unit.id)}
+          recipe={{
+            book: recipes.book,
+            problem: recipes.problem,
+            selectedId: recipes.chosen.get(unit.id),
+            onChoose: (recipeId) => recipes.onChoose(unit.id, recipeId),
+          }}
         />)}
       </ul>
     </section>

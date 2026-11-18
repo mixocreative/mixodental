@@ -1830,6 +1830,33 @@ dialog.terms .terms-item > span { flex: none; }
 }
 .items-row .autogen--done { color: var(--success); }
 .items-row .autogen--stopped { color: var(--warning); }
+/*
+ * THE RECIPE CHIP: the name, with the native `<select>` laid invisibly over it so the list, the
+ * keyboard and the screen-reader announcement stay the platform's own - the same trick
+ * `.lang-select` uses, and for the reason its comment gives at length. The name is what the
+ * operator reads; the select is what they press.
+ */
+.recipe-chip {
+  position: relative; display: inline-flex; align-items: center; max-width: 100%;
+  min-height: 24px; padding: 0 6px; border: 1px solid var(--line); border-radius: 2px;
+  background: var(--surface); font-size: var(--small-size, 11.5px); color: var(--muted);
+}
+.recipe-chip:hover { border-color: var(--line-strong); }
+/* One line, clipped: a case of thirty cards cannot spend a second row on a name. */
+.recipe-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.recipe-chip select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.recipe-chip:focus-within { outline: 2px solid var(--blue); outline-offset: 1px; }
+/*
+ * THE RECIPE ROW in Step 3, under the settings it saves. The keys wrap rather than squeeze: the
+ * step panel is narrow and five labels on one line crush the first one onto three, which is the
+ * same lesson the deck's card learned from its own three keys.
+ */
+.recipe-row { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.recipe-row-pick { display: flex; align-items: center; gap: 8px; font-size: var(--small-size, 11.5px); }
+.recipe-row-pick select { flex: 1; min-width: 0; min-height: 26px; padding: 0 8px; }
+.recipe-row-keys { display: flex; flex-wrap: wrap; gap: 4px; }
+.recipe-row-keys button { min-height: 26px; padding: 0 8px; white-space: nowrap; font-size: var(--small-size, 11.5px); }
+.recipe-row-name { flex: 1 1 100%; min-width: 0; min-height: 26px; padding: 0 8px; }
 .row-enlarge { min-height: 26px; padding: 0 10px; white-space: nowrap; font-size: var(--small-size, 11.5px); }
 .row-enlarge:hover:not(:disabled) { border-color: var(--line-strong); background: var(--raised); }
 /*

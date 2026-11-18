@@ -131,6 +131,8 @@ import { isBuilding, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { stepPanelInset } from './dental/stepPanelInset';
 import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, exitCommands, exitNeedsConfirm, manualEditCounts, startsDentalStep } from './dental/flow';
+import { applyRecipeCommands } from './dental/stages';
+import { isTypeDefault } from './recipes/supportRecipe';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import { dentalLabelCommands } from './dental/stages';
 import type { DentalReview } from './components/DentalSupports';
@@ -1500,6 +1502,29 @@ export default function App() {
       : undefined,
     onBackConfirm: () => { setBackAsk(false); const commands = backCommands(activeUnit, sessionRef.current.dentalProfile); if (commands.length > 0) dispatch({ type: 'batch', commands }); send({ type: 'backDental' }); },
     onBackCancel: () => setBackAsk(false),
+    /*
+     * THE RECIPE ROW, wired to the unit on screen. "Save as new" and "Update" take the settings and
+     * the Tree/Brace switches AS THEY STAND, which is what the operator is looking at - reading them
+     * from anywhere else is how a recipe comes to differ from the supports it was named after.
+     */
+    ...(activeUnit && !denture.active ? { recipes: {
+      book: recipes.book,
+      problem: recipes.problem !== undefined,
+      selectedId: recipes.chosen.get(activeUnit.id) ?? recipes.book.defaultId,
+      onChoose: (recipeId: string) => {
+        recipes.choose(activeUnit.id, recipeId);
+        const picked = recipes.book.recipes.find((entry) => entry.id === recipeId);
+        const profile = activeUnit.dental?.profileId ?? session.dentalProfile;
+        if (!picked || !profile) return;
+        // The numbers land on the model at once, and the switches with them: see `applyRecipeCommands`.
+        dispatch({ type: 'batch', commands: applyRecipeCommands(activeUnit, profile, picked) });
+        if (!isTypeDefault(picked)) onDentalStructureChange(picked.structure);
+      },
+      onSaveAs: (name: string) => recipes.addRecipe(name, activeSettings, { treeEnabled: reviewStructure.structure.treeEnabled, bracesEnabled: reviewStructure.structure.bracesEnabled }, activeUnit.id) !== undefined,
+      onUpdate: (recipeId: string) => recipes.updateRecipe(recipeId, activeSettings, { treeEnabled: reviewStructure.structure.treeEnabled, bracesEnabled: reviewStructure.structure.bracesEnabled }),
+      onDelete: recipes.removeRecipe,
+      onSetDefault: recipes.setDefault,
+    } } : {}),
   } : undefined;
   // Denture Step 2 checks each finished build by itself: its status line counts the problems.
   const dentureBuild = denture.active && session.mode === 'dental' && session.dentalStage === 'review' && activeUnit?.denture && ui.dentalReviewReady ? currentBuild(activeUnit, built.get(activeUnit.id)) : undefined;
@@ -1669,6 +1694,7 @@ export default function App() {
       onAutoGenAll={autoGen.startAll}
       autoGenBusy={autoGen.busy}
       onAutoGenStop={autoGen.cancel}
+      recipes={{ book: recipes.book, problem: recipes.problem !== undefined, chosen: recipes.chosen, onChoose: recipes.choose }}
       /*
        * THE CASE'S OWN WORK, reaching the screen that has the models on it. Both are the bench's
        * existing presses, passed down rather than reimplemented: `plate.arrange` is pure, and the

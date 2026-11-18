@@ -141,6 +141,26 @@ export function acceptCommands(unit: PrintUnit, profile: string, policy: DentalP
 }
 
 /**
+ * CHOOSING A RECIPE IN STEP 3 PUTS ITS NUMBERS ON THE MODEL NOW.
+ *
+ * Without this the select was a DEAD CONTROL in the plainest sense: it recorded a choice, the
+ * sliders did not move, the supports did not change, and nothing on screen differed - the recipe
+ * would only have taken effect at the next accept, which Step 3 never performs. A control that
+ * looks like it did something is worse than one that is greyed out.
+ *
+ * TYPE DEFAULT MEANS THE TYPE'S OWN NUMBERS, not "leave whatever is there". It is the one choice
+ * that restores rather than applies, and an operator who picks it after trying a recipe means
+ * exactly that. `alignerSettings` deliberately does NOT do this for a recipe it was merely handed -
+ * there, keeping the operator's own settings is the rule `keptDentalWork` exists to protect - which
+ * is why applying one is its own function rather than a flag on that one.
+ */
+export function applyRecipeCommands(unit: PrintUnit, profile: string, recipe: SupportRecipe): SceneCommand[] {
+  const current = resolveSettings(unit.settings);
+  const settings = isTypeDefault(recipe) ? dentalSupportSettings(profile, current) : applyRecipe(current, recipe);
+  return [{ type: 'settings/set', unitId: unit.id, settings: settings as SupportSettings }];
+}
+
+/**
  * No area was detected, so Step 2 opens empty and the operator paints one.
  *
  * THE PAINT IS CARRIED, as it is everywhere else a policy is replaced (`useRimDrawing` does the
