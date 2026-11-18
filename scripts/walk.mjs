@@ -365,6 +365,19 @@ const results = [];
  * seen is a guard that fails the first honest skip.
  */
 let skippedByDesign = 0;
+/**
+ * WHAT AUTO-GEN BUILT, carried from section `m` to section `x` so the two can be compared.
+ *
+ * This is the parity proof the auto-gen pipeline exists for: both paths call the same stage
+ * decisions (`src/dental/stages.ts`), and the only way to show that holds END TO END is to put the
+ * same model through both and compare what comes out. A node test cannot - the editor's path is a
+ * hook driving screens - and neither section can do it alone, because `m` never walks the steps and
+ * `x` never passes the deck. Sections run in `SECTION_ORDER`, and `m` runs before `x`.
+ *
+ * `undefined` means section `m` did not run (a filtered walk), and the check says so rather than
+ * comparing against nothing.
+ */
+let autoGenTally;
 const started = Date.now();
 function check(name, ok, detail = '') {
   results.push({ name, ok });
@@ -1863,6 +1876,8 @@ async function walk(url, scratch, dentalFixture) {
         ).then(() => true, () => false);
         if (atStep3) tally = await d.counts();
       }
+      // Carried to section `x`, which walks the SAME model by hand and compares (see `autoGenTally`).
+      if (atStep3 && tally.auto > 0) autoGenTally = tally;
       check('m12b an auto-generated card opens at Step 3 with the supports the queue built, never at Step 1',
         atStep3 && tally.auto > 0 && tally.manual === 0,
         `badge "${await page.locator('.edit-badge').innerText().catch(() => '')}", counts ${JSON.stringify(tally)}`);
@@ -3659,6 +3674,25 @@ async function walk(url, scratch, dentalFixture) {
       const wait = async (ok, what, ms = 240000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await ok()) return true; await d.idle(300); } throw new Error(`timed out: ${what}`); };
 
       await toStep3(true);
+      /*
+       * x0p: THE PARITY CHECK. The same reference aligner, through the step screens by hand here and
+       * through the deck's queue in `m12`, with the same recipe (Type default on both) - so the two
+       * must place the SAME supports. If they ever differ, auto-gen is quietly making different
+       * supports from the editor for one model, which is the worst defect this feature can have and
+       * the reason `src/dental/stages.ts` exists at all.
+       *
+       * EXACT, NOT APPROXIMATE. Both paths call one implementation of every decision, so there is no
+       * tolerance to justify; a difference of one tip is a difference.
+       */
+      const handTally = await d.counts();
+      if (autoGenTally === undefined) {
+        skippedByDesign += 1;
+        note('x0p parity with auto-gen: skipped, section m did not run in this pass');
+      } else {
+        check('x0p the step screens and auto-gen build the SAME supports for the same model',
+          handTally.auto === autoGenTally.auto,
+          `by hand ${handTally.auto}, auto-gen ${autoGenTally.auto}`);
+      }
       await d.measureCanvas();
       await page.screenshot({ path: path.join(scratch, 'ux-c-step3-1440x900.png') });
       // The finish controls stay in view without scrolling, at the walk size and at 1280x720.
@@ -4765,7 +4799,7 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 190;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end
+const EXPECTED_CHECKS = 191;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
 if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,
