@@ -95,7 +95,7 @@ npm run vendor:check && npm test && npm run screens && npm run build && npm run 
 ```
 
 `npm run walk` is the part that matters and the part that gets skipped. It asserts
-`EXPECTED_CHECKS = 186` on a complete run, so a check that silently stopped running fails it
+`EXPECTED_CHECKS = 188` on a complete run, so a check that silently stopped running fails it
 instead of printing a smaller number on the same `ALL PASS` line. `--only=` walks less **by
 design** and says so in its verdict line: `SOME PASS` is not a pass of this gate.
 

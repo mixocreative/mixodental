@@ -7,7 +7,7 @@
 > still useful.
 >
 > **What proves the app today:** `npm run gate` (every check but the walk, with a receipt under
-> `artefacts/gate/`), then `npm run walk` — 186 browser checks, and
+> `artefacts/gate/`), then `npm run walk` — 188 browser checks, and
 > `npm run walk -- --renderer=babylon` for the same checks on the other renderer. `README.md` and
 > `scripts/README.md` describe both. `docs/HANDOFF.md` carries the last run's counts.
 

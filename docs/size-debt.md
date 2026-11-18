@@ -55,7 +55,7 @@ reported: it printed a smaller number on the same `ALL PASS` line and exited 0. 
 already shipped once under a receipt that read PASS while the thing it was meant to prove had not
 run, so the split was refused until the count was asserted.
 
-It now asserts `EXPECTED_CHECKS = 186` on any complete run — 188 until 2026-11-14, when `g` and
+It now asserts `EXPECTED_CHECKS = 188` on any complete run — 188 until 2026-11-14, when `g` and
 `g-pre` retired to `mixo-geocore`'s `editing/strokeQueue.test.ts`, where the same rule is tested
 deterministically in 3 ms without a browser. `--only`, `--probes`, `--locales` and
 a crash resume each walk less by design and are excluded, and each already says so in the verdict
@@ -80,7 +80,7 @@ Unselect mid-stroke does not unselect the remainder -- is tested deterministical
 `editing/strokeQueue.test.ts`, which owns the queue: eight cases, no browser, 3 ms. `g` was spending
 thirty minutes racing a CPU throttle to re-prove it, and three identical isolated runs returned
 three different answers (55/55, 251/53, 0/0), so it had never once run meaningfully. The walk's
-check count moved 188 -> 186 with the reason beside the number.
+check count moved 188 -> 188 with the reason beside the number.
 
 **The fixtures block was taken** (`scripts/walk/fixtures.mjs`, 84 lines): the synthetic mesh
 builders and the heavy-plate generator, which open no page and know nothing about checks.

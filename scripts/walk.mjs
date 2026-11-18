@@ -13,6 +13,13 @@ import {
 } from './walk/fixtures.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+/*
+ * THE PROJECT FORMAT VERSION, READ FROM THE SOURCE. This file is plain node and cannot import the
+ * TypeScript constant, so it reads it rather than repeating it: `i2` asserted `=== 1` and went red
+ * the day the format bumped to 2, which is a check failing on a change it was never about.
+ */
+const PROJECT_VERSION = Number(/PROJECT_VERSION = (\d+)/.exec(readFileSync(path.join(ROOT, 'src', 'state', 'projectFile.ts'), 'utf8'))?.[1]);
 const FIXTURE = path.join(ROOT, 'scripts', 'fixtures', 'knot.stl');
 /**
  * The aligner the dental sections walk, in order of preference:
@@ -1297,9 +1304,14 @@ async function walk(url, scratch, dentalFixture) {
       const bytes = readFileSync(projectFile);
       const raw = gunzipSync(bytes);
       note(`project file ${saved.suggestedFilename()}: ${bytes.length} bytes gzip, ${raw.length} bytes plain`);
+      /*
+       * THE VERSION COMES FROM THE SOURCE, not from a number typed here. It was `=== 1` and went red
+       * the day meshes moved to base64 and the format bumped to 2 - a check failing on a change it
+       * was never about. What this check is FOR is that a saved file carries the header at all.
+       */
       const header = JSON.parse(raw.toString('utf8').slice(0, 200).replace(/,"scene".*$/s, '}'));
       check('i2 Save writes knot.mixodental with the format header, and the leave prompt follows it',
-        saved.suggestedFilename() === 'knot.mixodental' && header.app === 'mixodental' && header.version === 1 && unsaved === true && (await leavePrompt()) === false && (await d.status()) === 'Saved knot.mixodental.',
+        saved.suggestedFilename() === 'knot.mixodental' && header.app === 'mixodental' && header.version === PROJECT_VERSION && unsaved === true && (await leavePrompt()) === false && (await d.status()) === 'Saved knot.mixodental.',
         `file ${saved.suggestedFilename()}, header ${JSON.stringify(header)}, prompt before the save ${unsaved}, status "${await d.status()}"`);
 
       await page.goto(url);
@@ -1435,13 +1447,26 @@ async function walk(url, scratch, dentalFixture) {
        * shown nothing and it would have passed - and it never checked the triangle count although
        * its own name claimed to. The three cubes are identical, so every row must read the same.
        */
+      /*
+       * WHAT A CARD SAYS ABOUT ITS FILE CHANGED ON 2026-11-18, at the owner's asking: *"instead of
+       * triangles, show dimensions and file size"*. The triangle count is a MACHINE fact - it is
+       * what the case costs to hold and generate, which the deck's budget line now says once for
+       * the whole case - so it moved to the cell's `title`, where a curious reader finds it and it
+       * does not take the line every card spends telling a lab something about its model.
+       *
+       * The title is asserted too. Moving a fact out of sight is exactly how a fact quietly stops
+       * being shown at all, and `allInnerTexts` cannot see an attribute.
+       */
       const previews = await page.locator('.items-row .preview').allInnerTexts();
-      check('m4 every row carries its own triangle count and size, and the page says how many are left',
+      const previewTitles = await page.locator('.items-row .preview').evaluateAll(
+        (nodes) => nodes.map((node) => node.getAttribute('title') ?? ''));
+      check('m4 every card carries its own size and file size, keeps the triangle count under the pointer, and the page says how many are left',
         previews.length === 3
-        && previews.every((text) => /\d+ triangles/.test(text) && /\d+ × \d+ × \d+ mm/.test(text))
+        && previews.every((text) => /\d+ × \d+ × \d+ mm/.test(text) && /\d+ (KB|MB|GB)/.test(text))
+        && previewTitles.every((title) => /\d+ triangles/.test(title))
         && new Set(previews).size === 1
         && /3 items left/.test(await page.locator('.items-left').innerText()),
-        `${JSON.stringify(previews)} / ${await page.locator('.items-left').innerText()}`);
+        `${JSON.stringify(previews)} / ${JSON.stringify(previewTitles)} / ${await page.locator('.items-left').innerText()}`);
       /*
        * THE BATCH RUNS, ROW BY ROW. One `dentalOrient` per row once the purpose is pressed - it takes
        * the profile as an argument, which is why the purpose had to come first. Cubes have no rim, so
@@ -1542,8 +1567,23 @@ async function walk(url, scratch, dentalFixture) {
           sideways: Math.round(document.documentElement.scrollWidth - document.documentElement.clientWidth),
         };
       });
-      check('m4d the deck measures up: one-line rows, a square undistorted tile, padded dropdowns, the footer on the floor, nothing off the edge',
-        geom.rowHeight > 0 && geom.rowHeight <= 72
+      /*
+       * THE CEILING MOVED WHEN THE DECK BECAME CARDS (2026-11-18), and the rule behind it did not.
+       * A ROW was held to one line because a row spends the window's whole width on one model and
+       * stacks the next below it, so height was pure scroll. A CARD spends ~230px and TILES, so its
+       * height buys a picture three times the area while more models fit on a screen at once -
+       * which is the owner's own reason for the change. What still has to hold is that a card is
+       * NOT UNBOUNDED.
+       *
+       * 420px is that bound, and it is measured rather than guessed: a card at 208px wide is a
+       * 192px square picture, its name, its size line, its category and type, and its keys - 358px,
+       * or 365px on a failed card where Open, Retry and Remove wrap to two rows. The ceiling leaves
+       * room for a second wrapped row and nothing more. An earlier 360 here was a number invented
+       * before the card was built, and it failed the gate on a card that was behaving exactly as
+       * designed - which is a check about the author's guess rather than about the screen.
+       */
+      check('m4d the deck measures up: cards that stay compact, a square undistorted tile, padded dropdowns, the footer on the floor, nothing off the edge',
+        geom.rowHeight > 0 && geom.rowHeight <= 420
         && Math.abs(geom.shotAspect - 1) < 0.05
         && (geom.imgStretch === null || geom.imgStretch < 0.02)
         && geom.padless === 0

@@ -1,6 +1,6 @@
-# src/items: the deck, and what a dropped file's row says
+# src/items: the deck, and what a dropped file's card says
 
-This folder is the deck: the page, its two kinds of row, the batch that orients them, and the
+This folder is the deck: the page, its two kinds of card, the batch that orients them, and the
 pictures on them. `rowState.ts` is pure: no React, no DOM, no strings. It returns a state and the
 numbers that state needs; the UI picks the words.
 
@@ -118,12 +118,16 @@ is what will make repair safe to write.
 | `useBatchDetect.ts` | the batch itself: one detection per row, one at a time, each row's own result, under the case's answer or that row's own override |
 | `thumbnail.ts` | WHICH row needs a picture and WHERE its camera goes — no GL in it |
 | `useThumbnails.ts` | the cache, and drawing one row per task so the list paints between them |
-| `ItemRow.tsx` | ONE LINE per model: picture, name, size, a health mark, a status chip, the control that says what THIS one is, and Remove |
+| `orbit.ts` | pure: a framing and two angles in, a camera position out. Where turning a card's model is tested |
+| `CardShot.tsx` | a card's picture: the cached still, the live canvas over it, and the busy overlay |
+| `deckBudget.ts` | pure: what a whole case costs to hold and to generate, and how much room is left |
+| `ItemRow.tsx` | ONE CARD per model: picture, name, size, a health mark, a status chip, the control that says what THIS one is, and Remove |
 | `RefusedRow.tsx` | a file that never became a unit, as a row with the same columns |
-| `ItemsPage.tsx` | LAYOUT ONLY: the purpose question, the rail down the left, the rows beside it, the tally underneath |
+| `ItemsPage.tsx` | LAYOUT ONLY: the grid of cards, which card's picture is live, the budget line and the tally underneath. It holds no state about a card except that |
+| `rowPurpose.ts` | pure: what a card IS, from the operator's answer or, failing that, the work the unit already carries |
 
 `drawThumbnail.ts` is **not** in this folder: it lives in `src/components/viewport/` because
-`threeBoundary.test.ts` keeps three.js in the view layer, and it is the one file of the feature that
+`threeBoundary.test.ts` keeps three.js in the view layer, and they are the three files of the feature that
 touches a renderer. The section below says more.
 
 **`ItemsPage.tsx` is layout and nothing else**, and it is worth saying why it was split. It used to
@@ -192,7 +196,7 @@ pictures are wanted. Mounting the workspace behind every start screen would be a
 change that walk checks `u1a` and `l2g` rest on — the start screens have no panels — which is far
 more than a row picture should cost.
 
-So `drawThumbnail.ts` keeps ONE renderer for the app, made on first use. Not one per row: browsers
+So `components/viewport/deckRig.ts` keeps ONE renderer for the deck, made on first use. Not one per row: browsers
 cap GL contexts near sixteen and a drop of twenty would start losing them. Each model is uploaded,
 drawn and disposed in turn, so the peak is one model's geometry rather than the deck's.
 
@@ -215,7 +219,32 @@ Two details that are easy to get wrong:
   is compared, because the camera centres on the model's own box — a move cannot change the picture,
   and `ModelTransform` carries no scale.
 
-## What a row LOOKS like, and the four rules that decide it (2026-11-18)
+## What a CARD looks like, and the rules that decide it (2026-11-18)
+
+The deck became a grid of cards the same day the rules below were written for rows. The owner's
+reason is the trade itself: *"deck is cards, not rows. That way your preview 3d model can go larger
+but show more compact cards on screen?"* A row spends the window's whole width on one model and
+stacks the next below it, so a bigger picture costs scroll; a card spends ~230px and tiles, so the
+picture gets three times the area AND more models fit on a screen.
+
+**The markup did not change.** The same children in the same order, laid out by `grid-template-areas`
+instead of seven columns - which is why the gate's 37 `.items-row` selectors and every
+`data-ui="items-row-<id>"` still mean what they meant. The class name is now a lie about the layout
+and it stays one on purpose: renaming it is ~70 mechanical edits across a gate script and the
+designers' own naming contract, for no change a user can see. Debt, written down.
+
+**The picture is live on the card being looked at.** `CardShot.tsx` holds both surfaces - the cached
+still as an `<img>`, and a 2D `<canvas>` the deck's single renderer copies frames into. One model is
+live at a time and `ItemsPage` owns which, because "only one" is a fact about the SET and a card
+cannot know about its neighbours. Sixty live canvases would be sixty WebGL contexts against a cap
+near sixteen. The maths of turning it is `orbit.ts`, pure and tested - including the property that
+makes the handover invisible: the first live frame is framed exactly as the still it replaces.
+
+**Three modules, three jobs:** `orbit.ts` (pure, no GL), `components/viewport/liveCardView.ts` (the
+GL half), `CardShot.tsx` (the surfaces and the pointer). The GL lives under `viewport/` because
+`threeBoundary.ts` keeps three.js in the view layer.
+
+## The four rules the ROW had, which the card kept (2026-11-18)
 
 The row is a **line in a worklist**, not a card. It was a three-row grid measuring 109px per row
 until the owner looked at a real case: *"the deck looks awful, not compact enough."* A stage case is
@@ -223,7 +252,7 @@ until the owner looked at a real case: *"the deck looks awful, not compact enoug
 one is here because breaking it produced a defect somebody had to find on screen rather than in a
 file:
 
-1. **Seven columns, one line, every cell clipped.** `tile | name | size | health | status | category
+1. **Every text cell clips rather than wrapping.** `tile | name | size | health | status | category
    and type | keys`. A sentence that wraps is what made the row three tall, so every text cell gets
    `text-overflow: ellipsis` and carries its full wording in `title`. The keys share ONE cell
    (`.row-actions`): Retry exists only on a failed row, and as an eighth child it wrapped the row and
@@ -232,7 +261,7 @@ file:
    Twenty-four rows reading "Ready to print." is how little is wrong, said twenty-four times.
 3. **The tile is square, because the picture is.** `drawThumbnail` renders a 160px square of the real
    model as placed. A 36x44 frame stretched that render by a fifth, which is precisely what stops a
-   3D render looking like one; it is 56px square at `object-fit: contain`.
+   3D render looking like one; it is square and fills the card's width at `object-fit: contain`.
 4. **The type is shown, always.** The category control answers *what is this*; the type select beside
    it states *which profile the engine will run* — the pillar diameter, the contact size, the tilt
    rule. Each family ships one profile today, and the deck briefly drew no type control for that

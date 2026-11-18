@@ -174,7 +174,9 @@ Kept here because the wrong answer was the plausible one, and the next renderer 
 | `AddFlash.tsx`, `flash.ts` | the ring where a support was just added, and how long it stays |
 | `CirclePreview.tsx` | the brush circle while its slider is held |
 | `PrintAngleArc.tsx` | the print-angle mark beside the model |
-| `drawThumbnail.ts` | the saved project's thumbnail |
+| `deckRig.ts` | the deck's ONE WebGL renderer, shared by the two below. Browsers cap contexts near sixteen and a case is up to sixty cards, so its canvas never enters the document: callers copy out of it |
+| `drawThumbnail.ts` | one card's still: upload, draw, dispose, read back as a PNG. The only caller is `items/useThumbnails.ts` |
+| `liveCardView.ts` | the card the operator is pointing at, drawn on demand and copied into that card's own 2D canvas. The maths is `items/orbit.ts`, pure and tested |
 
 ## Colour and material
 
