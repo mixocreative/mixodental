@@ -4,6 +4,7 @@ import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { dentalStructureOf, dentalSupportSettings } from './supportPreset';
+import { defaultDentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
 import { RECIPE_KEYS, applyRecipe, isTypeDefault, type SupportRecipe } from '../recipes/supportRecipe';
 import { keptDentalWork } from './flow';
 import { manualAreaPolicy } from './manualArea';
@@ -53,10 +54,24 @@ type TwoContour = Extract<DentalPolicy, { kind: 'two-contour' }>;
  */
 export function alignerSettings(unit: PrintUnit, profile: string, recipe?: SupportRecipe): { settings: LiveSupportSettings; structure: DentalStructure } {
   const own = unit.dental?.profileId === profile;
-  const typed = own ? resolveSettings(unit.settings) : dentalSupportSettings(profile, resolveSettings(unit.settings));
+  const base = own ? resolveSettings(unit.settings) : dentalSupportSettings(profile, resolveSettings(unit.settings));
   const kept = own && unit.dental?.kind === 'two-contour' ? unit.dental.structure : undefined;
-  if (recipe === undefined || isTypeDefault(recipe)) return { settings: typed, structure: kept ?? dentalStructureOf(profile) };
-  return { settings: applyRecipe(typed, recipe), structure: { ...recipe.structure } };
+  /* No recipe: the type's numbers for a new aligner, the operator's own once this unit is of this type. */
+  if (recipe === undefined) return { settings: base, structure: kept ?? dentalStructureOf(profile) };
+  /*
+   * TYPE DEFAULT RESTORES, and restores EVERY pinned key rather than the handful the type's own
+   * preset happens to name. Building it over the ENGINE's defaults is what makes that true: a key
+   * the type does not set goes back to the engine's value, not to whatever the last recipe left
+   * there. The unpinned keys - the label, the operator's view - stay the model's own, because a
+   * recipe never owned them.
+   */
+  if (isTypeDefault(recipe)) {
+    const typed = dentalSupportSettings(profile, defaultSupportSettings);
+    const settings = { ...base };
+    for (const key of RECIPE_KEYS) (settings as Record<string, unknown>)[key] = typed[key];
+    return { settings, structure: dentalStructureOf(profile) };
+  }
+  return { settings: applyRecipe(base, recipe), structure: { ...recipe.structure } };
 }
 
 /**
@@ -151,26 +166,16 @@ export function acceptCommands(unit: PrintUnit, profile: string, policy: DentalP
 }
 
 /**
- * WHAT THIS RECIPE WOULD PUT ON THIS MODEL: every pinned setting and the two switches.
+ * WHAT A RECIPE WOULD PUT ON THIS MODEL - `alignerSettings` under a second name, because there is
+ * exactly one answer and every reader must get it.
  *
- * ONE ANSWER, THREE READERS - the control that applies it, the accept that writes it, and the card
- * that says whether the model still matches. The first version had the first two disagreeing about
- * Type default, which is how a card came to read "Type default" over another recipe's supports.
- *
- * TYPE DEFAULT RESTORES, and restores EVERY pinned key rather than the handful the type's own preset
- * happens to name. Building it over the engine's defaults is what makes that true: a key the type
- * does not set goes back to the engine's value, not to whatever the last recipe left there. The
- * unpinned keys - the label, the operator's view - stay the unit's own, because a recipe never
- * owned them.
+ * THERE WERE BRIEFLY TWO, and they disagreed in three cases: the print-angle scan and the confirm
+ * asked `alignerSettings` while the accept wrote this one's answer, so the angle could be judged for
+ * one set of numbers and the supports built from another. That is the same defect class the seam was
+ * built to close, re-opened one function along. Fable found it in review of the fix.
  */
-export function recipeApplication(unit: PrintUnit, profile: string, recipe: SupportRecipe): { settings: LiveSupportSettings; structure: DentalStructure } {
-  const current = resolveSettings(unit.settings);
-  if (!isTypeDefault(recipe)) return { settings: applyRecipe(current, recipe), structure: { ...recipe.structure } };
-  const typed = dentalSupportSettings(profile, defaultSupportSettings);
-  const settings = { ...current };
-  for (const key of RECIPE_KEYS) (settings as Record<string, unknown>)[key] = typed[key];
-  return { settings, structure: dentalStructureOf(profile) };
-}
+export const recipeApplication = (unit: PrintUnit, profile: string, recipe: SupportRecipe) =>
+  alignerSettings(unit, profile, recipe);
 
 /**
  * Whether the model already carries exactly what this recipe would put on it, SWITCHES INCLUDED.
@@ -179,11 +184,17 @@ export function recipeApplication(unit: PrintUnit, profile: string, recipe: Supp
  * whose Tree was toggled after the recipe was applied is a unit auto-gen will quietly change back.
  */
 export function matchesApplied(unit: PrintUnit, profile: string, recipe: SupportRecipe): boolean {
-  const { settings, structure } = recipeApplication(unit, profile, recipe);
+  const { settings, structure } = alignerSettings(unit, profile, recipe);
   const current = resolveSettings(unit.settings);
   if (!RECIPE_KEYS.every((key) => current[key] === settings[key])) return false;
-  const live = unit.dental?.kind === 'two-contour' ? unit.dental.structure : undefined;
-  return live === undefined || (live.treeEnabled === structure.treeEnabled && live.bracesEnabled === structure.bracesEnabled);
+  /*
+   * A POLICY WITH NO SWITCHES IS NOT A POLICY THAT MATCHES. A legacy painted-area policy, and an
+   * older two-contour one, carry no `structure` - and the build then uses `defaultDentalStructure`,
+   * which is Tree ON and Brace ON. Treating "absent" as "agrees" made a card set to a Tree-off
+   * recipe look clean while its supports were built with Tree on.
+   */
+  const live = (unit.dental?.kind === 'two-contour' ? unit.dental.structure : undefined) ?? defaultDentalStructure;
+  return live.treeEnabled === structure.treeEnabled && live.bracesEnabled === structure.bracesEnabled;
 }
 
 /**

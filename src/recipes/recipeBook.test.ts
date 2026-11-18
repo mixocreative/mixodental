@@ -68,10 +68,16 @@ describe('reading the book', () => {
    * nothing is unknown - reporting a problem would refuse to generate anything in a private window,
    * over data that cannot exist.
    */
-  it('treats blocked storage as a device with no recipes, not as a lost list', () => {
+  /*
+   * BLOCKED STORAGE IS A PROBLEM, not an empty book. A first version reasoned that storage throwing
+   * on read throws on write too, so nothing could have been saved - but site data can be blocked
+   * AFTER recipes were saved, and the book is then still there and still unreadable. A stored
+   * default of "Thin" silently becoming Type default on every card is the failure this guards.
+   */
+  it('reports blocked storage as unreadable, because a saved book may still be there', () => {
     const blocked = loadRecipes(fakeStorage(undefined, 'read'));
 
-    expect(blocked.problem).toBeUndefined();
+    expect(blocked.problem).toBe('unreadable');
     expect(blocked.book.recipes.map((recipe) => recipe.id)).toEqual([TYPE_DEFAULT_ID]);
   });
 
@@ -83,6 +89,15 @@ describe('reading the book', () => {
     const text = JSON.stringify({ version: 1, defaultId: 'r1', recipes: [{ id: 'r1', name: 'Thin', settings: { pillarDiameter: 1.1 } }, { name: 'no id' }] });
 
     expect(parseRecipeBook(text).book.recipes.map((recipe) => recipe.id)).toEqual([TYPE_DEFAULT_ID, 'r1']);
+  });
+
+  it('drops a number the engine would reject, which would fail the build with no mention of why', () => {
+    const text = JSON.stringify({ version: 1, recipes: [{ id: 'r1', name: 'Odd', settings: { pillarDiameter: -3, neckLength: 1e999, liftHeight: 4 } }] });
+    const stored = parseRecipeBook(text).book.recipes[1]!;
+
+    expect(stored.settings).not.toHaveProperty('pillarDiameter');
+    expect(stored.settings).not.toHaveProperty('neckLength');
+    expect(stored.settings.liftHeight).toBe(4);
   });
 
   it('drops a hand-edited value of the wrong type', () => {

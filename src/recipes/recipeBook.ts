@@ -1,7 +1,7 @@
 // Copyright (c) Mixo Creative.
 
 import { RECIPE_KEYS, TYPE_DEFAULT_ID, typeDefaultRecipe, type SupportRecipe } from './supportRecipe';
-import { defaultSupportSettings, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import { defaultSupportSettings, settingLimits, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 
 /**
  * THE OPERATOR'S RECIPES, ON THEIR OWN DEVICE. There is no server in this app and there is not going
@@ -62,7 +62,19 @@ function parseRecipe(raw: unknown): SupportRecipe | undefined {
      * carries, and make every card on that recipe read "edited" for ever - while the engine, which
      * rejects out-of-shape settings, failed the build with no mention of the recipe.
      */
-    if (typeof value === typeof defaultSupportSettings[key]) (settings as Record<string, unknown>)[key] = value;
+    if (typeof value !== typeof defaultSupportSettings[key]) continue;
+    /*
+     * AND A NUMBER MUST BE A REAL ONE, IN RANGE. `typeof` alone let `1e999` through as Infinity and
+     * a negative pillar through as a pillar - both of which the engine rejects, so the build failed
+     * with no mention of the recipe that caused it. `settingLimits` is the same table the sliders
+     * clamp to, so a hand-edited file cannot ask for what the UI cannot.
+     */
+    if (typeof value === 'number') {
+      const limit = (settingLimits as Record<string, { min: number; max: number } | undefined>)[key];
+      if (!Number.isFinite(value)) continue;
+      if (limit && (value < limit.min || value > limit.max)) continue;
+    }
+    (settings as Record<string, unknown>)[key] = value;
   }
   const structure = isObject(raw.structure) ? raw.structure : {};
   return {
@@ -99,19 +111,28 @@ export function parseRecipeBook(text: string | null): { book: RecipeBook; proble
   return { book: { version: 1, defaultId, recipes } };
 }
 
-/** The book on this device, with the problem that stopped it being read. */
-export function loadRecipes(storage: Pick<Storage, 'getItem'> | undefined = globalThis.localStorage): { book: RecipeBook; problem?: RecipeProblem } {
+/**
+ * The book on this device, with the problem that stopped it being read.
+ *
+ * `globalThis.localStorage` IS READ INSIDE THE TRY, and as a default parameter it was not - so the
+ * one case this catch exists for never reached it. Chrome and Firefox with site data blocked throw
+ * on the PROPERTY ACCESS, which a default parameter performs before the function body runs: the
+ * error escaped to the `useState` initialiser that calls this. Injected-storage tests cannot see
+ * that, because they never touch the global.
+ *
+ * AND BLOCKED STORAGE IS A PROBLEM, not an empty book. A first version reasoned that storage which
+ * throws on read throws on write, so nothing could have been saved - but storage can be blocked
+ * AFTER recipes were saved, by a policy change or by cookies being switched off, and the book is
+ * then still there and still unreadable. A stored default of "Thin" silently becoming Type default
+ * on every card is exactly the failure this module is written against. Choosing Type default on a
+ * card is the deliberate way through.
+ */
+export function loadRecipes(storage?: Pick<Storage, 'getItem'>): { book: RecipeBook; problem?: RecipeProblem } {
   try {
-    return parseRecipeBook(storage?.getItem(STORAGE_KEY) ?? null);
+    const store = storage ?? globalThis.localStorage;
+    return parseRecipeBook(store?.getItem(STORAGE_KEY) ?? null);
   } catch {
-    /*
-     * BLOCKED STORAGE IS AN EMPTY BOOK, NOT A LOST ONE, and the difference decides whether a whole
-     * case can be generated. A problem means "this device HAS a list and we cannot read it", which
-     * stops every card: the operator's instruction is unknown. Storage that throws on read throws
-     * on write too, so nothing was ever saved here and nothing is unknown - treating it as lost
-     * would refuse to generate anything in a private window, for data that cannot exist.
-     */
-    return { book: emptyBook() };
+    return { book: emptyBook(), problem: 'unreadable' };
   }
 }
 
@@ -133,14 +154,16 @@ export function loadRecipes(storage: Pick<Storage, 'getItem'> | undefined = glob
  *
  * Returns false when nothing was written, so the caller can say so rather than assume it stuck.
  */
-export function saveRecipes(edit: (stored: RecipeBook) => RecipeBook, storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = globalThis.localStorage): boolean {
-  if (!storage) return false;
+export function saveRecipes(edit: (stored: RecipeBook) => RecipeBook, storage?: Pick<Storage, 'getItem' | 'setItem'>): boolean {
   try {
-    const { problem, book: stored } = parseRecipeBook(storage.getItem(STORAGE_KEY) ?? null);
+    // Inside the try for the same reason as `loadRecipes`: blocked site data throws on the access.
+    const store = storage ?? globalThis.localStorage;
+    if (!store) return false;
+    const { problem, book: stored } = parseRecipeBook(store.getItem(STORAGE_KEY) ?? null);
     if (problem !== undefined) return false;
     const next = edit(stored);
     const defaultId = next.recipes.some((recipe) => recipe.id === next.defaultId) ? next.defaultId : TYPE_DEFAULT_ID;
-    storage.setItem(STORAGE_KEY, JSON.stringify({
+    store.setItem(STORAGE_KEY, JSON.stringify({
       version: 1,
       defaultId,
       // Type default is this app's behaviour, not the operator's data: it is rebuilt on read.

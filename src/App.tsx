@@ -1729,12 +1729,28 @@ export default function App() {
           const picked = recipes.book.recipes.find((entry) => entry.id === recipeId);
           const profile = unit?.dental?.profileId ?? resolvedPurposes.get(unitId);
           if (!unit || !picked || !profile || unit.dental === undefined) return;
-          dispatch({ type: 'batch', commands: applyRecipeCommands(unit, profile, picked) });
+          /*
+           * THE SWITCHES GO WITH THE NUMBERS. Writing only the settings left the model carrying this
+           * recipe's numbers with the PREVIOUS recipe's Tree and Brace - which is neither recipe -
+           * and the chip read "edited" the instant it was chosen. `settingsOnly` says the footprint
+           * did not move, so a switch does not mark the rim and the area out of date.
+           */
+          const structure = recipeStructure(unit, profile, picked);
+          const policy = unit.dental.kind === 'two-contour' ? { ...unit.dental, structure } : undefined;
+          dispatch({ type: 'batch', commands: [
+            ...applyRecipeCommands(unit, profile, picked),
+            ...(policy ? [{ type: 'dental/set' as const, unitId, policy, settingsOnly: true as const }] : []),
+          ] });
         },
         /*
-         * "EDITED" IS ABOUT THE OPERATOR'S OWN CHOICE DRIFTING, which is why it needs one: a card
-         * that merely follows the default would otherwise light up the moment the default changed,
-         * on every card in the case at once, for something nobody did to that model.
+         * "EDITED" MEANS THIS MODEL DOES NOT MATCH WHAT ITS CARD NAMES - whatever put it that way.
+         *
+         * IT USED TO REQUIRE AN EXPLICIT CHOICE, and that left unmarked the one case it is most
+         * needed for: a card following the default, hand-edited at Step 3, says "Type default" and
+         * a press of Auto-gen writes those numbers back over the edits. The card named the recipe
+         * all along; what was missing was the warning that the model no longer agrees with it. A
+         * default change does now light up every card that differs from the new default - which is
+         * true, and worth knowing, because a press would apply it to each of them.
          *
          * It compares the SWITCHES as well as the numbers. Tree and Brace are much of what a recipe
          * is for, and auto-gen overwrites them with everything else.
@@ -1755,7 +1771,7 @@ export default function App() {
           const picked = recipes.resolve(unit.id);
           const profile = unit.dental?.profileId ?? resolvedPurposes.get(unit.id);
           return unit.dental !== undefined && picked !== 'missing' && profile !== undefined
-            && recipes.chosen.has(unit.id) && !matchesApplied(unit, profile, picked);
+            && !matchesApplied(unit, profile, picked);
         },
       }}
       /*

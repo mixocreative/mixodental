@@ -1,7 +1,7 @@
 // Copyright (c) Mixo Creative.
 
 import { t } from '../i18n';
-import { isTypeDefault, type SupportRecipe } from './supportRecipe';
+import { TYPE_DEFAULT_ID, isTypeDefault, type SupportRecipe } from './supportRecipe';
 import type { RecipeBook } from './recipeBook';
 
 /**
@@ -47,7 +47,13 @@ export function RecipeChip({ unitId, book, problem, selectedId, ran, edited, onC
    * on it (`AutoGenStop` `recipe/missing`); the card must not meanwhile display a recipe it is not
    * going to use.
    */
-  const name = problem ? t('Recipe missing') : chosen?.name ?? t('Recipe missing');
+  /*
+   * A DELIBERATE CHOICE OF TYPE DEFAULT IS NOT "MISSING", even on a device whose book could not be
+   * read: it is the one way through, the queue honours it, and showing "Recipe missing" over it
+   * made the choice look as though it had not taken.
+   */
+  const choseTypeDefault = selectedId === TYPE_DEFAULT_ID;
+  const name = chosen && (!problem || choseTypeDefault) ? chosen.name : t('Recipe missing');
   const label = ran ?? (edited ? t('{name}, edited', { name }) : name);
   const title = problem
     ? t('Your saved support recipes could not be read on this device, so only the type default is offered.')
@@ -75,18 +81,25 @@ export function RecipeChip({ unitId, book, problem, selectedId, ran, edited, onC
    * chooses Type default HERE, deliberately. Preselecting Type default would mean `onChange` could
    * never fire, so that choice could not be made and the queue would be stuck with no way out.
    */
-  const unresolved = problem || !chosen;
+  /*
+   * THE CONTROL STARTS ON NOTHING WHENEVER THE SELECTION CANNOT BE RESOLVED, not only when none was
+   * made - and that second case is reachable: another tab deletes a recipe, this tab commits
+   * anything and reloads the book, and the card is left holding an id with no option behind it. The
+   * select would then DISPLAY Type default while the label said "Recipe missing" and the queue
+   * stopped, and picking Type default would fire no change because it already looked selected.
+   */
+  const unresolved = (problem && !choseTypeDefault) || !chosen;
 
   return <span className="recipe-chip" data-ui={`card-recipe-${unitId}`} title={title}>
     <span className="recipe-chip-name">{label}</span>
     <select
       data-ui={`card-recipe-select-${unitId}`}
       aria-label={t('Support recipe')}
-      value={unresolved && selectedId === undefined ? '' : value}
+      value={unresolved ? '' : value}
       onChange={(event) => onChoose(event.target.value)}
     >
       {/* The unresolvable selection, so the control shows the truth rather than silently re-pointing. */}
-      {unresolved && selectedId === undefined ? <option value="" disabled>{t('Recipe missing')}</option> : null}
+      {unresolved ? <option value="" disabled>{t('Recipe missing')}</option> : null}
       {book.recipes.map((recipe) => (
         <option key={recipe.id} value={recipe.id}>
           {isTypeDefault(recipe) ? t('Type default') : recipe.name}
