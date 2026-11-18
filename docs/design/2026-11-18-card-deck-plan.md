@@ -320,3 +320,107 @@ prevent.
   has a pose with nowhere to put it.
 - **Increment A is closed** with the label extraction; the build order is otherwise unchanged and B
   (re-orient clears supports) is next.
+
+## What was built, 2026-11-18 night
+
+Increments A to H of the build order above, in order, each with its own commit. What follows is the
+record of what each one actually turned out to be - including the two places the plan was wrong.
+
+### A - the stage builders are out (`src/dental/stages.ts`)
+
+Closed. Eleven decisions now live in one module that both `useDentalFlow` and the auto-gen pipeline
+call: the aligner's Step 3 settings, the type presets, what the tilt scan is asked to try, what a
+detected area becomes, the kept area, the accept batch, the manual-area batch, Step 1's orientation
+outcome, the confirm order, the starting label, and the turn-with-re-layout pairing. Nothing in the
+pipeline restates any of them, which is what "parity by construction" means in practice.
+
+### B - re-orient clears supports, and ONE EXCEPTION the plan did not know about
+
+Ruling 1 said *re-orienting always clears supports*. Taken literally it would have **broken a proved
+invariant**: `src/denture/steps/supports/rigidMove.ts` keeps a finished denture's build through a
+slide and a **turn about the plate's vertical**, and `rigidMove.real.test.ts` proves that build is
+bit-identical on a real scan to 1e-5 mm in every support position and exactly in the exported bytes.
+A turn about the vertical does not change which way gravity pulls on the model; the supports go round
+with it.
+
+So the rule is: **the rotation changed AND the change is not a turn about the vertical.** It lives in
+`src/state/rotation.ts` (`reorients`), the reducer applies it in `transform/set` - the one place every
+door into a rotation goes through - and the hand edits keyed to those supports' positions go with
+them, which deletes the silent re-keying defect class outright. The painted area stays: stamps are
+marks on the MESH, and the mesh did not move.
+
+Warned before it happens: Back out of Step 3 now asks whenever there is a build to lose, not only
+hand edits, and says that re-orienting removes the supports. Walk `x12` asserts the sentence names
+them.
+
+### C - Ready is a gate now (`src/items/detectState.ts`, `src/autoGen/eligibility.ts`)
+
+Ruling 5 was right and understated. `detectStateOf` mapped every non-failed answer to `oriented`, so
+four doubts were discarded - and the worst of them, **an absent rotation, was being reported as
+"Already upright."** The engine returns no pose when it cannot decide; the one row that needed the
+operator was the one saying everything was fine.
+
+`OrientDoubt` now records all five (`mesh`, `pose`, `profile`, `up-down`, `opening`), the card shows
+**Check mesh** or **Check orientation** - different chips, because they send the operator to
+different places - and `autoGenEligibility` is their only reader for the queue. "Already upright" is
+now reachable only for an identity pose, which is what the words mean.
+
+### D - the pipeline (`src/autoGen/pipeline.ts`)
+
+Five engine calls in the flow's own order, no React, every decision from `stages.ts`. The turns all
+happen before the supports, which under B is load-bearing rather than tidy.
+
+`pipeline.real.test.ts` runs it under Node on `dentalwork/fixtures/case-001/aligner.stl` and asserts
+the end state is Step 3's own - policy, placement, supports, label `X` - and that two runs agree to
+the exact contact positions. **What it does not prove is parity with the editor**, and no node test
+can: the editor's path is a hook driving screens.
+
+### H - the queue (`src/autoGen/useAutoGen.ts`) and the deck
+
+One card at a time, because the analysis worker serves one job at a time - two pipelines would
+interleave and finish no sooner while doubling the resident meshes. Per-card key (absent, not greyed,
+per ruling 4), `Auto-gen N cards` on the case row with Stop in its place while it runs, and the run's
+result on the card's foot.
+
+Opening a built card goes to **Step 3** (ruling 2) through a new session event
+`openDentalSupports`, carrying the print-angle check's notices so an auto-gen whose angle check held
+nothing does not open a clean-looking screen. Walk `m12`/`m12b` drive the whole thing through the
+front door on the real reference aligner.
+
+### E, F, G - the three that ran beside them
+
+- **E** a per-job deadline. The analysis pool's ten minutes is right for a placement on a big model
+  and wrong for a batch that drains one row at a time: one stalled orient held every row behind it
+  for the full ten minutes. Two minutes for an orient, and the REASON is kept - a timeout says it
+  timed out, where the batch used to `.catch(() => undefined)` and draw the same line as a job that
+  failed on its first instruction.
+- **F** the enlarge overlay (`src/items/CardEnlarge.tsx`). It is a `CardShot` in a bigger box: the
+  deck's single renderer, the same orbit maths, the same drag and the same keyboard turn. Nine lines
+  of markup, which is what ruling 7's "nearly free" meant.
+- **G** the export builds and hands over **one file at a time** (`src/components/exportBatches.ts`).
+  It was one call with the whole case in it - every unit's supports at full resolution and every STL
+  buffer held at once, of the order of a gigabyte on a thirty-model case, at the very end of the work
+  where a dead tab costs the most. Auto-gen is what made thirty-model cases ordinary.
+
+### Open, with reasons
+
+- **Editor-versus-auto-gen numeric parity in the walk.** `m12b` proves the queue runs and lands Step
+  3's state; it does not compare the supports with a hand walk of the same file. The hand walk lives
+  in section `x`, which enters at Step 1 and never passes the deck, so the comparison wants either a
+  second entry in `x` or a value carried between sections. Parity meanwhile is held by construction
+  (one implementation of every decision) plus the node determinism test.
+- **A folder for the export, through `showDirectoryPicker`.** It would also fix Chrome's refusal of
+  several automatic downloads from one gesture, which an operator meets unbidden on a case of thirty.
+  Not taken because the picker opens a NATIVE dialog no automation can answer and the walk drives
+  that very button: a gate that hangs for ten minutes is worse than the fault being fixed.
+- **The mesh worker's per-unit build session** (+19.7 MB/item measured) is still never freed during a
+  case. `meshClient.forget(unitId)` is reachable - the earlier note that it was not was wrong - but
+  calling it between queue items races the support build that the card's own picture needs. The
+  deck's memory readout is the guard meanwhile, and it is on screen.
+- **A real move for a support tip** (build-order item 7) is untouched: there is still no
+  `manual/move`, only add and remove.
+- **The new UI strings are English only.** Japanese and Taiwan Traditional Chinese are translated
+  through Gemini by the owner's standing rule and never by hand; the free-tier daily quota was
+  exhausted on the night this was built (the API answered `RESOURCE_EXHAUSTED`, retry in ~17 h), so
+  `src/i18n.test.ts` and `detectState.test.ts` report the missing keys. The prompt is prepared at
+  `scratchpad/tr3-prompt.txt`; the list of keys is whatever those two tests print.

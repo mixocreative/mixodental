@@ -275,3 +275,53 @@ with `flex: 1`, which makes it a direct, growing child of `main` (`PanelBoundary
 of its own). The body is the only block that scrolls; the footer carries `margin-top: auto` for a
 short list and `position: sticky` for a long one. Before this the footer sat wherever the list
 stopped - owner: *"footer need to stay bottom, shouldnt shrink up."*
+
+## The card's keys, and which of them is the primary one
+
+Four, and never all at once:
+
+| Key | When | What it does |
+|---|---|---|
+| **Auto-gen** | the card may be generated unattended | Steps 1–3 without opening it (`src/autoGen/`) |
+| **Open this model** / **Edit supports** | the card has been named | opens the flow — at Step 1, or at **Step 3** once it has supports |
+| **Enlarge** | always | the model alone, full size, turnable, nothing to press but Close |
+| **Retry** | the check failed | queues its detection again |
+| **Remove** | always | takes the file off the list |
+
+**Auto-gen is absent, not greyed, on a card that may not use it** — owner's ruling 4, and the whole
+of what "may" means is one function (`src/autoGen/eligibility.ts`), which the queue asks as well. A
+key that cannot appear on a card the queue would refuse needs no explanation for being dead.
+
+**Open changes its words because it changes its destination.** A card that already has supports opens
+at Step 3, because Step 1 is the orient step and entering a re-orient now DELETES the supports
+(`src/state/rotation.ts`). Sending a generated card through the ordinary door would destroy exactly
+the work it was pressed to show. The session gets there by its own event, `openDentalSupports`.
+
+## Ready means ready now, and it did not
+
+Until 2026-11-18 a row read **Ready** whenever the detector did not crash: `detectStateOf` mapped
+every non-failed answer to `oriented`. Four things the engine had told us were dropped on the floor —
+an absent rotation, an opening that contradicted the chosen type, two up/down rules that disagreed,
+and a mesh that was not even closed — and the first of those was the worst, because an absent
+rotation means **the engine could not decide which way is up** and the row said *"Already upright."*
+The one row that needed the operator was the one reporting good news.
+
+`OrientDoubt` records all five. The card shows **Check mesh** or **Check orientation**, and those are
+two chips rather than one because they send the operator to different places: nothing in the flow
+closes a mesh, so a mesh doubt reads as a fault and stands until the file itself is replaced, while
+every other doubt is answered by opening the model and looking.
+
+"Already upright" is now reachable only for an identity pose, which is what the words mean.
+
+## Three independent answers on one card, still
+
+The health mark, the orientation chip and the auto-gen line are three different questions and none of
+them may stand for another:
+
+- a **trimmed arch** is a healthy mesh with no rim — health fine, chip says draw one;
+- a card can be **Ready** to the detector and stopped by the queue for want of a support area;
+- a **mesh doubt** is both, and says so twice because the two instructions differ.
+
+Collapsing any pair would lose whichever was shown second. `src/autoGen/autoGenText.ts` is deliberately
+quiet for the two stops the chip already covers (`no-rim`, `needs-attention`): two lines saying one
+thing on a card built to be read in a glance is worse than one.

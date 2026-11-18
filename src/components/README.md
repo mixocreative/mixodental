@@ -213,3 +213,49 @@ Not everything that should be here is. `App.tsx` still holds, as named debt:
 - **`runCommand`** — the registry switch. It is flat and readable where it is; moving it out would
   need a dependency object of thirty-odd fields, which is not obviously an improvement.
 - **The scene history and session reducers**, the keyboard effect, and the JSX.
+
+## The export now costs one file at a time, not the whole case
+
+`exportBatches.ts` is the rule, as a plain function: one `ExportFilePlan` with only the jobs that
+file names. `useExport.ts` walks those batches, builds one, judges it, hands its bytes to the
+browser, and lets them go before asking for the next.
+
+**Why it was split.** `exportFiles` took the whole case in one call: every unit's supports built at
+full resolution and every STL buffer held at once until the last one finished. On a thirty-model case
+that peak is of the order of a gigabyte of ArrayBuffers in one tab — and an export is the LAST thing
+anyone does with a case, so the memory is at its highest exactly when the failure costs the most
+work. The deck's auto-gen queue is what made thirty-model cases ordinary rather than theoretical.
+
+**What it changed, said rather than left to be found.** A refusal part way through now leaves the
+earlier files already handed over, where the single call refused the whole case before writing a
+byte. That is reported as a **partial export** — the same report a blocked download gets — and it is
+the better trade: four valid files plus a named refusal beats throwing away four valid files because
+the fifth could not be judged. The gate itself is unchanged and still runs BEFORE that file's bytes
+go anywhere.
+
+**What it did not change:** the sink. Each file still goes to the browser as a download, in the same
+order, with the same number of hand-overs, so everything the audit established about committing more
+than once (walk `r1`) holds exactly as written. A folder chosen once through `showDirectoryPicker`
+would be better still and would fix Chrome's refusal of several automatic downloads from one gesture
+— it is not taken because the picker opens a native dialog no automation can answer and the walk
+drives that very button.
+
+**The denture path is left whole.** `dentureExport` takes the case together and builds in its own
+worker with its own policy; splitting it is a change to that flow and belongs with it. A denture case
+is one or two models, so the peak this fixes is not its peak either.
+
+## Back out of Step 3 asks about the build now, not only the hand edits
+
+`backLosesWork` replaced `backNeedsConfirm` at the door, because Back goes to **Step 1**, Step 1 is
+the orient step, and a model with supports standing does not enter it (owner: *"once support
+generated, orienting is not allowed and it will remove all support"*). Asking only about hand edits
+meant the operator with a freshly built aligner and no edits at all was asked nothing and lost the
+build — the quietest possible version of the loudest possible event.
+
+The dialog says two different sentences rather than one with zeroes in it: with a build standing the
+counts would read "0 added, 0 removed, 0 with own settings" while deleting the operator's whole
+build. Walk `x12` asserts the sentence names the supports.
+
+The free-transform gizmo's status line asks the same function the reducer obeys (`reorients`), so it
+reports a deletion when there is one and keeps quiet on a spin about the plate's vertical, which
+keeps the supports.
