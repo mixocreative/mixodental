@@ -2923,9 +2923,9 @@
     "semantic_hash": ""
   },
   "src/components/useDentalFlow.ts": {
-    "mtime": 1794934875.4532168,
-    "seen": 1794940917.417576,
-    "ast_hash": "c1c24d4bdce55c860191c7136e52a3f3",
+    "mtime": 1795004492.7555594,
+    "seen": 1795006943.4248223,
+    "ast_hash": "08e104fbc69727831705b9c16d774245",
     "semantic_hash": ""
   },
   "scripts/dental-region-review/profile.ts": {
@@ -5185,9 +5185,9 @@
     "semantic_hash": ""
   },
   "src/dental/rim/useRimDrawing.ts": {
-    "mtime": 1794229414.2515993,
-    "seen": 1794236959.2490795,
-    "ast_hash": "d0ea6d07b6819494ba19b68dca64c80b",
+    "mtime": 1795004418.1503637,
+    "seen": 1795006943.4248223,
+    "ast_hash": "946495ab6921f12dc802f3aee49525d2",
     "semantic_hash": ""
   },
   "src/supports/useSupportEdits.ts": {
@@ -6745,9 +6745,21 @@
     "semantic_hash": ""
   },
   "docs/design/2026-11-18-card-deck-plan.md": {
-    "mtime": 1794992670.3396313,
-    "seen": 1795000391.142455,
-    "ast_hash": "85fa6f85e2372adb14973a7bddbb7191",
+    "mtime": 1795004077.6703956,
+    "seen": 1795006943.4258208,
+    "ast_hash": "3021cc7faed05f0f52d525c664847ac1",
+    "semantic_hash": ""
+  },
+  "src/dental/stages.test.ts": {
+    "mtime": 1795004676.8331351,
+    "seen": 1795006943.4248223,
+    "ast_hash": "814c4d16254446fa33c75c628af7e94c",
+    "semantic_hash": ""
+  },
+  "src/dental/stages.ts": {
+    "mtime": 1795004385.0021808,
+    "seen": 1795006943.4248223,
+    "ast_hash": "979107b6e90fb32d6c4abc1bb8ca787c",
     "semantic_hash": ""
   }
 }
