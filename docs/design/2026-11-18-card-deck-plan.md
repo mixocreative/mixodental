@@ -214,6 +214,27 @@ matched, cross-check not `disagrees` — and everything else gets a **"Check ori
 Right instinct, and a hole in the first proposal: nothing in it consulted mesh health at all, so
 auto-gen could have run on a non-manifold model and placed tips against phantom geometry.
 
+**CORRECTION, 2026-11-18, after a code review of this very section.** Two claims below were wrong
+and are struck through rather than deleted, because the reasoning that produced them is the thing to
+avoid repeating:
+
+- ~~"Repair already runs at import."~~ **It does not.** `src/deck/jobSummary.ts:37` states plainly
+  that *"repair is cut from this release"*, and `verdictOfRepair` has no caller outside its own
+  definition. So `repaired`, `repaired-open` and `unchanged` **cannot occur**. The reachable health
+  states are `clean`, `holes`, `malformed`, plus the two import refusals.
+- ~~"`meshOk` is the engine's own usability judgement, not a watertight test."~~ **It is exactly a
+  watertight test.** `dentalOrient.ts` documents it as *"whether the mesh was usable (closed,
+  non-degenerate)"*, and a test removing 40 triangles from the reference aligner asserts
+  `meshOk === false`. Gating on it would refuse open-rimmed models — the very thing this ruling set
+  out to avoid.
+
+**The gate that actually fits the code:** orient returned `oriented` under strict Ready, AND health
+is not `malformed`. An open-rimmed mesh either fails orient and already reads "Needs rim" (not
+eligible), or orients with `meshOk: false`. That last case gets its own chip, **"Check mesh"** —
+auto-gen refuses, Open stays, because Step 1 already warns "Detection may be unreliable" for it.
+
+The original text follows, kept for the record:
+
 **Repair already runs at import.** `rowState.ts` records what happened as one of:
 `clean` (watertight) · `repaired` · `repaired-open` (repaired, loops remain, with the reasons the
 filler left them) · `holes` (loops, with count and longest rim in mm) · `malformed`
