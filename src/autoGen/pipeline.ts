@@ -75,8 +75,16 @@ export type AutoGenResult =
     readonly tips: number;
     /** The print angle the confirm settled on, when it moved off the scan's own pick. */
     readonly angleMovedDeg?: number;
-    /** `none-held`: no tried angle's build held, and the pick stands. `failed`: the check could not run. */
-    readonly angleCheck?: 'none-held' | 'failed';
+    /**
+     * What the print-angle check amounted to. Absent means it ran and an angle held.
+     *
+     * `not-scanned` IS A THIRD ANSWER AND IT WAS MISSING. When the tilt scan does not run - it
+     * rejected, or came back without a scan - the confirm block is skipped entirely, so the model
+     * was generated at the orientation Step 1 found with NO print angle checked at all. The card
+     * reported "94 supports placed" exactly as if one had. That is the app's central claim going
+     * quiet, on a model about to be printed.
+     */
+    readonly angleCheck?: 'none-held' | 'failed' | 'not-scanned';
   }
   | { readonly kind: 'stopped'; readonly stop: AutoGenStop };
 
@@ -188,7 +196,10 @@ export async function runAutoGen(unitId: string, profile: string, host: AutoGenH
    * stands, which the card must say rather than report a clean generate.
    */
   let angleMovedDeg: number | undefined;
-  let angleCheck: 'none-held' | 'failed' | undefined;
+  let angleCheck: 'none-held' | 'failed' | 'not-scanned' | undefined;
+  // No scan means no angle was checked. Generating anyway is right (the step screens do the same);
+  // saying nothing about it is not.
+  if (!scanned || picked === undefined) angleCheck = 'not-scanned';
   if (scanned && picked !== undefined) {
     const order = confirmOrder(scanned.order, scanned.order.indexOf(picked));
     /*

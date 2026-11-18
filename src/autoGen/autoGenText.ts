@@ -19,9 +19,20 @@ export function autoGenSentence(card: AutoGenCard): Message | undefined {
   switch (card.kind) {
     case 'queued': return { key: 'Waiting to generate…' };
     case 'running': return { key: 'Generating supports…' };
-    case 'done': return card.tips === 1
-      ? { key: '1 support placed' }
-      : { key: '{n} supports placed', vars: { n: card.tips } };
+    /*
+     * A FINISHED CARD CARRIES THE PRINT-ANGLE CHECK'S BAD NEWS, and until now it did not: all three
+     * outcomes read "94 supports placed", and the notices existed only if the model was opened. The
+     * deck's export needs no open and a reload loses the record, so a case could be exported with
+     * nothing ever having said that no angle held.
+     */
+    case 'done': switch (card.angleCheck) {
+      case 'none-held': return { key: '{n} supports placed, but no print angle held. Open it and check the angle.', vars: { n: card.tips } };
+      case 'failed': return { key: '{n} supports placed. The print angle could not be checked.', vars: { n: card.tips } };
+      case 'not-scanned': return { key: '{n} supports placed. The print angle was not checked.', vars: { n: card.tips } };
+      default: return card.tips === 1
+        ? { key: '1 support placed' }
+        : { key: '{n} supports placed', vars: { n: card.tips } };
+    }
     case 'stopped': switch (card.stop.because) {
       /*
        * THE ONE STOP THAT IS ABOUT A SETTING RATHER THAN A MODEL, and it says so rather than
@@ -34,9 +45,19 @@ export function autoGenSentence(card: AutoGenCard): Message | undefined {
       case 'failed': return card.stop.at === 'area'
         ? { key: 'The support area could not be detected. Open it to try again.' }
         : card.stop.at === 'orient'
-          ? { key: 'Could not check the orientation. Press Retry, or open it to orient by hand.' }
+          // NOT "press Retry": Retry is drawn only for a row whose BATCH check failed, which this is
+          // not, so the one instruction on screen pointed at a key that is not there.
+          ? { key: 'The orientation check could not run. Open it to orient by hand.' }
           : { key: 'Generating supports failed. Open it to try again.' };
-      // `needs-attention`, `no-rim` and `gone`: the chip beside it already says so, or there is no card.
+      /*
+       * THESE TWO SPEAK BECAUSE THE CHIP CANNOT. The card was eligible, which means the deck's chip
+       * said Ready - so when the pipeline's own fresh check disagrees, the chip is the stale one and
+       * stays saying Ready. Leaving the card silent meant a press that appeared to do nothing at
+       * all, on a model the engine had just raised a doubt about.
+       */
+      case 'needs-attention': return { key: 'The orientation check now disagrees with this card. Open it and look.' };
+      case 'no-rim': return { key: 'No rim was found this time. Open it and draw one.' };
+      // `gone`: the model has left the plate, so there is no card left to write on.
       default: return undefined;
     }
   }

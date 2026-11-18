@@ -52,7 +52,8 @@ export type AutoGenCard =
   | {
     readonly kind: 'done'; readonly tips: number;
     readonly angleMovedDeg?: number;
-    readonly angleCheck?: 'none-held' | 'failed';
+    /** The print-angle check's verdict; `not-scanned` means no angle was checked at all. */
+    readonly angleCheck?: 'none-held' | 'failed' | 'not-scanned';
     /**
      * The recipe this run actually built with.
      *
@@ -234,14 +235,19 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
       detect: detected.get(unitId),
       atCap,
       /*
-       * `sceneRef` IS A RENDER BEHIND, so a card whose run has just landed would still read
-       * un-built for one render - a window in which a second press would re-run it and, being a
-       * re-orient, delete what it had just made. This sitting's own answer closes it.
+       * THE UNIT IS THE ONLY SOURCE for whether supports exist, and ORing in this sitting's done
+       * card was wrong in the case that matters: open an auto-generated model, go Back to Step 1 -
+       * which re-orients and deletes its supports - and the key stayed withheld on a card that now
+       * has none, with no way to generate it again except walking it by hand.
+       *
+       * The render-window this was guarding does not exist: the commit that lands the supports is
+       * dispatched BEFORE `put` writes the done card, so the render that first shows "done" already
+       * has them.
        */
-      built: unit?.supports !== undefined || cards.get(unitId)?.kind === 'done',
+      built: unit?.supports !== undefined,
       ownArea: unit !== undefined && keepsManualArea(unit, profile),
     });
-  }, [atCap, cards, detected, purposes, sceneRef]);
+  }, [atCap, detected, purposes, sceneRef]);
 
   const start = useCallback((unitId: string) => {
     if (!eligible(unitId).ready || pending.current.includes(unitId) || running.current === unitId) return;
@@ -261,6 +267,21 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
   const startAll = useCallback((unitIds: readonly string[]) => {
     for (const unitId of unitIds) start(unitId);
   }, [start]);
+
+  /**
+   * Stop just this card's run, if it is the one running. Used when the operator opens a model.
+   *
+   * OPENING A CARD USED TO STOP THE WHOLE CASE. `startItem` cancelled unconditionally, so looking at
+   * one finished model part way through a queue of thirty emptied the queue - and `cancel` deletes
+   * the queued cards, so the other twenty-eight came back looking as though they had never been
+   * pressed. The race that needed cancelling is narrow and specific: the operator editing the very
+   * model a pipeline is mid-way through.
+   */
+  const cancelIfRunning = useCallback((unitId: string) => {
+    if (running.current === unitId) generation.current += 1;
+    pending.current = pending.current.filter((id) => id !== unitId);
+    put(unitId, undefined);
+  }, [put]);
 
   /** Stop: the running pipeline abandons at its next step, the queue empties, finished cards keep their answer. */
   const cancel = useCallback(() => {
@@ -284,6 +305,7 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
     start,
     startAll,
     cancel,
+    cancelIfRunning,
     /**
      * This sitting's finished run for a card, so an Open can carry its print-angle news into Step 3.
      *

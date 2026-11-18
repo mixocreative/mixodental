@@ -3681,17 +3681,28 @@ async function walk(url, scratch, dentalFixture) {
        * supports from the editor for one model, which is the worst defect this feature can have and
        * the reason `src/dental/stages.ts` exists at all.
        *
-       * EXACT, NOT APPROXIMATE. Both paths call one implementation of every decision, so there is no
-       * tolerance to justify; a difference of one tip is a difference.
+       * EXACT, NOT APPROXIMATE. Both paths call one implementation of every decision, so there is
+       * no tolerance to justify; a difference of one tip is a difference.
+       *
+       * WHAT IT COMPARES IS THE COUNTS - automatic, manual and removed - and NOT the positions,
+       * because the deck reports counts and nothing on screen exposes a tip's coordinates. So it
+       * would pass with the same number of tips in different places. The position-level agreement is
+       * proved separately and under Node, on a real customer scan, by `pipeline.real.test.ts`:
+       * running the same model twice gives byte-identical contact positions, and every settings key
+       * the print-angle confirm was judged with equals what the finished unit carries. Between the
+       * two there is no gap worth a tolerance - but saying "exact" without this paragraph would be
+       * claiming more than this check performs.
        */
       const handTally = await d.counts();
       if (autoGenTally === undefined) {
         skippedByDesign += 1;
         note('x0p parity with auto-gen: skipped, section m did not run in this pass');
       } else {
+        const same = handTally.auto === autoGenTally.auto && handTally.manual === autoGenTally.manual
+          && handTally.removed === autoGenTally.removed;
         check('x0p the step screens and auto-gen build the SAME supports for the same model',
-          handTally.auto === autoGenTally.auto,
-          `by hand ${handTally.auto}, auto-gen ${autoGenTally.auto}`);
+          same,
+          `by hand ${JSON.stringify(handTally)}, auto-gen ${JSON.stringify(autoGenTally)}`);
       }
       await d.measureCanvas();
       await page.screenshot({ path: path.join(scratch, 'ux-c-step3-1440x900.png') });

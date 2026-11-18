@@ -176,7 +176,14 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
    */
   const built = unit.supports !== undefined && unit.dental?.kind === 'two-contour';
   const generating = autoGen?.kind === 'running' || autoGen?.kind === 'queued';
-  const autoGenSaid = autoGen ? autoGenSentence(autoGen) : undefined;
+  /*
+   * A DONE LINE MUST NOT OUTLIVE THE SUPPORTS IT DESCRIBES. Nothing expires this sitting's card
+   * record, so auto-gen a model, open it, go Back to Step 1 - which re-orients and deletes the
+   * supports - and the deck still said "94 supports placed" over a model with none. The unit is the
+   * only honest source for whether supports exist; the card record is only how they got there.
+   */
+  const outlived = autoGen?.kind === 'done' && unit.supports === undefined;
+  const autoGenSaid = autoGen && !outlived ? autoGenSentence(autoGen) : undefined;
 
   return <li
     className={`items-row${done ? ' items-row--done' : ''}${willOpen ? ' items-row--next' : ''}`}
@@ -300,7 +307,12 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
       and an eighth child wraps it - the lesson Retry already taught here. It is also why the line is
       short: the sentence that teaches goes under the pointer.
     */}
-    {autoGenSaid && !generating ? <span className={`autogen autogen--${autoGen!.kind}`}
+    {/*
+      A DONE CARD WHOSE PRINT ANGLE IS IN DOUBT READS AS A WARNING, not as a result. "94 supports
+      placed, but no print angle held" in the same quiet green as a clean run is the one place the
+      app learns its central claim failed for this model, said in the colour of success.
+    */}
+    {autoGenSaid && !generating ? <span className={`autogen autogen--${autoGen!.kind === 'done' && autoGen!.angleCheck !== undefined ? 'doubt' : autoGen!.kind}`}
       data-ui={`items-autogen-state-${unit.id}`} title={translateMessage(autoGenSaid)}>
       {translateMessage(autoGenSaid)}
     </span> : null}

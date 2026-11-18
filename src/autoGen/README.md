@@ -96,8 +96,13 @@ genuine risk (the React scene being a render behind) can show.
 Pressing **Stop** mid-run on a card that ALREADY had supports leaves it with none. That is not a
 bug in the queue: the pipeline's first step is the orientation, re-orienting clears supports
 (`src/state/rotation.ts`), and a run abandoned after that step has cleared them without replacing
-them. **Undo brings them back** - the commits are in the scene history like any others - and it is
-exactly what entering Step 1 by hand and walking away does.
+them. It is exactly what entering Step 1 by hand and walking away does.
+
+**The undo that would bring them back is not reachable from the deck**, and an earlier version of
+this file said it was. The commits ARE in the scene history, but the keyboard handler returns while
+a start screen is up and the header's Undo is not rendered there, so the operator would have to open
+a model first. Written down rather than claimed: either the deck gets Undo, or this paragraph is the
+honest version.
 
 It is still a surprise, and it is written down rather than smoothed over because the honest fix needs
 words on the card ("the supports this card had were cleared"), which is a new UI string, and new

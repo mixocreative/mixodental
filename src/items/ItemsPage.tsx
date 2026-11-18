@@ -185,7 +185,13 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
    */
   const needsYou = (unit: PrintUnit) => {
     const state = detected.get(unit.id)?.kind;
-    return state === 'failed' || state === 'no-rim';
+    /*
+     * A DOUBT IS A CARD THAT NEEDS A PERSON, and `check` was left out of this list when it was
+     * added. Those are precisely the rows review-by-exception exists for - the engine looked and
+     * could not decide - so they were neither sorted to the top nor counted in "{n} need you", and
+     * on a case of thirty they had to be found by scrolling.
+     */
+    return state === 'failed' || state === 'no-rim' || state === 'check';
   };
   const rows = [...units].sort((a, b) => Number(needsYou(b)) - Number(needsYou(a)));
   /*
@@ -410,7 +416,13 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
           scans are different cases by an order of magnitude - and a byte figure alone is not
           something an operator can act on. Together they say what is here and what is left.
         */}
-        <span className="items-budget" data-ui="items-budget">
+        {/*
+          THE COUNT WEARS THE WARNING WHEN IT IS PAST THE CAP, which it did not: "201 of 200 models"
+          rendered in exactly the style of "3 of 200", and nothing else on screen said a word. The
+          cap is not enforced - import is bounded by the plate ledger, not by this number - so the
+          least this readout owes is to look different when it has been passed.
+        */}
+        <span className={`items-budget${units.length > usage.capModels ? ' items-budget--over' : ''}`} data-ui="items-budget">
           {t('{n} of {cap} models', { n: units.length, cap: usage.capModels })}
         </span>
         <span className={`items-memory${usage.overBudget ? ' items-memory--over' : ''}`} data-ui="items-memory"
@@ -423,6 +435,15 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
         </span> : null}
         {attention > 0 ? <span className="items-attention" data-ui="items-attention">
           {plural(attention, '{n} needs you', '{n} need you')}
+        </span> : null}
+        {/*
+          WHY THE AUTO-GEN KEYS ARE GONE, which nothing said. Over the memory allowance, every card's
+          key and the case key disappear - correctly, because generating more is how the tab dies -
+          and the only clue was the memory figure turning red. A key that vanishes with no reason is
+          the dead control this screen's own standard forbids, wearing a different coat.
+        */}
+        {usage.overBudget ? <span className="items-attention" data-ui="items-overbudget">
+          {t('Auto-gen is off: this case is over its memory allowance. Remove a model, or open them one at a time.')}
         </span> : null}
         {target && purposeOf(target) ? <button type="button" className="primary key-art" data-ui="items-start"
           /* The name goes in the title rather than the label: a long file name in the primary would

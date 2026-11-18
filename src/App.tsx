@@ -1356,12 +1356,15 @@ export default function App() {
      */
     setStartScreen(null);
     /*
-     * A RUN IN FLIGHT STOPS BEFORE THE FLOW OPENS. The pipeline checks `live()` after every await,
-     * and that check asks whether the UNIT is still there - not whether the operator is now editing
-     * it. Opening a card mid-run and turning the model would otherwise let the run land tips for the
-     * pose it started from, against its own copy of the scene, with nothing to refuse them.
+     * THIS CARD'S RUN STOPS BEFORE THE FLOW OPENS - and only this card's. The pipeline checks
+     * `live()` after every await, and that asks whether the UNIT is still there, not whether the
+     * operator is now editing it; opening a card mid-run and turning the model would otherwise let
+     * the run land tips for the pose it started from.
+     *
+     * It used to cancel the WHOLE queue, so looking at one finished model part way through a case of
+     * thirty emptied it and the rest came back looking as though they had never been pressed.
      */
-    autoGen.cancel();
+    autoGen.cancelIfRunning(unit.id);
     send({ type: 'exit' });
     const profile = live.dentalProfile ?? unitPurposes.get(unit.id) ?? DEFAULT_PROFILE_ID;
     send({ type: 'startDental', profile, resume: true });

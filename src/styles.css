@@ -1830,6 +1830,10 @@ dialog.terms .terms-item > span { flex: none; }
 }
 .items-row .autogen--done { color: var(--success); }
 .items-row .autogen--stopped { color: var(--warning); }
+/* A finished run whose PRINT ANGLE is in doubt is not a success: it wears the warning colour. */
+.items-row .autogen--doubt { color: var(--warning); }
+/* Past the model cap: the readout looks different, because nothing else refuses. */
+.items-budget--over { color: var(--warning); }
 /*
  * THE RECIPE CHIP: the name, with the native `<select>` laid invisibly over it so the list, the
  * keyboard and the screen-reader announcement stay the platform's own - the same trick
