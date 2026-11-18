@@ -55,42 +55,51 @@ THE STRINGS:
 10 Generate supports on every ready card, one at a time
 11 Auto-gen 1 card
 12 Auto-gen {n} cards
-13 This model is not closed, so supports cannot be trusted on it. Open it before generating.
-14 Could not decide which way is up. Open it to orient by hand.
-15 The opening found does not match the type chosen. Check the type, or open it by hand.
-16 Up and down need a look: the two rules disagree. Open it and check which side is up.
-17 The central opening is unclear. Open it and check the orientation.
-18 Check mesh
-19 Check orientation
-20 Going back re-orients this model, which removes its supports and any manual edits. Undo brings them back. Continue?
-21 Export incomplete: {saved} saved. {reason}
-22 Waiting to generate…
-23 1 support placed
-24 {n} supports placed
-25 The support recipe this model is set to is no longer saved. Choose one on the card.
-26 No support area was found. Open it and paint one.
-27 No safe support position was found. Open it and place them by hand.
-28 The support area could not be detected. Open it to try again.
-29 Generating supports failed. Open it to try again.
-30 Recipe missing
-31 {name}, edited
-32 Your saved support recipes could not be read on this device, so only the type default is offered.
-33 These supports were built with {name}.
-34 This model s settings no longer match {name}. Auto-gen will use the recipe, not the changes.
-35 The support settings auto-gen will build this model with: {name}.
-36 Support recipe
-37 Type default
-38 Name for a new support recipe
-39 New recipe name
-40 Your saved support recipes could not be read on this device, so nothing can be saved.
-41 Save these settings under this name, and use it for this model.
-42 The type default cannot be changed. Save these settings as a new recipe instead.
-43 Replace this recipe s settings with the ones on screen.
-44 Update recipe
-45 The type default cannot be removed.
-46 Remove this recipe from this device.
-47 Delete recipe
-48 Use this recipe for models nobody has chosen one for.
-49 Use as default
-50 That could not be saved on this device, so nothing was changed.
-51 Recipe
+13 Auto-gen is off: this case is over its memory allowance. Remove a model, or open them one at a time.
+14 This model is not closed, so supports cannot be trusted on it. Open it before generating.
+15 Could not decide which way is up. Open it to orient by hand.
+16 The opening found does not match the type chosen. Check the type, or open it by hand.
+17 Up and down need a look: the two rules disagree. Open it and check which side is up.
+18 The central opening is unclear. Open it and check the orientation.
+19 Check mesh
+20 Check orientation
+21 These switches shape supports grown from a detected edge. This area was made by hand, so they are built as shown and cannot be changed here.
+22 Going back re-orients this model, which removes its supports and any manual edits. Undo brings them back. Continue?
+23 Export incomplete: {saved} saved. {reason}
+24 Waiting to generate…
+25 {n} supports placed, but no print angle held. Open it and check the angle.
+26 {n} supports placed. The print angle could not be checked.
+27 {n} supports placed. The print angle was not checked.
+28 1 support placed
+29 {n} supports placed
+30 The support recipe this model is set to is no longer saved. Choose one on the card.
+31 No support area was found. Open it and paint one.
+32 No safe support position was found. Open it and place them by hand.
+33 The support area could not be detected. Open it to try again.
+34 The orientation check could not run. Open it to orient by hand.
+35 Generating supports failed. Open it to try again.
+36 The orientation check now disagrees with this card. Open it and look.
+37 No rim was found this time. Open it and draw one.
+38 Recipe missing
+39 {name}, edited
+40 Your saved support recipes could not be read on this device, so only the type default is offered.
+41 These supports were built with {name}.
+42 The settings on this model no longer match {name}. Auto-gen will use the recipe, not the changes.
+43 The support settings auto-gen will build this model with: {name}.
+44 Support recipe
+45 Type default
+46 Name for a new support recipe
+47 New recipe name
+48 Your saved support recipes could not be read on this device, so nothing can be saved.
+49 Save these settings under this name, and use it for this model.
+50 The type default cannot be changed. Save these settings as a new recipe instead.
+51 Replace the settings in this recipe with the ones on screen.
+52 Update recipe
+53 The type default cannot be removed.
+54 Remove this recipe from this device.
+55 Delete recipe
+56 Use this recipe for models nobody has chosen one for.
+57 Use as default
+58 That could not be saved on this device, so nothing was changed.
+59 Recipe
+60 Support moved.
