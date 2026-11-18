@@ -100,3 +100,184 @@ session, after all the work.
 6. The deck store, write side.
 7. Restore on open, the file handles, the four states, the name click.
 8. Export one unit per task.
+
+---
+
+## Owner's rulings on the auto-gen pipeline (2026-11-18, late)
+
+Settled in conversation after the plan above was written. Where these disagree with anything earlier
+on this page, these win.
+
+### 1. Re-orienting ALWAYS clears the supports
+
+> *"Yes reorient always clear supports it is industry standard."*
+
+**This is not what the app does today.** Re-orienting stamps a revision, marks the supports **stale**
+(`supportsNeedReplanting`), and only the EXPORT refuses (`useExport.ts`, `refuse('replant', name)`).
+So an operator can sit looking at supports that belong to a previous orientation and find out at the
+very end. Under the ruling they are gone at the moment of the decision instead.
+
+It must be **warned before and undoable after** — the regenerate path already offers Undo.
+
+**It also deletes a whole class of defect.** Automatic contact ids are position-derived
+(`auto-X_Y_Z`) and manual removals are stored by id, so a re-orient could orphan hand work; the
+re-key path was never proven on this route. If the supports go, their edits go with them,
+deliberately and visibly. There is nothing left to silently re-key.
+
+### 2. Auto-gen must land the model in STEP 3'S OWN STATE
+
+> *"the deck auto support pipeline allows and preserved the capability on what we did in step 3
+> where there's supposed to be a support edit mode"*
+
+**The acceptance criterion, in one sentence:** auto-gen leaves the model in exactly the state Step
+3's accept leaves it in, so opening the card lands in Step 3 with Support Edit Mode live, and
+nothing in the editor can tell whether a human or the queue got it there.
+
+Support Edit Mode is real and gated on the stage (`src/dental/editing/dentalStep3.test.ts`):
+`edit.add`, `edit.deleteSelection` over a tip selection, and the per-support shape overrides
+(`contactSettings/set` takes a list of contact ids). Delete is also offered in Step 2; Step 1 has
+none of it.
+
+So the pipeline produces the accepted policy, the support plan and the revision stamps — never an
+"auto" variant of any of them. Everything in Support Edit Mode then works with no new code, because
+it already acts on exactly those fields. **The parity test is what proves it.**
+
+**A consequence of ruling 1 that must be built with it:** an auto-generated card **opens at Step 3**,
+not Step 1. Opening at Step 1 would walk the operator straight into the step that destroys the work
+the queue just did. Reaching Step 1 becomes a deliberate act — *"Re-orient (this removes the
+supports)"*.
+
+### 3. Auto-gen is an independent, modular pipeline — not code living in the deck
+
+> *"differentiate auto gen function as an independent function wrapper that pipeline as a
+> modularised function"*
+
+Three jobs, three modules:
+
+| Module | Job | Knows about |
+|---|---|---|
+| `autoGen/eligibility.ts` | **may** this card run, and if not why | a unit, its detect state, its health, its hand work. No engine, no React |
+| `autoGen/pipeline.ts` | **how** one model goes from answered to supported: the stages in order, returning scene commands or a typed refusal | the engine client, injected. No React, no deck |
+| `useAutoGen.ts` | **when**: the serial queue, `forget` after each item, pause on open | React and the deck. Knows nothing of how generation works |
+
+**The parity test is only possible because of this.** A React hook cannot be run in `vite-node`
+against the reference fixture; a plain function can, exactly as `scripts/perf/deck-scale.ts` already
+drives `runSupportJob`. One pipeline then serves four callers: the per-card key, Auto-gen all, the
+folder review, and any future batch tool.
+
+**And the seam that actually prevents drift.** The risk is not which file the code sits in — it is
+the pipeline RE-IMPLEMENTING what `useDentalFlow` does when it builds each stage's options (aligner
+settings, kept dental work, tuning, preset commands). Two implementations of one decision diverge,
+and that is how auto-gen ends up making different supports from the editor. So the stage builders
+come OUT of the hook into a shared module that both call, which makes parity structural rather than
+merely asserted.
+
+### 4. The key appears only on an ANSWERED card
+
+> *"on deck, auto gen button happens only when user already set category and type"*
+
+The same rule the Open key already follows: **absent** until answered, rather than greyed with a
+complaint — a chain with no profile has nothing to run, and the card's own control is beside it.
+
+Today choosing a category SETS the type (one profile per family, shown as a readout), so this is one
+action; it becomes two the day a family ships a second profile, and the rule already covers it.
+
+| Card state | Auto-gen key |
+|---|---|
+| no category | not drawn |
+| answered, detection flagged it | drawn, refused, with the reason |
+| answered, hand-edited | drawn, asks first |
+| answered and strictly Ready | drawn and live |
+
+### 5. "Ready" is not currently a safety gate — tighten it first
+
+`detectStateOf` (`src/items/detectState.ts`) is three lines and maps EVERY non-failed result to
+`oriented` → **Ready**:
+
+```ts
+return { kind: 'oriented', turned: result.rotation !== undefined };
+```
+
+It never consults whether the rotation was actually found, whether the profile matched, whether the
+central opening was ambiguous, whether the arch kind is unknown, or whether the two orientation
+rules **disagreed** — all of which the step flow raises notices for and the deck drops.
+
+So "auto-gen only on Ready" as first proposed would generate supports in the drop orientation, or for
+the wrong arch type, on a card nobody opened. A strict state is needed — rotation present, profile
+matched, cross-check not `disagrees` — and everything else gets a **"Check orientation"** chip.
+
+### 6. Ready must also mean the MESH is usable — but "watertight" is the wrong test
+
+> *"maybe ready on cards also meant the mesh is safe and pass or need to run the fix holes model
+> function?"*
+
+Right instinct, and a hole in the first proposal: nothing in it consulted mesh health at all, so
+auto-gen could have run on a non-manifold model and placed tips against phantom geometry.
+
+**Repair already runs at import.** `rowState.ts` records what happened as one of:
+`clean` (watertight) · `repaired` · `repaired-open` (repaired, loops remain, with the reasons the
+filler left them) · `holes` (loops, with count and longest rim in mm) · `malformed`
+(non-manifold edges, winding consistency) · `unchanged`. So there is nothing for a "fix holes"
+button to do that has not been tried — re-running it with the same input gives the same answer.
+
+**And a dental arch is LEGITIMATELY open.** A trimmed aligner is a shell with a rim; its boundary
+loop is the feature the whole Step 1 rim stage exists to find. A naive "watertight only" gate would
+refuse every trimmed aligner in the building, which is most of them. That is why `repaired-open`
+carries its reasons rather than being an error.
+
+**So the gate is the engine's own judgement, not a geometry purity test.** `detectStateOf` already
+distinguishes `result.meshOk ? 'no-rim' : 'failed'` — `meshOk` is the engine saying whether it can
+work with this mesh. The rule:
+
+| Health | Auto-gen |
+|---|---|
+| `clean`, `repaired` | runs |
+| `repaired-open` | runs — an open rim is an aligner's normal shape, and the reasons are recorded |
+| `holes`, `malformed`, `unchanged` on an unusable mesh | **refuses**, naming what is wrong, from the sentence the card already carries |
+
+The card keeps showing health and orientation as TWO marks, because they are two independent facts
+(`src/items/README.md`) — a trimmed arch is a healthy mesh with no rim. What changes is that the
+auto-gen GATE consults both, where the first proposal consulted only the orientation chip.
+
+### 7. An "enlarge" key: the card's model alone, full size
+
+> *"when user inspect model preview maybe a button to enlarge 3d view in isolation for preview is
+> possible?"*
+
+Yes, and it is nearly free — which is a consequence of how the live preview was built rather than a
+coincidence.
+
+The deck already owns ONE renderer (`components/viewport/deckRig.ts`) and draws the focused card
+through it, copying each frame into that card's own 2D canvas. Enlarging is the same pipeline
+pointed at a bigger surface: an overlay with one large canvas, the same `openLiveCard` /
+`turnLiveCard` / `closeLiveCard`, the same pure `orbit.ts` maths. **No second WebGL context, no
+second model uploaded, no new camera code.**
+
+What it adds, honestly:
+
+- the overlay itself, and Escape / click-away to leave it;
+- a size for the rig beyond a card's (`sizeRig` already resizes on demand and only when the size
+  actually changed);
+- the model's name on it, so an isolated view still says which model it is.
+
+Why it is worth having: a 192px card tells you *which* model this is; it cannot tell you whether a
+support will clash or whether an arch is seated the way you think. The step flow's full viewport can,
+but reaching it means ENTERING the model — and under ruling 1 that is the route where a stray
+re-orient destroys supports. An isolated look that changes nothing is the safe way to answer "is
+this right?" before deciding to open it.
+
+It should be a **look, not an editor**: turn and nothing else. The moment it grows selection or tip
+editing it is a second implementation of Support Edit Mode, which is the drift ruling 3 exists to
+prevent.
+
+## Build order, revised by every ruling above
+
+1. **Extract the stage builders** out of `useDentalFlow.ts` into a shared module. Pure refactor, UI
+   behaviour unchanged, suite green. Nothing else is safe until this is in.
+2. **Re-orient clears supports**, warned before and undoable after.
+3. **`autoGen/eligibility.ts`** with the strict Ready, the mesh gate, and the "Check orientation"
+   chip.
+4. **`autoGen/pipeline.ts`** and the parity test against the reference fixture.
+5. **`useAutoGen.ts`**: the queue, the per-card key, Auto-gen all, opening at Step 3.
+6. The **enlarge** overlay, which reuses the rig and the orbit maths.
+7. A real **move** for a support tip - there is no `manual/move` today, only add and remove.
