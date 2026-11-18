@@ -7,6 +7,7 @@ import type { EditSession, SessionEvent } from '@mixo-geocore/editing/session';
 import type { DentalNotice } from '../dental/editingMode';
 import type { AnalysisClient } from '../workers/analysisClient';
 import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import type { SupportRecipe } from '../recipes/supportRecipe';
 import { acceptCommands, acceptedPolicy, alignerSettings, confirmOrder, manualAreaCommands, orientOutcome, settledPolicy, tiltScanSettings, turnCommands } from '../dental/stages';
 import { keepsManualArea } from '../dental/flow';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
@@ -47,9 +48,18 @@ interface DentalFlowHost {
   requestView: (kind: ViewRequest['kind']) => void;
   setGizmoMode: (mode: GizmoMode) => void;
   unitName: (unitId: string) => string;
+  /**
+   * WHAT THIS CARD IS SET TO BUILD WITH (`src/recipes/`), or `undefined` for the type's own numbers.
+   *
+   * THE STEP SCREENS READ THE SAME SELECTION AS THE QUEUE, and that is not a convenience: a card
+   * labelled "Thin" on the deck that is then opened by hand would otherwise get type defaults, and
+   * the editor and the queue would be building different supports for one model - the exact
+   * divergence `src/dental/stages.ts` exists to prevent. Every stage decision below takes it.
+   */
+  recipeFor: (unitId: string) => SupportRecipe | undefined;
 }
 
-export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, session, setStatus, requestView, setGizmoMode, unitName }: DentalFlowHost) {
+export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, session, setStatus, requestView, setGizmoMode, unitName, recipeFor }: DentalFlowHost) {
   const orientSeq = useRef(0);
   const detectionSeq = useRef(0);
   /** The pose Step 1 found for the current proposal (`orient_dental` returns it with the rim). */
@@ -102,7 +112,7 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     setTilt({ status: 'scanning', unitId: unit.id, done: 0, total });
     const stale = () => scanSeq.current !== token || sceneRef.current.activeUnitId !== unit.id;
     void analysis().dentalTiltScan(`dental-tilt:${unit.id}`, unit.source, profile,
-      tiltScanSettings(unit, profile),
+      tiltScanSettings(unit, profile, recipeFor(unit.id)),
       { key: 'Scanning print angles on {name}', vars: { name: unit.name } },
       (fraction) => { if (!stale() && tiltRef.current?.status === 'scanning') setTilt({ status: 'scanning', unitId: unit.id, done: Math.round(fraction * total), total }); },
     ).then((scan) => {
@@ -246,7 +256,7 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
       if (!region || region.kind !== 'proposal') return;
       const proposal = sessionRef.current.dentalProposal;
       if (!proposal) return;
-      const { structure } = alignerSettings(unit, profile);
+      const { structure } = alignerSettings(unit, profile, recipeFor(unit.id));
       keepPreview({ unitId: unit.id, profile, policy: { kind: 'two-contour', profileId: profile, rim: proposal.rim, region, stamps: [], tuning: defaultDentalTuning(profile), structure } });
     }, () => { if (previewSeq.current === seq) setDetectingArea(false); });
   }, [session.mode, session.dentalStage, session.dentalAligner, session.dentalUnitId, session.dentalProfile,
@@ -322,7 +332,7 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
         // THE PAINT IS CARRIED, as it is everywhere else a policy is replaced (`useRimDrawing` does the
         // same). Reaching here with stamps means the type changed under a painted area; dropping them
         // would be W-01 again, and the paint is the operator's work, not a function of the rim.
-        dispatch({ type: 'batch', commands: manualAreaCommands(unit, profile, proposal.rim) });
+        dispatch({ type: 'batch', commands: manualAreaCommands(unit, profile, proposal.rim, recipeFor(unit.id)) });
         send({ type: 'acceptDentalOrientation', noArea: true });
         requestView('bottom');
         return;
@@ -330,10 +340,10 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
       // A new aligner (or one whose type changed) starts from its type's Step 3 settings and
       // Tree/Brace switches; once set, the operator's own choices are kept - including the painted
       // area and the tuning, which this used to discard in silence (`keptDentalWork` says why).
-      const policy = acceptedPolicy(unit, profile, proposal.rim, region);
+      const policy = acceptedPolicy(unit, profile, proposal.rim, region, recipeFor(unit.id));
       // The tilt CHECK is judged with the settings this aligner will be built with, so it asks
       // `stages` for the same ones the policy above was made from rather than re-deriving them.
-      const { settings } = alignerSettings(unit, profile);
+      const { settings } = alignerSettings(unit, profile, recipeFor(unit.id));
       /*
        * THE AREA GOES BACK WITH THE TUNING IT WAS DRAWN FOR, when the orientation did not move.
        *
@@ -350,7 +360,7 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
        */
       const accept = (angleMovedDeg?: number, angleCheck?: 'none-held' | 'failed') => {
         const settled = settledPolicy(unit, profile, policy, angleMovedDeg);
-        dispatch({ type: 'batch', commands: acceptCommands(unit, profile, settled) });
+        dispatch({ type: 'batch', commands: acceptCommands(unit, profile, settled, recipeFor(unit.id)) });
         send({ type: 'acceptDentalOrientation', ...(angleMovedDeg === undefined ? {} : { angleMovedDeg }), ...(angleCheck === undefined ? {} : { angleCheck }) });
         requestView('bottom');
       };

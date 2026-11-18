@@ -6,6 +6,7 @@ import { appendAnchor, closePath, emptyPath, hasAnchor, removeAnchor, type Surfa
 import type { Message } from '../../i18n';
 import type { PrintScene, SceneCommand } from '../../state/project';
 import { presetCommands } from '../stages';
+import type { SupportRecipe } from '../../recipes/supportRecipe';
 import { manualAreaPolicy } from '../manualArea';
 import { drawnRim } from './drawnRim';
 import { rimProblemText } from './rimStepText';
@@ -23,13 +24,21 @@ import { closesLoop } from './rimDraftGeometry';
  * app's own history undoes an anchor the way it undoes anything else, and the mode needs no private
  * undo stack that could interleave with it.
  */
-export function useRimDrawing({ session, scene, dispatch, send, setStatus }: {
+export function useRimDrawing({ session, scene, dispatch, send, setStatus, recipeFor }: {
   /** Live refs, not state: a pointer handler must read what is true NOW, not what it closed over. */
   session: { readonly current: EditSession };
   scene: { readonly current: PrintScene };
   dispatch: (command: SceneCommand, edit?: string) => void;
   send: (event: SessionEvent) => void;
   setStatus: (key: string, vars?: Message['vars'], other?: string) => void;
+  /**
+   * The card's support recipe (`src/recipes/`), or `undefined` for the type's own numbers.
+   *
+   * Done lands in the SAME place a detected rim does and must set the same Step 3 numbers - that is
+   * why this hook calls `presetCommands` at all. Leaving it out here would mean a model whose rim
+   * was drawn by hand quietly ignored the recipe its card is labelled with.
+   */
+  recipeFor: (unitId: string) => SupportRecipe | undefined;
 }) {
   /** Only while the mode is open: a stale pointer event must not edit a drawing nobody is looking at. */
   const drawing = () => session.current.mode === 'dental' && session.current.dentalStage === 'rim';
@@ -131,7 +140,7 @@ export function useRimDrawing({ session, scene, dispatch, send, setStatus }: {
     if (outcome.kind === 'refused') return setStatus('This rim could not be built from the points as drawn. Move a point and try again.');
 
     dispatch({ type: 'batch', commands: [
-      ...presetCommands(unit, profile),
+      ...presetCommands(unit, profile, recipeFor(unitId)),
       // The operator's paint survives the redraw: it is their work, and it is not a function of the rim.
       { type: 'dental/set', unitId, policy: manualAreaPolicy(outcome.rim, false, profile, unit.dental?.stamps ?? []) },
       { type: 'rim/clear', unitId },

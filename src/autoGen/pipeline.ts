@@ -11,6 +11,7 @@ import { detectStateOf } from '../items/detectState';
 import type { AnalysisClient } from '../workers/analysisClient';
 import type { PrintScene, PrintUnit, SceneCommand } from '../state/project';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
+import type { SupportRecipe } from '../recipes/supportRecipe';
 
 /**
  * ONE ALIGNER THROUGH THE WHOLE DENTAL FLOW, WITH NOBODY WATCHING - no React, no screens, no refs.
@@ -57,7 +58,16 @@ export type AutoGenStop =
   /** The placement produced no safe tip. Nothing is written: the model is left as it was. */
   | { readonly at: 'supports'; readonly because: 'no-tips' }
   /** The placement could not run, or the model moved while it ran. */
-  | { readonly at: 'supports'; readonly because: 'failed' };
+  | { readonly at: 'supports'; readonly because: 'failed' }
+  /**
+   * The support recipe this card is set to could not be found on this device.
+   *
+   * IT STOPS RATHER THAN FALLING BACK, which is the whole reason this case exists. An operator who
+   * chose "Thin" and silently got type defaults has supports they did not ask for on a model they
+   * are about to print - and nothing on screen would ever have said so. Deleted in another tab, a
+   * book this version cannot read, a book from a newer version: all of them arrive here.
+   */
+  | { readonly at: 'recipe'; readonly because: 'missing' };
 
 export type AutoGenResult =
   | {
@@ -115,7 +125,7 @@ const unitOf = (scene: PrintScene, unitId: string): PrintUnit | undefined =>
  * placed tips and then turned the model would hand the operator an empty card and no reason why.
  * The order below is the flow's own, and this is one more reason not to depart from it.
  */
-export async function runAutoGen(unitId: string, profile: string, host: AutoGenHost): Promise<AutoGenResult> {
+export async function runAutoGen(unitId: string, profile: string, host: AutoGenHost, recipe?: SupportRecipe): Promise<AutoGenResult> {
   const started = unitOf(host.scene(), unitId);
   if (!started) return stop('orient', 'gone');
   const name = started.name;
@@ -146,7 +156,7 @@ export async function runAutoGen(unitId: string, profile: string, host: AutoGenH
    * the pose Step 1 found. Stopping here would refuse models the screens accept.
    */
   const scan = await host.engine.dentalTiltScan(`auto-tilt:${unitId}`, oriented.source, profile,
-    tiltScanSettings(oriented, profile), { key: 'Scanning print angles on {name}', vars: { name } })
+    tiltScanSettings(oriented, profile, recipe), { key: 'Scanning print angles on {name}', vars: { name } })
     .catch(() => undefined);
   if (!host.live(unitId)) return stop('orient', 'gone');
   const scanned: Extract<TiltScan, { kind: 'scan' }> | undefined = scan?.kind === 'scan' ? scan : undefined;
@@ -167,8 +177,8 @@ export async function runAutoGen(unitId: string, profile: string, host: AutoGenH
    * Writing the empty policy here would leave a card that looks answered and builds nothing.
    */
   if (region.kind !== 'proposal') return stop('area', 'no-area');
-  const policy = acceptedPolicy(atArea, profile, outcome.proposal.rim, region);
-  const { settings } = alignerSettings(atArea, profile);
+  const policy = acceptedPolicy(atArea, profile, outcome.proposal.rim, region, recipe);
+  const { settings } = alignerSettings(atArea, profile, recipe);
 
   /*
    * 4. The print-angle confirm: the automatic pick is built for real before it is accepted.
@@ -208,7 +218,13 @@ export async function runAutoGen(unitId: string, profile: string, host: AutoGenH
   // 5. Accept the area, with the type's presets ahead of it where they are owed.
   const toAccept = unitOf(scene, unitId);
   if (!toAccept) return stop('orient', 'gone');
-  scene = host.commit(acceptCommands(toAccept, profile, settledPolicy(toAccept, profile, policy, angleMovedDeg)));
+  /*
+   * THE RECIPE IS WRITTEN ONTO THE UNIT HERE, by `presetCommands` inside `acceptCommands` - which is
+   * why that function had to stop resolving the settings itself. Step 6's placement job reads
+   * `unit.settings`, so without this the scan and the confirm above would have judged the recipe
+   * while the supports were built from the type's own numbers.
+   */
+  scene = host.commit(acceptCommands(toAccept, profile, settledPolicy(toAccept, profile, policy, angleMovedDeg), recipe));
 
   // 6. Step 3's Generate: place the tips, land them, and write the starting label.
   const placing = unitOf(scene, unitId);

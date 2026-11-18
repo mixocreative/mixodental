@@ -10,6 +10,8 @@ import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
 import { scanDentalTilts } from '@mixo-geocore/host/dental/dentalTilt';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
+import { defaultSupportSettings, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import { RECIPE_KEYS, recipeFrom, type SupportRecipe } from '../recipes/supportRecipe';
 import { confirmPick } from '../dental/confirmTilt';
 import { useNodeEngine, parseStl } from '../../scripts/node-engine';
 import { emptyScene, identityTransform, reduceScene, type PrintScene, type PrintUnit, type SceneCommand } from '../state/project';
@@ -54,11 +56,21 @@ const PROFILE = DEFAULT_PROFILE_ID;
  * is the worker's own two-contour branch - a two-contour placement is filtered from nothing, never
  * from a scatter run.
  */
+/**
+ * The settings the LAST confirm was judged with.
+ *
+ * Recorded because the one defect this feature can have that nobody would notice for weeks is the
+ * card naming one recipe while the supports were built from another: the scan and the confirm read
+ * the resolved settings, and the placement job reads `unit.settings`, so the two can disagree in
+ * silence and both look plausible on screen. There is no other way to see what the confirm was told.
+ */
+let judgedWith: LiveSupportSettings | undefined;
+
 const nodeAnalysis: AutoGenEngine = {
   dentalOrient: async (_key, mesh, profile) => orientDentalAligner(mesh, profile),
   dentalTiltScan: async (_key, mesh, profile, settings) => scanDentalTilts(mesh, profile, settings, () => {}),
   dentalRegion: async (_key, mesh, profile) => proposeDentalSupportRegion(mesh, defaultDentalTuning(profile), profile),
-  dentalConfirmTilt: async (_key, job, rotations) => confirmPick(job, rotations),
+  dentalConfirmTilt: async (_key, job, rotations) => { judgedWith = job.settings; return confirmPick(job, rotations); },
   dentalPlace: async (_key, job) => filterDentalPlacement(job, {
     points: [], regions: [], contactPositions: new Float32Array(), contactNormals: new Float32Array(),
   }),
@@ -91,10 +103,14 @@ describeReal('the auto-gen pipeline on a real aligner', () => {
   } as unknown as PrintUnit;
   const start = reduceScene(reduceScene(emptyScene, { type: 'unit/add', unit }), { type: 'selection/set', unitIds: ['a1'], activeUnitId: 'a1' });
 
-  const run = async () => {
+  const run = async (recipe?: SupportRecipe) => {
+    judgedWith = undefined;
     const host = nodeHost(start);
-    const result = await runAutoGen('a1', PROFILE, host);
-    return { result, unit: host.scene().units.find((candidate) => candidate.id === 'a1')! };
+    const result = await runAutoGen('a1', PROFILE, host, recipe);
+    // Read out explicitly: the compiler cannot see that the engine stub above assigns it.
+    // Cast: the compiler cannot see that the awaited engine stub assigns this.
+    const judged = judgedWith as LiveSupportSettings | undefined;
+    return { result, unit: host.scene().units.find((candidate) => candidate.id === 'a1')!, judgedWith: judged };
   };
 
   it('leaves the model in the state Step 3 would have left it in', async () => {
@@ -121,4 +137,37 @@ describeReal('the auto-gen pipeline on a real aligner', () => {
     // The positions, not only the count: a stage that moved every tip by a millimetre would pass a count.
     expect(Array.from(first.unit.placement!.contactPositions)).toEqual(Array.from(second.unit.placement!.contactPositions));
   }, 1_200_000);
+
+  /*
+   * THE CARD MUST NOT NAME ONE RECIPE WHILE THE SUPPORTS CAME FROM ANOTHER.
+   *
+   * Three readers have to agree: the print-angle scan, the confirm, and the placement job - and the
+   * placement job reads `unit.settings`, which is written at ACCEPT time by `presetCommands`. That
+   * function used to resolve the type's numbers itself, so with a recipe chosen the first two would
+   * have judged the recipe while the supports were built from type defaults. Both look plausible.
+   *
+   * This asserts the agreement on a real scan, and then that a DIFFERENT recipe moves both - a test
+   * that only checked one run would pass against a pipeline that ignored recipes entirely.
+   */
+  it('builds with the recipe it was given, in every reader of the settings', async () => {
+    const thin = recipeFrom('thin', 'Thin', { ...defaultSupportSettings, pillarDiameter: 1.1 }, { treeEnabled: false, bracesEnabled: false });
+    const run1 = await run(thin);
+
+    expect(run1.result.kind, JSON.stringify(run1.result)).toBe('done');
+    expect(run1.judgedWith?.pillarDiameter).toBe(1.1);
+    // What the confirm judged IS what the unit ends up carrying, which is what the supports are
+    // built from. Compared over the RECIPE's own keys, because `labelText` is deliberately not one
+    // of them: it is per-unit and it is written after the landing, so the two differ there and must.
+    const finished = resolveSettings(run1.unit.settings);
+    for (const key of RECIPE_KEYS) expect(run1.judgedWith?.[key], key).toEqual(finished[key]);
+    expect(finished.labelText).toBe('X');
+  }, 900_000);
+
+  it('moves with the recipe, so a test of one run cannot pass a pipeline that ignores them', async () => {
+    const thick = recipeFrom('thick', 'Thick', { ...defaultSupportSettings, pillarDiameter: 2.9 }, { treeEnabled: false, bracesEnabled: false });
+    const run2 = await run(thick);
+
+    expect(run2.judgedWith?.pillarDiameter).toBe(2.9);
+    expect(resolveSettings(run2.unit.settings).pillarDiameter).toBe(2.9);
+  }, 900_000);
 });

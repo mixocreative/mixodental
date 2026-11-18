@@ -23,6 +23,12 @@ export function autoGenSentence(card: AutoGenCard): Message | undefined {
       ? { key: '1 support placed' }
       : { key: '{n} supports placed', vars: { n: card.tips } };
     case 'stopped': switch (card.stop.because) {
+      /*
+       * THE ONE STOP THAT IS ABOUT A SETTING RATHER THAN A MODEL, and it says so rather than
+       * generating with something else: an operator who chose a recipe and silently got the type's
+       * numbers has supports they did not ask for on a model they are about to print.
+       */
+      case 'missing': return { key: 'The support recipe this model is set to is no longer saved. Choose one on the card.' };
       case 'no-area': return { key: 'No support area was found. Open it and paint one.' };
       case 'no-tips': return { key: 'No safe support position was found. Open it and place them by hand.' };
       case 'failed': return card.stop.at === 'area'

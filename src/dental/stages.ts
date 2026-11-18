@@ -3,6 +3,7 @@
 import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { dentalStructureOf, dentalSupportSettings } from './supportPreset';
+import { applyRecipe, isTypeDefault, matchesRecipe, type SupportRecipe } from '../recipes/supportRecipe';
 import { keptDentalWork } from './flow';
 import { manualAreaPolicy } from './manualArea';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
@@ -36,12 +37,25 @@ import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/setti
 /** A settled aligner policy: the shape every stage below produces or refines. */
 type TwoContour = Extract<DentalPolicy, { kind: 'two-contour' }>;
 
-/** The support settings and switches this aligner will be built with in Step 3 (the type's preset for a new aligner). */
-export function alignerSettings(unit: PrintUnit, profile: string): { settings: LiveSupportSettings; structure: DentalStructure } {
+/**
+ * THE SUPPORT SETTINGS AND SWITCHES THIS ALIGNER WILL BE BUILT WITH - the one resolver, and since
+ * 2026-11-19 the one place a support RECIPE is applied (`src/recipes/`).
+ *
+ * Without a recipe this is what it always was: the type's numbers for a new aligner, the operator's
+ * own once they have set them.
+ *
+ * WITH ONE, THE RECIPE WINS - over the type AND over the unit's stored settings. That is not an
+ * oversight about the operator's work: choosing a recipe for a card IS the instruction, and the
+ * alternative is a card labelled "Thin" that builds with whatever happened to be on the unit, which
+ * is this feature's worst defect (the card naming one recipe while the supports came from another).
+ * `presetCommands` below writes the same answer onto the unit, so nothing downstream has to know.
+ */
+export function alignerSettings(unit: PrintUnit, profile: string, recipe?: SupportRecipe): { settings: LiveSupportSettings; structure: DentalStructure } {
   const own = unit.dental?.profileId === profile;
-  const settings = own ? resolveSettings(unit.settings) : dentalSupportSettings(profile, resolveSettings(unit.settings));
+  const typed = own ? resolveSettings(unit.settings) : dentalSupportSettings(profile, resolveSettings(unit.settings));
   const kept = own && unit.dental?.kind === 'two-contour' ? unit.dental.structure : undefined;
-  return { settings, structure: kept ?? dentalStructureOf(profile) };
+  if (recipe === undefined || isTypeDefault(recipe)) return { settings: typed, structure: kept ?? dentalStructureOf(profile) };
+  return { settings: applyRecipe(typed, recipe), structure: { ...recipe.structure } };
 }
 
 /**
@@ -52,9 +66,20 @@ export function alignerSettings(unit: PrintUnit, profile: string): { settings: L
  * which lands in the same place a detected rim does and must set the same presets. A second copy
  * would drift the moment one of them changed, which is this whole file's argument in miniature.
  */
-export function presetCommands(unit: PrintUnit, profile: string): SceneCommand[] {
-  if (unit.dental?.profileId === profile) return [];
-  return [{ type: 'settings/set', unitId: unit.id, settings: dentalSupportSettings(profile, resolveSettings(unit.settings)) as SupportSettings }];
+export function presetCommands(unit: PrintUnit, profile: string, recipe?: SupportRecipe): SceneCommand[] {
+  /*
+   * IT EMITS THE RESOLVER'S ANSWER, and calling `dentalSupportSettings` itself was a real trap
+   * waiting for recipes to arrive. With a recipe chosen, this function wrote the TYPE's numbers onto
+   * the unit at accept time - and the placement job reads `unit.settings` - so the print-angle scan
+   * and the confirm would have judged the recipe while the supports were built from type defaults.
+   * The two look equally plausible on screen, which is why Fable called it the defect nobody would
+   * notice for weeks.
+   */
+  const { settings } = alignerSettings(unit, profile, recipe);
+  const settled = unit.dental?.profileId === profile;
+  // Nothing to write: this unit is already of this type and already carries this recipe's numbers.
+  if (settled && (recipe === undefined || isTypeDefault(recipe) || matchesRecipe(resolveSettings(unit.settings), recipe))) return [];
+  return [{ type: 'settings/set', unitId: unit.id, settings: settings as SupportSettings }];
 }
 
 /**
@@ -63,10 +88,10 @@ export function presetCommands(unit: PrintUnit, profile: string): SceneCommand[]
  * profile's defaults - an aligner whose neck or pillar the operator changed scores its angles
  * differently.
  */
-export function tiltScanSettings(unit: PrintUnit, profile: string): {
+export function tiltScanSettings(unit: PrintUnit, profile: string, recipe?: SupportRecipe): {
   neckLengthMm: number; pillarDiameterMm: number; liftMm: number; braced: boolean;
 } {
-  const { settings, structure } = alignerSettings(unit, profile);
+  const { settings, structure } = alignerSettings(unit, profile, recipe);
   return {
     neckLengthMm: settings.neckLength,
     pillarDiameterMm: settings.pillarDiameter,
@@ -82,8 +107,8 @@ export function tiltScanSettings(unit: PrintUnit, profile: string): {
  * switches; once set, the operator's own choices are kept, including the painted area and the
  * tuning, which an earlier version discarded in silence (`keptDentalWork` carries that story).
  */
-export function acceptedPolicy(unit: PrintUnit, profile: string, rim: TwoContour['rim'], region: TwoContour['region']): TwoContour {
-  const { structure } = alignerSettings(unit, profile);
+export function acceptedPolicy(unit: PrintUnit, profile: string, rim: TwoContour['rim'], region: TwoContour['region'], recipe?: SupportRecipe): TwoContour {
+  const { structure } = alignerSettings(unit, profile, recipe);
   const kept = keptDentalWork(unit, profile);
   return {
     kind: 'two-contour', profileId: profile, rim, region,
@@ -111,8 +136,8 @@ export function settledPolicy(unit: PrintUnit, profile: string, policy: TwoConto
 }
 
 /** Put a settled policy on the unit, with the type's presets ahead of it where they are owed. */
-export function acceptCommands(unit: PrintUnit, profile: string, policy: DentalPolicy): SceneCommand[] {
-  return [...presetCommands(unit, profile), { type: 'dental/set', unitId: unit.id, policy }];
+export function acceptCommands(unit: PrintUnit, profile: string, policy: DentalPolicy, recipe?: SupportRecipe): SceneCommand[] {
+  return [...presetCommands(unit, profile, recipe), { type: 'dental/set', unitId: unit.id, policy }];
 }
 
 /**
@@ -122,8 +147,8 @@ export function acceptCommands(unit: PrintUnit, profile: string, policy: DentalP
  * same). Reaching here with stamps means the type changed under a painted area; dropping them would
  * be W-01 again, and the paint is the operator's work, not a function of the rim.
  */
-export function manualAreaCommands(unit: PrintUnit, profile: string, rim: TwoContour['rim']): SceneCommand[] {
-  return acceptCommands(unit, profile, manualAreaPolicy(rim, false, profile, unit.dental?.stamps ?? []));
+export function manualAreaCommands(unit: PrintUnit, profile: string, rim: TwoContour['rim'], recipe?: SupportRecipe): SceneCommand[] {
+  return acceptCommands(unit, profile, manualAreaPolicy(rim, false, profile, unit.dental?.stamps ?? []), recipe);
 }
 
 /**

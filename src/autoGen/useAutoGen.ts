@@ -8,6 +8,7 @@ import type { DetectState } from '../items/detectState';
 import type { AnalysisClient } from '../workers/analysisClient';
 import { reduceScene } from '../state/project';
 import type { PrintScene, SceneCommand } from '../state/project';
+import type { SupportRecipe } from '../recipes/supportRecipe';
 
 /**
  * THE DECK'S AUTO-GEN QUEUE: the React layer, and the only one of the three that has any.
@@ -63,9 +64,17 @@ interface Host {
   detected: ReadonlyMap<string, DetectState>;
   /** The deck is at its model cap or memory allowance (`src/items/deckBudget.ts`). */
   atCap: boolean;
+  /**
+   * What this card is set to build with (`src/recipes/`), or `'missing'`.
+   *
+   * `'missing'` IS NOT SOFTENED into the default anywhere on the way here or after it: a selection
+   * that cannot be resolved means the operator's instruction is unknown, and generating anyway
+   * gives them supports they did not choose on a model they are about to print.
+   */
+  resolveRecipe: (unitId: string) => SupportRecipe | 'missing';
 }
 
-export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, atCap }: Host) {
+export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, atCap, resolveRecipe }: Host) {
   const [cards, setCards] = useState<ReadonlyMap<string, AutoGenCard>>(new Map());
   /*
    * THE ANSWER IS READ WHEN THE CARD'S TURN COMES, not when the queue was started.
@@ -77,6 +86,9 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
    */
   const purposesRef = useRef(purposes);
   purposesRef.current = purposes;
+  /** Read at each card's turn, for the same reason as the answer above. */
+  const recipeRef = useRef(resolveRecipe);
+  recipeRef.current = resolveRecipe;
   /** The ids still to run, in the order they were pressed. Held in a ref: the drain loop reads it between awaits. */
   const pending = useRef<string[]>([]);
   /**
@@ -120,6 +132,13 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
       const profile = purposesRef.current.get(unitId);
       const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
       if (!unit || !profile) { put(unitId, undefined); continue; }
+      /*
+       * THE RECIPE IS RESOLVED AT THIS CARD'S TURN, like its type - a case of thirty is minutes, and
+       * a recipe deleted in another tab halfway through must stop THIS card rather than build it
+       * with something else.
+       */
+      const recipe = recipeRef.current(unitId);
+      if (recipe === 'missing') { put(unitId, { kind: 'stopped', stop: { at: 'recipe', because: 'missing' } }); continue; }
       running.current = unitId;
       put(unitId, { kind: 'running' });
       /*
@@ -157,7 +176,7 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
            * here - the next step asks again.
            */
           live: (id) => generation.current === mine && sceneRef.current.units.some((candidate) => candidate.id === id),
-        });
+        }, recipe);
       } catch {
         // A throw from the worker client is a stop like any other: the card says so and the queue goes on.
         result = { kind: 'stopped', stop: { at: 'supports', because: 'failed' } };

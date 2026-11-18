@@ -120,6 +120,7 @@ import { ItemsPage } from './items/ItemsPage';
 import { useThumbnails } from './items/useThumbnails';
 import { useBatchDetect } from './items/useBatchDetect';
 import { useAutoGen } from './autoGen/useAutoGen';
+import { useRecipes } from './recipes/useRecipes';
 import { deckUsage } from './items/deckBudget';
 import { purposesOf } from './items/rowPurpose';
 import type { ToolId } from './state/tools';
@@ -473,8 +474,17 @@ export default function App() {
    * death that takes the session's work with it and explains nothing.
    */
   const deckBudget = useMemo(() => deckUsage(scene.units.map((unit) => unit.source.indices.length / 3)), [scene.units]);
+  /*
+   * THE OPERATOR'S SUPPORT RECIPES (`src/recipes/README.md`): the stored book, which card is set to
+   * which, and the five things Step 3 can do to it. It sits here because both the deck's queue and
+   * the step screens read the SAME selection - a card labelled "Thin" that is opened by hand must
+   * get "Thin", or the editor and the queue have diverged, which is the one thing `stages.ts`
+   * exists to prevent.
+   */
+  const recipes = useRecipes();
   const autoGen = useAutoGen({
     analysis, dispatch, sceneRef, purposes: resolvedPurposes, detected: batchDetected, atCap: deckBudget.overBudget,
+    resolveRecipe: recipes.resolve,
   });
   /**
    * RE-ANSWERING ONE ROW, and the re-detect is the whole point of it rather than a side effect: the
@@ -617,7 +627,17 @@ export default function App() {
 
 
   // ---- Dental Steps 1 and 2 (orient, detect the area): components/useDentalFlow ------------
-  const dentalFlow = useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, session, setStatus, requestView, setGizmoMode, unitName });
+  /*
+   * `'missing'` BECOMES THE TYPE'S OWN NUMBERS HERE, and only here. The QUEUE must stop on it - it
+   * runs unattended, so there is nobody to notice - but the step screens have the operator in front
+   * of them with the settings panel open, which is where the problem is said in words. Refusing to
+   * let them work because a stored list could not be read would be the worse answer.
+   */
+  const recipeFor = useCallback((unitId: string) => {
+    const recipe = recipes.resolve(unitId);
+    return recipe === 'missing' ? undefined : recipe;
+  }, [recipes]);
+  const dentalFlow = useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, session, setStatus, requestView, setGizmoMode, unitName, recipeFor });
   // `orientFlow` is the Step 1 flow of the job in the step (the denture job's own, src/denture).
   const orientFlow = denture.active ? denture.orient : dentalFlow;
   const orientRef = useRef(orientFlow);
@@ -869,7 +889,7 @@ export default function App() {
    * stand together); otherwise at the exact hit. A spot that faces up gets a warning on the status line.
    */
   // The two edits of rim define mode; its own module owns them (src/dental/rim/useRimDrawing.ts).
-  const { onRimPoint, onRimPath, onRimSelect, onRimDeletePoint, onRimDone } = useRimDrawing({ session: sessionRef, scene: sceneRef, dispatch, send, setStatus });
+  const { onRimPoint, onRimPath, onRimSelect, onRimDeletePoint, onRimDone } = useRimDrawing({ session: sessionRef, scene: sceneRef, dispatch, send, setStatus, recipeFor });
 
   /*
    * What a pointer does to supports - add, remove, pick - in one module (src/supports/useSupportEdits.ts).
