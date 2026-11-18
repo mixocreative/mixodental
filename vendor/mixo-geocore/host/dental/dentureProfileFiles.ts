@@ -4,9 +4,9 @@ export const DENTURE_PROFILE_FILES: Readonly<Record<string, unknown>> = {
   './profiles/reference-denture.json': {
     "id": "reference-denture",
     "name": {
-      "en": "Partial denture",
-      "zh-Hant": "局部活動假牙",
-      "ja": "部分床義歯"
+      "en": "Generic denture",
+      "zh-Hant": "通用假牙",
+      "ja": "汎用義歯"
     },
     "description": {
       "en": "A denture with saddles, connector bars and clasps, printed standing upright with the teeth end down and leaning by a searched angle.",

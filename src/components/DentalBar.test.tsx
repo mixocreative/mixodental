@@ -31,7 +31,7 @@ describe('DentalBar', () => {
       proposal: { kind: 'proposal', diagnostics: { confidence: 0.9 } }, notices: [{ kind: 'mismatch' }, { kind: 'holes' }, { kind: 'uncertain' }] } as unknown as Gesture & { kind: 'dental-aligner' };
     const ui = { mode: 'dental', dentalStage: 'aligner', dentalAlignerReady: true, dentalProposed: true } as UiState;
     const html = renderToStaticMarkup(<DentalBar gesture={ready} unitName="sample" ui={ui} send={() => {}} run={() => {}} />);
-    for (const word of ['Auto orientation', 'Back', 'Next', 'Keep Reference aligner', 'holes or non-manifold', 'different aligner type']) expect(html).toContain(word);
+    for (const word of ['Auto orientation', 'Back', 'Next', 'Keep Generic aligner', 'holes or non-manifold', 'different aligner type']) expect(html).toContain(word);
     expect(html).not.toContain('Use as any model');
     expect(html).not.toContain('Done');
   });

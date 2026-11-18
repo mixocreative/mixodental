@@ -6,7 +6,7 @@ describe('stepOneText', () => {
   it('names the denture step and profile', () => {
     const text = stepOneText('reference-denture', 'en');
     expect(text.title).toBe('Step 1 · Denture');
-    expect(text.profileName).toBe('Partial denture');
+    expect(text.profileName).toBe('Generic denture');
     expect(stepOneText('reference-denture', 'ja').profileName).toBe(dentureProfileData('reference-denture').name.ja);
   });
 

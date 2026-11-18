@@ -14,7 +14,7 @@ describe('ChoiceKey', () => {
   it('carries a line under the word only when it is given one', () => {
     const bare = renderToStaticMarkup(<ChoiceKey icon="aligner" label="Aligner" ui="a" onChoose={() => {}} />);
     expect(bare).not.toContain('choice-key-note');
-    const noted = renderToStaticMarkup(<ChoiceKey icon="aligner" label="Reference aligner" note="U-shaped, supported along its lower rim." ui="a" onChoose={() => {}} />);
+    const noted = renderToStaticMarkup(<ChoiceKey icon="aligner" label="Generic aligner" note="U-shaped, supported along its lower rim." ui="a" onChoose={() => {}} />);
     expect(noted).toContain('U-shaped, supported along its lower rim.');
   });
 

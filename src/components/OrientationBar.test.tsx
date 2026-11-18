@@ -52,12 +52,12 @@ describe('OrientationBar', () => {
     const failed = renderToStaticMarkup(<OrientationBar notices={[{ kind: 'failed' }]} profile="reference-aligner" lang="en" ui={ui} send={() => {}} run={() => {}} />);
     expect(failed).toContain('could not be oriented automatically');
     expect(failed).toContain('data-ui="orient-ways-failed"');
-    expect(failed).toContain('Reference aligner is the only aligner type so far.');
+    expect(failed).toContain('Generic aligner is the only aligner type so far.');
     expect(failed).not.toContain('data-ui="orient-keep-type"');
 
     const mismatch = renderToStaticMarkup(<OrientationBar notices={[{ kind: 'mismatch' }]} profile="reference-aligner" lang="en" ui={ui} send={() => {}} run={() => {}} />);
     expect(mismatch).toContain('data-ui="orient-ways-mismatch"');
-    expect(mismatch).toContain('Reference aligner is the only aligner type so far.');
+    expect(mismatch).toContain('Generic aligner is the only aligner type so far.');
     expect(mismatch).toContain('data-ui="orient-keep-type"');
 
     // A notice with no second way out carries no row at all.

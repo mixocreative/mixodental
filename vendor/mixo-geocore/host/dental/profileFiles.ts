@@ -4,9 +4,9 @@ export const PROFILE_FILES: Readonly<Record<string, unknown>> = {
   './profiles/reference-aligner.json': {
     "id": "reference-aligner",
     "name": {
-      "en": "Reference aligner",
-      "zh-Hant": "標準牙套",
-      "ja": "標準アライナー"
+      "en": "Generic aligner",
+      "zh-Hant": "通用牙套",
+      "ja": "汎用アライナー"
     },
     "description": {
       "en": "U-shaped aligner with a central opening, supported along its lower rim.",
