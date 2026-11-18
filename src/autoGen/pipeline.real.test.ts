@@ -35,6 +35,13 @@ import { runAutoGen, type AutoGenEngine, type AutoGenHost } from './pipeline';
  * SKIPPED WHEN THE SCAN IS ABSENT. `dentalwork/fixtures` is git-ignored customer data.
  */
 
+/*
+ * `AUTOGEN_SCAN` POINTS THIS AT ANOTHER SCAN, and it earned its place the night it was added: the
+ * queue failed in the BROWSER on `docs/dental-reference/reference-aligner.stl` while passing here on
+ * case-001, and running this file against that exact scan is what proved the pipeline and the data
+ * were both fine - which left the React host, where the bug was. One line, and it turned a guess
+ * into a fork.
+ */
 const SCAN = resolve(process.env.AUTOGEN_SCAN ?? 'dentalwork/fixtures/case-001/aligner.stl');
 const PROFILE = DEFAULT_PROFILE_ID;
 

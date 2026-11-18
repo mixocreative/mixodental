@@ -12,7 +12,8 @@ that belongs to them; everything else here is either a pure helper it reads or a
 |---|---|
 | `editingMode.ts` | The dental edit mode: its stages, events, gestures, keys and the whole command registry. The one place a dental control's label, hint, shortcut and disabled reason are decided. |
 | `editing/` | Its tests, by subject — one file per stage (`dentalStep2`, `dentalStep3`, `rimStage`), plus commands, keys, locks, status and the shared `uiFixture.ts`. |
-| `flow.ts` | Which stage follows which for a profile, and what a stage may do. |
+| `stages.ts` | **The flow's stage decisions as plain functions** - the settings a new aligner starts with, what a detected area becomes, what the tilt scan is asked to try, the confirm order, the starting label, the turn-with-re-layout pairing. `useDentalFlow` and the deck's auto-gen pipeline both call these and neither restates one, which is what keeps auto-gen from quietly making different supports from the editor. |
+| `flow.ts` | Which stage follows which for a profile, what a stage may do, and what Back out of Step 3 costs. |
 | `diagnose.ts` | Turns an engine orientation result into what Step 1 shows. |
 | `orientationEvidence.ts` | "Why this angle": the operator-facing evidence from the detection diagnostics. |
 | `angleEvidence.ts` | The print-angle scan's evidence, as words and numbers. |

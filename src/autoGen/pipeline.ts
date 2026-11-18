@@ -11,7 +11,6 @@ import { detectStateOf } from '../items/detectState';
 import type { AnalysisClient } from '../workers/analysisClient';
 import type { PrintScene, PrintUnit, SceneCommand } from '../state/project';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
-import type { DentalOrientation } from '@mixo-geocore/host/dental/dentalOrient';
 
 /**
  * ONE ALIGNER THROUGH THE WHOLE DENTAL FLOW, WITH NOBODY WATCHING - no React, no screens, no refs.
@@ -64,16 +63,6 @@ export type AutoGenResult =
   | {
     readonly kind: 'done';
     readonly tips: number;
-    /**
-     * Step 1's own proposal, carried out so the card can be OPENED AT STEP 3 without re-orienting.
-     *
-     * That is owner's ruling 2 made possible rather than merely stated: opening a generated card at
-     * Step 1 would re-run detection and, since the re-orient rule, delete the supports the queue
-     * just built. Handing the proposal back lets the caller walk the editor's OWN event path -
-     * `dentalLoading`, `dentalOriented`, `acceptDentalOrientation`, `acceptDentalArea` - with a real
-     * proposal and no second detection, so Step 3 opens in exactly the state the screens leave it in.
-     */
-    readonly proposal: Extract<DentalOrientation, { kind: 'oriented' }>['proposal'];
     /** The print angle the confirm settled on, when it moved off the scan's own pick. */
     readonly angleMovedDeg?: number;
     /** `none-held`: no tried angle's build held, and the pick stands. `failed`: the check could not run. */
@@ -226,7 +215,7 @@ export async function runAutoGen(unitId: string, profile: string, host: AutoGenH
    */
   host.commit([...commands, ...dentalLabelCommands(placing)]);
   return {
-    kind: 'done', tips: placement.points.length, proposal: outcome.proposal,
+    kind: 'done', tips: placement.points.length,
     ...(angleMovedDeg === undefined ? {} : { angleMovedDeg }),
     ...(angleCheck === undefined ? {} : { angleCheck }),
   };

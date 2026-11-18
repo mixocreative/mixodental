@@ -72,6 +72,33 @@ copy exists only so the next step reads what the last one wrote.
 walked into anyway, and what caught it was pressing the key and watching the card - not reasoning,
 not a type, not a test. That is this project's standing lesson and this is one more entry for it.
 
+## Where each layer is tested, and where the queue is not
+
+| layer | tested by |
+|---|---|
+| `eligibility.ts` | `eligibility.test.ts` - every doubt, through `detectStateOf` on a real engine answer shape |
+| `pipeline.ts` | `pipeline.real.test.ts` - a real customer scan under Node, end state and determinism |
+| `useAutoGen.ts` | **the walk** (`m12`, `m12b`), and nothing else |
+
+The third row is a decision, not an oversight. The hook is a queue and a state map; every rule it
+could get wrong lives in the two layers above it, which are pure and tested in milliseconds. This
+repo has no hook-rendering harness - `ItemsPage.test.tsx` renders to static markup - so a unit test
+for it would mean introducing one for a file whose own logic is "run the next id". The walk drives
+it through the front door on the real reference aligner instead, which is the only place its one
+genuine risk (the React scene being a render behind) can show.
+
+## What Stop costs, measured
+
+Pressing **Stop** mid-run on a card that ALREADY had supports leaves it with none. That is not a
+bug in the queue: the pipeline's first step is the orientation, re-orienting clears supports
+(`src/state/rotation.ts`), and a run abandoned after that step has cleared them without replacing
+them. **Undo brings them back** - the commits are in the scene history like any others - and it is
+exactly what entering Step 1 by hand and walking away does.
+
+It is still a surprise, and it is written down rather than smoothed over because the honest fix needs
+words on the card ("the supports this card had were cleared"), which is a new UI string, and new
+strings need Japanese and Taiwan Chinese before they can ship. Owner's call.
+
 ## What it does on the real reference aligner
 
 Measured 2026-11-18 on `docs/dental-reference/reference-aligner.stl` (374k triangles), in the app:

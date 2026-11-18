@@ -66,13 +66,21 @@ interface Host {
 
 export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, atCap }: Host) {
   const [cards, setCards] = useState<ReadonlyMap<string, AutoGenCard>>(new Map());
+  /*
+   * THE ANSWER IS READ WHEN THE CARD'S TURN COMES, not when the queue was started.
+   *
+   * `drain` runs across many awaits and would otherwise hold the `purposes` map it closed over. On a
+   * case of thirty that is minutes, and re-answering a card in the middle of them is an ordinary
+   * thing to do - so a card could be generated for the type the operator had just changed AWAY from,
+   * which is the one defect this queue must never have.
+   */
+  const purposesRef = useRef(purposes);
+  purposesRef.current = purposes;
   /** The ids still to run, in the order they were pressed. Held in a ref: the drain loop reads it between awaits. */
   const pending = useRef<string[]>([]);
   const running = useRef<string | undefined>(undefined);
   /** Bumped by `cancel`, so a pipeline mid-flight stops at its next step instead of writing its answer. */
   const generation = useRef(0);
-  /** The proposals of this sitting's finished runs, so an Open can reach Step 3 without detecting again. */
-  const latest = useRef(new Map<string, Extract<AutoGenResult, { kind: 'done' }>>());
 
   const put = useCallback((unitId: string, card: AutoGenCard | undefined) => {
     setCards((current) => {
@@ -97,7 +105,7 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
     const mine = generation.current;
     while (pending.current.length > 0 && generation.current === mine) {
       const unitId = pending.current.shift()!;
-      const profile = purposes.get(unitId);
+      const profile = purposesRef.current.get(unitId);
       const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
       if (!unit || !profile) { put(unitId, undefined); continue; }
       running.current = unitId;
@@ -151,13 +159,8 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
           ...(result.angleCheck === undefined ? {} : { angleCheck: result.angleCheck }),
         }
         : { kind: 'stopped', stop: result.stop });
-      /*
-       * THE LAST RESULT IS REMEMBERED FOR THE OPEN, not for the card. A finished card is told apart
-       * by its UNIT having supports, which survives a reload; this map is this sitting's progress.
-       */
-      if (result.kind === 'done') latest.current.set(unitId, result);
     }
-  }, [analysis, dispatch, purposes, put, sceneRef]);
+  }, [analysis, dispatch, put, sceneRef]);
 
   const eligible = useCallback((unitId: string) => autoGenEligibility({
     answered: purposes.has(unitId), detect: detected.get(unitId), atCap,
@@ -204,7 +207,16 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
     start,
     startAll,
     cancel,
-    /** This sitting's finished run for a card, for opening it at Step 3 with no second detection. */
-    finished: (unitId: string) => latest.current.get(unitId),
+    /**
+     * This sitting's finished run for a card, so an Open can carry its print-angle news into Step 3.
+     *
+     * READ OUT OF `cards`, which already holds it. A second map beside it was two records of one
+     * run that could disagree - and a finished card is told apart by its UNIT having supports
+     * anyway, which survives a reload where neither map does.
+     */
+    finished: (unitId: string) => {
+      const card = cards.get(unitId);
+      return card?.kind === 'done' ? card : undefined;
+    },
   };
 }
