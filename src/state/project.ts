@@ -150,6 +150,13 @@ export type SceneCommand =
   | { type: 'settings/set'; unitId: string; settings: SupportSettings }
   | { type: 'manual/add'; unitId: string; point: SupportPoint }
   | { type: 'manual/remove'; unitId: string; pointId: string }
+  /**
+   * A manual tip moves, KEEPING ITS ID - which is the whole reason this exists rather than the
+   * delete-and-add this app could already express. `contactSettings` is keyed by id, so the settings
+   * the operator gave that one support travel with it instead of being quietly reset, and the drag
+   * is one entry on the history rather than two. What a drag MEANS is decided in `supports/tipMove.ts`.
+   */
+  | { type: 'manual/move'; unitId: string; pointId: string; position: [number, number, number]; normal: [number, number, number] }
   | { type: 'deletion/add'; unitId: string; pointIds: string[] }
   /** A fresh placement's re-keyed hand work (see `rekeyHandWork`): removals and per-support settings together. */
   | { type: 'handWork/set'; unitId: string; deleted: string[]; contactSettings: ContactSettings }
@@ -292,6 +299,21 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
         manual: unit.manual.filter((point) => point.id !== command.pointId),
         contactSettings: withoutEntries(unit.contactSettings, [command.pointId]),
       }));
+    case 'manual/move': {
+      /*
+       * AN ID THAT IS NOT THERE CHANGES NOTHING, deliberately. A drag whose tip was removed while it
+       * was in the air - by a rebuild, or by the other hand - would otherwise add a history entry
+       * that moved nothing, and the operator's next Undo would appear to do nothing at all.
+       */
+      const held = scene.units.find((unit) => unit.id === command.unitId);
+      if (!held?.manual.some((point) => point.id === command.pointId)) return scene;
+      return updateUnit(scene, command.unitId, (unit) => ({
+        ...unit,
+        manual: unit.manual.map((point) => (point.id === command.pointId
+          ? { ...point, position: [...command.position] as [number, number, number], normal: [...command.normal] as [number, number, number] }
+          : point)),
+      }));
+    }
     case 'deletion/add':
       return updateUnit(scene, command.unitId, (unit) => ({
         ...unit,

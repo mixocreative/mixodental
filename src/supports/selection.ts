@@ -1,7 +1,9 @@
 import type { PrintUnit, SceneCommand } from '../state/project';
 
 // Manual contacts are removed outright; everything else is recorded as deleted.
-export function deleteCommands(unit: PrintUnit, ids: readonly string[]): SceneCommand[] {
+// The parameter names the two fields this reads, so a caller holding less than a whole unit - as
+// `tipMove.ts` does - can ask without inventing one.
+export function deleteCommands(unit: Pick<PrintUnit, 'id' | 'manual'>, ids: readonly string[]): SceneCommand[] {
   const manualIds = new Set(unit.manual.map((point) => point.id));
   const commands: SceneCommand[] = [];
   const autoIds: string[] = [];
