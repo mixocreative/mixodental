@@ -42,8 +42,27 @@ export interface Thumbnail { readonly mesh: TriangleMesh; readonly rotation: Vec
 
 export type ThumbCache = ReadonlyMap<string, Thumbnail>;
 
-/** The square a thumbnail is drawn at. One size: the rows are a list, not a gallery. */
-export const THUMB_SIZE = 160;
+/**
+ * THE SQUARE A STILL IS DRAWN AT, IN CSS PIXELS — the size it is SHOWN at, not a smaller one.
+ *
+ * It was 160 while the deck was a list of rows and the tile was 56px. On a card the tile fills the
+ * column (176-208px), so a 160px image was being upscaled about 1.3x on every card at rest - and
+ * the live view, which renders at the card's real size, then visibly SHARPENED on hover. The
+ * resting blur was what gave it away, and that is a defect found by looking at the screen rather
+ * than by reading anything.
+ *
+ * Drawing at the displayed size makes the still-to-live handover the same pixels as well as the
+ * same angle, which is what `CardShot` claims.
+ *
+ * IT IS CSS PIXELS, AND `sizeRig` APPLIES THE DEVICE RATIO. Getting that wrong is easy and was got
+ * wrong here for an hour: after `drawThumbnail` moved to `sizeRig`, a dpr-2 screen silently drew
+ * 320px stills under a comment that said 160 - four times the pixels in every cached data URL, and
+ * invisible to a walk running at dpr 1.
+ *
+ * Cost, arithmetic not measurement: about 0.7 MB decoded per card at dpr 2, so roughly 41 MB for a
+ * case of sixty, beside ~385 MiB of meshes. The PNG itself is far smaller.
+ */
+export const THUMB_SIZE = 208;
 
 /**
  * The viewport's own field of view and camera direction (`ObjectViewport`'s

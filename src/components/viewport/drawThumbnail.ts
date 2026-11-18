@@ -15,7 +15,7 @@ import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
  * renderer, and they share one - `deckRig.ts`, which carries the long note on why.
  *
  * Each model is uploaded, drawn and DISPOSED in turn, so the peak cost is one model's geometry and
- * not the deck's. What is kept per card is the PNG: tens of kilobytes beside a ~6.4 MiB mesh (the
+ * not the deck's. What is kept per card is the PNG, drawn at the size the card SHOWS it, beside a ~6.4 MiB mesh (the
  * reference aligner, welded and indexed at 18 B/triangle - `src/items/deckBudget.ts` shows the
  * arithmetic. This line said 12.2 MB until that was measured, which is the unwelded figure).
  */
@@ -32,8 +32,9 @@ export function drawThumbnail(mesh: TriangleMesh, transform: { position: readonl
   if (rig === null) return undefined;
   const { renderer, scene, camera, material } = rig;
   // The live view resizes the shared canvas, so a still puts it back to its own square - through
-  // `sizeRig`, which only calls `setSize` when the size actually changed. Calling it unconditionally
-  // reallocated the drawing buffer twice per card while a live card was open.
+  // `sizeRig`, which only calls `setSize` when the size actually changed (calling it unconditionally
+  // reallocated the buffer twice per card while a live card was open) and which applies the device
+  // ratio, so `THUMB_SIZE` here is CSS pixels and not a pixel count.
   sizeRig(rig, THUMB_SIZE);
 
   const geometry = toGeometry(mesh);

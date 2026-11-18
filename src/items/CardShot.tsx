@@ -17,8 +17,12 @@ import type { PrintUnit } from '../state/project';
  *   the `<img>`     the cached still (`useThumbnails`), which every card shows at rest. Tens of KB,
  *                   no GPU, no context - which is what lets sixty cards sit on a screen.
  *   the `<canvas>`  a plain 2D surface that the deck's single renderer copies frames into while
- *                   this card is live. It is the SAME model from the SAME angle, so the handover
- *                   is invisible (`orbit.ts` tests that property).
+ *                   this card is live. Same model, same angle, SAME PIXELS: `orbit.ts` is tested on
+ *                   the angle (no turn applied returns the still's own camera position exactly), and
+ *                   both surfaces are drawn at the card's CSS size times the device ratio, so the
+ *                   handover neither moves nor sharpens. It claimed "invisible" while the still was
+ *                   160px upscaled into a 206px frame, which made going live a visible sharpening -
+ *                   and gave away that the resting picture had been blurred all along.
  *
  * WHICH CARD IS LIVE IS NOT DECIDED HERE. One model may be live at a time and the page owns that
  * choice, so this component is told. Two cards each believing they are live would upload two models

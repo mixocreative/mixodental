@@ -5,7 +5,12 @@ import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { dentalStructureOf, dentalSupportSettings } from './supportPreset';
 import { keptDentalWork } from './flow';
 import { manualAreaPolicy } from './manualArea';
+import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
+import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
 import type { PrintUnit, SceneCommand, SupportSettings } from '../state/project';
+import type { DentalNotice } from './editingMode';
+import type { DentalOrientation } from '@mixo-geocore/host/dental/dentalOrient';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { DentalPolicy, DentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
 import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 
@@ -119,4 +124,95 @@ export function acceptCommands(unit: PrintUnit, profile: string, policy: DentalP
  */
 export function manualAreaCommands(unit: PrintUnit, profile: string, rim: TwoContour['rim']): SceneCommand[] {
   return acceptCommands(unit, profile, manualAreaPolicy(rim, false, profile, unit.dental?.stamps ?? []));
+}
+
+/**
+ * WHAT STEP 1'S ORIENTATION MEANS, decided once.
+ *
+ * Three outcomes, and the difference between the first two is the whole of why this is not a
+ * boolean. "We could not look" (no profile chosen, no answer from the worker) is not "this aligner
+ * has no rim": only the second hands over to rim drawing, because only the second has learned
+ * something about the shape in front of the operator.
+ *
+ * The notices travel with every outcome, because they stay true whatever happens next - a mesh with
+ * holes is still a mesh with holes on the screen where the operator is about to draw a rim.
+ */
+export type OrientOutcome =
+  /** Nothing was learned. No drawing mode: there is nothing to tell the operator about the shape. */
+  | { readonly kind: 'failed'; readonly notices: DentalNotice[] }
+  /** Detection ran and found no rim: hand over to drawing rather than stop at a dead notice. */
+  | { readonly kind: 'rim-needed'; readonly notices: DentalNotice[] }
+  | {
+    readonly kind: 'oriented';
+    readonly notices: DentalNotice[];
+    /** Undefined when the pose could not be decided - which is the `uncertain` notice. */
+    readonly rotation: Vector | undefined;
+    /**
+     * The aligner was actually TURNED: a pose was decided AND the unit was still on the plate to
+     * apply it to. Not the same as `rotation !== undefined` - a unit removed between asking and
+     * answering has a pose and nowhere to put it - and it is what decides whether the print-angle
+     * scan can run, because that needs the aligner's own frame.
+     */
+    readonly turned: boolean;
+    readonly proposal: Extract<DentalOrientation, { kind: 'oriented' }>['proposal'];
+    /** The turn, and every aligner laid out again without overlap because this one's footprint moved. */
+    readonly commands: SceneCommand[];
+  };
+
+export function orientOutcome(unit: PrintUnit, units: readonly PrintUnit[], result: DentalOrientation | undefined): OrientOutcome {
+  if (!result) return { kind: 'failed', notices: [{ kind: 'failed' }] };
+  const notices: DentalNotice[] = result.meshOk ? [] : [{ kind: 'holes' }];
+  if (result.kind === 'failed') return { kind: 'rim-needed', notices };
+  // Whether the opening fits the chosen type is the profile's call, made in Rust.
+  if (!result.matchesProfile) notices.push({ kind: 'mismatch' });
+  const current = units.find((candidate) => candidate.id === unit.id);
+  const turned = result.rotation && current
+    ? { ...current, transform: { ...current.transform, rotation: result.rotation } }
+    : undefined;
+  if (!turned) notices.push({ kind: 'uncertain' });
+  const laidOut = units.map((candidate) => (turned && candidate.id === unit.id ? turned : candidate));
+  return {
+    kind: 'oriented', notices, rotation: result.rotation, proposal: result.proposal, turned: turned !== undefined,
+    commands: [
+      ...(turned ? [{ type: 'transform/set' as const, unitId: unit.id, transform: turned.transform }] : []),
+      ...arrangeAlignerCommands(laidOut, [unit.id]),
+    ],
+  };
+}
+
+/**
+ * The print angles the confirm step will try, from the row it is starting at.
+ *
+ * `from` can be negative when the chosen row is the first one, and a negative `slice` counts from
+ * the END - which would hand the checker the WORST angles instead of the best. The clamp is the
+ * whole function, which is exactly why it is worth having one.
+ */
+export function confirmOrder(order: readonly number[], from: number): number[] {
+  return order.slice(Math.max(0, from));
+}
+
+/**
+ * THE LABEL AN ALIGNER STARTS WITH when its area is accepted - X, the field's default, stored with
+ * the aligner's own settings.
+ *
+ * Small, and extracted anyway: it is a decision the deck's queue would otherwise copy, and a copy
+ * is how the queue ends up producing an aligner that differs from the editor's in one field nobody
+ * thinks to check. It already has two callers in the UI before the queue arrives.
+ *
+ * The landing it sits beside is NOT here. `landPlacements` is already the shared implementation,
+ * and what wraps it is staleness checking - "is the scene I am about to write to still the scene I
+ * computed from" - which belongs to whoever owns the sequence, and there are legitimately two of
+ * those. A shared version would have to take either a React ref or a snapshot, and would then be a
+ * different check from the one a queue needs.
+ *
+ * THE TRAP, which is why `unit` is spelled out rather than taken from the scene: this spreads the
+ * unit's WHOLE settings object back, and it is dispatched AFTER the landing. Hand it a unit read
+ * before the landing and any settings the landing itself changed are overwritten by this. Pass the
+ * same pre-landing unit the caller used, so the two agree - and if `landPlacements` is ever made to
+ * emit a settings change, this is where it breaks. Unverified today: nothing checks that it does
+ * not.
+ */
+export function dentalLabelCommands(unit: PrintUnit): SceneCommand[] {
+  const settings = resolveSettings(unit.settings);
+  return [{ type: 'settings/set', unitId: unit.id, settings: { ...settings, labelText: dentalLabelOf(settings.labelText) } as SupportSettings }];
 }

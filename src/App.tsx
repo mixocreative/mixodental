@@ -128,6 +128,7 @@ import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { stepPanelInset } from './dental/stepPanelInset';
 import { backNeedsConfirm, discardManualCommands, exitCommands, exitNeedsConfirm, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
+import { dentalLabelCommands } from './dental/stages';
 import type { DentalReview } from './components/DentalSupports';
 import { BUILDING_STATUS, busyStatus, sessionStatus } from '@mixo-geocore/editing/status';
 import { CodedError, errorStatus } from '@mixo-geocore/editing/errors';
@@ -1009,7 +1010,7 @@ export default function App() {
         if (!reviewed || reviewed.result.points.length === 0) return setStatus('No safe dental tips are ready. Review the marked area.');
         if (!generateDental(reviewed)) return setStatus('The model changed while dental tips were reviewed. Wait for the new preview.');
         // The label starts as X (the field's default) and is stored with the aligner's settings.
-        dispatch({ type: 'settings/set', unitId: unit.id, settings: { ...resolveSettings(unit.settings), labelText: dentalLabelOf(resolveSettings(unit.settings).labelText) } as SupportSettings });
+        dispatch({ type: 'batch', commands: dentalLabelCommands(unit) });
         send({ type: 'acceptDentalArea' });
         // Step 3's panel covers the right of the viewport: the aligner is framed in what is left.
         return requestView('fit', stepPanelInset({ mode: 'dental', dentalStage: 'review' }));

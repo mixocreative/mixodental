@@ -302,3 +302,21 @@ prevent.
 5. **`useAutoGen.ts`**: the queue, the per-card key, Auto-gen all, opening at Step 3.
 6. The **enlarge** overlay, which reuses the rig and the orbit maths.
 7. A real **move** for a support tip - there is no `manual/move` today, only add and remove.
+
+### Carried into later increments (agreed with review, 2026-11-18)
+
+- **D, the pipeline: two of the four landing checks are VERDICTS, not staleness.** Only `unit !==
+  reviewed.unit` asks whether the scene moved. `points.length === 0` and `again.length > 0 ||
+  landed.length === 0` are answers about the placement itself, and the pipeline must map each to its
+  own typed refusal ("no tips", "landing refused"). Its test pins both, or a queue run with zero
+  tips lands an empty plan and calls it done.
+- **D: `dentalLabelCommands` must be given the PRE-LANDING unit**, the same one the caller used. It
+  spreads that unit' whole settings object back and is dispatched after the landing, so a mismatch
+  silently overwrites anything the landing changed. The parity walk check catches it if the two
+  differ.
+- **C, strict Ready: do not reuse the chip' `turned`.** `detectStateOf` derives it from `rotation
+  !== undefined`, which is right for a chip and wrong for a gate - the orientation stage treats
+  "turned" as a pose that was decided AND applied, and a unit removed between asking and answering
+  has a pose with nowhere to put it.
+- **Increment A is closed** with the label extraction; the build order is otherwise unchanged and B
+  (re-orient clears supports) is next.

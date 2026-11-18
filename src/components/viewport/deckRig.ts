@@ -88,7 +88,8 @@ function build(): DeckRig | null {
     rig = undefined;
     for (const listener of resetListeners) listener();
   });
-  renderer.setSize(THUMB_SIZE, THUMB_SIZE, false);
+  // A starting size only; every caller sets its own through `sizeRig`, which applies the ratio.
+  sizeRigCanvas(renderer, THUMB_SIZE);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(colours.scene.background);
@@ -118,10 +119,20 @@ export function deckRig(): DeckRig | null {
   return rig;
 }
 
-/** Square and sharp on this display, resized only when it has to be: `setSize` reallocates. */
+/**
+ * Square and sharp on this display, resized only when it has to be: `setSize` reallocates.
+ *
+ * `cssSize` IS CSS PIXELS and the ratio is applied here. Both callers pass the size their surface is
+ * SHOWN at, so a still and the live view of the same card are the same pixels - which is what makes
+ * the handover between them invisible rather than a visible sharpening.
+ */
 export function sizeRig(rigToSize: DeckRig, cssSize: number): void {
+  sizeRigCanvas(rigToSize.renderer, cssSize);
+}
+
+function sizeRigCanvas(renderer: THREE.WebGLRenderer, cssSize: number): void {
   const ratio = Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, 2);
   const pixels = Math.max(1, Math.round(cssSize * ratio));
-  const canvas = rigToSize.renderer.domElement;
-  if (canvas.width !== pixels || canvas.height !== pixels) rigToSize.renderer.setSize(pixels, pixels, false);
+  const canvas = renderer.domElement;
+  if (canvas.width !== pixels || canvas.height !== pixels) renderer.setSize(pixels, pixels, false);
 }

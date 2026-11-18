@@ -8,7 +8,7 @@ import type { DentalNotice } from '../dental/editingMode';
 import type { AnalysisClient } from '../workers/analysisClient';
 import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
-import { acceptCommands, acceptedPolicy, alignerSettings, manualAreaCommands, settledPolicy, tiltScanSettings } from '../dental/stages';
+import { acceptCommands, acceptedPolicy, alignerSettings, confirmOrder, manualAreaCommands, orientOutcome, settledPolicy, tiltScanSettings } from '../dental/stages';
 import { keepsManualArea } from '../dental/flow';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
 import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
@@ -140,41 +140,25 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     detected.current = { unitId: unit.id, profile, rotation: undefined };
     void analysis().dentalOrient(`dental-orient:${unit.id}`, unit.source, profile, { key: 'Orienting {name}', vars: { name: unit.name } }).then((result) => {
       if (stale()) return;
-      if (!result) return failed([{ kind: 'failed' }]);
-      const notices: DentalNotice[] = result.meshOk ? [] : [{ kind: 'holes' }];
+      const outcome = orientOutcome(unit, sceneRef.current.units, result);
+      if (outcome.kind === 'failed') return failed(outcome.notices);
       /*
-      * DETECTION RAN AND FOUND NO RIM, so Step 1 hands over to rim define mode instead of stopping at a
-      * notice with no way on. The `failed` notice does NOT come along: the mode replaces it, and a line
-      * saying detection failed, sitting over a dock that asks the operator to draw, would be telling
-      * them off for arriving. Whatever else was found about the mesh (holes) does come, because it is
-      * still true and still bears on what they are about to draw.
-      *
-      * The two `failed(...)` calls above are NOT this. No profile chosen, and no result at all from the
-      * worker, are both "we could not look", not "this aligner has no rim" - neither opens a drawing
-      * mode, because there is nothing to tell the operator about the shape in front of them.
-      */
-      if (result.kind === 'failed') {
-        // The operator is about to draw ON this model, so frame it first. The oriented path fits the
-        // view too; without this the aligner can sit wherever the drop left it, half off screen.
+       * DETECTION RAN AND FOUND NO RIM, so Step 1 hands over to rim define mode instead of stopping
+       * at a notice with no way on. The operator is about to draw ON this model, so frame it first;
+       * without this the aligner can sit wherever the drop left it, half off screen.
+       */
+      if (outcome.kind === 'rim-needed') {
         requestView('fit');
-        return send({ type: 'dentalRimNeeded', notices });
+        return send({ type: 'dentalRimNeeded', notices: outcome.notices });
       }
-      // Whether the opening fits the chosen type is the profile's call, made in Rust.
-      if (!result.matchesProfile) notices.push({ kind: 'mismatch' });
-      detected.current = { unitId: unit.id, profile, rotation: result.rotation };
-      const current = sceneRef.current.units.find((candidate) => candidate.id === unit.id);
-      // Every aligner of the session is laid out again without overlap: the turn changed this one's footprint.
-      const turned = result.rotation && current ? { ...current, transform: { ...current.transform, rotation: result.rotation } } : undefined;
-      if (!turned) notices.push({ kind: 'uncertain' });
-      const units = sceneRef.current.units.map((candidate) => (turned && candidate.id === unit.id ? turned : candidate));
-      const commands = [...(turned ? [{ type: 'transform/set' as const, unitId: unit.id, transform: turned.transform }] : []), ...arrangeAlignerCommands(units, [unit.id])];
-      if (commands.length > 0) dispatch({ type: 'batch', commands });
+      detected.current = { unitId: unit.id, profile, rotation: outcome.rotation };
+      if (outcome.commands.length > 0) dispatch({ type: 'batch', commands: outcome.commands });
       setGizmoMode('rotate');
       requestView('fit');
-      send({ type: 'dentalOriented', proposal: result.proposal, notices });
+      send({ type: 'dentalOriented', proposal: outcome.proposal, notices: outcome.notices });
       // The print-angle search needs the aligner's own frame (an arch front).
       const oriented = sceneRef.current.units.find((candidate) => candidate.id === unit.id);
-      if (turned && oriented) startScan(oriented, profile);
+      if (outcome.turned && oriented) startScan(oriented, profile);
       else setTilt(undefined);
     }, () => { if (!stale()) failed([{ kind: 'failed' }]); });
   }, [analysis, dispatch, requestView, send, sceneRef, sessionRef, setGizmoMode, setTilt, startScan]);
@@ -378,7 +362,7 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
       if (current?.status !== 'ready' || current.unitId !== unit.id || current.hand) return accept();
       const { scan } = current;
       const from = scan.order.indexOf(current.index);
-      const order = scan.order.slice(Math.max(0, from));
+      const order = confirmOrder(scan.order, from);
       keepTilt({ ...current, confirming: true });
       setStatus('Checking the print angle…');
       const settled = (confirmed: number | undefined) => {

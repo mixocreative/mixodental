@@ -218,5 +218,9 @@
   "src/components/viewport/liveCardView.ts": {
     "label": "host-adapter",
     "why": "the GL half of the card's live preview: uploads one model to the deck's shared renderer, draws a frame on demand and copies it into the card's own 2D canvas. Three.js only - the bounding box and the camera come from toGeometry and items/orbit.ts, and no geometry is computed here."
+  },
+  "src/dental/stages.ts": {
+    "label": "host-adapter",
+    "why": "the dental flow's stage decisions, shared by the step screens and the deck's auto-gen queue so the two cannot drift into making different supports for one model. It computes NO geometry (mathHits 0): it reads a unit and an engine result and returns settings, a policy or scene commands. The flag is one import - `arrangeCommands`, called to lay the plate out again after a turn changed an aligner's footprint, which is the same call the hook made before this moved."
   }
 }
