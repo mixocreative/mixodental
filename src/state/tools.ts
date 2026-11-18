@@ -5,7 +5,9 @@
  *
  * It lives UNDER the deck rather than in it because the reducer needs it too, and the deck is the
  * view. The other way round was a cycle: `project.ts` reached up into `deck/toolState.ts` for
- * `TOOL_ORDER` while `deck/unitFacts.ts` reached back down for `PrintUnit`.
+ * `TOOL_ORDER` while `deck/unitFacts.ts` reached back down for `PrintUnit`. Both of those left for
+ * `mixomesh/port/mixosupports/toolrail/` on 2026-11-18 with the deck's rail; this file stays,
+ * because `toolsFor` is what the dental flow itself walks.
  * `src/deckBoundary.test.ts` keeps the direction one-way.
  */
 

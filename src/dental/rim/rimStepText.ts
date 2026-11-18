@@ -85,7 +85,8 @@ export function rimBadgeText(closed: boolean): string {
  * one thing standing between them and finishing. The owner met exactly that on 2026-11-17: *"it is
  * unclear when to close loop, or not, if not how to accept and done"*.
  *
- * This is the deck's own rule about greyed controls (`src/deck/toolState.ts`: a disabled thing must
+ * This is the deck's own rule about greyed controls (recorded in `mixomesh/port/mixosupports/toolrail/`,
+ * where the deck's rail went on 2026-11-18: a disabled thing must
  * say why AND what to do) applied to the one control that had been left out of it. A BLOCKER always
  * wins the line, because it is the next thing to do; with none, the grammar comes back and now ends
  * by naming the way out.

@@ -37,7 +37,8 @@ export type Revisions = { readonly [K in ToolId]?: number };
  *
  * A tool with no work is NOT stale. Staleness is a statement about work that EXISTS, so a missing
  * revision is not this function's answer to give; that is `unavailable` or `ready`, which
- * `toolState` decides.
+ * `toolState` decided - it left with the deck's rail on 2026-11-18
+ * (`mixomesh/port/mixosupports/toolrail/`), and the staleness rule is recorded there.
  */
 export function staleTools(revisions: Revisions): readonly ToolId[] {
   const stale: ToolId[] = [];
