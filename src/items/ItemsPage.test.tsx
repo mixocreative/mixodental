@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ItemsPage } from './ItemsPage';
 import type { DetectState } from './detectState';
+import type { AutoGenCard } from '../autoGen/useAutoGen';
 import { emptyBook } from '../recipes/recipeBook';
 import type { PrintUnit } from '../state/project';
 import type { ImportDiagnosis } from '../state/diagnosis';
@@ -514,5 +515,82 @@ describe('the Items page', () => {
 
 
     expect(rowTag(html, 'u-b')).toContain('items-row--next');
+  });
+});
+
+/**
+ * THE QUEUE'S OWN STATES, ON THE CARD - the one thing every other test in this file renders with
+ * `noAutoGen` and therefore never sees.
+ *
+ * A queued model's only voice is this line and these keys. The audit that asked "who finds out, and
+ * how" named this as a proof that passes vacuously: the deck's tests would go on passing if the
+ * card said nothing at all about a run.
+ */
+describe('what a card shows about its own auto-gen run', () => {
+  const withQueue = (units: PrintUnit[], autoGen: Map<string, AutoGenCard>, over: Record<string, unknown> = {}) =>
+    renderToStaticMarkup(<ItemsPage {...noAutoGen} autoGen={autoGen} autoGenReady={() => false}
+      purposes={named(units)} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
+      units={units} refused={[]} detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}}
+      onArrange={() => {}} onExport={() => {}} onRetry={() => {}} {...over} />);
+
+  const one = [unit('unit-a', 'a.stl')];
+  /*
+   * A FINISHED CARD NEEDS THE SUPPORTS TO STILL BE THERE. The done line is deliberately suppressed
+   * once the unit has none - otherwise "94 supports placed" outlives the supports it describes, on a
+   * model that was re-oriented after the run. So the unit under these tests carries them.
+   */
+  const built = [{ ...unit('unit-a', 'a.stl'), supports: { kind: 'live', data: {} } } as unknown as PrintUnit];
+  const done = (over: Partial<AutoGenCard & { kind: 'done' }> = {}): AutoGenCard =>
+    ({ kind: 'done', tips: 94, recipeName: 'Type default', recipeId: 'type-default', ...over } as AutoGenCard);
+
+  it('counts the tips a finished run placed', () => {
+    expect(withQueue(built, new Map([['unit-a', done()]]))).toContain('94 supports placed');
+  });
+
+  /*
+   * AND CARRIES THE PRINT-ANGLE CHECK'S BAD NEWS, which is the whole reason this state has more than
+   * one sentence: a run where no angle held reads identically to a clean one unless the card says so,
+   * and the deck can export without ever opening the model.
+   */
+  it('says when no print angle held, rather than reading like a clean run', () => {
+    const markup = withQueue(built, new Map([['unit-a', done({ angleCheck: 'none-held' })]]));
+
+    expect(markup).toContain('no print angle held');
+    expect(markup).toContain('autogen--doubt');
+  });
+
+  it('says when the angle was never checked at all', () => {
+    expect(withQueue(built, new Map([['unit-a', done({ angleCheck: 'not-scanned' })]]))).toContain('was not checked');
+  });
+
+  it('suppresses a done line once the model has no supports, so it cannot outlive them', () => {
+    // Auto-gen, open the model, go Back to Step 1 - which re-orients and deletes them - and the deck
+    // went on saying "94 supports placed" over a model with none.
+    expect(withQueue(one, new Map([['unit-a', done()]]))).not.toContain('94 supports placed');
+  });
+
+  it('says where a stopped run stopped, in words that name the next move', () => {
+    const stopped = { kind: 'stopped', stop: { at: 'area', because: 'no-area' } } as AutoGenCard;
+
+    expect(withQueue(one, new Map([['unit-a', stopped]]))).toContain('paint one');
+  });
+
+  it('offers Stop in place of Auto-gen all while the queue runs', () => {
+    const markup = withQueue(one, new Map([['unit-a', { kind: 'running' } as AutoGenCard]]), { autoGenBusy: true });
+
+    expect(markup).toContain('items-autogen-stop');
+    expect(markup).not.toContain('items-autogen-all');
+  });
+
+  it('says why the Auto-gen keys are gone when the case is over its memory allowance', () => {
+    // Thirty full-arch scans: the peak passes the allowance, every key disappears, and until this
+    // line the only clue was a figure turning red.
+    const heavy = Array.from({ length: 30 }, (_, at) => ({
+      ...unit(`unit-${at}`, `${at}.stl`),
+      source: { positions: new Float32Array(9), indices: new Uint32Array(3_000_000 * 3) },
+    } as unknown as PrintUnit));
+
+    expect(withQueue(heavy, new Map())).toContain('items-overbudget');
   });
 });

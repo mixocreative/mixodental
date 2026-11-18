@@ -65,6 +65,16 @@ must get "Thin", or the two paths have diverged — which is what `stages.ts` ex
 - **`roofMode` is pinned while `roofSeededModes` is not** (see `supportRecipe.ts`): toggling the
   roof off and on can re-seed the engine's defaults over a recipe's roof numbers. Reachable only
   from the bench's settings panel, not from the dental steps.
+- **A recipe can lose a key quietly and keep its name.** `parseRecipe` drops a stored value that is
+  the wrong type or out of `settingLimits` and keeps the row, so a release that tightens a limit -
+  or a hand edit - makes "Thin" build with the type's value for that key, and `matchesApplied`
+  compares against the *parsed* recipe so the card never says "edited". The same is true of a stored
+  `defaultId` that no longer resolves: it becomes Type default with no `problem`.
+
+  Both are this module's own "silent death 1" in miniature, and both are **deliberate for now**:
+  the alternative is a book-level `problem`, which stops EVERY card in the case because one key in
+  one recipe was dropped. The honest fix is a per-recipe mark on the chip, which is UI work and a
+  new string. Written down rather than smoothed over.
 - **A second tab's deletion is not observed** until this one reloads. Nothing re-reads storage
   mid-session; writes are safe (each is applied to a freshly read book), reads are a snapshot.
 
