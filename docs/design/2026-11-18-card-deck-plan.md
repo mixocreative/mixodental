@@ -291,6 +291,12 @@ It should be a **look, not an editor**: turn and nothing else. The moment it gro
 editing it is a second implementation of Support Edit Mode, which is the drift ruling 3 exists to
 prevent.
 
+> **Ruling 4's table below is superseded.** It said a flagged card's key would be "drawn, refused,
+> with the reason" and a hand-edited one "drawn, asks first". What shipped is simpler and safer: the
+> key is **absent** in both cases, because a second run re-orients the model and destroys the
+> supports and the hand edits with nothing asked. See R2 in
+> [the 19th's plan](2026-11-19-recipes-and-review-fixes.md).
+
 ## Build order, revised by every ruling above
 
 1. **Extract the stage builders** out of `useDentalFlow.ts` into a shared module. Pure refactor, UI
@@ -349,14 +355,17 @@ door into a rotation goes through - and the hand edits keyed to those supports' 
 them, which deletes the silent re-keying defect class outright. The painted area stays: stamps are
 marks on the MESH, and the mesh did not move.
 
-Warned before it happens: Back out of Step 3 now asks whenever there is a build to lose, not only
-hand edits, and says that re-orienting removes the supports. Walk `x12` asserts the sentence names
-them.
+Warned before it happens - **but not where this paragraph first said.** An ALIGNER's Back from Step
+3 lands on Step 2, so nothing re-orients and the supports are not at stake; only a job with no area
+step (a denture) reaches the orient stage, and there the build does go. The dialog says what this
+Back actually costs, and walk `x12` asserts both halves: that it names the hand edits, and that it
+does NOT claim a re-orient. See R1 in
+[the 19th's plan](2026-11-19-recipes-and-review-fixes.md).
 
 ### C - Ready is a gate now (`src/items/detectState.ts`, `src/autoGen/eligibility.ts`)
 
 Ruling 5 was right and understated. `detectStateOf` mapped every non-failed answer to `oriented`, so
-four doubts were discarded - and the worst of them, **an absent rotation, was being reported as
+five doubts were discarded - and the worst of them, **an absent rotation, was being reported as
 "Already upright."** The engine returns no pose when it cannot decide; the one row that needed the
 operator was the one saying everything was fine.
 
@@ -395,8 +404,10 @@ front door on the real reference aligner.
   timed out, where the batch used to `.catch(() => undefined)` and draw the same line as a job that
   failed on its first instruction.
 - **F** the enlarge overlay (`src/items/CardEnlarge.tsx`). It is a `CardShot` in a bigger box: the
-  deck's single renderer, the same orbit maths, the same drag and the same keyboard turn. Nine lines
-  of markup, which is what ruling 7's "nearly free" meant.
+  deck's single renderer, the same orbit maths, the same drag and the same keyboard turn. A dozen
+  lines of markup, which is what ruling 7's "nearly free" meant — plus the way into the editor the
+  owner asked for on the 19th, which is the card's own Open handler so it cannot land anywhere the
+  card would not.
 - **G** the export builds and hands over **one file at a time** (`src/components/exportBatches.ts`).
   It was one call with the whole case in it - every unit's supports at full resolution and every STL
   buffer held at once, of the order of a gigabyte on a thirty-model case, at the very end of the work
@@ -422,4 +433,4 @@ front door on the real reference aligner.
   through Gemini by the owner's standing rule and never by hand; the free-tier daily quota was
   exhausted on the night this was built (the API answered `RESOURCE_EXHAUSTED`, retry in ~17 h), so
   `src/i18n.test.ts` and `detectState.test.ts` report the missing keys. The prompt is prepared at
-  `scratchpad/tr3-prompt.txt`; the list of keys is whatever those two tests print.
+  `docs/translation/2026-11-19-missing-strings.txt`; the list of keys is whatever those two tests print.

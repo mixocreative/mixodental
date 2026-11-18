@@ -118,7 +118,8 @@ default cannot be updated or deleted.
 
 ### What the card shows
 
-One truncated name chip left of the Auto-gen key, full name in `title`, its own `data-ui`. Before a
+One truncated name chip beside the type control - the card's two answers together - full name in
+`title`, its own `data-ui`. Before a
 run it shows the selection or the default; **after a run it shows what the run actually used**, read
 from the finished-run record — otherwise changing the default silently relabels finished cards.
 
@@ -182,7 +183,7 @@ was.**
 | 2 | the recipe feature, against its own design | **10** | **Delete recipe never deleted** - the save merged the caller's list back over the stored one, so a deleted row looked exactly like another tab's addition. Proved by running it. |
 | 3 | the fixes from round 2 | **7** | my fix had created **two resolvers again** - `presetCommands` wrote one answer while the print-angle scan asked another, so the angle could be judged for one set of numbers and the supports built from another |
 
-**Twenty-eight defects, in code that had already passed tsc, 1700 unit tests and a 191-check
+**Twenty-eight defects, in code that had already passed tsc, 1700-odd unit tests and a 191-check
 browser walk.** Not one of them was a type error or a crash. They were: a sentence that was false, a
 control that recorded a choice and changed nothing, a key that could not appear, a merge that
 defeated a deletion, a condition that was inverted, a default parameter evaluated outside its own
@@ -197,7 +198,7 @@ against its own design.
 
 ```
 npx tsc --noEmit    clean
-npx vitest run src  1714 passed, 2 failed (both the i18n guards - strings are English-only)
+npx vitest run src  1738 passed, 2 failed (both the i18n guards - strings are English-only)
 npm run walk        ALL PASS (191 checks, 2136 s)
   x0p the step screens and auto-gen build the SAME supports | by hand 94, auto-gen 94
 ```
@@ -206,8 +207,9 @@ npm run walk        ALL PASS (191 checks, 2136 s)
 
 - **The translations.** 51 strings; Gemini's free tier is 20 requests a DAY and it resets around
   16:00 on 2026-11-19. The prompt is built and waiting (see the handoff memory). Nothing is
-  hand-written, by the owner's standing rule.
+  hand-written, by the owner's standing rule. The prompt is committed at
+  `docs/translation/2026-11-19-missing-strings.txt`, so one request finishes it.
 - **Build-order item 7, a real `manual/move` for a support tip** - untouched. It is a new pointer
   gesture in the viewport, which is exactly the kind of change this session's evidence says needs a
   person looking at the screen while it is made, so it was not started at five in the morning.
-- The three debts in `src/recipes/README.md`, with their reasons.
+- The four debts in `src/recipes/README.md`, with their reasons.

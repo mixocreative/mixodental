@@ -19,7 +19,7 @@ them shape every file here:
 
 | file | job |
 |---|---|
-| `eligibility.ts` | **May** this card be generated unattended, and if not, why. Three facts in, one verdict out. |
+| `eligibility.ts` | **May** this card be generated unattended, and if not, why. Five facts in, one verdict out. |
 | `pipeline.ts` | One aligner through Steps 1–3: five engine calls, every decision taken by `src/dental/stages.ts`. No React. |
 | `pipeline.real.test.ts` | The pipeline on a real scan under Node: it finishes, it lands Step 3's state, it is deterministic. Skipped when `dentalwork/fixtures` is absent. |
 | `useAutoGen.ts` | The queue: one job at a time, per-card state, Auto-gen all, Stop. React. |
@@ -38,10 +38,12 @@ exist**:
 
 - `pipeline.real.test.ts` (here) proves the pipeline runs on a real customer scan, repeats itself
   exactly, and agrees with itself about the recipe across every reader of the settings.
-- the walk's **`x0p`** proves the end state equals the editor's **in a real browser**: section `m`
-  auto-generates the reference aligner and records what it built, section `x` walks the same file
-  through the step screens by hand, and the two counts must be equal. Measured 2026-11-19:
-  **by hand 94, auto-gen 94.**
+- the walk's **`x0p`** compares the two **in a real browser**: section `m` auto-generates the
+  reference aligner and records what it built, section `x` walks the same file through the step
+  screens by hand, and the three counts - automatic, manual, removed - must be equal. Measured
+  2026-11-19: **by hand {auto 94, manual 0, removed 0}, auto-gen the same.** It compares counts and
+  not positions, because nothing on screen exposes a tip's coordinates; the position-level agreement
+  is the node test's job.
 
 A node test cannot do the second one — the editor's path is a hook driving screens — which is why it
 is split across two walk sections that run in order.
@@ -93,7 +95,18 @@ genuine risk (the React scene being a render behind) can show.
 
 ## What Stop costs, measured
 
-Pressing **Stop** mid-run on a card that ALREADY had supports leaves it with none. That is not a
+**A card that already has supports can no longer be queued at all**, so the scenario this section
+was written about is gone: the key is absent on a built card, because a second run would re-orient
+it and delete the supports and the hand edits with nothing asked.
+
+What a stopped run still leaves behind is the part of itself that had already landed - the model
+turned, and possibly an accepted policy - because the pipeline commits as it goes. Those are in the
+scene history, but **Undo is not reachable from the deck**: the keyboard handler returns while a
+start screen is up. Written down rather than claimed; either the deck gets Undo, or this paragraph
+is the honest version.
+
+The older note, kept because it explains the shape: pressing Stop mid-run on a card that had
+supports left it with none. That is not a
 bug in the queue: the pipeline's first step is the orientation, re-orienting clears supports
 (`src/state/rotation.ts`), and a run abandoned after that step has cleared them without replacing
 them. It is exactly what entering Step 1 by hand and walking away does.

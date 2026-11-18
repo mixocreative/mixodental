@@ -31,7 +31,9 @@ whole settings object" is the wrong answer, and it is the first thing to check i
 widened.
 
 Also never pinned: `preset`, `roofSeededModes`, `previewMode`, `eraseRadius`, `autoSnap`,
-`lowPolyMode` — one operator's view of a model, not a property of the supports.
+`lowPolyMode` — one operator's view of a model, not a property of the supports — and
+`labelOffsetX` / `labelOffsetY`, which nudge the ID label on **one** model's raft to clear something
+in the way, per-unit work by the same argument as the label text itself.
 
 Everything else is a build key, so `RECIPE_KEYS` is written as *everything except* that short list.
 **`supportRecipe.test.ts` pins the resulting count**, so the next engine release that adds a setting
@@ -75,8 +77,10 @@ must get "Thin", or the two paths have diverged — which is what `stages.ts` ex
   the alternative is a book-level `problem`, which stops EVERY card in the case because one key in
   one recipe was dropped. The honest fix is a per-recipe mark on the chip, which is UI work and a
   new string. Written down rather than smoothed over.
-- **A second tab's deletion is not observed** until this one reloads. Nothing re-reads storage
-  mid-session; writes are safe (each is applied to a freshly read book), reads are a snapshot.
+- **A second tab's deletion is not observed until this tab next writes or reloads.** Every
+  successful write re-reads the book, so a change made elsewhere appears at the next edit here -
+  but nothing polls, so between edits the list on screen is a snapshot. Writes themselves are safe:
+  each is applied to a freshly read book.
 
 ## Where each layer is tested, and where it is not
 

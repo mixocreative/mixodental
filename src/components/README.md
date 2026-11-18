@@ -246,15 +246,18 @@ is one or two models, so the peak this fixes is not its peak either.
 
 ## Back out of Step 3 asks about the build now, not only the hand edits
 
-`backLosesWork` replaced `backNeedsConfirm` at the door, because Back goes to **Step 1**, Step 1 is
-the orient step, and a model with supports standing does not enter it (owner: *"once support
-generated, orienting is not allowed and it will remove all support"*). Asking only about hand edits
-meant the operator with a freshly built aligner and no edits at all was asked nothing and lost the
-build — the quietest possible version of the loudest possible event.
+`backLosesWork` replaced `backNeedsConfirm` at the door - and the first version of it, and of this
+paragraph, was **wrong about where Back goes.** An ALIGNER's Back from Step 3 lands on **Step 2**
+(`stageBeforeSupports('reference-aligner') === 'area'`, which the repo's own test states), so nothing
+re-orients and the supports stay. Only a job with no area step - a denture - reaches the orient
+stage, and there the owner's rule bites: *"once support generated, orienting is not allowed and it
+will remove all support"*.
 
-The dialog says two different sentences rather than one with zeroes in it: with a build standing the
-counts would read "0 added, 0 removed, 0 with own settings" while deleting the operator's whole
-build. Walk `x12` asserts the sentence names the supports.
+So the build is at stake only when `backEntersOrient(profile)` is true, and the dialog says which of
+the two it is rather than claiming a re-orient that is not going to happen. Walk `x12` asserts both
+halves: that it names the hand edits, and that it does not say "re-orient". `flow.test.ts` pins the
+rule for both jobs - it is cheap, pure, and fails the moment the stage spine changes, which the
+browser walk could only ever have caught as a sentence.
 
 The free-transform gizmo's status line asks the same function the reducer obeys (`reorients`), so it
 reports a deletion when there is one and keeps quiet on a spin about the plate's vertical, which

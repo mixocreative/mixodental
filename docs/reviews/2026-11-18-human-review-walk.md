@@ -55,37 +55,51 @@ Press **Edit supports**.
 > supports - so opening a generated card the ordinary way would destroy the work you pressed Open to
 > look at.
 
-## 5. Re-orienting warns first
+## 5. Back costs what it actually costs, and says so
 
 Still in Step 3, press **Back**.
 
-- A dialog: *"Going back re-orients this model, which removes its supports and any manual edits.
-  Undo brings them back. Continue?"*
+- **Nothing is asked**, you land on **Step 2**, and the 94 supports are still there.
+- Now add a support by hand (Add supports, click the model), press **Back** again: *"Going back
+  discards your manual support edits (1 added, 0 removed, 0 with own settings). Continue?"*
 - **Stay** keeps everything.
 
-> It used to ask only when you had hand edits, so an operator with a freshly built aligner and no
-> edits was asked nothing and lost the build. A vertical spin on the plate still keeps the supports -
-> that exception is proved on a real denture scan and the reducer honours it.
+> I had this wrong and built on it. An aligner's Back goes to **Step 2**, not Step 1 — the repo's
+> own `dentureStages.test.ts` says so in one line — so nothing re-orients and the supports are not
+> at stake. The dialog used to claim otherwise and `backCommands` deleted them for nothing. A
+> denture's Back *does* reach the orient step, and there the build does go.
+>
+> What protects the supports everywhere is the reducer: whenever a re-orient actually happens,
+> through any door, they go with it. A vertical spin on the plate is the one exception, proved on a
+> real denture scan to 1e-5 mm.
 
 ## 6. The case row, and the budget
 
 Back on the deck (**Your files**), look at the footer.
 
-- **Auto-gen 1 card** beside Arrange and Export. Press it and it becomes **Stop**; press Stop and it
-  goes back.
-- **1 of 200 models** and **324 MB of 2.0 GB memory**.
+- **1 of 200 models** and **324 MB of 2.0 GB memory**. Both readouts turn amber when passed — the
+  model cap is **not enforced** by anything, so the least it owes you is to look different.
+- **Auto-gen N cards** appears only while some card is still eligible. The one you just generated is
+  not: a built card has no Auto-gen key, because a second run would re-orient it and destroy the
+  supports and any hand edits with nothing asked.
 
-> **Known, and your call:** pressing Stop on a card that already had supports leaves it with none -
-> the run's first step re-oriented it, which cleared them, and the cancelled run never replaced them.
-> **Undo brings them back.** Saying so on the card needs a new string, which needs translation.
+To see it, **drop a second copy of the file and name it**. Then:
+
+- **Auto-gen 2 cards**… (or 1) beside Arrange and Export. Press it and it becomes **Stop**; press
+  Stop and it goes back.
+- If the case ever goes over its memory allowance, every Auto-gen key disappears — correctly, because
+  generating more is how the tab dies — and the footer now says so in words instead of just turning
+  a number red.
 
 ## 7. Enlarge
 
 Press **Enlarge** on the card.
 
 - The model alone, large, on a dimmed page. Drag it to turn it; arrow keys turn it too.
+- **Edit supports** (or **Open this model** on a card with none) takes you straight into the flow —
+  that was your first request, and it is the card's own Open handler, so it lands in the same place.
 - **Close**, click away, or Escape.
-- There is nothing else to press, deliberately: a look, never an editor.
+- Nothing else: a look and a way on, never an editor.
 
 ## 8. Support recipes — the new one
 
@@ -95,15 +109,19 @@ default**, which is what auto-gen has always used.
 Open a card at Step 3 and expand **Adjust**. Under the sliders there is a **Support recipe** row:
 
 - Move **Pillar size**, type a name, press **Save as new**. The chip on the card takes that name.
-- The list is kept **on this device** — reload the page and it is still there.
 - Choose a different recipe in that row and **the sliders move at once**: picking **Type default**
   puts the type's own numbers back. (Measured: 2.4 mm back to 1.4 mm.)
 - **Update recipe** / **Delete recipe** / **Use as default** do what they say. Type default cannot be
   changed or removed.
 
-Back on the deck, switch a card's chip to your recipe and press **Auto-gen**: the supports are built
-with it, and afterwards the chip is a **readout** naming the recipe that run actually used — not
-whatever the default happens to be later.
+Back on the deck, take the **second card** you dropped in §6, switch its chip to your recipe and
+press **Auto-gen**: the supports are built with it, and afterwards that chip is a **readout** naming
+the recipe the run actually used — not whatever the default happens to be later. A card that has
+already run has no select, because switching it could not change anything.
+
+**Then reload the page.** The recipe list is still there — that is the "remembered across sessions"
+half. The deck is not: dropped files do not survive a reload (deck persistence is scoped in the card
+deck plan and not built), so do this last.
 
 > **If a card's settings drift from the recipe it names, the chip says "…, edited".** That matters
 > because auto-gen uses the *recipe*, not your changes — so either Update the recipe or save a new
@@ -115,11 +133,18 @@ The gate now walks the same reference aligner **twice**: once through these step
 once through the deck's Auto-gen. It then compares what they built.
 
 ```
-x0p the step screens and auto-gen build the SAME supports for the same model | by hand 94, auto-gen 94
+x0p the step screens and auto-gen build the SAME supports for the same model
+    by hand {"auto":94,"manual":0,"removed":0}, auto-gen {"auto":94,"manual":0,"removed":0}
 ```
 
 That is the claim auto-gen rests on — that it is not quietly making different supports from the
 editor — and it is now checked on every full walk rather than argued for.
+
+**What it compares is the three counts, not the positions**, because the deck reports counts and
+nothing on screen exposes a tip's coordinates. The position-level agreement is proved separately
+and under Node, on a real customer scan: running the same model twice gives byte-identical contact
+positions, and every settings key the print-angle confirm was judged with equals what the finished
+unit carries.
 
 ---
 
@@ -136,15 +161,16 @@ editor — and it is now checked on every full walk rather than argued for.
 ## The one thing that is not done
 
 **The new strings have no Japanese or Taiwan Chinese.** Your rule is that zh-Hant comes from Gemini
-and is never hand-written - and Gemini's free-tier **daily** quota ran out mid-session
-(`RESOURCE_EXHAUSTED`, "retry in 17h20m"), on both models. So two tests are red:
+and is never hand-written - and Gemini's free tier is **20 requests a day**, which ran out. It next
+resets **around 16:00 on 2026-11-19**. The prompt is written and committed at
+`docs/translation/2026-11-19-missing-strings.txt`; one request finishes it. So two tests are red:
 `src/i18n.test.ts` and `src/items/detectState.test.ts`, which demand an entry in both languages for
 every UI string. Nothing was hand-translated.
 
 The prompt is written and the handoff memory has the four steps. Everything else is green:
 
 ```
-npm run walk        ALL PASS (190 checks, 1810 s)
-npx vitest run src  1675 passed, 2 failed (the two above)
+npm run walk        ALL PASS (191 checks)
+npx vitest run src  1740 passed, 2 failed (the two above)
 npx tsc --noEmit    clean
 ```

@@ -242,7 +242,7 @@ makes the handover invisible: the first live frame is framed exactly as the stil
 
 **Three modules, three jobs:** `orbit.ts` (pure, no GL), `components/viewport/liveCardView.ts` (the
 GL half), `CardShot.tsx` (the surfaces and the pointer). The GL lives under `viewport/` because
-`threeBoundary.ts` keeps three.js in the view layer.
+`threeBoundary.test.ts` keeps three.js in the view layer.
 
 ## The four rules the ROW had, which the card kept (2026-11-18)
 
@@ -278,13 +278,13 @@ stopped - owner: *"footer need to stay bottom, shouldnt shrink up."*
 
 ## The card's keys, and which of them is the primary one
 
-Four, and never all at once:
+Five, and never all at once:
 
 | Key | When | What it does |
 |---|---|---|
 | **Auto-gen** | the card may be generated unattended | Steps 1–3 without opening it (`src/autoGen/`) |
 | **Open this model** / **Edit supports** | the card has been named | opens the flow — at Step 1, or at **Step 3** once it has supports |
-| **Enlarge** | always | the model alone, full size, turnable, nothing to press but Close |
+| **Enlarge** | always | the model alone, full size, turnable, with its own way into the flow |
 | **Retry** | the check failed | queues its detection again |
 | **Remove** | always | takes the file off the list |
 

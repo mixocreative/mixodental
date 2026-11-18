@@ -1,0 +1,96 @@
+Translate UI strings for mixoDental, a browser app dental lab technicians use to prepare scanned
+dental models (aligners, dentures) for resin 3D printing. It orients each model, finds where
+supports may grow, and generates the printed supports. A "deck" shows one card per dropped file.
+
+Give Japanese (JA) and TAIWAN Traditional Chinese (ZH) for each numbered line.
+
+HOUSE STYLE - existing strings already shipped in this app. Match this voice exactly:
+
+EN: No rim found. Draw one to continue.
+JA: リムが見つかりません。続けるには描いてください。
+ZH: 找不到邊緣。請繪製邊緣以繼續。
+
+EN: Could not check the orientation. Press Retry, or open it to orient by hand.
+JA: 向きを確認できませんでした。再試行を押すか、開いて手動で向きを調整してください。
+ZH: 無法檢查方向。請按重試，或開啟後手動調整方向。
+
+EN: Going back discards your manual support edits ({added} added, {removed} removed, {customised} with own settings). Continue?
+JA: 戻ると手動のサポート編集（追加 {added}、削除 {removed}、個別設定 {customised}）は破棄されます。続けますか？
+ZH: 返回將會捨棄您的手動支撐編輯（已新增 {added} 個、已移除 {removed} 個、已自訂設定 {customised} 個）。要繼續嗎？
+
+EN: Checking this model took too long and was stopped. The model is unchanged; open it to run the check again.
+JA: このモデルの検査に時間がかかりすぎたため中止しました。モデルは変更されていません。開いてもう一度検査を実行してください。
+ZH: 檢查這個模型花費太久已中止。模型未變更，請開啟後再次執行檢查。
+
+RULES
+- Japanese: plain polite (です/ます), same register as above.
+- Chinese: TAIWAN Traditional Chinese software wording ONLY. NEVER mainland PRC terms.
+  Terms to use: 支撐 (supports), 復原 (Undo), 方向 (orientation), 模型 (model), 網格 (mesh),
+  產生 (generate), 開孔 (opening), 邊緣 (rim), 匯出 (export), 設定 (settings).
+- Keep EVERY placeholder exactly as written, including the braces: {n} {name} {saved} {reason}.
+  Do not add placeholders and do not remove any.
+- Short labels (one to four English words, no full stop) are BUTTONS or CHIPS on a small card:
+  keep them to a few characters, no full stop.
+- "Auto-gen" is this app's name for generating supports automatically without opening the model.
+- "recipe" here is a NAMED SET OF SUPPORT SETTINGS the operator saves. It is NOT 設定檔 in the
+  sense of an aligner type. Suggest 支撐配方 for ZH and サポートレシピ for JA, and stay consistent.
+- "Type default" means the aligner type's own default settings.
+- Do not explain anything. Do not add commentary.
+
+OUTPUT exactly two lines per number, nothing else:
+N JA: ...
+N ZH: ...
+
+THE STRINGS:
+
+1 Rotated, and its supports were removed: supports belong to one orientation. Undo brings them back, or Generate to re-plant them.
+2 Object moved with its supports.
+3 Open Step 3 to add, move or remove its supports.
+4 Orient it, find its support area and place its supports, without opening it.
+5 Auto-gen
+6 Look at this model on its own, full size.
+7 Enlarge
+8 Stop the queue. Cards already generated keep their supports
+9 Stop
+10 Generate supports on every ready card, one at a time
+11 Auto-gen 1 card
+12 Auto-gen {n} cards
+13 This model is not closed, so supports cannot be trusted on it. Open it before generating.
+14 Could not decide which way is up. Open it to orient by hand.
+15 The opening found does not match the type chosen. Check the type, or open it by hand.
+16 Up and down need a look: the two rules disagree. Open it and check which side is up.
+17 The central opening is unclear. Open it and check the orientation.
+18 Check mesh
+19 Check orientation
+20 Going back re-orients this model, which removes its supports and any manual edits. Undo brings them back. Continue?
+21 Export incomplete: {saved} saved. {reason}
+22 Waiting to generate…
+23 1 support placed
+24 {n} supports placed
+25 The support recipe this model is set to is no longer saved. Choose one on the card.
+26 No support area was found. Open it and paint one.
+27 No safe support position was found. Open it and place them by hand.
+28 The support area could not be detected. Open it to try again.
+29 Generating supports failed. Open it to try again.
+30 Recipe missing
+31 {name}, edited
+32 Your saved support recipes could not be read on this device, so only the type default is offered.
+33 These supports were built with {name}.
+34 This model s settings no longer match {name}. Auto-gen will use the recipe, not the changes.
+35 The support settings auto-gen will build this model with: {name}.
+36 Support recipe
+37 Type default
+38 Name for a new support recipe
+39 New recipe name
+40 Your saved support recipes could not be read on this device, so nothing can be saved.
+41 Save these settings under this name, and use it for this model.
+42 The type default cannot be changed. Save these settings as a new recipe instead.
+43 Replace this recipe s settings with the ones on screen.
+44 Update recipe
+45 The type default cannot be removed.
+46 Remove this recipe from this device.
+47 Delete recipe
+48 Use this recipe for models nobody has chosen one for.
+49 Use as default
+50 That could not be saved on this device, so nothing was changed.
+51 Recipe

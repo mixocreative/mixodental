@@ -174,7 +174,13 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
    * generated card the ordinary way would destroy exactly the work the operator pressed Open to see.
    * The caller sends the session there (`App.tsx`); the key's job is to say where it goes.
    */
-  const built = unit.supports !== undefined && unit.dental?.kind === 'two-contour';
+  /*
+   * ANY ACCEPTED POLICY COUNTS, not only a two-contour one. A card whose area was PAINTED carries a
+   * `legacy` policy (`src/dental/manualArea.ts`), so testing for `two-contour` sent it through the
+   * Step 1 door - the one that re-orients and deletes its supports. Routing a card with supports to
+   * Step 3 can only ever be the safer mistake of the two.
+   */
+  const built = unit.supports !== undefined && unit.dental !== undefined;
   const generating = autoGen?.kind === 'running' || autoGen?.kind === 'queued';
   /*
    * A DONE LINE MUST NOT OUTLIVE THE SUPPORTS IT DESCRIBES. Nothing expires this sitting's card

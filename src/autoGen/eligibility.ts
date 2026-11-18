@@ -20,8 +20,9 @@ import type { DetectState } from '../items/detectState';
  * now live.
  *
  * It does NOT re-derive any of that. It reads the row's settled detect state and the two facts the
- * deck owns (has the operator named this model, is the deck at its limit), and says yes or no. Three
- * facts in, one verdict out.
+ * deck owns (has the operator named this model, is the deck at its limit), and says yes or no. Five facts
+ * in, one verdict out: two about the answer, two about work the operator has already done, and one
+ * about the deck's own limit.
  */
 
 /** Why auto-gen is not offered. One reason, the first that applies, because the card has room for one line. */

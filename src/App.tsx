@@ -1381,7 +1381,14 @@ export default function App() {
      * run, so a model reopened from a saved file carries none - which is honest: nothing recorded
      * what its angle check said when it was built.
      */
-    const built = unit.supports !== undefined && unit.dental?.kind === 'two-contour';
+    /*
+     * ANY ACCEPTED POLICY, not only a two-contour one: a PAINTED area is a `legacy` policy, and
+     * testing for two-contour sent such a card through Step 1, which re-orients and deletes its
+     * supports. Open question for the owner, written down rather than assumed: `reviewStructure`
+     * below still requires two-contour for an aligner, so whether a painted-area card can render
+     * Step 3 at all is unconfirmed - but Step 3 with a thin panel beats Step 1 with no supports.
+     */
+    const built = unit.supports !== undefined && unit.dental !== undefined;
     if (built && !isDentureJob(profile)) {
       const run = autoGen.finished(unit.id);
       const notices: DentalNotice[] = [

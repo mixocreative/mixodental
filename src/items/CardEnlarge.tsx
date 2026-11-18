@@ -42,7 +42,13 @@ export function CardEnlarge({ unit, shot, onClose, onOpen }: {
   readonly onOpen: () => void;
 }) {
   /* A MODEL WITH SUPPORTS SAYS SO, because it is going somewhere else: Step 3, not Step 1. */
-  const built = unit.supports !== undefined && unit.dental?.kind === 'two-contour';
+  /*
+   * ANY ACCEPTED POLICY COUNTS, not only a two-contour one. A card whose area was PAINTED carries a
+   * `legacy` policy (`src/dental/manualArea.ts`), so testing for `two-contour` sent it through the
+   * Step 1 door - the one that re-orients and deletes its supports. Routing a card with supports to
+   * Step 3 can only ever be the safer mistake of the two.
+   */
+  const built = unit.supports !== undefined && unit.dental !== undefined;
   const root = useRef<HTMLDivElement>(null);
 
   /*
