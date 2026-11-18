@@ -130,9 +130,9 @@ import { useSupportBuilds } from './components/useSupportBuilds';
 import { isBuilding, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { stepPanelInset } from './dental/stepPanelInset';
-import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, exitCommands, exitNeedsConfirm, manualEditCounts, startsDentalStep } from './dental/flow';
+import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, exitCommands, exitNeedsConfirm, keepsManualArea, manualEditCounts, startsDentalStep } from './dental/flow';
 import { applyRecipeCommands } from './dental/stages';
-import { isTypeDefault } from './recipes/supportRecipe';
+import { isTypeDefault, matchesRecipe } from './recipes/supportRecipe';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import { dentalLabelCommands } from './dental/stages';
 import type { DentalReview } from './components/DentalSupports';
@@ -1079,8 +1079,15 @@ export default function App() {
          * "No aligner opening was found. Press Draw the rim" about a model the detector read
          * perfectly, with the area preview and Use detected dead beside it. Detecting again costs
          * seconds and is the only honest way to arrive at that screen.
+         *
+         * NOT FOR A HAND-DRAWN RIM, and the first version of this got that wrong: a drawn rim has no
+         * proposal EITHER - rim define mode cleared it, and Done stores a manual-area policy - so
+         * keying on "no proposal" alone re-ran detection over the operator's own loop and Step 1
+         * came back with no way into the drawing at all. Walk `u5k` caught it. `keepsManualArea` is
+         * the question "is this area the operator's own", and it is the one that separates the two.
          */
-        if (sessionRef.current.dentalStage === 'area' && !sessionRef.current.dentalProposal && unit) {
+        const drawnByHand = unit !== undefined && keepsManualArea(unit, sessionRef.current.dentalProfile);
+        if (sessionRef.current.dentalStage === 'area' && !sessionRef.current.dentalProposal && unit && !drawnByHand) {
           send({ type: 'backDental' });
           return startDentalAligner(unit);
         }
@@ -1694,7 +1701,21 @@ export default function App() {
       onAutoGenAll={autoGen.startAll}
       autoGenBusy={autoGen.busy}
       onAutoGenStop={autoGen.cancel}
-      recipes={{ book: recipes.book, problem: recipes.problem !== undefined, chosen: recipes.chosen, onChoose: recipes.choose }}
+      recipes={{
+        book: recipes.book,
+        problem: recipes.problem !== undefined,
+        chosen: recipes.chosen,
+        onChoose: recipes.choose,
+        /*
+         * A UNIT NOBODY HAS SET SETTINGS ON IS NOT "EDITED". Only a unit whose dental policy exists -
+         * one that has been through the flow - can have numbers of its own to differ from a recipe.
+         */
+        edited: (unit) => {
+          const picked = recipes.resolve(unit.id);
+          return unit.dental !== undefined && picked !== 'missing' && !isTypeDefault(picked)
+            && !matchesRecipe(resolveSettings(unit.settings), picked);
+        },
+      }}
       /*
        * THE CASE'S OWN WORK, reaching the screen that has the models on it. Both are the bench's
        * existing presses, passed down rather than reimplemented: `plate.arrange` is pure, and the

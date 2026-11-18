@@ -120,7 +120,12 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   autoGenBusy: boolean;
   onAutoGenStop: () => void;
   /** The support recipe book, this sitting's per-card choices, and the control that changes them. */
-  recipes: { book: RecipeBook; problem: boolean; chosen: ReadonlyMap<string, string>; onChoose: (unitId: string, recipeId: string) => void };
+  recipes: {
+    book: RecipeBook; problem: boolean; chosen: ReadonlyMap<string, string>;
+    onChoose: (unitId: string, recipeId: string) => void;
+    /** Whether this unit's settings still match the recipe its card names. */
+    edited: (unit: PrintUnit) => boolean;
+  };
 }) {
   /*
    * GATING IS PER ROW NOW, because the answer is. The rail and the primary act through ONE unit's
@@ -329,6 +334,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
             book: recipes.book,
             problem: recipes.problem,
             selectedId: recipes.chosen.get(unit.id),
+            edited: recipes.edited(unit),
             onChoose: (recipeId) => recipes.onChoose(unit.id, recipeId),
           }}
         />)}

@@ -21,6 +21,13 @@ import type { RecipeBook } from './recipeBook';
  * default is the one entry that cannot be updated or deleted - it is this app's behaviour rather
  * than the operator's data.
  *
+ * THE KEYS SAY "RECIPE" OUT LOUD, and that is not padding. This row lives in the SAME panel as
+ * Support Edit Mode, whose own key is **Delete** and means "delete the selected supports". Two
+ * controls with one word on one screen is ambiguous for an operator, worse for a screen reader, and
+ * it broke the walk's locator outright - which is how it was found, on the gate, rather than by a
+ * reader. `data-ui` names were already unique; the visible labels were not, and the labels are what
+ * a person acts on.
+ *
  * EVERY WRITE REPORTS WHETHER IT STUCK. `saveRecipes` refuses to write over a book it could not read
  * or one from a newer version, and an operator who is not told is an operator who finds out a week
  * later that their recipe was never there.
@@ -67,10 +74,10 @@ export function RecipeRow({ book, problem, selectedId, onChoose, onSaveAs, onUpd
         onClick={() => { attempt(() => onSaveAs(name)); setName(''); }}>{t('Save as new')}</button>
       <button type="button" data-ui="recipe-row-update" disabled={problem || builtIn}
         title={builtIn ? t('The type default cannot be changed. Save these settings as a new recipe instead.') : t('Replace this recipe s settings with the ones on screen.')}
-        onClick={() => attempt(() => onUpdate(selectedId))}>{t('Update')}</button>
+        onClick={() => attempt(() => onUpdate(selectedId))}>{t('Update recipe')}</button>
       <button type="button" className="danger" data-ui="recipe-row-delete" disabled={problem || builtIn}
         title={builtIn ? t('The type default cannot be removed.') : t('Remove this recipe from this device.')}
-        onClick={() => attempt(() => onDelete(selectedId))}>{t('Delete')}</button>
+        onClick={() => attempt(() => onDelete(selectedId))}>{t('Delete recipe')}</button>
       <button type="button" data-ui="recipe-row-default" disabled={problem || book.defaultId === selectedId}
         title={t('Use this recipe for models nobody has chosen one for.')}
         onClick={() => attempt(() => onSetDefault(selectedId))}>{t('Use as default')}</button>

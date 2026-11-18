@@ -25,7 +25,7 @@ const noAutoGen = {
   autoGen: new Map(), autoGenReady: () => false, onAutoGen: () => {},
   onAutoGenAll: () => {}, autoGenBusy: false, onAutoGenStop: () => {},
   // A device with nothing saved: Type default and nothing else, which is every test here but the chip's own.
-  recipes: { book: emptyBook(), problem: false, chosen: new Map<string, string>(), onChoose: () => {} },
+  recipes: { book: emptyBook(), problem: false, chosen: new Map<string, string>(), onChoose: () => {}, edited: () => false },
 };
 
 /** Every unit named as an aligner: the ordinary state of a case being worked. */

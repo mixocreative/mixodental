@@ -55,6 +55,22 @@ carries, and a second recipe must move both.
 must get "Thin", or the two paths have diverged — which is what `stages.ts` exists to prevent.
 `useDentalFlow` and `useRimDrawing` both take `recipeFor`.
 
+## Where each layer is tested, and where it is not
+
+| layer | tested by |
+|---|---|
+| `supportRecipe.ts` | `supportRecipe.test.ts` - what it pins, what it must never pin, how it applies |
+| `recipeBook.ts` | `recipeBook.test.ts` - both silent deaths, a hand-edited value, a second tab |
+| `pipeline.ts` with a recipe | `pipeline.real.test.ts` - agreement across every reader, on a real scan |
+| `useRecipes.ts`, `RecipeRow.tsx`, `RecipeChip.tsx` | **nothing automated** |
+
+The last row is a decision. Every rule those three could get wrong lives in the two pure modules
+above them, which are tested in milliseconds; what is left is React plumbing, and this repo has no
+hook-rendering harness. They were instead **driven in a browser on the real reference aligner**:
+a recipe saved at Step 3 with pillar 2.4, the card switched to it, auto-gen run, and Step 3 reopened
+showing 2.4 - then Type default chosen, and the pillar measured back at 1.4. Two dead controls were
+found that way and are fixed; neither would have shown in a unit test of the modules.
+
 ## Storage, and the two silent deaths it is written against
 
 One key, `mixodental.recipes`, following `src/plate/printerProfiles.ts`.

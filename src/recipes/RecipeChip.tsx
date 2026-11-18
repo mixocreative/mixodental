@@ -19,7 +19,7 @@ import type { RecipeBook } from './recipeBook';
  * every card in the case - telling the operator that supports already on the plate were built with
  * something they have never used.
  */
-export function RecipeChip({ unitId, book, problem, selectedId, ran, onChoose }: {
+export function RecipeChip({ unitId, book, problem, selectedId, ran, edited, onChoose }: {
   readonly unitId: string;
   readonly book: RecipeBook;
   /** The stored list could not be read: only Type default is offered, and the chip says why. */
@@ -28,6 +28,16 @@ export function RecipeChip({ unitId, book, problem, selectedId, ran, onChoose }:
   readonly selectedId: string | undefined;
   /** The recipe a finished run actually used. Once set, it is what the chip says. */
   readonly ran: string | undefined;
+  /**
+   * The model's settings no longer match the recipe this card names.
+   *
+   * IT MATTERS BECAUSE AUTO-GEN WILL OVERWRITE THEM. `presetCommands` writes the recipe onto the
+   * unit at accept time, so an operator who opened this card, moved a slider and came back would
+   * lose those numbers to a press of Auto-gen - with the chip calmly naming the recipe all along.
+   * Saying "edited" is what turns that from a surprise into a choice: Update the recipe, or save a
+   * new one.
+   */
+  readonly edited: boolean;
   readonly onChoose: (recipeId: string) => void;
 }) {
   const value = selectedId ?? book.defaultId;
@@ -37,12 +47,15 @@ export function RecipeChip({ unitId, book, problem, selectedId, ran, onChoose }:
    * on it (`AutoGenStop` `recipe/missing`); the card must not meanwhile display a recipe it is not
    * going to use.
    */
-  const label = ran ?? chosen?.name ?? t('Recipe missing');
+  const name = chosen?.name ?? t('Recipe missing');
+  const label = ran ?? (edited ? t('{name}, edited', { name }) : name);
   const title = problem
     ? t('Your saved support recipes could not be read on this device, so only the type default is offered.')
     : ran !== undefined
       ? t('These supports were built with {name}.', { name: ran })
-      : t('The support settings auto-gen will build this model with: {name}.', { name: label });
+      : edited
+        ? t('This model s settings no longer match {name}. Auto-gen will use the recipe, not the changes.', { name })
+        : t('The support settings auto-gen will build this model with: {name}.', { name: label });
 
   /*
    * ONCE A RUN HAS HAPPENED THIS IS A READOUT, not a control. The supports on the plate were built
