@@ -25,6 +25,12 @@ This decides whether the job is an afternoon or a fortnight, and it is the quest
 > *"Aligner types are data files (profiles). Adding a type does not need new pipeline code."*
 > — `dentalwork/README.md`
 
+**The procedure itself now lives with the data**, in the engine:
+`mixo-geocore/crates/geometry-core/src/dental/ADDING-A-KIND-OR-TYPE.md` — what a kind and a type
+each cost, how to add a detection or orientation rule, and **the Witness**, the detection reviewer
+and its protocol. The app's side is `docs/dental-kinds-and-types.md`. This file stays what it has
+always been: the loop you run to PROVE the change before any of it touches the app.
+
 If a profile's numbers can describe it, stop here and add the profile. The rest of this document is for
 a genuinely different item.
 

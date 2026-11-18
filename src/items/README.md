@@ -114,13 +114,13 @@ is what will make repair safe to write.
 | `itemSummary.ts` | the row's text preview: triangle count and size in mm |
 | `dropGrain.ts` | whether a drop is one file or many, and which of its files are importable |
 | `refusalOf.ts` | which refusal an import error is, so a refused file can be a row |
-| `detectState.ts` | what a row shows about ITS OWN orientation, and how many are still to look at |
-| `useBatchDetect.ts` | the batch itself: one detection per row, one at a time, each row's own result |
+| `detectState.ts` | what a row shows about ITS OWN orientation, in ITS OWN job's words: `detectChip` for the line, `detectSentence` for the tooltip and the rail |
+| `useBatchDetect.ts` | the batch itself: one detection per row, one at a time, each row's own result, under the case's answer or that row's own override |
 | `thumbnail.ts` | WHICH row needs a picture and WHERE its camera goes — no GL in it |
 | `useThumbnails.ts` | the cache, and drawing one row per task so the list paints between them |
-| `ItemRow.tsx` | one model's row: its picture, its name, its size, and its two independent answers |
+| `ItemRow.tsx` | ONE LINE per model: picture, name, size, a health mark, a status chip, the control that says what THIS one is, and Remove |
 | `RefusedRow.tsx` | a file that never became a unit, as a row with the same columns |
-| `ItemsPage.tsx` | LAYOUT ONLY: the rail down the left, the rows beside it, the tally underneath |
+| `ItemsPage.tsx` | LAYOUT ONLY: the purpose question, the rail down the left, the rows beside it, the tally underneath |
 
 `drawThumbnail.ts` is **not** in this folder: it lives in `src/components/viewport/` because
 `threeBoundary.test.ts` keeps three.js in the view layer, and it is the one file of the feature that
@@ -214,3 +214,35 @@ Two details that are easy to get wrong:
   write, so an identity test would redraw a row on a write that changed nothing. Only the rotation
   is compared, because the camera centres on the model's own box — a move cannot change the picture,
   and `ModelTransform` carries no scale.
+
+## What a row LOOKS like, and the four rules that decide it (2026-11-18)
+
+The row is a **line in a worklist**, not a card. It was a three-row grid measuring 109px per row
+until the owner looked at a real case: *"the deck looks awful, not compact enough."* A stage case is
+10-30 models, so every pixel of row height is multiplied by thirty. Four rules hold it down, and each
+one is here because breaking it produced a defect somebody had to find on screen rather than in a
+file:
+
+1. **Seven columns, one line, every cell clipped.** `tile | name | size | health | status | category
+   and type | keys`. A sentence that wraps is what made the row three tall, so every text cell gets
+   `text-overflow: ellipsis` and carries its full wording in `title`. The keys share ONE cell
+   (`.row-actions`): Retry exists only on a failed row, and as an eighth child it wrapped the row and
+   overlapped the one below.
+2. **A quiet row says nothing.** A sound mesh shows no verdict and an unqueued row shows no chip.
+   Twenty-four rows reading "Ready to print." is how little is wrong, said twenty-four times.
+3. **The tile is square, because the picture is.** `drawThumbnail` renders a 160px square of the real
+   model as placed. A 36x44 frame stretched that render by a fifth, which is precisely what stops a
+   3D render looking like one; it is 56px square at `object-fit: contain`.
+4. **The type is shown, always.** The category control answers *what is this*; the type select beside
+   it states *which profile the engine will run* — the pillar diameter, the contact size, the tilt
+   rule. Each family ships one profile today, and the deck briefly drew no type control for that
+   reason, on the argument that a one-option control is a question with a single answer. It is not a
+   question, it is a READOUT, and hiding it meant the operator could not see what they were about to
+   print with. Owner, 2026-11-18: *"deck fail to show type, only show category, dangerous gap it
+   is."*
+
+And the page around them is **three blocks that fill the window**: `.items-page` is a flex column
+with `flex: 1`, which makes it a direct, growing child of `main` (`PanelBoundary` renders no wrapper
+of its own). The body is the only block that scrolls; the footer carries `margin-top: auto` for a
+short list and `position: sticky` for a long one. Before this the footer sat wherever the list
+stopped - owner: *"footer need to stay bottom, shouldnt shrink up."*
