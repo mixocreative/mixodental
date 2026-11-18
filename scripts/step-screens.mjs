@@ -25,7 +25,6 @@ import { DentureSettingsSection } from '../src/denture/settings/DentureSettingsS
 import { DEFAULT_DENTURE_OPTIONS } from '../src/denture/settings/dentureOptions';
 import { PartsList } from '../src/denture/parts/PartsList';
 import { DentalBar } from '../src/components/DentalBar';
-import { ToolRail } from '../src/deck/ToolRail';
 import { IconSheet } from '../src/kit/IconSheet';
 import { DEFAULT_PROFILE_ID, profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { DentalRimStep } from '../src/dental/rim/DentalRimStep';
@@ -190,16 +189,6 @@ const AREA_SCREENS = [
 
 SCREENS.push(...AREA_SCREENS);
 
-/*
- * THE DECK'S TOOL RAIL, in the four states it can be in at once. It is the one surface a designer
- * cannot otherwise reach without importing a model and getting it into each state in turn, and it is
- * where the rail's own rule lives: greyed, busy and stale must never resemble each other.
- */
-SCREENS.push(['deck-tool-rail', 'The deck tool rail - ready, busy, stale and unavailable together', () => ({
-  chrome: [],
-  dock: h('div', { key: 'p', style: { padding: '18px' } },
-    h(ToolRail, { key: 'a', facts: { tools: ['orient', 'rim', 'area', 'supports'], oriented: true, hasRim: true, areaAccepted: false, stale: ['rim'], runningTool: 'area' }, onPick: noop })),
-}), true]);
 
 SCREENS.push(...RIM_SCREENS);
 
@@ -256,7 +245,6 @@ for (const [name, caption, build, whole = false] of SCREENS) {
  *   layout  CSS yes, structure no: that is TSX and the data-ui contract.
  */
 const GROUPS = [
-  ['The deck', 'deck-', ['src/deck/ToolRail.tsx', 'src/deck/toolState.ts']],
   ['Aligner Step 1 - the rim', 'aligner-step1-', ['src/dental/rim/DentalRimStep.tsx', 'src/dental/rim/rimStepText.ts']],
   ['Aligner Step 2 - the support area', 'aligner-step2-', ['src/components/DentalBar.tsx']],
   ['Aligner Step 3 - supports', 'aligner-step3-', ['src/components/DentalReviewBlocks.tsx', 'src/components/ReviewSummary.tsx']],

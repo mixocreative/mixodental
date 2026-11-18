@@ -5,6 +5,40 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <title>mixoDental</title>
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
+
+    <!--
+      THE FOUR FACES THE FIRST SCREEN PAINTS, FETCHED AT PARSE TIME.
+
+      Every face in src/fonts.css is `font-display: swap`, which is the right choice - it never hides
+      text - but it does mean the first screen is drawn in a fallback and then RE-DRAWN when the real
+      font arrives.
+
+      (This was first written up as the cause of a key that drew wrong for seconds on 2026-11-18. It
+      was not: that was a selector list in theme.css ending in a comma. The preloads stay because the
+      swap flash is real on a cold load, just smaller than it was blamed for.)
+
+      The fonts are discovered LAST. Nothing in the HTML mentions them: the
+      browser has to fetch the bundle (dev) or the stylesheet (build), parse four CSS files, match a
+      `unicode-range`, and only then ask for a woff2. These four lines move that request to the first
+      moment the parser can make it, alongside the bundle rather than behind it.
+
+      FOUR, NOT THE WHOLE SET. A preload the page does not use is a wasted download and a console
+      warning, so this is only what the entry screen actually paints: Atkinson 400 (the body line),
+      Atkinson 700 (which weight 600 - the keys and the labels - resolves to), and Roboto Mono 400
+      and 700 (the screen heading and the footer's counts). Japanese and Chinese stay on demand;
+      `japanese-subset` is large and most sessions never show a character of it.
+
+      `crossorigin` is NOT optional on a font preload, same origin or not: fonts are fetched in
+      anonymous CORS mode, so a preload without it is a SECOND, separate fetch and the flicker stays.
+    -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="/node_modules/@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-400-normal.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="/node_modules/@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-700-normal.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="/node_modules/@fontsource/roboto-mono/files/roboto-mono-latin-400-normal.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+      href="/node_modules/@fontsource/roboto-mono/files/roboto-mono-latin-700-normal.woff2" />
     <style>
       /*
        * THE LAST RESORT, AND THE ONLY STYLES THAT CANNOT LIVE IN src/styles.css.
@@ -115,6 +149,110 @@
          * browsers. If nothing has mounted a few seconds after the document is ready, say so.
          * `main.tsx` clears this timer, so a slow-but-working start never shows the banner.
          */
+        /*
+         * ?diag=1 — THE LOAD TRACE, and why it is in this script rather than in the app.
+         *
+         * On 2026-11-18 the owner reported a control that drew wrong for a few seconds after every
+         * load and then corrected itself. It could not be reproduced on the development machine:
+         * six experiments (disabling each stylesheet in turn, blocking the theme attribute, sampling
+         * every 25 ms through a reload) all showed the control correct from its first painted frame.
+         * A transient that only happens on ONE machine cannot be found by reasoning from another.
+         *
+         * So the app records its own early frames. It samples the controls named below every 100 ms
+         * for six seconds and keeps only the frames where something CHANGED, then prints the list on
+         * the page - a screenshot of it is a complete answer, from the machine that has the problem.
+         *
+         * It is in the classic script, before the module, because the whole point is to be running
+         * BEFORE React mounts and before the stylesheets the bundle carries have been injected. An
+         * instrument that starts after the app does cannot see the app start.
+         *
+         * Gated on the query string, so it costs a normal load one `indexOf` and ships harmless.
+         */
+        if (location.search.indexOf('diag=1') !== -1) {
+          var watch = ['[data-ui="start-choose-files"]', '.lang-select > select', '[data-ui="items-start"]'];
+          var seen = {}, log = [], t0 = Date.now();
+          /*
+           * WHICH RULE IS WINNING, which is the question the numbers alone could not answer.
+           *
+           * The first version of this trace said the key was `font 30px "Roboto Mono" ink
+           * rgb(23,51,78) on rgb(23,51,78)` - the right fill, the wrong everything else - and four
+           * rounds of reasoning from that could not say WHY, because a computed value names no
+           * source. `getMatchedCSSRules` was removed from browsers years ago, so this walks the
+           * stylesheets and asks each rule whether it matches, which is the same answer by hand.
+           *
+           * Only rules that declare one of the properties in question, so the list is the handful
+           * that could be responsible rather than every rule in the app. Cross-origin sheets throw
+           * on `cssRules` and are skipped; `@media` blocks are stepped into one level, which is as
+           * deep as this stylesheet goes.
+           */
+          var PROPS = ['color', 'font-size', 'font-family', 'background-color', 'padding'];
+          var rulesFor = function (node) {
+            var hits = [];
+            var scan = function (rules, where) {
+              for (var j = 0; j < rules.length; j++) {
+                var rule = rules[j];
+                if (rule.media && rule.cssRules) { scan(rule.cssRules, '@media ' + rule.media.mediaText + ' '); continue; }
+                if (!rule.selectorText || !rule.style) continue;
+                var sets = [];
+                for (var k = 0; k < PROPS.length; k++) {
+                  var value = rule.style.getPropertyValue(PROPS[k]);
+                  if (value) sets.push(PROPS[k] + ': ' + value);
+                }
+                if (!sets.length) continue;
+                var ok = false;
+                try { ok = node.matches(rule.selectorText); } catch (e) { ok = false; }
+                if (ok) hits.push('      ' + where + rule.selectorText + ' { ' + sets.join('; ') + ' }');
+              }
+            };
+            for (var i = 0; i < document.styleSheets.length; i++) {
+              try { scan(document.styleSheets[i].cssRules, ''); } catch (e) { /* cross-origin */ }
+            }
+            return hits;
+          };
+          var sample = function () {
+            for (var i = 0; i < watch.length; i++) {
+              var node = document.querySelector(watch[i]);
+              var line;
+              if (!node) {
+                var root = document.getElementById('root');
+                line = 'absent (root children ' + (root ? root.childElementCount : -1)
+                  + ', sheets ' + document.styleSheets.length + ')';
+              } else {
+                var css = getComputedStyle(node), box = node.getBoundingClientRect();
+                line = Math.round(box.width) + 'x' + Math.round(box.height)
+                  + ' font ' + css.fontSize + ' ' + (css.fontFamily || '').split(',')[0]
+                  + ' ink ' + css.color + ' on ' + css.backgroundColor
+                  + ' pad ' + css.padding
+                  + ' text "' + (node.textContent || '').slice(0, 24) + '"'
+                  + ' sheets ' + document.styleSheets.length
+                  + ' fonts ' + (document.fonts ? document.fonts.status : '?');
+              }
+              if (seen[watch[i]] !== line) {
+                seen[watch[i]] = line;
+                log.push((Date.now() - t0) + 'ms  ' + watch[i] + '  ' + line);
+                // Only for an element that exists, and only when what it looks like has CHANGED:
+                // the rule list is what explains the change, and it is long.
+                if (node) log = log.concat(rulesFor(node));
+              }
+            }
+          };
+          var timer = setInterval(sample, 100);
+          sample();
+          setTimeout(function () {
+            clearInterval(timer);
+            var box = document.createElement('pre');
+            box.id = 'mixo-diag';
+            box.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;max-height:60vh;overflow:auto;'
+              + 'z-index:99999;margin:0;padding:10px;background:#fff;color:#15171a;border:1px solid #d7d9dd;'
+              + 'border-radius:8px;font:11px/1.5 ui-monospace,monospace;white-space:pre-wrap';
+            box.textContent = 'mixoDental load trace (?diag=1) — screenshot this\n'
+              + 'device pixel ratio ' + window.devicePixelRatio + ', window ' + innerWidth + 'x' + innerHeight + '\n\n'
+              + log.join('\n');
+            document.body.appendChild(box);
+            if (window.console && console.log) console.log(box.textContent);
+          }, 6000);
+        }
+
         window.__mixoBootTimer = setTimeout(function () {
           var root = document.getElementById('root');
           if (root && root.childElementCount === 0) show('The application did not start.');

@@ -474,6 +474,44 @@ async function leaveFlow(page, d, answer = 'exit-ask-confirm') {
   if (await key.isVisible().catch(() => false)) await key.click();
 }
 
+/**
+ * ANSWER THE CASE'S PURPOSE QUESTION ON THE DECK.
+ *
+ * It was `page.getByRole('button', { name: 'Aligner' }).click()` on the start screen until
+ * 2026-11-18. Three rulings moved it in one day: onto the deck (one destination), from three big
+ * keys to a dense dropdown (*"it wont make sense to keep the buttons above if u showed the deck"*),
+ * and then from a case-level question to a per-FILE answer (*"each file has a category and type, but
+ * it ask me what i am making for all files, which is wrong"*). So this now drives `Set all`, which
+ * is the convenience that names every row at once. The big keys still exist on the ENTRY screen and
+ * section `s` still reads them there.
+ */
+async function answerCase(page, profileId = 'reference-aligner') {
+  await page.waitForSelector('.items-page', { timeout: 120000 });
+  /*
+   * IT IS A LISTBOX NOW, NOT A SELECT. The category control became a hand-built menu on 2026-11-18
+   * so its list could carry the category pictures, which a native `<select>` popup cannot draw. So
+   * this presses the key and then the option, rather than calling `selectOption`.
+   */
+  const pick = async (ui) => {
+    await page.locator(`[data-ui="${ui}-key"]`).click();
+    await page.locator(`[data-ui="${ui}-option-${profileId}"]`).click();
+  };
+  /*
+   * SET ALL ONLY EXISTS FOR MORE THAN ONE ROW, and a drop where every file was refused has NO rows
+   * at all. Waiting on one control hung the walk for 120 s at `m6` and took the remaining 149 checks
+   * with it - a helper that assumes a control is a check that fails for a reason that is not about
+   * the app. So this names whatever is there: Set all when the case has one, each row otherwise, and
+   * nothing at all when nothing arrived.
+   */
+  if (await page.locator('[data-ui="items-set-all-category-key"]').count()) return pick('items-set-all-category');
+  const rows = await page.locator('[data-ui^="items-purpose-"][data-ui$="-category"]').all();
+  for (const row of rows) {
+    const ui = await row.getAttribute('data-ui');
+    if (ui) await pick(ui);
+  }
+  return undefined;
+}
+
 async function enterEditor(page) {
   await page.getByRole('button', { name: 'Any model', exact: true }).click();
   await page.waitForSelector('.workspace');
@@ -884,7 +922,13 @@ function makeDriver(page) {
  * meant "settled" only for as long as a pending row said nothing. It passed on an idle machine
  * because the batch beat the read, and failed in a full walk because it did not.
  */
-const PENDING_ROW = /Checking the orientation|Waiting its turn/i;
+/*
+ * The row shows a CHIP now, not a sentence (2026-11-18, *"as simple as a game interface"*): a row
+ * being worked on reads "Checking…", and a row merely queued reads NOTHING at all - the footer
+ * counts those once for the whole case. Empty text is already refused by `rowsSettled` below, so
+ * "waiting" needs no pattern of its own; what still needs one is the row in flight.
+ */
+const PENDING_ROW = /Checking/i;
 
 /**
  * Waits until `count` rows carry a VERDICT - not merely text. One definition, because the same
@@ -1357,22 +1401,31 @@ async function walk(url, scratch, dentalFixture) {
       const cube = cubeStl();
       await dropModels([{ name: 'one.stl', text: cube }, { name: 'two.stl', text: cube }, { name: 'three.stl', text: cube }]);
       /*
-       * SEVERAL FILES WAIT FOR THE PURPOSE. A multi-file drop used to import immediately and ask
-       * nothing, which cannot work: `dentalOrient` takes the profile as an ARGUMENT, so there is
-       * nothing to detect against until the purpose is answered. One file still goes straight in on
-       * the default aligner type - that is the fast path, and the ordinary single-aligner case.
+       * THE FILES ARRIVE ON THE DROP, AND THE QUESTION COMES AFTER THEM.
+       *
+       * This check used to assert the opposite, and its own comment is why the fork survived four
+       * Fable passes and an EGM round: *"One file still goes straight in on the default aligner type
+       * - that is the fast path, and the ordinary single-aligner case."* Stated as a feature, in the
+       * walk, in the map and in the code comments. A reviewer audits against the rationale you hand
+       * them, so nobody asked how many destinations the entry had.
+       *
+       * It had two, and they were not equivalent: several files waited for the purpose, while one
+       * file skipped the question entirely on a GUESSED profile - so a dropped denture entered the
+       * aligner flow and was told to draw a rim. The owner's ruling of 2026-11-18 collapsed it: a
+       * drop is a case and the deck takes it, at every count. `m11` holds the single-file half of
+       * this rule and `src/components/startDrop.test.ts` holds the whole matrix.
        */
-      check('m1b several dropped files wait on the Drop page and say how many',
-        await page.locator('[data-ui="start-held"]').isVisible()
-        && /3 files ready/.test(await page.locator('[data-ui="start-held"]').innerText())
-        && (await page.locator('.items-page').count()) === 0,
-        `held "${await page.locator('[data-ui="start-held"]').innerText().catch(() => 'absent')}", items page ${await page.locator('.items-page').count()}`);
-      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
-      // The rows exist only AFTER the purpose press: that press is what starts the import.
+      const askedAfter = await page.waitForSelector('[data-ui="items-unanswered"]', { timeout: 120000 }).then(() => true, () => false);
+      check('m1b a drop imports at once and the deck names the files, rather than asking before them',
+        askedAfter && (await page.locator('.items-page').count()) === 1,
+        `unnamed line ${askedAfter}, items page ${await page.locator('.items-page').count()}`);
+      // The rows exist from the DROP: no press is needed to see what arrived.
       const rows = await page.waitForFunction(() => document.querySelectorAll('.items-row').length === 3, null, { timeout: 180000 })
         .then(() => true, () => false);
       check('m2 a drop of three models on the Drop page gives three rows, not one',
         rows, `rows ${await page.locator('.items-row').count()}`);
+      // From here on the section needs a detected case, so answer the deck's question once.
+      await answerCase(page);
       check('m3 every row is named for its unit, so removing one cannot re-point the others',
         (await page.locator('.items-row[data-ui^="items-row-unit-"]').count()) === 3
         && (await page.locator('[data-ui^="items-preview-unit-"]').count()) === 3,
@@ -1398,7 +1451,7 @@ async function walk(url, scratch, dentalFixture) {
       const detected = await rowsSettled(page, 3);
       const lines = await page.locator('[data-ui^="items-detect-"]').allInnerTexts();
       check('m4b the batch gives every row its own orientation result',
-        detected && lines.length === 3 && lines.every((text) => /No rim found/.test(text)),
+        detected && lines.length === 3 && lines.every((text) => /Needs rim/.test(text)),
         `detect lines ${JSON.stringify(lines)}; rows ${await page.locator('.items-row').count()}, unit rows ${await page.locator('.items-row:not(.items-row--refused)').count()}, detect spans ${await page.locator('[data-ui^="items-detect-"]').count()}, names ${JSON.stringify(await page.locator('.items-row .name').allInnerTexts())}`);
 
       /*
@@ -1436,50 +1489,67 @@ async function walk(url, scratch, dentalFixture) {
         `shots ${JSON.stringify(shots)}`);
 
       /*
-       * THE RAIL IS ON THE DECK, AND IT TEACHES THE ORDER — by what is pressable and by the ONE line
-       * underneath, rather than by three complaints at once.
+       * THE DECK, MEASURED. THIS IS THE CHECK THE LAST TWO DAYS NEEDED AND DID NOT HAVE.
        *
-       * THIS CHECK USED TO ASSERT THE OPPOSITE, AND IT PASSED BECAUSE OF A BUG. It read "three fresh
-       * cubes: nothing is oriented, so Orient is the only tool open and the other three are greyed".
-       * But it runs AFTER `m4b`, which waits for the batch to finish all three rows — so these cubes
-       * have been through detection and came back "No rim found". Nothing was fresh. It passed only
-       * because `oriented` was read off `revisions.orient`, which the batch never writes, so every
-       * row the batch had just oriented still reported as unoriented. A review found that; the rail
-       * was telling the operator to turn a model it had already turned.
+       * It replaces `m4d` and `m4e`, which watched the tool rail that left this page on 2026-11-18.
+       * It is not a like-for-like replacement and it is not meant to be: the owner found FIVE defects
+       * on this screen by looking at it, after a green suite, a clean type check and a 190-check walk
+       * had all passed - a 109px row, a stretched render, unpadded dropdowns, a footer floating in
+       * the middle of the window, and keys flush against the glass.
        *
-       * SO THE HONEST EXPECTATION AFTER THE BATCH IS: Orient open, and **Rim open too** — the flow's
-       * own answer to "no rim found" is to hand over to rim drawing, so greying Rim here would
-       * withhold the one tool the operator is being sent to. Area and Supports stay greyed, because
-       * the area really is measured from a rim that does not exist yet.
+       * Every one of them lives in COMPUTED GEOMETRY, and every check this walk had asked about
+       * BEHAVIOUR: is the control present, does the press do something, does the text say the right
+       * words. A `data-ui` hook cannot be stretched, and `toContain('data-ui=...')` passes just as
+       * happily on a tile squashed by a fifth. So this one reads back NUMBERS, and it asserts the
+       * ones nobody suspected as well as the ones they did - which is the whole lesson:
        *
-       * The reason line is asserted as the AREA's sentence rather than as "two words", because the
-       * property worth pinning is WHICH tool is the next thing to do — the first unavailable one.
+       *   - `rowHeight`   a worklist row is a LINE. 109px x 30 models is 2,600px of scrolling.
+       *   - `shotAspect`  the tile is square because `drawThumbnail` renders a square. A 36x44 frame
+       *                   stretched a real 3D render by a fifth, which is what stopped it looking
+       *                   like one. `imgStretch` checks the picture itself wherever one was drawn
+       *                   (a runner with no WebGL draws none, hence the null).
+       *   - `padless`     a native select with no side padding sets its text against the frame. The
+       *                   invisible overlay selects (the `.lang-select` pattern) are excluded by
+       *                   opacity: those are deliberately bare.
+       *   - `footGap`     the page fills the window, so its footer sits ON the app's status bar
+       *                   rather than wherever the list happened to stop.
+       *   - `sideways`    nothing escapes the viewport, and the gutter keeps keys off the glass.
+       *
+       * Tolerances are generous on purpose. This is not a pixel-perfect snapshot - those fail on
+       * every font update and get disabled - it is a set of floors and ceilings that only a real
+       * regression crosses.
        */
-      const railOpen = await page.locator('[data-ui="tool-orient"]').isDisabled();
-      const railRim = await page.locator('[data-ui="tool-rim"]').isDisabled();
-      const railBlocked = await Promise.all(['area', 'supports'].map((tool) => page.locator(`[data-ui="tool-${tool}"]`).isDisabled()));
-      const railReason = await page.locator('[data-ui="tool-reason"]').innerText().catch(() => '');
-      check('m4d the rail opens what the batch unlocked, greys what is not reachable yet, and names the one next thing',
-        railOpen === false && railRim === false && railBlocked.every((blocked) => blocked === true)
-        && /The area is measured from the rim, so draw the rim first\./.test(railReason),
-        `orient disabled ${railOpen}, rim disabled ${railRim}, area+supports ${JSON.stringify(railBlocked)}, reason ${JSON.stringify(railReason)}`);
-
-      /*
-       * THE RAIL IS DOWN THE LEFT, with the models beside it. Checked as geometry rather than by
-       * class name: what matters is that the rail sits clear to the LEFT of the list and shares its
-       * top, which is what the design asks for and what a stray `display: block` would undo
-       * silently.
-       */
-      const boxes = await page.evaluate(() => {
-        const rail = document.querySelector('.tool-rail')?.getBoundingClientRect();
-        const list = document.querySelector('.items-list')?.getBoundingClientRect();
-        return rail && list
-          ? { railRight: Math.round(rail.right), listLeft: Math.round(list.left), railWidth: Math.round(rail.width), sameBand: Math.abs(rail.top - list.top) < 40 }
-          : undefined;
+      const geom = await page.evaluate(() => {
+        const box = (node) => node?.getBoundingClientRect();
+        const row = box(document.querySelector('.items-row'));
+        const shot = box(document.querySelector('.items-row .shot'));
+        const img = document.querySelector('.items-row .shot img');
+        const deckFoot = box(document.querySelector('.items-footer'));
+        const chrome = box([...document.querySelectorAll('footer')].pop());
+        const imgBox = img ? box(img) : undefined;
+        const padless = [...document.querySelectorAll('.items-page select')].filter((node) => {
+          const style = getComputedStyle(node);
+          return style.opacity !== '0' && parseFloat(style.paddingLeft) < 6;
+        }).length;
+        return {
+          rowHeight: row ? Math.round(row.height) : -1,
+          shotAspect: shot ? Number((shot.width / shot.height).toFixed(3)) : -1,
+          imgStretch: imgBox && img.naturalWidth
+            ? Number(Math.abs((imgBox.width / imgBox.height) / (img.naturalWidth / img.naturalHeight) - 1).toFixed(3))
+            : null,
+          padless,
+          footGap: deckFoot && chrome ? Math.round(chrome.top - deckFoot.bottom) : -1,
+          sideways: Math.round(document.documentElement.scrollWidth - document.documentElement.clientWidth),
+        };
       });
-      check('m4e the rail sits down the left with the models beside it, not under them',
-        boxes !== undefined && boxes.railWidth > 40 && boxes.railRight <= boxes.listLeft && boxes.sameBand,
-        `boxes ${JSON.stringify(boxes)}`);
+      check('m4d the deck measures up: one-line rows, a square undistorted tile, padded dropdowns, the footer on the floor, nothing off the edge',
+        geom.rowHeight > 0 && geom.rowHeight <= 72
+        && Math.abs(geom.shotAspect - 1) < 0.05
+        && (geom.imgStretch === null || geom.imgStretch < 0.02)
+        && geom.padless === 0
+        && geom.footGap >= -2 && geom.footGap <= 8
+        && geom.sideways === 0,
+        JSON.stringify(geom));
 
       /*
        * START SAYS WHICH ROW IT WILL OPEN, and opens that one. It used to open the first UNFINISHED
@@ -1569,8 +1639,11 @@ async function walk(url, scratch, dentalFixture) {
        * to go. It used to demand that an all-refused drop STAY on the Drop page - the fix for landing
        * on a BLANK list. Refused files are rows now, so the list is not blank: it names every file
        * that failed, which is the thing an operator dropping eight actually needs.
+       *
+       * NOTHING IS NAMED HERE, and nothing can be: every file was refused, so there are no rows to
+       * carry a category. The call that used to sit here was a leftover from when a purpose press
+       * was what triggered the import at all.
        */
-      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
       await page.waitForSelector('.items-page', { timeout: 60000 });
       const allRefused = await page.locator('.items-row--refused').allInnerTexts();
       check('m6 a drop where every file is refused opens the list and names them all',
@@ -1587,7 +1660,7 @@ async function walk(url, scratch, dentalFixture) {
       await page.goto(url);
       await page.waitForSelector('.start-screen', { timeout: 60000 });
       await dropModels([{ name: 'good-a.stl', text: cube }, { name: 'good-b.stl', text: cube }]);
-      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+      await answerCase(page);
       await page.waitForSelector('.items-page', { timeout: 180000 });
       check('m7 the Items page always offers a way back',
         (await page.locator('[data-ui="items-back"]').count()) === 1,
@@ -1607,7 +1680,7 @@ async function walk(url, scratch, dentalFixture) {
         { name: 'broken.stl', text: 'solid x\nnot a mesh\n' },
         { name: 'fine-b.stl', text: cube },
       ]);
-      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+      await answerCase(page);
       await page.waitForSelector('.items-page', { timeout: 180000 });
       await d.idle(1500);
       const refusedRows = await page.locator('.items-row--refused').allInnerTexts();
@@ -1618,113 +1691,62 @@ async function walk(url, scratch, dentalFixture) {
         `refused ${JSON.stringify(refusedRows)}, good rows ${await page.locator('.items-row:not(.items-row--refused)').count()}`);
 
       /*
-       * A RAIL PRESS DOES SOMETHING. Until 2026-11-09 `ToolRail` destructured `onPick` and never
-       * called it, and its buttons carried no `onClick`: four tools drawn in four states, none of
-       * them pressable, while `src/deck/README.md` said pressing one works. Two document reviews,
-       * two readings of that file and a long subagent audit all missed it; `noUnusedParameters`
-       * named it in one line, which is why that flag is now on.
+       * m9 AND m10 LEFT WITH THE RAIL (2026-11-18). Both pressed its buttons: m9 that a press
+       * reaches the flow at all (`ToolRail` destructured `onPick` and never called it, and no
+       * document review caught it), m10 that the PRESSED tool is what opens rather than Step 1 every
+       * time. Neither claim has a surface to make it on any more - the deck opens a row at the start
+       * of its flow and that is the only way in, which `m5b` and `m8` already walk.
        *
-       * The press opens the MODEL at the start of its flow - what the call site passes and what the
-       * README describes. Opening the pressed TOOL is per-tool entry, and is not built.
-       *
-       * LAST IN THE SECTION on purpose. It navigates off the deck, and an earlier attempt sat in the
-       * middle and tried to come back with Back: that click timed out and took the twelve checks
-       * below it with it. A check whose own cleanup can fail is worse than no check. Here the deck
-       * m8 left up is all it needs, and nothing after it wants the deck back.
+       * The defect they recorded is not forgotten: it is in
+       * `mixomesh/port/mixosupports/toolrail/README.md` with the component, so whoever mounts the
+       * rail inside a flow re-reads why its handler must be walked rather than reviewed.
        */
-      await page.locator('[data-ui="tool-orient"]').click();
       /*
-       * THE DOCK'S EXISTENCE IS THE CLAIM, NOT ITS TEXT. This used to wait for the badge to read
-       * "Step 1", which is a state a cube row passes THROUGH: the press starts a detection that
-       * ends in rim-define, and the badge is written as soon as the dock mounts, before the model is
-       * handed over. Waiting on text that is replaced makes the check a coin toss on a slow runner,
-       * because `waitForFunction` polls on `requestAnimationFrame` and a runner rendering through
-       * SwiftShader at a few frames per second takes FEWER samples than a workstation - it steps
-       * over a transient rather than dwelling on it. `m5b` carries the long version of that trap.
+       * m11: A DROP LANDS ON THE DECK, WITH THE PURPOSE UNANSWERED — the entry's invariant (owner's
+       * ruling, 2026-11-18: *one destination*).
        *
-       * This check claims only that the press REACHES the flow; which tool opens is `m10`'s claim
-       * and this one does not borrow it. The dock being mounted at all is exactly that claim, it is
-       * settled rather than transient, and it is true at both endings - so there is one branch here
-       * and every machine exercises it. `.edit-badge` is the dock's own element: lines 2433 and 3313
-       * test its ABSENCE to detect the dock closing.
+       * WHAT IT REPLACED, and why the replacement is a different shape. m11 used to prove that "Any
+       * model" kept the files the Drop page had COUNTED (audit MIXO-06): the page held a batch in a
+       * ref, counted it on screen as "8 files ready", and two of the four purpose keys released it
+       * while the other two discarded it silently. That fault is now impossible rather than guarded.
+       * Nothing is held: a drop is imported on the spot, so there is no batch for a key to drop. The
+       * rule worth checking moved with it - that the drop ARRIVES, that the deck is what opens, and
+       * that nothing has been detected against a guessed purpose.
        *
-       * No explicit timeout, so it inherits `forSlowMachines` (120 s on CI). The earlier 30 s cap
-       * went red on CI while passing in seconds on a workstation (run 43296261945); 60 s was the
-       * same bet at twice the stake, and the fix was never a bigger number.
-       */
-      const railOpened = await page.waitForSelector('.edit-badge').then(() => true, () => false);
-      /*
-       * WHAT THIS CHECK PROVES, AND WHAT IT DOES NOT. It proves the press REACHES the flow, which is
-       * the whole of the defect: the button had no handler, so it did nothing at all.
-       *
-       * It does NOT prove the row's model was read. Two attempts to make it do so both failed and the
-       * reason is worth keeping: the badge reads "Step 1" as soon as the dock mounts, before the model
-       * is handed over, so the badge text at that instant is not evidence either way - and waiting for
-       * the jobs to settle instead (`d.quiet()`) hung for its full five minutes, because pressing
-       * Orient on a CUBE starts a detection that ends in rim-define rather than a quiet queue.
-       *
-       * `m5b` already proves the read, through `startItem`, which is the same function this press
-       * calls. One check per claim; this one does not borrow the other's.
-       */
-      check('m9 a rail press reaches the flow, rather than doing nothing at all',
-        railOpened, `reached Step 1: ${railOpened}`);
-
-      /*
-       * THE PRESSED TOOL IS WHAT OPENS (increment E4), and only this check can tell the difference.
-       *
-       * W-02 had two halves. The buttons had no handler at all - `m9` covers that - and `ItemsPage`
-       * then THREW THE TOOL ARGUMENT AWAY, so all four buttons did the one thing: open the model at
-       * Step 1. `m9` passes either way, because Orient's own entry IS Step 1. Rim is the button that
-       * can tell them apart.
-       *
-       * These rows are cubes, so the batch came back "No rim found. Draw one to continue." - the
-       * state Step 1 answers by handing over to rim drawing. Pressing Rim therefore has a right
-       * answer that is NOT Step 1: the rim panel, reached without running `dentalOrient` a second
-       * time to be told what the row already says.
-       *
-       * `rim-why` is the assertion rather than the badge, for the reason `m5b` records about Step 1's
-       * prompt: the badge is written as soon as the dock mounts, so its text at that instant is not
-       * evidence either way. The panel's own line is only there in rim stage.
-       */
-      await page.goto(url);
-      await page.waitForSelector('.start-screen', { timeout: 60000 });
-      await dropModels([{ name: 'rim-one.stl', text: cube }, { name: 'rim-two.stl', text: cube }]);
-      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
-      await page.waitForFunction(() => document.querySelectorAll('.items-row').length === 2, null, { timeout: 180000 });
-      // The rail's Rim is only pressable once the batch has answered for the row it is showing.
-      await page.waitForFunction(
-        () => [...document.querySelectorAll('[data-ui^="items-detect-"]')].filter((node) => /No rim found/.test(node.textContent ?? '')).length === 2,
-        null, { timeout: 240000 }).catch(() => {});
-      const rimHint = await page.locator('[data-ui="tool-rim"]').getAttribute('title')
-        ?? await page.locator('[data-ui="tool-rim"]').getAttribute('aria-label');
-      await page.locator('[data-ui="tool-rim"]').click();
-      const inRim = await page.waitForSelector('[data-ui="rim-why"]', { timeout: 60000 }).then(() => true, () => false);
-      check('m10 Rim on a row the detector flagged opens rim drawing, not Step 1 over again',
-        inRim && (await page.getByText('Place the aligner file here').count()) === 0,
-        `rim panel ${inRim}, badge ${JSON.stringify((await page.locator('.edit-badge').textContent().catch(() => '')) ?? '')}, hint ${JSON.stringify(rimHint ?? '')}, file prompts ${await page.getByText('Place the aligner file here').count()}`);
-
-      /*
-       * m11: "ANY MODEL" KEEPS THE FILES THE SCREEN JUST COUNTED (audit MIXO-06).
-       *
-       * `Aligner` and `Denture` claimed the held batch; `Any model` and `Open a saved project` did
-       * not, so an operator who dropped a case of eight, read "8 files ready" and pressed the one
-       * purpose that needs no detection landed in an EMPTY workspace - 0 objects, no message,
-       * nothing to undo, and no way to tell whether the drop or the button had failed.
-       *
-       * It has to be checked here and not in the suite: the batch lives in a ref that only a real
-       * press can claim, and `environment: 'node'` with `renderToStaticMarkup` cannot click. This is
-       * the same reason `q3` exists for the double-press rule.
+       * It has to be checked here and not in the suite: `environment: 'node'` with
+       * `renderToStaticMarkup` cannot drop a file or click a key.
        */
       await page.goto(url);
       await page.waitForSelector('.start-screen', { timeout: 60000 });
       await dropModels([{ name: 'any-one.stl', text: cube }, { name: 'any-two.stl', text: cube }, { name: 'any-three.stl', text: cube }]);
-      await page.waitForSelector('[data-ui="start-held"]', { timeout: 60000 });
-      await page.locator('[data-ui="start-any-model"]').click();
-      const anyModelKept = await page.waitForFunction(
-        () => /(^|\D)3 objects?/.test(document.querySelector('footer')?.innerText ?? ''), null, { timeout: 180000 },
+      // The DECK, not the flow and not the bench, whatever the count.
+      const onDeck = await page.waitForSelector('[data-ui="items-unanswered"]', { timeout: 120000 }).then(() => true, () => false);
+      const deckRows = await page.locator('.items-row').count();
+      /*
+       * AND NOTHING RAN. The purpose is what `dentalOrient` is given, so a detector that started
+       * before any file was named could only have started on a guess - which is the defect this
+       * screen was rebuilt to remove. An absent primary is that rule on the controls: nothing offers
+       * to start work nobody has described. Every row carries its own naming control.
+       */
+      const noGuess = (await page.locator('[data-ui="items-progress"]').count()) === 0
+        && (await page.locator('[data-ui="items-start"]').count()) === 0
+        && (await page.locator('[data-ui^="items-purpose-"]').count()) >= 3;
+      check('m11 a drop of three lands on the deck unnamed, with a control on each row and nothing detected on a guess',
+        onDeck && deckRows === 3 && noGuess,
+        `unnamed line ${onDeck}, rows ${deckRows}, controls-and-nothing-ran ${noGuess}`);
+
+      /*
+       * m11b: NAMING THEM IS WHAT STARTS THE WORK. The other half of the same rule - a gate that
+       * never opens is indistinguishable from a broken screen, and this says which it is. `Set all`
+       * is the one press that names a whole stage case.
+       */
+      await answerCase(page);
+      const ranAfterAnswer = await page.waitForFunction(
+        () => document.querySelector('[data-ui="items-start"]') !== null, null, { timeout: 180000 },
       ).then(() => true, () => false);
-      check('m11 Any model imports the files the Drop page counted, instead of discarding them',
-        anyModelKept, `footer ${JSON.stringify((await page.locator('footer').innerText().catch(() => '')) ?? '')}`);
+      check('m11b naming the files is what lets the case start',
+        ranAfterAnswer && (await page.locator('[data-ui="items-unanswered"]').count()) === 0,
+        `start key ${ranAfterAnswer}, still unnamed ${await page.locator('[data-ui="items-unanswered"]').count()}`);
     }
 
     /*
@@ -1759,7 +1781,7 @@ async function walk(url, scratch, dentalFixture) {
         await page.goto(url);
         await page.waitForSelector('.start-screen', { timeout: 60000 });
         await dropOnStart([{ name: 'q-one.stl', text: qCube }, { name: 'q-two.stl', text: qCube }, { name: 'q-three.stl', text: qCube }]);
-        await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+        await answerCase(page);
         await page.waitForFunction(() => document.querySelectorAll('.items-row').length === 3, null, { timeout: 180000 });
       };
 
@@ -1839,23 +1861,56 @@ async function walk(url, scratch, dentalFixture) {
       await page.goto(url);
       await page.waitForSelector('.start-screen', { timeout: 60000 });
       await dropOnStart([{ name: 'r-one.stl', text: qCube }, { name: 'r-two.stl', text: qCube }, { name: 'r-three.stl', text: qCube }]);
-      await page.waitForSelector('[data-ui="start-held"]', { timeout: 60000 });
+      await page.waitForSelector('[data-ui="items-set-all-category-key"]', { timeout: 120000 });
       /*
-       * BOTH PRESSES IN ONE TICK, through the element Playwright itself resolves. The first version
-       * of this hunted for a button whose textContent was exactly "Aligner" and found none - the
-       * purpose keys carry more than their label - so it reported `presses 0` and failed a check
-       * about the app on a fault in the check. The count is returned and asserted for exactly that
-       * reason: a replay test that never replayed is a vacuous pass, and it has to be able to say so.
+       * WHAT THIS CHECK IS NOW ABOUT, because the fault it was written for cannot happen any more.
+       *
+       * It used to prove that the purpose key pressed twice imported the HELD batch once. The Drop
+       * page kept the files in a ref and released them on the press, so two presses in one tick both
+       * saw the same batch and both released it: three dropped files became six rows, each imported
+       * twice. With the entry collapsed to one destination (owner's ruling, 2026-11-18) the files are
+       * imported on the DROP, so there is no batch left for a press to release twice. The structure
+       * replaced the guard, which is the better fix and the reason this check changed shape.
+       *
+       * The replay that remains is the detector's: the press is what queues every row, and a second
+       * press in the same tick must not queue them again. `useBatchDetect` keeps a `started` set for
+       * that, and nothing else proves it - duplicate QUEUEING shows up as rows detected twice, not as
+       * duplicate rows, so the assertion is on the batch finishing with three sound rows.
+       *
+       * Both presses go out in ONE `page.evaluate`, so they land in the same tick - two Playwright
+       * clicks would be two tasks with a render between them, which is a different and weaker fault.
        */
-      const purposeKey = await page.getByRole('button', { name: 'Aligner', exact: true }).elementHandle();
-      const pressedTwice = purposeKey ? await purposeKey.evaluate((node) => { node.click(); node.click(); return 2; }) : 0;
-      await page.waitForFunction(() => document.querySelectorAll('.items-row').length >= 3, null, { timeout: 180000 }).catch(() => {});
+      /*
+       * TWO ANSWERS IN ONE TICK, through the control the operator actually uses - a LISTBOX since
+       * the category menu was hand-built to carry its pictures (owner, 2026-11-18). It replays by
+       * dispatching `pointerdown` on the same option twice before React can render between them,
+       * which is the same fault shape as the double press this check replaced: the first press
+       * closes the menu, but inside one tick the node is still there to be pressed again.
+       *
+       * The count is returned and asserted because an earlier version of this hunted for a button
+       * whose textContent was exactly "Aligner" and found none - the purpose keys carry more than
+       * their label - so it reported `presses 0` and failed a check about the app on a fault in the
+       * check. A replay test that never replayed is a vacuous pass and has to be able to say so.
+       */
+      await page.locator('[data-ui="items-set-all-category-key"]').click();
+      await page.waitForSelector('[data-ui="items-set-all-category-option-reference-aligner"]', { timeout: 20000 });
+      const pressedTwice = await page.evaluate(() => {
+        const option = document.querySelector('[data-ui="items-set-all-category-option-reference-aligner"]');
+        if (!option) return 0;
+        const fire = () => option.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+        fire();
+        fire();
+        return 2;
+      });
+      await page.waitForFunction(() => document.querySelector('[data-ui="items-start"]') !== null, null, { timeout: 180000 }).catch(() => {});
       await d.idle(3000);
       const replayRows = await page.locator('.items-row').count();
       const replayNames = await page.locator('.items-row .name').allInnerTexts();
-      check('q3 G2 the purpose pressed twice imports the held files once',
-        pressedTwice === 2 && replayRows === 3 && new Set(replayNames).size === replayNames.length,
-        `presses ${pressedTwice}, rows ${replayRows}, names ${JSON.stringify(replayNames)}`);
+      // One detect line per row: a row queued twice settles twice and would show more.
+      const detectLines = await page.locator('.items-row .detect').count();
+      check('q3 G2 the purpose pressed twice detects each row once',
+        pressedTwice === 2 && replayRows === 3 && detectLines === 3 && new Set(replayNames).size === replayNames.length,
+        `presses ${pressedTwice}, rows ${replayRows}, detect lines ${detectLines}, names ${JSON.stringify(replayNames)}`);
       }
 
 
@@ -1904,7 +1959,7 @@ async function walk(url, scratch, dentalFixture) {
       await page.waitForSelector('.start-screen', { timeout: 60000 });
       await page.evaluate(() => { window.__replayWorker = 'analysisWorker'; });
       await dropOnStart([{ name: 'w-one.stl', text: qCube }, { name: 'w-two.stl', text: qCube }, { name: 'w-three.stl', text: qCube }]);
-      await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+      await answerCase(page);
       await page.waitForFunction(() => document.querySelectorAll('.items-row').length === 3, null, { timeout: 180000 }).catch(() => {});
       const replayedSettled = await rowsSettled(page, 3);
       await d.idle(2000);
@@ -2044,7 +2099,7 @@ async function walk(url, scratch, dentalFixture) {
           for (const file of dropped) transfer.items.add(new File([file.text], file.name));
           document.querySelector('.start-screen').dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
         }, { dropped: files });
-        await page.getByRole('button', { name: 'Aligner', exact: true }).click();
+        await answerCase(page);
         await page.waitForFunction((count) => document.querySelectorAll('.items-row').length === count, files.length, { timeout: 180000 });
       };
       /** What the rows say about themselves, in row order: the deck's only answer per model. */
@@ -2824,8 +2879,8 @@ async function walk(url, scratch, dentalFixture) {
         await page.waitForSelector('.items-page', { timeout: 20000 });
       }
       check('u5m the bench offers the way back to the case, so Exit is not a dead end',
-        onBench && (await page.locator('.tool-rail').count()) === 1 && (await page.locator('.items-list li').count()) > 0,
-        `key on bench ${onBench}, rails ${await page.locator('.tool-rail').count()}, rows ${await page.locator('.items-list li').count()}`);
+        onBench && (await page.locator('.items-page').count()) === 1 && (await page.locator('.items-list li').count()) > 0,
+        `key on bench ${onBench}, decks ${await page.locator('.items-page').count()}, rows ${await page.locator('.items-list li').count()}`);
       /*
        * ESC ON THE DECK MUST NOT REACH THE FLOW UNDERNEATH, and until 2026-11-17 it did.
        *
@@ -3951,11 +4006,25 @@ async function walk(url, scratch, dentalFixture) {
         ...await page.locator('.start-task .choice-key-label').allTextContents(),
         ...await page.locator('.start-task button:not(.choice-key)').allTextContents(),
       ].map((name) => name.trim());
-      check('s1 the app opens on the task screen: the three choices drawn alike, Open a saved project, and no workspace',
-        names.join('|') === 'Aligner|Denture|Any model|Open a saved project' && (await page.locator('.start-task .primary').count()) === 0 && (await page.locator('.workspace').count()) === 0, names.join('|'));
+      /*
+       * THE DROP TARGET IS NOW ON THIS SCREEN, and it brought a key with it. The page is named `drop`
+       * and until 2026-11-18 never used the word: the whole section was the target, announced only by
+       * a 1px outline once a drag had already started. It has its own picker key, and that key IS the
+       * primary - dropping is the ordinary way in (owner's ruling: *one destination*), so the screen
+       * does have a main action now.
+       *
+       * What the original assertion was protecting still holds and is still asserted: the three
+       * CHOICES are drawn alike, none of them recommended over the others. `.choice-key` is excluded
+       * from the primary count for exactly that reason.
+       */
+      check('s1 the app opens on the drop screen: a drop target, the three choices drawn alike, Open a saved project, and no workspace',
+        names.join('|') === 'Aligner|Denture|Any model|Choose STL files|Open a saved project'
+        && (await page.locator('.start-task .choice-key.primary').count()) === 0
+        && (await page.locator('[data-ui="start-drop"]').count()) === 1
+        && (await page.locator('.workspace').count()) === 0, names.join('|'));
       check('u1a on the Drop page the header has no Undo, Redo, Hide models or Wireframe, the language switch stays, the heading is present, and the footer says what to do',
         (await page.locator('header').getByRole('button', { name: /^(Undo|Redo|Hide models|Wireframe)/ }).count()) === 0 && await page.locator('header').getByLabel('Language').isVisible() &&
-        await page.getByRole('heading', { name: 'What are you making?' }).isVisible() && (await page.locator('footer strong').innerText()) === 'Drop one or more files, or choose what to make.', await page.locator('footer strong').innerText());
+        await page.getByRole('heading', { name: 'Drop your files here' }).isVisible() && (await page.locator('footer strong').innerText()) === 'Drop one or more files, or choose what to make.', await page.locator('footer strong').innerText());
       await supports().click();
       await onScreen('file');
       check('s2 Aligner goes straight to the file screen, full-screen with Back, and no type cards remain',
@@ -4013,22 +4082,43 @@ async function walk(url, scratch, dentalFixture) {
        */
       await page.keyboard.press('Escape');
       await onScreen('drop');
-      // NOT a `.choice-key` count: the Drop page has three of its own (Aligner, Denture, Any model).
-      // What marks the absent type screen is that Drop is up and the file screen is gone.
+      /*
+       * NOT a `.choice-key` count: the Drop page has three of its own (Aligner, Denture, Any model).
+       * And NOT `.dental-drop` either, which is what this used to read - the Drop page now reuses that
+       * class for its OWN drop target (one dashed panel style, drawn once), so the selector stopped
+       * distinguishing the two screens and this check failed on a page that was perfectly correct.
+       * `.dental-stage` is the file screen's own wrapper and nothing else uses it.
+       */
       check('s7 Escape on the file screen returns to the Drop page, with no type screen in between',
-        await page.locator('.start-task').isVisible() && (await page.locator('.start-screen .dental-drop').count()) === 0);
+        await page.locator('.start-task').isVisible() && (await page.locator('.start-screen .dental-stage').count()) === 0);
       await supports().click();
       await onScreen('file');
       await d.button('Back').click();
       await onScreen('drop');
       check('s8 Back on the file screen returns to the Drop page', await page.locator('.start-task').isVisible());
 
-      // The reference aligner chosen on the file screen enters Step 1.
+      /*
+       * CHOOSING FIRST ONLY PRESELECTS (owner's ruling, 2026-11-18). This block waited for the Step 1
+       * badge and hung the full 180 s on a page that was perfectly correct: the file screen is not a
+       * second route into the editor any more, it is the SAME destination with the answer already
+       * filled in. So the file lands on the deck, and the deck's own Start is what opens the flow.
+       *
+       * The preselect is asserted rather than assumed, because it is the whole of what that ruling
+       * buys: the row arrives named, so `items-start` is there with nobody having answered anything
+       * and the unanswered footer never appears. Drop the preselect and s9a fails while s9 still
+       * passes - which is exactly the split that makes it worth two checks.
+       */
       await supports().click();
       await onScreen('file');
       await page.setInputFiles('input[aria-label="Choose aligner file"]', reference);
+      await onScreen('items');
+      // The reference aligner is 374k triangles: detection is the long pole, not the render.
+      await page.waitForFunction(() => document.querySelector('[data-ui="items-start"]') !== null, null, { timeout: 180000 });
+      check('s9a the aligner chosen on the file screen lands on the case already named, with nothing left to answer',
+        (await page.locator('.items-list li').count()) === 1 && (await page.locator('[data-ui="items-unanswered"]').count()) === 0);
+      await page.locator('[data-ui="items-start"]').click();
       await page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 1 · aligner') && document.body.innerText.toLowerCase().includes('review the orientation'), null, { timeout: 180000 });
-      check('s9 the reference aligner chosen on the file screen reaches Step 1 with its type, in the editor', (await page.locator('.start-screen').count()) === 0 && (await page.locator('.workspace').count()) === 1 && await unitsOnPlate() === 1);
+      check('s9 and starting it reaches Step 1 with its type, in the editor', (await page.locator('.start-screen').count()) === 0 && (await page.locator('.workspace').count()) === 1 && await unitsOnPlate() === 1);
       await d.button('Back').click();
       /*
        * BACK AT STEP 1 SHOWS THE CASE, not the Drop page (E1b). This check used to wait on
@@ -4066,16 +4156,25 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(500);
       check('s14 a non-STL dropped on the task screen is refused and the screen stays', await page.locator('.start-task').isVisible() && /Unsupported|not supported|file type|STL/i.test(await d.status()), `status "${await d.status()}"`);
       /*
-       * ONE STL DROPPED ON DROP GOES STRAIGHT IN. These were two checks - the file was held, then the
-       * type step followed, then choosing the type reached Step 1. With the type screen gone (7c) the
-       * type is derived by `defaultProfileId('aligner')`, so the drop has nothing left to ask and the
-       * two middle presses are gone with it.
+       * ONE STL DROPPED ON DROP LANDS ON THE DECK, AND NOTHING WAS GUESSED FOR IT.
+       *
+       * Three shapes in one day. It was: hold the file, show the type step, press a card, reach Step
+       * 1. Then 7c removed the type step and `defaultProfileId('aligner')` silently supplied the
+       * answer - which is the defect the owner found by looking at the screen, because a denture
+       * dropped here was quietly called an aligner. Now the drop asks on the deck, per file.
+       *
+       * So the assertion is the opposite of what it was: the Start key must be ABSENT until someone
+       * says what the file is. A guess restored anywhere upstream fails this line.
        */
       await dropOnStart('cube.stl', cubeStl());
+      await onScreen('items');
+      check('s15 an STL dropped on the Drop page lands on the case, with no type guessed for it',
+        (await page.locator('.items-list li').count()) === 1 && (await page.locator('[data-ui="items-start"]').count()) === 0);
+      await answerCase(page);
+      await page.waitForFunction(() => document.querySelector('[data-ui="items-start"]') !== null, null, { timeout: 180000 });
+      await page.locator('[data-ui="items-start"]').click();
       await atStep1();
-      check('s15 an STL dropped on the Drop page goes straight to Step 1, with no type step to answer',
-        (await page.locator('.start-screen').count()) === 0 && (await page.locator('.start-task').count()) === 0);
-      check('s16 and the dropped aligner is on the plate', await plateHas(1));
+      check('s16 and the answered aligner is on the plate, in Step 1', await plateHas(1));
       /*
        * WAIT FOR THE STEP BEFORE PRESSING ITS BACK. s16 arrives at Step 1 through a HELD file, so the
        * aligner is still being read when the check passes: the import is a blocking job and the step
@@ -4120,15 +4219,22 @@ async function walk(url, scratch, dentalFixture) {
       /*
        * s18 used to drop on the TYPE screen and then press its card. That screen is gone (7c), so what
        * is left to prove is the pair the type screen used to sit between: a drop on the file screen
-       * enters Step 1 on the derived type, and stepping back from there keeps the aligner on the plate
-       * (by way of the case now, not straight to Drop - E1b).
+       * carries the answer already chosen there, and stepping back keeps the model on the plate (by
+       * way of the case now, not straight to Drop - E1b).
+       *
+       * s9a proves the preselect through the PICKER; this proves it through a DROP, which is a
+       * different branch of `dropAction` and the one that reads `options.chosen`. No `answerCase`
+       * here on purpose: needing one would mean the drop lost the answer.
        */
       await page.goto(url);
       await supports().click();
       await onScreen('file');
       await dropOnStart('cube.stl', cubeStl());
+      await onScreen('items');
+      await page.waitForFunction(() => document.querySelector('[data-ui="items-start"]') !== null, null, { timeout: 180000 });
+      await page.locator('[data-ui="items-start"]').click();
       await atStep1();
-      check('s18 an STL dropped on the file screen enters Step 1 on the derived type',
+      check('s18 an STL dropped on the file screen enters Step 1 on the type chosen there',
         (await page.locator('.start-screen').count()) === 0);
       // The cube fails orientation and opens rim define mode, which takes Back away: leave it first.
       // Inherits `forSlowMachines`: a cube ALWAYS fails orientation, so this state always arrives.
@@ -4143,10 +4249,18 @@ async function walk(url, scratch, dentalFixture) {
       await supports().click();
       await onScreen('file');
       await dropOnStart('cube.stl', cubeStl());
-      await atStep1();
-      check('s19 dropping again on the file screen enters Step 1, replacing the aligner that stayed', await plateHas(1));
-      // Leave the flow so the checks after this block start with no mode on.
-      await leaveFlow(page, d);
+      await onScreen('items');
+      /*
+       * AN IMPORT ADDS. It used to REPLACE - `useImportFiles` carried a `freshStart` that wiped the
+       * plate when a drop arrived from the start screen, so a second file silently destroyed the
+       * first and this check asserted the plate still held one. With one destination for every drop
+       * (owner's ruling) a case is built up by dropping into it, and a wipe nobody asked for is the
+       * data loss it always was. Two objects is the fix, and this line is what holds it.
+       */
+      check('s19 dropping again on the file screen adds to the case instead of replacing it', await plateHas(2));
+      // The block ends standing on Drop with no flow open, so the checks after it start clean.
+      await page.locator('[data-ui="items-back"]').click();
+      await onScreen('drop');
     }
   } catch (error) {
     // The tab's death is reported ONCE, as itself, rather than as whichever control was unlucky.
@@ -4519,7 +4633,7 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 189;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case
+const EXPECTED_CHECKS = 188;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
 if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,

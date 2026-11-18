@@ -47,6 +47,7 @@ const INLINE_STYLE_EXCEPTIONS: Record<string, string> = {
   'src/components/viewport/CirclePreview.tsx': 'the brush circle size is the brush radius in pixels',
   'src/components/ObjectViewport.tsx': 'the canvas cursor changes with the gesture (its colours are tokens, read in style.ts)',
   'src/components/BabylonObjectViewport.tsx': 'the canvas cursor changes with the gesture, the same exception and the same `canvasCursor` as the three.js view',
+  'src/components/PurposeMenu.tsx': 'the menu list is `position: fixed` so the scrolling deck body cannot clip it, so its top/left are the measured box of the button it opened from; every colour and size is in styles.css',
 };
 
 describe('no colour literals outside the token files', () => {
