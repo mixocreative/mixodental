@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Art } from '../ui/Art';
 import { t } from '../i18n';
+import type { TypeBadge } from './purposes';
 
 /**
  * THE CATEGORY PICKER, WITH THE PICTURES IN THE LIST — one job, and the reason it is hand-built.
@@ -41,9 +42,10 @@ export interface PurposeOption {
   readonly icon?: string;
   /**
    * One letter in a rounded box, for an option that is a NAME - a type. A profile has no product to
-   * draw, and a drawing of one would overclaim what a general-purpose profile is.
+   * draw, and a drawing of one would overclaim what a general-purpose profile is. `style` becomes
+   * the CSS class `.purpose-badge--<style>`, which is where a badge is DESIGNED.
    */
-  readonly badge?: string;
+  readonly badge?: TypeBadge;
 }
 
 export function PurposeMenu({ options, value, ui, label, onChoose }: {
@@ -72,7 +74,7 @@ export function PurposeMenu({ options, value, ui, label, onChoose }: {
   const chosen = options.find((option) => option.value === value);
   /** A picture for a thing, a letter for a name. One helper so the key and the list cannot differ. */
   const face = (option: PurposeOption) => (option.badge !== undefined
-    ? <span className="purpose-badge" aria-hidden="true">{option.badge}</span>
+    ? <span className={`purpose-badge purpose-badge--${option.badge.style}`} aria-hidden="true">{option.badge.letter}</span>
     : <Art name={option.icon ?? ''} className="purpose-art" />);
 
   /*
@@ -96,7 +98,9 @@ export function PurposeMenu({ options, value, ui, label, onChoose }: {
     }
     list.current?.focus();
     const away = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
+      // Focus goes back to the key, not to `<body>`: the other two exits do that, and a Tab after
+      // this one would otherwise restart at the top of a document holding thirty cards.
+      if (!root.current?.contains(event.target as Node)) { setOpen(false); button.current?.focus(); }
     };
     document.addEventListener('pointerdown', away);
     return () => document.removeEventListener('pointerdown', away);
@@ -109,7 +113,17 @@ export function PurposeMenu({ options, value, ui, label, onChoose }: {
   };
 
   const onKeys = (event: React.KeyboardEvent) => {
-    if (event.key === 'Escape' || event.key === 'Tab') { setOpen(false); button.current?.focus(); return; }
+    if (event.key === 'Escape' || event.key === 'Tab') {
+      /*
+       * THE DECK IS LISTENING FOR ESCAPE TOO, and it goes BACK. A native `<select>` popup swallows
+       * its own Escape; this one has to say so, or closing a category menu navigated the whole
+       * screen away from the case. Tab is let through, because moving on is what Tab is for.
+       */
+      if (event.key === 'Escape') event.stopPropagation();
+      setOpen(false);
+      button.current?.focus();
+      return;
+    }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       setActive((at) => (at + (event.key === 'ArrowDown' ? 1 : options.length - 1)) % options.length);

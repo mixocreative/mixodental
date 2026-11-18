@@ -6,8 +6,10 @@ import { kindOfProfile } from '@mixo-geocore/host/dental/dentalKind';
 import { sizeSummary, triangleSummary } from './itemSummary';
 import { verdictOfDiagnosis } from './rowState';
 import { rowSentence } from './rowText';
-import { THUMB_SIZE, type ThumbCache } from './thumbnail';
+import type { ThumbCache } from './thumbnail';
+import { formatBytes } from './deckBudget';
 import { PurposeSelect } from '../components/PurposeSelect';
+import { CardShot } from './CardShot';
 import type { Lang } from '../i18n';
 
 /**
@@ -25,16 +27,17 @@ import type { Lang } from '../i18n';
  * Every part is named for the UNIT, never for the row's position: `items-row-3` would re-point every
  * later row the moment one is removed.
  */
-export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, onPurpose, lang, onSelect, onRemove, onRetry }: {
+export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, onPurpose, lang, live, onLive, onRelease, onSelect, onOpen, onRemove, onRetry }: {
   unit: PrintUnit;
   /**
-   * WHAT THIS ROW IS, which is the case's answer unless this row was re-answered.
+   * WHAT THIS CARD IS: its own answer, absent until somebody gives one.
    *
-   * The owner's ruling of 2026-11-18: *one press sets the case, a row can be re-answered.* A stage
-   * case is 10-30 models of one kind, so asking per file would be twenty-four presses to say one
-   * word - but a mixed drop (upper, lower, a night guard, a denture base) is ordinary, and the ROW
-   * is where a wrong answer shows itself: "No rim found. Draw one to continue." on an object whose
-   * rail has no Rim button at all. The control is therefore on the row that is complaining.
+   * It is PER FILE, and this comment used to say the opposite - *"one press sets the case, a row
+   * can be re-answered"* - which was the ruling for about six hours before the owner saw it on
+   * screen: *"each file has a category and type, but it ask me what i am making for all files,
+   * which is wrong."* An upper aligner, a lower aligner and a denture base arrive in one drop, so a
+   * case-level answer is wrong for part of every mixed drop. `Set all` is the convenience that
+   * keeps a stage case of thirty same-kind models to one press; it is not the question.
    */
   purpose: string | undefined;
   /** Re-answer this one row. The caller re-runs its detection under the new answer. */
@@ -53,7 +56,23 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
   willOpen: boolean;
   detected: DetectState | undefined;
   thumbnails: ThumbCache;
+  /**
+   * This is the card whose picture is LIVE. One model at a time has the deck's renderer, and the
+   * page decides which, so a card can ask but never take it.
+   */
+  live: boolean;
+  onLive: () => void;
+  onRelease: () => void;
   onSelect: () => void;
+  /**
+   * OPEN THIS MODEL IN THE FLOW, at Step 1. The owner's card spec, 2026-11-18: *"each item has an
+   * auto gen button and edit button that goes to step1"*.
+   *
+   * A card is a thing you act ON, so the action belongs on it. The footer's Start key still exists
+   * and still opens whichever row is marked - that is the "carry on where I was" key, read from
+   * across the room. This is the "that one, now" key, and a worklist needs both.
+   */
+  onOpen: () => void;
   onRemove: () => void;
 }) {
   // No verdict means the unit never went through the import worker, or predates the verdict. The row
@@ -120,19 +139,36 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
     data-ui={`items-row-${unit.id}`}
     onClick={onSelect}
   >
-    <span className="shot" data-ui={`items-shot-${unit.id}`}>
-      {/*
-        The model as it is PLACED, so the row shows the orientation the batch just reported. It is
-        decoration beside the name and the sentences, which carry the same facts in words, so it
-        takes an empty `alt` rather than a description no screen reader needs to hear.
-      */}
-      {shot ? <img src={shot} alt="" width={THUMB_SIZE} height={THUMB_SIZE} /> : null}
-    </span>
+    {/*
+      BUSY IS DRAWN FROM THE ROW'S OWN STATE, so one card can be working while the rest sit still -
+      which is exactly what a serial queue looks like and is the honest picture of it.
+    */}
+    <CardShot unit={unit} shot={shot} live={live} onLive={onLive} onRelease={onRelease}
+      busy={detected?.kind === 'running' ? { label: translateMessage({ key: 'Checking…' }) } : undefined} />
+    {/*
+      THE NAME. It was deleted by accident when the shot became `CardShot` - the edit that replaced
+      the picture took the span after it as well - and for an hour the deck identified every
+      imported file only by an `aria-label`, while a REFUSED file still named itself. A review
+      caught it; three walk checks read `.items-row .name` and would have caught it next.
+      `title` carries the whole name, because the card clips it.
+    */}
     <span className="name" title={unit.name}>{unit.name}</span>
-    <span className="preview" data-ui={`items-preview-${unit.id}`}>
-      {translateMessage(triangleSummary(unit.source))}
-      {' · '}
+    {/*
+      THE SIZE FIRST, because that is what a technician checks. Owner, 2026-11-18: *"instead of
+      triangles, show dimensions and file size"*. The triangle count is a MACHINE fact - it decides
+      what the case costs to hold and generate, which the deck's own budget line now says once for
+      the whole case - so it moves to where a curious reader finds it rather than taking the line
+      every card spends on telling a lab something about its model.
+
+      THE FILE SIZE IS THE FILE'S, not the mesh's cost in memory - an 18.7 MB STL is ~6.4 MiB once
+      welded. They are different facts: this is the one a lab recognises off a folder listing, and
+      the deck's budget line says the other once for the whole case. It is absent rather than
+      guessed on a unit from a project saved before `bytes` existed.
+    */}
+    <span className="preview" data-ui={`items-preview-${unit.id}`}
+      title={translateMessage(triangleSummary(unit.source))}>
       {translateMessage(sizeSummary(unit.source))}
+      {unit.file === undefined ? null : <> {'·'} {formatBytes(unit.file.bytes)}</>}
     </span>
     {/*
       HEALTH AS A MARK, NOT A SENTENCE. A sound mesh shows nothing at all; one worth a look shows a
@@ -174,26 +210,21 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
       its line already says to draw one.
     */}
     {/*
-      THE ROW'S OWN ANSWER. A native `<select>` and not keys: twenty-four rows of pictures would be a
-      wall, and this is a correction rather than the question - the question was asked once, above.
-      It is the same list the big keys draw (`components/purposes.ts`), so question 4 lands in one
-      file. Changing it re-runs this row's detection, because the answer is what the detector is
-      given: `useBatchDetect` queues each row with the profile it was queued under.
-    */}
-    {/*
-      NOT DRAWN BEFORE THE CASE IS ANSWERED, and that is the same rule as everywhere else on this
-      screen. A select has to show one of its options, so an unanswered row would read "Aligner" -
-      a default the operator never chose, displayed as though they had. That is the entry defect in
-      miniature, and it is the reason this whole screen exists.
-    */}
-    {/*
-      ALWAYS DRAWN, INCLUDING ON A ROW NOBODY HAS NAMED YET - which is the row that most needs it.
-      It was gated on an answer existing, a leftover from the case-level question that used to gate
-      the whole screen; with the answer per file (owner, 2026-11-18) that gate hid the control from
-      exactly the rows it is for. `PurposeSelect` draws a readable "Choose…" dropdown while there is
-      no answer and the category's picture once there is.
+      THE CARD'S OWN ANSWER, and it is the question rather than a correction of one: nothing above
+      asks it any more. It is the same list the entry screen's big keys draw
+      (`components/purposes.ts`), so a new category or type lands in one file.
 
-      No `onAnyModel`: "not dental at all" is an answer about the whole drop, not about one row
+      ALWAYS DRAWN, INCLUDING ON A CARD NOBODY HAS NAMED YET - which is the card that most needs it.
+      It was briefly gated on an answer already existing, a leftover from the case-level question,
+      and that gate hid the control from exactly the cards it is for. `PurposeSelect` draws a
+      readable "Choose…" while there is no answer and the category's picture once there is - never
+      a picture standing for "no answer", which is the silent-default defect this screen exists to
+      remove and which its own first fix rebuilt in miniature.
+
+      Changing it re-runs this card's detection, because the answer is what the detector is given:
+      `useBatchDetect` queues each card with the profile it was queued under.
+
+      No `onAnyModel`: "not dental at all" is an answer about the whole drop, not about one file
       inside it, and it is offered where it can act - on the deck's Set all.
     */}
     <span className="row-purpose">
@@ -205,6 +236,14 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
       below. A cell that holds whatever keys the row has keeps every row exactly one line tall.
     */}
     <span className="row-actions">
+    {/*
+      OPEN IS GATED ON THE ANSWER, like everything else that acts through a profile. The flow is
+      job-specific - a denture has no Rim step - so opening a model nobody has named would have to
+      invent which chain to walk. The row's own control is a few pixels away.
+    */}
+    {purpose !== undefined ? <button type="button" className="row-open" data-ui={`items-open-${unit.id}`}
+      title={t('Orient it and place its supports by hand.')}
+      onClick={(event) => { event.stopPropagation(); onOpen(); }}>{t('Open this model')}</button> : null}
     {detected?.kind === 'failed' ? <button type="button" className="retry" data-ui={`items-retry-${unit.id}`}
       title={t('Check this file again.')}
       onClick={(event) => { event.stopPropagation(); onRetry(); }}>{t('Retry')}</button> : null}

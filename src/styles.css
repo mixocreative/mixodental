@@ -1717,7 +1717,37 @@ dialog.terms .terms-item > span { flex: none; }
 .items-setall-label { color: var(--muted); font-size: var(--small-size, 11.5px); }
 /* How many rows are still unnamed - a count, not a demand: the screen works without answering it. */
 .items-unanswered { margin-right: auto; color: var(--muted); font-size: var(--small-size, 11.5px); }
-.items-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+/*
+ * A GRID OF CARDS, not a column of rows. Owner, 2026-11-18: *"deck is cards, not rows. That way
+ * your preview 3d model can go larger but show more compact cars on screen?"* - and that is exactly
+ * the trade. A row spends the window's whole width on one model and stacks the next one below it,
+ * so a bigger picture costs scroll. A card spends ~230px and tiles, so the picture gets three times
+ * the area AND more models fit on a screen at once.
+ *
+ * `auto-fill` rather than a fixed count: the number across follows the window, which is the only
+ * honest answer when the same app runs on a laptop beside a chair and on a studio display.
+ */
+.items-list {
+  list-style: none;
+  margin: 0;
+  padding: 12px 0;
+  display: grid;
+  /*
+   * THE COLUMN IS CAPPED, not left to stretch. `minmax(228px, 1fr)` let every column take an equal
+   * share of whatever the window had - and the picture is SQUARE, so a wide window made a wide
+   * column, a tall picture and a 383px card. The owner's reason for cards was *"show more compact
+   * cards on screen"*, and a card that grows with the window is the opposite of that.
+   *
+   * 208px is a picture big enough to tell an upper arch from a lower one at a glance, which is all
+   * the tile has to do - and nearly four times the area of the 56px tile it replaced. At 240 the
+   * card measured 379px tall and seven fitted across a studio display; at 208 it is about 330 and
+   * eight do. A leftover strip at the right on some widths is the price, and it is a better price
+   * than a card that changes size as the window does.
+   */
+  grid-template-columns: repeat(auto-fill, minmax(176px, 208px));
+  gap: 12px;
+  align-content: start;
+}
 /*
  * ONE LINE PER FILE, and that is the whole point of the row.
  *
@@ -1732,19 +1762,50 @@ dialog.terms .terms-item > span { flex: none; }
  * each carries its full text in `title`. What made the stack necessary was that EVERY row spoke;
  * now a sound mesh says nothing (`ItemRow`), so most rows carry one short sentence or none.
  */
+/*
+ * ONE CARD PER MODEL. The markup is unchanged from the row it replaced - the same children in the
+ * same order - and only the LAYOUT moved, which is why the gate's 37 `.items-row` selectors and
+ * every `data-ui="items-row-<id>"` still mean what they meant. The class keeps the old name for
+ * that reason; it is debt, written down here rather than paid with 70 mechanical edits across a
+ * gate script and the designers' own naming contract.
+ *
+ * Areas rather than a column count: the picture spans the card, the name and its warning share a
+ * line, the two answers sit beside the status, and the keys take the foot.
+ */
 .items-row {
   display: grid;
-  /* tile | name | size | health mark | status chip | category | remove. The name takes the slack;
-     everything else is its own width, because a chip that moves is a chip you have to read twice. */
-  grid-template-columns: 56px minmax(80px, 1fr) minmax(0, auto) 18px 108px auto auto;
-  /* Seven cells, always: the last one holds whatever keys the row has (Retry only appears on a
-     failed row, and as an eighth CHILD it wrapped the row and overlapped the one below). */
-  gap: 0 10px;
+  grid-template-areas:
+    "shot    shot"
+    "name    verdict"
+    "meta    meta"
+    "purpose detect"
+    "actions actions";
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 8px;
   align-items: center;
-  min-height: 60px;
-  padding: 2px 8px;
-  border-bottom: 1px solid var(--line);
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
+.items-row .shot { grid-area: shot; }
+.items-row .name { grid-area: name; }
+.items-row .verdict { grid-area: verdict; }
+.items-row .preview { grid-area: meta; }
+.items-row .detect { grid-area: detect; }
+.items-row .row-purpose { grid-area: purpose; justify-self: start; }
+/* The card's foot: the action that opens it at one end, the one that destroys it at the other, so
+   a press at speed cannot land on the wrong one. */
+.items-row .row-actions { grid-area: actions; justify-self: stretch; justify-content: flex-end; }
+/*
+ * THE KEYS WRAP RATHER THAN SQUEEZE. A card is ~208px and a FAILED card carries three keys - Open,
+ * Retry, Remove. Held on one line they crushed the first label onto three lines and made that one
+ * card half as tall again as its neighbours. Wrapping costs a second row only on the cards that
+ * need one, and `nowrap` on the label is what stops a word breaking mid-air.
+ */
+.items-row .row-actions { flex-wrap: wrap; row-gap: 4px; }
+.row-open { margin-right: auto; min-height: 26px; padding: 0 10px; white-space: nowrap; font-size: var(--small-size, 11.5px); }
+.row-open:hover:not(:disabled) { border-color: var(--line-strong); background: var(--raised); }
 /* Every sentence cell clips rather than wrapping: a wrapped line is what made the row three tall. */
 .items-row .verdict, .items-row .detect, .items-row .name, .items-row .preview {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
@@ -1761,9 +1822,14 @@ dialog.terms .terms-item > span { flex: none; }
  * only thing the tile has to do. Owner, 2026-11-18: *"the preview thumbnail should be a 3d render
  * and larger."* It always was a render; at 36px squashed, nobody could tell.
  */
+/*
+ * THE PICTURE IS THE POINT OF A CARD. `drawThumbnail` renders a 160px SQUARE (`THUMB_SIZE`), so the
+ * frame is square too and the render is never stretched - the defect that made a real 3D view look
+ * like a bad icon when it was squeezed into 36x44. It fills the card's width and keeps 1:1.
+ */
 .items-row .shot {
-  width: 56px;
-  height: 56px;
+  width: 100%;
+  aspect-ratio: 1;
   border: 1px solid var(--line);
   border-radius: 2px;
   background: var(--sunken);
@@ -1807,9 +1873,6 @@ dialog.terms .terms-item > span { flex: none; }
  * one panel among several. It is the only block here that is centred as a block, because the three
  * keys under it are a centred row (the house rule: the words stay ranged left inside it).
  */
-.items-ask { display: grid; justify-items: center; gap: 8px; margin: 0 0 14px; padding: 16px; background: var(--sunken); border-radius: var(--radius); }
-.items-ask-q { margin: 0; font-size: 15px; }
-.items-ask-note { margin: 0; color: var(--muted); font-size: var(--small-size, 11.5px); }
 /*
  * THE PURPOSE CONTROL: the category's picture with a native select laid invisibly over it, and the
  * type beside it when a category has more than one. Same construction as `.lang-select` above and
@@ -1927,6 +1990,20 @@ dialog.terms .terms-item > span { flex: none; }
 .items-foot { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 8px; padding-bottom: 6px; }
 /* The counts and the primary read as one line: nothing in the foot wraps. */
 .items-foot > * { white-space: nowrap; flex: none; }
+/*
+ * THE CASE'S OWN COSTS, at the left of the foot so they read before the keys at the right. Muted
+ * while there is room: this is a gauge, not a warning, and a line that shouts on every drop is a
+ * line nobody reads on the drop that matters.
+ */
+.items-budget, .items-memory { color: var(--muted); font-size: var(--small-size, 11.5px); font-family: var(--font-number); font-variant-numeric: tabular-nums; }
+.items-budget { margin-right: auto; }
+/*
+ * OVER THE ALLOWANCE. This rule was missing entirely for a while, so `overBudget` computed
+ * correctly, set its class, and rendered identically to the safe state - a warning with no
+ * appearance, which is the same as no warning. The danger colour as TEXT, never a fill: the house
+ * rule for anything refused, and the operator can still read the case and decide what to take off.
+ */
+.items-memory--over { color: var(--danger); font-weight: 600; }
 .items-left { margin-right: auto; }
 .items-left { color: var(--muted); font-size: var(--small-size, 11.5px); margin-right: auto; }
 
@@ -1975,3 +2052,40 @@ dialog.terms .terms-item > span { flex: none; }
 .items-progress, .items-attention { font-size: 13px; color: var(--muted); margin-left: 12px; }
 /* The one line that is about work waiting for a person, so it is the one that is not muted. */
 .items-attention { color: var(--red); }
+
+/*
+ * THE LIVE CARD. The still and the canvas occupy the same square; exactly one is visible, and the
+ * still is HIDDEN rather than unmounted so coming back out of a live card does not flash white.
+ *
+ * `cursor: grab` is the whole affordance: a picture that can be turned has to look like one before
+ * anybody tries. `touch-action: none` is what makes a drag a DRAG on a touch screen rather than the
+ * page scrolling under the finger - without it the model never moves on a tablet, which is the one
+ * place this feature matters most.
+ */
+.items-row .shot { position: relative; cursor: grab; touch-action: none; }
+.items-row .shot:focus-visible { outline: 2px solid var(--accent, var(--ink)); outline-offset: 2px; }
+.items-row .shot > canvas { display: none; width: 100%; height: 100%; }
+.items-row .shot--live { cursor: grabbing; }
+.items-row .shot--live > img { visibility: hidden; }
+.items-row .shot--live > canvas { display: block; }
+
+/*
+ * WORK RUNNING ON ONE CARD, said over its picture - which is where the operator is already looking,
+ * and the same surface auto-gen will use when it lands. A card that is being checked and a card
+ * that is being generated are the same state to the person waiting for it.
+ *
+ * The picture stays VISIBLE underneath, dimmed: a card that blanks while it works loses the one
+ * thing that tells the operator which model this is.
+ */
+.shot-busy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 8px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+.shot-busy-label { color: var(--ink); font-size: var(--small-size, 11.5px); text-align: left; }

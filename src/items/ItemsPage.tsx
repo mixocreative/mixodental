@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { plural, t, translateMessage, type Lang } from '../i18n';
 import { ScreenHeading } from '../ui/ScreenHeading';
 import { Icon } from '../ui/Icon';
@@ -13,10 +13,11 @@ import { jobSentence, jobTally } from '../deck/jobSummary';
 import { isModelFile } from '../components/startDrop';
 import { hint } from '../components/hint';
 import { PurposeSelect } from '../components/PurposeSelect';
+import { deckUsage, formatBytes } from './deckBudget';
 
 /**
- * THE DECK (plan §1 page 2, §0b): the tool rail down the left, one row per dropped file beside it,
- * and how the whole drop is doing underneath.
+ * THE DECK (plan §1 page 2, §0b): one row per dropped file, and how the whole drop is doing
+ * underneath. The tool rail that stood down the left left on 2026-11-18 (`src/deck/README.md`).
  *
  * THIS FILE IS LAYOUT AND NOTHING ELSE. What a row says lives in `ItemRow` and `RefusedRow`, which
  * tool may be pressed lives in `src/deck/`, and which item is next lives in `nextItem`. Keeping the
@@ -164,6 +165,27 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
     return state === 'waiting' || state === 'running';
   }).length;
   const attention = units.filter(needsYou).length;
+  /*
+   * WHAT THIS CASE COSTS, SAID BEFORE ANYONE PRESSES ANYTHING.
+   *
+   * The engine budgets one MODEL (1.5M triangles, refused over 6M); nothing budgeted a CASE, and a
+   * case is what this screen is. The owner asked for the missing half: *"maybe set a safe cap fo
+   * rhow many models be genreated on deck. that deck job number vs cap nmber be shown, as well as
+   * memory used vs memory allowance be shown on decker."*
+   *
+   * It is the first law applied to memory. An out-of-memory tab is the purest silent death this app
+   * has - it takes the session's work with it and explains nothing - so the one surface that knows
+   * how big the case is says so while the operator can still do something about it.
+   */
+  const usage = useMemo(() => deckUsage(units.map((unit) => unit.source.indices.length / 3)), [units]);
+  /*
+   * WHICH CARD'S PICTURE IS LIVE, and only ever one. The deck has a single renderer (`deckRig.ts`):
+   * sixty live canvases would be sixty WebGL contexts against a cap near sixteen, and sixty
+   * uploaded meshes against a budget that fits one. The page holds the choice rather than the cards
+   * because "only one" is a fact about the SET, and a card cannot know about its neighbours.
+   */
+  const [liveId, setLiveId] = useState<string | undefined>(undefined);
+  const release = useCallback((id: string) => setLiveId((current) => (current === id ? undefined : current)), []);
   const root = useRef<HTMLDivElement>(null);
 
   /*
@@ -215,7 +237,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
         and a denture base arrive in one drop. So every row carries its own control and this is only
         the convenience that keeps a stage case of thirty same-kind models to one press.
       */}
-      {units.length > 1 ? <span className="items-setall">
+      {units.length > 1 ? <span className="items-setall" data-ui="items-set-all-row">
         <span className="items-setall-label">{t('Set all to')}</span>
         <PurposeSelect value={undefined} lang={lang} ui="items-set-all"
           onChange={onPurposeAll} onAnyModel={onAnyModel} />
@@ -261,7 +283,11 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
           purpose={purposes.get(unit.id)}
           onPurpose={(profile) => onPurpose(unit.id, profile)}
           lang={lang}
+          live={liveId === unit.id}
+          onLive={() => setLiveId(unit.id)}
+          onRelease={() => release(unit.id)}
           onSelect={() => onSelect(unit)}
+          onOpen={() => onStart(unit)}
           onRemove={() => onRemove(unit)}
           onRetry={() => onRetry(unit.id)}
         />)}
@@ -280,9 +306,17 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
         {unanswered > 0 ? <span className="items-unanswered" data-ui="items-unanswered">
           {plural(unanswered, '1 file still needs a category', '{n} files still need a category')}
         </span> : null}
+        {/*
+          A DISABLED CONTROL SAYS WHY, which this one did not. `hint()` returns the action's
+          DESCRIPTION as its title - right when the key works, and no answer at all when it is grey.
+          A drop where every file was refused renders no cards and a dead Arrange whose tooltip
+          talks about moving objects. Export, two lines below, already did this correctly.
+        */}
         <button type="button" className="items-case-key" data-ui="items-arrange" disabled={units.length === 0}
           onClick={onArrange}
-          {...hint('Move the objects so none overlaps another. Only positions change; supports stay editable')}
+          {...(units.length === 0
+            ? { title: t('Nothing to arrange: no model has been added yet.') }
+            : hint('Move the objects so none overlaps another. Only positions change; supports stay editable'))}
         >{t('Arrange objects')}</button>
         <button type="button" className="items-case-key" data-ui="items-export" disabled={!anySupports}
           onClick={onExport}
@@ -292,7 +326,19 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
       </div>
 
       <div className="items-foot">
-        <span className="items-left">{left === 1 ? t('1 item left') : t('{n} items left', { n: left })}</span>
+        {/*
+          TWO READOUTS, NEVER ONE. A count alone cannot warn - thirty aligners and thirty full-arch
+          scans are different cases by an order of magnitude - and a byte figure alone is not
+          something an operator can act on. Together they say what is here and what is left.
+        */}
+        <span className="items-budget" data-ui="items-budget">
+          {t('{n} of {cap} models', { n: units.length, cap: usage.capModels })}
+        </span>
+        <span className={`items-memory${usage.overBudget ? ' items-memory--over' : ''}`} data-ui="items-memory"
+          title={t('The biggest moment of a whole-case run: every model held, plus building supports for the largest one.')}>
+          {t('{used} of {allowance} memory', { used: formatBytes(usage.peakBytes), allowance: formatBytes(usage.allowanceBytes) })}
+        </span>
+        <span className="items-left" data-ui="items-left">{left === 1 ? t('1 item left') : t('{n} items left', { n: left })}</span>
         {waiting > 0 ? <span className="items-progress" data-ui="items-progress">
           {t('Checking {done} of {n}', { done: units.length - waiting + 1, n: units.length })}
         </span> : null}

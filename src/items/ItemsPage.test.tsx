@@ -382,8 +382,15 @@ describe('the Items page', () => {
 
     expect(html).toContain('data-ui="items-shot-u-a"');
     expect(html).toContain('src="data:image/png;base64,AAA"');
-    // The row with no picture yet still has its frame, and nothing inside it.
-    expect(html).toMatch(/data-ui="items-shot-u-b"><\/span>/);
+    /*
+     * The card with no picture yet still has its frame and NO image in it - the frame holds the
+     * grid steady while the stills arrive one at a time, so a blank one means "not drawn yet"
+     * rather than "nothing to see". It is no longer empty markup: every card also carries the 2D
+     * canvas the live view copies frames into, hidden until that card is the one being looked at.
+     */
+    expect(html).toContain('data-ui="items-shot-u-b"');
+    expect(html).toContain('data-ui="items-live-u-b"');
+    expect(html).not.toMatch(/data-ui="items-shot-u-b"[\s\S]*?<img/);
   });
 
   it('gives the picture an empty alt, because the name and the sentences already say it in words', () => {
@@ -402,6 +409,19 @@ describe('the Items page', () => {
    * RESUMES - not the first row, so a returning operator sees the state of the model they are about
    * to pick up rather than one they already finished.
    */
+  it('says what the case costs and what is left, before anyone presses anything', () => {
+    /*
+     * THE SURFACE, not the arithmetic - `deckBudget.test.ts` owns the numbers. What this pins is
+     * that the deck SHOWS them: an out-of-memory tab is the purest silent death this app has, and
+     * the one screen that knows how big a case is has to say so while it can still be acted on.
+     */
+    const html = render([unit('u-a', 'a.stl', verdict())]);
+
+    expect(html).toContain('data-ui="items-budget"');
+    expect(html).toContain('data-ui="items-memory"');
+    expect(html).toMatch(/1 of \d+ models/);
+  });
+
   it('marks the row Start will open as the selected one', () => {
     const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-a', 'u-b')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', verdict())]}

@@ -20,8 +20,9 @@ import { DENTAL_KINDS, defaultProfileId, kindOfProfile, profileIdsOf, type Denta
  *   code change.
  *
  * WHY THIS FILE EXISTS AT ALL. The question is asked in three renderings — the big keys on the entry
- * screen, the case control on the deck, and a per-row control for a file whose answer differs from
- * the rest of its case. Three renderings of one question must not be three copies of its answers.
+ * screen, a control on EVERY card (the answer belongs to the file), and `Set all`, which is an
+ * action on the cards rather than a question about the case. Three renderings of one question must
+ * not be three copies of its answers.
  *
  * AND BECAUSE THE ANSWERS ARE THE OPEN QUESTION. A night guard and a retainer are neither of these —
  * the commonest chairside object has no true answer here, and the axis may be wrong altogether
@@ -90,10 +91,28 @@ export const typesOf = (kind: DentalKind): readonly string[] => profileIdsOf(kin
  * The fallback is `G`, because an unlisted profile is a general-purpose one until somebody says
  * otherwise - which is exactly what both of today's profiles are.
  */
-const TYPE_BADGES: Readonly<Record<string, string>> = {
-  'reference-aligner': 'G',
-  'reference-denture': 'G',
+/** What a type wears: the letter, and the STYLE NAME that becomes its CSS class. */
+export interface TypeBadge {
+  /** One or two characters. Never a word - it is read as a mark. */
+  readonly letter: string;
+  /**
+   * The design this badge wears, as `.purpose-badge--<style>` in `src/styles.css`. It is a NAME,
+   * not a colour: the stylesheet decides what "generic" looks like, and this file never holds a
+   * value a designer would want to change. Add a profile with a new style and the owner writes one
+   * CSS rule for it - which is the whole reason it is a separate field rather than derived from the
+   * profile id, since `.purpose-badge--reference-aligner` would make the stylesheet track ids.
+   */
+  readonly style: string;
+}
+
+/**
+ * THE BADGE PER PROFILE. Both of today's profiles are the general-purpose one, so both wear `G` in
+ * the `generic` style (owner, 2026-11-18: *"right now we onlg generic Denture, same icon G"*).
+ */
+const TYPE_BADGES: Readonly<Record<string, TypeBadge>> = {
+  'reference-aligner': { letter: 'G', style: 'generic' },
+  'reference-denture': { letter: 'G', style: 'generic' },
 };
 
-/** The letter a profile wears on the deck. One or two characters; never a word. */
-export const typeBadge = (profileId: string): string => TYPE_BADGES[profileId] ?? 'G';
+/** The badge a profile wears. An unlisted profile is general-purpose until somebody says otherwise. */
+export const typeBadge = (profileId: string): TypeBadge => TYPE_BADGES[profileId] ?? { letter: 'G', style: 'generic' };
