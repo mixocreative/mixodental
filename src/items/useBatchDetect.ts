@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PrintUnit } from '../state/project';
 import type { AnalysisClient } from '../workers/analysisClient';
 import { detectStateOf, type DetectState } from './detectState';
+import { isDentureJob } from '../denture/jobKind';
 
 /**
- * THE BATCH: one orientation detection per row, after the purpose is chosen (plan §0b step 3).
+ * THE BATCH: one orientation detection per row, each as soon as THAT ROW has been told what it is.
  *
  * ONE AT A TIME, awaited in order. `AnalysisClient` already holds a `TriangleGate` that would queue
  * these by triangle budget — a cleverer rule, since two small models may run together where two large
@@ -18,10 +19,19 @@ import { detectStateOf, type DetectState } from './detectState';
  * Each row keeps its OWN result. Upper and lower arches in one drop orient differently, so a single
  * answer imposed on the list would be wrong for half of it.
  */
-export function useBatchDetect({ units, profile, analysis, unitName }: {
+export function useBatchDetect({ units, purposes, analysis, unitName }: {
   units: readonly PrintUnit[];
-  /** The purpose pressed for this batch. No detection runs without it: the worker needs the profile. */
-  profile: string | undefined;
+  /**
+   * WHAT EACH FILE IS (`unitId` -> dental profile). A unit with no entry has not been answered and
+   * is NOT detected: `dentalOrient` takes the profile as an argument, so there is nothing to run
+   * against until its own answer exists, and anything run before it would be run against a guess.
+   *
+   * It is per FILE rather than per case (owner, 2026-11-18: *"each file has a category and type,
+   * but it ask me what i am making for all files, which is wrong"*). An upper aligner, a lower
+   * aligner and a denture base can arrive in one drop, so one answer imposed on the batch would be
+   * wrong for part of it - the same reason each row already keeps its own RESULT.
+   */
+  purposes: ReadonlyMap<string, string>;
   analysis: () => AnalysisClient;
   unitName: (id: string) => string;
 }) {
@@ -50,11 +60,26 @@ export function useBatchDetect({ units, profile, analysis, unitName }: {
   const running = useRef(false);
 
   useEffect(() => {
-    if (!profile) return;
-    const pending = units.filter((unit) => !started.current.has(unit.id));
+    /*
+     * Only units that have been answered. An unanswered one is not "pending": it is not a job yet,
+     * and marking it started would mean never queueing it once its answer arrives.
+     *
+     * AND NOT DENTURES. This batch is `orientDentalAligner`, which hands the profile straight to the
+     * engine's `orient_dental` - and that rejects a denture profile outright (`UNKNOWN_PROFILE`), so
+     * every denture row came back `failed` with an error toast. It is not a regression: a whole case
+     * answered "Denture" has always failed this way, because `batchProfile` could be a denture
+     * profile too. It was invisible while the purpose was one answer for a whole drop and the denture
+     * path was walked through its own flow; a per-row category made it one click away.
+     *
+     * A denture is oriented by its OWN step (`src/denture/steps/orient`), on open. So the honest
+     * thing is not to run, and to let the row say it needs the operator - which is what it does.
+     * Making the batch per-purpose is step 1 of `docs/design/2026-11-17-flow-map.md` §12.
+     */
+    const pending = units.filter((unit) => !started.current.has(unit.id)
+      && purposes.has(unit.id) && !isDentureJob(purposes.get(unit.id)));
     if (pending.length === 0) return;
     for (const unit of pending) started.current.add(unit.id);
-    queue.current.push(...pending.map((unit) => ({ unit, profile })));
+    queue.current.push(...pending.map((unit) => ({ unit, profile: purposes.get(unit.id)! })));
     setStates((current) => {
       const next = new Map(current);
       for (const unit of pending) next.set(unit.id, { kind: 'waiting' });
@@ -81,7 +106,7 @@ export function useBatchDetect({ units, profile, analysis, unitName }: {
       }
       running.current = false;
     })();
-  }, [units, profile, analysis, unitName, retries]);
+  }, [units, purposes, analysis, unitName, retries]);
 
   /*
    * A FAILED ROW CAN BE TRIED AGAIN, and until now it could not.
@@ -96,6 +121,19 @@ export function useBatchDetect({ units, profile, analysis, unitName }: {
    */
   const retry = useCallback((unitId: string) => {
     started.current.delete(unitId);
+    /*
+     * THE OLD VERDICT GOES WITH IT. Forgetting only that the row had STARTED left its previous
+     * answer on screen until a new one arrived - and for a row re-answered from aligner to denture
+     * no new one ever arrives, because the batch does not run dentures at all. The row would have
+     * gone on reading "Needs rim" about an object whose rail has no Rim button, which is the exact
+     * defect this screen keeps being rebuilt to remove.
+     */
+    setStates((current) => {
+      if (!current.has(unitId)) return current;
+      const next = new Map(current);
+      next.delete(unitId);
+      return next;
+    });
     setRetries((count) => count + 1);
   }, []);
 

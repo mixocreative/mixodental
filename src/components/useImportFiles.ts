@@ -97,7 +97,6 @@ export function useImportFiles(host: {
   units: readonly PrintUnit[];
   sessionRef: MutableRefObject<EditSession>;
   /** The next dental import replaces the plate (a file chosen on the start screens). */
-  freshStart: MutableRefObject<boolean>;
   send: (event: SessionEvent) => void;
   dispatch: (command: SceneCommand, edit?: string) => void;
   importer: () => ImportClient;
@@ -111,7 +110,7 @@ export function useImportFiles(host: {
   setStatus: SetStatus;
   setStatusMessage: (message: Message) => void;
 }) {
-  const { sceneRef, sessionRef, units: sceneUnits, freshStart, send, dispatch, importer, startDentalAligner, pulseLeftPanel, setStatus, setStatusMessage } = host;
+  const { sceneRef, sessionRef, units: sceneUnits, send, dispatch, importer, startDentalAligner, pulseLeftPanel, setStatus, setStatusMessage } = host;
 
   /**
    * `takesOne` overrides the Step 1 rule that a drop is ONE aligner. Step 1 does take one - it
@@ -131,8 +130,6 @@ export function useImportFiles(host: {
     // Dental Step 1 takes the aligner itself: one file, and it is oriented once read.
     const dentalDrop = dropKeepsOneFile(acceptsDentalDrop(sessionRef.current), options?.takesOne);
 
-    const replacesPlate = dentalDrop && freshStart.current;
-    freshStart.current = false;
     const badFile = (message: Message) => {
       setStatusMessage(message);
       if (dentalDrop) send({ type: 'dentalBadFile', message });
@@ -249,7 +246,18 @@ export function useImportFiles(host: {
       if (!dentalDrop) send({ type: 'leave' });
       dispatch({ type: 'batch', commands: [
         // A file chosen on the start screens replaces the aligner that stayed on the plate.
-        ...(replacesPlate ? sceneRef.current.units.map((unit) => ({ type: 'unit/remove' as const, unitId: unit.id })) : []),
+        /*
+         * NOTHING IS REMOVED HERE ANY MORE, and that is a deletion rather than an omission.
+         *
+         * A single file started from the entry screen used to CLEAR THE PLATE first
+         * (`replacesPlate`), on the reasoning that a fresh dental run replaces the last one. It was
+         * silent, and it only ever fired on the single-file path - a drop of several never wiped
+         * anything. With the entry collapsed to one destination (owner's ruling, 2026-11-18: a drop
+         * is a case and the deck takes it), that path is gone and so is the asymmetry. An import now
+         * only ever ADDS, every unit it adds is a row the operator can see, and Remove on the row is
+         * the way out. Silently destroying work the operator did not ask about is the thing this
+         * session has been removing everywhere else.
+         */
         // Handed over: the worker's fresh arrays, also the keys of their display copy and pick index.
         ...added.map((unit) => ({ type: 'unit/add' as const, unit, owned: true })),
         { type: 'selection/set', unitIds: added.map((unit) => unit.id), activeUnitId: added[0]!.id },
@@ -292,7 +300,7 @@ export function useImportFiles(host: {
         if (dentalDrop) send({ type: 'dentalBadFile', message: { key: 'Import cancelled; nothing was added.' } });
       } else badFile(errorStatus('import', codedJobError(error), { name: reading }));
     }
-  }, [dispatch, freshStart, importer, pulseLeftPanel, sceneRef, send, sessionRef, setStatus, setStatusMessage, startDentalAligner]);
+  }, [dispatch, importer, pulseLeftPanel, sceneRef, send, sessionRef, setStatus, setStatusMessage, startDentalAligner]);
 
   /** Step 1 with the object already selected on the plate instead of a drop. */
   const useSelectedAligner = useCallback(() => {

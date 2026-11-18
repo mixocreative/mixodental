@@ -173,9 +173,41 @@ button:focus-visible, input:focus-visible, .drop:focus-within {
   outline: 1px solid var(--ink);
   outline-offset: 2px;
 }
-.primary { background: var(--red); border-color: var(--red); color: var(--on-red); font-weight: 500; }
-.primary:hover:not(:disabled) { background: var(--red-hover); border-color: var(--red-hover); }
-.primary:disabled { color: var(--on-red); }
+/*
+ * EVERY DROPDOWN, AND ITS LIST. Owner, 2026-11-18: *"every drop down in this app is badly styled,
+ * they hv bad padding on the sides."*
+ *
+ * Two rules, because a native `<select>` is two surfaces and they take their padding from DIFFERENT
+ * elements. The CLOSED control is padded by the `select`; the OPEN LIST is padded by the `option`,
+ * and no amount of padding on the select reaches it. So a control that looked right shut still
+ * opened a list with its words hard against the frame - which is the one the operator reads while
+ * choosing.
+ *
+ * Set here rather than per control, because "every dropdown" is the rule: the language switch, the
+ * row's category, its type, the landing picker and every field select. A control that wants no
+ * padding - the invisible overlay selects of the `.lang-select` pattern - sets `padding: 0` itself
+ * and still inherits the padded LIST, which is exactly what those need.
+ *
+ * `padding-right` is the larger side on the closed control: the disclosure arrow is drawn in it.
+ * macOS Safari draws a system menu and ignores `option` padding, which is correct there.
+ */
+select { padding: 0 26px 0 10px; }
+option { padding: 4px 10px; }
+/*
+ * The literal fallbacks are ordinary defensiveness. An unresolved `var()` is invalid at
+ * computed-value time, which for `color` means INHERIT rather than the declared value - and this
+ * theme's ink is this key's own fill, so the failure mode is an invisible label. It costs nothing
+ * to make that impossible.
+ *
+ * THEY ARE NOT WHAT FIXED THE KEY on 2026-11-18, and the note that used to stand here said they
+ * were. The real fault was a selector list in theme.css that ended in a comma and swallowed the
+ * next rule's body, so every focused button was drawn as a screen title; the note is kept with the
+ * fix, at `[data-theme='instrument'] button:focus-visible`. Four rounds of reasoning here found
+ * nothing because the rule that was winning is not in this file.
+ */
+.primary { background: var(--red, #7f0019); border-color: var(--red, #7f0019); color: var(--on-red, #fff); font-weight: 500; }
+.primary:hover:not(:disabled) { background: var(--red-hover, #96102b); border-color: var(--red-hover, #96102b); }
+.primary:disabled { color: var(--on-red, #fff); }
 .danger { color: var(--danger); border-color: var(--danger); background: transparent; } /* never a red fill */
 .danger:hover:not(:disabled) { border-color: var(--danger); background: var(--sunken); }
 .primary.regen { background: var(--blue); border-color: var(--blue); }
@@ -1265,6 +1297,12 @@ dialog.terms .terms-item > span { flex: none; }
   background: var(--surface);
 }
 .dental-drop p { margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted); max-width: 34ch; text-align: left; }
+/* The drop target's own picture, on the Drop page. Bigger than a key's 16px art because it is the
+   thing being aimed at rather than a label beside a word; one ink, since it is an Icon and not Art. */
+.start-drop-art { width: 32px; height: 32px; color: var(--muted); }
+/* THE SEAM BETWEEN THE TWO WAYS IN (owner's ruling, 2026-11-18: drop files, or say what you are
+   making). Muted and small: it introduces the second route without competing with the first. */
+.start-or { margin: 0; color: var(--muted); font-size: var(--small-size, 11.5px); }
 /* A KEY THAT CARRIES A PICTURE: the picture before the word, on one line, the same size on every key. Any
    key may wear this - the picture is part of the thing that acts, not an ornament standing over it. */
 .key-art { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
@@ -1633,118 +1671,236 @@ dialog.terms .terms-item > span { flex: none; }
    One row per dropped file. Sized from --row-height so the page shares the app's list density
    rather than inventing its own; the preview is TEXT (plan §7) because a thumbnail per row would be
    this release's only new per-file memory cost. */
-.items-page { width: min(560px, 100%); margin: 0 auto; }
-.items-list { list-style: none; margin: 14px 0 0; padding: 0; border-top: 1px solid var(--line); }
+/*
+ * THE DECK IS A WORKLIST, SO IT GETS TABLE WIDTH. It was capped at 560px - a column width, fine for
+ * the three-line rows it used to have and hopeless for a one-line row with a name, a size, two
+ * sentences and two controls on it. A stage case is 10-60 files; this is the screen they are read
+ * on. Owner, 2026-11-18: *"the deck looks awful, not compact enough."*
+ */
+/*
+ * THE PAGE FILLS THE WINDOW, which is what puts its footer at the BOTTOM of the window rather than
+ * wherever the list happens to stop. With one row on the deck the three blocks measured about 440px
+ * and the case keys sat in the middle of the screen with paper under them - owner, 2026-11-18:
+ * *"footer need to stay bottom, shouldnt shrink up."*
+ *
+ * `main` is already `display: flex; flex-direction: column; height: 100vh`, and `PanelBoundary`
+ * renders its children with no wrapper, so this IS a direct flex child of `main`: `flex: 1` makes it
+ * take the height left by the app's own header and status bar, with no number to guess at and no
+ * media query to keep in step. `min-height: 0` is the part everybody forgets - without it a flex
+ * item refuses to shrink below its content and the body scrolls the WINDOW instead of itself.
+ */
+.items-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  /* A GUTTER, so the right-hand keys are not flush against the window edge. The page is capped at
+     1100px and centred, so on a wide screen this is invisible - but at the width a laptop actually
+     runs (around 875 CSS px) the cap does nothing and Remove, Export and Start all touched the
+     glass, which reads as a clipped page rather than as a full one. */
+  padding: 0 16px;
+}
+/*
+ * THE PAGE IS THREE BLOCKS: header, body, footer (owner, 2026-11-18). The body is the only one that
+ * scrolls, so the heading, the Back key and the case keys stay put while a case of thirty is read.
+ */
+/* The Back key sits IN the header beside the heading. It used to wear `.start-back`, which is
+   absolutely positioned at the window's top-left - written for the start screens, which have
+   nothing above them - so on the deck it landed on top of the app's own logo. */
+.items-head { display: flex; align-items: center; gap: 12px; padding: 4px 0 8px; }
+.items-back-key { width: 36px; height: 36px; min-height: 0; padding: 0; gap: 0; flex: none; }
+.items-head .screen-heading { margin: 0; }
+/* Set all is pushed to the far end: it acts on the rows, so it reads as a tool rather than a title. */
+.items-setall { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+.items-setall-label { color: var(--muted); font-size: var(--small-size, 11.5px); }
+/* How many rows are still unnamed - a count, not a demand: the screen works without answering it. */
+.items-unanswered { margin-right: auto; color: var(--muted); font-size: var(--small-size, 11.5px); }
+.items-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+/*
+ * ONE LINE PER FILE, and that is the whole point of the row.
+ *
+ * It used to be a three-row grid - 'shot name preview remove' / 'shot verdict verdict verdict' /
+ * 'shot detect detect detect' - which measured 109px per row in the browser. A stage case is 10-30
+ * models, so that is 2,600px of scrolling to read a list, and the owner's verdict on 2026-11-18 was
+ * exactly right: *"the deck looks awful, not compact enough."* A worklist row is a LINE.
+ *
+ * The two sentences keep their own columns rather than being merged (`src/items/README.md`: the
+ * health verdict and the orientation result are two independent answers and collapsing them would
+ * mean choosing which fact to drop). They are given room to share, clipped with an ellipsis, and
+ * each carries its full text in `title`. What made the stack necessary was that EVERY row spoke;
+ * now a sound mesh says nothing (`ItemRow`), so most rows carry one short sentence or none.
+ */
 .items-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  grid-template-areas: 'shot name preview remove' 'shot verdict verdict verdict' 'shot detect detect detect';
-  gap: 2px 10px;
+  /* tile | name | size | health mark | status chip | category | remove. The name takes the slack;
+     everything else is its own width, because a chip that moves is a chip you have to read twice. */
+  grid-template-columns: 56px minmax(80px, 1fr) minmax(0, auto) 18px 108px auto auto;
+  /* Seven cells, always: the last one holds whatever keys the row has (Retry only appears on a
+     failed row, and as an eighth CHILD it wrapped the row and overlapped the one below). */
+  gap: 0 10px;
   align-items: center;
-  min-height: var(--row-height);
-  padding: 6px 8px;
+  min-height: 60px;
+  padding: 2px 8px;
   border-bottom: 1px solid var(--line);
+}
+/* Every sentence cell clips rather than wrapping: a wrapped line is what made the row three tall. */
+.items-row .verdict, .items-row .detect, .items-row .name, .items-row .preview {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
 .items-row:hover { background: var(--sunken); }
 /* The row picture, spanning the row's three text lines. The frame is drawn whether or not a picture
    has arrived, so the list does not jump as they fill in one at a time - and a refused file gets the
    same empty frame, so its row lines up with the rest. */
+/*
+ * SQUARE, BECAUSE THE PICTURE IS. `drawThumbnail` renders a 160px SQUARE (`THUMB_SIZE`) of the real
+ * model, framed by its own box - so a 36x44 frame with `width/height: 100%` on the image was
+ * STRETCHING a 3D render by a fifth, which is exactly what makes a render stop looking like one.
+ * 56px square at 1:1, large enough to tell an upper arch from a lower one at a glance, which is the
+ * only thing the tile has to do. Owner, 2026-11-18: *"the preview thumbnail should be a 3d render
+ * and larger."* It always was a render; at 36px squashed, nobody could tell.
+ */
 .items-row .shot {
-  grid-area: shot;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
   border: 1px solid var(--line);
   border-radius: 2px;
   background: var(--sunken);
   overflow: hidden;
 }
-.items-row .shot img { display: block; width: 100%; height: 100%; }
-.items-row .name { grid-area: name; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
-.items-row .preview { grid-area: preview; color: var(--muted); font-size: var(--small-size, 11.5px); white-space: nowrap; }
-.items-row .remove { grid-area: remove; min-height: var(--row-height); padding: 0 8px; }
+/* `contain`, never a stretch: the render's own framing is the orientation the row is reporting. */
+.items-row .shot img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.items-row .name { font-weight: 500; }
+.items-row .preview { color: var(--muted); font-size: var(--small-size, 11.5px); }
+/*
+ * QUIET UNTIL REACHED FOR. Twenty-four red blocks down the right-hand edge made Remove the loudest
+ * thing on a screen whose job is to show which rows need a person. It keeps its word and its danger
+ * colour the moment the pointer is on it.
+ */
+.row-actions { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.items-row .remove { min-height: 22px; padding: 0 8px; border-color: var(--line); background: transparent; color: var(--muted); font-size: var(--small-size, 11.5px); }
+.items-row .remove:hover { border-color: var(--danger); color: var(--danger); }
 /* The verdict wraps onto its own line, so a long sentence never clips the name or the size. */
-.items-row .verdict { grid-area: verdict; color: var(--muted); font-size: var(--small-size, 11.5px); }
+/* The health mark: a glyph, not a sentence. Empty when the mesh is sound, which is most rows. */
+.items-row .verdict { display: inline-flex; align-items: center; justify-content: center; color: var(--warning); }
+.verdict-mark { width: 14px; height: 14px; }
 /* What the batch found about THIS row's orientation — its own result, not the batch's. */
-.items-row .detect { grid-area: detect; color: var(--muted); font-size: var(--small-size, 11.5px); }
+/* The status chip: one or two words, the same width on every row so the column can be scanned. */
+.items-row .detect { color: var(--muted); font-size: var(--small-size, 11.5px); text-align: right; }
 /* A row that needs the operator, and a row whose check could not run: not the same thing, and
    neither is the muted grey of a row that is fine. */
 .items-row .detect--todo { color: var(--warning); }
 .items-row .detect--bad { color: var(--danger); }
 /* Files waiting for a purpose press on the Drop page: the question, not a status. */
-.start-held { margin: 0 0 10px; color: var(--muted); font-size: var(--small-size, 11.5px); }
 .items-row--done { opacity: .55; }
 /* The row the rail is about. Sunken, no colour - the house rule for a selected row. */
-.items-row--on-rail { background: var(--sunken); }
+/* The row Start will open, marked so a press on a case of thirty is never a surprise. It was
+   `--on-rail` while a tool rail stood beside the list; the rail went, the mark stayed. */
+.items-row--next { background: var(--sunken); }
 /* How the drop is doing. The danger colour as TEXT, never a fill - the house rule for anything
    refused or wrong - and it appears only when a row needs attention. */
-.items-tally { margin: 10px 0 0; color: var(--danger); font-size: var(--small-size, 11.5px); }
-/* The rail sits under the list, about the selected row. */
+.items-tally { margin: 8px 0 4px; color: var(--danger); font-size: var(--small-size, 11.5px); }
 /*
- * THE RAIL DOWN THE LEFT, with the models beside it - where the design puts it. One flex row, so it
- * becomes the workspace's own left edge unchanged when that exists.
- *
- * It stacks on a narrow window rather than squeezing a 120px rail against a list that needs the
- * width: the labels are words in three languages and must not clip.
+ * THE PURPOSE QUESTION ON THE DECK, asked about files that are already listed below it. Sunken
+ * rather than bordered: it is the one thing to do on the screen, and a box around it would read as
+ * one panel among several. It is the only block here that is centred as a block, because the three
+ * keys under it are a centred row (the house rule: the words stay ranged left inside it).
  */
-.items-body { display: flex; align-items: flex-start; gap: 14px; }
+.items-ask { display: grid; justify-items: center; gap: 8px; margin: 0 0 14px; padding: 16px; background: var(--sunken); border-radius: var(--radius); }
+.items-ask-q { margin: 0; font-size: 15px; }
+.items-ask-note { margin: 0; color: var(--muted); font-size: var(--small-size, 11.5px); }
+/*
+ * THE PURPOSE CONTROL: the category's picture with a native select laid invisibly over it, and the
+ * type beside it when a category has more than one. Same construction as `.lang-select` above and
+ * for the same reason - the list, the keyboard behaviour and the announcement are the platform's.
+ * Owner, 2026-11-18: the deck gets this, not the entry screen's big keys.
+ */
+.purpose-select { display: inline-flex; align-items: center; gap: 6px; }
+/*
+ * THE PURPOSE MENUS. A hand-built listbox, because a native `<select>` popup is drawn by the
+ * operating system from `<option>` TEXT and can never show a picture - and the category IS a
+ * picture in this app (owner, 2026-11-18: *"can we also hv icon in dropdown of job category"*).
+ * `src/components/PurposeMenu.tsx` carries the full note on what that costs.
+ *
+ * FLAT, like everything else here: the list is told from the page by a border and the surface
+ * colour, never by a shadow.
+ */
+.purpose-menu { position: relative; display: inline-flex; }
+.purpose-menu-key {
+  min-height: 36px;
+  min-width: 42px;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+/* Nothing answered: a readable word, never a picture. A picture here would have to be SOME
+   category's, and whichever one it was would be a default nobody chose - the entry defect in
+   miniature. */
+.purpose-menu-key--empty { padding: 0 10px; color: var(--muted); font-size: 12px; }
+.purpose-menu-empty { white-space: nowrap; }
+.purpose-menu-list {
+  /* `fixed`, with the coordinates set by the component: the deck's body scrolls, and an absolutely
+     positioned list is clipped by its scroll container on the last row of a case. */
+  position: fixed;
+  z-index: 40;
+  margin: 0;
+  padding: 4px;
+  min-width: 168px;
+  max-height: 60vh;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.purpose-menu-list:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+.purpose-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 2px;
+  white-space: nowrap;
+  font-size: 12px;
+  cursor: pointer;
+}
+/* The keyboard's place in the list and the pointer's are the same mark: two highlights that mean
+   "here" would have the operator asking which one is about to happen. */
+.purpose-menu-item--active { background: var(--sunken); }
+/* What is already chosen, told apart from where the cursor is - weight, not colour. */
+.purpose-menu-item[aria-selected='true'] { font-weight: 600; }
+/*
+ * SQUARE. The art files are 48x48, and the old 30x24 squashed every one to five-eighths of its
+ * height - which is why the full-colour aligner read as a grey smudge rather than as the picture it
+ * is on the entry screen. Owner, 2026-11-18: *"the aligner icon should be full color."* It always
+ * was; it was being flattened. `geometricPrecision` is what lets pixel art off the 48-multiple rule.
+ */
+.purpose-art { width: 28px; height: 28px; flex: none; pointer-events: none; shape-rendering: geometricPrecision; }
+/* On a row: a shade smaller, and the keys stay quiet until the pointer is on them, because thirty
+   rows of framed keys is a wall. */
+.row-purpose .purpose-menu-key { min-height: 32px; min-width: 38px; padding: 2px 6px; border-color: transparent; background: transparent; }
+.row-purpose .purpose-menu-key:hover:not(:disabled) { border-color: var(--line); background: var(--raised); }
+.row-purpose .purpose-art { width: 26px; height: 26px; }
+.items-case > .purpose-select { margin-right: auto; }
+/* The body takes the slack and is the only block that scrolls, so the heading above it and the case
+   keys below it stay where the operator left them while a case of thirty is read. */
+.items-body { display: flex; align-items: flex-start; gap: 14px; flex: 1; min-height: 0; overflow-y: auto; }
 .items-body .items-list { flex: 1; min-width: 0; }
-.items-page .tool-rail { flex: 0 0 auto; width: 104px; margin-top: 14px; }
 @media (max-width: 520px) {
   .items-body { display: block; }
-  .items-page .tool-rail { width: auto; }
 }
 /* A file that never became a unit: named so the operator sees WHICH one, its verdict in the danger
    colour as text. An outline, never a fill - the house rule for anything destructive or refused. */
 .items-row--refused .name { color: var(--danger); }
 .items-row--refused .verdict { color: var(--danger); }
-/*
- * THE TOOL RAIL. Orient · Rim · Area · Supports in dependency order, so the order is readable
- * without pressing anything.
- *
- * The one rule the colours must keep: GREYED AND BUSY MUST NOT RESEMBLE EACH OTHER. Blocked is a
- * disabled button, muted and unpressable. Busy keeps full ink and takes the red progress underline -
- * the house red, which marks progress and the current item and nothing else. Stale is ink on a
- * sunken band with a dashed underline: its work is still there, so it is not dimmed like a blocked
- * one; it is flagged.
- *
- * The open tool is an INK FILL, never red: red is the one primary action, and an active tab or
- * pressed toggle is ink. Hover is sunken, with no colour.
- */
-/* The rail's icons are 24px, not `.tool-icon`'s 18px: it is Material's standard icon size and the
-   WCAG 2.5.8 minimum target, and the rail is the one place in the app a glyph has to be found rather
-   than merely recognised. They are smooth line icons like the rest of this set - they were pixel art
-   for a while and read as a different set beside the Lucide ones in the same bars. */
-.tool-rail .tool svg { width: 24px; height: 24px; flex: none; }
-.tool-rail { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
-.tool-rail .tool {
-  min-height: var(--row-height);
-  padding: 0 8px;
-  /* The icon leads, the word follows: one row, so the glyph cannot drift off the text baseline. */
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-align: left;
-  border: 1px solid transparent;
-  border-radius: 2px;
-  background: none;
-  color: var(--ink);
-}
-.tool-rail .tool:hover:not(:disabled) { background: var(--sunken); border-color: var(--line); }
-.tool-rail .tool--open { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-.tool-rail .tool--open:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
-/* Cannot yet: muted and unpressable. The reason line below the rail says what to do about it. */
-.tool-rail .tool:disabled { color: var(--muted); cursor: default; }
-/* Being made right now: full ink, and the red progress mark. NOT dimmed - it can be opened. */
-.tool-rail .tool--busy { border-bottom-color: var(--red); }
-/* Out of date: its work exists, so it is flagged rather than dimmed. */
-.tool-rail .tool--stale { background: var(--sunken); border-bottom: 1px dashed var(--line-strong); }
-/*
- * The next thing to do, in words. Ranged left like every other run of words in the app, and sitting
- * under the rail rather than in a tooltip, because a tooltip is invisible on a touch screen.
- */
-.tool-reason { margin: 6px 0 0; padding: 0 8px; color: var(--muted); font-size: var(--small-size, 11.5px); }
-.items-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
-.items-left { color: var(--muted); font-size: var(--small-size, 11.5px); }
+.items-foot { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 8px; padding-bottom: 6px; }
+/* The counts and the primary read as one line: nothing in the foot wraps. */
+.items-foot > * { white-space: nowrap; flex: none; }
+.items-left { margin-right: auto; }
+.items-left { color: var(--muted); font-size: var(--small-size, 11.5px); margin-right: auto; }
 
 /* ---- The stopped screen (src/AppBoundary.tsx) ----------------------------
  *
@@ -1772,14 +1928,22 @@ dialog.terms .terms-item > span { flex: none; }
 
 /*
  * THE CASE SCREEN AT TWENTY-FOUR ROWS. It was laid out for four: one scrolling column, so the
- * case-level keys ended up below every row and the rail scrolled away from the card it acts on.
- * A stage case is routinely 10-30 models, so both are pinned - the rail to the top of its column,
- * the keys to the foot of the page - and the list scrolls between them.
+ * case-level keys ended up below every row, out of reach of the case they act on. A stage case is
+ * routinely 10-30 models, so the keys are pinned to the foot of the page and the list scrolls
+ * above them. (This also named the tool rail, which left the deck on 2026-11-18.)
  */
-.items-page .tool-rail { position: sticky; top: 12px; }
 .items-case { display: flex; gap: 8px; justify-content: flex-end; padding: 10px 0 0; }
-.items-case-key { height: 34px; }
-.items-case, .items-foot { position: sticky; bottom: 0; background: var(--paper); z-index: 2; }
+.items-case-key { height: 34px; white-space: nowrap; flex: none; }
+/*
+ * THE FOOTER STICKS AS ONE BLOCK. Both rows used to carry `position: sticky; bottom: 0`
+ * INDEPENDENTLY, so each pinned itself to the same edge and the two drew on top of each other -
+ * the tally, the case keys, the counts and the primary all on one crushed line. One sticky
+ * container, two ordinary rows inside it.
+ */
+/* `margin-top: auto` is what holds it down when the list is SHORT; the sticky rule is what holds it
+   down when the list is long. A deck of one row needs the first, a deck of thirty the second. */
+.items-footer { position: sticky; bottom: 0; margin-top: auto; flex: none; background: var(--paper); z-index: 2; }
+.items-case, .items-foot { background: var(--paper); }
 .items-progress, .items-attention { font-size: 13px; color: var(--muted); margin-left: 12px; }
 /* The one line that is about work waiting for a person, so it is the one that is not muted. */
 .items-attention { color: var(--red); }

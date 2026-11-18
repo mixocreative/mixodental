@@ -118,6 +118,7 @@ import { seedRimDraft } from './dental/rim/seedFromDetected';
 import { ItemsPage } from './items/ItemsPage';
 import { useThumbnails } from './items/useThumbnails';
 import { useBatchDetect } from './items/useBatchDetect';
+import { purposesOf } from './items/rowPurpose';
 import type { ToolId } from './state/tools';
 import type { ImportRefusal } from './items/rowState';
 import { hasGeometry, type HeldBuild } from './plate/releasedBuild';
@@ -213,9 +214,21 @@ export default function App() {
   /** Files of the last drop that never became units: rows on the Items page, not a lost status line. */
   const [refusedFiles, setRefusedFiles] = useState<readonly { name: string; refusal: ImportRefusal }[]>([]);
   /** The purpose pressed for a multi-file drop: what the batch detects against (plan §0b step 2). */
-  const [batchProfile, setBatchProfile] = useState<string>();
+  /**
+   * WHAT EACH FILE IS (`unitId` -> dental profile), and it is per FILE rather than per case.
+   *
+   * It was one answer for the whole drop until the owner saw it: *"each file has a category and
+   * type, but it ask me what i am making for all files, which is wrong."* (2026-11-18). A category
+   * and a type are attributes OF A MODEL - an upper aligner, a lower aligner, a denture base can
+   * arrive in one drop - so the answer belongs on the row, not on a question that gates the screen.
+   * `Set all` on the deck is the convenience that keeps a 24-file stage case to one press; it is an
+   * action applied to the rows, not a question about the case.
+   *
+   * A unit with no entry has not been answered, and nothing is detected for it: `dentalOrient` takes
+   * the profile as an argument, so there is nothing to run until its own answer exists.
+   */
+  const [unitPurposes, setUnitPurposes] = useState<ReadonlyMap<string, string>>(new Map());
   /** The next dental import replaces the plate (a file chosen on the start screens). */
-  const freshStart = useRef(false);
   const importRef = useRef<(files: readonly File[]) => Promise<void>>();
   const sessionRef = useRef(session);
   const { mode: editMode, selection } = session;
@@ -429,12 +442,46 @@ export default function App() {
    * only while the Items page is up — a batch for a list nobody is looking at would spend the
    * triangle budget the flow itself needs.
    */
+  /**
+   * WHAT EACH UNIT IS, resolved: the operator's answer, or the work the unit already carries.
+   *
+   * `unitPurposes` holds only what was SAID this sitting. A unit that has been through the flow, or
+   * one reopened from a saved project, carries its own policy - and the walk caught the gap: Back out
+   * of Step 1 left the worked-on row counting as unnamed, so the deck drew no Start key for it. The
+   * rule is `src/items/rowPurpose.ts`, so the deck and the detector read ONE answer.
+   */
+  const resolvedPurposes = useMemo(() => purposesOf(scene.units, unitPurposes), [scene.units, unitPurposes]);
   const { states: batchDetected, retry: retryDetect } = useBatchDetect({
     units: startScreen === 'items' ? scene.units : NO_UNITS,
-    profile: batchProfile,
+    purposes: resolvedPurposes,
     analysis,
     unitName,
   });
+  /**
+   * RE-ANSWERING ONE ROW, and the re-detect is the whole point of it rather than a side effect: the
+   * answer IS what the detector is given, so a row re-answered without re-running still carries the
+   * old answer's verdict - which is the state that told a denture to draw a rim in the first place.
+   * `retryDetect` forgets the row so the queue takes it again, under the new answer.
+   */
+  const setRowPurpose = useCallback((unitId: string, profile: string) => {
+    setUnitPurposes((current) => new Map(current).set(unitId, profile));
+    retryDetect(unitId);
+  }, [retryDetect]);
+  /**
+   * SET ALL: the same answer onto every row that is on the plate right now. It is what keeps a stage
+   * case of thirty same-kind models to one press, and it is deliberately an ACTION rather than a
+   * question - it says what it will do to the rows, instead of asking something about "the case"
+   * that a mixed drop has no single answer to.
+   */
+  const setAllPurposes = useCallback((profile: string) => {
+    const units = sceneRef.current.units;
+    setUnitPurposes((current) => {
+      const next = new Map(current);
+      for (const unit of units) next.set(unit.id, profile);
+      return next;
+    });
+    for (const unit of units) retryDetect(unit.id);
+  }, [retryDetect, sceneRef]);
   /**
    * THE ROW PICTURES (plan §0b increment C), drawn one row at a time while the deck is on screen.
    * Same gate as the batch above and for the same reason: the dental flow shows no rows, so drawing
@@ -641,7 +688,7 @@ export default function App() {
    */
   const pulseLeftPanel = useCallback(() => setPulse((current) => ({ panel: 'left', seq: current.seq + 1 })), []);
   const { importFiles, useSelectedAligner } = useImportFiles({
-    sceneRef, sessionRef, units: scene.units, freshStart, send, dispatch, importer, startDentalAligner,
+    sceneRef, sessionRef, units: scene.units, send, dispatch, importer, startDentalAligner,
     pulseLeftPanel, setStatus, setStatusMessage,
   });
 
@@ -938,7 +985,12 @@ export default function App() {
        * denture out - and otherwise the default aligner profile stands in.
        */
       case 'supports.dentalAuto':
-        return send({ type: 'startDental', profile: batchProfile && !isDentureJob(batchProfile) ? batchProfile : DEFAULT_PROFILE_ID });
+        return send({ type: 'startDental', profile: (() => {
+          // The SELECTED model's own answer, since the purpose is per file. This button's label
+          // rules a denture out, so a denture answer falls back to the default aligner profile.
+          const own = activeUnit ? unitPurposes.get(activeUnit.id) : undefined;
+          return own && !isDentureJob(own) ? own : DEFAULT_PROFILE_ID;
+        })() });
       case 'dental.useDetected': return orientRef.current.useDetected();
       case 'denture.resolveAll': {
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
@@ -1221,7 +1273,7 @@ export default function App() {
      */
     setStartScreen(null);
     send({ type: 'exit' });
-    send({ type: 'startDental', profile: live.dentalProfile ?? batchProfile ?? DEFAULT_PROFILE_ID, resume: true });
+    send({ type: 'startDental', profile: live.dentalProfile ?? unitPurposes.get(unit.id) ?? DEFAULT_PROFILE_ID, resume: true });
     return rimPressed ? dentalFlow.startRimDrawing(unit) : startDentalAligner(unit);
   };
   /*
@@ -1243,11 +1295,6 @@ export default function App() {
    */
   // The footer says what each start screen asks for (the file step in the job kind's words).
   useEffect(() => { if (startScreen !== null) setStatusMessage({ key: startScreen === 'file' ? fileStepText(startKind).status : START_HINT[startScreen] }); }, [startScreen, startKind]);
-  const startDental = (profile: string, file?: File) => {
-    freshStart.current = file !== undefined;
-    setStartScreen(null);
-    send({ type: 'startDental', profile, ...(file ? { file } : {}) });
-  };
   /*
    * THE FLOW CANNOT BE OPEN ON A UNIT THAT IS NOT ON THE PLATE (gap register W-09, walk `q6`).
    *
@@ -1425,12 +1472,13 @@ export default function App() {
         {/*
           THE WAY BACK TO THE DECK, which until now did not exist from inside the workspace.
 
-          The deck is reachable on a drop of SEVERAL files (`StartScreen` holds them for the purpose
-          press) and on the recovery effect below - and on nothing else. A single dropped aligner takes
-          the fast path straight into the flow, which is the ordinary case, so the ordinary run never
-          saw the rail at all; and Exit hands the operator the bench, where no control named the deck
-          either. The owner met exactly that on 2026-11-17: *"we used to hv a deck. now its gone."* It
-          was not gone. It had no door.
+          EVERY DROP NOW LANDS ON THE DECK (owner's ruling, 2026-11-18), which is the door it was
+          always missing. It used to be reachable on a drop of SEVERAL files and on the recovery
+          effect below - and on nothing else. A single dropped aligner took a fast path straight into
+          the flow, which is the ordinary case, so the ordinary run never saw the rail at all; and
+          Exit hands the operator the bench, where no control named the deck either. The owner met
+          exactly that on 2026-11-17: *"we used to hv a deck. now its gone."* It was not gone. It had
+          no door. This button stays regardless: a case re-entered from the workspace needs it.
 
           IT DOES NOT SEND `exit`, because Exit is not navigation: `exitCommands` (`dental/flow.ts`)
           removes the worked-on unit's supports, clears its manual edits and drops its dental policy.
@@ -1502,7 +1550,16 @@ export default function App() {
       refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails} onRetry={retryDetect}
       selectedUnitId={scene.activeUnitId}
       onSelect={(unit) => dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id })}
-      denture={isDentureJob(session.dentalProfile ?? batchProfile)}
+      /*
+       * WHAT EACH FILE IS. Per unit, because a category and a type belong to a MODEL (owner,
+       * 2026-11-18) - `unitPurposes` is the one map, and `useBatchDetect` reads the same one, so
+       * what the row shows and what the detector was given cannot drift apart.
+       */
+      purposes={resolvedPurposes}
+      onPurpose={setRowPurpose}
+      onPurposeAll={setAllPurposes}
+      /* "Any model" from the deck: the files are already units, so this only leaves for the bench. */
+      onAnyModel={closeStart}
       onStart={startItem}
       /*
        * THE CASE'S OWN WORK, reaching the screen that has the models on it. Both are the bench's
@@ -1537,20 +1594,30 @@ export default function App() {
        * keep them, because opening replaces the scene; what it owes the operator is to SAY so with
        * the count, instead of unmounting the screen and taking the files with it.
        */
-      onAnyModel={(files) => {
-        setStartScreen(null);
-        if (files.length > 0) void importFiles(files, { takesOne: false, onRefused: setRefusedFiles });
-      }}
-      onOpenProject={(files) => {
-        if (files.length > 0) setStatusMessage({ key: '1 dropped file was not imported: opening a project replaces everything on the plate.', other: '{n} dropped files were not imported: opening a project replaces everything on the plate.', vars: { n: files.length } });
-        runCommand('project.open');
-      }}
-      onProjectFile={(file) => void openProject(file)} onStart={startDental}
+      /*
+       * NEITHER OF THESE CARRIES FILES ANY MORE, and the audit note they carried (MIXO-06) is now
+       * answered by construction rather than by a guard. That fault was the Drop page counting eight
+       * held files on screen and discarding them when the operator pressed a purpose that needs no
+       * detection. Nothing is held there now - a drop is imported on the spot - so there is no batch
+       * to drop, and none to tell the operator about either.
+       */
+      onAnyModel={closeStart}
+      onOpenProject={() => runCommand('project.open')}
+      onProjectFile={(file) => void openProject(file)}
       onFiles={(files, profile) => {
-        // The purpose pressed for the whole batch. Held here rather than in the session, because the
-        // session's profile is set by entering a unit's flow and this batch has started none - and
-        // `dentalOrient` needs it the moment the batch runs (plan §0b step 2).
-        setBatchProfile(profile);
+        /*
+         * THE PRESELECT, APPLIED TO THE FILES THAT ARRIVE. `profile` is set only when the operator
+         * answered the purpose question BEFORE choosing files (the entry screen's keys), which the
+         * owner's ruling says buys exactly one thing: the deck opens with the answer already filled
+         * in. It is applied in `onAdded` rather than here because the units do not exist yet - the
+         * importer makes them - and it is applied only to units that have no answer of their own, so
+         * it can never overwrite a row the operator has already named.
+         */
+        const preselect = (profile: string) => setUnitPurposes((current) => {
+          const next = new Map(current);
+          for (const unit of sceneRef.current.units) if (!next.has(unit.id)) next.set(unit.id, profile);
+          return next;
+        });
         // ONLY GO TO THE ITEMS PAGE IF SOMETHING ARRIVED. `importFiles` reports a refusal through the
         // status line and resolves normally, so switching unconditionally landed a drop of entirely
         // bad files on an EMPTY page with no way back: the auto-escape only fires when the count
@@ -1558,7 +1625,11 @@ export default function App() {
         // guard rather than the only one.
         setRefusedFiles([]);
         void importFiles(files, {
-          onAdded: (count) => { if (count > 0) setStartScreen('items'); },
+          onAdded: (count) => {
+            if (count === 0) return;
+            if (profile) preselect(profile);
+            setStartScreen('items');
+          },
           // A refused file is a ROW, so a drop where every file fails still has somewhere to say so.
           onRefused: (refusals) => { setRefusedFiles(refusals); if (refusals.length > 0) setStartScreen('items'); },
         });

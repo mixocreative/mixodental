@@ -215,7 +215,11 @@
   font-size: 11.5px;
   font-weight: 600;
 }
-[data-theme='instrument'] .primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+/* The literal fallbacks are ordinary defensiveness, not a fix: an unresolved `var()` in `color`
+   computes to INHERIT, and this theme's ink is this key's fill, so the failure mode would be an
+   invisible label. (That is NOT what made the key unreadable on 2026-11-18 - see the focus-visible
+   note above - but it is a cheap guard against the same symptom from another cause.) */
+[data-theme='instrument'] .primary { background: var(--primary, #17334e); border-color: var(--primary, #17334e); color: var(--primary-ink, #fff); }
 [data-theme='instrument'] .primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
 [data-theme='instrument'] button[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
 /* The engaged tool is the one place a key wears the accent: a 3 px underline, so the fill stays ink. */
@@ -229,8 +233,21 @@
   box-shadow: inset 0 -4px 0 var(--accent);
   color: var(--accent-strong);
 }
+/*
+ * THE BODY OF THIS RULE WAS LOST, AND IT COST A DAY. It read
+ * `... summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }` until that
+ * third selector and the body were deleted, leaving two selectors and a trailing COMMA.
+ *
+ * A comment is not a separator in CSS. The selector list simply continued past it and picked up the
+ * next rule's body - `.title`, which is 30px Roboto Mono in `--ink` - so EVERY keyboard-focused
+ * button and input in this theme was being drawn as a screen title. On the entry screen, where
+ * `StartScreen` focuses the first button on mount, that is the Choose STL files key: 309x52 at 30px
+ * with navy text on its own navy fill, until focus moved and it silently corrected itself.
+ *
+ * Never leave a selector list ending in a comma. `src/ui/cssSelectorLists.test.ts` now fails on one.
+ */
 [data-theme='instrument'] button:focus-visible,
-[data-theme='instrument'] input:focus-visible,
+[data-theme='instrument'] input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---- The three text styles ----------------------------------------------- */
 /* 1. TITLE: the one large line that names a full screen. The serif, sentence case, never tracked, never a caption

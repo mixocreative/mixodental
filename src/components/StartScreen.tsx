@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { isProjectFile } from '../state/projectFile';
 import { dropAction } from './startDrop';
-import { plural, t, type Lang } from '../i18n';
-import { DentureChoice } from '../denture/steps/start/DentureChoice';
-import { ChoiceKey } from '../ui/ChoiceKey';
+import { t, type Lang } from '../i18n';
+import { PurposeKeys } from './PurposeKeys';
 import { Icon } from '../ui/Icon';
 import { ScreenHeading } from '../ui/ScreenHeading';
 import { fileStepText } from '../denture/steps/start/startText';
-import { DENTURE_PROFILE_ID, jobKindOf } from '../denture/jobKind';
-import { defaultProfileId, type DentalKind } from '@mixo-geocore/host/dental/dentalKind';
+import { jobKindOf } from '../denture/jobKind';
+import { type DentalKind } from '@mixo-geocore/host/dental/dentalKind';
 
 /**
  * The full-screen start screens. `drop` is the first page — named for what the operator does on it
@@ -26,84 +25,62 @@ export type StartScreenId = 'drop' | 'items' | 'file';
 export type ChooserScreen = Exclude<StartScreenId, 'items'>;
 
 /**
- * The app's full-screen start. It renders instead of the workspace while the app has no work to
- * show: choose the task, then the aligner type, then the file. A file dropped on the first or second
- * screen is held until the type is chosen; the last screen hands the type and file to the app.
+ * The app's full-screen start. It renders instead of the workspace while the app has no work to show.
+ *
+ * TWO WAYS IN, AND THEY ARE EQUALS (owner's ruling, 2026-11-18): *either the user tells what they
+ * want, or they drag-drop files and it shows the deck.* So this screen offers a drop target and the
+ * purpose question side by side — drop files and the deck asks what they are; answer first and the
+ * file step asks for the file.
+ *
+ * WHAT THIS REPLACED, because the screen is the thing the owner called horribly planned twice. The
+ * purpose question was the heading, the drop target was invisible (the whole `<section>`, announced
+ * by a 1px outline that appears only once you are already dragging), and the two paths were not
+ * equivalent: a single dropped file never reached the question at all. It became
+ * `onStart(defaultProfileId('aligner'), file)` — so a dropped denture went into the aligner flow and
+ * was asked for a rim, the purpose having been answered for the operator, invisibly, by a guess.
+ * Files are no longer held here for a later press; they are imported on the drop, and the question
+ * is asked about objects that exist. `src/components/startDrop.ts` holds the rest of that story.
  */
-export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProject, onProjectFile, onStart, onFiles, onUnsupported }: {
+export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProject, onProjectFile, onFiles, onUnsupported }: {
   screen: ChooserScreen;
   /** The aligner type chosen before (kept pressed when the screen is reached again). */
   profile: string | undefined;
   lang: Lang;
   /** `kind`: the job kind the file step is for (its status line); absent: the aligner. */
   onScreen: (screen: ChooserScreen, kind?: DentalKind) => void;
-  /**
-   * Into the workspace with no flow, CARRYING THE HELD BATCH (audit MIXO-06).
-   *
-   * It used to take nothing, so a case of eight dropped files was counted on screen - "8 files
-   * ready" - and then discarded when the operator pressed the one purpose that needs no detection.
-   * They landed in an empty workspace with nothing to undo and no way to tell whether the drop or
-   * the button had failed.
-   */
-  onAnyModel: (files: readonly File[]) => void;
-  /** Opening a project REPLACES the scene, so held files cannot survive it - but they must be named, not dropped in silence (MIXO-06). */
-  onOpenProject: (files: readonly File[]) => void;
+  /** Into the workspace with no flow and no files: this screen no longer holds any (see above). */
+  onAnyModel: () => void;
+  onOpenProject: () => void;
   onProjectFile: (file: File) => void;
-  onStart: (profile: string, file?: File) => void;
   /**
-   * A drop of MORE THAN ONE model on the Drop page. One file still goes through `onStart`, because a
-   * single aligner is the dental flow's whole input; several cannot be, so they are imported together
-   * and the operator chooses among them on the plate. The Items page takes this seam over (§8 7b) —
-   * until then nothing silently discards the files past the first, which is what this replaced.
+   * FILES ARRIVED — dragged or chosen, one or many, on either screen. The caller imports them and
+   * shows the deck. It is the ONLY thing this screen produces, which is the entry's invariant:
+   * *one destination* (owner's ruling, 2026-11-18).
+   *
+   * `profile` is undefined for everything that happens on the first page, and that is the point:
+   * nothing may be detected against a guess. It is set when the operator answered the purpose
+   * question first — then the answer travels with the files and the deck opens with it already
+   * filled in. That preselect is the ONLY thing choosing first buys; it is not a second route.
    */
-  onFiles: (files: readonly File[], profile: string) => void;
+  onFiles: (files: readonly File[], profile: string | undefined) => void;
   onUnsupported: () => void;
 }) {
   const root = useRef<HTMLElement>(null);
   const input = useRef<HTMLInputElement>(null);
-  /**
-   * Files waiting for a purpose. ONE file is not held on the Drop page — it goes straight in on the
-   * default aligner type, which is the fast path 7c created and the ordinary single-aligner case.
-   * SEVERAL files are a case, where the purpose governs a batch, so they wait for the press.
-   */
-  const [held, setHeld] = useState<readonly File[]>([]);
-  /**
-   * THE SAME HELD BATCH, CLAIMABLE IN ONE SYNCHRONOUS STEP - because `setHeld([])` cannot guard a
-   * replay.
-   *
-   * `choose` used to read `held` out of its render's closure and clear it with `setHeld([])`. Two
-   * presses in one tick - a double click on the purpose key, a key repeat, an impatient operator -
-   * both see the SAME `held`, and both release it: three dropped files became six rows, each file
-   * imported twice, each duplicate counting against the plate and memory budgets. A state setter
-   * schedules a re-render; it does not take anything away from a handler that has already closed
-   * over the old value.
-   *
-   * So the ref is the batch's owner and the state is only what the screen RENDERS (the count in the
-   * "n files ready" line). `claimHeld` reads and empties in one statement, so the second press finds
-   * nothing to release. Walk check `q3` is this rule's guard: the suite runs in `environment: 'node'`
-   * with `renderToStaticMarkup`, which cannot click anything, so an interaction rule is proved in
-   * the browser walk or not at all.
-   */
-  const heldRef = useRef<readonly File[]>([]);
-  /** Hold `files` for the purpose press: the ref owns them, the state draws them. */
-  const hold = (files: readonly File[]) => {
-    heldRef.current = files;
-    setHeld(files);
-  };
-  /** The held batch, taken away in the same step it is read. A second caller in the same tick gets none. */
-  const claimHeld = (): readonly File[] => {
-    const files = heldRef.current;
-    heldRef.current = [];
-    return files;
-  };
   const [chosen, setChosen] = useState(profile);
   const [over, setOver] = useState(false);
 
   // Keys reach onKeyDown only from inside: focus moves to the new screen's first button.
   useEffect(() => { root.current?.querySelector('button')?.focus(); }, [screen]);
 
+  /*
+   * BACK TO THE DROP PAGE FORGETS THE ANSWER, and it has to. `chosen` survives the trip otherwise,
+   * so a technician who pressed Denture, thought better of it and came back would be holding an
+   * invisible answer — and the next drop would carry it. That is the same class of fault as the
+   * aligner guess this screen was rebuilt to remove: an answer nobody can see on screen.
+   */
   const go = (next: ChooserScreen) => {
-    if (next === 'drop') hold([]);
+    if (next === 'drop') setChosen(undefined);
     onScreen(next);
   };
   // A denture job has one type: its file step comes straight from the task screen, and Back returns there.
@@ -113,19 +90,10 @@ export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProje
   // It offered one card: §2 establishes that Type is derived by `defaultProfileId(kind)` and that
   // exactly one aligner profile exists, so the screen asked a question with a single answer.
   const back = (): ChooserScreen => 'drop';
+  /** An answer given BEFORE any file exists: the file step is what it leads to. */
   const choose = (id: string) => {
     setChosen(id);
-    // The purpose press is what releases the held files, with the profile it chose. Asked ONCE for
-    // the whole batch: `dentalOrient` takes the profile as an argument, so there is nothing to
-    // detect against until this is answered.
-    //
-    // CLAIMED, not read: the batch leaves `heldRef` in the same statement it is read, so a second
-    // press in this tick releases nothing (see `claimHeld` above). `setHeld([])` follows only to
-    // redraw the line that counted them.
-    const batch = claimHeld();
-    if (batch.length > 1) { setHeld([]); return onFiles(batch, id); }
-    if (batch.length === 1) { setHeld([]); return onStart(id, batch[0]!); }
-    return onScreen('file', jobKindOf(id));
+    onScreen('file', jobKindOf(id));
   };
   const drop = (event: React.DragEvent<HTMLElement>) => {
     event.preventDefault();
@@ -135,16 +103,16 @@ export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProje
     switch (action.kind) {
       case 'project': return onProjectFile(action.file);
       case 'unsupported': return onUnsupported();
-      // HELD, not imported. The purpose governs what the batch is detected against, so several
-      // files wait for it rather than being read first and asked afterwards.
-      case 'many': return hold(action.files);
-      case 'start': return onStart(action.profile, action.file);
-      case 'hold':
-        hold([action.file]);
-        // A model dropped on Drop goes straight in on the default aligner type.
-        return screen === 'drop' ? onStart(defaultProfileId('aligner'), action.file) : undefined;
+      // A drop is a case: imported now, asked about on the deck.
+      case 'case': return onFiles(action.files, action.profile);
       case 'ignore': return undefined;
     }
+  };
+  /** The drop target's own file picker, for a case chosen rather than dragged. */
+  const pickFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = [...(event.target.files ?? [])];
+    event.target.value = '';
+    if (files.length > 0) onFiles(files, undefined);
   };
 
   return <section ref={root} className={`start-screen${over ? ' start-screen--dropping' : ''}`}
@@ -157,28 +125,40 @@ export function StartScreen({ screen, profile, onScreen, onAnyModel, onOpenProje
     </button> : null}
     {/* The class stays `start-task` so section `s` of the walk keeps selecting it; 7d renames it. */}
     {screen === 'drop' ? <div className="start-task">
-      <ScreenHeading>{t('What are you making?')}</ScreenHeading>
-      {held.length > 1 ? <p className="start-held" data-ui="start-held">
-        {plural(held.length, '1 file ready. Choose what you are making.', '{n} files ready. Choose what you are making.')}
-      </p> : null}
-      <div className="choice-keys">
-        <ChoiceKey icon="aligner" label={t('Aligner')} ui="start-aligner" onChoose={() => choose(defaultProfileId('aligner'))} />
-        <DentureChoice onChoose={() => choose(DENTURE_PROFILE_ID)} />
-        {/* The way into the workspace for work with no flow at all - and the ONLY one, which is why it
-            stays even though the step flow no longer ends there (src/scenes/sceneMap.ts `doors`).
-            Hiding it took Support Edit Mode, zones, the plate panel and every export with it. */}
-        {/* CLAIMED, not read, exactly as `choose` does it: the batch leaves `heldRef` in the same
-            statement, so a double press cannot import it twice (see `claimHeld`). */}
-        <ChoiceKey icon="generic" label={t('Any model')} ui="start-any-model" onChoose={() => { const batch = claimHeld(); setHeld([]); onAnyModel(batch); }} />
+      <ScreenHeading>{t('Drop your files here')}</ScreenHeading>
+      {/*
+        THE DROP TARGET, DRAWN. The page is named `drop` and never used the word: its only affordance
+        was the section-wide outline that appears after the drag has started, so the ordinary way into
+        the app was invisible until you had already guessed it.
+      */}
+      <div className="dental-drop" data-ui="start-drop">
+        <Icon name="drop-file" className="start-drop-art" />
+        <p>{t('One file or a whole case. They stay on this device.')}</p>
+        <input ref={input} type="file" accept=".stl" multiple hidden
+          aria-label={t('Choose STL files')} onChange={pickFiles} />
+        <button type="button" className="primary key-art" data-ui="start-choose-files"
+          onClick={() => input.current?.click()}>{t('Choose STL files')}</button>
       </div>
-      <button type="button" className="link-button" onClick={() => { const batch = claimHeld(); setHeld([]); onOpenProject(batch); }}>{t('Open a saved project')}</button>
+      <p className="start-or" data-ui="start-or">{t('Or tell us what you are making')}</p>
+      <PurposeKeys onDental={choose} onAnyModel={onAnyModel} />
+      <button type="button" className="link-button" onClick={onOpenProject}>{t('Open a saved project')}</button>
     </div> : null}
     {screen === 'file' ? <div className="dental-stage">
       <div className="dental-drop">
         <ScreenHeading>{t(text.heading)}</ScreenHeading>
         <p>{t(text.hint)}</p>
-        <input ref={input} type="file" accept=".stl" aria-label={t(text.input)} hidden
-          onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ''; if (file && chosen) onStart(chosen, file); }} />
+        {/*
+          THE SAME PICKER AS THE DROP PAGE, with the same ref (the two screens never render
+          together) and the same `multiple`. Having answered the purpose does not make this a
+          single-file screen: the answer governs a run, so a whole case can be handed over at once
+          and it arrives on the deck already categorised.
+        */}
+        <input ref={input} type="file" accept=".stl" multiple aria-label={t(text.input)} hidden
+          onChange={(event) => {
+            const files = [...(event.target.files ?? [])];
+            event.target.value = '';
+            if (files.length > 0) onFiles(files, chosen);
+          }} />
         <div className="edit-row">
           <button type="button" className="primary key-art" onClick={() => input.current?.click()}><Icon name="drop-file" />{t('Choose STL file')}</button>
         </div>

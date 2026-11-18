@@ -15,8 +15,17 @@ const verdict = (over: Partial<ImportDiagnosis> = {}): ImportDiagnosis => ({
 const unit = (id: string, name: string, diagnosis?: ImportDiagnosis) =>
   ({ id, name, source: mesh, ...(diagnosis ? { diagnosis } : {}) } as PrintUnit);
 
+/** Every unit named as an aligner: the ordinary state of a case being worked. */
+const named = (units: PrintUnit[]) => new Map(units.map((unit) => [unit.id, 'reference-aligner']));
+/** The same, for a render that builds its units inline. */
+const namedIds = (...ids: string[]) => new Map(ids.map((id) => [id, 'reference-aligner']));
+
 const render = (units: PrintUnit[], finished: string[] = [], refused: { name: string; refusal: ImportRefusal }[] = []) =>
-  renderToStaticMarkup(<ItemsPage denture={false} units={units} refused={refused} detected={new Map()} thumbnails={new Map()} finished={finished} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+  renderToStaticMarkup(<ItemsPage purposes={named(units)} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}} units={units} refused={refused} detected={new Map()} thumbnails={new Map()} finished={finished} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
+/** The deck as a drop lands on it: files in hand, nobody has said what they are yet. */
+const unasked = (units: PrintUnit[]) =>
+  renderToStaticMarkup(<ItemsPage purposes={new Map()} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}} units={units} refused={[]} detected={new Map()} thumbnails={new Map()} finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
 
 /*
  * The <li> tag for one row, so a class can be checked against the RIGHT row. It is a helper because
@@ -30,6 +39,88 @@ function rowTag(html: string, unitId: string): string {
 }
 
 describe('the Items page', () => {
+  /*
+   * THE FILES ARRIVE FIRST AND NOTHING IS ASKED ABOUT "ALL FILES" (owner, 2026-11-18: *"each file
+   * has a category and type, but it ask me what i am making for all files, which is wrong"*).
+   *
+   * The page opens with the ROWS - no question gating the screen - and the naming happens per row.
+   * The guard is on what is NOT offered while a row is unnamed: the rail and the primary act through
+   * one unit's profile, so offering them earlier would be offering a press that can only run against
+   * a guess. Arrange is NOT gated: moving objects so none overlaps is pure geometry.
+   */
+  it('shows the files at once, names them per row, and offers nothing that needs a name', () => {
+    const html = unasked([unit('u-a', 'upper.stl', verdict()), unit('u-b', 'lower.stl', verdict())]);
+
+    // No case-level question at all - it was the wrong shape for data that belongs to each file.
+    expect(html).not.toContain('data-ui="items-ask"');
+    expect(html).toContain('data-ui="items-row-u-a"');
+    expect(html).toContain('data-ui="items-row-u-b"');
+    // Every row carries its own control, and says so in the footer count.
+    expect(html).toContain('data-ui="items-purpose-u-a"');
+    expect(html).toContain('data-ui="items-purpose-u-b"');
+    expect(html).toContain('data-ui="items-unanswered"');
+    // Nothing that needs a name is offered; Arrange, which does not, stays live.
+    expect(html).not.toContain('data-ui="items-start"');
+    expect(html).not.toMatch(/data-ui="items-arrange"[^>]*disabled/);
+  });
+
+  /*
+   * SET ALL IS THE CONVENIENCE, NOT THE QUESTION. A stage case is 10-30 models of one kind, so
+   * naming each would be twenty-four presses to say one word. It is offered only when there is more
+   * than one row, because on a single file it would be the same press twice over.
+   */
+  it('offers Set all for a case, and not for one file', () => {
+    expect(unasked([unit('u-a', 'a.stl'), unit('u-b', 'b.stl')])).toContain('data-ui="items-set-all"');
+    expect(unasked([unit('u-a', 'a.stl')])).not.toContain('data-ui="items-set-all"');
+  });
+
+  /*
+   * ONE PRESS SETS THE CASE, A ROW CAN BE RE-ANSWERED (owner's ruling, 2026-11-18). The guard is on
+   * both halves: the row control must exist once the case is answered, must show THIS row's answer
+   * rather than the case's when they differ, and must not exist before the case is answered at all -
+   * a select has to show one of its options, so an unanswered row would display a default nobody
+   * chose, which is the entry defect this screen was built to remove.
+   */
+  it('shows each row its own answer, and a readable prompt on one nobody has named', () => {
+    const units = [unit('u-a', 'upper.stl', verdict()), unit('u-b', 'base.stl', verdict())];
+
+    // Two rows of the same drop, named differently - the mixed case the per-file answer exists for.
+    const html = renderToStaticMarkup(<ItemsPage onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
+      purposes={new Map([['u-a', 'reference-aligner'], ['u-b', 'reference-denture']])}
+      units={units} refused={[]} detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
+      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}}
+      onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
+    /* The key SAYS what it is drawing, because what it draws is a picture: the title and the
+       aria-label carry the category's word, which is the only part a test (or a screen reader) can
+       read. The type beside it names the profile the engine will run. */
+    expect(html).toMatch(/data-ui="items-purpose-u-b-category-key"[^>]*title="Denture"/);
+    expect(html).toMatch(/data-ui="items-purpose-u-a-category-key"[^>]*title="Aligner"/);
+    expect(html).toMatch(/data-ui="items-purpose-u-a-type-key"[^>]*title="Generic aligner"/);
+    expect(html).toMatch(/data-ui="items-purpose-u-b-type-key"[^>]*title="Generic denture"/);
+    // Both named, so nothing is outstanding.
+    expect(html).not.toContain('data-ui="items-unanswered"');
+
+    /*
+     * AN UNNAMED ROW GETS A READABLE PROMPT, NOT A PICTURE. The compact icon control can only draw
+     * an answer that exists; the first build of it fell back to the generic cube, which is the ANY
+     * MODEL art, so an unnamed row looked exactly like one named "Any model" - the silent-default
+     * defect rebuilt inside its own fix.
+     */
+    const none = unasked(units);
+    expect(none).toMatch(/data-ui="items-purpose-u-a-category"[\s\S]*?Choose…/);
+    expect(none).not.toMatch(/data-ui="items-purpose-u-a-category-key"[^>]*title="Aligner"/);
+    // And no type readout either: there is no profile in force until a category is chosen.
+    expect(none).not.toContain('data-ui="items-purpose-u-a-type"');
+  });
+
+  it('lights the primary once the row it acts on has been named', () => {
+    const html = render([unit('u-a', 'upper.stl', verdict())]);
+
+    expect(html).toContain('data-ui="items-start"');
+    expect(html).not.toMatch(/data-ui="items-arrange"[^>]*disabled/);
+  });
+
   /*
    * THE NAMING RULE, and it is not a style point. `src/progress/README.md` records a walk check that
    * looked at the FIRST of a set of identically-named elements and reported the rest as missing - a
@@ -51,13 +142,15 @@ describe('the Items page', () => {
     expect(new Set(names).size).toBe(names.length);
   });
 
-  it('shows one row per file, in plate order, with its size and verdict', () => {
+  it('shows one row per file, in plate order, with its size and only a verdict worth reading', () => {
     const html = render([unit('u-a', 'upper.stl', verdict()), unit('u-b', 'lower.stl', verdict({ watertight: false, nonManifoldEdges: 7 }))]);
 
     expect(html.indexOf('upper.stl')).toBeLessThan(html.indexOf('lower.stl'));
     expect(html).toContain('1 triangles');
     expect(html).toContain('10 × 20 × 30 mm');
-    expect(html).toContain('Ready to print.');
+    // The sound one is SILENT and the one with a defect speaks: a worklist row earns its height by
+    // having something to report, and the footer's tally counts the ones that do.
+    expect(html).not.toContain('Ready to print.');
     expect(html).toContain('Has 7 edges shared by more than two faces.');
   });
 
@@ -96,7 +189,8 @@ describe('the Items page', () => {
    */
   describe('a case too big to read row by row', () => {
     const detecting = (states: [string, DetectState][]) => renderToStaticMarkup(
-      <ItemsPage denture={false} units={[unit('a', 'a.stl'), unit('b', 'b.stl'), unit('c', 'c.stl')]}
+      <ItemsPage purposes={new Map([['a', 'reference-aligner'], ['b', 'reference-aligner'], ['c', 'reference-aligner']])}
+        onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}} units={[unit('a', 'a.stl'), unit('b', 'b.stl'), unit('c', 'c.stl')]}
         refused={[]} detected={new Map(states)} thumbnails={new Map()} finished={[]} lang="en"
         onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}}
         onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
@@ -162,9 +256,11 @@ describe('the Items page', () => {
     expect(html).toContain('Could not be read.');
     expect(html).toContain('huge.stl');
     expect(html).toContain('Too large to hold in memory.');
-    // The good file is still there beside them.
+    // The good file is still there beside them - and says NOTHING about its health, because it has
+    // nothing to report. Twenty-four rows reading "Ready to print." is how little is wrong said
+    // twenty-four times; the footer's tally counts the ones that are not.
     expect(html).toContain('good.stl');
-    expect(html).toContain('Ready to print.');
+    expect(html).not.toContain('Ready to print.');
   });
 
   it('gives a refused row no Remove, because there is no unit to remove', () => {
@@ -188,21 +284,24 @@ describe('the Items page', () => {
    */
   it('names the chosen row on the Start button, not "the first item"', () => {
     const units = [unit('u-a', 'first.stl', verdict()), unit('u-b', 'second.stl', verdict())];
-    const asList = renderToStaticMarkup(<ItemsPage denture={false} units={units} refused={[]} detected={new Map()}
+    const asList = renderToStaticMarkup(<ItemsPage purposes={named(units)} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}} units={units} refused={[]} detected={new Map()}
       thumbnails={new Map()} finished={[]} lang="en" onSelect={() => {}} onStart={() => {}}
       onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
     expect(asList).toContain('Start with the first item');
-    const chosen = renderToStaticMarkup(<ItemsPage denture={false} units={units} refused={[]} detected={new Map()}
+    const chosen = renderToStaticMarkup(<ItemsPage purposes={named(units)} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}} units={units} refused={[]} detected={new Map()}
       thumbnails={new Map()} finished={[]} lang="en" selectedUnitId="u-b" onSelect={() => {}} onStart={() => {}}
       onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
     expect(chosen).toContain('Start this item');
     expect(chosen).not.toContain('Start with the first item');
     // A FINISHED row IS what the press means when it is the one picked out (owner's ruling,
     // 2026-11-18). This used to fall back to the next unfinished row, so choosing a done model and
     // pressing Start quietly opened someone else's.
-    const finishedPick = renderToStaticMarkup(<ItemsPage denture={false} units={units} refused={[]} detected={new Map()}
+    const finishedPick = renderToStaticMarkup(<ItemsPage purposes={named(units)} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}} units={units} refused={[]} detected={new Map()}
       thumbnails={new Map()} finished={['u-b']} lang="en" selectedUnitId="u-b" onSelect={() => {}} onStart={() => {}}
       onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
     expect(finishedPick).toContain('Start this item');
     expect(finishedPick).not.toContain('Start with the first item');
   });
@@ -214,11 +313,12 @@ describe('the Items page', () => {
    * since drawn by hand still told them to draw it, disagreeing with the rail beside it.
    */
   it('marks a row that needs the operator differently from one that is fine', () => {
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
+    const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-a', 'u-b', 'u-c')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[unit('u-a', 'ok.stl', verdict()), unit('u-b', 'norim.stl', verdict()), unit('u-c', 'bad.stl', verdict())]}
       refused={[]} finished={[]} lang="en" thumbnails={new Map()}
       detected={new Map([['u-a', { kind: 'oriented', turned: true }], ['u-b', { kind: 'no-rim' }], ['u-c', { kind: 'failed' }]])}
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
     const toneOf = (id: string) => html.match(new RegExp(`class="detect([^"]*)"[^>]*data-ui="items-detect-${id}"`))?.[1] ?? 'absent';
     expect(toneOf('u-a')).toBe('');
     expect(toneOf('u-b')).toBe(' detect--todo');
@@ -227,23 +327,26 @@ describe('the Items page', () => {
 
   it('stops telling a row to draw a rim once the rim is drawn', () => {
     const drawn = { ...unit('u-b', 'norim.stl', verdict()), rimDraft: { anchors: [], closed: true } } as unknown as PrintUnit;
-    const html = renderToStaticMarkup(<ItemsPage denture={false} units={[drawn]} refused={[]} finished={[]}
+    const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-b')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}} units={[drawn]} refused={[]} finished={[]}
       lang="en" thumbnails={new Map()} detected={new Map([['u-b', { kind: 'no-rim' }]])}
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
     expect(html).not.toContain('Draw one to continue');
     // "Already upright." is NOT superseded by progress, so only the instructions are withdrawn.
-    const upright = renderToStaticMarkup(<ItemsPage denture={false} units={[drawn]} refused={[]} finished={[]}
+    const upright = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-b')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}} units={[drawn]} refused={[]} finished={[]}
       lang="en" thumbnails={new Map()} detected={new Map([['u-b', { kind: 'oriented', turned: false }]])}
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
     expect(upright).toContain('Already upright');
   });
 
   it('shows each row its own detection result, not one answer for the list', () => {
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
+    const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-a', 'u-b')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[unit('u-a', 'upper.stl', verdict()), unit('u-b', 'lower.stl', verdict())]}
      
       refused={[]} detected={new Map([['u-a', { kind: 'oriented', turned: true }], ['u-b', { kind: 'no-rim' }]])}
       thumbnails={new Map()} finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
 
     expect(html).toContain('data-ui="items-detect-u-a"');
     expect(html).toContain('Turned upright.');
@@ -271,10 +374,11 @@ describe('the Items page', () => {
   it('puts a drawn picture on its own row and leaves the others framed but empty', () => {
     const a = unit('u-a', 'upper.stl', verdict());
     const b = unit('u-b', 'lower.stl', verdict());
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
+    const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-a', 'u-b')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[a, b]} refused={[]} detected={new Map()}
       thumbnails={new Map([['u-a', { mesh: a.source, rotation: [0, 0, 0] as Vector, url: 'data:image/png;base64,AAA' }]])}
       finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
 
     expect(html).toContain('data-ui="items-shot-u-a"');
     expect(html).toContain('src="data:image/png;base64,AAA"');
@@ -284,10 +388,11 @@ describe('the Items page', () => {
 
   it('gives the picture an empty alt, because the name and the sentences already say it in words', () => {
     const a = unit('u-a', 'upper.stl', verdict());
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
+    const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-a')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[a]} refused={[]} detected={new Map()}
       thumbnails={new Map([['u-a', { mesh: a.source, rotation: [0, 0, 0] as Vector, url: 'data:image/png;base64,AAA' }]])}
       finished={[]} lang="en" onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
 
     expect(html).toContain('alt=""');
   });
@@ -297,35 +402,37 @@ describe('the Items page', () => {
    * RESUMES - not the first row, so a returning operator sees the state of the model they are about
    * to pick up rather than one they already finished.
    */
-  it('shows the rail for the selected row', () => {
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
+  it('marks the row Start will open as the selected one', () => {
+    const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-a', 'u-b')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', verdict())]}
      
       refused={[]} detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
       selectedUnitId="u-b"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
 
-    expect(html).toContain('data-ui="tool-orient"');
-    expect(rowTag(html, 'u-b')).toContain('items-row--on-rail');
-    expect(rowTag(html, 'u-a')).not.toContain('items-row--on-rail');
+
+    expect(rowTag(html, 'u-b')).toContain('items-row--next');
+    expect(rowTag(html, 'u-a')).not.toContain('items-row--next');
   });
 
   it('falls back to where work resumes, not to the first row', () => {
     // u-a is finished, so the next item is u-b: that is the row the rail should be about.
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
+    const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-a', 'u-b')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', verdict())]}
      
       refused={[]} detected={new Map()} thumbnails={new Map()} finished={['u-a']} lang="en"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
 
-    expect(rowTag(html, 'u-b')).toContain('items-row--on-rail');
-    expect(rowTag(html, 'u-a')).not.toContain('items-row--on-rail');
+
+    expect(rowTag(html, 'u-b')).toContain('items-row--next');
+    expect(rowTag(html, 'u-a')).not.toContain('items-row--next');
   });
 
   it('draws no rail when there is no row to be about', () => {
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
+    const html = renderToStaticMarkup(<ItemsPage purposes={new Map()} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[]} refused={[]} detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
 
     expect(html).not.toContain('data-ui="tool-orient"');
   });
@@ -336,11 +443,12 @@ describe('the Items page', () => {
    */
   it('says how many files need a look, counting the rows it is shown beside', () => {
     const holed = { ...verdict(), watertight: false, boundaryLoops: 2, longestRimMm: 9 };
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
+    const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-a', 'u-b')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', holed)]}
       refused={[{ name: 'bad.stl', refusal: { kind: 'unreadable', code: 'stl-empty' } }]}
       detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
+
 
     // One defective unit and one refused file: two need a look.
     expect(html).toContain('data-ui="items-tally"');
@@ -348,32 +456,30 @@ describe('the Items page', () => {
   });
 
   it('stays silent about a drop where every row is sound', () => {
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
+    const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-a')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[unit('u-a', 'a.stl', verdict())]} refused={[]}
       detected={new Map()} thumbnails={new Map()} finished={[]} lang="en"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
 
+
     expect(html).not.toContain('data-ui="items-tally"');
   });
 
-  it('shows Orient as busy while that row is still being checked', () => {
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
-      units={[unit('u-a', 'a.stl', verdict())]} refused={[]}
-      detected={new Map([['u-a', { kind: 'running' }]])} thumbnails={new Map()} finished={[]} lang="en"
-      onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
-
-    expect(html).toMatch(/data-ui="tool-orient"[^>]*tool--busy/);
-  });
-
-  it('keeps the rail on a page whose every row is finished, rather than vanishing', () => {
-    // `nextItem` is undefined once nothing is left, and a rail that disappears from a page that
-    // still has rows reads as a fault rather than as "nothing left to do".
-    const html = renderToStaticMarkup(<ItemsPage denture={false}
+  /*
+   * `shows Orient as busy while that row is still being checked` LEFT WITH THE RAIL (2026-11-18).
+   * It asserted `tool--busy` on the rail's Orient button, and the deck has no rail any more. What a
+   * row says while it is being checked is still covered, in its own words rather than a tool's:
+   * `detectState.test.ts` on the chip, and the aggregate line's "Checking 3 of 24" above.
+   */
+  it('still marks a row on a page whose every row is finished, rather than marking none', () => {
+    // `nextItem` is undefined once nothing is left, and a page of rows with none of them marked
+    // reads as a fault rather than as "nothing left to do" - so it falls back to the last row.
+    const html = renderToStaticMarkup(<ItemsPage purposes={namedIds('u-a', 'u-b')} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}}
       units={[unit('u-a', 'a.stl', verdict()), unit('u-b', 'b.stl', verdict())]} refused={[]}
       detected={new Map()} thumbnails={new Map()} finished={['u-a', 'u-b']} lang="en"
       onSelect={() => {}} onStart={() => {}} onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
 
-    expect(html).toContain('data-ui="tool-orient"');
-    expect(rowTag(html, 'u-b')).toContain('items-row--on-rail');
+
+    expect(rowTag(html, 'u-b')).toContain('items-row--next');
   });
 });

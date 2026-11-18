@@ -9,12 +9,10 @@ import type { DetectState } from './detectState';
 import type { ThumbCache } from './thumbnail';
 import { ItemRow } from './ItemRow';
 import { RefusedRow } from './RefusedRow';
-import { ToolRail } from '../deck/ToolRail';
-import type { ToolId } from '../state/tools';
-import { unitFacts } from '../deck/unitFacts';
 import { jobSentence, jobTally } from '../deck/jobSummary';
 import { isModelFile } from '../components/startDrop';
 import { hint } from '../components/hint';
+import { PurposeSelect } from '../components/PurposeSelect';
 
 /**
  * THE DECK (plan §1 page 2, §0b): the tool rail down the left, one row per dropped file beside it,
@@ -33,7 +31,7 @@ import { hint } from '../components/hint';
  * looked at the first of a set of identically-named elements and reported the rest as missing — a
  * false gap that cost a round of investigation.
  */
-export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, denture, onSelect, onStart, onRemove, onFiles, onBack, onArrange, onExport, onRetry }: {
+export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, purposes, onPurpose, onPurposeAll, onAnyModel, onSelect, onStart, onRemove, onFiles, onBack, onArrange, onExport, onRetry }: {
   units: readonly PrintUnit[];
   /**
    * Files that never became units. They are rows too (§3's first table): drop eight, one is broken,
@@ -57,19 +55,34 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   lang: Lang;
   /** Begin the dental flow on this unit. The caller owns the three-call order (see `nextItem`). */
   /**
-   * The run is making dentures. It comes from the RUN's profile rather than from a row, because a
-   * row's own `denture` policy is only written on acceptance - so until then the rail would read a
-   * denture as an aligner and offer it a rim to draw (`deck/unitFacts.ts`).
-   */
-  denture: boolean;
-  /**
-   * Open this row. `tool` is the rail button that was pressed, absent for the page's own primary.
+   * WHAT EACH FILE IS (`unitId` -> dental profile), absent for one nobody has named yet.
    *
-   * The rail used to drop it (`onPick={() => onStart(railUnit)}`), so all four buttons did the same
-   * thing - open the model at the start of its flow - which is how W-02's second half outlived its
-   * first. `App.tsx` decides what a given tool may enter; the page only reports which was pressed.
+   * PER FILE, NOT PER CASE (owner, 2026-11-18: *"each file has a category and type, but it ask me
+   * what i am making for all files, which is wrong"*). A category and a type are attributes of a
+   * MODEL - an upper aligner, a lower aligner and a denture base arrive in one drop - so one answer
+   * imposed on the whole drop would be wrong for part of it, the same reason each row already keeps
+   * its own detection RESULT. The screen used to open with a question gating everything on one
+   * answer; it now opens with the rows, and each row carries its own control.
+   *
+   * It also replaced a `denture: boolean` computed by the caller: the profile is the single fact
+   * that answer derives from, so a boolean beside it was a second opinion that could disagree, and
+   * a boolean cannot say NOT YET NAMED.
    */
-  onStart: (unit: PrintUnit, tool?: ToolId) => void;
+  purposes: ReadonlyMap<string, string>;
+  /** Name one row, and re-detect it under that answer. */
+  onPurpose: (unitId: string, profile: string) => void;
+  /** Put one answer on every row now on the plate - the `Set all` convenience, not a question. */
+  onPurposeAll: (profile: string) => void;
+  /** "Any model": these are plain models, take them to the bench. The deck's third answer. */
+  onAnyModel: () => void;
+  /**
+   * Open this row, at the start of its flow.
+   *
+   * It used to take a second argument naming the rail button that had been pressed. With the rail
+   * gone (owner, 2026-11-18) every way into the flow from this page opens the same thing, so the
+   * argument had exactly one possible value and `App.tsx` had a branch that could not be reached.
+   */
+  onStart: (unit: PrintUnit) => void;
   onRemove: (unit: PrintUnit) => void;
   /** Files dropped onto the list. They ADD to it — the caller must not apply Step 1's one-file rule. */
   onFiles: (files: readonly File[]) => void;
@@ -93,6 +106,15 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   /** Queue this row's detection again. A failed row had no way back before (`useBatchDetect`). */
   onRetry: (unitId: string) => void;
 }) {
+  /*
+   * GATING IS PER ROW NOW, because the answer is. The rail and the primary act through ONE unit's
+   * profile, so what they wait for is THAT unit's answer; there is no case-level answer to wait on.
+   * Arrange is not gated at all - moving objects so none overlaps is pure geometry and needs no
+   * purpose - which was a mistake carried over from the case-level question.
+   */
+  const purposeOf = (unit: PrintUnit | undefined) => (unit && purposes.get(unit.id)) || undefined;
+  /** Rows nobody has said anything about yet: what `Set all` is for, and what the hint counts. */
+  const unanswered = units.filter((unit) => !purposes.has(unit.id)).length;
   const next = nextItem(units, finished, undefined);
   const left = itemsLeft(units, finished);
   /*
@@ -112,15 +134,6 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
    * operator means when the print failed, the file was replaced, or the supports were wrong.
    */
   const target = units.find((unit) => unit.id === selectedUnitId) ?? next ?? units[units.length - 1];
-  /*
-   * THE ROW THE RAIL IS ABOUT. Falling back to `next` rather than to the first row matters: the
-   * fallback is where work RESUMES, so a returning operator sees the state of the model they are
-   * about to pick up rather than of one they already finished.
-   *
-   * The LAST row behind that, because `next` is undefined once every unit is finished — and the rail
-   * vanishing from a page that still has rows reads as a fault rather than as "nothing left to do".
-   */
-  const railUnit = units.find((unit) => unit.id === selectedUnitId) ?? next ?? units[units.length - 1];
   /*
    * HOW THE DROP IS DOING, from the SAME verdicts the rows show, so the two cannot disagree. Silent
    * when every row is sound: a line reading "0 problems" on every drop trains the operator to stop
@@ -169,18 +182,63 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
       const models = [...event.dataTransfer.files].filter(isModelFile);
       if (models.length > 0) onFiles(models);
     }}>
-    <button type="button" className="start-back back-key" data-ui="items-back"
-      aria-label={t('Back')} title={t('Back')} onClick={onBack}>
-      <Icon name="back" className="start-back-art" />
-    </button>
-    <ScreenHeading>{t('Your files')}</ScreenHeading>
+    {/*
+      HEADER, BODY, FOOTER - three blocks, and the page is a grid of those three rows.
+
+      THE BACK KEY LIVES IN THE HEADER, in flow. It used to wear `.start-back`, which is
+      `position: absolute; top: 0; left: 0` - written for the start screens, which fill the window
+      and have nothing above them. The deck renders UNDER the app header, and `.items-page` was not
+      a positioned ancestor, so the key anchored to the WINDOW and sat on top of the logo. Owner,
+      2026-11-18: *"if your css structure is correct, with the header its own div, and the body its
+      own section, then the footer, then the back button shouldnt hv moved above where it belonged."*
+      It cannot move now, because nothing positions it.
+    */}
+    {/*
+      A DIV, NOT `<header>`/`<footer>`. The app already uses those two elements for its own window
+      chrome - the title bar at the top and the status bar at the bottom - and styles them by TAG
+      (`header { … }`, `footer { … }` in `styles.css`). A second pair inside the page inherited that
+      chrome's flex layout, which is what put the deck's tally and its case keys on one crushed line.
+      The three blocks are still header / body / footer; they are named by class.
+    */}
+    <div className="items-head">
+      <button type="button" className="back-key items-back-key" data-ui="items-back"
+        aria-label={t('Back')} title={t('Back')} onClick={onBack}>
+        <Icon name="back" className="start-back-art" />
+      </button>
+      <ScreenHeading>{t('Your files')}</ScreenHeading>
+      {/*
+        SET ALL - an ACTION on the rows, not a question about "the case".
+
+        The screen used to open with a question gating everything on one answer, until the owner saw
+        it: *"each file has a category and type, but it ask me what i am making for all files, which
+        is wrong."* A category and a type belong to a MODEL, and an upper aligner, a lower aligner
+        and a denture base arrive in one drop. So every row carries its own control and this is only
+        the convenience that keeps a stage case of thirty same-kind models to one press.
+      */}
+      {units.length > 1 ? <span className="items-setall">
+        <span className="items-setall-label">{t('Set all to')}</span>
+        <PurposeSelect value={undefined} lang={lang} ui="items-set-all"
+          onChange={onPurposeAll} onAnyModel={onAnyModel} />
+      </span> : null}
+    </div>
 
     {/*
-      THE RAIL DOWN THE LEFT, with the models beside it, which is where the design puts it. One flex
-      row here, and the workspace's own left edge once that exists — the same component either way.
+      THE ROWS, AND NOTHING BESIDE THEM.
+
+      A tool rail stood down the left of this page until 2026-11-18 - Orient, Rim, Area, Supports,
+      with a sentence under it explaining which was reachable and why. The owner asked the question
+      that ended it: *"i dont know why the need to show orient, rim, area, supports, and explain."*
+
+      There is no good answer. The deck's job is three things - see the files, say what each one is,
+      start - and the rail was a FOURTH door into the flow for whichever row happened to be
+      highlighted, duplicating the row's own click and the footer's Start key. Its explainer ("The
+      area is measured from the rim, so draw the rim first.") taught the dependency order of a step
+      nobody had entered yet, on a screen whose reader is deciding what to work on rather than how.
+      The tools belong where they act, which is inside the flow.
+
+      It also took 104px off the width of every row on a page that is a worklist.
     */}
-    <div className="items-body">
-      {railUnit ? <ToolRail facts={unitFacts(railUnit, detected.get(railUnit.id), denture)} onPick={(tool) => onStart(railUnit, tool)} /> : null}
+    <section className="items-body">
       <ul className="items-list">
         {refused.map((entry) => <RefusedRow key={`refused-${entry.name}`} name={entry.name} refusal={entry.refusal} />)}
         {rows.map((unit) => <ItemRow
@@ -197,50 +255,58 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
            * and Start still opens it (owner's ruling, 2026-11-18 - a done mark never blocks a redo).
            */
           done={finished.includes(unit.id) || unit.supports !== undefined}
-          onRail={railUnit?.id === unit.id}
+          willOpen={target?.id === unit.id}
           detected={detected.get(unit.id)}
           thumbnails={thumbnails}
+          purpose={purposes.get(unit.id)}
+          onPurpose={(profile) => onPurpose(unit.id, profile)}
+          lang={lang}
           onSelect={() => onSelect(unit)}
           onRemove={() => onRemove(unit)}
           onRetry={() => onRetry(unit.id)}
         />)}
       </ul>
-    </div>
+    </section>
 
-    {tally ? <p className="items-tally" data-ui="items-tally">{translateMessage(tally)}</p> : null}
+    <div className="items-footer">
+      {tally ? <p className="items-tally" data-ui="items-tally">{translateMessage(tally)}</p> : null}
+      {/*
+        WHAT THE WHOLE CASE NEEDS. Export says WHY it is off rather than going quietly grey: a case
+        with no supports built yet is the ordinary state of this screen, and a dead key with no
+        reason is the thing `src/deck/README.md` is mostly about. Arrange is NOT gated on the
+        purpose: moving objects so none overlaps another is pure geometry.
+      */}
+      <div className="items-case">
+        {unanswered > 0 ? <span className="items-unanswered" data-ui="items-unanswered">
+          {plural(unanswered, '1 file still needs a category', '{n} files still need a category')}
+        </span> : null}
+        <button type="button" className="items-case-key" data-ui="items-arrange" disabled={units.length === 0}
+          onClick={onArrange}
+          {...hint('Move the objects so none overlaps another. Only positions change; supports stay editable')}
+        >{t('Arrange objects')}</button>
+        <button type="button" className="items-case-key" data-ui="items-export" disabled={!anySupports}
+          onClick={onExport}
+          {...(anySupports ? hint('One STL file per object, each with its supports')
+            : { title: t('Nothing to export: no object in this export has supports left.') })}
+        >{t('Each object with model')}</button>
+      </div>
 
-    {/*
-      WHAT THE WHOLE CASE NEEDS, beside what one row needs. Export says WHY it is off rather than
-      going quietly grey: a case with no supports built yet is the ordinary state of this screen, and
-      a dead key with no reason is the thing `src/deck/README.md` is mostly about.
-    */}
-    <div className="items-case">
-      <button type="button" className="items-case-key" data-ui="items-arrange" disabled={units.length === 0}
-        onClick={onArrange}
-        {...hint('Move the objects so none overlaps another. Only positions change; supports stay editable')}
-      >{t('Arrange objects')}</button>
-      <button type="button" className="items-case-key" data-ui="items-export" disabled={!anySupports}
-        onClick={onExport}
-        {...(anySupports ? hint('One STL file per object, each with its supports')
-          : { title: t('Nothing to export: no object in this export has supports left.') })}
-      >{t('Each object with model')}</button>
-    </div>
-
-    <div className="items-foot">
-      <span className="items-left">{left === 1 ? t('1 item left') : t('{n} items left', { n: left })}</span>
-      {waiting > 0 ? <span className="items-progress" data-ui="items-progress">
-        {t('Checking {done} of {n}', { done: units.length - waiting + 1, n: units.length })}
-      </span> : null}
-      {attention > 0 ? <span className="items-attention" data-ui="items-attention">
-        {plural(attention, '{n} needs you', '{n} need you')}
-      </span> : null}
-      {target ? <button type="button" className="primary key-art" data-ui="items-start"
-        /* The name goes in the title rather than the label: a long file name in the primary would
-           either clip or wrap the row, and the label has to read the same in three languages. */
-        title={target.name}
-        onClick={() => onStart(target)}>
-        <Icon name="next" />{t(target === next ? 'Start with the first item' : 'Start this item')}
-      </button> : null}
+      <div className="items-foot">
+        <span className="items-left">{left === 1 ? t('1 item left') : t('{n} items left', { n: left })}</span>
+        {waiting > 0 ? <span className="items-progress" data-ui="items-progress">
+          {t('Checking {done} of {n}', { done: units.length - waiting + 1, n: units.length })}
+        </span> : null}
+        {attention > 0 ? <span className="items-attention" data-ui="items-attention">
+          {plural(attention, '{n} needs you', '{n} need you')}
+        </span> : null}
+        {target && purposeOf(target) ? <button type="button" className="primary key-art" data-ui="items-start"
+          /* The name goes in the title rather than the label: a long file name in the primary would
+             either clip or wrap the row, and the label has to read the same in three languages. */
+          title={target.name}
+          onClick={() => onStart(target)}>
+          <Icon name="next" />{t(target === next ? 'Start with the first item' : 'Start this item')}
+        </button> : null}
+      </div>
     </div>
   </div>;
 }

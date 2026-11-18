@@ -714,6 +714,11 @@ export const zhHant: Dictionary = {
   'The aligner is checked and turned the right way up automatically.': '牙套已完成檢查並已自動調整至正確朝向。',
   'Choose aligner file': '選擇牙套檔案',
   'Choose STL file': '選擇 STL 檔案',
+  // The Drop page's own target (2026-11-18): a drop is a case, so this picker takes several files.
+  'Choose STL files': '選擇 STL 檔案',
+  'Drop your files here': '將您的檔案拖曳至此',
+  'One file or a whole case. They stay on this device.': '單一檔案或整組病例皆可。檔案會保留在此裝置上。',
+  'Or tell us what you are making': '或者告訴我們您想要製作什麼',
   'Aligner': '牙套',
   'Any model': '任意模型',
   'Open a saved project': '開啟已儲存的專案',
@@ -724,7 +729,20 @@ export const zhHant: Dictionary = {
   // The break is the owner's: the line reads 您想要製作 / 什麼支撐？ (`.screen-heading` keeps newlines).
   'What would you like to support?': '您想要製作\n什麼支撐？',
   'What are you making?': '您想要製作\n什麼？',
-  'Your files': '您的檔案',
+  // The per-row purpose override on the deck (2026-11-18): a row re-answered on its own.
+  'Choose…': '請選擇…',
+  'Which type': '類型',
+  'Could not stand this upright. Open it to orient by hand.': '無法將此模型直立。請開啟後手動調整方向。',
+  'Set all to': '全部套用',
+  '1 file still needs a category': '尚有 1 個檔案需要分類',
+  '{n} files still need a category': '尚有 {n} 個檔案需要分類',
+  // The row status chips on the deck (2026-11-18): the short form of the detect sentence.
+  'Ready': '準備就緒',
+  'Checking…': '檢查中…',
+  'Needs rim': '需畫邊緣',
+  'Needs orienting': '需調整方向',
+  'Failed': '失敗',
+   'Your files': '您的檔案',
   'Checking {name}': '正在檢查 {name}',
   'Checking the orientation…': '正在確認方向…',
   'Turned upright.': '已轉至正立。',
