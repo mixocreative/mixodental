@@ -5,7 +5,7 @@ import { inverseTransformDirection, inverseTransformPoint } from '@mixo-geocore/
 import { appendAnchor, closePath, emptyPath, hasAnchor, removeAnchor, type SurfaceAnchor, type SurfacePath } from '../../core/surfacePath/path';
 import type { Message } from '../../i18n';
 import type { PrintScene, SceneCommand } from '../../state/project';
-import { presetCommands } from '../../components/useDentalFlow';
+import { presetCommands } from '../stages';
 import { manualAreaPolicy } from '../manualArea';
 import { drawnRim } from './drawnRim';
 import { rimProblemText } from './rimStepText';

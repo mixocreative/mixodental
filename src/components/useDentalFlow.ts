@@ -2,20 +2,15 @@ import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 
 import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { GizmoMode, ViewRequest } from './viewport/types';
-import type { PrintScene, PrintUnit, SceneCommand, SupportSettings } from '../state/project';
+import type { PrintScene, PrintUnit, SceneCommand } from '../state/project';
 import type { EditSession, SessionEvent } from '@mixo-geocore/editing/session';
 import type { DentalNotice } from '../dental/editingMode';
 import type { AnalysisClient } from '../workers/analysisClient';
 import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
-import { keptDentalWork } from '../dental/flow';
-import { manualAreaPolicy } from '../dental/manualArea';
+import { acceptCommands, acceptedPolicy, alignerSettings, manualAreaCommands, settledPolicy, tiltScanSettings } from '../dental/stages';
 import { keepsManualArea } from '../dental/flow';
-import { dentalStructureOf, dentalSupportSettings } from '../dental/supportPreset';
-import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
-import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
-import type { DentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
 import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
 
@@ -53,25 +48,6 @@ interface DentalFlowHost {
   requestView: (kind: ViewRequest['kind']) => void;
   setGizmoMode: (mode: GizmoMode) => void;
   unitName: (unitId: string) => string;
-}
-
-/** The support settings and switches this aligner will be built with in Step 3 (the type's preset for a new aligner). */
-function alignerSettings(unit: PrintUnit, profile: string): { settings: LiveSupportSettings; structure: DentalStructure } {
-  const own = unit.dental?.profileId === profile;
-  const settings = own ? resolveSettings(unit.settings) : dentalSupportSettings(profile, resolveSettings(unit.settings));
-  const kept = own && unit.dental?.kind === 'two-contour' ? unit.dental.structure : undefined;
-  return { settings, structure: kept ?? dentalStructureOf(profile) };
-}
-
-/**
- * The type's Step 3 settings for a new aligner, or one whose type changed; otherwise the operator's are kept.
- *
- * Exported because rim define mode's Done lands in the same place as a detected rim does and must set
- * the same presets. A second copy would drift the moment one of them changed.
- */
-export function presetCommands(unit: PrintUnit, profile: string): SceneCommand[] {
-  if (unit.dental?.profileId === profile) return [];
-  return [{ type: 'settings/set', unitId: unit.id, settings: dentalSupportSettings(profile, resolveSettings(unit.settings)) as SupportSettings }];
 }
 
 export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, session, setStatus, requestView, setGizmoMode, unitName }: DentalFlowHost) {
@@ -127,10 +103,9 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     const token = ++scanSeq.current;
     const total = tiltCount(profile);
     setTilt({ status: 'scanning', unitId: unit.id, done: 0, total });
-    const { settings, structure } = alignerSettings(unit, profile);
     const stale = () => scanSeq.current !== token || sceneRef.current.activeUnitId !== unit.id;
     void analysis().dentalTiltScan(`dental-tilt:${unit.id}`, unit.source, profile,
-      { neckLengthMm: settings.neckLength, pillarDiameterMm: settings.pillarDiameter, liftMm: settings.liftHeight, braced: structure.treeEnabled || structure.bracesEnabled },
+      tiltScanSettings(unit, profile),
       { key: 'Scanning print angles on {name}', vars: { name: unit.name } },
       (fraction) => { if (!stale() && tiltRef.current?.status === 'scanning') setTilt({ status: 'scanning', unitId: unit.id, done: Math.round(fraction * total), total }); },
     ).then((scan) => {
@@ -366,7 +341,7 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
         // THE PAINT IS CARRIED, as it is everywhere else a policy is replaced (`useRimDrawing` does the
         // same). Reaching here with stamps means the type changed under a painted area; dropping them
         // would be W-01 again, and the paint is the operator's work, not a function of the rim.
-        dispatch({ type: 'batch', commands: [...presetCommands(unit, profile), { type: 'dental/set', unitId: unit.id, policy: manualAreaPolicy(proposal.rim, false, profile, unit.dental?.stamps ?? []) }] });
+        dispatch({ type: 'batch', commands: manualAreaCommands(unit, profile, proposal.rim) });
         send({ type: 'acceptDentalOrientation', noArea: true });
         requestView('bottom');
         return;
@@ -374,10 +349,10 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
       // A new aligner (or one whose type changed) starts from its type's Step 3 settings and
       // Tree/Brace switches; once set, the operator's own choices are kept - including the painted
       // area and the tuning, which this used to discard in silence (`keptDentalWork` says why).
-      const { settings, structure } = alignerSettings(unit, profile);
-      const kept = keptDentalWork(unit, profile);
-      const policy = { kind: 'two-contour' as const, profileId: profile, rim: proposal.rim, region,
-        stamps: kept?.stamps ?? [], tuning: kept?.tuning ?? defaultDentalTuning(profile), structure };
+      const policy = acceptedPolicy(unit, profile, proposal.rim, region);
+      // The tilt CHECK is judged with the settings this aligner will be built with, so it asks
+      // `stages` for the same ones the policy above was made from rather than re-deriving them.
+      const { settings } = alignerSettings(unit, profile);
       /*
        * THE AREA GOES BACK WITH THE TUNING IT WAS DRAWN FOR, when the orientation did not move.
        *
@@ -393,8 +368,8 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
        * so this never hands the checker an area from before a turn.
        */
       const accept = (angleMovedDeg?: number, angleCheck?: 'none-held' | 'failed') => {
-        const settled = angleMovedDeg === undefined && kept?.region ? { ...policy, region: kept.region } : policy;
-        dispatch({ type: 'batch', commands: [...presetCommands(unit, profile), { type: 'dental/set', unitId: unit.id, policy: settled }] });
+        const settled = settledPolicy(unit, profile, policy, angleMovedDeg);
+        dispatch({ type: 'batch', commands: acceptCommands(unit, profile, settled) });
         send({ type: 'acceptDentalOrientation', ...(angleMovedDeg === undefined ? {} : { angleMovedDeg }), ...(angleCheck === undefined ? {} : { angleCheck }) });
         requestView('bottom');
       };
