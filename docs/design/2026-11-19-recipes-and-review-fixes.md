@@ -167,3 +167,47 @@ screen.
 Every new string here is English only until Gemini's daily quota resets. Nothing is hand-translated.
 `src/i18n.test.ts` and `src/items/detectState.test.ts` stay red until then and the full gate stops
 at them; everything else is run separately and kept green.
+
+---
+
+## What happened, 2026-11-19 night
+
+Everything in the build order above shipped, in order, each with its own commit. The part worth
+recording is not the build - it is **how much three review rounds found, and what kind of thing it
+was.**
+
+| round | subject | found | the one that mattered most |
+|---|---|---|---|
+| 1 | the auto-gen implementation | **11** | Back from Step 3 does not re-orient an aligner, so the dialog was lying and supports were deleted for nothing |
+| 2 | the recipe feature, against its own design | **10** | **Delete recipe never deleted** - the save merged the caller's list back over the stored one, so a deleted row looked exactly like another tab's addition. Proved by running it. |
+| 3 | the fixes from round 2 | **7** | my fix had created **two resolvers again** - `presetCommands` wrote one answer while the print-angle scan asked another, so the angle could be judged for one set of numbers and the supports built from another |
+
+**Twenty-eight defects, in code that had already passed tsc, 1700 unit tests and a 191-check
+browser walk.** Not one of them was a type error or a crash. They were: a sentence that was false, a
+control that recorded a choice and changed nothing, a key that could not appear, a merge that
+defeated a deletion, a condition that was inverted, a default parameter evaluated outside its own
+try, and twice over - **one decision implemented in two places.**
+
+That last one is the pattern to carry forward. `src/dental/stages.ts` exists precisely to stop it,
+and it was re-created one function along, three hours after being closed, by the fix for a different
+defect. The guard that caught it was not a test; it was a reviewer asked to check an implementation
+against its own design.
+
+### What the gate says now
+
+```
+npx tsc --noEmit    clean
+npx vitest run src  1714 passed, 2 failed (both the i18n guards - strings are English-only)
+npm run walk        ALL PASS (191 checks, 2136 s)
+  x0p the step screens and auto-gen build the SAME supports | by hand 94, auto-gen 94
+```
+
+### Still open
+
+- **The translations.** 51 strings; Gemini's free tier is 20 requests a DAY and it resets around
+  16:00 on 2026-11-19. The prompt is built and waiting (see the handoff memory). Nothing is
+  hand-written, by the owner's standing rule.
+- **Build-order item 7, a real `manual/move` for a support tip** - untouched. It is a new pointer
+  gesture in the viewport, which is exactly the kind of change this session's evidence says needs a
+  person looking at the screen while it is made, so it was not started at five in the morning.
+- The three debts in `src/recipes/README.md`, with their reasons.
