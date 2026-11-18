@@ -89,7 +89,12 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
   /** Show this model on its own, full size. A look, never an editor (owner's ruling 7). */
   onEnlarge: () => void;
   /** The support recipe this card builds with, and the control that switches it (`src/recipes/`). */
-  recipe: { book: RecipeBook; problem: boolean; selectedId: string | undefined; edited: boolean; onChoose: (recipeId: string) => void };
+  recipe: {
+    book: RecipeBook; problem: boolean; selectedId: string | undefined; edited: boolean;
+    /** The finished run's recipe, while it is still true of this model. */
+    ranName: string | undefined;
+    onChoose: (recipeId: string) => void;
+  };
 }) {
   // No verdict means the unit never went through the import worker, or predates the verdict. The row
   // then shows its size and says nothing about health, which is the honest gap.
@@ -276,7 +281,7 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
         a control that changes how it would be is noise.
       */}
       {purpose !== undefined ? <RecipeChip unitId={unit.id} book={recipe.book} problem={recipe.problem}
-        selectedId={recipe.selectedId} ran={autoGen?.kind === 'done' ? autoGen.recipeName : undefined}
+        selectedId={recipe.selectedId} ran={recipe.ranName}
         edited={recipe.edited} onChoose={recipe.onChoose} /> : null}
     </span>
     {/*

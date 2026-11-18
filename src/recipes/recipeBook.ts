@@ -1,7 +1,7 @@
 // Copyright (c) Mixo Creative.
 
 import { RECIPE_KEYS, TYPE_DEFAULT_ID, typeDefaultRecipe, type SupportRecipe } from './supportRecipe';
-import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
+import { defaultSupportSettings, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 
 /**
  * THE OPERATOR'S RECIPES, ON THEIR OWN DEVICE. There is no server in this app and there is not going
@@ -56,9 +56,13 @@ function parseRecipe(raw: unknown): SupportRecipe | undefined {
   const settings: Partial<LiveSupportSettings> = {};
   for (const key of RECIPE_KEYS) {
     const value = (raw.settings as Record<string, unknown>)[key];
-    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'string') {
-      (settings as Record<string, unknown>)[key] = value;
-    }
+    /*
+     * THE TYPE IS CHECKED AGAINST THE ENGINE'S OWN, not merely "is a primitive". A hand-edited
+     * `"2.4"` where a number belongs would otherwise be stored, never equal the number the unit
+     * carries, and make every card on that recipe read "edited" for ever - while the engine, which
+     * rejects out-of-shape settings, failed the build with no mention of the recipe.
+     */
+    if (typeof value === typeof defaultSupportSettings[key]) (settings as Record<string, unknown>)[key] = value;
   }
   const structure = isObject(raw.structure) ? raw.structure : {};
   return {
@@ -100,39 +104,47 @@ export function loadRecipes(storage: Pick<Storage, 'getItem'> | undefined = glob
   try {
     return parseRecipeBook(storage?.getItem(STORAGE_KEY) ?? null);
   } catch {
-    // Blocked storage: the same answer as unreadable, because the operator's list is equally absent.
-    return { book: emptyBook(), problem: 'unreadable' };
+    /*
+     * BLOCKED STORAGE IS AN EMPTY BOOK, NOT A LOST ONE, and the difference decides whether a whole
+     * case can be generated. A problem means "this device HAS a list and we cannot read it", which
+     * stops every card: the operator's instruction is unknown. Storage that throws on read throws
+     * on write too, so nothing was ever saved here and nothing is unknown - treating it as lost
+     * would refuse to generate anything in a private window, for data that cannot exist.
+     */
+    return { book: emptyBook() };
   }
 }
 
 /**
- * Write `book`, after re-reading what is there.
+ * Apply one edit to the stored book.
  *
- * THE RE-READ IS THE POINT. A whole-list write from a stale copy loses a recipe another tab added
- * one minute ago, and the operator never sees it go. It also refuses to write over a book this
- * version could not read, which is how a parse failure would otherwise destroy the list it failed
- * to understand.
+ * IT TAKES A CHANGE, NOT A BOOK, and that is a correction rather than a style. The first version
+ * took the caller's whole list and merged anything only the stored copy had - so a DELETE could
+ * never work: the row the caller had just removed looked exactly like a row another tab had just
+ * added, and was written straight back. `saveRecipes` returned true, nothing said otherwise, and
+ * the recipe was still in the list. Fable found it by running it.
+ *
+ * Handing the edit in instead settles both at once: it is applied to a FRESHLY READ book, so a
+ * recipe another tab added a minute ago is still there and a deletion is still a deletion. The
+ * caller never holds a stale list long enough to write it.
+ *
+ * IT REFUSES AFTER A FAILED READ, which is the other half: writing over a book this version could
+ * not parse would destroy the only copy of the operator's list.
  *
  * Returns false when nothing was written, so the caller can say so rather than assume it stuck.
  */
-export function saveRecipes(book: RecipeBook, storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = globalThis.localStorage): boolean {
+export function saveRecipes(edit: (stored: RecipeBook) => RecipeBook, storage: Pick<Storage, 'getItem' | 'setItem'> | undefined = globalThis.localStorage): boolean {
   if (!storage) return false;
   try {
     const { problem, book: stored } = parseRecipeBook(storage.getItem(STORAGE_KEY) ?? null);
     if (problem !== undefined) return false;
-    /*
-     * ANOTHER TAB'S RECIPES ARE KEPT. Ours win on a shared id - this write is the operator's latest
-     * intent for those - and anything only the stored book has is carried through.
-     */
-    const ours = new Set(book.recipes.map((recipe) => recipe.id));
-    const merged = [...book.recipes, ...stored.recipes.filter((recipe) => !ours.has(recipe.id))];
-    const defaultId = merged.some((recipe) => recipe.id === book.defaultId) ? book.defaultId : TYPE_DEFAULT_ID;
-    const written: RecipeBook = { version: 1, defaultId, recipes: merged };
+    const next = edit(stored);
+    const defaultId = next.recipes.some((recipe) => recipe.id === next.defaultId) ? next.defaultId : TYPE_DEFAULT_ID;
     storage.setItem(STORAGE_KEY, JSON.stringify({
       version: 1,
-      defaultId: written.defaultId,
+      defaultId,
       // Type default is this app's behaviour, not the operator's data: it is rebuilt on read.
-      recipes: written.recipes.filter((recipe) => recipe.id !== TYPE_DEFAULT_ID),
+      recipes: next.recipes.filter((recipe) => recipe.id !== TYPE_DEFAULT_ID),
     }));
     return true;
   } catch {

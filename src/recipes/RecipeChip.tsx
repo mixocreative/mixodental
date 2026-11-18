@@ -47,7 +47,7 @@ export function RecipeChip({ unitId, book, problem, selectedId, ran, edited, onC
    * on it (`AutoGenStop` `recipe/missing`); the card must not meanwhile display a recipe it is not
    * going to use.
    */
-  const name = chosen?.name ?? t('Recipe missing');
+  const name = problem ? t('Recipe missing') : chosen?.name ?? t('Recipe missing');
   const label = ran ?? (edited ? t('{name}, edited', { name }) : name);
   const title = problem
     ? t('Your saved support recipes could not be read on this device, so only the type default is offered.')
@@ -69,16 +69,24 @@ export function RecipeChip({ unitId, book, problem, selectedId, ran, edited, onC
     </span>;
   }
 
+  /*
+   * ON AN UNREADABLE BOOK THE CONTROL STARTS ON NOTHING, which is what makes the one way through
+   * reachable. With a problem, every card resolves to `'missing'` and stops - unless the operator
+   * chooses Type default HERE, deliberately. Preselecting Type default would mean `onChange` could
+   * never fire, so that choice could not be made and the queue would be stuck with no way out.
+   */
+  const unresolved = problem || !chosen;
+
   return <span className="recipe-chip" data-ui={`card-recipe-${unitId}`} title={title}>
     <span className="recipe-chip-name">{label}</span>
     <select
       data-ui={`card-recipe-select-${unitId}`}
       aria-label={t('Support recipe')}
-      value={chosen ? value : ''}
+      value={unresolved && selectedId === undefined ? '' : value}
       onChange={(event) => onChoose(event.target.value)}
     >
       {/* The unresolvable selection, so the control shows the truth rather than silently re-pointing. */}
-      {chosen ? null : <option value="" disabled>{t('Recipe missing')}</option>}
+      {unresolved && selectedId === undefined ? <option value="" disabled>{t('Recipe missing')}</option> : null}
       {book.recipes.map((recipe) => (
         <option key={recipe.id} value={recipe.id}>
           {isTypeDefault(recipe) ? t('Type default') : recipe.name}

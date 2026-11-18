@@ -33,14 +33,18 @@ rule: the settings a new aligner starts with, what a detected area becomes, what
 asked to try, which angles the confirm tries, whether the kept area comes back, the starting label,
 and the turn-with-re-layout pairing all come from there.
 
-That is parity by construction. The tests guard the seam rather than carry it:
+That is parity by construction. The tests guard the seam rather than carry it, and **both halves now
+exist**:
 
-- `pipeline.real.test.ts` (here) proves the pipeline runs and repeats itself exactly.
-- the walk's auto-gen parity check proves the end state equals the editor's, in a real browser, by
-  dropping the same aligner twice and taking one through the screens.
+- `pipeline.real.test.ts` (here) proves the pipeline runs on a real customer scan, repeats itself
+  exactly, and agrees with itself about the recipe across every reader of the settings.
+- the walk's **`x0p`** proves the end state equals the editor's **in a real browser**: section `m`
+  auto-generates the reference aligner and records what it built, section `x` walks the same file
+  through the step screens by hand, and the two counts must be equal. Measured 2026-11-19:
+  **by hand 94, auto-gen 94.**
 
-A node test cannot do the second one — the editor's path is a hook driving screens — and saying so
-is cheaper than a test that looks like parity and is not.
+A node test cannot do the second one — the editor's path is a hook driving screens — which is why it
+is split across two walk sections that run in order.
 
 ## What `Ready` means now, and what it used to mean
 

@@ -27,7 +27,7 @@ describe('the keys a recipe pins', () => {
    * on the next engine update, and the fix is one line plus a reason.
    */
   it('is every setting except the per-unit and view-only ones, and the number is checked', () => {
-    expect(RECIPE_KEYS).toHaveLength(65);
+    expect(RECIPE_KEYS).toHaveLength(63);
     expect(new Set(RECIPE_KEYS).size).toBe(RECIPE_KEYS.length);
   });
 
@@ -35,6 +35,13 @@ describe('the keys a recipe pins', () => {
     // `dentalLabelCommands` keeps whatever label the settings carry. This is the worst field to get
     // wrong here and the reason "pin the whole settings object" is not the answer.
     expect(RECIPE_KEYS).not.toContain('labelText');
+  });
+
+  it('never pins where ONE model s label had to be nudged to clear something', () => {
+    // Per-unit work by the same argument as `labelText`. How the labels are MADE is pinned.
+    expect(RECIPE_KEYS).not.toContain('labelOffsetX');
+    expect(RECIPE_KEYS).not.toContain('labelOffsetY');
+    expect(RECIPE_KEYS).toContain('labelSize');
   });
 
   it('never pins one operator s view of the model, or the editor s own tools', () => {

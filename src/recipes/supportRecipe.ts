@@ -27,6 +27,12 @@ import type { DentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
  *     `lowPolyMode`, `preset`, `roofSeededModes`. None of them changes a support; all of them would
  *     follow a recipe from one operator's screen to another's.
  *
+ * DEBT, WRITTEN DOWN RATHER THAN IMPLIED: `roofMode` is pinned while `roofSeededModes` is not, and
+ * the engine seeds a roof mode's defaults the first time it is used. So toggling the roof off and on
+ * can re-seed over a recipe's roof numbers. It is reachable only from the bench's own settings panel
+ * and not from the dental steps, which is why it is recorded here instead of being fixed by pinning
+ * a field that is explicitly UI seeding state.
+ *
  * Everything else IS a build key, so the list below is written as what is NOT pinned - short enough
  * to read and to argue with. `supportRecipe.test.ts` pins the resulting key list exactly, so the
  * day the engine gains a setting the test fails and a person has to say which kind it is. A new
@@ -43,7 +49,17 @@ export interface SupportRecipe {
 }
 
 /** Keys a recipe must never carry: per-unit work, or one operator's view of it. */
-const NOT_PINNED = ['preset', 'roofSeededModes', 'labelText', 'previewMode', 'eraseRadius', 'autoSnap', 'lowPolyMode'] as const;
+const NOT_PINNED = [
+  'preset', 'roofSeededModes', 'labelText', 'previewMode', 'eraseRadius', 'autoSnap', 'lowPolyMode',
+  /*
+   * AND THE LABEL'S POSITION. `labelOffsetX` and `labelOffsetY` nudge the ID label on ONE model's
+   * raft so it clears something in the way - per-unit work by the same argument as `labelText`
+   * itself, which is already out. Pinning them moved every model's label to where one model needed
+   * it. (`labelEnabled`, `labelSize`, `labelHeight` and `labelMargin` stay: those are how this
+   * operator's labels are made, not where one of them sits.)
+   */
+  'labelOffsetX', 'labelOffsetY',
+] as const;
 
 /** Every setting a recipe pins: all of them except `NOT_PINNED`. Order is the settings type's own. */
 export const RECIPE_KEYS: readonly SettingKey[] = (Object.keys(defaultSupportSettings) as SettingKey[])
@@ -75,8 +91,11 @@ export function recipeFrom(id: string, name: string, settings: LiveSupportSettin
  *
  * THE RECIPE WINS over what the type would have chosen, deliberately: pillar, tip, lift, raft, Tree
  * and Brace are exactly what an operator makes a recipe FOR, and the card names which one ran. The
- * caller resolves the type's defaults first and passes them as `base`, so a key the recipe does not
- * carry - including one the engine added after the recipe was saved - comes from the type.
+ * `base` IS WHATEVER THE CALLER RESOLVED, and what that means depends on the caller: a key this
+ * recipe does not carry - including one the engine added after it was saved - keeps `base`'s value.
+ * For a model that has never been of this type that is the type's own number, which is the case this
+ * was written for; for one already settled it is the unit's own. `recipeApplication` in
+ * `src/dental/stages.ts` is where that choice is made - this function only merges.
  *
  * UNKNOWN KEYS ARE DROPPED here as well as at parse time, because a book written by a newer version
  * of the app can reach this function on an older one.

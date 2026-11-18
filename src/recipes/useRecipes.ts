@@ -1,8 +1,8 @@
 // Copyright (c) Mixo Creative.
 
 import { useCallback, useMemo, useState } from 'react';
-import { emptyBook, loadRecipes, recipeById, saveRecipes, type RecipeBook, type RecipeProblem } from './recipeBook';
-import { TYPE_DEFAULT_ID, isTypeDefault, recipeFrom, type SupportRecipe } from './supportRecipe';
+import { loadRecipes, recipeById, saveRecipes, type RecipeBook, type RecipeProblem } from './recipeBook';
+import { TYPE_DEFAULT_ID, isTypeDefault, recipeFrom, typeDefaultRecipe, type SupportRecipe } from './supportRecipe';
 import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import type { DentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
 
@@ -28,9 +28,15 @@ export function useRecipes(storage?: Pick<Storage, 'getItem' | 'setItem'>) {
 
   const { book, problem } = stored;
 
-  /** Store `next` and keep it only if it was actually written. Returns whether it stuck. */
-  const commit = useCallback((next: RecipeBook): boolean => {
-    if (!saveRecipes(next, storage)) return false;
+  /**
+   * Apply one edit to the STORED book and keep the result only if it was written.
+   *
+   * It hands the change down rather than a finished list, because `saveRecipes` applies it to a
+   * freshly read book - which is what makes a deletion a deletion and still keeps a row another tab
+   * added. Handing it a whole list is what made Delete silently do nothing.
+   */
+  const commit = useCallback((edit: (stored: RecipeBook) => RecipeBook): boolean => {
+    if (!saveRecipes(edit, storage)) return false;
     setStored(loadRecipes(storage));
     return true;
   }, [storage]);
@@ -48,16 +54,25 @@ export function useRecipes(storage?: Pick<Storage, 'getItem' | 'setItem'>) {
    * turns it into a stop the card can say out loud.
    */
   const resolve = useCallback((unitId: string): SupportRecipe | 'missing' => {
-    if (problem !== undefined && chosen.get(unitId) !== undefined) return 'missing';
+    /*
+     * A BOOK THIS DEVICE COULD NOT READ MAKES EVERY CARD UNKNOWN, including the ones nobody has
+     * chosen for - and the first version had this exactly the wrong way round. It stopped a card
+     * with an explicit choice and RAN the ones whose instruction it could not know, which is the
+     * silent death this module is written against: the stored default may well have been "Thin",
+     * and every card would have been built as Type default without a word.
+     *
+     * The one way through is to choose Type default on the card, deliberately, now.
+     */
+    if (problem !== undefined) return chosen.get(unitId) === TYPE_DEFAULT_ID ? typeDefaultRecipe() : 'missing';
     const wanted = chosen.get(unitId) ?? book.defaultId;
-    return recipeById(book, wanted) ?? (wanted === TYPE_DEFAULT_ID ? recipeById(emptyBook(), TYPE_DEFAULT_ID)! : 'missing');
+    return recipeById(book, wanted) ?? 'missing';
   }, [book, chosen, problem]);
 
   /** Save the settings in front of the operator as a new recipe, and point this card at it. */
   const addRecipe = useCallback((name: string, settings: LiveSupportSettings, structure: DentalStructure, unitId?: string): SupportRecipe | undefined => {
     const id = `recipe-${crypto.randomUUID()}`;
     const recipe = recipeFrom(id, name.trim() || 'Recipe', settings, structure);
-    if (!commit({ ...book, recipes: [...book.recipes, recipe] })) return undefined;
+    if (!commit((stored) => ({ ...stored, recipes: [...stored.recipes, recipe] }))) return undefined;
     if (unitId) choose(unitId, id);
     return recipe;
   }, [book, choose, commit]);
@@ -67,7 +82,7 @@ export function useRecipes(storage?: Pick<Storage, 'getItem' | 'setItem'>) {
     const existing = recipeById(book, id);
     if (!existing || isTypeDefault(existing)) return false;
     const next = recipeFrom(id, existing.name, settings, structure);
-    return commit({ ...book, recipes: book.recipes.map((recipe) => (recipe.id === id ? next : recipe)) });
+    return commit((stored) => ({ ...stored, recipes: stored.recipes.map((recipe) => (recipe.id === id ? next : recipe)) }));
   }, [book, commit]);
 
   /**
@@ -80,16 +95,18 @@ export function useRecipes(storage?: Pick<Storage, 'getItem' | 'setItem'>) {
   const removeRecipe = useCallback((id: string): boolean => {
     const existing = recipeById(book, id);
     if (!existing || isTypeDefault(existing)) return false;
-    const recipes = book.recipes.filter((recipe) => recipe.id !== id);
-    const defaultId = book.defaultId === id ? TYPE_DEFAULT_ID : book.defaultId;
-    if (!commit({ ...book, defaultId, recipes })) return false;
+    if (!commit((stored) => ({
+      ...stored,
+      defaultId: stored.defaultId === id ? TYPE_DEFAULT_ID : stored.defaultId,
+      recipes: stored.recipes.filter((recipe) => recipe.id !== id),
+    }))) return false;
     setChosen((current) => new Map([...current].filter(([, recipeId]) => recipeId !== id)));
     return true;
   }, [book, commit]);
 
   /** "Use this one from now on": the only part of the selection that is remembered across sittings. */
   const setDefault = useCallback((id: string): boolean =>
-    (recipeById(book, id) ? commit({ ...book, defaultId: id }) : false), [book, commit]);
+    (recipeById(book, id) ? commit((stored) => ({ ...stored, defaultId: id })) : false), [book, commit]);
 
   return useMemo(() => ({
     book,

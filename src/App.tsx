@@ -131,8 +131,7 @@ import { isBuilding, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { stepPanelInset } from './dental/stepPanelInset';
 import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, exitCommands, exitNeedsConfirm, keepsManualArea, manualEditCounts, startsDentalStep } from './dental/flow';
-import { applyRecipeCommands } from './dental/stages';
-import { isTypeDefault, matchesRecipe } from './recipes/supportRecipe';
+import { applyRecipeCommands, matchesApplied, recipeStructure } from './dental/stages';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import { dentalLabelCommands } from './dental/stages';
 import type { DentalReview } from './components/DentalSupports';
@@ -636,9 +635,20 @@ export default function App() {
    * let them work because a stored list could not be read would be the worse answer.
    */
   const recipeFor = useCallback((unitId: string) => {
+    /*
+     * A UNIT ALREADY SETTLED ON THIS TYPE KEEPS ITS OWN NUMBERS, and leaving that out made the
+     * editor silently undo work: move a slider in Step 3, go Back to repaint, press Next, and the
+     * re-accept wrote the recipe over the edit with no warning. Under Type default the same edit
+     * survived, which is the two paths disagreeing about the operator's own work.
+     *
+     * The recipe still governs the FIRST accept, which is where it belongs, and Step 3's own row is
+     * the explicit way to apply one afterwards - a press, not a side effect.
+     */
+    const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
+    if (unit?.dental?.profileId !== undefined && unit.dental.profileId === sessionRef.current.dentalProfile) return undefined;
     const recipe = recipes.resolve(unitId);
     return recipe === 'missing' ? undefined : recipe;
-  }, [recipes]);
+  }, [recipes, sceneRef, sessionRef]);
   const dentalFlow = useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, session, setStatus, requestView, setGizmoMode, unitName, recipeFor });
   // `orientFlow` is the Step 1 flow of the job in the step (the denture job's own, src/denture).
   const orientFlow = denture.active ? denture.orient : dentalFlow;
@@ -1523,9 +1533,10 @@ export default function App() {
         const picked = recipes.book.recipes.find((entry) => entry.id === recipeId);
         const profile = activeUnit.dental?.profileId ?? session.dentalProfile;
         if (!picked || !profile) return;
-        // The numbers land on the model at once, and the switches with them: see `applyRecipeCommands`.
+        // The numbers land on the model at once, and the switches with them - both from the one
+        // helper, so Type default restores every pinned key and the switches rather than a handful.
         dispatch({ type: 'batch', commands: applyRecipeCommands(activeUnit, profile, picked) });
-        if (!isTypeDefault(picked)) onDentalStructureChange(picked.structure);
+        onDentalStructureChange(recipeStructure(activeUnit, profile, picked));
       },
       onSaveAs: (name: string) => recipes.addRecipe(name, activeSettings, { treeEnabled: reviewStructure.structure.treeEnabled, bracesEnabled: reviewStructure.structure.bracesEnabled }, activeUnit.id) !== undefined,
       onUpdate: (recipeId: string) => recipes.updateRecipe(recipeId, activeSettings, { treeEnabled: reviewStructure.structure.treeEnabled, bracesEnabled: reviewStructure.structure.bracesEnabled }),
@@ -1705,15 +1716,46 @@ export default function App() {
         book: recipes.book,
         problem: recipes.problem !== undefined,
         chosen: recipes.chosen,
-        onChoose: recipes.choose,
         /*
-         * A UNIT NOBODY HAS SET SETTINGS ON IS NOT "EDITED". Only a unit whose dental policy exists -
-         * one that has been through the flow - can have numbers of its own to differ from a recipe.
+         * CHOOSING ON THE DECK APPLIES IT TOO, for a card that has already been through the flow.
+         * Without this a card switched after an accept kept the previous recipe's numbers while the
+         * chip named the new one - the supports and the label disagreeing, in silence.
+         *
+         * A card with no policy yet needs nothing: the pipeline writes the recipe at accept time.
          */
+        onChoose: (unitId, recipeId) => {
+          recipes.choose(unitId, recipeId);
+          const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
+          const picked = recipes.book.recipes.find((entry) => entry.id === recipeId);
+          const profile = unit?.dental?.profileId ?? resolvedPurposes.get(unitId);
+          if (!unit || !picked || !profile || unit.dental === undefined) return;
+          dispatch({ type: 'batch', commands: applyRecipeCommands(unit, profile, picked) });
+        },
+        /*
+         * "EDITED" IS ABOUT THE OPERATOR'S OWN CHOICE DRIFTING, which is why it needs one: a card
+         * that merely follows the default would otherwise light up the moment the default changed,
+         * on every card in the case at once, for something nobody did to that model.
+         *
+         * It compares the SWITCHES as well as the numbers. Tree and Brace are much of what a recipe
+         * is for, and auto-gen overwrites them with everything else.
+         */
+        /*
+         * The finished run's recipe, while it is still true of the model. A card that was built with
+         * Thin and then rebuilt under Thick must stop saying Thin, and this is the only place that
+         * claim is made.
+         */
+        ranName: (unit, card) => {
+          if (card?.kind !== 'done') return undefined;
+          const ran = recipes.book.recipes.find((entry) => entry.id === card.recipeId);
+          const profile = unit.dental?.profileId ?? resolvedPurposes.get(unit.id);
+          if (!ran || !profile) return undefined;
+          return matchesApplied(unit, profile, ran) ? card.recipeName : undefined;
+        },
         edited: (unit) => {
           const picked = recipes.resolve(unit.id);
-          return unit.dental !== undefined && picked !== 'missing' && !isTypeDefault(picked)
-            && !matchesRecipe(resolveSettings(unit.settings), picked);
+          const profile = unit.dental?.profileId ?? resolvedPurposes.get(unit.id);
+          return unit.dental !== undefined && picked !== 'missing' && profile !== undefined
+            && recipes.chosen.has(unit.id) && !matchesApplied(unit, profile, picked);
         },
       }}
       /*

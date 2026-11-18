@@ -25,10 +25,14 @@ import type { SupportRecipe } from '../recipes/supportRecipe';
  * failure this app's deck budget exists to warn about. Strictly one also makes "which card is
  * running" a fact rather than a guess.
  *
- * NOTHING IS WRITTEN FOR A CARD THAT STOPPED. Every stop leaves the unit as it was found, so a card
- * that could not be generated is exactly as openable as before - the operator presses Open and does
- * it themselves. The card says where it stopped, because a queue that goes quiet on three of thirty
- * is the silent death this project's first law is about.
+ * A CARD THAT STOPPED SAYS WHERE, because a queue that goes quiet on three of thirty is the silent
+ * death this project's first law is about.
+ *
+ * WHAT A STOP LEAVES BEHIND DEPENDS ON WHERE IT HAPPENED, and an earlier version of this comment
+ * claimed it left the unit untouched. It does not: the pipeline commits as it goes, so a stop at
+ * the orient or area step has already turned the model, and a stop at the supports step has already
+ * written the accepted policy. Those are in the scene history like any other change, so Undo takes
+ * them back - but the card is not as it was found, and the operator can see that it is not.
  */
 
 /** What one card is doing, or what became of it. */
@@ -57,6 +61,8 @@ export type AutoGenCard =
      * that supports already on the plate were built with something they have never used.
      */
     readonly recipeName: string;
+    /** Which recipe, so the card can stop claiming it once the model no longer matches. */
+    readonly recipeId: string;
   }
   /** Stopped, with the unit untouched. */
   | { readonly kind: 'stopped'; readonly stop: AutoGenStop };
@@ -141,9 +147,12 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
       const unit = sceneRef.current.units.find((candidate) => candidate.id === unitId);
       if (!unit || !profile) { put(unitId, undefined); continue; }
       /*
-       * THE RECIPE IS RESOLVED AT THIS CARD'S TURN, like its type - a case of thirty is minutes, and
-       * a recipe deleted in another tab halfway through must stop THIS card rather than build it
-       * with something else.
+       * THE RECIPE IS RESOLVED AT THIS CARD'S TURN, like its type: a case of thirty takes minutes,
+       * and an operator who switches a later card's recipe while an earlier one runs means it.
+       *
+       * NOT "a deletion in another tab", which an earlier version of this comment claimed: nothing
+       * re-reads storage mid-session, so a second tab's deletion is not observed until this one
+       * reloads. Saying so is cheaper than a reader trusting a guarantee that is not there.
        */
       const recipe = recipeRef.current(unitId);
       if (recipe === 'missing') { put(unitId, { kind: 'stopped', stop: { at: 'recipe', because: 'missing' } }); continue; }
@@ -193,7 +202,7 @@ export function useAutoGen({ analysis, dispatch, sceneRef, purposes, detected, a
       if (generation.current !== mine) return;
       put(unitId, result.kind === 'done'
         ? {
-          kind: 'done', tips: result.tips, recipeName: recipe.name,
+          kind: 'done', tips: result.tips, recipeName: recipe.name, recipeId: recipe.id,
           ...(result.angleMovedDeg === undefined ? {} : { angleMovedDeg: result.angleMovedDeg }),
           ...(result.angleCheck === undefined ? {} : { angleCheck: result.angleCheck }),
         }

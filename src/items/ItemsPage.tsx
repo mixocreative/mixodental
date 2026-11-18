@@ -125,6 +125,14 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
     onChoose: (unitId: string, recipeId: string) => void;
     /** Whether this unit's settings still match the recipe its card names. */
     edited: (unit: PrintUnit) => boolean;
+    /**
+     * The name of the recipe a finished run used, while it is STILL TRUE of the model.
+     *
+     * It stops once the model no longer matches: "These supports were built with Thin" over supports
+     * the operator has since rebuilt under Thick is a statement about the plate that is simply
+     * wrong, and the card is the only place it is said.
+     */
+    ranName: (unit: PrintUnit, card: AutoGenCard | undefined) => string | undefined;
   };
 }) {
   /*
@@ -335,6 +343,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
             problem: recipes.problem,
             selectedId: recipes.chosen.get(unit.id),
             edited: recipes.edited(unit),
+            ranName: recipes.ranName(unit, autoGen.get(unit.id)),
             onChoose: (recipeId) => recipes.onChoose(unit.id, recipeId),
           }}
         />)}

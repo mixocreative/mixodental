@@ -41,7 +41,7 @@ describe('reading the book', () => {
 
   it('round-trips a saved book', () => {
     const store = fakeStorage();
-    saveRecipes(book(), store);
+    saveRecipes(() => book(), store);
 
     const read = loadRecipes(store);
     expect(read.problem).toBeUndefined();
@@ -59,7 +59,20 @@ describe('reading the book', () => {
     expect(parseRecipeBook('{not json').problem).toBe('unreadable');
     expect(parseRecipeBook('{"recipes":[]}').problem).toBe('unreadable');
     expect(parseRecipeBook('["a"]').problem).toBe('unreadable');
-    expect(loadRecipes(fakeStorage(undefined, 'read')).problem).toBe('unreadable');
+  });
+
+  /*
+   * BLOCKED STORAGE IS AN EMPTY BOOK, NOT A LOST ONE, and the difference decides whether a case can
+   * be generated at all. A problem stops every card, because the operator's instruction is unknown.
+   * Storage that throws on read throws on write too, so nothing was ever saved on that device and
+   * nothing is unknown - reporting a problem would refuse to generate anything in a private window,
+   * over data that cannot exist.
+   */
+  it('treats blocked storage as a device with no recipes, not as a lost list', () => {
+    const blocked = loadRecipes(fakeStorage(undefined, 'read'));
+
+    expect(blocked.problem).toBeUndefined();
+    expect(blocked.book.recipes.map((recipe) => recipe.id)).toEqual([TYPE_DEFAULT_ID]);
   });
 
   it('treats a book from a newer version as read-only, not as rubbish', () => {
@@ -95,7 +108,7 @@ describe('writing it', () => {
   it('refuses to write over a book this version could not read', () => {
     const store = fakeStorage('{not json');
 
-    expect(saveRecipes(book(), store)).toBe(false);
+    expect(saveRecipes(() => book(), store)).toBe(false);
     expect(store.read()).toBe('{not json');
   });
 
@@ -103,25 +116,53 @@ describe('writing it', () => {
     const newer = JSON.stringify({ version: 2, defaultId: 'x', recipes: [] });
     const store = fakeStorage(newer);
 
-    expect(saveRecipes(book(), store)).toBe(false);
+    expect(saveRecipes(() => book(), store)).toBe(false);
     expect(store.read()).toBe(newer);
   });
 
-  it('keeps a recipe another tab added, instead of clobbering it with a stale list', () => {
+  /*
+   * THE EDIT IS APPLIED TO A FRESHLY READ BOOK, which is what makes both of these true at once: a
+   * row another tab added is still there, AND a deletion is still a deletion. The first version
+   * took the caller's whole list and merged back anything only the stored copy had - so a deleted
+   * row looked exactly like another tab's addition and was written straight back. Delete never
+   * worked, and `saveRecipes` said it had.
+   */
+  it('adds to what another tab stored, rather than clobbering it with a stale list', () => {
     const store = fakeStorage(JSON.stringify({ version: 1, defaultId: TYPE_DEFAULT_ID, recipes: [{ id: 'other', name: 'From another tab', settings: {}, structure: {} }] }));
+    const thin = book().recipes[1]!;
 
-    expect(saveRecipes(book(), store)).toBe(true);
-    expect(loadRecipes(store).book.recipes.map((recipe) => recipe.id)).toEqual([TYPE_DEFAULT_ID, 'r1', 'other']);
+    expect(saveRecipes((stored) => ({ ...stored, recipes: [...stored.recipes, thin] }), store)).toBe(true);
+    expect(loadRecipes(store).book.recipes.map((recipe) => recipe.id)).toEqual([TYPE_DEFAULT_ID, 'other', 'r1']);
+  });
+
+  it('DELETES, which the merge made impossible', () => {
+    const store = fakeStorage();
+    saveRecipes(() => book(), store);
+
+    expect(saveRecipes((stored) => ({ ...stored, recipes: stored.recipes.filter((recipe) => recipe.id !== 'r1') }), store)).toBe(true);
+    expect(loadRecipes(store).book.recipes.map((recipe) => recipe.id)).toEqual([TYPE_DEFAULT_ID]);
+  });
+
+  it('does not resurrect a row this tab deleted while another tab was adding one', () => {
+    const store = fakeStorage();
+    saveRecipes(() => book(), store);
+    // Another tab adds one, under this tab's feet.
+    const other = { id: 'other', name: 'From another tab', settings: {}, structure: { treeEnabled: false, bracesEnabled: false } };
+    saveRecipes((stored) => ({ ...stored, recipes: [...stored.recipes, other] }), store);
+    // This tab now deletes the one it was looking at.
+    saveRecipes((stored) => ({ ...stored, recipes: stored.recipes.filter((recipe) => recipe.id !== 'r1') }), store);
+
+    expect(loadRecipes(store).book.recipes.map((recipe) => recipe.id)).toEqual([TYPE_DEFAULT_ID, 'other']);
   });
 
   it('says false when the write itself failed, so the caller does not claim it stuck', () => {
-    expect(saveRecipes(book(), fakeStorage(undefined, 'write'))).toBe(false);
-    expect(saveRecipes(book(), undefined)).toBe(false);
+    expect(saveRecipes(() => book(), fakeStorage(undefined, 'write'))).toBe(false);
+    expect(saveRecipes(() => book(), undefined)).toBe(false);
   });
 
   it('does not store Type default, which is this app s behaviour rather than the operator s data', () => {
     const store = fakeStorage();
-    saveRecipes(book(), store);
+    saveRecipes(() => book(), store);
 
     expect(JSON.parse(store.read()!).recipes.map((recipe: { id: string }) => recipe.id)).toEqual(['r1']);
     // And it comes back all the same.
@@ -131,7 +172,7 @@ describe('writing it', () => {
   it('writes under the one key the app reads', () => {
     const store = fakeStorage();
     let written = '';
-    saveRecipes(book(), { getItem: () => null, setItem: (key, value) => { written = key; void value; } });
+    saveRecipes(() => book(), { getItem: () => null, setItem: (key, value) => { written = key; void value; } });
     void store;
 
     expect(written).toBe(STORAGE_KEY);

@@ -55,6 +55,19 @@ carries, and a second recipe must move both.
 must get "Thin", or the two paths have diverged — which is what `stages.ts` exists to prevent.
 `useDentalFlow` and `useRimDrawing` both take `recipeFor`.
 
+## Debt, written down rather than implied
+
+- **A hand-drawn rim or a painted area does not carry the recipe's Tree and Brace switches.** Those
+  two live on a `two-contour` policy; `manualAreaPolicy` builds a `legacy` one, which has no field
+  for them. So between drawing a rim and accepting an area, the row names a recipe whose switches
+  are not on the policy. Fixing it means giving the legacy policy a structure, which is a change to
+  saved project data.
+- **`roofMode` is pinned while `roofSeededModes` is not** (see `supportRecipe.ts`): toggling the
+  roof off and on can re-seed the engine's defaults over a recipe's roof numbers. Reachable only
+  from the bench's settings panel, not from the dental steps.
+- **A second tab's deletion is not observed** until this one reloads. Nothing re-reads storage
+  mid-session; writes are safe (each is applied to a freshly read book), reads are a snapshot.
+
 ## Where each layer is tested, and where it is not
 
 | layer | tested by |

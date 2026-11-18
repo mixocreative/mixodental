@@ -1,9 +1,10 @@
 // Copyright (c) Mixo Creative.
 
 import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
+import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { dentalStructureOf, dentalSupportSettings } from './supportPreset';
-import { applyRecipe, isTypeDefault, matchesRecipe, type SupportRecipe } from '../recipes/supportRecipe';
+import { RECIPE_KEYS, applyRecipe, isTypeDefault, type SupportRecipe } from '../recipes/supportRecipe';
 import { keptDentalWork } from './flow';
 import { manualAreaPolicy } from './manualArea';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
@@ -75,10 +76,19 @@ export function presetCommands(unit: PrintUnit, profile: string, recipe?: Suppor
    * The two look equally plausible on screen, which is why Fable called it the defect nobody would
    * notice for weeks.
    */
-  const { settings } = alignerSettings(unit, profile, recipe);
   const settled = unit.dental?.profileId === profile;
-  // Nothing to write: this unit is already of this type and already carries this recipe's numbers.
-  if (settled && (recipe === undefined || isTypeDefault(recipe) || matchesRecipe(resolveSettings(unit.settings), recipe))) return [];
+  // No recipe at all: the operator's own numbers are theirs once this unit is of this type.
+  if (settled && recipe === undefined) return [];
+  /*
+   * A RECIPE IS WRITTEN EVEN ON A SETTLED UNIT, Type default included - and leaving that case out
+   * was a real defect: a card switched to Type default after an accept kept the previous recipe's
+   * numbers while the chip calmly said "Type default". `matchesApplied` is what stops it writing
+   * when there is nothing to write.
+   */
+  if (recipe !== undefined && settled && matchesApplied(unit, profile, recipe)) return [];
+  const settings = recipe === undefined
+    ? alignerSettings(unit, profile).settings
+    : recipeApplication(unit, profile, recipe).settings;
   return [{ type: 'settings/set', unitId: unit.id, settings: settings as SupportSettings }];
 }
 
@@ -141,7 +151,43 @@ export function acceptCommands(unit: PrintUnit, profile: string, policy: DentalP
 }
 
 /**
- * CHOOSING A RECIPE IN STEP 3 PUTS ITS NUMBERS ON THE MODEL NOW.
+ * WHAT THIS RECIPE WOULD PUT ON THIS MODEL: every pinned setting and the two switches.
+ *
+ * ONE ANSWER, THREE READERS - the control that applies it, the accept that writes it, and the card
+ * that says whether the model still matches. The first version had the first two disagreeing about
+ * Type default, which is how a card came to read "Type default" over another recipe's supports.
+ *
+ * TYPE DEFAULT RESTORES, and restores EVERY pinned key rather than the handful the type's own preset
+ * happens to name. Building it over the engine's defaults is what makes that true: a key the type
+ * does not set goes back to the engine's value, not to whatever the last recipe left there. The
+ * unpinned keys - the label, the operator's view - stay the unit's own, because a recipe never
+ * owned them.
+ */
+export function recipeApplication(unit: PrintUnit, profile: string, recipe: SupportRecipe): { settings: LiveSupportSettings; structure: DentalStructure } {
+  const current = resolveSettings(unit.settings);
+  if (!isTypeDefault(recipe)) return { settings: applyRecipe(current, recipe), structure: { ...recipe.structure } };
+  const typed = dentalSupportSettings(profile, defaultSupportSettings);
+  const settings = { ...current };
+  for (const key of RECIPE_KEYS) (settings as Record<string, unknown>)[key] = typed[key];
+  return { settings, structure: dentalStructureOf(profile) };
+}
+
+/**
+ * Whether the model already carries exactly what this recipe would put on it, SWITCHES INCLUDED.
+ *
+ * The switches matter and were missed: Tree and Brace are what a recipe is largely for, and a unit
+ * whose Tree was toggled after the recipe was applied is a unit auto-gen will quietly change back.
+ */
+export function matchesApplied(unit: PrintUnit, profile: string, recipe: SupportRecipe): boolean {
+  const { settings, structure } = recipeApplication(unit, profile, recipe);
+  const current = resolveSettings(unit.settings);
+  if (!RECIPE_KEYS.every((key) => current[key] === settings[key])) return false;
+  const live = unit.dental?.kind === 'two-contour' ? unit.dental.structure : undefined;
+  return live === undefined || (live.treeEnabled === structure.treeEnabled && live.bracesEnabled === structure.bracesEnabled);
+}
+
+/**
+ * CHOOSING A RECIPE PUTS ITS NUMBERS ON THE MODEL NOW.
  *
  * Without this the select was a DEAD CONTROL in the plainest sense: it recorded a choice, the
  * sliders did not move, the supports did not change, and nothing on screen differed - the recipe
@@ -155,10 +201,12 @@ export function acceptCommands(unit: PrintUnit, profile: string, policy: DentalP
  * is why applying one is its own function rather than a flag on that one.
  */
 export function applyRecipeCommands(unit: PrintUnit, profile: string, recipe: SupportRecipe): SceneCommand[] {
-  const current = resolveSettings(unit.settings);
-  const settings = isTypeDefault(recipe) ? dentalSupportSettings(profile, current) : applyRecipe(current, recipe);
-  return [{ type: 'settings/set', unitId: unit.id, settings: settings as SupportSettings }];
+  return [{ type: 'settings/set', unitId: unit.id, settings: recipeApplication(unit, profile, recipe).settings as SupportSettings }];
 }
+
+/** The switches that go with those numbers, for the caller that owns them (`onStructure` in App). */
+export const recipeStructure = (unit: PrintUnit, profile: string, recipe: SupportRecipe): DentalStructure =>
+  recipeApplication(unit, profile, recipe).structure;
 
 /**
  * No area was detected, so Step 2 opens empty and the operator paints one.
