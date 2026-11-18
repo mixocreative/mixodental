@@ -1,19 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { detectSentence, detectStateOf, type DetectState } from './detectState';
+import { detectChip, detectSentence, detectStateOf, type DetectState, type OrientDoubt } from './detectState';
 import type { DentalOrientation } from '@mixo-geocore/host/dental/dentalOrient';
 import { translateMessage } from '../i18n';
 import { ja } from '../locales/ja';
 import { zhHant } from '../locales/zh-Hant';
 
+/*
+ * THE PROPOSAL IS NO LONGER A STUB, and it had to stop being one. It was `{} as never`, which was
+ * enough while the state read two fields; the gate now reads the engine's up/down cross-check, and a
+ * fixture with no diagnostics was not an engine answer at all - it was a shape that happened to
+ * survive the old code.
+ */
 const oriented = (rotation: [number, number, number] | undefined): DentalOrientation => ({
-  kind: 'oriented', proposal: {} as never, rotation, opening: 'present', meshOk: true, matchesProfile: true, arch: 'ring',
+  kind: 'oriented',
+  proposal: { kind: 'proposal', rim: {}, diagnostics: { confidence: 1, floorOffsetRatio: 0.1, axialVarianceRatio: 0.1, crossCheck: 'agrees' } } as never,
+  rotation, opening: 'present', meshOk: true, matchesProfile: true, arch: 'ring',
 });
 const say = (state: DetectState) => { const m = detectSentence(state); return m ? translateMessage(m) : undefined; };
 
 describe('what a row shows about its own orientation', () => {
   it('tells "turned" from "already upright", because an inconsistent batch is worth seeing', () => {
     expect(detectStateOf(oriented([0, 180, 0]))).toEqual({ kind: 'oriented', turned: true });
-    expect(detectStateOf(oriented(undefined))).toEqual({ kind: 'oriented', turned: false });
+    /*
+     * AN IDENTITY POSE IS WHAT "ALREADY UPRIGHT" IS. This line used to pass `undefined`, which means
+     * the engine could not decide at all - so the row that needed the operator most was the one
+     * saying everything was fine. An absent pose is a doubt now (below).
+     */
+    expect(detectStateOf(oriented([0, 0, 0]))).toEqual({ kind: 'oriented', turned: false });
     expect(say({ kind: 'oriented', turned: true })).toBe('Turned upright.');
     expect(say({ kind: 'oriented', turned: false })).toBe('Already upright.');
   });
@@ -55,8 +68,22 @@ describe('what a row shows about its own orientation', () => {
     waiting: { kind: 'waiting' },
     running: { kind: 'running' },
     oriented: { kind: 'oriented', turned: true },
+    check: { kind: 'check', doubts: ['pose'] },
     'no-rim': { kind: 'no-rim' },
     failed: { kind: 'failed' },
+  };
+
+  /*
+   * AND EVERY DOUBT, for the same reason one step down. `check` carries five different sentences and
+   * the record above can only hold one of them, so a doubt added without a sentence would ship with
+   * no words and no translation. Keyed by `OrientDoubt`, so the compiler refuses a short list.
+   */
+  const EVERY_DOUBT: Record<OrientDoubt, DetectState> = {
+    mesh: { kind: 'check', doubts: ['mesh'] },
+    pose: { kind: 'check', doubts: ['pose'] },
+    profile: { kind: 'check', doubts: ['profile'] },
+    'up-down': { kind: 'check', doubts: ['up-down'] },
+    opening: { kind: 'check', doubts: ['opening'] },
   };
 
   it('has a sentence for every state it can be in', () => {
@@ -67,12 +94,35 @@ describe('what a row shows about its own orientation', () => {
     expect(say({ kind: 'oriented', turned: false })).toBe('Already upright.');
   });
 
-  it('translates every sentence it can produce, into both languages', () => {
-    const keys = [...Object.values(EVERY_KIND), { kind: 'oriented', turned: false } as DetectState]
-      .map((state) => detectSentence(state)!.key);
+  it('sends a mesh doubt to the mesh and every other doubt to the orientation', () => {
+    // The chip's words are the instruction. "Check orientation" on an unusable mesh is the wrong one.
+    expect(detectChip(EVERY_DOUBT.mesh)!.key).toBe('Check mesh');
+    for (const [doubt, state] of Object.entries(EVERY_DOUBT)) {
+      if (doubt !== 'mesh') expect(detectChip(state)!.key, doubt).toBe('Check orientation');
+    }
+  });
 
-    // Six states, six distinct sentences: a shared sentence would hide one state behind another.
-    expect(new Set(keys).size).toBe(6);
+  /*
+   * A TIMEOUT IS NOT A GENERIC FAILURE, and the operator's next move is not the same: Retry on a
+   * model that ran past its deadline will run past it again. The batch used to throw the reason
+   * away (`useBatchDetect`), so the two drew one line.
+   */
+  it('tells a job that ran out of time from one that failed outright', () => {
+    expect(say({ kind: 'failed', because: 'timeout' })).toMatch(/took too long/);
+    expect(say({ kind: 'failed', because: 'timeout' })).not.toBe(say({ kind: 'failed' }));
+  });
+
+  it('translates every sentence and chip it can produce, into both languages', () => {
+    const states = [...Object.values(EVERY_KIND), ...Object.values(EVERY_DOUBT),
+      { kind: 'oriented', turned: false } as DetectState, { kind: 'failed', because: 'timeout' } as DetectState];
+    const keys = [
+      ...states.map((state) => detectSentence(state)!.key),
+      ...states.flatMap((state) => { const chip = detectChip(state); return chip ? [chip.key] : []; }),
+    ];
+
+    // Twelve distinct sentences: six states, five doubts inside one of them, and the timeout a
+    // failure can carry. A shared sentence would hide one of them behind another.
+    expect(new Set(states.map((state) => detectSentence(state)!.key)).size).toBe(12);
     for (const [lang, dictionary] of [['ja', ja], ['zh-Hant', zhHant]] as const) {
       expect(keys.filter((key) => !(key in dictionary)), `${lang}: missing`).toEqual([]);
       // Present is not translated: an entry equal to its key is the commonest way this ships undone.

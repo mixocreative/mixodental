@@ -12,6 +12,7 @@ import type { SurfaceAnchor, SurfacePath } from '../core/surfacePath/path';
 import type { ImportDiagnosis } from './diagnosis';
 import { TOOL_ORDER } from './tools';
 import { stamped, type Revisions } from './revisions';
+import { reorients, rotationChanged } from './rotation';
 
 export { identityTransform } from '@mixo-geocore/host/state/transform';
 
@@ -239,13 +240,33 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
          * ORIENTING IS A ROTATION CHANGE, not any transform change. `transform/set` also carries
          * ordinary moves, and stamping on those would mark the rim and the area out of date every
          * time the operator nudged a model across the view - work the move did not affect.
-         *
-         * The comparison is exact equality on the three numbers, not a tolerance: the question is
-         * "did this command change the rotation at all", and identical numbers answer it without an
-         * epsilon anyone would have to defend.
          */
-        const turned = transform.rotation.some((angle, axis) => angle !== unit.transform.rotation[axis]);
-        return withRevisions({ ...unit, transform }, turned ? stamped(unit.revisions, 'orient', true) : unit.revisions);
+        if (!rotationChanged(unit.transform.rotation, transform.rotation)) return withRevisions({ ...unit, transform }, unit.revisions);
+        const marks = stamped(unit.revisions, 'orient', true);
+        /*
+         * A RE-ORIENT TAKES THE SUPPORTS WITH IT, and this is the ONLY place that decides it, which
+         * is the point: every door into a rotation - Back into Step 1, the rotate gizmo, the
+         * print-angle tilt, the denture's accept - arrives at this command, so none of them can
+         * forget. Before this, a turn only STAMPED the supports as dated and the export refused at
+         * the very end, so an operator could work for minutes on supports belonging to a pose that
+         * no longer existed. Owner's ruling, `docs/design/2026-11-18-card-deck-plan.md` ruling 1.
+         *
+         * `reorients` SPARES A SPIN about the plate's vertical, which leaves the build valid and is
+         * proved so on a real scan - see `src/state/rotation.ts` for why that exception exists and
+         * what breaks without it.
+         *
+         * THE HAND WORK GOES TOO, deliberately rather than as collateral. `manual`, `deleted` and
+         * `contactSettings` are keyed to the POSITIONS of the supports being removed, so keeping
+         * them would leave edits pointing at nothing - and silently re-keying them onto whatever the
+         * next build happens to place is the defect class this deletes outright.
+         *
+         * THE PAINTED AREA STAYS. `dental.stamps` are marks on the MESH, which did not move; the
+         * `orient` stamp above dates the area DERIVED from them, which is what the staleness model
+         * is for (`keptDentalWork` in `src/dental/flow.ts` carries that story).
+         */
+        if (!reorients(unit.transform.rotation, transform.rotation)) return withRevisions({ ...unit, transform }, marks);
+        const { placement: _placement, supports: _supports, ...rest } = unit;
+        return withRevisions({ ...rest, transform, manual: [], deleted: [], contactSettings: {} }, stamped(marks, 'supports', false));
       });
     case 'settings/set':
       return updateUnit(scene, command.unitId, (unit) => ({ ...unit, settings: normalizeJsonObject(command.settings) as SupportSettings }));

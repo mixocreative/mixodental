@@ -1787,6 +1787,77 @@ async function walk(url, scratch, dentalFixture) {
       check('m11b naming the files is what lets the case start',
         ranAfterAnswer && (await page.locator('[data-ui="items-unanswered"]').count()) === 0,
         `start key ${ranAfterAnswer}, still unnamed ${await page.locator('[data-ui="items-unanswered"]').count()}`);
+
+      /*
+       * m12: AUTO-GEN, END TO END, ON THE REAL ALIGNER AND THROUGH THE FRONT DOOR.
+       *
+       * The queue is five engine jobs chained by `src/autoGen/pipeline.ts` - orient, print-angle
+       * scan, support area, angle confirm, tip placement - and every decision in it is taken by
+       * `src/dental/stages.ts`, the same functions the step screens call. A node test proves the
+       * chain runs and repeats itself exactly (`pipeline.real.test.ts`); it cannot prove the DECK
+       * drives it, because the queue is React and the card is a screen. This is that half.
+       *
+       * THE CUBES ABOVE CANNOT CARRY THIS CHECK, which is why it drops its own file. A cube has no
+       * rim, so auto-gen on one correctly refuses at the first job - proving the stop path and
+       * nothing about the happy one. `PUBLIC_ALIGNER` is the real reference scan the x section walks
+       * by hand.
+       *
+       * WHAT IS STILL NOT PROVED HERE, said rather than left to be assumed: that the supports are
+       * the SAME ones the editor would have built. That wants the same file walked by hand and
+       * auto-generated side by side, and the hand walk lives in another section with its own entry
+       * (`x` enters at Step 1 and never passes the deck). It is written down in
+       * `docs/design/2026-11-18-card-deck-plan.md` as the open half, with parity held meanwhile by
+       * both paths calling one implementation.
+       */
+      /*
+       * THE DROP PAGE, NOT THE BENCH. `enterEditor` presses "Any model", which is the answer "these
+       * are plain models" - its drop imports straight onto the plate and never shows a card at all.
+       * The deck is what the START page's own picker leads to, at every file count (`m11`).
+       */
+      await page.goto(url);
+      await page.waitForSelector('[data-ui="start-drop"]', { timeout: 60000 });
+      await page.setInputFiles('[data-ui="start-drop"] input[type=file]', [PUBLIC_ALIGNER]);
+      await page.waitForSelector('.items-page', { timeout: 180000 });
+      await answerCase(page);
+      /*
+       * THE KEY IS ABSENT UNTIL THE CARD MAY USE IT (owner's ruling 4), so waiting for it IS the
+       * assertion that detection finished and came back clean. A greyed key would have let this
+       * check pass on a card the queue would refuse.
+       */
+      const genKey = page.locator('[data-ui^="items-autogen-unit-"]').first();
+      const offered = await genKey.waitFor({ state: 'visible', timeout: 300000 }).then(() => true, () => false);
+      if (offered) await genKey.click();
+      const autoGenLine = () => page.locator('[data-ui^="items-autogen-state-"]').first();
+      const placed = offered && await page.waitForFunction(
+        () => /placed/.test(document.querySelector('[data-ui^="items-autogen-state-"]')?.textContent ?? ''),
+        null, { timeout: 600000 },
+      ).then(() => true, () => false);
+      const openKey = page.locator('[data-ui^="items-open-unit-"]').first();
+      const openLabel = (await openKey.count()) > 0 ? await openKey.innerText() : '';
+      check('m12 Auto-gen builds a card\u2019s supports without opening it, and the card then offers to EDIT them',
+        placed && /edit/i.test(openLabel),
+        `key offered ${offered}, chip "${await page.locator('[data-ui^="items-detect-"]').first().innerText().catch(() => '')}"`
+        + `, line "${await autoGenLine().innerText().catch(() => '')}", open key "${openLabel}"`);
+
+      /*
+       * m12b: AND IT OPENS AT STEP 3 (owner's ruling 2). Not a nicety: Step 1 is the ORIENT step and
+       * entering a re-orient DELETES the supports already built, so the ordinary door would destroy
+       * exactly the work this card was pressed to show. The counts are read because a Step 3 with no
+       * supports in it is the same screen as a Step 3 with them.
+       */
+      let atStep3 = false;
+      let tally = { auto: -1, manual: -1, removed: -1 };
+      if (placed) {
+        await openKey.click();
+        atStep3 = await page.waitForFunction(
+          () => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 3'),
+          null, { timeout: 120000 },
+        ).then(() => true, () => false);
+        if (atStep3) tally = await d.counts();
+      }
+      check('m12b an auto-generated card opens at Step 3 with the supports the queue built, never at Step 1',
+        atStep3 && tally.auto > 0 && tally.manual === 0,
+        `badge "${await page.locator('.edit-badge').innerText().catch(() => '')}", counts ${JSON.stringify(tally)}`);
     }
 
     /*
@@ -3789,9 +3860,10 @@ async function walk(url, scratch, dentalFixture) {
         check('x11 Fix opens Add supports at the spot', addBefore === 'false' && addAfter === 'true', `Add supports pressed ${addBefore} -> ${addAfter}, status "${await d.status()}"`);
       }
 
-      // Back asks first because hand work would be lost; Stay keeps it.
+      // Back asks first because the build and the hand work would be lost; Stay keeps both.
       await d.button('Back').click();
-      check('x12 Back from Step 3 asks before discarding manual edits', await page.getByText('Discard and go back').isVisible());
+      const backAsk = await page.locator('.dental-confirm .edit-note').textContent();
+      check('x12 Back from Step 3 warns that re-orienting removes the supports, BEFORE it happens', await page.getByText('Discard and go back').isVisible() && /removes its supports/.test(backAsk), `ask "${backAsk}"`);
       await page.getByRole('button', { name: 'Stay' }).click();
       check('x13 Stay keeps Step 3 and the edits', (await page.locator('.edit-badge').textContent()).toLowerCase().includes('step 3 · supports') && (await d.counts()).manual === afterLift.manual);
 
@@ -4673,7 +4745,7 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 188;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10
+const EXPECTED_CHECKS = 190;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
 if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,

@@ -141,7 +141,7 @@ const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true,
     expect(failedHtml).toContain('The supports could not be built.');
     expect(failedHtml).not.toContain('Supports ready. Every point is held.');
     const askHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
-      review={{ ...base, backAsk: { added: 2, removed: 1, customised: 0 } }} send={() => {}} run={() => {}} />);
+      review={{ ...base, backAsk: { added: 2, removed: 1, customised: 0, supports: false } }} send={() => {}} run={() => {}} />);
     expect(askHtml).toContain('2 added, 1 removed');
     expect(askHtml).toContain('Discard and go back');
   });

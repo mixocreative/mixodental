@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PrintUnit } from '../../../state/project';
-import { isRigidPlateMove, keepsBuild, keptBuild, turnsAboutVertical } from './rigidMove';
+import { turnsAboutVertical } from '../../../state/rotation';
+import { isRigidPlateMove, keepsBuild, keptBuild } from './rigidMove';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u', name: 'U', source: {}, transform: { position: [0, 3, 0], rotation: [0.3, 0.2, 0.1] }, settings: {}, manual: [], deleted: [], zones: [], contactSettings: {},
   denture: { policy: {} }, supports: { kind: 'live', data: {} }, ...over }) as unknown as PrintUnit;

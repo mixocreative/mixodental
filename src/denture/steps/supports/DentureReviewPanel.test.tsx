@@ -54,7 +54,7 @@ describe('DentureReviewPanel', () => {
     expect(building).not.toContain('denture-review-details-toggle');
     // OK or Export STL, whichever the scene map leaves standing (src/scenes/sceneMap.ts).
     expect(building).toMatch(new RegExp(`<button[^>]*disabled[^>]*>${resolve(reviewWayOn(), ui).label}<`));
-    const ask = render({ backAsk: { added: 2, removed: 1, customised: 0 } });
+    const ask = render({ backAsk: { added: 2, removed: 1, customised: 0, supports: false } });
     expect(ask).toContain('Discard and go back');
     expect(ask).not.toContain('denture-review-ok');
   });

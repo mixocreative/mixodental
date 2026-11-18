@@ -1,5 +1,6 @@
 import { DEFAULT_DENTAL_LABEL } from '@mixo-geocore/host/dental/label';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
+import { turnsAboutVertical } from '../../../state/rotation';
 import type { PrintUnit } from '../../../state/project';
 
 /*
@@ -13,22 +14,12 @@ import type { PrintUnit } from '../../../state/project';
 
 const TOLERANCE = 1e-9;
 
-type Euler = readonly number[];
-
-/** The rotation matrix of an XYZ Euler angle triple (three.js order, the one the viewport applies), row-major. */
-function matrixOf([x, y, z]: Euler): number[] {
-  const [a, b, c, d, e, f] = [Math.cos(x!), Math.sin(x!), Math.cos(y!), Math.sin(y!), Math.cos(z!), Math.sin(z!)];
-  return [c * e, -c * f, d, b * d * e + a * f, -b * d * f + a * e, -b * c, -a * d * e + b * f, a * d * f + b * e, a * c];
-}
-
-/** Whether turning from rotation `before` to `after` is a turn about the vertical (Y) axis alone. */
-export function turnsAboutVertical(before: Euler, after: Euler): boolean {
-  const a = matrixOf(before);
-  const b = matrixOf(after);
-  // relative = after * before^T
-  const rel = (row: number, col: number) => [0, 1, 2].reduce((sum, k) => sum + b[row * 3 + k]! * a[col * 3 + k]!, 0);
-  return Math.abs(rel(1, 1) - 1) < TOLERANCE && Math.abs(rel(0, 1)) < TOLERANCE && Math.abs(rel(1, 0)) < TOLERANCE && Math.abs(rel(1, 2)) < TOLERANCE && Math.abs(rel(2, 1)) < TOLERANCE;
-}
+/*
+ * THE VERTICAL-TURN TEST MOVED OUT, to `src/state/rotation.ts`, and this file is now a caller like
+ * any other. The reducer needs the same question - a turn that is not about the vertical is a
+ * re-orient and takes the supports with it - and two copies of one piece of rotation maths is two
+ * things that drift, with this file's real-scan proof as the half that looks right either way.
+ */
 
 /**
  * Whether `after` is `before` slid over the plate and/or turned about the vertical: every field but the transform is

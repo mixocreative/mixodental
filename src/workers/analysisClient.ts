@@ -22,6 +22,8 @@ interface Job {
   settle: (result: AnalysisResult | undefined, error?: unknown) => void;
   /** This job's own progress (fraction 0..1), besides the client-wide `onProgress`. */
   progress?: (fraction: number) => void;
+  /** This job's own deadline, where the pool's ten minutes is wrong for its shape (see `submit`). */
+  timeoutMs?: number;
 }
 
 interface Slot {
@@ -70,8 +72,8 @@ export class AnalysisClient {
   }
 
   /** Step 1 of the dental flow: orientation, opening and mesh check of a dropped aligner, off the main thread. */
-  dentalOrient(key: string, mesh: TriangleMesh, profile: string, label: JobLabel): Promise<DentalOrientation | undefined> {
-    return this.submit(key, { kind: 'dental-orient', job: { mesh, profile } }, label).then((result) =>
+  dentalOrient(key: string, mesh: TriangleMesh, profile: string, label: JobLabel, timeoutMs?: number): Promise<DentalOrientation | undefined> {
+    return this.submit(key, { kind: 'dental-orient', job: { mesh, profile } }, label, undefined, timeoutMs).then((result) =>
       result?.kind === 'dental-orient-result' ? result.orientation : undefined);
   }
 
@@ -130,10 +132,19 @@ export class AnalysisClient {
     this.slots.length = 0;
   }
 
-  private submit(key: string, task: AnalysisTask, label: JobLabel, progress?: (fraction: number) => void): Promise<AnalysisResult | undefined> {
+  /**
+   * `timeoutMs` IS PER JOB, and the pool's ten minutes is the ceiling rather than the answer.
+   *
+   * Ten minutes is right for what it was written for - a placement or a check on a big model, where
+   * finishing late beats failing. It is wrong for a BATCH: the deck's detector drains one row at a
+   * time, so one stalled orient holds every row behind it for the whole ten minutes while the screen
+   * says "Waiting its turn…" and means it (gap register W-03). A caller that knows its own job's
+   * shape says so, and the runner has taken a per-job deadline all along (`workerTask.ts`).
+   */
+  private submit(key: string, task: AnalysisTask, label: JobLabel, progress?: (fraction: number) => void, timeoutMs?: number): Promise<AnalysisResult | undefined> {
     this.cancel(key);
     return new Promise((resolve, reject) => {
-      this.queue.push({ key, task, label, controller: new AbortController(), settle: (result, error) => (error ? reject(error) : resolve(result)), ...(progress ? { progress } : {}) });
+      this.queue.push({ key, task, label, controller: new AbortController(), settle: (result, error) => (error ? reject(error) : resolve(result)), ...(progress ? { progress } : {}), ...(timeoutMs === undefined ? {} : { timeoutMs }) });
       this.pump();
     });
   }
@@ -161,6 +172,7 @@ export class AnalysisClient {
       signal: job.controller.signal,
       label: job.label,
       context: job.task.kind,
+      ...(job.timeoutMs === undefined ? {} : { timeoutMs: job.timeoutMs }),
       ...(this.gate && (job.task.kind === 'place' || job.task.kind === 'dental-place' || job.task.kind === 'dental-region' || job.task.kind === 'dental-retune-place' || job.task.kind === 'dental-tilt-scan' || job.task.kind === 'dental-confirm-tilt') ? { admit: (signal: AbortSignal) => this.gate!.acquire(mesh.indices.length / 3, signal) } : {}),
       onProgress: (fields) => {
         if (typeof fields.fraction === 'number' && typeof fields.stage === 'string') this.onProgress(job.key, fields.fraction, fields.stage);

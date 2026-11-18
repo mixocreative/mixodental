@@ -105,6 +105,34 @@ export type DentalEvent =
    * `next()` asks `isManualArea(unit.dental)`, which survives Cancel, a reopen and a reload.
    */
   | { type: 'dentalRimDefined' }
+  /**
+   * OPEN A MODEL THAT ALREADY HAS ITS SUPPORTS STRAIGHT AT STEP 3.
+   *
+   * WHY IT IS NOT THE ORDINARY DOOR. Every other way in starts at Step 1, which is the ORIENT step -
+   * and since 2026-11-18 entering a re-orient deletes the supports already built. So for a card the
+   * deck's Auto-gen has finished, or one reopened from a saved project with its supports in it, the
+   * ordinary door destroys exactly the work the operator pressed Open to look at. Owner's ruling 2:
+   * an auto-generated card opens at Step 3, never Step 1.
+   *
+   * WHY NO PROPOSAL IS NEEDED. Step 1's proposal is Step 1's evidence; Step 3 reads the UNIT - its
+   * policy, its placement, its supports. The two places that still look at the session's proposal
+   * both fall back to the unit's own rim (`App.tsx`), which is where the answer lives for a model
+   * that has been through the flow once already.
+   *
+   * THE CALLER OWNS THE PRECONDITION, because a session reducer cannot see the scene: send this only
+   * for a unit that carries a two-contour policy AND supports. Sent for anything else it would open
+   * an empty Step 3, which is a screen with nothing to edit.
+   */
+  | {
+    type: 'openDentalSupports'; unitId: string;
+    /**
+     * What the run that built these supports has to report - the print-angle check's three outcomes,
+     * the same notices `acceptDentalOrientation` carries on the walked path. Without them an
+     * auto-gen whose angle check held NOTHING would open a clean-looking Step 3, which is the one
+     * place the app knows its central claim failed for this model going quiet.
+     */
+    notices?: readonly DentalNotice[];
+  }
   /** A denture is upright and its print angles are scanned (it has no aligner proposal). */
   | { type: 'dentureOriented'; notices?: readonly DentalNotice[] }
   | { type: 'dentalBadFile'; message: StatusMessage }
@@ -221,7 +249,7 @@ declare module '@mixo-geocore/editing/commands' {
 }
 
 const isDentalEvent = (event: SessionEvent): event is DentalEvent => DENTAL_EVENTS.has(event.type);
-const DENTAL_EVENTS = new Set<string>(['startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented',
+const DENTAL_EVENTS = new Set<string>(['startDental', 'switchDentalProfile', 'dentalLoading', 'dentalOriented', 'openDentalSupports',
   'dentalOrientFailed', 'dentalRimNeeded', 'dentalRimReopen', 'setDentalRimSelected', 'setDentalTool', 'dentalRimDefined', 'dentureOriented', 'dentalBadFile', 'dismissDentalNotice', 'acceptDentalOrientation', 'acceptDentalArea', 'finishDental',
   'addAnotherDental', 'exportedDental', 'backDental', 'setDentalRadius']);
 
@@ -241,6 +269,12 @@ function reduceDental(state: EditSession, event: DentalEvent, { withMode, set, e
     case 'dentalLoading':
       return state.mode === 'dental' && state.dentalStage === 'aligner'
         ? { ...state, dentalAligner: 'loading', dentalNotices: [], dentalProposal: undefined, dentalUnitId: event.unitId }
+        : state;
+    case 'openDentalSupports':
+      // Step 3 rests on Select, as it does on every other way in: a step opens on the tool that changes nothing.
+      return state.mode === 'dental' && state.dentalStage === 'aligner'
+        ? { ...state, dentalStage: 'review', dentalUnitId: event.unitId, dentalAligner: 'ready', dentalProposal: undefined,
+          dentalNotices: event.notices ?? [], tool: 'select', selectStyle: 'click', addAction: 'add', selection: NO_SELECTION }
         : state;
     case 'dentalOriented':
       return state.mode === 'dental' && state.dentalStage === 'aligner' && state.dentalAligner === 'loading'

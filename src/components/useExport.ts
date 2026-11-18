@@ -8,13 +8,14 @@ import { jobActivity } from '@mixo-geocore/host/workers/jobActivity';
 import { WorkerJobError } from '@mixo-geocore/host/workers/WorkerTask';
 import type { PrintScene, PrintUnit } from '../state/project';
 import { exportUnits, planExport, type ExportKind } from '@mixo-geocore/host/supports/export';
-import { exportRefusal } from '@mixo-geocore/host/supports/exportGate';
+import { exportRefusal, type ExportRefusal } from '@mixo-geocore/host/supports/exportGate';
 import { currentBuilds, supportJobOf, unitContacts, type BuiltSupports, type UnitBuild } from '@mixo-geocore/host/supports/unitSupports';
 import type { ExportResult, SupportMeshClient } from '@mixo-geocore/host/workers/meshClient';
 import type { ExportFilePlan } from '@mixo-geocore/host/supports/export';
 import type { JobLabel } from '@mixo-geocore/host/workers/jobActivity';
 import { codedJobError } from '../workers/jobErrors';
 import { isAbort, type SetStatus } from './appShared';
+import { exportBatches } from './exportBatches';
 
 
 /**
@@ -100,57 +101,110 @@ export function useExport(host: {
     const label = { key: files.length === 1 ? 'Exporting {name}' : 'Exporting {n} files', vars: { name: files[0]!.fileName, n: files.length } };
     try {
       const jobs = units.map(([unit, index]) => ({ unitId: unit.id, job: supportJobOf(unit, index, 'export'), transform: unit.transform }));
-      const outcome = dentureExport && units.some(([unit]) => (unit as PrintUnit).denture) ? await dentureExport(units as [PrintUnit, number][], files, label) : await exporter().exportFiles(jobs, files, label, () => {});
-      const written = outcome.files;
-      // Nothing came back (every file was empty, or the job was dropped): never report success.
-      if (written.length === 0) return setStatus('Nothing to export for this mode.');
-      // Written only from the newest, finished and judged result: anything else says why and writes nothing.
-      const withSupports = files.flatMap((file) => file.parts.filter((part) => part.content === 'supports').map((part) => part.unitId));
-      const refusal = exportRefusal(outcome, [...new Set(withSupports)], (unitId) => sceneRef.current.units.find((candidate) => candidate.id === unitId) === units.find(([unit]) => unit.id === unitId)?.[0]);
+      /** Whether the unit is still exactly the one this export started from (the gate's `stale` test). */
+      const unchanged = (unitId: string) => sceneRef.current.units.find((candidate) => candidate.id === unitId)
+        === units.find(([unit]) => unit.id === unitId)?.[0];
+      /** The units whose SUPPORTS are in these files: the only ones the gate has anything to judge. */
+      const supportsIn = (plans: readonly ExportFilePlan[]) =>
+        [...new Set(plans.flatMap((plan) => plan.parts.filter((part) => part.content === 'supports').map((part) => part.unitId)))];
+      const saved: string[] = [];
+      const names: string[] = [];
+      /**
+       * Hand these files to the browser, in order. Returns the name of the first one the browser
+       * REFUSED, so the caller can report what did arrive rather than claiming nothing did.
+       *
+       * THE TRAP, unchanged from when this was one loop at the end: a browser that blocks quietly
+       * does not throw, and the page cannot tell. So this is not a guarantee that every file
+       * arrived - it is the narrower and honest claim that what we MANAGED TO HAND OVER is what the
+       * operator is told about, and `saved` is the record of it. Chrome refuses several automatic
+       * downloads from one gesture, so this is a fault the operator meets unbidden.
+       */
+      const deliver = (ready: readonly { fileName: string; buffer: ArrayBuffer }[]): string | undefined => {
+        for (const file of ready) {
+          try {
+            const url = URL.createObjectURL(new Blob([file.buffer], { type: 'model/stl' }));
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = file.fileName;
+            anchor.click();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+          } catch {
+            return file.fileName;
+          }
+          saved.push(file.fileName);
+        }
+        return undefined;
+      };
+
+      let refusal: ExportRefusal | undefined;
+      let refused: string | undefined;
+      /*
+       * ONE FILE'S WORTH OF WORK AT A TIME, built and handed over before the next is asked for
+       * (`exportBatches.ts` carries the full reason). This was a SINGLE call with the whole case in
+       * it: every unit's supports built at full resolution and every STL buffer held at once, which
+       * on a thirty-model case is of the order of a gigabyte of ArrayBuffers in one tab - at the very
+       * end of the work, where a dead tab costs the most. Auto-gen is what made thirty-model cases
+       * ordinary, so this stopped being a theoretical peak.
+       *
+       * WHAT THIS CHANGES, said plainly rather than left for someone to find: a refusal part way
+       * through now leaves the EARLIER files already handed over, where the single call refused the
+       * whole case before writing a byte. That is reported as a partial export - the same report a
+       * blocked download gets - and it is the better trade: four valid files plus a named refusal
+       * beats throwing away four valid files because the fifth could not be judged. The gate itself
+       * is unchanged and still runs BEFORE that file's bytes are handed over.
+       *
+       * THE DENTURE PATH IS LEFT WHOLE. `dentureExport` takes the case together and builds in its
+       * own worker with its own policy; splitting it is a change to that flow and belongs with it.
+       * A denture case is one or two models rather than thirty, so the peak this fixes is not its
+       * peak either.
+       */
+      if (dentureExport && units.some(([unit]) => (unit as PrintUnit).denture)) {
+        const outcome = await dentureExport(units as [PrintUnit, number][], files, label);
+        if (outcome.files.length === 0) return setStatus('Nothing to export for this mode.');
+        refusal = exportRefusal(outcome, supportsIn(files), unchanged);
+        if (!refusal) {
+          names.push(...outcome.files.map((file) => file.fileName));
+          refused = deliver(outcome.files);
+        }
+      } else {
+        const batches = exportBatches(files, jobs);
+        for (const batch of batches) {
+          const one = await exporter().exportFiles(batch.jobs, [batch.file],
+            { key: 'Exporting {name}', vars: { name: batch.file.fileName } }, () => {});
+          // Judged per file, against ITS OWN result: each call has its own revision, so a joined
+          // result checked against one revision would read every earlier file as stale.
+          refusal = exportRefusal(one, supportsIn([batch.file]), unchanged);
+          if (refusal) break;
+          names.push(...one.files.map((file) => file.fileName));
+          refused = deliver(one.files);
+          if (refused) break;
+        }
+        // Nothing came back at all (every file was empty, or the job was dropped): never report success.
+        if (names.length === 0 && !refusal) return setStatus('Nothing to export for this mode.');
+      }
+
+      if (refused !== undefined) {
+        // Nothing handed over: the generic export failure is the right report, so let it have it.
+        if (saved.length === 0) throw new Error(`download of ${refused} refused`);
+        return sayOutcome(exportPartialText(saved, refused), EXPORT_PARTIAL_CODE, { saved: saved.join(', '), name: refused });
+      }
       if (refusal) {
-        const name = units.find(([unit]) => unit.id === refusal.unitId)?.[0].name ?? refusal.unitId;
+        const name = units.find(([unit]) => unit.id === refusal!.unitId)?.[0].name ?? refusal.unitId;
+        /*
+         * A REFUSAL AFTER SOMETHING WAS SAVED IS A PARTIAL EXPORT, and reporting it as a plain
+         * refusal would be the old all-or-nothing sentence said over files that are on disk - the
+         * same lie walk `r1` caught the download loop telling.
+         */
+        if (saved.length > 0) return sayOutcome(exportPartialText(saved, name), EXPORT_PARTIAL_CODE, { saved: saved.join(', '), name });
         // The gate's reason, not a translation of it: this chain used to end in an unconditional
         // `refuse('inconclusive')`, so engine 64's new `nothing-built` would have been reported as
         // a safety check that timed out. Passing it straight through makes the next reason
         // upstream a compile error in `ExportRefusalReason` instead.
         return refuse(refusal.reason, name);
       }
-      /*
-       * THE ONE PLACE THIS FUNCTION COMMITS MORE THAN ONCE, and it used to lie about it (walk `r1`,
-       * G1). Each `click()` hands one file to the browser; the first file is in the operator's
-       * downloads before the second hand-over is even attempted. A throw anywhere in this loop went
-       * to the catch below, which says "Nothing was saved" - true of every other export failure in
-       * the app, because every other one happens before a byte is written, and false here. The walk
-       * caught it saying so with the first file already on disk, and advising "try again".
-       *
-       * Chrome refuses several automatic downloads from one gesture, so this is a fault the operator
-       * meets without any help from an audit.
-       *
-       * THE TRAP: A BROWSER THAT BLOCKS QUIETLY DOES NOT THROW, and the page cannot tell. So this is
-       * not a guarantee that every file arrived - it is the narrower and honest claim that what this
-       * loop MANAGED TO HAND OVER is what the operator is told about, and `saved` is the record of it.
-       */
-      const saved: string[] = [];
-      try {
-        for (const file of written) {
-          const url = URL.createObjectURL(new Blob([file.buffer], { type: 'model/stl' }));
-          const anchor = document.createElement('a');
-          anchor.href = url;
-          anchor.download = file.fileName;
-          anchor.click();
-          window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-          saved.push(file.fileName);
-        }
-      } catch (error) {
-        // Nothing handed over: the generic export failure below is right, so let it have it.
-        if (saved.length === 0) throw error;
-        const refused = written[saved.length]!.fileName;
-        return sayOutcome(exportPartialText(saved, refused), EXPORT_PARTIAL_CODE, { saved: saved.join(', '), name: refused });
-      }
       // The file names and how many supports the files hold, as the status names them.
       const count = units.reduce((sum, [unit]) => sum + unitContacts(unit, builtRef.current.get(unit.id)?.mesh).length, 0);
-      const names = `${written.map((file) => file.fileName).join(', ')} (${plural(count, '1 support', '{n} supports')})`;
-      setStatusMessage(exportStatus(names, await checking));
+      setStatusMessage(exportStatus(`${names.join(', ')} (${plural(count, '1 support', '{n} supports')})`, await checking));
     } catch (error) {
       if (isAbort(error)) setStatus('Export cancelled; no file was written.');
       else setStatusMessage(errorStatus('export', codedJobError(error)));

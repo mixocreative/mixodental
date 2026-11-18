@@ -28,6 +28,12 @@ export function backNeedsConfirm(unit: Pick<PrintUnit, 'manual' | 'deleted' | 'c
  * re-orient invalidates is the AREA derived from them, and `revisions` already marks that stale. The
  * staleness model exists precisely so this does not have to be a deletion.
  *
+ * THE SUPPORTS ARE NO LONGER IN THAT MODEL, and this comment claimed they were. Since the owner's
+ * ruling of 2026-11-18 a re-orient DELETES the supports and the hand edits keyed to their positions
+ * (`transform/set` in `src/state/project.ts`); staleness marks now cover what survives a turn - the
+ * rim and the area - and nothing else. W-01 was about `dental.stamps` and `tuning`, which is what
+ * the paragraphs above and below are about, and those are still kept.
+ *
  * THE REGION COMES BACK WITH THEM, and leaving it out was half a fix. A tuning number is not a
  * setting the app reads later -- it is the shape of the strip that was DRAWN for it, and the two
  * only mean anything together. Carrying the number over a freshly detected region left a policy
@@ -68,6 +74,39 @@ export function keepsManualArea(unit: Pick<PrintUnit, 'dental'>, profileId: stri
 /** Back from Step 3 once confirmed: the hand work goes, the supports follow the next Generate. */
 export function discardManualCommands(unit: Pick<PrintUnit, 'id' | 'manual' | 'deleted' | 'contactSettings'>): SceneCommand[] {
   return backNeedsConfirm(unit) ? [{ type: 'supports/clear-manual', unitId: unit.id }] : [];
+}
+
+type BackFields = Pick<PrintUnit, 'id' | 'supports' | 'manual' | 'deleted' | 'contactSettings'>;
+
+/**
+ * WHETHER BACK OUT OF STEP 3 HAS SOMETHING TO LOSE - and it is no longer only the hand work.
+ *
+ * Back goes to STEP 1, Step 1 is the orient step, and the owner's rule is that a model with supports
+ * standing does not enter it: "once support generated, orienting is not allowed and it will remove
+ * all support". So the supports are the commonest thing Back costs, and asking only about hand edits
+ * meant the operator with a freshly built aligner and no edits at all was asked nothing and lost the
+ * build - the quietest possible version of the loudest possible event.
+ */
+export function backLosesWork(unit: BackFields | undefined): boolean {
+  if (!unit) return false;
+  return Boolean(unit.supports) || backNeedsConfirm(unit);
+}
+
+/**
+ * Back from Step 3 once confirmed: the supports go, and the hand work keyed to their positions goes
+ * with them.
+ *
+ * The reducer would take both anyway the moment Step 1's Next turned the model
+ * (`transform/set` in `src/state/project.ts`), and that is the backstop rather than the mechanism:
+ * doing it HERE is what makes the warning above honest, because the cost lands when the operator
+ * answers for it instead of several clicks later when a detection happens to move the pose.
+ */
+export function backCommands(unit: BackFields | undefined): SceneCommand[] {
+  if (!unit) return [];
+  return [
+    ...(unit.supports ? [{ type: 'supports/remove' as const, unitId: unit.id }] : []),
+    ...discardManualCommands(unit),
+  ];
 }
 
 /**

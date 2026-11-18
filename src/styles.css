@@ -1806,6 +1806,60 @@ dialog.terms .terms-item > span { flex: none; }
 .items-row .row-actions { flex-wrap: wrap; row-gap: 4px; }
 .row-open { margin-right: auto; min-height: 26px; padding: 0 10px; white-space: nowrap; font-size: var(--small-size, 11.5px); }
 .row-open:hover:not(:disabled) { border-color: var(--line-strong); background: var(--raised); }
+/*
+ * AUTO-GEN IS THE CARD'S PRIMARY ACT when it is offered, and it is offered only on a card that can
+ * use it (owner's ruling 4: absent, not greyed). It wears the accent so the one press that does the
+ * work is the one the eye lands on, and `margin-right: auto` moves to it - Open steps back to being
+ * the hand route it is.
+ */
+.row-autogen {
+  margin-right: auto; min-height: 26px; padding: 0 10px; white-space: nowrap;
+  font-size: var(--small-size, 11.5px);
+  border-color: var(--blue); color: var(--blue);
+}
+.row-autogen:hover:not(:disabled) { background: var(--raised); border-color: var(--blue-hover); }
+.items-row .row-autogen ~ .row-open { margin-right: 0; }
+/*
+ * THE RUN'S RESULT, ON THE CARD'S FOOT. It takes the whole first line of the action cell so it never
+ * squeezes a key: `flex-basis: 100%` makes the keys wrap under it rather than beside it, which is
+ * the same rule the three-key failed card already follows.
+ */
+.items-row .autogen {
+  flex-basis: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--small-size, 11.5px); color: var(--muted);
+}
+.items-row .autogen--done { color: var(--success); }
+.items-row .autogen--stopped { color: var(--warning); }
+.row-enlarge { min-height: 26px; padding: 0 10px; white-space: nowrap; font-size: var(--small-size, 11.5px); }
+.row-enlarge:hover:not(:disabled) { border-color: var(--line-strong); background: var(--raised); }
+/*
+ * ONE MODEL, FULL SIZE, OVER THE DECK (owner's ruling 7). It is a `CardShot` in a bigger box, so
+ * the SIZE is the whole of this rule and none of the behaviour: `liveCardView.paint()` reads the
+ * canvas's own box, so the model fills whatever is given to it.
+ *
+ * SQUARE AND BOUNDED BY THE SHORTER SIDE. The render is square (`THUMB_SIZE`), so sizing off the
+ * width alone would push the bottom of a wide window off screen - which is how a "full size" view
+ * ends up showing less of the model than the card did.
+ */
+.card-enlarge {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center;
+  background: var(--backdrop); padding: 24px;
+}
+.card-enlarge-sheet {
+  display: flex; flex-direction: column; gap: 8px;
+  /*
+   * SIZED OFF THE SHORTER SIDE, LESS THE CHROME. The picture is square, so `80vw` alone pushes the
+   * bottom of a wide window off screen; `80vh` alone forgets the head and the hint above and below
+   * it, which measured 100px and put the sheet 690px into a 768px window - fitting, but only just.
+   * 70vh leaves room for both at the shortest window a laptop has.
+   */
+  width: min(80vw, 70vh); max-width: 100%;
+  padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface);
+}
+.card-enlarge-head { display: flex; align-items: center; gap: 12px; }
+.card-enlarge-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-enlarge-hint { margin: 0; color: var(--muted); font-size: var(--small-size, 11.5px); text-align: center; }
+/* The picture needs no rule of its own here: `.shot` is square and fills its box wherever it sits. */
 /* Every sentence cell clips rather than wrapping: a wrapped line is what made the row three tall. */
 .items-row .verdict, .items-row .detect, .items-row .name, .items-row .preview {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
@@ -1827,7 +1881,7 @@ dialog.terms .terms-item > span { flex: none; }
  * frame is square too and the render is never stretched - the defect that made a real 3D view look
  * like a bad icon when it was squeezed into 36x44. It fills the card's width and keeps 1:1.
  */
-.items-row .shot {
+.shot {
   width: 100%;
   aspect-ratio: 1;
   border: 1px solid var(--line);
@@ -1836,7 +1890,7 @@ dialog.terms .terms-item > span { flex: none; }
   overflow: hidden;
 }
 /* `contain`, never a stretch: the render's own framing is the orientation the row is reporting. */
-.items-row .shot img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.shot img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .items-row .name { font-weight: 500; }
 .items-row .preview { color: var(--muted); font-size: var(--small-size, 11.5px); }
 /*
@@ -2062,12 +2116,21 @@ dialog.terms .terms-item > span { flex: none; }
  * page scrolling under the finger - without it the model never moves on a tablet, which is the one
  * place this feature matters most.
  */
-.items-row .shot { position: relative; cursor: grab; touch-action: none; }
-.items-row .shot:focus-visible { outline: 2px solid var(--accent, var(--ink)); outline-offset: 2px; }
-.items-row .shot > canvas { display: none; width: 100%; height: 100%; }
-.items-row .shot--live { cursor: grabbing; }
-.items-row .shot--live > img { visibility: hidden; }
-.items-row .shot--live > canvas { display: block; }
+/*
+ * SCOPED TO THE PICTURE, NOT TO THE CARD, and that scoping was a real defect for an hour. Every rule
+ * below is about the CONTROL - which surface is visible, how a drag behaves, where the focus ring
+ * goes - and all six were written `.items-row .shot`, so the enlarge overlay (`CardEnlarge.tsx`,
+ * the same component in a bigger box) got none of them: both the still AND the canvas were displayed,
+ * so they STACKED and the sheet came out 1292px tall in an 800px window, with no `touch-action` so a
+ * drag scrolled the page instead of turning the model. Measured, not reasoned - `.items-row .shot`
+ * keeps only its grid placement.
+ */
+.shot { position: relative; cursor: grab; touch-action: none; }
+.shot:focus-visible { outline: 2px solid var(--accent, var(--ink)); outline-offset: 2px; }
+.shot > canvas { display: none; width: 100%; height: 100%; }
+.shot--live { cursor: grabbing; }
+.shot--live > img { visibility: hidden; }
+.shot--live > canvas { display: block; }
 
 /*
  * WORK RUNNING ON ONE CARD, said over its picture - which is where the operator is already looking,

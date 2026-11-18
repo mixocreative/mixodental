@@ -3,6 +3,21 @@ import type { PrintUnit } from '../state/project';
 import type { AnalysisClient } from '../workers/analysisClient';
 import { detectStateOf, type DetectState } from './detectState';
 import { isDentureJob } from '../denture/jobKind';
+import { codedJobError } from '../workers/jobErrors';
+
+/**
+ * HOW LONG ONE ROW'S ORIENTATION CHECK MAY TAKE before the worker is stopped and the row says so.
+ *
+ * TWO MINUTES, AND THE POOL'S TEN IS WHY THIS NUMBER EXISTS. Ten minutes is the right ceiling for
+ * what it was written for - a placement or a support check on a big model, where finishing late
+ * beats failing - but this queue drains ONE ROW AT A TIME, so a single stalled orient holds every
+ * row behind it for the full ten minutes with the screen honestly reporting "Waiting its turn…"
+ * (gap register W-03). Two minutes is generous against the measurement: `orient_dental` on the
+ * reference aligner is seconds, and a 1.5M-triangle full-arch scan - the engine's own per-model
+ * budget - is well inside a minute on this workstation. A row that passes two minutes is stuck, not
+ * slow, and the honest thing is to hand it back to the operator and move on to the next row.
+ */
+const ORIENT_TIMEOUT_MS = 2 * 60_000;
 
 /**
  * THE BATCH: one orientation detection per row, each as soon as THAT ROW has been told what it is.
@@ -99,10 +114,21 @@ export function useBatchDetect({ units, purposes, analysis, unitName }: {
         // (Written without apostrophes on purpose: `i18n.test.ts` scrapes single-quoted literals out
         // of UI files, and a pair of them in prose reads as a string it then demands a translation
         // for. This module became a UI file when its folder was globbed into that guard.)
+        let timedOut = false;
         const result = await analysis()
-          .dentalOrient(`batch-orient:${unit.id}`, unit.source, queuedProfile, { key: 'Checking {name}', vars: { name: unitName(unit.id) } })
-          .catch(() => undefined);
-        setStates((current) => new Map(current).set(unit.id, detectStateOf(result)));
+          .dentalOrient(`batch-orient:${unit.id}`, unit.source, queuedProfile, { key: 'Checking {name}', vars: { name: unitName(unit.id) } }, ORIENT_TIMEOUT_MS)
+          .catch((error: unknown) => {
+            /*
+             * THE REASON IS KEPT NOW. This was `.catch(() => undefined)`, so a job the worker killed
+             * for running past its deadline and a job that failed on its first instruction drew the
+             * same line - and the operator's next move is not the same: Retry on a model that timed
+             * out will time out again.
+             */
+            timedOut = (codedJobError(error) as { code?: string } | undefined)?.code === 'timeout';
+            return undefined;
+          });
+        setStates((current) => new Map(current).set(unit.id,
+          timedOut ? { kind: 'failed', because: 'timeout' } : detectStateOf(result)));
       }
       running.current = false;
     })();

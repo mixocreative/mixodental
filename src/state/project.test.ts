@@ -626,3 +626,53 @@ describe('the import verdict on a unit', () => {
     expect(attach(verdict, twoTriangles)).not.toHaveProperty('diagnosis');
   });
 });
+
+/*
+ * A RE-ORIENT TAKES THE SUPPORTS, AND A SPIN DOES NOT. Those are one rule pulling in two directions,
+ * so they are asserted on the same unit a few lines apart: the reducer is the only place that
+ * decides this, and a regression in either direction is invisible everywhere else until an operator
+ * meets it - as a build that vanished on a plate re-arrangement, or as supports planted for a pose
+ * that no longer exists and refused only at the export.
+ */
+describe('a turn and the supports already built', () => {
+  const worked: PrintUnit = {
+    ...unitA,
+    manual: [{ ...contact, id: 'manual-a' }],
+    deleted: ['contact-gone'],
+    contactSettings: { 'contact-a': {} } as PrintUnit['contactSettings'],
+  };
+  /*
+   * `unit/add` CLONES what it stores, so the identity to compare against is the unit the scene holds
+   * after the add, never the literal above. Comparing to the literal passes a `toEqual` and fails a
+   * `toBe` for a reason that has nothing to do with the rule under test.
+   */
+  const start = reduceScene(emptyScene, { type: 'unit/add', unit: worked });
+  const stored = start.units[0]!;
+  const moved = (transform: PrintUnit['transform']) =>
+    reduceScene(start, { type: 'transform/set', unitId: 'unit-a', transform }).units[0]!;
+  const turn = (rotation: [number, number, number]) => moved({ ...identityTransform, rotation });
+
+  it('removes them on a tilt, and with them the hand edits keyed to their positions', () => {
+    const tilted = turn([0.2, 0, 0]);
+
+    expect(tilted).not.toHaveProperty('supports');
+    expect(tilted).not.toHaveProperty('placement');
+    expect(tilted.manual).toEqual([]);
+    expect(tilted.deleted).toEqual([]);
+    expect(tilted.contactSettings).toEqual({});
+  });
+
+  it('keeps them on a spin about the plate s vertical, which is the denture keep-and-move rule', () => {
+    const spun = turn([0, 0.9, 0]);
+
+    expect(spun.supports).toBe(stored.supports);
+    expect(spun.manual).toHaveLength(1);
+  });
+
+  it('keeps them on a pure slide, and does not even date the rim, so a nudge costs nothing', () => {
+    const slid = moved({ ...identityTransform, position: [12, 0, -4] });
+
+    expect(slid.supports).toBe(stored.supports);
+    expect(slid.revisions).toBeUndefined();
+  });
+});

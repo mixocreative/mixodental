@@ -7,8 +7,7 @@ import type { EditSession, SessionEvent } from '@mixo-geocore/editing/session';
 import type { DentalNotice } from '../dental/editingMode';
 import type { AnalysisClient } from '../workers/analysisClient';
 import type { DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
-import { arrangeCommands as arrangeAlignerCommands } from '@mixo-geocore/editing/arrange';
-import { acceptCommands, acceptedPolicy, alignerSettings, confirmOrder, manualAreaCommands, orientOutcome, settledPolicy, tiltScanSettings } from '../dental/stages';
+import { acceptCommands, acceptedPolicy, alignerSettings, confirmOrder, manualAreaCommands, orientOutcome, settledPolicy, tiltScanSettings, turnCommands } from '../dental/stages';
 import { keepsManualArea } from '../dental/flow';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
 import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
@@ -83,10 +82,8 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
   const turnTo = useCallback((unitId: string, rotation: Vector) => {
     const current = sceneRef.current.units.find((candidate) => candidate.id === unitId);
     if (!current) return;
-    const turned = { ...current, transform: { ...current.transform, rotation } };
-    const units = sceneRef.current.units.map((candidate) => (candidate.id === unitId ? turned : candidate));
-    dispatch({ type: 'batch', commands: [{ type: 'transform/set', unitId, transform: turned.transform }, ...arrangeAlignerCommands(units, [unitId])] });
-  }, [dispatch, sceneRef, sessionRef]);
+    dispatch({ type: 'batch', commands: turnCommands(sceneRef.current.units, current, rotation) });
+  }, [dispatch, sceneRef]);
 
   /** Step 1: the print-angle search, once per file, after orientation; the pick becomes the detected pose. */
   const startScan = useCallback((unit: PrintUnit, profile: string) => {

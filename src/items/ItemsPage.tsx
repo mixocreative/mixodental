@@ -6,8 +6,10 @@ import type { PrintUnit } from '../state/project';
 import type { ImportRefusal } from './rowState';
 import { itemsLeft, nextItem } from './nextItem';
 import type { DetectState } from './detectState';
+import type { AutoGenCard } from '../autoGen/useAutoGen';
 import type { ThumbCache } from './thumbnail';
 import { ItemRow } from './ItemRow';
+import { CardEnlarge } from './CardEnlarge';
 import { RefusedRow } from './RefusedRow';
 import { jobSentence, jobTally } from '../deck/jobSummary';
 import { isModelFile } from '../components/startDrop';
@@ -32,7 +34,7 @@ import { deckUsage, formatBytes } from './deckBudget';
  * looked at the first of a set of identically-named elements and reported the rest as missing — a
  * false gap that cost a round of investigation.
  */
-export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, purposes, onPurpose, onPurposeAll, onAnyModel, onSelect, onStart, onRemove, onFiles, onBack, onArrange, onExport, onRetry }: {
+export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, purposes, onPurpose, onPurposeAll, onAnyModel, onSelect, onStart, onRemove, onFiles, onBack, onArrange, onExport, onRetry, autoGen, autoGenReady, onAutoGen, onAutoGenAll, autoGenBusy, onAutoGenStop }: {
   units: readonly PrintUnit[];
   /**
    * Files that never became units. They are rows too (§3's first table): drop eight, one is broken,
@@ -106,6 +108,16 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   onExport: () => void;
   /** Queue this row's detection again. A failed row had no way back before (`useBatchDetect`). */
   onRetry: (unitId: string) => void;
+  /** Each card's auto-gen run this sitting. Empty until something is pressed. */
+  autoGen: ReadonlyMap<string, AutoGenCard>;
+  /** Whether this card may be auto-generated: one function, shared with the queue (`src/autoGen/eligibility.ts`). */
+  autoGenReady: (unitId: string) => boolean;
+  onAutoGen: (unitId: string) => void;
+  /** Every card that may go, in the order they are drawn here. */
+  onAutoGenAll: (unitIds: readonly string[]) => void;
+  /** Something is running or waiting, so the case key becomes Stop. */
+  autoGenBusy: boolean;
+  onAutoGenStop: () => void;
 }) {
   /*
    * GATING IS PER ROW NOW, because the answer is. The rail and the primary act through ONE unit's
@@ -160,6 +172,12 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
     return state === 'failed' || state === 'no-rim';
   };
   const rows = [...units].sort((a, b) => Number(needsYou(b)) - Number(needsYou(a)));
+  /*
+   * THE CARDS AUTO-GEN ALL WOULD TAKE, in the order they are DRAWN rather than plate order: the
+   * operator means "these, as I see them". The count goes in the label, because "Auto-gen all" on a
+   * case of thirty where four are ready is a promise the press cannot keep.
+   */
+  const readyToGen = rows.filter((unit) => autoGenReady(unit.id)).map((unit) => unit.id);
   const waiting = units.filter((unit) => {
     const state = detected.get(unit.id)?.kind;
     return state === 'waiting' || state === 'running';
@@ -186,6 +204,16 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
    */
   const [liveId, setLiveId] = useState<string | undefined>(undefined);
   const release = useCallback((id: string) => setLiveId((current) => (current === id ? undefined : current)), []);
+  /*
+   * WHICH CARD IS SHOWN FULL SIZE, and never at the same time as a live card in the list. One model
+   * holds the deck's single renderer; two components each believing they are live would upload two
+   * meshes and the second would silently win - a fault that only shows on a slow machine. So opening
+   * this takes the renderer away from the list, and closing it gives nothing back: the next dwell
+   * asks for it again, which is one hover away.
+   */
+  const [enlargedId, setEnlargedId] = useState<string | undefined>(undefined);
+  const enlarge = useCallback((id: string) => { setLiveId(undefined); setEnlargedId(id); }, []);
+  const enlarged = units.find((unit) => unit.id === enlargedId);
   const root = useRef<HTMLDivElement>(null);
 
   /*
@@ -290,9 +318,17 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
           onOpen={() => onStart(unit)}
           onRemove={() => onRemove(unit)}
           onRetry={() => onRetry(unit.id)}
+          autoGen={autoGen.get(unit.id)}
+          autoGenReady={autoGenReady(unit.id)}
+          onAutoGen={() => onAutoGen(unit.id)}
+          onEnlarge={() => enlarge(unit.id)}
         />)}
       </ul>
     </section>
+
+    {/* A model on its own, full size, over the deck. Unmounted when closed, so it holds nothing. */}
+    {enlarged ? <CardEnlarge unit={enlarged} shot={thumbnails.get(enlarged.id)?.url}
+      onClose={() => setEnlargedId(undefined)} /> : null}
 
     <div className="items-footer">
       {tally ? <p className="items-tally" data-ui="items-tally">{translateMessage(tally)}</p> : null}
@@ -318,6 +354,23 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
             ? { title: t('Nothing to arrange: no model has been added yet.') }
             : hint('Move the objects so none overlaps another. Only positions change; supports stay editable'))}
         >{t('Arrange objects')}</button>
+        {/*
+          AUTO-GEN ALL, AND STOP IN ITS PLACE while it runs. One key, two states: a separate Stop
+          beside a live Auto-gen all would be a second control for the same queue, and the press an
+          operator reaches for mid-run is always the one they just used.
+
+          ABSENT WHEN NOTHING MAY GO, by the same ruling the card's key follows: a drop where nothing
+          has been named, or everything is already built, has no queue to start and no reason to
+          explain a grey key.
+        */}
+        {autoGenBusy ? <button type="button" className="items-case-key danger" data-ui="items-autogen-stop"
+          onClick={onAutoGenStop}
+          {...hint('Stop the queue. Cards already generated keep their supports')}
+        >{t('Stop')}</button>
+          : readyToGen.length > 0 ? <button type="button" className="items-case-key" data-ui="items-autogen-all"
+            onClick={() => onAutoGenAll(readyToGen)}
+            {...hint('Generate supports on every ready card, one at a time')}
+          >{plural(readyToGen.length, 'Auto-gen 1 card', 'Auto-gen {n} cards')}</button> : null}
         <button type="button" className="items-case-key" data-ui="items-export" disabled={!anySupports}
           onClick={onExport}
           {...(anySupports ? hint('One STL file per object, each with its supports')

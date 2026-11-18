@@ -2,6 +2,8 @@ import { t, translateMessage } from '../i18n';
 import { Icon } from '../ui/Icon';
 import type { PrintUnit } from '../state/project';
 import { detectChip, detectSentence, type DetectState } from './detectState';
+import { autoGenSentence } from '../autoGen/autoGenText';
+import type { AutoGenCard } from '../autoGen/useAutoGen';
 import { kindOfProfile } from '@mixo-geocore/host/dental/dentalKind';
 import { sizeSummary, triangleSummary } from './itemSummary';
 import { verdictOfDiagnosis } from './rowState';
@@ -27,7 +29,7 @@ import type { Lang } from '../i18n';
  * Every part is named for the UNIT, never for the row's position: `items-row-3` would re-point every
  * later row the moment one is removed.
  */
-export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, onPurpose, lang, live, onLive, onRelease, onSelect, onOpen, onRemove, onRetry }: {
+export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, onPurpose, lang, live, onLive, onRelease, onSelect, onOpen, onRemove, onRetry, autoGen, autoGenReady, onAutoGen, onEnlarge }: {
   unit: PrintUnit;
   /**
    * WHAT THIS CARD IS: its own answer, absent until somebody gives one.
@@ -74,6 +76,16 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
    */
   onOpen: () => void;
   onRemove: () => void;
+  /** This card's auto-gen run, or `undefined` for a card that has never been in the queue. */
+  autoGen: AutoGenCard | undefined;
+  /**
+   * Auto-gen may run on this card. The owner's ruling 4: the key appears only on a card that can use
+   * it - ABSENT, not greyed - so there is nothing to explain and nothing dead to press.
+   */
+  autoGenReady: boolean;
+  onAutoGen: () => void;
+  /** Show this model on its own, full size. A look, never an editor (owner's ruling 7). */
+  onEnlarge: () => void;
 }) {
   // No verdict means the unit never went through the import worker, or predates the verdict. The row
   // then shows its size and says nothing about health, which is the honest gap.
@@ -98,7 +110,15 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
    * Only those two are superseded. "Already upright." stays true however far the row has progressed.
    */
   const settled = unit.rimDraft?.closed === true || unit.dental !== undefined || unit.denture !== undefined;
-  const superseded = settled && (detected?.kind === 'no-rim' || detected?.kind === 'failed');
+  /*
+   * A DOUBT THE OPERATOR HAS ALREADY ANSWERED is stale, exactly as a missing rim is once one is
+   * drawn: they went in, looked at the orientation and accepted an area, so the row must stop
+   * telling them to go and look. A MESH doubt is not answered that way - nothing in the flow closes
+   * a mesh - so it stands until the file itself is replaced.
+   */
+  const stale = detected?.kind === 'no-rim' || detected?.kind === 'failed'
+    || (detected?.kind === 'check' && detected.doubts[0] !== 'mesh');
+  const superseded = settled && stale;
   /*
    * NO STATE AT ALL IS NOT "WAITING ITS TURN", and this defaulted to saying it was.
    *
@@ -131,8 +151,23 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
    * same thing: a rim that was not found needs the operator (a job, not an error), and a check that
    * could not run is a fault.
    */
-  const tone = superseded || !detected ? '' : detected.kind === 'failed' ? ' detect--bad' : detected.kind === 'no-rim' ? ' detect--todo' : '';
+  /*
+   * A mesh doubt reads as a FAULT, because nothing the operator does in the flow answers it; every
+   * other doubt reads as a job, because opening the model answers it.
+   */
+  const bad = detected?.kind === 'failed' || (detected?.kind === 'check' && detected.doubts[0] === 'mesh');
+  const todo = detected?.kind === 'no-rim' || detected?.kind === 'check';
+  const tone = superseded || !detected ? '' : bad ? ' detect--bad' : todo ? ' detect--todo' : '';
   const shot = thumbnails.get(unit.id)?.url;
+  /*
+   * A CARD WITH ITS SUPPORTS OPENS AT STEP 3, which is owner's ruling 2 and not a convenience: Step
+   * 1 is the orient step, and entering a re-orient DELETES the supports already built. Opening a
+   * generated card the ordinary way would destroy exactly the work the operator pressed Open to see.
+   * The caller sends the session there (`App.tsx`); the key's job is to say where it goes.
+   */
+  const built = unit.supports !== undefined && unit.dental?.kind === 'two-contour';
+  const generating = autoGen?.kind === 'running' || autoGen?.kind === 'queued';
+  const autoGenSaid = autoGen ? autoGenSentence(autoGen) : undefined;
 
   return <li
     className={`items-row${done ? ' items-row--done' : ''}${willOpen ? ' items-row--next' : ''}`}
@@ -144,7 +179,8 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
       which is exactly what a serial queue looks like and is the honest picture of it.
     */}
     <CardShot unit={unit} shot={shot} live={live} onLive={onLive} onRelease={onRelease}
-      busy={detected?.kind === 'running' ? { label: translateMessage({ key: 'Checking…' }) } : undefined} />
+      busy={detected?.kind === 'running' ? { label: translateMessage({ key: 'Checking…' }) }
+        : generating ? { label: translateMessage(autoGenSaid ?? { key: 'Generating supports…' }) } : undefined} />
     {/*
       THE NAME. It was deleted by accident when the shot became `CardShot` - the edit that replaced
       the picture took the span after it as well - and for an hour the deck identified every
@@ -241,12 +277,42 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
       job-specific - a denture has no Rim step - so opening a model nobody has named would have to
       invent which chain to walk. The row's own control is a few pixels away.
     */}
+    {/*
+      THE RUN'S OWN LINE, inside this cell rather than as a cell of its own. The row is a fixed grid
+      and an eighth child wraps it - the lesson Retry already taught here. It is also why the line is
+      short: the sentence that teaches goes under the pointer.
+    */}
+    {autoGenSaid && !generating ? <span className={`autogen autogen--${autoGen!.kind}`}
+      data-ui={`items-autogen-state-${unit.id}`} title={translateMessage(autoGenSaid)}>
+      {translateMessage(autoGenSaid)}
+    </span> : null}
+    {/*
+      AUTO-GEN: absent unless this card may use it (owner's ruling 4). What "may" means is one
+      function, `src/autoGen/eligibility.ts`, and the queue asks the same one - so the key cannot
+      appear on a card the queue would refuse.
+
+      AND ABSENT WHILE THIS CARD IS IN THE QUEUE. The hook refuses a second press for the same unit,
+      so leaving the key up was safe and still wrong: a control that cannot act must not look as
+      though it can, and the card is already saying "Generating supports…" over its own picture.
+      Found by pressing it and watching the card.
+    */}
+    {autoGenReady && !generating ? <button type="button" className="row-autogen" data-ui={`items-autogen-${unit.id}`}
+      title={t('Orient it, find its support area and place its supports, without opening it.')}
+      onClick={(event) => { event.stopPropagation(); onAutoGen(); }}>{t('Auto-gen')}</button> : null}
     {purpose !== undefined ? <button type="button" className="row-open" data-ui={`items-open-${unit.id}`}
-      title={t('Orient it and place its supports by hand.')}
-      onClick={(event) => { event.stopPropagation(); onOpen(); }}>{t('Open this model')}</button> : null}
+      title={built ? t('Open Step 3 to add, move or remove its supports.') : t('Orient it and place its supports by hand.')}
+      onClick={(event) => { event.stopPropagation(); onOpen(); }}>{built ? t('Edit supports') : t('Open this model')}</button> : null}
     {detected?.kind === 'failed' ? <button type="button" className="retry" data-ui={`items-retry-${unit.id}`}
       title={t('Check this file again.')}
       onClick={(event) => { event.stopPropagation(); onRetry(); }}>{t('Retry')}</button> : null}
+    {/*
+      ENLARGE SITS WITH THE KEYS, not on the picture. A control drawn over the model would be in the
+      way of the drag that turns it - and the picture is already a control, so a second one inside it
+      would be two targets in one place.
+    */}
+    <button type="button" className="row-enlarge" data-ui={`items-enlarge-${unit.id}`}
+      title={t('Look at this model on its own, full size.')}
+      onClick={(event) => { event.stopPropagation(); onEnlarge(); }}>{t('Enlarge')}</button>
     <button type="button" className="danger remove" data-ui={`items-remove-${unit.id}`}
       title={t('Take this file off the list.')}
       onClick={(event) => { event.stopPropagation(); onRemove(); }}>{t('Remove')}</button>

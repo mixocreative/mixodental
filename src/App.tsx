@@ -91,6 +91,7 @@ import { cancelSceneEdit, canUndo as historyCanUndo, createSceneHistory, redoSce
 import { meshTier, refusalLimit } from '@mixo-geocore/host/core/budget';
 import { TriangleGate } from '@mixo-geocore/host/core/jobGate';
 import { emptyScene, reduceScene, type ContactSettings, type PrintScene, type PrintUnit, type SceneCommand, type SupportSettings } from './state/project';
+import { reorients } from './state/rotation';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { closePath } from './core/surfacePath/path';
 import { useRimDrawing } from './dental/rim/useRimDrawing';
@@ -112,12 +113,14 @@ import { keyAction } from '@mixo-geocore/editing/keys';
 import { customisedAmong, liveSelection, scopeCounts, shapePatch, shapeView } from '@mixo-geocore/editing/shapeEdit';
 import { lockNote, sectionLocked, type Panel } from '@mixo-geocore/editing/locks';
 import { editsSupports, initialSession, reduceSession, selectsTips, startsEditing, type SessionEvent } from '@mixo-geocore/editing/session';
-import { acceptsDentalDrop } from './dental/editingMode';
+import { acceptsDentalDrop, type DentalNotice } from './dental/editingMode';
 import { StartScreen, type ChooserScreen, type StartScreenId } from './components/StartScreen';
 import { seedRimDraft } from './dental/rim/seedFromDetected';
 import { ItemsPage } from './items/ItemsPage';
 import { useThumbnails } from './items/useThumbnails';
 import { useBatchDetect } from './items/useBatchDetect';
+import { useAutoGen } from './autoGen/useAutoGen';
+import { deckUsage } from './items/deckBudget';
 import { purposesOf } from './items/rowPurpose';
 import type { ToolId } from './state/tools';
 import type { ImportRefusal } from './items/rowState';
@@ -126,7 +129,7 @@ import { useSupportBuilds } from './components/useSupportBuilds';
 import { isBuilding, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { stepPanelInset } from './dental/stepPanelInset';
-import { backNeedsConfirm, discardManualCommands, exitCommands, exitNeedsConfirm, manualEditCounts, startsDentalStep } from './dental/flow';
+import { backCommands, backLosesWork, backNeedsConfirm, exitCommands, exitNeedsConfirm, manualEditCounts, startsDentalStep } from './dental/flow';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import { dentalLabelCommands } from './dental/stages';
 import type { DentalReview } from './components/DentalSupports';
@@ -457,6 +460,21 @@ export default function App() {
     purposes: resolvedPurposes,
     analysis,
     unitName,
+  });
+  /*
+   * THE DECK'S AUTO-GEN QUEUE (`src/autoGen/README.md`). It sits here, beside the detector whose
+   * verdicts it reads, because both are about the DECK and both need the one purposes map - the
+   * same reason `useBatchDetect` is here rather than inside `ItemsPage`.
+   *
+   * `atCap` IS THE MEMORY ALLOWANCE, not the model count. The count is fixed at import: auto-gen
+   * adds no models, it adds SUPPORTS, and the peak the budget warns about already includes building
+   * them (`src/items/deckBudget.ts`). So the question the queue has to ask is whether this case is
+   * already over its allowance, in which case generating more is how the tab dies - the one silent
+   * death that takes the session's work with it and explains nothing.
+   */
+  const deckBudget = useMemo(() => deckUsage(scene.units.map((unit) => unit.source.indices.length / 3)), [scene.units]);
+  const autoGen = useAutoGen({
+    analysis, dispatch, sceneRef, purposes: resolvedPurposes, detected: batchDetected, atCap: deckBudget.overBudget,
   });
   /**
    * RE-ANSWERING ONE ROW, and the re-detect is the whole point of it rather than a side effect: the
@@ -830,8 +848,19 @@ export default function App() {
   }, [dispatch]);
 
   const onTransform = useCallback((unitId: string, transform: ModelTransform) => {
+    /*
+     * THE STATUS LINE ASKS THE SAME FUNCTION THE REDUCER OBEYS. It used to say "Regenerate to
+     * re-plant supports after a rotation", which is now false: the reducer removes them on a
+     * re-orient, so the line has to report a deletion and where the way back is. Deriving it from
+     * `reorients` rather than from "did the user rotate" is what keeps the two from disagreeing -
+     * including on a spin about the vertical, which keeps the supports and must not claim otherwise.
+     */
+    const before = sceneRef.current.units.find((candidate) => candidate.id === unitId);
+    const cleared = Boolean(before?.supports) && before !== undefined && reorients(before.transform.rotation, transform.rotation);
     dispatch({ type: 'transform/set', unitId, transform });
-    setStatus('Object moved with its supports. Regenerate to re-plant supports after a rotation.');
+    setStatus(cleared
+      ? 'Rotated, and its supports were removed: supports belong to one orientation. Undo brings them back, or Generate to re-plant them.'
+      : 'Object moved with its supports.');
   }, [dispatch]);
 
   /**
@@ -1016,9 +1045,9 @@ export default function App() {
         return requestView('fit', stepPanelInset({ mode: 'dental', dentalStage: 'review' }));
       }
       case 'dental.back': {
-        // Going back from Step 3 throws its hand work away: ask first.
+        // Going back from Step 3 re-enters the orient step, which costs the supports: ask first.
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sceneRef.current.activeUnitId);
-        if (sessionRef.current.dentalStage === 'review' && backNeedsConfirm(unit)) return setBackAsk(true);
+        if (sessionRef.current.dentalStage === 'review' && backLosesWork(unit)) return setBackAsk(true);
         /*
          * BACK AT STEP 1 STEPS OUT TO THE CASE, not out of the session (E1b). It used to send `exit`
          * and show the Drop page, which discarded `dentalFinished` - so with a case of eight, going
@@ -1274,7 +1303,32 @@ export default function App() {
      */
     setStartScreen(null);
     send({ type: 'exit' });
-    send({ type: 'startDental', profile: live.dentalProfile ?? unitPurposes.get(unit.id) ?? DEFAULT_PROFILE_ID, resume: true });
+    const profile = live.dentalProfile ?? unitPurposes.get(unit.id) ?? DEFAULT_PROFILE_ID;
+    send({ type: 'startDental', profile, resume: true });
+    /*
+     * A MODEL THAT ALREADY HAS ITS SUPPORTS OPENS AT STEP 3, which is owner's ruling 2 and the only
+     * door that does not destroy what it was pressed to show: Step 1 is the ORIENT step, and since
+     * 2026-11-18 entering a re-orient deletes the supports already built. So a card the deck's
+     * Auto-gen finished - or one reopened from a saved project with its supports in it - goes
+     * straight to the step where supports are edited.
+     *
+     * THE RUN'S BAD NEWS TRAVELS WITH IT. A walked model gets the print-angle notices from
+     * `acceptDentalOrientation`; this path has to carry them itself, or an auto-gen whose angle
+     * check held nothing would open a Step 3 that looks clean. `autoGen.finished` is this sitting's
+     * run, so a model reopened from a saved file carries none - which is honest: nothing recorded
+     * what its angle check said when it was built.
+     */
+    const built = unit.supports !== undefined && unit.dental?.kind === 'two-contour';
+    if (built && !isDentureJob(profile)) {
+      const run = autoGen.finished(unit.id);
+      const notices: DentalNotice[] = [
+        ...(run?.angleMovedDeg === undefined ? [] : [{ kind: 'angle-moved' as const, deg: run.angleMovedDeg }]),
+        ...(run?.angleCheck === 'none-held' ? [{ kind: 'angle-none-held' as const }] : []),
+        ...(run?.angleCheck === 'failed' ? [{ kind: 'angle-check-failed' as const }] : []),
+      ];
+      send({ type: 'openDentalSupports', unitId: unit.id, ...(notices.length > 0 ? { notices } : {}) });
+      return requestView('bottom', stepPanelInset({ mode: 'dental', dentalStage: 'review' }));
+    }
     return rimPressed ? dentalFlow.startRimDrawing(unit) : startDentalAligner(unit);
   };
   /*
@@ -1400,8 +1454,8 @@ export default function App() {
     onFix: fixProblem,
     onShowRim: () => requestView('bottom'),
     finishedCount: session.dentalFinished.length,
-    backAsk: backAsk ? manualEditCounts(activeUnit) : undefined,
-    onBackConfirm: () => { setBackAsk(false); const commands = discardManualCommands(activeUnit); if (commands.length > 0) dispatch({ type: 'batch', commands }); send({ type: 'backDental' }); },
+    backAsk: backAsk ? { ...manualEditCounts(activeUnit), supports: Boolean(activeUnit.supports) } : undefined,
+    onBackConfirm: () => { setBackAsk(false); const commands = backCommands(activeUnit); if (commands.length > 0) dispatch({ type: 'batch', commands }); send({ type: 'backDental' }); },
     onBackCancel: () => setBackAsk(false),
   } : undefined;
   // Denture Step 2 checks each finished build by itself: its status line counts the problems.
@@ -1562,6 +1616,16 @@ export default function App() {
       /* "Any model" from the deck: the files are already units, so this only leaves for the bench. */
       onAnyModel={closeStart}
       onStart={startItem}
+      /*
+       * THE QUEUE, PASSED WHOLE. The page decides which cards the Auto-gen all press covers (it
+       * draws them in its own order), and the gate is one function both this and the card ask.
+       */
+      autoGen={autoGen.cards}
+      autoGenReady={(unitId) => autoGen.eligible(unitId).ready}
+      onAutoGen={autoGen.start}
+      onAutoGenAll={autoGen.startAll}
+      autoGenBusy={autoGen.busy}
+      onAutoGenStop={autoGen.cancel}
       /*
        * THE CASE'S OWN WORK, reaching the screen that has the models on it. Both are the bench's
        * existing presses, passed down rather than reimplemented: `plate.arrange` is pure, and the

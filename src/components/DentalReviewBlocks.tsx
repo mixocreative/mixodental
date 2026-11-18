@@ -55,8 +55,12 @@ export interface DentalReview {
   onShowRim: () => void;
   /** Finished aligners already on the plate, for the Add another aligner line. */
   finishedCount: number;
-  /** Back would discard hand work: what it would throw away, until the user answers. */
-  backAsk: { added: number; removed: number; customised: number } | undefined;
+  /**
+   * Back would lose work: what it would throw away, until the user answers. `supports` is the louder
+   * half - Back re-enters the orient step, and a re-orient removes the build - so it picks a
+   * different sentence rather than being counted alongside the hand edits.
+   */
+  backAsk: { added: number; removed: number; customised: number; supports: boolean } | undefined;
   onBackConfirm: () => void;
   onBackCancel: () => void;
 }
@@ -157,11 +161,21 @@ export function IdLabelBlock({ review, kind }: { review: DentalReview; kind: Den
   </Panel>;
 }
 
-/** Back would discard hand work: the question, with Stay and Discard and go back. */
+/**
+ * Back would lose work: the question, with Stay and Discard and go back.
+ *
+ * TWO SENTENCES, NOT ONE WITH A ZERO IN IT. With a build standing, the supports are what Back costs
+ * and the counts would read "0 added, 0 removed, 0 with own settings" - a dialog that lists nothing
+ * while deleting the operator's whole build. The hand-edit counts are still said when the hand edits
+ * are the only thing at stake, which is the case this dialog was written for.
+ */
 export function BackAskBlock({ review }: { review: DentalReview }) {
   if (!review.backAsk) return null;
+  const { supports, ...counts } = review.backAsk;
   return <section className="dental-block dental-confirm" role="alertdialog" aria-label={t('Go back?')}>
-    <p className="edit-note" role="alert">{t('Going back discards your manual support edits ({added} added, {removed} removed, {customised} with own settings). Continue?', review.backAsk)}</p>
+    <p className="edit-note" role="alert">{supports
+      ? t('Going back re-orients this model, which removes its supports and any manual edits. Undo brings them back. Continue?')
+      : t('Going back discards your manual support edits ({added} added, {removed} removed, {customised} with own settings). Continue?', counts)}</p>
     <div className="edit-row">
       <button type="button" onClick={review.onBackCancel}>{t('Stay')}</button>
       <button type="button" className="danger" onClick={review.onBackConfirm}>{t('Discard and go back')}</button>

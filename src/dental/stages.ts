@@ -127,6 +127,23 @@ export function manualAreaCommands(unit: PrintUnit, profile: string, rim: TwoCon
 }
 
 /**
+ * A TURN, AND EVERY ALIGNER LAID OUT AGAIN because this one's footprint moved.
+ *
+ * The pairing is the decision, and it was written three times: inside `orientOutcome` below, in the
+ * flow's `turnTo`, and - the moment a queue existed - in the auto-gen pipeline. A turn committed
+ * WITHOUT the re-layout leaves aligners overlapping on the plate, which is a quiet defect: the plate
+ * still renders, and the export is what finds out.
+ */
+export function turnCommands(units: readonly PrintUnit[], unit: PrintUnit, rotation: Vector): SceneCommand[] {
+  const turned = { ...unit, transform: { ...unit.transform, rotation } };
+  const laidOut = units.map((candidate) => (candidate.id === unit.id ? turned : candidate));
+  return [
+    { type: 'transform/set', unitId: unit.id, transform: turned.transform },
+    ...arrangeAlignerCommands(laidOut, [unit.id]),
+  ];
+}
+
+/**
  * WHAT STEP 1'S ORIENTATION MEANS, decided once.
  *
  * Three outcomes, and the difference between the first two is the whole of why this is not a
@@ -170,13 +187,12 @@ export function orientOutcome(unit: PrintUnit, units: readonly PrintUnit[], resu
     ? { ...current, transform: { ...current.transform, rotation: result.rotation } }
     : undefined;
   if (!turned) notices.push({ kind: 'uncertain' });
-  const laidOut = units.map((candidate) => (turned && candidate.id === unit.id ? turned : candidate));
   return {
     kind: 'oriented', notices, rotation: result.rotation, proposal: result.proposal, turned: turned !== undefined,
-    commands: [
-      ...(turned ? [{ type: 'transform/set' as const, unitId: unit.id, transform: turned.transform }] : []),
-      ...arrangeAlignerCommands(laidOut, [unit.id]),
-    ],
+    // No pose to apply still lays the plate out: the aligner was added to it and may be overlapping.
+    commands: turned && result.rotation
+      ? turnCommands(units, turned, result.rotation)
+      : arrangeAlignerCommands(units, [unit.id]),
   };
 }
 
