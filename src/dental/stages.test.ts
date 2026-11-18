@@ -1,7 +1,7 @@
 // Copyright (c) Mixo Creative.
 
 import { describe, expect, it } from 'vitest';
-import { acceptCommands, acceptedPolicy, manualAreaCommands, matchesApplied, presetCommands, recipeApplication, settledPolicy } from './stages';
+import { acceptCommands, acceptedPolicy, alignerSettings, manualAreaCommands, matchesApplied, presetCommands, settledPolicy } from './stages';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { RECIPE_KEYS, recipeFrom, typeDefaultRecipe } from '../recipes/supportRecipe';
 import type { PrintUnit, SceneCommand } from '../state/project';
@@ -114,7 +114,7 @@ describe('when no area was detected', () => {
 });
 
 /**
- * WHAT A RECIPE PUTS ON A MODEL - the one answer three readers share (`recipeApplication`).
+ * WHAT A RECIPE PUTS ON A MODEL - the one answer three readers share (`alignerSettings`).
  *
  * The control that applies it, the accept that writes it and the card that says whether the model
  * still matches all ask this. An earlier version had the first two disagreeing about Type default,
@@ -126,8 +126,8 @@ describe('what a recipe would put on this model', () => {
   it('lets a named recipe beat the unit s own numbers, which is what choosing one means', () => {
     const settled = unit({ settings: { pillarDiameter: 2.5 }, dental: { kind: 'two-contour', profileId: PROFILE } } as unknown as Partial<PrintUnit>);
 
-    expect(recipeApplication(settled, PROFILE, thin).settings.pillarDiameter).toBe(1.1);
-    expect(recipeApplication(settled, PROFILE, thin).structure).toEqual({ treeEnabled: true, bracesEnabled: false });
+    expect(alignerSettings(settled, PROFILE, thin).settings.pillarDiameter).toBe(1.1);
+    expect(alignerSettings(settled, PROFILE, thin).structure).toEqual({ treeEnabled: true, bracesEnabled: false });
   });
 
   /*
@@ -143,8 +143,8 @@ describe('what a recipe would put on this model', () => {
       settings: { pillarDiameter: 2.5, braceAngle: 12, trussSpacing: 9, labelText: 'Q' },
       dental: { kind: 'two-contour', profileId: PROFILE },
     } as unknown as Partial<PrintUnit>);
-    const fresh = recipeApplication(unit(), PROFILE, typeDefaultRecipe()).settings;
-    const restored = recipeApplication(carrying, PROFILE, typeDefaultRecipe()).settings;
+    const fresh = alignerSettings(unit(), PROFILE, typeDefaultRecipe()).settings;
+    const restored = alignerSettings(carrying, PROFILE, typeDefaultRecipe()).settings;
 
     for (const key of RECIPE_KEYS) expect(restored[key], key).toEqual(fresh[key]);
     // And what a recipe never owned stays the model's own.
@@ -153,7 +153,7 @@ describe('what a recipe would put on this model', () => {
 
   it('knows when the model already carries what the recipe would put on it, switches included', () => {
     const applied = unit({
-      settings: recipeApplication(unit(), PROFILE, thin).settings,
+      settings: alignerSettings(unit(), PROFILE, thin).settings,
       dental: { kind: 'two-contour', profileId: PROFILE, structure: { treeEnabled: true, bracesEnabled: false } },
     } as unknown as Partial<PrintUnit>);
 

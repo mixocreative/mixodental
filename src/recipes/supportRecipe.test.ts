@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
-import { RECIPE_KEYS, applyRecipe, isTypeDefault, matchesRecipe, recipeFrom, typeDefaultRecipe } from './supportRecipe';
+import { RECIPE_KEYS, applyRecipe, isTypeDefault, recipeFrom, typeDefaultRecipe } from './supportRecipe';
 import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import type { DentalStructure } from '@mixo-geocore/host/dental/dentalPolicy';
 
@@ -102,20 +102,5 @@ describe('applying one', () => {
 
     expect(applyRecipe(base, typeDefaultRecipe())).toEqual(base);
     expect(isTypeDefault(typeDefaultRecipe())).toBe(true);
-  });
-});
-
-describe('whether a unit still matches the recipe it is labelled with', () => {
-  it('says so, and says no once a pinned number is edited', () => {
-    const recipe = recipeFrom('r1', 'Thin', settings({ pillarDiameter: 1.1 }), structure);
-
-    expect(matchesRecipe(settings({ pillarDiameter: 1.1 }), recipe)).toBe(true);
-    expect(matchesRecipe(settings({ pillarDiameter: 1.2 }), recipe)).toBe(false);
-  });
-
-  it('ignores a key the recipe does not pin, so a label or a view change is not an edit', () => {
-    const recipe = recipeFrom('r1', 'Thin', settings(), structure);
-
-    expect(matchesRecipe(settings({ labelText: 'Z' }), recipe)).toBe(true);
   });
 });

@@ -101,10 +101,8 @@ export function presetCommands(unit: PrintUnit, profile: string, recipe?: Suppor
    * when there is nothing to write.
    */
   if (recipe !== undefined && settled && matchesApplied(unit, profile, recipe)) return [];
-  const settings = recipe === undefined
-    ? alignerSettings(unit, profile).settings
-    : recipeApplication(unit, profile, recipe).settings;
-  return [{ type: 'settings/set', unitId: unit.id, settings: settings as SupportSettings }];
+  // One resolver answers both: with a recipe and without one.
+  return [{ type: 'settings/set', unitId: unit.id, settings: alignerSettings(unit, profile, recipe).settings as SupportSettings }];
 }
 
 /**
@@ -166,18 +164,6 @@ export function acceptCommands(unit: PrintUnit, profile: string, policy: DentalP
 }
 
 /**
- * WHAT A RECIPE WOULD PUT ON THIS MODEL - `alignerSettings` under a second name, because there is
- * exactly one answer and every reader must get it.
- *
- * THERE WERE BRIEFLY TWO, and they disagreed in three cases: the print-angle scan and the confirm
- * asked `alignerSettings` while the accept wrote this one's answer, so the angle could be judged for
- * one set of numbers and the supports built from another. That is the same defect class the seam was
- * built to close, re-opened one function along. Fable found it in review of the fix.
- */
-export const recipeApplication = (unit: PrintUnit, profile: string, recipe: SupportRecipe) =>
-  alignerSettings(unit, profile, recipe);
-
-/**
  * Whether the model already carries exactly what this recipe would put on it, SWITCHES INCLUDED.
  *
  * The switches matter and were missed: Tree and Brace are what a recipe is largely for, and a unit
@@ -212,12 +198,12 @@ export function matchesApplied(unit: PrintUnit, profile: string, recipe: Support
  * is why applying one is its own function rather than a flag on that one.
  */
 export function applyRecipeCommands(unit: PrintUnit, profile: string, recipe: SupportRecipe): SceneCommand[] {
-  return [{ type: 'settings/set', unitId: unit.id, settings: recipeApplication(unit, profile, recipe).settings as SupportSettings }];
+  return [{ type: 'settings/set', unitId: unit.id, settings: alignerSettings(unit, profile, recipe).settings as SupportSettings }];
 }
 
 /** The switches that go with those numbers, for the caller that owns them (`onStructure` in App). */
 export const recipeStructure = (unit: PrintUnit, profile: string, recipe: SupportRecipe): DentalStructure =>
-  recipeApplication(unit, profile, recipe).structure;
+  alignerSettings(unit, profile, recipe).structure;
 
 /**
  * No area was detected, so Step 2 opens empty and the operator paints one.

@@ -94,7 +94,7 @@ export function recipeFrom(id: string, name: string, settings: LiveSupportSettin
  * `base` IS WHATEVER THE CALLER RESOLVED, and what that means depends on the caller: a key this
  * recipe does not carry - including one the engine added after it was saved - keeps `base`'s value.
  * For a model that has never been of this type that is the type's own number, which is the case this
- * was written for; for one already settled it is the unit's own. `recipeApplication` in
+ * was written for; for one already settled it is the unit's own. `alignerSettings` in
  * `src/dental/stages.ts` is where that choice is made - this function only merges.
  *
  * UNKNOWN KEYS ARE DROPPED here as well as at parse time, because a book written by a newer version
@@ -109,10 +109,3 @@ export function applyRecipe(base: LiveSupportSettings, recipe: Pick<SupportRecip
   return next;
 }
 
-/** Whether a unit's settings still match the recipe it is labelled with (the card says "edited" when not). */
-export function matchesRecipe(settings: LiveSupportSettings, recipe: Pick<SupportRecipe, 'settings'>): boolean {
-  return RECIPE_KEYS.every((key) => {
-    const value = recipe.settings[key];
-    return value === undefined || value === settings[key];
-  });
-}
