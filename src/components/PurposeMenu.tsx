@@ -34,8 +34,16 @@ export interface PurposeOption {
   /** The words to show, ALREADY in the reader's language. A category's label is an i18n key the
    *  caller resolves; a type's is the engine's own profile name, which is not a key at all. */
   readonly label: string;
-  /** The drawing in `src/ui/assets/art/`. */
-  readonly icon: string;
+  /**
+   * The drawing in `src/ui/assets/art/`, for an option that is a THING - a category.
+   * Exactly one of `icon` and `badge` is set.
+   */
+  readonly icon?: string;
+  /**
+   * One letter in a rounded box, for an option that is a NAME - a type. A profile has no product to
+   * draw, and a drawing of one would overclaim what a general-purpose profile is.
+   */
+  readonly badge?: string;
 }
 
 export function PurposeMenu({ options, value, ui, label, onChoose }: {
@@ -62,6 +70,10 @@ export function PurposeMenu({ options, value, ui, label, onChoose }: {
   const button = useRef<HTMLButtonElement>(null);
   const id = useId();
   const chosen = options.find((option) => option.value === value);
+  /** A picture for a thing, a letter for a name. One helper so the key and the list cannot differ. */
+  const face = (option: PurposeOption) => (option.badge !== undefined
+    ? <span className="purpose-badge" aria-hidden="true">{option.badge}</span>
+    : <Art name={option.icon ?? ''} className="purpose-art" />);
 
   /*
    * THE LIST TAKES THE KEYBOARD WHEN IT OPENS. Without this the arrows go to whatever had focus -
@@ -119,7 +131,7 @@ export function PurposeMenu({ options, value, ui, label, onChoose }: {
       onClick={(event) => { event.stopPropagation(); setOpen((was) => !was); }}
       onKeyDown={(event) => { if (event.key === 'ArrowDown') { event.preventDefault(); setOpen(true); } }}>
       {chosen
-        ? <Art name={chosen.icon} className="purpose-art" />
+        ? face(chosen)
         /* NOT A PICTURE WHILE THERE IS NO ANSWER. The first version of the old control fell back to
            the generic cube, which IS the "Any model" art - so an unanswered row looked exactly like
            one answered "not dental". That is the silent-default defect this screen exists to
@@ -138,7 +150,7 @@ export function PurposeMenu({ options, value, ui, label, onChoose }: {
            press, which unmounts this list before a click could ever land on it. */
         onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); choose(option.value); }}
         onMouseEnter={() => setActive(index)}>
-        <Art name={option.icon} className="purpose-art" />
+        {face(option)}
         <span>{option.label}</span>
       </li>)}
     </ul> : null}

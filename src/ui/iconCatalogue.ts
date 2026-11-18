@@ -83,14 +83,6 @@ export const ICON_CATALOGUE: IconEntry[] = [
    */
   { name: 'generic', slot: 'key', source: 'generated', where: 'Start screen, third big choice: Any model. A plain isometric block - not a dental object, because this choice takes any STL' },
   /*
-   * The letter G, for a TYPE rather than a product. Both profile families ship exactly one profile
-   * and both are the general-purpose one - the engine renamed them "Generic aligner" and "Generic
-   * denture" on 2026-11-18 - so the type's picture cannot be a drawing of a thing: there is no
-   * distinct thing yet, and reusing the category's arch would say the same word twice in one row.
-   * Owner: *"use a 'G' icon for generic"*. Drawn on the same 48x48 grid as the rest of the set.
-   */
-  { name: 'generic-type', slot: 'key', source: 'generated', where: 'The deck: the TYPE menu on a row and on Set all, for any general-purpose profile' },
-  /*
    * Drawn and waiting on code: there is no Dental Model choice on the start screen yet, so nothing uses
    * this. It is the file that was called `generic` until 2026-11-10, when it turned out to be a picture
    * of a study model and to be standing in for a choice that means something else.

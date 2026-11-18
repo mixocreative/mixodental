@@ -1878,6 +1878,34 @@ dialog.terms .terms-item > span { flex: none; }
  * is on the entry screen. Owner, 2026-11-18: *"the aligner icon should be full color."* It always
  * was; it was being flattened. `geometricPrecision` is what lets pixel art off the 48-multiple rule.
  */
+/*
+ * A TYPE'S BADGE: one letter in a rounded box. Owner, 2026-11-18, on the pixel G that was here
+ * before: *"its ugly, doesnt look like a G, u can just use a badge system, a round cornered badge,
+ * G for generic standard items."*
+ *
+ * Set in the number face so it reads as a MARK rather than as a word that got cut short, and sized
+ * in `em` off its own font-size so one rule serves the row, the case control and the menu list.
+ */
+.purpose-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9em;
+  height: 1.9em;
+  flex: none;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--sunken);
+  color: var(--ink);
+  font-family: var(--font-number);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  /* A letter is read as a shape, so it is centred on itself - the one case the house rule allows. */
+  text-align: center;
+  pointer-events: none;
+}
+.purpose-menu-item .purpose-badge { background: var(--surface); }
 .purpose-art { width: 28px; height: 28px; flex: none; pointer-events: none; shape-rendering: geometricPrecision; }
 /* On a row: a shade smaller, and the keys stay quiet until the pointer is on them, because thirty
    rows of framed keys is a wall. */

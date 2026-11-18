@@ -74,21 +74,26 @@ export const categoryOf = (profileId: string | undefined): PurposeCategory | und
 export const typesOf = (kind: DentalKind): readonly string[] => profileIdsOf(kind);
 
 /**
- * THE DRAWING FOR A TYPE, which is a letter G today and says exactly what is true.
+ * THE BADGE FOR A TYPE: one letter in a rounded box, not a drawing.
  *
- * Both families ship one profile and both are the general-purpose one — the engine renamed them
- * "Generic aligner" and "Generic denture" on 2026-11-18 for that reason. So the type's picture is
- * the letter G rather than a drawing of a product: there is no product to draw, and a picture of an
- * aligner here would be the category's picture said twice. Owner: *"use a 'G' icon for generic"*,
- * and then *"right now we onlg generic Denture, same icon G."*
+ * It WAS a drawing - a pixel letter G on the same 48x48 grid as the aligner and the denture - and
+ * the owner's verdict was right: *"the GENERIC G icon is messed up, its ugly, doesnt look like a G,
+ * u can just use a badge system, a round cornered badge, G for generic standard items."* A glyph
+ * drawn as pixel art is legible at 144px on the entry screen and a smudge at 26px on a row, which
+ * is the only size this one is ever shown at.
  *
- * A profile added later gets its own entry and its own drawing; the fallback stays G, because an
- * unlisted profile is by definition the one nobody has drawn yet.
+ * A BADGE IS THE RIGHT SYSTEM FOR A TYPE, and not only for this one. A category is a THING and is
+ * drawn as a picture of itself; a type is a NAME, and the letter is the shortest form of the name.
+ * Text scales to any size, needs no file, costs nothing to add, and the next profile gets its badge
+ * by adding one entry here rather than by someone drawing an icon nobody asked them to draw.
+ *
+ * The fallback is `G`, because an unlisted profile is a general-purpose one until somebody says
+ * otherwise - which is exactly what both of today's profiles are.
  */
-const TYPE_ICONS: Readonly<Record<string, string>> = {
-  'reference-aligner': 'generic-type',
-  'reference-denture': 'generic-type',
+const TYPE_BADGES: Readonly<Record<string, string>> = {
+  'reference-aligner': 'G',
+  'reference-denture': 'G',
 };
 
-/** The art name for a profile id. */
-export const typeIcon = (profileId: string): string => TYPE_ICONS[profileId] ?? 'generic-type';
+/** The letter a profile wears on the deck. One or two characters; never a word. */
+export const typeBadge = (profileId: string): string => TYPE_BADGES[profileId] ?? 'G';
