@@ -73,7 +73,7 @@ export function RecipeRow({ book, problem, selectedId, onChoose, onSaveAs, onUpd
         title={problem ? t('Your saved support recipes could not be read on this device, so nothing can be saved.') : t('Save these settings under this name, and use it for this model.')}
         onClick={() => { attempt(() => onSaveAs(name)); setName(''); }}>{t('Save as new')}</button>
       <button type="button" data-ui="recipe-row-update" disabled={problem || builtIn}
-        title={builtIn ? t('The type default cannot be changed. Save these settings as a new recipe instead.') : t('Replace this recipe s settings with the ones on screen.')}
+        title={builtIn ? t('The type default cannot be changed. Save these settings as a new recipe instead.') : t('Replace the settings in this recipe with the ones on screen.')}
         onClick={() => attempt(() => onUpdate(selectedId))}>{t('Update recipe')}</button>
       <button type="button" className="danger" data-ui="recipe-row-delete" disabled={problem || builtIn}
         title={builtIn ? t('The type default cannot be removed.') : t('Remove this recipe from this device.')}

@@ -60,7 +60,7 @@ export function RecipeChip({ unitId, book, problem, selectedId, ran, edited, onC
     : ran !== undefined
       ? t('These supports were built with {name}.', { name: ran })
       : edited
-        ? t('This model s settings no longer match {name}. Auto-gen will use the recipe, not the changes.', { name })
+        ? t('The settings on this model no longer match {name}. Auto-gen will use the recipe, not the changes.', { name })
         : t('The support settings auto-gen will build this model with: {name}.', { name: label });
 
   /*
