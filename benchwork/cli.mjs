@@ -34,7 +34,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BENCH_RULES, parseSets } from './rules.mjs';
+import { BENCH_RULES, parseSets, stampNow } from './rules.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
@@ -92,8 +92,7 @@ if (missing.length > 0) {
   process.exit(3);
 }
 
-const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, '').replace('T', '-');
-const out = resolve(valueOf('--out') ?? join(outputRoot, `bench-${stamp}`));
+const out = resolve(valueOf('--out') ?? join(outputRoot, `bench-${stampNow()}`));
 const vite = join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'vite-node.cmd' : 'vite-node');
 
 console.log(`\nbenchwork - ${kind}, ${Object.keys(rules).length} rule(s) turned`);

@@ -61,6 +61,14 @@
   .layer-group .legend-row { min-height: calc(var(--row) - 2px); gap: 6px; padding-left: 4px; }
   .legend-row .legend-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .legend-row.later { opacity: .45; }
+  /* benchwork rows: the same height and rhythm as a legend row, with the input first so the eye runs
+     down the column that is actually being set. Tokens only - this surface uses the house values. */
+  .bench-row { display: flex; align-items: center; gap: 6px; min-height: calc(var(--row) - 2px); padding-left: 4px; cursor: help; }
+  .bench-row input[type=number] { width: 72px; flex: none; }
+  .bench-row .bench-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .bench-row .bench-unit { flex: none; font-size: var(--fs-sm); }
+  .bench-actions { display: flex; gap: 6px; margin: 6px 0 2px; }
+  #bench-status:empty { display: none; }
   .stepper { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 0 0 4px; }
   .stepper .step-where { flex-basis: 100%; font-size: var(--fs-sm); cursor: help; }
   /* The print tilt, prominent, top-left over the 3D view. */
@@ -152,6 +160,21 @@
     <section data-ui="review-layers-section">
       <h3>Layers</h3>
       <div id="layers" data-ui="review-layers"></div>
+    </section>
+    <!--
+      BENCHWORK: turn a rule and run this case again. Hidden until the rules module loads, because a
+      panel whose controls do not match the engine's rule names is worse than no panel - it would
+      pass names `packRules` ignores and the run would look like an answer having tested nothing.
+    -->
+    <section data-ui="bench-section" id="bench-section" hidden>
+      <h3>benchwork — turn a rule</h3>
+      <p class="muted" id="bench-note">A re-run takes about 23 seconds per case and writes a new folder; this review is never overwritten.</p>
+      <div id="bench-rules" data-ui="bench-rules"></div>
+      <div class="bench-actions">
+        <button id="bench-run" data-ui="bench-run">Apply and run again</button>
+        <button id="bench-reset" data-ui="bench-reset">Clear</button>
+      </div>
+      <p class="muted" id="bench-status" data-ui="bench-status"></p>
     </section>
   </div>
 </main>
@@ -1032,6 +1055,92 @@ addEventListener('keydown', (event) => {
 const served = await fetch('/out/summary.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
 if (served) openRun(served, (name) => `/out/${name}`, '/out/summary.csv');
 else empty('Drop a batch-... folder from dentalwork/output here, or its summary.json with the case GLBs. Open folder and Open files do the same.');
+
+/*
+ * BENCHWORK PANEL. The rule list comes from the SAME module the CLI uses (`benchwork/rules.mjs`,
+ * served at /benchwork/), so the panel cannot offer a name the tool would refuse or miss one it
+ * gained. A second copy of thirteen names in this file is exactly the drift this avoids.
+ *
+ * It needs the server's POST /rerun, so it stays hidden when the page was opened from a dropped
+ * folder with no server behind it - an Apply button that cannot apply is worse than none.
+ */
+try {
+  const { BENCH_RULES } = await import('/benchwork/rules.mjs');
+  const box = document.getElementById('bench-rules');
+  const status = document.getElementById('bench-status');
+  const fields = new Map();
+  for (const rule of BENCH_RULES) {
+    const row = document.createElement('label');
+    row.className = 'bench-row';
+    row.dataset.ui = `bench-rule-${rule.name}`;
+    row.dataset.tipTitle = rule.name;
+    row.dataset.tip = rule.says;
+    const input = document.createElement('input');
+    if (rule.type === 'flag') input.type = 'checkbox';
+    else { input.type = 'number'; input.step = 'any'; input.placeholder = 'engine default'; }
+    if (rule.type === 'deg') { input.min = '0'; input.max = '90'; }
+    if (rule.type !== 'flag') input.min ??= '0';
+    input.dataset.ui = `bench-input-${rule.name}`;
+    fields.set(rule.name, { input, rule });
+    const name = document.createElement('span');
+    name.className = 'bench-name';
+    name.textContent = rule.name;
+    const unit = document.createElement('span');
+    unit.className = 'muted bench-unit';
+    unit.textContent = rule.type === 'flag' ? '' : rule.type;
+    row.append(input, name, unit);
+    box.append(row);
+  }
+
+  /** Only the fields the operator actually set: an untouched number means "leave the engine's default". */
+  const turned = () => {
+    const rules = {};
+    for (const [name, { input, rule }] of fields) {
+      if (rule.type === 'flag') { if (input.checked) rules[name] = true; continue; }
+      if (input.value.trim() !== '' && Number.isFinite(Number(input.value))) rules[name] = Number(input.value);
+    }
+    return rules;
+  };
+
+  document.getElementById('bench-reset').addEventListener('click', () => {
+    for (const { input, rule } of fields.values()) { if (rule.type === 'flag') input.checked = false; else input.value = ''; }
+    status.textContent = '';
+  });
+
+  const run = document.getElementById('bench-run');
+  run.addEventListener('click', async () => {
+    const row = caseNow;
+    if (!row?.source) { status.textContent = 'Open a case first: the re-run needs the STL it came from.'; return; }
+    const rules = turned();
+    if (Object.keys(rules).length === 0) { status.textContent = 'Nothing is turned yet. Set a rule, then apply.'; return; }
+    run.disabled = true;
+    const names = Object.entries(rules).map(([name, value]) => `${name}=${value}`).join(', ');
+    status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
+    try {
+      const reply = await fetch('/rerun', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ kind: kindNow, rules, source: row.source }) });
+      const answer = await reply.json().catch(() => ({}));
+      if (!reply.ok || !answer.ok) { status.textContent = `It did not run: ${answer.error ?? reply.status}`; return; }
+      /*
+       * The server has re-pointed /out/ at the new folder, so re-fetching the summary shows the
+       * re-run. A reload would lose which case was open, and the whole point is comparing one case
+       * before and after.
+       */
+      const fresh = await fetch(`/out/summary.json?t=${Date.now()}`).then((response) => response.json());
+      openRun(fresh, (name) => `/out/${name}?t=${Date.now()}`, '/out/summary.csv');
+      status.textContent = `Done — showing the re-run with ${names}. The earlier review is still in its own folder.`;
+    } catch (error) {
+      status.textContent = `It did not run: ${error.message}`;
+    } finally {
+      run.disabled = false;
+    }
+  });
+
+  if (served) document.getElementById('bench-section').hidden = false;
+} catch (error) {
+  // No server, or the rules module is not served: leave the panel hidden rather than showing a dead button.
+  console.info('benchwork panel not available:', error.message);
+}
 </script>
 </body>
 </html>

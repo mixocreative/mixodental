@@ -41,6 +41,15 @@ export const BENCH_RULES = [
 ];
 
 /**
+ * The stamp an output folder is named by: `20261120-015310`.
+ *
+ * Here because BOTH callers need it - the CLI and the viewer's re-run route - and they had drifted
+ * within an hour of each other (`…T175310` against `…-175310`), which makes two runs of the same
+ * tool sort differently in one folder.
+ */
+export const stampNow = () => new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, '').replace('T', '-');
+
+/**
  * `name=value` pairs to the rules object the engine reads, with every refusal collected.
  *
  * IT COLLECTS RATHER THAN THROWS, so one command reports all of its mistakes instead of one per run,
