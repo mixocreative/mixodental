@@ -82,14 +82,26 @@ describe('the coloured art folder', () => {
   });
 
   /*
-   * AT MOST FIVE COLOURS, one of them the outline. More does not survive the grid: at this size
-   * near-duplicate tones read as noise rather than as shading, and the tracer's own quantiser is set to
-   * four body colours plus the keyline. This is the backstop for a file replaced by hand.
+   * AT MOST SIX COLOURS: four body tones, one accent, and the outline. More does not survive the grid -
+   * at this size near-duplicate tones read as noise rather than as shading - and the tracer's own
+   * quantiser is set to four body colours plus the keyline. This is the backstop for a file replaced by
+   * hand.
+   *
+   * SIX, NOT FIVE, is the owner's ruling of 2026-11-20. It was five, and two hand-made files had six:
+   * `night-guard.svg` spends its sixth on the brand cyan `#29abe2` and `retainer.svg` on a second dark
+   * `#4d4d4d`. Both are deliberate and neither is a near-duplicate of its neighbours, so the rule's
+   * actual purpose is intact while the count was simply written before an accent existed.
+   *
+   * AND IT HAD NEVER CHECKED ANYTHING. The regex below read `{6}` followed by a literal BACKSPACE byte
+   * (0x08) - a `\b` word boundary eaten by an escape-processing step - so the match never succeeded,
+   * the set was always empty, `count > 5` was never true, and the two offending files passed a dead
+   * test. Found by scripts/control-chars.test.mjs, which exists to catch exactly that byte; the
+   * vacuous pass it was hiding is why that scan is now part of the suite.
    */
-  it('keeps the palette to five', () => {
+  it('keeps the palette to six', () => {
     const offenders = names
-      .map((n) => [n, new Set((FILES[n].match(/#[0-9a-fA-F]{6}/g) ?? []).map((c) => c.toLowerCase())).size] as const)
-      .filter(([, count]) => count > 5)
+      .map((n) => [n, new Set((FILES[n].match(/#[0-9a-fA-F]{6}\b/g) ?? []).map((c) => c.toLowerCase())).size] as const)
+      .filter(([, count]) => count > 6)
       .map(([n, count]) => `${n}: ${count}`);
     expect(offenders).toEqual([]);
   });
