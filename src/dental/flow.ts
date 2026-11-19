@@ -1,4 +1,5 @@
 import { isManualArea } from '@mixo-geocore/host/dental/dentalPolicy';
+import { isDentureJob } from '../denture/jobKind';
 import { stageBeforeSupports } from '../denture/state/dentureStages';
 import type { PrintUnit, SceneCommand } from '../state/project';
 
@@ -97,6 +98,36 @@ type BackFields = Pick<PrintUnit, 'id' | 'supports' | 'manual' | 'deleted' | 'co
  */
 export function backEntersOrient(profile: string | undefined): boolean {
   return stageBeforeSupports(profile) === 'aligner';
+}
+
+/** What `opensAtSupports` reads: the supports, and each kind's own record of an accepted policy. */
+export type OpenFields = Pick<PrintUnit, 'supports' | 'dental' | 'denture'>;
+
+/**
+ * WHETHER OPEN LANDS ON THE SUPPORTS STEP rather than on orient - owner's ruling 2, and the only
+ * door that does not destroy the thing it was pressed to show.
+ *
+ * IT HAS TO ASK A DIFFERENT FIELD PER KIND, which is the whole reason this is a function and not an
+ * expression at the call site. An aligner records its accepted policy in `unit.dental`; a DENTURE
+ * records its own in `unit.denture` and never sets `unit.dental` at all.
+ *
+ * THE TRAP THIS REPLACES, because it cost a day and two retractions. The test was
+ * `supports !== undefined && dental !== undefined`, guarded by `&& !isDentureJob(profile)`. That
+ * guard reads as protection for dentures and was DEAD CODE: a denture fails the `dental` half
+ * anyway, so it always took the ordinary door - and the ordinary door runs the orient scan, turns
+ * the model to the automatic pick, and `transform/set` then deletes the supports AND the operator's
+ * chosen print angle with them. Confirmed in a browser, 3 runs of 3, on 2026-11-20. It needs the
+ * stored pose to differ from a fresh scan's pick, which is the ordinary case, because choosing that
+ * angle is what Step 1 exists for - press Next on the automatic pick and `reorients()` spares
+ * everything, which is why one earlier run looked clean and the defect was wrongly retracted.
+ *
+ * LANDING A DENTURE THERE IS SAFE, both halves checked: the denture's Step 2 IS this same `review`
+ * stage (`stageAfterOrientation` in `../denture/state/dentureStages.ts`), and `useDentureSupports`
+ * reads the unit out of the scene on every call rather than holding state from the way in.
+ */
+export function opensAtSupports(unit: OpenFields, profile: string | undefined): boolean {
+  if (unit.supports === undefined) return false;
+  return isDentureJob(profile) ? unit.denture !== undefined : unit.dental !== undefined;
 }
 
 /**

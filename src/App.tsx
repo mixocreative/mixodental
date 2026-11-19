@@ -129,7 +129,7 @@ import { useSupportBuilds } from './components/useSupportBuilds';
 import { isBuilding, meshesOf, rimGap, withGeometry } from './plate/buildViews';
 import { DEFAULT_PROFILE_ID } from '@mixo-geocore/host/dental/alignerProfiles';
 import { stepPanelInset } from './dental/stepPanelInset';
-import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, exitCommands, exitNeedsConfirm, keepsManualArea, manualEditCounts, startsDentalStep } from './dental/flow';
+import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, exitCommands, exitNeedsConfirm, keepsManualArea, manualEditCounts, opensAtSupports, startsDentalStep } from './dental/flow';
 import { applyRecipeCommands, matchesApplied, recipeStructure, reviewStructureOf } from './dental/stages';
 import { dentalLabelOf } from '@mixo-geocore/host/dental/label';
 import { dentalLabelCommands } from './dental/stages';
@@ -1387,8 +1387,7 @@ export default function App() {
      * below still requires two-contour for an aligner, so whether a painted-area card can render
      * Step 3 at all is unconfirmed - but Step 3 with a thin panel beats Step 1 with no supports.
      */
-    const built = unit.supports !== undefined && unit.dental !== undefined;
-    if (built && !isDentureJob(profile)) {
+    if (opensAtSupports(unit, profile)) {
       const run = autoGen.finished(unit.id);
       const notices: DentalNotice[] = [
         ...(run?.angleMovedDeg === undefined ? [] : [{ kind: 'angle-moved' as const, deg: run.angleMovedDeg }]),

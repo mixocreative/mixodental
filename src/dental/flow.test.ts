@@ -6,7 +6,7 @@ import { canUndo, createSceneHistory, undoScene, withSceneCommand, type SceneHis
 import { acceptCommands } from '../denture/steps/orient/acceptCommands';
 import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { DEFAULT_DENTURE_OPTIONS } from '../denture/settings/dentureOptions';
-import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, discardManualCommands, exitCommands, exitNeedsConfirm, keepsManualArea, keptDentalWork, manualEditCounts, startsDentalStep } from './flow';
+import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, discardManualCommands, exitCommands, exitNeedsConfirm, keepsManualArea, keptDentalWork, manualEditCounts, opensAtSupports, startsDentalStep } from './flow';
 import { DENTURE_PROFILE_ID } from '../denture/jobKind';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u1', manual: [], deleted: [], contactSettings: {}, ...over }) as unknown as PrintUnit;
@@ -25,6 +25,52 @@ const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u1', manual: [], deleted
  * operator's paint with it, because the rebuild carries no stamps. The walk covered entry and Cancel
  * (`u9b`, `u9c`) and never Done then Next, so it stayed green.
  */
+/*
+ * THE DOOR OPEN TAKES, AND THE FIELD EACH KIND KEEPS ITS POLICY IN.
+ *
+ * Before 2026-11-20 this was `supports && dental`, guarded by `&& !isDentureJob(profile)`. The guard
+ * read as protection for dentures and was dead: a denture writes `unit.denture` and never
+ * `unit.dental`, so it failed the `dental` half anyway and ALWAYS took the orient door - which
+ * re-scans, turns the model to the automatic pick, and takes the supports and the operator's chosen
+ * print angle with it. The fourth case below is the one that was broken; it is the reason this is a
+ * function with a test rather than an expression in `App.tsx`.
+ */
+describe('which door Open takes', () => {
+  const built = { supports: {} as unknown as PrintUnit['supports'] };
+
+  it('an aligner with an accepted policy opens on its supports', () => {
+    expect(opensAtSupports(unit({ ...built, dental: {} as never }), 'reference-aligner')).toBe(true);
+  });
+
+  it('an aligner with supports but no accepted policy goes to orient', () => {
+    expect(opensAtSupports(unit(built), 'reference-aligner')).toBe(false);
+  });
+
+  it('nothing built goes to orient, whichever kind', () => {
+    expect(opensAtSupports(unit({ dental: {} as never }), 'reference-aligner')).toBe(false);
+    expect(opensAtSupports(unit({ denture: {} as never }), DENTURE_PROFILE_ID)).toBe(false);
+  });
+
+  it('A BUILT DENTURE OPENS ON ITS SUPPORTS, reading `denture` and never `dental`', () => {
+    const denture = unit({ ...built, denture: {} as never });
+    expect(denture.dental).toBeUndefined();
+    expect(opensAtSupports(denture, DENTURE_PROFILE_ID)).toBe(true);
+  });
+
+  it('a denture with supports but no accepted denture state goes to orient', () => {
+    expect(opensAtSupports(unit(built), DENTURE_PROFILE_ID)).toBe(false);
+  });
+
+  /*
+   * The kind decides WHICH field is read, so each kind's own field must not answer for the other -
+   * otherwise the dead guard comes back wearing a different shape.
+   */
+  it('reads only the field that belongs to the kind', () => {
+    expect(opensAtSupports(unit({ ...built, denture: {} as never }), 'reference-aligner')).toBe(false);
+    expect(opensAtSupports(unit({ ...built, dental: {} as never }), DENTURE_PROFILE_ID)).toBe(false);
+  });
+});
+
 describe('whether Step 1 goes on with the area the unit already has', () => {
   const manual = (over: Record<string, unknown> = {}) => unit({
     dental: { kind: 'legacy', origin: 'manual-area', profileId: 'p', stamps: [], rim: {} },
