@@ -147,6 +147,43 @@ Ranked by consequence, not by size. Each item says what proves it done.
    section rests on. **Done when** an auto-gen run, finished or stopped, is undoable in one step from
    the deck, and the floor is per mode rather than per step.
 
+### The engine change the owner ruled for — prepared, deliberately not executed
+
+**Ruling (2026-11-20): one policy mechanism for both kinds.** The app-side half is **done and gated**
+(`4a27bcc`): the aligner review was dropping the engine's named rules, and now threads them, proved
+by `gate:real` PASS over all 13 scans with "No differences". What remains is in the engine repo
+(`S:i\mixo-geocore`), in two steps, and it is **written down rather than done**:
+
+- **B — collapse the denture overloads.** Delete `denture_policy`, `denture_review` and
+  `denture_tilt_scan`, rename the three `_ruled` variants to those names, so every entry takes
+  `rules`. Mechanical: the three being removed have **no JS caller in either repo**; the only
+  references are their declarations in `host/dental/dentalEngine.ts`, plus two type-key strings in
+  this repo (`src/denture/engine/dentureCore.ts`, `dentalwork/batch-review/profileSelect.ts`).
+- **C — give `dental_policy` a `rules` parameter.** It has exactly two attachment points: the add-on
+  placement closure (`crates/geometry-wasm/src/dental_area.rs:101-106`) and the debris size
+  (`crates/geometry-core/src/dental/aligner_parts.rs:53`). **Both run only for MULTI-PART aligner
+  files.** `dental_tilt_scan` must NOT gain one — nothing would read it.
+
+**Why it is not done.** Three reasons, and the first is the one that decides it:
+
+1. **B alone does not satisfy the ruling** (the aligner policy still takes no rules) and **C's whole
+   reach is multi-part aligner files**, which 2 of the 13 baseline scans cover. The capability the
+   ruling was *for* — turning a rule and seeing an aligner change — is already delivered by the app
+   fix, and separately shown to move nothing on the reference aligner.
+2. **C is the one step a reviewer called risky**, with named hazards: the parts cache is keyed by
+   debris bits (`supports/file_parts.rs:82`), so an override adds a second cached split per model;
+   and preview and build must receive identical rules or `filterDentalPlacement` makes them disagree
+   about add-on tips. Those want a clear head, not 02:30.
+3. It is a **clinical engine**, and the change costs a version bump, a wasm build, a vendor bump and
+   a full cross-repo gate. A wrong change there is worse than a late one.
+
+**Everything needed to execute it is ready:** the toolchain is present (cargo 1.99.1,
+`wasm32-unknown-unknown`, `wasm-pack` in the engine's `node_modules`), the call sites are enumerated
+above, and the parity proof is `gate:real` on all three kinds plus the full local gate. **Done when**
+every dental and denture entry takes `rules`, an empty array provably equals the default
+(`PlacementRules::default()` already *is* `from_overrides(&[])`), and `gate:real` reports no
+differences.
+
 ### Next — one decision, one place
 
 4. **One reader for the orientation result.** The card reads five doubts
