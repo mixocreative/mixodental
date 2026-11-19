@@ -1,5 +1,52 @@
 # Handoff
 
+## Ten commits, and the plan nobody could find (2026-11-19)
+
+**This file had stopped at 2026-11-14 while the deck, auto-gen, recipes, the Babylon port and a
+translation batch all landed.** That is the defect this entry exists to close, and it is the same
+defect in small that `docs/PLAN.md` closes in large: a document everyone trusts, describing a project
+that had moved on.
+
+**Seven commits, `62e66ca..9a7b238`, all on `main`:**
+
+| commit | what |
+|---|---|
+| `a16750a` | the last 61 untranslated strings, Japanese and Taiwan Chinese, in one Gemini request. The suite went green for the first time in the stretch — 1826 pass, no red, where the two i18n guards had been red for days. The glossary guard caught 4 of the 61 with the wrong term and reading caught a 5th; `scripts/applyTranslations.py` is the part to keep, because it refuses a reply that lost a placeholder. |
+| `9c48c76` | `src/components/viewport/dragSession.ts` — take the orbit on press, hear pointerup / pointercancel / blur / Escape, hand it back exactly once however the drag ends. **Four defects died with it, none of which the walk could see**, because the dragged thing still lands where it is dropped: the rim anchor drag handed the orbit back on its first pointer move; that same effect committed the anchor one move behind on a quick flick; the two renderers disagreed about which press may begin a tip move; and `moveRelease` tested `cancelled` before travel, so Escape on a non-drag reported a support "left where it was". Three of the four were found by Fable reading the finished code, after its pass over the design found nothing. |
+| `36ec2d3` | `babylon/tipMove.ts` — the last gesture that lived in one renderer only. |
+| `afbf2bd` `63946e2` `6a07dad` `9a7b238` | the docs: 71 dated documents gathered into 6 records on the owner's instruction, two folder maps where the ~20-file rule asks for them, and the graph rebuilt. |
+
+**The gate was read, not dispatched:** `ALL PASS (197 checks, 2089 s)` plus 2 skipped by design = the
+199 expected, with `npm test` 1838 pass, tsc clean, `vendor:check`, screens and build green before
+it, and `node scripts/walk.mjs --only=a --renderer=babylon` green afterwards (30 checks) for the
+Babylon adapter.
+
+**What that receipt does NOT cover, stated plainly:** it was taken on `afbf2bd`, not on `9a7b238`.
+The four commits after it are markdown, a graph rebuild and two code comments, and the re-run was
+stopped at two minutes so the owner's manual review could have the machine. **The full walk has not
+run on `main`'s current tree.**
+
+**Then two reviews, and two findings worth more than the reviews.** Asked whether the numbered step
+still earns its place now that auto-gen exists, the answer came back that the project had already
+concluded it did not — `design.md:1282`, 2026-11-07, under a sharper test than the one being
+re-derived — and that the replacement design had been removed from the deck and handed to
+`mixomesh/port/mixosupports/toolrail/`. Asked what the project does next, neither review could find
+out. Hence `docs/PLAN.md` (`498c401`) and the two re-headed rulebooks (`e99b7b6`).
+
+**Two defects found by reading and not yet fixed:**
+
+1. **Opening a built denture destroys its supports.** `App.tsx:1391` guards the open-at-supports door
+   with `built && !isDentureJob(profile)`, so a denture takes the ordinary door: `start` scans and
+   calls `turnTo` with the bare upright pick, and `transform/set` deletes `supports`, `manual`,
+   `deleted` and `contactSettings` on any non-vertical turn. The accepted pose is the dial-chosen
+   print angle, so the rotation always differs. Ruling 2 was applied to aligners only. Traced through
+   three files; not run.
+2. **The app carries no "not clinically validated" label.** `README.md:33` says it and
+   `SHIP-PLAN.md` §External validation requires the app to ship labelled. Nothing in the shipped
+   strings does.
+
+Both are items 1 and 2 of `PLAN.md`.
+
 ## Redeployed on `a5c9f1d`, and the deployed-commit line had been wrong for days (2026-11-14)
 
 **The site is `a5c9f1d`, and it is verified by content rather than by a green job.** CI run
@@ -202,7 +249,21 @@ and **3d** of the decision record hold it.
 
 ## Current decision
 
-Approved scope is Web Resin Support Parity: a local, multi-object browser editor that reproduces Blender's live Resin UV support workflow. Every imported mesh is a print unit with a derived support group that moves and rotates together with its model. The browser must support generation, settings/presets, manual editing, removal/regeneration, undo/redo, and separate or whole-scene export.
+**Dental print preparation on a card deck** (revised 2026-11-19). A folder of scans is dropped in;
+each becomes a card named by kind and type; each card is then either generated unattended or walked
+through orientation, rim, support area and supports by hand; the result is exported per object. The
+ordered plan, and the five decisions waiting on the owner, are in [`PLAN.md`](PLAN.md).
+
+Every imported mesh is still a print unit with a derived support group that moves and rotates with
+its model, and the app still owes generation, settings and presets, manual editing, removal and
+regeneration, undo and redo, and separate or whole-scene export.
+
+**What this section said until today, kept rather than deleted:** *"Approved scope is Web Resin
+Support Parity: a local, multi-object browser editor that reproduces Blender's live Resin UV support
+workflow."* That is not wrong — it is narrower than what the project became. It describes the generic
+bench half, which is where `BLENDER_PARITY.md` and `SLASG_NODE_LOGIC.md` take their numbers from, and
+whose future is decision 1 of `PLAN.md`. It stood here unchanged through the deck, auto-gen, recipes
+and the Babylon port, which is the whole reason `PLAN.md` now exists.
 
 ## Explicitly deferred
 
