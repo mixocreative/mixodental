@@ -16,7 +16,7 @@
  * WHAT IT DELIBERATELY DOES NOT RUN, and says so in the receipt rather than leaving it to be
  * assumed - the two that must not share a machine with anything else:
  *
- *   npm run walk        186 browser checks, about half an hour, and the owner's rule is that no
+ *   npm run walk        the full browser set (count: EXPECTED_CHECKS in scripts/walk.mjs), about half an hour, and the owner's rule is that no
  *                       other work happens while it runs. A receipt that quietly omitted it would
  *                       read as a full pass.
  *   npm run fonts       it REWRITES the subset faces. A gate must not change the tree it gates.
@@ -53,7 +53,7 @@ const STEPS = [
 
 /** Not run by this command, named so the receipt cannot be read as more than it is. */
 const NOT_RUN = {
-  walk: 'npm run walk - 186 browser checks, ~30 min, must run with nothing else on the machine',
+  walk: 'npm run walk - the full browser set (count: EXPECTED_CHECKS in scripts/walk.mjs), ~30 min, must run with nothing else on the machine',
   fonts: 'npm run fonts - rewrites the subset faces; a gate must not change the tree it gates',
 };
 

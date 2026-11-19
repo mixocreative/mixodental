@@ -192,7 +192,7 @@ const FIRST_PORT = 5260;
  * the checks are the APP's behaviour -- counts, status lines, what Undo brings back -- and almost
  * none of them care which library drew the pixels. A second file would drift from this one within a
  * week and would prove the two views agree about nothing except what somebody remembered to copy.
- * One file, two runs, the same 186 checks.
+ * One file, two runs, the same check set.
  *
  * A BABYLON RUN IS NOT THE THREE.JS GATE AND MUST NEVER BE READ AS ONE. The verdict line names the
  * renderer whenever it is not the default, so a receipt cannot be mistaken for the other run's.
