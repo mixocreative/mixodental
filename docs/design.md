@@ -7357,6 +7357,48 @@ and `benchwork/cli.mjs` the executable form of one thing, and it means that file
 tooling here"* had to be amended rather than quietly contradicted. (It was first named "benchwork",
 after the workshop fixture that guides a repeated cut; the owner renamed it the same day.)
 
+### The owner's rulings, 2026-11-20
+
+Recorded after the first build. Where they disagree with anything earlier on this page, these win.
+
+**1. One policy mechanism for both kinds.** *"all policy should be same… denture and aligner are
+different but all must be same and call whatever needed from another repo or build into the geo core
+if it's modules function"*, and *"they both use what they need from geocore"*. A **policy** here is
+the engine's answer, as data, to where supports are allowed and where tips go — one struct per model,
+a flag per triangle plus the candidate tips, with one producer per kind.
+
+The file layout already obeys this: `dental/` and `dental/denture/` are separate and heavily modular,
+one unit per step. **The defect is not layout — it is one file not calling a shared module.**
+`PlacementRules::from_overrides` and `IslandRules::from_overrides` are geocore facilities that
+`denture.rs`, `generic.rs`, `part_tips.rs`, `plate.rs` and `safety.rs` all use, and
+`crates/geometry-wasm/src/dental.rs` uses neither — the only policy producer in the engine with no
+rules channel, which is why benchwork is denture-only. **Fix: make the aligner use what it needs from
+geocore, and collapse the three `denture_*_ruled` overloads so every entry takes `rules` (empty
+meaning defaults).** `denture_policy` is already a one-line delegation to `denture_policy_ruled`, so
+the collapse is mechanical; the aligner half is the real work. It needs an engine version, a vendor
+bump and `gate:real` green on both kinds.
+
+**2. The nodes must reproduce BOTH kinds, by chaining compounds in order.** *"the procedural nodes
+should be able to reproduce both with combination and compounded nodes chained together in order"*.
+
+This resolves the "never nodes" line below rather than contradicting it, and the distinction is the
+whole design:
+
+- **A node made of geometric primitives** (project, band, angle, combine) cannot express detection —
+  eigen solvers, robust plane refits, graph walks, flood fills. That stands.
+- **A node that IS an engine unit**, with compounds grouping units, reproduces both exactly, because
+  the pipeline is already that chain. `crates/geometry-core/src/dental/trim/mod.rs`: *"One unit per
+  step, each with its own tests; `trim_frame` only combines them."* The eigen solver lives inside a
+  node instead of being built out of nodes.
+
+So the vocabulary is the engine's own units, not a geometry algebra. **The acceptance test is parity:
+chain the units as nodes and reproduce both kinds' output identically**, checked by `gate:real`,
+which is how everything else here is proved. Anything that cannot be reproduced that way is a unit
+nobody has exposed yet, not a reason to widen the primitives.
+
+What it costs: the orchestrators (`dental/mod.rs`, `denture/mod.rs`) must declare their chain — each
+step addressable, with typed inputs and outputs — instead of calling the next step inline.
+
 ### What the engine actually is
 
 There is no single pipeline and no shared stage vocabulary. Each kind has its own call order:
