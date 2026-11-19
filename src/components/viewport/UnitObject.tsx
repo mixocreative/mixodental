@@ -20,6 +20,7 @@ import { resolveSettings, unitContacts } from '@mixo-geocore/host/supports/unitS
 import { AddFlash, type AddedAt } from './AddFlash';
 import { ZONE_OPACITY, SEE_THROUGH } from './style';
 import { useViewportColours } from './sceneColours';
+import { beginDrag } from './dragSession';
 import { useGeometry } from './geometry';
 import { rustRaycast } from './rustRaycast';
 import { movePress, moveRelease, type TipDrop } from '../../supports/tipMove';
@@ -147,26 +148,21 @@ export function UnitObject(props: UnitObjectProps) {
    * handler would never hear it: the anchor would stay glued to the pointer with no button held.
    * The dispatch happens exactly once here, which is what makes one drag one step on the history.
    */
-  const onRimPath = props.onRimPath;
-  useEffect(() => {
-    if (!rimDrag) return undefined;
-    const drop = () => {
-      onRimPath(unit.id, rimDrag.path);
-      setRimDrag(null);
-    };
-    window.addEventListener('pointerup', drop);
-    window.addEventListener('pointercancel', drop);
-    return () => {
-      window.removeEventListener('pointerup', drop);
-      window.removeEventListener('pointercancel', drop);
-      /*
-       * AND THE CAMERA COMES BACK, here rather than in `drop`, so it comes back however the drag ends -
-       * released, cancelled, or the unit unmounted mid-drag. Leaving the orbit switched off would be a
-       * worse fault than the one this fixes: a viewport that silently stops turning.
-       */
-      if (controls) controls.enabled = true;
-    };
-  }, [rimDrag, onRimPath, unit.id, controls]);
+  /*
+   * THE MOVED PATH IN A REF, and the state above only for drawing it - which is the same split the
+   * tip drag makes below, for the same two reasons. Both were defects here until 2026-11-19, and
+   * neither could be seen in the walk, because the anchor still lands where it was dropped:
+   *
+   *   - the release used to be read inside an effect, so it saw the path of the render that effect
+   *     belonged to. A move followed closely by the release - every quick flick - fires `pointerup`
+   *     before React has re-rendered, and the drag committed the path one move behind;
+   *   - that effect depended on `rimDrag`, which every pointer move REPLACES, so its cleanup ran per
+   *     move and handed the orbit back while only the press ever took it away. The view turned under
+   *     the operator from the first move of every anchor drag.
+   *
+   * `dragSession.ts` holds the endings now, so neither can come back by someone re-keying an effect.
+   */
+  const rimPath = useRef<SurfacePath | null>(null);
   /*
    * A SELECTED TIP BEING DRAGGED, and the same two-part shape the rim drag above uses: the target is
    * held HERE and dispatched once, on release, so the whole drag is one entry on the app's history
@@ -181,16 +177,34 @@ export function UnitObject(props: UnitObjectProps) {
   const [tipDrag, setTipDrag] = useState<{ pointId: string; at: TipDrop | null } | null>(null);
   /*
    * AND THE SAME TARGET IN A REF, which is not belt and braces - it is the whole correctness of the
-   * drop. The release is read inside an effect, so it can only see the `tipDrag` of the render that
-   * effect belongs to; a pointer move followed closely by the release (every quick flick, and every
-   * drag a test driver performs) fires `pointerup` BEFORE React has re-rendered and re-registered
-   * the listener, so the effect still holds `at: null` and the drop cancels a move that had a
-   * perfectly good target. The ref is what the decision reads; the state is only what the ring draws.
+   * drop. The release handler is built when the press happens and then outlives many renders, so
+   * anything it read from state would be that render's value: a pointer move followed closely by the
+   * release - every quick flick, and every drag a test driver performs - would hand the drop an
+   * `at: null` from before the last move and cancel a move that had a perfectly good target. (That
+   * was a real defect while the listeners lived in an effect, and the rim drag had it too.) The ref
+   * is what the decision reads; the state is only what the ring draws.
    */
   const tipTarget = useRef<TipDrop | null>(null);
   /** The model mesh itself: a tip drag may land on the MODEL and on nothing else, braces and raft included. */
   const modelRef = useRef<THREE.Mesh | null>(null);
   const tipPress = useRef<{ x: number; y: number; travel: number } | null>(null);
+  /*
+   * WHICHEVER DRAG IS RUNNING, so the one in flight can be ended on unmount. One ref for both the rim
+   * anchor and the support tip, because only one of them can run at a time: each begins on a press
+   * that the other's press handler has already declined.
+   */
+  const dragEnd = useRef<(() => void) | null>(null);
+  useEffect(() => () => {
+    dragEnd.current?.();
+    dragEnd.current = null;
+  }, []);
+  /*
+   * THE CALLBACKS, READ AT THE MOMENT THE DRAG ENDS rather than captured when it began. A drag lives
+   * across many renders and the props arrive fresh on each one; a handler built at press would call
+   * the version of `onMoveTip` that existed then. Same arrangement as `strokeEnded.current` below.
+   */
+  const commit = useRef({ onMoveTip: props.onMoveTip, onMoveTipCancelled: props.onMoveTipCancelled, onRimPath: props.onRimPath });
+  commit.current = { onMoveTip: props.onMoveTip, onMoveTipCancelled: props.onMoveTipCancelled, onRimPath: props.onRimPath };
   /** Select supports → Click: the contact whose support is under the pointer. */
   const [pointed, setPointed] = useState<string | null>(null);
   const leave = () => {
@@ -206,6 +220,10 @@ export function UnitObject(props: UnitObjectProps) {
    */
   const beginTipMove = (event: ThreeEvent<PointerEvent>) => {
     if (!supports || event.faceIndex == null) return false;
+    // Rim define mode and the dental area brush own every press while they are on - the same rule
+    // `clickOwner.ts` holds for clicks, and the same leak it was written for: a press that began a
+    // tip move under them would be a second gesture in a mode whose whole job is one of its own.
+    if (modeOwnsClick(gesture.kind)) return false;
     const contactId = contactAtTriangle(supports, event.faceIndex);
     if (!contactId) return false;
     // The real button, not a constant: which buttons may start a move is `movePress`'s rule, and an
@@ -216,116 +234,74 @@ export function UnitObject(props: UnitObjectProps) {
       ...clickTool(props.liveTool?.(), { tool: gesture.kind === 'add' ? 'add' : 'select', brush: gesture.kind === 'drag', remove: gesture.kind === 'add' && gesture.remove }),
       active: props.active,
       contact: true,
+      /*
+       * IS THIS SUPPORT THE NEAREST THING UNDER THE PRESS? r3f offers the press to every object
+       * beneath it, nearest first, so this handler also hears presses that landed on the MODEL with
+       * a support behind it - and arming there would drag a tip the operator cannot see, which is
+       * precisely what Babylon's nearest-candidate pick refused to do. `movePress` owns the rule;
+       * this reports r3f's own ordering.
+       */
+      nearest: event.intersections[0]?.object === event.object,
       selected: props.selection.has(contactId),
     });
     if (!armed) return false;
     event.stopPropagation();
-    if (controls) controls.enabled = false;
     tipPress.current = { x: event.nativeEvent.clientX, y: event.nativeEvent.clientY, travel: 0 };
     tipTarget.current = null;
     setTipDrag({ pointId: contactId, at: null });
+    // One ref holds one drag, so whatever it holds ends before this one starts. A mouse cannot press
+    // twice with a button down, but a second touch or pen can - and the orphan would keep its window
+    // listeners until the next release.
+    dragEnd.current?.();
+    dragEnd.current = beginDrag({
+      lock: () => { if (controls) controls.enabled = false; },
+      unlock: () => { if (controls) controls.enabled = true; },
+      release: finishTip(contactId, false),
+      cancel: finishTip(contactId, true),
+      move: trackTip,
+    });
     return true;
   };
-  const onMoveTip = props.onMoveTip;
-  const onMoveTipCancelled = props.onMoveTipCancelled;
   /*
-   * KEYED ON WHETHER A DRAG IS RUNNING, never on the drag's own state, and that distinction IS the
-   * camera lock.
-   *
-   * `hoverModel` replaces `tipDrag` with a new object on every pointer move. An effect depending on
-   * that object therefore tears down and rebuilds on every move - and its cleanup hands the orbit
-   * back (`controls.enabled = true`), while only `beginTipMove` ever takes it away. So the lock
-   * lasted precisely until the first move over the model, after which the view turned under the
-   * drag; the five window listeners were also being removed and re-added per move.
-   *
-   * THE WALK CANNOT SEE THIS, which is why it is written down at length rather than left to a test:
-   * the tip still arrives where it was dropped, so every count the guard checks is correct while the
-   * camera misbehaves. Found by review (Fable, 2026-11-19), not by running.
+   * THE DRAG ASKS WHERE THE POINTER IS, rather than waiting to be told. r3f delivers a move to a mesh
+   * only while the pointer is over it, the support being carried stands IN FRONT of the model it grows
+   * from, and a driver sending moves in a burst can have them coalesced - so "the model will tell us"
+   * is three different ways of getting no answer. One ray, at the model alone, on every move the drag
+   * is given: braces, raft and the other supports cannot catch the tip, and a pointer off the model
+   * leaves the target null, which is what makes the release cancel.
    */
-  const dragging = tipDrag?.pointId;
-  useEffect(() => {
-    if (dragging === undefined) return undefined;
-    /*
-     * MEASURED FROM THE PRESS, on the window, because the release has to be heard wherever it
-     * happens - over the panel, off the canvas, anywhere - and a mesh handler would never hear it.
-     * The same reasoning the rim drag's comment sets out at length.
-     */
-    const track = (event: PointerEvent) => {
-      const press = tipPress.current;
-      if (press) press.travel = Math.max(press.travel, Math.hypot(event.clientX - press.x, event.clientY - press.y));
-      /*
-       * THE DRAG ASKS, rather than waiting to be told. r3f delivers a move to a mesh only while the
-       * pointer is over it, the support being carried stands IN FRONT of the model it grows from,
-       * and a driver sending moves in a burst can have them coalesced - so "the model will tell us"
-       * is three different ways of getting no answer. One ray, at the model alone, on every move we
-       * are given: braces, raft and the other supports cannot catch the tip, and a pointer off the
-       * model leaves the target null, which is what makes the release cancel.
-       */
-      const mesh = modelRef.current;
-      if (!mesh) return;
-      const rect = gl.domElement.getBoundingClientRect();
-      pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
-      raycaster.setFromCamera(pointer, camera);
-      const hits: THREE.Intersection[] = [];
-      mesh.raycast(raycaster, hits);
-      const hit = hits.sort((a, b) => a.distance - b.distance)[0];
-      if (!hit) { tipTarget.current = null; setTipDrag((held) => (held && held.at ? { pointId: held.pointId, at: null } : held)); return; }
-      const normal = hit.face?.normal.clone().transformDirection(mesh.matrixWorld).normalize() ?? new THREE.Vector3(0, -1, 0);
-      tipTarget.current = { position: [hit.point.x, hit.point.y, hit.point.z], normal: [normal.x, normal.y, normal.z] };
-      const local = mesh.worldToLocal(hit.point.clone());
-      setHover({ point: local, normal: hit.face?.normal.clone() ?? new THREE.Vector3(0, -1, 0), remove: false });
-      setTipDrag((held) => (held ? { pointId: held.pointId, at: tipTarget.current } : held));
-    };
-    const finish = (cancelled: boolean) => () => {
-      const target = tipTarget.current;
-      const release = moveRelease({ travel: tipPress.current?.travel ?? 0, onModel: target !== null, cancelled });
-      // `click` is deliberately nothing: the ordinary click path fires next and toggles the selection,
-      // which is what a press-and-release on a tip has always meant.
-      if (release === 'move' && target) onMoveTip(unit.id, dragging, target.position, target.normal);
-      // No tolerance test here: `moveRelease` already calls a press that never travelled a `click`,
-      // so a `cancel` is always a real drag that came to nothing - the case worth a word.
-      if (release === 'cancel') onMoveTipCancelled();
-      tipPress.current = null;
-      tipTarget.current = null;
-      setTipDrag(null);
-    };
-    const drop = finish(false);
-    const abandon = finish(true);
-    /*
-     * ESC CANCELS THE DRAG AND NOTHING ELSE, which takes the CAPTURE phase to arrange.
-     *
-     * `App.tsx` answers Escape on a window listener of its own - in Support Edit Mode it clears the
-     * selection, and in a dental step it steps back. That listener was registered at mount, this one
-     * when the drag began, so on the bubble phase the app's runs FIRST and `stopImmediatePropagation`
-     * here would be too late: cancelling a drag would also throw away the selection the drag needs
-     * (a tip must be selected to be dragged at all), or leave the step.
-     *
-     * A capture listener on `window` runs before any bubble listener on `window`, so this sees the
-     * key first and stops it there. Esc then means what it should: undo the innermost thing in
-     * flight. Nothing in the walk covers this - found by review (Fable, 2026-11-19).
-     */
-    const escape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopPropagation();
-      abandon();
-    };
-    window.addEventListener('pointermove', track);
-    window.addEventListener('pointerup', drop);
-    window.addEventListener('pointercancel', abandon);
-    window.addEventListener('blur', abandon);
-    window.addEventListener('keydown', escape, true);
-    return () => {
-      window.removeEventListener('pointermove', track);
-      window.removeEventListener('pointerup', drop);
-      window.removeEventListener('pointercancel', abandon);
-      window.removeEventListener('blur', abandon);
-      window.removeEventListener('keydown', escape, true);
-      // And the orbit comes back however the drag ended, including an unmount mid-drag. A viewport
-      // that silently stops turning would be a worse fault than the one this gesture fixes.
-      if (controls) controls.enabled = true;
-    };
-  }, [dragging, onMoveTip, onMoveTipCancelled, unit.id, controls, gl, camera, raycaster, pointer]);
+  const trackTip = (event: PointerEvent) => {
+    const press = tipPress.current;
+    if (press) press.travel = Math.max(press.travel, Math.hypot(event.clientX - press.x, event.clientY - press.y));
+    const mesh = modelRef.current;
+    if (!mesh) return;
+    const rect = gl.domElement.getBoundingClientRect();
+    pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+    raycaster.setFromCamera(pointer, camera);
+    const hits: THREE.Intersection[] = [];
+    mesh.raycast(raycaster, hits);
+    const hit = hits.sort((a, b) => a.distance - b.distance)[0];
+    if (!hit) { tipTarget.current = null; setTipDrag((held) => (held && held.at ? { pointId: held.pointId, at: null } : held)); return; }
+    const normal = hit.face?.normal.clone().transformDirection(mesh.matrixWorld).normalize() ?? new THREE.Vector3(0, -1, 0);
+    tipTarget.current = { position: [hit.point.x, hit.point.y, hit.point.z], normal: [normal.x, normal.y, normal.z] };
+    const local = mesh.worldToLocal(hit.point.clone());
+    setHover({ point: local, normal: hit.face?.normal.clone() ?? new THREE.Vector3(0, -1, 0), remove: false });
+    setTipDrag((held) => (held ? { pointId: held.pointId, at: tipTarget.current } : held));
+  };
+  /** What the drag ending meant. `moveRelease` decides; this reports travel and whether a target was found. */
+  const finishTip = (pointId: string, cancelled: boolean) => () => {
+    const target = tipTarget.current;
+    const release = moveRelease({ travel: tipPress.current?.travel ?? 0, onModel: target !== null, cancelled });
+    // `click` is deliberately nothing: the ordinary click path fires next and toggles the selection,
+    // which is what a press-and-release on a tip has always meant.
+    if (release === 'move' && target) commit.current.onMoveTip(unit.id, pointId, target.position, target.normal);
+    // No tolerance test here: `moveRelease` already calls a press that never travelled a `click`,
+    // so a `cancel` is always a real drag that came to nothing - the case worth a word.
+    if (release === 'cancel') commit.current.onMoveTipCancelled();
+    tipPress.current = null;
+    tipTarget.current = null;
+    setTipDrag(null);
+  };
   const doomed = useDoomed(unit, contacts, editing && hover?.remove ? hover.point : undefined);
 
   // A brush stroke (Drag over, or the zone brush): the rules are editing/stroke; this wires the
@@ -453,8 +429,30 @@ export function UnitObject(props: UnitObjectProps) {
        * by hand for a paint stroke. Without this the view orbited under every anchor drag, and the
        * walk could not see it: the anchor still moves and its old spot is still vacated.
        */
-      if (controls) controls.enabled = false;
+      rimPath.current = held;
       setRimDrag({ at, path: held });
+      dragEnd.current?.();
+      dragEnd.current = beginDrag({
+        lock: () => { if (controls) controls.enabled = false; },
+        unlock: () => { if (controls) controls.enabled = true; },
+        release: () => {
+          // The path as the LAST move left it, from the ref: see the note beside `rimPath`.
+          const moved = rimPath.current;
+          if (moved) commit.current.onRimPath(unit.id, moved);
+          rimPath.current = null;
+          setRimDrag(null);
+        },
+        /*
+         * ABANDONED - Escape, pointercancel, the window losing focus - and the anchor goes back where
+         * it was: dropping the local copy leaves the scene's own drawing, which this drag never
+         * touched, as the one on screen. An inserted handle stays, because inserting it was a scene
+         * edit of its own a few lines above and one Undo removes it.
+         */
+        cancel: () => {
+          rimPath.current = null;
+          setRimDrag(null);
+        },
+      });
       // The same press picks the anchor out, so Delete point has a subject without a third tool. A press
       // on bare surface leaves the pick alone and orbits: see `onRimSelect` for why it must survive that.
       props.onRimSelect(at);
@@ -478,7 +476,11 @@ export function UnitObject(props: UnitObjectProps) {
       const local = event.object.worldToLocal(event.point.clone());
       const normal = (event.face?.normal.clone() ?? new THREE.Vector3(0, -1, 0)).normalize();
       const moved = moveAnchor(rimDrag.path, rimDrag.at, { position: [local.x, local.y, local.z], normal: [normal.x, normal.y, normal.z] });
-      if (moved) setRimDrag({ at: rimDrag.at, path: moved });
+      if (moved) {
+        // The ref is what the release reads; the state is only what gets drawn until then.
+        rimPath.current = moved;
+        setRimDrag({ at: rimDrag.at, path: moved });
+      }
       return;
     }
     if (zoneBrush || dentalBrush) return paint(event);

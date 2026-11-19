@@ -9,24 +9,27 @@ vocabulary instead of two. Until the drawing layers are rebuilt, both ports exis
 `viewportPort.test.ts` holds them to **identical** answers — that test is the contract, and a case
 added to it is added to both. three.js leaves when the last layer is Babylon, not before.
 
-**Debt, with its next cut named.** `UnitObject.tsx` is past 700 lines and now carries two drags
-inline — the rim anchor and the support tip. The cut is NOT a hook per drag: `useTipDrag` would take
-fourteen values in (`supports`, the selection, `active`, `liveTool`, `gesture`, `controls`, `gl`,
-`camera`, `raycaster`, the mesh ref, `setHover`, two callbacks, the unit id) to hand back two, which
-is the hub this repo's own rule forbids. The part that passed that test is already out, in
-`src/supports/tipMove.ts`.
+**The drag cut is taken: `dragSession.ts`.** It owns what ends a drag and the camera - take the
+orbit on press, hear pointerup, pointercancel, blur and Escape, give the orbit back exactly once
+however the drag ends - and nothing else. Four gestures used it immediately and it closed two live
+defects on the way in: the tip drag's cleanup handed the orbit back on every pointer move, and the
+rim anchor drag's did the same, unnoticed for longer, plus committing a path one move behind on a
+quick flick. Neither was visible to the walk, because the thing being dragged still lands where it
+was dropped. The rule it is built to is this repo's own: four callbacks in, one `end` out, and no
+drag state - what is carried, where it is now and what to draw stay with the caller, because a
+module holding those would need most of a viewport handed in to give two values back.
 
-The cut worth taking is **one module that holds a drag**: take the orbit away on press, hear the
-release anywhere (pointerup, pointercancel, blur, Esc), and give the orbit back however it ends. In,
-a lock and an unlock callback plus what to do on release and on cancel; out, a begin function — so
-the renderer difference is only those two callbacks (`controls.enabled` here,
-`detachControl`/`attachOrbit` in Babylon) and one plain module serves both. **It is the part that has
-actually been wrong**: the tip drag's cleanup handed the orbit back on every pointer move, `rimDraw.ts`
-has no `blur` listener, and the Babylon brush does — the same job written three times with three
-different sets of endings. Take it as the first commit of the Babylon tip adapter, which would
-otherwise be a fourth copy; leave the rim drag and the brush until something else touches them.
-Agreed with Fable, 2026-11-19; the brush and rim release handlers have not been read closely enough
-to confirm they reduce to exactly that surface, so check before committing to it.
+**What is deliberately still outside it: both brush strokes.** Every brush ending COMMITS its stroke
+(`createStroke` has one `onEnd` and no discard), so Escape through the shared module would commit a
+stroke the operator asked to abandon. They join when a stroke can be discarded, which is a change in
+`@mixo-geocore`. Until then each brush keeps its own six lines of listener wiring, which is wiring
+duplicated and not a rule duplicated - every brush ending already has one owner. Agreed with Fable,
+2026-11-19.
+
+**`UnitObject.tsx` is still past 700 lines**, and the part of that debt worth naming now is the two
+drags' own halves: the ray each casts and what each does with its target. The next cut is NOT a hook
+per drag - `useTipDrag` would take fourteen values in to hand back two, the hub this repo's rule
+forbids - and the part that passed the test is already out, in `src/supports/tipMove.ts`.
 
 **One gesture is three.js only today, named here rather than left to be discovered: moving a support
 tip.** `onMoveTip` reaches both viewports and only `UnitObject.tsx` acts on it; press, drag and drop

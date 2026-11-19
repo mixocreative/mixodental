@@ -2982,6 +2982,63 @@ async function walk(url, scratch, dentalFixture) {
         (await rimPoints()) === '4' && /open/i.test(rimLoop), `points ${await rimPoints()}, loop "${rimLoop}"`);
 
       /*
+       * ESCAPE ABANDONS A DRAG AND NOTHING ELSE, which is `viewport/dragSession.ts`'s rule and takes
+       * the capture phase to arrange: `App.tsx` answers Escape on a window listener registered at
+       * mount, and in a dental step that means STEP BACK. A key that leaked would take the operator
+       * out of rim define mode in the middle of a drag.
+       *
+       * WRAPPED, because a check may not take its section down with it (2026-11-19, u5p).
+       */
+      let said = 0;
+      try {
+        const spot = rimSpots[2];
+        const before = await rimPoints();
+        /*
+         * A HALF DRAG ALONG u5d'S OWN PATH, which makes u5e the positive control for this check: the
+         * same press and the same line, ending in Escape instead of a release. The path matters - a
+         * drag that wandered off the model would leave a wrongly committed anchor close to where it
+         * started, perhaps still within `RIM_GRAB_REACH_MM`, and the re-press below would pick that
+         * one up and read four points while the anchor HAD moved (Fable, 2026-11-19).
+         */
+        await page.mouse.move(...d.at(...spot));
+        await d.idle(200);
+        await page.mouse.down();
+        for (let i = 1; i <= 10; i += 1) {
+          await page.mouse.move(...d.at(spot[0] + (0.62 - spot[0]) * i / 10, spot[1] + (0.72 - spot[1]) * i / 10));
+        }
+        await d.idle(200);
+        await page.keyboard.press('Escape');
+        await d.idle(400);
+        await page.mouse.up();
+        await d.idle(400);
+        const stillDrawing = await page.locator('[data-ui="rim-point-count-control"]').count();
+        said += 1;
+        check('u5r Escape during an anchor drag is taken by the drag, so rim define mode is still on',
+          stillDrawing === 1, `the rim dock is ${stillDrawing === 1 ? 'still there' : 'GONE: the key reached the app and stepped back'}`);
+        /*
+         * AND THE ANCHOR IS WHERE IT WAS. u5e's trick, inverted: a press on a spot an anchor still
+         * occupies PICKS IT UP and adds nothing, while a press on a spot it has left appends. So the
+         * count holding at four is the anchor never having moved.
+         */
+        await d.stroke(spot, spot, 1);
+        await d.idle(400);
+        said += 1;
+        check('u5s an abandoned drag leaves the anchor where it started, with nothing committed',
+          (await rimPoints()) === before, `points ${await rimPoints()} (was ${before} before the abandoned drag)`);
+      } catch (error) {
+        // ONLY WHAT THE TRY DID NOT REACH, so a failing run still accounts for exactly two checks.
+        const why = error.message.split('\n')[0];
+        if (said < 1) {
+          check('u5r Escape during an anchor drag is taken by the drag, so rim define mode is still on',
+            false, `the abandoned drag could not be driven: ${why}`);
+        }
+        if (said < 2) {
+          check('u5s an abandoned drag leaves the anchor where it started, with nothing committed',
+            false, `the anchor could not be read after the abandoned drag: ${why}`);
+        }
+      }
+
+      /*
        * DELETE POINT, which needs a subject before it will do anything. Adjust picking an anchor up is
        * also what picks it OUT, so the press that would start a drag is the one that arms this - there is
        * no third tool in a mode whose whole job is one loop.
@@ -5144,7 +5201,7 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 197;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison; 195 on 2026-11-19 with u5p and u5q, an area made BY HAND carried through to Step 3 - the one dental path no walk had ever reached - plus the two-check hole in u8's own skip, which `note` printed and nothing counted; 197 with a4m and a4n, the support-tip drag (build-order item 7), which no unit test and no preview pane can see
+const EXPECTED_CHECKS = 199;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison; 195 on 2026-11-19 with u5p and u5q, an area made BY HAND carried through to Step 3 - the one dental path no walk had ever reached - plus the two-check hole in u8's own skip, which `note` printed and nothing counted; 197 with a4m and a4n, the support-tip drag (build-order item 7), which no unit test and no preview pane can see; 199 with u5r and u5s, Escape abandoning an anchor drag - the shared `viewport/dragSession.ts` rule, whose failure is that the key reaches App.tsx instead and steps the operator out of the mode mid-drag
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
 if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,

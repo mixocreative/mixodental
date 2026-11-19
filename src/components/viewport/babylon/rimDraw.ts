@@ -2,6 +2,7 @@ import type { ArcRotateCamera } from '@babylonjs/core';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { insertAnchor, moveAnchor, type SurfacePath } from '../../../core/surfacePath/path';
 import { rimTapAt, rimTargetAt } from '../../../dental/rim/rimTarget';
+import { beginDrag } from '../dragSession';
 import { attachOrbit } from './orbit';
 import type { SurfacePointer } from './surfacePointer';
 
@@ -23,8 +24,12 @@ import type { SurfacePointer } from './surfacePointer';
  *
  * ONE DRAG IS ONE STEP ON THE HISTORY. `onRimPath` fires once, on release. An inserted anchor is
  * the exception and gets its own step BEFORE the drag moves it, because it is an edit in its own
- * right. And the release is heard on the WINDOW, not the canvas: a drag that ends off the canvas
- * would otherwise leave the anchor glued to the pointer with no button held.
+ * right.
+ *
+ * THE ENDINGS ARE `../dragSession.ts`'s, shared with the three.js view: the release is heard on the
+ * WINDOW rather than the canvas, because a drag ending off the canvas would otherwise leave the
+ * anchor glued to a pointer with no button held - and so are pointercancel, the window losing focus
+ * and Escape, two of which this file never heard at all.
  */
 
 /** A rim with nothing in it: an OPEN path with no anchors, so the first press appends. */
@@ -64,16 +69,26 @@ export function attachRimDraw(input: RimDrawInput): () => void {
     attachOrbit(camera, canvas);
   };
 
-  const drop = () => {
+  /** The session in flight, so a teardown mid-drag ends it. */
+  let endDrag: (() => void) | undefined;
+
+  /*
+   * HOW THE DRAG ENDED. The camera is `dragSession`'s business now and comes back however it ends,
+   * including a teardown mid-drag, so this is only what the anchor does.
+   *
+   * RELEASE COMMITS THE LAST VALID POINT and cancel abandons. The split matters because Escape
+   * arrives as a cancel: committing there would make the key mean the opposite of what it means
+   * everywhere else. Abandoning drops the local path and leaves the scene's own drawing - which the
+   * drag never touched - as the one on screen. An inserted anchor stays, because inserting it was a
+   * step of its own before the drag began, and one Undo removes it.
+   */
+  const finish = (commit: boolean) => () => {
     if (!drag) return;
     const { unitId, path } = drag;
     drag = undefined;
+    endDrag = undefined;
     input.onDragPath(undefined);
-    input.onRimPath(unitId, path);
-    // The camera comes back however the drag ends -- released, cancelled, or torn down mid-drag.
-    // Leaving the orbit off would be a worse fault than the one this guards: a viewport that
-    // silently stops turning.
-    releaseCamera();
+    if (commit) input.onRimPath(unitId, path);
   };
 
   const onDown = (event: PointerEvent) => {
@@ -92,9 +107,14 @@ export function attachRimDraw(input: RimDrawInput): () => void {
     if (!held) return;
     // A new handle is a scene edit of its own, so it is on the undo stack before the drag moves it.
     if (target.kind === 'insert') input.onRimPath(draft.unitId, held);
-    camera.detachControl();
     drag = { unitId: draft.unitId, at: target.at, path: held };
     input.onDragPath(held);
+    endDrag = beginDrag({
+      lock: () => camera.detachControl(),
+      unlock: releaseCamera,
+      release: finish(true),
+      cancel: finish(false),
+    });
     // The same press picks the anchor out, so Delete point has a subject without a third tool.
     input.onRimSelect(target.at);
   };
@@ -137,17 +157,13 @@ export function attachRimDraw(input: RimDrawInput): () => void {
   canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerleave', onLeave);
   canvas.addEventListener('pointerup', onClick);
-  // On the WINDOW, so a drag that ends outside the canvas still ends.
-  window.addEventListener('pointerup', drop);
-  window.addEventListener('pointercancel', drop);
   return () => {
     canvas.removeEventListener('pointerdown', onDown);
     canvas.removeEventListener('pointermove', onMove);
     canvas.removeEventListener('pointerleave', onLeave);
     input.onHover(false);
     canvas.removeEventListener('pointerup', onClick);
-    window.removeEventListener('pointerup', drop);
-    window.removeEventListener('pointercancel', drop);
-    if (drag) releaseCamera();
+    // Silent: a teardown is not the operator deciding what the drag meant, and it hands the camera back.
+    endDrag?.();
   };
 }

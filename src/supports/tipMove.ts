@@ -31,6 +31,17 @@ export interface TipPress {
   active: boolean;
   /** The support hit belongs to a CONTACT - not a brace, a raft or a label. */
   contact: boolean;
+  /**
+   * NOTHING STANDS IN FRONT OF THAT SUPPORT: it is the nearest thing under the press.
+   *
+   * THE TWO RENDERERS DISAGREED HERE UNTIL THIS FIELD EXISTED, which is the exact failure this seam
+   * is built to prevent. r3f offers one pointerdown to every object under it, nearest first, and the
+   * model's own handler declines a Select-Click press without stopping propagation - so the press
+   * reached the supports mesh behind it and armed a move on a tip the operator could not even see,
+   * while Babylon, which takes the nearest candidate and no other, orbited. Reported rather than
+   * decided in each view: three.js compares r3f's own intersection list, Babylon the one hit it took.
+   */
+  nearest: boolean;
   /** That contact is in the session's selection. */
   selected: boolean;
 }
@@ -49,7 +60,7 @@ export interface TipPress {
  */
 export function movePress(press: TipPress): boolean {
   return press.hit === 'support' && press.button === 'left' && press.contact && press.active
-    && press.selected && press.tool === 'select' && press.selectStyle === 'click';
+    && press.nearest && press.selected && press.tool === 'select' && press.selectStyle === 'click';
 }
 
 /** A release, once a press was allowed to arm a move. `click` means: leave it to the ordinary click path. */
@@ -69,8 +80,15 @@ export type TipRelease = 'move' | 'click' | 'cancel';
  * leaves the tip where it was, which is a state the operator can see and understand.
  */
 export function moveRelease(input: { travel: number; onModel: boolean; cancelled: boolean }): TipRelease {
-  if (input.cancelled) return 'cancel';
+  /*
+   * TRAVEL IS TESTED FIRST, AND `cancelled` SECOND, which was the wrong way round until 2026-11-19.
+   * A press that never travelled is not a drag at all, so Escape or a lost pointer on one is a
+   * CLICK - and the app said "Support left where it was: a tip moves only onto the model" about a
+   * gesture the operator never made. A `cancel` now always means a real drag that came to nothing,
+   * which is what both viewports' comments claim and what makes the message worth showing.
+   */
   if (input.travel <= CLICK_TOLERANCE) return 'click';
+  if (input.cancelled) return 'cancel';
   return input.onModel ? 'move' : 'cancel';
 }
 

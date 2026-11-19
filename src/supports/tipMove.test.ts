@@ -12,7 +12,7 @@ import type { PrintUnit } from '../state/project';
  */
 
 const press = (over: Partial<TipPress> = {}): TipPress =>
-  ({ hit: 'support', button: 'left', tool: 'select', selectStyle: 'click', active: true, contact: true, selected: true, ...over });
+  ({ hit: 'support', button: 'left', tool: 'select', selectStyle: 'click', active: true, contact: true, nearest: true, selected: true, ...over });
 
 const point = (id: string) => ({ id, regionId: -1, position: [1, 2, 3], normal: [0, -1, 0], source: 'interior' });
 const unit = (over: Partial<PrintUnit> = {}) =>
@@ -37,6 +37,16 @@ describe('movePress', () => {
     expect(movePress(press({ active: false }))).toBe(false);
     // Braces, raft and labels are support geometry with no contact behind them.
     expect(movePress(press({ contact: false }))).toBe(false);
+  });
+
+  /*
+   * THE PRESS MUST HAVE LANDED ON THE SUPPORT, with nothing of the model in front of it - and this is
+   * the condition the two renderers disagreed about until 2026-11-19. r3f hands one pointerdown to
+   * every object under it, so a press on the MODEL reached the supports mesh behind it and armed a
+   * move on a tip the operator could not see; Babylon, taking the nearest candidate only, orbited.
+   */
+  it('refuses a support the press did not actually land on, so a hidden tip cannot be dragged', () => {
+    expect(movePress(press({ nearest: false }))).toBe(false);
   });
 
   it('leaves the left button to Drag over, whose stroke starts the same way', () => {
@@ -66,9 +76,16 @@ describe('moveRelease', () => {
     expect(moveRelease({ travel: 40, onModel: false, cancelled: false })).toBe('cancel');
   });
 
-  it('cancels when the gesture was cancelled, however far it travelled', () => {
+  it('cancels a real drag that was cancelled, and calls a cancelled PRESS what it is: a click', () => {
     expect(moveRelease({ travel: 40, onModel: true, cancelled: true })).toBe('cancel');
-    expect(moveRelease({ travel: 0, onModel: true, cancelled: true })).toBe('cancel');
+    /*
+     * TRAVEL DECIDES FIRST. This line read `cancel` until 2026-11-19, and the app then told the
+     * operator "Support left where it was" about a gesture that was never a drag - press a tip,
+     * press Escape, let go. A `cancel` is worth a word precisely because it means a real drag came
+     * to nothing; a press that never moved is a click and the click path owns what it means.
+     */
+    expect(moveRelease({ travel: 0, onModel: true, cancelled: true })).toBe('click');
+    expect(moveRelease({ travel: CLICK_TOLERANCE, onModel: false, cancelled: true })).toBe('click');
   });
 });
 
