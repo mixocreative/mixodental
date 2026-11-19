@@ -44,7 +44,15 @@ npx vite-node --script scripts/dental-region-review/cli.ts --input <stl> --outpu
 ```
 
 One file in, one review GLB out — the detected edges, the region and the supports as coloured layers.
-Fast enough to iterate on.
+Fast enough to iterate on. **Aligners only**: this tool has no denture awareness, while `gate:real`
+has a denture kind — so for a denture, reach for the folder review below.
+
+**To TURN a rule rather than look at one, use the Jig** — `npm run jig -- --list`, documented in
+[`dentalwork/batch-review/README.md`](../dentalwork/batch-review/README.md#the-jig--turning-the-rules-not-just-looking-at-them)
+and designed in [`docs/design.md`](../docs/design.md#2026-11-20-node-rule-authoring). It is the
+folder review with named rule overrides, validation before a run is spent, and a written record of
+what it turned. It lives there and not here, because of this file's own first rule: *no new tooling
+here*. Stage 2 below is still what pins a tuned rule before it is trusted.
 
 ```bash
 npx vite-node --script dentalwork/batch-review/batch.ts --out dentalwork/output/batch-test <folder>
