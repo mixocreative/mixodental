@@ -41,7 +41,8 @@ export const GLOSSARY: readonly GlossaryEntry[] = [
   { concept: 'Export', en: /\bexport/i, zh: ['匯出'], ja: ['書き出'], avoid: { zh: ['輸出'], ja: ['エクスポート'] } },
   { concept: 'Delete', en: /\bdelet/i, zh: ['刪除'], ja: ['削除'] },
   { concept: 'Remove (supports)', en: /\bremov/i, zh: ['移除'], ja: ['削除'] },
-  { concept: 'Paint (surface)', en: /\bpaint/i, zh: ['塗刷'], ja: ['塗る', '塗り', '塗装', '塗ります'] },
+  // The ja list is inflections of one verb, 塗る: an instruction takes the て-form (開いて塗ってください).
+  { concept: 'Paint (surface)', en: /\bpaint/i, zh: ['塗刷'], ja: ['塗る', '塗り', '塗装', '塗ります', '塗って'] },
   { concept: 'Erase (surface)', en: /\berase/i, zh: ['擦除'], ja: ['消す', '消し', '消去'] },
   { concept: 'Undo', en: /\bundo\b/i, zh: ['復原'], ja: ['元に戻'] },
 ];
@@ -63,4 +64,8 @@ export const SURFACE_TOOL_TEXTS: readonly string[] = [
   // the way to change a PAINTED support area, which is the surface-tool sense the words are reserved
   // for - it just says "area" rather than "dental area", because the panel it sits in already does.
   'These sizes shape a strip around a detected edge. This area is painted, so change it with Paint and Erase.',
+  // A deck card whose detection found nothing: the way on is to open the model and paint the support
+  // area onto its surface, which is the surface-tool sense exactly - the card just has no panel
+  // around it to say "dental", so the key cannot name its context the way the note above does.
+  'No support area was found. Open it and paint one.',
 ];

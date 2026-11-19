@@ -34,17 +34,37 @@ The guard prints every missing key; the prompt is built from that output, never 
 1. Send it, once:
 
 ```bash
-python ~/.config/gemini/gemini_chat.py --file docs/translation/2026-11-19-missing-strings.txt --out /tmp/reply.txt
+python ~/.config/gemini/gemini_chat.py --file docs/translation/2026-11-19-missing-strings.txt --out reply.txt
 ```
 
-2. The reply is `N JA: …` / `N ZH: …` for every N. Insert by key into `src/locales/ja.ts` and
-   `src/locales/zh-Hant.ts`, matching N to `2026-11-19-missing-keys.json[N-1]`.
-3. **Read every line against the English.** Gemini has invented terms on this project before — it
-   produced "Code Coverage" where the source said "test counts" and flipped an unpaid order to paid.
-   Check every placeholder survived exactly: `{n} {name} {saved} {reason}`.
-4. `npm run fonts` if the Japanese uses a character the cut subset lacks — `src/ui/japaneseSubset.test.ts`
-   says so loudly.
-5. Then the real gate:
+2. **Check it and read it**, before anything is written:
+
+```bash
+python scripts/applyTranslations.py reply.txt
+```
+
+   That refuses a reply that lost a placeholder - the one defect reading cannot catch, because a
+   count with `{n}` dropped still reads perfectly and prints the wrong thing - and prints the
+   English, Japanese and Chinese as triples for the read. **Do the read.** Gemini has invented terms
+   on this project before: it produced "Code Coverage" where the source said "test counts", and on
+   this run it turned "only the type default is offered" into "only the type default is applied".
+
+3. Then write them in, with a one-line note saying which batch they are:
+
+```bash
+python scripts/applyTranslations.py reply.txt --write "2026-11-19: what this batch was for"
+```
+
+4. **The glossary guard decides the terms, not the reply.** `npx vitest run src/glossary.test.ts`
+   checks every translation against `src/glossary.ts`, and on this run it caught four: 支撐頭 written
+   as 頂端, 書き出 as エクスポート, 塗刷 as 繪製, and オーバーハングの縁 as エッジ. Substituting the
+   glossary's own term is the one way zh-Hant may be corrected by hand here - the table is the
+   owner's and already shipped elsewhere in the file. Anything beyond a term goes back to Gemini.
+
+5. `npm run fonts` when the Japanese uses a character the cut subset lacks — `src/ui/japaneseSubset.test.ts`
+   says so loudly, and the 61 strings of 2026-11-19 needed it (646 characters, four new).
+
+6. Then the real gate:
 
 ```bash
 npm run vendor:check && npm test && npm run screens && npm run build && npm run walk
