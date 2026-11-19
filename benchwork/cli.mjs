@@ -1,12 +1,12 @@
-// THE JIG: author how a type is decided, on the bench, outside the app.
+// BENCHWORK: decide what a TYPE'S RULES are - for orient, rim and the support zones.
 //
-// A jig is the workshop fixture that holds a piece and guides a repeated cut - you shape it once and
-// every part made against it comes out the same. That is what authoring a type is, so that is the
-// name. It runs the REAL engine on real scans, never an approximation of it.
+// This is the executable form of `README.md` beside it. That file is the loop you run to prove a rule
+// change before any of it touches the app; this is the tool you run it with. It drives the REAL
+// engine on real scans, never an approximation of it.
 //
-//   npm run jig -- --list                                       the rules this tool offers
-//   npm run jig -- --kind denture --set overhangAngleDeg=50 "<stl folder>"
-//   npm run jig -- --kind denture --set socketNoSupport=1 --set noSupportSteepDeg=67.5 "<folder>" --open
+//   npm run benchwork -- --list                                       the rules this tool offers
+//   npm run benchwork -- --kind denture --set overhangAngleDeg=50 "<stl folder>"
+//   npm run benchwork -- --kind denture --set socketNoSupport=1 --set noSupportSteepDeg=67.5 "<folder>" --open
 //
 // WHAT IT ADDS, and it is deliberately only this: the folder review already runs the engine and the
 // viewer already draws its masks (`README.md`, `serve.mjs`). What was missing is the AUTHORING layer
@@ -34,20 +34,27 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { JIG_RULES, parseSets } from './jigRules.mjs';
+import { BENCH_RULES, parseSets } from './rules.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const root = resolve(here, '..', '..');
+const root = resolve(here, '..');
+/*
+ * OUTPUT GOES TO `dentalwork/output/`, NOT HERE, and that is not tidiness: `dentalwork/.gitignore`
+ * ignores `/output/`, so a review of patient scans cannot be committed by accident. `benchwork/` is
+ * tracked, so writing results here would stage them.
+ */
+const outputRoot = join(root, 'dentalwork', 'output');
+const reviewDir = join(root, 'dentalwork', 'batch-review');
 const args = process.argv.slice(2);
 const has = (flag) => args.includes(flag);
 const valueOf = (flag) => { const at = args.indexOf(flag); return at < 0 ? undefined : args[at + 1]; };
 
 if (has('--list') || args.length === 0) {
-  console.log('\nThe Jig - the rules it offers. Everything else in the engine stays as the profile sets it.\n');
-  for (const rule of JIG_RULES) console.log(`  ${rule.name.padEnd(28)} ${`(${rule.type})`.padEnd(8)} ${rule.says}`);
+  console.log('\nbenchwork - the rules it offers. Everything else in the engine stays as the profile sets it.\n');
+  for (const rule of BENCH_RULES) console.log(`  ${rule.name.padEnd(28)} ${`(${rule.type})`.padEnd(8)} ${rule.says}`);
   console.log('\n  A flag takes 1 or 0. A mode takes a whole number. Everything else takes a number.');
   console.log('  Only a DENTURE responds to these: the aligner pipeline has no rules channel (see the header).');
-  console.log('\n  npm run jig -- --kind denture --set overhangAngleDeg=50 "S:\\path\\to\\stl folder" --open\n');
+  console.log('\n  npm run benchwork -- --kind denture --set overhangAngleDeg=50 "S:\\path\\to\\stl folder" --open\n');
   process.exit(0);
 }
 
@@ -86,10 +93,10 @@ if (missing.length > 0) {
 }
 
 const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, '').replace('T', '-');
-const out = resolve(valueOf('--out') ?? join(here, '..', 'output', `jig-${stamp}`));
+const out = resolve(valueOf('--out') ?? join(outputRoot, `bench-${stamp}`));
 const vite = join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'vite-node.cmd' : 'vite-node');
 
-console.log(`\nThe Jig - ${kind}, ${Object.keys(rules).length} rule(s) turned`);
+console.log(`\nbenchwork - ${kind}, ${Object.keys(rules).length} rule(s) turned`);
 for (const [name, value] of Object.entries(rules)) console.log(`  ${name} = ${value}`);
 if (Object.keys(rules).length === 0) console.log('  (none - the profile as it ships, which is the baseline worth looking at first)');
 console.log(`  out: ${out}\n`);
@@ -116,11 +123,11 @@ child.on('exit', (code) => {
    * and what a type is eventually burned from: the rules, the kind, the engine that ran them and the
    * scans they were judged on. A run nobody can reproduce is an opinion, not evidence.
    */
-  const record = { tool: 'jig', at: new Date().toISOString(), kind, rules,
+  const record = { tool: 'benchwork', at: new Date().toISOString(), kind, rules,
     engine: existsSync(join(root, 'vendor', 'mixo-geocore', 'VERSION'))
       ? readFileSync(join(root, 'vendor', 'mixo-geocore', 'VERSION'), 'utf8').trim() : 'unknown',
     folders: folders.map((folder) => resolve(folder)), cases: rows.length };
-  writeFileSync(join(out, 'jig.json'), `${JSON.stringify(record, null, 2)}\n`, 'utf8');
+  writeFileSync(join(out, 'benchwork.json'), `${JSON.stringify(record, null, 2)}\n`, 'utf8');
 
   /*
    * THE RECOMPUTE COST, printed every run. Whether this tool can ever be LIVE turns on this number
@@ -129,7 +136,7 @@ child.on('exit', (code) => {
    */
   const seconds = rows.map((row) => row.seconds).filter((value) => typeof value === 'number');
   const sum = (field) => rows.reduce((total, row) => total + (typeof row[field] === 'number' ? row[field] : 0), 0);
-  console.log('\n--- the Jig ---------------------------------------------------------------');
+  console.log('\n--- benchwork -------------------------------------------------------------');
   console.log(`cases      ${rows.length}  (${rows.filter((row) => row.result === 'built').length} built, ${rows.filter((row) => row.needsLook).length} need a look)`);
   /*
    * THE NUMBERS A RULE CHANGE MOVES, so two runs can be compared without opening the viewer. These
@@ -146,10 +153,10 @@ child.on('exit', (code) => {
     console.log(`recompute  ${each.toFixed(1)} s per case (slowest ${Math.max(...seconds).toFixed(1)} s, ${total.toFixed(1)} s for the run)`);
     console.log(`           ${each > 2 ? 'TOO SLOW TO BE LIVE: a panel applies and waits.' : 'Fast enough that a live panel is worth designing.'}`);
   }
-  console.log(`authored   ${join(out, 'jig.json')}`);
+  console.log(`authored   ${join(out, 'benchwork.json')}`);
   console.log(`look       node dentalwork/batch-review/serve.mjs "${out}"`);
   console.log('           Review only: inspect every result before printing. Not clinically validated.');
   console.log('---------------------------------------------------------------------------\n');
 
-  if (has('--open')) spawn('node', [join(here, 'serve.mjs'), out], { cwd: root, stdio: 'inherit' });
+  if (has('--open')) spawn('node', [join(reviewDir, 'serve.mjs'), out], { cwd: root, stdio: 'inherit' });
 });

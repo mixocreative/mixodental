@@ -16,7 +16,7 @@ One dated document per decision, with the reasoning that produced it. These say 
 | 2026-11-17 | [mixoDental — the whole flow, end to end](#2026-11-17-flow-map) | `docs/design/2026-11-17-flow-map.md` |
 | 2026-11-18 | [The card deck — what is built, and the plan for what is not](#2026-11-18-card-deck-plan) | `docs/design/2026-11-18-card-deck-plan.md` |
 | 2026-11-19 | [Support recipes, and what the review found — plan, 2026-11-19](#2026-11-19-recipes-and-review-fixes) | `docs/design/2026-11-19-recipes-and-review-fixes.md` |
-| 2026-11-20 | [The Jig: authoring how a type is decided](#2026-11-20-node-rule-authoring) | written here, not merged in |
+| 2026-11-20 | [benchwork: deciding what a type's rules are](#2026-11-20-node-rule-authoring) | written here, not merged in |
 | undated | [mixoDental UI structure](#ui-structure) | `docs/design/ui-structure.md` |
 
 ---
@@ -7333,7 +7333,7 @@ logic moved into hooks (`useExport`, `useFixSpot`, `useRegenerate`, `useProjectF
 
 <a id="2026-11-20-node-rule-authoring"></a>
 
-## 2026-11-20 — The Jig: authoring how a type is decided
+## 2026-11-20 — benchwork: deciding what a type's rules are
 
 **REWRITTEN THE SAME DAY. The first version of this record was built on a six-stage engine model that
 does not exist** — I took an analytical table from a design consult and wrote it up as engine fact. An
@@ -7351,9 +7351,11 @@ right is kept below, and the error is named at the end, because the mistake is t
 
 > *"that part should be separate until it is mature enough to become part of the app."*
 
-**Its name is the Jig** — the workshop fixture that holds a piece and guides a repeated cut. You shape
-it once and every part made against it comes out the same, which is what authoring a type is. Dental
-labs use real ones.
+**Its name is `benchwork`**, the owner's choice on 2026-11-20: the tool that decides what a type's
+rules are for orient, rim and the support zones. That makes `benchwork/README.md` the written form
+and `benchwork/cli.mjs` the executable form of one thing, and it means that file's own line *"No new
+tooling here"* had to be amended rather than quietly contradicted. (It was first named "benchwork",
+after the workshop fixture that guides a repeated cut; the owner renamed it the same day.)
 
 ### What the engine actually is
 
@@ -7364,7 +7366,7 @@ There is no single pipeline and no shared stage vocabulary. Each kind has its ow
 | aligner | `orient` → `region` → `footprint` → `policy` → `tilt` | `crates/geometry-core/src/dental/README.md` |
 | denture | `orient_denture` → `tilt::tilt_scan` → `policy::denture_policy`, over ~20 rule modules | `.../dental/denture/README.md` |
 
-**Three facts that decide what the Jig can be**, each checked against the engine source:
+**Three facts that decide what benchwork can be**, each checked against the engine source:
 
 1. **No ABI call accepts profile JSON.** Every dental entry point takes `profile: &str` and looks the
    profile up in a registry compiled into the wasm. So editing a profile *number* is not previewable
@@ -7376,8 +7378,8 @@ There is no single pipeline and no shared stage vocabulary. Each kind has its ow
    purpose-built `denture_policy_ruled`, `denture_review_ruled` and `denture_tilt_scan_ruled`, and
    `dentalwork/batch-review/profileSelect.ts` already passes them through `MIXO_RULES` today.
    **The aligner has no `_ruled` variant**, so for aligners there is no live channel at all — which
-   means the Jig begins as a denture tool, whatever the owner's ask says about all three.
-3. **Most numbers the Jig would want are compile-time `const`s, not profile fields** —
+   means benchwork begins as a denture tool, whatever the owner's ask says about all three.
+3. **Most numbers benchwork would want are compile-time `const`s, not profile fields** —
    `denture/rim_lowpoints.rs`, `holes_axis.rs` (including the 5 mm hole band), `no_support.rs`,
    `oral_cavity_ray.rs` (the 45°), and every aligner `trim/` unit. Promoting one to profile schema is
    engine work, per number.
@@ -7394,10 +7396,10 @@ and drops whatever arrives later in a crowded spot, so reordering changes *which
 
 A reorderable UI over that is a lie the tool would tell its operator. What the engine does offer is
 **toggling and retuning by name**, plus integer modes that select among fixed clauses.
-**Precedence-as-data is an engine handoff, not Jig scope** — and it is the one rewiring anyone has
+**Precedence-as-data is an engine handoff, not benchwork scope** — and it is the one rewiring anyone has
 actually wanted, so it is worth asking for.
 
-### What the Jig mechanically is
+### What benchwork mechanically is
 
 **A rules panel and a re-run route on the viewer that already exists**:
 `dentalwork/batch-review/viewer.html` + `serve.mjs`. That surface is already the owner's layout — live
@@ -7406,18 +7408,18 @@ detection above, numbers and toggleable layers below — with `dentureReviewLaye
 record calls node outputs, a per-case numbers panel, the real engine through `pkg-node`, and rule
 override by name. Static, no build step, its own `tokens.css`.
 
-So the Jig is one form plus one route in two existing files, not a new application. No graph library
+So benchwork is one form plus one route in two existing files, not a new application. No graph library
 is added; the surface is plain DOM rows in that viewer.
 
 **Its home is `dentalwork/batch-review/`, not `benchwork/`.** Benchwork's own first rule is *"No new
 tooling here. Every stage below runs an existing script"* — an interactive tool breaks that on its
-first commit. Benchwork keeps one pointer line to the Jig. *(My call, not the owner's; say so if you
+first commit. It is the same name as the folder on purpose. *(My call, not the owner's; say so if you
 would rather it sat elsewhere.)*
 
 ### What it writes, and what reads it
 
 **A JSON patch for a profile, and no new format: the export must be byte-identical to a
-hand-written profile.** That keeps the Jig deletable at zero cost, and it means the reader is the
+hand-written profile.** That keeps benchwork deletable at zero cost, and it means the reader is the
 engine's existing loader rather than anything new. Three validations before a file leaves: an unknown
 key is rejected, an out-of-range value is rejected, a rule name not in `RULE_NAMES` is rejected.
 
@@ -7432,7 +7434,7 @@ content-hash id, because detection caches on `{positions, indices, digest, profi
 ### Done when
 
 1. ~~One recompute is **measured** on a real scan before any UI is designed.~~ **DONE, 2026-11-20:
-   22.2–22.7 s per case** on the reference denture, measured by the Jig itself, which prints the
+   22.2–22.7 s per case** on the reference denture, measured by benchwork itself, which prints the
    figure and its verdict every run. **So a live panel was never available.** Any future panel
    applies and waits, and that is a fact about the engine rather than a UI preference — which also
    retires the first version's open question 2, where this was treated as a ray-count problem.
@@ -7456,7 +7458,7 @@ graph walks and flood fills. Those are not expressible in projections, bands, an
 
 And orientation is **already** a decomposed, separately tested graph in both kinds — the aligner's
 `trim/` says *"One unit per step, each with its own tests; `trim_frame` only combines them"* — so
-calling it a monolith understated the engine. The Jig exposes those units' numbers; it does not
+calling it a monolith understated the engine. benchwork exposes those units' numbers; it does not
 replace their structure.
 
 ### What this does not solve
@@ -7465,8 +7467,8 @@ replace their structure.
 - **Retainer** is blocked on what rim detection does with a wire.
 - **Dental model** wants its own profile family and pipeline, as the denture has; it is not one
   missing primitive.
-- **mixomesh portability**: the Jig is explicitly *not* portable. The app's edit UI remains the
-  portable surface, and the Jig only writes numbers the engine already reads.
+- **mixomesh portability**: benchwork is explicitly *not* portable. The app's edit UI remains the
+  portable surface, and benchwork only writes numbers the engine already reads.
 - Peak memory: one mesh, one session with a declared budget released on file change, one evidence
   layer resident at a time. Peak must stay flat in the number of rows.
 
@@ -7482,15 +7484,17 @@ how the engine works cites the file that says so, per claim, or does not assert 
 ### Status
 
 **BUILT, 2026-11-20, `86c5e47`** — as a CLI rather than a panel, which is what the measurement above
-made of it: `npm run jig -- --list`, `dentalwork/batch-review/jig.mjs` with its rules and parsing in
-`jigRules.mjs` and 13 tests. It turns the thirteen shortlisted rules, refuses before it spends a run,
-writes `jig.json` beside the review, and prints the numbers a rule change moves. Proved end to end
+made of it: `npm run benchwork -- --list`, `benchwork/cli.mjs` with its rules and parsing in
+`benchwork/rules.mjs` and 13 tests. It turns the thirteen shortlisted rules, refuses before it spends
+a run, writes `benchwork.json` beside the review, and prints the numbers a rule change moves. Output
+goes to `dentalwork/output/`, which is git-ignored, so a review of patient scans cannot be staged by
+accident. Proved end to end
 on the reference denture: baseline 168 tips, `overhangAngleDeg=55` → 185 tips.
 
 A panel in the viewer is the next increment and is **not** scheduled, because the measurement says it
 would be an Apply button — worth having, worth nothing until the log below says which rules people
 actually reach for. Specification corrected before any of it was built. It sits behind `PLAN.md` items 1 and 11, and behind the engine's own kinds-scheme
 migration, whose doc says *"Do not invent a different one; finish this one."* **Admission to the app
-is not automatic:** the Jig earns it when a profile authored in it has passed `gate:real` and shipped
+is not automatic:** benchwork earns it when a profile authored in it has passed `gate:real` and shipped
 as a type twice, authored by someone other than its builder. Until then it stays a bench tool, and
 only its emitted profile ever reaches the product.

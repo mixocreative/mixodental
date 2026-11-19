@@ -21,41 +21,21 @@ npx vite-node --script dentalwork/batch-review/batch.ts --out dentalwork/output/
 node dentalwork/batch-review/serve.mjs dentalwork/output/batch-test
 ```
 
-## The Jig — turning the rules, not just looking at them
+## Turning the rules, not just looking at them
 
-A folder review answers *what does the engine decide for these scans*. **The Jig** answers the next
-question: *what would it decide if this rule were different?* It is the same review with named rule
-overrides applied, and it writes down what it turned so the run can be repeated.
+A folder review answers *what does the engine decide for these scans*. **`npm run benchwork`** answers
+the next question: *what would it decide if this rule were different?* It is this same review with
+named rule overrides applied, plus validation before a run is spent and a written record of what it
+turned.
 
 ```powershell
-npm run jig -- --list
-npm run jig -- --kind denture --set overhangAngleDeg=50 --set socketNoSupport=1 "D:\dentures\week-42" --open
+npm run benchwork -- --list
+npm run benchwork -- --kind denture --set overhangAngleDeg=55 "D:\dentures\week-42" --open
 ```
 
-It offers **thirteen** rules out of the engine's ~130 named ones — the set this project already
-treats as worth turning, lifted from the `MIXO_*` switches in `profileSelect.ts`. `jig.test.ts`
-asserts every one is still a name the engine knows, so an engine rename fails a test here instead of
-silently becoming a rule the engine ignores.
-
-Three things it does that a bare `MIXO_RULES=...` run does not:
-
-- **It refuses before it spends a run.** An unknown rule name, a flag that is not 1 or 0, an angle
-  outside 0–90, a folder that is not on this machine: it says so and runs nothing. A typo must not
-  cost minutes of engine time and then quietly produce the *default* result, which would look like
-  an answer while having tested nothing.
-- **It writes `jig.json`** beside the review — the rules, the kind, the engine version and the scans
-  they were judged on. A run nobody can reproduce is an opinion, not evidence.
-- **It prints the recompute cost** per case, which is the number that decides whether an interactive
-  panel is worth designing at all.
-
-**Only a denture responds.** `denture_policy_ruled`, `denture_review_ruled` and
-`denture_tilt_scan_ruled` take a rules array; the aligner's `dental_policy` does not. `--kind
-aligner --set …` is refused rather than silently ignored.
-
-Nothing the Jig writes reaches the app. Burning a tuned rule set into a shipped type is the engine's
-own sequence, and no tuned rule should leave the bench without `npm run gate:real` green. The whole
-design, its limits and what it deliberately does not do:
-[`docs/design.md`](../../docs/design.md#2026-11-20-node-rule-authoring).
+It writes its output here, into `dentalwork/output/`, so the viewer below opens it unchanged. The
+tool, its thirteen rules and its limits live in [`benchwork/`](../../benchwork/README.md); only a
+denture responds to a rule change, and a recompute is about 23 seconds.
 
 ## What you get
 

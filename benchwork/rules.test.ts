@@ -2,15 +2,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
-import { JIG_RULES, parseSets } from './jigRules.mjs';
-import { RULE_DEFAULTS } from './ruleDefaults';
+import { BENCH_RULES, parseSets } from './rules.mjs';
+import { RULE_DEFAULTS } from '../dentalwork/batch-review/ruleDefaults';
 
 /*
- * THE JIG'S SHORTLIST AND ITS REFUSALS.
+ * BENCHWORK'S SHORTLIST AND ITS REFUSALS.
  *
  * Two things can rot silently here and both have precedent on this project:
  *
- *  - A RULE IS RENAMED IN THE ENGINE. Then the Jig passes a name `packRules` does not know, the
+ *  - A RULE IS RENAMED IN THE ENGINE. Then benchwork passes a name `packRules` does not know, the
  *    engine keeps its default, and the run LOOKS like an answer while having tested nothing. That is
  *    the worst outcome this tool has available, which is why the name check is a test and not a
  *    comment: engine 56 -> 57 renamed two rules, and that is why `profileSelect.ts` still carries
@@ -20,35 +20,35 @@ import { RULE_DEFAULTS } from './ruleDefaults';
  *    `profileSelect.ts`. The last test holds that sentence true, so the claim in the header cannot
  *    quietly become false.
  */
-describe('the Jig offers rules the engine actually reads', () => {
+describe('benchwork offers rules the engine actually reads', () => {
   it('every name is one the engine knows', () => {
-    expect(JIG_RULES.map((rule) => rule.name).filter((name) => !RULE_NAMES.includes(name))).toEqual([]);
+    expect(BENCH_RULES.map((rule) => rule.name).filter((name) => !RULE_NAMES.includes(name))).toEqual([]);
   });
 
   it('names no rule twice', () => {
-    const names = JIG_RULES.map((rule) => rule.name);
+    const names = BENCH_RULES.map((rule) => rule.name);
     expect(names.length).toBe(new Set(names).size);
   });
 
   it('stays a shortlist, because a form over 130 knobs is not "few settings"', () => {
-    expect(JIG_RULES.length).toBeLessThanOrEqual(20);
+    expect(BENCH_RULES.length).toBeLessThanOrEqual(20);
     expect(RULE_NAMES.length).toBeGreaterThan(100);
   });
 
   it('says what each rule does, in words an operator could read', () => {
-    for (const rule of JIG_RULES) {
+    for (const rule of BENCH_RULES) {
       expect(rule.says.length, rule.name).toBeGreaterThan(30);
       expect(['deg', 'mm', 'mm2', 'flag', 'mode'], rule.name).toContain(rule.type);
     }
   });
 
   it('covers the two defaults the review already quotes, so the words cannot disagree', () => {
-    for (const name of Object.keys(RULE_DEFAULTS)) expect(JIG_RULES.some((rule) => rule.name === name), name).toBe(true);
+    for (const name of Object.keys(RULE_DEFAULTS)) expect(BENCH_RULES.some((rule) => rule.name === name), name).toBe(true);
   });
 
   it('every switch it claims to come from still exists in profileSelect.ts', () => {
-    const source = readFileSync(join(__dirname, 'profileSelect.ts'), 'utf8');
-    const claimed = JIG_RULES.map((rule) => rule.was).filter((was): was is string => was !== null);
+    const source = readFileSync(join(__dirname, '..', 'dentalwork', 'batch-review', 'profileSelect.ts'), 'utf8');
+    const claimed = BENCH_RULES.map((rule) => rule.was).filter((was): was is string => was !== null);
     expect(claimed.length).toBeGreaterThan(5);
     for (const env of claimed) expect(source, env).toContain(env);
   });
@@ -58,7 +58,7 @@ describe('the Jig offers rules the engine actually reads', () => {
  * REFUSALS, because the whole point of validating is that a typo must not cost minutes of engine time
  * and then quietly return the DEFAULT result. Each case below is a run that must not start.
  */
-describe('the Jig refuses before it spends a run', () => {
+describe('benchwork refuses before it spends a run', () => {
   it('takes good values, with a flag becoming a boolean and a number a number', () => {
     const { rules, problems } = parseSets(['overhangAngleDeg=50', 'socketNoSupport=1', 'rimRespectsNoSupport=0']);
     expect(problems).toEqual([]);

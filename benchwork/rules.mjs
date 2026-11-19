@@ -1,22 +1,22 @@
-// The Jig's rules and its argument parsing. No I/O, no spawning, no process: importable and testable.
+// benchwork's rules and its argument parsing. No I/O, no spawning, no process: importable, testable.
 //
-// WHY THIS IS A SEPARATE MODULE. `jig.mjs` is a script - it parses argv and exits - so importing it
+// WHY THIS IS A SEPARATE MODULE. `cli.mjs` is a script - it parses argv and exits - so importing it
 // to test anything RUNS it: the first version printed its own listing and called `process.exit(0)`
 // inside the test runner. The data and the rules that judge it belong somewhere a test can reach
-// without starting a program, which is this file; `jig.mjs` is then only orchestration.
+// without starting a program, which is this file; `cli.mjs` is then only orchestration.
 
 /*
  * THE SHORTLIST, and it is not invented here - it is the set this project already treats as the
- * knobs worth turning, lifted from the `MIXO_*` switches `profileSelect.ts` exposes. `RULE_NAMES`
- * carries about 130 names; a form over all of them would be the opposite of "procedural, few
- * settings", and nobody would have grounds to refuse the 131st.
+ * knobs worth turning, lifted from the `MIXO_*` switches `dentalwork/batch-review/profileSelect.ts`
+ * exposes. `RULE_NAMES` carries about 130 names; a form over all of them would be the opposite of
+ * "procedural, few settings", and nobody would have grounds to refuse the 131st.
  *
- * `jig.test.ts` asserts every name here is still in `RULE_NAMES`, so a rename in the engine fails a
- * test here instead of silently becoming a rule the engine ignores - which is the worst outcome this
- * tool has available, a run that looks like an answer and tested nothing. It has happened once: the
- * engine 56 -> 57 rename is why `profileSelect.ts` still carries `LEGACY_RULE_NAMES`.
+ * `rules.test.ts` asserts every name here is still in `RULE_NAMES`, so a rename in the engine fails
+ * a test here instead of silently becoming a rule the engine ignores - which is the worst outcome
+ * this tool has available, a run that looks like an answer and tested nothing. It has happened once:
+ * the engine 56 -> 57 rename is why `profileSelect.ts` still carries `LEGACY_RULE_NAMES`.
  */
-export const JIG_RULES = [
+export const BENCH_RULES = [
   { name: 'overhangAngleDeg', type: 'deg', was: 'MIXO_OVERHANG_ANGLE',
     says: 'The one overhang angle every stream inherits (slope from horizontal). Widens or narrows every mask at once.' },
   { name: 'dentalRimOverhangAngleDeg', type: 'deg', was: null,
@@ -56,7 +56,7 @@ export function parseSets(pairs) {
     if (at < 1) { problems.push(`--set ${pair}: expected name=value`); continue; }
     const name = pair.slice(0, at);
     const raw = pair.slice(at + 1);
-    const known = JIG_RULES.find((rule) => rule.name === name);
+    const known = BENCH_RULES.find((rule) => rule.name === name);
     if (!known) { problems.push(`--set ${name}: not a rule the Jig offers (run --list)`); continue; }
     if (known.type === 'flag') {
       if (raw !== '0' && raw !== '1') { problems.push(`--set ${name}=${raw}: a flag takes 1 or 0`); continue; }

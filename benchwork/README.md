@@ -8,8 +8,36 @@ archaeology project.
 Two jobs, same loop: **adjust an existing rule**, or **add a new kind**. Change it, run it out of the
 app on real files, look at the geometry, diff it against the baseline. Only then integrate.
 
-No new tooling here. Every stage below runs an existing script. What this file adds is the order, what
-"done" means at each stage, and the integration surface nobody had counted.
+**`npm run benchwork` is the tool. This file is its manual.**
+
+```bash
+npm run benchwork -- --list                                              the rules it offers
+npm run benchwork -- --kind denture --set overhangAngleDeg=55 "<folder>" --open
+```
+
+It decides **what a type's rules are** — for orient, rim and the support zones. It turns thirteen
+named engine rules (out of ~130), refuses a bad one before spending ~23 s of engine time, runs the
+real engine on real scans through the folder review, writes `benchwork.json` beside the result so a
+run can be repeated, and prints the numbers a rule change moves — tips placed and left out, islands,
+verdicts, crossings — so two rule sets compare without opening the viewer. `--open` hands the result
+to the review viewer. `cli.mjs` is the tool, `rules.mjs` holds the shortlist and the parsing, and
+`rules.test.ts` guards both.
+
+Three limits it states itself, because each one is a fact about the engine rather than a choice:
+**only a denture responds** (the aligner's `dental_policy` takes no rules array, where
+`denture_policy_ruled` does); it turns **named rules only**, because no ABI call accepts profile JSON
+— a profile *number* needs a Rust rebuild; and **a recompute is ~23 s**, measured, so any panel over
+this applies and waits rather than previewing live.
+
+> *This paragraph used to read "No new tooling here. Every stage below runs an existing script."*
+> That was true until 2026-11-20, and it is amended rather than deleted because the sentence was
+> load-bearing: it is why the tool was nearly built in the wrong folder. What survives of it is the
+> rule underneath — **benchwork adds no second engine and no second viewer.** The tool orchestrates
+> the scripts the stages below already name; it does no geometry of its own, and if it ever needs a
+> vector it is asking the engine the wrong question.
+
+What this file adds beyond the tool is the order, what "done" means at each stage, and the
+integration surface nobody had counted.
 
 ## First: are you adding a VARIANT or a KIND?
 
@@ -47,12 +75,10 @@ One file in, one review GLB out — the detected edges, the region and the suppo
 Fast enough to iterate on. **Aligners only**: this tool has no denture awareness, while `gate:real`
 has a denture kind — so for a denture, reach for the folder review below.
 
-**To TURN a rule rather than look at one, use the Jig** — `npm run jig -- --list`, documented in
-[`dentalwork/batch-review/README.md`](../dentalwork/batch-review/README.md#the-jig--turning-the-rules-not-just-looking-at-them)
-and designed in [`docs/design.md`](../docs/design.md#2026-11-20-node-rule-authoring). It is the
-folder review with named rule overrides, validation before a run is spent, and a written record of
-what it turned. It lives there and not here, because of this file's own first rule: *no new tooling
-here*. Stage 2 below is still what pins a tuned rule before it is trusted.
+**To TURN a rule rather than only look at one, that is `npm run benchwork` above** — the folder
+review with named overrides, validation before a run is spent, and a written record of what it
+turned. Stage 2 below is still what pins a tuned rule before it is trusted. Its design, limits and
+what it deliberately does not do: [`docs/design.md`](../docs/design.md#2026-11-20-node-rule-authoring).
 
 ```bash
 npx vite-node --script dentalwork/batch-review/batch.ts --out dentalwork/output/batch-test <folder>
