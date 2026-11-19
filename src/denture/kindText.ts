@@ -38,8 +38,8 @@ const DENTURE: Readonly<Record<string, string>> = {
   'Checking and orienting the aligner…': 'Checking and orienting the denture…',
   'The aligner is checked and turned the right way up automatically.': 'The denture is checked and stood upright automatically.',
   // Step 2 (P7c): one short line, and the support settings in plain words.
-  'Review the supports, adjust the settings, then press OK.': 'Check the supports, then press OK.',
-  'Review the supports: change the settings, add or delete supports, fix the problems, then press OK.': 'Check the supports, then press OK.',
+  'Review the supports, adjust the settings, then press Export STL.': 'Check the supports, then press Export STL.',
+  'Review the supports: change the settings, add or delete supports, fix the problems, then press Export STL.': 'Check the supports, then press Export STL.',
   'Pillar size': 'Support thickness',
   'Lift height': 'Lift from plate',
   'Cross-braces': 'Extra bracing',

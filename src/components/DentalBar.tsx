@@ -122,7 +122,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
       <strong>{t(kind === 'denture' ? 'Step 2 · Supports' : 'Step 3 · Supports')}</strong><span>{unitName}</span>
-      <b>{t(kindText('Review the supports, adjust the settings, then press OK.', kind))}</b>
+      <b>{t(kindText('Review the supports, adjust the settings, then press Export STL.', kind))}</b>
     </div>
     {review && kind === 'denture' && dentureReview
       ? <DentureReviewPanel gesture={gesture.edit} ui={ui} review={review} ready={reviewReady} send={send} run={run} restore={restore} denture={dentureReview} />

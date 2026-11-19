@@ -1503,8 +1503,8 @@ export default function App() {
    * EVERY ACCEPTED ALIGNER POLICY, not two-contour alone - because this object is what decides
    * whether Step 3 has a panel at all (`dentalReview` below is undefined without it), and a painted
    * or hand-drawn area is a LEGACY policy that reaches Step 3 with real supports on the plate. The
-   * narrow test drew Step 3's badge - "Review the supports... then press OK" - above no tools, no
-   * settings and no OK key, which is a step the operator cannot leave except by going Back.
+   * narrow test drew Step 3's badge - "Review the supports... then press Export STL" - above no
+   * tools and no settings, which is a step the operator cannot leave except by going Back.
    *
    * The legacy policy has no `structure` of its own, so it shows the one the build actually uses
    * (`defaultDentalStructure`, as `stages.ts` resolves it) and says it cannot be changed here.

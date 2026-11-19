@@ -467,7 +467,15 @@ registerEditMode({
     'dental-aligner': 'Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.',
     'dental-rim': 'Click along the rim to place points; they land on the model. Close the loop, then press Done. Drag off the model to turn the view.',
     'dental-area': 'Paint where dental supports may grow, anywhere on the aligner; Erase takes area away. Drag on the model.',
-    'dental-review': 'Review the supports: change the settings, add or delete supports, fix the problems, then press OK.',
+    /*
+     * IT NAMES `Export STL`, NOT `OK`, because OK IS NOT ON SCREEN. `dental.finish` is
+     * `visible: !flowEndsAtExport()` and `FLOW_END` is `'export'`, so the primary key at this stage
+     * is `dental.export`. This line told the operator to press a button that does not exist, in
+     * three strings and three languages, from the day that route changed until 2026-11-20 - and it
+     * was found by a probe looking for something else entirely, because no walk check reads it.
+     * The house rule it breaks: a line that names a control must name one the operator can see.
+     */
+    'dental-review': 'Review the supports: change the settings, add or delete supports, fix the problems, then press Export STL.',
   },
   exitStatus: { key: 'Left the aligner on the plate without supports.' },
   // A new dental step starts with its own line: an error or result of the last step does not follow.

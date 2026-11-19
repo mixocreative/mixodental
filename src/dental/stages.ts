@@ -210,7 +210,7 @@ export const recipeStructure = (unit: PrintUnit, profile: string, recipe: Suppor
  *
  * `undefined` means this aligner has no Step 3 panel at all - and that answer is load-bearing far
  * beyond two checkboxes: the host builds the whole `DentalReview` object around it, so returning
- * nothing draws Step 3's badge ("Review the supports... then press OK") over no tools, no settings
+ * nothing draws Step 3's badge ("Review the supports... then press Export STL") over no tools, no settings
  * and no way on. That is what testing for `two-contour` here did to a card whose area was PAINTED.
  *
  * `structure` IS WHAT THE BUILD WILL USE, not a guess at it. `makeDentalPolicy` hands Rust
