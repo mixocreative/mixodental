@@ -375,16 +375,41 @@ selection did not, and that a single Undo puts it back. The likeliest break is a
 as both a move and a click, because two listeners hear the same pointerup — which a unit test of the
 pure function cannot see, and which is the whole reason the walk check exists.
 
+### Both of these closed on 2026-11-19, and the open question answered itself
+
+**The translations are in.** 61 strings, one Gemini request, nothing hand-written in zh-Hant. The
+procedure is `docs/translation/README.md` and the insertion is `scripts/applyTranslations.py`, which
+exists because the reply's only link to a key is a number in a separate file. The glossary guard
+caught four terms the reply got wrong and a fifth was caught by reading the triples; both are written
+up there, because the next batch will have the same two failure modes.
+
+**Item 7 is built in BOTH renderers, which is the answer to the question this section posed.** The
+worry was that writing the gesture for the Babylon layers would put it where neither the default app
+nor the gate could reach it, while writing it twice would be the two-implementations defect this
+whole document is about. Neither happened, because the gesture was split where the seam already was:
+every rule is in `src/supports/tipMove.ts` (may this press begin a move, what did the release mean,
+what commands does it make), every ending is in `src/components/viewport/dragSession.ts` (the orbit,
+pointerup, pointercancel, blur, Escape), and each view holds only what that renderer knows - how to
+pick a support and how to cast a ray at a model. three.js first, because it is the default and the
+walk proves it; the Babylon adapter the same day, and `a4m` and `a4n` pass against
+`--renderer=babylon` as well.
+
+**And the split was worth more than the gesture.** Pulling the endings out turned up two live defects
+in the RIM anchor drag - the orbit handed back on its first pointer move, and a quick flick
+committing the anchor one move behind - and the review of the finished code turned up two more in the
+shared rules: the renderers disagreed about which press may begin a move (r3f delivers one pointerdown
+to everything underneath, so a press on the model armed a move on a tip behind it, where Babylon
+orbited), and `moveRelease` tested `cancelled` before travel, so Escape on a press that never moved
+told the operator a support had been left where it was. Not one of the four changes a count, which is
+why the walk was blind to all of them; `u5r` and `u5s` now make the Escape half of it visible.
+
 ### Still open
 
-- **The translations.** The prompt at `docs/translation/2026-11-19-missing-strings.txt` is rebuilt
-  from the guard's own output rather than kept by hand, because a hand-kept copy went stale within a
-  day. Gemini's free tier is 20 requests a DAY and resets around 16:00 on 2026-11-19. Nothing is
-  hand-written, by the owner's standing rule.
-- **Build-order item 7, a real `manual/move` for a support tip** — designed with Fable, not built,
-  and the reason is now a better one than the hour of the night. `src/ui/renderer.ts` sets
-  `DEFAULT_RENDERER = 'three'` ("the renderer the walk proves") and the walk defaults to three, so a
-  gesture written against the Babylon layers would be unreachable in the default app and invisible
-  to the gate — while writing it for both renderers is the two-implementations defect this document
-  is otherwise about. Which way that goes is the open question, and it is Fable's to answer.
+- **The Babylon tip drag has no preview.** three.js shows a ring where the tip would land; Babylon
+  shows nothing until the release. `editPreview` is not the answer: its preview rides a CANVAS
+  pointermove, so it would freeze the moment the drag left the canvas, and a frozen ring is worse than
+  none. Named in `src/components/viewport/README.md`.
+- **Both brush strokes are still outside `dragSession`**, deliberately: every brush ending COMMITS
+  its stroke, so Escape through the shared module would commit a stroke the operator asked to
+  abandon. They join when `createStroke` can discard one, which is a change in `@mixo-geocore`.
 - The four debts in `src/recipes/README.md`, with their reasons.
