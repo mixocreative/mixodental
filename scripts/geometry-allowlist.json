@@ -71,6 +71,11 @@
     "maxMath": 2,
     "why": "the two frame conversions every Babylon layer shares: the world ray into the picked unit's own frame (the engine's session mesh is loaded from that unit's positions), and the hit back out to world space for drawing. Held in ONE module so the two frames cannot come to disagree between layers"
   },
+  "src/components/viewport/babylon/tipMove.ts": {
+    "label": "host-math",
+    "maxMath": 1,
+    "why": "one hypot: how far the pointer travelled since the press, which moveRelease turns into the difference between a click on a tip and a drag of it. The same measurement editClicks and rimDraw each make for their own gesture, and for the same reason - r3f hands it over as event.delta and Babylon has to take it itself"
+  },
   "src/components/viewport/babylon/transformGizmo.ts": {
     "label": "host-adapter"
   },

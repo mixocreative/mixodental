@@ -31,15 +31,25 @@ drags' own halves: the ray each casts and what each does with its target. The ne
 per drag - `useTipDrag` would take fourteen values in to hand back two, the hub this repo's rule
 forbids - and the part that passed the test is already out, in `src/supports/tipMove.ts`.
 
-**One gesture is three.js only today, named here rather than left to be discovered: moving a support
-tip.** `onMoveTip` reaches both viewports and only `UnitObject.tsx` acts on it; press, drag and drop
-a selected tip in the Babylon view and nothing happens. The rules are already shared — every
-decision lives in `src/supports/tipMove.ts`, so the Babylon side is listeners, the camera lock, a
-model-only hit and a preview, not a second copy of the behaviour. It was built against three first
-because `src/ui/renderer.ts` makes three the default and `npm run walk` proves it: a Babylon-only
-gesture would have been unreachable in the default app *and* invisible to the gate. The walk checks
-`a4m`, `a4p` and `a4n` prove it in three; they run against `--renderer=babylon` too, so the day the
-default flips they fail and this gap cannot go quiet.
+**Moving a support tip works in BOTH views** - `babylon/tipMove.ts` is the Babylon adapter, the
+fourth seam of the shape this folder is built on (`editClicks.ts` over `editing/pick`, `rimDraw.ts`
+over `rimTarget`, this over `supports/tipMove.ts`). Not one rule of the gesture lives in either
+adapter: whether a press may begin a move, what a release meant and what commands it makes are all
+`supports/tipMove.ts`'s, and the endings are `dragSession.ts`'s. What is left in each is what that
+renderer alone knows - how to pick a support, and how to cast a ray at a model.
+
+Two traps are written at the Babylon one rather than left to be re-found. A drop must land on the
+TIP'S OWN unit's model, passing through another unit in front of it, which three.js gets for nothing
+by casting at a single mesh and a candidate list has to filter for. And the drag's ray takes CLIENT
+coordinates converted against the canvas, not `event.offsetX` as every canvas handler here does: a
+drag listens on the window, so `offsetX` would be measured from whatever element the pointer is over -
+the panel - and the ray would go somewhere the operator never pointed.
+
+**What the Babylon tip drag still owes: the preview.** three.js shows a ring where the tip would
+land, which follows from `setHover` in its drag; this view shows nothing until the release, when the
+tip appears at its new spot. The gesture itself is proved in both - `a4m` and `a4n` run against
+`--renderer=babylon` as well as the default - and a ring that froze mid-drag would be worse than
+none, which is what extending `editPreview`'s canvas-listener preview would produce.
 
 ## The seam
 

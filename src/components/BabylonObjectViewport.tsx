@@ -47,6 +47,7 @@ import { attachSurfaceBrush, type ActiveBrush } from './viewport/babylon/paintSt
 import type { SurfaceStamp } from '@mixo-geocore/editing/surfaceBrush';
 import { attachEditClicks } from './viewport/babylon/editClicks';
 import { attachRimDraw } from './viewport/babylon/rimDraw';
+import { attachTipMove } from './viewport/babylon/tipMove';
 import { drawRimDraft } from './viewport/babylon/rimLayer';
 import { attachCameraViews, type CameraViews } from './viewport/babylon/cameraViews';
 import { attachEditPreview } from './viewport/babylon/editPreview';
@@ -434,6 +435,36 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         onRemoveContact: (unitId, contactId) => propsRef.current.onRemoveContact(unitId, contactId),
         onToggleContact: (unitId, contactId) => propsRef.current.onToggleContact(unitId, contactId),
         onEditMiss: () => propsRef.current.onEditMiss(),
+      }),
+      /*
+       * Dragging a selected support tip to a new spot. Every rule of the gesture is
+       * `supports/tipMove.ts`'s and every ending is `viewport/dragSession.ts`'s, both shared with the
+       * three.js view; what is attached here is this renderer's half - picking a support, and casting
+       * a ray at a model.
+       *
+       * It sits beside `attachEditClicks` because the two hear the same release and must not both
+       * act: a press that never travelled is a click, which toggles the selection as it always has,
+       * and once the pointer passes `CLICK_TOLERANCE` `pickAction` answers `pass` for every candidate.
+       */
+      attachTipMove({
+        canvas,
+        camera,
+        pointer,
+        gesture,
+        liveTool: () => propsRef.current.liveTool?.(),
+        unitFor: (unitId) => {
+          const unit = propsRef.current.scene.units.find((u) => u.id === unitId);
+          if (!unit) return undefined;
+          const supports = propsRef.current.supportMeshes.get(unitId);
+          return {
+            id: unit.id,
+            active: propsRef.current.scene.activeUnitId === unit.id,
+            selected: (contactId) => propsRef.current.selection.has(contactId),
+            ...(supports ? { supports } : {}),
+          };
+        },
+        onMoveTip: (unitId, pointId, point, normal) => propsRef.current.onMoveTip(unitId, pointId, point, normal),
+        onMoveTipCancelled: () => propsRef.current.onMoveTipCancelled(),
       }),
       attachEditPreview(scene, {
         canvas,
