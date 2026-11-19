@@ -33,19 +33,28 @@ re-derived — and that the replacement design had been removed from the deck an
 `mixomesh/port/mixosupports/toolrail/`. Asked what the project does next, neither review could find
 out. Hence `docs/PLAN.md` (`498c401`) and the two re-headed rulebooks (`e99b7b6`).
 
-**One defect found by reading, RETRACTED the same day by running it.** I claimed that opening a
-built denture destroys its supports, traced through `App.tsx:1391` → `useDentureOrient.ts:127` →
-`project.ts:258-287`, and wrote it into `PLAN.md`, this file and a commit message before driving it.
-**It does not reproduce.** In a real browser on the local denture fixture, twice — once pressing Next
-on the automatic pick, once after moving the dial from 8° to 16° so the stored pose genuinely
-differed from a fresh scan's pick (`[-3.108, 0.038, -3.112]` → `[3.036, 0.038, -3.112]`) — the
-reopened unit kept its supports, its denture state and its pose. `reorients()` does its job.
+**One defect, retracted and then un-retracted within the hour. The sequence is the lesson, so all of
+it is on the record.** I claimed that opening a built denture destroys its supports, traced through
+`App.tsx:1391` → `useDentureOrient.ts:127` → `project.ts:258-287`, and wrote it into `PLAN.md`, this
+file and a commit message **before driving it**. Then one browser run did not reproduce it and I
+retracted it, in three documents and another commit. **Three further runs reproduce it every time.**
 
-**The lesson is the retraction, not the claim.** Three files of correct tracing is not a defect; one
-run is. The first version of that run also reported CONFIRMED *vacuously*: on the deck the viewport
-is unmounted, the scene read came back `[]`, and `[].every(u => !u.supports)` is `true` — the
-instrument passed by measuring nothing, which is the exact failure the audit doctrine calls a
-vacuous pass, in my own probe.
+**It is real, and worse than traced:** built at the operator's chosen 16° (rotation
+`[3.036, 0.038, -3.112]`, `supports: true`), the reopened unit comes back at the automatic pick's
+`[-3.108, 0.038, -3.112]` with `supports: false`. **The print angle is discarded too, and that is the
+clinical decision.** It needs the pose to differ from a fresh scan's pick, so pressing Next on the
+automatic pick looks clean — which is exactly what my first run did.
+
+**Three ways I got this wrong, all instrument errors, none of them about the code:**
+
+1. **Wrote it down before running it.** Correct tracing through three files is a candidate, not a
+   finding.
+2. **Retracted it on ONE run.** That run was a flake: the reopen left the unit unbound — Step 1 drew
+   "Add the denture STL" over a loaded model — so no scan ran and nothing was destroyed. One run
+   refutes nothing. A flaky repro needs repetition before a verdict in *either* direction.
+3. **The first probe reported CONFIRMED vacuously.** On the deck the viewport is unmounted, the scene
+   read came back `[]`, and `[].every(u => !u.supports)` is `true`: it passed by measuring nothing,
+   which is the vacuous pass this project's own audit doctrine names first.
 
 **What the run DID confirm, all three new:**
 

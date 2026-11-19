@@ -100,13 +100,34 @@ Ranked by consequence, not by size. Each item says what proves it done.
    built supports under a check, with the fixture's absence skipped by design and counted, the way
    `gate:real` already handles owner-only scans.
 
-   ***Retraction, 2026-11-19.** This slot said "a built denture loses its supports when you open it",
-   traced through `App.tsx:1391` → `useDentureOrient.ts:127` → `project.ts:258-287`. **It does not
-   reproduce.** Driven in a real browser on the local denture fixture, twice — once pressing Next on
-   the automatic pick, once after moving the dial from 8° to 16° so the stored pose genuinely
-   differed from a fresh scan's pick (rotation `[-3.108, 0.038, -3.112]` → `[3.036, 0.038, -3.112]`)
-   — the reopened unit kept `supports`, kept `denture`, and kept its pose. `reorients()` is doing its
-   job. What the run did confirm is below and in item 2.*
+   *A retraction and its reversal, both on the record because the sequence is the lesson. This slot
+   first said a built denture loses its supports on reopen, traced but unrun. One browser run did not
+   reproduce it, so I retracted it. **Three further runs reproduce it every time**, and the defect is
+   now item 1a below, confirmed. The non-reproducing run was a flake in which the reopen left the
+   unit unbound — Step 1 drew "Add the denture STL" over a loaded model — so no scan ran and nothing
+   was destroyed. **One run refutes nothing; a flaky repro needs repetition before a verdict in
+   either direction.** The unbound state is itself unexplained and is listed below.*
+
+1a. **Reopening a built denture destroys its supports AND discards the operator's print angle.**
+   Confirmed in a real browser, 3 of 3 runs with the dial moved. Built at the operator's chosen 16°,
+   rotation `[3.036, 0.038, -3.112]`, `supports: true`. Reopened: rotation back to the automatic
+   pick's `[-3.108, 0.038, -3.112]`, `supports: false`. The chain is the one first traced:
+   `App.tsx:1391`'s `built` tests `unit.dental`, which a denture never sets (it writes
+   `unit.denture`), so a denture cannot take the open-at-supports door; the ordinary door runs
+   `start`, which scans and calls `turnTo(unit.id, scan.rows[index].rotation)`
+   (`useDentureOrient.ts:127`); `turnTo` dispatches `transform/set`, which deletes `supports`,
+   `manual`, `deleted` and `contactSettings` on any non-vertical turn (`project.ts:258-287`).
+   **It needs the pose to differ from a fresh scan's pick** — press Next on the automatic pick and
+   `reorients()` correctly spares everything, which is why the first run looked clean. Choosing the
+   print angle is the whole purpose of Step 1, so the ordinary case is the broken one. **The lost
+   pose may matter more than the lost supports: it is the clinical decision.** Card-deck ruling 2 was
+   applied to aligners only. **Done when** a built denture reopens on its supports with the pose
+   intact, under a check. Fixing it needs two decisions Fable already named: make `built` job-aware,
+   and give orient an entry that does not re-detect and turn.
+
+1b. **Unexplained:** in one run the reopen left the unit unbound — Step 1 showed the profile name and
+   "Add the denture STL" while the model sat loaded with its supports. Seen once in four runs. **Do
+   not make it a check until it is understood.**
 
 2. **The app carries no "not clinically validated" label.** `README.md:33` says it — *not clinically
    validated: check every result before printing* — and `SHIP-PLAN.md` §External validation requires
