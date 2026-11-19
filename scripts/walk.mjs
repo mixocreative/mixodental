@@ -1201,7 +1201,39 @@ async function walk(url, scratch, dentalFixture) {
             if ((await d.props()).selected === 1) { again = [fx, fy]; break probe; }
           }
         }
-        note(`after a tip was moved, a support ${again ? `was still pickable at ${JSON.stringify(again)}` : 'could NOT be picked anywhere in the 35-point grid, which is the product fault a4m names'}`);
+        /*
+         * AND WHAT THE SCENE HELD WHILE IT TRIED, because "no support could be picked" alone does not
+         * say WHY, and three readings of the code each predicted it would work. `tris` and `drawn`
+         * are the support mesh on screen: if they are zero there were no bodies to click and the
+         * answer is a rebuild; if they are not, the bodies were there and the click was refused,
+         * which is a different fault in a different place.
+         */
+        /*
+         * AND IF NOTHING WAS PICKABLE, RESET THE VIEW AND ASK AGAIN. This is the question the mesh
+         * numbers raised: the bodies ARE on screen (hundreds of contacts drawn), so a click that
+         * selects nothing is a click being refused - or a click landing somewhere else entirely,
+         * because THE CAMERA TURNED DURING THE DRAG. The grid is fixed fractions of the canvas, so a
+         * view that rotated under the drag points them at empty space while every count stays right
+         * and `a4m` passes. That is precisely the fault this guard cannot otherwise see, and it is a
+         * product fault: the operator's view would lurch while they drag a tip.
+         *
+         * Pickable again after a reset means the camera moved. Still not pickable means picking
+         * itself is refused, which is a different fault in a different place.
+         */
+        let afterReset;
+        if (!again) {
+          await page.getByRole('button', { name: 'Fit view', exact: true }).click().catch(() => {});
+          await d.idle(2000);
+          reset: for (const fy of [0.57, 0.50, 0.63, 0.44]) {
+            for (const fx of [0.37, 0.45, 0.30, 0.52, 0.60]) {
+              await d.stroke([fx, fy], [fx, fy], 1);
+              await d.idle(250);
+              if ((await d.props()).selected === 1) { afterReset = [fx, fy]; break reset; }
+            }
+          }
+        }
+        const held = await d.props();
+        note(`after a tip was moved, a support ${again ? `was still pickable at ${JSON.stringify(again)}` : 'could NOT be picked anywhere in the 35-point grid'} | support mesh: ${held.tris} triangles, ${held.drawn} contacts drawn, ${held.dropped} dropped${again ? '' : ` | after resetting the view: ${afterReset ? `pickable again at ${JSON.stringify(afterReset)}, so THE CAMERA MOVED during the drag` : 'still not pickable, so picking itself is refused'}`}`);
 
         /*
          * THE CAMERA IS THE ONE THING NOTHING HERE WOULD CATCH. If the orbit were ever left on during
@@ -3123,6 +3155,14 @@ async function walk(url, scratch, dentalFixture) {
        * painting, so every miss also moves the target: a big grid is not a better search, it is a
        * slower one with worse aim.
        */
+      /*
+       * ALL OF IT INSIDE ONE TRY, because a check may not take its section down with it. It did,
+       * twice: once waiting for a button by a name this unit never shows, and once on `d.quiet()`,
+       * whose condition is `!!document.querySelector('.job-activity')?.hidden` - FALSE FOREVER when
+       * that element is absent, which it is on this screen. Five minutes, a throw, and section u
+       * lost every check after this point: 83 ran where 197 were expected.
+       */
+      try {
       await page.getByRole('button', { name: 'Bottom view', exact: true }).click();
       await d.idle(1500);
       const brush = page.locator('.dental-brush');
@@ -3145,7 +3185,7 @@ async function walk(url, scratch, dentalFixture) {
           await d.idle(500);
         }
       }
-      await d.quiet();
+      await d.idle(1500);
       const tipsReady = landed > 0 && await page
         .waitForFunction(() => Number(document.querySelector('[data-ui="dental-tip-count"] .num')?.textContent ?? 0) > 0, null, { timeout: 240000 })
         .then(() => true, () => false);
@@ -3176,13 +3216,22 @@ async function walk(url, scratch, dentalFixture) {
            */
           const adjust = page.locator('[data-ui="aligner-adjust-title"]');
           await adjust.waitFor({ state: 'visible', timeout: 180000 });
-          await d.quiet();
+          // NOT `d.quiet()`: the same trap as above. Its condition is false forever where
+          // `.job-activity` is absent, and it burns the five-minute default before throwing.
+          await d.idle(1500);
           const policy = (await d.props()).activeDental;
-          const keys = await page.locator('.dental-dock button, .edit-done').count();
+          /*
+           * `.edit-row.step-nav` is where this step keeps "the way back and the way on, as one
+           * block" (`DentalSupports.tsx`), so the defect - a badge with no way on - is exactly this
+           * row holding nothing but Back. Naming the BUTTON was what went wrong twice before: its
+           * label is `Export STL` where there is a bench to hand back to and the step's own OK where
+           * there is not, and this unit arrives through "Use as any model".
+           */
+          const keys = await page.locator('.step-nav button').count();
           await page.screenshot({ path: path.join(scratch, 'ux-a-step3-hand-made-area.png') });
           check('u5p an area made by hand reaches Step 3 with a real panel, not a badge over an empty step',
-            policy?.kind === 'legacy' && (await adjust.count()) === 1 && keys > 0,
-            `policy ${JSON.stringify(policy)}, Adjust ${await adjust.count()}, keys in the dock ${keys}`);
+            policy?.kind === 'legacy' && (await adjust.count()) === 1 && keys > 1,
+            `policy ${JSON.stringify(policy)}, Adjust ${await adjust.count()}, keys in the step nav ${keys} (Back plus a way on)`);
           await adjust.click();
           await d.idle(400);
           const treeInput = page.locator('[data-ui="aligner-tree-branches"] input');
@@ -3211,6 +3260,12 @@ async function walk(url, scratch, dentalFixture) {
           await d.button('Back').click().catch(() => {});
           await d.idle(1200);
         }
+      }
+      } catch (error) {
+        check('u5p an area made by hand reaches Step 3 with a real panel, not a badge over an empty step',
+          false, `the hand-made area never reached Step 3: ${error.message.split('|')[0].slice(0, 90)}`);
+        skippedByDesign += 1;
+        note('u5q skipped: Step 3 was never reached, so there were no switches to read');
       }
       await d.button('Back').click();
       await stepTo('Step 1 · Aligner');
