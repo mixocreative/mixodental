@@ -7431,8 +7431,11 @@ content-hash id, because detection caches on `{positions, indices, digest, profi
 
 ### Done when
 
-1. One recompute is **measured** on a real scan before any UI is designed. If it is seconds, the
-   interaction is Apply, not live — and that is a finding about the engine, not a reason to fake it.
+1. ~~One recompute is **measured** on a real scan before any UI is designed.~~ **DONE, 2026-11-20:
+   22.2–22.7 s per case** on the reference denture, measured by the Jig itself, which prints the
+   figure and its verdict every run. **So a live panel was never available.** Any future panel
+   applies and waits, and that is a fact about the engine rather than a UI preference — which also
+   retires the first version's open question 2, where this was treated as a ray-count problem.
 2. The rules panel re-runs a selected case with named overrides and the viewer redraws its masks.
 3. A round trip asserts it: author → export → read back → an engine run reproduces identical masks on
    one named fixture.
@@ -7478,8 +7481,15 @@ how the engine works cites the file that says so, per claim, or does not assert 
 
 ### Status
 
-Specification corrected. The first increment — the rules panel and its re-run route — is the only
-part scheduled. It sits behind `PLAN.md` items 1 and 11, and behind the engine's own kinds-scheme
+**BUILT, 2026-11-20, `86c5e47`** — as a CLI rather than a panel, which is what the measurement above
+made of it: `npm run jig -- --list`, `dentalwork/batch-review/jig.mjs` with its rules and parsing in
+`jigRules.mjs` and 13 tests. It turns the thirteen shortlisted rules, refuses before it spends a run,
+writes `jig.json` beside the review, and prints the numbers a rule change moves. Proved end to end
+on the reference denture: baseline 168 tips, `overhangAngleDeg=55` → 185 tips.
+
+A panel in the viewer is the next increment and is **not** scheduled, because the measurement says it
+would be an Apply button — worth having, worth nothing until the log below says which rules people
+actually reach for. Specification corrected before any of it was built. It sits behind `PLAN.md` items 1 and 11, and behind the engine's own kinds-scheme
 migration, whose doc says *"Do not invent a different one; finish this one."* **Admission to the app
 is not automatic:** the Jig earns it when a profile authored in it has passed `gate:real` and shipped
 as a type twice, authored by someone other than its builder. Until then it stays a bench tool, and
