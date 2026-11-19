@@ -5,7 +5,7 @@ scenes: steps belong to a scene, and Support Edit Mode and no-support zones are 
 
 | Scene | What they are doing | What puts you there | Scope | On |
 |---|---|---|---|---|
-| **Start** | Choosing what is going to get supports: the task, then the aligner type, then the file. | A `StartScreenId` is set. Renders full screen, instead of the workspace. | per run | yes |
+| **Start** | Choosing what is going to get supports: `drop`, `items` or `file` — the three `StartScreenId`s. The aligner type is **not** among them; it is answered per card on the deck, because detection takes the profile as an argument. | A `StartScreenId` is set. Renders full screen, instead of the workspace. | per run | yes |
 | **Object** | One object, detected and then supported: Step 1 orientation and print angle, Step 2 the support area, Step 3 the supports. | `mode: 'dental'`; `dentalStage` says which step. | **per object** | yes |
 | **Bench** | The workspace: plate, object list, settings, the five export buttons. Modes: resting, Support Edit Mode, no-support zones. | `mode` is `off`, `edit` or `zones` with no start screen. | per run | yes |
 

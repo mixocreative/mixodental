@@ -26,7 +26,7 @@ repeated for exactly that mistake.
 
 | File | Job |
 |---|---|
-| `walk.mjs` | 186 browser checks (`EXPECTED_CHECKS`, asserted — a check that silently stops running fails the run rather than printing a smaller number), ~35 minutes, sections `a`–`x`. **4,447 lines, far over the cut limit** — named as debt in `../docs/size-debt.md`. It is the only thing that exercises generate counts, because CI runs it in two shards (`m,q` and `r,u,x,l,s`) that **leave section `a` out**. `npm run walk:locales` runs it across en/ja/zh-Hant, and `npm run walk -- --renderer=babylon` drives the same 186 checks against the Babylon viewport instead of the three.js one |
+| `walk.mjs` | the browser checks — the count is `EXPECTED_CHECKS` in the file itself and is not repeated here, because this row said 186 while the code asserted 199 (asserted — a check that silently stops running fails the run rather than printing a smaller number), ~35 minutes, sections `a`–`x`. **4,447 lines, far over the cut limit** — named as debt in `../docs/size-debt.md`. It is the only thing that exercises generate counts, because CI runs it in two shards (`m,q` and `r,u,x,l,s`) that **leave section `a` out**. `npm run walk:locales` runs it across en/ja/zh-Hant, and `npm run walk -- --renderer=babylon` drives the same checks against the Babylon viewport instead of the three.js one |
 
 ## The engine — vendoring and smoke
 

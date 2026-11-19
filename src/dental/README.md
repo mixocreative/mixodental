@@ -5,8 +5,12 @@ the support area, and rim define mode. The denture job lives in `src/denture`; t
 viewport live in `src/components`. Engine calls go through `@mixo-geocore/host`, never direct.
 
 The flow is a state machine, not a set of screens. `editingMode.ts` owns the stages
-(`type → aligner → area → review`, with `rim` as Step 1's detour) and every command, key and refusal
+(`aligner → area → review`, with `rim` as Step 1's detour) and every command, key and refusal
 that belongs to them; everything else here is either a pure helper it reads or a piece of one stage.
+
+There is **no `type` stage** — this line said there was until 2026-11-19. The appliance kind is
+chosen per run on the Drop page, because detection takes the profile as an argument, so asking inside
+the flow was always one screen too late (`editingMode.ts`'s own header says so).
 
 | Module | Purpose |
 |---|---|
@@ -19,7 +23,7 @@ that belongs to them; everything else here is either a pure helper it reads or a
 | `angleEvidence.ts` | The print-angle scan's evidence, as words and numbers. |
 | `printAngle.ts` *(test only)* | The print-angle rules, exercised against the reference. |
 | `confirmTilt.ts` | Accepting a scanned print angle, and what that settles. |
-| `adjustMemory.ts` | What a step remembers when the operator goes back to it. |
+| `adjustMemory.ts` | Whether a supports panel's Adjust section is open, for the browser session. Nothing to do with steps: one key per job kind, in `sessionStorage`. |
 | `manualArea.ts` | The support-area policy built from a rim when detection found no area. |
 | `paintedArea.ts` *(test only)* | Painting and erasing the area, over the policy. |
 | `legacyArea.ts` *(test only)* | Reading an area policy saved by an older version. |

@@ -94,9 +94,12 @@ repos were pushed, zero runs were read, and two of them had no run to read.
 npm run vendor:check && npm test && npm run screens && npm run build && npm run walk
 ```
 
-`npm run walk` is the part that matters and the part that gets skipped. It asserts
-`EXPECTED_CHECKS = 188` on a complete run, so a check that silently stopped running fails it
-instead of printing a smaller number on the same `ALL PASS` line. `--only=` walks less **by
+`npm run walk` is the part that matters and the part that gets skipped. It asserts a fixed
+`EXPECTED_CHECKS` on a complete run, so a check that silently stopped running fails it instead of
+printing a smaller number on the same `ALL PASS` line. **Read the number from
+`scripts/walk.mjs`, never from prose** — it was 199 on 2026-11-19 and has changed ten times this
+month, its own history comment records each change, and this sentence said 188 for five days after
+the code had moved on. `--only=` walks less **by
 design** and says so in its verdict line: `SOME PASS` is not a pass of this gate.
 
 2. **Or a dispatched run was read to completion** — dispatching is not reading:
