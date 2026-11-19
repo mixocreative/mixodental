@@ -1121,13 +1121,16 @@ async function walk(url, scratch, dentalFixture) {
        * at the contact, under the model surface, so a press at the drop point hits the model - in the
        * Tips only view too. A flaky check in a release gate is worse than a gap written down.
        *
-       * WHY A HUNT RUN STRAIGHT AFTER A MOVE FINDS NOTHING IS NOT ESTABLISHED, and an earlier draft
-       * of this comment asserted a cause it had not checked. Three candidates fit the evidence:
-       * the grid is sparse and may hold only the one tip it found the first time; the support mesh
-       * is still rebuilding; or supports really cannot be picked for a while after a move. ONLY THE
-       * LAST IS A PRODUCT FAULT - the operator's second nudge would fail silently - and it would be
-       * the one sitting under a comment that explained it away. The note below is the probe that
-       * tells them apart; read it on the next full run.
+       * AND A WARNING ABOUT THE WITHDRAWN CHECK'S OWN EVIDENCE, which nearly became a bug report
+       * against the app. It reported that no support could be picked after a move - which would be
+       * an operator's second nudge failing silently. By hand in the browser it is not true: after a
+       * move, supports select normally. The note below carries what has been ruled out and the fact
+       * that the walk still disagrees with the browser, unexplained.
+       *
+       * The lesson is about explanations. An earlier draft of this comment asserted "because the
+       * support mesh is still rebuilding" - a cause nobody had checked, which the mesh numbers then
+       * disproved. A second one blamed Escape, which was a real flaw in the probe and still did not
+       * account for it. Measure before writing a cause down; the comment outlives the guess.
        */
       await d.button('Click').click();
       await d.idle(600);
@@ -1185,55 +1188,36 @@ async function walk(url, scratch, dentalFixture) {
             && picked.selectedIds.length === 1 && picked.selectedIds[0] === (await d.props()).units[0]?.lastManualId,
           `before ${JSON.stringify(before)}, after ${JSON.stringify(after)}, dropped at ${moved ? JSON.stringify(moved.target) : 'nowhere that took it'}, selection ${JSON.stringify(picked.selectedIds)}, scene holds ${JSON.stringify((await d.props()).units[0]?.lastManualId ?? null)}`);
         /*
-         * THE PROBE, deliberately a note and not a check, because what it measures is not yet
-         * understood and a gate should not go red on a question. It asks the one thing that tells a
-         * sparse grid from an app that stops accepting clicks: with the selection cleared, is ANY
-         * support pickable right after a move? If this says "could not be picked anywhere" on a run
-         * where the same grid found one before the move, that is a product fault and gets a check.
+         * AN OPEN QUESTION, KEPT AS A NOTE because it is not understood and a gate may not go red on
+         * something nobody can explain. It asks whether a support can still be picked right after a
+         * move. In this walk it reports that none can, and NOBODY HAS EXPLAINED WHY.
+         *
+         * WHAT HAS BEEN RULED OUT, each by measurement rather than argument:
+         *   - the support mesh - it is there, hundreds of contacts drawn, every run;
+         *   - the camera turning under the drag - screenshots before and after a long drag in the
+         *     browser are identical, so the lock holds;
+         *   - this probe clearing the selection with Escape, which DID walk it out of Support Edit
+         *     Mode (Escape's next rung once nothing is selected is `mode.exit`). It now watches for
+         *     a click that CHANGES the selection instead, and still reports nothing pickable;
+         *   - the app itself. By hand in the browser: move a tip, then click supports - they select.
+         *     Picking also survives a plain remove, and a delete-plus-add reaches the same
+         *     `deleted`/`manual` shape a move does and stays pickable.
+         *
+         * So the app is believed sound and this probe is believed wrong, which is an uncomfortable
+         * place to leave it - say so rather than delete the evidence. If it ever flips to "pickable",
+         * that is the answer arriving. Do NOT turn this into a check until it is understood.
          */
-        await page.keyboard.press('Escape');
-        await d.idle(600);
+        const was = (await d.props()).selectedIds.length;
         let again;
         probe: for (const fy of [0.57, 0.50, 0.63, 0.44, 0.69]) {
           for (const fx of [0.37, 0.45, 0.30, 0.52, 0.60, 0.40, 0.34]) {
             await d.stroke([fx, fy], [fx, fy], 1);
             await d.idle(250);
-            if ((await d.props()).selected === 1) { again = [fx, fy]; break probe; }
-          }
-        }
-        /*
-         * AND WHAT THE SCENE HELD WHILE IT TRIED, because "no support could be picked" alone does not
-         * say WHY, and three readings of the code each predicted it would work. `tris` and `drawn`
-         * are the support mesh on screen: if they are zero there were no bodies to click and the
-         * answer is a rebuild; if they are not, the bodies were there and the click was refused,
-         * which is a different fault in a different place.
-         */
-        /*
-         * AND IF NOTHING WAS PICKABLE, RESET THE VIEW AND ASK AGAIN. This is the question the mesh
-         * numbers raised: the bodies ARE on screen (hundreds of contacts drawn), so a click that
-         * selects nothing is a click being refused - or a click landing somewhere else entirely,
-         * because THE CAMERA TURNED DURING THE DRAG. The grid is fixed fractions of the canvas, so a
-         * view that rotated under the drag points them at empty space while every count stays right
-         * and `a4m` passes. That is precisely the fault this guard cannot otherwise see, and it is a
-         * product fault: the operator's view would lurch while they drag a tip.
-         *
-         * Pickable again after a reset means the camera moved. Still not pickable means picking
-         * itself is refused, which is a different fault in a different place.
-         */
-        let afterReset;
-        if (!again) {
-          await page.getByRole('button', { name: 'Fit view', exact: true }).click().catch(() => {});
-          await d.idle(2000);
-          reset: for (const fy of [0.57, 0.50, 0.63, 0.44]) {
-            for (const fx of [0.37, 0.45, 0.30, 0.52, 0.60]) {
-              await d.stroke([fx, fy], [fx, fy], 1);
-              await d.idle(250);
-              if ((await d.props()).selected === 1) { afterReset = [fx, fy]; break reset; }
-            }
+            if ((await d.props()).selectedIds.length !== was) { again = [fx, fy]; break probe; }
           }
         }
         const held = await d.props();
-        note(`after a tip was moved, a support ${again ? `was still pickable at ${JSON.stringify(again)}` : 'could NOT be picked anywhere in the 35-point grid'} | support mesh: ${held.tris} triangles, ${held.drawn} contacts drawn, ${held.dropped} dropped${again ? '' : ` | after resetting the view: ${afterReset ? `pickable again at ${JSON.stringify(afterReset)}, so THE CAMERA MOVED during the drag` : 'still not pickable, so picking itself is refused'}`}`);
+        note(`after a tip was moved, a support ${again ? `was still pickable at ${JSON.stringify(again)}` : 'could NOT be picked anywhere in the 35-point grid'} | support mesh: ${held.tris} triangles, ${held.drawn} contacts drawn`);
 
         /*
          * THE CAMERA IS THE ONE THING NOTHING HERE WOULD CATCH. If the orbit were ever left on during
