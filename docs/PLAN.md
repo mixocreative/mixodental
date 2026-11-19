@@ -152,7 +152,7 @@ Ranked by consequence, not by size. Each item says what proves it done.
 **Ruling (2026-11-20): one policy mechanism for both kinds.** The app-side half is **done and gated**
 (`4a27bcc`): the aligner review was dropping the engine's named rules, and now threads them, proved
 by `gate:real` PASS over all 13 scans with "No differences". What remains is in the engine repo
-(`S:i\mixo-geocore`), in two steps, and it is **written down rather than done**:
+(`S:/ai/mixo-geocore`), in two steps, and it is **written down rather than done**:
 
 - **B — collapse the denture overloads.** Delete `denture_policy`, `denture_review` and
   `denture_tilt_scan`, rename the three `_ruled` variants to those names, so every entry takes
