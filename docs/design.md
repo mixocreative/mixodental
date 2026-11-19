@@ -16,6 +16,7 @@ One dated document per decision, with the reasoning that produced it. These say 
 | 2026-11-17 | [mixoDental — the whole flow, end to end](#2026-11-17-flow-map) | `docs/design/2026-11-17-flow-map.md` |
 | 2026-11-18 | [The card deck — what is built, and the plan for what is not](#2026-11-18-card-deck-plan) | `docs/design/2026-11-18-card-deck-plan.md` |
 | 2026-11-19 | [Support recipes, and what the review found — plan, 2026-11-19](#2026-11-19-recipes-and-review-fixes) | `docs/design/2026-11-19-recipes-and-review-fixes.md` |
+| 2026-11-20 | [Procedural nodes for orientation, rim and support areas — the owner's specification](#2026-11-20-node-rule-authoring) | written here, not merged in |
 | undated | [mixoDental UI structure](#ui-structure) | `docs/design/ui-structure.md` |
 
 ---
@@ -7325,3 +7326,134 @@ logic moved into hooks (`useExport`, `useFixSpot`, `useRegenerate`, `useProjectF
 | Styles: Tips only forced look | styles.css:454 |
 | House tokens | `~/.claude/skills/mixo-app-style/tokens.css`, `base.css`, `SKILL.md` |
 | Stitch DESIGN.md location and sections | `~/.claude/skills/stitch/references/design-md.md`, `flows/design.md` |
+
+---
+
+<a id="2026-11-20-node-rule-authoring"></a>
+
+## 2026-11-20 — Procedural nodes for orientation, rim and support areas
+
+*Written here on 2026-11-20, the first record composed in this file rather than merged into it.*
+**Specification only. Nothing is built, by the owner's instruction, and the build is to be done with
+Fable once this is folded in.**
+
+### The owner's ask, in their words
+
+> *"The idea is we can use procedural nodes like blender to determine a) orientation, b) rim and
+> c) support areas, while the procedure nodes are options shown below with live detection above like
+> blender UI. Then the dev tool has a way to export or save the entire thing into a file so it be
+> read and integrated to types."*
+
+And the constraint that frames all of it:
+
+> *"that part should be separate until it is mature enough to become part of the app."*
+
+### The one decision that makes this affordable
+
+**It is a dev tool outside the app, and it stays outside until it earns its way in.** That is the
+owner's constraint and it is also what makes the rest cheap, because it lifts three objections that
+would otherwise bite:
+
+- the app's minimal, game-like UI forbids a dense node canvas — a dev surface does not;
+- a tool with no operator surface adds nothing to the app's unvalidated surface, which matters in a
+  product that still has no physical print on record;
+- it needs no new app state, no migrations, and nothing in a saved project.
+
+**Its home is `benchwork/`**, which already exists for exactly this: *"where you change how the
+machine DECIDES — a detection rule, a profile's numbers, a whole new kind of printed item — and prove
+it before any of it touches the app."* Benchwork's Stage 1 today is a CLI that writes a GLB you open
+in Blender. **This tool is that stage becoming interactive, with the same job and the same output.**
+
+### What the owner's three map onto
+
+The engine already works in six ordered stages, and the owner's three are its natural grouping:
+
+| Owner's name | Engine stage | What it is |
+|---|---|---|
+| **a) orientation** | 1 — frame | the detected axes: for a denture the arch frame (up, teeth side, back); for an aligner the trim plane, the U ends and the back |
+| **b) rim** | 2 — features | the rim curve and the holes: a denture's rim line and its hole grid; an aligner's sharp-edge loops and central opening |
+| **c) support areas** | 3 masks, then 4 combine | the zone masks, then an ordered override where the last rule wins |
+| *(not named, but there)* | 5 sample, then 6 guard | tip placement along curves and over masks, then the down-facing guard |
+
+**The vocabulary the owner was unsure of resolves to exactly two primitives**, and the denture
+already uses both:
+
+- **parallel projection along a frame axis** — the 45° ray that produces the no-support zone;
+- **visibility from a point** — the ray from the oral-cavity origin that produces the allowed area.
+
+Plus three more that both kinds share: a **band of distance along the surface** from a curve (rim
+band 2 mm, low-rim band 5 mm, hole band 5 mm; the aligner's signed strip around the trim), an
+**angle to a direction** (overhang 45°, 60°, 70°), and **ordered combine** (allowed beats no-support;
+the hole band widens allowed; allowed cancels sockets).
+
+**And the nodes already exist as named fields.** The engine's per-face `Analysis` carries
+`no_support`, `allowed`, `allowed_cavity`, `hole_band`, `rim_band` and `low_rim_band`. The denture
+pipeline is already a fixed graph with reviewable outputs; this tool exposes a structure rather than
+inventing one. The output contract is already declarative too: `PolicyResult.permitted_faces`, a
+bitset over source faces — and `SHIP-PLAN.md`'s architecture rule 2 was written for this shape:
+*"A policy is data, not callbacks… A future mode = a new producer of this struct."*
+
+### What is a node, and what only LOOKS like one
+
+**Support areas compose. Orientation and rim do not.** An aligner's rim detection is some thirty
+thresholds with connector routes and a two-raster agreement test; a denture's is three modules. More
+decisively, the engine requires a detector to be able to answer **"cannot decide", with evidence** —
+and a graph that rebuilds that is a general geometry-nodes system, which is a different product.
+
+So the resolution, which gives the owner the node UI over all three without pretending:
+
+- **(a) orientation and (b) rim are single configurable SOURCE nodes.** They appear in the graph, with
+  their thresholds as parameters and their evidence layers as outputs, and they are not sub-graphs of
+  primitives. Their internals stay coded, in the engine, where "cannot decide" lives.
+- **(c) support areas are the genuinely composable part**: mask sources, each with a direction or an
+  origin and a width, then an ordered combine the owner can reorder and toggle.
+
+**Never nodes:** detection itself.
+
+### The file it exports
+
+The owner's "export or save the entire thing into a file so it be read and integrated to types" is
+the right instinct, and the file already has a shape: **a profile.** Two constraints from the engine
+decide how it gets in:
+
+1. **Profile JSON is compiled into the wasm** — a static registry, and every ABI call takes a profile
+   *id string*, never numbers. So the burn path is the engine's own: drop the JSON in `profiles/`,
+   then `profiles:gen`, `wasm:build`, `vendor:geometry`. "Burning to a standard profile and loading a
+   new type" is literally that sequence.
+2. **If a draft is ever loaded at runtime instead**, its id must be a **content hash**, because
+   detection is cached per mesh *and* per profile id — an edited draft under a reused id returns the
+   previous answer. And a draft id must never reach a saved project: profile ids are written into
+   customers' files and may only ever grow.
+
+### Open questions, each with a recommendation so none of them blocks
+
+1. **Does the tool run the real engine, or a reimplementation?** *Run the real one*, through
+   `pkg-node`, as `scripts/perf/*` and `gate:real` already do. A tool that approximates the engine
+   proves nothing and becomes a second implementation of the thing it is meant to tune.
+2. **Is live preview affordable?** The no-support ray cast reaches about 1.5 million rays. *Measure it
+   before designing the interaction* — if a recompute is seconds, the UI is "apply", not "live", and
+   that is a finding about the engine rather than a reason to fake it in the host.
+3. **Does it emit numbers or a procedure?** *Numbers first.* Every number on the sheet is already a
+   profile field; a graph format is only justified once use shows repeated demand for a mask no
+   existing source can produce. Log what is reached for: a number, a precedence change, or a new
+   primitive.
+4. **Who owns the canonical grammar?** *The engine repo*, since it is the only place that can
+   interpret it. This file records the owner's specification; the grammar's normative list belongs
+   beside the engine's `ADDING-A-KIND-OR-TYPE.md`.
+
+### What this does NOT solve, said plainly
+
+- **Night guard is not blocked on a tool.** It is blocked on numbers nobody has, and the engine
+  handoff's own words are that inventing a set would be *fiction dressed as data*.
+- **Retainer breaks at stage 2**, not in the grammar: nobody knows what rim detection does with the
+  wire. A zone editor cannot answer that.
+- **Dental model** needs one further primitive, height above the lowest point.
+- The denture rules mostly grew by **adding code**, not by rewiring: engine rounds 28 through 59 are
+  nearly all a new rule module found on a real scan. The rewirings among them were precedence
+  changes — which is the part of this specification that would have helped.
+
+### Status
+
+Specification folded in, nothing built. **To be built with Fable**, per the owner on 2026-11-20. It
+sits behind `PLAN.md` items 1 and 1a, and behind Stage 0 — finishing the engine's existing kinds
+scheme, whose own doc says *"Do not invent a different one; finish this one."*

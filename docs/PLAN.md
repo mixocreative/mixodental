@@ -108,7 +108,12 @@ Ranked by consequence, not by size. Each item says what proves it done.
    was destroyed. **One run refutes nothing; a flaky repro needs repetition before a verdict in
    either direction.** The unbound state is itself unexplained and is listed below.*
 
-1a. **Reopening a built denture destroys its supports AND discards the operator's print angle.**
+1a. **~~Reopening a built denture destroys its supports AND discards the operator's print angle.~~
+   FIXED 2026-11-20, `956a697`.** `opensAtSupports(unit, profile)` in `src/dental/flow.ts` is now a
+   pure rule with six tests, asking each kind's own field, and the reopen lands on Step 2 with the
+   supports and the pose intact — re-confirmed in the browser 2 of 2. The record of the defect
+   follows, because the dead guard is the thing to recognise again.
+
    Confirmed in a real browser, 3 of 3 runs with the dial moved. Built at the operator's chosen 16°,
    rotation `[3.036, 0.038, -3.112]`, `supports: true`. Reopened: rotation back to the automatic
    pick's `[-3.108, 0.038, -3.112]`, `supports: false`. The chain is the one first traced:
