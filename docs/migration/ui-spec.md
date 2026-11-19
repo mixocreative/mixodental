@@ -2,7 +2,7 @@
 
 The UI spec for re-implementing the support editor (state diagram, key / pick / stroke tables,
 status keys in three languages, colours, numbers, conventions, Babylon adapter, and the Task 12
-feedback rules) is `docs/superpowers/specs/2026-10-21-support-editing-ui-spec.md`. Terms:
+feedback rules) is `docs/superpowers.md#2026-10-21-support-editing-ui-spec`. Terms:
 `docs/migration/glossary.md`. This page maps Nielsen's 10 usability heuristics to what the UI
 does, for the final review.
 

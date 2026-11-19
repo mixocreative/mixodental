@@ -45,7 +45,7 @@ export function useDentalTuning(unit: PrintUnit | undefined, active: boolean, an
    *
    * A manual area is PAINT, not a strip of a given width around a detected edge, so there is nothing
    * for a width or a position to mean. Retuning one needs an engine entry point that does not exist
-   * yet (`dental_region_from_rim`, `docs/handoff/geocore-region-from-drawn-rim.md`); until it lands
+   * yet (`dental_region_from_rim`, `docs/handoff-records.md#geocore-region-from-drawn-rim`); until it lands
    * the honest UI is shown-and-disabled with the reason said, which is what this boolean buys.
    */
   const tunable = policy?.kind === 'two-contour';

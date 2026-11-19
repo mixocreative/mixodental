@@ -4,7 +4,7 @@ This folder is the deck: the page, its two kinds of card, the batch that orients
 pictures on them. `rowState.ts` is pure: no React, no DOM, no strings. It returns a state and the
 numbers that state needs; the UI picks the words.
 
-Plan: `docs/design/2026-11-07-import-and-items-flow.md` (§3 for the states, §8 step 6 for this piece).
+Plan: `docs/design.md#2026-11-07-import-and-items-flow` (§3 for the states, §8 step 6 for this piece).
 
 ## The nine states, and why there are nine
 
@@ -210,7 +210,7 @@ Two details that are easy to get wrong:
   applied. Framing the file's own frame would undo the orientation work the row is reporting in words
   on the line below.
 - **So the cache is keyed on the model AND the rotation**, and leaving the rotation out was a defect
-  rather than an economy (found by the 2026-11-11 audit, `docs/reviews/2026-11-11-cia-audit.md` MIXO-16). The pictures
+  rather than an economy (found by the 2026-11-11 audit, `docs/reviews.md#2026-11-11-cia-audit` MIXO-16). The pictures
   are drawn in tens of milliseconds as soon as the deck is up; the batch then orients one row at a
   time, seconds each, writing a new `transform` to the SAME `source`. Keyed on the mesh alone, every
   row the batch turned kept its pre-orientation picture while the line beneath it said "Turned

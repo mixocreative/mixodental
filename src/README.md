@@ -67,4 +67,4 @@ Each has its own map: `components/` (and `components/viewport/`), `core/`, `dent
 `npm run gate` proves the build and the engine's numbers. `npm run walk` proves the workflow in a
 browser, and it is the only thing that exercises generate counts, because CI runs the walk in two
 shards that leave section `a` out. **Both together are the ship evidence; neither alone is** —
-`../docs/VERIFICATION.md` has the detail and it is worth the two minutes.
+`../docs/reviews.md#VERIFICATION` has the detail and it is worth the two minutes.

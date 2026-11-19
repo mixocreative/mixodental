@@ -6,10 +6,10 @@ and how each piece is drawn in Babylon. Written at the end of Release 2 (2026-10
 | Read with | For |
 |---|---|
 | `src/core/README.md` | Module map, public API, conventions, worker contract, licence |
-| `docs/superpowers/specs/2026-10-21-support-editing-ui-spec.md` | Modes, keys, picks, strokes, status lines, colours, cursor, camera numbers |
+| `docs/superpowers.md#2026-10-21-support-editing-ui-spec` | Modes, keys, picks, strokes, status lines, colours, cursor, camera numbers |
 | `docs/migration/glossary.md` | One term per concept in en / zh-Hant / ja |
 | `S:\ai\mixomesh\docs\superpowers\specs\2026-10-21-heavy-mesh-handling.md` (mixomesh branch `feat/heavy-mesh`) | Shared heavy-mesh contract: budgets, pre-parse refusal, memory, progress |
-| `docs/migration/2026-10-21-babylon-review.md`, `2026-10-21-mixomesh-perf-audit.md` | Background reviews (file:line evidence at the time) |
+| `docs/migration/records.md#2026-10-21-babylon-review`, `2026-10-21-mixomesh-perf-audit.md` | Background reviews (file:line evidence at the time) |
 
 When this page and the code disagree, the code and its tests win.
 

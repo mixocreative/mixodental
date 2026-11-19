@@ -27,7 +27,7 @@ import { DENTAL_KINDS, defaultProfileId, kindOfProfile, profileIdsOf, type Denta
  * AND BECAUSE THE ANSWERS ARE THE OPEN QUESTION. A night guard and a retainer are neither of these —
  * the commonest chairside object has no true answer here, and the axis may be wrong altogether
  * (shell-with-a-trim-line vs solid body, rather than product). That is open question 4 in
- * `docs/design/2026-11-17-flow-map.md`, and when it settles THIS is what changes.
+ * `docs/design.md#2026-11-17-flow-map`, and when it settles THIS is what changes.
  *
  * `label` is the English string, which IS the i18n key (`src/i18n.ts`); `icon` names a drawing in
  * `src/ui/assets/art/`.

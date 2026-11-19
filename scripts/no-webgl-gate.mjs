@@ -4,7 +4,7 @@
  *   npm run gate:nogl
  *
  * THE NAME IS NARROWER THAN THE CONTENT, and deliberately left so. It began as the no-WebGL gate
- * and now has three passes; `docs/handoff/morning-2026-11-12.md` is a dated record that names
+ * and now has three passes; `docs/handoff-records.md#morning-2026-11-12` is a dated record that names
  * `gate:nogl`, and rewriting a dated record to tidy a name is worse than a name that undersells.
  * The three passes:
  *

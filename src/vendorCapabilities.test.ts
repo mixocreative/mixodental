@@ -31,7 +31,7 @@ const SURFACES = {
 } as const;
 
 interface AwaitedCapability {
-  /** The symbol the engine would declare, as `docs/handoff/geocore-*.md` asked for it. */
+  /** The symbol the engine would declare, as `docs/handoff-records.md` asked for it. */
   readonly symbol: string;
   /** Which surface counts as delivery: the host's declarations, or the browser build's. */
   readonly surface: keyof typeof SURFACES;
@@ -45,7 +45,7 @@ const AWAITED: readonly AwaitedCapability[] = [
   {
     symbol: 'dental_tilt_scan_from_rim',
     surface: 'host',
-    handoff: 'docs/handoff/geocore-orient-from-drawn-rim.md',
+    handoff: 'docs/handoff-records.md#geocore-orient-from-drawn-rim',
     undo: [
       'Print angles can now be scanned from a rim the operator DREW, so that path stops going to Step 2',
       'at whatever orientation the file arrived in. On `onRimDone` for a unit with no proposal: take the',
@@ -58,7 +58,7 @@ const AWAITED: readonly AwaitedCapability[] = [
     // Already declared in `dentalEngine.ts` as test ABI, so delivery means reaching the BROWSER build.
     symbol: 'dental_pose',
     surface: 'browser',
-    handoff: 'docs/handoff/geocore-orient-from-drawn-rim.md',
+    handoff: 'docs/handoff-records.md#geocore-orient-from-drawn-rim',
     undo: [
       'The pose maths has reached the build the app runs. A drawn rim can be turned to its own frame',
       'without waiting for the scan: derive the rotation after Done, apply it, and drop the words that',
@@ -70,7 +70,7 @@ const AWAITED: readonly AwaitedCapability[] = [
   {
     symbol: 'dental_region_from_rim',
     surface: 'host',
-    handoff: 'docs/handoff/geocore-region-from-drawn-rim.md',
+    handoff: 'docs/handoff-records.md#geocore-region-from-drawn-rim',
     undo: [
       'The three Step 2 strip controls (Area width, Area position, Support density) are shown-and-disabled',
       'whenever the support area is PAINT rather than a strip around a detected edge - which is both a',

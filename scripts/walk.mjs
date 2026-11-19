@@ -1997,7 +1997,7 @@ async function walk(url, scratch, dentalFixture) {
        * the SAME ones the editor would have built. That wants the same file walked by hand and
        * auto-generated side by side, and the hand walk lives in another section with its own entry
        * (`x` enters at Step 1 and never passes the deck). It is written down in
-       * `docs/design/2026-11-18-card-deck-plan.md` as the open half, with parity held meanwhile by
+       * `docs/design.md#2026-11-18-card-deck-plan` as the open half, with parity held meanwhile by
        * both paths calling one implementation.
        */
       /*
@@ -2064,7 +2064,7 @@ async function walk(url, scratch, dentalFixture) {
     /*
      * q. FAULT INJECTION: G2 (replay) and G4 (two actors on one scarce resource).
      *
-     * WHY THIS SECTION EXISTS. `docs/reviews/2026-11-09-wiring-walk-dental-flow.md` mapped every
+     * WHY THIS SECTION EXISTS. `docs/reviews.md#2026-11-09-wiring-walk-dental-flow` mapped every
      * connection of the deck -> flow -> deck journeys and then graded every gap-register row READ.
      * A register where every row is READ is a code review, by that doctrine's own rule, and these
      * are the two faults its own "what runs next" named as the floor. They are run here through the
@@ -2659,7 +2659,7 @@ async function walk(url, scratch, dentalFixture) {
        *    `state === 'indeterminate'`, which is the one state that cannot happen here: a job that
        *    reported progress and then stopped is determinate. That control cannot fire for the
        *    failure it was written for, and it lives in vendored geocore, which this repo consumes as
-       *    built - so it is handed over rather than patched: `docs/handoff/geocore-stuck-job-elapsed.md`.
+       *    built - so it is handed over rather than patched: `docs/handoff-records.md#geocore-stuck-job-elapsed`.
        *    The check below does not fail on it; the release gate must not go red on a known gap in
        *    someone else's code, and the detail and the note are how it stays known.
        */
@@ -2682,7 +2682,7 @@ async function walk(url, scratch, dentalFixture) {
       check('r4 G7 a detector that has stopped reads as pending, not as a verdict, and the deck still works',
         stalled.held >= 1 && stillPending && stalled.startEnabled && stalled.removable === 2,
         `answers swallowed ${stalled.held}, rows ${JSON.stringify(stalled.lines)}, Start enabled ${stalled.startEnabled}, rows removable ${stalled.removable}, background work ${JSON.stringify(stalled.activity)}, cancels offered ${stalled.cancels}`);
-      if (stalled.activity.some((row) => /100%/.test(row))) note('r4 known gap: the stalled job still reads 100% with no elapsed time - docs/handoff/geocore-stuck-job-elapsed.md');
+      if (stalled.activity.some((row) => /100%/.test(row))) note('r4 known gap: the stalled job still reads 100% with no elapsed time - docs/handoff-records.md#geocore-stuck-job-elapsed');
       }
       /*
        * G5, THE REAL ONE: A LOCAL TIMEOUT WHILE THE FAR SIDE SUCCEEDED.

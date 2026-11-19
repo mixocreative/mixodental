@@ -6,7 +6,7 @@ import type { DetectState } from '../items/detectState';
  * WHETHER A CARD MAY BE AUTO-GENERATED, and when it may not, WHY - decided once, with no React and
  * no worker anywhere near it.
  *
- * THE POINT OF A SEPARATE MODULE (owner's ruling 3, `docs/design/2026-11-18-card-deck-plan.md`):
+ * THE POINT OF A SEPARATE MODULE (owner's ruling 3, `docs/design.md#2026-11-18-card-deck-plan`):
  * auto-gen is an independent pipeline in three layers - this, the pipeline that runs a model through
  * the stages, and the queue that drives them. The layers exist so the middle one can be tested
  * without a browser; this one exists so the question "is this card safe to generate unattended" has

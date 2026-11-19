@@ -65,7 +65,7 @@ describe('whose work is out of date', () => {
 
 describe('the one question the export gate asks', () => {
   /*
-   * FOUND BY AUDIT (`docs/reviews/2026-11-08-cia-deck-and-flow.md` F5). Export wrote supports planted
+   * FOUND BY AUDIT (`docs/reviews.md#2026-11-08-cia-deck-and-flow` F5). Export wrote supports planted
    * before the model was turned, with no refusal: the only warning was a status line that the next
    * message replaced. The signal existed the whole time - this is it, named and consulted.
    */

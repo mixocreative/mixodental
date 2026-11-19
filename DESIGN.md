@@ -14,7 +14,7 @@ link is where the project is recorded.
 
 Token source of truth is `src/styles/theme.css` over `src/styles.css`; every token is documented in
 `docs/ui-styling.md` and `src/ui/uiStylingDoc.test.ts` fails if one is not. Screen structure, the step
-flow and the command registry are in `docs/design/ui-structure.md`. Upload with
+flow and the command registry are in `docs/design.md#ui-structure`. Upload with
 `stitch upload design DESIGN.md` only after the owner approves the project, and **never upload a captured
 screen that shows a patient scan** — capture the public fixture or the screens gallery instead.
 

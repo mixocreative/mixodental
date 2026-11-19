@@ -2,7 +2,7 @@
  * THE BENCH: the app with no mode in hand.
  *
  * It had no name. In code it is `mode: 'off'`, which says what it is NOT; in
- * docs/design/ui-structure.md it was "No mode (setup)", which says when you are first there and not
+ * docs/design.md#ui-structure it was "No mode (setup)", which says when you are first there and not
  * that you come back. So the one scene an operator sees most could only be referred to by negation,
  * and the question "what is the screen after the last step called?" had no answer.
  *
@@ -62,8 +62,8 @@ export interface BenchRegionSpec {
 }
 
 /**
- * The bench, region by region (docs/design/ui-styling.md, and the wireframe in
- * docs/design/ui-structure.md 2.3). This is the whole scene: there is no overlay, badge, veil or bar
+ * The bench, region by region (docs/ui-styling.md, and the wireframe in
+ * docs/design.md#ui-structure 2.3). This is the whole scene: there is no overlay, badge, veil or bar
  * that belongs to the bench alone.
  */
 export const BENCH_REGIONS: readonly BenchRegionSpec[] = [

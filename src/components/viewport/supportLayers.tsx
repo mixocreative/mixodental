@@ -239,7 +239,7 @@ export function useDoomed(unit: PrintUnit, contacts: readonly SupportContact[], 
 }
 
 /**
- * The altered mark (docs/design/ui-structure.md 11.2 rule 7): a small ring flat on the surface
+ * The altered mark (docs/design.md#ui-structure 11.2 rule 7): a small ring flat on the surface
  * around the tip of each support with settings of its own, in the ink grey. A shape and no new
  * hue, so it reads in grey scale and stays beside the selected red. One draw call for all of them.
  */

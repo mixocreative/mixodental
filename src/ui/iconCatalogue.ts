@@ -91,7 +91,7 @@ export const ICON_CATALOGUE: IconEntry[] = [
   /*
    * DRAWN AND WAITING ON THE ENGINE. `DentalKind` is `'aligner' | 'denture'` in the vendored engine and
    * the profiles behind each kind are generated from Rust JSON that is not in this repo, so a new item
-   * type cannot be added from here at all - see `docs/handoff/geocore-item-kinds.md` for what each of
+   * type cannot be added from here at all - see `docs/handoff-records.md#geocore-item-kinds` for what each of
    * these needs. The art exists so that when the kinds land they do not also need drawing, and the
    * style book marks all three unused so nobody draws a second one.
    */

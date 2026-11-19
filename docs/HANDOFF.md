@@ -26,7 +26,7 @@ walk alone: **ALL PASS (186 checks, 1941 s)**, zero FAIL lines, exit 0. 186 is e
 Local runs 1636 and skips 1; CI runs 1627 and skips 10, and the extra 9 are the real-scan tests that
 need the owner's git-ignored scans — which is why `gate:real` (13 scans, 218 s) only exists here.
 
-**The thing worth keeping from this is not the deploy.** `docs/handoff/human-test-2026-11-11.md` told
+**The thing worth keeping from this is not the deploy.** `docs/handoff-records.md#human-test-2026-11-11` told
 a reviewer the site was `50e25f8`, and it had moved off that twice since — once to `8e88275`, then to
 `dfd6e15` at 02:46 on 2026-11-14 — so a human UI review would have been run against a build nobody
 meant to review, and nothing in the repo would have said so. **A review of the wrong build is worse
@@ -167,7 +167,7 @@ Four commits: `b9fd6f7` the vendor bump and every site `tsc` named, `6e6dc7c` th
 type system could not catch, `03ee898` the inline-job freeze notice, `2139793` the ja and zh-Hant
 strings plus the re-cut Japanese face.
 
-**Section 3b of `docs/design/2026-11-12-three-repo-refactor-plan.md` is closed there, with what the
+**Section 3b of `docs/design.md#2026-11-12-three-repo-refactor-plan` is closed there, with what the
 plan got wrong**: it predicted five compile sites and there were eight. The two it missed matter -
 `JobRow.inline` became required AND **nothing in the app read it**, so a job with no Web Worker
 froze the window for ~8 s with no sentence saying so (GEO-012). A type-error list could not have
@@ -214,7 +214,7 @@ The required router probe was attempted at session start but returned no provide
 
 ## Continuity protocol
 
-After every implementation task, record: the completed requirement; changed files; exact commands and results; `git status --short`; adopted Blender behavior; risks or failures; and exactly one next executable step. A successor must first read this file, `docs/superpowers/specs/2026-10-20-web-resin-support-parity-design.md`, the active implementation plan, and current Git status.
+After every implementation task, record: the completed requirement; changed files; exact commands and results; `git status --short`; adopted Blender behavior; risks or failures; and exactly one next executable step. A successor must first read this file, `docs/superpowers.md#2026-10-20-web-resin-support-parity-design`, the active implementation plan, and current Git status.
 
 ## Completed task log
 - Task 2 models the complete live Blender support settings and Light/Middle/Heavy presets (Task 1 third-review follow-up committed separately as `a00e520`).
@@ -252,7 +252,7 @@ reason beside the number.
 the others vendor from it, mixoDental last because its push is the Pages deploy: geocore `f00fe23`,
 mixo-app-style `fc11115`, mixoMesh `e67d09e`, mixoDental `eb9c69b`. Each verified by fetch at
 0 ahead / 0 behind. **Pushing geocore fires the engine-64 re-vendor trigger**, so that re-vendor
-(section 3b of `docs/design/2026-11-12-three-repo-refactor-plan.md`) is the next change here.
+(section 3b of `docs/design.md#2026-11-12-three-repo-refactor-plan`) is the next change here.
 
 **A CORRECTION I OWE THE OWNER: pushing `main` is NOT the deploy, and I said it was.**
 `.github/workflows/ci.yml` starts on `milestone-*` tags and `workflow_dispatch` only - "Every
@@ -270,7 +270,7 @@ Six commits on `main`, `b587bda`..`ddc0965`. The standing goal was: no defect le
 workflow gap, and any decision I could not make taken by Fable rather than put to the owner.
 
 **Every open mixoDental finding is closed.** MIXO-08, 09, 12, 14 and 15, plus one new S22 finding
-found on the way. The detail lives in `docs/reviews/2026-11-11-cia-audit.md` under "Fixed after the report, in the
+found on the way. The detail lives in `docs/reviews.md#2026-11-11-cia-audit` under "Fixed after the report, in the
 `/goal` sweep"; what matters here is what changed and what to watch.
 
 - **`b587bda` MIXO-15** - vite 6 + vitest 5. `npm audit` **4 -> 0**, including both criticals
@@ -323,7 +323,7 @@ with `git grep -cF` and a fixed string.
 **geocore** (`S:\ai\mixo-geocore`, `f00fe23`, 13 ahead of `origin/main`): all 15 remaining findings
 closed, GEO-002 through GEO-016, and `crates/geometry-core/src/lib.rs:27` now asserts
 `engine_version() == 64`. mixoDental stays on 63 - section 3b of
-`docs/design/2026-11-12-three-repo-refactor-plan.md` carries that decision, its trigger (geocore
+`docs/design.md#2026-11-12-three-repo-refactor-plan` carries that decision, its trigger (geocore
 being pushed), the five compile fixes the re-vendor needs, the one silent change `tsc` will not
 catch, and the denture residual left open.
 
@@ -396,7 +396,7 @@ untouched.
 
 ## Previous completed step (Phase 0 of the three-repo plan - 2026-11-12)
 
-The owner approved **Phase 0 only** of `docs/design/2026-11-12-three-repo-refactor-plan.md`: the work
+The owner approved **Phase 0 only** of `docs/design.md#2026-11-12-three-repo-refactor-plan`: the work
 that needs no engine release and no vendor step. (**That file is no longer a phased plan.** After
 four EGM reviews it became a decision record plus seven fixes in order, and Phases 1–5 were dropped;
 Phase 0 survives there as section 5, a record of what shipped.) mixoDental's share was four cross-takes from the
@@ -498,7 +498,7 @@ screen, which is placeholder by design.
 
 ## Previous completed step (the audit's three mechanical fixes - 2026-11-12)
 
-> The three findings from `docs/reviews/2026-11-11-cia-audit.md` that needed no decision from the owner, each its own
+> The three findings from `docs/reviews.md#2026-11-11-cia-audit` that needed no decision from the owner, each its own
 > commit with its guard watched to fail first.
 >
 > **The gate after them:** tsc 0, `npm test` 0 (**219 files, 1603 passed / 1 skipped** - the three
@@ -560,7 +560,7 @@ screen, which is placeholder by design.
 ## Previous completed step (the overnight integrity audit - 2026-11-11)
 
 > A whole-repository `/cia` audit of `41f8d7f`, run unattended while the owner slept. The report is
-> **`docs/reviews/2026-11-11-cia-audit.md`** at the root; the evidence it cites is committed under
+> **`docs/reviews.md#2026-11-11-cia-audit`** at the root; the evidence it cites is committed under
 > `artefacts/2026-11-11-screen/`.
 >
 > **The gate ran whole on this commit, which is the first time since `1b3b178`:** tsc 0,
@@ -681,7 +681,7 @@ levers closed that, and all four then ran in **44 seconds** (`npm run walk -- --
 | **W-11** HIGH | The export's file loop is the one place it commits more than once, and it denied doing so: the first file was in the operator's downloads while the app said *"Nothing was saved; try again"* - which would have written that file a second time. `exportRefusalText.ts` became `exportOutcomeText.ts`, because a refusal is decided before anything is written and a partial write is the opposite event. `f6daa93` |
 | **W-12** MEDIUM | The background-work list is rendered inside the viewport, which is not rendered while a start screen is up - so on the DECK, where the longest background work in the app runs, the screen that remembers failures did not exist. W-05 and W-07 were both fixed onto that list. `873b923` |
 | **W-13** MEDIUM | Which W-12's fix then revealed: `failureText` defaulted an unknown context to `build`, so a failed orientation check read *"generate again to rebuild the supports"* for a deck row with no supports. `analysisJobVocabulary.ts`, total by type. `873b923` |
-| **W-14** LOW | A job stuck for ever reads `Aligner oriented · 100%` with no elapsed time. `showElapsed` exists and is wired to `state === 'indeterminate'`, the one state such a job cannot be in - a live control that cannot fire for its own failure. **Vendored geocore**, handed over: `docs/handoff/geocore-stuck-job-elapsed.md` |
+| **W-14** LOW | A job stuck for ever reads `Aligner oriented · 100%` with no elapsed time. `showElapsed` exists and is wired to `state === 'indeterminate'`, the one state such a job cannot be in - a live control that cannot fire for its own failure. **Vendored geocore**, handed over: `docs/handoff-records.md#geocore-stuck-job-elapsed` |
 | **W-15** MEDIUM | `npm run wasm:test` asserted `engineVersion() === 14` against an engine at 63, so the gate named for every vendor bump had been exiting on line one since engine 15. It compares against `HOST_GEOMETRY_VERSION` now and prints what it verified. `c715de8` |
 
 **Two new verified controls:** two orients in flight cannot cross (job-id registry, keyed slots, the
@@ -726,7 +726,7 @@ either, and they were cut before they were written.
 The wiring walk's gap register was all `READ`, which by that doctrine's own rule made it a code
 review rather than an audit. **G2 (replay) and G4 (two actors on one scarce resource) now RUN** -
 through the front door, in headless Chromium, against the real app. Ledger:
-`docs/reviews/2026-11-09-wiring-walk-dental-flow.md` §6. Logs and the run's identity (HEAD, node,
+`docs/reviews.md#2026-11-09-wiring-walk-dental-flow` §6. Logs and the run's identity (HEAD, node,
 playwright, the fixture's sha256 and triangle count): `artefacts/2026-11-09-screen/`.
 
 - **Harness:** `scripts/walk.mjs` section `q`, six probes, `npm run walk -- --only=q`, ~8 min. The
@@ -809,8 +809,8 @@ playwright, the fixture's sha256 and triangle count): `artefacts/2026-11-09-scre
 ## Previous completed step (the CIA audit and its fixes - 2026-11-09)
 
 A scoped Screen-tier `cia` audit of the deck -> flow -> deck journeys, after two EGM document reviews
-missed the class. Ledgers: `docs/reviews/2026-11-08-cia-deck-and-flow.md` (sweeps) and
-`docs/reviews/2026-11-09-wiring-walk-dental-flow.md` (the wiring walk).
+missed the class. Ledgers: `docs/reviews.md#2026-11-08-cia-deck-and-flow` (sweeps) and
+`docs/reviews.md#2026-11-09-wiring-walk-dental-flow` (the wiring walk).
 
 | commit | what landed |
 |---|---|
@@ -869,7 +869,7 @@ authoritative over the code. **CGC's queries are MCP-only, so they come online i
 
 ## Previous completed step (E0-E3a of dissolving the step machine - 2026-11-08)
 
-Route: `docs/design/2026-11-07-import-and-items-flow.md` §10. Pushed, each gated:
+Route: `docs/design.md#2026-11-07-import-and-items-flow` §10. Pushed, each gated:
 
 | step | commit | what landed |
 |---|---|---|
@@ -904,7 +904,7 @@ whole purpose.
 
 ## Previous completed step (E0 of dissolving the step machine — 2026-11-08)
 
-The owner approved dissolving `dentalStage`. The route is `docs/design/2026-11-07-import-and-items-flow.md`
+The owner approved dissolving `dentalStage`. The route is `docs/design.md#2026-11-07-import-and-items-flow`
 §10: ten increments E0–E9, each leaving the app working, with the two that cannot be split named.
 
 **The ruling that unblocked it:** the Step-3 confirm-and-discard guard does not belong to navigation
@@ -1018,7 +1018,7 @@ extracting; if the counts are close, it is a hub and moving it is motion rather 
   and `src/state/revisions.ts` (staleness) — because `src/state/project.ts` stamps revisions and must
   not import the view; `src/deckBoundary.test.ts` keeps that one-way. Full reasoning lives in
   `src/items/README.md` and `src/deck/README.md`; the design and what it got wrong are in
-  `docs/design/2026-11-07-import-and-items-flow.md`.
+  `docs/design.md#2026-11-07-import-and-items-flow`.
 - **Commits:** `6dcc062` (A), `091046d` (B), `42b1a58` (C), `75d86d6` (D core), `1609589` (D rail),
   `88977a3` (D mount + review fixes), `b028d91` (D stamp), `b2a9f9b` (graph).
 - **Results:** `tsc` 0 · 1492 tests · `npm run build` 0 · **real-scan gate PASS (13 scans, no
@@ -1046,7 +1046,7 @@ extracting; if the counts are close, it is a hub and moving it is motion rather 
   confirmation and hand-work discard, which live in the command handler rather than the reducer.
   Deleted; `src/deck/README.md` keeps the reasons so nobody rebuilds it the same way.
 - **Reviewed, then repaired (2026-11-08).** Three EGM reviews ran in parallel on the deck work before
-  any of it was committed; `docs/reviews/2026-11-08-egm-deck-rail.md` is the ledger of every finding
+  any of it was committed; `docs/reviews.md#2026-11-08-egm-deck-rail` is the ledger of every finding
   and where its answer lives. The headline: `toolEntry.ts` was deleted outright (unreachable, wrong
   for a denture, and it bypassed the Step-3 guard), three stamping defects were fixed, `oriented` was
   reading backwards off a drawn rim, and the directory cycle between `src/state/` and `src/deck/` was

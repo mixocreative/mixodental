@@ -18,7 +18,7 @@
  * `dentureResolvable`, `dentalStage` and the rest. Three structures in (the active unit, the
  * session, the denture state), a handful of scalars out: narrower out than in, pure, and testable
  * with no framework. Take it after the engine-65 work lands (sections 3c/3d of
- * docs/design/2026-11-12-three-repo-refactor-plan.md) - cutting the shell while the engine moves
+ * docs/design.md#2026-11-12-three-repo-refactor-plan) - cutting the shell while the engine moves
  * underneath it produces a diff nobody can review.
  */
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';

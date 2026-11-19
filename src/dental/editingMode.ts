@@ -670,7 +670,7 @@ registerCommands({
      * fact before they press it: `seedRimDraft` hands them detection's own loop as anchors, but the
      * moment they finish, the rim is rebuilt from their curve and its plane is theirs - measured at
      * 5.60 degrees from detection's axis on the reference aligner, masks agreeing in 8,919 of 9,216
-     * cells (`docs/handoff/geocore-rim-from-points.md`). Small, and not nothing, so it is said rather
+     * cells (`docs/handoff-records.md#geocore-rim-from-points`). Small, and not nothing, so it is said rather
      * than discovered.
      */
     label: (s) => (s.dentalProposed ? 'Redraw the rim' : 'Draw the rim'),

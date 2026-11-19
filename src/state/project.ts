@@ -268,7 +268,7 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
          * print-angle tilt, the denture's accept - arrives at this command, so none of them can
          * forget. Before this, a turn only STAMPED the supports as dated and the export refused at
          * the very end, so an operator could work for minutes on supports belonging to a pose that
-         * no longer existed. Owner's ruling, `docs/design/2026-11-18-card-deck-plan.md` ruling 1.
+         * no longer existed. Owner's ruling, `docs/design.md#2026-11-18-card-deck-plan` ruling 1.
          *
          * `reorients` SPARES A SPIN about the plate's vertical, which leaves the build valid and is
          * proved so on a real scan - see `src/state/rotation.ts` for why that exception exists and

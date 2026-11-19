@@ -3,7 +3,7 @@ import { t } from '../i18n';
 import { CommandButton } from './CommandButton';
 
 /**
- * The first row of the right panel, live in every mode (docs/design/ui-structure.md 11.2 rule 5):
+ * The first row of the right panel, live in every mode (docs/design.md#ui-structure 11.2 rule 5):
  * how many of the supports in scope follow the defaults, and how many have settings of their own,
  * with the action that selects those.
  */

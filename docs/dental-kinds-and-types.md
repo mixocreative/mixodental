@@ -48,7 +48,7 @@ so a new type appears in the UI with no code change except its drawing.
 ## After vendoring a new CATEGORY
 
 Everything above, plus: the step flows, the tool order and the denture-specific steps each read the
-kind directly — roughly thirteen files. `docs/handoff/geocore-item-kinds.md` holds the standing
+kind directly — roughly thirteen files. `docs/handoff-records.md#geocore-item-kinds` holds the standing
 request for **dental model**, **night guard** and **retainer**, with what each one needs; the art for
 the last two is already drawn and marked `unwired` in `iconCatalogue.ts`.
 

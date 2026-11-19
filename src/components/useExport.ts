@@ -83,7 +83,7 @@ export function useExport(host: {
      * `revisions` already knew. `transform/set` stamps `orient` when the ROTATION changed and only
      * then; `supports/set` stamps `supports`; so `staleTools` reports `supports` stale in exactly this
      * case. Before this, the rail's grey "stale" mark was that signal's only consumer - and the rail
-     * lives on the deck, where nothing is exported (found by audit, `docs/reviews/2026-11-08-cia-deck-and-flow.md` F5).
+     * lives on the deck, where nothing is exported (found by audit, `docs/reviews.md#2026-11-08-cia-deck-and-flow` F5).
      *
      * Refused rather than confirmed, and BEFORE the job rather than after: a full-resolution export of
      * supports that cannot hold is work the operator waits for and must then throw away.

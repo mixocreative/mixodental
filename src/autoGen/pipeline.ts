@@ -16,7 +16,7 @@ import type { SupportRecipe } from '../recipes/supportRecipe';
 /**
  * ONE ALIGNER THROUGH THE WHOLE DENTAL FLOW, WITH NOBODY WATCHING - no React, no screens, no refs.
  *
- * WHAT THIS IS FOR (owner's ruling 2, `docs/design/2026-11-18-card-deck-plan.md`): the deck's
+ * WHAT THIS IS FOR (owner's ruling 2, `docs/design.md#2026-11-18-card-deck-plan`): the deck's
  * Auto-gen must leave a model in STEP 3'S OWN STATE, so Support Edit Mode works on it unchanged and
  * nothing in the editor can tell who got it there. That is a statement about the END state, and the
  * only way to be sure of it is to take the same steps in the same order with the same decisions.

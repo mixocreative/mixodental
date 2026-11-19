@@ -288,7 +288,7 @@ The reference profile has `tiltDeg` 46.4577512332, `headingDeg` 2.9376675175 and
 
 ## Earlier methods (reference only)
 
-The first `lower-edge-loop` and ray method found a tiny ridge, not the full trim. A later probe found the largest smooth opening-facing patch, which reached tooth-height surfaces (`scripts/probe-dental-edges.ts`). Using the full opening-facing group as the support mask gave 397 tips on one run and overpainted areas above the trim. None of these grant contact permission now. The old images and explanation are in [docs/dental-reference](../docs/dental-reference/README.md).
+The first `lower-edge-loop` and ray method found a tiny ridge, not the full trim. A later probe found the largest smooth opening-facing patch, which reached tooth-height surfaces (`scripts/probe-dental-edges.ts`). Using the full opening-facing group as the support mask gave 397 tips on one run and overpainted areas above the trim. None of these grant contact permission now. The old images and explanation are in [docs/dental-reference](../docs/dental-reference.md#README).
 
 ## To rebuild this in another language
 

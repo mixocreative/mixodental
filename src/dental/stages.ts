@@ -21,7 +21,7 @@ import type { LiveSupportSettings } from '@mixo-geocore/host/core/supports/setti
  * THE DENTAL FLOW'S STAGES, AS PLAIN FUNCTIONS. No React, no worker client, no refs.
  *
  * WHY THIS FILE EXISTS, and it is not tidiness. The deck is getting a queue that generates supports
- * without the step screens (`docs/design/2026-11-18-card-deck-plan.md`). The danger in that is not
+ * without the step screens (`docs/design.md#2026-11-18-card-deck-plan`). The danger in that is not
  * where the code sits - it is the queue RE-IMPLEMENTING what the step flow does when it builds each
  * stage's options. Two implementations of one decision drift, and the symptom is the worst this app
  * has: **auto-gen quietly making different supports from the editor, for the same model.**

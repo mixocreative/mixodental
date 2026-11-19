@@ -76,7 +76,7 @@ engine change or vendor bump.
 Geometry belongs in the Rust core; the host only hosts it. `vendor/mixo-geocore` is consumed **as
 built** and hashed by `npm run vendor:check`, so a gap there is **a handoff document, never an edit**.
 
-1. Write `docs/handoff/geocore-<thing>.md`. Use `docs/handoff/geocore-region-from-drawn-rim.md` as the
+1. Write `docs/handoff/geocore-<thing>.md`. Use `docs/handoff-records.md#geocore-region-from-drawn-rim` as the
    model: state the gap as the operator meets it, why the host cannot close it, and the exact signature
    you want.
 2. Add the symbol to `AWAITED` in `src/vendorCapabilities.test.ts`. That test **fails when the symbol

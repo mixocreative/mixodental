@@ -11,7 +11,7 @@ sees most, and until this module it was the only one with no name.
 ## Why it needed a name
 
 It could only be referred to by negation. In code it is `mode: 'off'` — what it is *not*. In
-`docs/design/ui-structure.md` it was "No mode (setup)", which describes arriving there the first time
+`docs/design.md#ui-structure` it was "No mode (setup)", which describes arriving there the first time
 and implies you never come back. So the question **"what do you call the screen after the last
 step?"** had no answer, and the honest answer — *the same screen you started on* — was not sayable.
 

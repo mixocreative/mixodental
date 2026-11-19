@@ -16,7 +16,7 @@ import type { SurfaceAnchor, SurfacePath } from '../../core/surfacePath/path';
  * detected one, and that is measured, not feared: feeding the reference aligner's OWN detected loop
  * back through `dental_rim_from_points` returns an axis **5.60 degrees** from detection's, because
  * detection's axis is the shell's least-variance axis and a drawn rim's is the plane of the loop it
- * traced (`docs/handoff/geocore-rim-from-points.md`, delivered engine 61). The masks agree in 8,919
+ * traced (`docs/handoff-records.md#geocore-rim-from-points`, delivered engine 61). The masks agree in 8,919
  * of 9,216 cells. So this is not a lossless edit of the detected rim - it REPLACES it with a hand
  * one whose support area sits slightly differently, and the command's own words say that before the
  * operator commits to it.

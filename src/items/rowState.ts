@@ -18,7 +18,7 @@
  * fail to parse, or be refused by a capacity guard, before any mesh exists. So the input is a union,
  * and each entry point is separate rather than one function taking an optional everything.
  *
- * WHY THE SETS ARE WHAT THEY ARE (docs/design/2026-11-07-import-and-items-flow.md section 3):
+ * WHY THE SETS ARE WHAT THEY ARE (docs/design.md#2026-11-07-import-and-items-flow section 3):
  *
  *   - `watertight` means every body closed. It is NOT the same as "no holes": a mesh with
  *     non-manifold edges and no open rim at all is not watertight, and `scripts/measure-rim-loops.mjs`

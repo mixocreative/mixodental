@@ -88,7 +88,7 @@ export function useBatchDetect({ units, purposes, analysis, unitName }: {
      *
      * A denture is oriented by its OWN step (`src/denture/steps/orient`), on open. So the honest
      * thing is not to run, and to let the row say it needs the operator - which is what it does.
-     * Making the batch per-purpose is step 1 of `docs/design/2026-11-17-flow-map.md` §12.
+     * Making the batch per-purpose is step 1 of `docs/design.md#2026-11-17-flow-map` §12.
      */
     const pending = units.filter((unit) => !started.current.has(unit.id)
       && purposes.has(unit.id) && !isDentureJob(purposes.get(unit.id)));

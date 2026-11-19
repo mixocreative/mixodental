@@ -88,7 +88,7 @@ is why the table below is the fastest way to find where a behaviour lives.
 **A refusal that reaches only the status line has not reached the operator.** The status line holds
 one message and the next thing to happen replaces it, so "nothing was written" can be erased by a
 cheerful sentence about something else before anyone reads it. Both halves of that defect were
-reproduced by fault injection on 2026-11-09 (`docs/reviews/2026-11-09-wiring-walk-dental-flow.md`
+reproduced by fault injection on 2026-11-09 (`docs/reviews.md#2026-11-09-wiring-walk-dental-flow`
 §6, walk checks `q1`/`q2`): two files dropped together, the plate ledger correctly refused the
 second, and the winner's own heavy-model sentence then took the line.
 
@@ -109,7 +109,7 @@ inside its show delay, so it is the screen that remembers.
 `useImportFiles` refuses a file from the header's **estimate** before anything is parsed, and again
 from the triangles actually **read**. The first pass is a guess: an STL header can lie, and a glTF's
 estimate may not be readable at all. So a cap enforced only on the estimate is a cap the real file
-walks past — and the 2026-11-11 audit found exactly that (`docs/reviews/2026-11-11-cia-audit.md` MIXO-01): the
+walks past — and the 2026-11-11 audit found exactly that (`docs/reviews.md#2026-11-11-cia-audit` MIXO-01): the
 triangle and plate caps were re-checked after the read, the **memory** cap was not.
 
 The rule now has a guard rather than a habit. `importCapacity.test.ts` reads the source and fails if
@@ -199,7 +199,7 @@ Not everything that should be here is. `App.tsx` still holds, as named debt:
   and the start screen. Its one rule is E4's: Rim on a row the detector flagged `no-rim` goes to rim
   drawing rather than back through a detection (`src/deck/README.md`). When the workspace replaces
   the deck, this is what `openTool(tool, unitId)` takes over
-  (`docs/design/2026-11-07-import-and-items-flow.md` §10).
+  (`docs/design.md#2026-11-07-import-and-items-flow` §10).
 - **Two invariant effects about units leaving**, and they are here because they need the SCENE and
   the SESSION together, which is what the composition root has:
   - closing the last model returns to the start and leaves any step;

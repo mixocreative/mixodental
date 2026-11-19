@@ -77,7 +77,7 @@ traced loop.
 already failed: `dental_tilt_scan` → `orientation-no-trim`, `propose_dental_region` →
 `orientation-no-trim`. And the pose maths, `dental_pose`, exists only in the test build — it is absent
 from the browser build the app runs. So this is an engine ask, not a host change:
-[`docs/handoff/geocore-orient-from-drawn-rim.md`](../docs/handoff/geocore-orient-from-drawn-rim.md).
+[`docs/handoff-records.md#geocore-orient-from-drawn-rim`](../docs/handoff-records.md#geocore-orient-from-drawn-rim).
 
 **Recommendation — and a correction to the owner's framing.** The owner suggested the rim should come
 FIRST for everyone, then auto-detect, then manual. I recommend against reordering: detection already

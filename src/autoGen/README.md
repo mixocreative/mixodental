@@ -4,7 +4,7 @@ The deck's Auto-gen: one aligner taken through Steps 1 to 3 without the step scr
 thirty files does not have to be walked one at a time.
 
 The owner's rulings this folder exists to obey are recorded in
-[`docs/design/2026-11-18-card-deck-plan.md`](../../docs/design/2026-11-18-card-deck-plan.md). Two of
+[`docs/design.md#2026-11-18-card-deck-plan`](../../docs/design.md#2026-11-18-card-deck-plan). Two of
 them shape every file here:
 
 - **Ruling 2 — the model must land in Step 3's own state**, so Support Edit Mode works on it

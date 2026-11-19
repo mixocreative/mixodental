@@ -229,8 +229,8 @@ A state column is a claim about risk, so it is the one cell that must never be l
 ## Reference material (detail only; do not track progress there)
 
 - Architecture: `dentalwork/wasm-geometry-design.md` (its ABI section links to the ABI table above and does not repeat it)
-- Safety design: `docs/superpowers/specs/2026-10-26-support-ship-gates-design.md`
-- Dental contour design: `docs/superpowers/specs/2026-10-25-dental-contour-contacts.md`
-- Superseded task lists: `docs/superpowers/plans/2026-10-27-wasm-geometry-migration.md`, `2026-10-26-support-ship-gates.md`, `2026-10-25-dental-contour-contacts.md`, `2026-10-24-dental-rework.md`
+- Safety design: `docs/superpowers.md#2026-10-26-support-ship-gates-design`
+- Dental contour design: `docs/superpowers.md#specs-2026-10-25-dental-contour-contacts`
+- Superseded task lists: `docs/superpowers.md#2026-10-27-wasm-geometry-migration`, `2026-10-26-support-ship-gates.md`, `2026-10-25-dental-contour-contacts.md`, `2026-10-24-dental-rework.md`
 - Algorithms: `dentalwork/technical-algorithm.md`, `dentalwork/support-module-boundaries.md`
 - Evidence log: `docs/dental-rework-handoff.md`

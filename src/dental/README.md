@@ -63,5 +63,5 @@ and the pointer handling in `UnitObject.tsx`. The drawing itself is scene state 
 unit, set by the `rim/set` and `rim/clear` commands in `src/state/project.ts` — so the app's ordinary
 history undoes each edit, and one drag is one entry.
 
-Design notes: `docs/design/2026-11-05-rim-define-mode.md` and
-`docs/design/2026-11-05-back-out-one-level.md`.
+Design notes: `docs/design.md#2026-11-05-rim-define-mode` and
+`docs/design.md#2026-11-05-back-out-one-level`.

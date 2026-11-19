@@ -3,7 +3,7 @@
 /**
  * WHAT A TURN DOES TO THE SUPPORTS ALREADY BUILT - the one rule, in one place.
  *
- * The owner's ruling (`docs/design/2026-11-18-card-deck-plan.md`, ruling 1): re-orienting clears
+ * The owner's ruling (`docs/design.md#2026-11-18-card-deck-plan`, ruling 1): re-orienting clears
  * supports, because supports are planted for ONE pose against gravity and a model that has been
  * turned is a different print. Industry standard, and it also deletes a defect class - the hand
  * edits keyed to those supports' positions go with them, visibly, so nothing is left to re-key in

@@ -53,6 +53,6 @@ Layer colors in the GLB (set by Rust, `dental/review.rs`): blue is the two stron
 ## Other material
 
 - Decisions and evidence log: [docs/dental-rework-handoff.md](../docs/dental-rework-handoff.md).
-- The approved neutral reference STL, its face labels and the screenshots of the earlier methods: [docs/dental-reference](../docs/dental-reference/README.md).
-- Design notes kept as reference: [contour-contact design](../docs/superpowers/specs/2026-10-25-dental-contour-contacts.md) and [support ship-gates design](../docs/superpowers/specs/2026-10-26-support-ship-gates-design.md). Their task lists are superseded by the ship plan.
+- The approved neutral reference STL, its face labels and the screenshots of the earlier methods: [docs/dental-reference](../docs/dental-reference.md#README).
+- Design notes kept as reference: [contour-contact design](../docs/superpowers.md#specs-2026-10-25-dental-contour-contacts) and [support ship-gates design](../docs/superpowers.md#2026-10-26-support-ship-gates-design). Their task lists are superseded by the ship plan.
 - Performance numbers: [perf-baseline.json](perf-baseline.json) (the pre-port baseline; its brush and pick columns mix a TypeScript oracle and the Rust path, see the note in the technical algorithm) and the table in [the technical algorithm](technical-algorithm.md#performance).

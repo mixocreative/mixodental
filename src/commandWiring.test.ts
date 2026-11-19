@@ -27,7 +27,7 @@ const SOURCES = import.meta.glob<string>(['./App.tsx'], { query: '?raw', import:
  */
 const UNWIRED: Partial<Record<CommandId, string>> = {
   // Rim define mode's drawing is not built yet: there is no viewport overlay to place or move an anchor
-  // on, and no geocore call to turn a drawn loop into a rim (docs/handoff/geocore-rim-from-points.md).
+  // on, and no geocore call to turn a drawn loop into a rim (docs/handoff-records.md#geocore-rim-from-points).
   // The dock and its refusals are real; these five are the part still waiting on the engine.
 };
 

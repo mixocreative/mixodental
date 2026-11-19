@@ -7,7 +7,7 @@ import { sceneSave } from './rescue';
  *
  * Until the 2026-11-11 audit it had none. A browser with no WebGL2 pressed one button and got a
  * blank white page - `#root` with zero children and zero text - while two uncaught
- * "Error creating WebGL context." sat in a console no operator opens (`docs/reviews/2026-11-11-cia-audit.md`
+ * "Error creating WebGL context." sat in a console no operator opens (`docs/reviews.md#2026-11-11-cia-audit`
  * MIXO-04, proved by `artefacts/2026-11-11-screen/probe-nogl.mjs`, whose control pass is what makes
  * the blank one evidence). `grep` for `componentDidCatch`, `ErrorBoundary`, `window.onerror` over
  * `src/` returned nothing at all, and React unmounts the WHOLE tree on an uncaught render error -
@@ -65,7 +65,7 @@ const SENTENCE: Record<Exclude<StopReason, 'crash'>, string> = {
  *
  * `saveable` IS THE WORDING THAT ALREADY SHIPPED, deliberately unchanged. The register of these
  * sentences is the owner's (the note at the top of this file, and
- * `docs/handoff/human-test-2026-11-11.md` §5, which carries the alternates); this fix is the
+ * `docs/handoff-records.md#human-test-2026-11-11` §5, which carries the alternates); this fix is the
  * condition, not the voice, and the split is what makes the old words correct again rather than
  * merely approved. `empty` is the one new sentence, and it says why there is no Save button beside
  * it - an absent control that is never explained is the same defect one storey down.

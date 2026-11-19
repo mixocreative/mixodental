@@ -1,54 +1,75 @@
 # docs/ — the map
 
-Seventy-odd files, so this is the map rather than a list to read through. The rule the folder works
-by: **a document says when it was written and what it decided.** Dated files are a record of a
-moment and are not edited to match later reality — they are superseded by a newer dated file, or
-corrected in place with the correction marked, so a reader can tell what was believed when.
+**Fifteen documents at this level, and six of them are records of everything this project has
+written.** On 2026-11-19 the owner's instruction was that dated files be gathered into one record
+per kind, so a folder stops growing a file per day: 71 documents became 6 records, and four folders
+(`design/`, `reviews/`, `handoff/`, `superpowers/`) no longer exist.
+
+The rule the folder works by has not changed: **a document says when it was written and what it
+decided.** Dated writing is a record of a moment and is not edited to match later reality — it is
+superseded by newer writing, or corrected in place with the correction marked, so a reader can tell
+what was believed when. What changed is only where those records live.
+
+## Living documents — a stale one is a defect
 
 | where | what is in it | read it when |
 |---|---|---|
 | `HANDOFF.md` | the running engineering handoff: what landed, what it cost, what is open | picking the work back up |
 | `SHIP-PLAN.md` · `ROADMAP.md` | the ordered plan, and the longer arc | deciding what is next |
-| `size-debt.md` | every file over ~600 lines with its next cut named, and which cuts are owed | before adding to a long file -- add at the seam |
-| `VERIFICATION.md` | a **dated record** (2026-10-20) of the generic flow's first browser smoke test, kept as history | reading what was proved then -- *not* what the gate proves now |
+| `size-debt.md` | every file over ~600 lines with its next cut named | before adding to a long file — add at the seam |
 | `designer-guide.md` · `ui-styling.md` | the UI vocabulary and the styling rules | touching anything the operator sees |
 | `BLENDER_PARITY.md` · `SLASG_NODE_LOGIC.md` | the external references the engine is checked against | changing geometry or placement |
+| `dental-kinds-and-types.md` | what an item kind is, and which profile answers for it | adding or changing a dental type |
 | `dental-rework-handoff.md` | the dental rework's own handoff | working the dental steps |
-| `design/` | dated design documents — one per decision, with the reasoning | before changing what a feature IS |
-| `handoff/` | dated handoffs and human-test notes | resuming, or preparing a hand-over |
-| `reviews/` | dated review and audit reports (`cia`, `egm`, wiring walks) | looking for what a review already found |
-| `migration/` | dated migration notes | moving data or formats |
-| `dental-reference/` | the clinical and print references the dental rules cite | questioning a dental number |
-| `superpowers/` | plans and specs from the superpowers workflow | archaeology on an older plan |
-| `images/` | figures the documents above reference | — |
+| `translation/` | how the Japanese and Taiwan Chinese strings get written, and the two traps that cost a day | the i18n guards are red |
+| `migration/glossary.md` | one term per concept per language, **checked by `src/glossary.test.ts`** | translating anything |
+| `migration/ui-spec.md` · `migration/release-*-backlog.md` | the UI specification and what is still owed | planning a release |
+
+## The records — copied whole, nothing reconciled
+
+Each holds its documents in date order under an anchor that **is the old filename**, so a reference
+in an old commit message, an audit log or another repo still finds its text by that name. Every one
+opens with a table of what is in it.
+
+| record | what it gathers | read it when |
+|---|---|---|
+| `design.md` | 11 design documents — one per decision, with the reasoning | before changing what a feature IS |
+| `reviews.md` | 20 reviews, audits and wiring walks (`cia`, `egm`, and the first browser verification) | looking for what a review already found |
+| `handoff-records.md` | 11 superseded handoffs, human-test notes, the operator and UI walkthroughs, and the packets handed to `mixo-geocore` | resuming, or preparing a hand-over |
+| `superpowers.md` | 21 paired plans and specs from October 2026 | archaeology on an older plan |
+| `dental-reference.md` | the clinical and print references the dental rules cite | questioning a dental number |
+| `migration/records.md` | the three dated migration notes | moving data or formats |
+
+`dental-reference/` survives as a folder of its own because it holds the images, the GLBs, the
+reference aligner and `face-labels.json`, which `scripts/dental-face-labels.ts` reads by path.
+`images/` holds the figures the documents above reference.
 
 ## Naming
 
-Dated documents are `YYYY-MM-DD-<subject>.md`, kebab-case, in the folder that matches their kind —
-`design/2026-11-12-three-repo-refactor-plan.md`, `reviews/2026-11-11-cia-audit.md`. Review reports
-carry the tool that produced them in the name (`cia`, `egm`, `wiring-walk`) because which instrument
-found something is part of how much weight it carries.
+A new record section is `YYYY-MM-DD` in the heading and the old-filename convention in its anchor:
+kebab-case, `<date>-<subject>`. Review sections carry the tool that produced them (`cia`, `egm`,
+`wiring-walk`) because which instrument found something is part of how much weight it carries.
 
-Undated files at the top level are **living** documents: they are kept current, and a stale one is a
-defect. The dated ones are the opposite, and correcting them in place without marking the correction
-is how a record stops being a record.
+**Adding to a record rather than making a file** is the point of the shape: append a section with
+its own anchor, newest at the end of its record, and leave every section above it alone.
 
 ## The code's own maps
 
 `docs/` is not the only map. Every folder past ~20 files carries its own README, closer to the code
 than anything here: `src/` (the entry, the copy modules, and the eleven architectural guards),
-`scripts/` (the gate's own steps), `scripts/test-support/`, and every folder under `src/`. Start
-there for "where is X"; come here for "why is X this way".
-`python ~/.claude/skills/cia/tools/maintainability.py S:/ai/mixodental` checks that a folder past
-the limit has one.
+`src/components/`, `src/components/viewport/` and `src/components/viewport/babylon/`, `src/supports/`,
+`src/deck/`, `scripts/` (the gate's own steps) and `scripts/test-support/`. Start there for "where is
+X"; come here for "why is X this way".
+`python ~/.claude/skills/cia/tools/maintainability.py S:/ai/mixodental` checks that a folder past the
+limit has one.
 
 ## One thing worth knowing before you trust a green run
 
-`VERIFICATION.md` has the detail, and it is worth the two minutes. The short version: the **gate**
-(`npm run gate`) proves the build and the engine's numbers; the **walk** (`npm run walk`) proves the
-workflow in a browser, and it is the only thing that exercises generate counts, because CI runs the
-walk in two shards that leave section `a` out. The gate now says so itself — its verdict reads
-`PASS (INCOMPLETE - the ship definition also requires walk, not run here)` when the walk has not
-run. **Both receipts together are the ship evidence; neither alone is.** On 2026-11-13 a vendor bump
-shipped and deployed with 92% of the automatic supports gone, under a receipt that read `PASS` on
-the same line as `NOT run: walk`.
+The **gate** (`npm run gate`) proves the build and the engine's numbers; the **walk**
+(`npm run walk`) proves the workflow in a browser, and it is the only thing that exercises generate
+counts. The gate says so itself — its verdict reads `PASS (INCOMPLETE - the ship definition also
+requires walk, not run here)` when the walk has not run. **Both receipts together are the ship
+evidence; neither alone is.** On 2026-11-13 a vendor bump shipped and deployed with 92% of the
+automatic supports gone, under a receipt that read `PASS` on the same line as `NOT run: walk`. The
+first browser verification of the generic flow, from 2026-10-20, is a record now and lives in
+`reviews.md`.
