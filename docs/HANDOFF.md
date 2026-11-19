@@ -33,19 +33,35 @@ re-derived — and that the replacement design had been removed from the deck an
 `mixomesh/port/mixosupports/toolrail/`. Asked what the project does next, neither review could find
 out. Hence `docs/PLAN.md` (`498c401`) and the two re-headed rulebooks (`e99b7b6`).
 
-**Two defects found by reading and not yet fixed:**
+**One defect found by reading, RETRACTED the same day by running it.** I claimed that opening a
+built denture destroys its supports, traced through `App.tsx:1391` → `useDentureOrient.ts:127` →
+`project.ts:258-287`, and wrote it into `PLAN.md`, this file and a commit message before driving it.
+**It does not reproduce.** In a real browser on the local denture fixture, twice — once pressing Next
+on the automatic pick, once after moving the dial from 8° to 16° so the stored pose genuinely
+differed from a fresh scan's pick (`[-3.108, 0.038, -3.112]` → `[3.036, 0.038, -3.112]`) — the
+reopened unit kept its supports, its denture state and its pose. `reorients()` does its job.
 
-1. **Opening a built denture destroys its supports.** `App.tsx:1391` guards the open-at-supports door
-   with `built && !isDentureJob(profile)`, so a denture takes the ordinary door: `start` scans and
-   calls `turnTo` with the bare upright pick, and `transform/set` deletes `supports`, `manual`,
-   `deleted` and `contactSettings` on any non-vertical turn. The accepted pose is the dial-chosen
-   print angle, so the rotation always differs. Ruling 2 was applied to aligners only. Traced through
-   three files; not run.
-2. **The app carries no "not clinically validated" label.** `README.md:33` says it and
-   `SHIP-PLAN.md` §External validation requires the app to ship labelled. Nothing in the shipped
-   strings does.
+**The lesson is the retraction, not the claim.** Three files of correct tracing is not a defect; one
+run is. The first version of that run also reported CONFIRMED *vacuously*: on the deck the viewport
+is unmounted, the scene read came back `[]`, and `[].every(u => !u.supports)` is `true` — the
+instrument passed by measuring nothing, which is the exact failure the audit doctrine calls a
+vacuous pass, in my own probe.
 
-Both are items 1 and 2 of `PLAN.md`.
+**What the run DID confirm, all three new:**
+
+1. **The denture flow has no browser coverage at all.** Sections `a, m, q, r, u, x, l, s` every one
+   drive an aligner; nothing drives a denture. Half the declared product is unexercised, which is
+   what let the question stay open. `PLAN.md` item 1.
+2. **There is no `OK` button, while the status line says "Check the supports, then press OK."**
+   `dental.finish` is invisible under `FLOW_END = 'export'`. The line names a key that is not on
+   screen. This is symptom 12 of the design sweep, now seen rather than inferred.
+3. **`unit.dental` is undefined for a denture** (it writes `unit.denture`), so `built` in
+   `App.tsx:1391` is always false for one and `&& !isDentureJob(profile)` **cannot change the
+   outcome** — dead code under a comment that reads as protection.
+
+**The app still carries no "not clinically validated" label.** `README.md:33` says it and
+`SHIP-PLAN.md` §External validation requires the app to ship labelled. Nothing in the shipped strings
+does. `PLAN.md` item 2.
 
 ## Redeployed on `a5c9f1d`, and the deployed-commit line had been wrong for days (2026-11-14)
 

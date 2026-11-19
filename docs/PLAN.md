@@ -91,13 +91,22 @@ Ranked by consequence, not by size. Each item says what proves it done.
 
 ### Now — the app loses work, and makes a claim it cannot support
 
-1. **A built denture loses its supports when you open it.** `App.tsx:1391` guards the
-   open-at-supports door with `built && !isDentureJob(profile)`, so a denture takes the ordinary
-   door: `start` scans and calls `turnTo` with the bare upright pick, `turnTo` dispatches
-   `transform/set`, and that reducer deletes `supports`, `manual`, `deleted` and `contactSettings` on
-   any non-vertical turn. The accepted pose is the dial-chosen print angle, so the rotation always
-   differs. Ruling 2 was applied to aligners only. **Done when** opening a built denture lands on its
-   supports with them intact, and a walk check proves it.
+1. **The denture flow has no browser coverage at all.** The walk's sections are `a, m, q, r, u, x,
+   l, s` and every one of them drives an **aligner** (`PUBLIC_ALIGNER`, or case-001's aligner;
+   `answerCase` defaults to `reference-aligner`). Nothing anywhere drives a denture through orient →
+   supports. Half the declared product is unexercised, there is no shipped denture model for a fresh
+   clone to walk, and the local `case-denture` fixture is git-ignored like every case directory.
+   **This is the item that lets the rest of the denture gaps hide.** **Done when** a denture reaches
+   built supports under a check, with the fixture's absence skipped by design and counted, the way
+   `gate:real` already handles owner-only scans.
+
+   ***Retraction, 2026-11-19.** This slot said "a built denture loses its supports when you open it",
+   traced through `App.tsx:1391` → `useDentureOrient.ts:127` → `project.ts:258-287`. **It does not
+   reproduce.** Driven in a real browser on the local denture fixture, twice — once pressing Next on
+   the automatic pick, once after moving the dial from 8° to 16° so the stored pose genuinely
+   differed from a fresh scan's pick (rotation `[-3.108, 0.038, -3.112]` → `[3.036, 0.038, -3.112]`)
+   — the reopened unit kept `supports`, kept `denture`, and kept its pose. `reorients()` is doing its
+   job. What the run did confirm is below and in item 2.*
 
 2. **The app carries no "not clinically validated" label.** `README.md:33` says it — *not clinically
    validated: check every result before printing* — and `SHIP-PLAN.md` §External validation requires
