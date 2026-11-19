@@ -1,9 +1,11 @@
 # docs/ — the map
 
-**Fifteen documents at this level, and six of them are records of everything this project has
-written.** On 2026-11-19 the owner's instruction was that dated files be gathered into one record
-per kind, so a folder stops growing a file per day: 71 documents became 6 records, and four folders
-(`design/`, `reviews/`, `handoff/`, `superpowers/`) no longer exist.
+**Seventeen documents at this level, six of them records of everything this project has written, and
+exactly one of them about the future.** On 2026-11-19 the owner's instruction was that dated files be
+gathered into one record per kind, so a folder stops growing a file per day: 71 documents became 6
+records, and four folders (`design/`, `reviews/`, `handoff/`, `superpowers/`) no longer exist. Later
+the same day `PLAN.md` was added, because two reviews asked what came next and neither could find
+out — the two documents this file had been sending them to were both finished.
 
 The rule the folder works by has not changed: **a document says when it was written and what it
 decided.** Dated writing is a record of a moment and is not edited to match later reality — it is
@@ -15,7 +17,9 @@ what was believed when. What changed is only where those records live.
 | where | what is in it | read it when |
 |---|---|---|
 | `HANDOFF.md` | the running engineering handoff: what landed, what it cost, what is open | picking the work back up |
-| `SHIP-PLAN.md` · `ROADMAP.md` | the ordered plan, and the longer arc | deciding what is next |
+| `PLAN.md` | **the only forward-looking document**: what is next in order, and the five decisions waiting on the owner | deciding what is next |
+| `SHIP-PLAN.md` | the architecture rules (cited *by number* from the guard scripts), the authoritative ABI table, and the gate definition. Its progress table is a finished record | changing geometry, the ABI, or what a gate runs |
+| `ROADMAP.md` | the owner's principles, the decision log (D1–), the verification tiers, and the deferred-until-evidence triggers | questioning a decision, or checking whether a deferral's trigger has been met |
 | `size-debt.md` | every file over ~600 lines with its next cut named | before adding to a long file — add at the seam |
 | `designer-guide.md` · `ui-styling.md` | the UI vocabulary and the styling rules | touching anything the operator sees |
 | `BLENDER_PARITY.md` · `SLASG_NODE_LOGIC.md` | the external references the engine is checked against | changing geometry or placement |

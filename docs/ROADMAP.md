@@ -1,6 +1,17 @@
 # Roadmap after the ship (from 2026-10-28)
 
-The plan for what comes next. [SHIP-PLAN.md](SHIP-PLAN.md) records what was built. This file holds the decisions and, for each step, its specification. **Rule: a step is built only from a written specification here.** A step marked *spec before start* gets its specification written (and reviewed) before an agent starts it; the implementer does not make design decisions that are not written down.
+**What this file is, 2026-11-19.** Its §Steps in order is a record — every step is done or deferred.
+What is still **live here, and cited elsewhere:** §Principles (owner); the §Decision log, cited as
+"ROADMAP F" by `scripts/perf/tilt-scan.ts` and by name in the root `CLAUDE.md`; §Verification tiers;
+§Deferred until evidence, whose eight triggers nobody currently owns checking (decision 5 of
+`PLAN.md`); §Cross-cutting, which carries the saved-project migration rule; and §"After H", the
+dental-only plan A0–A7 that has never started and is decision 1 of `PLAN.md`.
+
+**What comes next is [`PLAN.md`](PLAN.md), not this file.** The rule below — that a step is built
+only from a written specification — has not been met by anything built since October, which is a
+finding about the rule's reach rather than about the work.
+
+This file holds the decisions and, for each step, its specification. **Rule: a step is built only from a written specification here.** A step marked *spec before start* gets its specification written (and reviewed) before an agent starts it; the implementer does not make design decisions that are not written down.
 
 Reviewed 2026-10-28 by three EGM reviewers (implementation readiness, scope, code accuracy), twice (the second round with V1, R, F and S3 rewritten); their findings are folded in.
 

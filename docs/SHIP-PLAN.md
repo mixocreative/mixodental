@@ -1,6 +1,22 @@
 # Ship plan — one Rust geometry core, generic engine, dental as policy data
 
-Status: owner-approved direction (2026-10-27); revised after two independent reviews (scope + implementation readiness). This is the **single working plan** for branch `codex/dental-rework`. Progress is tracked here only. `docs/dental-rework-handoff.md` is the dated evidence log. Older plans are reference material (see end).
+**What this file is, 2026-11-19 — two parts, and only one of them is finished.**
+
+**Live, and cited by name from code — do not move these:** §Goal's gate definition (which gate runs
+where, 2026-11-09); §Architecture rules 1–9, cited *by number* in `scripts/geometry-guard.mjs`'s
+header (rule 3), `scripts/test-support/supportParityHarness.ts` (rule 7) and `scripts/README.md`
+(rule 6); §Contracts' ABI table, which `dentalwork/wasm-geometry-design.md` calls the one
+authoritative copy and deliberately does not repeat; and §External validation.
+
+**A record of a finished branch, not edited to match later reality:** §Dental UX flow, §Work units,
+§U0 decisions, §Owner answers and the §Progress table, every row of which is done.
+
+**The forward plan is [`PLAN.md`](PLAN.md), not this file.** It never was this file, and saying so
+here is the point: in November 2026 two separate reviews came looking for what the project does next,
+found a table of done rows under a heading that says "plan", and each concluded the project had no
+plan at all.
+
+Status: owner-approved direction (2026-10-27); revised after two independent reviews (scope + implementation readiness). This was the **single working plan** for branch `codex/dental-rework`, which is finished. Progress is tracked here only. `docs/dental-rework-handoff.md` is the dated evidence log. Older plans are reference material (see end).
 
 ## Goal
 
