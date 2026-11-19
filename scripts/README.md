@@ -1,11 +1,13 @@
 # scripts/ — the map
 
-Forty files. Most are not run by hand: they are the steps `npm run gate` and `npm run walk` are
-made of, and a handful are one-off probes kept because re-deriving them cost a day.
+Most of these are not run by hand: they are the steps `npm run gate` and `npm run walk` are made
+of, and a handful are one-off probes kept because re-deriving them cost a day. (No file count here
+on purpose - it said "forty" at forty-eight, the same way a row below said 186 at 199.)
 
 **The rule for this folder: never pipe one of these through `tail` or `head`.** The exit code
 becomes the pipe's, and the failing check's name is the one line you needed. A 35-minute walk was
-repeated for exactly that mistake.
+repeated for exactly that mistake. **Since 2026-11-20 `shell-guard.mjs` refuses it** rather than
+asking you to remember it.
 
 ## The gate — what `npm run gate` runs
 
@@ -27,6 +29,18 @@ repeated for exactly that mistake.
 | File | Job |
 |---|---|
 | `walk.mjs` | the browser checks — the count is `EXPECTED_CHECKS` in the file itself and is not repeated here, because this row said 186 while the code asserted 199 (asserted — a check that silently stops running fails the run rather than printing a smaller number), ~35 minutes, sections `a`–`x`. **4,447 lines, far over the cut limit** — named as debt in `../docs/size-debt.md`. It is the only thing that exercises generate counts, because CI runs it in two shards (`m,q` and `r,u,x,l,s`) that **leave section `a` out**. `npm run walk:locales` runs it across en/ja/zh-Hant, and `npm run walk -- --renderer=babylon` drives the same checks against the Babylon viewport instead of the three.js one |
+
+## The mistake guards — rules that act instead of being remembered
+
+Neither of these is a gate step. They exist because four mistakes on 2026-11-19/20 were each already
+written down, in full, with the exact remedy, in notes that were loaded in context at the time. A
+rule that must be recalled at the instant a command is typed is not a rule, so these two decide
+instead.
+
+| File | Job |
+|---|---|
+| `shell-guard.mjs` + `.test.mjs` | a **PreToolUse hook** on `Bash`/`PowerShell` that refuses five measured shell traps: a doubled backslash (the Bash tool eats one level **command-wide**, even inside single quotes), a backslash inside interpreter source (`python -c '…"S:\ai"'` writes a BEL - that, not the heredoc, is what corrupted a committed path), a PowerShell backtick escape from the set nobody intends, prose in `-m`/`--body` for git and gh (markdown backticks are command substitution, and have committed three messages with empty spans), and a pipe or `;` **after** a gate. `judge(command, tool)` is pure, so the test drives the rules with no process. **The wiring lives in `.claude/settings.json`, which is untracked here** - this script is the tracked half, and other repos get none of it |
+| `control-chars.test.mjs` | refuses a control byte in any tracked text file, which is the **backstop** for the above: the guard sees only shell commands, while the Write tool can put the same byte in a file with no shell involved. It found a 0x08 inside a live regex in `../src/ui/art.test.ts` that had been silently disabling that test. It cannot see a `\r?\n` that became a real line break - that is a legal newline |
 
 ## The engine — vendoring and smoke
 
