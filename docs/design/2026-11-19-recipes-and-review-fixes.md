@@ -308,6 +308,66 @@ Three consequences, all of them the kind that make a feature feel broken rather 
   selected tip is at the new position, one Undo restores everything; and for the automatic case,
   manual +1 and deleted +1.
 
+### What building it actually cost, which was not the geometry
+
+Three defects, none of which a unit test could have seen, and each found by a different instrument.
+
+**The support stands in front of the model it grows from.** `hoverSupport` calls `stopPropagation`
+for a contact hit, so with a pillar under the pointer the model never hears the move, the drop
+target stays null and every drag cancels. Fable flagged this as the thing it could not verify from
+reading; it was real. Three lines: mid-drag the model owns the move.
+
+**The drop read its target from the effect's closure.** A pointer move followed closely by the
+release fires `pointerup` before React has re-rendered and re-registered the listener, so the effect
+still held `at: null` and cancelled a move that had a perfectly good target. The target lives in a
+ref now; the state is only what the preview ring draws. Every quick flick would have hit this.
+
+**The camera lock lasted until the first pointer move.** The release effect depended on `tipDrag`,
+which the move handler replaces on every move — so the cleanup ran per move, and the cleanup is what
+hands the orbit back. The effect body never takes it away again; only the press does. Found by
+review, not by running, and **the walk cannot see it**: the tip still arrives where it was dropped,
+so every count the guard checks is correct while the view turns under the drag. Written down at the
+code as a trap rather than left to a test.
+
+### And the app's own preview pane cannot test a drag at all
+
+This is worth more than the feature. Instrumented counters showed `hoverModel` and `hoverSupport`
+called **zero** times across a complete drag in the desktop app's browser pane, while the press
+armed correctly and window-level travel measured 193 px. Hand-dispatched `PointerEvent`s at the
+canvas reach r3f not at all. So a pointer gesture in the 3D view is **invisible** to the pane and
+provable only by Playwright, whose mouse moves are real — which is what the rim-anchor drag check
+`u5d` has always depended on. The pane remains good for reading the DOM, panels and screenshots.
+
+### What the guard covers, and the one thing it does not
+
+`a4m` and `a4n` in section `a`, plus unit tests on the reducer and on `moveCommands`.
+
+`a4m` drags a selected automatic tip and asserts all three counts move together with the total
+unchanged, and that the selection follows onto **the id the scene actually holds**. `a4n` asserts one
+Undo restores it, because the move is one batch and two entries would leave an operator who pressed
+Undo once with a hole in their supports.
+
+**A third check was written and withdrawn after six runs.** It was to re-drag the now-manual tip, and
+then to move a second tip as a position proof. Neither could be aimed: an already-manual tip's body
+is about a millimetre wide among four hundred pillars, its tip sits at the contact under the model
+surface (so a press at the drop point hits the model — in Tips only view too), and a hunt run
+straight after a move finds nothing at all, because the support mesh is still rebuilding. **A flaky
+check in a release gate is worse than a gap written down**, so it is written down, at the check and
+here.
+
+What holds those cases instead: `state/project.test.ts` pins the `manual/move` case (the tip keeps
+its id and its `contactSettings`; an unknown id returns the same scene object) and `tipMove.test.ts`
+pins `moveCommands`' manual branch — which is the part that could otherwise be deleted unnoticed.
+What is untested is only the pointer path to that branch, which is the same press, ray and release
+`a4m` exercises. The stored position's correspondence to the drop point rests on `moveCommands`
+passing the target through unchanged and on `onMoveTip` converting with the same helper
+`onAddContact` uses. Agreed with Fable rather than assumed.
+
+One clause came out of that conversation and is worth more than the re-drag was: `a4m` and `a4p`
+assert the selected id **equals the id the scene actually holds**, not merely that it looks manual.
+A selection that followed a move onto an id the rebuilt mesh does not carry would satisfy every
+count and quietly cost the operator a click before every further nudge.
+
 ### The guard
 
 One walk check in Step 3: drag a selected tip, assert the position changed, the total count and the

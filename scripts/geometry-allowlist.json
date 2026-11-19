@@ -25,8 +25,8 @@
   },
   "src/components/viewport/UnitObject.tsx": {
     "label": "host-math",
-    "maxMath": 6,
-    "why": "the dental viewport object: puts a world-space pick into unit-local coordinates and normalises a face normal, for painting, zones, tips and the rim. Grew from 5 to 6 when a rim press stopped asking an armed tool what it meant and started asking where it landed (rim/rimTarget.ts), which needs the surface normal at the press to seat an inserted handle"
+    "maxMath": 7,
+    "why": "the dental viewport object: puts a world-space pick into unit-local coordinates and normalises a face normal, for painting, zones, tips and the rim. Grew from 5 to 6 when a rim press stopped asking an armed tool what it meant and started asking where it landed (rim/rimTarget.ts), which needs the surface normal at the press to seat an inserted handle. Grew from 6 to 7 with the support-tip drag: mid-drag the model's own pointer move is where the tip now sits, so it needs the local point and a fallback face normal, the same pair the rim drag above it already takes. The decision about what the drag MEANS is in src/supports/tipMove.ts and carries no geometry at all"
   },
   "src/components/viewport/UnresolvedBubbles.tsx": {
     "label": "host-adapter"
@@ -222,5 +222,10 @@
   "src/dental/stages.ts": {
     "label": "host-adapter",
     "why": "the dental flow's stage decisions, shared by the step screens and the deck's auto-gen queue so the two cannot drift into making different supports for one model. It computes NO geometry (mathHits 0): it reads a unit and an engine result and returns settings, a policy or scene commands. The flag is one import - `arrangeCommands`, called to lay the plate out again after a turn changed an aligner's footprint, which is the same call the hook made before this moved."
+  },
+  "src/supports/tipMove.ts": {
+    "label": "host-adapter",
+    "maxMath": 0,
+    "why": "what a drag on a support tip means: a press test, a release test and the commands one move makes. It carries a position and a normal through from the viewport to the reducer without touching either - no projection, no transform, no normalisation. Flagged only because it names the Vector and SupportPoint types; maxMath 0 is the assertion that it does no maths, and the day it does, this guard says so"
   }
 }

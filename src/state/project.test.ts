@@ -87,6 +87,30 @@ describe('reduceScene', () => {
     expect(real.activeUnitId).toBe('unit-a');
   });
 
+  /*
+   * A MANUAL TIP MOVES AND KEEPS ITS ID, which is the whole reason `manual/move` exists rather than
+   * the delete-and-add this reducer could already express: `contactSettings` is keyed by id, so the
+   * settings an operator gave one support travel with it instead of being quietly reset.
+   *
+   * The id that is NOT there must change nothing. A drag whose tip was removed while it was in the
+   * air would otherwise add a history entry that moved nothing, and the operator's next Undo would
+   * appear to do nothing at all.
+   */
+  it('moves a manual tip in place, keeping its id and its own settings', () => {
+    const scene = reduceScene(emptyScene, { type: 'unit/add', unit: { ...unitA, supports: undefined, placement: undefined } });
+    const added = reduceScene(scene, { type: 'manual/add', unitId: 'unit-a', point: contact });
+    const tuned = reduceScene(added, { type: 'contactSettings/set', unitId: 'unit-a', contactIds: [contact.id], patch: { neckDiameter: 0.9 } });
+
+    const moved = reduceScene(tuned, { type: 'manual/move', unitId: 'unit-a', pointId: contact.id, position: [7, 8, 9], normal: [0, 1, 0] });
+
+    expect(moved.units[0]!.manual).toHaveLength(1);
+    expect(moved.units[0]!.manual[0]).toMatchObject({ id: contact.id, position: [7, 8, 9], normal: [0, 1, 0] });
+    expect(moved.units[0]!.contactSettings[contact.id]).toMatchObject({ neckDiameter: 0.9 });
+    expect(tuned.units[0]!.manual[0]!.position).not.toEqual([7, 8, 9]);
+
+    expect(reduceScene(tuned, { type: 'manual/move', unitId: 'unit-a', pointId: 'gone', position: [1, 1, 1], normal: [0, 1, 0] })).toBe(tuned);
+  });
+
   it('updates selection, transform, settings, manual contacts, and removals immutably', () => {
     const scene = reduceScene(emptyScene, { type: 'unit/add', unit: { ...unitA, supports: undefined, placement: undefined } });
     const selected = reduceScene(scene, { type: 'selection/set', unitIds: ['unit-a'], activeUnitId: 'unit-a' });

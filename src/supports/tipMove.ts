@@ -74,11 +74,35 @@ export function moveRelease(input: { travel: number; onModel: boolean; cancelled
   return input.onModel ? 'move' : 'cancel';
 }
 
-/** Where a move puts the tip, in the unit's own space. */
+/**
+ * Where a move puts the tip, IN THE UNIT'S OWN SPACE - the only frame the scene stores.
+ *
+ * `TipDrop` below is the same shape in WORLD space, and the two are kept apart by name because
+ * TypeScript cannot keep them apart by type: they are structurally identical, so a viewport that
+ * passed a local point would be converted a second time and land somewhere else entirely. A fixture
+ * at the origin cannot tell the two frames apart, so nothing would catch it (Fable, 2026-11-19).
+ */
 export interface TipTarget {
   position: Vector;
   normal: Vector;
 }
+
+/**
+ * The same pair in WORLD space: what a viewport reads off its pointer, before any conversion.
+ * `onMoveTip` is the one place that converts, with `inverseTransformPoint` /
+ * `inverseTransformDirection`, exactly as `onAddContact` does for a hand-added support.
+ *
+ * WHAT COUNTS AS A DROP, which is a rule and not an implementation detail - a second renderer must
+ * obey it rather than invent it:
+ *   - the nearest hit on the TIP'S OWN unit's model, and nothing else;
+ *   - supports, braces, raft and labels are not the model: a drop cannot land on the thing being
+ *     carried or on its neighbours;
+ *   - ANOTHER UNIT standing in front is passed through, not treated as off the model, which is what
+ *     `objectAt` in `viewport/babylon/brushBodies.ts` already does for a stroke;
+ *   - no hit at all means `undefined`, and `moveRelease` then cancels.
+ * three.js gets this by casting at one mesh; a renderer with a candidate list has to filter for it.
+ */
+export type TipDrop = TipTarget;
 
 /**
  * THE COMMANDS ONE MOVE MAKES, and the id the selection must follow afterwards.

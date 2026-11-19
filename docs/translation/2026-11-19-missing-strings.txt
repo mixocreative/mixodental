@@ -103,3 +103,4 @@ THE STRINGS:
 58 That could not be saved on this device, so nothing was changed.
 59 Recipe
 60 Support moved.
+61 Support left where it was: a tip moves only onto the model.

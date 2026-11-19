@@ -86,6 +86,19 @@ export interface ObjectViewportProps {
   /** Selected contact ids of the active object. */
   selection: ReadonlySet<string>;
   onToggleContact: (unitId: string, contactId: string) => void;
+  /**
+   * A selected support tip dropped at a new spot on the model, in WORLD space (the host converts,
+   * as it does for `onAddContact`). What a drag MEANS - whether a press may start one, whether a
+   * release is a move, a click or a cancel - is decided in `src/supports/tipMove.ts` so that both
+   * renderers obey one rule; a viewport only reports where the pointer let go.
+   */
+  onMoveTip: (unitId: string, pointId: string, point: Vector, normal: Vector) => void;
+  /**
+   * A tip drag that let go with nothing under it, or was cancelled with Esc: the tip stays where it
+   * was, and this is how the operator finds out WHY nothing happened. Without it a drag that ended a
+   * few pixels off the model is indistinguishable from a drag the app failed to notice.
+   */
+  onMoveTipCancelled: () => void;
   /** Drag over: the contacts whose supports the circle passed over (editing/screenBrush). */
   onPaint: (unitId: string, ids: readonly string[], mode: BrushMode) => void;
   /** Drag over saw Shift down or up (the pointer's `shiftKey`): the Select | Unselect switch shows it. */

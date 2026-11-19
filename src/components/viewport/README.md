@@ -9,6 +9,35 @@ vocabulary instead of two. Until the drawing layers are rebuilt, both ports exis
 `viewportPort.test.ts` holds them to **identical** answers — that test is the contract, and a case
 added to it is added to both. three.js leaves when the last layer is Babylon, not before.
 
+**Debt, with its next cut named.** `UnitObject.tsx` is past 700 lines and now carries two drags
+inline — the rim anchor and the support tip. The cut is NOT a hook per drag: `useTipDrag` would take
+fourteen values in (`supports`, the selection, `active`, `liveTool`, `gesture`, `controls`, `gl`,
+`camera`, `raycaster`, the mesh ref, `setHover`, two callbacks, the unit id) to hand back two, which
+is the hub this repo's own rule forbids. The part that passed that test is already out, in
+`src/supports/tipMove.ts`.
+
+The cut worth taking is **one module that holds a drag**: take the orbit away on press, hear the
+release anywhere (pointerup, pointercancel, blur, Esc), and give the orbit back however it ends. In,
+a lock and an unlock callback plus what to do on release and on cancel; out, a begin function — so
+the renderer difference is only those two callbacks (`controls.enabled` here,
+`detachControl`/`attachOrbit` in Babylon) and one plain module serves both. **It is the part that has
+actually been wrong**: the tip drag's cleanup handed the orbit back on every pointer move, `rimDraw.ts`
+has no `blur` listener, and the Babylon brush does — the same job written three times with three
+different sets of endings. Take it as the first commit of the Babylon tip adapter, which would
+otherwise be a fourth copy; leave the rim drag and the brush until something else touches them.
+Agreed with Fable, 2026-11-19; the brush and rim release handlers have not been read closely enough
+to confirm they reduce to exactly that surface, so check before committing to it.
+
+**One gesture is three.js only today, named here rather than left to be discovered: moving a support
+tip.** `onMoveTip` reaches both viewports and only `UnitObject.tsx` acts on it; press, drag and drop
+a selected tip in the Babylon view and nothing happens. The rules are already shared — every
+decision lives in `src/supports/tipMove.ts`, so the Babylon side is listeners, the camera lock, a
+model-only hit and a preview, not a second copy of the behaviour. It was built against three first
+because `src/ui/renderer.ts` makes three the default and `npm run walk` proves it: a Babylon-only
+gesture would have been unreachable in the default app *and* invisible to the gate. The walk checks
+`a4m`, `a4p` and `a4n` prove it in three; they run against `--renderer=babylon` too, so the day the
+default flips they fail and this gap cannot go quiet.
+
 ## The seam
 
 | file | its one job |

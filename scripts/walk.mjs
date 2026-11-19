@@ -592,7 +592,10 @@ function readProps() {
     dentalContacts: unit?.dental?.kind === 'two-contour' ? unit.dental.region.contacts?.length ?? -1 : -1,
     dentalTuning: unit?.dental?.kind === 'two-contour' ? unit.dental.tuning : undefined,
     ids: out.selection ?? [],
-    units: (out.scene?.units ?? []).map((u) => ({ id: u.id, label: u.settings?.labelText ?? '', supports: Boolean(u.supports), dental: Boolean(u.dental), pos: [...u.transform.position], manual: u.manual.length, deleted: u.deleted.length, lastManual: u.manual.length ? u.manual[u.manual.length - 1].position.map((v) => Math.round(v * 1000) / 1000) : null })),
+    units: (out.scene?.units ?? []).map((u) => ({ id: u.id, label: u.settings?.labelText ?? '', supports: Boolean(u.supports), dental: Boolean(u.dental), pos: [...u.transform.position], manual: u.manual.length, deleted: u.deleted.length, lastManual: u.manual.length ? u.manual[u.manual.length - 1].position.map((v) => Math.round(v * 1000) / 1000) : null,
+      // The id as well as the spot: a selection that follows a move onto an id the scene does not
+      // actually hold would look right in every count and cost the operator a click per nudge.
+      lastManualId: u.manual.length ? u.manual[u.manual.length - 1].id : null })),
   };
 }
 
@@ -1080,6 +1083,165 @@ async function walk(url, scratch, dentalFixture) {
       await d.settled();
       const undone = await d.counts();
       check('a4 Undo brings them back', undone.removed === 0 && undone.auto === first.auto, `removed ${undone.removed}, auto ${undone.auto}`);
+
+      /*
+       * a4m: A SELECTED SUPPORT TIP IS DRAGGED TO A NEW SPOT, which is build-order item 7 and the one
+       * gesture in this app no unit test can see. `src/supports/tipMove.ts` owns every rule and is
+       * tested without a browser; what only a real pointer can prove is the PLUMBING - that a press
+       * on a tip arms instead of orbiting, that the model under the pointer is what reports the new
+       * position, and that the release is read once.
+       *
+       * THE TRAP THIS CHECK EXISTS FOR, and it has already caught itself: a support stands IN FRONT
+       * of the model it grows from, so the pointer move is offered to the support first and
+       * `hoverSupport` stops propagation for a contact. Without the mid-drag exception there, the
+       * model never hears where the pointer is, the target stays null and every drag cancels - which
+       * is exactly what the browser showed before the exception was added.
+       *
+       * AND IT CANNOT BE PROVED IN THE APP'S OWN PREVIEW PANE. That driver fires no pointer MOVE
+       * events r3f can see (`hoverModel` was called zero times across a whole drag), so the gesture
+       * looked broken there while arming correctly. Playwright moves the mouse for real, the way
+       * `u5d`'s rim-anchor drag relies on. This check is the only instrument that sees this feature.
+       *
+       * AN AUTOMATIC TIP CANNOT STAY AUTOMATIC: it is re-derived from the placement on every
+       * regenerate, so a moved one has nowhere to live. It becomes a deletion at the old spot plus a
+       * manual tip at the new one - which is why the assertion is on all three counts at once, and
+       * why the TOTAL is the number that must not move.
+       *
+       * WHAT THIS DOES NOT PROVE, said here rather than left to be assumed:
+       *
+       *   - that the stored position corresponds to the point the pointer let go on. Held instead by
+       *     `tipMove.test.ts` (the target passes through `moveCommands` unchanged) and by `onMoveTip`
+       *     converting with the same `inverseTransformPoint` that `onAddContact` uses;
+       *   - dragging a tip that is ALREADY manual, so the `manual/move` command itself. Held by
+       *     `state/project.test.ts` and `tipMove.test.ts`; what is untested is only the pointer path
+       *     to that branch, which is the same press, ray and release as this one.
+       *
+       * A check that tried both was written and withdrawn after six runs. An already-manual tip
+       * cannot be aimed at: its body is about a millimetre wide among four hundred, and its tip sits
+       * at the contact, under the model surface, so a press at the drop point hits the model - in the
+       * Tips only view too. A flaky check in a release gate is worse than a gap written down.
+       *
+       * WHY A HUNT RUN STRAIGHT AFTER A MOVE FINDS NOTHING IS NOT ESTABLISHED, and an earlier draft
+       * of this comment asserted a cause it had not checked. Three candidates fit the evidence:
+       * the grid is sparse and may hold only the one tip it found the first time; the support mesh
+       * is still rebuilding; or supports really cannot be picked for a while after a move. ONLY THE
+       * LAST IS A PRODUCT FAULT - the operator's second nudge would fail silently - and it would be
+       * the one sitting under a comment that explained it away. The note below is the probe that
+       * tells them apart; read it on the next full run.
+       */
+      await d.button('Click').click();
+      await d.idle(600);
+      // A click on a support selects it; a click on the model selects nothing, so a miss simply
+      // leaves the count at zero and the hunt moves on - no clearing between tries.
+      let press;
+      hunt: for (const fy of [0.57, 0.50, 0.63, 0.44, 0.69]) {
+        for (const fx of [0.37, 0.45, 0.30, 0.52, 0.60]) {
+          await d.stroke([fx, fy], [fx, fy], 1);
+          await d.idle(350);
+          // `props` not `settle` here: a click's selection is there within a frame, and `settle`
+          // costs two seconds a try - a minute of waiting spread across a hunt that mostly misses.
+          if ((await d.props()).selected === 1) { press = [fx, fy]; break hunt; }
+        }
+      }
+      if (!press) {
+        /*
+         * A FAILED HUNT IS A FAILURE, not a skip. This fixture is deterministic - the same knot, the
+         * same 429 supports, the same view - so "no click landed on a tip" means something changed
+         * that should not have. Counting it as skipped-by-design would let the ONLY guard this
+         * gesture has excuse itself while the gate still printed ALL PASS with the tally satisfied.
+         */
+        check('a4m dragging a selected automatic tip moves it: deleted where it was, manual where it went, same number of tips',
+          false, 'no click in the hunt landed on a single support tip, so there was nothing selected to drag');
+        skippedByDesign += 1;
+        note('a4n skipped: a4m never found a tip to drag');
+      } else {
+        const before = await d.counts();
+        let moved;
+        // The drop must land ON the model (off it cancels, by design), so a couple of targets are
+        // tried before calling it a failure rather than a miss.
+        /*
+         * 0.6,0.42 IS THE MODEL, PROVED BY THE CHECK BELOW: `e` adds a support by clicking there, and
+         * an add only happens on a model hit. Guessing at the silhouette from a screenshot is what
+         * failed first - three targets inside the model's bounding box, none of them on its surface,
+         * all reported as "nowhere that took it".
+         */
+        for (const target of [[0.6, 0.42], [0.58, 0.40], [0.62, 0.45], [0.55, 0.38]]) {
+          /*
+           * PACED, because this is a DRAG and not a sweep. `stroke`'s own note says moves sent as
+           * fast as the driver can send them may be coalesced or dropped; a Drag over stroke
+           * survives that (it only needs to have swept the line), but a tip move needs the app to
+           * SEE a move land on the model - one coalesced burst and the drop has no target at all.
+           */
+          await d.stroke(press, target, 24, { pace: 30 });
+          await d.settled();
+          const after = await d.counts();
+          if (after.manual === before.manual + 1) { moved = { target, after }; break; }
+        }
+        const after = moved?.after ?? await d.counts();
+        const picked = await d.settle();
+        check('a4m dragging a selected automatic tip moves it: deleted where it was, manual where it went, same number of tips',
+          moved !== undefined && after.manual === before.manual + 1 && after.removed === before.removed + 1
+            && after.auto === before.auto - 1 && after.auto + after.manual === before.auto + before.manual
+            && picked.selectedIds.length === 1 && picked.selectedIds[0] === (await d.props()).units[0]?.lastManualId,
+          `before ${JSON.stringify(before)}, after ${JSON.stringify(after)}, dropped at ${moved ? JSON.stringify(moved.target) : 'nowhere that took it'}, selection ${JSON.stringify(picked.selectedIds)}, scene holds ${JSON.stringify((await d.props()).units[0]?.lastManualId ?? null)}`);
+        /*
+         * THE PROBE, deliberately a note and not a check, because what it measures is not yet
+         * understood and a gate should not go red on a question. It asks the one thing that tells a
+         * sparse grid from an app that stops accepting clicks: with the selection cleared, is ANY
+         * support pickable right after a move? If this says "could not be picked anywhere" on a run
+         * where the same grid found one before the move, that is a product fault and gets a check.
+         */
+        await page.keyboard.press('Escape');
+        await d.idle(600);
+        let again;
+        probe: for (const fy of [0.57, 0.50, 0.63, 0.44, 0.69]) {
+          for (const fx of [0.37, 0.45, 0.30, 0.52, 0.60, 0.40, 0.34]) {
+            await d.stroke([fx, fy], [fx, fy], 1);
+            await d.idle(250);
+            if ((await d.props()).selected === 1) { again = [fx, fy]; break probe; }
+          }
+        }
+        note(`after a tip was moved, a support ${again ? `was still pickable at ${JSON.stringify(again)}` : 'could NOT be picked anywhere in the 35-point grid, which is the product fault a4m names'}`);
+
+        /*
+         * THE CAMERA IS THE ONE THING NOTHING HERE WOULD CATCH. If the orbit were ever left on during
+         * a drag the view would turn under it, the tip would still arrive where it was dropped, and
+         * every assertion above would pass. That fault happened once already - the release effect was
+         * keyed on per-move state, so its cleanup handed the orbit back on the first move - and it was
+         * caught by review, not by running. Written here so the next reader knows the blind spot.
+         */
+        /*
+         * ONE UNDO, because the move is one batch. Two entries would mean an operator pressing Undo
+         * once is left with the tip deleted and not replaced - a hole in the supports, made by the
+         * control that was meant to undo the move.
+         *
+         * AND IT ONLY RUNS IF SOMETHING MOVED. Asserting "the counts are unchanged after Undo" when
+         * nothing was ever moved is a check that passes BECAUSE the feature is dead, which is the
+         * vacuous pass this project audits for - it duly passed that way on the first run.
+         */
+        if (moved === undefined) {
+          skippedByDesign += 1;
+          note('a4n skipped: a4m moved nothing, so there is no move to undo and asserting unchanged counts here would pass vacuously');
+        } else {
+          // One press per move, and the second one has to put the AUTOMATIC tip back - which is two
+          // commands in a single batch. A batch that undid as two entries would leave the operator
+          // with the tip deleted and not replaced: a hole, made by the control meant to undo it.
+          await page.keyboard.press('Control+z');
+          await d.settled();
+          const back = await d.counts();
+          check('a4n one Undo puts a moved tip back: the move is one batch, not two entries',
+            back.auto === before.auto && back.manual === before.manual && back.removed === before.removed,
+            `before ${JSON.stringify(before)}, after undo ${JSON.stringify(back)}`);
+        }
+      }
+      /*
+       * AND THE SELECT STYLE GOES BACK, because this block is the only thing in the file that asks
+       * for Click. `strokeUntilSelected` below needs Drag over, and the symptom of leaving it on
+       * Click is not a clear failure: it is four "Clear selection failed" notes and later counts
+       * quietly including what an earlier line left selected.
+       */
+      await d.button('Drag over').click();
+      await d.idle(600);
       await d.exitMode();
 
       // b. Occlusion had a second half - press Hide models, drag the same line again, and see the supports that
@@ -2997,36 +3159,58 @@ async function walk(url, scratch, dentalFixture) {
         skippedByDesign += 2;
         note(`u5p / u5q skipped: no paint stroke reached this model from Step 2's own view (${landed} stamps), so there was no hand-made area to carry into Step 3`);
       } else {
-        await d.button('Next').click();
-        await stepTo('Step 3 · Supports', 240000);
-        await page.waitForFunction((want) => { const on = [...document.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim().toLowerCase() === want); return on && !on.disabled; }, WAY_ON.toLowerCase(), { timeout: 300000 });
-        await d.quiet();
-        const policy = (await d.props()).activeDental;
-        // The way on, and the Adjust fold that holds the settings: the two things a bare badge had none of.
-        const wayOnThere = await d.button(WAY_ON).isEnabled();
-        const adjust = page.locator('[data-ui="aligner-adjust-title"]');
-        await page.screenshot({ path: path.join(scratch, 'ux-a-step3-hand-made-area.png') });
-        check('u5p an area made by hand reaches Step 3 with a real panel, not a badge over an empty step',
-          policy?.kind === 'legacy' && wayOnThere && (await adjust.count()) === 1,
-          `policy ${JSON.stringify(policy)}, ${WAY_ON} enabled ${wayOnThere}, Adjust ${await adjust.count()}`);
-        await adjust.click();
-        await d.idle(400);
-        const treeInput = page.locator('[data-ui="aligner-tree-branches"] input');
-        const braceInput = page.locator('[data-ui="aligner-cross-braces"] input');
-        const reason = page.locator('[data-ui="aligner-structure-fixed"]');
         /*
-         * THE PAIR IS THE BEHAVIOUR. A `legacy` policy has nowhere to store a structure, so
-         * `onDentalStructureChange` returns without dispatching and a live switch would be a dead
-         * control - but greyed out with no reason is its own defect, so the sentence is checked
-         * beside the `disabled`. Same bargain Step 2 already strikes for the strip sliders on a
-         * painted area (`dental-area-fixed`), and the switches still read out what the build will
-         * really use, which `makeDentalPolicy` resolves to `defaultDentalStructure`.
+         * WRAPPED, because a check may not take its section down with it. The first version of this
+         * block waited for a button by NAME and threw when it never came, and the throw cost section
+         * u every check after this point - a bigger failure than the one being tested for.
          */
-        check('u5q Step 3 shows Tree and Brace as a disabled readout, with the reason, on an area made by hand',
-          await treeInput.isDisabled() && await braceInput.isDisabled() && await reason.isVisible(),
-          `tree disabled ${await treeInput.isDisabled()}, brace disabled ${await braceInput.isDisabled()}, reason "${(await reason.count()) ? (await reason.innerText()).slice(0, 60) : 'absent'}"`);
-        await d.button('Back').click();
-        await stepTo('Step 2 · Support area', 120000);
+        try {
+          await d.button('Next').click();
+          await stepTo('Step 3 · Supports', 240000);
+          /*
+           * WAIT FOR THE PANEL, NOT FOR A NAMED KEY. Step 3's way on is `Export STL` where there is
+           * a bench to hand back to and the step's own OK where there is not (`reviewWayOn`), and
+           * this unit arrives through "Use as any model", so the name is not knowable here. The
+           * Adjust panel is what the defect actually removed: the badge rendered, and underneath it
+           * there were no tools, no settings and no way on at all.
+           */
+          const adjust = page.locator('[data-ui="aligner-adjust-title"]');
+          await adjust.waitFor({ state: 'visible', timeout: 180000 });
+          await d.quiet();
+          const policy = (await d.props()).activeDental;
+          const keys = await page.locator('.dental-dock button, .edit-done').count();
+          await page.screenshot({ path: path.join(scratch, 'ux-a-step3-hand-made-area.png') });
+          check('u5p an area made by hand reaches Step 3 with a real panel, not a badge over an empty step',
+            policy?.kind === 'legacy' && (await adjust.count()) === 1 && keys > 0,
+            `policy ${JSON.stringify(policy)}, Adjust ${await adjust.count()}, keys in the dock ${keys}`);
+          await adjust.click();
+          await d.idle(400);
+          const treeInput = page.locator('[data-ui="aligner-tree-branches"] input');
+          const braceInput = page.locator('[data-ui="aligner-cross-braces"] input');
+          const reason = page.locator('[data-ui="aligner-structure-fixed"]');
+          /*
+           * THE PAIR IS THE BEHAVIOUR. A `legacy` policy has nowhere to store a structure, so
+           * `onDentalStructureChange` returns without dispatching and a live switch would be a dead
+           * control - but greyed out with no reason is its own defect, so the sentence is checked
+           * beside the `disabled`. Same bargain Step 2 strikes for the strip sliders on a painted
+           * area (`dental-area-fixed`), and the switches still read out what the build will really
+           * use, which `makeDentalPolicy` resolves to `defaultDentalStructure`.
+           */
+          check('u5q Step 3 shows Tree and Brace as a disabled readout, with the reason, on an area made by hand',
+            await treeInput.isDisabled() && await braceInput.isDisabled() && await reason.isVisible(),
+            `tree disabled ${await treeInput.isDisabled()}, brace disabled ${await braceInput.isDisabled()}, reason "${(await reason.count()) ? (await reason.innerText()).slice(0, 60) : 'absent'}"`);
+        } catch (error) {
+          check('u5p an area made by hand reaches Step 3 with a real panel, not a badge over an empty step',
+            false, `Step 3 was not reached from a hand-made area: ${error.message.split('\n')[0]}`);
+          skippedByDesign += 1;
+          note('u5q skipped: Step 3 was never reached, so there were no switches to read');
+        }
+        // However that ended, get back to a step whose Back reaches Step 1, so the rest of u runs.
+        for (let i = 0; i < 2; i += 1) {
+          if (/Step 2 . Support area/.test(await page.locator('.edit-badge').innerText().catch(() => ''))) break;
+          await d.button('Back').click().catch(() => {});
+          await d.idle(1200);
+        }
       }
       await d.button('Back').click();
       await stepTo('Step 1 · Aligner');
@@ -4921,7 +5105,7 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 195;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison; 195 on 2026-11-19 with u5p and u5q, an area made BY HAND carried through to Step 3 - the one dental path no walk had ever reached - plus the two-check hole in u8's own skip, which `note` printed and nothing counted
+const EXPECTED_CHECKS = 197;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison; 195 on 2026-11-19 with u5p and u5q, an area made BY HAND carried through to Step 3 - the one dental path no walk had ever reached - plus the two-check hole in u8's own skip, which `note` printed and nothing counted; 197 with a4m and a4n, the support-tip drag (build-order item 7), which no unit test and no preview pane can see
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
 if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,

@@ -13,6 +13,7 @@ import type { DentalTipPreview } from '../components/useDentalPreview';
 import type { Message } from '../i18n';
 import type { PrintScene, PrintUnit, SceneCommand } from '../state/project';
 import { deleteCommands } from './selection';
+import { moveCommands } from './tipMove';
 
 /*
  * WHAT A POINTER DOES TO SUPPORTS: add one, remove one, pick one.
@@ -130,6 +131,45 @@ export function useSupportEdits(deps: SupportEditDeps) {
     if (unit) eraseNear(unit, inverseTransformPoint(unit.transform, point));
   }, [eraseNear, scene, session]);
 
+  /**
+   * A SELECTED TIP DROPPED SOMEWHERE ELSE ON THE MODEL. `tipMove.ts` owns the decision; this is the
+   * dispatch, and the one thing it adds is that THE SELECTION FOLLOWS THE TIP.
+   *
+   * It has to. `movePress` will only drag a tip that is already selected, and an automatic tip comes
+   * out of the move with a fresh `manual-...` id - so without re-keying the selection here, every
+   * further nudge of the same support would need another click first, and the operator would watch
+   * their selection empty itself for no reason they can see.
+   *
+   * `restoreSelection` rather than two toggles: it sets the selection to exactly these ids, so a
+   * multi-selection keeps its other members and the old id cannot be left behind as a stale entry.
+   */
+  const onMoveTip = useCallback((unitId: string, pointId: string, point: Vector, normal: Vector) => {
+    if (session.current.mode === 'zones') return;
+    const unit = unitOf(unitId);
+    // The tip can have gone between the press and the drop: a rebuild, or the other hand.
+    if (!unit || !contactsOf(unit).some((contact) => contact.id === pointId)) return;
+    const { commands, selectId } = moveCommands(unit, pointId, {
+      position: inverseTransformPoint(unit.transform, point),
+      normal: inverseTransformDirection(unit.transform, normal),
+    }, () => `manual-${crypto.randomUUID()}`);
+    dispatch({ type: 'batch', commands });
+    if (selectId !== pointId) {
+      send({ type: 'restoreSelection', ids: [...session.current.selection].map((id) => (id === pointId ? selectId : id)) });
+    }
+    setAdded((current) => ({ unitId, point: inverseTransformPoint(unit.transform, point), normal: inverseTransformDirection(unit.transform, normal), seq: (current?.seq ?? 0) + 1 }));
+    setStatus('Support moved.');
+  }, [contactsOf, dispatch, scene, send, session, setAdded, setStatus]);
+
+  /**
+   * A DRAG THAT CHANGED NOTHING STILL SAYS SOMETHING. Releasing off the model cancels by design - the
+   * last valid point on the way off a model is the silhouette edge, the worst place in the scene for
+   * a support - but "by design" is invisible from the operator's side, where it looks exactly like a
+   * gesture the app missed.
+   */
+  const onMoveTipCancelled = useCallback(() => {
+    setStatus('Support left where it was: a tip moves only onto the model.');
+  }, [setStatus]);
+
   const onToggleContact = useCallback((unitId: string, contactId: string) => {
     if (!selectsTips(session.current) || unitId !== scene.current.activeUnitId) return;
     const unit = unitOf(unitId);
@@ -140,5 +180,5 @@ export function useSupportEdits(deps: SupportEditDeps) {
 
   // `addTip` is not returned: Step 2's Add reaches it through `onAddContact`, which is the only caller
   // and the only thing that knows the stage. Exporting it would invite a second way in.
-  return { onAddContact, onRemoveContact, onEditMiss, onPickTip, onErase, onToggleContact };
+  return { onAddContact, onRemoveContact, onEditMiss, onPickTip, onErase, onToggleContact, onMoveTip, onMoveTipCancelled };
 }

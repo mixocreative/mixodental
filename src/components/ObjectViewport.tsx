@@ -157,6 +157,8 @@ export default function ObjectViewport(props: ObjectViewportProps) {
       {...(props.liveTool ? { liveTool: props.liveTool } : {})}
       selection={props.selection}
       onToggleContact={props.onToggleContact}
+      onMoveTip={props.onMoveTip}
+      onMoveTipCancelled={props.onMoveTipCancelled}
       onPaint={props.onPaint}
       onShift={props.onShift}
       onZoneStroke={props.onZoneStroke}

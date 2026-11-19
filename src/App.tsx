@@ -907,7 +907,7 @@ export default function App() {
    * The dependency list is long on purpose: it names what support editing actually reaches for, which
    * was invisible while these nine callbacks sat loose among everything else in this file.
    */
-  const { onAddContact, onRemoveContact, onEditMiss, onPickTip, onErase, onToggleContact } = useSupportEdits({
+  const { onAddContact, onRemoveContact, onEditMiss, onPickTip, onErase, onToggleContact, onMoveTip, onMoveTipCancelled } = useSupportEdits({
     session: sessionRef, scene: sceneRef, area: areaRef, dispatch, send, setStatus, setStatusMessage, contactsOf, setAdded, noteAdded,
   });
 
@@ -1955,6 +1955,8 @@ export default function App() {
           liveTool={liveTool}
           selection={selection}
           onToggleContact={onToggleContact}
+          onMoveTip={onMoveTip}
+          onMoveTipCancelled={onMoveTipCancelled}
           onPaint={onPaint}
           onShift={onShift}
           onZoneStroke={onZoneStroke}

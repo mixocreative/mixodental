@@ -81,7 +81,7 @@ describe('moveCommands', () => {
    * settings travel with it and the whole move is one entry on the history.
    */
   it('moves a manual tip in place, keeping its id and so its own settings', () => {
-    const subject = unit({ manual: [point('manual-1')], contactSettings: { 'manual-1': { pillarDiameter: 2 } } } as unknown as Partial<PrintUnit>);
+    const subject = unit({ manual: [point('manual-1')], contactSettings: { 'manual-1': { neckDiameter: 0.9 } } } as unknown as Partial<PrintUnit>);
 
     const { commands, selectId } = moveCommands(subject, 'manual-1', { position: [...to.position], normal: [...to.normal] }, () => 'manual-NEW');
 
@@ -110,11 +110,11 @@ describe('moveCommands', () => {
    * silently hand it the defaults - a change nobody asked for, reported by nothing.
    */
   it('carries an automatic tip s own settings across to the new id', () => {
-    const subject = unit({ contactSettings: { 'auto-7': { pillarDiameter: 2.2 } } } as unknown as Partial<PrintUnit>);
+    const subject = unit({ contactSettings: { 'auto-7': { neckDiameter: 1.1 } } } as unknown as Partial<PrintUnit>);
 
     const { commands } = moveCommands(subject, 'auto-7', { position: [...to.position], normal: [...to.normal] }, () => 'manual-NEW');
 
     expect(commands.map((command) => command.type)).toEqual(['deletion/add', 'manual/add', 'contactSettings/set']);
-    expect(commands.at(-1)).toEqual({ type: 'contactSettings/set', unitId: 'u-a', contactIds: ['manual-NEW'], patch: { pillarDiameter: 2.2 } });
+    expect(commands.at(-1)).toEqual({ type: 'contactSettings/set', unitId: 'u-a', contactIds: ['manual-NEW'], patch: { neckDiameter: 1.1 } });
   });
 });
