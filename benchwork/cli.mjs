@@ -34,7 +34,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BENCH_RULES, parseSets, stampNow } from './rules.mjs';
+import { BENCH_RULES, parseSets, stampNow, unreadBy } from './rules.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
@@ -53,7 +53,8 @@ if (has('--list') || args.length === 0) {
   console.log('\nbenchwork - the rules it offers. Everything else in the engine stays as the profile sets it.\n');
   for (const rule of BENCH_RULES) console.log(`  ${rule.name.padEnd(28)} ${`(${rule.type})`.padEnd(8)} ${rule.says}`);
   console.log('\n  A flag takes 1 or 0. A mode takes a whole number. Everything else takes a number.');
-  console.log('  Only a DENTURE responds to these: the aligner pipeline has no rules channel (see the header).');
+  console.log(`  An aligner reads only: ${BENCH_RULES.filter((rule) => rule.kinds.includes('aligner')).map((rule) => rule.name).join(', ')}.`);
+  console.log('  The rest belong to the denture\'s own modules, and are refused for an aligner rather than ignored.');
   console.log('\n  npm run benchwork -- --kind denture --set overhangAngleDeg=50 "S:\\path\\to\\stl folder" --open\n');
   process.exit(0);
 }
@@ -69,10 +70,32 @@ if (problems.length > 0) {
 
 const kind = valueOf('--kind') ?? 'denture';
 if (kind !== 'denture' && kind !== 'aligner') { console.error("--kind must be 'denture' or 'aligner'"); process.exit(2); }
-if (kind === 'aligner' && Object.keys(rules).length > 0) {
-  console.error('\n--kind aligner ignores every --set: the aligner pipeline has no rules channel (dental_policy takes no');
-  console.error('rules array, where the denture has denture_policy_ruled). Run it without --set to look, or use --kind denture.\n');
+/*
+ * REFUSE PER RULE, NOT PER KIND. This used to refuse every `--set` on an aligner, on my own wrong
+ * reading that the aligner had no rules channel at all. It has one: generation takes rules for every
+ * kind (`host/supports/jobRunner.ts` passes them), and `overhangAngleDeg` acts there. What the
+ * aligner does not read are the twelve rules belonging to the denture's own modules - islands,
+ * sockets, the steep ray, self-support, the rim gate - and sending one of those would produce a run
+ * identical to the baseline, whose honest reading is the opposite of the truth.
+ */
+const unread = unreadBy(kind, rules);
+if (unread.length > 0) {
+  console.error(`\nNothing ran. A ${kind} never reads ${unread.length === 1 ? 'this rule' : 'these rules'}:\n`);
+  for (const name of unread) console.error(`  ${name}`);
+  console.error(`\nThe engine would keep its default and the run would match the baseline exactly - which reads as`);
+  console.error(`"this rule does nothing" when in truth nothing ever read it. Run --list, or use --kind denture.\n`);
   process.exit(2);
+}
+
+/*
+ * A RULE THAT ARRIVES BUT HAS NEVER BEEN SEEN TO MOVE ANYTHING gets said out loud, because the
+ * dangerous outcome is not an error - it is a run that comes back identical and gets read as "this
+ * rule does not matter". That reading may be exactly wrong.
+ */
+const unproven = Object.keys(rules).filter((name) => BENCH_RULES.find((rule) => rule.name === name)?.unprovenOn?.includes(kind));
+if (unproven.length > 0) {
+  console.log(`\nNote: on a ${kind}, ${unproven.join(', ')} reaches the engine but has never been seen to change a result here.`);
+  console.log('If this run matches the baseline, that is UNPROVEN rather than evidence the rule does nothing.');
 }
 
 const skip = new Set(['--kind', valueOf('--kind'), '--out', valueOf('--out'), ...sets, '--set', '--open', '--list']);

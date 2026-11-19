@@ -25,6 +25,8 @@ import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { LAYER_COLOURS } from './layerColours';
 
+import { readBy } from '../../benchwork/rules.mjs';
+
 export type { DentalKind };
 
 /** Batch experiment switch: MIXO_STEEP_NO_SUPPORT=67.5 adds R1b, the steep no-support ray (rule noSupportSteepDeg), to the tilt scan, the policy, the build and the review layers. */
@@ -57,6 +59,15 @@ export const selfSupportRule = (): { overhangSelfSupport?: boolean; overhangMinA
   const [a, r, g] = [num(process.env.MIXO_SELF_AREA), num(process.env.MIXO_SELF_REACH), num(process.env.MIXO_SELF_ANGLE)];
   return { ...streams, overhangSelfSupport: true, ...(a !== undefined ? { overhangMinAreaMm2: a } : {}), ...(r !== undefined ? { overhangMaxReachMm: r } : {}), ...(g !== undefined ? { overhangMinAngleDeg: g } : {}) };
 };
+
+/*
+ * The overrides an ALIGNER actually reads, out of whatever the environment set.
+ *
+ * `readBy` comes from `benchwork/rules.mjs` so the filter and the tool's own refusal are one list:
+ * benchwork refuses a denture-only rule for `--kind aligner`, and if one reached here anyway it
+ * would be dropped rather than sent to an engine that ignores it. Both halves read the same `kinds`.
+ */
+export const alignerRules = (): Record<string, unknown> => readBy('aligner', { ...steepRule(), ...selfSupportRule() }) as Record<string, unknown>;
 
 /** The kind from the `--kind` value: absent means aligner; anything else but aligner/denture is an error. */
 export function parseKind(value: string | undefined): DentalKind {

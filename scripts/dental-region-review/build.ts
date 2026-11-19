@@ -9,6 +9,7 @@ import type { JobTransform } from '@mixo-geocore/host/core/jobs';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import { defaultSupportSettings, toPlacementSettings } from '@mixo-geocore/host/core/supports/settings';
 import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
+import type { GenerateRules } from '@mixo-geocore/host/supports/generateRules';
 import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
 import { dentalStructureOf, dentalSupportSettings } from '../../src/dental/supportPreset';
 import { applyTransform, inverseTransformDirection, inverseTransformPoint } from '@mixo-geocore/host/state/transform';
@@ -62,7 +63,18 @@ export function pickPrintAngle(mesh: TriangleMesh): PrintAngle {
  * Runs the same detector, dental placement filter, and support builder used by the app, at the
  * profile's pose or at `poseRotation` (Euler XYZ, e.g. the print angle `pickPrintAngle` chose).
  */
-export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector): DentalReviewBuild {
+/*
+ * `rules` ARE THE ENGINE'S NAMED OVERRIDES, and they were missing here, which is the only reason
+ * benchwork could not turn a rule on an aligner. The engine has taken rules for every kind all
+ * along - `host/supports/jobRunner.ts` passes `rules: job.rules ?? GENERATE_RULES` whatever the
+ * dental kind - and this review simply never handed any over, so every aligner run used the
+ * defaults and looked as though the aligner had no channel at all.
+ *
+ * The caller decides WHICH rules: only the ones an aligner actually reads should arrive here
+ * (`readBy('aligner', …)` in `benchwork/rules.mjs`). Passing a denture-only rule would change
+ * nothing and read as "this rule does nothing", which is the opposite of the truth.
+ */
+export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector, rules?: GenerateRules): DentalReviewBuild {
   const region = proposeDentalSupportRegion(mesh, referenceTuning, REFERENCE_PROFILE);
   if (region.kind !== 'proposal') return region;
   // The diagnostic strips and samples use the profile's own area and spacing (the app's defaults).
@@ -106,6 +118,11 @@ export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector): De
   }));
   const supports = runSupportJob({ mesh, dental, frame, settings,
     contacts: { points: localPoints, manual: [], deleted: [], zones: [], contactSettings: {} },
-    labelText: 'A', mode: 'export' });
+    /*
+     * EMPTY MUST MEAN ABSENT, not "no rules". `jobRunner` reads `job.rules ?? GENERATE_RULES`, and
+     * `{}` is not nullish - handing it one would replace the engine's whole default set with nothing
+     * and quietly change every aligner review. So the guard is on CONTENT, not on existence.
+     */
+    labelText: 'A', mode: 'export', ...(rules && Object.keys(rules).length > 0 ? { rules } : {}) });
   return { kind: 'proposal', region, bands, diagnosticContacts: { outer, inner }, frame, placement, supports };
 }

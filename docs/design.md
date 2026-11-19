@@ -7368,15 +7368,49 @@ the engine's answer, as data, to where supports are allowed and where tips go �
 a flag per triangle plus the candidate tips, with one producer per kind.
 
 The file layout already obeys this: `dental/` and `dental/denture/` are separate and heavily modular,
-one unit per step. **The defect is not layout — it is one file not calling a shared module.**
-`PlacementRules::from_overrides` and `IslandRules::from_overrides` are geocore facilities that
-`denture.rs`, `generic.rs`, `part_tips.rs`, `plate.rs` and `safety.rs` all use, and
-`crates/geometry-wasm/src/dental.rs` uses neither — the only policy producer in the engine with no
-rules channel, which is why benchwork is denture-only. **Fix: make the aligner use what it needs from
-geocore, and collapse the three `denture_*_ruled` overloads so every entry takes `rules` (empty
-meaning defaults).** `denture_policy` is already a one-line delegation to `denture_policy_ruled`, so
-the collapse is mechanical; the aligner half is the real work. It needs an engine version, a vendor
-bump and `gate:real` green on both kinds.
+one unit per step.
+
+**CORRECTION, same day.** This paragraph first said the aligner was *"the only policy producer in the
+engine with no rules channel"*, because a grep for `from_overrides` in
+`crates/geometry-wasm/src/dental.rs` found nothing. **That was the wrong file and the wrong
+conclusion.** `dental_policy` lives in `crates/geometry-wasm/src/dental_area.rs:55`, it **already
+uses the shared module** — `let rules = PlacementRules::default();` at `:102` — and
+`PlacementRules::default()` *is* `from_overrides(&[])`
+(`crates/geometry-core/src/generic/placement/mod.rs:123-126`). `generic_policy` takes no rules
+either, so "the only one" was false twice over. Checked in the source after an engine review.
+
+**Where the aligner is really stuck, and it is in THIS repo, not the engine.** The aligner's
+generation already takes rules for every kind — `host/supports/jobRunner.ts:46` passes
+`rules: job.rules ?? GENERATE_RULES`. What drops them is the app's own review path:
+`scripts/dental-region-review/build.ts:107` calls `runSupportJob` with no `rules`, and
+`dentalwork/batch-review/reviewCase.ts:18` goes through exactly that function. **So the first and
+largest win is a one-line app change, not an engine change.**
+
+What the engine change is still worth, honestly: `dental_policy` has exactly two rule-shaped
+attachment points — the add-on placement closure (`dental_area.rs:101-106`) and the debris size
+(`dental/aligner_parts.rs:53`) — and both run only for MULTI-PART aligner files. Ten rule names
+would become live there, and only 2 of the 13 baseline scans exercise it. The denture overload
+collapse is separately worth doing and is mechanical: the three unruled entries have no JS caller in
+either repo. **`dental_tilt_scan` should NOT gain a rules parameter** — nothing would read it, and a
+parameter the engine ignores is the "looks like an answer, tested nothing" failure this whole tool
+exists to prevent.
+
+**The one-line fix, done 2026-11-20 — and its honest negative result.**
+`scripts/dental-region-review/build.ts` now threads named rules into `runSupportJob`, and
+`dentalwork/batch-review/reviewCase.ts` passes the aligner-readable subset. The plumbing is proved:
+with `MIXO_RULES` set, the filter returns `{"overhangAngleDeg":10}` and drops the denture-only rule
+beside it. **But nothing moved.** On the reference aligner, 94 tips with 0 left out at the engine
+default, at 55°, and at an extreme 10°.
+
+So: the rule arrives and the aligner's result does not depend on it — an aligner's tips come from the
+dental contour policy, not from overhang scatter. **No rule benchwork currently offers has been seen
+to change an aligner.** That is recorded rather than hidden: the rule carries `unprovenOn:
+['aligner']`, the CLI says so before the run, and a test keeps the claim honest. An unchanged result
+there is UNPROVEN, not evidence the rule does nothing — which is the reading that would be exactly
+wrong, and the failure this tool exists to prevent.
+
+The wiring was still right to fix: the engine has taken rules for every kind all along and only this
+repo was dropping them. What it buys is a channel that works, not a capability that shows.
 
 **2. The nodes must reproduce BOTH kinds, by chaining compounds in order.** *"the procedural nodes
 should be able to reproduce both with combination and compounded nodes chained together in order"*.

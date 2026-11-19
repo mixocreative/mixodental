@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
-import { BENCH_RULES, parseSets } from './rules.mjs';
+import { BENCH_RULES, parseSets, readBy, unreadBy } from './rules.mjs';
 import { RULE_DEFAULTS } from '../dentalwork/batch-review/ruleDefaults';
 
 /*
@@ -97,5 +97,45 @@ describe('benchwork refuses before it spends a run', () => {
   it('collects every problem, so one command reports all of its mistakes', () => {
     const { problems } = parseSets(['nosuchRule=5', 'socketNoSupport=yes', 'overhangAngleDeg=200']);
     expect(problems).toHaveLength(3);
+  });
+});
+
+/*
+ * WHO READS WHAT. `kinds` is the only thing standing between the operator and a run that comes back
+ * identical because nothing ever read the rule - the failure this whole tool exists to prevent.
+ */
+describe('benchwork only offers a kind the rules that kind reads', () => {
+  it('every rule declares its kinds, and they are real kinds', () => {
+    for (const rule of BENCH_RULES) {
+      expect(Array.isArray(rule.kinds), rule.name).toBe(true);
+      expect(rule.kinds.length, rule.name).toBeGreaterThan(0);
+      for (const kind of rule.kinds) expect(['denture', 'aligner'], rule.name).toContain(kind);
+    }
+  });
+
+  it('names the denture-only rules as unread by an aligner', () => {
+    const rules = Object.fromEntries(BENCH_RULES.map((rule) => [rule.name, 1]));
+    const unread = unreadBy('aligner', rules);
+    expect(unread).toContain('socketNoSupport');
+    expect(unread).not.toContain('overhangAngleDeg');
+    expect(unreadBy('denture', rules)).toEqual([]);
+  });
+
+  it('readBy keeps only what the kind reads, and drops the rest', () => {
+    expect(readBy('aligner', { overhangAngleDeg: 55, socketNoSupport: true })).toEqual({ overhangAngleDeg: 55 });
+    expect(readBy('denture', { overhangAngleDeg: 55, socketNoSupport: true })).toEqual({ overhangAngleDeg: 55, socketNoSupport: true });
+  });
+
+  /*
+   * Measured on the reference aligner 2026-11-20: 94 tips at the default, at 55 and at 10. The rule
+   * arrives; nothing moved. This test exists so that stays declared rather than quietly forgotten -
+   * if someone later proves an effect, they delete the marker and this test tells them to.
+   */
+  it('marks a rule that reaches a kind but has never been seen to move it', () => {
+    const angle = BENCH_RULES.find((rule) => rule.name === 'overhangAngleDeg');
+    expect(angle?.unprovenOn).toEqual(['aligner']);
+    for (const rule of BENCH_RULES) {
+      for (const kind of rule.unprovenOn ?? []) expect(rule.kinds, rule.name).toContain(kind);
+    }
   });
 });

@@ -16,29 +16,61 @@
  * this tool has available, a run that looks like an answer and tested nothing. It has happened once:
  * the engine 56 -> 57 rename is why `profileSelect.ts` still carries `LEGACY_RULE_NAMES`.
  */
+/*
+ * `kinds` SAYS WHO ACTUALLY READS THE RULE, and it is the difference between a tool and a liar.
+ *
+ * `overhangAngleDeg` reaches an aligner because it acts in the SHARED supports layer, through
+ * `generate` (`host/supports/jobRunner.ts:46` passes rules for every kind). The other twelve are read
+ * only by the denture's own modules - islands, sockets, the steep ray, the self-support test, the
+ * rim gate. Offering them for an aligner would let someone set one, watch nothing change, and
+ * conclude the rule does not matter, when in fact nothing ever read it.
+ */
 export const BENCH_RULES = [
-  { name: 'overhangAngleDeg', type: 'deg', was: 'MIXO_OVERHANG_ANGLE',
+  { name: 'overhangAngleDeg', type: 'deg', was: 'MIXO_OVERHANG_ANGLE', kinds: ['denture', 'aligner'],
+    /*
+     * REACHES AN ALIGNER, BUT NOTHING WAS OBSERVED TO MOVE. Measured 2026-11-20 on the reference
+     * aligner: 94 tips at the default, at 55 and at an extreme 10, with 0 left out every time. The
+     * value provably arrives (the filter returns it, and `jobRunner` passes rules for every kind),
+     * so an unchanged result here is UNPROVEN, not evidence that the rule does nothing - an aligner's
+     * tips come from the dental contour policy rather than from overhang scatter. Said out loud by
+     * the CLI, because a silent null result is how a tool teaches someone the wrong thing.
+     */
+    unprovenOn: ['aligner'],
     says: 'The one overhang angle every stream inherits (slope from horizontal). Widens or narrows every mask at once.' },
-  { name: 'dentalRimOverhangAngleDeg', type: 'deg', was: null,
+  { name: 'dentalRimOverhangAngleDeg', type: 'deg', was: null, kinds: ['denture'],
     says: 'The overhang angle used along the dental rim, where the rim band is more forgiving than the rest.' },
-  { name: 'noSupportSteepDeg', type: 'deg', was: 'MIXO_STEEP_NO_SUPPORT',
+  { name: 'noSupportSteepDeg', type: 'deg', was: 'MIXO_STEEP_NO_SUPPORT', kinds: ['denture'],
     says: 'Adds the steep no-support ray (R1b) to the no-support zone, the tilt scan, the policy and the review layers.' },
-  { name: 'rimRespectsNoSupport', type: 'flag', was: 'MIXO_RIM_NO_SUPPORT',
+  { name: 'rimRespectsNoSupport', type: 'flag', was: 'MIXO_RIM_NO_SUPPORT', kinds: ['denture'],
     says: 'Whether rim and hole-band tips respect the no-support zone instead of overriding it.' },
-  { name: 'socketNoSupport', type: 'flag', was: 'MIXO_SOCKETS',
+  { name: 'socketNoSupport', type: 'flag', was: 'MIXO_SOCKETS', kinds: ['denture'],
     says: 'Whether sockets become no-support. The allowed area cancels this (engine 59), which is why the two interact.' },
-  { name: 'socketMinDepthMm', type: 'mm', was: null, says: 'How deep a socket must be before the socket rule sees it at all.' },
-  { name: 'lowOutsideAllowed', type: 'mode', was: null,
+  { name: 'socketMinDepthMm', type: 'mm', was: null, kinds: ['denture'], says: 'How deep a socket must be before the socket rule sees it at all.' },
+  { name: 'lowOutsideAllowed', type: 'mode', was: null, kinds: ['denture'],
     says: 'What happens to a lowest point outside the allowed area: 0 drops it, 1 and 2 keep it under widening conditions.' },
-  { name: 'overhangSelfSupport', type: 'flag', was: 'MIXO_SELF_SUPPORT',
+  { name: 'overhangSelfSupport', type: 'flag', was: 'MIXO_SELF_SUPPORT', kinds: ['denture'],
     says: 'Turns on the self-supporting overhang rule: a small, shallow, well-reached overhang needs no tip.' },
-  { name: 'overhangMinAreaMm2', type: 'mm2', was: 'MIXO_SELF_AREA', says: 'Self-support: the largest area still called self-supporting.' },
-  { name: 'overhangMaxReachMm', type: 'mm', was: 'MIXO_SELF_REACH', says: 'Self-support: how far an overhang may reach from its support.' },
-  { name: 'overhangMinAngleDeg', type: 'deg', was: 'MIXO_SELF_ANGLE', says: 'Self-support: the shallowest slope still called self-supporting.' },
-  { name: 'overhangSelfSupportStreams', type: 'flag', was: 'MIXO_SELF_STREAMS',
+  { name: 'overhangMinAreaMm2', type: 'mm2', was: 'MIXO_SELF_AREA', kinds: ['denture'], says: 'Self-support: the largest area still called self-supporting.' },
+  { name: 'overhangMaxReachMm', type: 'mm', was: 'MIXO_SELF_REACH', kinds: ['denture'], says: 'Self-support: how far an overhang may reach from its support.' },
+  { name: 'overhangMinAngleDeg', type: 'deg', was: 'MIXO_SELF_ANGLE', kinds: ['denture'], says: 'Self-support: the shallowest slope still called self-supporting.' },
+  { name: 'overhangSelfSupportStreams', type: 'flag', was: 'MIXO_SELF_STREAMS', kinds: ['denture'],
     says: 'Whether the self-support test also filters the rim and hole-band streams, not just the open area.' },
-  { name: 'islandOverhangAngleDeg', type: 'deg', was: null, says: 'The overhang angle an island must meet to earn its own tip.' },
+  { name: 'islandOverhangAngleDeg', type: 'deg', was: null, kinds: ['denture'], says: 'The overhang angle an island must meet to earn its own tip.' },
 ];
+
+/**
+ * The names in `rules` that this kind's pipeline never reads.
+ *
+ * Refusing these is the point: a rule the engine ignores produces a run identical to the baseline,
+ * and the honest reading of that run - "this rule changes nothing" - would be exactly wrong. The
+ * refusal names them so the operator learns which half of the engine they are standing in.
+ */
+export const unreadBy = (kind, rules) => Object.keys(rules)
+  .filter((name) => !(BENCH_RULES.find((rule) => rule.name === name)?.kinds ?? []).includes(kind));
+
+/** The rules of `rules` that this kind does read - what it is safe to send to the engine. */
+export const readBy = (kind, rules) => Object.fromEntries(
+  Object.entries(rules).filter(([name]) => (BENCH_RULES.find((rule) => rule.name === name)?.kinds ?? []).includes(kind)));
 
 /**
  * The stamp an output folder is named by: `20261120-015310`.

@@ -24,7 +24,7 @@ import { explainReason } from './reasons';
 import { NO_EVIDENCE, orientationEvidence, orientationLayers, type OrientationEvidence } from '../../src/dental/orientationEvidence';
 import { orientationGlb } from './orientationEvidenceGlb';
 import { LAYER_COLOURS } from './layerColours';
-import { buildDentureReview, dentureLayers, reviewProfileId, shapeNote, type DentalKind } from './profileSelect';
+import { alignerRules, buildDentureReview, dentureLayers, reviewProfileId, shapeNote, type DentalKind } from './profileSelect';
 import { peelReport } from './peelReport';
 import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureReviewDetail } from './dentureReviewLayers';
 
@@ -112,7 +112,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
       Object.assign(row, { printAngleDeg: Number(tiltLabel(scan.rows[angle.index]!.tiltDeg)), angleReason: scan.reason, angleConfirmed: angle.confirmed,
         stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none' });
     }
-    const review = buildDentalReview(mesh, angle.kind === 'angle' ? angle.rotation : undefined);
+    const review = buildDentalReview(mesh, angle.kind === 'angle' ? angle.rotation : undefined, alignerRules());
     // The evidence takes the model's own transform (lift from the review frame, pose from review.ts), so the overlays sit on the model.
     const evidenceFrame = review.kind === 'proposal' ? { position: review.frame.position, rotation: dentalModelRotation(mesh) }
       : step1Rotation ? { position: [0, 0, 0] as [number, number, number], rotation: step1Rotation } : undefined;
