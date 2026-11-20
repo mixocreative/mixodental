@@ -235,8 +235,10 @@ h1 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: .08em; }
  * A key that shows its picture alone (CommandButton `labelHidden`). Square, so a row of them reads
  * as a row of keys rather than as words of different lengths. The word is not gone: it is still in
  * the button for a screen reader and for the walk, and the hint puts it under the pointer.
- * Only for actions whose glyph is universal -- undo and redo. An icon the reader has to learn
- * costs more than the width it saves, which is why Wireframe beside them is still a word.
+ * For actions whose glyph is universal -- undo and redo -- and for Wireframe, by the owner's call
+ * (2026-11-21: "the wireframe button can be an icon, toggle with tooltip ... to help minimise space"),
+ * which overrode this rule's earlier "an icon the reader has to learn costs more than the width it saves".
+ * Wireframe is a TOGGLE, so it shows its state as pressed rather than by changing its word.
  */
 .icon-key {
   width: 36px;

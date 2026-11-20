@@ -121,6 +121,7 @@ export const ICON_CATALOGUE: IconEntry[] = [
   { name: 'language', slot: 'free', source: 'lucide', where: 'Nav bar: the language key (lucide globe). It replaced a dropdown as wide as the longest language name; the names themselves are still in the open list' },
   { name: 'undo', slot: 'free', source: 'lucide', where: 'Nav bar: Undo (lucide undo-2). Icon alone, because this arrow is universal; the word is still in the button for a screen reader and under the pointer' },
   { name: 'redo', slot: 'free', source: 'lucide', where: 'Nav bar: Redo (lucide redo-2), the mirror of Undo beside it' },
+  { name: 'wireframe', slot: 'free', source: 'lucide', where: 'Nav bar: the Wireframe toggle (lucide box - a cube drawn as its edges), icon alone, pressed while the models are drawn as wireframes' },
 
   // The one icon that is not a page element: it becomes a canvas cursor.
   { name: 'cursor-rim', slot: 'inline', source: 'drawn', where: 'Rim define mode, the pointer over the model: a crosshair round an open square, because a press there places or grabs a POINT. Built into a cursor by src/components/viewport/style.ts' },

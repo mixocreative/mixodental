@@ -1629,7 +1629,14 @@ export default function App() {
             <CommandButton command={command('history.redo')} run={runCommand} className="icon-key" uiName="nav-redo" labelHidden><Icon name="redo" /></CommandButton>
           </div>}
           <div className="toolbar-group">
-            <CommandButton command={command('view.wireframe')} run={runCommand} />
+            {/*
+              AN ICON TOGGLE (owner, 2026-11-21). The command's own label flips Wireframe/Solid, which is right
+              for a word on a button and wrong for a toggle: a pressed control keeps ONE name and shows its state
+              as pressed. So the name is fixed here and `pressed` follows the view; the hint, which the command
+              still flips, is the tooltip that says what a press will do.
+            */}
+            <CommandButton command={{ ...command('view.wireframe'), label: 'Wireframe', pressed: wireframe }} run={runCommand}
+              className="icon-key" uiName="nav-wireframe" labelHidden><Icon name="wireframe" /></CommandButton>
           </div>
         </> : null}
         {/*
