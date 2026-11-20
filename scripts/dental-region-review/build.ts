@@ -31,8 +31,8 @@ export type DentalReviewBuild =
   | { kind: 'inconclusive'; reason: string };
 
 /** The aligner type's Step 3 settings and switches, as the app gives a new aligner. */
-function appSettings() {
-  return { ...dentalSupportSettings(REFERENCE_PROFILE, defaultSupportSettings), roofSeededModes: [] };
+function appSettings(profileId: string) {
+  return { ...dentalSupportSettings(profileId, defaultSupportSettings), roofSeededModes: [] };
 }
 
 export type PrintAngle =
@@ -43,17 +43,19 @@ export type PrintAngle =
  * The app's Step 1 print angle: the scan with the new aligner's settings, then the confirm builds
  * of the automatic pick (the pick, then at most two more tilts in pick order).
  */
-export function pickPrintAngle(mesh: TriangleMesh): PrintAngle {
-  const settings = appSettings();
-  const structure = dentalStructureOf(REFERENCE_PROFILE);
-  const scan = scanDentalTilts(mesh, REFERENCE_PROFILE, { neckLengthMm: settings.neckLength, pillarDiameterMm: settings.pillarDiameter,
+// `profileId` defaults to the reference aligner, which is every caller today; a registered aligner
+// type (docs/TYPE-PIPELINE.md) passes its own id, which is how the parity proof P1 runs a whole review.
+export function pickPrintAngle(mesh: TriangleMesh, profileId: string = REFERENCE_PROFILE): PrintAngle {
+  const settings = appSettings(profileId);
+  const structure = dentalStructureOf(profileId);
+  const scan = scanDentalTilts(mesh, profileId, { neckLengthMm: settings.neckLength, pillarDiameterMm: settings.pillarDiameter,
     liftMm: settings.liftHeight, braced: structure.treeEnabled || structure.bracesEnabled });
   if (scan.kind !== 'scan') return { kind: 'inconclusive', reason: `tilt-scan-${scan.reason}` };
-  const region = proposeDentalSupportRegion(mesh, referenceTuning, REFERENCE_PROFILE);
-  const orientation = proposeDentalOrientation(mesh, REFERENCE_PROFILE);
+  const region = proposeDentalSupportRegion(mesh, referenceTuning, profileId);
+  const orientation = proposeDentalOrientation(mesh, profileId);
   const pick = scan.order[0]!;
   if (region.kind !== 'proposal' || orientation.kind !== 'proposal') return { kind: 'angle', scan, index: pick, rotation: scan.rows[pick]!.rotation, confirmed: false, tried: 0 };
-  const dental = { kind: 'two-contour' as const, profileId: REFERENCE_PROFILE, rim: orientation.rim, region, stamps: [], structure };
+  const dental = { kind: 'two-contour' as const, profileId, rim: orientation.rim, region, stamps: [], structure };
   const { confirmed, tried } = confirmPick({ mesh, dental, settings, labelText: 'A' }, scan.order.map((index) => scan.rows[index]!.rotation));
   const index = confirmed === undefined ? pick : scan.order[confirmed]!;
   return { kind: 'angle', scan, index, rotation: scan.rows[index]!.rotation, confirmed: confirmed !== undefined, tried };
@@ -74,12 +76,12 @@ export function pickPrintAngle(mesh: TriangleMesh): PrintAngle {
  * (`readBy('aligner', …)` in `benchwork/rules.mjs`). Passing a denture-only rule would change
  * nothing and read as "this rule does nothing", which is the opposite of the truth.
  */
-export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector, rules?: GenerateRules): DentalReviewBuild {
-  const region = proposeDentalSupportRegion(mesh, referenceTuning, REFERENCE_PROFILE);
+export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector, rules?: GenerateRules, profileId: string = REFERENCE_PROFILE): DentalReviewBuild {
+  const region = proposeDentalSupportRegion(mesh, referenceTuning, profileId);
   if (region.kind !== 'proposal') return region;
   // The diagnostic strips and samples use the profile's own area and spacing (the app's defaults).
-  const { defaults } = profileData(REFERENCE_PROFILE);
-  const [low, high] = dentalAreaBand(referenceTuning, REFERENCE_PROFILE);
+  const { defaults } = profileData(profileId);
+  const [low, high] = dentalAreaBand(referenceTuning, profileId);
   const bands = diagnosticDentalSideBands(mesh, region, { setback: Math.max(0, low), width: high });
   if (bands.kind !== 'proposal') return { kind: 'inconclusive', reason: `diagnostic-band-${bands.reason}` };
   const outer = sampleDiagnosticContourContacts(mesh, region.outerEdges, bands.outerOtherSide,
@@ -93,12 +95,12 @@ export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector, rul
   if (outer.kind !== 'proposal' || inner.kind !== 'proposal') {
     return { kind: 'inconclusive', reason: `diagnostic-contact-${outer.kind !== 'proposal' ? outer.reason : inner.kind !== 'proposal' ? inner.reason : 'unknown'}` };
   }
-  const orientation = proposeDentalOrientation(mesh, REFERENCE_PROFILE);
+  const orientation = proposeDentalOrientation(mesh, profileId);
   if (orientation.kind !== 'proposal') return { kind: 'inconclusive', reason: `orientation-${orientation.reason}` };
-  const rotation = poseRotation ?? rotationToDentalPose(mesh, orientation.rim, REFERENCE_PROFILE);
+  const rotation = poseRotation ?? rotationToDentalPose(mesh, orientation.rim, profileId);
   if (!rotation) return { kind: 'inconclusive', reason: 'dental-pose-inconclusive' };
 
-  const settings = appSettings();
+  const settings = appSettings(profileId);
   const orientationOnly: JobTransform = { position: [0, 0, 0], rotation };
   const turned = applyTransform(mesh, orientationOnly);
   let lowestY = Infinity;
@@ -107,7 +109,7 @@ export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector, rul
   const frame: JobTransform = {
     position: [0, settings.liftHeight - lowestY, 0], rotation,
   };
-  const dental = { kind: 'two-contour' as const, profileId: REFERENCE_PROFILE, rim: orientation.rim, region, stamps: [], structure: dentalStructureOf(REFERENCE_PROFILE) };
+  const dental = { kind: 'two-contour' as const, profileId, rim: orientation.rim, region, stamps: [], structure: dentalStructureOf(profileId) };
   const empty: PlacementResult = { points: [], regions: [], contactPositions: new Float32Array(), contactNormals: new Float32Array() };
   const placement = filterDentalPlacement({ mesh, orientation: orientationOnly,
     settings: toPlacementSettings(settings), dental }, empty);
