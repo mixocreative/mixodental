@@ -149,7 +149,14 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
    * named row that says nothing is indistinguishable from one nobody has named. It is oriented by
    * its own step when opened, so "needs orienting" is exactly true.
    */
-  const chip = superseded ? undefined
+  const generating = autoGen?.kind === 'running' || autoGen?.kind === 'queued';
+  /*
+   * NO CHIP WHILE THIS CARD'S OWN RUN IS GOING. The picture already says "Generating supports...", and the
+   * chip beside it said "Ready" - the ORIENTATION's verdict, true and beside the point, read as the
+   * opposite of the picture (app UX review 2026-11-21, finding 7, walk shot m11). One voice per card:
+   * the run speaks until it ends, then the chip comes back.
+   */
+  const chip = superseded || generating ? undefined
     : detected === undefined
       ? (purpose !== undefined && kind === 'denture' ? { key: 'Needs orienting' } : undefined)
       : detectChip(detected, kind);
@@ -183,7 +190,6 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
    * breath, because until it was, this door opened onto a step with a badge and no tools.
    */
   const built = unit.supports !== undefined && unit.dental !== undefined;
-  const generating = autoGen?.kind === 'running' || autoGen?.kind === 'queued';
   /*
    * A DONE LINE MUST NOT OUTLIVE THE SUPPORTS IT DESCRIBES. Nothing expires this sitting's card
    * record, so auto-gen a model, open it, go Back to Step 1 - which re-orients and deletes the

@@ -576,6 +576,16 @@ describe('what a card shows about its own auto-gen run', () => {
     expect(withQueue(one, new Map([['unit-a', stopped]]))).toContain('paint one');
   });
 
+  it('drops the orientation chip while its own run is drawn, so Ready never sits beside Generating', () => {
+    const oriented = { detected: new Map([['unit-a', { kind: 'oriented', turned: false }]]) };
+    const running = withQueue(one, new Map([['unit-a', { kind: 'running' } as AutoGenCard]]), oriented);
+
+    expect(running).toContain('Generating supports');
+    expect(running).not.toContain('>Ready<');
+    // The chip comes back when the run is over: it was hidden, not lost.
+    expect(withQueue(built, new Map([['unit-a', done()]]), oriented)).toContain('>Ready<');
+  });
+
   it('offers Stop in place of Auto-gen all while the queue runs', () => {
     const markup = withQueue(one, new Map([['unit-a', { kind: 'running' } as AutoGenCard]]), { autoGenBusy: true });
 
