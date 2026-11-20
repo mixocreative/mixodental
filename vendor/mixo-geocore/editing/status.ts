@@ -15,8 +15,13 @@ const GESTURE_STATUS = {
   drag: 'Support Edit Mode: drag the circle over supports to select them. Supports hidden behind the model are skipped.',
   dragUnselect: 'Support Edit Mode: drag the circle over supports to unselect them. Supports hidden behind the model are skipped.',
 } as const;
+/** A mode's own line for the gesture: fixed per kind, or worked out from the gesture (`gestureStatus` in modes.ts). */
+const ownStatus = (press: Gesture): string | undefined => {
+  const line = gestureOwner(press.kind)?.gestureStatus?.[press.kind];
+  return typeof line === 'function' ? line(press) : line;
+};
 const gestureStatus = (press: Gesture): string | undefined => (press.kind === 'none' ? undefined : press.kind === 'add' && press.remove ? GESTURE_STATUS.remove : press.kind === 'drag' && press.brush.mode === 'unselect' ? GESTURE_STATUS.dragUnselect
-  : (GESTURE_STATUS as Partial<Record<string, string>>)[press.kind] ?? gestureOwner(press.kind)?.gestureStatus?.[press.kind]);
+  : (GESTURE_STATUS as Partial<Record<string, string>>)[press.kind] ?? ownStatus(press));
 
 /**
  * A Support Edit Mode click that hit neither the model nor a support: what to click instead.

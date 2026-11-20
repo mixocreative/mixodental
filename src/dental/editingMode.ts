@@ -464,7 +464,15 @@ registerEditMode({
   // Step 3, and Step 2 under Add or Select, hand the canvas a Support Edit Mode tool.
   canvasGesture: (press) => (press.kind === 'dental-area' ? press.edit ?? press : press.kind === 'dental-review' ? press.edit : undefined),
   gestureStatus: {
-    'dental-aligner': 'Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.',
+    /*
+     * STEP 1 HAS TWO PHASES AND SAYS TWO THINGS. A fixed line per gesture kind told the operator to drop a
+     * file while the model was already loaded and oriented (app UX review 2026-11-20, finding 2); geocore
+     * `gestureStatus` now takes a function of the gesture. Ready reads the badge's own instruction
+     * (`stepOneText`), and `kindMessage` gives a denture its line from `kindText`, as for every status.
+     */
+    'dental-aligner': (press) => (press.kind === 'dental-aligner' && press.phase === 'ready'
+      ? 'Review the orientation. Turn the aligner with the gizmo if needed.'
+      : 'Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.'),
     'dental-rim': 'Click along the rim to place points; they land on the model. Close the loop, then press Done. Drag off the model to turn the view.',
     'dental-area': 'Paint where dental supports may grow, anywhere on the aligner; Erase takes area away. Drag on the model.',
     /*

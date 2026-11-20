@@ -12,6 +12,9 @@ const DENTURE: Readonly<Record<string, string>> = {
   'Drop an aligner STL, or choose one. It is oriented automatically; adjust with the gizmo, then press Next.':
     'Drop a denture STL, or choose one. It is stood upright automatically; turn it with Free transform if needed, then press Next.',
   'Left the aligner on the plate without supports.': 'Left the denture on the plate without supports.',
+  // Step 1's status line once the model is loaded: the same instruction its badge gives (stepOneText).
+  'Review the orientation. Turn the aligner with the gizmo if needed.':
+    'Review the print angle. Drag the dial: tips turn green with a path to the plate.',
   'No orientation was proposed for this aligner.': 'No orientation was proposed for this denture.',
   'Add an aligner first.': 'Add a denture first.',
   'Rotate the aligner to the proposed orientation again': 'Rotate the denture to the proposed orientation again',

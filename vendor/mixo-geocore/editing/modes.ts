@@ -67,8 +67,13 @@ export interface EditModeExtension {
   readonly gestureKinds?: readonly string[];
   /** The gesture the canvas acts on, when it is another one (a step that hands the canvas an Edit Mode tool). */
   canvasGesture?(press: Gesture): Gesture | undefined;
-  /** The status line (an i18n key) per gesture kind of the mode. */
-  readonly gestureStatus?: Readonly<Record<string, string>>;
+  /**
+   * The status line (an i18n key) per gesture kind of the mode - or a function of the gesture, for a kind
+   * whose line depends on its state. A FIXED line per kind could say only one sentence for a step that
+   * has phases: mixoDental's Step 1 told the operator to drop a file while the model was already loaded
+   * (app UX review 2026-11-20, finding 2). Returning undefined says nothing for that state.
+   */
+  readonly gestureStatus?: Readonly<Record<string, string | ((press: Gesture) => string | undefined)>>;
   /** The status line after the user's exit from the mode. */
   readonly exitStatus?: StatusMessage;
   /** A step inside the mode starts with its own status line (an error or result of the last step does not follow). */
