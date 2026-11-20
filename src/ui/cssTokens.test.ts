@@ -60,3 +60,27 @@ describe('the CSS custom properties', () => {
     expect([...new Set(missing)]).toEqual([]);
   });
 });
+
+/*
+ * THE FOLDER REVIEW READS ONLY WHAT IT LOADS. Its page links tokens.css and base.css and nothing else,
+ * so a token the APP declares is no help to it - and the global check above cannot see that, because
+ * it pools every declaration. On 2026-11-20 fourteen reads of `--accent` and `--panel` in the page's
+ * inline <style> drew the node canvas, the print-angle figure and the stage divider with no colour at
+ * all; `--accent` is declared by the app, so the pooled check passed.
+ */
+describe('the folder review page', () => {
+  const page = new TextDecoder().decode(readFileSync('dentalwork/batch-review/viewer.html'));
+  const style = [...page.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(([, css]) => css).join('\n').replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const own = new Set<string>();
+  for (const text of [CSS['dentalwork/batch-review/tokens.css'], CSS['dentalwork/batch-review/base.css'], style]) {
+    for (const [, name] of text.matchAll(/^\s*(--[a-z][a-z0-9-]*)\s*:/gm)) own.add(name);
+  }
+  // Set from the page's script (`setProperty('--chain-h', ...)`), which is how the divider works.
+  for (const [, name] of page.matchAll(/setProperty\(\s*['"`](--[a-z][a-z0-9-]*)['"`]/g)) own.add(name);
+
+  it('reads every token from a stylesheet it actually loads', () => {
+    // A read with a fallback (`var(--x, y)`) is deliberate and safe; a BARE read of an unloaded token is the fault.
+    const missing = [...style.matchAll(/var\(\s*(--[a-z][a-z0-9-]*)\s*\)/g)].map(([, name]) => name).filter((name) => !own.has(name));
+    expect([...new Set(missing)]).toEqual([]);
+  });
+});
