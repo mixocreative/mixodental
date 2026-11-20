@@ -29,10 +29,17 @@ chooses, and it is a **search result**. From the module's own header (`denture/t
 > side faces up by the tilt, each judged by the hard rules that apply to a denture and scored by the
 > area that needs support.*
 
-In plain words: **the denture is printed standing on the plate, teeth end down. The engine then leans
-it over, trying every angle from 0° (bolt upright) to 45° in 2° steps, and keeps the lean that needs
-the least supported area** - rejecting any lean where a tip's neck hits the model (Crossing) or a
-pillar is too thin for its height (Slender).
+In plain words: **the denture is printed standing on the plate, teeth end down. The engine leans it
+over, trying every angle from 0° (bolt upright) to 45° in 2° steps, and keeps the best one** -
+rejecting any lean where a tip's neck hits the model (Crossing) or a pillar is too thin for its
+height (Slender).
+
+**"Best" is an ordered preference, and supported area is only the fourth term of it**
+(`tilt.rs:16-19`): robust tilts first, then passing, then fewest failed rules; **within a tier**,
+fewest boxed-in lowest points, then fewest lowest points outside the allowed area, then the smallest
+overhang area, then the lowest print height, then the lower tilt. An earlier draft of this page said
+it "keeps the lean that needs the least supported area", which is the fourth tie-break described as
+the rule.
 
 It matters because **the lean decides which faces are overhanging**, and overhanging faces are the
 ones that need support. Tilt the part and a different set of faces needs tips.
@@ -48,11 +55,14 @@ before any tilt. So it leaves the chain and becomes a **readout** beside stage 3
 0-44, because X" - because a zone edit moves the pick, and tips must not move for a reason that is
 off screen. Its range, step and tie rule become solver settings under stage 3.
 
-**And a defect sits inside it**, from that same header: *"the Cup and Gap rules never fail: every
-prominent lowest point gets a tip."* Only `Crossing` and `Slender` are ever written
-(`tilt.rs:220, 224`), while `passes()` reports "every rule passed" over all four. The justification is
-also false in its own engine - `lows_unreached` exists precisely because a prominent lowest point can
-fail to get a tip. A lean is called robust on half its criteria, and it reads identically either way.
+**A smell sits inside it, and it is smaller than I first said.** Only `Crossing` and `Slender` are
+ever written (`tilt.rs:220, 224`), while `passes()` and `failed_count()` range over all four, so two
+rules that were never assessed are counted as passed. That arithmetic is real. **But the concern Cup
+stands for is not unguarded**: boxed-in lowest points are preferred against within the tier, as the
+pick order above shows. I first reported this as "a tilt judged on half its rules", which overstated
+it by reading the module header and not the pick. **CANDIDATE**, not confirmed: the header's
+justification ("every prominent lowest point gets a tip") is still contradicted by the engine's own
+`lows_unreached`, and nothing here was run.
 
 **Stage 1 is locked on purpose.** Its numbers are calibration: clinical, but editing one voids the
 type's validation record. It is shown, not offered. That is the third class from *WHO OWNS A NUMBER*.
@@ -67,9 +77,11 @@ This is the part the owner specified, with one correction that the source forces
 
 - **Frame** (`denture/canon.rs:25`) — `up`, `teeth`, `across`, and an origin. Every other reference is
   built on it. Its directions have NAMES: back, front, top, tissue, and the two across.
-- **Tight box** — the part's extent **in the Frame**. This is the owner's "oriented bounding box", and
-  it is the one to offer: it is fixed to the canonical frame, so the same scan imported differently
-  gives the same answer (`denture/no_support.rs`, which says exactly that).
+- **Tight box** — and the name is the engine's, not mine: `denture/obb.rs` IS the tight box, a
+  vertex-cloud PCA box, and the review calls it that. This is the owner's "oriented bounding box" and
+  it is the one to offer. **The default Sight cast origin binds to it literally** (`Obb`,
+  `oral_cavity_ray.rs:51-53`), not to a redefined "extent in the Frame": the two are probably the same
+  box geometrically, but probably is not byte for byte, and the gate hashes outputs.
 - **The import-frame box is NOT offered.** It would hand back the import-orientation dependence the
   engine deliberately removed. This is the one item of the owner's sketch that is refused, and the
   refusal is the reason the rest can be trusted.
@@ -88,6 +100,9 @@ Plus the **derived planes**, which are detection results, not box geometry:
 
 - **Rim plane** (`denture/rim_plane.rs:25`) — fitted to the rim.
 - **Symmetry plane** (`denture/symmetry_plane.rs:20`) — the vertex centroid plus `across`.
+  **It is NOT the box's across centre plane**, which is mid-extent. R2 uses the centroid one, and on
+  an asymmetric partial the two are different planes. Offering both without saying so would let a dev
+  pick the wrong one and see a plausible result.
 - **Rim centre plane** — the owner's term; it is the rim plane, whose point is the rim's own centre.
 
 ### Position — a point on a plane, by percentage
@@ -101,6 +116,14 @@ import-independent rather than scan-size-dependent.
 origin actually is today (`oral_cavity_ray.rs:1-6`). It stays the DEFAULT for R2, because it is the
 arithmetic the engine already does; the percentage form is the free version beside it.
 
+**Two limits, stated rather than discovered later.** The percentage form **cannot reproduce today's
+R2 origin** — that origin is an intersection, so the default binds to Intersection and the percentage
+form is for new types. And Intersection carries **three fallbacks** (`oral_cavity_ray.rs:55, 59, 67`:
+no rim plane, near-parallel planes, a line grazing the face), each of which moves the origin today;
+a generic node that drops them is not the same node. On the **rim plane**, which is tilted, the frame
+axes must be projected onto it and the percentages measured against the **rim's own extent**, because
+that is what "edges" means there.
+
 > An earlier draft of mine claimed a percentage offset would break an invariant by sliding the origin
 > off the symmetry plane. That was wrong: nothing else consumes the symmetry plane
 > (`denture/symmetry_plane.rs`, `ruled_tips.rs:149-150`), and on an asymmetric partial the centroid is
@@ -110,8 +133,13 @@ arithmetic the engine already does; the percentage form is the free version besi
 
 **Direction** = two named frame axes and an angle between them. That is literally the engine's own
 arithmetic: `no_support_dir_at` is `normalize(back·cosθ + top·(−sinθ))`, with `R1_DEG = 45`
-(`oral_cavity_ray.rs:43`). So "from back toward top, 45°" reproduces R1 exactly, and no gizmo, no
-Euler angles and no world-space vector ever appear in the UI.
+(`oral_cavity_ray.rs:43`). So **"from back toward TISSUE, 45°"** reproduces R1 exactly, and no gizmo,
+no Euler angles and no world-space vector ever appear in the UI.
+
+> **The sign is the trap, and I got it wrong twice before it was caught.** The `top` term is
+> NEGATIVE, so R1 leans toward `−top`, the tissue side — not toward the teeth. "back→top" is the
+> mirror ray and would have failed the acceptance test on the first run while looking perfectly
+> reasonable on the page. A Direction node must name the axis it actually travels toward.
 
 A second form, free and equivalent: **Direction = target Position − origin Position**, reusing the
 same Position node at both ends.
@@ -128,15 +156,55 @@ The statefulness that was cited for weeks as the reason order could not be data 
 claiming space in stream order) is in **placement**, a later stage. That was a conflation, mine and
 Fable's, and the owner caught it.
 
+### Are the engine's functions already node-shaped? Mostly yes — and that is the point
+
+The owner: *"I assume the functions are already modules, so stacking them with nodes each should be
+just as clean, and that could be even more clean as nodes?"* Both halves hold, with one correction.
+
+**The leaves are already nodes in all but name:**
+
+    no_support_faces(prepared, canon, dir) -> Vec<bool>     // frame + a direction -> one mask
+    allowed_faces(prepared, origin)        -> Vec<bool>     // one point           -> one mask
+
+One job each, and the output is narrower than the input — which is this repo's own test for a clean
+module. That is why a node graph is a re-wiring rather than a rewrite: **the leaves need no change at
+all**, only an evaluator above them.
+
+**And it IS cleaner than today, for a reason that can be pointed at.** Today the composition is
+inline inside `Analysis::of`, a constructor that builds about thirty fields in one expression
+(`ruled_tips.rs:151-163` for the zones, then one `Self { … }` for the rest). The precedence is then
+**re-derived in six consumers**, two of which contradict each other. As a graph, the composition
+becomes data in ONE place and the consumers read named outputs. Strictly more modular than what is
+there now, not merely different.
+
+**The correction: the work is not in the leaves, it is in the two things above them.**
+
+1. **`Analysis::of` computes everything eagerly.** A graph needs "evaluate what is wired", so the
+   constructor must be split from the units. The units are clean; the orchestrator is not.
+2. **Six consumers hold behaviour that is not in any module.** Re-deriving precedence per consumer is
+   logic living in call sites. Nodes force it into one place, which is the real cleanliness gain and
+   also the real work.
+
+Two leaves are also not uniformly shaped: Depth cast returns a **depth map**, not a mask, and Holes
+converts a map into faces. That is a second socket type, not a flaw — but it means "every unit is a
+mask node" is not quite true, and an editor that assumed it would offer a wire the engine cannot
+carry.
+
 ### Sources — each produces a face mask
 
 | Source | Inputs | Engine unit |
 |---|---|---|
 | **Parallel cast** | Frame, from-axis, toward-axis, θ, pitch, ray cap | `denture/no_support.rs:21` |
 | **Sight cast** | a Position | `denture/zones.rs:19` |
-| **Band** | a curve or faces, distance along the surface (mm) | `denture/rim_graph.rs:112` |
-| **Basin fill** | Frame, side, min depth | `denture/sockets.rs:100` |
+| **Band** | seed faces, distance along the surface (mm) | `denture/rim_graph.rs:112` |
 | **Depth cast** | Frame, side, pitch | `denture/holes_axis.rs:83` |
+| **Holes** | a depth map, min area (mm²) | `denture/holes_axis.rs:166` |
+| **Basin fill** | a depth map, min depth, tunnel (mm²) | `denture/sockets.rs:100` |
+
+**Depth cast does not produce a mask.** It returns a depth map (`holes_axis.rs:83-93`), so it cannot
+feed a combine directly: **Holes** sits between it and Band, and Basin fill reads a depth map too.
+That is a socket type of its own - a map is not a mask - and an editor that let the two connect would
+be promising a wire the engine cannot carry.
 
 ### The program is a GRAPH, not a row list
 
@@ -155,8 +223,12 @@ multiple nodes, and can be reordered."* He is right, and the list is the weaker 
 So: **a directed acyclic graph of mask expressions.**
 
 - **Source nodes** produce a mask: Parallel cast, Sight cast, Band, Basin fill, Depth cast.
-- **Combine nodes** take two or more masks and produce one: **UNION**, **SUBTRACT**, **INTERSECT**.
-  Their output is a mask like any other, so combines feed combines to any depth.
+- **Combine nodes** take masks and produce one: **UNION**, **SUBTRACT**, **INTERSECT**, **NOT**.
+  Their output is a mask like any other, so combines feed combines to any depth. **SUBTRACT names
+  which input is the minuend**, because it does not commute and "which side" is the whole point.
+  **NOT is forced by the engine, not added for symmetry:** low admission tests `!no_support`
+  (`ruled_tips.rs:191`), which is why undefined faces are admitted there, and the undefined layer is
+  itself a complement. Without NOT the default graph cannot state what the engine already does.
 - **Output bindings** name the masks the engine's consumers read: `allowed`, `no_support`,
   `allowed_cavity`. Any node's output may be bound to any of them.
 
@@ -175,6 +247,11 @@ BAND = Band(hole outlines, 5 mm)
 no_support     = UNION(R1, R1b)
 allowed_cavity = SIGHT                            # a wire, not a position
 allowed        = UNION(SIGHT, BAND)
+rim            = Rim curve(...)                   # a CURVE, not a mask: the rim-line stream reads it
+hole_band      = BAND                             # placement samples this RAW, not through `allowed`
+rim_band       = Band(rim line, rim band mm)      # built at ruled_tips.rs:126-143
+low_rim_band   = Band(rim line, low band mm)
+sockets        = SUBTRACT(Basin fill(...), allowed)   # the cancel, made explicit
 ```
 
 and the steep ray's own share, which now has its own layer, is `SUBTRACT(R1b, R1)` — a derived
@@ -196,11 +273,21 @@ The owner: *"not only reordering, user can add or remove nodes freely, just like
 the model. A dev adds a second forbidding ray, deletes the hole band, wires a new compound — nothing
 is fixed but the four things below, and each is a consequence of the engine, not a UI preference.
 
-**1. The sinks are named and required.** Six places in the engine read `allowed` and `no_support`
-(and `rimRespectsNoSupport` reads `allowed_cavity`). Those names are the contract. Everything
-upstream is free; a graph that leaves one unbound is **refused**, naming which. It must never fall
+**1. The sinks are named and required, and there are SEVEN, not three.** Placement reads
+`allowed`, `no_support` and `allowed_cavity` — and also `hole_band` (`ruled_tips.rs:452, 573`),
+`rim_band` (`:444, 578`), `low_rim_band` (`:193`), the socket mask (`:468`) and **`rim` itself — a
+curve, not a mask** (`:534-568`, the rim-line stream's source) — **directly, not through
+`allowed`**. Eight sinks, not three. Leave those unbound and rewiring BAND changes `allowed` while the hole stream
+still samples the raw band: the graph would then misreport what the rewire did, which is worse than
+refusing it. A graph that leaves any sink unbound is **refused**, naming which. It must never fall
 back to a default — a graph that silently reverted to today's behaviour would be the exact failure
 this whole effort is about.
+
+**1b. One hidden edge must be made visible or it becomes a cycle.** The socket cancel reads the
+FINAL `allowed` (`ruled_tips.rs:113-115`, `sockets.rs:107-112`). So wiring Basin fill into `allowed`
+would create a cycle that today's code hides by ordering. Expose the raw basins
+(`sockets.rs:122`) and make the cancel an explicit `SUBTRACT(basins, allowed)` bound to a `sockets`
+output — then the cycle is a cycle the validator can refuse, instead of an ordering nobody can see.
 
 **2. Typed sockets make bad wiring impossible, not merely detectable.** There are few types: **mask**,
 **Frame**, **Plane**, **Position**, **Direction**, **curve**. A Band takes a curve, not a mask; a
@@ -220,6 +307,28 @@ rather than silently coarsening, which is today's behaviour and is itself a find
 **Deleting a node that something reads is the interesting case.** Remove the Sight cast and
 `allowed_cavity` has no source: the editor says which rule depends on it (`rimRespectsNoSupport`)
 and refuses, rather than leaving a rule reading an empty mask and reporting a clean run.
+
+**But refusal is the wrong tool for three hazards, and they are all VALID graphs**, so validation
+never fires on them:
+
+1. **An empty `no_support` reads as permission.** Low and island admission tests `!no_support`
+   (`ruled_tips.rs:191`), so deleting every forbidding cast admits low points over the whole model,
+   undefined faces included.
+2. **An empty `allowed` does not stop tips.** The rim, rim-band and hole streams ignore it by design
+   (`ruled_tips.rs:572-581`), so emptying it still yields those tips.
+3. **Absence that depends on the scan.** A perfectly good graph can find no rim, no rim plane or no
+   holes on one case. Today those are silent fallbacks (`oral_cavity_ray.rs:55, 59, 67`;
+   `ruled_tips.rs:128, 137`; `holes_axis.rs:189-190`), which the default graph must KEEP to stay
+   byte-identical — and which a free graph must surface as **"cannot tell", with the case flagged**.
+
+So the rule is not refusal alone: **a sink bound to a zero-face mask warns with its count**, and a
+node that could not decide says so per case. "Validate before the run" covers structure; it cannot
+cover a graph that is structurally fine and empty in fact.
+
+**And the cost cap is incomplete.** It covers Parallel casts. A **Sight cast is four rays per face
+with up to 64 steps** (`zones.rs:24-28, 43`), which on a dense scan can exceed the 1.5M figure and is
+**not capped at all**. The per-cast coarsening (`no_support.rs:38`) must stay in the default for byte
+identity, so the cap work is: state it, show it, and extend it to sight.
 
 ### The honest caveat, written down rather than left
 
@@ -256,9 +365,24 @@ denture does not use:
 And one prerequisite: **`register_profile`**, because ~35 aligner thresholds are profile fields with
 no rules channel.
 
-**So the acceptance test splits in two:** the denture can be rebuilt from the stage 2 program as
-described; the aligner needs its own stage 2 vocabulary before the same claim can be made. Anyone who
-says otherwise has not read `dental/trim/mod.rs`.
+**So the acceptance test splits in two, and the aligner half must be stated honestly rather than
+implied:**
+
+- **Denture:** rebuilt from the default graph through the new evaluator. A real reconstruction.
+- **Aligner:** a **locked chain of nodes mapped one-to-one onto the existing units**, with values
+  supplied through `register_profile`. It passes the gate because **the same code runs** — that is
+  the claim, and it is weaker than the denture's. Calling it anything more would be a claim the
+  engine does not support.
+
+Even the Reference level is shared only as concepts: **no aligner module uses `Canon` or `Obb`**, its
+frame is built with "no mass, no centroid" (`dental/trim/mod.rs:14`), its strip is a signed
+centroid-walk distance field rather than an edge-grown band, and its opening is a two-resolution
+raster. Free aligner zones could only ever PRUNE, because its tips are sampled along the contour
+rather than selected from a mask.
+
+Node types it needs that the denture does not: **Trim frame, Opening, Face cut, Strip (a threshold on
+a signed field), Contour sampler**. Five, not four. Anyone who says otherwise has not read
+`dental/trim/mod.rs`.
 
 ---
 
@@ -274,13 +398,17 @@ says otherwise has not read `dental/trim/mod.rs`.
 
 ## 6. ORDER OF WORK
 
-1. **Show the composition that already exists.** R1b has its own layer now; the remaining rows of the
-   default program should be visible as rows before any of them become editable. No engine change.
+1. **Show the composition that already exists.** R1b has its own layer now; the rest of the default
+   graph should be visible before any of it becomes editable. **This is NOT free of engine work**:
+   the sight-alone mask has no getter (`geometry-wasm/src/denture.rs:282-294`), and
+   `allowed − hole_band` is not the same thing, so either one getter is added or four of the five
+   nodes are shown and the fifth is marked as not exposed.
 2. **Content-digest cache keys** — done, both of them.
 3. **`register_profile` + schema** — schema is done, both sides; registration is not.
-4. **The zone program**: `Analysis::of` takes it, the program joins the cache key, one JSON channel,
-   and the review returns each row's mask and count. Default = the five rows above, proved by
-   `gate:real` "No differences".
+4. **The zone graph**: `Analysis::of` takes it, the graph joins the cache key, and the review returns
+   each node's mask and count. It must carry: **the channel decision** (five entry points, the tilt
+   scan and the live tilt among them), **all seven bindings plus the explicit socket edge**, **NOT**,
+   and the vendor and wasm rebuild. Default = the graph above, proved by `gate:real` "No differences".
 5. **Promote the ~38 policy constants**, one unit at a time, at today's values.
 6. **The aligner's own stage 2 vocabulary**, once 3 and 4 have proved themselves on the denture.
 
