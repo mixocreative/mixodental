@@ -74,6 +74,11 @@
   --layer-undefined: #6e6a86;
   --layer-allowed: #2e9e5b;
   --layer-no-support: #c0392b;
+  /* The SECOND forbidding ray's own faces (R1b, the steep one), which R1 did not already hit. A
+     sibling hue of no-support on purpose: same job, different source. Until this existed the two rays
+     were one red mask and the zone looked like one thing the engine decided, rather than two sources
+     unioned - which is the whole reason the zone stage needs to be ordered rows. Owner, 2026-11-20. */
+  --layer-no-support-steep: #e8743b;
   --layer-low-outside: #ff7f11;
   --layer-low-unsupported: #8e44ad;
   --layer-island-resolved: var(--success);

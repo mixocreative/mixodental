@@ -28,6 +28,7 @@ const layer = (name: string): number => tokenNumber(`--layer-${name}`);
 export const LAYER_COLOURS = {
   allowed: layer('allowed'),
   noSupport: layer('no-support'),
+  noSupportSteep: layer('no-support-steep'),
   undefinedZone: layer('undefined'),
   lowOutside: layer('low-outside'),
   lowUnsupported: layer('low-unsupported'),

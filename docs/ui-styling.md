@@ -537,6 +537,7 @@ The tokens of `dentalwork/batch-review/tokens.css` that the app does not have. T
 | `--layer-undefined` | `#6e6a86` | Layer: no ray reached this face - the absence of a verdict, deliberately outside the red/green/amber family the decided zones use |
 | `--layer-allowed` | `#2e9e5b` | Layer: allowed |
 | `--layer-no-support` | `#c0392b` | Layer: no support |
+| `--layer-no-support-steep` | `#e8743b` | Layer: the steep ray R1b's own faces, which R1 did not already hit |
 | `--layer-low-outside` | `#ff7f11` | Layer: low outside |
 | `--layer-low-unsupported` | `#8e44ad` | Layer: low unsupported |
 | `--layer-island-resolved` | `var(--success)` | Layer: island resolved |

@@ -37,6 +37,8 @@ export const CONTACT_MAPPING_LIMIT_MM = 1;
 // Under every decided zone: an undefined face is the absence of a verdict, so anything decided wins the pixel.
 const UNDEFINED_LIFT_MM = 0.04;
 const FACE_LIFT_MM = 0.05;
+// Just above no-support: R1b's faces are a SUBSET of it, so they must draw over it to be seen at all.
+const STEEP_LIFT_MM = 0.055;
 const ALLOWED_LIFT_MM = 0.1;
 const DOWN_LIFT_MM = 0.08;
 const AREA_LIFT_MM = 0.12;
@@ -392,6 +394,11 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     const zoneSpecs = [
       { name: `Undefined (no ray reached this face): ${facesInNone([review.noSupportMask, review.allowedMask], faceCount).length} faces`, mask: maskOfNone([review.noSupportMask, review.allowedMask], faceCount), token: '--layer-undefined', lift: UNDEFINED_LIFT_MM },
       { name: review.noSupportSteepDeg > 0 ? `No-support zone (R1 45° + R1b ${review.noSupportSteepDeg}° rays)` : 'No-support zone (hit by 45° rays)', mask: review.noSupportMask, token: '--layer-no-support', lift: FACE_LIFT_MM },
+      // R1b's OWN faces: `no_support_steep = r1b && !r1` in the engine, so this is what the second
+      // ray added that the first had not already claimed. It is drawn inside the no-support red
+      // rather than beside it, because that is where it lives - and until it was drawn, two rays
+      // looked like one decision.
+      { name: 'No-support, steep ray only (R1b)', mask: review.noSupportSteepMask ?? [], token: '--layer-no-support-steep', lift: STEEP_LIFT_MM },
       { name: 'Allowed area (seen from the oral cavity ray)', mask: review.allowedMask, token: '--layer-allowed', lift: ALLOWED_LIFT_MM },
     ];
     for (const zone of maskLayers(zoneSpecs, tokenNumber)) {

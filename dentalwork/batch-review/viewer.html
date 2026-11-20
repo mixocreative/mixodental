@@ -269,6 +269,7 @@ const LAYER_TABLE = [
 
   ['TEAL', 'Support area', 'Aligner: the faces where tips may go.', true, 'zones'],
   ['Undefined (no ray', 'Undefined (no ray reached)', 'Faces NO ray reached: neither the 45-degree rays nor the oral cavity ray. They get no tips, same as the no-support zone - but that is a different FACT. A no-support face was DECIDED by a rule; an undefined face was never SEEN, which points at the ray grid or the pose rather than at the rule. A large undefined area on a scan means the detector did not cover it, however clean the rest of the picture looks.', true, 'zones'],
+  ['No-support, steep ray', 'No-support: steep ray only (R1b)', 'What the SECOND forbidding ray added that the first had not already hit - the engine computes it as `r1b AND NOT r1`. It is a subset of the no-support zone, drawn just above it. Two rays make that zone; this is the one you can turn, and seeing its share is how you tell whether turning it did anything.', true, 'zones'],
   ['No-support zone', 'No-support zone', 'Faces the parallel 45-degree rays (R1, and R1b when on) from the front-top hit first. The allowed area overrides it.', true, 'zones'],
   ['Allowed area (seen', 'Allowed area', 'Tips may stand on these faces: the oral cavity ray (R2) reaches them first. Overrides the no-support zone.', true, 'zones'],
   ['Hole band', 'Hole band', 'Faces within 5 mm of a hole edge; tips may stand here if they overhang.', true, 'zones'],
@@ -353,7 +354,7 @@ const entryOf = (key) => LAYERS.find(([prefix]) => prefix === key);
 const DENTURE_COLOUR = new THREE.Color(cssToken('--layer-denture-model'));
 // Layer prefix -> the shared colour token (tokens.css; the GLB writers read the same file through layerColours.ts). Rays take the colour of the area they decide.
 const SWATCH_VAR = {
-  'Undefined (no ray': '--layer-undefined', 'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing', 'Self-supporting overhangs': '--layer-self-supporting', 'Sockets (no support)': '--layer-sockets', 'Fitting (basin)': '--layer-fitting', 'Suction cups': '--layer-suction', 'Drain / clean': '--layer-drain',
+  'Undefined (no ray': '--layer-undefined', 'No-support, steep ray': '--layer-no-support-steep', 'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing', 'Self-supporting overhangs': '--layer-self-supporting', 'Sockets (no support)': '--layer-sockets', 'Fitting (basin)': '--layer-fitting', 'Suction cups': '--layer-suction', 'Drain / clean': '--layer-drain',
   'DOWN-FACING': '--layer-down-edges', 'TIGHT BOX': '--layer-tight-box', 'RIM PLANE': '--layer-middle-plane', 'SYMMETRY PLANE': '--layer-symmetry-plane', 'Oral cavity ray': '--layer-ray-origin',
   'MARK low point outside': '--layer-low-outside', 'MARK low point with': '--layer-low-unsupported',
   'ISLAND NOT resolved': '--layer-island-unresolved', 'ISLAND resolved': '--layer-island-resolved',
@@ -372,7 +373,7 @@ const visible = new Map(LAYERS.map(([prefix, , , on]) => [prefix, on]));
 const DENTURE_STEPS = [
   ['1. Orient', 'Up decision first (back-face rays: the side whose rays reach farther is the teeth top), then the tight box, dental rim plane and symmetry plane, before the print tilt.', ['TIGHT BOX', 'RIM PLANE', 'SYMMETRY PLANE']],
   ['2. Dental rim', 'The dental rim as thick continuous line(s), each closed or open (the count is in the name). Holes: a thick outline round each, and a 5 mm band.', ['Dental rim (continuous', 'Hole outlines', 'Hole band']],
-  ['3. No-support zone', 'Faces the parallel 45-degree rays from the front-top hit first, (the R1 arrows are in the Rays group).', ['No-support zone']],
+  ['3. No-support zone', 'TWO rays make this zone, not one: R1 at 45 degrees always, and R1b at the steep angle when it is on, unioned together (`no_support = r1 || r1b`). The steep ray\'s own share has its own layer. The zone is composed, not decided - which is why this stage wants ordered rows rather than one box.', ['No-support zone', 'No-support, steep ray']],
   ['4. Oral cavity ray', 'On the dental rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
   ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
   ['5b. Undefined area', 'What NEITHER ray reached. Steps 3 and 5 each claim the faces their rays hit first; whatever is left is undecided and gets no tips. It is drawn under both, in its own colour, because it is the absence of a verdict and not one: if it is large, change the pose or the ray grid, not the rules.', ['Undefined (no ray']],
