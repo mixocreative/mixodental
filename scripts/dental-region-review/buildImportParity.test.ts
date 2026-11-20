@@ -4,14 +4,11 @@ import { proposeDentalOrientation } from '@mixo-geocore/host/dental/dental';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { runSupportJob } from '@mixo-geocore/host/supports/jobRunner';
 import { placeImportedUnits } from '../../src/state/import';
-import { inverseTransformDirection, inverseTransformPoint, transformPoint } from '@mixo-geocore/host/state/transform';
+import { inverseTransformDirection, inverseTransformPoint } from '@mixo-geocore/host/state/transform';
 import { buildDentalReview } from './build';
 import { dentalStructureOf, dentalSupportSettings } from '../../src/dental/supportPreset';
 import { parseStl } from '../test-support/rustImport';
 import { REFERENCE_PROFILE } from '../test-support/referenceProfile';
-
-/** The tip ID the placement code derives from a unit-local position: 0.01 mm rounding. */
-const positionId = (position: readonly number[]): string => `auto-${position.map((value) => Math.round(value * 100)).join('_')}`;
 
 const reference = () => {
   const bytes = readFileSync('docs/dental-reference/reference-aligner.stl');
@@ -25,7 +22,9 @@ describe('dental import and preview parity', () => {
     const review = buildDentalReview(unit.source);
     expect(review.kind).toBe('proposal');
     if (review.kind !== 'proposal') return;
-    expect(review.supports.droppedByPath).toBeUndefined();
+    // `droppedByPath` was asserted undefined here and below: the path preflight that set it is gone, the
+    // field no longer exists on the type, so both asserts passed whatever happened. Removed 2026-11-20
+    // when tsc first read this folder; the id comparisons below are the real check.
     const retained = new Set(review.supports.components.flatMap((part) => part.contactId ? [part.contactId] : []));
     // 94 placed primaries (71 outer, 23 opening, evenly spaced; none closer than 0.6 mm). Since engine 26
     // (routing: outline last resort, aligned cone, leans) every one of them is built where it was placed:
@@ -64,7 +63,6 @@ describe('dental import and preview parity', () => {
     // Export keeps the same automatic contacts as the preview. (The opt-in path preflight that used to be
     // compared here ran inside the TS builder; it returns, if its measured benefit holds, with the U7 safety engine.)
     const exported = runSupportJob({ ...supportJob, mode: 'export' });
-    expect(exported.droppedByPath).toBeUndefined();
     expect(ids(exported)).toEqual(ids(preview));
   }, 180000);
 });
