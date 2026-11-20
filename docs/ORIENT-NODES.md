@@ -639,14 +639,20 @@ The four answers, as far as these rows go:
    the two scans fail for DIFFERENT routing reasons (model in the way; pillars full). A straight-drop
    count would speak to the first and not the second.
 
-**A separate finding, CANDIDATE, worth more than the rest:** scans 1 and 2 are different meshes (680,820
-vs 516,770 triangles; bounds 70.7 x 28.3 x 50.3 vs 65.9 x 25.7 x 46.8 mm) yet their quick rows agree to
-1e-15 at every angle - height, largest layer, slenderness - and a fresh process reproduces it, so it is
-not a cache. The quick score is therefore not looking at whatever geometry scan 1 has beyond scan 2, and
-that extra geometry carries about 320 more tip candidates and all of scan 1's left-out tips. Not traced
-yet: which part of the mesh the quick score reads.
+**A separate finding, TRACED, and it changes how to read the rest.** Scans 1 and 2 return quick rows equal
+to 1e-15 although they are different files. Cause: the quick scan runs on the file's LARGEST PART only,
+by design - `tilt_scan_ruled` in geocore `dental/denture/tilt.rs`: *"A file of several parts is scanned on
+its largest part (`parts.rs`); the build checks every part."* Counted by connected pieces: scan 1 is
+680,820 triangles in 211 pieces, the largest 516,770 - exactly scan 2, which is one piece. Scan 3 is
+188,942 triangles in 339 pieces, the largest 157,772. Scan 2 alone leaves 0 tips out at the pick, so
+scan 1's 115 left-out tips stand on its 210 OTHER pieces - pieces the angle choice never looked at.
 
-**Next, before any ruling:** (1) trace the identical quick rows - it may be a defect, not a design limit;
+So the question M1 actually raised is not "quick vs full" but **whether a file's smaller pieces should
+have a say in its print angle.** Today they have none; the build supports them at whatever angle the
+largest part chose. Whether those pieces are real parts (separate teeth, say) or scan debris above the
+debris size is case knowledge the measurement cannot supply - an owner question.
+
+**Next, before any ruling:** (1) split the left-out count by piece (largest part vs the rest) in the measurement;
 (2) make `tilt-measure.ts` record the left-out REASONS and the candidate total per angle, and the verdict;
 (3) let the run finish scans 4-6 (and consider extending past 44 deg where the minimum is still moving).
 Only then is ruling 3 - fewer tips left out, or less resin, when they conflict - asked on a fair footing.
