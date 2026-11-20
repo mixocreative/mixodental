@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1795195313.804836,
-    "seen": 1795197744.0636919,
-    "ast_hash": "a841bfb9fb0c03de38a148dc1ae3a5f5",
+    "mtime": 1795198019.7648292,
+    "seen": 1795201076.0227377,
+    "ast_hash": "42fd6e5437b2d04e1bb2b3ef6e0e98b9",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -3859,15 +3859,15 @@
     "semantic_hash": ""
   },
   "src/dental/step1View.test.ts": {
-    "mtime": 1794131643.3380527,
-    "seen": 1794134472.3563173,
-    "ast_hash": "db8e87fd8185ffbd59f757e56acee0a7",
+    "mtime": 1795198019.763829,
+    "seen": 1795201076.0237377,
+    "ast_hash": "573cadc2ace13c93885b433f447cf4a7",
     "semantic_hash": ""
   },
   "src/dental/step1View.ts": {
-    "mtime": 1793307209.200786,
-    "seen": 1793307228.8438706,
-    "ast_hash": "f6190ef96795cfa6d97540d973d37cbd",
+    "mtime": 1795198036.0624056,
+    "seen": 1795201076.0237377,
+    "ast_hash": "8e0dfb5310d622979cf7e4d91a5606e1",
     "semantic_hash": ""
   },
   "src/components/OrientationBar.test.tsx": {
@@ -6715,9 +6715,9 @@
     "semantic_hash": ""
   },
   "docs/REVIEW-UX-REFINE.md": {
-    "mtime": 1795195377.380199,
-    "seen": 1795197744.0646966,
-    "ast_hash": "9c8a6da831aaed1281af96dbac813092",
+    "mtime": 1795198214.4027333,
+    "seen": 1795201076.0247378,
+    "ast_hash": "ef89a3df2a912ee3a7cf118a098b6875",
     "semantic_hash": ""
   },
   "docs/TYPE-PIPELINE.md": {
@@ -6763,9 +6763,9 @@
     "semantic_hash": ""
   },
   "scripts/tilt-measure.ts": {
-    "mtime": 1795187423.8744397,
-    "seen": 1795188884.7546787,
-    "ast_hash": "f808ce3a75d8b5da18574c6504de20ef",
+    "mtime": 1795200663.9893782,
+    "seen": 1795201076.0227377,
+    "ast_hash": "2b662e956424a7f0960dee528aaa5b78",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/registerProfile.ts": {
@@ -6775,9 +6775,9 @@
     "semantic_hash": ""
   },
   "docs/ORIENT-NODES.md": {
-    "mtime": 1795196100.048898,
-    "seen": 1795197744.0646966,
-    "ast_hash": "8166f7072641cd86cc121f0cc842fd3b",
+    "mtime": 1795200977.9369702,
+    "seen": 1795201076.0247378,
+    "ast_hash": "93c603b0f250ca9cfa92600a74b113a3",
     "semantic_hash": ""
   },
   "types/README.md": {
