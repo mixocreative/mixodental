@@ -26,7 +26,7 @@ import { parseStl } from '../../scripts/node-engine';
 import { distancesToSurface, readGlbWorldMeshes } from './glbWorld';
 import type { ReviewLayer } from './orientationEvidenceGlb';
 import { LAYER_COLOURS as C, tokenNumber } from './layerColours';
-import { maskLayers, maskOfNone } from './maskLayers';
+import { facesInNone, maskLayers, maskOfNone } from './maskLayers';
 import { rayLayers } from './rayLayers';
 import { describeUnresolved, islandPoints, summariseIslands, type IslandSettle, type IslandSummary } from './islandReport';
 
@@ -390,12 +390,12 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     // the complement rule and tests it; the geometry stays here.
     const faceCount = review.noSupportMask.length;
     const zoneSpecs = [
-      { name: 'Undefined (no ray reached this face)', mask: maskOfNone([review.noSupportMask, review.allowedMask], faceCount), token: '--layer-undefined', lift: UNDEFINED_LIFT_MM },
+      { name: `Undefined (no ray reached this face): ${facesInNone([review.noSupportMask, review.allowedMask], faceCount).length} faces`, mask: maskOfNone([review.noSupportMask, review.allowedMask], faceCount), token: '--layer-undefined', lift: UNDEFINED_LIFT_MM },
       { name: review.noSupportSteepDeg > 0 ? `No-support zone (R1 45° + R1b ${review.noSupportSteepDeg}° rays)` : 'No-support zone (hit by 45° rays)', mask: review.noSupportMask, token: '--layer-no-support', lift: FACE_LIFT_MM },
       { name: 'Allowed area (seen from the oral cavity ray)', mask: review.allowedMask, token: '--layer-allowed', lift: ALLOWED_LIFT_MM },
     ];
     for (const zone of maskLayers(zoneSpecs, tokenNumber)) {
-      layers.push({ name: `${zone.name}: ${zone.faces.length} faces`, color: zone.color, positions: patchPositions(mesh, zone.faces, zone.lift, sign), indices: new Uint32Array(0) });
+      layers.push({ name: zone.name, color: zone.color, positions: patchPositions(mesh, zone.faces, zone.lift, sign), indices: new Uint32Array(0) });
     }
     const origin = review.oralCavityRay;
     // The R1 arrows (the parallel 45-degree rays, with a run-up) are drawn by rayLayers.ts with the other rays.

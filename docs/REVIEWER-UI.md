@@ -73,10 +73,20 @@ here", legible on both the teal model and the light background, and it must surv
 check the other layer tokens were chosen against. It belongs in the shared tokens file that
 `layerColours.ts` and the GLB writers both read, so the viewer and the app cannot drift.
 
-**Counts, not just colour.** Every zone layer's legend row carries its face count, and the undefined
-layer carries it too. A scan with 40% of its faces undefined is a different conversation from one with
-0.3%, and the colour alone will not tell you which you are looking at. `W4` of the Witness protocol:
-the count is the result.
+**Counts, not just colour** - `W4` of the Witness protocol: the count is the result. A scan with 70% of
+its faces undefined is a different conversation from one with 0.3%, and the colour alone cannot tell
+you which you are looking at.
+
+**But the count rides on the UNDEFINED layer's name only, and that is a decision.** The first version
+appended `: N faces` to all three zone names, and `gate:real` caught what that costs: the decided
+layers also appear in the **client** GLB (`reviewCase.ts` keeps them by name prefix), so a name that
+changes with every scan churns a client-facing artefact for no reason, and the gate diff then hides
+the one change that mattered behind two that did not. Names of the decided zones are byte-stable; the
+new layer carries its count because its proportion IS the finding.
+
+**Debt, written down rather than left:** the decided zones' face counts have no home yet. They belong
+in the facts column beside the other numbers, not in a layer name - the facts column is where a
+reviewer reads numbers, and a name is a label. Not done.
 
 ---
 
