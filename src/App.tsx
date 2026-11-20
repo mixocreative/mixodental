@@ -26,7 +26,7 @@ import { Progress } from './progress/Progress';
 import { PRODUCT_NAMING } from './productNaming';
 import { useSlowJob } from './ui/useSlowJob';
 import { angleEvidence } from './dental/angleEvidence';
-import { SceneLegend } from './components/SceneLegend';
+import { SceneLegend, legendRows } from './components/SceneLegend';
 import { labelForIndex } from '@mixo-geocore/host/core/analysis/mesh';
 import type { PlacementResult } from '@mixo-geocore/host/core/analysis/types';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
@@ -1987,7 +1987,7 @@ export default function App() {
         {/* The legend is DOM: it is a sibling of the canvas, never a child of it - everything inside the
             r3f Canvas has to be a THREE object. */}
         {editMode === 'dental' && (session.dentalStage === 'aligner' || session.dentalStage === 'area' || session.dentalStage === 'review')
-          ? <SceneLegend supports={session.dentalStage !== 'aligner' || Boolean(stepOneTips)} /> : null}
+          ? <SceneLegend rows={legendRows({ stage: session.dentalStage, rimMode: press.kind === 'dental-rim', areaPreview: Boolean(dentalFlow.areaPreview), tips: Boolean(stepOneTips) })} /> : null}
         <PanelBoundary name="jobs"><JobActivityPanel stagedBar={stagedJobBar} /></PanelBoundary>
         {/* The area detector is ONE call into the core: it reports a start and an end and nothing between,
             so this one paces and shows no number. See src/components/SceneProgress.tsx. */}
