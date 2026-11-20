@@ -80,3 +80,31 @@ Fable reviewed six fresh screenshots plus the code; every finding below was fixe
 | "Compare with owner" | "Compare with your own supports file". |
 | **Found while re-shooting:** the pressed stage tab went blank under the mouse | `base.css` whitens every hovered button while the pressed state paints its text paper-white; a pressed tab (and the segmented switch) now keeps its dark fill on hover. |
 | **Found while testing:** a duplicate `const` blanked the whole page | `viewerScript.test.ts` parses the page's inline module script with esbuild; proved by planting the duplicate. |
+
+## The whole app, journey by journey (same night)
+
+Owner: "keep refining ... the entire app holistically, and every UI element end to end" and "also the
+holistic UX work flow". Evidence: a full walk run with `WALK_SHOTS` (70 screenshots, one per numbered
+step) reviewed by Fable against the design docs. Caveat it named: the screenshot hook does not wait, so
+some stills lag their step; findings from a still alone are marked UNVERIFIED there.
+
+| # | Finding | Status |
+|---|---|---|
+| 1 | A "DEBUG" panel (trim lines, U ends, bottom plane) shows in every dental step | **Owner decision.** The walk tests it by name (`debug-layers-title`, `debug-angle`), so it is a deliberate diagnostics panel, not a leak. Proposal: keep it for the workbench, hide it in a release build. |
+| 2 | The status line is stale ("Drop an aligner STL ..." with a model loaded) and cut off on dental steps | **Traced, engine-side.** The line is chosen per gesture KIND (`editing/modes.ts:71`, a fixed string per kind) and Step 1 is one kind, `dental-aligner`, before AND after a file is loaded (`src/dental/editingMode.ts:467`), so it can only say one sentence. Fix: let a mode give a status per phase (a function of the gesture) in geocore `editing/`, then two sentences in three languages. The cut-off is a deliberate one-line overlay (styles.css comment). |
+| 3 | Check markers from Step 3 stay on the model at Step 1 and on the next aligner | Open (UNVERIFIED from stills). |
+| 4 | The status overlay is drawn over the left panel ("Check for unsupported spots") | **Fixed:** the overlay spans the scene column only (`--workspace-left/right`, one place for the panel widths). |
+| 5 | The deck uses four nouns (file, model, item, object) | **Owner decision:** the glossary keeps Object and Model as two concepts; which word the deck uses is a naming call. |
+| 6 | "Each object with model" does not say it exports | **Owner decision** with 5 (proposal: "Export all STL"). |
+| 7 | A card says "Generating supports..." while its chip says "Ready" | Open (UNVERIFIED). |
+| 8 | The deck's progress toast covers the footer | Open. |
+| 9 | An import error stays up while the next model is worked on | Open. |
+| 10 | "Left the aligner on the plate without supports" after Exit with nothing on the plate | **Engine-side** (`editing/status.ts:63` in geocore): skip the exit line when no object is active. Needs a geocore commit and push. |
+| 11 | The scene legend lists layers Step 3 does not show, and shows with no model | Open. |
+| 12 | Step 3's panel is crowded; edit tools cut at the fold | Open. |
+| 13 | "Automatic dental rim gaps: outer 42.2 mm ... omitted contacts were not forced" | **Owner decision** on the words (proposal: "The supports leave a gap along the rim. Look at it, then add supports if needed."), then three languages. |
+| 14 | A problem row's text squeezed into a 60 px column beside its buttons | **Fixed:** the dental layout (buttons on their own row) is now the one rule for every problem list. |
+| 15 | "Step 1 - Aligner" names the product, Steps 2-3 the job; Reset vs "Restore step" | **Owner decision** (proposal: "Step 1 - Print angle"; one Restore control). |
+
+Journeys, most finished first (Fable): aligner Steps 1-3; Drop page to deck to auto-generate; the
+any-model editor. Single most helpful change: finding 2, the status line.

@@ -17,9 +17,10 @@ page reuses word for word), `docs/TYPE-PIPELINE.md` (the type file, registration
    top/bottom decision, a largest-flat-area finder, points, planes, directions, and "set as bottom".
 2. **One shared set of reference nodes for Orient AND Zones,** so a ray can start from any point on any
    plane, face any other point, and be nudged up-down / left-right - free ray casting, no engine rebuild.
-3. **Three frames with plain names:** the **Part frame** (the part's own sides; turns with the part),
-   the **Start frame** (those same sides frozen where they stood before any tilt; stays with the
-   scene), the **Plate frame** (how the part finally sits on the plate).
+3. **Two frames with plain names:** the **object frame** (the part's own sides, decided once before
+   any tilt; goes with the part wherever it leans) and the **global frame** (the scene's fixed
+   directions - down is toward the plate - whatever the tilt). All zone rays are cast in the object
+   frame, once; a tilt never recasts them.
 4. **An honest order:** Orient -> Zones -> Support settings -> Print angle. The angle is picked LAST,
    judged with the zones and supports already defined.
 5. **The angle should be chosen on real support performance** - as far as build time allows; measure
@@ -31,7 +32,7 @@ page reuses word for word), `docs/TYPE-PIPELINE.md` (the type file, registration
 ## 1. What the owner means
 
 Sections 1-5 answer the owner's first message (a-d). His later comments are answered in section 7
-(shared nodes, the three frames), section 8 (tab order) and section 9 (what the angle is judged on).
+(shared nodes, the two frames), section 8 (tab order) and section 9 (what the angle is judged on).
 
 ### In plain words
 
@@ -100,7 +101,7 @@ is 0 degrees for the search.
 |---|---|---|
 | Is "front/back from slices" the up decision? | Yes: `up_decision::decide`, which is footprint (front/back) + slices (top/bottom). | high |
 | Is the flat base for dentures, aligners, or new categories? | Mainly NEW kinds. A denture has no flat base (it stands on its legs); an aligner's "flat" is its trim plane, already found another way (`dental/trim/plane.rs`). The node is still useful on both as a readout. | medium - question 1 |
-| Is d) the plate-contact face? | It is the face TURNED TOWARD the plate. Supports and lift still go under it; it does not mean "printed flat on the plate with no supports". | medium - question 5 |
+| Is d) the plate-contact face? | It is the face TURNED TOWARD the plate. Supports and lift still go under it; it does not mean "printed flat on the plate with no supports". | medium - question 4 |
 | "Up-down / left-right" relative to what? | Relative to the part's frame (top and across), never the screen or the file axes. | medium - decided, noted under section 6 |
 
 ---
@@ -126,10 +127,10 @@ For a denture those happen to be the same line (it prints standing on its legs).
 would silently redefine "back" and move every stage 2 ray. So the Orient graph has two named outputs:
 
 - **`frame`** - anatomy: up / top / across with their names (back, front, top, tissue, across). Stage 2
-  reads only this. **This is the owner's Part frame** ("object planes").
+  reads only this. **This is the owner's object frame.**
 - **`pose`** - which direction faces away from the plate at search angle 0, and which way the search
-  leans. The print-angle search reads only this. **This is what fixes the owner's Start frame**
-  ("global planes"): the part's sides as they stand in this pose, before any tilt.
+  leans. The print-angle search reads only this. **This is the bridge to the owner's global frame:**
+  it says how the part stands on the plate at tilt 0.
 
 Default: `pose` is taken straight from `frame`, which is exactly today. The owner's later
 object / global distinction (section 7) is this same split, arrived at from the other side - which is
@@ -177,16 +178,16 @@ Socket types. `position` and `mask` exist in `nodeGraph.mjs` `TYPES`; the rest a
 
 | Type | What it carries |
 |---|---|
-| `frame` | origin + up / top / across (unit, right-handed), plus `decided` and `confidence`. Always the Part frame. |
+| `frame` | origin + up / top / across (unit, right-handed), plus `decided` and `confidence`. Always the object frame. |
 | `direction` | one unit vector, stored in the part's own (mesh) coordinates |
 | `position` | one point, mm (exists) |
 | `plane` | a point + a unit normal + the extent of what it was fitted to (for percentages) |
 | `mask` | one true/false per face (exists; a "face set" is a mask) |
-| `pose` | `up` (faces away from the plate at search angle 0) + `lean` (the side that rises as the angle grows). It defines the Start frame. |
+| `pose` | `up` (faces away from the plate at search angle 0) + `lean` (the side that rises as the angle grows). It says how the object frame sits in the global frame at tilt 0. |
 
-Every `direction`, `position` and `plane` also carries a **frame tag**, `space: part | start | plate`
-(section 7). Everything in this section is `part` unless a line says otherwise. The tag is separate
-from the `frame` VALUE type above: one is a thing you wire, the other says what a thing is attached to.
+Every `direction`, `position` and `plane` also carries a **frame tag**, `space: object | global`
+(section 7). Everything in this section is `object`. The tag is separate from the `frame` VALUE type
+above: one is a thing you wire, the other says what a thing is attached to.
 
 ### Detectors
 
@@ -219,7 +220,7 @@ summed triangle area, the largest returned.
 
 | Node | In | Out | Parameters (default) | Engine |
 |---|---|---|---|---|
-| **Named plane** `plane` | `frame` | `plane` | which: 6 box faces, 3 centre planes, rim, symmetry (`NODE-PLAN.md` section 2); attached to: part (default) / start - start is offered in Zones and later, never in Orient (section 7) | pieces exist: `denture/obb.rs`, `rim_plane.rs`, `symmetry_plane.rs`; **NEW** as a node |
+| **Named plane** `plane` | `frame` | `plane` | which: 6 box faces, 3 centre planes, rim, symmetry (`NODE-PLAN.md` section 2) | pieces exist: `denture/obb.rs`, `rim_plane.rs`, `symmetry_plane.rs`; **NEW** as a node |
 | **Centre** `centre` | - | `position` | of: tight box / vertex centroid | exists: `Obb::centre`, `Canon::origin` |
 | **Point on plane** `planePoint` | optional `plane`, `frame` | `position` | plane (rim) when nothing is wired; x 50%, y 50% | the kind exists in `nodeGraph.mjs` and is refused by the engine today (`zone_graph.rs`); evaluation is **NEW** |
 | **Crossing** `intersection` | - | `position` | rim x symmetry x back face | exists: `oral_cavity_ray.rs` `origin` |
@@ -233,9 +234,9 @@ extent, so 0-100% runs edge to edge of the REGION. `centre` covers the two thing
 On a tilted plane the percentages follow the rule already written in `NODE-PLAN.md` section 2 (frame
 axes projected onto the plane, measured against the plane's own extent).
 
-**`lookAt`, precisely.** `d = normalize(to - from)`. Then two turns, both measured against the PART
-frame so the result never depends on how the scan was imported or how the view is orbited. The output's
-frame tag is the most scene-bound of its two points (plate over start over part):
+**`lookAt`, precisely.** `d = normalize(to - from)`. Then two turns, both measured against the OBJECT
+frame so the result never depends on how the scan was imported or how the view is orbited. Both points
+are object references here, so the result is one too (a global point would make it global, section 7):
 
 - `side = normalize(top x d)`; `lift = d x side` (the part of "top" square to the aim).
 - **up-down** turns `d` toward `lift` (positive = toward the frame's top side);
@@ -257,14 +258,13 @@ frame tag is the most scene-bound of its two points (plate over start over part)
 its opposite). `lean` = the wired lean-toward direction, else the frame's `top`, made square to `up`.
 Then the angle: `up` is turned toward `lean` by `angle` degrees and `lean` follows - the same rotation
 `plate_up` does. Refused: a wired `plane` whose protrusion exceeds the limit (the part would be inside
-the plate); a lean direction parallel to `up`; **any input tagged `start` or `plate`** - this node is
-what CREATES the start pose, so it can only be told about the part (section 7).
+the plate); a lean direction parallel to `up`; **any `global` input** - this node decides where tilt
+0 is, so it can only be told about the part (section 7).
 
-**The start pose, pinned down.** The Start frame is captured at the `pose` this stage outputs: after
-Set as bottom and its own angle, and BEFORE the search's start angle (`tiltStartDeg`). That is the
-owner's "the original orientation as is, before adjusting start degree tilt". Trap in the names: the
-Start frame is NOT the pose at the type's start angle; a type that starts its search at 10 degrees
-still has its Start frame at 0.
+**Tilt 0, pinned down.** Tilt 0 is the `pose` this stage outputs: after Set as bottom and its own
+angle, and BEFORE the search's start angle (`tiltStartDeg`). The start angle is not part of Orient at
+all: it is only the first lean the search tries. A type that starts its search at 10 degrees has the
+same object frame, the same zones and the same tilt 0 as one that starts at 0.
 
 **How it combines with the search.** The search is unchanged: it tries start, start + step ... end,
 each angle leaning `up` toward `lean` (`plate_up(frame, tilt)` becomes `plate_up(pose, tilt)`), every
@@ -330,7 +330,7 @@ engine refuses: nothing is drawn as a field that the engine would accept and ign
 **The canvas.** Stage 1 becomes a canvas using the SAME React Flow component as Zones
 (`nodeEditor/ZoneEditor.tsx`), fed the Orient kinds and an "Orient output" node with two sockets. The
 print-angle search card keeps its fields exactly as proved today, but lives on tab 4 once the owner
-rules on question 3 (section 8); until then it stays where it is. The 3D view draws each reference when its node is selected: a plane as a
+rules on question 2 (section 8); until then it stays where it is. The 3D view draws each reference when its node is selected: a plane as a
 quad, a point as a dot, a direction as an arrow, a flat region as a tinted face set.
 
 **The type file.** `src/dentalTypes/typeFile.ts` gains an optional `orientGraph` beside `zoneGraph`.
@@ -370,13 +370,13 @@ pure Rust: no wasm, no host, no scan needed.
 | **U1** | `flat_regions(mesh, tolerance_deg, min_area) -> Vec<FlatRegion {faces, centroid, normal, area_mm2}>` + `protrusion_mm` | geocore, new `surface/flat_regions.rs` (not under `denture/`: it is not dental) | Rust: a cube gives 6 regions of equal area; a subdivided face is still ONE region with the same area (area, not count); a cylinder's side is NOT one region (the trap above); a rotated copy gives the same regions; a floor inside a cup reports its protrusion | free |
 | **U2** | `look_at(from, to, frame, up_down, left_right)` and `set_bottom(normal, lean, angle) -> pose` | geocore, pure | Rust: 0 / 0 is exactly `normalize(to - from)`; +10 up-down raises the dot with `top` by a worked number; same-point and parallel cases refuse; `set_bottom` at angle 0 gives `up == -normal`, and fed the denture frame's own up and teeth it reproduces `plate_up` bit for bit | free |
 | **U3** | The pose split: the tilt search and `pose.rs` read a `pose` (up, lean) instead of `ArchFrame`; the default is built from the frame | geocore | every existing Rust test unchanged and green; `gate:real` "No differences" once vendored | free (a refactor, no behaviour) |
-| **U4** | `orient_graph.rs`: value enum with the frame tag (`part` / `start` / `plate`), `default_graph`, `evaluate`, `validate`, `set_orient_graph`, digest into BOTH cache keys; the same tag check added to `zone_graph.rs` `validate` | geocore | Rust: default graph == `orient_denture` on the test shells, field for field; each refusal by name, including a `start` input into Set as bottom and a `plate` input into a zone; two graphs give two cached frames | free |
+| **U4** | `orient_graph.rs`: value enum with the frame tag (`object` / `global`), `default_graph`, `evaluate`, `validate`, `set_orient_graph`, digest into BOTH cache keys; the same tag check added to `zone_graph.rs` `validate` | geocore | Rust: default graph == `orient_denture` on the test shells, field for field; each refusal by name, including a `global` input into Set as bottom and into a zone; two graphs give two cached frames | free |
 | **U5** | wasm + host: `set_orient_graph`, per-node results in the review (points, planes, directions, region face sets), `--orient-graph` in the batch | geocore `geometry-wasm` and `host/`, then vendor | parity run: dentures 6 of 6 IDENTICAL with the default graph set; a bad graph exits 2 with the node named and writes nothing | free to build; **vendoring a new engine needs the owner's push approval**, as engine 70 did |
 | **U6** | Orient canvas: kinds, words and the FIXED mirror in `nodeGraph.mjs`; the stage 1 tab as a canvas; 3D overlays; `orientGraph` in the type file | mixodental | `nodeGraph.test.ts` (words, groups, FIXED); a filtered walk of the review page; on a real scan, swap to "Largest flat area -> Set as bottom" and see the pose change and the region tinted | **needs ruling 1** (which kinds get it) and a look at the UI by the owner |
-| **U7** | Zones use the shared references: the reference kinds on the Zones canvas, the `ref` node, `planePoint` evaluated, a `direction` input on Parallel rays; a start-attached reference accepted and read at the start pose | geocore + mixodental | a wired direction equal to back -> tissue 45 gives R1's mask exactly; a `planePoint` sight cast runs and its origin is drawn where the percentages say; the same ray wired once part-attached and once start-attached gives the SAME mask (section 7) | free, but after U6 is accepted; how start is shown **needs ruling 2** |
+| **U7** | Zones use the shared references: the reference kinds on the Zones canvas, the `ref` node, `planePoint` evaluated, a `direction` input on Parallel rays | geocore + mixodental | a wired direction equal to back -> tissue 45 gives R1's mask exactly; a `planePoint` sight cast runs and its origin is drawn where the percentages say; the canvas will not draw a global wire into a zone | free, but after U6 is accepted |
 | **U8** | A first non-arch recipe end to end (flat base -> bottom -> search) on a real model the owner supplies | both | a review folder the owner looks at | **needs ruling 1 and a sample file** |
-| **U9** | Tab "4 Print angle": the search fields, per-angle table, pick and confirm move out of Orient (section 8) | mixodental, UI only | a filtered walk; a zone edit visibly moves the pick on tab 4 | **needs ruling 3** |
-| **M1** | Measure quick pick vs full-build pick on every denture scan (section 9) | a script, about 4.3 h unattended | the table of section 9's four answers | free to run; **the result needs ruling 4** |
+| **U9** | Tab "4 Print angle": the search fields, per-angle table, pick and confirm move out of Orient (section 8) | mixodental, UI only | a filtered walk; a zone edit visibly moves the pick on tab 4 | **needs ruling 2** |
+| **M1** | Measure quick pick vs full-build pick on every denture scan (section 9) | a script, about 4.3 h unattended | the table of section 9's four answers | free to run; **the result needs ruling 3** |
 
 Order: U1 and U2 in parallel, then U3, U4, U5, then stop for the owner before U6. U1-U4 change no
 behaviour for any shipped type. U9 and M1 depend on nothing above and can go first.
@@ -384,9 +384,8 @@ behaviour for any shipped type. U9 and M1 depend on nothing above and can go fir
 Debt this plan does NOT take, written down: a per-type engine slot for the graphs (E3, already
 planned); a free aligner Orient; flat regions on a smoothed copy (the node reads the scan's own
 triangles, so a noisy scanned base may need a larger tolerance - to be measured in U8, not guessed
-now); and the start- and plate-attached NODES themselves (level plane, toward the plate, the print
-box) - the first build makes the tag and its refusals only, because no graph consumes them yet
-(section 7).
+now); and the GLOBAL nodes themselves (toward the plate, a level plane, the print box) - the first
+build makes the tag and its refusal only, because nothing that has an angle is a graph yet (section 7).
 
 ---
 
@@ -397,35 +396,27 @@ box) - the first build makes the tag and its refusals only, because no graph con
    today's orientation unchanged.** A denture has no flat base and its upright rule is measured on your
    scans; rewiring it gains nothing and voids its proof. The new nodes still show on both as readouts.
 
-2. **In the Zones tab, do you expect a "global" (Start-frame) ray to stay fixed to the scene while the
-   search leans the part - a different zone at every angle?** This is the one place I think the
-   expectation and the engine differ, so it is said plainly (section 7): zones are decided ONCE, with
-   the part standing at its start pose, and there the Start frame and the Part frame are the same
-   thing. A start-attached ray in Zones therefore gives exactly the mask its part-attached twin gives.
-   Recommend: **no - zones stay decided once.** That is also your own order ("define all support
-   areas, then pick the tilt"). In Zones the choice is shown as one list labelled "part (= start
-   here)", not two that look different and are not. Zones re-cast at every angle are possible, not
-   circular, and cost up to 23 times the rays; if you want them, that is a measured project of its own.
-
-3. **Should the print-angle search leave the Orient tab and become its own last tab, "4 Print angle"?**
+2. **Should the print-angle search leave the Orient tab and become its own last tab, "4 Print angle"?**
    Recommend: **yes** (section 8). The search is already computed after zones and support rules; only
    the tab order says otherwise. Orient keeps the frame, the references and "which face is the bottom".
 
-4. **Should the print angle be chosen from full support builds instead of the quick score?**
+3. **Should the print angle be chosen from full support builds instead of the quick score?**
    Recommend: **not yet - measure first, one overnight run** (section 9). A full build at every angle
    is about 43 minutes per case. If the measurement shows the quick pick is often not the best build,
    build "quick score for all angles, full build for the best 3" - about 4 minutes more per case.
 
-5. **Does "set as bottom" mean "turn this face toward the plate, then support it as usual", or "print
+4. **Does "set as bottom" mean "turn this face toward the plate, then support it as usual", or "print
    this face directly on the plate, no supports under it"?**
    Recommend: **turn it toward the plate, supports and lift as usual.** That reuses every safety check
    unchanged. Printing flat on the plate is a different mode (no lift, no tips under the base) and
    should be its own later switch, not an accident of this node.
 
-Four things I decided without asking - say so if any is wrong:
+Five things I decided without asking - say so if any is wrong:
 
-- The Start frame is taken at angle 0 of the search, after Set as bottom and before the type's start
-  angle, as you described. A type that starts at 10 degrees still has its Start frame at 0.
+- Two frames, your words: object and global. The object frame is fixed before the start angle; the
+  start angle is only the first lean the search tries (section 7).
+- The Zones tab offers object references only. A global reference there is refused, with the reason,
+  because a zone is decided before any angle - this is your own "won't need recast" (section 7).
 - A type keeps the print-angle search after Set as bottom; "use exactly this bottom" is start = end,
   so the chosen pose is still judged by the hard rules instead of being trusted.
 - The look-at node's up-down / left-right angles are measured against the PART, never the screen (a
@@ -434,99 +425,87 @@ Four things I decided without asking - say so if any is wrong:
 
 ---
 
-## 7. One vocabulary for Orient AND Zones - and the three frames
+## 7. One vocabulary for Orient AND Zones - and the two frames
 
-Owner, 2026-11-20: *"those nodes can be used in zone tab because it helps freedom of ray casting, and
-for planes, there's at least 2 types, the global one (all sides before auto tilt), or the oriented one
-(tilted)."* Agreed. The point / plane / direction / flat-region nodes of section 3 are ONE set of node
-kinds; `nodeGraph.mjs` lists each once with `stage: 'reference'` and both canvases offer it. A flat
-region is directly useful in Zones as a mask (allow or forbid tips on the base), and `lookAt` is what
-gives the rays their freedom.
+**The owner's question, answered first: the object planes are fixed BEFORE the start angle - at tilt
+0, from the original tight box and the up / front decision - and the start angle is only the first
+lean the search tries; it turns the part and its object planes together, so it never changes them.**
 
-> **THREE FRAMES, named by the owner's clarification (2026-11-20, "rename these things with better
-> terms").** The owner: object planes are "the initial front back up down left right of the initial
-> position before the object is tilted ... so it follows no matter how it moved"; global planes "do not
-> follow ... stay as scene global ... simply take the original orientation as is before adjusting start
-> degree tilt". Named for what each is attached to:
+Owner, 2026-11-20: *"those nodes can be used in zone tab because it helps freedom of ray casting"*,
+and, after two rounds on the names: *"maybe we don't need 3 different setup, just 2, global no matter
+tilt, or object, before tilt start even set, just the original tight box with up down front back
+decided."* Agreed on both. The point / plane / direction / flat-region nodes of section 3 are ONE set
+of node kinds; `nodeGraph.mjs` lists each once with `stage: 'reference'` and both canvases offer it.
+
+> **TWO FRAMES. The owner's words are kept as the names.**
 >
-> | Name | Attached to | At the start pose | When the search leans the part | Was called |
-> |---|---|---|---|---|
-> | **Part frame** | the part itself: its own front, back, top, bottom, left, right, found once by Orient (tight box + initial orientation) | = Start frame | turns WITH the part | the owner's "object planes"; this doc's first "global" |
-> | **Start frame** | the scene: the part's sides exactly where they stood at the start pose, frozen there | = Part frame | stays still | the owner's "global planes" |
-> | **Plate frame** | the print plate as the part FINALLY sits on it: the picked angle plus anything the operator then does (the angle dial, a turn or move on the plate) | - | does not exist yet | this doc's first "oriented" |
+> | | **Object frame** | **Global frame** |
+> |---|---|---|
+> | What it is | The part's own sides: front, back, top, bottom, left, right, decided once from the original tight box and the up / front decision. | The scene's fixed directions: down is toward the plate, up is away from it, and the level directions around it. |
+> | Glued to | the part | the plate and the machine |
+> | When the part leans or is moved | it goes WITH the part, so nothing drawn on the part ever changes | it stays still; the part turns inside it |
+> | When it is known | as soon as Orient finishes, before any angle | always - but WHERE it lies on the part depends on the angle being looked at |
+> | Example | "the part's back face", "the rim plane", "the largest flat area", "a point 50 / 50 on the tissue side" | "straight down to the plate", "a level plane 30 mm above the plate" |
+>
+> At tilt 0 the two line up: the part's front points away from the plate, and so on. From then on the
+> object frame leans with the part and the global frame does not. That is the whole difference.
 
-**How the three relate - worth one careful read, because two of them are closer than the names
-suggest.** There are really two things a reference can be glued to: the part, or the scene. The
-Start frame and the Plate frame are BOTH glued to the scene; they differ in WHEN they are known:
+**Is two enough? Yes, and it is better than the three this page had for a day.** The earlier "Start
+frame" and "Plate frame" were the SAME scene directions, looked at at two moments: before the search
+and after the pick. A moment is not a frame. What the three-frame version was really protecting is
+one rule, and it survives as a property of the READER, not as a third name:
 
-- The **Start frame** is known the moment Orient finishes, and it has a value at every angle the
-  search tries. While the search leans the part, the start frame's "toward the plate" IS toward the
-  plate, at every candidate angle - the plate does not move, the part does.
-- The **Plate frame** is known only after the pick, and it also follows whatever the operator does
-  afterwards. The Start frame deliberately does not (the owner: it "does not take into account if the
-  object itself is being rotated on the actual print plate").
+> **A global reference can only be used by something that knows an angle.**
 
-So during the automatic search the Start frame is the plate's own axes, named by the part's sides as
-they stood at the start. They part company only once a person moves the part on the plate.
+The search knows one (the candidate it is trying). Everything after the pick knows one (the final
+pose - including whatever the operator did on the plate, which is just the part moving in the global
+frame). Orient and Zones know none: they run before any angle exists. So:
 
-**How the Start frame is computed - it already exists in the engine.** Seen from the part, a
-scene-fixed direction turns backwards as the part leans. That is exactly `print_axes(frame, tilt)`
-(`denture/pose.rs`): its rows are the start frame's across, front (`plate_up`) and top, expressed in
-the part's coordinates at that tilt. So nothing new is computed; the Start frame is the `pose` output
-of section 3 plus the candidate angle. It is captured at search angle 0 - after Set as bottom, before
-the type's start angle (`tiltStartDeg`), as the owner said.
+| Reader | `object` | `global` | Why |
+|---|---|---|---|
+| **Orient graph** | yes | **refused** | No angle exists yet; Orient is what decides where tilt 0 is. |
+| **Zones graph** | yes | **refused** | Zones are decided once, before any angle. |
+| **Per-angle scoring and placement** (tabs 3 and 4; engine code today, no graph yet) | yes | yes, at the angle being tried | It has an angle. |
+| **After the pick** (pillar landing, export, readouts; no graph yet) | yes | yes, at the final pose | It has an angle. |
 
-**What a Start-frame reference is FOR - a use the Part frame cannot serve.** Anything judged once per
-candidate angle that must stay level with the scene while the part leans:
+**The owner's guess is right, and it is the reason the Zones row is so simple.** *"All the ray cast
+should have been done with the object planes, so ... won't need recast since once it is done tilt
+won't change any."* Verified in source:
 
-- "straight down to the plate" at each angle - what makes a face an overhang, where a pillar goes,
-  where resin drains. This is how the search already works: each angle's `up` is the start frame's
-  front axis (`denture/tilt.rs` `row_with`, `plate_up`);
-- a level plane at a height ("no tips above 30 mm at any angle");
-- a direction fixed in the machine, such as the side the film peels from.
-
-A part-attached reference cannot say any of these: it leans with the part. What a Start-frame reference
-does NOT do is change a zone as the part leans - see the table and question 2.
-
-**Who may read which - the validator's table.** Every `direction`, `position` and `plane` socket
-carries the tag `space: part | start | plate` (a `mask` is per face and has none). A node's output
-takes the most scene-bound tag among its inputs (plate over start over part).
-
-| Reader | `part` | `start` | `plate` | Why |
-|---|---|---|---|---|
-| **Orient graph** (it produces the start pose) | yes | **refused** | **refused** | It cannot be told about a pose it has not made yet. |
-| **Zones graph** (decided once per model, at the start pose) | yes | yes - read AT the start pose, where it equals the Part frame | **refused** | A zone needs no angle; the angle is picked using the zones. |
-| **Per-angle scoring and placement** (tab 3 and 4; engine code today, no graph yet) | yes | yes - re-expressed at each candidate angle | **refused** | The final placement is not known while angles are still being tried. |
-| **After the pick** (pillar landing, export, readouts; no graph yet) | yes | yes | yes | Everything is known. |
-
-**The Zones row, verified in source, not assumed:**
-
-- The zone analysis is built ONCE per model, from the upright frame: `Prepared::of` calls
+- The zone analysis is built ONCE per model, in the object frame: `Prepared::of` calls
   `analysis_of(&tips, profile, frame.up0, steep_deg)` (`denture/tilt.rs:175`), before any angle is tried.
 - The search then scores EVERY angle with those same zones: `row_with` calls
   `place_ruled_with(&self.tips, analysis, profile, &[], up, ...)` with only `up` changing
-  (`denture/tilt.rs:186-192`).
-- So a zone that read a **plate**-frame reference would need the picked angle, and the angle is picked
-  using the zones: a circle. Refused.
-- A zone that read a **start**-frame reference is not circular - but because zones are decided once,
-  at the start pose, it is read there, where Start and Part coincide. **The same ray wired
-  part-attached and start-attached gives the same mask.** The canvas must say so on the node ("= part
-  frame here: zones are decided before any tilt"), or the two choices look different and are not -
-  the "accepted and ignored" outcome this project refuses everywhere else. Re-casting zones at every
-  angle would make the difference real; each cast is up to 1.5 million rays, paid 23 times at 0-44 by
-  2, and the analysis cache is keyed without an angle. Not planned; question 2.
+  (`denture/tilt.rs:186-192`). A zone is a set of faces; faces lean with the part; no recast.
+- A zone that read a global reference would need an angle. Give it the PICKED angle and it is a
+  circle (the angle is picked using the zones); give it every candidate angle and each cast - up to
+  1.5 million rays - is paid 23 times, with a cache that is keyed without an angle. Refused instead.
 
-**Refused by TYPE, in three layers, one rule, a test on each.** The canvas refuses the connection (its
-check already asks the model's socket types); `nodeGraph.mjs` `validate` names it; the engine's
-`validate` refuses it at set, with the reason: *"SIGHT: origin is attached to the plate - a zone is
-decided before the print angle, so it cannot depend on it"*, *"BOTTOM: normal is attached to the
-start pose - Set as bottom is what creates that pose"*.
+**What the global frame is FOR - what the object frame cannot say.** Anything that must stay level
+with the machine while the part leans: "straight down to the plate" (what makes a face an overhang,
+where a pillar goes, where resin drains), a level plane at a height, the side the film peels from.
+The engine already works this way: each angle's `up` is the global up, expressed on the part at that
+angle (`denture/pose.rs` `plate_up` and `print_axes`). So the global frame needs no new arithmetic,
+only a name and a type.
 
-**What the first build makes.** Only the tag and these refusals. No graph consumes a start- or
-plate-attached reference in a way that differs from a part-attached one yet (the per-angle and
-after-pick rows are engine code), so the scene-attached nodes - toward the plate, a level plane, the
-print box, and a conversion "as it stands on the plate" - wait for the first real consumer. Until
-then the only place the owner can PICK "start" is the Named plane node in Zones, with the note above.
+**The socket tag and the refusal.** Every `direction`, `position` and `plane` socket carries
+`space: object | global` (a `mask` is per face and has none). A node's output is `global` if the node
+is a global node or ANY of its inputs is global. Every input in the Orient graph and the zone graph
+accepts `object` only. Refused in three layers, one rule, a test on each: the canvas will not draw the
+wire (its check already asks the model's socket types); `nodeGraph.mjs` `validate` names it; the
+engine's `validate` refuses it at set, with the reason - *"SIGHT: origin is a global reference - a
+zone is decided before any print angle, so it can only use the part's own (object) references"*.
+
+**Which nodes live where.**
+
+- **Object - everything in section 3:** the detectors and their `frame`, Named plane, Centre, Point on
+  plane, Crossing, Largest flat area and its plane, Look at, Normal of, and every input of Set as bottom.
+- **Global - none built yet:** "toward the plate", "level plane at a height", "the print box" (the
+  part's extent as it sits on the plate). They wait for the first reader that has an angle and is a
+  graph; today those readers are engine code. The first build makes the tag and the refusal only.
+- **The one bridge:** the `pose` output of Orient says how the object frame sits in the global frame
+  at tilt 0. It is the only thing that mentions both, and it is not a reference anyone can wire into
+  a zone.
 
 ---
 
@@ -553,10 +532,10 @@ references, bottom      stand                rules                   judge, conf
 **Recommendation: yes, a fourth tab "4 Print angle".** It holds start / end / step / margin (moved,
 not changed - they stay the same profile fields in the type file), the table of every angle with its
 score and which rule failed, the pick and why, and the confirm-build result. **Orient keeps**
-everything that is true whatever the angle: the detectors, the Part frame, the rim, the references,
-and the `pose` output - which face is the bottom at angle 0, which is the Start frame. That is also
-the clean seam for sections 2 and 7: Orient makes the Part frame and the Start frame, tabs 2 and 3
-are written against them, and tab 4 is where the Plate frame comes into being.
+everything that is true whatever the angle: the detectors, the object frame, the rim, the references,
+and the `pose` output - which face is the bottom at tilt 0. That is also the clean seam for sections
+2 and 7: tabs 1 and 2 work in the object frame only, and the global frame is first needed where an
+angle exists - tab 3's placement at each angle, and tab 4.
 
 Cost: UI only, no engine change. Pages to update in the same commit when built: `NODE-PLAN.md` 5b,
 `TYPE-PIPELINE.md` section 5, `REVIEWER-UI.md`.
@@ -574,7 +553,7 @@ question is how many angles can afford a real build.
 not a full build (`denture/tilt.rs` header and `row_with`):
 
 - it really places the tips, by the type's rules and zones, at that angle - the zones fixed to the
-  part (decided once), "down" taken from the Start frame at that angle (section 7);
+  part (object frame, decided once), "down" being the global down at that angle (section 7);
 - it fails the angle if too many tip necks run into the model (Crossing) or a pillar would be too
   thin for its height (Slender);
 - within the survivors it prefers: fewest lowest points no support can reach (boxed in), fewest lowest
