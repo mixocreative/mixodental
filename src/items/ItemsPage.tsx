@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { plural, t, translateMessage, type Lang } from '../i18n';
 import { ScreenHeading } from '../ui/ScreenHeading';
 import { Icon } from '../ui/Icon';
@@ -35,7 +35,7 @@ import { deckUsage, formatBytes } from './deckBudget';
  * looked at the first of a set of identically-named elements and reported the rest as missing — a
  * false gap that cost a round of investigation.
  */
-export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, purposes, onPurpose, onPurposeAll, onAnyModel, onSelect, onStart, onRemove, onFiles, onBack, onArrange, onExport, onRetry, autoGen, autoGenReady, onAutoGen, onAutoGenAll, autoGenBusy, onAutoGenStop, recipes }: {
+export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, purposes, onPurpose, onPurposeAll, onAnyModel, activity, onSelect, onStart, onRemove, onFiles, onBack, onArrange, onExport, onRetry, autoGen, autoGenReady, onAutoGen, onAutoGenAll, autoGenBusy, onAutoGenStop, recipes }: {
   units: readonly PrintUnit[];
   /**
    * Files that never became units. They are rows too (§3's first table): drop eight, one is broken,
@@ -79,6 +79,8 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   onPurposeAll: (profile: string) => void;
   /** "Any model": these are plain models, take them to the bench. The deck's third answer. */
   onAnyModel: () => void;
+  /** The background-work panel, drawn IN the footer above the case keys (see the footer below). */
+  activity?: ReactNode;
   /**
    * Open this row, at the start of its flow.
    *
@@ -363,6 +365,12 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
       onOpen={() => { setEnlargedId(undefined); onStart(enlarged); }} /> : null}
 
     <div className="items-footer">
+      {/*
+        BACKGROUND WORK SITS IN THE FOOTER, not over it. Mounted beside the page, the panel took the
+        viewport's own place - absolute, bottom left - and on the deck that is the tally and the app's
+        counts line, which it covered for as long as a scan ran (UX review 2026-11-21, finding 8, shot m2).
+      */}
+      {activity}
       {tally ? <p className="items-tally" data-ui="items-tally">{translateMessage(tally)}</p> : null}
       {/*
         WHAT THE WHOLE CASE NEEDS. Export says WHY it is off rather than going quietly grey: a case

@@ -657,6 +657,8 @@ kbd {
   letter-spacing: .02em;
 }
 .job-activity[hidden] { display: none; }
+/* On the deck it is a block in the footer's flow (ItemsPage `activity`), so it can never cover the tally. */
+.items-footer .job-activity { position: static; width: min(420px, 100%); margin: 0 0 8px; }
 .job-activity ul { list-style: none; margin: 0; padding: 0; }
 .job-row { padding: 6px 10px 7px; }
 .job-row + .job-row { border-top: 1px solid var(--line); }

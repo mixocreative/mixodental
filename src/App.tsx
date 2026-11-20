@@ -1710,7 +1710,7 @@ export default function App() {
       * actually run. Both pass it now, so the two mounts are the same panel rather than two that have
       * drifted.
       */}
-    {startScreen === 'items' ? <><PanelBoundary name="deck"><JobActivityPanel stagedBar={stagedJobBar} /><ItemsPage units={scene.units} finished={session.dentalFinished} lang={lang}
+    {startScreen === 'items' ? <><PanelBoundary name="deck"><ItemsPage activity={<JobActivityPanel stagedBar={stagedJobBar} />} units={scene.units} finished={session.dentalFinished} lang={lang}
       refused={refusedFiles} detected={batchDetected} thumbnails={thumbnails} onRetry={retryDetect}
       selectedUnitId={scene.activeUnitId}
       onSelect={(unit) => dispatch({ type: 'selection/set', unitIds: [unit.id], activeUnitId: unit.id })}
