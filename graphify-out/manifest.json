@@ -5893,9 +5893,9 @@
     "semantic_hash": ""
   },
   "scripts/README.md": {
-    "mtime": 1795132059.9837422,
-    "seen": 1795132374.7359602,
-    "ast_hash": "8896f2f486d93ea26494303cd1a82f93",
+    "mtime": 1795132821.1196468,
+    "seen": 1795132977.0447128,
+    "ast_hash": "abd524f354656da818c9f1ee53a99be3",
     "semantic_hash": ""
   },
   "scripts/test-support/README.md": {
@@ -6625,15 +6625,15 @@
     "semantic_hash": ""
   },
   "scripts/shell-guard.mjs": {
-    "mtime": 1795132176.1475403,
-    "seen": 1795132374.7344573,
-    "ast_hash": "7e88e19abc2ca0e2a25cb70376228264",
+    "mtime": 1795132778.9040873,
+    "seen": 1795132977.0437076,
+    "ast_hash": "480033ad09ed835dc407866a7b1517dc",
     "semantic_hash": ""
   },
   "scripts/shell-guard.test.mjs": {
-    "mtime": 1795132184.4376495,
-    "seen": 1795132374.7344573,
-    "ast_hash": "8a599e7b45a8bb9a5acb538bd614d0df",
+    "mtime": 1795132788.761227,
+    "seen": 1795132977.0437076,
+    "ast_hash": "2a3750b5be369047509fc0b8102e68d6",
     "semantic_hash": ""
   }
 }
