@@ -96,7 +96,7 @@ some stills lag their step; findings from a still alone are marked UNVERIFIED th
 | 4 | The status overlay is drawn over the left panel ("Check for unsupported spots") | **Fixed:** the overlay spans the scene column only (`--workspace-left/right`, one place for the panel widths). |
 | 5 | The deck uses four nouns (file, model, item, object) | **Owner decision:** the glossary keeps Object and Model as two concepts; which word the deck uses is a naming call. |
 | 6 | "Each object with model" does not say it exports | **Owner decision** with 5 (proposal: "Export all STL"). |
-| 7 | A card says "Generating supports..." while its chip says "Ready" | Open (UNVERIFIED). |
+| 7 | A card says "Generating supports..." while its chip says "Ready" | **Fixed.** Confirmed in walk shot m11: "Ready" was the orientation's verdict, shown beside the run's own picture. The chip now steps aside while the card's run is queued or running and comes back after (`ItemRow.tsx`; test in `ItemsPage.test.tsx`, which fails on the old line). |
 | 8 | The deck's progress toast covers the footer | Open. |
 | 9 | An import error stays up while the next model is worked on | Open. |
 | 10 | "Left the aligner on the plate without supports" after Exit with nothing on the plate | **Engine-side** (`editing/status.ts:63` in geocore): skip the exit line when no object is active. Needs a geocore commit and push. |
@@ -104,7 +104,7 @@ some stills lag their step; findings from a still alone are marked UNVERIFIED th
 | 12 | Step 3's panel is crowded; edit tools cut at the fold | Open. |
 | 13 | "Automatic dental rim gaps: outer 42.2 mm ... omitted contacts were not forced" | **Owner decision** on the words (proposal: "The supports leave a gap along the rim. Look at it, then add supports if needed."), then three languages. |
 | 14 | A problem row's text squeezed into a 60 px column beside its buttons | **Fixed:** the dental layout (buttons on their own row) is now the one rule for every problem list. |
-| 15 | "Step 1 - Aligner" names the product, Steps 2-3 the job; Reset vs "Restore step" | **Owner decision** (proposal: "Step 1 - Print angle"; one Restore control). |
+| 15 | "Step 1 - Aligner" names the product, Steps 2-3 the job; Reset vs "Restore step" | **Fixed (titles),** owner: "is 'STEP 1' still relevant?" then "Good for what u think best". Every badge leads with the job, then its place: `Print angle · 1 / 3`, `Support area · 2 / 3`, `Supports · 3 / 3` (a denture counts to 2). The header's "Your files" key moved onto the card as its `×`. Walk check u5t. Reset vs Restore is still open. |
 
 Journeys, most finished first (Fable): aligner Steps 1-3; Drop page to deck to auto-generate; the
 any-model editor. Single most helpful change: finding 2, the status line.
