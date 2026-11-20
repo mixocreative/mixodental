@@ -131,6 +131,40 @@
 .chain-node .count { margin-left: auto; font-variant-numeric: tabular-nums; }
 .chain-link { flex: 0 0 auto; align-self: flex-start; margin-top: 28px; width: 14px; text-align: center; color: var(--muted); }
 .chain-note { font-size: 11px; color: var(--muted); margin: 2px 0 0; max-width: 92ch; }
+
+/* The three stages: one tab per stage, one stage on screen, so the 3D view keeps its height. */
+.stage-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.stage-tab { height: auto; padding: 4px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); cursor: pointer; font-weight: 600; }
+.stage-tab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.stage-arrow { color: var(--muted); }
+.stage-body { min-width: 0; }
+.deg-figure svg { width: 100%; height: 56px; }
+.deg-figure .plate { stroke: var(--muted); stroke-width: 2; }
+.deg-figure .up { stroke: var(--muted); stroke-dasharray: 3 2; }
+.deg-figure .lean, .deg-figure .arc { stroke: var(--accent); fill: none; stroke-width: 1.5; }
+.deg-figure text { font-size: 8px; fill: var(--muted); }
+/* The zone editor. */
+.zone-status { font-size: 12px; padding: 5px 8px; border-radius: 4px; margin: 8px 0 6px; }
+.zone-status.default { background: var(--panel); border: 1px solid var(--line); }
+.zone-status.edited { border: 1px solid var(--warning); }
+.zone-bar { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.zone-bar select, .zone-bar button { height: auto; padding: 3px 8px; }
+.zone-report { font-size: 11px; display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.zone-report .ok { color: var(--success); }
+.zone-report .bad { color: var(--danger); }
+.zone-report .warn { color: var(--warning); }
+.zone-outs { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; margin-bottom: 4px; }
+.zone-out { display: flex; gap: 4px; align-items: center; }
+.zone-out .k { color: var(--muted); font-family: var(--font-mono, monospace); }
+.zone-out select, .zone-node select { height: 20px; font-size: 11px; max-width: 120px; }
+.zone-node { width: 200px; }
+.zone-node.idle { opacity: 0.6; border-style: dashed; }
+.zone-node.fixed { background: transparent; }
+.zone-head { display: flex; align-items: center; gap: 4px; }
+.zone-tools { margin-left: auto; display: flex; gap: 2px; }
+.zone-tools button { height: 18px; width: 20px; padding: 0; font-size: 11px; }
+.zone-node input { width: 64px; height: 18px; margin-left: auto; font-size: 11px; padding: 0 3px; }
+.zone-node .chain-set select { margin-left: auto; }
 </style>
 <script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
 </head>
@@ -210,19 +244,8 @@
   </div>
 </main>
 <section class="chain" id="chain" data-ui="review-node-chain" hidden>
-  <div class="chain-head">
-    <h3>The chain</h3>
-    <span class="muted" id="chain-sub" data-ui="review-chain-sub"></span>
-  </div>
-  <div class="chain-rail" id="chain-rail" data-ui="review-chain-rail"></div>
-  <p class="chain-note" data-ui="review-chain-note">
-    Each node is a step the engine actually ran, in the order it ran them, with what it produced.
-    Click one to walk the model to that step. <strong>There are no drag handles and there will not be
-    until the engine can take an order as data</strong>: the combines are fixed statements, and
-    placement is stateful - a tip claims its space in stream order - so moving a node would change
-    which tips exist, not just when they appear. Turning a rule is in the benchwork panel; that part
-    the engine does support.
-  </p>
+  <div class="stage-tabs" id="stage-tabs" data-ui="review-stage-tabs"></div>
+  <div class="stage-body" id="stage-body" data-ui="review-stage-body"></div>
 </section>
 
 <div class="hover-tip" id="hover-tip" data-ui="review-hover-tip" hidden>
@@ -633,138 +656,381 @@ const NODE_SETTINGS = {
   ],
 };
 
+/*
+ * THE THREE STAGES (docs/NODE-PLAN.md, the owner's division): 1 Orient, 2 Zones, 3 Support settings.
+ * One stage on screen at a time, chosen by the tabs, so the 3D view keeps its height.
+ *
+ * Stage 2 is a real graph editor over `nodeGraph.mjs`: add a node, remove one, rewire any input,
+ * rebind any output, edit parameters. Order is the WIRING - which input feeds which side of a
+ * Subtract - so "rearranging" a zone means rewiring it; moving a card left or right only changes
+ * where it is drawn, and the tooltip says so rather than letting a drag pretend to mean something.
+ *
+ * WHAT IS TRUE TODAY, said on screen: only the DEFAULT graph runs. An edited graph is composed and
+ * validated here, and running it needs the engine to accept a graph - the next engine change. The
+ * status line says which of the two the operator is looking at, every time.
+ */
+const STAGES = [
+  { id: 'orient', title: '1 Orient', steps: [0, 1] },
+  { id: 'zones', title: '2 Zones', steps: [2, 3, 4, 5] },
+  { id: 'support', title: '3 Support settings', steps: [7, 8, 9, 10] },
+];
+let stageNow = (() => { try { return localStorage.getItem('review-stage') || 'zones'; } catch { return 'zones'; } })();
+let graphLib = null;
+let zoneGraph = null;
+
+/** One step's card: what it produced, and the settings it is known to own. */
+function chainCard(at, present, names) {
+  const [label, , keys] = DENTURE_STEPS[at];
+  const here = keys.filter((key) => present.has(key));
+  const node = document.createElement('div');
+  node.className = here.length > 0 ? 'chain-node' : 'chain-node absent';
+  node.dataset.ui = `chain-node-${at + 1}`;
+  const title = document.createElement('button');
+  title.type = 'button';
+  title.className = 'n';
+  title.textContent = label;
+  title.setAttribute('aria-pressed', String(stepAt === at + 1));
+  title.dataset.ui = `chain-step-${at + 1}`;
+  title.dataset.tipTitle = label;
+  title.dataset.tip = ruleText(DENTURE_STEPS[at][1]);
+  title.addEventListener('click', () => setStep(stepAt === at + 1 ? null : at + 1));
+  const outs = document.createElement('span');
+  outs.className = 'outs';
+  const SHOWN = 4;
+  for (const key of keys.slice(0, SHOWN)) {
+    const row = document.createElement('span');
+    row.className = 'out';
+    const swatch = document.createElement('span');
+    swatch.className = 'swatch';
+    swatch.style.background = present.has(key) ? colourOf(key) : 'transparent';
+    swatch.style.border = present.has(key) ? 'none' : '1px dashed var(--line)';
+    const text = document.createElement('span');
+    text.textContent = shortLabel(key);
+    row.append(swatch, text);
+    const full = names.find((name) => bare(plain(name)).startsWith(bare(key)));
+    const count = full && /(\d+) faces$/.exec(plain(full));
+    if (count) {
+      const n = document.createElement('span');
+      n.className = 'count';
+      n.textContent = Number(count[1]).toLocaleString();
+      row.append(n);
+    }
+    outs.append(row);
+  }
+  if (keys.length > SHOWN) {
+    const more = document.createElement('span');
+    more.className = 'out';
+    more.textContent = `+${keys.length - SHOWN} more (${here.length} of ${keys.length} in this case)`;
+    outs.append(more);
+  }
+  node.append(title, outs);
+  const settings = NODE_SETTINGS[at];
+  if (settings) node.append(settingsBox(settings, names));
+  return node;
+}
+
+/** The settings rows of a card. Live rules mirror the benchwork panel's field: one place holds what is turned. */
+function settingsBox(settings, names) {
+  const box = document.createElement('div');
+  box.className = 'chain-sets';
+  for (const setting of settings) {
+    const row = document.createElement('label');
+    row.className = 'chain-set';
+    row.dataset.ui = `chain-set-${setting.rule ?? setting.key}`;
+    const k = document.createElement('span');
+    k.className = 'k';
+    k.textContent = setting.key;
+    row.append(k);
+    const field = setting.rule && benchFields?.get(setting.rule);
+    if (field) {
+      const input = document.createElement('input');
+      if (field.rule.type === 'flag') {
+        input.type = 'checkbox';
+        input.checked = field.input.checked;
+        input.addEventListener('input', () => { field.input.checked = input.checked; });
+      } else {
+        input.type = 'number';
+        input.step = 'any';
+        input.min = '0';
+        const fallback = RULES[setting.rule];
+        input.placeholder = fallback === undefined ? 'engine default' : String(fallback);
+        input.value = field.input.value;
+        input.addEventListener('input', () => { field.input.value = input.value; });
+      }
+      input.dataset.ui = `chain-input-${setting.rule}`;
+      row.append(input);
+      row.dataset.tipTitle = setting.rule;
+      row.dataset.tip = `${field.rule.says} WHERE IT IS READ: ${setting.why} Turning it here is the same as turning it in the benchwork panel; press Apply there to run.`;
+    } else {
+      const v = document.createElement('span');
+      v.className = 'v';
+      v.textContent = setting.read ? String(setting.read(names, RULES))
+        : (RULES[setting.rule] === undefined ? 'engine default' : String(RULES[setting.rule]));
+      row.append(v);
+      row.dataset.tipTitle = setting.key;
+      row.dataset.tip = setting.why ?? 'An engine constant: no rule reaches it.';
+    }
+    box.append(row);
+  }
+  return box;
+}
+
+/** The print-angle search: the range auto-detection searches, and how its degrees are measured. */
+function searchCard() {
+  const s = graphLib?.PRINT_ANGLE_SEARCH ?? { startDeg: 0, endDeg: 45, stepDeg: 2, marginDeg: 2 };
+  const node = document.createElement('div');
+  node.className = 'chain-node search';
+  node.dataset.ui = 'chain-node-print-angle';
+  const title = document.createElement('span');
+  title.className = 'n';
+  title.textContent = 'Print-angle search';
+  const fig = document.createElement('div');
+  fig.className = 'deg-figure';
+  fig.innerHTML = '<svg viewBox="0 0 120 64" aria-hidden="true"><line x1="10" y1="58" x2="110" y2="58" class="plate"/><line x1="40" y1="58" x2="40" y2="8" class="up"/><line x1="40" y1="58" x2="72" y2="14" class="lean"/><path d="M40 30 A28 28 0 0 1 55 34" class="arc"/><text x="44" y="8">0&deg;</text><text x="74" y="14">45&deg;</text><text x="12" y="54">plate</text></svg>';
+  const box = document.createElement('div');
+  box.className = 'chain-sets';
+  const rows = [
+    ['start', `${s.startDeg}°`, 'Bolt upright: the denture stands on the plate teeth end DOWN. This is 0 by the engine\'s own definition, not a setting.'],
+    ['end', `${s.endDeg}°`, 'The furthest lean the search tries. A positive angle tips the TEETH side up toward you (denture/tilt.rs:1-3). Profile field pose.tiltRangeDeg.'],
+    ['step', `${s.stepDeg}°`, 'The search tries every step from start to end. Profile field pose.tiltStepDeg.'],
+    ['tie margin', `${s.marginDeg}°`, 'Profile field pose.tiltMarginDeg.'],
+    ['picked', caseNow?.printAngleDeg == null ? '-' : `${caseNow.printAngleDeg}°`, `What the search chose for this case${caseNow?.stableBand ? `, stable over ${caseNow.stableBand}` : ''}. It keeps the best lean by an ORDERED preference: safety tiers, then fewest boxed-in lowest points, then fewest lows outside the allowed area, THEN the smallest overhang area (denture/tilt.rs:16-19).`],
+  ];
+  for (const [k, v, why] of rows) {
+    const row = document.createElement('div');
+    row.className = 'chain-set';
+    row.dataset.tipTitle = k;
+    row.dataset.tip = why;
+    row.innerHTML = `<span class="k"></span><span class="v"></span>`;
+    row.querySelector('.k').textContent = k;
+    row.querySelector('.v').textContent = v;
+    box.append(row);
+  }
+  const note = document.createElement('div');
+  note.className = 'chain-none';
+  note.textContent = 'read-only until profiles can be supplied (register_profile)';
+  node.append(title, fig, box, note);
+  return node;
+}
+
+/** The stage tabs and whichever stage is chosen. */
 function drawChain(present, names) {
   const section = document.getElementById('chain');
-  const rail = document.getElementById('chain-rail');
-  const sub = document.getElementById('chain-sub');
-  if (!section || !rail) return;
+  const tabs = document.getElementById('stage-tabs');
+  const body = document.getElementById('stage-body');
+  if (!section || !tabs || !body) return;
   if (kindNow !== 'denture') { section.hidden = true; return; }
   section.hidden = false;
-  rail.textContent = '';
-  let ran = 0;
-  DENTURE_STEPS.forEach(([label, , keys], at) => {
-    const here = keys.filter((key) => present.has(key));
-    if (here.length > 0) ran += 1;
-    const node = document.createElement('div');
-    node.className = here.length > 0 ? 'chain-node' : 'chain-node absent';
-    node.dataset.ui = `chain-node-${at + 1}`;
-    const title = document.createElement('button');
-    title.type = 'button';
-    title.className = 'n';
-    title.textContent = label;
-    title.setAttribute('aria-pressed', String(stepAt === at + 1));
-    title.dataset.ui = `chain-step-${at + 1}`;
-    title.dataset.tipTitle = label;
-    title.dataset.tip = ruleText(DENTURE_STEPS[at][1]);
-    const outs = document.createElement('span');
-    outs.className = 'outs';
-    // Four rows, then a count: step 7 alone produces eleven layers, and a card that lists them all
-    // stretches the whole rail and strands every short node beside it. The full list is the Layers
-    // panel's job; a node says what it made, not every name it made it under.
-    const SHOWN = 4;
-    for (const key of keys.slice(0, SHOWN)) {
-      const row = document.createElement('span');
-      row.className = 'out';
-      const swatch = document.createElement('span');
-      swatch.className = 'swatch';
-      swatch.style.background = present.has(key) ? colourOf(key) : 'transparent';
-      swatch.style.border = present.has(key) ? 'none' : '1px dashed var(--line)';
-      const text = document.createElement('span');
-      text.textContent = shortLabel(key);
-      row.append(swatch, text);
-      // The face count, when the engine's layer name carries one (today: the undefined zone).
-      const full = names.find((name) => bare(plain(name)).startsWith(bare(key)));
-      const count = full && /(\d+) faces$/.exec(plain(full));
-      if (count) {
-        const n = document.createElement('span');
-        n.className = 'count';
-        n.textContent = Number(count[1]).toLocaleString();
-        row.append(n);
-      }
-      outs.append(row);
-    }
-    if (keys.length > SHOWN) {
-      const more = document.createElement('span');
-      more.className = 'out';
-      const here = keys.filter((key) => present.has(key)).length;
-      more.textContent = `+${keys.length - SHOWN} more (${here} of ${keys.length} in this case)`;
-      outs.append(more);
-    }
-    node.append(title, outs);
-    title.addEventListener('click', () => setStep(stepAt === at + 1 ? null : at + 1));
-
-    // The settings this node is known to own. Nothing is inferred: see NODE_SETTINGS.
-    const settings = NODE_SETTINGS[at];
-    if (settings) {
-      const box = document.createElement('div');
-      box.className = 'chain-sets';
-      for (const setting of settings) {
-        const row = document.createElement('label');
-        row.className = 'chain-set';
-        row.dataset.ui = `chain-set-${setting.rule ?? setting.key}`;
-        const k = document.createElement('span');
-        k.className = 'k';
-        k.textContent = setting.key;
-        row.append(k);
-        const field = setting.rule && benchFields?.get(setting.rule);
-        if (field) {
-          // One place holds what is turned: this input mirrors the benchwork panel's field, so Apply
-          // still reads that panel and a value can never be set in two places and disagree.
-          // Same control the benchwork panel gives the rule: a flag is a checkbox, a number a number.
-          // A number box for a flag would invite values the engine reads as 1 and call it a setting.
-          const input = document.createElement('input');
-          if (field.rule.type === 'flag') {
-            input.type = 'checkbox';
-            input.checked = field.input.checked;
-            input.addEventListener('input', () => { field.input.checked = input.checked; });
-          } else {
-            input.type = 'number';
-            input.step = 'any';
-            input.min = '0';
-            // The engine's own default, so an empty box is visibly "whatever the engine does".
-            const fallback = RULES[setting.rule];
-            input.placeholder = fallback === undefined ? 'engine default' : String(fallback);
-            input.value = field.input.value;
-            input.addEventListener('input', () => { field.input.value = input.value; });
-          }
-          input.dataset.ui = `chain-input-${setting.rule}`;
-          row.append(input);
-          row.dataset.tipTitle = setting.rule;
-          row.dataset.tip = `${field.rule.says} WHERE IT IS READ: ${setting.why} Turning it here is the same as turning it in the benchwork panel; press Apply there to run.`;
-        } else {
-          const v = document.createElement('span');
-          v.className = 'v';
-          // No benchwork field for it (the panel only loads with a server behind it): show the
-          // engine's default rather than an empty row that looks like "nothing set here".
-          v.textContent = setting.read ? String(setting.read(names, RULES))
-            : (RULES[setting.rule] === undefined ? 'engine default' : String(RULES[setting.rule]));
-          row.append(v);
-          if (setting.fixed) {
-            row.dataset.tipTitle = setting.key;
-            row.dataset.tip = setting.why ?? 'An engine constant: no rule reaches it.';
-          }
-        }
-        box.append(row);
-      }
-      node.append(box);
-    } else {
-      const none = document.createElement('div');
-      none.className = 'chain-none';
-      none.textContent = 'no settings traced yet';
-      none.dataset.tipTitle = label;
-      none.dataset.tip = 'The rules this step owns have not been traced in the engine yet. BENCH_RULES records which KIND a rule reaches, never which STEP, so attributing them by name would make a diagram that lies. Until each is read, they stay in the benchwork panel.';
-      node.append(none);
-    }
-    if (at > 0) {
-      const link = document.createElement('span');
-      link.className = 'chain-link';
-      link.textContent = '>';
-      rail.append(link);
-    }
-    rail.append(node);
+  tabs.textContent = '';
+  STAGES.forEach((stage, k) => {
+    if (k > 0) tabs.append(Object.assign(document.createElement('span'), { className: 'stage-arrow', textContent: '→' }));
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = 'stage-tab';
+    tab.textContent = stage.title;
+    tab.dataset.ui = `stage-tab-${stage.id}`;
+    tab.setAttribute('aria-pressed', String(stageNow === stage.id));
+    tab.addEventListener('click', () => {
+      stageNow = stage.id;
+      try { localStorage.setItem('review-stage', stageNow); } catch { /* per-viewer convenience only */ }
+      drawChain(present, names);
+    });
+    tabs.append(tab);
   });
-  sub.textContent = `${ran} of ${DENTURE_STEPS.length} steps produced something in this case`;
+  body.textContent = '';
+  const stage = STAGES.find((s) => s.id === stageNow) ?? STAGES[1];
+  if (stage.id === 'zones') { drawZoneEditor(body, present, names); return; }
+  const rail = document.createElement('div');
+  rail.className = 'chain-rail';
+  rail.dataset.ui = `stage-rail-${stage.id}`;
+  const cards = stage.steps.map((at) => chainCard(at, present, names));
+  if (stage.id === 'orient') cards.push(searchCard());
+  cards.forEach((card, k) => {
+    if (k > 0) rail.append(Object.assign(document.createElement('span'), { className: 'chain-link', textContent: '>' }));
+    rail.append(card);
+  });
+  body.append(rail);
 }
+
+/** Stage 2: the zone graph, editable. */
+function drawZoneEditor(body, present, names) {
+  if (!graphLib) {
+    body.append(Object.assign(document.createElement('p'), { className: 'chain-none', textContent: 'The zone editor needs the review server (nodeGraph.mjs did not load).' }));
+    return;
+  }
+  const g = zoneGraph;
+  const { problems, warnings } = graphLib.validate(g);
+  const idle = new Set(graphLib.unreached(g));
+  const save = (next) => {
+    zoneGraph = next;
+    try { localStorage.setItem('review-zone-graph', JSON.stringify(next)); } catch { /* per-viewer only */ }
+    drawChain(present, names);
+  };
+
+  // Status: which of the two things the operator is looking at, every time.
+  const status = document.createElement('div');
+  status.className = graphLib.isDefault(g) ? 'zone-status default' : 'zone-status edited';
+  status.dataset.ui = 'zone-status';
+  status.textContent = graphLib.isDefault(g)
+    ? 'Default graph — this is exactly what runs today.'
+    : 'Edited — composed and checked here. Running an edited graph needs the engine to accept one (the next engine change); until then the run still uses the default.';
+
+  // Toolbar: add a node, reset.
+  const bar = document.createElement('div');
+  bar.className = 'zone-bar';
+  const pick = document.createElement('select');
+  pick.dataset.ui = 'zone-add-kind';
+  for (const [kind, spec] of Object.entries(graphLib.KINDS)) {
+    if (spec.stage !== 'zones') continue;
+    pick.append(Object.assign(document.createElement('option'), { value: kind, textContent: spec.label }));
+  }
+  const add = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Add node' });
+  add.dataset.ui = 'zone-add';
+  add.addEventListener('click', () => save(graphLib.addNode(g, pick.value)));
+  const reset = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Reset to today' });
+  reset.dataset.ui = 'zone-reset';
+  reset.disabled = graphLib.isDefault(g);
+  reset.addEventListener('click', () => save(graphLib.defaultGraph()));
+  bar.append(pick, add, reset);
+
+  // What is wrong, before any engine time is spent.
+  const report = document.createElement('div');
+  report.className = 'zone-report';
+  report.dataset.ui = 'zone-report';
+  if (problems.length === 0) report.append(Object.assign(document.createElement('div'), { className: 'ok', textContent: 'Valid: every output the engine reads is filled, no loose inputs, no cycles.' }));
+  for (const p of problems) report.append(Object.assign(document.createElement('div'), { className: 'bad', textContent: p }));
+  for (const w of warnings) report.append(Object.assign(document.createElement('div'), { className: 'warn', textContent: w }));
+
+  // The outputs the engine reads, by name - each one a choice of node.
+  const outs = document.createElement('div');
+  outs.className = 'zone-outs';
+  outs.dataset.ui = 'zone-outputs';
+  for (const [name, want] of Object.entries(graphLib.REQUIRED_OUTPUTS)) {
+    const label = document.createElement('label');
+    label.className = 'zone-out';
+    label.dataset.tipTitle = `output: ${name}`;
+    label.dataset.tip = `The engine reads "${name}" by name - placement never looks at the graph itself. It needs a ${want}. Leave it empty and the run is refused, never quietly defaulted.`;
+    const sel = sourceSelect(g, want, g.outputs[name]);
+    sel.dataset.ui = `zone-out-${name}`;
+    sel.addEventListener('change', () => save(graphLib.bindOutput(g, name, sel.value || null)));
+    label.append(Object.assign(document.createElement('span'), { className: 'k', textContent: name }), sel);
+    outs.append(label);
+  }
+
+  // The nodes.
+  const rail = document.createElement('div');
+  rail.className = 'chain-rail zone-rail';
+  rail.dataset.ui = 'zone-nodes';
+  g.nodes.forEach((n, k) => rail.append(zoneCard(g, n, k, idle, save)));
+
+  body.append(status, bar, report, outs, rail);
+}
+
+/** A select of the nodes whose output fits `want` ('mask', or 'mask|curve'). */
+function sourceSelect(g, want, current) {
+  const sel = document.createElement('select');
+  sel.append(Object.assign(document.createElement('option'), { value: '', textContent: '— none —' }));
+  const fits = want.split('|');
+  for (const n of g.nodes) {
+    const out = graphLib.KINDS[n.kind]?.out;
+    if (!fits.includes(out)) continue;
+    sel.append(Object.assign(document.createElement('option'), { value: n.id, textContent: `${n.id} · ${graphLib.KINDS[n.kind].label}`, selected: n.id === current }));
+  }
+  return sel;
+}
+
+/** One zone node: kind, wires, parameters, remove, move. */
+function zoneCard(g, n, k, idle, save) {
+  const spec = graphLib.KINDS[n.kind];
+  const card = document.createElement('div');
+  card.className = `chain-node zone-node${idle.has(n.id) ? ' idle' : ''}${spec.fixed ? ' fixed' : ''}`;
+  card.dataset.ui = `zone-node-${n.id}`;
+  const head = document.createElement('div');
+  head.className = 'zone-head';
+  const title = document.createElement('span');
+  title.className = 'n';
+  title.textContent = `${n.id} · ${spec.label}`;
+  title.dataset.tipTitle = spec.label;
+  title.dataset.tip = `${spec.reads}${n.note ? ` — ${n.note}` : ''}`;
+  head.append(title);
+  const tools = document.createElement('span');
+  tools.className = 'zone-tools';
+  const mk = (txt, ui, tip, on, disabled = false) => {
+    const b = Object.assign(document.createElement('button'), { type: 'button', textContent: txt, disabled });
+    b.dataset.ui = ui;
+    b.title = tip;
+    b.addEventListener('click', on);
+    return b;
+  };
+  const move = (dir) => {
+    const nodes = [...g.nodes];
+    const j = k + dir;
+    if (j < 0 || j >= nodes.length) return;
+    [nodes[k], nodes[j]] = [nodes[j], nodes[k]];
+    save({ ...g, nodes });
+  };
+  tools.append(
+    mk('◀', `zone-left-${n.id}`, 'Move left. This only changes where the card is drawn — what a zone means is set by its WIRES.', () => move(-1), k === 0),
+    mk('▶', `zone-right-${n.id}`, 'Move right. Layout only; the wires decide the order of combination.', () => move(1), k === g.nodes.length - 1),
+    mk('×', `zone-remove-${n.id}`, spec.fixed ? 'Found by stage 1 — it cannot be removed here.' : 'Remove. Anything wired to it is left EMPTY and named in the report, never quietly re-routed.', () => save(graphLib.removeNode(g, n.id)), Boolean(spec.fixed)),
+  );
+  head.append(tools);
+  card.append(head);
+  if (idle.has(n.id)) card.append(Object.assign(document.createElement('div'), { className: 'chain-none', textContent: 'reaches no output — not evaluated, costs nothing' }));
+
+  // Inputs: each a choice of wire. This IS the rearranging: which node feeds which side.
+  for (const [name, want] of Object.entries(spec.inputs)) {
+    const row = document.createElement('label');
+    row.className = 'chain-set';
+    row.dataset.tipTitle = `${n.id}.${name}`;
+    row.dataset.tip = n.kind === 'subtract' ? (name === 'a' ? 'A, the minuend: the faces kept unless B holds them.' : 'B: the faces taken away from A.') : `Takes a ${want.replace('|', ' or ')}.`;
+    const sel = sourceSelect(g, want, n.inputs[name]);
+    sel.dataset.ui = `zone-in-${n.id}-${name}`;
+    sel.addEventListener('change', () => save(graphLib.rewire(g, n.id, name, sel.value || null)));
+    row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: `in ${name}` }), sel);
+    card.append(row);
+  }
+  // Parameters.
+  for (const [key, value] of Object.entries(n.params)) {
+    const row = document.createElement('label');
+    row.className = 'chain-set';
+    const input = document.createElement('input');
+    const numeric = typeof graphLib.KINDS[n.kind].params[key] === 'number';
+    input.type = numeric ? 'number' : 'text';
+    if (numeric) input.step = 'any';
+    input.value = String(value);
+    input.dataset.ui = `zone-param-${n.id}-${key}`;
+    // R1b's angle is the ONE zone parameter that already runs today, through the rule
+    // noSupportSteepDeg. Its field mirrors the benchwork panel, so turning it here and pressing Apply
+    // actually re-runs the case - the only zone edit that does, until the engine takes a graph.
+    const live = n.id === 'R1b' && key === 'deg' ? benchFields?.get('noSupportSteepDeg') : null;
+    if (live) {
+      input.value = live.input.value === '' ? String(value) : live.input.value;
+      input.addEventListener('input', () => { live.input.value = input.value === '0' ? '' : input.value; });
+    }
+    input.addEventListener('change', () => save(graphLib.setParam(g, n.id, key, numeric ? Number(input.value) : input.value)));
+    row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: live ? `${key} · live` : key }), input);
+    if (key === 'deg' && n.kind === 'parallelCast') {
+      row.dataset.tipTitle = live ? 'deg · live (noSupportSteepDeg)' : 'deg';
+      row.dataset.tip = `Degrees from the FROM axis toward the TOWARD axis. 0 = off. R1 is 45 from back toward tissue: direction = normalize(back·cos θ − top·sin θ) - it leans to TISSUE, not toward the teeth.${live ? ' LIVE: this one runs today - it mirrors the benchwork rule noSupportSteepDeg, so press Apply in that panel to re-run. The engine reads only values strictly between 45 and 90 as on; benchwork refuses the rest.' : ''}`;
+    }
+    card.append(row);
+  }
+  return card;
+}
+
+/** Load the graph library once; then restore the operator's graph, or start from today's. */
+async function loadGraphLib() {
+  try {
+    graphLib = await import('./nodeGraph.mjs');
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('review-zone-graph') || 'null'); } catch { saved = null; }
+    zoneGraph = saved && Array.isArray(saved.nodes) ? saved : graphLib.defaultGraph();
+  } catch {
+    graphLib = null;
+  }
+}
+await loadGraphLib();
 
 /** A layer key's colour token, as the GLB writers set it; transparent when the file has no such layer. */
 function colourOf(key) {
