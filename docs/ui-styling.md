@@ -534,6 +534,7 @@ The tokens of `dentalwork/batch-review/tokens.css` that the app does not have. T
 | `--section` | `6px` | Space above and below a section rule |
 | `--panel-left` | `220px` | Left panel width |
 | `--panel-right` | `240px` | Right panel width |
+| `--layer-undefined` | `#6e6a86` | Layer: no ray reached this face - the absence of a verdict, deliberately outside the red/green/amber family the decided zones use |
 | `--layer-allowed` | `#2e9e5b` | Layer: allowed |
 | `--layer-no-support` | `#c0392b` | Layer: no support |
 | `--layer-low-outside` | `#ff7f11` | Layer: low outside |

@@ -66,6 +66,12 @@
 /* Batch-review layer colours: the ONE place they are set. The viewer reads them here, and layerColours.ts reads
    this file for the GLB writers, so there is nothing to keep in step. An alias to another token is followed. */
 :root {
+  /* No ray reached this face at all. Deliberately NOT in the red/green/amber family the decided zones
+     use: it is not a verdict, it is the absence of one. A no-support face was DECIDED by a rule; an
+     undefined face was never SEEN, and the operator's next move differs (change the rule, versus
+     change the ray grid or the pose). Painting both red hid the second kind entirely. Owner,
+     2026-11-20. */
+  --layer-undefined: #6e6a86;
   --layer-allowed: #2e9e5b;
   --layer-no-support: #c0392b;
   --layer-low-outside: #ff7f11;

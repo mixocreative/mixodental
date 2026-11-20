@@ -221,6 +221,7 @@ const LAYER_TABLE = [
   ['ORANGE', 'Support tips (aligner)', 'Aligner: the tip cones.', true, 'supports'],
 
   ['TEAL', 'Support area', 'Aligner: the faces where tips may go.', true, 'zones'],
+  ['Undefined (no ray', 'Undefined (no ray reached)', 'Faces NO ray reached: neither the 45-degree rays nor the oral cavity ray. They get no tips, same as the no-support zone - but that is a different FACT. A no-support face was DECIDED by a rule; an undefined face was never SEEN, which points at the ray grid or the pose rather than at the rule. A large undefined area on a scan means the detector did not cover it, however clean the rest of the picture looks.', true, 'zones'],
   ['No-support zone', 'No-support zone', 'Faces the parallel 45-degree rays (R1, and R1b when on) from the front-top hit first. The allowed area overrides it.', true, 'zones'],
   ['Allowed area (seen', 'Allowed area', 'Tips may stand on these faces: the oral cavity ray (R2) reaches them first. Overrides the no-support zone.', true, 'zones'],
   ['Hole band', 'Hole band', 'Faces within 5 mm of a hole edge; tips may stand here if they overhang.', true, 'zones'],
@@ -302,7 +303,7 @@ const entryOf = (key) => LAYERS.find(([prefix]) => prefix === key);
 const DENTURE_COLOUR = new THREE.Color(cssToken('--layer-denture-model'));
 // Layer prefix -> the shared colour token (tokens.css; the GLB writers read the same file through layerColours.ts). Rays take the colour of the area they decide.
 const SWATCH_VAR = {
-  'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing', 'Self-supporting overhangs': '--layer-self-supporting', 'Sockets (no support)': '--layer-sockets', 'Fitting (basin)': '--layer-fitting', 'Suction cups': '--layer-suction', 'Drain / clean': '--layer-drain',
+  'Undefined (no ray': '--layer-undefined', 'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing', 'Self-supporting overhangs': '--layer-self-supporting', 'Sockets (no support)': '--layer-sockets', 'Fitting (basin)': '--layer-fitting', 'Suction cups': '--layer-suction', 'Drain / clean': '--layer-drain',
   'DOWN-FACING': '--layer-down-edges', 'TIGHT BOX': '--layer-tight-box', 'RIM PLANE': '--layer-middle-plane', 'SYMMETRY PLANE': '--layer-symmetry-plane', 'Oral cavity ray': '--layer-ray-origin',
   'MARK low point outside': '--layer-low-outside', 'MARK low point with': '--layer-low-unsupported',
   'ISLAND NOT resolved': '--layer-island-unresolved', 'ISLAND resolved': '--layer-island-resolved',
@@ -324,6 +325,7 @@ const DENTURE_STEPS = [
   ['3. No-support zone', 'Faces the parallel 45-degree rays from the front-top hit first, (the R1 arrows are in the Rays group).', ['No-support zone']],
   ['4. Oral cavity ray', 'On the dental rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
   ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
+  ['5b. Undefined area', 'What NEITHER ray reached. Steps 3 and 5 each claim the faces their rays hit first; whatever is left is undecided and gets no tips. It is drawn under both, in its own colour, because it is the absence of a verdict and not one: if it is large, change the pose or the ray grid, not the rules.', ['Undefined (no ray']],
   ['6. Print tilt', 'The build plate at the print angle the build chose.', ['Print tilt']],
   ['7. Overhangs and low points', 'Faces whose slope from horizontal is under the overhang angle (global {globalOverhang}, rim {rimOverhang}; 0 = flat ceiling, 90 = vertical wall), the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'Suction cups', 'Drain / clean', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
   ['8. Tips', 'Tips by source: dental rim, hole, area, low. Black cones: overhang tips with no free path to the plate (not built). Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],

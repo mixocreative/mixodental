@@ -25,7 +25,8 @@ import { AREA_CLASS, compareDentureAreas, reviewDenture, TRAP_LEVEL, type Dentur
 import { parseStl } from '../../scripts/node-engine';
 import { distancesToSurface, readGlbWorldMeshes } from './glbWorld';
 import type { ReviewLayer } from './orientationEvidenceGlb';
-import { LAYER_COLOURS as C } from './layerColours';
+import { LAYER_COLOURS as C, tokenNumber } from './layerColours';
+import { maskLayers, maskOfNone } from './maskLayers';
 import { rayLayers } from './rayLayers';
 import { describeUnresolved, islandPoints, summariseIslands, type IslandSettle, type IslandSummary } from './islandReport';
 
@@ -33,6 +34,8 @@ export const CONTACTS_FORMAT = 'mixo-sup-contacts/1';
 /** The largest median distance (mm) from an owner contact to the displayed scan that the mapping may have. */
 export const CONTACT_MAPPING_LIMIT_MM = 1;
 /** Lift (mm) of the face-class and area patches off the model, so they do not z-fight with it. The allowed area sits above the no-support zone, so it paints over it. */
+// Under every decided zone: an undefined face is the absence of a verdict, so anything decided wins the pixel.
+const UNDEFINED_LIFT_MM = 0.04;
 const FACE_LIFT_MM = 0.05;
 const ALLOWED_LIFT_MM = 0.1;
 const DOWN_LIFT_MM = 0.08;
@@ -377,11 +380,23 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     }
     const holeBand = facesWhere(review.holeBandMask, (value) => value === 1);
     if (holeBand.length > 0) layers.push({ name: 'Hole band (5 mm, allowed if overhang)', color: C.holeBand, positions: patchPositions(mesh, holeBand, BAND_LIFT_MM, sign), indices: new Uint32Array(0) });
-    // Step 2: the no-support zone (red), before the override. Step 4: the allowed area (green) lifted above it.
-    const noSupport = facesWhere(review.noSupportMask, (value) => value === 1);
-    if (noSupport.length > 0) layers.push({ name: review.noSupportSteepDeg > 0 ? `No-support zone (R1 45° + R1b ${review.noSupportSteepDeg}° rays)` : 'No-support zone (hit by 45° rays)', color: C.noSupport, positions: patchPositions(mesh, noSupport, FACE_LIFT_MM, sign), indices: new Uint32Array(0) });
-    const allowed = facesWhere(review.allowedMask, (value) => value === 1);
-    if (allowed.length > 0) layers.push({ name: 'Allowed area (seen from the oral cavity ray)', color: C.allowed, positions: patchPositions(mesh, allowed, ALLOWED_LIFT_MM, sign), indices: new Uint32Array(0) });
+    // The three zone outcomes, through `maskLayers.ts`, lowest lift first: undefined, then no-support,
+    // then allowed ON TOP - so an overridden face still shows the rule it overrode rather than being
+    // flattened to one tidy colour. The third layer is the one that did not exist: `ruled_tips.rs:3-7`
+    // says faces reached by NEITHER ray are not allowed for tips, and they had NO LAYER at all: they
+    // drew as the bare model, which reads as "nothing to see here" rather than "undecided". On the
+    // first run with this layer on, that was 54% to 74% of the faces of a real denture scan - so most
+    // of the model was telling the reviewer nothing while looking perfectly clean. The module owns
+    // the complement rule and tests it; the geometry stays here.
+    const faceCount = review.noSupportMask.length;
+    const zoneSpecs = [
+      { name: 'Undefined (no ray reached this face)', mask: maskOfNone([review.noSupportMask, review.allowedMask], faceCount), token: '--layer-undefined', lift: UNDEFINED_LIFT_MM },
+      { name: review.noSupportSteepDeg > 0 ? `No-support zone (R1 45° + R1b ${review.noSupportSteepDeg}° rays)` : 'No-support zone (hit by 45° rays)', mask: review.noSupportMask, token: '--layer-no-support', lift: FACE_LIFT_MM },
+      { name: 'Allowed area (seen from the oral cavity ray)', mask: review.allowedMask, token: '--layer-allowed', lift: ALLOWED_LIFT_MM },
+    ];
+    for (const zone of maskLayers(zoneSpecs, tokenNumber)) {
+      layers.push({ name: `${zone.name}: ${zone.faces.length} faces`, color: zone.color, positions: patchPositions(mesh, zone.faces, zone.lift, sign), indices: new Uint32Array(0) });
+    }
     const origin = review.oralCavityRay;
     // The R1 arrows (the parallel 45-degree rays, with a run-up) are drawn by rayLayers.ts with the other rays.
     // Downward-facing faces (the overhang candidates) and the hard edges that face down.
