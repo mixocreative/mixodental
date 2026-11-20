@@ -116,7 +116,10 @@
 .chain-node .n { height: auto; padding: 0; background: none; border: 0; text-align: left; cursor: pointer; }
 .chain-node.absent { opacity: 0.5; }
 .chain-node .n { font-weight: 600; font-size: 12px; line-height: 1.25; }
-.chain-sets { display: flex; flex-direction: column; gap: 3px; border-top: 1px dashed var(--line); padding-top: 4px; }
+/* Capped, because the rail is as tall as its TALLEST card and step 7 owns nine rules: without this
+   the chain ate the page and squeezed the 3D view to a sliver, while the card responsible was
+   scrolled out of sight to the right. A card scrolls its own settings instead. */
+.chain-sets { display: flex; flex-direction: column; gap: 3px; border-top: 1px dashed var(--line); padding-top: 4px; max-height: 96px; overflow-y: auto; }
 .chain-set { display: flex; align-items: center; gap: 5px; font-size: 11px; }
 .chain-set .k { color: var(--muted); }
 .chain-set .v { margin-left: auto; font-variant-numeric: tabular-nums; }
@@ -594,14 +597,38 @@ function setStep(at) {
  * what is turned and Apply keeps working exactly as before.
  */
 const NODE_SETTINGS = {
-  // Step 3. `oral_cavity_ray.rs:39` - `pub const R1_DEG: f64 = 45.0`, "the angle of R1, degrees from
-  // back toward -top", and `no_support_dir_at` builds the direction from it. Not a rule: no channel
-  // reaches it, so it shows as the constant it is rather than as a field that would do nothing.
+  // Step 3 - the parallel cast.
   2: [
-    { key: 'R1 angle', read: () => '45 deg', fixed: true },
-    // R1b is the same function at another angle; the review writes it into the layer name.
+    { key: 'R1 angle', read: () => '45 deg', fixed: true,
+      why: 'oral_cavity_ray.rs: `pub const R1_DEG = 45.0`, degrees from back toward -top. No rule reaches it, so it is shown rather than offered as a field that would do nothing.' },
     { key: 'R1b steep', rule: 'noSupportSteepDeg',
-      read: (names) => (names.find((n) => /R1b ([0-9.]+)/.test(plain(n))) || '').match(/R1b ([0-9.]+)/)?.[1] ?? 'off' },
+      why: 'Read in denture/policy.rs, review.rs, ruled_tips.rs through supports/island_rules.rs. OFF outside 45-90 exclusive - benchwork refuses those now.' },
+  ],
+  // Step 7 - the masks every tip stream then samples. Nine of the thirteen live here.
+  7: [
+    { key: 'overhang', rule: 'overhangAngleDeg',
+      why: 'The global slope-from-horizontal angle. The widest reach of any rule here: 33 files, including supports/overhang_rules.rs, denture/down_surface.rs and ruled_tips.rs.' },
+    { key: 'rim overhang', rule: 'dentalRimOverhangAngleDeg',
+      why: 'The same angle along the dental rim. Read in denture/ruled_tips.rs and supports/tip_check.rs. NOTE: at or below the global angle the narrowing is skipped.' },
+    { key: 'island overhang', rule: 'islandOverhangAngleDeg',
+      why: 'The angle islands are admitted at. denture/ruled_tips.rs, policy.rs, supports/generate/island_admit.rs, tip_check.rs.' },
+    { key: 'self-support', rule: 'overhangSelfSupport',
+      why: 'Turns the self-support regions on. Read in denture/area_rules.rs and ruled_tips.rs. The four numbers under it do nothing while this is off.' },
+    { key: 'min area', rule: 'overhangMinAreaMm2', why: 'Self-support, denture/area_rules.rs - the ONLY dental file that reads it.' },
+    { key: 'max reach', rule: 'overhangMaxReachMm', why: 'Self-support, denture/area_rules.rs - the only dental file that reads it.' },
+    { key: 'min angle', rule: 'overhangMinAngleDeg', why: 'Self-support, denture/area_rules.rs - the only dental file that reads it.' },
+    { key: 'socket depth', rule: 'socketMinDepthMm', why: 'The basin fill: denture/sockets.rs, then ruled_tips.rs and review.rs.' },
+    { key: 'sockets deny', rule: 'socketNoSupport',
+      why: 'Whether sockets become no-support. denture/sockets.rs, ruled_tips.rs, review.rs. The engine computes the socket layer either way, so the layer appearing does not mean this is on.' },
+  ],
+  // Step 8 - the six streams. These three decide what a stream admits, not what the mask says.
+  8: [
+    { key: 'rim obeys no-sup', rule: 'rimRespectsNoSupport',
+      why: 'Whether rim and hole-band tips respect the no-support zone instead of overriding it. denture/ruled_tips.rs only.' },
+    { key: 'low outside', rule: 'lowOutsideAllowed',
+      why: 'What happens to a lowest point outside the allowed area: 0 drops it, 1 and 2 keep it. denture/island_tips.rs and ruled_tips.rs.' },
+    { key: 'self-sup streams', rule: 'overhangSelfSupportStreams',
+      why: 'Lets the rim and hole streams use self-support too. denture/ruled_tips.rs only - and it DOES NOTHING unless self-support above is on.' },
   ],
 };
 
@@ -682,25 +709,38 @@ function drawChain(present, names) {
         if (field) {
           // One place holds what is turned: this input mirrors the benchwork panel's field, so Apply
           // still reads that panel and a value can never be set in two places and disagree.
+          // Same control the benchwork panel gives the rule: a flag is a checkbox, a number a number.
+          // A number box for a flag would invite values the engine reads as 1 and call it a setting.
           const input = document.createElement('input');
-          input.type = 'number';
-          input.step = 'any';
-          input.min = '0';
-          input.placeholder = String(setting.read(names, RULES));
-          input.value = field.input.value;
+          if (field.rule.type === 'flag') {
+            input.type = 'checkbox';
+            input.checked = field.input.checked;
+            input.addEventListener('input', () => { field.input.checked = input.checked; });
+          } else {
+            input.type = 'number';
+            input.step = 'any';
+            input.min = '0';
+            // The engine's own default, so an empty box is visibly "whatever the engine does".
+            const fallback = RULES[setting.rule];
+            input.placeholder = fallback === undefined ? 'engine default' : String(fallback);
+            input.value = field.input.value;
+            input.addEventListener('input', () => { field.input.value = input.value; });
+          }
           input.dataset.ui = `chain-input-${setting.rule}`;
-          input.addEventListener('input', () => { field.input.value = input.value; });
           row.append(input);
           row.dataset.tipTitle = setting.rule;
-          row.dataset.tip = `${field.rule.says} Turning it here is the same as turning it in the benchwork panel; press Apply there to run.`;
+          row.dataset.tip = `${field.rule.says} WHERE IT IS READ: ${setting.why} Turning it here is the same as turning it in the benchwork panel; press Apply there to run.`;
         } else {
           const v = document.createElement('span');
           v.className = 'v';
-          v.textContent = String(setting.read(names, RULES));
+          // No benchwork field for it (the panel only loads with a server behind it): show the
+          // engine's default rather than an empty row that looks like "nothing set here".
+          v.textContent = setting.read ? String(setting.read(names, RULES))
+            : (RULES[setting.rule] === undefined ? 'engine default' : String(RULES[setting.rule]));
           row.append(v);
           if (setting.fixed) {
             row.dataset.tipTitle = setting.key;
-            row.dataset.tip = 'An engine constant: no rule reaches it, so it is shown rather than offered as a field that would do nothing.';
+            row.dataset.tip = setting.why ?? 'An engine constant: no rule reaches it.';
           }
         }
         box.append(row);
