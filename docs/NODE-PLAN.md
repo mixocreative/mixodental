@@ -239,10 +239,12 @@ change by accident. Reordering is rewiring, and rewiring is the thing the operat
 **Today's denture is a small DAG**, and this is the default that must reproduce it byte for byte:
 
 ```
-R1   = Parallel cast(back→top, 45°)
-R1b  = Parallel cast(back→top, steep°)            # empty when steep is off
-SIGHT= Sight cast(Intersection(rim plane, symmetry plane, back face))
-BAND = Band(hole outlines, 5 mm)
+R1    = Parallel cast(back→tissue, 45°)            # NOT back→top: the top term is negative
+R1b   = Parallel cast(back→tissue, steep°)         # empty when steep is off
+SIGHT = Sight cast(Intersection(rim plane, symmetry plane, Obb back face))
+MAP   = Depth cast(teeth axis, tissue side, pitch) # a DEPTH MAP, not a mask
+HOLES = Holes(MAP, min area mm2)                   # map -> faces
+BAND  = Band(seeds = HOLES faces, 5 mm)            # seeds are faces OR a curve's vertices
 
 no_support     = UNION(R1, R1b)
 allowed_cavity = SIGHT                            # a wire, not a position
@@ -258,7 +260,7 @@ and the steep ray's own share, which now has its own layer, is `SUBTRACT(R1b, R1
 readout, not a third zone.
 
 **Why this is "maximum organized freedom" rather than a free-for-all:** the verb set is closed
-(three combines), every source is measured in the canonical frame so results stay
+(four combines), every source is measured in the canonical frame so results stay
 import-independent, every node's output can be drawn as a layer with a face count, and the default
 graph reproduces today exactly. Freedom is in the wiring; the vocabulary stays small enough to
 reason about.
@@ -297,7 +299,10 @@ would create a cycle that today's code hides by ordering. Expose the raw basins
 output — then the cycle is a cycle the validator can refuse, instead of an ordering nobody can see.
 
 **2. Typed sockets make bad wiring impossible, not merely detectable.** There are few types: **mask**,
-**Frame**, **Plane**, **Position**, **Direction**, **curve**. A Band takes a curve, not a mask; a
+**depth map**, **Frame**, **Plane**, **Position**, **Direction**, **curve** (an ON-MESH polyline, since band
+seeds are mesh vertices). **Band takes seeds: faces OR a curve's vertices** - the hole band seeds from
+faces, the rim bands from the rim curve. A Depth cast returns a map, which only Holes and Basin fill
+accept, so it cannot feed a combine; a
 Sight cast takes a Position, not a Plane. Blender's lesson is that the connection you cannot make is
 worth more than the error you would have read afterwards.
 
@@ -414,7 +419,7 @@ a signed field), Contour sampler**. Five, not four. Anyone who says otherwise ha
 3. **`register_profile` + schema** — schema is done, both sides; registration is not.
 4. **The zone graph**: `Analysis::of` takes it, the graph joins the cache key, and the review returns
    each node's mask and count. It must carry: **the channel decision** (five entry points, the tilt
-   scan and the live tilt among them), **all seven bindings plus the explicit socket edge**, **NOT**,
+   scan and the live tilt among them), **all eight required outputs plus the explicit socket edge**, **NOT**,
    and the vendor and wasm rebuild. Default = the graph above, proved by `gate:real` "No differences".
 5. **Promote the ~38 policy constants**, one unit at a time, at today's values.
 6. **The aligner's own stage 2 vocabulary**, once 3 and 4 have proved themselves on the denture.
