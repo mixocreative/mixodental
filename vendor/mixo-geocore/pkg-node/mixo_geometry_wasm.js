@@ -5546,6 +5546,38 @@ function rule_names() {
 exports.rule_names = rule_names;
 
 /**
+ * Set the zone graph the next denture analyses evaluate - the graph the node editor composes
+ * (mixoDental `docs/NODE-PLAN.md`, core `dental::denture::zone_graph`) - or clear it with "" to run
+ * today's default. VALIDATED HERE, not mid-run: a graph that would not run throws
+ * `ZONE_GRAPH_INVALID` with `detail` naming the node, and the previous graph stays in force. Returns
+ * the digest now in force ("default" when cleared). The digest is part of the analysis cache key, so a
+ * changed graph is never handed the masks of the old one.
+ * @param {string} json
+ * @returns {string}
+ */
+function set_zone_graph(json) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.set_zone_graph(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+exports.set_zone_graph = set_zone_graph;
+
+/**
  * Flat order of the settings array (`SETTINGS_LAYOUT`), for the host packer to check against.
  * @returns {string[]}
  */
@@ -5661,6 +5693,25 @@ function weld_positions_in_place(positions, indices, matrix) {
     return WeldResult.__wrap(ret[0]);
 }
 exports.weld_positions_in_place = weld_positions_in_place;
+
+/**
+ * The digest of the zone graph in force, or "default". A run reports it, so it can never look as
+ * though it used an edited graph when it ran the default, or the other way round.
+ * @returns {string}
+ */
+function zone_graph_digest() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.zone_graph_digest();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+exports.zone_graph_digest = zone_graph_digest;
 
 /**
  * Whether `point` is zoned by the no-support `zones` (`ZONE_STRIDE` f64 each): the last stamp that

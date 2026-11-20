@@ -1652,6 +1652,16 @@ export function repair_strides(): Uint32Array;
 export function rule_names(): string[];
 
 /**
+ * Set the zone graph the next denture analyses evaluate - the graph the node editor composes
+ * (mixoDental `docs/NODE-PLAN.md`, core `dental::denture::zone_graph`) - or clear it with "" to run
+ * today's default. VALIDATED HERE, not mid-run: a graph that would not run throws
+ * `ZONE_GRAPH_INVALID` with `detail` naming the node, and the previous graph stays in force. Returns
+ * the digest now in force ("default" when cleared). The digest is part of the analysis cache key, so a
+ * changed graph is never handed the masks of the old one.
+ */
+export function set_zone_graph(json: string): string;
+
+/**
  * Flat order of the settings array (`SETTINGS_LAYOUT`), for the host packer to check against.
  */
 export function support_settings_layout(): string[];
@@ -1677,6 +1687,12 @@ export function vertex_normals(positions: Float32Array, indices: Uint32Array): F
  * Transforms and welds one raw mesh; empty indices mean sequential corners.
  */
 export function weld_positions_in_place(positions: Float32Array, indices: Uint32Array, matrix: Float64Array): WeldResult;
+
+/**
+ * The digest of the zone graph in force, or "default". A run reports it, so it can never look as
+ * though it used an edited graph when it ran the default, or the other way round.
+ */
+export function zone_graph_digest(): string;
 
 /**
  * Whether `point` is zoned by the no-support `zones` (`ZONE_STRIDE` f64 each): the last stamp that

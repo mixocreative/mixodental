@@ -108,7 +108,8 @@
 // 38: the self-supporting overhang rule (rules overhangSelfSupport, overhangMinAreaMm2, overhangMaxReachMm, overhangMinAngleDeg, appended: 89 rule names); off by default, so a build without it is unchanged; the review result has `self_support_faces()` and `self_support_info()`; the tilt scan honours it.
 // 37: the plate outline and the grid raft (rules raftGrid, raftMapOutline, raftGridBottomMm, raftGridTopMm, raftRibMm, raftRibPitchMm, raftRimMm, raftPadMarginMm, appended: 85 rule names); both switches default off, so a build without them is unchanged.
 // 36: opt-in R1b, the steep no-support ray (rule noSupportSteepDeg, appended: 77 rule names; the review result has `no_support_steep_mask()` and `no_support_steep_deg()`).
-export const HOST_GEOMETRY_VERSION = 68;
+// 69: the zone graph (owner 2026-11-20; mixoDental docs/NODE-PLAN.md): the denture zones are a graph evaluated in `dental::denture::zone_graph` over the four zone verbs (`zone_ops`: union, subtract, intersect, not). `set_zone_graph(json)` sets the graph the next analyses evaluate ("" restores the default) and returns its digest, `zone_graph_digest()` reads it; a graph is validated when SET and refused with `ZONE_GRAPH_INVALID` (`detail` names the node), the previous one staying in force; the digest joins the analysis cache key. The default graph is today's composition node for node - results unchanged. Free in this version: parallel casts at any angle between named frame axes, the sight cast from the default origin, the hole band, the four verbs, into no_support / allowed / allowed_cavity / hole_band; refused: rewiring rim, rim_band, low_rim_band or sockets. Host: host/dental/zoneGraph.ts.
+export const HOST_GEOMETRY_VERSION = 69;
 
 /** Thrown when the loaded engine's `engine_version()` is not `HOST_GEOMETRY_VERSION` (code 'geometry-version-mismatch'). */
 export class GeometryVersionMismatch extends Error {

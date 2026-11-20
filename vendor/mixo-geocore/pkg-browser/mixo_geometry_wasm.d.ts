@@ -1503,6 +1503,16 @@ export function repair_strides(): Uint32Array;
 export function rule_names(): string[];
 
 /**
+ * Set the zone graph the next denture analyses evaluate - the graph the node editor composes
+ * (mixoDental `docs/NODE-PLAN.md`, core `dental::denture::zone_graph`) - or clear it with "" to run
+ * today's default. VALIDATED HERE, not mid-run: a graph that would not run throws
+ * `ZONE_GRAPH_INVALID` with `detail` naming the node, and the previous graph stays in force. Returns
+ * the digest now in force ("default" when cleared). The digest is part of the analysis cache key, so a
+ * changed graph is never handed the masks of the old one.
+ */
+export function set_zone_graph(json: string): string;
+
+/**
  * Positions of any mesh (not necessarily in a session) through a matrix; see `GeometrySession.transform`.
  */
 export function transform_positions(positions: Float32Array, matrix: Float64Array, handedness: number): Float32Array;
@@ -1523,6 +1533,12 @@ export function vertex_normals(positions: Float32Array, indices: Uint32Array): F
  * Transforms and welds one raw mesh; empty indices mean sequential corners.
  */
 export function weld_positions_in_place(positions: Float32Array, indices: Uint32Array, matrix: Float64Array): WeldResult;
+
+/**
+ * The digest of the zone graph in force, or "default". A run reports it, so it can never look as
+ * though it used an edited graph when it ran the default, or the other way round.
+ */
+export function zone_graph_digest(): string;
 
 /**
  * Whether `point` is zoned by the no-support `zones` (`ZONE_STRIDE` f64 each): the last stamp that
@@ -1890,6 +1906,7 @@ export interface InitOutput {
     readonly reroute_refusal: (a: number) => [number, number];
     readonly reroute_take_pieces: (a: number) => [number, number];
     readonly rule_names: () => [number, number];
+    readonly set_zone_graph: (a: number, b: number) => [number, number, number, number];
     readonly supportproblems_take_areas: (a: number) => [number, number];
     readonly supportproblems_take_positions: (a: number) => [number, number];
     readonly transform_positions: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
@@ -1899,6 +1916,7 @@ export interface InitOutput {
     readonly weld_positions_in_place: (a: number, b: number, c: any, d: number, e: number, f: number, g: number) => [number, number, number];
     readonly weldresult_take_indices: (a: number) => [number, number];
     readonly weldresult_take_positions: (a: number) => [number, number];
+    readonly zone_graph_digest: () => [number, number];
     readonly zoned_at: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

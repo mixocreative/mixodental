@@ -284,6 +284,14 @@ export interface DentalEngine {
     braced: boolean, rules: Float64Array) => DentureLiveTiltLike;
   /** Ids of the embedded denture profiles (production ABI; the aligner ids are a test-abi call). */
   denture_profile_ids(): string[];
+  /**
+   * Set the zone graph the next denture analyses evaluate (engine 69), or "" for today's default.
+   * Validated when set: throws `ZONE_GRAPH_INVALID` with `detail` naming the node, and the previous
+   * graph stays in force. Returns the digest now in force ("default" when cleared). Use `setZoneGraph`.
+   */
+  set_zone_graph(json: string): string;
+  /** The digest of the zone graph in force, or "default" (engine 69). */
+  zone_graph_digest(): string;
   dental_allowed_vertices(positions: Float32Array, indices: Uint32Array, normals: Float32Array, rim: Float64Array, visibilityMask: Uint8Array,
     manualArea: boolean, stamps: Float64Array, profile: string): Uint8Array;
 }
