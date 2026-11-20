@@ -652,7 +652,16 @@ have a say in its print angle.** Today they have none; the build supports them a
 largest part chose. Whether those pieces are real parts (separate teeth, say) or scan debris above the
 debris size is case knowledge the measurement cannot supply - an owner question.
 
-**Next, before any ruling:** (1) split the left-out count by piece (largest part vs the rest) in the measurement;
+**Split by piece, first rows (the upgraded `tilt-measure.ts`: `leftOutOnLargest`, `candidates`,
+`leftOutByReason` grouped by its words, `maxSnapMm`).** Scan 3 at its pick (0 deg): **30 of 249** left-out
+tips stand on the largest piece; the other 219 are on its 338 small pieces. Scan 1 at 0 deg: 25 of 91 on
+the largest piece - although scan 2, which IS that piece alone, leaves none out at 0 deg. Either the small
+pieces take the body's pillar room (the commonest reason there is "every outline pillar in reach is full
+or crowded", 31 of 91), or the nearest-vertex lookup (worst snap 1.6 mm) gives the body tips that sit on a
+piece touching it. Not separated yet. Either way most left-out tips on these two scans are about the
+small pieces, not about the angle of the body.
+
+**Next, before any ruling:** (1) re-run M1 with the upgraded script (per piece, reasons, candidates) and separate the two readings above;
 (2) make `tilt-measure.ts` record the left-out REASONS and the candidate total per angle, and the verdict;
 (3) let the run finish scans 4-6 (and consider extending past 44 deg where the minimum is still moving).
 Only then is ruling 3 - fewer tips left out, or less resin, when they conflict - asked on a fair footing.
