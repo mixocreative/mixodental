@@ -46,10 +46,10 @@ function stepTitle(job: string, at: number, of: number): string {
  * CLOSE, top right of the step's card: the header's "Your files", moved where the work is (owner, 2026-11-21).
  * It is NOT `exit`: the session is kept exactly as it is and opening the row again resumes (App.tsx `openFiles`, the header key's own handler).
  *
- * KNOWN DEBT, not taken: the button sits inside the badge's `role="status"`, so a screen reader MAY read
- * "Your files" along with each new instruction line (Fable's review, 2026-11-21; not checked with a reader).
- * The cut when it is: put `role="status"` on an inner wrapper round the three text lines - which moves the
- * grid the dental layout places them in (`styles/layout.css`), so it wants its own look in the browser.
+ * OUTSIDE THE STATUS REGION: `role="status"` is on `.edit-badge-text`, the three text lines, and this button
+ * is beside it, so a screen reader announcing a new instruction does not read "Your files" with it (Fable's
+ * review, 2026-11-21). The wrapper inherits the badge's layout (`.edit-badge-text` in styles.css), so the
+ * lines sit exactly where they did.
  */
 function CloseStep({ onClose }: { onClose: (() => void) | undefined }) {
   return onClose ? <button type="button" className="step-close" data-ui="step-close" aria-label={t('Your files')} title={t('Your files')} onClick={onClose}>×</button> : null;
@@ -111,10 +111,12 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     const words = stepOneText(gesture.profile, lang);
     return <>
     <div className="edit-frame" aria-hidden="true" />
-    <div className="edit-badge" role="status">
+    <div className="edit-badge">
       <CloseStep onClose={onClose} />
-      <strong>{stepTitle(words.title, 1, jobKindOf(gesture.profile) === 'denture' ? 2 : 3)}</strong><span>{gesture.phase === 'ready' ? unitName : words.profileName}</span>
-      <b>{gesture.phase === 'ready' ? t(words.ready) : t(words.waiting)}</b>
+      <div className="edit-badge-text" role="status">
+        <strong>{stepTitle(words.title, 1, jobKindOf(gesture.profile) === 'denture' ? 2 : 3)}</strong><span>{gesture.phase === 'ready' ? unitName : words.profileName}</span>
+        <b>{gesture.phase === 'ready' ? t(words.ready) : t(words.waiting)}</b>
+      </div>
     </div>
     {gesture.phase === 'ready'
       ? <OrientationBar notices={gesture.notices} profile={gesture.profile} lang={lang} ui={ui} send={send} run={run}
@@ -135,10 +137,12 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
    */
   if (gesture.kind === 'dental-rim') return <>
     <div className="edit-frame" aria-hidden="true" />
-    <div className="edit-badge" role="status">
+    <div className="edit-badge">
       <CloseStep onClose={onClose} />
-      <strong>{t('Define the rim')}</strong><span>{unitName}</span>
-      <b>{t(rimNowText(ui))}</b>
+      <div className="edit-badge-text" role="status">
+        <strong>{t('Define the rim')}</strong><span>{unitName}</span>
+        <b>{t(rimNowText(ui))}</b>
+      </div>
     </div>
     <DentalRimStep ui={ui} run={run} notices={gesture.notices} />
   </>;
@@ -146,10 +150,12 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     const kind = ui.dentalKind ?? 'aligner';
     return <>
     <div className="edit-frame" aria-hidden="true" />
-    <div className="edit-badge" role="status">
+    <div className="edit-badge">
       <CloseStep onClose={onClose} />
-      <strong>{kind === 'denture' ? stepTitle('Supports', 2, 2) : stepTitle('Supports', 3, 3)}</strong><span>{unitName}</span>
-      <b>{t(kindText('Review the supports, adjust the settings, then press Export STL.', kind))}</b>
+      <div className="edit-badge-text" role="status">
+        <strong>{kind === 'denture' ? stepTitle('Supports', 2, 2) : stepTitle('Supports', 3, 3)}</strong><span>{unitName}</span>
+        <b>{t(kindText('Review the supports, adjust the settings, then press Export STL.', kind))}</b>
+      </div>
     </div>
     {review && kind === 'denture' && dentureReview
       ? <DentureReviewPanel gesture={gesture.edit} ui={ui} review={review} ready={reviewReady} send={send} run={run} restore={restore} denture={dentureReview} />
@@ -158,10 +164,12 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   }
   return <>
     <div className="edit-frame" aria-hidden="true" />
-    <div className="edit-badge" role="status">
+    <div className="edit-badge">
       <CloseStep onClose={onClose} />
-      <strong>{stepTitle('Support area', 2, 3)}</strong><span>{unitName}</span>
-      <b>{gesture.notices.some((notice) => notice.kind === 'no-area') ? t('No support area was detected. Mark it, then press Next.') : t('Support area is marked. Press Next, or paint to adjust.')}</b>
+      <div className="edit-badge-text" role="status">
+        <strong>{stepTitle('Support area', 2, 3)}</strong><span>{unitName}</span>
+        <b>{gesture.notices.some((notice) => notice.kind === 'no-area') ? t('No support area was detected. Mark it, then press Next.') : t('Support area is marked. Press Next, or paint to adjust.')}</b>
+      </div>
     </div>
     <div className="edit-bar dental-brush">
       {/*

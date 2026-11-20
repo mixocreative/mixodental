@@ -505,6 +505,9 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
  * pressed colours, because the base `button:hover` paints `--raised` (white) and a white square on the red
  * card would hide the cross it is supposed to show.
  */
+/* The dental badge's text lines, wrapped so the close button sits outside their status region (DentalBar
+   CloseStep). The wrapper takes the badge's own layout - column or grid, gap, stretch - so nothing moves. */
+.edit-badge-text { display: inherit; flex-direction: inherit; align-items: inherit; gap: inherit; }
 .edit-badge:has(.step-close) { padding-right: 40px; }
 /* ...and the teal what-to-do block still runs to the card's edge: its -13px was tuned to a 12px padding, so
    against 40px it stopped 27px short and left a red seam (Fable's review, 2026-11-21). 40 + the 1px border. */
