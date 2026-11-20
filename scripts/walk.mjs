@@ -382,6 +382,25 @@ const started = Date.now();
 function check(name, ok, detail = '') {
   results.push({ name, ok });
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ` | ${detail}` : ''}`);
+  shotOf(name);
+}
+
+/*
+ * WALK_SHOTS=<folder>: one screenshot at the first check of each numbered step (a1, u5, ...) - every journey
+ * of the app as the operator sees it, for a UX review (owner, 2026-11-20: "a holistic UX workflow
+ * review"). Off unless asked for; fire-and-forget, so it never changes what a check measures, and a
+ * failed screenshot is a note, never a FAIL.
+ */
+let shotPage = null;
+const shotSections = new Set();
+function shotOf(name) {
+  const folder = process.env.WALK_SHOTS;
+  const section = /^([a-z]+\d+)/.exec(name)?.[1]; // one per numbered check: u1, u2, ... - a step each
+  if (!folder || !shotPage || !section || shotSections.has(section)) return;
+  shotSections.add(section);
+  mkdirSync(folder, { recursive: true });
+  const file = path.join(folder, `${name.split(' ')[0]}.png`);
+  shotPage.screenshot({ path: file }).catch((error) => note(`WALK_SHOTS: ${file} not taken (${error.message.split('\n')[0]})`));
 }
 const note = (text) => console.log(`     ${text}`);
 
@@ -1001,6 +1020,7 @@ async function walk(url, scratch, dentalFixture) {
   await context.addInitScript(() => { try { localStorage.setItem('mixodental.lang', 'en'); } catch { /* storage off */ } });
   await context.addInitScript(faultLevers);
   const page = await context.newPage();
+  shotPage = page;
   /*
    * Slow machines get longer before anything is called stuck: see `forSlowMachines`.
    */
@@ -4905,6 +4925,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
   const context = await browser.newContext({ viewport: VIEWPORT, acceptDownloads: true });
   await context.addInitScript((value) => { try { localStorage.setItem('mixodental.lang', value); } catch { /* storage off */ } }, lang);
   const page = await context.newPage();
+  shotPage = page;
   forSlowMachines(page);
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });
