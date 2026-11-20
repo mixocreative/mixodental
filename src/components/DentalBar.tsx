@@ -45,6 +45,11 @@ function stepTitle(job: string, at: number, of: number): string {
 /*
  * CLOSE, top right of the step's card: the header's "Your files", moved where the work is (owner, 2026-11-21).
  * It is NOT `exit`: the session is kept exactly as it is and opening the row again resumes (App.tsx `openFiles`, the header key's own handler).
+ *
+ * KNOWN DEBT, not taken: the button sits inside the badge's `role="status"`, so a screen reader MAY read
+ * "Your files" along with each new instruction line (Fable's review, 2026-11-21; not checked with a reader).
+ * The cut when it is: put `role="status"` on an inner wrapper round the three text lines - which moves the
+ * grid the dental layout places them in (`styles/layout.css`), so it wants its own look in the browser.
  */
 function CloseStep({ onClose }: { onClose: (() => void) | undefined }) {
   return onClose ? <button type="button" className="step-close" data-ui="step-close" aria-label={t('Your files')} title={t('Your files')} onClick={onClose}>×</button> : null;
