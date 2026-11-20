@@ -20,7 +20,14 @@ import { describe, expect, it } from 'vitest';
 
 const root = resolve(import.meta.dirname, '..');
 
-/** Extensions scanned. An allowlist, so a new binary format cannot quietly join the scan. */
+/**
+ * Extensions scanned. An allowlist, so a new binary format cannot quietly join the scan.
+ *
+ * `tests/controlChars.test.ts` in mixo-geocore holds the same list and must keep holding it. The shell
+ * guard is one shared file so that it cannot drift; this scan cannot be shared that way - two repos,
+ * two runners, two roots - so this list is the one thing that can, and on 2026-11-20 it had: six
+ * extensions were missing there. Change one, change both.
+ */
 const TEXT = new Set([
   'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'json', 'md', 'html', 'css', 'svg',
   'yml', 'yaml', 'toml', 'rs', 'sh', 'ps1', 'txt', 'gitignore', 'npmrc',
