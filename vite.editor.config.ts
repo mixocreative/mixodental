@@ -18,6 +18,10 @@ const here = resolve(import.meta.dirname, 'dentalwork/batch-review');
 
 export default defineConfig({
   define: { 'process.env.NODE_ENV': '"production"' },
+  // Without this Vite copies the APP's public/ folder into the bundle directory: the first build
+  // committed a stray .nojekyll, a favicon and the hand-written half of the notices file beside the
+  // bundle, the last of which would read as complete when it is not.
+  publicDir: false,
   esbuild: { jsx: 'automatic' },
   build: {
     target: ['chrome93', 'edge93', 'firefox114', 'safari15.4'],
