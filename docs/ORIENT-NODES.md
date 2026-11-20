@@ -606,3 +606,43 @@ more -> keep C, only show the confirm on tab 4. Best build is inside the quick t
 N = 3, in the workbench proof run first, the app later as a background "a better angle exists" offer
 (a 4-minute wait is fine for proving a type, poor for an operator). Best build is outside the top 3 ->
 do not buy builds; add the number from answer 4 to the quick score, which is cheaper every run.
+
+### M1, first results - PARTIAL (run of 2026-11-21, still going)
+
+`scripts/tilt-measure.ts`, every angle 0-44 by 2 fully built, on the local denture scans in
+`dentalwork/fixtures/case-denture` (named by index, never by file). Three scans so far, the third
+up to 34 degrees. **What the script records is narrower than the plan above:** tips placed and left out,
+support volume, support top, parts and seconds - not the verdict, islands unserved or pillars on the
+model. Read every line below with that gap in mind.
+
+| Scan | Quick pick | Its build | Fewest tips left out | Its quick rank | Resin there vs the pick |
+|---|---|---|---|---|---|
+| 1 | 8 deg | 388 placed, **115 left out**, 7595 mm3 | 44 deg: 27 left out | 22 of 23 | +39 % (10550 mm3) |
+| 2 | 8 deg | 168 placed, 0 left out, 5665 mm3 | 0 left out at most angles | - | within 2 % |
+| 3 (to 34 deg) | 0 deg | 177 placed, **249 left out**, 5940 mm3 | 34 deg: 166 left out | 18 of 18 so far | +51 % (8981 mm3) |
+
+The four answers, as far as three scans go:
+
+1. **The quick pick is the best build on 1 of 3** (scan 2, where every angle builds clean).
+2. **When it is not, the best build sits near the BOTTOM of the quick order** (22nd, 18th), not in its
+   top 3. On scans 1 and 3 the tips left out FALL steadily as the angle rises (scan 1: about 90-120 below
+   32 deg, 51 at 34, 27 at 44), while the quick score's tie-breaks prefer a lower print and a lower angle.
+3. **The difference is large, and it is a trade:** 88 and 83 fewer tips left out, for 39 % and 51 % more
+   support resin. Under section 9's safety-first order (left-out tips before volume) the steep angle wins;
+   under "least resin" the quick pick wins. That is a ruling, not a measurement.
+4. **The number that explains the miss is tips left out**, which the quick score cannot see: it places
+   the tips, but "left out" is a ROUTING result - no pillar could reach the tip - and routing happens
+   only in the full build.
+
+Against the decision rule above this lands in its third branch - the best build is outside the quick
+top 3 - so buying N = 3 builds (option B) would NOT find it. The cheaper move the rule names is to give
+the quick score a routing estimate. CANDIDATE, not decided: a straight-drop count (a tip whose vertical
+line to the plate passes through the part) is the cheapest stand-in, and should be checked against these
+rows before anything is built on it.
+
+Also seen: scans 1 and 2 report quick metrics equal to about 13 digits at every angle while their builds
+differ (388 vs 168 tips) - the same arch outline at two levels of detail, most likely. Not a fault of the
+measurement; worth knowing before treating them as two independent cases.
+
+**Needs the owner (ruling 3):** which wins when they conflict - fewer tips left out, or less resin? The
+measurement can rank angles either way; it cannot choose the order.
