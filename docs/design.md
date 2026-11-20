@@ -5870,7 +5870,7 @@ get out.
 
 | Region | Size today | Content | Live in |
 |---|---|---|---|
-| Header | 56 px tall (`styles.css` header) | Wordmark + "Resin Support Studio"; language EN / 中文 / 日本語; Undo, Redo; Hide models / Show models, Wireframe / Solid. Header Generate removed **[change, confirm]**. | all states |
+| Header | 56 px tall (`styles.css` header) | Wordmark + "Resin Support Studio"; language EN / 中文 / 日本語; Undo, Redo; Hide models / Show models; Wireframe as an icon toggle (pressed while wireframe; owner 2026-11-21), no longer a word that flips to Solid. In a dental step the "Your files" key is the step card's close instead. Header Generate removed **[change, confirm]**. | all states |
 | Left panel | 268 px wide | Setup: Import, Objects, Transform, Supports, Modes, Check (section 3). | setup; in a mode only its Exit button |
 | Viewport | 798 × 680 px | Canvas; object name (setup) or mode badge (mode); mode bar (mode); view toggles Tips only / Fit view / Bottom view; Circle size preview; job activity list; Undo toast; drop overlay; unit note. | all states |
 | Right panel | 300 px wide | Support settings (inventory, unchanged layout) and Export STL. Context header **[feature]**. | setup, Support Edit Mode; locked in zones |
