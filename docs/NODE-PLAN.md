@@ -418,17 +418,38 @@ view, as **three stage tabs**:
   the lean. Read-only: these are profile fields, so they wait for `register_profile`.
 - **2 Zones** - a **React Flow canvas** (`nodeEditor/ZoneEditor.tsx`, built into
   `node-editor/node-editor.js` by `npm run review:editor`): drag nodes, draw a wire socket to socket,
-  delete with Backspace or Delete, pan, zoom, minimap; the eight required outputs are nodes. Every rule
-  lives in `nodeGraph.mjs` (pure, tested); the canvas only maps gestures onto it, and its connection
-  check asks the model's socket types, so a wrong wire cannot be drawn.
+  delete with Backspace or Delete, pan, zoom, minimap. The eight outputs the engine reads are ONE
+  **Zone output** node with a socket each, like Blender's Material Output. Every rule lives in
+  `nodeGraph.mjs` (pure, tested); the canvas only maps gestures onto it, and its connection check asks
+  the model's socket types, so a wrong wire cannot be drawn.
+- **Plain words everywhere** (owner, 2026-11-20: "what is tissue, what is band, what is basin fill").
+  Each node shows a plain title and one sentence (`KIND_WORDS`: "Parallel rays", "Strip around",
+  "Find sockets"); every setting has a label and help (`PARAM_WORDS`); anything that is not a number
+  is a **dropdown** of the values the engine accepts, with each direction explained ("tissue side -
+  the side that rests on the gums"); each output socket says what the engine does with it
+  (`OUTPUT_WORDS`: "Allowed area - the ONLY faces where area tips may stand"). The engine keys stay
+  as the stored values, so nobody has to know them. `nodeGraph.test.ts` fails if a node, setting or
+  output ships without its words, or a text setting ships without a dropdown.
 - **3 Support settings** - the twelve live rules, each on the node that reads it.
 
 The old benchwork panel is folded in: its rule list is hidden (it still holds the values), and
 **Apply and run again** sits beside the stage tabs.
 
-**What runs today and what does not, said on screen every time:** only the DEFAULT graph runs, plus
-R1b's angle, which is marked "· live" because it reaches a real rule. An edited graph is composed and
-validated, and running it needs the engine to accept a graph - item 4 below.
+**An edited graph RUNS (engine 69).** Apply sends the canvas to `serve.mjs`, which writes
+`zone-graph.json` into the new folder and passes `--zone-graph` to the batch; the engine validates it
+at `set_zone_graph`, refuses a bad one with the problem named (exit 2, nothing written), and the
+graph's digest joins the analysis cache key and `summary.json` (`zoneGraph`). The status line says
+two facts every time: what the canvas holds, and which graph made the review on screen. The
+no-support layer names the edited graph's digest instead of "45° rays", because the rays are
+whatever was wired.
+
+Measured on case-001, 2026-11-20: adding one front-to-tissue 30° parallel cast unioned into
+No-support moved **514,225 undefined faces to 490,958**.
+
+**What v1 refuses, by name, at set:** rewiring Rim line, Rim strip, Low rim strip or Sockets (still
+fixed in the engine); Point on a plane; a hole strip other than 5 mm. Free: parallel casts, rays from
+a point (from the planes' crossing), the hole strip, and Either / Remove / Both / Invert into
+No-support, Allowed, Seen by the cavity rays and Hole strip.
 
 ## 6. ORDER OF WORK
 
@@ -439,7 +460,7 @@ validated, and running it needs the engine to accept a graph - item 4 below.
    nodes are shown and the fifth is marked as not exposed.
 2. **Content-digest cache keys** — done, both of them.
 3. **`register_profile` + schema** — schema is done, both sides; registration is not.
-4. **The zone graph**: `Analysis::of` takes it, the graph joins the cache key, and the review returns
+4. **The zone graph** - DONE for v1 (engine 69, see 5b for what it still refuses): `Analysis::of` takes it, the graph joins the cache key, and the review returns
    each node's mask and count. It must carry: **the channel decision** (five entry points, the tilt
    scan and the live tilt among them), **all eight required outputs plus the explicit socket edge**, **NOT**,
    and the vendor and wasm rebuild. Default = the graph above, proved by `gate:real` "No differences".

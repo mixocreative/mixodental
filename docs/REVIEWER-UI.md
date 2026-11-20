@@ -58,7 +58,7 @@ Lift order matters: each patch is lifted off the surface so the one above wins v
 | Layer | Token | Lift | Says |
 |---|---|---|---|
 | Undefined | `--layer-undefined` (new) | lowest | no ray reached this face |
-| No-support zone | `--layer-no-support` | low | a 45-degree ray reached it first |
+| No-support zone | `--layer-no-support` | low | a 45-degree ray reached it first - or, under an edited zone graph, whatever is wired into No-support (the layer name then carries the graph's digest; the default name stays byte-stable) |
 | Hole band (5 mm) | `--layer-hole-band` | middle | allowed if overhanging |
 | Allowed area | `--layer-allowed` | highest | tips may stand; overrides no-support |
 
@@ -112,6 +112,12 @@ and the facts-plus-layers column, collapsing to one column on a narrow window. T
 in the round; side by side, both get half the width they need. Below, the operator changes a value and
 watches the model above it change - which is the whole point of the layout the owner already approved
 for the batch review: *live detection above, numbers and toggleable masks below.*
+
+> **Superseded for ZONES, 2026-11-20.** Since engine 69 the zone composition is data: stage 2 is a
+> free canvas the engine runs - add, remove and rewire nodes, one Zone output node, plain words and
+> dropdowns on every node. `docs/NODE-PLAN.md` §5b is the current description. What follows still
+> holds for **placement** (stage 3): tip streams and the Spacer keep their fixed order, so nothing
+> there may be dragged.
 
 **The node editor is a VIEW of the real chain, never a free canvas.** It is generated from the
 pipeline, not drawn by hand, so it cannot describe a chain the engine does not run. One node per engine
