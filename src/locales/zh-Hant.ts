@@ -856,7 +856,7 @@ export const zhHant: Dictionary = {
   'Add an aligner first.': '請先新增牙套。',
   'Rotate the aligner to the proposed orientation again': '再次將牙套旋轉至建議方向',
   'Return to the previous step and keep your edits': '返回上一步並保留您的編輯',
-  'Use as any model': '設為任意模型',
+  'Exit': '離開',
   'Leave the dental flow and work on this aligner like any other model. Its supports and dental settings are removed': '離開牙科流程並將此牙套視為一般模型處理。其支撐與牙科設定將被移除',
   'Leave the dental flow and work on this denture like any other model. Its supports and dental settings are removed': '離開牙科流程並將此假牙視為一般模型處理。其支撐與牙科設定將被移除',
   'This removes the supports and dental settings on this model. It stays on the plate, and anything you have already finished is left alone.': '這將移除此模型上的支撐與牙科設定。模型會留在底板上，您先前已完成的任何作業將不受影響',

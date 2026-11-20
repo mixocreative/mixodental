@@ -188,7 +188,7 @@ export function exitNeedsConfirm(
 }
 
 /**
- * Use as any model leaves the worked-on model as a normal one: the dental policy and the supports go.
+ * Exit leaves the worked-on model as a normal one: the dental policy and the supports go.
  *
  * IT NO LONGER SPARES A "FINISHED" UNIT, and that is the owner's ruling of 2026-11-18: a done mark
  * informs, it never blocks a redo. Sparing was protection built before the control asked anything -

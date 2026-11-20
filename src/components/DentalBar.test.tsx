@@ -35,7 +35,7 @@ describe('DentalBar', () => {
     const ui = { mode: 'dental', dentalStage: 'aligner', dentalAlignerReady: true, dentalProposed: true } as UiState;
     const html = renderToStaticMarkup(<DentalBar gesture={ready} unitName="sample" ui={ui} send={() => {}} run={() => {}} />);
     for (const word of ['Auto orientation', 'Back', 'Next', 'Keep Generic aligner', 'holes or non-manifold', 'different aligner type']) expect(html).toContain(word);
-    expect(html).not.toContain('Use as any model');
+    expect(html).not.toContain('>Exit<');
     expect(html).not.toContain('Done');
   });
 
@@ -93,7 +93,7 @@ const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true,
     // Step 3's way on is OK or its own Export depending on whether the bench exists to hand back
     // to (src/scenes/sceneMap.ts), so the test asks the registry rather than naming one of them.
     for (const word of [`>${wayOn()}<`, 'Add another aligner', 'Back']) expect(reviewHtml).toContain(word);
-    expect(reviewHtml).not.toContain('Use as any model');
+    expect(reviewHtml).not.toContain('>Exit<');
     const gapHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
       review={{ ...base, rimGap: { outerMm: 4.2, openingMm: 8 } }} send={() => {}} run={() => {}} />);
     // A rim gap is a note, so under the folded shape it reaches the reader as the verdict line; the wording

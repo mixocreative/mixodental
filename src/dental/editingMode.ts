@@ -523,7 +523,7 @@ registerEditMode({
      * `dental.back` is the honest last rung: out of rim define mode keeping the drawing, out of a step
      * to the one before, and out of Step 1 to the case. It asks before discarding hand work, which the
      * command it replaced never did. Leaving the flow for the bench is now a deliberate press on
-     * "Use as any model", never a keystroke.
+     * Exit, never a keystroke.
      */
     if ((inArea || inReview) && key === 'Escape' && ui.tool !== 'select') return runKey('dental.tool.select');
     if (key === 'Escape') return runKey('dental.back');
@@ -609,23 +609,24 @@ registerCommands({
     visible: (s) => s.mode === 'dental', enabled: always, disabledReason: never,
   },
   /*
-   * IT WAS CALLED EXIT, AND EXIT IS A LIE ABOUT WHAT IT DOES (owner's call, 2026-11-17).
+   * EXIT AGAIN, AND HONEST NOW (owner's call, 2026-11-21, reversing their own of 2026-11-17).
    *
-   * The word says navigation - the way out of a screen, the counterpart of a Back. What the command
-   * actually runs is `exitCommands` (`dental/flow.ts`): the worked-on unit's supports are removed,
-   * its hand edits cleared and its dental policy dropped. So the most destructive control in the
-   * flow wore the one label in the whole app that promises to cost nothing, sat in the header at
-   * every step, and carried Esc's last rung - while Back out of Step 3, which discards strictly
-   * less, has asked for confirmation since the day it was written.
+   * On 2026-11-17 it was renamed `Use as any model` because Exit promised navigation while the press
+   * runs `exitCommands` (`dental/flow.ts`): the worked-on unit's supports removed, its hand edits
+   * cleared, its dental policy dropped - and back then it did that without asking. What made the word
+   * a lie was the silence, not the word: `exitNeedsConfirm` now asks first whenever leaving costs the
+   * operator anything, and the question names what goes. So the label can say where the press goes
+   * (out of the dental steps, onto the plain bench) and the tooltip and the question say what it costs.
    *
-   * The capability is RIGHT and stays: it is the only route from a dental-started model to free work
-   * on the bench (the bench's other doors are Any model and opening a project), and "the detection
-   * is wrong, I will support this one by hand" has to remain possible. Only the name was wrong. The
-   * label now says what the press leaves behind, and `exitNeedsConfirm` asks first when that costs
-   * the operator anything.
+   * The capability stays: it is the only route from a dental-started model to free work on the bench
+   * (the bench's other doors are Any model and opening a project), and "the detection is wrong, I will
+   * support this one by hand" has to remain possible.
+   *
+   * TRAP: the step card's x (`DentalBar` CloseStep) is NOT this. The x goes to Your files and keeps the
+   * model's dental work; Exit goes to the bench and removes it.
    */
   'dental.exit': {
-    role: 'secondary', label: () => 'Use as any model',
+    role: 'secondary', label: () => 'Exit',
     hint: (s) => kindText('Leave the dental flow and work on this aligner like any other model. Its supports and dental settings are removed', s.dentalKind),
     visible: (s) => s.mode === 'dental', enabled: always, disabledReason: never,
   },

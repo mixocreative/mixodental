@@ -170,7 +170,7 @@ describe('dental flow rules', () => {
    * model whose print failed, or whose file was replaced, is exactly the one it is needed for. The
    * confirmation protects every unit now, by asking rather than by refusing.
    */
-  it('Use as any model treats a finished aligner like any other: the done mark is not a lock', () => {
+  it('Exit treats a finished aligner like any other: the done mark is not a lock', () => {
     const done = unit({ supports: { kind: 'live', data: {} }, dental: { kind: 'two-contour' } as never });
     expect(exitCommands(done)).toEqual([
       { type: 'supports/remove', unitId: 'u1' },

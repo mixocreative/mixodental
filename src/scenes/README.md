@@ -53,14 +53,16 @@ cleared, its dental policy dropped. So the most destructive control in the flow 
 that promises to cost nothing, sat in the header at every step, and carried Esc's last rung — while
 Back out of Step 3, which discards strictly less, has asked for confirmation since it was written.
 The capability is right and stays: this is the only route from a dental-started model to free work on
-the bench. Only the name was. It now reads **Use as any model**, and `exitNeedsConfirm` asks first
-whenever leaving would cost the operator built supports, hand edits or an area they painted.
+the bench. It read **Use as any model** from 2026-11-17, and `exitNeedsConfirm` asks first whenever
+leaving would cost the operator built supports, hand edits or an area they painted. With that question
+in place the silence that made Exit a lie is gone, so on 2026-11-21 the owner named it **Exit** again:
+the name says where it goes, the question says what it costs.
 
 **Export writes the file and stays on Step 3. It does not also navigate**, and that is deliberate:
 `runExport` reports a refusal — the model changed, the supports did not build, the safety check could
 not reach a verdict — through the status line and returns exactly as it does on success. A press that
 navigated would walk the operator away from a file that was never written. *Add another aligner* and
-*Use as any model* remain the two ways on, and both are now honest about where they go and what
+*Exit* remain the two ways on, and both are now honest about where they go and what
 they cost.
 
 ### Why this is a route and not "the bench is off"

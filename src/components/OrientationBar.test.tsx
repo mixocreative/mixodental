@@ -19,7 +19,7 @@ describe('OrientationBar', () => {
     expect(html).toContain('orient-nav');
     // Auto orientation is the primary red button with its icon.
     expect(html).toMatch(/<button class="primary orient-auto"[^>]*>Auto orientation<svg/);
-    expect(html).not.toContain('Use as any model');
+    expect(html).not.toContain('>Exit<');
     expect(html).not.toContain('Detector confidence');
   });
 

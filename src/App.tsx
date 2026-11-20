@@ -302,7 +302,7 @@ export default function App() {
   /** Back from Step 3 is waiting for the answer: it would discard hand work. */
   const [backAsk, setBackAsk] = useState(false);
   /**
-   * Use as any model is waiting for the answer: it would discard supports, hand edits or paint.
+   * Exit is waiting for the answer: it would discard supports, hand edits or paint.
    *
    * A MODAL, WHERE BACK'S QUESTION IS A BLOCK IN ITS PANEL, and the difference is not taste. Back
    * belongs to Step 3 and asks inside Step 3's own dock, where the operator is already looking. This
@@ -658,7 +658,7 @@ export default function App() {
   // Read at call time: the start screen sends the job and its file in one step, before a render.
   const startDentalAligner = useCallback((unit: PrintUnit) => (isDentureJob(sessionRef.current.dentalProfile) ? denture.orient.start(unit) : dentalFlow.startAligner(unit)), [denture.orient.start, dentalFlow.startAligner]);
   /*
-   * LEAVING THE FLOW FOR THE BENCH - the second half of Use as any model, once nothing is waiting
+   * LEAVING THE FLOW FOR THE BENCH - the second half of Exit, once nothing is waiting
    * on an answer. Called by the command when there is nothing to lose, and by the modal when the
    * operator says yes, so the two paths cannot drift into doing different things.
    *
@@ -1680,20 +1680,20 @@ export default function App() {
     {/*
       THE QUESTION THE WAY OUT NEVER ASKED. `exitNeedsConfirm` decides whether it is asked at all;
       this only puts it on screen. The sentence names what GOES rather than where the operator lands,
-      because the press's cost is the removal - "Exit" described the destination and that is exactly
-      how the control came to read as navigation.
+      because the press's cost is the removal: the control's name says the destination (Exit, the
+      owner's call of 2026-11-21), so the question is the one place that says what leaving costs.
 
       The confirming key repeats the control's own words instead of saying Continue: a dialog whose
       yes-key is generic makes the operator reconstruct what they are agreeing to from the sentence
       above it, and this one is agreeing to throw work away.
     */}
-    {exitAsk ? <ConfirmModal label={t('Use as any model')} onCancel={() => setExitAsk(false)}>
+    {exitAsk ? <ConfirmModal label={t('Exit')} onCancel={() => setExitAsk(false)}>
       <p className="confirm-modal-question">{t('This removes the supports and dental settings on this model. It stays on the plate, and anything you have already finished is left alone.')}</p>
       <div className="confirm-modal-row">
         <button type="button" data-ui="exit-ask-cancel" title={t('Cancel')} onClick={() => setExitAsk(false)}>{t('Cancel')}</button>
         <button type="button" className="danger" data-ui="exit-ask-confirm"
           title={t('This removes the supports and dental settings on this model. It stays on the plate, and anything you have already finished is left alone.')}
-          onClick={leaveDentalFlow}>{t('Use as any model')}</button>
+          onClick={leaveDentalFlow}>{t('Exit')}</button>
       </div>
     </ConfirmModal> : null}
     {/*

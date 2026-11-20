@@ -498,7 +498,8 @@ async function launch() {
 /**
  * The header's way out of the dental flow, answering its question when there is one.
  *
- * It was `Exit` and acted at once; it is now `Use as any model` and ASKS first whenever leaving
+ * It was `Exit` and acted at once, then `Use as any model` (2026-11-17), and is `Exit` again (owner,
+ * 2026-11-21); either way it now ASKS first whenever leaving
  * would remove built supports, hand edits or a painted area (`dental/flow.ts exitNeedsConfirm`).
  * Every press in this file predates that question, and on 2026-11-17 the walk proved it: the modal
  * opened behind check `j`, nothing dismissed it, and `<dialog>` intercepted every later click until
@@ -507,7 +508,7 @@ async function launch() {
  * `answer` picks the key, so a check can prove the question CANCELS as well as confirms.
  */
 async function leaveFlow(page, d, answer = 'exit-ask-confirm') {
-  await d.button('Use as any model').click();
+  await d.button('Exit').click();
   const key = page.locator(`[data-ui="${answer}"]`);
   // No question is the ordinary case at Step 1, where leaving costs a redetect and nothing else.
   if (await key.isVisible().catch(() => false)) await key.click();
@@ -3271,7 +3272,7 @@ async function walk(url, scratch, dentalFixture) {
           /*
            * WAIT FOR THE PANEL, NOT FOR A NAMED KEY. Step 3's way on is `Export STL` where there is
            * a bench to hand back to and the step's own OK where there is not (`reviewWayOn`), and
-           * this unit arrives through "Use as any model", so the name is not knowable here. The
+           * this unit arrives through Exit, so the name is not knowable here. The
            * Adjust panel is what the defect actually removed: the badge rendered, and underneath it
            * there were no tools, no settings and no way on at all.
            */
@@ -3286,7 +3287,7 @@ async function walk(url, scratch, dentalFixture) {
            * block" (`DentalSupports.tsx`), so the defect - a badge with no way on - is exactly this
            * row holding nothing but Back. Naming the BUTTON was what went wrong twice before: its
            * label is `Export STL` where there is a bench to hand back to and the step's own OK where
-           * there is not, and this unit arrives through "Use as any model".
+           * there is not, and this unit arrives through Exit.
            */
           const keys = await page.locator('.step-nav button').count();
           await page.screenshot({ path: path.join(scratch, 'ux-a-step3-hand-made-area.png') });
@@ -3470,7 +3471,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Cancel').click();
       await page.waitForFunction(() => /Print angle . 1 \/ 3/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
       check('u5b Cancel leaves rim define mode and lands back in Step 1, still in the flow',
-        (await badge()).includes('Print angle · 1 / 3') && await d.button('Use as any model').isVisible(), `badge "${(await badge()).slice(0, 30)}"`);
+        (await badge()).includes('Print angle · 1 / 3') && await d.button('Exit').isVisible(), `badge "${(await badge()).slice(0, 30)}"`);
 
       /*
        * AND STEP 1 SAYS WHAT TO DO. Cancelling with nothing drawn used to leave the operator on a
@@ -4423,7 +4424,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(800);
       const afterCancel = await d.props();
       const keptOnCancel = afterCancel.units.filter((unit) => unit.supports && unit.dental).length;
-      check('x18b Use as any model after Export asks first, and Cancel keeps both aligners whole',
+      check('x18b Exit after Export asks first, and Cancel keeps both aligners whole',
         afterCancel.units.length === 2 && keptOnCancel === 2,
         `units ${afterCancel.units.length}, still supported and dental ${keptOnCancel}`);
       await leaveFlow(page, d);

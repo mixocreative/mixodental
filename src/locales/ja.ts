@@ -851,7 +851,7 @@ export const ja: Dictionary = {
   'Add an aligner first.': '先にアライナーを追加してください。',
   'Rotate the aligner to the proposed orientation again': 'アライナーをもう一度提案された向きに回転します',
   'Return to the previous step and keep your edits': '編集内容を保ったまま前のステップに戻ります',
-  'Use as any model': '任意のモデルとして使用',
+  'Exit': '終了',
   'Leave the dental flow and work on this aligner like any other model. Its supports and dental settings are removed': 'デンタルフローを離れ、このアライナーを他のモデルと同様に扱います。サポートとデンタル設定は削除されます',
   'Leave the dental flow and work on this denture like any other model. Its supports and dental settings are removed': 'デンタルフローを離れ、この義歯を他のモデルと同様に扱います。サポートとデンタル設定は削除されます',
   'This removes the supports and dental settings on this model. It stays on the plate, and anything you have already finished is left alone.': 'このモデルのサポートとデンタル設定が削除されます。モデルはプレート上に残り、すでに完了した作業には影響しません',

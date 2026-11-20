@@ -4623,8 +4623,11 @@ the aligner with steps hidden.
 
 #### At every step
 
-The **Use as any model** confirmation. The control was called *Exit*; the word promised navigation
-while the press removed the model's supports, hand edits and dental policy.
+The **Exit** confirmation. The control was *Exit*, then *Use as any model* (2026-11-17: the word
+promised navigation while the press silently removed the model's supports, hand edits and dental
+policy), and is *Exit* again by the owner's call of 2026-11-21 - honest now because the press asks
+first whenever it would remove anything, and the question names what goes. Not the step card's x,
+which goes to Your files and keeps the dental work.
 
 #### Two exits that need work — one unnamed, one unreachable by Esc
 
@@ -4819,7 +4822,7 @@ table; and Remove went quiet until the pointer reaches it.
 **Already done (2026-11-17/18), corrected after review:** the tool cursor in both renderers; the rim
 badge's blocker line; `npm run art`; the case screen's **Arrange and Export keys** (not Check — that
 is work), Retry on a failed row, needs-you-first, the aggregate line **and the per-row lines it
-replaces**, pinned layout; *Use as any model* and its confirmation; the Esc ladder rungs 0–4 **and
+replaces**, pinned layout; *Exit* (then *Use as any model*) and its confirmation; the Esc ladder rungs 0–4 **and
 the deck's focus, without which Esc there reached no handler at all**; done marks made advisory.
 
 **Claimed done and NOT done** — the three an engineer would have skipped:

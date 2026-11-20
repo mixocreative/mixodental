@@ -102,7 +102,7 @@ describe('an exported aligner survives Exit', () => {
    * ruling of 2026-11-18 a done mark informs and never blocks, so the supports go here too; what
    * protects an exported model now is the question the press asks first, not a refusal to act.
    */
-  it('and Use as any model strips them even after an export, because the mark is not a lock', () => {
+  it('and Exit strips them even after an export, because the mark is not a lock', () => {
     const exported = run(step3, { type: 'acceptDentalArea' }, { type: 'exportedDental', unitId: 'u1' });
     expect(exported.dentalFinished).toContain('u1');
     expect(exitCommands(unit).map((command) => command.type)).toContain('supports/remove');
