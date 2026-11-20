@@ -103,9 +103,10 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     // The unit's denture settings (a denture seen before) shape the scan, the live tips and the placement too.
     const rules = dentureRulesOf(unit);
     const scanSettings = scanSettingsOf(settings, Object.keys(rules).length > 0 ? packRules(rules) : undefined);
-    // The denture scan runs from upright (0) to the profile's range (Rust `denture::tilt`).
-    const { tiltRangeDeg, tiltStepDeg } = dentureProfileData(profile).pose;
-    const total = Math.floor(tiltRangeDeg / tiltStepDeg + 1e-9) + 1;
+    // The denture scan runs from the profile's start (0, upright, unless the type sets one) to its range
+    // (Rust `denture::tilt::scan_tilts`); counting from 0 overstated the total for a later start.
+    const { tiltStartDeg, tiltRangeDeg, tiltStepDeg } = dentureProfileData(profile).pose;
+    const total = Math.floor((tiltRangeDeg - tiltStartDeg) / tiltStepDeg + 1e-9) + 1;
     setTilt({ status: 'scanning', unitId: unit.id, done: 0, total });
     void client().orient(unit.id, unit.source, profile, scanSettings, { key: 'Orienting {name}', vars: { name: unit.name } }, (fraction) => {
       const current = tiltRef.current;

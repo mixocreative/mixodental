@@ -15,6 +15,7 @@ import { reviewCase, type CaseRow } from './reviewCase';
 import { parseKind } from './profileSelect';
 import { RULE_DEFAULTS } from './ruleDefaults';
 import { setZoneGraph, ZoneGraphRefused } from '@mixo-geocore/host/dental/zoneGraph';
+import { putInForce, recordType, typeOfRun } from './typeInForce';
 
 async function main(): Promise<void> {
 const args = process.argv.slice(2);
@@ -43,7 +44,20 @@ mkdirSync(out, { recursive: true });
 // never halfway through, and never by quietly running the default instead. What ran is recorded in
 // summary.json, because an edited graph and the default otherwise look identical on screen.
 let zoneGraph = 'default';
-if (process.env.MIXO_ZONE_GRAPH_FILE) {
+// A TYPE (benchwork --type, or the review page's Apply): refused here, before any case runs, for
+// exactly what a saved type file would be refused for. It carries its own rules and graph.
+let type: ReturnType<typeof typeOfRun> = null;
+try {
+  type = typeOfRun(kind, process.env);
+  if (type) {
+    zoneGraph = putInForce(type, process.env);
+    process.stdout.write(`Type: ${type.id} (based on ${type.basedOn}), zone graph ${zoneGraph}\n`);
+  }
+} catch (error) {
+  process.stderr.write(`The type was refused: ${(error as Error).message}\n`);
+  process.exit(2);
+}
+if (!type && process.env.MIXO_ZONE_GRAPH_FILE) {
   try {
     zoneGraph = setZoneGraph(JSON.parse(readFileSync(process.env.MIXO_ZONE_GRAPH_FILE, 'utf8')));
   } catch (error) {
@@ -65,6 +79,7 @@ for (const [k, file] of files.entries()) {
   writeSummary(rows, out, zoneGraph);
 }
 
+if (type) recordType(out, type, files);
 const look = rows.filter((row) => row.needsLook).length;
 process.stdout.write(`
 Done: ${rows.length} file(s), ${look} need a look. Output: ${out}

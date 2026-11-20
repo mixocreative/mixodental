@@ -14,6 +14,8 @@ app on real files, look at the geometry, diff it against the baseline. Only then
 npm run benchwork -- --list                                              the rules it offers
 npm run benchwork -- --kind denture --set overhangAngleDeg=55 "<folder>" --open
 npm run benchwork -- --kind denture --zone-graph zone-graph.json "<folder>"  a zone graph from the node editor
+npm run benchwork -- --kind denture --type types/denture/<id>.type.json "<folder>"  a saved type, as it is
+npm run benchwork -- --kind denture --type-id my.type --pose pose.json "<folder>"   a draft type: the built-in + Orient edits
 ```
 
 It decides **what a type's rules are** — for orient, rim and the support zones. It turns thirteen

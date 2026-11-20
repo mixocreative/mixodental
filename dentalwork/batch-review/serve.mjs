@@ -5,7 +5,7 @@
 // --lan also listens on the local network (e.g. to look from a phone); review files hold patient scans,
 // so use it only on a trusted home/office network.
 import { createServer } from 'node:http';
-import { createReadStream, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec, spawn } from 'node:child_process';
@@ -50,6 +50,26 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/ja
  * bound to 127.0.0.1 and this is a local dev tool, but the page is the only thing that supplies this
  * path, and "a local tool so it does not matter" is how a shell injection ships.
  */
+/**
+ * POST /save-type - copy the type the review on screen RAN (its out folder's type.json, with the proof
+ * record the batch wrote) into `types/<category>/<id>.type.json` in this repo, to be committed
+ * (owner ruling 2: types live in committed files). It saves only what ran - never a page's unrun edits -
+ * so a saved type is always one that was proved on at least the scans of that run.
+ */
+function saveType(response) {
+  const send = (code, payload) => response.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(payload));
+  const from = roots['/out/'] ? join(roots['/out/'], 'type.json') : '';
+  if (!from || !existsSync(from)) { send(400, { error: 'the review on screen ran no type - Apply with a type name first' }); return; }
+  let type;
+  try { type = JSON.parse(readFileSync(from, 'utf8')); } catch { send(500, { error: 'type.json is not readable' }); return; }
+  if (!/^(denture|aligner)$/.test(type?.category) || !/^[a-z0-9][a-z0-9.-]*$/.test(type?.id ?? '')) { send(500, { error: 'type.json does not name a category and id' }); return; }
+  const dir = join(here, '..', '..', 'types', type.category);
+  mkdirSync(dir, { recursive: true });
+  const to = join(dir, `${type.id}.type.json`);
+  writeFileSync(to, readFileSync(from, 'utf8'));
+  send(200, { ok: true, path: `types/${type.category}/${type.id}.type.json` });
+}
+
 function rerun(request, response) {
   let body = '';
   request.on('data', (chunk) => { body += chunk; if (body.length > 64_000) request.destroy(); });
@@ -76,7 +96,22 @@ function rerun(request, response) {
       writeFileSync(file, JSON.stringify(ask.zoneGraph, null, 2));
       graphArgs.push('--zone-graph', file);
     }
-    const child = spawn(process.execPath, [join(here, '..', '..', 'benchwork', 'cli.mjs'), '--kind', kind, '--out', out, ...sets, ...graphArgs, source],
+    // The type this run is (Orient's print-angle edits + a name): benchwork makes a draft from the
+    // built-in and the batch writes what ran to type.json, which Save type copies (TYPE-PIPELINE R1).
+    const typeArgs = [];
+    const typeId = typeof ask?.typeId === 'string' && /^[a-z0-9][a-z0-9.-]*$/.test(ask.typeId) ? ask.typeId : null;
+    if (ask?.typeId !== undefined && !typeId) { send(400, { error: 'a type name is lower-case letters, digits, dots and dashes' }); return; }
+    if (typeId) {
+      typeArgs.push('--type-id', typeId);
+      const pose = ask?.pose && typeof ask.pose === 'object' ? Object.fromEntries(Object.entries(ask.pose).filter(([k, v]) => /^tilt[A-Za-z]+Deg$/.test(k) && Number.isFinite(v))) : {};
+      if (Object.keys(pose).length > 0) {
+        mkdirSync(out, { recursive: true });
+        const file = join(out, 'pose.json');
+        writeFileSync(file, JSON.stringify(pose));
+        typeArgs.push('--pose', file);
+      }
+    }
+    const child = spawn(process.execPath, [join(here, '..', '..', 'benchwork', 'cli.mjs'), '--kind', kind, '--out', out, ...sets, ...graphArgs, ...typeArgs, source],
       { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'] });
     let log = '';
     child.stdout.on('data', (chunk) => { log += chunk; process.stdout.write(chunk); });
@@ -100,6 +135,7 @@ function rerun(request, response) {
 const server = createServer((request, response) => {
   const path = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
   if (request.method === 'POST' && path === '/rerun') { rerun(request, response); return; }
+  if (request.method === 'POST' && path === '/save-type') { saveType(response); return; }
   const [prefix, root] = Object.entries(roots).find(([prefix, root]) => root !== undefined && path.startsWith(prefix));
   const file = normalize(join(root, path === '/' ? 'viewer.html' : path.slice(prefix.length)));
   if (!file.startsWith(normalize(root + sep)) || !existsSync(file) || !statSync(file).isFile()) {

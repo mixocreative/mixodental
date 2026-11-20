@@ -19,7 +19,6 @@ import { buildDentalReview, pickPrintAngle } from '../../scripts/dental-region-r
 import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
 import { dentalModelRotation, exportDentalRegionReview } from '../../scripts/dental-region-review/review';
 import { removeDegenerateTriangles } from '@mixo-geocore/host/core/removeDegenerate';
-import { REFERENCE_PROFILE } from '../../scripts/dental-region-review/profile';
 import { explainReason } from './reasons';
 import { NO_EVIDENCE, orientationEvidence, orientationLayers, type OrientationEvidence } from '../../src/dental/orientationEvidence';
 import { orientationGlb } from './orientationEvidenceGlb';
@@ -104,20 +103,20 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
     }
     // Step 1 as the app runs it: arch kind and the up/down cross-check go into the row; the evidence
     // GLB is written below in the review's frame (or Step 1's own pose when nothing was built).
-    const { rotation: step1Rotation, ...evidence } = orientationEvidence(mesh, REFERENCE_PROFILE);
+    const { rotation: step1Rotation, ...evidence } = orientationEvidence(mesh, reviewProfileId('aligner'));
     Object.assign(row, evidence);
-    const angle = pickPrintAngle(mesh);
+    const angle = pickPrintAngle(mesh, reviewProfileId('aligner'));
     if (angle.kind === 'angle') {
       const { scan } = angle;
       Object.assign(row, { printAngleDeg: Number(tiltLabel(scan.rows[angle.index]!.tiltDeg)), angleReason: scan.reason, angleConfirmed: angle.confirmed,
         stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none' });
     }
-    const review = buildDentalReview(mesh, angle.kind === 'angle' ? angle.rotation : undefined, alignerRules());
+    const review = buildDentalReview(mesh, angle.kind === 'angle' ? angle.rotation : undefined, alignerRules(), reviewProfileId('aligner'));
     // The evidence takes the model's own transform (lift from the review frame, pose from review.ts), so the overlays sit on the model.
     const evidenceFrame = review.kind === 'proposal' ? { position: review.frame.position, rotation: dentalModelRotation(mesh) }
       : step1Rotation ? { position: [0, 0, 0] as [number, number, number], rotation: step1Rotation } : undefined;
     if (evidenceFrame) {
-      const layers = orientationLayers(mesh, REFERENCE_PROFILE);
+      const layers = orientationLayers(mesh, reviewProfileId('aligner'));
       if (layers.length > 0) {
         writeFileSync(join(out, `${name}-orientation.glb`), Buffer.from(await orientationGlb(layers, evidenceFrame)));
         row.orientationGlb = `${name}-orientation.glb`;

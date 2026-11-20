@@ -35,6 +35,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BENCH_RULES, parseSets, stampNow, unreadBy } from './rules.mjs';
+import { steepAngleProblem } from '../dentalwork/batch-review/nodeGraph.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
@@ -110,24 +111,47 @@ if (zoneGraphFile !== undefined) {
     console.error(`--zone-graph ${zoneGraphFile}: not a readable JSON graph (${error.message})`);
     process.exit(1);
   }
-  /*
-   * ONE STEEP ANGLE, NOT TWO. With a graph set, the zones take R1b's angle from the graph and never read
-   * the rule (zone_graph.rs current()), while the policy and the review layer still read the rule. Two
-   * different numbers would run "clean" with the zones and the report disagreeing. The review page
-   * cannot do this (saving mirrors one into the other); this command line can, so it refuses.
-   */
-  const steep = graph?.nodes?.find?.((n) => n.id === 'R1b')?.params?.deg;
-  if (steep !== undefined && rules.noSupportSteepDeg !== undefined && Number(steep) !== Number(rules.noSupportSteepDeg)) {
-    console.error(`--zone-graph sets the steep ray R1b to ${steep} deg but --set noSupportSteepDeg=${rules.noSupportSteepDeg}: the zones would use one and the report the other. Make them the same.`);
+  // Only a denture reads a zone graph: on an aligner it would be "applied" and change nothing (Fable's
+  // review, 2026-11-20).
+  if (kind !== 'denture') {
+    console.error(`--zone-graph: a ${kind} reads no zone graph - only a denture does. Nothing ran.`);
     process.exit(1);
   }
-  if (Number(steep) > 0 && rules.noSupportSteepDeg === undefined) {
-    // A refusal, not a note: a note goes to a log nobody opens, and the run would look whole (cia F4).
-    console.error(`--zone-graph sets the steep ray R1b to ${steep} deg but noSupportSteepDeg is not set, so the policy and the review layer would treat the steep ray as off. Add --set noSupportSteepDeg=${steep} (the rule takes 45 to 90, exclusive).`);
+  // One steep angle, not two: the rule lives in nodeGraph.mjs, shared with the type file.
+  const steep = steepAngleProblem(graph, rules);
+  if (steep) {
+    console.error(`--zone-graph: ${steep}. Nothing ran.`);
     process.exit(1);
   }
 }
-const skip = new Set(['--kind', valueOf('--kind'), '--out', valueOf('--out'), ...sets, '--set', '--open', '--list', '--zone-graph', zoneGraphFile]);
+/*
+ * TYPES (docs/TYPE-PIPELINE.md). `--type <file>` runs a saved type file: the batch reads it with the one
+ * reader and refuses it by name before any case runs. It carries its own rules and graph, so it does
+ * not combine with --set, --zone-graph or --pose - two sources for one number is how a run disagrees
+ * with itself. `--type-id <id>` makes a DRAFT from the built-in (with `--pose <file>`, the Orient node's
+ * print-angle edits), which is what the review page's Apply sends; the batch writes the type that ran,
+ * with its proof, to type.json for Save type.
+ */
+const typeFile = valueOf('--type');
+const typeId = valueOf('--type-id');
+const poseFile = valueOf('--pose');
+if (typeFile !== undefined && (sets.length > 0 || zoneGraphFile !== undefined || poseFile !== undefined || typeId !== undefined)) {
+  console.error('--type runs a saved type as it is: it does not combine with --set, --zone-graph, --pose or --type-id. Nothing ran.');
+  process.exit(1);
+}
+if (poseFile !== undefined && typeId === undefined) {
+  console.error('--pose edits a draft type: give it a name with --type-id. Nothing ran.');
+  process.exit(1);
+}
+for (const [flag, file] of [['--type', typeFile], ['--pose', poseFile]]) {
+  if (file === undefined) continue;
+  try { JSON.parse(readFileSync(file, 'utf8')); } catch (error) {
+    console.error(`${flag} ${file}: not readable JSON (${error.message}). Nothing ran.`);
+    process.exit(1);
+  }
+}
+const skip = new Set(['--kind', valueOf('--kind'), '--out', valueOf('--out'), ...sets, '--set', '--open', '--list', '--zone-graph', zoneGraphFile,
+  '--type', typeFile, '--type-id', typeId, '--pose', poseFile]);
 const folders = args.filter((arg) => !skip.has(arg) && !arg.startsWith('--'));
 if (folders.length === 0) {
   console.error('Give the folder holding the STL files (subfolders included). Run --list to see the rules.');
@@ -156,7 +180,16 @@ const child = spawn(vite, ['--script', join('dentalwork', 'batch-review', 'batch
   cwd: root, stdio: 'inherit', shell: process.platform === 'win32',
   // MIXO_TIMERS makes every row report its stage seconds, which is the measurement the interaction design waits on.
   // MIXO_ZONE_GRAPH_FILE only from --zone-graph: one left in the shell would run a graph nobody asked for (cia F8).
-  env: { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'MIXO_ZONE_GRAPH_FILE')), MIXO_RULES: JSON.stringify(rules), MIXO_TIMERS: '1', ...(zoneGraphFile ? { MIXO_ZONE_GRAPH_FILE: zoneGraphFile } : {}) },
+  // The type and graph variables reach batch.ts ONLY from these flags: one left in the shell would run a
+  // type or graph nobody asked for (cia F8).
+  env: {
+    ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !['MIXO_ZONE_GRAPH_FILE', 'MIXO_TYPE_FILE', 'MIXO_TYPE_ID', 'MIXO_POSE_FILE'].includes(k))),
+    MIXO_RULES: JSON.stringify(rules), MIXO_TIMERS: '1',
+    ...(zoneGraphFile ? { MIXO_ZONE_GRAPH_FILE: zoneGraphFile } : {}),
+    ...(typeFile ? { MIXO_TYPE_FILE: typeFile } : {}),
+    ...(typeId ? { MIXO_TYPE_ID: typeId } : {}),
+    ...(poseFile ? { MIXO_POSE_FILE: poseFile } : {}),
+  },
 });
 
 child.on('exit', (code) => {

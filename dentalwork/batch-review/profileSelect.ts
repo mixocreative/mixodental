@@ -77,7 +77,16 @@ export function parseKind(value: string | undefined): DentalKind {
 }
 
 /** The profile the review uses for `kind` (the reference profile of that family). */
-export const reviewProfileId = (kind: DentalKind): string => defaultProfileId(kind);
+/*
+ * The profile a review of `kind` uses: the built-in, unless a run registered a TYPE of that kind
+ * (`typeInForce.ts`). One switch, read by every review call, so a type cannot reach one step and not
+ * the next.
+ */
+let typeProfile: { kind: DentalKind; id: string } | null = null;
+export function useTypeProfile(kind: DentalKind, id: string): void {
+  typeProfile = { kind, id };
+}
+export const reviewProfileId = (kind: DentalKind): string => (typeProfile?.kind === kind ? typeProfile.id : defaultProfileId(kind));
 
 /**
  * Whether the scan's shape contradicts the chosen kind, from the other kind's Step 1. Called only
@@ -110,7 +119,12 @@ export type DentureReview =
   | { kind: 'inconclusive'; reason: string };
 
 /** The denture flow on a centred `mesh`: upright, print angle, tips, supports (one pipeline, no UI). */
-export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfileId('denture')): DentureReview {
+/**
+ * `angleIndex` builds at that row of the print-angle scan instead of the engine's pick - for measuring
+ * the pick against a full build at every angle (scripts/tilt-measure.ts, docs/ORIENT-NODES.md M1).
+ * Every other caller leaves it out and gets the pick, exactly as before.
+ */
+export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfileId('denture'), angleIndex?: number): DentureReview {
   const started = performance.now();
   const lap = (from: number) => +((performance.now() - from) / 1000).toFixed(2);
   const orientation = orientDenture(mesh, profileId);
@@ -129,7 +143,8 @@ export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfile
   const scanSeconds = lap(scanStarted);
   if (scan.kind !== 'scan') return { kind: 'inconclusive', reason: `denture-tilt-scan-${scan.reason}` };
   if (process.env.MIXO_TILT_ORDER || process.env.MIXO_TILT_ALLOWED) console.log('TILTDUMP', JSON.stringify({ deg: scan.rows.map((r) => r.tiltDeg), tips: scan.boxed.tips, lows: scan.boxed.lows, picked: scan.rows[scan.order[0]!]!.tiltDeg, robust: scan.rows.map((r) => r.robust) }));
-  const index = scan.order[0]!;
+  const index = angleIndex ?? scan.order[0]!;
+  if (!scan.rows[index]) return { kind: 'inconclusive', reason: `no-angle-${index}` };
   const rotation = scan.rows[index]!.rotation as Vector;
   const turnedOnly: JobTransform = { position: [0, 0, 0], rotation };
   let lowestY = Infinity;
