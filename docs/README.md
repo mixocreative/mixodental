@@ -24,6 +24,8 @@ what was believed when. What changed is only where those records live.
 | `designer-guide.md` · `ui-styling.md` | the UI vocabulary and the styling rules | touching anything the operator sees |
 | `BLENDER_PARITY.md` · `SLASG_NODE_LOGIC.md` | the external references the engine is checked against | changing geometry or placement |
 | `dental-kinds-and-types.md` | what an item kind is, and which profile answers for it | adding or changing a dental type |
+| `TYPE-PIPELINE.md` | **how a type made in the workbench reaches the app**: the type file, `register_profile` as the bridge, the build plan E1-E3 and five owner decisions | making a type editable, saving or loading one |
+| `NODE-PLAN.md` · `REVIEWER-UI.md` · `REVIEW-UX-REFINE.md` | the node editor: the three stages, what a zone graph may and may not wire in this version, the review page layout, and the 2026-11-20 UX pass | touching the review page or its node editor |
 | `dental-rework-handoff.md` | the dental rework's own handoff | working the dental steps |
 | `translation/` | how the Japanese and Taiwan Chinese strings get written, and the two traps that cost a day | the i18n guards are red |
 | `migration/glossary.md` | one term per concept per language, **checked by `src/glossary.test.ts`** | translating anything |

@@ -446,10 +446,21 @@ whatever was wired.
 Measured on case-001, 2026-11-20: adding one front-to-tissue 30° parallel cast unioned into
 No-support moved **514,225 undefined faces to 490,958**.
 
-**What v1 refuses, by name, at set:** rewiring Rim line, Rim strip, Low rim strip or Sockets (still
-fixed in the engine); Point on a plane; a hole strip other than 5 mm. Free: parallel casts, rays from
-a point (from the planes' crossing), the hole strip, and Either / Remove / Both / Invert into
-No-support, Allowed, Seen by the cavity rays and Hole strip.
+**What v1 refuses, by name, at set** - every edit the engine would otherwise accept and IGNORE.
+Fable checked each on-screen sentence against the engine on 2026-11-20 and found seven that ran
+"clean" and changed nothing; each is now refused by the engine (`zone_graph.rs` `fixed_params`,
+`FIXED_OUTPUTS`) and drawn as **fixed** on the canvas, never as a field:
+
+- rewiring **Hole strip**, Rim line, Rim strip, Low rim strip or Sockets - placement reads the
+  engine's own masks for these, not the graph's;
+- **ray spacing** on a parallel cast (0.1 mm), every **Depth map** setting, the **smallest hole**
+  (0.5 mm²), the cavity origin's **planes and side**;
+- a **Strip around** of any width but 5 mm, or seeded by anything but Find holes;
+- Point on a plane, and Find sockets (its depth comes from the rule "socket depth").
+
+Free: parallel casts (direction and angle), rays from the planes' crossing, and Either / Remove /
+Both / Invert into **No-support**, **Allowed** and **Seen by the cavity rays**. The model's `FIXED`
+mirrors the engine's list, and both sides have a test that fails when an ignored edit is accepted.
 
 ## 6. ORDER OF WORK
 
@@ -459,7 +470,7 @@ No-support, Allowed, Seen by the cavity rays and Hole strip.
    `allowed − hole_band` is not the same thing, so either one getter is added or four of the five
    nodes are shown and the fifth is marked as not exposed.
 2. **Content-digest cache keys** — done, both of them.
-3. **`register_profile` + schema** — schema is done, both sides; registration is not.
+3. **`register_profile` + schema** — schema is done, both sides; registration is not. The full plan, and why it is the bridge from the workbench to the app rather than something the workbench replaces, is `docs/TYPE-PIPELINE.md`.
 4. **The zone graph** - DONE for v1 (engine 69, see 5b for what it still refuses): `Analysis::of` takes it, the graph joins the cache key, and the review returns
    each node's mask and count. It must carry: **the channel decision** (five entry points, the tilt
    scan and the live tilt among them), **all eight required outputs plus the explicit socket edge**, **NOT**,

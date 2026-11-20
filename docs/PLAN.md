@@ -89,6 +89,10 @@ each.** A trigger nobody reads is a deferral that has quietly become a decision.
 
 Ranked by consequence, not by size. Each item says what proves it done.
 
+> **Added 2026-11-20 — the workbench-to-app bridge.** The node editor now composes types the app
+> cannot yet load. `docs/TYPE-PIPELINE.md` is the plan (units E1 `register_profile` through E3) and
+> carries five more owner decisions; its first unit, E1 denture half, is provable by Rust tests alone.
+
 ### Now — the app loses work, and makes a claim it cannot support
 
 1. **The denture flow has no browser coverage at all.** The walk's sections are `a, m, q, r, u, x,
