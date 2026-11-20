@@ -153,7 +153,13 @@ Rules of the format:
   the contents were edited after the proof, and the label becomes UNVALIDATED automatically.
 - **One writer.** The digest is taken over the profile's JSON *text* (`profile.rs:225`), so two
   programs that format the same numbers differently would get two fingerprints. Exactly one function
-  turns a profile into text, and everything uses it. PLANNED, with a test.
+  turns a profile into text, and everything uses it. **BUILT 2026-11-20:** `src/dentalTypes/typeFile.ts`
+  (`profileText`, `typeFileText`, `readTypeFile`; 12 tests).
+- **The zone graph needs the same one writer** - found by that module's test the night it was built.
+  The engine digests the graph TEXT it is sent (`setZoneGraph` sends `JSON.stringify`, key order as
+  built), so the canvas's order and a file's sorted order give ONE graph TWO digests, and a proved
+  type would read back as edited. `graphText` is that writer; whatever proves or runs a type (P1,
+  A3, benchwork `--type`) must send the engine `graphText(graph)`, never its own stringify.
 
 ### 4b. The engine calls
 
