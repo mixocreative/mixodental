@@ -319,6 +319,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { refusalReason, rerunOutcome } from './rerunReport.mjs';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Every colour comes from a token in tokens.css; nothing in this file is a colour value.
@@ -1871,13 +1872,8 @@ try {
           zoneGraph: graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null }) });
       const answer = await reply.json().catch(() => ({}));
       if (!reply.ok || !answer.ok) {
-        // The reason is in the run's log; an exit code alone names nothing (cia F1). Prefer the engine's
-        // own refusal, then the last line the run printed.
-        const lines = String(answer.log ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-        const at = lines.findIndex((l) => /zone graph was refused|^--zone-graph|Nothing ran/.test(l));
-        // "Nothing ran. 1 problem(s):" is a header; the problem is the line under it.
-        const why = at < 0 ? lines.at(-1) : /:$/.test(lines[at]) && lines[at + 1] ? `${lines[at]} ${lines[at + 1]}` : lines[at];
-        status.textContent = `It did not run: ${why ?? answer.error ?? reply.status}`;
+        // The reason is in the run's log; an exit code alone names nothing (cia F1; rerunReport.mjs).
+        status.textContent = `It did not run: ${refusalReason(answer.log) ?? answer.error ?? reply.status}`;
         return;
       }
       /*
@@ -1886,15 +1882,11 @@ try {
        * before and after.
        */
       const fresh = await fetch(`/out/summary.json?t=${Date.now()}`).then((response) => response.json());
-      if (graphEdited && (fresh.zoneGraph ?? 'unknown') === 'default') {
-        // Asked for an edited graph, and the run reports the default: say so, never "Done".
-        openRun(fresh, (name) => `/out/${name}?t=${Date.now()}`, '/out/summary.csv');
-        status.textContent = 'The run finished, but the edited zone graph was NOT applied: its summary says the default graph ran.';
-        return;
-      }
-      appliedGraphText = graphEdited ? JSON.stringify(zoneGraph) : JSON.stringify(graphLib?.defaultGraph() ?? null);
+      // What may be claimed comes from the run's OWN summary, never the request (cia F2; rerunReport.mjs).
+      const outcome = rerunOutcome({ graphEdited, summaryGraph: fresh.zoneGraph, names });
+      if (outcome.applied) appliedGraphText = graphEdited ? JSON.stringify(zoneGraph) : JSON.stringify(graphLib?.defaultGraph() ?? null);
       openRun(fresh, (name) => `/out/${name}?t=${Date.now()}`, '/out/summary.csv');
-      status.textContent = `Done — showing the re-run with ${names}${fresh.zoneGraph && fresh.zoneGraph !== 'default' ? ` (graph ${fresh.zoneGraph.slice(0, 8)})` : ''}. The earlier review is still in its own folder.`;
+      status.textContent = outcome.text;
     } catch (error) {
       status.textContent = `It did not run: ${error.message}`;
     } finally {

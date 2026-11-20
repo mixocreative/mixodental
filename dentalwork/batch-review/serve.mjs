@@ -10,6 +10,7 @@ import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec, spawn } from 'node:child_process';
 import { stampNow } from '../../benchwork/rules.mjs';
+import { guardRun } from './rerunReport.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const [folder] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
@@ -78,21 +79,20 @@ function rerun(request, response) {
     const child = spawn(process.execPath, [join(here, '..', '..', 'benchwork', 'cli.mjs'), '--kind', kind, '--out', out, ...sets, ...graphArgs, source],
       { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'] });
     let log = '';
-    // ONE answer per request, whichever comes first: the exit, a spawn error, or the time limit. Without
-    // the last two a run that never started or never ended left the page on "Running..." with Apply
-    // disabled, and a spawn error would have crashed this server (cia F3).
-    let answered = false;
-    const answer = (code, body) => { if (answered) return; answered = true; clearTimeout(limit); send(code, body); };
-    const limit = setTimeout(() => { child.kill(); answer(500, { error: 'the re-run took over 15 minutes and was stopped', log: log.slice(-4000) }); }, 15 * 60 * 1000);
-    child.on('error', (error) => answer(500, { error: `the re-run could not start: ${error.message}`, log: log.slice(-4000) }));
     child.stdout.on('data', (chunk) => { log += chunk; process.stdout.write(chunk); });
     child.stderr.on('data', (chunk) => { log += chunk; process.stderr.write(chunk); });
-    child.on('exit', (code) => {
-      if (code !== 0 || !existsSync(join(out, 'summary.json'))) { answer(500, { error: `benchwork exited ${code}`, log: log.slice(-4000) }); return; }
-      // shortcut: one /out/ for the whole server, so two tabs re-running at once see whichever finished
-      // last (cia F6). One operator, one tab today; return `out` and fetch from it if that changes.
-      roots['/out/'] = out;
-      answer(200, { ok: true, out, log: log.slice(-4000) });
+    // ONE answer: the exit, a spawn error, or the 15-minute limit, whichever comes first (cia F3; the
+    // rule and its tests are rerunReport.mjs).
+    guardRun(child, 15 * 60 * 1000, {
+      timeout: () => send(500, { error: 'the re-run took over 15 minutes and was stopped', log: log.slice(-4000) }),
+      error: (error) => send(500, { error: `the re-run could not start: ${error.message}`, log: log.slice(-4000) }),
+      exit: (code) => {
+        if (code !== 0 || !existsSync(join(out, 'summary.json'))) { send(500, { error: `benchwork exited ${code}`, log: log.slice(-4000) }); return; }
+        // shortcut: one /out/ for the whole server, so two tabs re-running at once see whichever finished
+        // last (cia F6). One operator, one tab today; return `out` and fetch from it if that changes.
+        roots['/out/'] = out;
+        send(200, { ok: true, out, log: log.slice(-4000) });
+      },
     });
   });
 }
