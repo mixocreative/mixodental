@@ -152,6 +152,8 @@ Set the look of the DOM. They are the mixo-app-style tokens (paper, ink, hairlin
 | `--panel-title-ink-closed` | `var(--ink)` | The words on the closed bar | the same |
 | `--radius` | `2px` | Corner radius of every control | Buttons, cards, bands |
 | `--dur` | `.15s` | Duration of hover and chevron transitions | Buttons, collapsible chevrons |
+| `--workspace-left` | `268px` | Width of the left panel of the three-column workspace | `.workspace` grid, and the status overlay's left edge so it never covers the panel |
+| `--workspace-right` | `300px` | Width of the right panel of the three-column workspace | `.workspace` grid, and the status overlay's right edge |
 | `--row-height` | `24px` | Height of one list row | `.panel .unit`, and the Items row. **Not** `--row`, which is `22px` and belongs to the batch-review viewer's own table below — the app and that viewer are different densities, so the names are kept apart |
 | `--pixel-icon-key` | `144px` | Display size of the COLOURED art on a choice key: an item type, on a 48 grid. 3x, so each cell gets nine real pixels | `.choice-key-art` |
 
