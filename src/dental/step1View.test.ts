@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { gesture } from '@mixo-geocore/editing/gesture';
 import { initialSession, reduceSession, type EditSession, type SessionEvent } from '@mixo-geocore/editing/session';
-import { isOrientationStep, NO_SUPPORT_MESHES } from './step1View';
+import { isOrientationStep, NO_SUPPORT_MESHES, shownProblems } from './step1View';
 
 const run = (state: EditSession, ...events: SessionEvent[]) => events.reduce(reduceSession, state);
 
@@ -14,6 +14,15 @@ describe('isOrientationStep (PD.11 Step 1 viewport)', () => {
 
   it('Step 1 has no support meshes', () => {
     expect(NO_SUPPORT_MESHES.size).toBe(0);
+  });
+
+  it('draws check findings in a dental session only at Step 3, where their build is drawn', () => {
+    const found = ['a', 'b'];
+    expect(shownProblems({ mode: 'dental', dentalStage: 'review' }, found)).toBe(found);
+    for (const dentalStage of ['aligner', 'area', 'rim']) expect(shownProblems({ mode: 'dental', dentalStage }, found)).toEqual([]);
+    // The editor's own check: a spot with no support is the finding, so it is drawn whatever is on the plate.
+    expect(shownProblems({ mode: 'edit' }, found)).toBe(found);
+    expect(shownProblems({ mode: 'off' }, found)).toBe(found);
   });
 
   it('adding supports is not possible in Step 1: the gesture is dental-aligner, not an add', () => {

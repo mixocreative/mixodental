@@ -85,7 +85,7 @@ import { publishSceneSave } from './rescue';
 import { PanelBoundary } from './components/PanelBoundary';
 import { isProjectFile } from './state/projectFile';
 import { hint } from './components/hint';
-import { isOrientationStep, NO_SUPPORT_MESHES } from './dental/step1View';
+import { isOrientationStep, NO_SUPPORT_MESHES, shownProblems } from './dental/step1View';
 import { LanguageSelect } from './components/LanguageSelect';
 import { cancelSceneEdit, canUndo as historyCanUndo, createSceneHistory, redoScene, replaceScene, restoreScene, sameData, undoScene, withSceneCommand, type SceneHistory } from './state/history';
 import { meshTier, refusalLimit } from '@mixo-geocore/host/core/budget';
@@ -1964,7 +1964,7 @@ export default function App() {
           onZoneStroke={onZoneStroke}
           onDentalStroke={onDentalStroke}
           onNoBodies={onNoBodies}
-          problems={listedProblems}
+          problems={shownProblems(session, listedProblems)}
           {...(added ? { added } : {})}
           {...(focus ? { focus } : {})}
           {...(viewRequest ? { viewRequest } : {})}
