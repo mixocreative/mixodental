@@ -100,11 +100,13 @@ some stills lag their step; findings from a still alone are marked UNVERIFIED th
 | 8 | The deck's progress toast covers the footer | Open. |
 | 9 | An import error stays up while the next model is worked on | Open. |
 | 10 | "Left the aligner on the plate without supports" after Exit with nothing on the plate | **Engine-side** (`editing/status.ts:63` in geocore): skip the exit line when no object is active. Needs a geocore commit and push. |
-| 11 | The scene legend lists layers Step 3 does not show, and shows with no model | Open. |
+| 11 | The scene legend lists layers Step 3 does not show, and shows with no model | **Fixed.** Step 3 draws neither the area nor its edge and its supports are teal bodies, not the orange tip cones the swatch shows; the legend now lists only what the step draws (`legendRows` in `SceneLegend.tsx`, tested) and Step 3 has none. Seen in the browser: Step 1 and 2 three rows, Step 3 no legend. The start-screen file prompt never showed one. |
 | 12 | Step 3's panel is crowded; edit tools cut at the fold | Open. |
 | 13 | "Automatic dental rim gaps: outer 42.2 mm ... omitted contacts were not forced" | **Owner decision** on the words (proposal: "The supports leave a gap along the rim. Look at it, then add supports if needed."), then three languages. |
 | 14 | A problem row's text squeezed into a 60 px column beside its buttons | **Fixed:** the dental layout (buttons on their own row) is now the one rule for every problem list. |
 | 15 | "Step 1 - Aligner" names the product, Steps 2-3 the job; Reset vs "Restore step" | **Fixed (titles),** owner: "is 'STEP 1' still relevant?" then "Good for what u think best". Every badge leads with the job, then its place: `Print angle · 1 / 3`, `Support area · 2 / 3`, `Supports · 3 / 3` (a denture counts to 2). The header's "Your files" key moved onto the card as its `×`. Walk check u5t. Reset vs Restore is still open. |
+
+**Found while checking 7:** the deck card's busy ring was a 164 px flat ellipse sweeping across "Generating supports..." (shots m5, m11) - `ProgressIndicator` used outside `.progress` read undefined size variables. **Fixed** with fallbacks; measured 164 x 69 before, 22 x 22 after.
 
 Journeys, most finished first (Fable): aligner Steps 1-3; Drop page to deck to auto-generate; the
 any-model editor. Single most helpful change: finding 2, the status line.
