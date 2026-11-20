@@ -122,7 +122,9 @@ if (zoneGraphFile !== undefined) {
     process.exit(1);
   }
   if (Number(steep) > 0 && rules.noSupportSteepDeg === undefined) {
-    console.log(`Note: the graph's steep ray R1b is ${steep} deg, but noSupportSteepDeg is not set, so the policy and the review layer treat the steep ray as off. Add --set noSupportSteepDeg=${steep} to make them agree (docs/TYPE-PIPELINE.md, unit P1).`);
+    // A refusal, not a note: a note goes to a log nobody opens, and the run would look whole (cia F4).
+    console.error(`--zone-graph sets the steep ray R1b to ${steep} deg but noSupportSteepDeg is not set, so the policy and the review layer would treat the steep ray as off. Add --set noSupportSteepDeg=${steep} (the rule takes 45 to 90, exclusive).`);
+    process.exit(1);
   }
 }
 const skip = new Set(['--kind', valueOf('--kind'), '--out', valueOf('--out'), ...sets, '--set', '--open', '--list', '--zone-graph', zoneGraphFile]);
@@ -153,7 +155,8 @@ console.log(`  out: ${out}\n`);
 const child = spawn(vite, ['--script', join('dentalwork', 'batch-review', 'batch.ts'), '--kind', kind, '--out', out, ...folders], {
   cwd: root, stdio: 'inherit', shell: process.platform === 'win32',
   // MIXO_TIMERS makes every row report its stage seconds, which is the measurement the interaction design waits on.
-  env: { ...process.env, MIXO_RULES: JSON.stringify(rules), MIXO_TIMERS: '1', ...(zoneGraphFile ? { MIXO_ZONE_GRAPH_FILE: zoneGraphFile } : {}) },
+  // MIXO_ZONE_GRAPH_FILE only from --zone-graph: one left in the shell would run a graph nobody asked for (cia F8).
+  env: { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'MIXO_ZONE_GRAPH_FILE')), MIXO_RULES: JSON.stringify(rules), MIXO_TIMERS: '1', ...(zoneGraphFile ? { MIXO_ZONE_GRAPH_FILE: zoneGraphFile } : {}) },
 });
 
 child.on('exit', (code) => {
