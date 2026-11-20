@@ -9,7 +9,7 @@
 <style>
   /* The page never grows: body is exactly the window, and only the side panels scroll. */
   html, body { height: 100%; }
-  body { height: 100vh; overflow: hidden; display: grid; grid-template-rows: var(--header-h) minmax(0, 1fr) auto; color: var(--ink); font-size: var(--fs-md); }
+  body { height: 100vh; overflow: hidden; display: grid; grid-template-rows: var(--header-h) minmax(0, 1fr) var(--chain-h, auto); color: var(--ink); font-size: var(--fs-md); }
   header { display: flex; align-items: center; gap: 12px; padding: 0 var(--pad); border-bottom: 1px solid var(--line); background: var(--surface); }
   header h1 { margin: 0; font-size: var(--fs-lg); font-weight: 500; }
   header .muted, .muted { color: var(--muted); }
@@ -104,16 +104,25 @@
 /* THE CHAIN: the engine's steps as nodes, left to right, in the order they actually run.
    It is generated from DENTURE_STEPS - the same list the step-by-step buttons walk - so it cannot
    describe a chain the engine does not run. No drag handles, deliberately: see the note it prints. */
-.chain { border-top: 1px solid var(--line); margin-top: 10px; padding: 10px 12px 14px; min-width: 0; }
+.chain { position: relative; border-top: 1px solid var(--line); margin-top: 10px; padding: 10px 12px 14px; min-width: 0; min-height: 0; overflow-y: auto; }
+/* The divider between the 3D view and the stages (owner, 2026-11-20: "allow push up the divider in case
+   we need more space to show the editor"). Drag it; double-click puts it back to fit the content. */
+.chain-divider { position: sticky; top: -10px; z-index: 5; height: 10px; margin: -10px -12px 0; cursor: row-resize; touch-action: none; }
+.chain-divider::after { content: ""; display: block; width: 48px; height: 4px; margin: 3px auto 0; border-radius: 2px; background: var(--line-strong); }
+.chain-divider:hover::after, .chain-divider.dragging::after { background: var(--red); }
+@media (max-width: 820px) { .chain-divider { display: none; } }
 .chain-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .chain-head h3 { margin: 0; }
 .chain-rail { display: flex; gap: 0; overflow-x: auto; padding: 10px 0 4px; align-items: flex-start; min-width: 0; }
 .chain-node { flex: 0 0 auto; width: 186px; border: 1px solid var(--line); border-radius: 6px;
-  padding: 7px 8px; background: var(--panel); display: flex; flex-direction: column; gap: 5px; }
+  padding: 7px 8px; background: var(--surface); display: flex; flex-direction: column; gap: 5px; }
 /* The card is a DIV, not a button: a button may not contain the inputs the settings rows need, and
    a card that cannot hold a field can never become an editor. The title is the button instead. */
-.chain-node:has(.n[aria-pressed="true"]) { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.chain-node:has(.n[aria-pressed="true"]) { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
 .chain-node .n { height: auto; padding: 0; background: none; border: 0; text-align: left; cursor: pointer; }
+/* base.css paints a pressed button's TEXT in --paper for its dark fill; the card drops the fill, so the
+   selected card's title went paper-on-paper and vanished (owner, 2026-11-20). The card border shows selection. */
+.chain-node .n[aria-pressed="true"] { background: none; border: 0; color: var(--ink); }
 .chain-node.absent { opacity: 0.5; }
 .chain-node .n { font-weight: 600; font-size: 12px; line-height: 1.25; }
 /* Capped, because the rail is as tall as its TALLEST card and step 7 owns nine rules: without this
@@ -123,6 +132,7 @@
 .chain-set { display: flex; align-items: center; gap: 5px; font-size: 11px; }
 .chain-set .k { color: var(--muted); }
 .chain-set .v { margin-left: auto; font-variant-numeric: tabular-nums; }
+.chain-set select { max-width: 150px; margin-left: auto; font-size: 11px; height: 20px; }
 .chain-set input { width: 52px; height: 18px; margin-left: auto; font-size: 11px; padding: 0 3px; }
 .chain-none { font-size: 11px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 4px; }
 .chain-node .outs { display: flex; flex-direction: column; gap: 2px; }
@@ -134,18 +144,21 @@
 
 /* The three stages: one tab per stage, one stage on screen, so the 3D view keeps its height. */
 .stage-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.stage-tab { height: auto; padding: 4px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); cursor: pointer; font-weight: 600; }
-.stage-tab[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.stage-tab { height: auto; padding: 4px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; font-weight: 600; }
+.stage-tab[aria-pressed="true"] { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
 .stage-arrow { color: var(--muted); }
 .stage-body { min-width: 0; }
-.deg-figure svg { width: 100%; height: 56px; }
+.chain-node.search { width: 300px; }
+.deg-figure svg { width: 100%; height: auto; max-width: 280px; display: block; }
+.deg-figure .picked { fill: var(--red); }
+.deg-how { margin: 4px 0 6px; font-size: 11px; color: var(--muted); line-height: 1.35; }
 .deg-figure .plate { stroke: var(--muted); stroke-width: 2; }
 .deg-figure .up { stroke: var(--muted); stroke-dasharray: 3 2; }
-.deg-figure .lean, .deg-figure .arc { stroke: var(--accent); fill: none; stroke-width: 1.5; }
-.deg-figure text { font-size: 8px; fill: var(--muted); }
+.deg-figure .lean, .deg-figure .arc { stroke: var(--red); fill: none; stroke-width: 1.5; }
+.deg-figure text { font-size: 11px; fill: var(--muted); }
 /* The zone editor. */
 .zone-status { font-size: 12px; padding: 5px 8px; border-radius: 4px; margin: 8px 0 6px; }
-.zone-status.default { background: var(--panel); border: 1px solid var(--line); }
+.zone-status.default { background: var(--surface); border: 1px solid var(--line); }
 .zone-status.edited { border: 1px solid var(--warning); }
 .zone-bar { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
 .zone-bar select, .zone-bar button { height: auto; padding: 3px 8px; }
@@ -168,8 +181,8 @@
 
 /* The React Flow canvas and its nodes. Colours are tokens: the bundle's own stylesheet supplies the
    canvas chrome, and nothing here may hold a literal. */
-.zone-canvas { height: 360px; min-height: 220px; resize: vertical; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
-.zone-canvas .zn, .zone-canvas .zo { font-size: 11px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; width: 220px; color: var(--ink); }
+.zone-canvas { height: max(360px, calc(var(--chain-h, 0px) - 200px)); min-height: 220px; resize: vertical; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--sunken); }
+.zone-canvas .zn, .zone-canvas .zo { font-size: 11px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; width: 220px; color: var(--ink); }
 .zone-canvas .zn.idle { opacity: 0.6; border-style: dashed; }
 .zone-canvas .zn.fixed { background: transparent; }
 .zone-canvas .zn-head { display: flex; align-items: baseline; gap: 6px; font-size: 12px; }
@@ -182,17 +195,29 @@
 .zone-canvas .zn-out-row { border-top: 1px solid var(--line); margin-top: 4px; }
 .zone-canvas .zn input, .zone-canvas .zn select { margin-left: auto; font-size: 11px; height: 20px; padding: 0 3px; }
 .zone-canvas .zn input { width: 64px; }
-.zone-canvas .zn select { max-width: 120px; }
-.zone-canvas .zn-live { color: var(--accent); }
+/* A dropdown gets its own line under its label, so a described choice is read whole, not cut off. */
+.zone-canvas .zn-row:has(select) { flex-wrap: wrap; row-gap: 2px; padding-bottom: 2px; }
+.zone-canvas .zn select { flex: 1 1 100%; margin-left: 0; max-width: none; }
+.zone-canvas .zn-live { color: var(--red); }
 .zone-canvas .zn-note { color: var(--muted); font-size: 10px; margin-top: 4px; }
-.zone-canvas .zo { width: 280px; border-color: var(--accent); }
+.zone-canvas .zo { width: 280px; border-color: var(--ink); }
 .zone-canvas .zo-row { align-items: flex-start; padding: 4px 0; border-top: 1px solid var(--line); }
 .zone-canvas .zo-row .react-flow__handle { top: 12px; }
 .zone-canvas .zo-row.empty b { color: var(--danger); }
+.zone-canvas .zn.has-issue { border-color: var(--danger); }
+.zone-canvas .zn-issue { color: var(--danger); font-size: 10px; line-height: 1.35; margin: 2px 0; }
+.zone-canvas .zn-warn { color: var(--warning); font-size: 10px; line-height: 1.35; margin: 2px 0; }
+.zone-hint { color: var(--muted); font-size: 12px; margin: 4px 0; }
+/* Two lines of explanation; the whole sentence on hover or when the node is selected. */
+.zone-canvas .zn-says { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.zone-canvas .react-flow__node:hover .zn-says, .zone-canvas .react-flow__node.selected .zn-says { display: block; overflow: visible; }
+.zone-canvas .zn-fixed { margin-left: auto; color: var(--muted); font-size: 10px; text-align: right; }
+.zone-canvas .zo-set { width: 14px; color: var(--success); font-size: 11px; text-align: center; }
+.zone-canvas .zo-from { color: var(--muted); font-size: 10px; }
 .zone-canvas .zo-says { color: var(--muted); font-size: 10px; line-height: 1.35; }
 .zone-canvas .h-mask { background: var(--layer-allowed); }
 .zone-canvas .h-depthMap { background: var(--warning); }
-.zone-canvas .h-position { background: var(--accent); }
+.zone-canvas .h-position { background: var(--red); }
 .zone-canvas .h-curve { background: var(--layer-no-support-steep); }
 
 /* The run button, folded up from the old benchwork panel to sit beside the stages it runs. */
@@ -278,6 +303,7 @@
   </div>
 </main>
 <section class="chain" id="chain" data-ui="review-node-chain" hidden>
+  <div class="chain-divider" id="chain-divider" data-ui="chain-divider" role="separator" aria-orientation="horizontal" aria-label="Resize the stage area" tabindex="0" title="Drag to give the stages more or less height. Double-click to fit. Arrow keys work too."></div>
   <div class="stage-tabs" id="stage-tabs" data-ui="review-stage-tabs"></div>
   <div class="stage-run" id="stage-run" data-ui="stage-run" hidden></div>
   <div class="stage-body" id="stage-body" data-ui="review-stage-body"></div>
@@ -787,10 +813,21 @@ function settingsBox(settings, names) {
     row.dataset.ui = `chain-set-${setting.rule ?? setting.key}`;
     const k = document.createElement('span');
     k.className = 'k';
-    k.textContent = setting.key;
-    row.append(k);
     const field = setting.rule && benchFields?.get(setting.rule);
-    if (field) {
+    k.textContent = field?.rule.label ?? setting.key;
+    row.append(k);
+    if (field && field.rule.choices) {
+      // A mode is a dropdown of its described choices; empty means the engine's own default.
+      const input = document.createElement('select');
+      input.append(new Option('default', ''));
+      for (const [value, label] of field.rule.choices) input.append(new Option(label, value));
+      input.value = field.input.value;
+      input.addEventListener('change', () => { field.input.value = input.value; });
+      input.dataset.ui = `chain-input-${setting.rule}`;
+      row.append(input);
+      row.dataset.tipTitle = field.rule.label;
+      row.dataset.tip = `${field.rule.says} Press Apply and run again to use it.`;
+    } else if (field) {
       const input = document.createElement('input');
       if (field.rule.type === 'flag') {
         input.type = 'checkbox';
@@ -801,14 +838,14 @@ function settingsBox(settings, names) {
         input.step = 'any';
         input.min = '0';
         const fallback = RULES[setting.rule];
-        input.placeholder = fallback === undefined ? 'engine default' : String(fallback);
+        input.placeholder = fallback === undefined ? 'default' : String(fallback);
         input.value = field.input.value;
         input.addEventListener('input', () => { field.input.value = input.value; });
       }
       input.dataset.ui = `chain-input-${setting.rule}`;
       row.append(input);
-      row.dataset.tipTitle = setting.rule;
-      row.dataset.tip = `${field.rule.says} WHERE IT IS READ: ${setting.why} Turning it here is the same as turning it in the benchwork panel; press Apply there to run.`;
+      row.dataset.tipTitle = field.rule.label;
+      row.dataset.tip = `${field.rule.says} Press Apply and run again to use it. Read in: ${setting.why}`;
     } else {
       const v = document.createElement('span');
       v.className = 'v';
@@ -834,11 +871,32 @@ function searchCard() {
   title.textContent = 'Print-angle search';
   const fig = document.createElement('div');
   fig.className = 'deg-figure';
-  fig.innerHTML = '<svg viewBox="0 0 120 64" aria-hidden="true"><line x1="10" y1="58" x2="110" y2="58" class="plate"/><line x1="40" y1="58" x2="40" y2="8" class="up"/><line x1="40" y1="58" x2="72" y2="14" class="lean"/><path d="M40 30 A28 28 0 0 1 55 34" class="arc"/><text x="44" y="8">0&deg;</text><text x="74" y="14">45&deg;</text><text x="12" y="54">plate</text></svg>';
+  // Drawn from the numbers, not a picture of them: the plate, upright (0), the search's end, and the
+  // angle this case picked. Leaning RIGHT here is "teeth side further up" (denture/pose.rs:13-17).
+  const ray = (deg, len) => {
+    const r = (deg * Math.PI) / 180;
+    return [60 + len * Math.sin(r), 112 - len * Math.cos(r)].map((n) => n.toFixed(1));
+  };
+  const [ex, ey] = ray(s.endDeg, 92);
+  const [ax0, ay0] = ray(0, 44);
+  const [ax1, ay1] = ray(s.endDeg, 44);
+  const picked = caseNow?.printAngleDeg;
+  const [px, py] = ray(picked ?? 0, 92);
+  fig.innerHTML = `<svg viewBox="0 0 260 128" role="img" aria-label="Print angle: 0 degrees upright, search to ${s.endDeg} degrees${picked == null ? '' : `, picked ${picked} degrees`}">`
+    + '<line x1="8" y1="112" x2="252" y2="112" class="plate"/><text x="160" y="125">build plate</text>'
+    + `<line x1="60" y1="112" x2="60" y2="16" class="up"/><text x="48" y="12">0°</text>`
+    + `<line x1="60" y1="112" x2="${ex}" y2="${ey}" class="up"/><text x="${Number(ex) + 4}" y="${ey}">${s.endDeg}°</text>`
+    + `<path d="M${ax0} ${ay0} A44 44 0 0 1 ${ax1} ${ay1}" class="arc"/>`
+    + (picked == null ? '' : `<line x1="60" y1="112" x2="${px}" y2="${py}" class="lean"/><text x="${Number(px) + 6}" y="${Number(py) + 14}" class="picked">picked ${picked}°</text>`)
+    + '</svg>';
+  const how = document.createElement('p');
+  how.className = 'deg-how';
+  // Fable read this from denture/upright.rs:25 and pose.rs:1-17; verified there 2026-11-20.
+  how.textContent = '0° is the denture standing upright on the open ends of the U, front of the arch on top. Each degree leans it back so the teeth side faces further up.';
   const box = document.createElement('div');
   box.className = 'chain-sets';
   const rows = [
-    ['start', `${s.startDeg}°`, 'Bolt upright: the denture stands on the plate teeth end DOWN. This is 0 by the engine\'s own definition, not a setting.'],
+    ['start', `${s.startDeg}°`, 'Upright: the denture stands on the open ends of the U, front of the arch on top, teeth side facing sideways. This is 0 by the engine\'s own definition (denture/upright.rs:25), not a setting.'],
     ['end', `${s.endDeg}°`, 'The furthest lean the search tries. A positive angle tips the TEETH side up toward you (denture/tilt.rs:1-3). Profile field pose.tiltRangeDeg.'],
     ['step', `${s.stepDeg}°`, 'The search tries every step from start to end. Profile field pose.tiltStepDeg.'],
     ['tie margin', `${s.marginDeg}°`, 'Profile field pose.tiltMarginDeg.'],
@@ -856,8 +914,10 @@ function searchCard() {
   }
   const note = document.createElement('div');
   note.className = 'chain-none';
-  note.textContent = 'read-only until profiles can be supplied (register_profile)';
-  node.append(title, fig, box, note);
+  // The tilt range is a profile field, not a rule (denture/profile.rs:42): no call takes a profile at run
+  // time yet. docs/TYPE-PIPELINE.md is the plan - units E1 (register_profile) then R1 (these fields).
+  note.textContent = 'End, step and tie margin become fields here once the engine accepts a saved type (docs/TYPE-PIPELINE.md, E1 then R1). Start stays 0°: the engine starts every search upright.';
+  node.append(title, fig, how, box, note);
   return node;
 }
 
@@ -947,7 +1007,7 @@ function drawZoneEditor(body, present, names) {
   reset.dataset.ui = 'zone-reset';
   reset.disabled = graphLib.isDefault(g);
   reset.addEventListener('click', () => {
-    zonePositions = editorLib ? editorLib.autoLayout(graphLib.defaultGraph()) : null;
+    zonePositions = editorLib ? editorLib.autoLayout(graphLib.defaultGraph(), graphLib.FIXED.outputs) : null;
     try { localStorage.removeItem('review-zone-layout-2'); } catch { /* per-viewer only */ }
     save(graphLib.defaultGraph());
   });
@@ -990,8 +1050,10 @@ function drawZoneEditor(body, present, names) {
         editorHandle?.update({ ...props, positions: next });
       },
     };
-    for (const id of [...g.nodes.map((n) => n.id), 'outputs']) if (!zonePositions[id]) zonePositions = { ...editorLib.autoLayout(g), ...zonePositions };
-    body.append(status, bar, report, zoneCanvasHost);
+    // Only the output node is filled in here: a node ADDED from the toolbar is left unplaced, and the
+    // canvas puts it in the middle of the view, where the operator is looking.
+    if (!zonePositions.outputs) zonePositions = { ...editorLib.autoLayout(g, graphLib.FIXED.outputs), ...zonePositions };
+    body.append(status, zoneHint(), bar, report, zoneCanvasHost);
     if (editorHandle) editorHandle.update(props);
     else editorHandle = editorLib.mountZoneEditor(zoneCanvasHost, props);
     return;
@@ -1003,7 +1065,7 @@ function drawZoneEditor(body, present, names) {
   rail.dataset.ui = 'zone-nodes';
   g.nodes.forEach((n, k) => rail.append(zoneCard(g, n, k, idle, save)));
 
-  body.append(status, bar, report, outs, rail);
+  body.append(status, zoneHint(), bar, report, outs, rail);
 }
 
 /** A select of the nodes whose output fits `want` ('mask', or 'mask|curve'). */
@@ -1017,6 +1079,11 @@ function sourceSelect(g, want, current) {
     sel.append(Object.assign(document.createElement('option'), { value: n.id, textContent: `${n.id} · ${graphLib.KINDS[n.kind].label}`, selected: n.id === current }));
   }
   return sel;
+}
+
+/** The one line a first-time operator needs before touching the graph (Fable's wording, 2026-11-20). */
+function zoneHint() {
+  return Object.assign(document.createElement('div'), { className: 'zone-hint', textContent: 'Edit, then Apply and run again. Reset to today undoes every edit.' });
 }
 
 /** One zone node: kind, wires, parameters, remove, move. */
@@ -1082,6 +1149,9 @@ function zoneCard(g, n, k, idle, save) {
     if (numeric) Object.assign(input, { type: 'number', step: 'any' });
     else for (const [v, label] of words.choices ?? []) input.append(new Option(label, v));
     input.value = String(value);
+    // Fixed in this version (graphLib.FIXED mirrors the engine): shown, never editable.
+    const fixedHere = Boolean(graphLib.FIXED.params[n.kind]?.includes(key));
+    input.disabled = fixedHere;
     input.dataset.ui = `zone-param-${n.id}-${key}`;
     // R1b's angle is the ONE zone parameter that already runs today, through the rule
     // noSupportSteepDeg. Its field mirrors the benchwork panel, so turning it here and pressing Apply
@@ -1092,7 +1162,7 @@ function zoneCard(g, n, k, idle, save) {
       input.addEventListener('input', () => { live.input.value = input.value === '0' ? '' : input.value; });
     }
     input.addEventListener('change', () => save(graphLib.setParam(g, n.id, key, numeric ? Number(input.value) : input.value)));
-    row.title = words.help;
+    row.title = fixedHere ? `${words.help} Fixed in this version: the engine does not read an edit yet.` : words.help;
     row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: live ? `${words.label} · live` : words.label }), input);
     if (key === 'deg' && n.kind === 'parallelCast') {
       row.dataset.tipTitle = live ? 'deg · live (noSupportSteepDeg)' : 'deg';
@@ -1117,12 +1187,48 @@ async function loadGraphLib() {
     editorLib = await import('./node-editor/node-editor.js');
     let layout = null;
     try { layout = JSON.parse(localStorage.getItem('review-zone-layout-2') || 'null'); } catch { layout = null; }
-    zonePositions = layout && graphLib ? layout : (graphLib ? editorLib.autoLayout(zoneGraph) : {});
+    zonePositions = layout && graphLib ? layout : (graphLib ? editorLib.autoLayout(zoneGraph, graphLib.FIXED.outputs) : {});
   } catch {
     editorLib = null; // no bundle: the card editor stands in
   }
 }
 await loadGraphLib();
+
+/** The divider: drag (or arrow keys) to set the stage area's height; double-click to fit the content again. */
+(function wireChainDivider() {
+  const bar = document.getElementById('chain-divider');
+  const root = document.documentElement;
+  const KEY = 'review-chain-h';
+  const headerH = () => document.querySelector('header')?.getBoundingClientRect().height ?? 40;
+  // Both ends keep something usable: at least 120 px of stages, and at least 160 px of 3D view.
+  const clamp = (h) => Math.round(Math.min(Math.max(h, 120), window.innerHeight - headerH() - 160));
+  const set = (h) => {
+    if (h === null) { root.style.removeProperty('--chain-h'); try { localStorage.removeItem(KEY); } catch { /* per-viewer only */ } return; }
+    const px = clamp(h);
+    root.style.setProperty('--chain-h', `${px}px`);
+    try { localStorage.setItem(KEY, String(px)); } catch { /* per-viewer only */ }
+  };
+  let saved = null;
+  try { saved = Number(localStorage.getItem(KEY)) || null; } catch { saved = null; }
+  if (saved) set(saved);
+  const current = () => document.getElementById('chain').getBoundingClientRect().height;
+  bar.addEventListener('pointerdown', (e) => {
+    bar.setPointerCapture(e.pointerId);
+    bar.classList.add('dragging');
+    const move = (ev) => set(window.innerHeight - ev.clientY);
+    const up = () => { bar.classList.remove('dragging'); bar.removeEventListener('pointermove', move); bar.removeEventListener('pointerup', up); window.dispatchEvent(new Event('resize')); };
+    bar.addEventListener('pointermove', move);
+    bar.addEventListener('pointerup', up);
+    e.preventDefault();
+  });
+  bar.addEventListener('dblclick', () => { set(null); window.dispatchEvent(new Event('resize')); });
+  bar.addEventListener('keydown', (e) => {
+    const step = e.shiftKey ? 80 : 24;
+    if (e.key === 'ArrowUp') { set(current() + step); e.preventDefault(); }
+    if (e.key === 'ArrowDown') { set(current() - step); e.preventDefault(); }
+  });
+  window.addEventListener('resize', () => { const v = root.style.getPropertyValue('--chain-h'); if (v) root.style.setProperty('--chain-h', `${clamp(parseFloat(v))}px`); });
+})();
 
 /** A layer key's colour token, as the GLB writers set it; transparent when the file has no such layer. */
 function colourOf(key) {

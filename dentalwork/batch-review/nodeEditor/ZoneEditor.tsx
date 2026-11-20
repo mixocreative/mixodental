@@ -16,7 +16,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Background, Controls, Handle, MiniMap, Position, ReactFlow, applyEdgeChanges, applyNodeChanges, useStore, useUpdateNodeInternals,
+  Background, Controls, Handle, MiniMap, Position, ReactFlow, applyEdgeChanges, applyNodeChanges, useReactFlow, useStore, useUpdateNodeInternals,
   type Connection, type Edge, type EdgeChange, type Node, type NodeChange, type NodeProps,
 } from '@xyflow/react';
 
@@ -59,11 +59,14 @@ export interface GraphLib {
   KIND_WORDS: Record<string, Words>;
   PARAM_WORDS: Record<string, ParamWords>;
   OUTPUT_WORDS: Record<string, Words>;
+  /* What this version does not read (mirrors zone_graph.rs): drawn as fixed, never as a field. */
+  FIXED: { params: Record<string, string[]>; outputs: string[] };
   rewire(g: Graph, id: string, input: string, from: string | null): Graph;
   bindOutput(g: Graph, name: string, from: string | null): Graph;
   removeNode(g: Graph, id: string): Graph;
   setParam(g: Graph, id: string, key: string, value: string | number): Graph;
   unreached(g: Graph): string[];
+  validate(g: Graph): { problems: string[]; warnings: string[] };
 }
 export type Positions = Record<string, { x: number; y: number }>;
 
@@ -85,8 +88,35 @@ export interface ZoneEditorProps {
    nodes scattered down the canvas read as eight unrelated things. */
 const OUTPUTS = 'outputs';
 
-/** A first layout: each node one column right of its deepest input, outputs in the last column. */
-export function autoLayout(g: Graph): Positions {
+/** The nodes some wire leads from `roots` back to, the roots included. */
+function reachFrom(g: Graph, roots: string[]): Set<string> {
+  const seen = new Set<string>();
+  const visit = (id: string) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    for (const from of Object.values(g.nodes.find((n) => n.id === id)?.inputs ?? {})) if (from) visit(from);
+  };
+  roots.forEach(visit);
+  return seen;
+}
+
+/**
+ * The nodes ONLY fixed outputs need: the part of the graph the operator cannot change in this version.
+ * They are not drawn; their output sockets say "already set" (owner review, 2026-11-20). A node a free
+ * output also reads (the hole strip feeds Allowed) is drawn like any other.
+ */
+export function fixedOnly(g: Graph, fixedOutputs: string[]): Set<string> {
+  const outs = (pick: (name: string) => boolean) => Object.entries(g.outputs).filter(([name, from]) => from && pick(name)).map(([, from]) => from as string);
+  const free = reachFrom(g, outs((name) => !fixedOutputs.includes(name)));
+  const fixed = reachFrom(g, outs((name) => fixedOutputs.includes(name)));
+  return new Set([...fixed].filter((id) => !free.has(id)));
+}
+
+const COL = 260;
+const ROW = 210;
+
+/** A first layout: each drawn node one column right of its deepest input, the output node in the last column. */
+export function autoLayout(g: Graph, fixedOutputs: string[] = []): Positions {
   const depth = new Map<string, number>();
   const visit = (id: string, seen: Set<string>): number => {
     if (depth.has(id)) return depth.get(id)!;
@@ -100,28 +130,55 @@ export function autoLayout(g: Graph): Positions {
   };
   g.nodes.forEach((n) => visit(n.id, new Set()));
   const last = Math.max(0, ...depth.values()) + 1;
-  const rows = new Map<number, number>();
-  const at = (col: number) => { const r = rows.get(col) ?? 0; rows.set(col, r + 1); return r; };
+  const fixed = fixedOnly(g, fixedOutputs);
+  const place = (ids: string[], top: number) => {
+    const rows = new Map<number, number>();
+    for (const id of ids) {
+      const col = depth.get(id) ?? 0;
+      const r = rows.get(col) ?? 0;
+      rows.set(col, r + 1);
+      pos[id] = { x: col * COL, y: top + r * ROW };
+    }
+  };
   const pos: Positions = {};
-  for (const n of g.nodes) { const col = depth.get(n.id) ?? 0; pos[n.id] = { x: col * 260, y: at(col) * 230 }; }
-  pos[OUTPUTS] = { x: last * 260, y: 0 };
+  place(g.nodes.map((n) => n.id).filter((id) => !fixed.has(id)), 0);
+  pos[OUTPUTS] = { x: last * COL, y: 0 };
   return pos;
 }
 
 interface ZoneData extends Record<string, unknown> {
   lib: GraphLib; node: GraphNode; idle: boolean; live: string[];
+  /* The model's problems that name THIS node ("R1: ..."), shown on it; the rest stay in the list above. */
+  issues: { text: string; warn: boolean }[];
   onParam(id: string, key: string, value: string | number): void;
 }
 interface OutputData extends Record<string, unknown> { lib: GraphLib; filled: Record<string, boolean> }
+/**
+ * A node added from the toolbar has no position yet: put it in the middle of what is on screen, not
+ * wherever a layout would send it, so it appears where the operator is looking.
+ */
+function PlaceNew({ missing, onPlace }: { missing: string; onPlace(at: Positions): void }) {
+  const rf = useReactFlow();
+  const dom = useStore((st) => st.domNode);
+  useEffect(() => {
+    if (!missing || !dom) return;
+    const r = dom.getBoundingClientRect();
+    const centre = rf.screenToFlowPosition({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+    onPlace(Object.fromEntries(missing.split(',').map((id, k) => [id, { x: centre.x - 110 + k * 30, y: centre.y - 80 + k * 30 }])));
+  }, [missing, dom, rf, onPlace]);
+  return null;
+}
+
 
 function ZoneNode({ data }: NodeProps<Node<ZoneData>>) {
-  const { lib, node, idle, live, onParam } = data;
+  const { lib, node, idle, live, onParam, issues } = data;
   const spec = lib.KINDS[node.kind];
   const words = lib.KIND_WORDS[node.kind];
   const inputLabel = (name: string) => (node.kind === 'subtract' ? (name === 'a' ? 'A - kept' : 'B - removed from A') : name === 'a' || name === 'b' ? name.toUpperCase() : name);
   return (
-    <div className={`zn${idle ? ' idle' : ''}${spec.fixed ? ' fixed' : ''}`}>
+    <div className={`zn${idle ? ' idle' : ''}${spec.fixed ? ' fixed' : ''}${issues.some((i) => !i.warn) ? ' has-issue' : ''}`}>
       <div className="zn-head"><b>{words.title}</b><span className="zn-id">{node.id}</span></div>
+      {issues.map((i) => <div className={i.warn ? 'zn-warn' : 'zn-issue'} key={i.text}>{i.text}</div>)}
       <div className="zn-says">{words.says}</div>
       {Object.entries(spec.inputs).map(([name, want]) => (
         // The handle lives INSIDE its row, so it lines up with its label however the sentence above wraps.
@@ -134,6 +191,16 @@ function ZoneNode({ data }: NodeProps<Node<ZoneData>>) {
       {Object.entries(node.params).map(([key, value]) => {
         const p = lib.PARAM_WORDS[key] ?? { label: key, help: '' };
         const isLive = live.includes(`${node.id}.${key}`);
+        if (lib.FIXED.params[node.kind]?.includes(key)) {
+          // A field the engine ignores is a control that lies, so a fixed setting is text, not an input.
+          const shown = p.choices?.find(([v]) => v === value)?.[1] ?? String(value);
+          return (
+            <div className="zn-row" key={key} title={`${p.help} Fixed in this version: the engine does not read an edit yet.`}>
+              <span className="zn-in">{p.label}</span>
+              <span className="zn-fixed">{shown} · fixed</span>
+            </div>
+          );
+        }
         return (
           <label className="zn-row" key={`${key}=${String(value)}`} title={isLive ? `${p.help} LIVE: this one runs today.` : p.help}>
             <span className="zn-in">{p.label}{isLive && <b className="zn-live"> · live</b>}</span>
@@ -165,6 +232,9 @@ function ZoneNode({ data }: NodeProps<Node<ZoneData>>) {
   );
 }
 
+/** Outputs stage 1 (Orient) sets: the rim line and the strips grown from it. */
+const FROM_ORIENT = ['rim', 'rim_band', 'low_rim_band'];
+
 /** The single output: one socket per name the engine reads, each saying what the engine does with it. */
 function OutputNode({ data }: NodeProps<Node<OutputData>>) {
   const { lib, filled } = data;
@@ -173,10 +243,13 @@ function OutputNode({ data }: NodeProps<Node<OutputData>>) {
       <div className="zn-head"><b>Zone output</b></div>
       <div className="zn-says">What the engine reads. Each socket below decides one thing about where tips may go.</div>
       {Object.entries(lib.REQUIRED_OUTPUTS).map(([name, want]) => (
-        <div className={`zn-row zn-socket zo-row${filled[name] ? '' : ' empty'}`} key={name} title={lib.OUTPUT_WORDS[name].says}>
-          <Handle type="target" position={Position.Left} id={name} className={`h-${want}`} />
+        <div className={`zn-row zn-socket zo-row${filled[name] ? '' : ' empty'}${lib.FIXED.outputs.includes(name) ? ' fixed' : ''}`} key={name} title={lib.OUTPUT_WORDS[name].says}>
+          {lib.FIXED.outputs.includes(name)
+            ? <span className="zo-set" aria-hidden="true">✓</span>
+            : <Handle type="target" position={Position.Left} id={name} className={`h-${want}`} />}
           <div>
             <b>{lib.OUTPUT_WORDS[name].title}</b>
+            {lib.FIXED.outputs.includes(name) && <span className="zo-from"> · already set {FROM_ORIENT.includes(name) ? 'in Orient' : 'by the engine'}</span>}
             <div className="zo-says">{lib.OUTPUT_WORDS[name].says}</div>
           </div>
         </div>
@@ -185,23 +258,42 @@ function OutputNode({ data }: NodeProps<Node<OutputData>>) {
   );
 }
 
-const nodeTypes = { zone: ZoneNode, output: OutputNode };
+// NOT 'output': React Flow ships an `output` type whose stylesheet centres the text and adds a border.
+const nodeTypes = { zone: ZoneNode, zoneOutput: OutputNode };
 
 export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, onPositions }: ZoneEditorProps) {
   const idle = useMemo(() => new Set(lib.unreached(graph)), [lib, graph]);
+  const fixed = useMemo(() => fixedOnly(graph, lib.FIXED.outputs), [graph, lib]);
+  // Every model message that concerns one node starts with its id and a colon - the one convention
+  // validate() keeps - so the node at fault can carry its own message instead of a list naming ids.
+  const issues = useMemo(() => {
+    const { problems, warnings } = lib.validate(graph);
+    const by = new Map<string, { text: string; warn: boolean }[]>();
+    const add = (m: string, warn: boolean) => {
+      const at = m.indexOf(': ');
+      const id = at > 0 ? m.slice(0, at) : '';
+      if (graph.nodes.some((n) => n.id === id)) by.set(id, [...(by.get(id) ?? []), { text: m.slice(at + 2), warn }]);
+    };
+    problems.forEach((m) => add(m, false));
+    warnings.forEach((m) => add(m, true));
+    return by;
+  }, [lib, graph]);
   const onParam = useCallback((id: string, key: string, value: string | number) => onGraph(lib.setParam(graph, id, key, value)), [lib, graph, onGraph]);
 
   const derived: Node[] = useMemo(() => [
-    ...graph.nodes.map((n) => ({
+    // What only a fixed output needs (the rim line and its strips from Orient, the sockets) is not
+    // drawn: the owner's call, 2026-11-20 - "no reason to make it into a node, just show it is already
+    // set". It stays in the graph, because the engine checks those outputs by name.
+    ...graph.nodes.filter((n) => !fixed.has(n.id)).map((n) => ({
       id: n.id, type: 'zone', position: positions[n.id] ?? { x: 0, y: 0 },
       deletable: !lib.KINDS[n.kind].fixed,
-      data: { lib, node: n, idle: idle.has(n.id), live: liveParams, onParam } satisfies ZoneData,
+      data: { lib, node: n, idle: idle.has(n.id), live: liveParams, onParam, issues: issues.get(n.id) ?? [] } satisfies ZoneData,
     })),
     {
-      id: OUTPUTS, type: 'output', position: positions[OUTPUTS] ?? { x: 0, y: 0 }, deletable: false,
+      id: OUTPUTS, type: 'zoneOutput', position: positions[OUTPUTS] ?? { x: 0, y: 0 }, deletable: false,
       data: { lib, filled: Object.fromEntries(Object.keys(lib.REQUIRED_OUTPUTS).map((k) => [k, Boolean(graph.outputs[k])])) } satisfies OutputData,
     },
-  ], [graph, positions, lib, idle, liveParams, onParam]);
+  ], [graph, positions, lib, idle, liveParams, onParam, issues, fixed]);
 
   /*
    * React Flow keeps each node's MEASURED size in the node object, delivered through onNodesChange.
@@ -219,13 +311,13 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((ns) => applyNodeChanges(changes, ns)), []);
 
   const derivedEdges: Edge[] = useMemo(() => [
-    ...graph.nodes.flatMap((n) => Object.entries(n.inputs).filter(([, from]) => from).map(([input, from]) => ({
+    ...graph.nodes.filter((n) => !fixed.has(n.id)).flatMap((n) => Object.entries(n.inputs).filter(([, from]) => from && !fixed.has(from)).map(([input, from]) => ({
       id: `${from}->${n.id}.${input}`, source: from as string, sourceHandle: 'out', target: n.id, targetHandle: input,
     }))),
-    ...Object.entries(graph.outputs).filter(([, from]) => from).map(([name, from]) => ({
+    ...Object.entries(graph.outputs).filter(([name, from]) => from && !lib.FIXED.outputs.includes(name)).map(([name, from]) => ({
       id: `${from}->${OUTPUTS}.${name}`, source: from as string, sourceHandle: 'out', target: OUTPUTS, targetHandle: name, className: 'to-output',
     })),
-  ], [graph]);
+  ], [graph, fixed, lib]);
 
   /*
    * Same rule as the nodes: React Flow emits a wire's SELECTION through onEdgesChange. Rebuilding the
@@ -243,7 +335,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
     const from = graph.nodes.find((n) => n.id === c.source);
     if (!from || c.source === c.target) return false;
     const out = lib.KINDS[from.kind].out;
-    if (c.target === OUTPUTS) return Boolean(c.targetHandle) && lib.REQUIRED_OUTPUTS[c.targetHandle as string] === out;
+    if (c.target === OUTPUTS) return Boolean(c.targetHandle) && !lib.FIXED.outputs.includes(c.targetHandle as string) && lib.REQUIRED_OUTPUTS[c.targetHandle as string] === out;
     const to = graph.nodes.find((n) => n.id === c.target);
     const want = to && c.targetHandle ? lib.KINDS[to.kind].inputs[c.targetHandle] : undefined;
     return Boolean(want && want.split('|').includes(out));
@@ -272,6 +364,11 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
   }, [graph, lib, onGraph]);
 
   const onNodeDragStop = useCallback((_e: unknown, n: Node) => onPositions({ ...positions, [n.id]: n.position }), [positions, onPositions]);
+  const fitOptions = useMemo(() => ({
+    minZoom: 0.6, padding: 0.05,
+    nodes: [...graph.nodes.filter((n) => !fixed.has(n.id)).map((n) => ({ id: n.id })), { id: OUTPUTS }],
+  }), [graph, fixed]);
+  const onPlace = useCallback((at: Positions) => onPositions({ ...positions, ...at }), [positions, onPositions]);
 
   return (
     <ReactFlow
@@ -287,15 +384,17 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
       onEdgesChange={onEdgesChange}
       deleteKeyCode={['Backspace', 'Delete']}
       fitView
-      // Fitting all 22 nodes into a short canvas zoomed them out until a field was 7px tall - legible to
-      // nobody. Fit no smaller than this; the rest is a pan away, and the minimap shows where.
-      fitViewOptions={{ minZoom: 0.6, padding: 0.05 }}
+      // Fit the part the operator EDITS - the free nodes and the output - not all of it: fitting every node
+      // zoomed out until a sentence was 6 px tall. The fixed band is just below, a scroll away, and the
+      // minimap shows it. The Controls' fit button uses the same options, or it would undo this.
+      fitViewOptions={fitOptions}
       minZoom={0.2}
       proOptions={{ hideAttribution: false }}
     >
       <MeasureWhenReady ids={nodes.map((n) => n.id).join(',')} />
+      <PlaceNew missing={graph.nodes.filter((n) => !positions[n.id]).map((n) => n.id).join(',')} onPlace={onPlace} />
       <Background />
-      <Controls />
+      <Controls fitViewOptions={fitOptions} />
       <MiniMap pannable zoomable />
     </ReactFlow>
   );
