@@ -273,17 +273,24 @@ The owner: *"not only reordering, user can add or remove nodes freely, just like
 the model. A dev adds a second forbidding ray, deletes the hole band, wires a new compound — nothing
 is fixed but the four things below, and each is a consequence of the engine, not a UI preference.
 
-**1. The sinks are named and required, and there are SEVEN, not three.** Placement reads
+**1. The REQUIRED OUTPUTS are named, and there are EIGHT.**
+
+> **What a required output is, in one line:** a name the engine reads. Placement never looks at your
+> graph - it asks for a mask *by name*, the way a render only ever looks at Blender's Material Output
+> however much is wired behind it. Your graph may contain any nodes in any arrangement, and it must
+> end by filling these eight names, because these are the only things anything downstream reads.
+
+Placement reads
 `allowed`, `no_support` and `allowed_cavity` — and also `hole_band` (`ruled_tips.rs:452, 573`),
 `rim_band` (`:444, 578`), `low_rim_band` (`:193`), the socket mask (`:468`) and **`rim` itself — a
 curve, not a mask** (`:534-568`, the rim-line stream's source) — **directly, not through
-`allowed`**. Eight sinks, not three. Leave those unbound and rewiring BAND changes `allowed` while the hole stream
+`allowed`**. Eight required outputs, not three. Leave those unfilled and rewiring BAND changes `allowed` while the hole stream
 still samples the raw band: the graph would then misreport what the rewire did, which is worse than
-refusing it. A graph that leaves any sink unbound is **refused**, naming which. It must never fall
+refusing it. A graph that leaves any required output unfilled is **refused**, naming which. It must never fall
 back to a default — a graph that silently reverted to today's behaviour would be the exact failure
 this whole effort is about.
 
-**1b. One hidden edge must be made visible or it becomes a cycle.** The socket cancel reads the
+**2. One hidden edge must be made visible or it becomes a cycle.** The socket cancel reads the
 FINAL `allowed` (`ruled_tips.rs:113-115`, `sockets.rs:107-112`). So wiring Basin fill into `allowed`
 would create a cycle that today's code hides by ordering. Expose the raw basins
 (`sockets.rs:122`) and make the cancel an explicit `SUBTRACT(basins, allowed)` bound to a `sockets`
@@ -295,12 +302,12 @@ Sight cast takes a Position, not a Plane. Blender's lesson is that the connectio
 worth more than the error you would have read afterwards.
 
 **3. Every graph is validated before a run, never during one.** A cycle, a dangling input, an unbound
-sink: refused with the node named, before any engine time is spent. This is the rule benchwork
+a required output with nothing feeding it: refused with the node named, before any engine time is spent. This is the rule benchwork
 already follows — refuse before the minutes, not after them.
 
 **4. Cost is visible and capped, because adding a node is not free in rays.** Each Parallel cast is up
 to **1.5 million rays** (`denture/no_support.rs:18`), once per model per graph. So: a node that
-reaches no sink is **not evaluated** and is drawn as not reaching one; the ray count and effective
+reaches no required output is **not evaluated** and is drawn as not reaching one; the ray count and effective
 pitch of every cast are shown on its node; and the number of casts is capped with the cap stated
 rather than silently coarsening, which is today's behaviour and is itself a finding.
 
@@ -321,7 +328,7 @@ never fires on them:
    `ruled_tips.rs:128, 137`; `holes_axis.rs:189-190`), which the default graph must KEEP to stay
    byte-identical — and which a free graph must surface as **"cannot tell", with the case flagged**.
 
-So the rule is not refusal alone: **a sink bound to a zero-face mask warns with its count**, and a
+So the rule is not refusal alone: **a required output filled by a zero-face mask warns with its count**, and a
 node that could not decide says so per case. "Validate before the run" covers structure; it cannot
 cover a graph that is structurally fine and empty in fact.
 
