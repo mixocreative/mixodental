@@ -313,6 +313,11 @@ the app because nothing calls it yet.
 
 ## 7. Decisions for the owner
 
+> **Owner rulings, 2026-11-20.** **1: the whole profile** ("if that is more secure and clear" - it is:
+> a missing number is an error, never a silent default). **2: committed files.** **3: the print angle
+> is set in the workbench as the type's default behaviour; the app keeps its dial for fine-tuning, or
+> an override in free transform.** 4 and 5 asked for a plain explanation first (below, unchanged).
+
 1. **Is the type file the whole profile, or only what differs from Generic?**
    Recommend: **the whole profile.** The engine's safety is that a missing number is an error. A
    file of differences makes every future Generic retune silently change every type built on it.
