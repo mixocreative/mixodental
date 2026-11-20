@@ -607,42 +607,48 @@ N = 3, in the workbench proof run first, the app later as a background "a better
 (a 4-minute wait is fine for proving a type, poor for an operator). Best build is outside the top 3 ->
 do not buy builds; add the number from answer 4 to the quick score, which is cheaper every run.
 
-### M1, first results - PARTIAL (run of 2026-11-21, still going)
+### M1, first results - PARTIAL (run of 2026-11-21, still going), checked by Fable
 
-`scripts/tilt-measure.ts`, every angle 0-44 by 2 fully built, on the local denture scans in
-`dentalwork/fixtures/case-denture` (named by index, never by file). Three scans so far, the third
-up to 34 degrees. **What the script records is narrower than the plan above:** tips placed and left out,
-support volume, support top, parts and seconds - not the verdict, islands unserved or pillars on the
-model. Read every line below with that gap in mind.
+`scripts/tilt-measure.ts`, every angle 0-44 by 2 fully built, on the six local denture scans in
+`dentalwork/fixtures/case-denture` (named by index, never by file). Scans 1-2 complete, 3 up to 38
+degrees. **The script records less than the plan above:** tips placed and left out, support volume, top,
+parts and seconds - not the verdict, islands unserved, pillars on the model, nor WHY a tip was left out.
+A first reading of these rows was checked by Fable against the raw JSON and corrected in four places;
+what follows is the corrected reading.
 
-| Scan | Quick pick | Its build | Fewest tips left out | Its quick rank | Resin there vs the pick |
-|---|---|---|---|---|---|
-| 1 | 8 deg | 388 placed, **115 left out**, 7595 mm3 | 44 deg: 27 left out | 22 of 23 | +39 % (10550 mm3) |
-| 2 | 8 deg | 168 placed, 0 left out, 5665 mm3 | 0 left out at most angles | - | within 2 % |
-| 3 (to 34 deg) | 0 deg | 177 placed, **249 left out**, 5940 mm3 | 34 deg: 166 left out | 18 of 18 so far | +51 % (8981 mm3) |
+| Scan | Quick pick | Its build: placed / left out / resin | Steep end | What changed |
+|---|---|---|---|---|
+| 1 | 8 deg | 388 / 115 / 7595 mm3 | 44 deg: 401 / 27 / 10550 mm3 | Flat 91-121 left out from 0 to 32 deg, then a STEP at 34. Placed rises only 13; the candidate total falls 503 -> 428. Mostly fewer candidates, not better support. |
+| 2 | 8 deg | 168 / 0 / 5665 mm3 | similar at every angle | 0 left out at 12 of 23 angles, 1-2 at the rest. Resin -2.5 % to +13 % across the clean angles. |
+| 3 | 0 deg | 177 / 249 / 5940 mm3 | 38 deg (so far): 262 / 146 | Candidate total flat (426 -> 408); placed rises 85. A real gain, still leaving 36 % out; the minimum is still moving at the edge of the range. |
 
-The four answers, as far as three scans go:
+**Why tips are left out, at the two picks** (Fable rebuilt them; the script discards the reasons):
+scan 3 at 0 deg - 182 of 249 "all rods within x mm of the model", 27 "nearest outline too far", 18
+"no room below the neck": the model is in the way. Scan 1 at 8 deg - 78 of 115 "every outline pillar in
+reach is full or crowded", 24 model clearance: pillar CAPACITY, a different cause.
 
-1. **The quick pick is the best build on 1 of 3** (scan 2, where every angle builds clean).
-2. **When it is not, the best build sits near the BOTTOM of the quick order** (22nd, 18th), not in its
-   top 3. On scans 1 and 3 the tips left out FALL steadily as the angle rises (scan 1: about 90-120 below
-   32 deg, 51 at 34, 27 at 44), while the quick score's tie-breaks prefer a lower print and a lower angle.
-3. **The difference is large, and it is a trade:** 88 and 83 fewer tips left out, for 39 % and 51 % more
-   support resin. Under section 9's safety-first order (left-out tips before volume) the steep angle wins;
-   under "least resin" the quick pick wins. That is a ruling, not a measurement.
-4. **The number that explains the miss is tips left out**, which the quick score cannot see: it places
-   the tips, but "left out" is a ROUTING result - no pillar could reach the tip - and routing happens
-   only in the full build.
+The four answers, as far as these rows go:
 
-Against the decision rule above this lands in its third branch - the best build is outside the quick
-top 3 - so buying N = 3 builds (option B) would NOT find it. The cheaper move the rule names is to give
-the quick score a routing estimate. CANDIDATE, not decided: a straight-drop count (a tip whose vertical
-line to the plate passes through the part) is the cheapest stand-in, and should be checked against these
-rows before anything is built on it.
+1. **Quick pick vs best build:** fine on scan 2; clearly beaten on scan 3; on scan 1 the steep angles look
+   better mainly because they ask for fewer tips, which is not shown to be a better build.
+2. **Where the better build sits:** at the bottom of the quick order (scan 3: 18th-21st), and the quick top
+   3 are all about as bad as the pick (scan 3: 249, 255, 254 left out). So option B with N = 3 would not
+   find it - but that rests on one number, with the verdict and islands unrecorded.
+3. **How big:** scan 3, about 85 more tips really built at the steep end, for about 50 % more resin.
+4. **What the quick score misses:** routing. It places the tips but cannot tell which can be reached, and
+   the two scans fail for DIFFERENT routing reasons (model in the way; pillars full). A straight-drop
+   count would speak to the first and not the second.
 
-Also seen: scans 1 and 2 report quick metrics equal to about 13 digits at every angle while their builds
-differ (388 vs 168 tips) - the same arch outline at two levels of detail, most likely. Not a fault of the
-measurement; worth knowing before treating them as two independent cases.
+**A separate finding, CANDIDATE, worth more than the rest:** scans 1 and 2 are different meshes (680,820
+vs 516,770 triangles; bounds 70.7 x 28.3 x 50.3 vs 65.9 x 25.7 x 46.8 mm) yet their quick rows agree to
+1e-15 at every angle - height, largest layer, slenderness - and a fresh process reproduces it, so it is
+not a cache. The quick score is therefore not looking at whatever geometry scan 1 has beyond scan 2, and
+that extra geometry carries about 320 more tip candidates and all of scan 1's left-out tips. Not traced
+yet: which part of the mesh the quick score reads.
 
-**Needs the owner (ruling 3):** which wins when they conflict - fewer tips left out, or less resin? The
-measurement can rank angles either way; it cannot choose the order.
+**Next, before any ruling:** (1) trace the identical quick rows - it may be a defect, not a design limit;
+(2) make `tilt-measure.ts` record the left-out REASONS and the candidate total per angle, and the verdict;
+(3) let the run finish scans 4-6 (and consider extending past 44 deg where the minimum is still moving).
+Only then is ruling 3 - fewer tips left out, or less resin, when they conflict - asked on a fair footing.
+
+Section 9 above says "3 of them in `dentalwork/fixtures/case-denture`"; the folder holds 6.
