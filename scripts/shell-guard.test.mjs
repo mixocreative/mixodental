@@ -9,7 +9,7 @@
 // would receive. Writing `'a\\b'` in an ordinary JS string would test the collapsed form - the very
 // confusion the guard is about.
 import { describe, expect, it } from 'vitest';
-import { interpretedText, judge } from './shell-guard.mjs';
+import { commandOf, interpretedText, judge, shellOf } from './shell-guard.mjs';
 
 const rule = (command, tool) => judge(command, tool)?.rule ?? null;
 
@@ -129,6 +129,15 @@ describe('a gate may not be piped', () => {
     expect(rule('npm test | tail -5; echo "exit=$?"')).toBe('piped-gate');
   });
 
+  it("covers mixo-geocore's gates too, since that repo hooks this same file", () => {
+    // The incident that started the rule, verbatim, and it happened in the OTHER repo.
+    expect(rule('cargo test --workspace | Select-Object -Last 10', 'PowerShell')).toBe('piped-gate');
+    expect(rule('cargo clippy --all-targets | tail -20')).toBe('piped-gate');
+    expect(rule('npm run typecheck | head -5')).toBe('piped-gate');
+    expect(rule('npm run wasm:test; echo done')).toBe('piped-gate');
+    expect(rule('cargo test --workspace > cargo.log 2>&1')).toBeNull();
+  });
+
   it('allows the full local gate exactly as CLAUDE.md writes it', () => {
     expect(rule('npm run vendor:check && npm test && npm run screens && npm run build && npm run walk')).toBeNull();
   });
@@ -185,6 +194,29 @@ describe('the guard itself', () => {
       expect(verdict?.reason).toMatch(/Write tool|-F <path>|--body-file|Redirect to a file|single quotes/);
       expect(verdict.reason.length).toBeGreaterThan(80);
     }
+  });
+
+  it('finds the command whatever the tool calls that field, and REPORTS a miss', () => {
+    // The Bash and PowerShell tools say `command`; the terminal and Windows-MCP routes reach the same
+    // shells and need not agree. Defaulting a miss to '' would judge the empty string, find nothing
+    // wrong, and wave every command through a matched tool while looking healthy - the guard's own
+    // vacuous pass. `null` is how the caller is made to say so out loud.
+    expect(commandOf({ tool_input: { command: 'ls' } })).toBe('ls');
+    expect(commandOf({ tool_input: { script: 'ls' } })).toBe('ls');
+    expect(commandOf({ tool_input: { cmd: 'ls' } })).toBe('ls');
+    expect(commandOf({ tool_input: { somethingElse: 'ls' } })).toBeNull();
+    expect(commandOf({ tool_input: { command: '' } })).toBeNull();
+    expect(commandOf({})).toBeNull();
+    expect(commandOf(undefined)).toBeNull();
+  });
+
+  it('applies a shell\'s rules by what the tool IS, not by its exact name', () => {
+    expect(shellOf('PowerShell')).toBe('PowerShell');
+    expect(shellOf('mcp__Windows-MCP__PowerShell')).toBe('PowerShell');
+    expect(shellOf('pwsh-runner')).toBe('PowerShell');
+    expect(shellOf('Bash')).toBe('Bash');
+    expect(shellOf('mcp__terminal__run_in_terminal')).toBe('Bash');
+    expect(shellOf(undefined)).toBe('Bash');
   });
 
   it('never throws, whatever it is handed', () => {

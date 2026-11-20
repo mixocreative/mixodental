@@ -32,6 +32,11 @@
 //
 // Wiring: a PreToolUse hook on Bash|PowerShell in .claude/settings.json (untracked, like the rest of
 // that directory - this script is the tracked, reviewed half). shell-guard.test.mjs is the gate.
+//
+// TWO REPOS, ONE COPY. `S:\ai\mixo-geocore` hooks THIS file by absolute path from its own
+// `.claude/settings.local.json` rather than keeping a second copy, because two copies of a rule drift
+// and the one that drifts is the one nobody is testing. So `GATE` carries that repo's gates as well,
+// and if this path ever moves the hook there fails open with a message instead of going quiet.
 // Input: the hook's stdin JSON. Output: a PreToolUse permissionDecision, or nothing to allow.
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -76,9 +81,16 @@ const PROSE_FLAG = /(?:^|\s)(?:-[A-Za-z]*m|-b|--message|--body|--notes|--title|-
  */
 const PROSE_FROM_FILE = /(?:^|\s)(?:-F|--file|--body-file|--notes-file|--no-edit|--fixup|--reuse-message)\b/;
 
-/** Commands whose exit code and printed counts ARE the evidence, so nothing may stand between. */
+/*
+ * Commands whose exit code and printed counts ARE the evidence, so nothing may stand between.
+ *
+ * It covers BOTH repos, because this one file is the guard for both: mixo-geocore hooks it by absolute
+ * path rather than keeping a second copy to drift. `cargo test` is here because of the incident that
+ * started the rule - `cargo test --workspace | Select-Object -Last 10` in mixo-geocore kept the exit
+ * code and threw away all but two `test result:` lines.
+ */
 const GATE =
-  /\b(?:npm\s+(?:run\s+)?(?:test|walk|screens|build|gate:real|vendor:check)|npx\s+vitest|node\s+scripts\/walk\.mjs|cargo\s+test)\b/;
+  /\b(?:npm\s+(?:run\s+)?(?:test|walk|screens|build|gate:real|vendor:check|typecheck|lint|wasm:test)|npx\s+vitest|node\s+scripts\/walk\.mjs|cargo\s+(?:test|clippy|fmt)|wasm-pack\s+\w+)\b/;
 /*
  * A pipe, but not `||` - which needs BOTH guards, because in `||` the second bar has no bar after it
  * and would match a lookahead-only test. `;` is here too: `npm test; echo done` reports echo's status.
@@ -179,12 +191,40 @@ export function judge(command, tool = 'Bash') {
   return null;
 }
 
+/*
+ * The field a shell-running tool puts its command in. `Bash` and `PowerShell` use `command`; the
+ * terminal and Windows-MCP tools are other routes to the same shells and are not guaranteed to agree.
+ *
+ * READING THE WRONG FIELD WOULD BE THE GUARD'S OWN VACUOUS PASS: `undefined ?? ''` judges the empty
+ * string, finds nothing wrong, and allows every command through a matched tool while looking healthy.
+ * So the miss is reported (below) instead of defaulted away.
+ */
+export const commandOf = (input) => {
+  for (const key of ['command', 'script', 'cmd', 'input']) {
+    const value = input?.tool_input?.[key];
+    if (typeof value === 'string' && value.length > 0) return value;
+  }
+  return null;
+};
+
+/** Which shell's rules to apply. A PowerShell route by any name is still PowerShell. */
+export const shellOf = (tool) => (/powershell|pwsh/i.test(String(tool ?? '')) ? 'PowerShell' : 'Bash');
+
 /** Hook wiring, kept at the edge so `judge` stays a pure (string, tool) -> verdict the test drives. */
 async function main() {
   const chunks = [];
   for await (const chunk of process.stdin) chunks.push(chunk);
   const input = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
-  const verdict = judge(input?.tool_input?.command ?? '', input?.tool_name ?? 'Bash');
+  const command = commandOf(input);
+  if (command === null) {
+    // Matched a guarded tool and found no command to read. Allow it - blocking on a shape we do not
+    // understand is worse - but never silently: an unguarded route must be visible, not inferred.
+    process.stdout.write(
+      JSON.stringify({ systemMessage: `shell-guard found no command in ${input?.tool_name ?? 'this tool'}'s input: NOT guarded` }),
+    );
+    return;
+  }
+  const verdict = judge(command, shellOf(input?.tool_name));
   if (!verdict) return;
   process.stdout.write(
     JSON.stringify({
