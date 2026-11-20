@@ -50,9 +50,15 @@ function MeasureWhenReady({ ids }: { ids: string }) {
 export interface GraphNode { id: string; kind: string; params: Record<string, string | number>; inputs: Record<string, string | null>; note?: string }
 export interface Graph { nodes: GraphNode[]; outputs: Record<string, string | null> }
 interface KindSpec { label: string; out: string; inputs: Record<string, string>; params: Record<string, string | number>; fixed?: boolean; reads: string; stage: string }
+interface Words { title: string; says: string }
+interface ParamWords { label: string; help: string; choices?: [string, string][] }
 export interface GraphLib {
   KINDS: Record<string, KindSpec>;
   REQUIRED_OUTPUTS: Record<string, string>;
+  /* The plain words, owned by the model and enforced by its tests: nothing on the canvas is a bare engine name. */
+  KIND_WORDS: Record<string, Words>;
+  PARAM_WORDS: Record<string, ParamWords>;
+  OUTPUT_WORDS: Record<string, Words>;
   rewire(g: Graph, id: string, input: string, from: string | null): Graph;
   bindOutput(g: Graph, name: string, from: string | null): Graph;
   removeNode(g: Graph, id: string): Graph;
@@ -75,10 +81,12 @@ export interface ZoneEditorProps {
   onPositions(next: Positions): void;
 }
 
-const OUT = 'out:';
+/* ONE output node with a socket per output, like Blender's Material Output - eight separate output
+   nodes scattered down the canvas read as eight unrelated things. */
+const OUTPUTS = 'outputs';
 
 /** A first layout: each node one column right of its deepest input, outputs in the last column. */
-export function autoLayout(lib: GraphLib, g: Graph): Positions {
+export function autoLayout(g: Graph): Positions {
   const depth = new Map<string, number>();
   const visit = (id: string, seen: Set<string>): number => {
     if (depth.has(id)) return depth.get(id)!;
@@ -95,8 +103,8 @@ export function autoLayout(lib: GraphLib, g: Graph): Positions {
   const rows = new Map<number, number>();
   const at = (col: number) => { const r = rows.get(col) ?? 0; rows.set(col, r + 1); return r; };
   const pos: Positions = {};
-  for (const n of g.nodes) { const col = depth.get(n.id) ?? 0; pos[n.id] = { x: col * 240, y: at(col) * 150 }; }
-  for (const name of Object.keys(lib.REQUIRED_OUTPUTS)) pos[OUT + name] = { x: last * 240, y: at(last) * 64 };
+  for (const n of g.nodes) { const col = depth.get(n.id) ?? 0; pos[n.id] = { x: col * 260, y: at(col) * 230 }; }
+  pos[OUTPUTS] = { x: last * 260, y: 0 };
   return pos;
 }
 
@@ -104,46 +112,75 @@ interface ZoneData extends Record<string, unknown> {
   lib: GraphLib; node: GraphNode; idle: boolean; live: string[];
   onParam(id: string, key: string, value: string | number): void;
 }
-interface OutputData extends Record<string, unknown> { name: string; want: string; filled: boolean }
+interface OutputData extends Record<string, unknown> { lib: GraphLib; filled: Record<string, boolean> }
 
 function ZoneNode({ data }: NodeProps<Node<ZoneData>>) {
   const { lib, node, idle, live, onParam } = data;
   const spec = lib.KINDS[node.kind];
-  const inputs = Object.entries(spec.inputs);
+  const words = lib.KIND_WORDS[node.kind];
+  const inputLabel = (name: string) => (node.kind === 'subtract' ? (name === 'a' ? 'A - kept' : 'B - removed from A') : name === 'a' || name === 'b' ? name.toUpperCase() : name);
   return (
-    <div className={`zn${idle ? ' idle' : ''}${spec.fixed ? ' fixed' : ''}`} title={`${spec.reads}${node.note ? ` - ${node.note}` : ''}`}>
-      <div className="zn-head"><b>{node.id}</b> {spec.label}</div>
-      {inputs.map(([name, want], k) => (
-        <div className="zn-row" key={name}>
-          <Handle type="target" position={Position.Left} id={name} className={`h-${want.split('|')[0]}`} style={{ top: 38 + k * 22 }} />
-          <span className="zn-in">{node.kind === 'subtract' ? (name === 'a' ? 'A (kept)' : 'B (removed)') : name}</span>
-          <span className="zn-type">{want.replace('|', ' / ')}</span>
+    <div className={`zn${idle ? ' idle' : ''}${spec.fixed ? ' fixed' : ''}`}>
+      <div className="zn-head"><b>{words.title}</b><span className="zn-id">{node.id}</span></div>
+      <div className="zn-says">{words.says}</div>
+      {Object.entries(spec.inputs).map(([name, want]) => (
+        // The handle lives INSIDE its row, so it lines up with its label however the sentence above wraps.
+        <div className="zn-row zn-socket" key={name}>
+          <Handle type="target" position={Position.Left} id={name} className={`h-${want.split('|')[0]}`} />
+          <span className="zn-in">{inputLabel(name)}</span>
+          <span className="zn-type">{want === 'mask|curve' ? 'faces or a line' : want === 'depthMap' ? 'depth map' : want === 'mask' ? 'faces' : want}</span>
         </div>
       ))}
-      {Object.entries(node.params).map(([key, value]) => (
-        <label className="zn-row" key={key} title={live.includes(`${node.id}.${key}`) ? 'LIVE: this one runs today - press Apply and run again beside the stages.' : undefined}>
-          <span className="zn-in">{key}{live.includes(`${node.id}.${key}`) && <b className="zn-live"> · live</b>}</span>
-          <input
-            className="nodrag"
-            defaultValue={String(value)}
-            type={typeof spec.params[key] === 'number' ? 'number' : 'text'}
-            step="any"
-            onBlur={(e) => onParam(node.id, key, typeof spec.params[key] === 'number' ? Number(e.target.value) : e.target.value)}
-          />
-        </label>
-      ))}
-      {idle && <div className="zn-note">reaches no output - not evaluated</div>}
-      <Handle type="source" position={Position.Right} id="out" className={`h-${spec.out}`} />
-      <span className="zn-outtype">{spec.out}</span>
+      {Object.entries(node.params).map(([key, value]) => {
+        const p = lib.PARAM_WORDS[key] ?? { label: key, help: '' };
+        const isLive = live.includes(`${node.id}.${key}`);
+        return (
+          <label className="zn-row" key={`${key}=${String(value)}`} title={isLive ? `${p.help} LIVE: this one runs today.` : p.help}>
+            <span className="zn-in">{p.label}{isLive && <b className="zn-live"> · live</b>}</span>
+            {p.choices
+              ? (
+                <select className="nodrag" defaultValue={String(value)} onChange={(e) => onParam(node.id, key, e.target.value)}>
+                  {p.choices.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+                </select>
+                )
+              : (
+                <input
+                  className="nodrag"
+                  defaultValue={String(value)}
+                  type="number"
+                  step="any"
+                  onBlur={(e) => onParam(node.id, key, Number(e.target.value))}
+                />
+                )}
+          </label>
+        );
+      })}
+      {idle && <div className="zn-note">Not connected to the output - not run, costs nothing.</div>}
+      {spec.fixed && <div className="zn-note">Found in stage 1 (Orient); fixed here.</div>}
+      <div className="zn-row zn-out-row">
+        <span className="zn-outtype">gives {spec.out === 'mask' ? 'faces' : spec.out === 'depthMap' ? 'a depth map' : spec.out === 'position' ? 'a point' : 'a line'}</span>
+        <Handle type="source" position={Position.Right} id="out" className={`h-${spec.out}`} />
+      </div>
     </div>
   );
 }
 
+/** The single output: one socket per name the engine reads, each saying what the engine does with it. */
 function OutputNode({ data }: NodeProps<Node<OutputData>>) {
+  const { lib, filled } = data;
   return (
-    <div className={`zo${data.filled ? '' : ' empty'}`} title={`The engine reads "${data.name}" by name. It needs a ${data.want}; left empty, the run is refused.`}>
-      <Handle type="target" position={Position.Left} id="in" className={`h-${data.want}`} />
-      <b>{data.name}</b> <span className="zn-type">{data.want}</span>
+    <div className="zo">
+      <div className="zn-head"><b>Zone output</b></div>
+      <div className="zn-says">What the engine reads. Each socket below decides one thing about where tips may go.</div>
+      {Object.entries(lib.REQUIRED_OUTPUTS).map(([name, want]) => (
+        <div className={`zn-row zn-socket zo-row${filled[name] ? '' : ' empty'}`} key={name} title={lib.OUTPUT_WORDS[name].says}>
+          <Handle type="target" position={Position.Left} id={name} className={`h-${want}`} />
+          <div>
+            <b>{lib.OUTPUT_WORDS[name].title}</b>
+            <div className="zo-says">{lib.OUTPUT_WORDS[name].says}</div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -160,10 +197,10 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
       deletable: !lib.KINDS[n.kind].fixed,
       data: { lib, node: n, idle: idle.has(n.id), live: liveParams, onParam } satisfies ZoneData,
     })),
-    ...Object.entries(lib.REQUIRED_OUTPUTS).map(([name, want]) => ({
-      id: OUT + name, type: 'output', position: positions[OUT + name] ?? { x: 0, y: 0 }, deletable: false,
-      data: { name, want, filled: Boolean(graph.outputs[name]) } satisfies OutputData,
-    })),
+    {
+      id: OUTPUTS, type: 'output', position: positions[OUTPUTS] ?? { x: 0, y: 0 }, deletable: false,
+      data: { lib, filled: Object.fromEntries(Object.keys(lib.REQUIRED_OUTPUTS).map((k) => [k, Boolean(graph.outputs[k])])) } satisfies OutputData,
+    },
   ], [graph, positions, lib, idle, liveParams, onParam]);
 
   /*
@@ -186,7 +223,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
       id: `${from}->${n.id}.${input}`, source: from as string, sourceHandle: 'out', target: n.id, targetHandle: input,
     }))),
     ...Object.entries(graph.outputs).filter(([, from]) => from).map(([name, from]) => ({
-      id: `${from}->${OUT}${name}`, source: from as string, sourceHandle: 'out', target: OUT + name, targetHandle: 'in', className: 'to-output',
+      id: `${from}->${OUTPUTS}.${name}`, source: from as string, sourceHandle: 'out', target: OUTPUTS, targetHandle: name, className: 'to-output',
     })),
   ], [graph]);
 
@@ -206,7 +243,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
     const from = graph.nodes.find((n) => n.id === c.source);
     if (!from || c.source === c.target) return false;
     const out = lib.KINDS[from.kind].out;
-    if (c.target?.startsWith(OUT)) return lib.REQUIRED_OUTPUTS[c.target.slice(OUT.length)] === out;
+    if (c.target === OUTPUTS) return Boolean(c.targetHandle) && lib.REQUIRED_OUTPUTS[c.targetHandle as string] === out;
     const to = graph.nodes.find((n) => n.id === c.target);
     const want = to && c.targetHandle ? lib.KINDS[to.kind].inputs[c.targetHandle] : undefined;
     return Boolean(want && want.split('|').includes(out));
@@ -214,7 +251,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
 
   const onConnect = useCallback((c: Connection) => {
     if (!c.source || !c.target) return;
-    if (c.target.startsWith(OUT)) onGraph(lib.bindOutput(graph, c.target.slice(OUT.length), c.source));
+    if (c.target === OUTPUTS) { if (c.targetHandle) onGraph(lib.bindOutput(graph, c.targetHandle, c.source)); }
     else if (c.targetHandle) onGraph(lib.rewire(graph, c.target, c.targetHandle, c.source));
   }, [graph, lib, onGraph]);
 
@@ -222,7 +259,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
   const onEdgesDelete = useCallback((gone: Edge[]) => {
     let next = graph;
     for (const e of gone) {
-      if (e.target.startsWith(OUT)) next = lib.bindOutput(next, e.target.slice(OUT.length), null);
+      if (e.target === OUTPUTS) { if (e.targetHandle) next = lib.bindOutput(next, e.targetHandle, null); }
       else if (e.targetHandle) next = lib.rewire(next, e.target, e.targetHandle, null);
     }
     onGraph(next);

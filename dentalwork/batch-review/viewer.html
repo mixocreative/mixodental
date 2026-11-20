@@ -169,19 +169,27 @@
 /* The React Flow canvas and its nodes. Colours are tokens: the bundle's own stylesheet supplies the
    canvas chrome, and nothing here may hold a literal. */
 .zone-canvas { height: 360px; min-height: 220px; resize: vertical; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
-.zone-canvas .zn, .zone-canvas .zo { font-size: 11px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 170px; color: var(--ink); }
+.zone-canvas .zn, .zone-canvas .zo { font-size: 11px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; width: 220px; color: var(--ink); }
 .zone-canvas .zn.idle { opacity: 0.6; border-style: dashed; }
 .zone-canvas .zn.fixed { background: transparent; }
-.zone-canvas .zn-head { font-size: 12px; margin-bottom: 4px; }
-.zone-canvas .zn-row { display: flex; align-items: center; gap: 6px; min-height: 20px; }
+.zone-canvas .zn-head { display: flex; align-items: baseline; gap: 6px; font-size: 12px; }
+.zone-canvas .zn-id { margin-left: auto; color: var(--muted); font-size: 10px; }
+.zone-canvas .zn-says { color: var(--muted); font-size: 10px; line-height: 1.35; margin: 2px 0 6px; }
+/* position: relative so each Handle sits on ITS row, not at a fraction of the node's height. */
+.zone-canvas .zn-row { position: relative; display: flex; align-items: center; gap: 6px; min-height: 22px; }
 .zone-canvas .zn-in { color: var(--muted); }
 .zone-canvas .zn-type, .zone-canvas .zn-outtype { margin-left: auto; color: var(--muted); font-size: 10px; }
-.zone-canvas .zn-outtype { position: absolute; right: 10px; bottom: -14px; }
-.zone-canvas .zn input { width: 60px; margin-left: auto; font-size: 11px; height: 18px; padding: 0 3px; }
+.zone-canvas .zn-out-row { border-top: 1px solid var(--line); margin-top: 4px; }
+.zone-canvas .zn input, .zone-canvas .zn select { margin-left: auto; font-size: 11px; height: 20px; padding: 0 3px; }
+.zone-canvas .zn input { width: 64px; }
+.zone-canvas .zn select { max-width: 120px; }
 .zone-canvas .zn-live { color: var(--accent); }
 .zone-canvas .zn-note { color: var(--muted); font-size: 10px; margin-top: 4px; }
-.zone-canvas .zo { min-width: 120px; border-color: var(--accent); }
-.zone-canvas .zo.empty { border-style: dashed; border-color: var(--danger); }
+.zone-canvas .zo { width: 280px; border-color: var(--accent); }
+.zone-canvas .zo-row { align-items: flex-start; padding: 4px 0; border-top: 1px solid var(--line); }
+.zone-canvas .zo-row .react-flow__handle { top: 12px; }
+.zone-canvas .zo-row.empty b { color: var(--danger); }
+.zone-canvas .zo-says { color: var(--muted); font-size: 10px; line-height: 1.35; }
 .zone-canvas .h-mask { background: var(--layer-allowed); }
 .zone-canvas .h-depthMap { background: var(--warning); }
 .zone-canvas .h-position { background: var(--accent); }
@@ -388,6 +396,8 @@ let RULES = {};
 /* The benchwork panel's fields, once it has built them: the chain mirrors these rather than keeping a
    second copy of what is turned. Null until the panel loads, and the chain simply shows values then. */
 let benchFields = null;
+/* The zone graph the loaded run was made with ("default" or a digest), from its summary.json. */
+let ranZoneGraph = 'default';
 const ruleText = (text) => text.replace(/\{globalOverhang\}/g, RULES.overhangAngleDeg ?? '?').replace(/\{rimOverhang\}/g, RULES.dentalRimOverhangAngleDeg ?? '?');
 // GLTFLoader turns spaces in node names into underscores; compare with them put back.
 const plain = (name) => (name ?? '').replace(/_/g, ' ');
@@ -692,9 +702,10 @@ const NODE_SETTINGS = {
  * Subtract - so "rearranging" a zone means rewiring it; moving a card left or right only changes
  * where it is drawn, and the tooltip says so rather than letting a drag pretend to mean something.
  *
- * WHAT IS TRUE TODAY, said on screen: only the DEFAULT graph runs. An edited graph is composed and
- * validated here, and running it needs the engine to accept a graph - the next engine change. The
- * status line says which of the two the operator is looking at, every time.
+ * AN EDITED GRAPH RUNS (engine 69): Apply sends it, the engine validates it when set and refuses with
+ * the node named, and the run's summary.json records which graph made it. The status line says two
+ * things every time - what the canvas holds, and what made the review on screen - because right after
+ * an edit they differ until Apply runs it, and that gap is exactly what must be visible.
  */
 const STAGES = [
   { id: 'orient', title: '1 Orient', steps: [0, 1] },
@@ -913,9 +924,12 @@ function drawZoneEditor(body, present, names) {
   const status = document.createElement('div');
   status.className = graphLib.isDefault(g) ? 'zone-status default' : 'zone-status edited';
   status.dataset.ui = 'zone-status';
+  // Two facts, both said every time: what the canvas holds, and what produced the review on screen.
+  // They differ right after an edit, until Apply runs it - and that gap is exactly what must be visible.
+  const ran = ranZoneGraph === 'default' ? 'the default graph' : `an edited graph (${ranZoneGraph.slice(0, 8)})`;
   status.textContent = graphLib.isDefault(g)
-    ? 'Default graph — this is exactly what runs today.'
-    : 'Edited — composed and checked here. Running an edited graph needs the engine to accept one (the next engine change); until then the run still uses the default.';
+    ? `Default graph on the canvas. The review on screen was made with ${ran}.`
+    : `Edited graph on the canvas. Apply runs what is on the canvas; the review on screen was made with ${ran}.`;
 
   // Toolbar: add a node, reset.
   const bar = document.createElement('div');
@@ -924,7 +938,7 @@ function drawZoneEditor(body, present, names) {
   pick.dataset.ui = 'zone-add-kind';
   for (const [kind, spec] of Object.entries(graphLib.KINDS)) {
     if (spec.stage !== 'zones') continue;
-    pick.append(Object.assign(document.createElement('option'), { value: kind, textContent: spec.label }));
+    pick.append(Object.assign(document.createElement('option'), { value: kind, textContent: graphLib.KIND_WORDS[kind].title, title: graphLib.KIND_WORDS[kind].says }));
   }
   const add = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Add node' });
   add.dataset.ui = 'zone-add';
@@ -933,8 +947,8 @@ function drawZoneEditor(body, present, names) {
   reset.dataset.ui = 'zone-reset';
   reset.disabled = graphLib.isDefault(g);
   reset.addEventListener('click', () => {
-    zonePositions = editorLib ? editorLib.autoLayout(graphLib, graphLib.defaultGraph()) : null;
-    try { localStorage.removeItem('review-zone-layout'); } catch { /* per-viewer only */ }
+    zonePositions = editorLib ? editorLib.autoLayout(graphLib.defaultGraph()) : null;
+    try { localStorage.removeItem('review-zone-layout-2'); } catch { /* per-viewer only */ }
     save(graphLib.defaultGraph());
   });
   bar.append(pick, add, reset);
@@ -954,12 +968,12 @@ function drawZoneEditor(body, present, names) {
   for (const [name, want] of Object.entries(graphLib.REQUIRED_OUTPUTS)) {
     const label = document.createElement('label');
     label.className = 'zone-out';
-    label.dataset.tipTitle = `output: ${name}`;
-    label.dataset.tip = `The engine reads "${name}" by name - placement never looks at the graph itself. It needs a ${want}. Leave it empty and the run is refused, never quietly defaulted.`;
+    label.dataset.tipTitle = graphLib.OUTPUT_WORDS[name].title;
+    label.dataset.tip = `${graphLib.OUTPUT_WORDS[name].says} Needs ${want === 'mask' ? 'faces' : 'a line'}; left empty, the run is refused.`;
     const sel = sourceSelect(g, want, g.outputs[name]);
     sel.dataset.ui = `zone-out-${name}`;
     sel.addEventListener('change', () => save(graphLib.bindOutput(g, name, sel.value || null)));
-    label.append(Object.assign(document.createElement('span'), { className: 'k', textContent: name }), sel);
+    label.append(Object.assign(document.createElement('span'), { className: 'k', textContent: graphLib.OUTPUT_WORDS[name].title }), sel);
     outs.append(label);
   }
 
@@ -972,11 +986,11 @@ function drawZoneEditor(body, present, names) {
       onGraph: save,
       onPositions: (next) => {
         zonePositions = next;
-        try { localStorage.setItem('review-zone-layout', JSON.stringify(next)); } catch { /* per-viewer only */ }
+        try { localStorage.setItem('review-zone-layout-2', JSON.stringify(next)); } catch { /* per-viewer only */ }
         editorHandle?.update({ ...props, positions: next });
       },
     };
-    for (const id of g.nodes.map((n) => n.id)) if (!zonePositions[id]) zonePositions = { ...editorLib.autoLayout(graphLib, g), ...zonePositions };
+    for (const id of [...g.nodes.map((n) => n.id), 'outputs']) if (!zonePositions[id]) zonePositions = { ...editorLib.autoLayout(g), ...zonePositions };
     body.append(status, bar, report, zoneCanvasHost);
     if (editorHandle) editorHandle.update(props);
     else editorHandle = editorLib.mountZoneEditor(zoneCanvasHost, props);
@@ -1015,9 +1029,10 @@ function zoneCard(g, n, k, idle, save) {
   head.className = 'zone-head';
   const title = document.createElement('span');
   title.className = 'n';
-  title.textContent = `${n.id} · ${spec.label}`;
-  title.dataset.tipTitle = spec.label;
-  title.dataset.tip = `${spec.reads}${n.note ? ` — ${n.note}` : ''}`;
+  const words = graphLib.KIND_WORDS[n.kind];
+  title.textContent = `${words.title} · ${n.id}`;
+  title.dataset.tipTitle = words.title;
+  title.dataset.tip = `${words.says}${n.note ? ` — ${n.note}` : ''}`;
   head.append(title);
   const tools = document.createElement('span');
   tools.className = 'zone-tools';
@@ -1060,10 +1075,12 @@ function zoneCard(g, n, k, idle, save) {
   for (const [key, value] of Object.entries(n.params)) {
     const row = document.createElement('label');
     row.className = 'chain-set';
-    const input = document.createElement('input');
     const numeric = typeof graphLib.KINDS[n.kind].params[key] === 'number';
-    input.type = numeric ? 'number' : 'text';
-    if (numeric) input.step = 'any';
+    const words = graphLib.PARAM_WORDS[key] ?? { label: key, help: '' };
+    // Anything that is not a number is a dropdown of the values the engine accepts - never free text.
+    const input = document.createElement(numeric ? 'input' : 'select');
+    if (numeric) Object.assign(input, { type: 'number', step: 'any' });
+    else for (const [v, label] of words.choices ?? []) input.append(new Option(label, v));
     input.value = String(value);
     input.dataset.ui = `zone-param-${n.id}-${key}`;
     // R1b's angle is the ONE zone parameter that already runs today, through the rule
@@ -1075,7 +1092,8 @@ function zoneCard(g, n, k, idle, save) {
       input.addEventListener('input', () => { live.input.value = input.value === '0' ? '' : input.value; });
     }
     input.addEventListener('change', () => save(graphLib.setParam(g, n.id, key, numeric ? Number(input.value) : input.value)));
-    row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: live ? `${key} · live` : key }), input);
+    row.title = words.help;
+    row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: live ? `${words.label} · live` : words.label }), input);
     if (key === 'deg' && n.kind === 'parallelCast') {
       row.dataset.tipTitle = live ? 'deg · live (noSupportSteepDeg)' : 'deg';
       row.dataset.tip = `Degrees from the FROM axis toward the TOWARD axis. 0 = off. R1 is 45 from back toward tissue: direction = normalize(back·cos θ − top·sin θ) - it leans to TISSUE, not toward the teeth.${live ? ' LIVE: this one runs today - it mirrors the benchwork rule noSupportSteepDeg, so press Apply in that panel to re-run. The engine reads only values strictly between 45 and 90 as on; benchwork refuses the rest.' : ''}`;
@@ -1098,8 +1116,8 @@ async function loadGraphLib() {
   try {
     editorLib = await import('./node-editor/node-editor.js');
     let layout = null;
-    try { layout = JSON.parse(localStorage.getItem('review-zone-layout') || 'null'); } catch { layout = null; }
-    zonePositions = layout && graphLib ? layout : (graphLib ? editorLib.autoLayout(graphLib, zoneGraph) : {});
+    try { layout = JSON.parse(localStorage.getItem('review-zone-layout-2') || 'null'); } catch { layout = null; }
+    zonePositions = layout && graphLib ? layout : (graphLib ? editorLib.autoLayout(zoneGraph) : {});
   } catch {
     editorLib = null; // no bundle: the card editor stands in
   }
@@ -1379,6 +1397,9 @@ let current = 0;
 function openRun(summary, glbUrl, csvUrl) {
   cases = summary.cases;
   RULES = summary.ruleDefaults ?? {};
+  // Which zone graph produced THIS run: "default", or the digest of the edited graph the node editor
+  // sent. Without it an edited run and a default run look identical on screen.
+  ranZoneGraph = summary.zoneGraph ?? 'default';
   urlOf = glbUrl;
   const needing = cases.filter((c) => c.needsLook);
   const built = cases.filter((c) => c.result === 'built').length;
@@ -1716,13 +1737,19 @@ try {
     const row = caseNow;
     if (!row?.source) { status.textContent = 'Open a case first: the re-run needs the STL it came from.'; return; }
     const rules = turned();
-    if (Object.keys(rules).length === 0) { status.textContent = 'Nothing is turned yet. Set a rule, then apply.'; return; }
+    // An edited zone graph is a reason to run on its own: refusing until a RULE was turned made the
+    // node editor's own Apply do nothing for a graph-only edit - found by pressing it.
+    const graphEdited = Boolean(graphLib && zoneGraph && !graphLib.isDefault(zoneGraph));
+    if (Object.keys(rules).length === 0 && !graphEdited) { status.textContent = 'Nothing is turned yet. Set a rule or edit the zone graph, then apply.'; return; }
     run.disabled = true;
-    const names = Object.entries(rules).map(([name, value]) => `${name}=${value}`).join(', ');
+    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : [])].join(', ');
     status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
     try {
       const reply = await fetch('/rerun', { method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind: kindNow, rules, source: row.source }) });
+        body: JSON.stringify({ kind: kindNow, rules, source: row.source,
+          // The node editor's graph, only when it has been edited: the default is sent as nothing, so a
+          // run with no edit is exactly the run it always was.
+          zoneGraph: graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null }) });
       const answer = await reply.json().catch(() => ({}));
       if (!reply.ok || !answer.ok) { status.textContent = `It did not run: ${answer.error ?? reply.status}`; return; }
       /*

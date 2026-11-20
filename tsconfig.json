@@ -29,5 +29,7 @@
       "@mixo-geocore/engine": ["./vendor/mixo-geocore/pkg-browser/mixo_geometry_wasm.js"]
     }
   },
-  "include": ["src", "vendor/mixo-geocore/host", "vendor/mixo-geocore/editing", "vite.config.ts"]
+  // The review page's node editor is TSX bundled on its own (vite.editor.config.ts); without this line
+  // nothing typechecked it - its unused parameters passed the gate silently until 2026-11-20.
+  "include": ["src", "vendor/mixo-geocore/host", "vendor/mixo-geocore/editing", "vite.config.ts", "dentalwork/batch-review/nodeEditor/*.tsx"]
 }
