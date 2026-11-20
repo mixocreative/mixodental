@@ -39,8 +39,18 @@ export const BENCH_RULES = [
     says: 'The one overhang angle every stream inherits (slope from horizontal). Widens or narrows every mask at once.' },
   { name: 'dentalRimOverhangAngleDeg', type: 'deg', was: null, kinds: ['denture'],
     says: 'The overhang angle used along the dental rim, where the rim band is more forgiving than the rest.' },
-  { name: 'noSupportSteepDeg', type: 'deg', was: 'MIXO_STEEP_NO_SUPPORT', kinds: ['denture'],
-    says: 'Adds the steep no-support ray (R1b) to the no-support zone, the tilt scan, the policy and the review layers.' },
+  {
+    name: 'noSupportSteepDeg', type: 'deg', was: 'MIXO_STEEP_NO_SUPPORT', kinds: ['denture'],
+    /*
+     * NARROWER THAN ITS TYPE, AND SILENTLY SO IN THE ENGINE. `supports/island_rules.rs` reads it as
+     * "0, or anything outside the OPEN range 45..90, is off". So `--set noSupportSteepDeg=30` is
+     * accepted by the 0-90 check every other angle uses, spends minutes of engine time, and tests
+     * NOTHING - the run comes back looking like an answer with R1b never switched on. That is the
+     * outcome this tool's own header says it exists to prevent, so the range is declared here and
+     * refused before the run rather than discovered after it.
+     */
+    range: { above: 45, below: 90 },
+    says: 'Adds the steep no-support ray (R1b) to the no-support zone, the tilt scan, the policy and the review layers. Off outside 45-90 exclusive: the engine reads anything else as off.' },
   { name: 'rimRespectsNoSupport', type: 'flag', was: 'MIXO_RIM_NO_SUPPORT', kinds: ['denture'],
     says: 'Whether rim and hole-band tips respect the no-support zone instead of overriding it.' },
   { name: 'socketNoSupport', type: 'flag', was: 'MIXO_SOCKETS', kinds: ['denture'],
@@ -109,6 +119,12 @@ export function parseSets(pairs) {
     // An angle here is always a SLOPE FROM HORIZONTAL (engine 57), so 0-90 is the whole range and
     // anything outside it is a mistake rather than an experiment.
     if (known.type === 'deg' && (value < 0 || value > 90)) { problems.push(`--set ${name}=${raw}: an angle here is 0-90 (slope from horizontal)`); continue; }
+    // A rule whose engine gate is NARROWER than its type. Outside it the engine does not refuse, it
+    // quietly treats the value as off, so the run would cost its minutes and prove nothing.
+    if (known.range && !(value > known.range.above && value < known.range.below)) {
+      problems.push(`--set ${name}=${raw}: the engine reads anything outside ${known.range.above}-${known.range.below} (exclusive) as OFF, so this run would test nothing`);
+      continue;
+    }
     if (known.type !== 'deg' && value < 0) { problems.push(`--set ${name}=${raw}: cannot be negative`); continue; }
     if (known.type === 'mode' && !Number.isInteger(value)) { problems.push(`--set ${name}=${raw}: a mode takes a whole number`); continue; }
     rules[name] = value;

@@ -59,6 +59,22 @@ describe('benchwork offers rules the engine actually reads', () => {
  * and then quietly return the DEFAULT result. Each case below is a run that must not start.
  */
 describe('benchwork refuses before it spends a run', () => {
+  // The engine gate is NARROWER than the type for R1b: `supports/island_rules.rs` reads anything
+  // outside the open range 45..90 as OFF. Without this, `--set noSupportSteepDeg=30` passed the 0-90
+  // check every angle uses, spent minutes of engine time and tested nothing - a run that comes back
+  // looking like an answer with the rule never switched on.
+  it('refuses a value the engine would silently read as off', () => {
+    const bad = parseSets(['noSupportSteepDeg=30']);
+    expect(bad.problems.join(' ')).toMatch(/would test nothing/);
+    expect(parseSets(['noSupportSteepDeg=90']).problems).toHaveLength(1);
+    expect(parseSets(['noSupportSteepDeg=45']).problems).toHaveLength(1);
+    // And it must still take the values the engine DOES read, or the guard is just a wall.
+    expect(parseSets(['noSupportSteepDeg=67.5']).problems).toHaveLength(0);
+    expect(parseSets(['noSupportSteepDeg=67.5']).rules.noSupportSteepDeg).toBe(67.5);
+    // A rule with no declared range is untouched by this.
+    expect(parseSets(['overhangAngleDeg=30']).problems).toHaveLength(0);
+  });
+
   it('takes good values, with a flag becoming a boolean and a number a number', () => {
     const { rules, problems } = parseSets(['overhangAngleDeg=50', 'socketNoSupport=1', 'rimRespectsNoSupport=0']);
     expect(problems).toEqual([]);
