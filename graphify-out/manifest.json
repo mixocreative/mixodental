@@ -6619,9 +6619,9 @@
     "semantic_hash": ""
   },
   "scripts/control-chars.test.mjs": {
-    "mtime": 1795131494.0434012,
-    "seen": 1795132374.7344573,
-    "ast_hash": "fe659cee208be18ffe8dbbf9dddb1dd5",
+    "mtime": 1795137178.033606,
+    "seen": 1795137325.093074,
+    "ast_hash": "1fe00730b4667d43f3b70f0fdc085a69",
     "semantic_hash": ""
   },
   "scripts/shell-guard.mjs": {

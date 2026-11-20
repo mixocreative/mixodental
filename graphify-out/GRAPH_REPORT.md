@@ -1,7 +1,7 @@
 # Graph Report - mixodental  (2026-11-20)
 
 ## Corpus Check
-- 1048 files · ~1,268,500 words
+- 1048 files · ~1,268,568 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 55 file(s) not represented in the graph (top: .stl 26, (none) 8, .css 6)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `db6cc97b`
+- Built from commit: `44c4b5ab`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1928,7 +1928,7 @@ Nodes (5): Copy and language, src/ — the map, Subfolders, The guards — eleve
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `vitest` connect `vitest` to `settings.ts`, `step-screens.mjs`, `jobKind.ts`, `dentureCore.ts`, `goldens/pipeline.ts`, `editing/types.ts`, `safetyParity.test.ts`, `8. Sequence`, `keys.ts`, `alignerProfiles.ts`, `cli.mjs`, `glossary.test.ts`, `dentureClient.ts`, `Icon.tsx`, `reviewCase.ts`, `real-scan-gate.mjs`, `partRoles.ts`, `2026-11-11 — cia — Code Integrity Audit of mixoDental, 2026-11-11`, `islandReport.ts`, `tokenColour.ts`, `view.ts`, `unitSupports.ts`, `vec3.ts`, `ItemsPage`, `rimTarget.ts`, `projectClient.ts`, `useDentureSupports.ts`, `Public API`, `useExport.ts`, `seedFromDetected.ts`, `StagedProgress.tsx`, `recipeBook.ts`, `importWorker.ts`, `budget.ts`, `supportParityHarness.ts`, `gizmoStyle.ts`, `path.ts`, `t`, `plateLayout.test.ts`, `brushBodies.test.ts`, `angleEvidence.ts`, `drawnRim.ts`, `peelReport.ts`, `TriangleMesh`, `TiltDial.tsx`, `IconSheet.tsx`, `Vector`, `style.ts`, `stages.ts`, `encodeStl`, `i18n.test.ts`, `geometry-guard.mjs`, `DentalReviewBlocks.tsx`, `useDentureOrient.ts`, `three`, `detectStateOf`, `JobActivity.tsx`, `dentureProfileData`, `generate.ts`, `renderer.ts`, `prepareImport.ts`, `imports.test.ts`, `useDebugLayers.ts`, `batch.ts`, `src/main.tsx`, `SettingsPanel.tsx`, `Vector`, `Catalogue.tsx`, `arrange.test.ts`, `DentalKind`, `pipeline.test.ts`, `App.tsx`, `package.json`, `SurfacePath`, `overlayMesh.test.ts`, `built`, `dental.test.ts`, `BabylonObjectViewport.tsx`, `projectFile.ts`, `Mechanics this builds on`, `ruleSpots.ts`, `ref_node_child_process`, `printerProfiles.ts`, `state/project.ts`, `dialSync.ts`, `noColourLiterals.test.ts`, `shell-guard.mjs`, `UnitObject.tsx`, `ItemsPage.tsx`, ``src/ui` — the pieces a designer edits`, `scripts/ — the map`, `ref_node_path`, `addOnTint.ts`, `diagnoseImported.test.ts`, `thumbnail.ts`, `rustImport.ts`, `session.ts`, `useImportFiles.ts`, `benchScene.test.ts`, `resultPath.test.ts`, `rimStepText.ts`, `legacyDecimate.ts`, `ref_node_fs`, `landing.test.ts`?**
-  _High betweenness centrality (0.094) - this node is a cross-community bridge._
+  _High betweenness centrality (0.093) - this node is a cross-community bridge._
 - **Are the 9 inferred relationships involving `TriangleMesh` (e.g. with `1. Framework coupling (core)` and `2. Data formats and coordinate conventions`) actually correct?**
   _`TriangleMesh` has 9 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `memory`, `__wbg_asciistlsession_free`, `__wbg_binarystlsession_free` to the rest of the system?**
