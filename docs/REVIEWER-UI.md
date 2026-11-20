@@ -217,6 +217,27 @@ more roughly than a small one.
 **Coverage: three of the four casts** are the two ray kinds (R1/R1b, R2, holes_axis). Sockets are a
 flood fill and need their own node kind. A full catalogue is being planned separately.
 
+## 3c. A LAYER THAT CAN NEVER FILL — found 2026-11-20, not yet fixed
+
+**"Tips that cannot reach" is structurally always empty, and its emptiness reads as good news.** The
+viewer's step 8 promised *"black cones: overhang tips with no free path to the plate (not built)"*.
+Traced end to end:
+
+- `denture/ruled_tips.rs:215` declares `Placed::unsupportable`, and `:285` creates it **empty**;
+- **nothing anywhere pushes into it** - the only other mentions read it: `policy.rs:206` passes it
+  along, `review.rs:244` flattens it into the review, the viewer draws it;
+- `denture/reach.rs:20`, `plate_reachable`, the function that would decide it, **has no caller** -
+  only its own definition and a comment in a test.
+
+So the channel is plumbed the whole way and the source is dead. An operator reading an empty layer
+concludes "no unsupportable tips"; the truth is "this check does not run". That is the first law with
+the sign flipped - not a failure that stays quiet, but a **success reported that was never measured**.
+
+**Done now:** the step-8 text says the check is not wired, so the empty layer stops being read as a
+clean bill of health. **Not done, and deliberately so:** wiring `plate_reachable` would change which
+tips get built on a clinical path, which is the owner's call and needs `gate:real` either way. The
+nearby `clearance_only` counter deserves the same trace before anyone trusts it.
+
 ## 4. WHAT MUST LAND FIRST, in order
 
 1. **The undefined zone colour** - app-side only, buildable today, and it is the one the owner asked
