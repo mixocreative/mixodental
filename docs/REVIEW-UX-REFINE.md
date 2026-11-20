@@ -37,3 +37,25 @@ The owner added four requests while it was being built; they are marked **owner*
   type made in the workbench reaches the app is the architecture question in `docs/TYPE-PIPELINE.md`.
 - Per-node face counts and click-a-node-to-see-its-mask: the engine computes each node's mask
   (`ZoneOutputs.nodes`), but nothing carries it to the GLB. That is an ABI and writer change.
+
+## The `/cia` audit of the edited-graph channel (same night)
+
+A cold auditor (`cia`, Screen tier, read-only) walked Apply → `serve.mjs` → `benchwork` → `batch.ts` →
+the engine → `summary.json` → the status line, asking where an edited graph could fail while the
+operator saw success. Each finding was opened in source before it was fixed.
+
+| # | Finding | Fixed by | Proved |
+|---|---|---|---|
+| F1 | A refused run showed "benchwork exited 2"; the reason sat in a log the page never read. Apply did not check the graph first. | The page shows the refusal line from the run's log (the header and the problem under it), and Apply refuses a graph with problems before any run. | On the page: a 30° steep ray now reads "...outside 45-90 (exclusive) as OFF..."; a loose input reads `Fix the zone graph first (2 Zones): NS: input "b" is not connected`, with no run started. |
+| F2 | "Done" was built from the request, so it could claim an edited graph ran when the summary said default. | "Done" reads the summary; an edited request answered with `default` says the graph was NOT applied. | A real 2-minute run on case-001 (R1b 60°): "Done ... (graph d7dc809c)", the digest from the run's own summary. The NOT-applied branch was not staged. |
+| F3 | No handler for a spawn error or a hung run: "Running..." forever, or a crashed server. | One answer per request: exit, spawn error, or a 15-minute limit. | Syntax and code path; a hang was not staged. |
+| F4 | The steep angle in a restored graph did not reach the rule field; the CLI only printed a note. | Mirrored at load; the CLI refuses a graph R1b angle with no rule. | On the page: the restored 30° appeared in the rule field. |
+| F5 | The status never said whether the canvas still was the graph that ran. | After an Apply on this page: "The canvas matches that run" / "has changed since that run". | After that run: "matches"; one dropdown changed: "has changed since that run"; changed back: "matches". |
+| F6 | One `/out/` for the whole server: two tabs re-running at once see whichever finished last. | **Not fixed**, marked `shortcut:` in `serve.mjs`: one operator, one tab today. | - |
+| F7 | A summary without `zoneGraph` read as "the default graph". | Reads as "a graph this folder does not record". | Code path. |
+| F8 | A `MIXO_ZONE_GRAPH_FILE` left in the shell would run a graph nobody asked for. | `benchwork` passes it on only from `--zone-graph`. | Code path. |
+
+Also named by the audit and left as debt: `isDefault` compares JSON text, so it depends on key order.
+Every graph here is written by the same code, so the order is stable; a graph from elsewhere (the
+planned type file, the MCP drafts) must go through the same writer, which `docs/TYPE-PIPELINE.md`
+already requires.
