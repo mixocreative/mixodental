@@ -430,7 +430,7 @@ view, as **three stage tabs**:
   (`OUTPUT_WORDS`: "Allowed area - the ONLY faces where area tips may stand"). The engine keys stay
   as the stored values, so nobody has to know them. `nodeGraph.test.ts` fails if a node, setting or
   output ships without its words, or a text setting ships without a dropdown.
-- **3 Support settings** - the twelve live rules, each on the node that reads it.
+- **3 Support settings** - the thirteen benchwork rules (`benchwork/rules.mjs`), each on the node that reads it, with a plain label and unit.
 
 The old benchwork panel is folded in: its rule list is hidden (it still holds the values), and
 **Apply and run again** sits beside the stage tabs.

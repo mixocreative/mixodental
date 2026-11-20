@@ -10,6 +10,27 @@ Companion pages: `docs/NODE-PLAN.md` (the nodes), `benchwork/README.md` (the pro
 
 ---
 
+> **AS BUILT, 2026-11-20 night - this box overrides the planning text below where they differ**
+> (Fable's gap review found the text describing things as PLANNED that now exist):
+> - **The door exists:** engine 70 has `register_denture_profile` and `register_aligner_profile`; each
+>   returns the type's **id** (not a digest) and every call then accepts that id. Lookup by digest was
+>   not built and is not needed: the type file keeps its own fingerprint.
+> - **Start angle:** built as an OPTIONAL `pose.tiltStartDeg` under schema 1 (owner ruling 5: "a
+>   fallback default") - absent means 0, upright. No schema 2.
+> - **The type file:** `src/dentalTypes/typeFile.ts` (not `types/typeFile.ts`). Its fingerprint is its
+>   own `typeDigest` over the one writers' text, so it never needs the engine.
+> - **Parity:** both halves RUN - section 6's P1 row has the numbers.
+> - **Aligner rules:** an aligner reads `overhangAngleDeg` (the shared supports layer); a type file may
+>   pin exactly the rules `benchwork/rules.mjs` says its category reads, and no zone graph.
+> - **The loop runs (2026-11-20, proved on the page):** the Orient node's start / end / step / margin and
+>   a type name are fields; Apply drafts the type from the built-in (`dentalwork/batch-review/typeInForce.ts`),
+>   registers it, runs it and writes `type.json` with its proof; **Save type** copies that into
+>   `types/<category>/<id>.type.json` (`types/README.md`); `benchwork --type <file>` runs a saved one.
+>   Proof: start 10 / end 20 gave a search of 10-20 (picked 10, where the built-in picked 8); the saved
+>   file read back VALIDATED; `--type` on it reproduced 10 deg with the identical profile fingerprint.
+> - **The zone graph is still ONE global engine slot.** Until it is registered with the profile (E3),
+>   the app must refuse a type that carries a graph rather than run it on the default wiring.
+
 ## 1. The answer, in plain words
 
 **`register_profile` is not replaced by what the workbench makes. It is the door the workbench's
@@ -147,7 +168,7 @@ Rules of the format:
   `crates/geometry-wasm/src/lib.rs:65-68`). An unknown name is an error at load. (`docs/design.md`
   records that the packing step silently drops unknown names today; I did not re-open that file.)
 - **`zoneGraph` is `null` for "the default wiring"**, or the graph exactly as the canvas exports it.
-- **An aligner type has `rules: {}` and `zoneGraph: null`**, and anything else is refused, because
+- **An aligner type has only the rules an aligner reads (`overhangAngleDeg` today) and `zoneGraph: null`** - corrected 2026-11-20; the line it replaces said `rules: {}`, and anything else is refused, because
   the aligner chain reads neither (`benchwork/README.md`, "only a denture responds").
 - **`validation` is never trusted by itself.** The loader recomputes both digests; a mismatch means
   the contents were edited after the proof, and the label becomes UNVALIDATED automatically.
@@ -163,7 +184,7 @@ Rules of the format:
 
 ### 4b. The engine calls
 
-**PLANNED - `register_profile(kind, json) -> digest`.** The one new call. It:
+**BUILT (engine 70) as `register_denture_profile(text)` / `register_aligner_profile(text)` -> id** - see the box at the top. The plan as written:
 
 1. parses with the same strict parser the built-ins use (`profile.rs:209`): unknown key, missing key
    or wrong schema is refused with the problem named;
@@ -286,7 +307,7 @@ repo's full local gate (`CLAUDE.md`: `vendor:check`, `test`, `screens`, `build`,
 | | **Progress 2026-11-20:** the DENTURE half of E1 and E1h is built in geocore, committed and NOT pushed: `4edd262` core (`profile::register(text)`, strict parse, pose checks - step above 0, range 0-90 - built-in ids refused, digest from the text) and the engine-70 commit after it (`register_denture_profile` in wasm with `PROFILE_INVALID` + `detail`; `host/dental/registerProfile.ts` registering with the engine FIRST and only then with the host list, which `kindOfProfile`, `profileIdsOf` and `dentureProfileData` all read - so a registered denture is never routed as an aligner). Tests: Rust, range 10 stops the scan at 10 and five refusals by name; host, a registered id is a denture everywhere, a refused one is nowhere. The ALIGNER half followed in geocore `6a40a66` (still engine 70, never shipped): `profiles::register`, `register_aligner_profile`, `registerAlignerProfile`; the Step 0 cards stay built-in only until A1. Still open in E1: lookup by digest. "Identical results to the id path" is P1, proven at the engine level for both kinds - see P1. Not vendored: mixodental stays on engine 69 until the owner approves the push. | | |
 | **E1h** | `registerDentalProfile` in `host/`: host parse + engine call + host lists updated together | geocore, TS | an id registered this way answers `kindOfProfile` = denture and `dentureProfileData`; a registration the engine refuses leaves the host list unchanged |
 | **V1** | vendor E1 + E1h (`npm run vendor:geometry`) | mixodental | full local gate + `gate:real` "No differences" |
-| **B1** | Type file: the format, one pure loader/validator (`types/typeFile.ts`, PLANNED) with tests, the single profile-to-text writer; `benchwork --type` | mixodental | a type file equal to the built-in gives a byte-identical review; a file with an unknown rule name, a bad graph or a stale digest is refused or relabelled, each by name |
+| **B1** | Type file: the format, one pure loader/validator (`src/dentalTypes/typeFile.ts`, BUILT) with tests, the single profile-to-text writer; `benchwork --type` | mixodental | a type file equal to the built-in gives a byte-identical review; a file with an unknown rule name, a bad graph or a stale digest is refused or relabelled, each by name |
 | **R1** | Review page: Orient node's end / step / margin become fields; start drawn as fixed; **Save type** | mixodental | edit end to 20, Apply -> the facts show a search of 0-20 and the saved file carries 20; walk + screenshot |
 | **A1** | App loads bundled type files at engine start and lists them, with the validation label | mixodental | a second denture type appears in the picker and runs its own numbers; guard test: **a registered denture type never runs the aligner flow** (the `jobKind.ts` trap) |
 | **A2** | Project file embeds the snapshot of a non-built-in type | mixodental | save with type X, open in a build without X -> runs, or is refused by name; never Generic silently |
@@ -316,7 +337,11 @@ the app because nothing calls it yet.
 > **Owner rulings, 2026-11-20.** **1: the whole profile** ("if that is more secure and clear" - it is:
 > a missing number is an error, never a silent default). **2: committed files.** **3: the print angle
 > is set in the workbench as the type's default behaviour; the app keeps its dial for fine-tuning, or
-> an override in free transform.** 4 and 5 asked for a plain explanation first (below, unchanged).
+> an override in free transform.** **4: proof is required, but a type file may carry `"proved": true` as a
+> hand override**; the app shows it as "proved by hand", never as a measured proof. **5: the start
+> angle is set per type in the workbench, with a fallback default** - a denture profile without
+> `tiltStartDeg` starts at 0 deg upright, exactly as before (an aligner already carries its start, `tiltDeg`).
+> Push approved the same day.
 
 1. **Is the type file the whole profile, or only what differs from Generic?**
    Recommend: **the whole profile.** The engine's safety is that a missing number is an error. A
@@ -422,7 +447,7 @@ Order: M1 (read-only) is useful alone and needs only B1 and D1; M2 needs `benchw
 **Short answer: recreate, yes - edit freely, not yet.** A type file holds a *whole copy* of the
 profile, and the same engine code runs it, so both built-ins can be written out as type files and
 must come back identical. But most of what makes each built-in behave as it does cannot yet be
-*changed* from the workbench. Neither half has been run: the type-file path does not exist (P1).
+*changed* from the workbench. Both halves have now been run (section 6, P1 row).
 
 **Generic denture**
 

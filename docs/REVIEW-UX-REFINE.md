@@ -59,3 +59,24 @@ Also named by the audit and left as debt: `isDefault` compares JSON text, so it 
 Every graph here is written by the same code, so the order is stable; a graph from elsewhere (the
 planned type file, the MCP drafts) must go through the same writer, which `docs/TYPE-PIPELINE.md`
 already requires.
+
+## Second pass, same night (owner: "a holistic UX/UI review before you can say done")
+
+Fable reviewed six fresh screenshots plus the code; every finding below was fixed and re-shot.
+
+| Finding | Fix |
+|---|---|
+| Zones canvas unreadable: ~7 rows of chrome, controls below the fold | One status line, one toolbar (completeness, colour key, add, back to standard); with the divider dragged the canvas fills the stage area so its controls stay in view; minimap 120x80, hidden under 1100 px. |
+| Settings clipped inside cards (`.chain-sets` max-height 96 px) | No max-height; a dropdown takes its own line under its label; number boxes 84 px. |
+| Yes/no rules were checkboxes; empty numbers read "default" | Yes/no dropdowns ("no (standard)" / "yes"); empty numbers say "auto (45)" with the engine's value. |
+| No visible way to remove a node | A "×" on the selected node (Delete still works); the Add button's hover says how. |
+| Group colours had no key | A colour key in the toolbar, matching the stripes and the grouped Add list. |
+| Three numbering systems | Only the stage tabs are numbered; cards drop their step numerals. |
+| Programmer wording | "Standard zone setup - nothing changed", "All connections are complete", "Either A or B", "A without B", "Both A and B", "Everything but A"; engine ids only on hover. |
+| Contradictory case result | A plain **Verdict** line first ("Built - needs a look: ..."); "Reason code" is "Why it needs a look". |
+| Ambiguous buttons | "Discard my changes" (resets the search, the zone setup and the settings), "Back to standard setup". |
+| "fixed" read as "repaired" | "locked", with the reason on hover. |
+| Clipped side panels | Panels scroll; long case names end in "...". |
+| "Compare with owner" | "Compare with your own supports file". |
+| **Found while re-shooting:** the pressed stage tab went blank under the mouse | `base.css` whitens every hovered button while the pressed state paints its text paper-white; a pressed tab (and the segmented switch) now keeps its dark fill on hover. |
+| **Found while testing:** a duplicate `const` blanked the whole page | `viewerScript.test.ts` parses the page's inline module script with esbuild; proved by planting the duplicate. |
