@@ -182,6 +182,41 @@ layer.
 
 ---
 
+## 3b. THE RAY ANATOMY — measured, because a node vocabulary has to match it
+
+The owner's sketch was: one ray concept with a pluggable origin, spot and directional as separate
+nodes, origin supplied by a position node built off the rim centre plane or a bounding-box face.
+Read against the engine on 2026-11-20, that is close, and the differences are the interesting part.
+
+| Cast | What it really is | Where |
+|---|---|---|
+| **R2, oral cavity** | a **point source**: origin is where `rim plane × symmetry plane` meets the box face at the open end of the U; without a rim plane, the back face centre moved onto the symmetry plane | `denture/oral_cavity_ray.rs:1-6` |
+| **R1 / R1b, no-support** | a **parallel grid**: cells at `(i + 0.5) · step` from the centroid, `STEP_MM = 0.1`, capped at `MAX_RAYS = 1.5e6`, **fixed to the canonical frame so results do not depend on import orientation** | `denture/no_support.rs` |
+| **its direction** | NOT a world angle - an interpolation between two NAMED FRAME AXES: `normalize(back·cosθ + top·(−sinθ))`, `R1_DEG = 45` | `oral_cavity_ray.rs:43` |
+| **holes_axis** | a third parallel grid, along `teeth`, with its own `PITCH_MM` | `denture/holes_axis.rs:1-7` |
+| **sockets** | **not a ray at all** - a teeth-side depth map filled like water | `denture/`, rule `socketMinDepthMm` |
+
+**Four consequences for the vocabulary.**
+
+1. **Position is a node, because R2's origin already is one** - it is derived, not typed in.
+2. **Intersection must be a node too.** R2's origin is two planes meeting a face, not a percentage on
+   a plane. Offering only x/y percentages cannot express it, and worse, it would let a type slide the
+   origin **off the symmetry plane** that the rest of the pipeline assumes.
+3. **A directional ray's angle sets itself** once the frame axes are nodes: "from face A toward face
+   B, θ degrees" is literally the arithmetic above, so no gizmo and no Euler angles are needed. In the
+   owner's own terms, direction = target position − origin position, reusing the position node.
+4. **"Bounding box, not rotated" must not be offered.** `no_support.rs` fixes the grid to the
+   canonical frame precisely so the same scan imported differently gives the same answer. That option
+   would hand the bug back.
+
+**And a directional ray node has parameters the sketch did not mention:** pitch (`STEP_MM`) and the
+ray cap. The cap **coarsens the grid on a big model**, which is a silent quality change today - it
+belongs on the node, with its count, or an operator will never learn that a large scan was measured
+more roughly than a small one.
+
+**Coverage: three of the four casts** are the two ray kinds (R1/R1b, R2, holes_axis). Sockets are a
+flood fill and need their own node kind. A full catalogue is being planned separately.
+
 ## 4. WHAT MUST LAND FIRST, in order
 
 1. **The undefined zone colour** - app-side only, buildable today, and it is the one the owner asked
