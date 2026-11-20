@@ -165,6 +165,32 @@
 .zone-tools button { height: 18px; width: 20px; padding: 0; font-size: 11px; }
 .zone-node input { width: 64px; height: 18px; margin-left: auto; font-size: 11px; padding: 0 3px; }
 .zone-node .chain-set select { margin-left: auto; }
+
+/* The React Flow canvas and its nodes. Colours are tokens: the bundle's own stylesheet supplies the
+   canvas chrome, and nothing here may hold a literal. */
+.zone-canvas { height: 360px; min-height: 220px; resize: vertical; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.zone-canvas .zn, .zone-canvas .zo { font-size: 11px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 170px; color: var(--ink); }
+.zone-canvas .zn.idle { opacity: 0.6; border-style: dashed; }
+.zone-canvas .zn.fixed { background: transparent; }
+.zone-canvas .zn-head { font-size: 12px; margin-bottom: 4px; }
+.zone-canvas .zn-row { display: flex; align-items: center; gap: 6px; min-height: 20px; }
+.zone-canvas .zn-in { color: var(--muted); }
+.zone-canvas .zn-type, .zone-canvas .zn-outtype { margin-left: auto; color: var(--muted); font-size: 10px; }
+.zone-canvas .zn-outtype { position: absolute; right: 10px; bottom: -14px; }
+.zone-canvas .zn input { width: 60px; margin-left: auto; font-size: 11px; height: 18px; padding: 0 3px; }
+.zone-canvas .zn-live { color: var(--accent); }
+.zone-canvas .zn-note { color: var(--muted); font-size: 10px; margin-top: 4px; }
+.zone-canvas .zo { min-width: 120px; border-color: var(--accent); }
+.zone-canvas .zo.empty { border-style: dashed; border-color: var(--danger); }
+.zone-canvas .h-mask { background: var(--layer-allowed); }
+.zone-canvas .h-depthMap { background: var(--warning); }
+.zone-canvas .h-position { background: var(--accent); }
+.zone-canvas .h-curve { background: var(--layer-no-support-steep); }
+
+/* The run button, folded up from the old benchwork panel to sit beside the stages it runs. */
+.stage-run { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0; font-size: 11px; }
+.stage-run .bench-actions { display: flex; gap: 6px; }
+.stage-run #bench-note, .stage-run #bench-status { margin: 0; color: var(--muted); }
 </style>
 <script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
 </head>
@@ -245,6 +271,7 @@
 </main>
 <section class="chain" id="chain" data-ui="review-node-chain" hidden>
   <div class="stage-tabs" id="stage-tabs" data-ui="review-stage-tabs"></div>
+  <div class="stage-run" id="stage-run" data-ui="stage-run" hidden></div>
   <div class="stage-body" id="stage-body" data-ui="review-stage-body"></div>
 </section>
 
@@ -677,6 +704,16 @@ const STAGES = [
 let stageNow = (() => { try { return localStorage.getItem('review-stage') || 'zones'; } catch { return 'zones'; } })();
 let graphLib = null;
 let zoneGraph = null;
+/* The React Flow canvas (node-editor/node-editor.js, built by `npm run review:editor`). Null when the
+   bundle is missing; the card editor below is then the fallback rather than an empty stage. */
+let editorLib = null;
+let editorHandle = null;
+/* One host element for the life of the page: drawChain clears the stage body on every edit, and a
+   React root must stay on the same element or it leaks a root per keystroke. */
+const zoneCanvasHost = Object.assign(document.createElement('div'), { className: 'zone-canvas' });
+zoneCanvasHost.dataset.ui = 'zone-canvas';
+/* Where nodes sit. Kept apart from the graph on purpose: layout is not meaning. */
+let zonePositions = null;
 
 /** One step's card: what it produced, and the settings it is known to own. */
 function chainCard(at, present, names) {
@@ -862,6 +899,11 @@ function drawZoneEditor(body, present, names) {
   const { problems, warnings } = graphLib.validate(g);
   const idle = new Set(graphLib.unreached(g));
   const save = (next) => {
+    // R1b's angle is the one zone parameter that runs today (rule noSupportSteepDeg). The canvas edits
+    // the graph; this carries that one value on to the rule, so Apply re-runs with it.
+    const live = benchFields?.get('noSupportSteepDeg');
+    const deg = next.nodes.find((n) => n.id === 'R1b')?.params.deg;
+    if (live && deg !== undefined) live.input.value = Number(deg) > 0 ? String(deg) : '';
     zoneGraph = next;
     try { localStorage.setItem('review-zone-graph', JSON.stringify(next)); } catch { /* per-viewer only */ }
     drawChain(present, names);
@@ -890,7 +932,11 @@ function drawZoneEditor(body, present, names) {
   const reset = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Reset to today' });
   reset.dataset.ui = 'zone-reset';
   reset.disabled = graphLib.isDefault(g);
-  reset.addEventListener('click', () => save(graphLib.defaultGraph()));
+  reset.addEventListener('click', () => {
+    zonePositions = editorLib ? editorLib.autoLayout(graphLib, graphLib.defaultGraph()) : null;
+    try { localStorage.removeItem('review-zone-layout'); } catch { /* per-viewer only */ }
+    save(graphLib.defaultGraph());
+  });
   bar.append(pick, add, reset);
 
   // What is wrong, before any engine time is spent.
@@ -917,7 +963,27 @@ function drawZoneEditor(body, present, names) {
     outs.append(label);
   }
 
-  // The nodes.
+  // The canvas: drag nodes, draw wires socket to socket, delete with Backspace. Outputs are nodes on
+  // it, so the output row is only the fallback's.
+  if (editorLib) {
+    const props = {
+      lib: graphLib, graph: g, positions: zonePositions,
+      liveParams: benchFields?.has('noSupportSteepDeg') ? ['R1b.deg'] : [],
+      onGraph: save,
+      onPositions: (next) => {
+        zonePositions = next;
+        try { localStorage.setItem('review-zone-layout', JSON.stringify(next)); } catch { /* per-viewer only */ }
+        editorHandle?.update({ ...props, positions: next });
+      },
+    };
+    for (const id of g.nodes.map((n) => n.id)) if (!zonePositions[id]) zonePositions = { ...editorLib.autoLayout(graphLib, g), ...zonePositions };
+    body.append(status, bar, report, zoneCanvasHost);
+    if (editorHandle) editorHandle.update(props);
+    else editorHandle = editorLib.mountZoneEditor(zoneCanvasHost, props);
+    return;
+  }
+
+  // Fallback: the card editor, when the canvas bundle is not there.
   const rail = document.createElement('div');
   rail.className = 'chain-rail zone-rail';
   rail.dataset.ui = 'zone-nodes';
@@ -1028,6 +1094,14 @@ async function loadGraphLib() {
     zoneGraph = saved && Array.isArray(saved.nodes) ? saved : graphLib.defaultGraph();
   } catch {
     graphLib = null;
+  }
+  try {
+    editorLib = await import('./node-editor/node-editor.js');
+    let layout = null;
+    try { layout = JSON.parse(localStorage.getItem('review-zone-layout') || 'null'); } catch { layout = null; }
+    zonePositions = layout && graphLib ? layout : (graphLib ? editorLib.autoLayout(graphLib, zoneGraph) : {});
+  } catch {
+    editorLib = null; // no bundle: the card editor stands in
   }
 }
 await loadGraphLib();
@@ -1666,7 +1740,16 @@ try {
     }
   });
 
-  if (served) document.getElementById('bench-section').hidden = false;
+  // FOLDED INTO THE STAGES (owner, 2026-11-20: "wouldn't it be more organized if folded into nodes?").
+  // Every rule this panel listed now sits on the node that reads it, so showing the list too was a
+  // second copy of the same controls. The list stays in the DOM, hidden, because it is where the
+  // values are HELD and Apply reads them - the nodes mirror it - and only the run button, the note and
+  // the status move up beside the stage tabs.
+  if (served) {
+    const slot = document.getElementById('stage-run');
+    slot.append(document.getElementById('bench-note'), document.querySelector('.bench-actions'), status);
+    slot.hidden = false;
+  }
 } catch (error) {
   // No server, or the rules module is not served: leave the panel hidden rather than showing a dead button.
   console.info('benchwork panel not available:', error.message);

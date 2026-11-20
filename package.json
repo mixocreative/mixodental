@@ -25,7 +25,8 @@
     "gate": "node scripts/gate.mjs",
     "gate:nogl": "node scripts/no-webgl-gate.mjs",
     "gate:real": "node scripts/real-scan-gate.mjs",
-    "gate:tier": "node scripts/real-scan-tier.mjs"
+    "gate:tier": "node scripts/real-scan-tier.mjs",
+    "review:editor": "vite build --config vite.editor.config.ts"
   },
   "browserslist": [
     "chrome >= 93",
@@ -55,6 +56,7 @@
     "@babylonjs/materials": "9.6.2",
     "@react-three/drei": "^9.120.0",
     "@react-three/fiber": "^8.17.10",
+    "@xyflow/react": "^12.12.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "^0.173.0"
