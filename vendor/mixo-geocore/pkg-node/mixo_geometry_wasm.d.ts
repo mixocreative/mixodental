@@ -1603,6 +1603,21 @@ export function propose_dental_orientation(positions: Float32Array, indices: Uin
 export function refine_for_overlay(positions: Float32Array, indices: Uint32Array, max_edge: number, max_triangles: number): WeldResult;
 
 /**
+ * Registers a whole ALIGNER profile from its JSON text (engine 70, the aligner half) and returns its
+ * id; every aligner call then accepts it. Refused with `PROFILE_INVALID` and `detail`, exactly as
+ * `register_denture_profile`.
+ */
+export function register_aligner_profile(text: string): string;
+
+/**
+ * Registers a whole denture profile from its JSON text (engine 70; mixoDental docs/TYPE-PIPELINE.md
+ * unit E1) and returns its id; every denture call then accepts that id. Refused with
+ * `PROFILE_INVALID` and a `detail` naming the problem: a key missing or unknown, another schema, a
+ * print-angle search the scan cannot run, or a built-in's id. Re-registering an id replaces it.
+ */
+export function register_denture_profile(text: string): string;
+
+/**
  * IDs of stored automatic contacts re-derived from their positions (`rekeyPoints`).
  */
 export function rekey_contact_ids(ids: string[], positions: Float64Array): string[];

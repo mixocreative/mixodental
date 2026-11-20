@@ -5385,6 +5385,65 @@ function refine_for_overlay(positions, indices, max_edge, max_triangles) {
 exports.refine_for_overlay = refine_for_overlay;
 
 /**
+ * Registers a whole ALIGNER profile from its JSON text (engine 70, the aligner half) and returns its
+ * id; every aligner call then accepts it. Refused with `PROFILE_INVALID` and `detail`, exactly as
+ * `register_denture_profile`.
+ * @param {string} text
+ * @returns {string}
+ */
+function register_aligner_profile(text) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(text, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.register_aligner_profile(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+exports.register_aligner_profile = register_aligner_profile;
+
+/**
+ * Registers a whole denture profile from its JSON text (engine 70; mixoDental docs/TYPE-PIPELINE.md
+ * unit E1) and returns its id; every denture call then accepts that id. Refused with
+ * `PROFILE_INVALID` and a `detail` naming the problem: a key missing or unknown, another schema, a
+ * print-angle search the scan cannot run, or a built-in's id. Re-registering an id replaces it.
+ * @param {string} text
+ * @returns {string}
+ */
+function register_denture_profile(text) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(text, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.register_denture_profile(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+exports.register_denture_profile = register_denture_profile;
+
+/**
  * IDs of stored automatic contacts re-derived from their positions (`rekeyPoints`).
  * @param {string[]} ids
  * @param {Float64Array} positions

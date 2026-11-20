@@ -177,9 +177,28 @@ const PROFILES: readonly AlignerProfileData[] = profilesFrom(PROFILE_FILES);
 /** Profile #1, the one older saved projects (without a profile) were made with. */
 export const DEFAULT_PROFILE_ID = 'reference-aligner';
 
-/** The data of one profile; throws for an id no file defines. */
+/*
+ * Aligner profiles registered at run time (`registerProfile.ts`), beside the built-in files - the
+ * lookups below see both, so a registered aligner is never "unknown". The Step 0 cards
+ * (`ALIGNER_PROFILES`) stay built-in only until the app lists types (docs/TYPE-PIPELINE.md unit A1).
+ */
+const REGISTERED: AlignerProfileData[] = [];
+
+/** Add or replace a registered profile. Call only after the engine accepted the same text. */
+export function keepRegisteredAlignerProfile(profile: AlignerProfileData): void {
+  const at = REGISTERED.findIndex((p) => p.id === profile.id);
+  if (at >= 0) REGISTERED[at] = profile;
+  else REGISTERED.push(profile);
+}
+
+/** Built-in profiles, then registered ones. */
+export function allAlignerProfiles(): readonly AlignerProfileData[] {
+  return [...PROFILES, ...REGISTERED];
+}
+
+/** The data of one profile, built-in or registered; throws for an id neither defines. */
 export function profileData(id: string): AlignerProfileData {
-  const found = PROFILES.find((profile) => profile.id === id);
+  const found = allAlignerProfiles().find((profile) => profile.id === id);
   if (!found) throw new TypeError(`unknown aligner profile '${id}'`);
   return found;
 }

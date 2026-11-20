@@ -18,8 +18,10 @@ export interface DentureUpright {
   flatnessMax: number;
 }
 
-/** The print-angle search (Rust `denture::profile::Pose`): tilts 0..range from upright, leaning teeth side up. */
+/** The print-angle search (Rust `denture::profile::Pose`): tilts start..range from upright, leaning teeth side up. */
 export interface DenturePose {
+  /** Where the search starts; optional in the file, 0 (upright) when absent - the owner's fallback default. */
+  tiltStartDeg: number;
   tiltRangeDeg: number;
   tiltStepDeg: number;
   tiltMarginDeg: number;
@@ -106,7 +108,10 @@ export const PROFILE_SCHEMA = 1;
 
 const TOP_KEYS = ['schema', 'id', 'name', 'description', 'card', 'upright', 'pose', 'placement', 'supports', 'stability', 'engine'];
 const UPRIGHT_KEYS: readonly (keyof DentureUpright)[] = ['endBandFraction', 'legsGapMinRatio', 'teethBandFraction', 'teethOffsetMinMm', 'flatnessMax'];
-const POSE_KEYS: readonly (keyof DenturePose)[] = ['tiltRangeDeg', 'tiltStepDeg', 'tiltMarginDeg', 'overhangAngleDeg', 'overhangTieFraction'];
+const POSE_KEYS: readonly Exclude<keyof DenturePose, 'tiltStartDeg'>[] = ['tiltRangeDeg', 'tiltStepDeg', 'tiltMarginDeg', 'overhangAngleDeg', 'overhangTieFraction'];
+// `tiltStartDeg` is optional and NOT in POSE_KEYS (which are required): absent means 0, upright - the
+// owner's fallback default (2026-11-20). A value in the file always wins over the default.
+const withStart = (pose: Record<string, number>): DenturePose => ({ ...pose, tiltStartDeg: typeof pose.tiltStartDeg === 'number' ? pose.tiltStartDeg : 0 }) as DenturePose;
 const PLACEMENT_OPTIONAL = ['dentalRimPitchMm', 'holePitchMm'] as const;
 const PLACEMENT_KEYS: readonly (keyof DenturePlacement)[] = ['tipPitchMm', 'barPitchMultiplier', 'lightPitchMultiplier', 'bottomBandMm', 'barThicknessMaxMm',
   'minimumProminenceMm', 'tipMinFromUpBarDeg', 'hardEdgeDeg', 'middleEdgeNearMm', 'middleEdgeMinLengthMm', 'downEdgeMaxDeg', 'downBandMm', 'downPitchMm', 'rimBandMm', 'lowRimBandMm'];
@@ -155,7 +160,7 @@ export function parseDentureProfile(value: unknown, where = 'denture profile'): 
     schema: PROFILE_SCHEMA, id, card: [...card] as string[],
     name: texts(record.name, `${where}.name`), description: texts(record.description, `${where}.description`),
     upright: numbers(record.upright, UPRIGHT_KEYS, `${where}.upright`),
-    pose: numbers(record.pose, POSE_KEYS, `${where}.pose`),
+    pose: withStart(numbers(record.pose, POSE_KEYS, `${where}.pose`, ['tiltStartDeg'])),
     placement: numbers(record.placement, PLACEMENT_KEYS, `${where}.placement`, PLACEMENT_OPTIONAL) as DenturePlacement,
     supports: supports(record.supports, `${where}.supports`),
     stability: numbers(record.stability, STABILITY_KEYS, `${where}.stability`),
@@ -178,9 +183,29 @@ export const DENTURE_PROFILES: readonly DentureProfileData[] = dentureProfilesFr
 /** Profile #1 of the family: the reference partial denture. */
 export const DEFAULT_DENTURE_PROFILE_ID = 'reference-denture';
 
-/** The data of one denture profile; throws for an id no file defines. */
+/*
+ * Profiles registered at run time (`registerProfile.ts`), beside the built-in files. Kept HERE, in the
+ * same module as the built-ins, so every lookup below sees both: a registered denture id that one
+ * lookup missed would fall back to the aligner flow (mixoDental `src/denture/jobKind.ts`), which is the
+ * trap docs/TYPE-PIPELINE.md names. Only `registerProfile.ts` adds to it, after the engine accepted.
+ */
+const REGISTERED: DentureProfileData[] = [];
+
+/** Add or replace a registered profile. Call only after the engine accepted the same text. */
+export function keepRegisteredDentureProfile(profile: DentureProfileData): void {
+  const at = REGISTERED.findIndex((p) => p.id === profile.id);
+  if (at >= 0) REGISTERED[at] = profile;
+  else REGISTERED.push(profile);
+}
+
+/** Built-in profiles first, then registered ones. */
+export function allDentureProfiles(): readonly DentureProfileData[] {
+  return [...DENTURE_PROFILES, ...REGISTERED];
+}
+
+/** The data of one denture profile, built-in or registered; throws for an id neither defines. */
 export function dentureProfileData(id: string): DentureProfileData {
-  const found = DENTURE_PROFILES.find((profile) => profile.id === id);
+  const found = allDentureProfiles().find((profile) => profile.id === id);
   if (!found) throw new TypeError(`unknown denture profile '${id}'`);
   return found;
 }

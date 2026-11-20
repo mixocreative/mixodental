@@ -1,5 +1,5 @@
-import { ALIGNER_PROFILES, DEFAULT_PROFILE_ID } from './alignerProfiles';
-import { DEFAULT_DENTURE_PROFILE_ID, DENTURE_PROFILES } from './dentureProfiles';
+import { DEFAULT_PROFILE_ID, allAlignerProfiles } from './alignerProfiles';
+import { DEFAULT_DENTURE_PROFILE_ID, allDentureProfiles } from './dentureProfiles';
 
 /*
  * The dental product kind (PD.6, owner 2026-10-30): aligners and dentures are different products
@@ -24,13 +24,13 @@ export function defaultProfileId(kind: DentalKind): string {
 
 /** The profile ids of `kind`, in card order. */
 export function profileIdsOf(kind: DentalKind): string[] {
-  return (kind === 'denture' ? DENTURE_PROFILES : ALIGNER_PROFILES).map((profile) => profile.id);
+  return (kind === 'denture' ? allDentureProfiles() : allAlignerProfiles()).map((profile) => profile.id);
 }
 
 /** The kind a profile id belongs to, or undefined for an id neither family defines. */
 export function kindOfProfile(profileId: string | undefined): DentalKind | undefined {
-  if (ALIGNER_PROFILES.some((profile) => profile.id === profileId)) return 'aligner';
-  if (DENTURE_PROFILES.some((profile) => profile.id === profileId)) return 'denture';
+  if (allAlignerProfiles().some((profile) => profile.id === profileId)) return 'aligner';
+  if (allDentureProfiles().some((profile) => profile.id === profileId)) return 'denture';
   return undefined;
 }
 

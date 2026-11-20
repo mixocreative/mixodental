@@ -292,6 +292,14 @@ export interface DentalEngine {
   set_zone_graph(json: string): string;
   /** The digest of the zone graph in force, or "default" (engine 69). */
   zone_graph_digest(): string;
+  /**
+   * Register a whole denture profile from its JSON text (engine 70) and return its id. Throws
+   * `PROFILE_INVALID` with `detail` naming the problem. Use `registerDentureProfile`, which keeps the
+   * host's profile list in step.
+   */
+  register_denture_profile(text: string): string;
+  /** The same for an aligner profile (engine 70). Use `registerAlignerProfile`. */
+  register_aligner_profile(text: string): string;
   dental_allowed_vertices(positions: Float32Array, indices: Uint32Array, normals: Float32Array, rim: Float64Array, visibilityMask: Uint8Array,
     manualArea: boolean, stamps: Float64Array, profile: string): Uint8Array;
 }
