@@ -9,7 +9,7 @@
 <style>
   /* The page never grows: body is exactly the window, and only the side panels scroll. */
   html, body { height: 100%; }
-  body { height: 100vh; overflow: hidden; display: grid; grid-template-rows: var(--header-h) minmax(0, 1fr); color: var(--ink); font-size: var(--fs-md); }
+  body { height: 100vh; overflow: hidden; display: grid; grid-template-rows: var(--header-h) minmax(0, 1fr) auto; color: var(--ink); font-size: var(--fs-md); }
   header { display: flex; align-items: center; gap: 12px; padding: 0 var(--pad); border-bottom: 1px solid var(--line); background: var(--surface); }
   header h1 { margin: 0; font-size: var(--fs-lg); font-weight: 500; }
   header .muted, .muted { color: var(--muted); }
@@ -18,7 +18,7 @@
   main { display: grid; grid-template-columns: 260px minmax(0, 1fr) 260px; grid-template-rows: minmax(0, 1fr); min-height: 0; overflow: hidden; }
   /* Phone / narrow window: one column, the 3D view first, then the case list and the facts + layers; the page scrolls. */
   @media (max-width: 820px) {
-    body { height: auto; min-height: 100dvh; overflow: auto; grid-template-rows: auto auto; }
+    body { height: auto; min-height: 100dvh; overflow: auto; grid-template-rows: auto auto auto; }
     header { flex-wrap: wrap; row-gap: 4px; padding: 6px var(--pad); }
     header a { margin-left: 0; }
     main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; overflow: visible; }
@@ -100,6 +100,29 @@
   .nocase .result { margin: 0 0 10px; color: var(--danger); }
   .nocase p { margin: 0 0 8px; line-height: 1.45; }
   .nocase code { color: var(--muted); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+
+/* THE CHAIN: the engine's steps as nodes, left to right, in the order they actually run.
+   It is generated from DENTURE_STEPS - the same list the step-by-step buttons walk - so it cannot
+   describe a chain the engine does not run. No drag handles, deliberately: see the note it prints. */
+.chain { border-top: 1px solid var(--line); margin-top: 10px; padding: 10px 12px 14px; min-width: 0; }
+.chain-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.chain-head h3 { margin: 0; }
+.chain-rail { display: flex; gap: 0; overflow-x: auto; padding: 10px 0 4px; align-items: flex-start; min-width: 0; }
+.chain-node { flex: 0 0 auto; width: 176px; border: 1px solid var(--line); border-radius: 6px;
+  /* The page's `button { height: var(--row) }` makes every button one row tall, which clipped these
+     cards to 22px of their 79px. A card is not a row, so it opts out explicitly. */
+  height: auto;
+  padding: 7px 8px; background: var(--panel); display: flex; flex-direction: column; gap: 5px;
+  cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.chain-node[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.chain-node.absent { opacity: 0.5; }
+.chain-node .n { font-weight: 600; font-size: 12px; line-height: 1.25; }
+.chain-node .outs { display: flex; flex-direction: column; gap: 2px; }
+.chain-node .out { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+.chain-node .swatch { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
+.chain-node .count { margin-left: auto; font-variant-numeric: tabular-nums; }
+.chain-link { flex: 0 0 auto; align-self: flex-start; margin-top: 28px; width: 14px; text-align: center; color: var(--muted); }
+.chain-note { font-size: 11px; color: var(--muted); margin: 2px 0 0; max-width: 92ch; }
 </style>
 <script type="importmap">{ "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }</script>
 </head>
@@ -178,6 +201,22 @@
     </section>
   </div>
 </main>
+<section class="chain" id="chain" data-ui="review-node-chain" hidden>
+  <div class="chain-head">
+    <h3>The chain</h3>
+    <span class="muted" id="chain-sub" data-ui="review-chain-sub"></span>
+  </div>
+  <div class="chain-rail" id="chain-rail" data-ui="review-chain-rail"></div>
+  <p class="chain-note" data-ui="review-chain-note">
+    Each node is a step the engine actually ran, in the order it ran them, with what it produced.
+    Click one to walk the model to that step. <strong>There are no drag handles and there will not be
+    until the engine can take an order as data</strong>: the combines are fixed statements, and
+    placement is stateful - a tip claims its space in stream order - so moving a node would change
+    which tips exist, not just when they appear. Turning a rule is in the benchwork panel; that part
+    the engine does support.
+  </p>
+</section>
+
 <div class="hover-tip" id="hover-tip" data-ui="review-hover-tip" hidden>
   <div class="hover-tip-title" data-ui="review-hover-tip-title"></div>
   <div class="hover-tip-facts" data-ui="review-hover-tip-facts"></div>
@@ -518,11 +557,107 @@ function setStep(at) {
   drawLayers();
 }
 
+
+/*
+ * THE CHAIN - the node view of the pipeline.
+ *
+ * Generated from `DENTURE_STEPS`, which is the same list the step-by-step buttons walk, so a node
+ * cannot claim a step the review did not run. A node shows what its step PRODUCED: the layers in the
+ * file, with their colours and, where the layer name carries one, the face count. A step whose layers
+ * are absent from this case is dimmed rather than hidden, because "this step produced nothing here"
+ * is a fact worth seeing and an empty rail would hide it.
+ *
+ * What it deliberately does NOT offer is reordering. `ruled_tips.rs` combines with fixed statements,
+ * no single combined mask exists, and placement is stateful, so a drag would change which tips exist.
+ * A reorderable UI over that would be a lie told to its operator.
+ */
+function drawChain(present, names) {
+  const section = document.getElementById('chain');
+  const rail = document.getElementById('chain-rail');
+  const sub = document.getElementById('chain-sub');
+  if (!section || !rail) return;
+  if (kindNow !== 'denture') { section.hidden = true; return; }
+  section.hidden = false;
+  rail.textContent = '';
+  let ran = 0;
+  DENTURE_STEPS.forEach(([label, , keys], at) => {
+    const here = keys.filter((key) => present.has(key));
+    if (here.length > 0) ran += 1;
+    const node = document.createElement('button');
+    node.type = 'button';
+    node.className = here.length > 0 ? 'chain-node' : 'chain-node absent';
+    node.dataset.ui = `chain-node-${at + 1}`;
+    node.setAttribute('aria-pressed', String(stepAt === at + 1));
+    node.dataset.tipTitle = label;
+    node.dataset.tip = ruleText(DENTURE_STEPS[at][1]);
+    const title = document.createElement('span');
+    title.className = 'n';
+    title.textContent = label;
+    const outs = document.createElement('span');
+    outs.className = 'outs';
+    // Four rows, then a count: step 7 alone produces eleven layers, and a card that lists them all
+    // stretches the whole rail and strands every short node beside it. The full list is the Layers
+    // panel's job; a node says what it made, not every name it made it under.
+    const SHOWN = 4;
+    for (const key of keys.slice(0, SHOWN)) {
+      const row = document.createElement('span');
+      row.className = 'out';
+      const swatch = document.createElement('span');
+      swatch.className = 'swatch';
+      swatch.style.background = present.has(key) ? colourOf(key) : 'transparent';
+      swatch.style.border = present.has(key) ? 'none' : '1px dashed var(--line)';
+      const text = document.createElement('span');
+      text.textContent = shortLabel(key);
+      row.append(swatch, text);
+      // The face count, when the engine's layer name carries one (today: the undefined zone).
+      const full = names.find((name) => bare(plain(name)).startsWith(bare(key)));
+      const count = full && /(\d+) faces$/.exec(plain(full));
+      if (count) {
+        const n = document.createElement('span');
+        n.className = 'count';
+        n.textContent = Number(count[1]).toLocaleString();
+        row.append(n);
+      }
+      outs.append(row);
+    }
+    if (keys.length > SHOWN) {
+      const more = document.createElement('span');
+      more.className = 'out';
+      const here = keys.filter((key) => present.has(key)).length;
+      more.textContent = `+${keys.length - SHOWN} more (${here} of ${keys.length} in this case)`;
+      outs.append(more);
+    }
+    node.append(title, outs);
+    node.addEventListener('click', () => setStep(stepAt === at + 1 ? null : at + 1));
+    if (at > 0) {
+      const link = document.createElement('span');
+      link.className = 'chain-link';
+      link.textContent = '>';
+      rail.append(link);
+    }
+    rail.append(node);
+  });
+  sub.textContent = `${ran} of ${DENTURE_STEPS.length} steps produced something in this case`;
+}
+
+/** A layer key's colour token, as the GLB writers set it; transparent when the file has no such layer. */
+function colourOf(key) {
+  const token = SWATCH_VAR[key];
+  return token ? cssToken(token) : 'var(--muted)';
+}
+
+/** The short label the layer table gives a key. */
+function shortLabel(key) {
+  return LAYER_TABLE.find(([prefix]) => prefix === key)?.[1] ?? key;
+}
+
 // The layer panel: collapsible groups, each with the layers the file has (a checkbox, its colour, a short label).
 // A denture also gets the step-by-step controls on top.
 function drawLayers() {
   const present = new Set();
-  model?.traverse((object) => { const key = object.name && keyOf(object.name); if (key) present.add(key); });
+  const names = [];
+  model?.traverse((object) => { const key = object.name && keyOf(object.name); if (key) { present.add(key); names.push(object.name); } });
+  drawChain(present, names);
   const box = document.getElementById('layers');
   box.className = 'layers';
   const groups = GROUP_DEFS.flatMap(([id, title]) => {
