@@ -1032,7 +1032,12 @@ footer.on-scene button { pointer-events: auto; }
 /* The indicator. A bar fills only when there is a real measure; with none it paces instead, so it
    says that work is happening without saying how much is left. */
 .progress-indicator { position: relative; overflow: hidden; background: var(--sunken); }
-.progress-indicator--bar { height: var(--progress-track-height); }
+/* EVERY SIZE HAS A FALLBACK. The sizes are set on `.progress`, but `ProgressIndicator` is also used on its
+   own (the deck card's busy overlay, CardShot.tsx), outside any `.progress`. There the variables were
+   undefined, the spinner's width and height fell back to auto, and the 22px ring became a flat ellipse
+   as wide as the card whose one dark edge swept across "Generating supports..." (walk shots m5, m11).
+   The fallbacks are the `.progress` defaults, so a bare indicator looks exactly like a wrapped one. */
+.progress-indicator--bar { height: var(--progress-track-height, 4px); }
 .progress-run { height: 100%; background: var(--progress-tone, var(--ink)); transition: width var(--dur) linear; }
 /* A job that has started but reports 0 percent still shows that it has: a visibility floor, not a
    claim about how far along it is. The hand-rolled job bar did the same with Math.max(percent, 2). */
@@ -1042,7 +1047,7 @@ footer.on-scene button { pointer-events: auto; }
 /* A spinner is the other honest shape for work with no measure: a ring that turns and claims nothing. */
 .progress-indicator--spinner {
   justify-self: center;
-  width: var(--progress-spinner-size); height: var(--progress-spinner-size);
+  width: var(--progress-spinner-size, 22px); height: var(--progress-spinner-size, 22px);
   border: 3px solid var(--sunken);
   border-top-color: var(--progress-tone, var(--ink));
   border-radius: 50%;
