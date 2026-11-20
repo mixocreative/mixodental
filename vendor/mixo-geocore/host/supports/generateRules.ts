@@ -313,15 +313,35 @@ export const RULE_NAMES: readonly string[] = [
   'dentalRimOverhangAngleDeg',
 ];
 
-/** `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default, booleans become 1 or 0. */
+/** Name to slot, built once. `packRules` needs this direction to be able to refuse a name nobody reads. */
+const RULE_INDEX = new Map(RULE_NAMES.map((name, k) => [name, k]));
+
+/**
+ * `rules` as the engine reads it: one entry per `RULE_NAMES` name; NaN keeps the engine's default,
+ * booleans become 1 or 0.
+ *
+ * WHY IT THROWS on a name the engine does not know. This loop used to walk `RULE_NAMES` and read the
+ * caller's object, which meant a key the engine had renamed - or simply mistyped - was never looked
+ * at: no error, no warning, and a run that looked successful while the rule it was handed did
+ * nothing. That is the worst outcome this channel has available, and it is not hypothetical - the
+ * engine 56 to 57 rename is why `profileSelect.ts` still carries `LEGACY_RULE_NAMES`. Typed callers
+ * cannot reach this; the ones that can are those building rules from STRINGS - a CLI flag, an env
+ * switch, a stored profile - which is exactly where a dropped rule is least visible and where a
+ * stored type will arrive once a type's values are the app's to supply.
+ */
 export function packRules(rules?: GenerateRules): Float64Array {
   const values = new Float64Array(RULE_NAMES.length).fill(NaN);
   if (!rules) return values;
   const given = rules as Record<string, number | boolean | undefined>;
-  RULE_NAMES.forEach((name, k) => {
-    const v = given[name];
-    if (v !== undefined) values[k] = typeof v === 'boolean' ? (v ? 1 : 0) : v;
-  });
+  const unknown = Object.keys(given).filter((name) => !RULE_INDEX.has(name));
+  if (unknown.length > 0) {
+    throw new Error(`packRules: ${unknown.join(', ')} ${unknown.length === 1 ? 'is not a rule' : 'are not rules'} this engine reads (${RULE_NAMES.length} names in RULE_NAMES)`);
+  }
+  for (const [name, value] of Object.entries(given)) {
+    const k = RULE_INDEX.get(name);
+    if (k === undefined || value === undefined) continue;
+    values[k] = typeof value === 'boolean' ? (value ? 1 : 0) : value;
+  }
   return values;
 }
 

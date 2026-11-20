@@ -1,7 +1,7 @@
 {
   "repo": "mixocreative/mixo-geocore",
-  "commit": "44db9a0f0ccd205698693df530339098a1635f28",
-  "committed": "2026-11-18T14:48:49+08:00",
+  "commit": "365be2b5f7e80d6180799635b48103205b25eb76",
+  "committed": "2026-11-20T09:58:35+08:00",
   "engineVersion": 68,
   "sha256": {
     "pkg-browser/mixo_geometry_wasm.js": "9c7bb7a61a50f718e0c5200788b0774242dde8be3dbb1bc7bc2740eeb5dd004b",
@@ -67,7 +67,7 @@
     "host/supports/export.ts": "b13faa0daf414b4a98256184ad510fb86c2c191fa8148ae8c92635d7ceecb139",
     "host/supports/exportGate.ts": "fdcb998b06c951e8b4ffd949622fd31c30809223049917b96de5d34148178315",
     "host/supports/generateLimits.ts": "629c15cbd7876097ddb5380991e2d63158381ede62f1869af0f862ab86d83f95",
-    "host/supports/generateRules.ts": "fff34a6c0c7ff93af7cad42b14565a2efdd353d3478e6104930087eb824e1b82",
+    "host/supports/generateRules.ts": "345b9faf49bbe3386d18133cc7a504199804eccc35a8aba02245e941459f7b91",
     "host/supports/generateSupports.ts": "ea7a219657414d78aaa6764fb9fccbe11371f111300a2682542f442ccc9bc5b2",
     "host/supports/genericPlacement.ts": "271ca5d01aaf0ccd548f1cea1160fbb2c0ce7f0e999b8f831f5a1b05fb38220d",
     "host/supports/genericPolicy.ts": "4386eb2d9c87311f2b1fe966e2318e72681ab7696f4c690dff5b20aedfb053d6",
