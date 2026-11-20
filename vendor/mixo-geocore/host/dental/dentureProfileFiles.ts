@@ -2,6 +2,7 @@
 /** The denture profile files the engine embeds, by path (`./profiles/<id>.json`). */
 export const DENTURE_PROFILE_FILES: Readonly<Record<string, unknown>> = {
   './profiles/reference-denture.json': {
+    "schema": 1,
     "id": "reference-denture",
     "name": {
       "en": "Generic denture",

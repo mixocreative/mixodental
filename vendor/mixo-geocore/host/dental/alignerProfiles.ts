@@ -71,6 +71,8 @@ export interface ProfileSupports {
 
 /** One profile file as the host reads it (thresholds are the geometry's; the host only checks the keys). */
 export interface AlignerProfileData {
+  /** Which schema the file was written for; always `PROFILE_SCHEMA` once parsed. */
+  schema: number;
   id: string;
   name: Record<Lang, string>;
   description: Record<Lang, string>;
@@ -88,7 +90,18 @@ export interface AlignerProfileData {
 }
 
 const LANGS: readonly Lang[] = ['en', 'ja', 'zh-Hant'];
-const TOP_KEYS = ['id', 'name', 'description', 'opening', 'card', 'fixture', 'thresholds', 'pose', 'defaults', 'supports', 'stability'];
+/**
+ * The profile schema this build reads, and the only one it accepts - the SAME number as the engine's
+ * `PROFILE_SCHEMA` beside its `parse`, per category.
+ *
+ * It is checked here as well as in Rust on purpose. A host that accepted a file the engine refuses
+ * would be a split brain: the picker would list a type the run then rejects, and the operator would
+ * be told "something went wrong" by whichever half noticed second. Both halves read one schema and
+ * say which.
+ */
+export const PROFILE_SCHEMA = 1;
+
+const TOP_KEYS = ['schema', 'id', 'name', 'description', 'opening', 'card', 'fixture', 'thresholds', 'pose', 'defaults', 'supports', 'stability'];
 const THRESHOLD_KEYS = ['axialVarianceMax', 'terminalAreaRatioMin', 'terminalBandFraction', 'confidenceMin', 'sharpAngleDeg',
   'loopMinPerimeterMm', 'loopBandFraction', 'loopBandMinMm', 'loopRadiusRatioMin', 'loopExtentMin', 'ridgeFirstMinMm',
   'ridgeSecondMinMm', 'ridgeExtentMin', 'connectorAngleDeg', 'openingResolutionLow', 'openingResolutionHigh',
@@ -133,13 +146,14 @@ function texts(value: unknown, where: string): Record<Lang, string> {
 /** One profile file, strictly: every key the Rust struct has, nothing else. */
 export function parseAlignerProfile(value: unknown, where = 'aligner profile'): AlignerProfileData {
   const record = object(value, TOP_KEYS, where);
-  const { id, opening, card, fixture } = record;
+  const { schema, id, opening, card, fixture } = record;
+  if (schema !== PROFILE_SCHEMA) throw new TypeError(`${where}.schema is ${String(schema)} - this build reads ${PROFILE_SCHEMA}`);
   if (typeof id !== 'string' || id === '') throw new TypeError(`${where}.id must be text`);
   if (opening !== 'yes' && opening !== 'no' && opening !== 'either') throw new TypeError(`${where}.opening must be yes, no or either`);
   if (!Array.isArray(card) || card.some((path) => typeof path !== 'string')) throw new TypeError(`${where}.card must be SVG path data`);
   if (typeof fixture !== 'string') throw new TypeError(`${where}.fixture must be a path`);
   return {
-    id, opening, card: [...card] as string[], fixture,
+    schema: PROFILE_SCHEMA, id, opening, card: [...card] as string[], fixture,
     name: texts(record.name, `${where}.name`), description: texts(record.description, `${where}.description`),
     thresholds: numbers(record.thresholds, THRESHOLD_KEYS, `${where}.thresholds`),
     pose: numbers(record.pose, POSE_KEYS, `${where}.pose`),

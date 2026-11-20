@@ -2,6 +2,7 @@
 /** The aligner profile files the engine embeds, by path (`./profiles/<id>.json`). */
 export const PROFILE_FILES: Readonly<Record<string, unknown>> = {
   './profiles/reference-aligner.json': {
+    "schema": 1,
     "id": "reference-aligner",
     "name": {
       "en": "Generic aligner",

@@ -77,6 +77,8 @@ export interface DentureSupports {
 
 /** One denture profile file as the host reads it. */
 export interface DentureProfileData {
+  /** Which schema the file was written for; always `PROFILE_SCHEMA` once parsed. */
+  schema: number;
   id: string;
   name: Record<Lang, string>;
   description: Record<Lang, string>;
@@ -91,7 +93,18 @@ export interface DentureProfileData {
 }
 
 const LANGS: readonly Lang[] = ['en', 'ja', 'zh-Hant'];
-const TOP_KEYS = ['id', 'name', 'description', 'card', 'upright', 'pose', 'placement', 'supports', 'stability', 'engine'];
+/**
+ * The profile schema this build reads, and the only one it accepts - the SAME number as the engine's
+ * `PROFILE_SCHEMA` beside its `parse`, per category.
+ *
+ * It is checked here as well as in Rust on purpose. A host that accepted a file the engine refuses
+ * would be a split brain: the picker would list a type the run then rejects, and the operator would
+ * be told "something went wrong" by whichever half noticed second. Both halves read one schema and
+ * say which.
+ */
+export const PROFILE_SCHEMA = 1;
+
+const TOP_KEYS = ['schema', 'id', 'name', 'description', 'card', 'upright', 'pose', 'placement', 'supports', 'stability', 'engine'];
 const UPRIGHT_KEYS: readonly (keyof DentureUpright)[] = ['endBandFraction', 'legsGapMinRatio', 'teethBandFraction', 'teethOffsetMinMm', 'flatnessMax'];
 const POSE_KEYS: readonly (keyof DenturePose)[] = ['tiltRangeDeg', 'tiltStepDeg', 'tiltMarginDeg', 'overhangAngleDeg', 'overhangTieFraction'];
 const PLACEMENT_OPTIONAL = ['dentalRimPitchMm', 'holePitchMm'] as const;
@@ -132,13 +145,14 @@ function supports(value: unknown, where: string): DentureSupports {
 /** One denture profile file, strictly: every key the Rust struct has, nothing else. */
 export function parseDentureProfile(value: unknown, where = 'denture profile'): DentureProfileData {
   const record = object(value, TOP_KEYS, where);
-  const { id, card } = record;
+  const { schema, id, card } = record;
+  if (schema !== PROFILE_SCHEMA) throw new TypeError(`${where}.schema is ${String(schema)} - this build reads ${PROFILE_SCHEMA}`);
   if (typeof id !== 'string' || id === '') throw new TypeError(`${where}.id must be text`);
   if (!Array.isArray(card) || card.some((path) => typeof path !== 'string')) throw new TypeError(`${where}.card must be SVG path data`);
   const engine = object(record.engine, ['repairBudget'], `${where}.engine`);
   if (typeof engine.repairBudget !== 'number' || !Number.isInteger(engine.repairBudget) || engine.repairBudget < 0) throw new TypeError(`${where}.engine.repairBudget must be a whole number`);
   return {
-    id, card: [...card] as string[],
+    schema: PROFILE_SCHEMA, id, card: [...card] as string[],
     name: texts(record.name, `${where}.name`), description: texts(record.description, `${where}.description`),
     upright: numbers(record.upright, UPRIGHT_KEYS, `${where}.upright`),
     pose: numbers(record.pose, POSE_KEYS, `${where}.pose`),
