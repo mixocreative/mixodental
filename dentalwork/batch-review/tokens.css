@@ -28,6 +28,13 @@
   --danger:  #b3261e;
   --warning: #b07a12;
   --success: #4a6b3a;
+  /* Node-editor groups (nodeGraph.mjs NODE_GROUPS): palette colours by name, never the 3D layer colours. */
+  --node-rays: var(--info);
+  --node-points: var(--kraft);
+  --node-maps: var(--success);
+  --node-strips: var(--warning);
+  --node-combine: var(--muted);
+  --node-orient: var(--ink);
   --info:    #3b4a5c;
 
   /* Type */

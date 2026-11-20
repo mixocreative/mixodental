@@ -64,6 +64,30 @@ export const KINDS = {
  * engine reads; nobody should have to know them to use the editor. `nodeGraph.test.ts` fails if a kind
  * has no title or sentence.
  */
+/*
+ * NODE GROUPS (owner, 2026-11-20: "categorize and organize the nodes, colour code them, so they are easy
+ * to find and work with"). Each group's colour is a token in tokens.css (`--node-*`), kept apart from
+ * the 3D layer colours, which mean something else. `nodeGraph.test.ts` fails on a kind with no group.
+ */
+export const NODE_GROUPS = {
+  rays: { title: 'Rays', says: 'Mark faces by shooting rays at the part.', token: '--node-rays' },
+  points: { title: 'Points', says: 'A place rays start from.', token: '--node-points' },
+  maps: { title: 'Maps & finds', says: 'Look through the part and find holes or sockets.', token: '--node-maps' },
+  strips: { title: 'Strips', says: 'Faces within a distance of something.', token: '--node-strips' },
+  combine: { title: 'Combine', says: 'Join, remove, overlap or invert sets of faces.', token: '--node-combine' },
+  orient: { title: 'From Orient', says: 'Found in stage 1; fixed here.', token: '--node-orient' },
+};
+
+/** The group of each node kind. */
+export const KIND_GROUP = {
+  parallelCast: 'rays', sightCast: 'rays',
+  intersection: 'points', planePoint: 'points',
+  depthCast: 'maps', holes: 'maps', basinFill: 'maps',
+  band: 'strips',
+  union: 'combine', subtract: 'combine', intersect: 'combine', not: 'combine',
+  rimCurve: 'orient',
+};
+
 export const KIND_WORDS = {
   parallelCast: { title: 'Parallel rays', says: 'Shoots many parallel rays across the whole part from one direction. Every face a ray hits FIRST is marked.' },
   sightCast: { title: 'Rays from a point', says: 'From one point, marks every face that point can see directly.' },
@@ -74,10 +98,10 @@ export const KIND_WORDS = {
   basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map. Not runnable yet: the socket depth comes from the rule "socket depth".' },
   band: { title: 'Strip around', says: 'Every face within a set distance of its seeds, measured along the surface. In this version only the 5 mm strip around Find holes runs; the two rim strips are fixed.' },
   rimCurve: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
-  union: { title: 'Either (union)', says: 'Faces in A, or in B, or in both.' },
-  subtract: { title: 'Remove (subtract)', says: 'Faces in A, minus any that are also in B. A and B are not interchangeable.' },
-  intersect: { title: 'Both (overlap)', says: 'Only the faces that are in both A and B.' },
-  not: { title: 'Invert (not)', says: 'Every face that is NOT in A.' },
+  union: { title: 'Either A or B', says: 'Faces in A, or in B, or in both.' },
+  subtract: { title: 'A without B', says: 'Faces in A, minus any that are also in B. A and B are not interchangeable.' },
+  intersect: { title: 'Both A and B', says: 'Only the faces that are in both A and B.' },
+  not: { title: 'Everything but A', says: 'Every face that is NOT in A.' },
 };
 
 /**
@@ -326,6 +350,25 @@ export function validate(graph) {
     if (node.kind === 'parallelCast' && Number(node.params.deg) === 0) warnings.push(`${node.id}: tilt is 0° - this ray is off and marks nothing`);
   }
   return { problems, warnings, ok: problems.length === 0 };
+}
+
+/**
+ * ONE STEEP ANGLE, NOT TWO. With a graph set, the zones take R1b's angle from the graph and never read
+ * the rule `noSupportSteepDeg` (zone_graph.rs current()), while the policy and the review layer still
+ * read the rule - so the two must be the same number, or a run is "clean" with the zones and the report
+ * disagreeing. Returns the problem, or null. Shared by benchwork's `--zone-graph` and the type file.
+ */
+export function steepAngleProblem(graph, rules = {}) {
+  const steep = graph?.nodes?.find?.((n) => n.id === 'R1b')?.params?.deg;
+  if (steep === undefined) return null;
+  const rule = rules.noSupportSteepDeg;
+  if (rule !== undefined && Number(steep) !== Number(rule)) {
+    return `the zone graph sets the steep ray R1b to ${steep} deg but the rule noSupportSteepDeg is ${rule}: the zones would use one and the report the other`;
+  }
+  if (Number(steep) > 0 && rule === undefined) {
+    return `the zone graph sets the steep ray R1b to ${steep} deg but the rule noSupportSteepDeg is not set, so the policy and the review layer would treat it as off (the rule takes 45 to 90, exclusive)`;
+  }
+  return null;
 }
 
 /** The nodes no output reaches. They are not evaluated - an added cast costs rays only once it is wired in. */

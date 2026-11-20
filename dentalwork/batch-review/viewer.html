@@ -28,7 +28,8 @@
     .views { flex-wrap: wrap; justify-content: flex-end; max-width: 70%; }
     .note { max-width: 45%; }
   }
-  .panel { border-right: 1px solid var(--line); min-height: 0; }
+  .panel { border-right: 1px solid var(--line); min-height: 0; overflow-y: auto; }
+  .list li > span:not(.badge) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .panel.right { border-right: 0; border-left: 1px solid var(--line); }
   /* The stage is sized by the grid, never by its canvas: the canvas is absolutely placed, so its pixel size cannot push the page taller. */
   .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--scene-bg); }
@@ -128,12 +129,14 @@
 /* Capped, because the rail is as tall as its TALLEST card and step 7 owns nine rules: without this
    the chain ate the page and squeezed the 3D view to a sliver, while the card responsible was
    scrolled out of sight to the right. A card scrolls its own settings instead. */
-.chain-sets { display: flex; flex-direction: column; gap: 3px; border-top: 1px dashed var(--line); padding-top: 4px; max-height: 96px; overflow-y: auto; }
+.chain-sets { display: flex; flex-direction: column; gap: 3px; border-top: 1px dashed var(--line); padding-top: 4px; }
 .chain-set { display: flex; align-items: center; gap: 5px; font-size: 11px; }
 .chain-set .k { color: var(--muted); }
 .chain-set .v { margin-left: auto; font-variant-numeric: tabular-nums; }
-.chain-set select { max-width: 150px; margin-left: auto; font-size: 11px; height: 20px; }
-.chain-set input { width: 52px; height: 18px; margin-left: auto; font-size: 11px; padding: 0 3px; }
+.chain-set select { max-width: 150px; margin-left: auto; font-size: 11px; height: 20px; min-width: 0; }
+.chain-set:has(select) { flex-wrap: wrap; row-gap: 2px; }
+.chain-set:has(select) select { flex: 1 1 100%; max-width: 100%; margin-left: 0; }
+.chain-set input { width: 84px; min-width: 0; max-width: 100%; box-sizing: border-box; height: 20px; margin-left: auto; font-size: 11px; padding: 0 4px; }
 .chain-none { font-size: 11px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 4px; }
 .chain-node .outs { display: flex; flex-direction: column; gap: 2px; }
 .chain-node .out { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
@@ -146,11 +149,18 @@
 .stage-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .stage-tab { height: auto; padding: 4px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; font-weight: 600; }
 .stage-tab[aria-pressed="true"] { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
+/* A PRESSED button keeps its dark fill under the mouse. base.css turns every hovered button white
+   (`button:hover`) while the pressed state paints its text paper-white, so the tab just clicked went
+   blank exactly while the pointer was on it (UX check, 2026-11-20). Same trap in the segmented switch. */
+.stage-tab[aria-pressed="true"]:hover:not(:disabled), .segmented button[aria-pressed='true']:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.chain-node .n[aria-pressed="true"]:hover:not(:disabled) { background: none; color: var(--ink); }
 .stage-arrow { color: var(--muted); }
 .stage-body { min-width: 0; }
 .chain-node.search { width: 300px; }
 .deg-figure svg { width: 100%; height: auto; max-width: 280px; display: block; }
 .deg-figure .picked { fill: var(--red); }
+.chain-node.search input.type-name { width: 150px; }
+.chain-none.bad { color: var(--danger); }
 .deg-how { margin: 4px 0 6px; font-size: 11px; color: var(--muted); line-height: 1.35; }
 .deg-figure .plate { stroke: var(--muted); stroke-width: 2; }
 .deg-figure .up { stroke: var(--muted); stroke-dasharray: 3 2; }
@@ -181,7 +191,7 @@
 
 /* The React Flow canvas and its nodes. Colours are tokens: the bundle's own stylesheet supplies the
    canvas chrome, and nothing here may hold a literal. */
-.zone-canvas { height: max(360px, calc(var(--chain-h, 0px) - 200px)); min-height: 220px; resize: vertical; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--sunken); }
+.zone-canvas { min-height: 220px; resize: vertical; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--sunken); }
 .zone-canvas .zn, .zone-canvas .zo { font-size: 11px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; width: 220px; color: var(--ink); }
 .zone-canvas .zn.idle { opacity: 0.6; border-style: dashed; }
 .zone-canvas .zn.fixed { background: transparent; }
@@ -197,7 +207,14 @@
 .zone-canvas .zn input { width: 64px; }
 /* A dropdown gets its own line under its label, so a described choice is read whole, not cut off. */
 .zone-canvas .zn-row:has(select) { flex-wrap: wrap; row-gap: 2px; padding-bottom: 2px; }
-.zone-canvas .zn select { flex: 1 1 100%; margin-left: 0; max-width: none; }
+/* A dropdown is as wide as the node and no wider: the chosen words end in "..." and the whole choice
+   shows on hover (owner screenshot, 2026-11-20: "tissue side - the side that rests on the gums" ran
+   past the node's edge). */
+.zone-canvas .zn select { flex: 1 1 100%; width: 100%; min-width: 0; max-width: 100%; margin-left: 0; box-sizing: border-box; text-overflow: ellipsis; }
+.zone-canvas .zn input { box-sizing: border-box; }
+/* The node's group: a coloured stripe and a small label, so a kind is found at a glance. */
+.zone-canvas .zn { border-left: 4px solid var(--zn-group, var(--line)); }
+.zone-canvas .zn-group { font-size: 9px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--zn-group, var(--muted)); margin-bottom: 1px; }
 .zone-canvas .zn-live { color: var(--red); }
 .zone-canvas .zn-note { color: var(--muted); font-size: 10px; margin-top: 4px; }
 .zone-canvas .zo { width: 280px; border-color: var(--ink); }
@@ -207,7 +224,22 @@
 .zone-canvas .zn.has-issue { border-color: var(--danger); }
 .zone-canvas .zn-issue { color: var(--danger); font-size: 10px; line-height: 1.35; margin: 2px 0; }
 .zone-canvas .zn-warn { color: var(--warning); font-size: 10px; line-height: 1.35; margin: 2px 0; }
-.zone-hint { color: var(--muted); font-size: 12px; margin: 4px 0; }
+.zone-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 4px 0 6px; font-size: 12px; }
+.zone-summary.ok { color: var(--success); }
+.zone-summary.bad { color: var(--danger); }
+.zone-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--muted); font-size: 11px; }
+.zone-legend span { border-left: 4px solid var(--zn-group); padding-left: 4px; }
+.zone-tools-row { display: flex; gap: 6px; margin-left: auto; }
+/* With the divider dragged, the stage area is a fixed height: the canvas takes what the chrome leaves,
+   so its zoom controls stay inside the pane (UX review 2026-11-20). Without it, a generous fixed height. */
+.zone-canvas { height: 480px; }
+:root[style*="--chain-h"] .chain { display: flex; flex-direction: column; }
+:root[style*="--chain-h"] #stage-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+:root[style*="--chain-h"] .zone-canvas { flex: 1 1 auto; height: auto; min-height: 260px; }
+.zone-canvas .react-flow__minimap { width: 120px; height: 80px; }
+.zone-canvas .react-flow__minimap svg { width: 120px; height: 80px; }
+@media (max-width: 1100px) { .zone-canvas .react-flow__minimap { display: none; } }
+.zone-canvas .zn-remove { margin-left: 4px; border: 0; background: none; color: var(--danger); font-size: 14px; line-height: 1; padding: 0 2px; cursor: pointer; }
 /* Two lines of explanation; the whole sentence on hover or when the node is selected. */
 .zone-canvas .zn-says { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .zone-canvas .react-flow__node:hover .zn-says, .zone-canvas .react-flow__node.selected .zn-says { display: block; overflow: visible; }
@@ -296,7 +328,8 @@
       <div id="bench-rules" data-ui="bench-rules"></div>
       <div class="bench-actions">
         <button id="bench-run" data-ui="bench-run">Apply and run again</button>
-        <button id="bench-reset" data-ui="bench-reset">Clear</button>
+        <button id="bench-reset" data-ui="bench-reset" title="Put the search, the zone setup and every setting back to the standard ones. The review on screen is not touched.">Discard my changes</button>
+        <button id="type-save" data-ui="type-save" title="Copy the type the review on screen RAN, with its proof, to types/denture/&lt;name&gt;.type.json - commit it to ship it.">Save type</button>
       </div>
       <p class="muted" id="bench-status" data-ui="bench-status"></p>
     </section>
@@ -425,6 +458,37 @@ let RULES = {};
 let benchFields = null;
 /* The zone graph the loaded run was made with ("default" or a digest), from its summary.json. */
 let ranZoneGraph = 'default';
+/*
+ * THE TYPE BEING MADE (docs/TYPE-PIPELINE.md R1, owner rulings 3 and 5): the Orient node's print-angle
+ * edits, as profile pose keys, and the type's name. Apply sends both, the batch drafts the type from the
+ * built-in and records what ran, and Save type copies that into types/. Only edits that differ from the
+ * built-in are held, so "no edit" is exactly the built-in search.
+ */
+const POSE_FIELDS = [
+  ['tiltStartDeg', 'start', 'startDeg', 'Where the search starts, degrees from upright. 0 is upright; a type may start later (owner ruling 5).'],
+  ['tiltRangeDeg', 'end', 'endDeg', 'The furthest lean the search tries. Each degree leans the denture back so the teeth side faces further up.'],
+  ['tiltStepDeg', 'step', 'stepDeg', 'The search tries every step from start to end.'],
+  ['tiltMarginDeg', 'tie margin', 'marginDeg', 'How far either side of a chosen angle must also pass for it to count as stable.'],
+];
+let poseEdits = {};
+try { poseEdits = JSON.parse(localStorage.getItem('review-pose') || '{}') ?? {}; } catch { poseEdits = {}; }
+let typeName = 'workbench.denture';
+try { typeName = localStorage.getItem('review-type-id') || typeName; } catch { /* per-viewer only */ }
+let lastChain = null;
+/** The search in force on the page: the built-in values with this viewer's edits on top. */
+function searchNow() {
+  const s = { ...(graphLib?.PRINT_ANGLE_SEARCH ?? { startDeg: 0, endDeg: 45, stepDeg: 2, marginDeg: 2 }) };
+  for (const [key, , field] of POSE_FIELDS) if (poseEdits[key] !== undefined) s[field] = poseEdits[key];
+  return s;
+}
+/** What is wrong with the edited search, before any engine time - the engine refuses the same. */
+function searchProblem(s) {
+  if (!(s.stepDeg > 0)) return 'step must be above 0, or the search tries only the start';
+  if (!(s.endDeg >= 0 && s.endDeg <= 90)) return 'end must be 0 to 90';
+  if (!(s.startDeg >= 0 && s.startDeg <= s.endDeg)) return 'start must be 0 to the end';
+  if (!(s.marginDeg >= 0)) return 'tie margin must not be negative';
+  return null;
+}
 /** The canvas graph (JSON text) the last successful Apply on this page ran; undefined until one has. */
 let appliedGraphText;
 const ruleText = (text) => text.replace(/\{globalOverhang\}/g, RULES.overhangAngleDeg ?? '?').replace(/\{rimOverhang\}/g, RULES.dentalRimOverhangAngleDeg ?? '?');
@@ -470,7 +534,7 @@ const DENTURE_STEPS = [
   ['7. Overhangs and low points', 'Faces whose slope from horizontal is under the overhang angle (global {globalOverhang}, rim {rimOverhang}; 0 = flat ceiling, 90 = vertical wall), the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'Suction cups', 'Drain / clean', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
   ['8. Tips', 'Tips by source: dental rim, hole, area, low. Black cones: overhang tips with no free path to the plate - BUT THAT CHECK IS NOT WIRED (2026-11-20): `Placed::unsupportable` is created empty in ruled_tips.rs and nothing ever pushes to it, and reach.rs::plate_reachable has no caller, so this layer is ALWAYS empty and its emptiness means the check did not run, not that none were found. Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
   ['9. Supports', 'Our pillars (plastic), the braces and the base.', ['SUPPORT PILLARS']],
-  ['10. Compare with owner', 'Your -sup supports (off by default) and contacts, and the area each covers against ours.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
+  ['10. Compare with your own supports file', 'Your -sup supports (off by default) and contacts, and the area each covers against ours.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
 ];
 const MODEL_KEYS = ['DENTURE', 'NEUTRAL'];
 // Step-by-step (denture): the last step shown (0 = model only), null = off. caseNow is the case on screen.
@@ -765,7 +829,9 @@ function chainCard(at, present, names) {
   const title = document.createElement('button');
   title.type = 'button';
   title.className = 'n';
-  title.textContent = label;
+  // The stage tabs are the one numbering (1 Orient, 2 Zones, 3 Support settings); a card's own step
+  // number beside them read as a fourth and fifth stage (UX review 2026-11-20).
+  title.textContent = label.replace(/^\d+\.\s*/, '');
   title.setAttribute('aria-pressed', String(stepAt === at + 1));
   title.dataset.ui = `chain-step-${at + 1}`;
   title.dataset.tipTitle = label;
@@ -830,25 +896,31 @@ function settingsBox(settings, names) {
       row.append(input);
       row.dataset.tipTitle = field.rule.label;
       row.dataset.tip = `${field.rule.says} Press Apply and run again to use it.`;
-    } else if (field) {
-      const input = document.createElement('input');
-      if (field.rule.type === 'flag') {
-        input.type = 'checkbox';
-        input.checked = field.input.checked;
-        input.addEventListener('input', () => { field.input.checked = input.checked; });
-      } else {
-        input.type = 'number';
-        input.step = 'any';
-        input.min = '0';
-        const fallback = RULES[setting.rule];
-        input.placeholder = fallback === undefined ? 'default' : String(fallback);
-        input.value = field.input.value;
-        input.addEventListener('input', () => { field.input.value = input.value; });
-      }
+    } else if (field && field.rule.type === 'flag') {
+      // A yes/no rule is a dropdown that says what it means, not a bare checkbox (owner: "anything that is
+      // not a number should be a dropdown"). It mirrors the panel's checkbox, which Apply reads.
+      const input = document.createElement('select');
+      input.append(new Option('no (standard)', 'no'), new Option('yes', 'yes'));
+      input.value = field.input.checked ? 'yes' : 'no';
+      input.addEventListener('change', () => { field.input.checked = input.value === 'yes'; });
       input.dataset.ui = `chain-input-${setting.rule}`;
       row.append(input);
       row.dataset.tipTitle = field.rule.label;
       row.dataset.tip = `${field.rule.says} Press Apply and run again to use it. Read in: ${setting.why}`;
+    } else if (field) {
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = 'any';
+      input.min = '0';
+      // Empty means the engine's own value, said as a value: "auto (45)", never a word that looks typed.
+      const fallback = RULES[setting.rule];
+      input.placeholder = fallback === undefined ? 'auto' : `auto (${fallback})`;
+      input.value = field.input.value;
+      input.addEventListener('input', () => { field.input.value = input.value; });
+      input.dataset.ui = `chain-input-${setting.rule}`;
+      row.append(input);
+      row.dataset.tipTitle = field.rule.label;
+      row.dataset.tip = `${field.rule.says} Empty uses the engine's own value. Press Apply and run again to use it. Read in: ${setting.why}`;
     } else {
       const v = document.createElement('span');
       v.className = 'v';
@@ -865,7 +937,7 @@ function settingsBox(settings, names) {
 
 /** The print-angle search: the range auto-detection searches, and how its degrees are measured. */
 function searchCard() {
-  const s = graphLib?.PRINT_ANGLE_SEARCH ?? { startDeg: 0, endDeg: 45, stepDeg: 2, marginDeg: 2 };
+  const s = searchNow();
   const node = document.createElement('div');
   node.className = 'chain-node search';
   node.dataset.ui = 'chain-node-print-angle';
@@ -881,13 +953,14 @@ function searchCard() {
     return [60 + len * Math.sin(r), 112 - len * Math.cos(r)].map((n) => n.toFixed(1));
   };
   const [ex, ey] = ray(s.endDeg, 92);
-  const [ax0, ay0] = ray(0, 44);
+  const [ax0, ay0] = ray(s.startDeg, 44);
   const [ax1, ay1] = ray(s.endDeg, 44);
   const picked = caseNow?.printAngleDeg;
   const [px, py] = ray(picked ?? 0, 92);
   fig.innerHTML = `<svg viewBox="0 0 260 128" role="img" aria-label="Print angle: 0 degrees upright, search to ${s.endDeg} degrees${picked == null ? '' : `, picked ${picked} degrees`}">`
     + '<line x1="8" y1="112" x2="252" y2="112" class="plate"/><text x="160" y="125">build plate</text>'
     + `<line x1="60" y1="112" x2="60" y2="16" class="up"/><text x="48" y="12">0°</text>`
+    + (s.startDeg > 0 ? (() => { const [sx, sy] = ray(s.startDeg, 92); return `<line x1="60" y1="112" x2="${sx}" y2="${sy}" class="up"/><text x="${Number(sx) + 4}" y="${sy}">${s.startDeg}°</text>`; })() : '')
     + `<line x1="60" y1="112" x2="${ex}" y2="${ey}" class="up"/><text x="${Number(ex) + 4}" y="${ey}">${s.endDeg}°</text>`
     + `<path d="M${ax0} ${ay0} A44 44 0 0 1 ${ax1} ${ay1}" class="arc"/>`
     + (picked == null ? '' : `<line x1="60" y1="112" x2="${px}" y2="${py}" class="lean"/><text x="${Number(px) + 6}" y="${Number(py) + 14}" class="picked">picked ${picked}°</text>`)
@@ -898,34 +971,60 @@ function searchCard() {
   how.textContent = '0° is the denture standing upright on the open ends of the U, front of the arch on top. Each degree leans it back so the teeth side faces further up.';
   const box = document.createElement('div');
   box.className = 'chain-sets';
-  const rows = [
-    ['start', `${s.startDeg}°`, 'Upright: the denture stands on the open ends of the U, front of the arch on top, teeth side facing sideways. This is 0 by the engine\'s own definition (denture/upright.rs:25), not a setting.'],
-    ['end', `${s.endDeg}°`, 'The furthest lean the search tries. A positive angle tips the TEETH side up toward you (denture/tilt.rs:1-3). Profile field pose.tiltRangeDeg.'],
-    ['step', `${s.stepDeg}°`, 'The search tries every step from start to end. Profile field pose.tiltStepDeg.'],
-    ['tie margin', `${s.marginDeg}°`, 'Profile field pose.tiltMarginDeg.'],
-    ['picked', caseNow?.printAngleDeg == null ? '-' : `${caseNow.printAngleDeg}°`, `What the search chose for this case${caseNow?.stableBand ? `, stable over ${caseNow.stableBand}` : ''}. It keeps the best lean by an ORDERED preference: safety tiers, then fewest boxed-in lowest points, then fewest lows outside the allowed area, THEN the smallest overhang area (denture/tilt.rs:16-19).`],
-  ];
-  for (const [k, v, why] of rows) {
-    const row = document.createElement('div');
+  // The type's name: what Save type writes, as types/denture/<name>.type.json.
+  const nameRow = document.createElement('label');
+  nameRow.className = 'chain-set';
+  nameRow.dataset.tipTitle = 'type name';
+  nameRow.dataset.tip = 'Lower-case letters, digits, dots and dashes. Apply runs the type under this name; Save type writes it to types/denture/<name>.type.json, to be committed.';
+  const nameInput = Object.assign(document.createElement('input'), { type: 'text', value: typeName, spellcheck: false });
+  nameInput.dataset.ui = 'type-name';
+  nameInput.className = 'type-name';
+  nameInput.addEventListener('change', () => {
+    typeName = nameInput.value.trim();
+    try { localStorage.setItem('review-type-id', typeName); } catch { /* per-viewer only */ }
+  });
+  nameRow.append(Object.assign(document.createElement('span'), { className: 'k', textContent: 'type name' }), nameInput);
+  box.append(nameRow);
+  // The search: real fields now that the engine takes a type's numbers (engine 70).
+  const defaults = graphLib?.PRINT_ANGLE_SEARCH ?? { startDeg: 0, endDeg: 45, stepDeg: 2, marginDeg: 2 };
+  for (const [key, label, field, why] of POSE_FIELDS) {
+    const row = document.createElement('label');
     row.className = 'chain-set';
-    row.dataset.tipTitle = k;
-    row.dataset.tip = why;
-    row.innerHTML = `<span class="k"></span><span class="v"></span>`;
-    row.querySelector('.k').textContent = k;
-    row.querySelector('.v').textContent = v;
+    row.dataset.tipTitle = label;
+    row.dataset.tip = `${why} Built-in: ${defaults[field]}°.`;
+    const input = Object.assign(document.createElement('input'), { type: 'number', step: 'any', min: '0', max: '90', value: String(s[field]) });
+    input.dataset.ui = `pose-${key}`;
+    input.addEventListener('change', () => {
+      const value = Number(input.value);
+      if (input.value === '' || value === defaults[field]) delete poseEdits[key];
+      else poseEdits[key] = value;
+      try { localStorage.setItem('review-pose', JSON.stringify(poseEdits)); } catch { /* per-viewer only */ }
+      if (lastChain) drawChain(...lastChain);
+    });
+    row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: `${label} (°)${poseEdits[key] !== undefined ? ' · edited' : ''}` }), input);
     box.append(row);
   }
+  const pickedRow = document.createElement('div');
+  pickedRow.className = 'chain-set';
+  pickedRow.dataset.tipTitle = 'picked';
+  pickedRow.dataset.tip = `What the search chose for this case${caseNow?.stableBand ? `, stable over ${caseNow.stableBand}` : ''}. It keeps the best lean by an ORDERED preference: safety tiers, then fewest boxed-in lowest points, then fewest lows outside the allowed area, THEN the smallest overhang area (denture/tilt.rs:16-19).`;
+  pickedRow.innerHTML = '<span class="k">picked</span><span class="v"></span>';
+  pickedRow.querySelector('.v').textContent = caseNow?.printAngleDeg == null ? '-' : `${caseNow.printAngleDeg}°`;
+  box.append(pickedRow);
+  const problem = searchProblem(s);
   const note = document.createElement('div');
-  note.className = 'chain-none';
-  // The tilt range is a profile field, not a rule (denture/profile.rs:42): no call takes a profile at run
-  // time yet. docs/TYPE-PIPELINE.md is the plan - units E1 (register_profile) then R1 (these fields).
-  note.textContent = 'End, step and tie margin become fields here once the engine accepts a saved type (docs/TYPE-PIPELINE.md, E1 then R1). Start stays 0°: the engine starts every search upright.';
+  note.className = problem ? 'chain-none bad' : 'chain-none';
+  note.dataset.ui = 'search-note';
+  note.textContent = problem
+    ? `Fix the search first: ${problem}.`
+    : 'Apply tries these angles on this folder. Save type keeps them, as the type named above, for next time. In the app the angle dial still fine-tunes or overrides it.';
   node.append(title, fig, how, box, note);
   return node;
 }
 
 /** The stage tabs and whichever stage is chosen. */
 function drawChain(present, names) {
+  lastChain = [present, names];
   const section = document.getElementById('chain');
   const tabs = document.getElementById('stage-tabs');
   const body = document.getElementById('stage-body');
@@ -983,33 +1082,55 @@ function drawZoneEditor(body, present, names) {
     drawChain(present, names);
   };
 
-  // Status: which of the two things the operator is looking at, every time.
+  // Status: which of the two things the operator is looking at, every time - in one line, so the
+  // canvas keeps the room (UX review 2026-11-20: seven rows of chrome above it hid its own controls).
   const status = document.createElement('div');
   status.className = graphLib.isDefault(g) ? 'zone-status default' : 'zone-status edited';
   status.dataset.ui = 'zone-status';
   // Two facts, both said every time: what the canvas holds, and what produced the review on screen.
   // They differ right after an edit, until Apply runs it - and that gap is exactly what must be visible.
-  const ran = ranZoneGraph === 'default' ? 'the default graph'
-    : ranZoneGraph === 'unknown' ? 'a graph this folder does not record' : `an edited graph (${ranZoneGraph.slice(0, 8)})`;
+  const ran = ranZoneGraph === 'default' ? 'the standard setup'
+    : ranZoneGraph === 'unknown' ? 'a setup this folder does not record' : `your setup (${ranZoneGraph.slice(0, 8)})`;
   // F5: once this page has applied a graph, say whether the canvas still IS that graph.
   const same = appliedGraphText === undefined ? '' : JSON.stringify(g) === appliedGraphText ? ' The canvas matches that run.' : ' The canvas has changed since that run.';
   status.textContent = (graphLib.isDefault(g)
-    ? `Default graph on the canvas. The review on screen was made with ${ran}.`
-    : `Edited graph on the canvas. Apply runs what is on the canvas; the review on screen was made with ${ran}.`) + same;
+    ? `Standard zone setup - nothing changed. The review on screen used ${ran}.`
+    : `Your zone setup (changed) - Apply and run again to use it. The review on screen used ${ran}.`) + same;
 
-  // Toolbar: add a node, reset.
+  // One toolbar: is it complete, the colour key, add a node, back to standard.
   const bar = document.createElement('div');
   bar.className = 'zone-bar';
+  // Problems that name a node are drawn ON that node; only the rest (an output left empty) need words here.
+  const onNodes = (m) => g.nodes.some((n) => m.startsWith(`${n.id}: `));
+  const loose = problems.filter((m) => !onNodes(m));
+  const summary = document.createElement('span');
+  summary.dataset.ui = 'zone-report';
+  summary.className = problems.length ? 'zone-summary bad' : 'zone-summary ok';
+  summary.textContent = problems.length === 0 ? 'All connections are complete.'
+    : `${problems.length} to fix${problems.length > loose.length ? ' - shown in red on the nodes' : ''}${loose.length ? `: ${loose[0]}` : ''}.`;
+  const legend = document.createElement('span');
+  legend.className = 'zone-legend';
+  legend.dataset.ui = 'zone-legend';
+  for (const [groupKey, group] of Object.entries(graphLib.NODE_GROUPS)) {
+    if (groupKey === 'orient') continue; // not drawn on this canvas
+    const key = Object.assign(document.createElement('span'), { textContent: group.title, title: group.says });
+    key.style.setProperty('--zn-group', `var(${group.token})`);
+    legend.append(key);
+  }
   const pick = document.createElement('select');
   pick.dataset.ui = 'zone-add-kind';
-  for (const [kind, spec] of Object.entries(graphLib.KINDS)) {
-    if (spec.stage !== 'zones') continue;
-    pick.append(Object.assign(document.createElement('option'), { value: kind, textContent: graphLib.KIND_WORDS[kind].title, title: graphLib.KIND_WORDS[kind].says }));
+  // Grouped like the canvas's coloured stripes, so the list reads in the same categories.
+  for (const [groupKey, group] of Object.entries(graphLib.NODE_GROUPS)) {
+    const kinds = Object.entries(graphLib.KINDS).filter(([kind, spec]) => spec.stage === 'zones' && graphLib.KIND_GROUP[kind] === groupKey);
+    if (kinds.length === 0) continue;
+    const optgroup = Object.assign(document.createElement('optgroup'), { label: group.title });
+    for (const [kind] of kinds) optgroup.append(Object.assign(document.createElement('option'), { value: kind, textContent: graphLib.KIND_WORDS[kind].title, title: graphLib.KIND_WORDS[kind].says }));
+    pick.append(optgroup);
   }
-  const add = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Add node' });
+  const add = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Add node', title: 'Adds the chosen node in the middle of the view. Remove one by selecting it and pressing × or Delete.' });
   add.dataset.ui = 'zone-add';
   add.addEventListener('click', () => save(graphLib.addNode(g, pick.value)));
-  const reset = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Reset to today' });
+  const reset = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Back to standard setup', title: 'Undo every zone edit: the canvas goes back to the standard setup.' });
   reset.dataset.ui = 'zone-reset';
   reset.disabled = graphLib.isDefault(g);
   reset.addEventListener('click', () => {
@@ -1017,13 +1138,12 @@ function drawZoneEditor(body, present, names) {
     try { localStorage.removeItem('review-zone-layout-2'); } catch { /* per-viewer only */ }
     save(graphLib.defaultGraph());
   });
-  bar.append(pick, add, reset);
-
-  // What is wrong, before any engine time is spent.
+  const tools = Object.assign(document.createElement('span'), { className: 'zone-tools-row' });
+  tools.append(pick, add, reset);
+  bar.append(summary, legend, tools);
+  // Kept for the card editor fallback, which still lists every problem in words.
   const report = document.createElement('div');
   report.className = 'zone-report';
-  report.dataset.ui = 'zone-report';
-  if (problems.length === 0) report.append(Object.assign(document.createElement('div'), { className: 'ok', textContent: 'Valid: every output the engine reads is filled, no loose inputs, no cycles.' }));
   for (const p of problems) report.append(Object.assign(document.createElement('div'), { className: 'bad', textContent: p }));
   for (const w of warnings) report.append(Object.assign(document.createElement('div'), { className: 'warn', textContent: w }));
 
@@ -1059,7 +1179,7 @@ function drawZoneEditor(body, present, names) {
     // Only the output node is filled in here: a node ADDED from the toolbar is left unplaced, and the
     // canvas puts it in the middle of the view, where the operator is looking.
     if (!zonePositions.outputs) zonePositions = { ...editorLib.autoLayout(g, graphLib.FIXED.outputs), ...zonePositions };
-    body.append(status, zoneHint(), bar, report, zoneCanvasHost);
+    body.append(status, bar, zoneCanvasHost);
     if (editorHandle) editorHandle.update(props);
     else editorHandle = editorLib.mountZoneEditor(zoneCanvasHost, props);
     return;
@@ -1071,7 +1191,7 @@ function drawZoneEditor(body, present, names) {
   rail.dataset.ui = 'zone-nodes';
   g.nodes.forEach((n, k) => rail.append(zoneCard(g, n, k, idle, save)));
 
-  body.append(status, zoneHint(), bar, report, outs, rail);
+  body.append(status, bar, report, outs, rail);
 }
 
 /** A select of the nodes whose output fits `want` ('mask', or 'mask|curve'). */
@@ -1085,11 +1205,6 @@ function sourceSelect(g, want, current) {
     sel.append(Object.assign(document.createElement('option'), { value: n.id, textContent: `${n.id} · ${graphLib.KINDS[n.kind].label}`, selected: n.id === current }));
   }
   return sel;
-}
-
-/** The one line a first-time operator needs before touching the graph (Fable's wording, 2026-11-20). */
-function zoneHint() {
-  return Object.assign(document.createElement('div'), { className: 'zone-hint', textContent: 'Edit, then Apply and run again. Reset to today undoes every edit.' });
 }
 
 /** One zone node: kind, wires, parameters, remove, move. */
@@ -1443,7 +1558,7 @@ async function show(row) {
     document.getElementById('nocase-name').textContent = caseLabel(row);
     document.getElementById('nocase-result').textContent = RESULT_WORDS[row.result] ?? `Result: ${row.result}`;
     document.getElementById('nocase-text').textContent = explain(row) || 'No reason was recorded.';
-    document.getElementById('nocase-code').textContent = row.reason ? `Reason code: ${row.reason}` : '';
+    document.getElementById('nocase-code').textContent = row.reason ? `Why it needs a look: ${row.reason}` : '';
   }
   document.getElementById('note').textContent = url || evidenceUrl ? 'Loading...'
     : row.glb ? `${row.glb} was not in what was dropped. Drop the whole batch-... folder.` : '';
@@ -1614,7 +1729,7 @@ function drawTilt(c) {
 
 // Fact groups of the right panel: [id, title, open by default, the row names in it]. A row not listed lands in "More".
 const FACT_GROUPS = [
-  ['result', 'Case result', true, ['Kind', 'Shape check', 'Result', 'Safety check', 'Reason code', 'Supports crossing the aligner', 'Crossings not judged']],
+  ['result', 'Case result', true, ['Verdict', 'Kind', 'Shape check', 'Result', 'Safety check', 'Why it needs a look', 'Supports crossing the aligner', 'Crossings not judged']],
   ['tilt', 'Tilt and orientation', true, ['Print angle', 'Up decision', 'Dental rim plane', 'Arch', 'Up/down cross-check', 'Floor offset ratio']],
   ['islands', 'Islands', true, ['Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Low points with no support', 'Low points outside the area']],
   ['tips', 'Tips', true, ['Tips by source', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Unsupportable tips', 'Structures left out', 'Largest gap, outer edge (mm)', 'Largest gap, opening (mm)', 'Edge coverage needs review']],
@@ -1637,7 +1752,10 @@ function facts(c) {
   // coverage, support crossings) would show "not oriented" and similar in red for a case that has none.
   const DENTURE_ROWS = ['Kind', 'Shape check', 'Result', 'Safety check', 'Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Print angle', 'Up decision', 'Tips by source', 'Unsupportable tips', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Scan clean-up', 'Time (s)',
     'Dental rim plane', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
+  const verdict = c.result !== 'built' ? `Not built${c.reason ? ` - ${c.reason}` : ''}`
+    : c.needsLook ? `Built - needs a look${c.reason ? `: ${c.reason}` : ''}` : 'Built - nothing flagged';
   const rows = [
+    ['Verdict', verdict, c.result !== 'built' || Boolean(c.needsLook)],
     ['Kind', c.kind || 'aligner', !!c.shapeNote],
     ['Shape check', c.shapeNote || 'ok', !!c.shapeNote],
     ['Result', c.result, c.result !== 'built'],
@@ -1686,15 +1804,15 @@ function facts(c) {
     ['Owner area covered %', c.ownerAreaCoveredPct ?? '-', false],
     ['Our area outside owner %', c.outsideOwnerAreaPct ?? '-', false],
   );
-  if (c.reason) rows.push(['Reason code', c.reason, true]);
+  if (c.reason) rows.push(['Why it needs a look', c.reason, true]);
   // The long explanation (plain-words reason, orientation note) is the hover text of the Result and Reason rows.
   const explanation = [c.reason ? explain(c) : '', c.orientationNote ?? ''].filter(Boolean).join(' ');
   const FACT_HELP = {
-    'Result': explanation, 'Reason code': explanation, 'Print angle': c.angleReason || 'The print tilt the build chose.',
+    'Result': explanation, 'Why it needs a look': explanation, 'Verdict': explanation, 'Print angle': c.angleReason || 'The print tilt the build chose.',
     'Unresolved islands': 'Lowest points of regions that start mid-air that no built tip serves, with height, size and reason.',
     'Left-out reasons': 'Why tips were not built, with counts.', 'Up decision': 'How the teeth-top side was decided.',
   };
-  const factRows = c.kind === 'denture' ? rows.filter(([k]) => DENTURE_ROWS.includes(k) || k === 'Reason code') : rows;
+  const factRows = c.kind === 'denture' ? rows.filter(([k]) => DENTURE_ROWS.includes(k) || k === 'Why it needs a look' || k === 'Verdict') : rows;
   const byName = new Map(factRows.map((row) => [row[0], row]));
   const used = new Set();
   const line = ([k, v, bad]) => {
@@ -1845,11 +1963,27 @@ try {
     return rules;
   };
 
+  // Discard my changes: every edit on the page, in every stage - the settings, the Orient search and the
+  // zone setup - back to standard. The review on screen is not touched; it is in its own folder.
   document.getElementById('bench-reset').addEventListener('click', () => {
     for (const { input, rule } of fields.values()) { if (rule.type === 'flag') input.checked = false; else input.value = ''; }
-    status.textContent = '';
+    poseEdits = {};
+    try { localStorage.removeItem('review-pose'); localStorage.removeItem('review-zone-layout-2'); } catch { /* per-viewer only */ }
+    if (graphLib) {
+      zoneGraph = graphLib.defaultGraph();
+      try { localStorage.setItem('review-zone-graph', JSON.stringify(zoneGraph)); } catch { /* per-viewer only */ }
+      zonePositions = editorLib ? editorLib.autoLayout(zoneGraph, graphLib.FIXED.outputs) : null;
+    }
+    if (lastChain) drawChain(...lastChain);
+    status.textContent = 'Changes discarded: the search, the zone setup and the settings are the standard ones again.';
   });
 
+  // Save type: only what RAN is saved (the server copies the run's type.json), never unrun edits.
+  document.getElementById('type-save').addEventListener('click', async () => {
+    const reply = await fetch('/save-type', { method: 'POST' }).catch(() => null);
+    const answer = reply ? await reply.json().catch(() => ({})) : { error: 'the server did not answer' };
+    status.textContent = answer.ok ? `Saved ${answer.path} - commit it to ship it. It holds what this review ran, with its proof.` : `Not saved: ${answer.error ?? 'no answer'}`;
+  });
   const run = document.getElementById('bench-run');
   run.addEventListener('click', async () => {
     const row = caseNow;
@@ -1858,15 +1992,19 @@ try {
     // An edited zone graph is a reason to run on its own: refusing until a RULE was turned made the
     // node editor's own Apply do nothing for a graph-only edit - found by pressing it.
     const graphEdited = Boolean(graphLib && zoneGraph && !graphLib.isDefault(zoneGraph));
-    if (Object.keys(rules).length === 0 && !graphEdited) { status.textContent = 'Nothing is turned yet. Set a rule or edit the zone graph, then apply.'; return; }
+    const poseEdited = Object.keys(poseEdits).length > 0;
+    if (Object.keys(rules).length === 0 && !graphEdited && !poseEdited) { status.textContent = 'Nothing is changed yet. Edit the search (1 Orient), the zone graph (2 Zones) or a setting (3), then apply.'; return; }
+    const poseProblem = searchProblem(searchNow());
+    if (poseProblem) { status.textContent = `Fix the search first (1 Orient): ${poseProblem}.`; return; }
+    if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) { status.textContent = 'The type name (1 Orient) is lower-case letters, digits, dots and dashes.'; return; }
     const graphProblems = graphEdited ? graphLib.validate(zoneGraph).problems : [];
     if (graphProblems.length) { status.textContent = `Fix the zone graph first (2 Zones): ${graphProblems[0]}`; return; }
     run.disabled = true;
-    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : [])].join(', ');
+    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(poseEdited ? ['the edited search'] : [])].join(', ');
     status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
     try {
       const reply = await fetch('/rerun', { method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind: kindNow, rules, source: row.source,
+        body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, pose: poseEdits,
           // The node editor's graph, only when it has been edited: the default is sent as nothing, so a
           // run with no edit is exactly the run it always was.
           zoneGraph: graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null }) });

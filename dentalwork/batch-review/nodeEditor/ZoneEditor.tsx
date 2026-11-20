@@ -14,7 +14,7 @@
  * LAYOUT IS NOT MEANING. Where a node sits on the canvas is kept apart from the graph (`positions`),
  * because order of combination is the WIRING. Moving a node changes nothing the engine would read.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   Background, Controls, Handle, MiniMap, Position, ReactFlow, applyEdgeChanges, applyNodeChanges, useReactFlow, useStore, useUpdateNodeInternals,
   type Connection, type Edge, type EdgeChange, type Node, type NodeChange, type NodeProps,
@@ -59,6 +59,9 @@ export interface GraphLib {
   KIND_WORDS: Record<string, Words>;
   PARAM_WORDS: Record<string, ParamWords>;
   OUTPUT_WORDS: Record<string, Words>;
+  /* The groups and each kind's group: a coloured stripe per group, so kinds are found at a glance. */
+  NODE_GROUPS: Record<string, { title: string; says: string; token: string }>;
+  KIND_GROUP: Record<string, string>;
   /* What this version does not read (mirrors zone_graph.rs): drawn as fixed, never as a field. */
   FIXED: { params: Record<string, string[]>; outputs: string[] };
   rewire(g: Graph, id: string, input: string, from: string | null): Graph;
@@ -151,6 +154,7 @@ interface ZoneData extends Record<string, unknown> {
   /* The model's problems that name THIS node ("R1: ..."), shown on it; the rest stay in the list above. */
   issues: { text: string; warn: boolean }[];
   onParam(id: string, key: string, value: string | number): void;
+  onRemove(id: string): void;
 }
 interface OutputData extends Record<string, unknown> { lib: GraphLib; filled: Record<string, boolean> }
 /**
@@ -170,14 +174,20 @@ function PlaceNew({ missing, onPlace }: { missing: string; onPlace(at: Positions
 }
 
 
-function ZoneNode({ data }: NodeProps<Node<ZoneData>>) {
-  const { lib, node, idle, live, onParam, issues } = data;
+function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
+  const { lib, node, idle, live, onParam, onRemove, issues } = data;
   const spec = lib.KINDS[node.kind];
   const words = lib.KIND_WORDS[node.kind];
+  const group = lib.NODE_GROUPS[lib.KIND_GROUP[node.kind]];
   const inputLabel = (name: string) => (node.kind === 'subtract' ? (name === 'a' ? 'A - kept' : 'B - removed from A') : name === 'a' || name === 'b' ? name.toUpperCase() : name);
   return (
-    <div className={`zn${idle ? ' idle' : ''}${spec.fixed ? ' fixed' : ''}${issues.some((i) => !i.warn) ? ' has-issue' : ''}`}>
-      <div className="zn-head"><b>{words.title}</b><span className="zn-id">{node.id}</span></div>
+    <div className={`zn${idle ? ' idle' : ''}${spec.fixed ? ' fixed' : ''}${issues.some((i) => !i.warn) ? ' has-issue' : ''}`} style={{ '--zn-group': `var(${group?.token ?? '--muted'})` } as CSSProperties}>
+      <div className="zn-group">{group?.title}</div>
+      {/* The engine id (R1, NS, ...) is a hover, not a label: it is what messages cite, and noise otherwise. */}
+      <div className="zn-head" title={`${node.id} - ${words.says}`}>
+        <b>{words.title}</b>
+        {selected && !spec.fixed && <button type="button" className="zn-remove nodrag" aria-label={`Remove ${words.title}`} title="Remove this node (or press Delete)" onClick={() => onRemove(node.id)}>×</button>}
+      </div>
       {issues.map((i) => <div className={i.warn ? 'zn-warn' : 'zn-issue'} key={i.text}>{i.text}</div>)}
       <div className="zn-says">{words.says}</div>
       {Object.entries(spec.inputs).map(([name, want]) => (
@@ -195,9 +205,9 @@ function ZoneNode({ data }: NodeProps<Node<ZoneData>>) {
           // A field the engine ignores is a control that lies, so a fixed setting is text, not an input.
           const shown = p.choices?.find(([v]) => v === value)?.[1] ?? String(value);
           return (
-            <div className="zn-row" key={key} title={`${p.help} Fixed in this version: the engine does not read an edit yet.`}>
+            <div className="zn-row" key={key} title={`${p.help} Locked: this version of the engine does not read a change to it yet.`}>
               <span className="zn-in">{p.label}</span>
-              <span className="zn-fixed">{shown} · fixed</span>
+              <span className="zn-fixed">{shown} · locked</span>
             </div>
           );
         }
@@ -206,7 +216,7 @@ function ZoneNode({ data }: NodeProps<Node<ZoneData>>) {
             <span className="zn-in">{p.label}{isLive && <b className="zn-live"> · live</b>}</span>
             {p.choices
               ? (
-                <select className="nodrag" defaultValue={String(value)} onChange={(e) => onParam(node.id, key, e.target.value)}>
+                <select className="nodrag" defaultValue={String(value)} title={p.choices.find(([v]) => v === String(value))?.[1]} onChange={(e) => onParam(node.id, key, e.target.value)}>
                   {p.choices.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
                 </select>
                 )
@@ -261,6 +271,13 @@ function OutputNode({ data }: NodeProps<Node<OutputData>>) {
 // NOT 'output': React Flow ships an `output` type whose stylesheet centres the text and adds a border.
 const nodeTypes = { zone: ZoneNode, zoneOutput: OutputNode };
 
+/** The minimap draws each node in its group's colour, read from the token so it follows the theme. */
+function minimapColor(node: Node): string {
+  const data = node.data as Partial<ZoneData>;
+  const token = data.lib && data.node ? data.lib.NODE_GROUPS[data.lib.KIND_GROUP[data.node.kind]]?.token : undefined;
+  return token ? getComputedStyle(document.documentElement).getPropertyValue(token).trim() || 'gray' : getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+}
+
 export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, onPositions }: ZoneEditorProps) {
   const idle = useMemo(() => new Set(lib.unreached(graph)), [lib, graph]);
   const fixed = useMemo(() => fixedOnly(graph, lib.FIXED.outputs), [graph, lib]);
@@ -279,6 +296,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
     return by;
   }, [lib, graph]);
   const onParam = useCallback((id: string, key: string, value: string | number) => onGraph(lib.setParam(graph, id, key, value)), [lib, graph, onGraph]);
+  const onRemove = useCallback((id: string) => onGraph(lib.removeNode(graph, id)), [lib, graph, onGraph]);
 
   const derived: Node[] = useMemo(() => [
     // What only a fixed output needs (the rim line and its strips from Orient, the sockets) is not
@@ -287,13 +305,13 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
     ...graph.nodes.filter((n) => !fixed.has(n.id)).map((n) => ({
       id: n.id, type: 'zone', position: positions[n.id] ?? { x: 0, y: 0 },
       deletable: !lib.KINDS[n.kind].fixed,
-      data: { lib, node: n, idle: idle.has(n.id), live: liveParams, onParam, issues: issues.get(n.id) ?? [] } satisfies ZoneData,
+      data: { lib, node: n, idle: idle.has(n.id), live: liveParams, onParam, onRemove, issues: issues.get(n.id) ?? [] } satisfies ZoneData,
     })),
     {
       id: OUTPUTS, type: 'zoneOutput', position: positions[OUTPUTS] ?? { x: 0, y: 0 }, deletable: false,
       data: { lib, filled: Object.fromEntries(Object.keys(lib.REQUIRED_OUTPUTS).map((k) => [k, Boolean(graph.outputs[k])])) } satisfies OutputData,
     },
-  ], [graph, positions, lib, idle, liveParams, onParam, issues, fixed]);
+  ], [graph, positions, lib, idle, liveParams, onParam, onRemove, issues, fixed]);
 
   /*
    * React Flow keeps each node's MEASURED size in the node object, delivered through onNodesChange.
@@ -395,7 +413,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
       <PlaceNew missing={graph.nodes.filter((n) => !positions[n.id]).map((n) => n.id).join(',')} onPlace={onPlace} />
       <Background />
       <Controls fitViewOptions={fitOptions} />
-      <MiniMap pannable zoomable />
+      <MiniMap pannable zoomable nodeColor={minimapColor} />
     </ReactFlow>
   );
 }

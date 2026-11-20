@@ -1,13 +1,21 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  DIRECTIONS, FIXED, KINDS, KIND_WORDS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS,
+  DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS,
   addNode, bindOutput, defaultGraph, isDefault, removeNode, rewire, setParam, unreached, validate,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
   // The owner's rules, enforced rather than remembered: "anything that is not a number should be a
   // dropdown", and "name it or show explanations" - so a node added later cannot ship unexplained.
+  it('every node kind belongs to a group with a title and a colour token', () => {
+    for (const kind of Object.keys(KINDS)) {
+      const group = NODE_GROUPS[KIND_GROUP[kind]];
+      expect(group?.title, `${kind} has no group`).toBeTruthy();
+      expect(group.token, `${kind}'s group has no colour`).toMatch(/^--node-/);
+    }
+  });
+
   it('every node kind has a plain title and a sentence', () => {
     for (const kind of Object.keys(KINDS)) {
       expect(KIND_WORDS[kind]?.title, `${kind} has no plain title`).toBeTruthy();

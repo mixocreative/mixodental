@@ -534,6 +534,12 @@ The tokens of `dentalwork/batch-review/tokens.css` that the app does not have. T
 | `--section` | `6px` | Space above and below a section rule |
 | `--panel-left` | `220px` | Left panel width |
 | `--panel-right` | `240px` | Right panel width |
+| `--node-rays` | `var(--info)` | Node editor group stripe: Rays (parallel rays, rays from a point) - `nodeGraph.mjs` NODE_GROUPS. Palette colours by name, never a layer colour, which means something else in the 3D view |
+| `--node-points` | `var(--kraft)` | Node editor group: Points (where planes meet, a point on a plane) |
+| `--node-maps` | `var(--success)` | Node editor group: Maps & finds (depth map, find holes, find sockets) |
+| `--node-strips` | `var(--warning)` | Node editor group: Strips (strip around) |
+| `--node-combine` | `var(--muted)` | Node editor group: Combine (either, without, both, everything but) |
+| `--node-orient` | `var(--ink)` | Node editor group: From Orient (the rim line; not drawn on the zone canvas) |
 | `--layer-undefined` | `#6e6a86` | Layer: no ray reached this face - the absence of a verdict, deliberately outside the red/green/amber family the decided zones use |
 | `--layer-allowed` | `#2e9e5b` | Layer: allowed |
 | `--layer-no-support` | `#c0392b` | Layer: no support |

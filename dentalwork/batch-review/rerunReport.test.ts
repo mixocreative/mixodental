@@ -61,7 +61,7 @@ describe('one answer per run (cia F3)', () => {
   it('a run that exits in time is answered by its exit, and the limit never fires', async () => {
     const child = fakeChild();
     const calls: unknown[] = [];
-    guardRun(child, 30, { exit: (code) => calls.push(code), error: () => calls.push('error'), timeout: () => calls.push('timeout') });
+    guardRun(child, 30, { exit: (code: unknown) => calls.push(code), error: () => calls.push('error'), timeout: () => calls.push('timeout') });
     child.emit('exit', 0);
     await new Promise((r) => setTimeout(r, 60));
     expect(calls).toEqual([0]);
