@@ -28,7 +28,7 @@ Three limits it states itself, because each one is a fact about the engine rathe
 **only a denture responds** (the aligner's `dental_policy` takes no rules array, where
 `denture_policy_ruled` does); it turns **named rules and a zone graph only** (`--zone-graph`, engine 69: the graph the
 review's node editor composes, validated by the engine at set, which refuses a bad one by name and
-exits 2), because no ABI call accepts profile JSON — a profile *number* needs a Rust rebuild; and **a recompute is ~23 s**, measured, so any panel over
+exits 2; a graph whose steep ray R1b disagrees with `--set noSupportSteepDeg` is refused before any run), because no ABI call accepts profile JSON — a profile *number* needs a Rust rebuild; and **a recompute is ~23 s**, measured, so any panel over
 this applies and waits rather than previewing live.
 
 > *This paragraph used to read "No new tooling here. Every stage below runs an existing script."*

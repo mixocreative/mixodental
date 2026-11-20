@@ -105,9 +105,24 @@ if (unproven.length > 0) {
  */
 const zoneGraphFile = valueOf('--zone-graph');
 if (zoneGraphFile !== undefined) {
-  try { JSON.parse(readFileSync(zoneGraphFile, 'utf8')); } catch (error) {
+  let graph;
+  try { graph = JSON.parse(readFileSync(zoneGraphFile, 'utf8')); } catch (error) {
     console.error(`--zone-graph ${zoneGraphFile}: not a readable JSON graph (${error.message})`);
     process.exit(1);
+  }
+  /*
+   * ONE STEEP ANGLE, NOT TWO. With a graph set, the zones take R1b's angle from the graph and never read
+   * the rule (zone_graph.rs current()), while the policy and the review layer still read the rule. Two
+   * different numbers would run "clean" with the zones and the report disagreeing. The review page
+   * cannot do this (saving mirrors one into the other); this command line can, so it refuses.
+   */
+  const steep = graph?.nodes?.find?.((n) => n.id === 'R1b')?.params?.deg;
+  if (steep !== undefined && rules.noSupportSteepDeg !== undefined && Number(steep) !== Number(rules.noSupportSteepDeg)) {
+    console.error(`--zone-graph sets the steep ray R1b to ${steep} deg but --set noSupportSteepDeg=${rules.noSupportSteepDeg}: the zones would use one and the report the other. Make them the same.`);
+    process.exit(1);
+  }
+  if (Number(steep) > 0 && rules.noSupportSteepDeg === undefined) {
+    console.log(`Note: the graph's steep ray R1b is ${steep} deg, but noSupportSteepDeg is not set, so the policy and the review layer treat the steep ray as off. Add --set noSupportSteepDeg=${steep} to make them agree (docs/TYPE-PIPELINE.md, unit P1).`);
   }
 }
 const skip = new Set(['--kind', valueOf('--kind'), '--out', valueOf('--out'), ...sets, '--set', '--open', '--list', '--zone-graph', zoneGraphFile]);

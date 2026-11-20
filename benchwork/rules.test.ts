@@ -42,6 +42,16 @@ describe('benchwork offers rules the engine actually reads', () => {
     }
   });
 
+  it('gives every rule a plain label, and every mode a dropdown of described choices', () => {
+    // The stage cards show `label`, never the engine name; a mode typed as a bare 0/1/2 is a guess.
+    const unit = { deg: '(°)', mm: '(mm)', mm2: '(mm²)' };
+    for (const rule of BENCH_RULES) {
+      expect(rule.label, `${rule.name} has no label`).toBeTruthy();
+      if (unit[rule.type]) expect(rule.label, `${rule.name} label names no unit`).toContain(unit[rule.type]);
+      if (rule.type === 'mode') expect(rule.choices?.length, `${rule.name} is a mode without choices`).toBeGreaterThan(1);
+    }
+  });
+
   it('covers the two defaults the review already quotes, so the words cannot disagree', () => {
     for (const name of Object.keys(RULE_DEFAULTS)) expect(BENCH_RULES.some((rule) => rule.name === name), name).toBe(true);
   });
