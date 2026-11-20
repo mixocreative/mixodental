@@ -60,7 +60,9 @@ looks the way it does.
 
 Each has its own map: `components/` (and `components/viewport/`), `core/`, `dental/`, `denture/`,
 `deck/`, `items/`, `progress/`, `scenes/`, `state/`, `ui/`, `workers/`, `bench/`, plus `locales/`
-(string tables — a data folder, no map).
+(string tables — a data folder, no map). `dentalTypes/` is one module and its test so far -
+`typeFile.ts`, the pure reader and the one writer of a workbench type file
+(`../docs/TYPE-PIPELINE.md` unit B1); it gets a map when it gets a second job.
 
 ## The two receipts that mean "shipped"
 
