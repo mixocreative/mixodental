@@ -376,7 +376,7 @@ pure Rust: no wasm, no host, no scan needed.
 | **U7** | Zones use the shared references: the reference kinds on the Zones canvas, the `ref` node, `planePoint` evaluated, a `direction` input on Parallel rays | geocore + mixodental | a wired direction equal to back -> tissue 45 gives R1's mask exactly; a `planePoint` sight cast runs and its origin is drawn where the percentages say; the canvas will not draw a global wire into a zone | free, but after U6 is accepted |
 | **U8** | A first non-arch recipe end to end (flat base -> bottom -> search) on a real model the owner supplies | both | a review folder the owner looks at | **needs ruling 1 and a sample file** |
 | **U9** | Tab "4 Print angle": the search fields, per-angle table, pick and confirm move out of Orient (section 8) | mixodental, UI only | a filtered walk; a zone edit visibly moves the pick on tab 4 | **needs ruling 2** |
-| **M1** | Measure quick pick vs full-build pick on every denture scan (section 9) | a script, about 4.3 h unattended | the table of section 9's four answers | free to run; **the result needs ruling 3** |
+| **M1** | Measure quick pick vs full-build pick on every denture scan (section 9) | a script, about 4.3 h unattended | the table of section 9's four answers | done 2026-11-21; ruling 3 answered (fewer tips left out beats less resin): **keep C** |
 
 Order: U1 and U2 in parallel, then U3, U4, U5, then stop for the owner before U6. U1-U4 change no
 behaviour for any shipped type. U9 and M1 depend on nothing above and can go first.
@@ -662,3 +662,38 @@ quick score.
 
 Section 9 above says "3 of them in `dentalwork/fixtures/case-denture`"; the folder holds 6 - three
 bodies, each with and without its pieces.
+
+### The owner's answers (2026-11-21) and the pieces, measured
+
+**Ruling 3: fewer tips left out beats less resin.** So the resin gap at the body's pick (+2.5 / +8.7 /
++10.6 % against the leanest clean angle) is not a reason to change anything: on all three bodies the
+quick pick and its whole top 3 leave no tip out. **Option C stays; no resin term goes into the quick
+score.** TRAP for whoever scores "fewer left out" next: M1 showed steeper angles cut the left-out count
+mainly by ASKING for fewer tips (candidates fall, placed barely rises). Count left out against the same
+or more tips asked for - a share, or placed and left out side by side - never the bare count.
+
+**What the pieces are: the owner is not sure.** So they were measured instead of guessed
+(scratchpad `pieces.py`: vertices welded on exact coordinates, pieces by shared vertex, the body is the
+piece with the most triangles, gap = nearest piece vertex to the body's vertices):
+
+| Scan | Other pieces | Longest side, median / 90 % / max | Over 5 mm | Under 1 mm | Touching the body (< 0.05 mm) | Pieces' resin vs the body's |
+|---|---|---|---|---|---|---|
+| 1 | 211 | 1.8 / 11.7 / 70.7 mm | 50 | 89 | 94 | 23 % |
+| 3 | 340 | 2.2 / 5.8 / 65.8 mm | 40 | 65 | 37 | 37 % |
+| 5 | 556 | 2.0 / 9.3 / 44.4 mm | 83 | 94 | 144 | 119 % |
+
+**They are not scan debris, on three counts.** One piece in scans 1 and 3 is as long as the whole
+denture (66-71 mm, 470-900 mm3). In scan 5 the pieces together hold more resin than the body. And the
+smallest pieces repeat exactly - scans 1 and 5 have dozens of the same 80-triangle, 0.65 mm, 0.14 mm3
+shape - which noise from a scanner never does. These are designed parts, most of them touching or
+within 1 mm of the body (173 / 140 / 205), with a tooth-sized band of 5-12 mm among them. What exactly
+they are (teeth as separate shells, a second part of the base, design markers) is for whoever made the
+files to say; for the print angle the answer is the same either way: **they print, so the angle must
+hear from them.**
+
+**What that means, not done tonight:** the quick scan reads the largest part only (geocore
+`tilt_scan_ruled`, by design), so on these files it chooses the angle blind to the parts that carry
+every left-out tip. Under ruling 3 the next step is the quick scan reading every part that prints - an
+engine change in geocore, to be measured on the workbench first (benchwork), on scans 1, 3 and 5 against
+today's pick, with scans 2, 4 and 6 as the baseline that must not move. Not started: a change to how
+the app decides, owner's approval first.
