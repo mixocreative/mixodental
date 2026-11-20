@@ -17,14 +17,14 @@ export type LegendRow = 'area' | 'rim' | 'tip';
  *   - Step 3 draws none of them, so it has no legend at all.
  */
 export function legendRows(at: {
-  stage: 'aligner' | 'area' | 'review';
-  rimMode: boolean;
+  /** Rim define mode is its own stage, `rim` (src/dental/editingMode.ts) - not a flag on Step 1. */
+  stage: 'aligner' | 'rim' | 'area' | 'review';
   areaPreview: boolean;
   tips: boolean;
 }): LegendRow[] {
   if (at.stage === 'review') return [];
   if (at.stage === 'area') return ['area', 'rim', 'tip'];
-  if (at.rimMode) return ['rim'];
+  if (at.stage === 'rim') return ['rim'];
   return [...(at.areaPreview ? ['area', 'rim'] as const : []), ...(at.tips ? ['tip'] as const : [])];
 }
 

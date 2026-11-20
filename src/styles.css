@@ -506,6 +506,9 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
  * card would hide the cross it is supposed to show.
  */
 .edit-badge:has(.step-close) { padding-right: 40px; }
+/* ...and the teal what-to-do block still runs to the card's edge: its -13px was tuned to a 12px padding, so
+   against 40px it stopped 27px short and left a red seam (Fable's review, 2026-11-21). 40 + the 1px border. */
+.edit-badge:has(.step-close) b { margin-right: -41px; }
 .step-close {
   position: absolute;
   top: 4px;

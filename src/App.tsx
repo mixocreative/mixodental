@@ -1564,8 +1564,13 @@ export default function App() {
       onSetDefault: recipes.setDefault,
     } } : {}),
   } : undefined;
-  /* The deck of files, keeping the session: the header key outside a dental step, the step card's close button inside one. */
-  const openFiles = () => { dentalFlow.invalidate(); denture.orient.invalidate(); setStartScreen('items'); };
+  /*
+   * The deck of files, keeping the session: the header key outside a dental step, the step card's close button
+   * inside one. AN EMPTY PLATE GOES TO DROP, the rule Step 1's Back states: the header key was only ever shown
+   * with units, but the card's close is on every step, including Step 1 waiting for its first file (Fable's
+   * review, 2026-11-21).
+   */
+  const openFiles = () => { dentalFlow.invalidate(); denture.orient.invalidate(); setStartScreen(sceneRef.current.units.length > 0 ? 'items' : 'drop'); };
   // Denture Step 2 checks each finished build by itself: its status line counts the problems.
   const dentureBuild = denture.active && session.mode === 'dental' && session.dentalStage === 'review' && activeUnit?.denture && ui.dentalReviewReady ? currentBuild(activeUnit, built.get(activeUnit.id)) : undefined;
   useAutoCheck({ build: dentureBuild, checked: Boolean(dentureBuild && verdictEntry?.unit === activeUnit && verdictEntry?.mesh === dentureBuild), canRun: command('check.run').enabled && !generating, run: () => runCommand('check.run') });
@@ -1993,8 +1998,8 @@ export default function App() {
         {isDraggingOver && <div className="viewport-drop-overlay">{t('Drop to import')}</div>}
         {/* The legend is DOM: it is a sibling of the canvas, never a child of it - everything inside the
             r3f Canvas has to be a THREE object. */}
-        {editMode === 'dental' && (session.dentalStage === 'aligner' || session.dentalStage === 'area' || session.dentalStage === 'review')
-          ? <SceneLegend rows={legendRows({ stage: session.dentalStage, rimMode: press.kind === 'dental-rim', areaPreview: Boolean(dentalFlow.areaPreview), tips: Boolean(stepOneTips) })} /> : null}
+        {editMode === 'dental' && (session.dentalStage === 'aligner' || session.dentalStage === 'rim' || session.dentalStage === 'area' || session.dentalStage === 'review')
+          ? <SceneLegend rows={legendRows({ stage: session.dentalStage, areaPreview: Boolean(dentalFlow.areaPreview), tips: Boolean(stepOneTips) })} /> : null}
         <PanelBoundary name="jobs"><JobActivityPanel stagedBar={stagedJobBar} /></PanelBoundary>
         {/* The area detector is ONE call into the core: it reports a start and an end and nothing between,
             so this one paces and shows no number. See src/components/SceneProgress.tsx. */}

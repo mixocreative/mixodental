@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { SceneLegend, legendRows } from './SceneLegend';
 
 const at = (over: Partial<Parameters<typeof legendRows>[0]>) =>
-  legendRows({ stage: 'aligner', rimMode: false, areaPreview: false, tips: false, ...over });
+  legendRows({ stage: 'aligner', areaPreview: false, tips: false, ...over });
 
 describe('the scene legend lists only what the step draws', () => {
   it('Step 3 draws no area, no edge and no tip cones, so it has no legend', () => {
@@ -22,7 +22,7 @@ describe('the scene legend lists only what the step draws', () => {
   });
 
   it('rim define mode draws the rim in the edge colour, and nothing else', () => {
-    expect(at({ rimMode: true, areaPreview: true, tips: true })).toEqual(['rim']);
+    expect(at({ stage: 'rim', areaPreview: true, tips: true })).toEqual(['rim']);
   });
 
   it('draws each row with the swatch of its own token', () => {
