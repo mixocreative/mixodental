@@ -1,8 +1,47 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  KINDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, addNode, bindOutput, defaultGraph, isDefault, removeNode, rewire, setParam, unreached, validate,
+  DIRECTIONS, KINDS, KIND_WORDS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS,
+  addNode, bindOutput, defaultGraph, isDefault, removeNode, rewire, setParam, unreached, validate,
 } from './nodeGraph.mjs';
+
+describe('every node, parameter and output says what it is, in plain words', () => {
+  // The owner's rules, enforced rather than remembered: "anything that is not a number should be a
+  // dropdown", and "name it or show explanations" - so a node added later cannot ship unexplained.
+  it('every node kind has a plain title and a sentence', () => {
+    for (const kind of Object.keys(KINDS)) {
+      expect(KIND_WORDS[kind]?.title, `${kind} has no plain title`).toBeTruthy();
+      expect(KIND_WORDS[kind]?.says, `${kind} has no sentence saying what it does`).toBeTruthy();
+    }
+  });
+
+  it('every parameter has a label and help, and every non-number is a dropdown', () => {
+    for (const [kind, spec] of Object.entries(KINDS)) {
+      for (const [key, value] of Object.entries(spec.params)) {
+        const words = PARAM_WORDS[key];
+        expect(words?.label, `${kind}.${key} has no label`).toBeTruthy();
+        expect(words?.help, `${kind}.${key} has no help`).toBeTruthy();
+        if (typeof value !== 'number') {
+          expect(words?.choices?.length, `${kind}.${key} is text, so it must be a dropdown`).toBeGreaterThan(0);
+          // And its default must be one of its own choices, or the dropdown would open on nothing.
+          expect(words.choices.map(([v]) => v), `${kind}.${key} default "${value}" is not a choice`).toContain(value);
+        }
+      }
+    }
+  });
+
+  it('every output says what the engine does with it', () => {
+    for (const name of Object.keys(REQUIRED_OUTPUTS)) {
+      expect(OUTPUT_WORDS[name]?.title, `${name} has no plain title`).toBeTruthy();
+      expect(OUTPUT_WORDS[name]?.says, `${name} does not say what the engine does with it`).toBeTruthy();
+    }
+  });
+
+  it('names exactly the directions the engine reads', () => {
+    // zone_graph.rs axis(): back, front, top|teeth, tissue, across, -across.
+    expect(DIRECTIONS.map(([v]) => v).sort()).toEqual(['-across', 'across', 'back', 'front', 'teeth', 'tissue']);
+  });
+});
 
 describe('the print-angle search node shows what the engine actually searches', () => {
   it('matches the shipped denture profile, so the node cannot drift from the engine', () => {

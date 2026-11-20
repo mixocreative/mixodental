@@ -12,9 +12,11 @@
  * side of a SUBTRACT - never as a position in a list, so inserting a node cannot silently change what
  * another node means.
  *
- * WHAT THIS DOES NOT DO: run anything. Evaluating a custom graph needs the engine to take one, which
- * is the next engine change. Until then the editor composes and validates, and only the default graph
- * runs - and the UI must say so rather than imply an edited graph took effect.
+ * IT RUNS (engine 69). Apply sends an edited graph to the engine, which evaluates it in
+ * `dental::denture::zone_graph`. The engine validates a graph when it is SET and refuses with the node
+ * named, so the checks here are the fast first pass, not the last word. The engine is stricter in one
+ * place this version: it refuses rewiring `rim`, `rim_band`, `low_rim_band` and `sockets`, which it
+ * computes elsewhere today - this module allows the wiring, the engine says why it cannot run it.
  */
 
 /** Socket types. A wire is only legal between matching types: the connection you cannot make beats the error you would read later. */
@@ -53,6 +55,85 @@ export const KINDS = {
   intersect: { stage: 'zones', label: 'Intersect', out: 'mask', inputs: { a: 'mask', b: 'mask' }, params: {}, reads: 'A and B, per face' },
   not: { stage: 'zones', label: 'Not', out: 'mask', inputs: { a: 'mask' }, params: {},
     reads: 'every face A does not hold - forced by the engine: low admission tests !no_support (ruled_tips.rs:191)' },
+};
+
+/*
+ * PLAIN WORDS, owned here and shown on every node (owner, 2026-11-20: "a lot of things are unclear -
+ * what is tissue, what is band, what is basin fill"). `title` is what a node is called on the canvas,
+ * `says` is the one sentence under it. Engine names stay as the kind keys, because they are what the
+ * engine reads; nobody should have to know them to use the editor. `nodeGraph.test.ts` fails if a kind
+ * has no title or sentence.
+ */
+export const KIND_WORDS = {
+  parallelCast: { title: 'Parallel rays', says: 'Shoots many parallel rays across the whole part from one direction. Every face a ray hits FIRST is marked.' },
+  sightCast: { title: 'Rays from a point', says: 'From one point, marks every face that point can see directly.' },
+  intersection: { title: 'Point where planes meet', says: 'The point where two planes cross, on one side of the part. This is where today\'s cavity rays start.' },
+  planePoint: { title: 'Point on a plane', says: 'A point placed on a plane by % across and % along; 50 / 50 is the centre. Not runnable yet.' },
+  depthCast: { title: 'Depth map', says: 'Looks straight through the part along one direction and records how deep it is at every spot. Feeds Find holes and Find sockets.' },
+  holes: { title: 'Find holes', says: 'Openings you can see right through the part, found from the depth map.' },
+  basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map.' },
+  band: { title: 'Strip around', says: 'Every face within a set distance of its seeds, measured along the surface - e.g. a 5 mm strip around each hole.' },
+  rimCurve: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
+  union: { title: 'Either (union)', says: 'Faces in A, or in B, or in both.' },
+  subtract: { title: 'Remove (subtract)', says: 'Faces in A, minus any that are also in B. A and B are not interchangeable.' },
+  intersect: { title: 'Both (overlap)', says: 'Only the faces that are in both A and B.' },
+  not: { title: 'Invert (not)', says: 'Every face that is NOT in A.' },
+};
+
+/**
+ * The directions a ray or a face can name, in the part's own frame - so they mean the same thing
+ * however the scan was imported. The keys are what the engine reads (`zone_graph.rs` axis()).
+ */
+export const DIRECTIONS = [
+  ['back', 'back - the open end of the U'],
+  ['front', 'front - the closed end, at the front teeth'],
+  ['teeth', 'teeth side - where the teeth are'],
+  ['tissue', 'tissue side - the side that rests on the gums'],
+  ['across', 'across - toward one side (left / right)'],
+  ['-across', 'across - toward the other side'],
+];
+
+/**
+ * Every parameter: its label, its help sentence, and - for anything that is not a number - the only
+ * values it may take, as a dropdown (owner: "anything that is not a number should be an input node or
+ * a dropdown"). Free text is how a typo turns into a refused run. `nodeGraph.test.ts` enforces it.
+ */
+export const PARAM_WORDS = {
+  from: { label: 'rays start along', help: 'The direction the rays point before tilting.', choices: DIRECTIONS },
+  toward: { label: 'tilting toward', help: 'The rays tilt from "start along" toward this, by the angle.', choices: DIRECTIONS },
+  deg: { label: 'tilt (deg)', help: 'How far the rays tilt from "start along" toward "tilting toward". 0 = off: no rays.' },
+  pitchMm: { label: 'ray spacing (mm)', help: 'Distance between neighbouring rays. Smaller is finer and slower.' },
+  planeA: { label: 'first plane', help: 'One of the two planes whose crossing gives the point.',
+    choices: [['rim', 'rim plane - fitted through the rim line'], ['symmetry', 'middle plane - splits left from right through the centre of mass']] },
+  planeB: { label: 'second plane', help: 'The other plane.',
+    choices: [['symmetry', 'middle plane - splits left from right through the centre of mass'], ['rim', 'rim plane - fitted through the rim line']] },
+  face: { label: 'on the side', help: 'Which side of the part the point sits on.', choices: DIRECTIONS },
+  plane: { label: 'plane', help: 'The plane the point sits on.',
+    choices: [['rim', 'rim plane'], ['symmetry', 'middle plane'], ['back', 'back side of the box'], ['front', 'front side of the box'], ['teeth', 'teeth side of the box'], ['tissue', 'tissue side of the box']] },
+  xPct: { label: '% across', help: '0 to 100 across the plane; 50 is the centre.' },
+  yPct: { label: '% along', help: '0 to 100 along the plane; 50 is the centre.' },
+  axis: { label: 'look along', help: 'The direction the depth map looks through the part.',
+    choices: [['teeth', 'teeth - tissue axis'], ['back', 'back - front axis'], ['across', 'left - right axis']] },
+  side: { label: 'look from', help: 'Which side the depth map looks from.', choices: [['tissue', 'tissue side'], ['teeth', 'teeth side']] },
+  minAreaMm2: { label: 'smallest hole (mm2)', help: 'Openings smaller than this are ignored.' },
+  minDepthMm: { label: 'shallowest socket (mm)', help: 'Hollows shallower than this are not sockets.' },
+  mm: { label: 'strip width (mm)', help: 'How far from the seeds the strip reaches, measured along the surface.' },
+};
+
+/**
+ * What the engine DOES with each output, in plain words - because "no_support" names a mask, not a
+ * consequence, and an operator wiring it needs the consequence. Checked against the engine's own
+ * readers (docs/NODE-PLAN.md, the six consumers): no_support does NOT gate area tips - allowed does.
+ */
+export const OUTPUT_WORDS = {
+  allowed: { title: 'Allowed area', says: 'The ONLY faces where area tips may stand.' },
+  no_support: { title: 'No-support zone', says: 'Lowest-point and island tips stay off these faces (and rim and hole tips, when "rim obeys no-support" is on). It does not limit area tips - Allowed does.' },
+  allowed_cavity: { title: 'Seen by the cavity rays', says: 'What the cavity rays see before the hole strip is added. Read by "rim obeys no-support".' },
+  hole_band: { title: 'Hole strip', says: 'The strip around holes where hole tips are placed.' },
+  rim: { title: 'Rim line', says: 'The line rim tips are placed along. Found in Orient.' },
+  rim_band: { title: 'Rim strip', says: 'The strip along the rim where rim-strip tips go.' },
+  low_rim_band: { title: 'Low rim strip', says: 'The narrower strip along the rim used when admitting lowest points.' },
+  sockets: { title: 'Sockets', says: 'Hollows that would trap resin. Rim, hole and area tips stay out of them when "sockets deny" is on.' },
 };
 
 /**
