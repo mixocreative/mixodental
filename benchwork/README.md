@@ -13,6 +13,7 @@ app on real files, look at the geometry, diff it against the baseline. Only then
 ```bash
 npm run benchwork -- --list                                              the rules it offers
 npm run benchwork -- --kind denture --set overhangAngleDeg=55 "<folder>" --open
+npm run benchwork -- --kind denture --zone-graph zone-graph.json "<folder>"  a zone graph from the node editor
 ```
 
 It decides **what a type's rules are** — for orient, rim and the support zones. It turns thirteen
@@ -25,8 +26,9 @@ to the review viewer. `cli.mjs` is the tool, `rules.mjs` holds the shortlist and
 
 Three limits it states itself, because each one is a fact about the engine rather than a choice:
 **only a denture responds** (the aligner's `dental_policy` takes no rules array, where
-`denture_policy_ruled` does); it turns **named rules only**, because no ABI call accepts profile JSON
-— a profile *number* needs a Rust rebuild; and **a recompute is ~23 s**, measured, so any panel over
+`denture_policy_ruled` does); it turns **named rules and a zone graph only** (`--zone-graph`, engine 69: the graph the
+review's node editor composes, validated by the engine at set, which refuses a bad one by name and
+exits 2), because no ABI call accepts profile JSON — a profile *number* needs a Rust rebuild; and **a recompute is ~23 s**, measured, so any panel over
 this applies and waits rather than previewing live.
 
 > *This paragraph used to read "No new tooling here. Every stage below runs an existing script."*

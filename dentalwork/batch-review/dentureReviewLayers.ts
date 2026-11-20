@@ -22,6 +22,7 @@ import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { JobTransform } from '@mixo-geocore/host/core/jobs';
 import { selfSupportRule, steepRule } from './profileSelect';
 import { AREA_CLASS, compareDentureAreas, reviewDenture, TRAP_LEVEL, type DentureAreaComparison, type DentureReview } from '@mixo-geocore/host/dental/dentureReview';
+import { zoneGraphDigest } from '@mixo-geocore/host/dental/zoneGraph';
 import { parseStl } from '../../scripts/node-engine';
 import { distancesToSurface, readGlbWorldMeshes } from './glbWorld';
 import type { ReviewLayer } from './orientationEvidenceGlb';
@@ -391,9 +392,15 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     // of the model was telling the reviewer nothing while looking perfectly clean. The module owns
     // the complement rule and tests it; the geometry stays here.
     const faceCount = review.noSupportMask.length;
+    // Under an edited zone graph the rays are whatever the operator wired, so naming "45 deg" here
+    // would describe a graph that did not run. The digest is what summary.json records too.
+    const graphDigest = zoneGraphDigest();
+    const noSupportName = graphDigest !== 'default'
+      ? `No-support zone (edited zone graph ${graphDigest.slice(0, 8)})`
+      : review.noSupportSteepDeg > 0 ? `No-support zone (R1 45° + R1b ${review.noSupportSteepDeg}° rays)` : 'No-support zone (hit by 45° rays)';
     const zoneSpecs = [
       { name: `Undefined (no ray reached this face): ${facesInNone([review.noSupportMask, review.allowedMask], faceCount).length} faces`, mask: maskOfNone([review.noSupportMask, review.allowedMask], faceCount), token: '--layer-undefined', lift: UNDEFINED_LIFT_MM },
-      { name: review.noSupportSteepDeg > 0 ? `No-support zone (R1 45° + R1b ${review.noSupportSteepDeg}° rays)` : 'No-support zone (hit by 45° rays)', mask: review.noSupportMask, token: '--layer-no-support', lift: FACE_LIFT_MM },
+      { name: noSupportName, mask: review.noSupportMask, token: '--layer-no-support', lift: FACE_LIFT_MM },
       // R1b's OWN faces: `no_support_steep = r1b && !r1` in the engine, so this is what the second
       // ray added that the first had not already claimed. It is drawn inside the no-support red
       // rather than beside it, because that is where it lives - and until it was drawn, two rays

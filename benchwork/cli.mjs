@@ -98,7 +98,19 @@ if (unproven.length > 0) {
   console.log('If this run matches the baseline, that is UNPROVEN rather than evidence the rule does nothing.');
 }
 
-const skip = new Set(['--kind', valueOf('--kind'), '--out', valueOf('--out'), ...sets, '--set', '--open', '--list']);
+/*
+ * --zone-graph <file>: the zone graph the node editor composed (engine 69). Checked to BE JSON here,
+ * before minutes of engine time are spent; the engine then validates what it means and refuses with the
+ * node named. Handed to batch.ts as a file path, because a graph can outgrow an environment variable.
+ */
+const zoneGraphFile = valueOf('--zone-graph');
+if (zoneGraphFile !== undefined) {
+  try { JSON.parse(readFileSync(zoneGraphFile, 'utf8')); } catch (error) {
+    console.error(`--zone-graph ${zoneGraphFile}: not a readable JSON graph (${error.message})`);
+    process.exit(1);
+  }
+}
+const skip = new Set(['--kind', valueOf('--kind'), '--out', valueOf('--out'), ...sets, '--set', '--open', '--list', '--zone-graph', zoneGraphFile]);
 const folders = args.filter((arg) => !skip.has(arg) && !arg.startsWith('--'));
 if (folders.length === 0) {
   console.error('Give the folder holding the STL files (subfolders included). Run --list to see the rules.');
@@ -126,7 +138,7 @@ console.log(`  out: ${out}\n`);
 const child = spawn(vite, ['--script', join('dentalwork', 'batch-review', 'batch.ts'), '--kind', kind, '--out', out, ...folders], {
   cwd: root, stdio: 'inherit', shell: process.platform === 'win32',
   // MIXO_TIMERS makes every row report its stage seconds, which is the measurement the interaction design waits on.
-  env: { ...process.env, MIXO_RULES: JSON.stringify(rules), MIXO_TIMERS: '1' },
+  env: { ...process.env, MIXO_RULES: JSON.stringify(rules), MIXO_TIMERS: '1', ...(zoneGraphFile ? { MIXO_ZONE_GRAPH_FILE: zoneGraphFile } : {}) },
 });
 
 child.on('exit', (code) => {

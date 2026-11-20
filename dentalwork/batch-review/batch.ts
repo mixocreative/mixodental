@@ -9,11 +9,12 @@
  * summary.json / summary.csv inside the output folder, which Git ignores (patient data).
  * Any error exits non-zero (the engine's wasm keeps no handles open, but exit explicitly anyway).
  */
-import { mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { reviewCase, type CaseRow } from './reviewCase';
 import { parseKind } from './profileSelect';
 import { RULE_DEFAULTS } from './ruleDefaults';
+import { setZoneGraph, ZoneGraphRefused } from '@mixo-geocore/host/dental/zoneGraph';
 
 async function main(): Promise<void> {
 const args = process.argv.slice(2);
@@ -37,6 +38,21 @@ if (files.length === 0) {
 }
 mkdirSync(out, { recursive: true });
 
+// THE ZONE GRAPH the node editor composed, when one was sent (benchwork --zone-graph, engine 69). The
+// engine validates it when it is SET, so a graph it cannot run stops the batch HERE, naming the node -
+// never halfway through, and never by quietly running the default instead. What ran is recorded in
+// summary.json, because an edited graph and the default otherwise look identical on screen.
+let zoneGraph = 'default';
+if (process.env.MIXO_ZONE_GRAPH_FILE) {
+  try {
+    zoneGraph = setZoneGraph(JSON.parse(readFileSync(process.env.MIXO_ZONE_GRAPH_FILE, 'utf8')));
+  } catch (error) {
+    process.stderr.write(`The zone graph was refused: ${error instanceof ZoneGraphRefused ? error.detail : (error as Error).message}\n`);
+    process.exit(2);
+  }
+  process.stdout.write(`Zone graph: ${zoneGraph} (the edited graph from the node editor)\n`);
+}
+
 
 const rows: CaseRow[] = [];
 for (const [k, file] of files.entries()) {
@@ -46,7 +62,7 @@ for (const [k, file] of files.entries()) {
   rows.push(row);
   process.stdout.write(`${row.result}${row.verdict ? ` / ${row.verdict}` : ''}${row.reason ? ` (${row.reason})` : ''}${row.printAngleDeg === null ? '' : `, print angle ${row.printAngleDeg}° (stable ${row.stableBand})`} in ${row.seconds} s
 `);
-  writeSummary(rows, out);
+  writeSummary(rows, out, zoneGraph);
 }
 
 const look = rows.filter((row) => row.needsLook).length;
@@ -57,8 +73,8 @@ const failed = rows.filter((row) => row.result === 'error').length;
 if (failed > 0) throw new Error(`${failed} file(s) could not be read or built (see the lines above).`);
 }
 
-function writeSummary(rows: CaseRow[], out: string): void {
-  writeFileSync(join(out, 'summary.json'), JSON.stringify({ created: new Date().toISOString(), ruleDefaults: RULE_DEFAULTS, cases: rows }, null, 2));
+function writeSummary(rows: CaseRow[], out: string, zoneGraph: string): void {
+  writeFileSync(join(out, 'summary.json'), JSON.stringify({ created: new Date().toISOString(), ruleDefaults: RULE_DEFAULTS, zoneGraph, cases: rows }, null, 2));
   const columns = Object.keys(rows[0]!) as Array<keyof CaseRow>;
   const cell = (value: unknown) => /[",\n]/.test(String(value ?? '')) ? `"${String(value).replace(/"/g, '""')}"` : String(value ?? '');
   writeFileSync(join(out, 'summary.csv'), [columns.join(','), ...rows.map((row) => columns.map((c) => cell(row[c])).join(','))].join('\r\n'));

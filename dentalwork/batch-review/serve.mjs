@@ -5,7 +5,7 @@
 // --lan also listens on the local network (e.g. to look from a phone); review files hold patient scans,
 // so use it only on a trusted home/office network.
 import { createServer } from 'node:http';
-import { createReadStream, existsSync, statSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec, spawn } from 'node:child_process';
@@ -66,7 +66,16 @@ function rerun(request, response) {
     const sets = Object.entries(rules).flatMap(([name, value]) => (/^[A-Za-z][A-Za-z0-9]*$/.test(name)
       ? ['--set', `${name}=${typeof value === 'boolean' ? (value ? 1 : 0) : value}`] : []));
     const out = join(here, '..', 'output', `bench-${stampNow()}`);
-    const child = spawn(process.execPath, [join(here, '..', '..', 'benchwork', 'cli.mjs'), '--kind', kind, '--out', out, ...sets, source],
+    // The node editor's zone graph, when the page sent an edited one. Written into the run's own folder
+    // (so the run carries what it was asked to do) and handed over as a file; the engine validates it.
+    const graphArgs = [];
+    if (ask?.zoneGraph && typeof ask.zoneGraph === 'object') {
+      mkdirSync(out, { recursive: true });
+      const file = join(out, 'zone-graph.json');
+      writeFileSync(file, JSON.stringify(ask.zoneGraph, null, 2));
+      graphArgs.push('--zone-graph', file);
+    }
+    const child = spawn(process.execPath, [join(here, '..', '..', 'benchwork', 'cli.mjs'), '--kind', kind, '--out', out, ...sets, ...graphArgs, source],
       { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'] });
     let log = '';
     child.stdout.on('data', (chunk) => { log += chunk; process.stdout.write(chunk); });
