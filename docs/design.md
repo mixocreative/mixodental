@@ -7574,3 +7574,85 @@ migration, whose doc says *"Do not invent a different one; finish this one."* **
 is not automatic:** benchwork earns it when a profile authored in it has passed `gate:real` and shipped
 as a type twice, authored by someone other than its builder. Until then it stays a bench tool, and
 only its emitted profile ever reaches the product.
+
+### WHO OWNS A NUMBER — the Fable consult of 2026-11-20, and what I verified of it
+
+The owner's question, in their words: *"the values are default that can be edited inside dental,
+mechanisms in detail can be mechanical and agnostic to be inside geocore, but the sequence should be
+mixodental, and the values, default or not, be supplied by mixodental, as they should be configured
+with the workbench when we create or edit a type?"* Per [[feedback-consult-fable]] this went to Fable
+rather than to the owner's own adjudication. **Their model holds, with four corrections**, and the
+load-bearing claims below were re-checked against the source before being written here.
+
+**The rule for one constant, in order.** Ask: (1) does it describe the wire or the picture (stride,
+sentinel, colour, tube radius, cache slot)? Engine const. (2) Can a synthetic unit test with no scan
+prove it right, and does changing it alter only accuracy or speed (weld, epsilon, raster pitch,
+iteration count, robust-fit trim)? Engine const. (3) Otherwise, **could two types legitimately
+disagree on it?** Then it is a named profile field with its unit suffix: the app supplies the value,
+and **the engine keeps the name, the unit and the legal RANGE but no production value.** The engine
+owns the range because a policy number is meaningless without the engine's resolution -
+`MIN_AREA_MM2 = 0.5` only means "speck" at `PITCH_MM = 0.3` (`holes_axis.rs:21-24`).
+
+Within class 3 there is a third category the owner's two-way split misses: **what the machine SEES**
+(thresholds, upright, `trim/`, `arch_slices`) is *calibration* - clinical, but workbench-only, and an
+edit voids validation - while **what it then DOES** (pitch, bands, overhang, supports) is an operator
+default, editable in the app. Of ~110 numeric consts in 34 non-test files: ~38 policy, ~26 tolerance
+or sampling, 31 Witness colours and sizes, 6 ABI strides, 4 cache and budget, 5 fixtures.
+
+**Where "supplied by mixodental" is too strong.** 73 engine test references across 27 files need
+numbers to run, and `supports/rules.rs:1-3` records the owner's EARLIER rule that *Rust owns the
+defaults* for the 128 named rules. The two rulings conflict, so they are split by layer: **generic
+planner defaults stay in Rust; dental type values become the app's.**
+
+**Verified against source (five claims, five confirmed).**
+
+| Claim | Where | Consequence |
+|---|---|---|
+| The detection cache is keyed by profile **id**, not content | `dental/cache.rs:33-38` (`profile: String`) | Correct only while numbers cannot be edited. The moment a type's values are editable under a fixed id, a retune reuses the old verdict - which is house rule 6 of `ADDING-A-KIND-OR-TYPE.md` broken by its own cache. **This is why the digest key is step 1 and not step 4.** |
+| A missing, NaN or infinite rule entry keeps the Rust default | `supports/rules.rs:179` (its own doc comment) | Lenient by design, and documented. Fine for an override channel, wrong for a type's own values: silence must not be a value. |
+| `packRules` iterates `RULE_NAMES`, not the given keys | `vendor/mixo-geocore/host/supports/generateRules.ts:317-327` | **A rule passed under a name the engine does not know is silently ignored** - no throw, no warning, and the run looks successful. First law broken in live code. It has bitten once (`benchwork/rules.mjs:14-18`). |
+| `build.rs` embeds the aligner folder only; dentures use a hand-kept `ALL` | `build.rs:1-2`, `denture/profile.rs:15` | Doc said otherwise for both kinds; corrected in geocore `7e80728`. |
+| The denture profile has no `fixture` field | `denture/profile.rs` | The shipped denture fails the doc's own re-validation test. Blocks authored types, which must be able to say they are UNVALIDATED. |
+
+**The mechanism, so skew dies loudly.** One new ABI entry, not 25 changed signatures:
+`register_profile(kind, json)` returns a content digest, and the existing `profile: &str` parameter
+then accepts either a built-in id or that digest. The profile carries `schema: N`; the engine accepts
+exactly its own N and throws `PROFILE_SCHEMA` with both numbers otherwise, `PROFILE_INVALID` with
+serde's message for an unknown or missing key, and the two existing `#[serde(default)]` softeners go.
+**The engine never migrates** - the app migrates with pure per-step functions, fills each new field
+from the built-in explicitly, and marks the type UNVALIDATED. Engine-vs-host skew is already loud
+(`geometry-wasm/src/lib.rs:47-51` refuses on a version mismatch); the NEW surface is *stored* types
+and projects, and registration catches it at load rather than mid-job. **Profile values never travel
+through the 128-rule array** - a type may pin a rule by name, and an unknown name is an error at type
+load, not a shrug.
+
+**The four tensions.** (a) Calibration values the tests were written against stay in the engine as
+frozen fixtures (precedent: `profiles/testdata/second-aligner.json`); shipped values are validated by
+`gate:real`, whose baselines already live in the app - the validation record lives with the value.
+(b) Built-in ids stay reserved and grow-only; user types get a generated namespaced id, and **the
+project file embeds the full snapshot** of any non-built-in type, because an unknown id is refused at
+load today (`src/state/project.ts:741-745`) and browser storage does not travel with a file.
+(c) The cache key becomes the content digest of the engine-read fields, computed at registration;
+the cost is that every edit is a miss, about 23 s with two slots. (d) Types with no fixture are
+**allowed and labelled**: validation is data on the type (scan-set mesh digests, engine version,
+profile digest, the W4 count line), and a digest mismatch drops it to UNVALIDATED automatically,
+shown wherever the type is selectable and on export.
+
+**The order, and what must not be first.** 1. Cache keys by content digest (no ABI change; proof:
+`gate:real` no-diff, plus a unit test that the same id with different numbers is a miss).
+2. `schema` + `register_profile` (proof: register the embedded JSON text and get no diff against the
+id path; then break it on purpose - drop a key, bump the schema, both must throw). 3. benchwork turns
+profile numbers, removing its stated denture-only limit. 4. Promote policy consts to fields, one unit
+at a time, at today's values, `gate:real` no-diff each - **while only two profile files exist.**
+5. App type store, project snapshot, validation label, grow-only id test. 6. Last and optional: move
+the built-in JSON to the app, which after step 2 saves only the vendor step.
+
+**NOT first: moving the JSON files** - that creates the skew surface and the stale-cache hazard
+before anything catches either. **And not shipping user types before step 4 is largely done**, since
+every later promotion becomes a migration of customer data.
+
+**Unverified, and named rather than filled.** Inline numeric literals that are not `const`
+declarations are uncounted (`geometry-wasm/src/denture.rs:329,449` suggest some exist), so ~110 is a
+floor. The const classes come from doc comments, not from tracing use. Where the denture profile id
+is saved was not found - only the aligner path was read. And the argument for keeping Rust defaults
+in the generic planner assumes at least one other app vendors it, which was not checked.
