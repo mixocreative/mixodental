@@ -1,7 +1,7 @@
 # Graph Report - mixodental  (2026-11-21)
 
 ## Corpus Check
-- 1074 files · ~1,405,838 words
+- 1074 files · ~1,406,079 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 55 file(s) not represented in the graph (top: .stl 26, (none) 8, .css 6)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `42b2ea31`
+- Built from commit: `50d25e08`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1872,7 +1872,7 @@ Nodes (30): Completed task log, Continuity protocol, Current decision, Engine 68
 
 ### Community 761 - "confirmPick"
 Cohesion: 0.40
-Nodes (6): Previous completed step (the overnight integrity audit - 2026-11-11), 9. Is the print angle really chosen on "all support performance"? Not quite - the real picture, M1, first results - PARTIAL (run of 2026-11-21, still going), checked by Fable, MIXO-02 — the print-angle confirm cannot say no, confirmHolds(), confirmPick()
+Nodes (6): Previous completed step (the overnight integrity audit - 2026-11-11), 9. Is the print angle really chosen on "all support performance"? Not quite - the real picture, M1, results - all six scans (run of 2026-11-21), first reading checked by Fable, MIXO-02 — the print-angle confirm cannot say no, confirmHolds(), confirmPick()
 
 ### Community 762 - "Handoff to mixo-geocore: orient and scan print angles from a rim the operator DREW"
 Cohesion: 0.33

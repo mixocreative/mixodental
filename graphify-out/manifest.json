@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/App.tsx": {
-    "mtime": 1795198019.7648292,
-    "seen": 1795201076.0227377,
-    "ast_hash": "42fd6e5437b2d04e1bb2b3ef6e0e98b9",
+    "mtime": 1795203275.2412817,
+    "seen": 1795207788.9002314,
+    "ast_hash": "0fba1a9d464341fe8392d22b95b2ba92",
     "semantic_hash": ""
   },
   "src/components/BrandLogo.tsx": {
@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "src/components/DentalBar.tsx": {
-    "mtime": 1795192622.6173756,
-    "seen": 1795197744.0636919,
-    "ast_hash": "51457e09ed0fe5327581234e0ae63c14",
+    "mtime": 1795203327.8660038,
+    "seen": 1795207788.9002314,
+    "ast_hash": "b3d1702b0d1394aa551ae6f1cf0757fc",
     "semantic_hash": ""
   },
   "src/components/EditBar.tsx": {
@@ -4837,9 +4837,9 @@
     "semantic_hash": ""
   },
   "src/components/SceneLegend.tsx": {
-    "mtime": 1795195019.786753,
-    "seen": 1795197744.0636919,
-    "ast_hash": "c7bc883f46f61f4476ffcb475e7137db",
+    "mtime": 1795203275.2427852,
+    "seen": 1795207788.9002314,
+    "ast_hash": "f91b7a271c13754a01b1d8037be27112",
     "semantic_hash": ""
   },
   "src/components/viewport/PrintAngleArc.tsx": {
@@ -5611,9 +5611,9 @@
     "semantic_hash": ""
   },
   "src/ui/iconCatalogue.ts": {
-    "mtime": 1795085789.838433,
-    "seen": 1795101935.806523,
-    "ast_hash": "36d5302896a34cd386b6b87ceb6a4166",
+    "mtime": 1795202912.292101,
+    "seen": 1795207788.9012363,
+    "ast_hash": "ad37ed2498a0aafe82c8df71f0053ce7",
     "semantic_hash": ""
   },
   "scripts/trace-art.py": {
@@ -6553,9 +6553,9 @@
     "semantic_hash": ""
   },
   "docs/design.md": {
-    "mtime": 1795139405.6427145,
-    "seen": 1795139495.034286,
-    "ast_hash": "8dd55c2b2ed5c13d8c8b4d1d1d3743f0",
+    "mtime": 1795203013.6422386,
+    "seen": 1795207788.9012363,
+    "ast_hash": "ba6314a197a828f2ffbffdfd3f73d8ad",
     "semantic_hash": ""
   },
   "docs/handoff-records.md": {
@@ -6775,9 +6775,9 @@
     "semantic_hash": ""
   },
   "docs/ORIENT-NODES.md": {
-    "mtime": 1795200977.9369702,
-    "seen": 1795201076.0247378,
-    "ast_hash": "93c603b0f250ca9cfa92600a74b113a3",
+    "mtime": 1795203256.605233,
+    "seen": 1795207788.9012363,
+    "ast_hash": "e049570663b6aa70db54e5d5505db91d",
     "semantic_hash": ""
   },
   "types/README.md": {
@@ -6787,9 +6787,15 @@
     "semantic_hash": ""
   },
   "src/components/SceneLegend.test.tsx": {
-    "mtime": 1795195024.9812844,
-    "seen": 1795197744.0636919,
-    "ast_hash": "7171fe47fe8429d61a051f0ee8ad8e7c",
+    "mtime": 1795203275.2437897,
+    "seen": 1795207788.9002314,
+    "ast_hash": "1132cf52960b5e6356b416da571650c4",
+    "semantic_hash": ""
+  },
+  "src/ui/assets/icons/wireframe.svg": {
+    "mtime": 1795202889.8985984,
+    "seen": 1795207788.9022357,
+    "ast_hash": "637e7b48106810eb0bc403a36fb0ed3b",
     "semantic_hash": ""
   }
 }
