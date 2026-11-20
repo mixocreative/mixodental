@@ -13,7 +13,10 @@ describe('DentalBar', () => {
     const prompt = { kind: 'dental-aligner', phase: 'prompt', proposal: undefined, notices: [], profile: 'reference-aligner' } as Gesture & { kind: 'dental-aligner' };
     const ui = { mode: 'dental', dentalStage: 'aligner' } as UiState;
     const html = renderToStaticMarkup(<DentalBar gesture={prompt} unitName={undefined} ui={ui} send={() => {}} run={() => {}} />);
-    expect(html).toContain('Step 1');
+    expect(html).toContain('Print angle · 1 / 3');
+    // The close button (the header's "Your files" moved onto the card) shows only when the host gives it a door.
+    expect(html).not.toContain('data-ui="step-close"');
+    expect(renderToStaticMarkup(<DentalBar gesture={prompt} unitName={undefined} ui={ui} onClose={() => {}} send={() => {}} run={() => {}} />)).toContain('data-ui="step-close"');
     expect(html).toContain('Place the aligner file here');
     expect(html).toContain('Choose STL file');
     expect(html).not.toContain('Use the selected model');
@@ -54,7 +57,7 @@ describe('DentalBar', () => {
     const ui = { mode: 'dental', dentalPreviewReady: true } as UiState;
     const area = { kind: 'dental-area', brush: { kind: 'allow', radius: 2 }, edit: undefined, notices: [] } as Gesture & { kind: 'dental-area' };
     const areaHtml = renderToStaticMarkup(<DentalBar gesture={area} unitName="sample" ui={ui} send={() => {}} run={() => {}} tipCount={12} />);
-    expect(areaHtml).toContain('Step 2');
+    expect(areaHtml).toContain('Support area · 2 / 3');
     expect(areaHtml).toContain('12');
     expect(areaHtml).toContain('Proposed support tips');
     // The count is its own readout now, so the guidance no longer carries it mid-sentence.
@@ -77,7 +80,7 @@ const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true,
       onShow: () => {}, onFix: () => {}, onShowRim: () => {}, finishedCount: 0, backAsk: undefined, onBackConfirm: () => {}, onBackCancel: () => {},
     } satisfies DentalReview;
     const reviewHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady review={base} send={() => {}} run={() => {}} />);
-    expect(reviewHtml).toContain('Step 3');
+    expect(reviewHtml).toContain('Supports · 3 / 3');
     // Density, Paint and Erase live in Step 2 only (D5).
     for (const word of ['Support density', 'Paint', 'Erase']) expect(reviewHtml).not.toContain(word);
     // Step 3 leads with the verdict and folds the settings behind Adjust, as denture Step 2 does: a reader

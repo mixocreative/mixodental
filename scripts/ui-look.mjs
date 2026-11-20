@@ -103,7 +103,7 @@ try {
     await page.getByRole('button', { name: 'Any model', exact: true }).click();
     await page.waitForSelector('.workspace');
     await page.getByRole('button', { name: 'Aligner Support Production', exact: true }).click();
-    await page.waitForFunction(() => /Step 1 . Aligner/i.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 30000 });
+    await page.waitForFunction(() => /Print angle . 1 \/ 3/i.test(document.querySelector('.edit-badge')?.textContent ?? ''), null, { timeout: 30000 });
     await page.setInputFiles('input[aria-label="Choose aligner file"]', fixture);
     await page.waitForFunction(() => /Define the rim/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 90000 });
     await page.waitForTimeout(2500);

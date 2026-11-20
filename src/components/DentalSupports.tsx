@@ -60,7 +60,7 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, rest
   // Spots a rule accepts on purpose are the rules' own choice and are never counted as a problem.
   const findings = review.problems.filter((problem) => !problem.rule).length;
   const line = reviewLine({ built: shown && !failed, failed, resolvable: 0, problems: findings + reviewNotes(review, 'aligner').length });
-  return <aside className="dental-side" data-ui="dental-supports-panel" aria-label={t('Step 3 · Supports')}>
+  return <aside className="dental-side" data-ui="dental-supports-panel" aria-label={t('Supports')}>
     <div className="dental-scroll">
     <ReviewSummary kind="aligner" tone={line.kind} stale={stale} line={line.other ? plural(line.n, line.key, line.other) : t(line.key)}
       {...(shown ? { open: detailsOpen, onToggle: setDetailsOpen } : {})}>

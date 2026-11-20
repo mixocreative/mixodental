@@ -1564,6 +1564,8 @@ export default function App() {
       onSetDefault: recipes.setDefault,
     } } : {}),
   } : undefined;
+  /* The deck of files, keeping the session: the header key outside a dental step, the step card's close button inside one. */
+  const openFiles = () => { dentalFlow.invalidate(); denture.orient.invalidate(); setStartScreen('items'); };
   // Denture Step 2 checks each finished build by itself: its status line counts the problems.
   const dentureBuild = denture.active && session.mode === 'dental' && session.dentalStage === 'review' && activeUnit?.denture && ui.dentalReviewReady ? currentBuild(activeUnit, built.get(activeUnit.id)) : undefined;
   useAutoCheck({ build: dentureBuild, checked: Boolean(dentureBuild && verdictEntry?.unit === activeUnit && verdictEntry?.mesh === dentureBuild), canRun: command('check.run').enabled && !generating, run: () => runCommand('check.run') });
@@ -1655,9 +1657,10 @@ export default function App() {
           old row's stage. `startItem` no longer forks on the session's stage, so the scaffolding is
           down: the key means the same thing wherever it is pressed.
         */}
-        {startScreen === null && scene.units.length > 0 ? <button type="button" className="nav-files" data-ui="nav-files"
+        {/* In a dental step the same door is the step card's close button (DentalBar CloseStep), not a header key. */}
+        {startScreen === null && scene.units.length > 0 && session.mode !== 'dental' ? <button type="button" className="nav-files" data-ui="nav-files"
           title={t('Your files')}
-          onClick={() => { dentalFlow.invalidate(); denture.orient.invalidate(); setStartScreen('items'); }}
+          onClick={openFiles}
         ><Icon name="back" />{t('Your files')}</button> : null}
         {session.mode === 'dental' ? <CommandButton command={command('dental.exit')} run={runCommand} className="nav-exit" /> : null}
       </div>
@@ -2002,7 +2005,7 @@ export default function App() {
           <div className="viewport-note">{t('Millimetres. Build plate at zero.')}</div>
         </> : press.kind === 'zones'
           ? <ZonesBar brush={press.brush} unitName={activeUnit?.name} belowPlate={tips.below} hidden={zonesHidden} ui={ui} send={send} run={runCommand} />
-          : press.kind === 'dental-aligner' || press.kind === 'dental-rim' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} tuningFixed={!dentalTuning.tunable} onTuningChange={dentalTuning.change} tilt={orientFlow.tilt?.unitId === activeUnit?.id ? orientFlow.tilt : undefined} onTilt={orientFlow.chooseTilt} free={dentalFree} restore={{ can: stepRestorable, run: restoreStep }} orientExtra={denture.active ? <LiveTipSummary counts={denture.orient.counts} /> : undefined} areaExtra={denture.active ? undefined : <PartsList kind="aligner" parts={placementParts(dentalPreview?.result)} />} dentureReview={denture.active && activeUnit?.denture ? { mesh: currentBuild(activeUnit, heldBuilds.get(activeUnit.id)), options: activeUnit.denture.options, onOptions: (options) => denture.supports.setOptions(activeUnit.id, options) } : undefined} send={send} run={runCommand} />
+          : press.kind === 'dental-aligner' || press.kind === 'dental-rim' || press.kind === 'dental-area' || press.kind === 'dental-review' ? <DentalBar gesture={press} lang={lang} onClose={openFiles} selectedName={activeUnit && !session.dentalFinished.includes(activeUnit.id) ? activeUnit.name : undefined} onFiles={(files) => void importFiles(files)} onUseSelected={useSelectedAligner} unitName={activeUnit?.name} ui={ui} tipCount={dentalPreview ? areaContacts.length : 0} risks={areaRisks} onShowRisk={(risk) => activeUnit && showProblem({ unitId: activeUnit.id, position: risk.position, area: 0 })} previewStatus={dentalPreviewState.kind} reviewReady={ui.dentalReviewReady ?? false} review={dentalReview} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} tuning={dentalTuning.tuning} tuningLimits={dentalTuning.limits} tuningBusy={dentalTuning.busy} tuningError={dentalTuning.error} tuningFixed={!dentalTuning.tunable} onTuningChange={dentalTuning.change} tilt={orientFlow.tilt?.unitId === activeUnit?.id ? orientFlow.tilt : undefined} onTilt={orientFlow.chooseTilt} free={dentalFree} restore={{ can: stepRestorable, run: restoreStep }} orientExtra={denture.active ? <LiveTipSummary counts={denture.orient.counts} /> : undefined} areaExtra={denture.active ? undefined : <PartsList kind="aligner" parts={placementParts(dentalPreview?.result)} />} dentureReview={denture.active && activeUnit?.denture ? { mesh: currentBuild(activeUnit, heldBuilds.get(activeUnit.id)), options: activeUnit.denture.options, onOptions: (options) => denture.supports.setOptions(activeUnit.id, options) } : undefined} send={send} run={runCommand} />
           : <EditBar gesture={press} unitName={activeUnit?.name} ui={ui} clickReach={{ value: activeSettings.eraseRadius, onChange: (value, edit) => onSettingChange('eraseRadius', value, edit) }} send={send} run={runCommand} />}
       </section>
       {editMode !== 'dental' ? <aside className="panel right" onClick={blockedClick('right')}>

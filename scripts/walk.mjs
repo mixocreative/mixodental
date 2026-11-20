@@ -2069,7 +2069,7 @@ async function walk(url, scratch, dentalFixture) {
       if (placed) {
         await openKey.click();
         atStep3 = await page.waitForFunction(
-          () => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 3'),
+          () => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('supports · 3 / 3'),
           null, { timeout: 120000 },
         ).then(() => true, () => false);
         if (atStep3) tally = await d.counts();
@@ -2376,7 +2376,7 @@ async function walk(url, scratch, dentalFixture) {
        * that mean what they say; the footer is where the plate's count belongs.
        */
       check('q6 G4 Remove and Start on one unit in one tick leave the operator on the deck or in a step',
-        (contested.rows > 0 || /Step/.test(contested.badge)) && !contested.asksForFile,
+        (contested.rows > 0 || /· \d \/ \d/.test(contested.badge)) && !contested.asksForFile,
         `contested row ${JSON.stringify(contestedName)}, badge ${JSON.stringify(contested.badge)}, rows ${contested.rows}, deck pages ${contested.deck}, asked for a file ${contested.asksForFile}, session ${JSON.stringify(contested.session)}, status ${JSON.stringify(contested.status)}`);
       }
       if (PROBES.size > 0) note(`fault injection filtered to ${[...PROBES].join(', ')} - not the whole section`);
@@ -2539,7 +2539,7 @@ async function walk(url, scratch, dentalFixture) {
       const baseline = await detectLines();
       await page.locator('.items-row').nth(1).click();
       await page.locator('[data-ui="items-start"]').click();
-      await page.waitForFunction(() => /Step|could not|unusable/i.test(document.body.innerText), null, { timeout: 240000 }).catch(() => {});
+      await page.waitForFunction(() => /· \d \/ \d|could not|unusable/i.test(document.body.innerText), null, { timeout: 240000 }).catch(() => {});
       await d.idle(2000);
       const baselineScreen = await page.evaluate(() => ({
         badge: (document.querySelector('.edit-badge')?.textContent ?? '').trim(),
@@ -2559,7 +2559,7 @@ async function walk(url, scratch, dentalFixture) {
       // The newer reply first, then the older: the flow is answered before the batch that asked first.
       const releasedLate = await page.evaluate(() => ({ newest: window.__faultRelease('lifo', 1), rest: window.__faultRelease('fifo') }));
       await page.evaluate(() => { window.__faultHold = ''; });
-      await page.waitForFunction(() => /Step|could not|unusable/i.test(document.body.innerText), null, { timeout: 120000 }).catch(() => {});
+      await page.waitForFunction(() => /· \d \/ \d|could not|unusable/i.test(document.body.innerText), null, { timeout: 120000 }).catch(() => {});
       await d.idle(2500);
       const reordered = await page.evaluate(() => ({
         badge: (document.querySelector('.edit-badge')?.textContent ?? '').trim(),
@@ -2858,7 +2858,7 @@ async function walk(url, scratch, dentalFixture) {
         await page.goto(url);
         await enterEditor(page);
         await d.button('Aligner Support Production').click();
-        await stepTo('Step 1 · Aligner');
+        await stepTo('Print angle · 1 / 3');
       };
 
       await page.goto(url);
@@ -2871,7 +2871,7 @@ async function walk(url, scratch, dentalFixture) {
        * asserts the ABSENCE of a card as well as the badge, because "no card" is the whole change and
        * a check that only read the badge would still pass with a card sitting under it.
        */
-      await stepTo('Step 1 · Aligner');
+      await stepTo('Print angle · 1 / 3');
       const panelsShown = await page.locator('.panel.left, .panel.right').count();
       check('u0 Aligner Support Production enters at Step 1 with no type card and no generic side panels (U1)',
         panelsShown === 0 && await page.locator('.choice-key').count() === 0 && await page.getByText('Place the aligner file here').isVisible(),
@@ -2882,7 +2882,7 @@ async function walk(url, scratch, dentalFixture) {
       check('u1 Exit at Step 1 leaves the flow with the plate untouched', (await objects()) === '0' && (await page.locator('.panel.left [inert]').count()) === 0, `objects ${await objects()}`);
 
       await d.button('Aligner Support Production').click();
-      await stepTo('Step 1 · Aligner');
+      await stepTo('Print angle · 1 / 3');
       // Back IS offered at Step 1: it leaves for the Drop page rather than stepping backwards, which
       // is why removing the type step did not remove the button.
       check('u2 Step 1 asks for the aligner file and still offers a way out', await page.getByText('Place the aligner file here').isVisible() && await d.button('Back').isVisible());
@@ -2917,16 +2917,16 @@ async function walk(url, scratch, dentalFixture) {
       const leaveRimIfOpen = async () => {
         if ((await page.locator('[data-ui="rim-why"]').count()) === 0) return;
         await d.button('Cancel').click();
-        await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
+        await page.waitForFunction(() => /Print angle . 1 \/ 3/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
       };
 
       await drop(notModel);
       await noticeShown('STL');
-      check('u3 a file that is no model is refused in place, Step 1 stays', (await badge()).includes('Step 1 · Aligner') && await page.getByText('Place the aligner file here').isVisible() && (await objects()) === '0', `status "${await d.status()}"`);
+      check('u3 a file that is no model is refused in place, Step 1 stays', (await badge()).includes('Print angle · 1 / 3') && await page.getByText('Place the aligner file here').isVisible() && (await objects()) === '0', `status "${await d.status()}"`);
       await drop(badStl);
       await noticeShown('');
       await d.idle(1500);
-      check('u4 a broken STL is refused in place, Step 1 stays, nothing is added', (await badge()).includes('Step 1 · Aligner') && await page.getByText('Place the aligner file here').isVisible() && (await objects()) === '0', `status "${await d.status()}", objects ${await objects()}`);
+      check('u4 a broken STL is refused in place, Step 1 stays, nothing is added', (await badge()).includes('Print angle · 1 / 3') && await page.getByText('Place the aligner file here').isVisible() && (await objects()) === '0', `status "${await d.status()}", objects ${await objects()}`);
 
       await drop(roomyCube);
       /*
@@ -3153,9 +3153,9 @@ async function walk(url, scratch, dentalFixture) {
       const doneKey = d.button('Done');
       check('u5g a sound loop lets Done through, with nothing left in the way', await doneKey.isEnabled());
       await doneKey.click();
-      await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 60000 });
+      await page.waitForFunction(() => /Print angle . 1 \/ 3/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 60000 });
       check('u5h Done turns the drawing into the rim and hands Step 1 back',
-        (await badge()).includes('Step 1 · Aligner') && /rim saved/i.test(await d.status()), `status "${await d.status()}"`);
+        (await badge()).includes('Print angle · 1 / 3') && /rim saved/i.test(await d.status()), `status "${await d.status()}"`);
 
       /*
        * AND THE OPERATOR CAN GO ON. This is the check the feature exists for: a hand-drawn rim has to
@@ -3163,9 +3163,9 @@ async function walk(url, scratch, dentalFixture) {
        * here before and never found out.
        */
       await d.button('Next').click();
-      await stepTo('Step 2 · Support area', 120000);
+      await stepTo('Support area · 2 / 3', 120000);
       check('u5i Next carries a hand-drawn rim through to Step 2',
-        (await badge()).includes('Step 2'), `badge "${(await badge()).slice(0, 34)}", status "${await d.status()}"`);
+        (await badge()).includes('Support area · 2 / 3'), `badge "${(await badge()).slice(0, 34)}", status "${await d.status()}"`);
 
       /*
        * AND THE OPERATOR CAN SEE WHAT THEY DREW. `DentalRimOutline` used to return null for anything
@@ -3267,7 +3267,7 @@ async function walk(url, scratch, dentalFixture) {
          */
         try {
           await d.button('Next').click();
-          await stepTo('Step 3 · Supports', 240000);
+          await stepTo('Supports · 3 / 3', 240000);
           /*
            * WAIT FOR THE PANEL, NOT FOR A NAMED KEY. Step 3's way on is `Export STL` where there is
            * a bench to hand back to and the step's own OK where there is not (`reviewWayOn`), and
@@ -3317,7 +3317,7 @@ async function walk(url, scratch, dentalFixture) {
         }
         // However that ended, get back to a step whose Back reaches Step 1, so the rest of u runs.
         for (let i = 0; i < 2; i += 1) {
-          if (/Step 2 . Support area/.test(await page.locator('.edit-badge').innerText().catch(() => ''))) break;
+          if (/Support area . 2 \/ 3/.test(await page.locator('.edit-badge').innerText().catch(() => ''))) break;
           await d.button('Back').click().catch(() => {});
           await d.idle(1200);
         }
@@ -3329,7 +3329,7 @@ async function walk(url, scratch, dentalFixture) {
         note('u5q skipped: Step 3 was never reached, so there were no switches to read');
       }
       await d.button('Back').click();
-      await stepTo('Step 1 · Aligner');
+      await stepTo('Print angle · 1 / 3');
 
       /*
        * AND THE DOOR OPENS BOTH WAYS. Rim define mode used to be one-way: once it was left there was
@@ -3357,13 +3357,13 @@ async function walk(url, scratch, dentalFixture) {
         (await badge()).includes('Define the rim') && Number(reopened) > 0,
         `badge "${(await badge()).slice(0, 34)}", points ${reopened}`);
       await d.button('Cancel').click();
-      await stepTo('Step 1 · Aligner');
+      await stepTo('Print angle · 1 / 3');
       await d.button('Next').click();
-      await stepTo('Step 2 · Support area', 120000);
+      await stepTo('Support area · 2 / 3', 120000);
       check('u5k3 a rim already saved survives a reopen and a cancel, and still reaches Step 2',
-        (await badge()).includes('Step 2'), `badge "${(await badge()).slice(0, 34)}", status "${await d.status()}"`);
+        (await badge()).includes('Support area · 2 / 3'), `badge "${(await badge()).slice(0, 34)}", status "${await d.status()}"`);
       await d.button('Back').click();
-      await stepTo('Step 1 · Aligner');
+      await stepTo('Print angle · 1 / 3');
 
       await d.button('Back').click();
       /*
@@ -3405,6 +3405,22 @@ async function walk(url, scratch, dentalFixture) {
        * the transient on one run and missed it on the next, and a 60 s cap only made the miss slower.
        * Any badge means the flow is open, which is all this needs before pressing the way out.
        */
+      await page.waitForFunction(() => !!document.querySelector('.edit-badge'), null, { timeout: 60000 });
+      await d.idle(400);
+      /*
+       * THE CARD'S CLOSE IS THE WAY TO THE FILES INSIDE A STEP (owner, 2026-11-21). The header's
+       * "Your files" key is hidden while a dental step is open, so this button is the only door left
+       * there: if its handler stopped opening the deck, the step would have no way to the case but Exit,
+       * which is the dead end u5m exists for. Rim define mode is the step this row settles in, which is
+       * also the detour - the case the card is least likely to have been tried in by hand.
+       */
+      const headerKeyInStep = await page.locator('[data-ui="nav-files"]').isVisible().catch(() => false);
+      await page.locator('[data-ui="step-close"]').click();
+      await page.waitForSelector('.items-page', { timeout: 20000 });
+      check('u5t the step card close opens the files with the case still listed, and the header key is not doubled',
+        !headerKeyInStep && (await page.locator('.items-list li').count()) > 0 && (await page.locator('.start-task').count()) === 0,
+        `header key in step ${headerKeyInStep}, rows ${await page.locator('.items-list li').count()}, drop pages ${await page.locator('.start-task').count()}`);
+      await page.locator('[data-ui="items-start"]').click();
       await page.waitForFunction(() => !!document.querySelector('.edit-badge'), null, { timeout: 60000 });
       await d.idle(400);
       await leaveFlow(page, d);
@@ -3452,9 +3468,9 @@ async function walk(url, scratch, dentalFixture) {
       await drop(cube);
       await page.waitForFunction(() => /Define the rim/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 60000 });
       await d.button('Cancel').click();
-      await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
+      await page.waitForFunction(() => /Print angle . 1 \/ 3/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
       check('u5b Cancel leaves rim define mode and lands back in Step 1, still in the flow',
-        (await badge()).includes('Step 1 · Aligner') && await d.button('Use as any model').isVisible(), `badge "${(await badge()).slice(0, 30)}"`);
+        (await badge()).includes('Print angle · 1 / 3') && await d.button('Use as any model').isVisible(), `badge "${(await badge()).slice(0, 30)}"`);
 
       /*
        * AND STEP 1 SAYS WHAT TO DO. Cancelling with nothing drawn used to leave the operator on a
@@ -3466,7 +3482,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(600);
       const strandedStatus = await d.status();
       check('u5b3 Next names the way forward instead of sending the operator away',
-        /Draw the rim/.test(strandedStatus) && (await badge()).includes('Step 1 · Aligner'), `status "${strandedStatus}"`);
+        /Draw the rim/.test(strandedStatus) && (await badge()).includes('Print angle · 1 / 3'), `status "${strandedStatus}"`);
 
       /*
        * A CLEAN PLATE before the next fixture. Two cubes were dropped above - one kept its drawn rim,
@@ -3529,13 +3545,13 @@ async function walk(url, scratch, dentalFixture) {
          */
         if (ways === 'mismatch') {
           await d.button('Next').click();
-          await stepTo('Step 2 · Support area', 120000);
+          await stepTo('Support area · 2 / 3', 120000);
           check('u8 no detected area: Step 2 opens with its message and Next stays off',
             await page.getByText('No support area was detected').first().isVisible() && await d.button('Next').isDisabled(), `status "${await d.status()}"`);
           const unpainted = (await d.props()).activeDental;
           check('u8b no detected area: paint starts from an empty manual-area policy, not from the cavity footprint', unpainted?.kind === 'legacy' && unpainted.origin === 'manual-area' && unpainted.stamps === 0, `policy ${JSON.stringify(unpainted)}`);
           await d.button('Back').click();
-          await stepTo('Step 1 · Aligner');
+          await stepTo('Print angle · 1 / 3');
         } else {
           /*
            * COUNTED, NOT JUST SAID. `note` only prints: it does not touch `skippedByDesign`, so this
@@ -3554,7 +3570,7 @@ async function walk(url, scratch, dentalFixture) {
            * will refuse. What is left to check is that the mode's own way out works.
            */
           await d.button('Cancel').click();
-          await page.waitForFunction(() => /Step 1 . Aligner/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
+          await page.waitForFunction(() => /Print angle . 1 \/ 3/.test(document.querySelector('.edit-badge')?.innerText ?? ''), null, { timeout: 20000 });
         }
         // BOTH BRANCHES MUST LEAVE THE APP IN THE SAME PLACE. `backToStepOne` reloads and re-enters
         // the flow, so it converges from either branch whatever Back left on screen.
@@ -3715,7 +3731,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(1500);
       const backAtStepOne = (await badge()).trim();
       check('u9c backing out of Redraw leaves the detected rim exactly as it was',
-        /Step 1/i.test(backAtStepOne) && !/Define the rim/i.test(backAtStepOne) && await d.button('Next').isEnabled(),
+        /Print angle/i.test(backAtStepOne) && !/Define the rim/i.test(backAtStepOne) && await d.button('Next').isEnabled(),
         `badge ${JSON.stringify(backAtStepOne)}, Next enabled ${await d.button('Next').isEnabled()}`);
       const angleDial = page.locator('.print-angle [data-ui="tilt-dial"]');
       const litTicks = await page.locator('.print-angle .tilt-dial-tick.is-on').count();
@@ -3750,7 +3766,7 @@ async function walk(url, scratch, dentalFixture) {
       check('f5 Auto orientation returns the dial and the preview to the automatic pick',
         (await angleText()).startsWith('44.5') && JSON.stringify((await d.props()).activeRotation) === JSON.stringify(pickRotation), `"${await angleText()}"`);
       await d.button('Next').click();
-      await stepTo('Step 2 · Support area', 180000);
+      await stepTo('Support area · 2 / 3', 180000);
       await page.waitForFunction(() => Number(document.querySelector('[data-ui="dental-tip-count"] .num')?.textContent ?? 0) > 0, null, { timeout: 240000 });
       check('u10 Step 2 shows the detected area with tips, and Next is on', await d.button('Next').isEnabled() && (await page.getByText('No support area was detected').count()) === 0);
       check('u1b in Step 2 the generic left and right panels are absent and the viewport buttons stay', (await page.locator('.panel.left, .panel.right').count()) === 0 && await page.getByRole('button', { name: 'Fit view', exact: true }).isVisible());
@@ -3856,7 +3872,7 @@ async function walk(url, scratch, dentalFixture) {
         await d.idle(300);
         const afterEsc = await pressedNow();
         check('u10j Esc goes back to Select and the step stays',
-          afterEsc === 'Select' && /Step 2/i.test(await stepBadge()),
+          afterEsc === 'Select' && /Support area/i.test(await stepBadge()),
           `pressed "${afterEsc}", badge "${(await stepBadge()).slice(0, 24)}"`);
 
         /*
@@ -4018,7 +4034,7 @@ async function walk(url, scratch, dentalFixture) {
         const swept = await d.settle();
         await page.keyboard.press('Escape');
         await d.idle(400);
-        check('b3i Select (Drag over) takes several tips, and Esc drops the selection first', swept.selected > 1 && (await d.props()).selected === 0 && (await page.locator('.edit-badge').textContent()).toLowerCase().includes('step 2'), `selected ${swept.selected}`);
+        check('b3i Select (Drag over) takes several tips, and Esc drops the selection first', swept.selected > 1 && (await d.props()).selected === 0 && (await page.locator('.edit-badge').textContent()).toLowerCase().includes('support area · 2 / 3'), `selected ${swept.selected}`);
         await howToSelect.getByRole('button', { name: 'Click', exact: true }).click();
         // Add on a spot that faces up shows the warning on the status line.
         await page.keyboard.press('a');
@@ -4028,7 +4044,7 @@ async function walk(url, scratch, dentalFixture) {
         await d.idle(600);
       }
       await d.button('Back').click();
-      await stepTo('Step 1 · Aligner');
+      await stepTo('Print angle · 1 / 3');
       check('u11 Back from Step 2 returns to Step 1 with the oriented aligner kept', await d.button('Next').isEnabled() && (await page.getByText('Place the aligner file here').count()) === 0);
       await leaveFlow(page, d);
       await page.waitForFunction(() => !document.querySelector('.edit-badge'), null, { timeout: 5000 });
@@ -4070,15 +4086,15 @@ async function walk(url, scratch, dentalFixture) {
           await enterEditor(page);
           await d.button('Aligner Support Production').click();
         }
-        await stepTo('Step 1 · Aligner');
+        await stepTo('Print angle · 1 / 3');
         await drop(reference);
         await stepTo('Review the orientation', 180000);
         await d.button('Next').click();
-        await stepTo('Step 2 · Support area', 180000);
+        await stepTo('Support area · 2 / 3', 180000);
         await page.waitForFunction(() => Number(document.querySelector('[data-ui="dental-tip-count"] .num')?.textContent ?? 0) > 0, null, { timeout: 240000 });
         if (first) check('x0 Step 2 no longer carries the Tree and Brace toggles', (await page.getByText('Tree branches').count()) === 0 && (await page.getByText('Cross-braces').count()) === 0);
         await d.button('Next').click();
-        await stepTo('Step 3 · Supports', 240000);
+        await stepTo('Supports · 3 / 3', 240000);
         await page.waitForFunction((want) => { const on = [...document.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim().toLowerCase() === want); return on && !on.disabled; }, WAY_ON.toLowerCase(), { timeout: 300000 });
         await d.quiet();
       };
@@ -4341,11 +4357,11 @@ async function walk(url, scratch, dentalFixture) {
         && /manual support edits/.test(backAsk) && !/re-orient/i.test(backAsk),
         `ask "${backAsk}"`);
       await page.getByRole('button', { name: 'Stay' }).click();
-      check('x13 Stay keeps Step 3 and the edits', (await page.locator('.edit-badge').textContent()).toLowerCase().includes('step 3 · supports') && (await d.counts()).manual === afterLift.manual);
+      check('x13 Stay keeps Step 3 and the edits', (await page.locator('.edit-badge').textContent()).toLowerCase().includes('supports · 3 / 3') && (await d.counts()).manual === afterLift.manual);
 
       // First aligner finished with Add another aligner: back to Step 1 with the same type.
       await d.button('Add another aligner').click();
-      await stepTo('Step 1 · Aligner');
+      await stepTo('Print angle · 1 / 3');
       check('x14 Add another aligner returns to Step 1 and asks for the next file, same type',
         await page.getByText('Place the aligner file here').isVisible() && (await page.getByRole('button', { name: 'Use the selected model' }).count()) === 0 && (await objects()) === '1');
 
@@ -4386,7 +4402,7 @@ async function walk(url, scratch, dentalFixture) {
        */
       await d.idle(800);
       check('x18 the step stays up after the export, so a refused export can never strand the operator',
-        /step 3/i.test((await page.locator('.edit-badge').textContent()) ?? ''), `badge "${((await page.locator('.edit-badge').textContent()) ?? '').trim().slice(0, 40)}"`);
+        /supports · 3 \/ 3/i.test((await page.locator('.edit-badge').textContent()) ?? ''), `badge "${((await page.locator('.edit-badge').textContent()) ?? '').trim().slice(0, 40)}"`);
       /*
        * THE HANDOVER, NOT THE STEP - the lesson this project already wrote down and I repeated.
        *
@@ -4436,9 +4452,9 @@ async function walk(url, scratch, dentalFixture) {
       check('l0 Step 1 offers orientation and Next without premature Done',
         await d.button('Auto orientation').isVisible() && await d.button('Next').isVisible() && await d.button('Done', false).count() === 0);
       await d.button('Auto orientation').click();
-      check('l1 automatic orientation stays in Step 1', (await page.locator('.edit-badge').textContent()).toLowerCase().includes('step 1 · aligner'));
+      check('l1 automatic orientation stays in Step 1', (await page.locator('.edit-badge').textContent()).toLowerCase().includes('print angle · 1 / 3'));
       await d.button('Next').click();
-      await page.waitForFunction(() => document.body.innerText.includes('Step 2 · Support area'), null, { timeout: 90000 });
+      await page.waitForFunction(() => document.body.innerText.includes('Support area · 2 / 3'), null, { timeout: 90000 });
       await d.idle(1000);
       const approved = await d.props();
       check('l2 dental area holds the two-contour face mask', approved.dentalKind === 'two-contour' && approved.dentalStamps === 0, `policy "${approved.dentalKind}", manual markers ${approved.dentalStamps}`);
@@ -4487,7 +4503,7 @@ async function walk(url, scratch, dentalFixture) {
         shifted.dentalFaces !== denser.dentalFaces,
         `faces ${denser.dentalFaces} -> ${shifted.dentalFaces}`);
       await d.button('Next').click();
-      await page.waitForFunction(() => document.body.innerText.includes('Step 3 · Supports'), null, { timeout: 240000 });
+      await page.waitForFunction(() => document.body.innerText.includes('Supports · 3 / 3'), null, { timeout: 240000 });
       await page.waitForFunction(() => /[1-9][\d,]* automatic/.test(document.querySelector('footer')?.innerText ?? '') && ![...document.querySelectorAll('button')].some((b) => /Generating dental supports/.test(b.innerText)), null, { timeout: 240000 });
       await d.quiet();
       await d.button(WAY_ON).waitFor({ state: 'visible', timeout: 300000 });
@@ -4574,7 +4590,7 @@ async function walk(url, scratch, dentalFixture) {
         transfer.items.add(new File([text], fileName));
         document.querySelector('.start-screen').dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
       }, { fileName: name, text: content });
-      const atStep1 = (ms = 180000) => page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 1 · aligner'), null, { timeout: ms });
+      const atStep1 = (ms = 180000) => page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('print angle · 1 / 3'), null, { timeout: ms });
       const supports = () => page.getByRole('button', { name: 'Aligner', exact: true });
 
       await page.goto(url);
@@ -4705,7 +4721,7 @@ async function walk(url, scratch, dentalFixture) {
       check('s9a the aligner chosen on the file screen lands on the case already named, with nothing left to answer',
         (await page.locator('.items-list li').count()) === 1 && (await page.locator('[data-ui="items-unanswered"]').count()) === 0);
       await page.locator('[data-ui="items-start"]').click();
-      await page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('step 1 · aligner') && document.body.innerText.toLowerCase().includes('review the orientation'), null, { timeout: 180000 });
+      await page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('print angle · 1 / 3') && document.body.innerText.toLowerCase().includes('review the orientation'), null, { timeout: 180000 });
       check('s9 and starting it reaches Step 1 with its type, in the editor', (await page.locator('.start-screen').count()) === 0 && (await page.locator('.workspace').count()) === 1 && await unitsOnPlate() === 1);
       await d.button('Back').click();
       /*
@@ -4797,7 +4813,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Cancel').click();
       // Inherits `forSlowMachines`: 20 s was tighter than Playwright's own default, on a wait for a
       // badge the app always reaches after Cancel.
-      await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''));
+      await page.waitForFunction(() => /Print angle/i.test(document.querySelector('.edit-badge')?.textContent ?? ''));
       await d.quiet();
       await d.idle(300);
       await backFromStepOneToDrop();
@@ -4830,7 +4846,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.button('Cancel').click();
       // Inherits `forSlowMachines`: 20 s was tighter than Playwright's own default, on a wait for a
       // badge the app always reaches after Cancel.
-      await page.waitForFunction(() => /Step 1/i.test(document.querySelector('.edit-badge')?.textContent ?? ''));
+      await page.waitForFunction(() => /Print angle/i.test(document.querySelector('.edit-badge')?.textContent ?? ''));
       await d.quiet();
       await d.idle(300);
       await backFromStepOneToDrop();
@@ -5015,7 +5031,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
     await button('Any model').click();
     await page.waitForSelector('.workspace');
     await button('Aligner Support Production').click();
-    await badgeHas('Step 1 · Aligner');
+    await badgeHas('Print angle · 1 / 3');
     await shot(page, 'dental-step1');
     await page.setInputFiles(`input[aria-label="${tr('Choose aligner file')}"]`, reference);
     await badgeHas('Review the orientation. Turn the aligner with the gizmo if needed.', 180000);
@@ -5027,7 +5043,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
       angle.includes('44.5') && range.startsWith(rangeLead) && (lang === 'en' || !range.includes('Stable')), `"${angle}" / "${range}"`);
     await shot(page, 'dental-step1-print-angle');
     await button('Next').click();
-    await badgeHas('Step 2 · Support area', 180000);
+    await badgeHas('Support area · 2 / 3', 180000);
     /*
      * `previewReady` WAITS ON THE NAMED TIP COUNT. This line was the unfixed copy of the mistake that
      * function already documents: it waited for any digit inside an `.edit-note`, which worked only
@@ -5060,7 +5076,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
       await previewReady(page);
     }
     await button('Next').click();
-    await badgeHas('Step 3 · Supports', 240000);
+    await badgeHas('Supports · 3 / 3', 240000);
     await page.waitForFunction((ok) => { const b = [...document.querySelectorAll('button')].find((x) => (x.textContent ?? '').trim().toLowerCase() === ok.toLowerCase()); return b && !b.disabled; }, tr(WAY_ON), { timeout: 300000 });
     await quiet();
     await idle(800);
@@ -5110,7 +5126,7 @@ async function walkLocale(url, scratch, lang, dentalFixture) {
       check(tag('d1 Step 3 Check ends in the problem list (rows) or the translated empty note'), listed.length > 0 || side.includes(none), `rows ${JSON.stringify(listed)}`);
     }
     const badge = (await page.locator('.edit-badge').textContent()).replace(/\s+/g, ' ');
-    check(tag('d2 Step 3 badge is in the language'), lang === 'en' ? badge.includes('Step 3 ·') : !badge.includes('Step 3 ·'), badge);
+    check(tag('d2 Step 3 badge is in the language'), lang === 'en' ? badge.includes('Supports ·') : !badge.includes('Supports ·'), badge);
     await page.locator('.dental-side .problems li').last().scrollIntoViewIfNeeded().catch(() => {});
     note(`[${lang}] dental island verdict: ${JSON.stringify((await page.evaluate(readProps)).islands)}`);
     await shot(page, 'dental-step3-problems');
@@ -5222,7 +5238,7 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 199;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison; 195 on 2026-11-19 with u5p and u5q, an area made BY HAND carried through to Step 3 - the one dental path no walk had ever reached - plus the two-check hole in u8's own skip, which `note` printed and nothing counted; 197 with a4m and a4n, the support-tip drag (build-order item 7), which no unit test and no preview pane can see; 199 with u5r and u5s, Escape abandoning an anchor drag - the shared `viewport/dragSession.ts` rule, whose failure is that the key reaches App.tsx instead and steps the operator out of the mode mid-drag
+const EXPECTED_CHECKS = 200;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison; 195 on 2026-11-19 with u5p and u5q, an area made BY HAND carried through to Step 3 - the one dental path no walk had ever reached - plus the two-check hole in u8's own skip, which `note` printed and nothing counted; 197 with a4m and a4n, the support-tip drag (build-order item 7), which no unit test and no preview pane can see; 199 with u5r and u5s, Escape abandoning an anchor drag - the shared `viewport/dragSession.ts` rule, whose failure is that the key reaches App.tsx instead and steps the operator out of the mode mid-drag; 200 on 2026-11-21 with u5t, the step card's close - the only way to the files inside a dental step once the header key went
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
 if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,

@@ -33,14 +33,33 @@ import { kindText } from '../denture/kindText';
  */
 const AREA_TOOLS = ['select', 'paint', 'erase', 'add'] as const;
 
+/*
+ * THE STEP'S TITLE IS ITS JOB, then where it sits: "Print angle · 1 / 3" (owner, 2026-11-21: "is 'STEP 1' still
+ * relevant?"). The job names are the glossary's, already in every language; the count is digits. A denture
+ * has two steps, an aligner three.
+ */
+function stepTitle(job: string, at: number, of: number): string {
+  return `${t(job)} · ${at} / ${of}`;
+}
+
+/*
+ * CLOSE, top right of the step's card: the header's "Your files", moved where the work is (owner, 2026-11-21).
+ * It is NOT `exit`: the session is kept exactly as it is and opening the row again resumes (App.tsx `openFiles`, the header key's own handler).
+ */
+function CloseStep({ onClose }: { onClose: (() => void) | undefined }) {
+  return onClose ? <button type="button" className="step-close" data-ui="step-close" aria-label={t('Your files')} title={t('Your files')} onClick={onClose}>×</button> : null;
+}
+
 /** Dental Auto Generate chrome: review the detector first, then mark only permitted support area. */
 export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus = 'loading', reviewReady = true,
-  lang = 'en', selectedName, onFiles, onUseSelected, tuning, tuningLimits, tuningBusy = false, tuningError = false, tuningFixed = false, onTuningChange,
+  lang = 'en', selectedName, onFiles, onUseSelected, onClose, tuning, tuningLimits, tuningBusy = false, tuningError = false, tuningFixed = false, onTuningChange,
   review, clickReach, tilt, onTilt, free, restore, orientExtra, dentureReview, areaExtra, risks, onShowRisk, send, run }: {
   gesture: Extract<Gesture, { kind: 'dental-aligner' | 'dental-rim' | 'dental-area' | 'dental-review' }>;
   lang?: Lang;
   /** Step 1: the object selected on the plate, offered as the aligner without a drop. */
   selectedName?: string;
+  /** Close the step to the files, keeping the work (the header's "Your files" while a dental step is open). */
+  onClose?: () => void;
   onFiles?: (files: File[]) => void;
   onUseSelected?: () => void;
   unitName: string | undefined;
@@ -88,7 +107,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      <strong>{t(words.title)}</strong><span>{gesture.phase === 'ready' ? unitName : words.profileName}</span>
+      <CloseStep onClose={onClose} />
+      <strong>{stepTitle(words.title, 1, jobKindOf(gesture.profile) === 'denture' ? 2 : 3)}</strong><span>{gesture.phase === 'ready' ? unitName : words.profileName}</span>
       <b>{gesture.phase === 'ready' ? t(words.ready) : t(words.waiting)}</b>
     </div>
     {gesture.phase === 'ready'
@@ -111,6 +131,7 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   if (gesture.kind === 'dental-rim') return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
+      <CloseStep onClose={onClose} />
       <strong>{t('Define the rim')}</strong><span>{unitName}</span>
       <b>{t(rimNowText(ui))}</b>
     </div>
@@ -121,7 +142,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
     return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      <strong>{t(kind === 'denture' ? 'Step 2 · Supports' : 'Step 3 · Supports')}</strong><span>{unitName}</span>
+      <CloseStep onClose={onClose} />
+      <strong>{kind === 'denture' ? stepTitle('Supports', 2, 2) : stepTitle('Supports', 3, 3)}</strong><span>{unitName}</span>
       <b>{t(kindText('Review the supports, adjust the settings, then press Export STL.', kind))}</b>
     </div>
     {review && kind === 'denture' && dentureReview
@@ -132,7 +154,8 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
   return <>
     <div className="edit-frame" aria-hidden="true" />
     <div className="edit-badge" role="status">
-      <strong>{t('Step 2 · Support area')}</strong><span>{unitName}</span>
+      <CloseStep onClose={onClose} />
+      <strong>{stepTitle('Support area', 2, 3)}</strong><span>{unitName}</span>
       <b>{gesture.notices.some((notice) => notice.kind === 'no-area') ? t('No support area was detected. Mark it, then press Next.') : t('Support area is marked. Press Next, or paint to adjust.')}</b>
     </div>
     <div className="edit-bar dental-brush">

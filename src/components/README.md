@@ -31,10 +31,11 @@ rules, so the next screen can be named without reopening this.
 
 | Thing | Name |
 |---|---|
-| orientation stage, badge | `Step 1 · Aligner` / `Step 1 · Denture` |
+| orientation stage, badge | `Print angle · 1 / 3` (aligner) / `Print angle · 1 / 2` (denture) |
 | rim mode, badge | `Define the rim` — no number, by rule 3 |
-| area step, badge | `Step 2 · Support area` |
-| supports step, badge | `Step 3 · Supports` (aligner) / `Step 2 · Supports` (denture) |
+| area step, badge | `Support area · 2 / 3` |
+| supports step, badge | `Supports · 3 / 3` (aligner) / `Supports · 2 / 2` (denture) |
+| the way to the files from any step | the card's `×`, top right (`data-ui="step-close"`, named "Your files") |
 | rail tools | `Orient`, `Rim`, `Area`, `Supports` (aligner) / `Orient`, `Supports` (denture) |
 | the generated meshes | "supports", lower case |
 
@@ -42,10 +43,11 @@ rules, so the next screen can be named without reopening this.
 translation key, so a reworded string is a key change in `src/locales/{ja,zh-Hant}.ts` and often a
 `scripts/walk.mjs` baseline too. "Supports" naming the rail tool, the step and the meshes is
 ordinary English under rule 5, and splitting it would cost new translations in two locales and five
-walk assertions to fix a word nobody misreads. Likewise `Step 3` vs `Step 2 · Supports`: both are
-truthful under rule 1, and un-numbering every badge would touch about 35 walk assertions and lose
-the progress cue. The rim badge was the only change worth making — and it cost nothing, because
-`Define the rim` was already a key in both locales.
+walk assertions to fix a word nobody misreads.
+
+**The badge leads with the job, 2026-11-21.** The owner asked whether "Step 1" was still relevant: a number alone says where you are, not what you are doing. The badge is now the step's name, then its place - `Print angle · 1 / 3` - built by `stepTitle` in `DentalBar.tsx`. The names were already glossary keys in both locales and the count is digits, so no new translation was needed; the five `Step N · …` keys were deleted rather than left as dead entries. Rules 1-3 still hold: the number is the position, and the rim detour still has none.
+
+The header's "Your files" key is hidden while a dental step is open; the same door is the card's `×` (`CloseStep`), which keeps the session exactly as the header key did (`openFiles` in `App.tsx`, one handler for both).
 
 **And a dead surface the naming question uncovered.** `SettingsPanel` carried a `dentalMode` prop
 with four branches — it hid five setting groups, dropped Preset and Roof/cage, and showed a line

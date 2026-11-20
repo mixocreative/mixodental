@@ -497,6 +497,29 @@ h3 .count { margin-left: 6px; font-weight: 400; color: var(--muted); font-family
   background: var(--accent-strong, var(--line-strong));
   color: var(--surface);
 }
+/*
+ * CLOSE, top right of the step card (owner, 2026-11-21: the header's back key moved to where the work is).
+ * The badge itself takes no pointer events, so this one button must ask for them back. Its own hover and
+ * pressed colours, because the base `button:hover` paints `--raised` (white) and a white square on the red
+ * card would hide the cross it is supposed to show.
+ */
+.edit-badge:has(.step-close) { padding-right: 40px; }
+.step-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  pointer-events: auto;
+}
+.step-close:hover:not(:disabled) { border-color: currentColor; background: transparent; }
+.step-close:focus-visible { outline-color: currentColor; }
 /* Under the badge's row: the two-row bar is wider than the space beside the badge. */
 .edit-bar {
   position: absolute;

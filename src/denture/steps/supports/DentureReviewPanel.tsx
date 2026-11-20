@@ -64,7 +64,7 @@ export function DentureReviewPanel({ gesture, ui, review, ready, send, run, rest
   // A build that FAILED outranks the verdict it was meant to replace: there is nothing sound to keep reading.
   const failed = Boolean(ui.dentalBuildFailed);
   const line = reviewLine({ built: shown && !failed, failed, resolvable, problems: refused + findings + reviewNotes(review, 'denture').length });
-  return <aside className="dental-side denture-review" data-ui="denture-supports-panel" aria-label={t('Step 2 · Supports')}>
+  return <aside className="dental-side denture-review" data-ui="denture-supports-panel" aria-label={t('Supports')}>
     <div className="dental-scroll">
       <ReviewSummary kind="denture" tone={line.kind} stale={stale} line={line.other ? plural(line.n, line.key, line.other) : t(line.key)}
         {...(built ? { open: detailsOpen, onToggle: setDetailsOpen } : {})}

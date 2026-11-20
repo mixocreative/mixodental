@@ -74,8 +74,14 @@
   width: auto;
   max-width: none;
 }
-/* In a column the title is a block, not a line: the step, then what it is working on, then what to do. */
+/* In a column the title is a block, not a line: the step, then what it is working on, then what to do.
+   RELATIVE, not the static above, with its offsets cleared: the card's close button (.step-close) is placed
+   against the card, and against a static card it measured from the viewport and landed at the window's
+   top right (seen 2026-11-21). The grid still places the card; `relative` only gives it a frame. */
 .workspace--dental .edit-badge {
+  position: relative;
+  top: auto;
+  left: auto;
   display: grid;
   gap: 4px;
   white-space: normal;

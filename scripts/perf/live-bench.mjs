@@ -127,7 +127,7 @@ async function main() {
     await button('Aligner Support Production').click();
     await stepTo('Step 0');
     await page.locator('.choice-key').click();
-    await stepTo('Step 1 · Aligner');
+    await stepTo('Print angle · 1 / 3');
     await page.setInputFiles('input[aria-label="Choose aligner file"]', REFERENCE);
     await stepTo('Review the orientation');
     await page.waitForSelector('.print-angle .edit-hint', { timeout: 240000 });
@@ -140,7 +140,7 @@ async function main() {
       writeFileSync(file, JSON.stringify({ ...current, tiltScanMs, tiltScanMethod: 'headless Chromium (swiftshader), vite dev server, reference aligner: the analysis worker\'s dental-tilt-scan job, post to reply (scripts/perf/live-bench.mjs)' }, null, 2) + '\n');
     }
     await button('Next').click();
-    await stepTo('Step 2 · Support area');
+    await stepTo('Support area · 2 / 3');
     await page.waitForFunction(() => /Proposed support tips: [1-9]/.test(document.body.innerText), null, { timeout: 240000 });
     await settled(0);
 
@@ -152,7 +152,7 @@ async function main() {
     }));
 
     await button('Next').click();
-    await stepTo('Step 3 · Supports');
+    await stepTo('Supports · 3 / 3');
     await page.waitForFunction(() => { const ok = [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === 'OK'); return ok && !ok.disabled; }, null, { timeout: 300000 });
     await settled(0);
 
