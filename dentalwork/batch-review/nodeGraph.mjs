@@ -69,10 +69,10 @@ export const KIND_WORDS = {
   sightCast: { title: 'Rays from a point', says: 'From one point, marks every face that point can see directly.' },
   intersection: { title: 'Point where planes meet', says: 'The point where two planes cross, on one side of the part. This is where today\'s cavity rays start.' },
   planePoint: { title: 'Point on a plane', says: 'A point placed on a plane by % across and % along; 50 / 50 is the centre. Not runnable yet.' },
-  depthCast: { title: 'Depth map', says: 'Looks straight through the part along one direction and records how deep it is at every spot. Feeds Find holes and Find sockets.' },
-  holes: { title: 'Find holes', says: 'Openings you can see right through the part, found from the depth map.' },
-  basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map.' },
-  band: { title: 'Strip around', says: 'Every face within a set distance of its seeds, measured along the surface - e.g. a 5 mm strip around each hole.' },
+  depthCast: { title: 'Depth map', says: 'Looks straight through the part along one direction and records how deep it is at every spot. Feeds Find holes and Find sockets. Its settings are fixed in this version.' },
+  holes: { title: 'Find holes', says: 'Openings you can see right through the part, found from the depth map. Its setting is fixed in this version.' },
+  basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map. Not runnable yet: the socket depth comes from the rule "socket depth".' },
+  band: { title: 'Strip around', says: 'Every face within a set distance of its seeds, measured along the surface. In this version only the 5 mm strip around Find holes runs; the two rim strips are fixed.' },
   rimCurve: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
   union: { title: 'Either (union)', says: 'Faces in A, or in B, or in both.' },
   subtract: { title: 'Remove (subtract)', says: 'Faces in A, minus any that are also in B. A and B are not interchangeable.' },
@@ -127,13 +127,32 @@ export const PARAM_WORDS = {
  */
 export const OUTPUT_WORDS = {
   allowed: { title: 'Allowed area', says: 'The ONLY faces where area tips may stand.' },
-  no_support: { title: 'No-support zone', says: 'Lowest-point and island tips stay off these faces (and rim and hole tips, when "rim obeys no-support" is on). It does not limit area tips - Allowed does.' },
-  allowed_cavity: { title: 'Seen by the cavity rays', says: 'What the cavity rays see before the hole strip is added. Read by "rim obeys no-support".' },
-  hole_band: { title: 'Hole strip', says: 'The strip around holes where hole tips are placed.' },
-  rim: { title: 'Rim line', says: 'The line rim tips are placed along. Found in Orient.' },
-  rim_band: { title: 'Rim strip', says: 'The strip along the rim where rim-strip tips go.' },
-  low_rim_band: { title: 'Low rim strip', says: 'The narrower strip along the rim used when admitting lowest points.' },
-  sockets: { title: 'Sockets', says: 'Hollows that would trap resin. Rim, hole and area tips stay out of them when "sockets deny" is on.' },
+  no_support: { title: 'No-support zone', says: 'With "low outside" at 1 (the default), lowest-point and island tips stay off these faces unless the face is also Allowed or in the low rim strip. With "rim obeys no-sup" on, rim and hole tips stay off them too, unless the cavity rays see the face. It does not limit area tips - Allowed does.' },
+  allowed_cavity: { title: 'Seen by the cavity rays', says: 'What the cavity rays see before the hole strip is added. Read by "rim obeys no-sup".' },
+  hole_band: { title: 'Hole strip', says: 'The 5 mm strip around holes where hole tips are placed. Fixed in this version.' },
+  rim: { title: 'Rim line', says: 'The line rim tips are placed along. Found in Orient; fixed here.' },
+  rim_band: { title: 'Rim strip', says: 'The 2 mm strip along the rim where rim-strip tips go. Fixed in this version.' },
+  low_rim_band: { title: 'Low rim strip', says: 'The 5 mm strip along the rim (wider than the rim strip) where a lowest point or island still gets a tip, even inside the no-support zone. Fixed in this version.' },
+  sockets: { title: 'Sockets', says: 'Hollows that would trap resin. Rim, hole and area tips stay out of them when "sockets deny" is on. Fixed in this version.' },
+};
+
+/**
+ * WHAT THIS VERSION DOES NOT READ, mirrored from the engine (`zone_graph.rs` FIXED_OUTPUTS and
+ * fixed_params). The canvas shows these as fixed rather than as fields, because a field that accepts
+ * an edit the engine then ignores is a control that lies (Fable's check, 2026-11-20: ray spacing, the
+ * depth-map and hole settings, the cavity origin's planes and a rewired hole strip all ran "clean" and
+ * changed nothing). The engine refuses them too; this is so the operator never gets that far.
+ */
+export const FIXED = {
+  params: {
+    parallelCast: ['pitchMm'],
+    depthCast: ['axis', 'side', 'pitchMm'],
+    holes: ['minAreaMm2'],
+    basinFill: ['minDepthMm'],
+    intersection: ['planeA', 'planeB', 'face'],
+    band: ['mm'],
+  },
+  outputs: ['hole_band', 'rim', 'rim_band', 'low_rim_band', 'sockets'],
 };
 
 /**
@@ -171,7 +190,7 @@ export function defaultGraph() {
     { id: 'BAND', kind: 'band', params: { mm: 5 }, inputs: { seeds: 'HOLES' } },
     { id: 'RIM', kind: 'rimCurve', params: {}, inputs: {} },
     { id: 'RIMBAND', kind: 'band', params: { mm: 2 }, inputs: { seeds: 'RIM' } },
-    { id: 'LOWRIMBAND', kind: 'band', params: { mm: 1 }, inputs: { seeds: 'RIM' } },
+    { id: 'LOWRIMBAND', kind: 'band', params: { mm: 5 }, inputs: { seeds: 'RIM' } },
     { id: 'BASINS', kind: 'basinFill', params: { minDepthMm: 1 }, inputs: { map: 'MAP' } },
     { id: 'NS', kind: 'union', params: {}, inputs: { a: 'R1', b: 'R1b' } },
     { id: 'AL', kind: 'union', params: {}, inputs: { a: 'SIGHT', b: 'BAND' } },
@@ -288,9 +307,23 @@ export function validate(graph) {
     const loop = visit(node.id, []);
     if (loop) { problems.push(`cycle: ${loop.join(' -> ')}`); break; }
   }
+  // Fixed in this version: an edit here would be refused by the engine, so it is refused here first.
+  const today = defaultGraph();
+  for (const name of FIXED.outputs) {
+    if (graph.outputs[name] !== today.outputs[name]) problems.push(`output "${name}" is fixed in this version - it must stay wired to ${today.outputs[name]}`);
+  }
+  for (const node of graph.nodes) {
+    const was = byId(today, node.id)?.params ?? KINDS[node.kind]?.params ?? {};
+    for (const key of FIXED.params[node.kind] ?? []) {
+      if (key in node.params && node.params[key] !== was[key]) problems.push(`${node.id}: "${key}" is fixed at ${was[key]} in this version - the engine does not read an edit yet`);
+    }
+    if (node.kind === 'band' && !['RIMBAND', 'LOWRIMBAND'].includes(node.id) && byId(graph, node.inputs.seeds)?.kind !== 'holes') {
+      problems.push(`${node.id}: in this version a strip must be seeded by Find holes - from anything else it would still run as the hole strip`);
+    }
+  }
   // Valid but suspect: a parallel cast at 0 degrees is OFF, and an output fed only by it is empty.
   for (const node of graph.nodes) {
-    if (node.kind === 'parallelCast' && Number(node.params.deg) === 0) warnings.push(`${node.id}: a parallel cast at 0 deg casts nothing - it is off`);
+    if (node.kind === 'parallelCast' && Number(node.params.deg) === 0) warnings.push(`${node.id}: tilt is 0° - this ray is off and marks nothing`);
   }
   return { problems, warnings, ok: problems.length === 0 };
 }

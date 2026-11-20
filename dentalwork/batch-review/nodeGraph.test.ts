@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  DIRECTIONS, KINDS, KIND_WORDS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS,
+  DIRECTIONS, FIXED, KINDS, KIND_WORDS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS,
   addNode, bindOutput, defaultGraph, isDefault, removeNode, rewire, setParam, unreached, validate,
 } from './nodeGraph.mjs';
 
@@ -43,6 +43,32 @@ describe('every node, parameter and output says what it is, in plain words', () 
   });
 });
 
+describe('a setting the engine does not read is fixed, never a field that lies', () => {
+  // Mirrors zone_graph.rs fixed_params / FIXED_OUTPUTS; the engine refuses the same edits by name.
+  it('refuses an edit to a fixed setting, and names it', () => {
+    expect(validate(setParam(defaultGraph(), 'R1', 'pitchMm', 0.2)).problems).toContain('R1: "pitchMm" is fixed at 0.1 in this version - the engine does not read an edit yet');
+    expect(validate(setParam(defaultGraph(), 'ORIGIN', 'face', 'front')).problems).toContain('ORIGIN: "face" is fixed at back in this version - the engine does not read an edit yet');
+  });
+
+  it('refuses rewiring the hole strip, which placement never reads from the graph', () => {
+    expect(validate(bindOutput(defaultGraph(), 'hole_band', 'SIGHT')).problems).toContain('output "hole_band" is fixed in this version - it must stay wired to BAND');
+  });
+
+  it('leaves the free outputs free', () => {
+    expect(FIXED.outputs).not.toContain('no_support');
+    expect(FIXED.outputs).not.toContain('allowed');
+    expect(FIXED.outputs).not.toContain('allowed_cavity');
+  });
+
+  it('draws the rim strips at the widths the shipped profile uses', () => {
+    const profile = readFileSync(new URL('../../vendor/mixo-geocore/host/dental/dentureProfileFiles.ts', import.meta.url), 'utf8');
+    const read = (key: string) => Number(new RegExp(`${key}\\\\?":\\s*([0-9.]+)`).exec(profile)?.[1]);
+    const mm = (id: string) => defaultGraph().nodes.find((n) => n.id === id).params.mm;
+    expect(mm('RIMBAND')).toBe(read('rimBandMm'));
+    expect(mm('LOWRIMBAND')).toBe(read('lowRimBandMm'));
+  });
+});
+
 describe('the print-angle search node shows what the engine actually searches', () => {
   it('matches the shipped denture profile, so the node cannot drift from the engine', () => {
     const profile = readFileSync(new URL('../../vendor/mixo-geocore/host/dental/dentureProfileFiles.ts', import.meta.url), 'utf8');
@@ -77,7 +103,7 @@ describe('the default graph is today, node for node', () => {
   });
 
   it('says plainly that the steep ray is off by default, rather than hiding it', () => {
-    expect(validate(defaultGraph()).warnings).toEqual(['R1b: a parallel cast at 0 deg casts nothing - it is off']);
+    expect(validate(defaultGraph()).warnings).toEqual(['R1b: tilt is 0° - this ray is off and marks nothing']);
   });
 
   it('knows it is the default, and stops being it after any edit', () => {
@@ -112,10 +138,10 @@ describe('free editing: add, remove, rewire', () => {
     expect(validate(g).problems).toContain('NS: input "b" takes mask, but MAP gives depthMap');
   });
 
-  it('lets a Band take faces OR a curve, because the engine does both', () => {
-    const g = defaultGraph();
-    expect(validate(rewire(g, 'BAND', 'seeds', 'RIM')).problems).toEqual([]);
-    expect(validate(rewire(g, 'RIMBAND', 'seeds', 'HOLES')).problems).toEqual([]);
+  it('refuses a strip seeded by anything but Find holes, because the engine would run it as the hole strip anyway', () => {
+    // The socket TYPE allows faces or a curve (the engine's band does both); v1 runs only the hole strip.
+    expect(validate(rewire(defaultGraph(), 'BAND', 'seeds', 'RIM')).problems)
+      .toContain('BAND: in this version a strip must be seeded by Find holes - from anything else it would still run as the hole strip');
   });
 
   it('finds a cycle before any engine time is spent', () => {
