@@ -607,63 +607,58 @@ N = 3, in the workbench proof run first, the app later as a background "a better
 (a 4-minute wait is fine for proving a type, poor for an operator). Best build is outside the top 3 ->
 do not buy builds; add the number from answer 4 to the quick score, which is cheaper every run.
 
-### M1, first results - PARTIAL (run of 2026-11-21, still going), checked by Fable
+### M1, results - all six scans (run of 2026-11-21), first reading checked by Fable
 
-`scripts/tilt-measure.ts`, every angle 0-44 by 2 fully built, on the six local denture scans in
-`dentalwork/fixtures/case-denture` (named by index, never by file). Scans 1-2 complete, 3 up to 38
-degrees. **The script records less than the plan above:** tips placed and left out, support volume, top,
-parts and seconds - not the verdict, islands unserved, pillars on the model, nor WHY a tip was left out.
-A first reading of these rows was checked by Fable against the raw JSON and corrected in four places;
-what follows is the corrected reading.
+`scripts/tilt-measure.ts`: every angle 0-44 by 2 fully built, on the six local denture scans in
+`dentalwork/fixtures/case-denture` (named by index, never by file); 138 builds. Raw rows: the session
+scratchpad `m1.json`. The first reading was checked by Fable against the rows and corrected; then the
+oddity it flagged was traced, and that trace is the headline.
 
-| Scan | Quick pick | Its build: placed / left out / resin | Steep end | What changed |
-|---|---|---|---|---|
-| 1 | 8 deg | 388 / 115 / 7595 mm3 | 44 deg: 401 / 27 / 10550 mm3 | Flat 91-121 left out from 0 to 32 deg, then a STEP at 34. Placed rises only 13; the candidate total falls 503 -> 428. Mostly fewer candidates, not better support. |
-| 2 | 8 deg | 168 / 0 / 5665 mm3 | similar at every angle | 0 left out at 12 of 23 angles, 1-2 at the rest. Resin -2.5 % to +13 % across the clean angles. |
-| 3 | 0 deg | 177 / 249 / 5940 mm3 | 38 deg (so far): 262 / 146 | Candidate total flat (426 -> 408); placed rises 85. A real gain, still leaving 36 % out; the minimum is still moving at the edge of the range. |
+**The six scans are three pairs.** Each multi-piece file is a single-piece file plus hundreds of small
+separate pieces - the largest piece matches its partner to the triangle:
 
-**Why tips are left out, at the two picks** (Fable rebuilt them; the script discards the reasons):
-scan 3 at 0 deg - 182 of 249 "all rods within x mm of the model", 27 "nearest outline too far", 18
-"no room below the neck": the model is in the way. Scan 1 at 8 deg - 78 of 115 "every outline pillar in
-reach is full or crowded", 24 model clearance: pillar CAPACITY, a different cause.
+| Scan | Pieces | Largest piece (triangles) | Quick pick | Left out at the pick | Quick top 3, left out | Fewest left out (angle, quick rank) |
+|---|---|---|---|---|---|---|
+| 2 | 1 | 516,770 | 8 deg | **0** (168 placed) | 0 / 0 / 0 | 0 at most angles |
+| 1 | 211 | 516,770 = scan 2 | 8 deg | **115** (388 placed) | 115 / 102 / 100 | 27 at 44 deg (22nd) |
+| 4 | 1 | 157,772 | 0 deg | **0** (99 placed) | 0 / 0 / 0 | 0 at the pick |
+| 3 | 339 | 157,772 = scan 4 | 0 deg | **249** (177 placed) | 249 / 255 / 254 | 129 at 44 deg (23rd) |
+| 6 | 1 | 120,736 | 18 deg | **0** (76 placed) | 0 / 0 / 0 | 0 at most angles |
+| 5 | 556 | 120,736 = scan 6 | 18 deg | **289** (243 placed) | 290 / 289 / 299 | 157 at 42 deg (22nd) |
 
-The four answers, as far as these rows go:
+The quick scan runs on a file's LARGEST PART by design - geocore `tilt_scan_ruled` in
+`dental/denture/tilt.rs`: *"A file of several parts is scanned on its largest part (`parts.rs`); the build
+checks every part."* That is why each pair gets the same quick ranking, and it splits the result in two:
 
-1. **Quick pick vs best build:** fine on scan 2; clearly beaten on scan 3; on scan 1 the steep angles look
-   better mainly because they ask for fewer tips, which is not shown to be a better build.
-2. **Where the better build sits:** at the bottom of the quick order (scan 3: 18th-21st), and the quick top
-   3 are all about as bad as the pick (scan 3: 249, 255, 254 left out). So option B with N = 3 would not
-   find it - but that rests on one number, with the verdict and islands unrecorded.
-3. **How big:** scan 3, about 85 more tips really built at the steep end, for about 50 % more resin.
-4. **What the quick score misses:** routing. It places the tips but cannot tell which can be reached, and
-   the two scans fail for DIFFERENT routing reasons (model in the way; pillars full). A straight-drop
-   count would speak to the first and not the second.
+1. **For the body, the quick pick is sound on tips and loose on resin.** On all three single-piece scans
+   it leaves no tip out, and so does every one of the quick top 3. Resin at the pick against the leanest
+   angle that also leaves none out: **+2.5 %** (scan 2, leanest 10 deg, quick 4th), **+8.7 %** (scan 4, 4 deg,
+   quick 3rd), **+10.6 %** (scan 6, 22 deg, quick 8th) - print heights within 0.7 mm of the pick's. Against
+   section 9's rule (best, or within one tip and 5 % resin) that is 1 of 3 inside and 2 over, on resin
+   only. So: **keep option C** - extra builds (B, N = 3) would catch the leaner angle on scan 4 alone - and
+   if 9-11 % resin matters, the cheap move is a resin estimate in the quick score, which is ruling 3's
+   question (resin against the other preferences), not a measurement one.
+2. **Every left-out tip comes with the small pieces.** The same bodies with their pieces leave 115, 249
+   and 289 tips out. Steeper angles leave fewer out (to 27, 129, 157) but mainly by asking for fewer tips
+   (candidates fall, placed barely rises) and at 30-50 % more resin - a weak trade the quick score cannot
+   see, because it never reads the pieces.
 
-**A separate finding, TRACED, and it changes how to read the rest.** Scans 1 and 2 return quick rows equal
-to 1e-15 although they are different files. Cause: the quick scan runs on the file's LARGEST PART only,
-by design - `tilt_scan_ruled` in geocore `dental/denture/tilt.rs`: *"A file of several parts is scanned on
-its largest part (`parts.rs`); the build checks every part."* Counted by connected pieces: scan 1 is
-680,820 triangles in 211 pieces, the largest 516,770 - exactly scan 2, which is one piece. Scan 3 is
-188,942 triangles in 339 pieces, the largest 157,772. Scan 2 alone leaves 0 tips out at the pick, so
-scan 1's 115 left-out tips stand on its 210 OTHER pieces - pieces the angle choice never looked at.
+**Where on the pieces, first rows of the upgraded script** (`leftOutOnLargest`, `candidates`, grouped
+`leftOutByReason`, `maxSnapMm` as the check on the lookup): scan 3 at its pick, 30 of 249 left-out tips
+stand on the body and 219 on the pieces; scan 1 at 0 deg, 25 of 91 on the body - although the body alone
+(scan 2) leaves none there. Either the pieces take the body's pillar room (the commonest reason is "every
+outline pillar in reach is full or crowded", 31 of 91), or the nearest-vertex lookup (worst snap 1.6 mm)
+gives the body tips that sit on a piece touching it. Not separated yet.
 
-So the question M1 actually raised is not "quick vs full" but **whether a file's smaller pieces should
-have a say in its print angle.** Today they have none; the build supports them at whatever angle the
-largest part chose. Whether those pieces are real parts (separate teeth, say) or scan debris above the
-debris size is case knowledge the measurement cannot supply - an owner question.
+**The question this hands the owner is not "quick or full build" but what the small pieces are.** 210 to
+555 pieces of a few thousand triangles each, beside one large body: separate teeth or tooth fragments to
+be printed with the base, or scan debris above the debris size that should be dropped? If they are real
+parts, the print angle should hear from them (and ruling 3 - fewer tips left out or less resin - applies
+to them); if they are debris, the right fix is the debris rule, and the angle choice is already good.
 
-**Split by piece, first rows (the upgraded `tilt-measure.ts`: `leftOutOnLargest`, `candidates`,
-`leftOutByReason` grouped by its words, `maxSnapMm`).** Scan 3 at its pick (0 deg): **30 of 249** left-out
-tips stand on the largest piece; the other 219 are on its 338 small pieces. Scan 1 at 0 deg: 25 of 91 on
-the largest piece - although scan 2, which IS that piece alone, leaves none out at 0 deg. Either the small
-pieces take the body's pillar room (the commonest reason there is "every outline pillar in reach is full
-or crowded", 31 of 91), or the nearest-vertex lookup (worst snap 1.6 mm) gives the body tips that sit on a
-piece touching it. Not separated yet. Either way most left-out tips on these two scans are about the
-small pieces, not about the angle of the body.
+**Next:** that answer first. Then, only if they are real parts, re-run M1 with the upgraded script and
+separate the two readings above. Scans 2, 4 and 6 are the clean baselines for any later change to the
+quick score.
 
-**Next, before any ruling:** (1) re-run M1 with the upgraded script (per piece, reasons, candidates) and separate the two readings above;
-(2) make `tilt-measure.ts` record the left-out REASONS and the candidate total per angle, and the verdict;
-(3) let the run finish scans 4-6 (and consider extending past 44 deg where the minimum is still moving).
-Only then is ruling 3 - fewer tips left out, or less resin, when they conflict - asked on a fair footing.
-
-Section 9 above says "3 of them in `dentalwork/fixtures/case-denture`"; the folder holds 6.
+Section 9 above says "3 of them in `dentalwork/fixtures/case-denture`"; the folder holds 6 - three
+bodies, each with and without its pieces.
