@@ -408,6 +408,28 @@ a signed field), Contour sampler**. Five, not four. Anyone who says otherwise ha
 
 ---
 
+## 5b. WHAT EXISTS NOW (2026-11-20)
+
+The editor is built and in the folder review (`dentalwork/batch-review/viewer.html`), under the 3D
+view, as **three stage tabs**:
+
+- **1 Orient** - the orientation steps and the **print-angle search** node: start 0° (upright, teeth
+  end down), end 45°, step 2°, tie margin 2°, and what the case picked, with a figure of the plate and
+  the lean. Read-only: these are profile fields, so they wait for `register_profile`.
+- **2 Zones** - a **React Flow canvas** (`nodeEditor/ZoneEditor.tsx`, built into
+  `node-editor/node-editor.js` by `npm run review:editor`): drag nodes, draw a wire socket to socket,
+  delete with Backspace or Delete, pan, zoom, minimap; the eight required outputs are nodes. Every rule
+  lives in `nodeGraph.mjs` (pure, tested); the canvas only maps gestures onto it, and its connection
+  check asks the model's socket types, so a wrong wire cannot be drawn.
+- **3 Support settings** - the twelve live rules, each on the node that reads it.
+
+The old benchwork panel is folded in: its rule list is hidden (it still holds the values), and
+**Apply and run again** sits beside the stage tabs.
+
+**What runs today and what does not, said on screen every time:** only the DEFAULT graph runs, plus
+R1b's angle, which is marked "· live" because it reaches a real rule. An edited graph is composed and
+validated, and running it needs the engine to accept a graph - item 4 below.
+
 ## 6. ORDER OF WORK
 
 1. **Show the composition that already exists.** R1b has its own layer now; the rest of the default
