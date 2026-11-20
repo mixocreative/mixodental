@@ -308,6 +308,13 @@ export class DentureReviewResult {
     free(): void;
     [Symbol.dispose](): void;
     /**
+     * Step 2, per face: 1 where the oral cavity ray reaches the face first, BEFORE the hole band is
+     * unioned in - the Sight cast's own result (`Analysis::allowed_cavity`). `rimRespectsNoSupport`
+     * reads this one and not `allowed_mask`, so the two genuinely differ and the review could not
+     * show what that rule actually sees until now.
+     */
+    allowed_cavity_mask(): Uint8Array;
+    /**
      * Step 2, per face: 1 when a ray from the back origin reaches it first (ALLOWED; overrides no-support; tips stand only here), else 0.
      */
     allowed_mask(): Uint8Array;
@@ -1635,6 +1642,7 @@ export interface InitOutput {
     readonly dentureorientresult_rotation: (a: number) => [number, number];
     readonly dentureorientresult_status: (a: number) => number;
     readonly dentureorientresult_teeth_decided: (a: number) => number;
+    readonly denturereviewresult_allowed_cavity_mask: (a: number) => [number, number];
     readonly denturereviewresult_allowed_mask: (a: number) => [number, number];
     readonly denturereviewresult_area_regions: (a: number) => [number, number];
     readonly denturereviewresult_box_: (a: number) => [number, number];

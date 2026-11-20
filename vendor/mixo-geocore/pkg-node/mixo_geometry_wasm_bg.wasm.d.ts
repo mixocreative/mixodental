@@ -131,6 +131,7 @@ export const dentureorientresult_reason: (a: number) => [number, number];
 export const dentureorientresult_rotation: (a: number) => [number, number];
 export const dentureorientresult_status: (a: number) => number;
 export const dentureorientresult_teeth_decided: (a: number) => number;
+export const denturereviewresult_allowed_cavity_mask: (a: number) => [number, number];
 export const denturereviewresult_allowed_mask: (a: number) => [number, number];
 export const denturereviewresult_area_regions: (a: number) => [number, number];
 export const denturereviewresult_box_: (a: number) => [number, number];

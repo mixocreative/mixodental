@@ -84,6 +84,8 @@ export interface DentureReview {
   noSupportSteepDeg: number;
   /** Step 2, per face: 1 when a ray from the back origin reaches it first (ALLOWED; overrides no-support; tips stand only here), else 0. */
   allowedMask: Uint8Array;
+  /** The allowed area as the oral cavity ray alone saw it, before the hole band widened it: what `rimRespectsNoSupport` reads. */
+  allowedCavityMask: Uint8Array;
   /** Every hard edge. */
   hardEdges: Segment[];
   /** The hard edges that face down in the oriented pose (before the print tilt): the support candidates. */
@@ -272,6 +274,7 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
       noSupportSteepMask: result.no_support_steep_mask(),
       noSupportSteepDeg: result.no_support_steep_deg(),
       allowedMask: result.allowed_mask(),
+      allowedCavityMask: result.allowed_cavity_mask(),
       hardEdges: segments(result.hard_edges()),
       downEdges: segments(result.down_edges()),
       downChains: (() => {

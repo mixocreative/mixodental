@@ -937,6 +937,19 @@ export class DentureReviewResult {
         wasm.__wbg_denturereviewresult_free(ptr, 0);
     }
     /**
+     * Step 2, per face: 1 where the oral cavity ray reaches the face first, BEFORE the hole band is
+     * unioned in - the Sight cast's own result (`Analysis::allowed_cavity`). `rimRespectsNoSupport`
+     * reads this one and not `allowed_mask`, so the two genuinely differ and the review could not
+     * show what that rule actually sees until now.
+     * @returns {Uint8Array}
+     */
+    allowed_cavity_mask() {
+        const ret = wasm.denturereviewresult_allowed_cavity_mask(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
      * Step 2, per face: 1 when a ray from the back origin reaches it first (ALLOWED; overrides no-support; tips stand only here), else 0.
      * @returns {Uint8Array}
      */
