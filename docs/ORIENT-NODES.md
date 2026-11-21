@@ -791,3 +791,5 @@ no engine rule was added for it.
    commonest cause on scans 3 and 5 - needs an engine rule, the clearance is model-wide today).
 
 **Pillar capacity, measured the same way** (Fable's second suggestion; scratchpad `b4`, `b5.json`): `tipsPerPillar` 10 instead of 6 leaves 107 / 249 / 289 out (scan 1 only moves, by 8), and with the branch cap and model landing on top it gives exactly what those two gave alone (90 / 227 / 283). So "every outline pillar in reach is full or crowded" is about crowded SPACE, not the count per pillar; the single-piece scans keep every tip in both runs.
+
+**Decided for now (2026-11-21, under the owner's "fix all"; theirs to reverse): option 3, accept and report.** Nothing measured is a fix: the routing rules cut 2-22 %, landing on the model would reverse the owner's 2026-11-01 ruling, the steep probe's gain is real on one scan of three, and the clearance rule is unmeasured. The pieces' left-out tips stay listed in the build's report for placing by hand. No app behaviour changed.
