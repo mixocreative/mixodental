@@ -5,8 +5,8 @@
  *
  *   npx vite-node --script scripts/tilt-measure.ts [--only 1,3] [--pick] [--out <file.json>]
  *
- * `--pick` builds the quick pick only - for comparing RULES at the angle the app would use (lever B of
- * docs/ORIENT-NODES.md section 9): set MIXO_RULES='{"branchRodMaxMm":15}' and the row records it under `rules`.
+ * `--pick` builds the quick pick only - for comparing RULES at the angle the app would use: set
+ * MIXO_RULES='{"branchRodMaxMm":15}' and the row records it under `rules`.
  *
  * Scans are named by their index in dentalwork/fixtures/case-denture (sorted), NEVER by file name:
  * these are patient scans, and the output may be shared. Results are written after every angle, so a
@@ -31,7 +31,11 @@ const only = valueOf('--only')?.split(',').map(Number);
 const pickOnly = args.includes('--pick');
 const outFile = valueOf('--out') ?? 'tilt-measure.json';
 const dir = 'dentalwork/fixtures/case-denture';
-const files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.stl')).sort();
+// NOT the `-sup` files: those are the same scans already supported by another dental program, kept as REFERENCE
+// ONLY (dentalwork/fixtures/README.md). On 2026-11-21 this sweep took them too, their supports were read as small
+// parts of the denture, and an afternoon of rule work was built on files that were never cases. Scan numbers count
+// the bare files only.
+const files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.stl') && !/-sup[.]stl$/i.test(f)).sort();
 
 /** Signed volume of a closed triangle mesh, mm3 (the supports' resin). */
 function volume(positions: ArrayLike<number>, indices: ArrayLike<number>): number {
