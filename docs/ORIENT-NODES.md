@@ -750,9 +750,10 @@ becomes available here - one rule, seen from both sides.
 3. **Typed evaluator**, engine and host in parity (`zone_graph.rs` evaluates mask-only kinds and refuses the rest;
    `nodeGraph.mjs` refuses unknown kinds). Proof: the default graphs evaluate identically; `gate:real` no change.
    **Started 2026-11-22:** `dentalwork/batch-review/zoneGraphParity.test.ts` sends one corpus of graphs through both
-   validators (host `validate`, engine `setZoneGraph`). They agree except three listed disagreements - the engine
-   does not type-check inputs; the host has no 0-180 tilt check; the host accepts the rim strip on a free output the
-   engine refuses. A new disagreement, or a listed one that goes away, fails the test (proven by breaking it). The
+   validators (host `validate`, engine `setZoneGraph`). They agree except two listed disagreements - the engine
+   does not type-check inputs (the typed evaluator's first job); and, BY DESIGN, the host lets a graph be authored
+   ahead of the engine (the rim strip on a free output), which the engine refuses with its reason. The host's missing
+   0-180 tilt check, a third, is closed (the editor now refuses it as the engine does). A new disagreement, or a listed one that goes away, fails the test (proven by breaking it). The
    typed evaluator's job is to empty that list. Also found: the engine's default graph names four outputs (RIM,
    RIMBAND, LOWRIMBAND, SOCK) it does not contain, and checks only nodes reachable from its free outputs.
 4. **Kind-neutral graph**: move `zone_graph.rs` out of `denture/`; an aligner default graph that wraps today's code

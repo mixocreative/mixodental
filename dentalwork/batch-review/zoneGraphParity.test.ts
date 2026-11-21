@@ -47,8 +47,7 @@ function corpus(): [string, Graph][] {
 /** Where the two validators knowingly disagree today, and why. Empty is the goal of the typed evaluator. */
 const KNOWN_DISAGREEMENTS: Record<string, string> = {
   'union fed a position': 'the engine does not type-check inputs; it validates the wiring and fails only at evaluation',
-  'parallel rays tilted 200 degrees': 'the engine checks the 0-180 range; the host editor has no range check',
-  'the rim strip as the allowed output': 'the host accepts any mask on a free output; the engine refuses a band whose seeds are not holes at 5 mm (RIMBAND is a fixed stage-1 output it does not evaluate)',
+  'the rim strip as the allowed output': 'BY DESIGN (nodeGraph.mjs header): the host lets a graph be authored ahead of the engine; the engine refuses a band whose seeds are not holes at 5 mm and says why',
 };
 
 describe('zone graph parity - host and engine', () => {

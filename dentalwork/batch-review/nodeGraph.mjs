@@ -295,6 +295,10 @@ export function validate(graph) {
   for (const node of graph.nodes) {
     const spec = KINDS[node.kind];
     if (!spec) { problems.push(`${node.id}: unknown kind "${node.kind}"`); continue; }
+    // The engine refuses a tilt outside 0-180 degrees (zone_graph.rs); the editor said nothing and let it through,
+    // so the graph failed only when it reached the engine (zoneGraphParity.test.ts listed it, 2026-11-22).
+    const deg = node.params?.deg;
+    if (deg !== undefined && !(Number.isFinite(deg) && deg >= 0 && deg <= 180)) problems.push(`${node.id}: tilt must be from 0 to 180 degrees, not ${deg}`);
     for (const [name, want] of Object.entries(spec.inputs)) {
       const from = node.inputs[name];
       if (from === null || from === undefined) { problems.push(`${node.id}: input "${name}" is not connected`); continue; }
