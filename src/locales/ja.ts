@@ -64,6 +64,7 @@ export const ja: Dictionary = {
   'Export STL': 'STL を書き出す',
   'Active object with model': 'アクティブなオブジェクト（モデル付き）',
   'Active object, supports only': 'アクティブなオブジェクト（サポートのみ）',
+  'Each object with model': 'オブジェクトごと（モデル付き）',
   'Export all STL': 'すべての STL を書き出す',
   'Each object, supports only': 'オブジェクトごと（サポートのみ）',
   'Whole plate in one file': 'プレート全体を 1 ファイルに',

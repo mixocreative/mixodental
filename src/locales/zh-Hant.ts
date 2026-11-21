@@ -65,6 +65,7 @@ export const zhHant: Dictionary = {
   'Export STL': '匯出 STL',
   'Active object with model': '目前物件（含模型）',
   'Active object, supports only': '目前物件（僅支撐）',
+  'Each object with model': '每個物件（含模型）',
   'Export all STL': '匯出全部 STL',
   'Each object, supports only': '每個物件（僅支撐）',
   'Whole plate in one file': '整個底板匯出為單一檔案',
