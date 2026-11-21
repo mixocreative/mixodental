@@ -180,3 +180,23 @@ describe('free editing: add, remove, rewire', () => {
     expect(() => bindOutput(defaultGraph(), 'everything', 'NS')).toThrow(/not an output/);
   });
 });
+
+/*
+ * A node of unknown kind used as a SOURCE (feeding an input or an output) is a problem to report, not a crash:
+ * validate() read `.out` off its missing spec and threw, so the operator got a stack trace instead of the name of
+ * the node to fix (Fable's end-to-end review, 2026-11-22).
+ */
+describe('validate - a source of unknown kind', () => {
+  it('reports the unknown node instead of throwing, whether it feeds an input or an output', () => {
+    const g = defaultGraph();
+    const target = g.nodes.find((n) => Object.keys(n.inputs).length > 0)!;
+    const input = Object.keys(target.inputs)[0]!;
+    g.nodes.push({ id: 'MYSTERY', kind: 'noSuchKind', inputs: {}, params: {} });
+    target.inputs[input] = 'MYSTERY';
+    const output = Object.keys(g.outputs)[0]!;
+    g.outputs[output] = 'MYSTERY';
+    let result: ReturnType<typeof validate> | undefined;
+    expect(() => { result = validate(g); }).not.toThrow();
+    expect(result!.problems).toContain('MYSTERY: unknown kind "noSuchKind"');
+  });
+});

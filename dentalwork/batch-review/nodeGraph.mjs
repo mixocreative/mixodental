@@ -300,7 +300,10 @@ export function validate(graph) {
       if (from === null || from === undefined) { problems.push(`${node.id}: input "${name}" is not connected`); continue; }
       const source = byId(graph, from);
       if (!source) { problems.push(`${node.id}: input "${name}" points at ${from}, which does not exist`); continue; }
-      const got = KINDS[source.kind].out;
+      // A source of unknown kind is reported once, by the loop above; its type is unknowable, so nothing to compare
+      // (reading `.out` off it threw, and the whole check died instead of naming the problem).
+      const got = KINDS[source.kind]?.out;
+      if (got === undefined) continue;
       if (!accepts(want, got)) problems.push(`${node.id}: input "${name}" takes ${want.replace('|', ' or ')}, but ${from} gives ${got}`);
     }
   }
@@ -309,7 +312,8 @@ export function validate(graph) {
     if (!from) { problems.push(`output "${name}" is not filled - the engine reads it by name`); continue; }
     const source = byId(graph, from);
     if (!source) { problems.push(`output "${name}" points at ${from}, which does not exist`); continue; }
-    const got = KINDS[source.kind].out;
+    const got = KINDS[source.kind]?.out;
+    if (got === undefined) continue;
     if (got !== want) problems.push(`output "${name}" needs a ${want}, but ${from} gives ${got}`);
   }
   // A cycle, by depth-first search over the input wires.
