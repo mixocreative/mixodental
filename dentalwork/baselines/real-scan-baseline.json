@@ -72,7 +72,7 @@
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "79a03d5176fce22111639b3af277462e254736d454ee3203e2ad0b5cf76b2744",
+          "case-001-orientation.glb": "17add4554a751b446650fac99153fba01f4c7c7a4174b99169ac22b656c80b54",
           "case-001.glb": "b1b6a657c8866ce197f476c4cb1ec67b641f322cf1d8bbfdab4fa576a977cb44"
         }
       }
@@ -90,7 +90,7 @@
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "db50524b232f06a22e5886e3525182bf5fac74e6d95704f617518cc2ca53e55d",
+          "case-001-orientation.glb": "b1813eb602203208b55902edd52e078603739173464246148ff04f1cff50c327",
           "case-001.glb": "0fa6024c4bd49aa80f38310680ea67eac6ded9e7265976fb2c5b45cc935f0ab9"
         }
       }
@@ -108,7 +108,7 @@
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "68b9236b22839018a90d11eb0ee9173b4af92b3717e0d49f7263f5c79c20fbd9",
+          "case-001-orientation.glb": "192819a0c89e0f0dbeda4bae7e898e714a961de84b7538fdb8da9aafcdc678f0",
           "case-001.glb": "f8fcabeec5cafbaa0928c7f5372b6e813518866f8beceb51abdbc54459c653ce"
         }
       }
@@ -126,7 +126,7 @@
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "258a9251aa29e722fe71ebbf7adfd60d771be8eb14d12c8f422f3daa12fb4103",
+          "case-001-orientation.glb": "c1a77e856c66832c8e16ad6834d28b3521b26ad6029ff6793a9535c1d9bfd158",
           "case-001.glb": "a8e4cb40fda440a74f8d5d2cbfcfdb8f060c045f113ead68f259c47da523ee55"
         }
       }
@@ -144,7 +144,7 @@
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "608bbb374dea68e255bded14b79a96a6cdfabe7b81fe8a661c791ab1aaead507",
+          "case-001-orientation.glb": "3c0871ece65fcc6ade26e13b6d1aab564cb0dbbfdcf3689f71f5ffe7f64394b0",
           "case-001.glb": "dd7796c7fe86160ba72f97406ec77681bb299e40f34cc8752f786cbe987d2af7"
         }
       }
@@ -162,7 +162,7 @@
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "0727e1876e223e9d14c16125042d54f1d751a3330209ee389efbaafd7efb78ea",
+          "case-001-orientation.glb": "a6e20d659c76bd4b8f03e89e552a5e3890d41d658db4a918935ea9db6e5b4176",
           "case-001.glb": "b3280465ac8350d75c9c44bce831dd966c484b2ced63d7ec87804e133b39f9b2"
         }
       }
@@ -180,7 +180,7 @@
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "91896de77a514401983e63c48c8dfe082603f37362d696958f5bc130b0ced4f9",
+          "case-001-orientation.glb": "7df172d4528dbb696de9184180442a1b42a83ccf0db95c29d3f6ee6f8042b5d4",
           "case-001.glb": "ad218d50f1bfb8246410f5772474a63d242eb0ba9330bb3dca9867c8af39e51f"
         }
       }
@@ -198,7 +198,7 @@
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "d511ec8a5e253a17f4fb10cfa0cf23c0b2aeb27e05fcf3e2e3558819e9294800",
+          "case-001-orientation.glb": "04094009b874e7fd61b31c0a3f8289336c33d0d0a556e4b147b876ee015daa2e",
           "case-001.glb": "938447e389b49fd4a6036d2ce98e755b2a6fc4211e711f8d4981f415098d0d00"
         }
       }
@@ -216,7 +216,7 @@
         "result": "inconclusive",
         "reason": "diagnostic-band-invalid-face-graph",
         "hashes": {
-          "case-001-orientation.glb": "ec4c726e5ad01ec60a63c8a24c7eaf95732a9279e2186575288c15899378eddf"
+          "case-001-orientation.glb": "fb72d8b5eda26dbb556dbe8e3a1c66139a165eef66732e3927e04873d34bd358"
         }
       }
     },
@@ -233,7 +233,7 @@
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "ad44132ea19fe08ce553487c987ed49274e9f4cbd986df6d1f2129924d143189",
+          "case-001-orientation.glb": "ed077b6fcef0e551ee9a25dff2ce99e40e9d1078614292865a7e77ce29c5948a",
           "case-001.glb": "df91a81416fbbd3f0761250a2e321b550c1296c9080cfcab0d7b2fa3f3a7fbf7"
         }
       }

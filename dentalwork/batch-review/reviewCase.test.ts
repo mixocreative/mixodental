@@ -60,7 +60,7 @@ describe('folder review', () => {
     expect(row.orientationGlb).toBe('case-001-orientation.glb');
     const evidence = readFileSync(join(scratch, 'case-001-orientation.glb'));
     expect(evidence.toString('latin1', 0, 4)).toBe('glTF');
-    for (const layer of ['TRIM detected trim chains', 'UEND trim U ends', 'PLANE bottom plane outline']) expect(evidence.toString('latin1')).toContain(layer);
+    for (const layer of ['TRIM detected trim chains', 'UEND trim U ends', 'PLANE trim plane outline']) expect(evidence.toString('latin1')).toContain(layer);
     expect(evidence.toString('latin1')).not.toContain('BACK arrow');
   }, 120_000);
 
