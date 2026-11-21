@@ -607,189 +607,33 @@ N = 3, in the workbench proof run first, the app later as a background "a better
 (a 4-minute wait is fine for proving a type, poor for an operator). Best build is outside the top 3 ->
 do not buy builds; add the number from answer 4 to the quick score, which is cheaper every run.
 
-### M1, results - all six scans (run of 2026-11-21), first reading checked by Fable
+### M1, results - the three bare denture scans (run of 2026-11-21)
 
-`scripts/tilt-measure.ts`: every angle 0-44 by 2 fully built, on the six local denture scans in
-`dentalwork/fixtures/case-denture` (named by index, never by file); 138 builds. Raw rows: the session
-scratchpad `m1.json`. The first reading was checked by Fable against the rows and corrected; then the
-oddity it flagged was traced, and that trace is the headline.
+`scripts/tilt-measure.ts`: every angle 0-44 by 2 fully built (named by index, never by file). Of the six
+STL files in `dentalwork/fixtures/case-denture`, **three are bare scans and three are `-sup` files** - the
+same scans supported by another dental program, which this repo keeps as REFERENCE ONLY
+(`dentalwork/fixtures/README.md`, "Support contact files"). Only the bare scans are cases:
 
-**The six scans are three pairs.** Each multi-piece file is a single-piece file plus hundreds of small
-separate pieces - the largest piece matches its partner to the triangle:
-
-| Scan | Pieces | Largest piece (triangles) | Quick pick | Left out at the pick | Quick top 3, left out | Fewest left out (angle, quick rank) |
-|---|---|---|---|---|---|---|
-| 2 | 1 | 516,770 | 8 deg | **0** (168 placed) | 0 / 0 / 0 | 0 at most angles |
-| 1 | 211 | 516,770 = scan 2 | 8 deg | **115** (388 placed) | 115 / 102 / 100 | 27 at 44 deg (22nd) |
-| 4 | 1 | 157,772 | 0 deg | **0** (99 placed) | 0 / 0 / 0 | 0 at the pick |
-| 3 | 339 | 157,772 = scan 4 | 0 deg | **249** (177 placed) | 249 / 255 / 254 | 129 at 44 deg (23rd) |
-| 6 | 1 | 120,736 | 18 deg | **0** (76 placed) | 0 / 0 / 0 | 0 at most angles |
-| 5 | 556 | 120,736 = scan 6 | 18 deg | **289** (243 placed) | 290 / 289 / 299 | 157 at 42 deg (22nd) |
-
-The quick scan runs on a file's LARGEST PART by design - geocore `tilt_scan_ruled` in
-`dental/denture/tilt.rs`: *"A file of several parts is scanned on its largest part (`parts.rs`); the build
-checks every part."* That is why each pair gets the same quick ranking, and it splits the result in two:
-
-1. **For the body, the quick pick is sound on tips and loose on resin.** On all three single-piece scans
-   it leaves no tip out, and so does every one of the quick top 3. Resin at the pick against the leanest
-   angle that also leaves none out: **+2.5 %** (scan 2, leanest 10 deg, quick 4th), **+8.7 %** (scan 4, 4 deg,
-   quick 3rd), **+10.6 %** (scan 6, 22 deg, quick 8th) - print heights within 0.7 mm of the pick's. Against
-   section 9's rule (best, or within one tip and 5 % resin) that is 1 of 3 inside and 2 over, on resin
-   only. So: **keep option C** - extra builds (B, N = 3) would catch the leaner angle on scan 4 alone - and
-   if 9-11 % resin matters, the cheap move is a resin estimate in the quick score, which is ruling 3's
-   question (resin against the other preferences), not a measurement one.
-2. **Every left-out tip comes with the small pieces.** The same bodies with their pieces leave 115, 249
-   and 289 tips out. Steeper angles leave fewer out (to 27, 129, 157) but mainly by asking for fewer tips
-   (candidates fall, placed barely rises) and at 30-50 % more resin - a weak trade the quick score cannot
-   see, because it never reads the pieces.
-
-**Where on the pieces, first rows of the upgraded script** (`leftOutOnLargest`, `candidates`, grouped
-`leftOutByReason`, `maxSnapMm` as the check on the lookup): scan 3 at its pick, 30 of 249 left-out tips
-stand on the body and 219 on the pieces; scan 1 at 0 deg, 25 of 91 on the body - although the body alone
-(scan 2) leaves none there. Either the pieces take the body's pillar room (the commonest reason is "every
-outline pillar in reach is full or crowded", 31 of 91), or the nearest-vertex lookup (worst snap 1.6 mm)
-gives the body tips that sit on a piece touching it. Not separated yet.
-
-**The question this hands the owner is not "quick or full build" but what the small pieces are.** 210 to
-555 pieces of a few thousand triangles each, beside one large body: separate teeth or tooth fragments to
-be printed with the base, or scan debris above the debris size that should be dropped? If they are real
-parts, the print angle should hear from them (and ruling 3 - fewer tips left out or less resin - applies
-to them); if they are debris, the right fix is the debris rule, and the angle choice is already good.
-
-**Next:** that answer first. Then, only if they are real parts, re-run M1 with the upgraded script and
-separate the two readings above. Scans 2, 4 and 6 are the clean baselines for any later change to the
-quick score.
-
-Section 9 above says "3 of them in `dentalwork/fixtures/case-denture`"; the folder holds 6 - three
-bodies, each with and without its pieces.
-
-### The owner's answers (2026-11-21) and the pieces, measured
-
-**Ruling 3: fewer tips left out beats less resin.** So the resin gap at the body's pick (+2.5 / +8.7 /
-+10.6 % against the leanest clean angle) is not a reason to change anything: on all three bodies the
-quick pick and its whole top 3 leave no tip out. **Option C stays; no resin term goes into the quick
-score.** TRAP for whoever scores "fewer left out" next: M1 showed steeper angles cut the left-out count
-mainly by ASKING for fewer tips (candidates fall, placed barely rises). Count left out against the same
-or more tips asked for - a share, or placed and left out side by side - never the bare count.
-
-**What the pieces are: the owner is not sure.** So they were measured instead of guessed
-(scratchpad `pieces.py`: vertices welded on exact coordinates, pieces by shared vertex, the body is the
-piece with the most triangles, gap = nearest piece vertex to the body's vertices):
-
-| Scan | Other pieces | Longest side, median / 90 % / max | Over 5 mm | Under 1 mm | Touching the body (< 0.05 mm) | Pieces' resin vs the body's |
-|---|---|---|---|---|---|---|
-| 1 | 211 | 1.8 / 11.7 / 70.7 mm | 50 | 89 | 94 | 23 % |
-| 3 | 340 | 2.2 / 5.8 / 65.8 mm | 40 | 65 | 37 | 37 % |
-| 5 | 556 | 2.0 / 9.3 / 44.4 mm | 83 | 94 | 144 | 119 % |
-
-**They are not scan debris, on three counts.** One piece in scans 1 and 3 is as long as the whole
-denture (66-71 mm, 470-900 mm3). In scan 5 the pieces together hold more resin than the body. And the
-smallest pieces repeat exactly - scans 1 and 5 have dozens of the same 80-triangle, 0.65 mm, 0.14 mm3
-shape - which noise from a scanner never does. These are designed parts, most of them touching or
-within 1 mm of the body (173 / 140 / 205), with a tooth-sized band of 5-12 mm among them. What exactly
-they are (teeth as separate shells, a second part of the base, design markers) is for whoever made the
-files to say; for the print angle the answer is the same either way: **they print, so the angle must
-hear from them.**
-
-**What that means, not done tonight:** the quick scan reads the largest part only (geocore
-`tilt_scan_ruled`, by design), so on these files it chooses the angle blind to the parts that carry
-most of the left-out tips (70-90 %, M1 v2 below). Under ruling 3 the next step is the quick scan reading every part that prints - an
-engine change in geocore, to be measured on the workbench first (benchwork), on scans 1, 3 and 5 against
-today's pick, with scans 2, 4 and 6 as the baseline that must not move. Not started: a change to how
-the app decides, owner's approval first.
-
-**The owner, later the same morning: the pieces are structures the dental software adds, they print, and
-they need supports on their non-overlapping areas.** The build already works that way - geocore
-`supports/file_parts.rs` (engine 56, the owner's ruling of 2026-11-02): pieces get generic tips on their
-exposed overhangs, faces inside or touching another part get none, and only bits under `partDebrisMm` get
-nothing. So the build is right and the one part of the pipeline blind to the pieces is the quick angle
-scan.
-
-### M1 v2 - where the left-out tips are, and why (scans 1, 3, 5, every angle, 69 builds; checked by Fable)
-
-| Scan | At the quick pick: asked / placed / left out (share) | of them on the body / on pieces | Lowest share left out (quick rank): asked / placed / left out (share) | Resin, pick to that angle |
+| Scan | Quick pick | Left out at the pick | Quick top 3, left out | Resin at the pick vs the leanest angle with none left out |
 |---|---|---|---|---|
-| 1 | 503 / 388 / 115 (23 %) | 35 / 80 | 44 deg (22nd): 428 / 401 / 27 (6 %) | +39 % |
-| 3 | 426 / 177 / 249 (58 %) | 30 / 219 | 44 deg (23rd): 408 / 279 / 129 (32 %) | +64 % |
-| 5 | 532 / 243 / 289 (54 %) | 28 / 261 | 42 deg (22nd): 436 / 279 / 157 (36 %) | +48 % |
+| 2 | 8 deg | **0** (168 placed) | 0 / 0 / 0 | +2.5 % (leanest 10 deg, quick 4th) |
+| 4 | 0 deg | **0** (99 placed) | 0 / 0 / 0 | +8.7 % (leanest 4 deg, quick 3rd) |
+| 6 | 18 deg | **0** (76 placed) | 0 / 0 / 0 | +10.6 % (leanest 22 deg, quick 8th) |
 
-1. **The pieces carry 70-90 % of the left-out tips at the pick** (69.6 / 88.0 / 90.3 %); the body loses
-   28-35, against none for the same body alone (scans 2, 4, 6, from the first M1 run). Why the body loses
-   tips once the pieces are there is not shown: scan 3's body loss RISES at the steep angle (30 to 39).
-   The body/piece split is a nearest-vertex lookup (worst snap 1.6-1.9 mm at the pick, up to 3.4 mm
-   over all angles), so some "body" tips stand on a piece touching it.
-2. **About 99 % are routing failures, not missing tips** (the rest, 26 / 39 / 63 over all angles, stand
-   on a face pointing up or sideways after the tilt). The causes differ by scan. At the pick: scan 1 is
-   63 % "every outline pillar in reach is full or crowded" and 17 % "all rods within x mm of the model";
-   scans 3 and 5 are 45 % and 54 % rods too near the model plus 29 % and 28 % where only rods longer than
-   the branch cap (`branchRodMaxMm`) reach a pillar. Over all angles scan 1 also has 20 % "no room below
-   the neck".
-3. **The steep angles are a real gain on scan 3, and mostly a counting effect on scans 1 and 5.** On
-   scan 3, 102 more tips are placed and only 18 of the 120 fewer left out come from asking for fewer.
-   On scans 1 and 5, 75 of 88 and 96 of 132 do; scan 1's +13 placed is inside its angle-to-angle spread
-   (368-425). Fewer tips are asked for on all three, so the trap's test (same or more asked) is not met.
-   The quick scan ranks these angles 22nd-23rd; whether that is BECAUSE it never reads the pieces is
-   not tested here.
+**The quick pick is sound on tips and loose on resin**, print heights within 0.7 mm of the pick's. Ruling 3
+(owner, 2026-11-21): fewer tips left out beats less resin - so **option C stays** and no resin term goes
+into the quick score.
 
-**So there are two levers, separate changes, neither proven:**
+**CORRECTION, 2026-11-21 (owner: "you are supporting a denture that already has support from my other
+dental software, you have been using wrong cases to test").** The first runs measured all six files, and
+the `-sup` files' "small separate pieces" - 210 to 555 of them, the other program's supports - were read
+as parts of the denture. Everything built on that was wrong and has been removed from this section: the
+"pieces" measurements, M1 v2, the lever A and B runs, and the routing-rule work that followed (pillar
+spacing, helper reach, branch cap, model landing, the neck experiments). None of it reached the app; the
+one engine change made for it (a denture pillar-spacing cap) and a diagnostic commit were taken out of
+geocore before any push. Two owner rulings given during that work stand on their own and are kept:
+**never lower the clearance between supports and the denture** (it fuses them), and **support
+structures may fuse or combine into a tree** - the generic 2 mm outline pillar spacing is not a safety
+rule (`supports/parts/outline.rs`), to revisit on a real case that needs it.
 
-- **A. The quick scan reads every part that prints** (geocore `tilt_scan_ruled`, today the largest
-  part only). Untested whether it would choose the steep angles, and point 3 says their gain is real
-  on one scan of three.
-- **B. Routing room for the pieces**: rods allowed nearer the model where the model is a piece fused
-  to the body, or a longer branch cap on dentures. It addresses the commonest causes on scans 3 and 5
-  at every angle; it does not address scan 1's (pillars full, no room below the neck), and more placed
-  tips means more support resin, so it is not free either.
-
-Both change how the app decides, so both go through benchwork first, on all six scans, with scans 2,
-4 and 6 as the baseline that must not move. Order recommended: **B first, as the cheaper experiment**
-(a rule change, no new scan); what it leaves on the table sets whether A is worth measuring. Not
-started: owner's approval first.
-
-### Both levers measured (2026-11-21, owner: "fix all"; checked by Fable)
-
-**Lever B, as rule numbers the engine already has** (no engine change; `scripts/tilt-measure.ts --pick` with
-`MIXO_RULES`, the quick pick of each scan, all six scans; raw rows: scratchpad `b0`-`b3.json`):
-
-| Scan | Today's rules: placed / left out | branchRodMaxMm 15 | dentalModelLanding 2 | both | Resin, both vs today |
-|---|---|---|---|---|---|
-| 1 | 388 / 115 | 401 / 102 | 408 / 95 | 413 / 90 | +4 % |
-| 2 | 168 / 0 | 168 / 0 | 168 / 0 | 168 / 0 | -4 % |
-| 3 | 177 / 249 | 176 / 250 | 199 / 227 | 199 / 227 | +3 % |
-| 4 | 99 / 0 | 99 / 0 | 99 / 0 | 99 / 0 | -4 % |
-| 5 | 243 / 289 | 243 / 289 | 249 / 283 | 249 / 283 | -2 % |
-| 6 | 76 / 0 | 76 / 0 | 76 / 0 | 76 / 0 | +0 % |
-
-The single-piece scans (2, 4, 6) keep every tip, as they must - though their supports change shape (resin
--4 % on 2 and 4 with the same tips, from the branch cap alone: it reshapes their trees, a side effect). On
-the scans with pieces the best variant (both rules) leaves 90 / 227 / 283 out where today leaves 115 / 249 /
-289: **22 %, 9 % and 2 % fewer - not the fix.** The longer branch cap alone moves scan 1 only; landing on the model (the owner's option of
-2026-11-01, off by default because a column ending on the denture leaves a mark on it) does most of it.
-
-**Lever A, checked before any engine work** (`scripts/lever-a-check.ts`): would the angle scan pick the
-steep angles if it counted the pieces' overhang too? **No.** The pieces' downward area hardly changes with
-the angle (scan 3: 1457-1544 mm2 over 0-44 deg, scan 5: 2285-2379), while the body's own area rises some
-200 mm2 toward the steep angles - so the sum's minimum stays low (10, 16 and 18 deg by bare minimum; the
-scan's tie rule, lowest tilt within the tie fraction, would likely keep scan 3 at 0). That settles the
-OVERHANG term only: the real pick sorts by landing paths, boxed-in lows and lows outside the allowed area
-before overhang, and reading the pieces would change those too - untested. What the steep angles change
-is routing: "rods too near the model" refusals fall (scan 3: 237 to 58 over the M1 v2 rows) - but on
-scans 1 and 5 most of the gain is fewer tips asked (section above). So A as an overhang term is dropped;
-no engine rule was added for it.
-
-**What is left, for the owner** - each one changes what the app does, so none is switched on:
-
-1. **Turn on landing on the model for dentures** (`dentalModelLanding` 2): 17 / 9 / 2 % fewer left out
-   on its own (22 / 9 / 2 % with the longer branch cap), at the cost the owner switched it off for (marks where a column meets the denture).
-2. **A steep probe**: on a file with pieces only, build the quick pick AND the steepest robust angle and
-   keep the one that PLACES more tips (not the one leaving fewer out - that is the counting trap above). One extra build of a few minutes, nothing for
-   single-piece files. Measured gain (M1 v2): real on scan 3 (+102 placed), mostly fewer tips asked on 1
-   and 5; resin +39-64 %.
-3. **Accept the pieces' left-out tips as reported** - they are listed, and the operator can place tips by
-   hand - and close lever work here.
-4. **Not yet measured, named by Fable:** less rod-to-model clearance where the model is a fused piece (the
-   commonest cause on scans 3 and 5 - needs an engine rule, the clearance is model-wide today).
-
-**Pillar capacity, measured the same way** (Fable's second suggestion; scratchpad `b4`, `b5.json`): `tipsPerPillar` 10 instead of 6 leaves 107 / 249 / 289 out (scan 1 only moves, by 8), and with the branch cap and model landing on top it gives exactly what those two gave alone (90 / 227 / 283). So "every outline pillar in reach is full or crowded" is about crowded SPACE, not the count per pillar; the single-piece scans keep every tip in both runs.
-
-**Decided for now (2026-11-21, under the owner's "fix all"; theirs to reverse): option 3, accept and report.** Nothing measured is a fix: the routing rules cut 2-22 %, landing on the model would reverse the owner's 2026-11-01 ruling, the steep probe's gain is real on one scan of three, and the clearance rule is unmeasured. The pieces' left-out tips stay listed in the build's report for placing by hand. No app behaviour changed.
+`scripts/tilt-measure.ts` now skips `-sup` files, so a sweep of a fixtures folder cannot measure them again.
