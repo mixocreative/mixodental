@@ -3001,7 +3001,7 @@ class GeometrySession {
     }
     /**
      * Step 1 evidence layers of a loaded aligner (`dental::review_orientation`): the detected trim
-     * chains, the two U ends, the bottom plane's outline and the back arrow. Review only.
+     * chains, the two U ends, the trim plane's outline and the back arrow. Review only.
      * @param {number} model
      * @param {number} revision
      * @param {string} profile

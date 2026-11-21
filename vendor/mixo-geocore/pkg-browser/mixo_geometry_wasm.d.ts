@@ -880,7 +880,7 @@ export class GeometrySession {
     diagnose(model: number, revision: number, profile: string, contact_faces: Uint8Array, outer_ridge_edges: Uint32Array, connector_edges: Uint32Array, opening_edges: Uint32Array, bands: Uint8Array, outer_contacts: Float64Array, inner_contacts: Float64Array, support_positions: Float32Array, support_indices: Uint32Array, tip_flags: Uint8Array): Diagnosis;
     /**
      * Step 1 evidence layers of a loaded aligner (`dental::review_orientation`): the detected trim
-     * chains, the two U ends, the bottom plane's outline and the back arrow. Review only.
+     * chains, the two U ends, the trim plane's outline and the back arrow. Review only.
      */
     diagnose_orientation(model: number, revision: number, profile: string): Diagnosis;
     /**

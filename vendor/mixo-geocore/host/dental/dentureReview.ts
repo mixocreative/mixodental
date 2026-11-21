@@ -131,7 +131,7 @@ export interface DentureReview {
   faceParts: Uint32Array;
   /** Rim plane (least squares through the rim loop points, normal to the top), absent without a rim. */
   rimPlane?: { point: Vector; normal: Vector };
-  /** Symmetry plane: the upright plane that splits the U left/right (normal = the left-right axis). */
+  /** Symmetry plane: splits the U left/right (normal = the left-right axis). */
   symmetryPlane: { point: Vector; normal: Vector };
   /** The oriented pose's plate normal in the mesh frame; down is its reverse. */
   up: Vector;
