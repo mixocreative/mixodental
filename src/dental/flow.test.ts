@@ -6,6 +6,7 @@ import { canUndo, createSceneHistory, undoScene, withSceneCommand, type SceneHis
 import { acceptCommands } from '../denture/steps/orient/acceptCommands';
 import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { DEFAULT_DENTURE_OPTIONS } from '../denture/settings/dentureOptions';
+import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
 import { backCommands, backEntersOrient, backLosesWork, backNeedsConfirm, discardManualCommands, exitCommands, exitNeedsConfirm, keepsManualArea, keptDentalWork, manualEditCounts, opensAtSupports, startsDentalStep } from './flow';
 import { DENTURE_PROFILE_ID } from '../denture/jobKind';
 
@@ -196,6 +197,16 @@ describe('dental flow rules', () => {
     // An area the operator painted themselves. `backNeedsConfirm` is blind to this (see W-01 above),
     // which is the whole reason this is a rule of its own rather than a call to that one.
     expect(exitNeedsConfirm(unit({ dental: { kind: 'legacy', origin: 'manual-area' } as never }))).toBe(true);
+  });
+
+  it('Leaving the flow also asks for Step 2 strokes and moved sliders (cia screen sweep, 2026-11-21)', () => {
+    const profileId = 'reference-aligner';
+    const start = defaultDentalTuning(profileId);
+    const policy = (over: object) => unit({ dental: { kind: 'two-contour', profileId, stamps: [], tuning: start, ...over } as never });
+    expect(exitNeedsConfirm(policy({}))).toBe(false);
+    expect(exitNeedsConfirm(policy({ stamps: [{ kind: 'paint' }] }))).toBe(true);
+    expect(exitNeedsConfirm(policy({ tuning: { ...start, density: start.density + 0.25 } }))).toBe(true);
+    expect(exitNeedsConfirm(policy({ tuning: { ...start, stripWidthMm: start.stripWidthMm + 0.1 } }))).toBe(true);
   });
 
   it('Leaving the flow stays silent at Step 1, where the only cost is a redetect', () => {

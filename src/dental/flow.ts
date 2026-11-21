@@ -1,4 +1,5 @@
-import { isManualArea } from '@mixo-geocore/host/dental/dentalPolicy';
+import { isManualArea, type DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
+import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
 import { isDentureJob } from '../denture/jobKind';
 import { stageBeforeSupports } from '../denture/state/dentureStages';
 import type { PrintUnit, SceneCommand } from '../state/project';
@@ -167,7 +168,8 @@ export function backCommands(unit: BackFields | undefined, profile: string | und
  * IT ASKS ONLY WHEN THERE IS SOMETHING TO LOSE. Leaving at Step 1 with a detected orientation and
  * nothing else costs the operator a redetect, which is seconds and is the commonest way out of the
  * flow; a dialog there would train them to dismiss the one that matters. So: built supports, hand
- * edits, or an area they painted themselves.
+ * edits, an area they painted themselves, Step 2 strokes on a detected area, or sliders they moved
+ * (`policyHoldsWork`).
  *
  * A HAND-DRAWN RIM IS COUNTED, and this paragraph used to say it was not. The claim was that
  * `drawnRim` builds an ordinary `two-contour` policy no different from a detected one. It does not:
@@ -184,7 +186,20 @@ export function exitNeedsConfirm(
 ): boolean {
   if (!unit) return false;
   return Boolean(unit.supports) || backNeedsConfirm(unit)
-    || (unit.dental !== undefined && isManualArea(unit.dental));
+    || (unit.dental !== undefined && (isManualArea(unit.dental) || policyHoldsWork(unit.dental)));
+}
+
+/**
+ * Operator work kept in the dental policy itself: Step 2 paint or erase strokes on a detected area, and the area
+ * sliders moved off the type's defaults. Found by the cia screen sweep (2026-11-21): Exit before any build dropped
+ * both without the question, though the owner's rule is to ask whenever leaving costs the operator anything.
+ * A policy straight from detection holds neither - that exit still costs only a redetect and stays silent.
+ */
+function policyHoldsWork(policy: DentalPolicy): boolean {
+  if ((policy.stamps?.length ?? 0) > 0) return true;
+  if (policy.kind !== 'two-contour' || !policy.tuning) return false;
+  const start = defaultDentalTuning(policy.profileId);
+  return policy.tuning.positionMm !== start.positionMm || policy.tuning.stripWidthMm !== start.stripWidthMm || policy.tuning.density !== start.density;
 }
 
 /**
