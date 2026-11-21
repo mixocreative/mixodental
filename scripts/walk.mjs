@@ -2454,7 +2454,7 @@ async function walk(url, scratch, dentalFixture) {
       /*
        * G1 - A WRITE REFUSED AFTER AN EARLIER ONE COMMITTED.
        *
-       * "Export all STL" (was "Each object with model") plans ONE FILE PER OBJECT (`planExport`), and `useExport` hands them
+       * "Each object with model" (the BENCH export row; the deck's key is "Export all STL") plans ONE FILE PER OBJECT (`planExport`), and `useExport` hands them
        * over in a loop: a Blob URL, an `<a download>`, `.click()`, one file at a time. The first
        * click has already put a file in the operator's downloads by the time the second runs, so this
        * is the journey's one true multi-step commit - and the step after the first commit can fail.
@@ -2476,7 +2476,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(500);
       const firstFile = page.waitForEvent('download', { timeout: 120000 }).then((download) => download.suggestedFilename(), () => '');
       await page.evaluate(() => { window.__faultDownload = 2; });
-      await page.getByRole('button', { name: 'Export all STL' }).click();
+      await page.getByRole('button', { name: 'Each object with model' }).click();
       const landed = await firstFile;
       await d.idle(4000);
       const partial = await page.evaluate(() => ({
