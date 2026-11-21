@@ -648,3 +648,116 @@ fuses them), and **support structures may fuse or combine into a tree** - the ge
 rule (`supports/parts/outline.rs`), to revisit on a real case that needs it.
 
 `scripts/tilt-measure.ts` now skips `-sup` files, so a sweep of a fixtures folder cannot measure them again.
+
+## 10. Rim detection as shared nodes - one node set, two presets (owner, 2026-11-21; refined by Fable)
+
+Owner: "make node by breaking down into reusable steps, and they may share some node", then: a node that tells
+the rim search from which point and at what angle to look; the rim tab hands a STANDARD rim to the Support zones
+tab, with supports on the rim line by default, an inner/outer band and shift, profile defaults, a rim edit mode,
+and zones built from the rim. Fable's verdict: one graph, one socket vocabulary, two presets (aligner, denture).
+"Same nodes, different settings" holds for half the steps; where the ALGORITHM differs, two node kinds sit behind
+one socket type, both in the same node set. Every migrated step reproduces today's results exactly
+(`npm run gate:real`, real scans, `-sup` files excluded).
+
+### Today (geocore engine 70)
+
+- **Aligner** (`dental/orient.rs` -> `dental/rim.rs`): the robust trim plane gives the opening direction; vertices
+  are projected on it; a sharp-edge graph (unwelded, two-face edges, abs(dot)) gives closed loops; the innermost
+  loop at the lower end is the rim; fallback = the last 2.5 % cap ring; the rim is rasterised to the visibility
+  footprint; Step 2's position / width / density shape a signed strip from it (`footprint.rs`).
+- **Denture** (`dental/denture/`): arch frame (`upright.rs`) + front/back decision (`up_decision.rs`); in that frame
+  the lowest outer-shell vertex per angular bin is a rim point, neighbours joined by the cheapest sharp-preferring
+  path (`rim_lowpoints.rs`, `rim_graph.rs`, a continuous dihedral cost - it does not read `hard_edges.rs`); open
+  gaps cut the rim; `rim_plane.rs` fits the plane; `rim_tips.rs` places rim tips.
+
+### The node set and the two presets
+
+| Node | Out | Aligner preset | Denture preset | One kind + settings? |
+|---|---|---|---|---|
+| Frame source | `frame` | trim plane | arch frame + front/back decision | upstream, different detectors |
+| `lookFrom` - from which point, at what angle | `position` + `direction` | down from the trim plane | the tissue side | **yes** |
+| Rim finder | `rim` | `rimLoopSharp`, fallback `rimCapRing` | `rimLowPoints` | no - two (three) kinds, one socket |
+| `rimDrawn` (rim edit mode) | `rim` | yes | yes (new; free it from the aligner profile) | **yes** |
+| `fitPlane` | `rimPlane` | yes | yes | **yes** (step 1: `dental/plane_fit.rs`) |
+| Band | `mask` | signed strip (position, width, density) | even band | no - two kinds, each labelled |
+| `rimTips` | tips | - | yes | denture today |
+| `rimSide` - inner / outer zone | `mask` | new | new | **yes**, new for both, off by default |
+
+**The standard `rim`:** polylines, each with a `closed` flag; points at the finder's own precision plus mesh vertex
+ids where they exist (nothing rounded on the way, so bit-equality survives); a SOURCE flag (detected, fallback,
+drawn - a drawn or fallback rim never authorises automatic supports today, and must not start to). The aligner's
+visibility mask is a separate output of its finder, not part of `rim`.
+
+**Inner / outer:** decided by sign against the rim plane and the fitting direction, never by "inside the loop" (an
+open U encloses nothing). Inner = the side facing the fitting surface (aligner cavity, denture tissue), outer = the
+visible outside - one meaning for both kinds.
+
+### Plane names - one name per plane, everywhere (code, docs, UI, three languages)
+
+| Name | What it is | From | Rim-derived |
+|---|---|---|---|
+| **Rim plane** | the plane fitted through the final rim line | the rim | **yes** |
+| **Trim plane** | aligner: the first estimate through the detected trim edges, which aims the rim search | trim edges, before the rim | no |
+| **Arch plane** | the flattest plane of the whole part | all vertices | no |
+| **Symmetry plane** | splits left from right | the arch frame | no |
+| **Box face** (top/bottom/front/back/left/right), **Box centre plane** (3) | from the tight box | the box | no |
+| **Rim crossing** (renamed from "intersection") | rim plane x symmetry plane x back face | the rim plane | **yes** |
+
+Retired: "middle plane", "upright plane", "upright arch plane", "bottom plane" (the UI string "Bottom plane" too).
+Not "median plane": in anatomy that is the left/right midline, our symmetry plane.
+
+**On the rim tab, every rim-derived node is greyed out and disabled** with the reason ("Needs the rim. Available
+from the Support zones tab"); the engine also refuses a rim-derived wire into `lookFrom` through a separate socket
+type (`rimPlane` is not a `plane`), so the greying is not the only guard against the cycle.
+
+**Every plane in the UI** (owner, 2026-11-21): a plain explanation (what it is, what it is computed from) in all
+three languages; its own colour, the same on the node's chip and in the 3D view; drawn when its node is selected or
+highlighted, hidden otherwise - except the important ones, always shown: the plane the current tab's result rests
+on (rim tab: the trim plane for an aligner, the arch plane for a denture; Support zones tab: the rim plane).
+Colours come from the app's style tokens (`mixo-app-style`), one token per plane name.
+
+### Handover to the Support zones tab - what the next tab reuses
+
+The rim tab's results reach the Support zones tab as **fixed inputs**: computed once on the rim tab, shown read-only
+in the zones palette's "From the rim tab" group (today's "From Orient" group in `nodeGraph.mjs`, which already
+carries `rimCurve`), and recomputed only when the rim tab changes - so the zones tab never re-detects a rim.
+
+| Handed over | Socket | What the zones tab does with it |
+|---|---|---|
+| **Rim** (the line, with its `closed` and source flags) | `rim` | strips around it (`band`), inner / outer zones (`rimSide`) |
+| **Rim plane** | `rimPlane` | references: points on it, the rim crossing, directions square to it |
+| **Rim area** (the support area the rim tab set: the rim line by default, widened by its inner / outer band and shifted) | `mask` | start from it as a support zone, or subtract from it / add to it |
+| **Rim crossing** | `position` | a point to aim rays from |
+| The frame and the planes that do not depend on the rim (trim, arch, symmetry, box) | `frame`, `plane` | the same references as on the rim tab |
+| **Pose** (up + lean at tilt 0, section 3) | `pose` | not used by zones; handed on to the print-angle tab (section 8), which reads it |
+| **Visibility mask** (aligner only, the rim finder's raster) | `mask` | the aligner's footprint (`footprint.rs`) reads it; a separate output, never part of `rim` |
+
+**Rim area, named producer (Fable's end-to-end review, 2026-11-22):** the rim tab owns one node that makes it -
+the aligner's signed strip (position / width / density) or the denture's rim band. The denture has two rim strips
+today (2 mm `RIMBAND` and the low 5 mm `LOWRIMBAND`); **the rim area is the 2 mm one**, the low band stays a
+separate fixed input until an owner ruling says otherwise. The host socket is still called `curve`
+(`nodeGraph.mjs`); it becomes `rim` with the typed evaluator (build step 3), not before.
+
+What is greyed out on the rim tab (the rim plane, the rim crossing, anything built from the rim) is exactly what
+becomes available here - one rule, seen from both sides.
+
+### Build order - each step proven before the next
+
+1. **Shared plane fit** (`dental/plane_fit.rs`) - landing: bit-equal to the old rim fit on 200 point clouds and on
+   the refusal cases; `gate:real` must show no change. Four more copies of the covariance loop are written down as
+   debt in the module.
+2. **Plane names**: the rename above in code, docs and UI strings (ja / zh-Hant), before any node exposes a name.
+3. **Typed evaluator**, engine and host in parity (`zone_graph.rs` evaluates mask-only kinds and refuses the rest;
+   `nodeGraph.mjs` refuses unknown kinds). Proof: the default graphs evaluate identically; `gate:real` no change.
+4. **Kind-neutral graph**: move `zone_graph.rs` out of `denture/`; an aligner default graph that wraps today's code
+   as locked nodes. Proof: `gate:real`.
+5. **`rim` socket**: wrap each finder whole, no logic moved. Proof: bit-equal rim points on the real scans.
+6. **`lookFrom`** as an explicit input to both finders. Proof: bit-equal.
+7. **`fitPlane` node**, then free the denture rim bands from `FIXED_OUTPUTS`. Proof: mask equality.
+8. **Plane display** - moved up to run right after step 2 (it needs only the names, and it is the visible value):
+   explanations, colours, show-on-select, important planes always on; captured at operator width. Tonight it lands
+   in the batch-review viewer, the one place a node graph is shown today; the app has no node canvas for operators.
+9. **`rimSide`** (new behaviour, off by default, owner-reviewed); 10. **`rimDrawn`** for dentures.
+
+Later, one measurement may shrink the set: the denture's `rimLowPoints` run on aligner scans; if it finds the same
+rim, one finder replaces two. Sharp edges stay two rules (a yes/no set vs a continuous cost - different outputs).
