@@ -144,9 +144,9 @@
     "semantic_hash": ""
   },
   "src/components/DentalBar.test.tsx": {
-    "mtime": 1795217072.376902,
-    "seen": 1795226128.419052,
-    "ast_hash": "165fe25883835ea2b25f81bca31768bb",
+    "mtime": 1795226490.232762,
+    "seen": 1795231874.555894,
+    "ast_hash": "3327bc381664b2b9cf1241d63a5f930e",
     "semantic_hash": ""
   },
   "src/components/DentalBar.tsx": {
@@ -1447,9 +1447,9 @@
     "semantic_hash": ""
   },
   "src/components/DentalSupports.tsx": {
-    "mtime": 1795191814.9703436,
-    "seen": 1795197744.0636919,
-    "ast_hash": "1df0af970456ab200b3937a2f672b333",
+    "mtime": 1795226525.5034811,
+    "seen": 1795231874.555894,
+    "ast_hash": "6caedec4b3ff62a924f67b425fe97cf7",
     "semantic_hash": ""
   },
   "src/workers/supportBuildParity.test.ts": {
@@ -4699,9 +4699,9 @@
     "semantic_hash": ""
   },
   "src/denture/steps/supports/DentureReviewPanel.tsx": {
-    "mtime": 1795191815.006916,
-    "seen": 1795197744.0636919,
-    "ast_hash": "6e0f3a14a667134ee0645a05bb4d45cf",
+    "mtime": 1795226490.232762,
+    "seen": 1795231874.5568984,
+    "ast_hash": "e7a0b2444ea8b25fd8ea6c6f545eba7a",
     "semantic_hash": ""
   },
   "src/denture/steps/supports/reviewLineText.test.ts": {
@@ -6493,9 +6493,9 @@
     "semantic_hash": ""
   },
   "src/components/DentalReviewBlocks.test.tsx": {
-    "mtime": 1795085789.7998228,
-    "seen": 1795101935.8055215,
-    "ast_hash": "779ea9a7a5abcd2a0b1348d82deac836",
+    "mtime": 1795226758.0296066,
+    "seen": 1795231874.555894,
+    "ast_hash": "1c50cee67d3bba68cb4d7c57fb90d6c5",
     "semantic_hash": ""
   },
   "src/supports/tipMove.test.ts": {
@@ -6715,9 +6715,9 @@
     "semantic_hash": ""
   },
   "docs/REVIEW-UX-REFINE.md": {
-    "mtime": 1795223805.5050042,
-    "seen": 1795226128.420051,
-    "ast_hash": "784872ae938c68077c3d9a2af60d6ffd",
+    "mtime": 1795226616.0034647,
+    "seen": 1795231874.5568984,
+    "ast_hash": "6af5e0d9a17e9181ddde77acc481c854",
     "semantic_hash": ""
   },
   "docs/TYPE-PIPELINE.md": {
@@ -6763,9 +6763,9 @@
     "semantic_hash": ""
   },
   "scripts/tilt-measure.ts": {
-    "mtime": 1795200663.9893782,
-    "seen": 1795201076.0227377,
-    "ast_hash": "2b662e956424a7f0960dee528aaa5b78",
+    "mtime": 1795226693.5495992,
+    "seen": 1795231874.555894,
+    "ast_hash": "1a39a65ab1f738cc41f7c7cd28c467cb",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/registerProfile.ts": {
@@ -6775,9 +6775,9 @@
     "semantic_hash": ""
   },
   "docs/ORIENT-NODES.md": {
-    "mtime": 1795224007.888963,
-    "seen": 1795226128.420051,
-    "ast_hash": "1698f195bcb270b162e829352fe6aaa6",
+    "mtime": 1795231274.5262592,
+    "seen": 1795231874.5568984,
+    "ast_hash": "bb66da2b2d221eacd42601192faac214",
     "semantic_hash": ""
   },
   "types/README.md": {
@@ -6808,6 +6808,12 @@
     "mtime": 1795216747.1938422,
     "seen": 1795226128.419052,
     "ast_hash": "e09e98828f248fdf5612986bca13e41e",
+    "semantic_hash": ""
+  },
+  "scripts/lever-a-check.ts": {
+    "mtime": 1795229071.7579072,
+    "seen": 1795231874.555894,
+    "ast_hash": "1eb4f2bc1a4de7dfe98a720949dc6537",
     "semantic_hash": ""
   }
 }
