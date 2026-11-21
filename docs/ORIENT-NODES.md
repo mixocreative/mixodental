@@ -614,8 +614,9 @@ STL files in `dentalwork/fixtures/case-denture`, **three are bare scans and thre
 same scans supported by another dental program, which this repo keeps as REFERENCE ONLY
 (`dentalwork/fixtures/README.md`, "Support contact files"). Only the bare scans are cases. Numbered 1-3 as the
 script now counts them (they were 2, 4, 6 when the `-sup` files were still swept). Every column comes from the
-every-angle run (scratchpad `m1.json`, its scan 2 / 4 / 6 rows); the pick column was re-run with the shipped
-engine (geocore 5319c86, `--pick`, scratchpad `bare.json`) and matched to the tip.
+every-angle run of 2026-11-21; the pick column was re-run the same day with the shipped engine (geocore
+5319c86, `--pick`) and matched to the tip. The raw per-angle rows were session-local and are not kept: this
+table is the record, and `npx vite-node --script scripts/tilt-measure.ts` regenerates them in about an hour.
 
 | Scan | Quick pick | Left out at the pick | Quick top 3, left out | Resin at the pick vs the leanest angle with none left out |
 |---|---|---|---|---|
@@ -623,20 +624,27 @@ engine (geocore 5319c86, `--pick`, scratchpad `bare.json`) and matched to the ti
 | 2 | 0 deg | **0** (99 placed) | 0 / 0 / 0 | +8.7 % (leanest 4 deg, quick 3rd) |
 | 3 | 18 deg | **0** (76 placed) | 0 / 0 / 0 | +10.6 % (leanest 22 deg, quick 8th) |
 
-**The quick pick is sound on tips and loose on resin**, print heights within 0.7 mm of the pick's. Ruling 3
-(owner, 2026-11-21): fewer tips left out beats less resin - so **option C stays** and no resin term goes
-into the quick score.
+**The quick pick is sound on tips and loose on resin**, print heights within 0.7 mm of the pick's. Against the
+decision rule above (written for six scans; read here as "on every scan"): the quick pick is the best full
+build on TIPS on all three - none left out, nor in its top 3 - and within 5 % resin on one of three (scan 1),
+over on two (8.7 and 10.6 %), on resin only.
+
+**Ruling 3** (owner, 2026-11-21) answers what that leaves open - section 6, question 3, whether a leaner full-
+build angle should beat the quick pick: **fewer tips left out beats less resin**. So **option C stays** (the
+quick score picks the angle) and no resin term goes into the quick score. It rests on the three bare scans
+above, not on the removed runs below.
 
 **CORRECTION, 2026-11-21 (owner: "you are supporting a denture that already has support from my other
 dental software, you have been using wrong cases to test").** The first runs measured all six files, and
 the `-sup` files' "small separate pieces" - 210 to 555 of them, the other program's supports - were read
 as parts of the denture. Everything built on that was wrong and has been removed from this section: the
-"pieces" measurements, M1 v2, the lever A and B runs, and the routing-rule work that followed (pillar
-spacing, helper reach, branch cap, model landing, the neck experiments). None of it reached the app; the
+measurements of those "pieces", a second every-angle run that split left-out tips between body and pieces,
+two proposed fixes (reading every part in the angle score; routing rules for the pieces) and the rule
+experiments that followed (pillar spacing, helper reach, branch cap, model landing, the neck experiments). None of it reached the app; the
 one engine change made for it (a denture pillar-spacing cap) and a diagnostic commit were taken out of
-geocore before any push. Two owner rulings given during that work stand on their own and are kept:
-**never lower the clearance between supports and the denture** (it fuses them), and **support
-structures may fuse or combine into a tree** - the generic 2 mm outline pillar spacing is not a safety
+geocore before any push. **Standing owner rulings from this day:** ruling 3 above, and two given during the
+removed work that stand on their own: **never lower the clearance between supports and the denture** (it
+fuses them), and **support structures may fuse or combine into a tree** - the generic 2 mm outline pillar spacing is not a safety
 rule (`supports/parts/outline.rs`), to revisit on a real case that needs it.
 
 `scripts/tilt-measure.ts` now skips `-sup` files, so a sweep of a fixtures folder cannot measure them again.
