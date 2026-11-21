@@ -693,7 +693,55 @@ hear from them.**
 
 **What that means, not done tonight:** the quick scan reads the largest part only (geocore
 `tilt_scan_ruled`, by design), so on these files it chooses the angle blind to the parts that carry
-every left-out tip. Under ruling 3 the next step is the quick scan reading every part that prints - an
+most of the left-out tips (70-90 %, M1 v2 below). Under ruling 3 the next step is the quick scan reading every part that prints - an
 engine change in geocore, to be measured on the workbench first (benchwork), on scans 1, 3 and 5 against
 today's pick, with scans 2, 4 and 6 as the baseline that must not move. Not started: a change to how
 the app decides, owner's approval first.
+
+**The owner, later the same morning: the pieces are structures the dental software adds, they print, and
+they need supports on their non-overlapping areas.** The build already works that way - geocore
+`supports/file_parts.rs` (engine 56, the owner's ruling of 2026-11-02): pieces get generic tips on their
+exposed overhangs, faces inside or touching another part get none, and only bits under `partDebrisMm` get
+nothing. So the build is right and the one part of the pipeline blind to the pieces is the quick angle
+scan.
+
+### M1 v2 - where the left-out tips are, and why (scans 1, 3, 5, every angle, 69 builds; checked by Fable)
+
+| Scan | At the quick pick: asked / placed / left out (share) | of them on the body / on pieces | Lowest share left out (quick rank): asked / placed / left out (share) | Resin, pick to that angle |
+|---|---|---|---|---|
+| 1 | 503 / 388 / 115 (23 %) | 35 / 80 | 44 deg (22nd): 428 / 401 / 27 (6 %) | +39 % |
+| 3 | 426 / 177 / 249 (58 %) | 30 / 219 | 44 deg (23rd): 408 / 279 / 129 (32 %) | +64 % |
+| 5 | 532 / 243 / 289 (54 %) | 28 / 261 | 42 deg (22nd): 436 / 279 / 157 (36 %) | +48 % |
+
+1. **The pieces carry 70-90 % of the left-out tips at the pick** (69.6 / 88.0 / 90.3 %); the body loses
+   28-35, against none for the same body alone (scans 2, 4, 6, from the first M1 run). Why the body loses
+   tips once the pieces are there is not shown: scan 3's body loss RISES at the steep angle (30 to 39).
+   The body/piece split is a nearest-vertex lookup (worst snap 1.6-1.9 mm at the pick, up to 3.4 mm
+   over all angles), so some "body" tips stand on a piece touching it.
+2. **About 99 % are routing failures, not missing tips** (the rest, 26 / 39 / 63 over all angles, stand
+   on a face pointing up or sideways after the tilt). The causes differ by scan. At the pick: scan 1 is
+   63 % "every outline pillar in reach is full or crowded" and 17 % "all rods within x mm of the model";
+   scans 3 and 5 are 45 % and 54 % rods too near the model plus 29 % and 28 % where only rods longer than
+   the branch cap (`branchRodMaxMm`) reach a pillar. Over all angles scan 1 also has 20 % "no room below
+   the neck".
+3. **The steep angles are a real gain on scan 3, and mostly a counting effect on scans 1 and 5.** On
+   scan 3, 102 more tips are placed and only 18 of the 120 fewer left out come from asking for fewer.
+   On scans 1 and 5, 75 of 88 and 96 of 132 do; scan 1's +13 placed is inside its angle-to-angle spread
+   (368-425). Fewer tips are asked for on all three, so the trap's test (same or more asked) is not met.
+   The quick scan ranks these angles 22nd-23rd; whether that is BECAUSE it never reads the pieces is
+   not tested here.
+
+**So there are two levers, separate changes, neither proven:**
+
+- **A. The quick scan reads every part that prints** (geocore `tilt_scan_ruled`, today the largest
+  part only). Untested whether it would choose the steep angles, and point 3 says their gain is real
+  on one scan of three.
+- **B. Routing room for the pieces**: rods allowed nearer the model where the model is a piece fused
+  to the body, or a longer branch cap on dentures. It addresses the commonest causes on scans 3 and 5
+  at every angle; it does not address scan 1's (pillars full, no room below the neck), and more placed
+  tips means more support resin, so it is not free either.
+
+Both change how the app decides, so both go through benchwork first, on all six scans, with scans 2,
+4 and 6 as the baseline that must not move. Order recommended: **B first, as the cheaper experiment**
+(a rule change, no new scan); what it leaves on the table sets whether A is worth measuring. Not
+started: owner's approval first.
