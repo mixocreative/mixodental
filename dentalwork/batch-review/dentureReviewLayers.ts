@@ -70,8 +70,8 @@ export interface DentureDetail {
   ownerContactsMedianMm: number | null;
   ownerAreaCoveredPct: number | null;
   outsideOwnerAreaPct: number | null;
-  /** The middle plane's state for the facts rows. */
-  middlePlane: string;
+  /** The rim plane's state for the facts rows (was `middlePlane`, the retired name of the same plane). */
+  rimPlane: string;
   /** Step 1 text: the up decision from the dental rim ('' when there is no review or no dental rim). */
   upDecision: string;
   /** Tips per source, e.g. 'dental rim 12 / hole 3 / area 40 / low 2' ('' without a review). */
@@ -437,7 +437,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     }
     edgesLayer(layers, review.downEdges, 'DOWN-FACING hard edges', C.downEdges);
     edgesLayer(layers, review.hardEdges, 'ALL hard edges (thin)', C.hardEdges);
-    // Step 1: the tight oriented box around the model, and the middle plane fitted to the hard edges.
+    // Step 1: the tight oriented box around the model, the rim plane and the symmetry plane.
     edgesLayer(layers, boxEdges(review.box), 'TIGHT BOX (oriented, around the model)', C.tightBox);
     const planeLayer = (plane: { point: Vector; normal: Vector }, name: string, color: number) => {
       const { point, normal } = plane;
@@ -448,7 +448,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
       const [c0, c1, c2, c3] = [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)];
       edgesLayer(layers, [[c0, c1], [c1, c2], [c2, c3], [c3, c0]], name, color);
     };
-    if (review.rimPlane) planeLayer(review.rimPlane, 'RIM PLANE (level fit through the dental rim)', C.middlePlane);
+    if (review.rimPlane) planeLayer(review.rimPlane, 'RIM PLANE (level fit through the dental rim)', C.rimPlane);
     planeLayer(review.symmetryPlane, 'SYMMETRY PLANE (left / right split)', C.symmetryPlane);
     // Step 5: the print tilt, as the build plate (a square lying on the plate, normal = the plate's normal `up`).
     {
@@ -551,7 +551,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     ownerContactsMedianMm: medianMm === undefined ? null : Math.round(medianMm * 100) / 100,
     ownerAreaCoveredPct: comparison ? pct(comparison.coverage) : null,
     outsideOwnerAreaPct: comparison ? pct(comparison.extra) : null,
-    middlePlane: review ? (review.rimPlane ? 'Dental rim plane fitted' : 'none (no dental rim)') : 'not computed',
+    rimPlane: review ? (review.rimPlane ? 'Rim plane fitted' : 'none (no rim)') : 'not computed',
     upDecision: review ? (review.upDecision ? describeUp(review.upDecision) : 'no box, so no up decision') : '',
     tipsBySource,
     traps: review && (review.suctionCups.length + review.drainPockets.length + review.deepSockets.length) > 0

@@ -563,7 +563,9 @@ The tokens of `dentalwork/batch-review/tokens.css` that the app does not have. T
 | `--layer-suction` | `#d08a2e` | Layer: suction |
 | `--layer-drain` | `#5f8f8a` | Layer: drain |
 | `--layer-tight-box` | `#3b4a5c` | Layer: tight box |
-| `--layer-middle-plane` | `#6c7a89` | Layer: middle plane |
+| `--layer-rim-plane` | `#7b4fa0` | Layer: rim plane (fitted through the final rim line) |
+| `--layer-arch-plane` | `#6c7a89` | Layer: arch plane (the flattest plane of the whole part) |
+| `--layer-trim-plane` | `#c98a2b` | Layer: trim plane (aligner; first estimate from the trim edges) |
 | `--layer-symmetry-plane` | `#2a9d8f` | Layer: symmetry plane |
 | `--layer-ray-origin` | `#ff00ff` | Ray arrow ORIGIN |
 | `--layer-ray-r1` | `var(--layer-no-support)` | Ray arrow R1 |

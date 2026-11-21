@@ -423,15 +423,15 @@ const LAYER_TABLE = [
   ['Print tilt', 'Build plate', 'The build plate at the chosen print angle (its normal is up).', true, 'reference'],
   ['Dental rim (continuous', 'Dental rim', 'The dental rim as thick continuous line(s); the count and closed/open state are in the name.', true, 'reference'],
   ['Hole outlines', 'Hole outlines', 'A thick line round each hole.', true, 'reference'],
-  ['RIM PLANE', 'Dental rim plane', 'The level plane fitted through the dental rim loop; the oral cavity ray sits on it.', true, 'reference'],
-  ['SYMMETRY PLANE', 'Symmetry plane', 'The upright plane that splits the U into left and right; the oral cavity ray sits on it.', true, 'reference'],
-  ['UPRIGHT PLANE', 'Arch plane', 'The upright plane; its teeth side is its normal.', false, 'reference'],
+  ['RIM PLANE', 'Rim plane', 'Fitted through the final rim line, so it comes from the rim. The oral cavity ray sits on it.', true, 'reference'],
+  ['SYMMETRY PLANE', 'Symmetry plane', 'Splits the part into left and right, taken from the arch frame (not from the rim). The oral cavity ray sits on it.', true, 'reference'],
+  ['UPRIGHT PLANE', 'Arch plane', 'Denture: the flattest plane of the whole part; it points to the teeth side. The frame the rim search starts from.', true, 'reference'],
   ['DOWN-FACING', 'Down-facing edges', 'Hard edges of the bottom chains.', false, 'reference'],
   ['ALL hard', 'All hard edges', 'Every hard edge the review found (thin).', false, 'reference'],
   ['TRIM', 'Trim chains', 'Aligner step 1: the sharp trim edges the orientation fitted to.', true, 'reference'],
   ['UEND', 'U ends', 'Aligner step 1: the two distal ends of the U.', true, 'reference'],
   ['BACK', 'Back arrow', 'Aligner step 1: points out of the back of the arch (the open side of the U).', true, 'reference'],
-  ['PLANE', 'Trim plane', 'Aligner step 1: the bottom plane fitted to the trim.', false, 'reference'],
+  ['PLANE', 'Trim plane', 'Aligner step 1: the first plane, fitted through the trim edges; it aims the rim search.', true, 'reference'],
   ['BLUE', 'Outer edge', 'Aligner: the detected outer rim.', true, 'reference'],
   ['GREEN', 'Joining paths', 'Aligner: the paths that join the outer rim.', true, 'reference'],
   ['RED', 'Opening edge', 'Aligner: the detected opening edge.', true, 'reference'],
@@ -506,9 +506,11 @@ const keyOf = (name) => {
 const entryOf = (key) => LAYERS.find(([prefix]) => prefix === key);
 const DENTURE_COLOUR = new THREE.Color(cssToken('--layer-denture-model'));
 // Layer prefix -> the shared colour token (tokens.css; the GLB writers read the same file through layerColours.ts). Rays take the colour of the area they decide.
+/** The plane layers (GLB keys kept as the engine writes them); each has its own token in SWATCH_VAR. */
+const PLANE_KEYS = ['RIM PLANE', 'SYMMETRY PLANE', 'UPRIGHT PLANE', 'PLANE'];
 const SWATCH_VAR = {
   'Undefined (no ray': '--layer-undefined', 'No-support, steep ray': '--layer-no-support-steep', 'No-support zone': '--layer-no-support', 'Allowed area (seen': '--layer-allowed', 'Down-facing area': '--layer-down-facing', 'Self-supporting overhangs': '--layer-self-supporting', 'Sockets (no support)': '--layer-sockets', 'Fitting (basin)': '--layer-fitting', 'Suction cups': '--layer-suction', 'Drain / clean': '--layer-drain',
-  'DOWN-FACING': '--layer-down-edges', 'TIGHT BOX': '--layer-tight-box', 'RIM PLANE': '--layer-middle-plane', 'SYMMETRY PLANE': '--layer-symmetry-plane', 'Oral cavity ray': '--layer-ray-origin',
+  'DOWN-FACING': '--layer-down-edges', 'TIGHT BOX': '--layer-tight-box', 'RIM PLANE': '--layer-rim-plane', 'SYMMETRY PLANE': '--layer-symmetry-plane', 'UPRIGHT PLANE': '--layer-arch-plane', 'PLANE': '--layer-trim-plane', 'Oral cavity ray': '--layer-ray-origin',
   'MARK low point outside': '--layer-low-outside', 'MARK low point with': '--layer-low-unsupported',
   'ISLAND NOT resolved': '--layer-island-unresolved', 'ISLAND resolved': '--layer-island-resolved',
   'Dental rim (continuous': '--layer-rim-edge', 'Hole outlines': '--layer-hole-edge', 'Hole band': '--layer-hole-band',
@@ -1594,6 +1596,15 @@ async function show(row) {
         object.material = new THREE.MeshStandardMaterial({ color: key === 'DENTURE' ? DENTURE_COLOUR : object.material.color.clone().multiplyScalar(0.6), roughness: 0.85, envMapIntensity: 0.25, side: THREE.DoubleSide });
       }
     });
+    // ONE COLOUR PER PLANE, the same on its chip and in 3D (docs/ORIENT-NODES.md section 10): a plane takes its token
+    // whatever colour its GLB was written with - the engine writes the trim plane, the host the others.
+    model.traverse((object) => {
+      const key = keyOf(object.name || '') ?? keyOf(object.parent?.name || '');
+      if (!object.material || !PLANE_KEYS.includes(key)) return;
+      object.material.vertexColors = false;
+      object.material.color.set(cssToken(SWATCH_VAR[key]));
+      object.material.needsUpdate = true;
+    });
     scene.add(model);
     const supports = new THREE.Box3();
     model.traverse((object) => {
@@ -1799,7 +1810,7 @@ function facts(c) {
     ['Most tips on one support tree', c.maxTipsPerTrunk ?? 'n/a', false],
     ['Trunk area / neck area', c.trunkToNeckArea ?? 'n/a', false],
     ['Owner contacts', c.ownerContacts ?? '-', false],
-    ['Dental rim plane', c.middlePlane || '-', false],
+    ['Rim plane', (c.rimPlane ?? c.middlePlane) || '-', false],
     ['Owner contacts, median distance to displayed model (mm)', c.ownerContactsMedianMm ?? '-', c.ownerContactsMedianMm != null && c.ownerContactsMedianMm > 1],
     ['Owner area covered %', c.ownerAreaCoveredPct ?? '-', false],
     ['Our area outside owner %', c.outsideOwnerAreaPct ?? '-', false],

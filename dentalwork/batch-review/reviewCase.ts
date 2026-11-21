@@ -48,8 +48,8 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   cleanedDegenerateTriangles: number;
   /** Denture only: the owner's contacts beside the bare scan (count, median distance to the scan in mm, share of the owner area we cover, share of ours outside it); null when absent. */
   ownerContacts: number | null; ownerContactsMedianMm: number | null; ownerAreaCoveredPct: number | null; outsideOwnerAreaPct: number | null;
-  /** Denture only: the middle plane's state (fitted to the hard edges, or none); '' for an aligner. */
-  middlePlane: string;
+  /** Denture only: the rim plane's state (fitted, or none); '' for an aligner. Was `middlePlane`, a retired name. */
+  rimPlane: string;
   /** Denture only: the up decision from the rim, in words ('' for an aligner or no review). */
   upDecision: string;
   /** Denture only: the review's tips per source, e.g. 'rim 12 / hole 3 / area 40 / low 2' ('' for an aligner). */
@@ -78,7 +78,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
   const row: CaseRow = { kind, shapeNote: '', case: name, source: file, result: 'error', reason: '', explanation: '', seconds: 0, verdict: '', crossings: 0, uncertain: 0,
     islandsUnresolved: 0, islandsOutsideArea: 0, islandsResolved: 0, unresolvedIslands: '', tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
-    ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, middlePlane: '',
+    ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, rimPlane: '',
     upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
     peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', stageTimes: '',
     ...noEvidence, orientationGlb: '' };
@@ -212,7 +212,7 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
     stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none',
     structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
     ownerContacts: detail.ownerContacts, ownerContactsMedianMm: row.ownerContactsMedianMm ?? detail.ownerContactsMedianMm,
-    ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, middlePlane: detail.middlePlane,
+    ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, rimPlane: detail.rimPlane,
     stageTimes: process.env.MIXO_TIMERS ? `scan ${review.stageSeconds.scan} / policy ${review.stageSeconds.policy} / generate ${review.stageSeconds.generate} / flow ${review.stageSeconds.total}` : '',
     upDecision: detail.upDecision, tipsBySource: detail.tipsBySource, selfSupport: detail.selfSupport, traps: detail.traps, unsupportableTips: detail.unsupportableTips, tipsLeftOutReasons: detail.tipsLeftOutReasons,
   });

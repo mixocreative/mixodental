@@ -103,7 +103,9 @@
   --layer-suction: #d08a2e;
   --layer-drain: #5f8f8a;
   --layer-tight-box: #3b4a5c;
-  --layer-middle-plane: #6c7a89;
+  --layer-rim-plane: #7b4fa0;
+  --layer-arch-plane: #6c7a89;
+  --layer-trim-plane: #c98a2b;
   --layer-symmetry-plane: #2a9d8f;
   --layer-ray-origin: #ff00ff;
   --layer-ray-r1: var(--layer-no-support);
