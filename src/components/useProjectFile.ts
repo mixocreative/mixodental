@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, type MutableRefObject } from 'react';
 import { importRefusal } from '@mixo-geocore/editing/status';
 import { openProjectFile } from './openProject';
 import { saveFailure, savedStatus, SAVE_CANCELLED } from '@mixo-geocore/editing/project';
+import type { StatusMessage } from '@mixo-geocore/editing/types';
 import type { EditMode, StatusMessage } from '@mixo-geocore/editing/types';
 import type { UndoAction } from '@mixo-geocore/editing/toast';
 import type { PrintScene } from '../state/project';
@@ -93,8 +94,9 @@ export function useProjectFile(host: {
         anchor.click();
         window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
-      saved.current = current;
-      setStatusMessage(savedStatus(name));
+      const outcome = saveOutcome(Boolean(target), name);
+      if (outcome.markSaved) saved.current = current;
+      setStatusMessage(outcome.status);
       job.end();
     } catch (error) {
       job.end();
@@ -117,4 +119,17 @@ export function useProjectFile(host: {
   }, [openProject]);
 
   return { openProject, saveProject, chooseProject };
+}
+
+/**
+ * What a finished save may claim. Only a write through the save dialog is CONFIRMED: the fallback for browsers
+ * without one (Firefox, Safari) is a plain download, which the page cannot see land - the person may cancel it, or
+ * the browser may block it. So that path does not mark the project saved, which keeps the leave-page warning on,
+ * and the status line says where the file went instead of "Saved" (cia audit MD-01, 2026-11-21: the old line
+ * turned the warning off on a download that may never have happened, and a closed tab lost the case).
+ */
+export function saveOutcome(confirmed: boolean, name: string): { markSaved: boolean; status: StatusMessage } {
+  return confirmed
+    ? { markSaved: true, status: savedStatus(name) }
+    : { markSaved: false, status: { key: "Sent {name} to your browser's downloads. Check that it arrived before you close the page.", vars: { name } } };
 }

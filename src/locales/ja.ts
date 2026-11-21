@@ -601,6 +601,7 @@ export const ja: Dictionary = {
   'Opened {name}.': '{name} を開きました。',
   'Open the project alone; models were not imported.': 'プロジェクトだけを開きました。モデルは読み込まれていません。',
   'Saved {name}.': '{name} を保存しました。',
+  "Sent {name} to your browser's downloads. Check that it arrived before you close the page.": '{name} をブラウザのダウンロードに送信しました。ページを閉じる前にダウンロードが完了したかご確認ください。',
   'Opening {name}': '{name} を開いています',
   'Saving {name}': '{name} を保存しています',
   '{name} is too large to open here: {n} triangles, the limit is {limit}. Open it on a device with more memory, or delete or simplify an object and save it again.': '{name} は大きすぎてここでは開けません（{n} 三角形、上限は {limit}）。メモリの多い端末で開くか、オブジェクトを削除または簡略化して保存し直してください。',

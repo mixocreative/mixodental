@@ -605,6 +605,7 @@ export const zhHant: Dictionary = {
   'Opened {name}.': '已開啟 {name}。',
   'Open the project alone; models were not imported.': '僅開啟專案；未匯入模型。',
   'Saved {name}.': '已儲存 {name}。',
+  "Sent {name} to your browser's downloads. Check that it arrived before you close the page.": '已將 {name} 傳送至瀏覽器的下載項目。關閉頁面前，請確認檔案是否已下載完成。',
   'Opening {name}': '正在開啟 {name}',
   'Saving {name}': '正在儲存 {name}',
   '{name} is too large to open here: {n} triangles, the limit is {limit}. Open it on a device with more memory, or delete or simplify an object and save it again.': '{name} 過大，無法在此開啟：共 {n} 個三角面，上限為 {limit}。請改用記憶體較大的裝置開啟，或刪除、簡化物件後重新儲存。',
