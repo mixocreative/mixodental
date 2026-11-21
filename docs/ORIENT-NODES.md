@@ -745,3 +745,41 @@ Both change how the app decides, so both go through benchwork first, on all six 
 4 and 6 as the baseline that must not move. Order recommended: **B first, as the cheaper experiment**
 (a rule change, no new scan); what it leaves on the table sets whether A is worth measuring. Not
 started: owner's approval first.
+
+### Both levers measured (2026-11-21, owner: "fix all")
+
+**Lever B, as rule numbers the engine already has** (no engine change; `scripts/tilt-measure.ts --pick` with
+`MIXO_RULES`, the quick pick of each scan, all six scans; raw rows: scratchpad `b0`-`b3.json`):
+
+| Scan | Today's rules: placed / left out | branchRodMaxMm 15 | dentalModelLanding 2 | both | Resin, both vs today |
+|---|---|---|---|---|---|
+| 1 | 388 / 115 | 401 / 102 | 408 / 95 | 413 / 90 | +4 % |
+| 2 | 168 / 0 | 168 / 0 | 168 / 0 | 168 / 0 | -4 % |
+| 3 | 177 / 249 | 176 / 250 | 199 / 227 | 199 / 227 | +3 % |
+| 4 | 99 / 0 | 99 / 0 | 99 / 0 | 99 / 0 | -4 % |
+| 5 | 243 / 289 | 243 / 289 | 249 / 283 | 249 / 283 | -2 % |
+| 6 | 76 / 0 | 76 / 0 | 76 / 0 | 76 / 0 | +0 % |
+
+The single-piece scans (2, 4, 6) keep every tip, as they must - though their supports change shape (resin
+-4 % on 2 and 4 with the same tips: the rules reshape the trees too, so B has side effects of its own). On
+the scans with pieces the best variant (both rules) leaves 90 / 227 / 283 out where today leaves 115 / 249 /
+289: **22 %, 9 % and 2 % fewer - not the fix.** The longer branch cap alone moves scan 1 only; landing on the model (the owner's option of
+2026-11-01, off by default because a column ending on the denture leaves a mark on it) does most of it.
+
+**Lever A, checked before any engine work** (`scripts/lever-a-check.ts`): would the angle scan pick the
+steep angles if it counted the pieces' overhang too? **No.** The pieces' downward area hardly changes with
+the angle (scan 3: 1457-1544 mm2 over 0-44 deg, scan 5: 2285-2322) and bottoms out at 16-20 deg, not at
+42-44. Adding it to the score moves the pick to 10, 16 and 18 deg. The steep angles leave fewer tips out
+because their rods find ROOM beside the body - a routing outcome that only a full build sees, never an
+area count. So A as planned is dropped, and no engine rule was added for it.
+
+**What is left, for the owner** - each one changes what the app does, so none is switched on:
+
+1. **Turn on landing on the model for dentures** (`dentalModelLanding` 2): the measured 2-22 %
+   fewer left out, at the cost the owner switched it off for (marks where a column meets the denture).
+2. **A steep probe**: on a file with pieces only, build the quick pick AND the steepest robust angle and
+   keep the one with fewer tips left out (ruling 3). One extra build of a few minutes, nothing for
+   single-piece files. Measured gain (M1 v2): real on scan 3 (+102 placed), mostly fewer tips asked on 1
+   and 5; resin +39-64 %.
+3. **Accept the pieces' left-out tips as reported** - they are listed, and the operator can place tips by
+   hand - and close lever work here.
