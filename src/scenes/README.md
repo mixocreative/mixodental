@@ -54,7 +54,8 @@ that promises to cost nothing, sat in the header at every step, and carried Esc'
 Back out of Step 3, which discards strictly less, has asked for confirmation since it was written.
 The capability is right and stays: this is the only route from a dental-started model to free work on
 the bench. It read **Use as any model** from 2026-11-17, and `exitNeedsConfirm` asks first whenever
-leaving would cost the operator built supports, hand edits or an area they painted. With that question
+leaving would cost the operator built supports, hand edits, an area they painted, Step 2 strokes on a detected
+area or sliders they moved (the last two added 2026-11-21, cia screen sweep). With that question
 in place the silence that made Exit a lie is gone, so on 2026-11-21 the owner named it **Exit** again:
 the name says where it goes, the question says what it costs.
 

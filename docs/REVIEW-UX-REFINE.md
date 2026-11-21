@@ -106,6 +106,13 @@ some stills lag their step; findings from a still alone are marked UNVERIFIED th
 | 14 | A problem row's text squeezed into a 60 px column beside its buttons | **Fixed:** the dental layout (buttons on their own row) is now the one rule for every problem list. |
 | 15 | "Step 1 - Aligner" names the product, Steps 2-3 the job; Reset vs "Restore step" | **Fixed (titles),** owner: "is 'STEP 1' still relevant?" then "Good for what u think best". Every badge leads with the job, then its place: `Print angle · 1 / 3`, `Support area · 2 / 3`, `Supports · 3 / 3` (a denture counts to 2). The header's "Your files" key moved onto the card as its `×`. Walk check u5t. **Reset vs Restore, decided 2026-11-21 (owner: "you can decide"): both stay.** *Reset to defaults* puts the selected supports back to the default settings; *Restore step* puts the whole step back the way it was on entry. Each names what it returns to; one word for both would hide that they return to different things. |
 
+**cia screen sweep of the day's controls (S22, 2026-11-21):** close, Exit, export, rim note, Adjust order and the
+Step 1 findings checked site by site. Fixed: **Exit dropped Step 2 paint strokes and moved sliders without asking**
+(`exitNeedsConfirm` now counts them, `src/dental/flow.ts` `policyHoldsWork`; `flow.test.ts` fails on the old rule).
+**Debt, not taken:** the deck's *Export all STL*, disabled while nothing has supports, gives its reason only as a
+hover title - not beside the key as the house rule wants. Older than today (only the label changed); the cut is a
+one-line reason under the case keys when `anySupports` is false.
+
 **Owner, 2026-11-21:** the debug panel ships in release builds for now.
 
 **Found while checking 7:** the deck card's busy ring was a 164 px flat ellipse sweeping across "Generating supports..." (shots m5, m11) - `ProgressIndicator` used outside `.progress` read undefined size variables. **Fixed** with fallbacks; measured 164 x 69 before, 22 x 22 after.
