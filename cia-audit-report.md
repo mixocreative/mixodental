@@ -376,6 +376,11 @@ I6. An auto-gen answer never lands on a unit the operator has since changed.
 8. Runtime walk receipt: routes fetched 1 app route by the gate / assets not fetched by me · error-log delta: 0 console messages, per the gate's check `h no console errors or warnings` (gate26.log:349) · preview rows walked: 18 step screens written (gate26.log:23-43), none rendered by me ·
    closed-loop actions: 0 walked by me; the gate's i2, r1, m12 closed · state-delta ladders: 1 (the gate's save/reopen, i1 to i3) ·
    concurrency probes: 1 (the gate's q1). Not my own walk: the first line says so.
+   SCREEN CAPTURES, added after the read by the main session (browser-walks.md §9a): a full walk with WALK_OUT kept
+   18 captures (ALL PASS 199 + 2 skipped) in `artefacts/2026-11-21-screen/run-b41bJ5/` (git-ignored, local; test
+   fixtures only). Looked at: `ux-c-step3-1280x720.png` (Adjust leads with the edit tools, all on screen at 1280x720),
+   `ux-a-step1-print-angle.png` (card "Print angle · 1 / 3", header Exit), `r3-deck-activity.png` ("2 files left",
+   "Start with the first file", Export all STL disabled with its reason on hover only - the debt in line 5).
 9. Evidence ledger (§11a): 16 capabilities — 5 PASS / 0 FAIL / 11 UNVERIFIED (6 of them PARTIAL) / 0 UNPROVEN (table below).
 10. Obligations (§E3): 6 from the invariant register — 0 CLOSED / 6 OPEN / 0 FAILED / 0 BLOCKED / 0 OUT-OF-SCOPE; no owner 0, two
     owners 0, no verifier 2 (I2 fallback case, I5 positive case), verifier below authority 1 (I1, STL read only by our own reader);
