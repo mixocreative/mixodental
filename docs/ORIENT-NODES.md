@@ -798,8 +798,9 @@ becomes available here - one rule, seen from both sides.
   too; only the wording should say "cannot be evaluated in this version". Cut: in `zone_graph.rs` `faces`, check
   the host kinds the engine does not evaluate first.
 - The viewer retints the four plane layers by material. Unverified: whether any GLB writer shares one material
-  between a plane and another layer; if one does, the retint would recolour that layer too. Measured tonight: the
-  trim chains stay red and the planes take their tokens on both a denture and an aligner review.
+  between a plane and another layer; if one does, the retint would recolour that layer too. Measured tonight only:
+  each plane's token colour appears in the 3D canvas (denture and aligner reviews) and the other layers' chips keep
+  their colours - a non-plane layer's 3D colour was NOT measured.
 - Fixed the same night: the denture facts filter dropped the renamed "Rim plane" row; `viewerScript.test.ts` now
   fails when a filter names a row the table no longer produces (proven against the regression).
 
