@@ -591,8 +591,8 @@ unserved, then pillars on the model, then support volume, then height.
 
 **Recommendation: do not build B on a belief. Measure once (M1), then decide by a written rule.**
 
-M1, one overnight run, no engine change: for each local denture scan (the 6 used by P1, 3 of them in
-`dentalwork/fixtures/case-denture`), full-build EVERY angle and record per angle: verdict, tips left
+M1, one overnight run, no engine change: for each local denture scan (planned as the 6 used by P1; three of
+them turned out to be `-sup` reference files, so the results below cover the 3 bare scans), full-build EVERY angle and record per angle: verdict, tips left
 out, islands unserved, pillars on the model, support volume, pillar count, build seconds. About 4.3 h.
 It answers:
 
@@ -612,13 +612,16 @@ do not buy builds; add the number from answer 4 to the quick score, which is che
 `scripts/tilt-measure.ts`: every angle 0-44 by 2 fully built (named by index, never by file). Of the six
 STL files in `dentalwork/fixtures/case-denture`, **three are bare scans and three are `-sup` files** - the
 same scans supported by another dental program, which this repo keeps as REFERENCE ONLY
-(`dentalwork/fixtures/README.md`, "Support contact files"). Only the bare scans are cases:
+(`dentalwork/fixtures/README.md`, "Support contact files"). Only the bare scans are cases. Numbered 1-3 as the
+script now counts them (they were 2, 4, 6 when the `-sup` files were still swept). Every column comes from the
+every-angle run (scratchpad `m1.json`, its scan 2 / 4 / 6 rows); the pick column was re-run with the shipped
+engine (geocore 5319c86, `--pick`, scratchpad `bare.json`) and matched to the tip.
 
 | Scan | Quick pick | Left out at the pick | Quick top 3, left out | Resin at the pick vs the leanest angle with none left out |
 |---|---|---|---|---|
-| 2 | 8 deg | **0** (168 placed) | 0 / 0 / 0 | +2.5 % (leanest 10 deg, quick 4th) |
-| 4 | 0 deg | **0** (99 placed) | 0 / 0 / 0 | +8.7 % (leanest 4 deg, quick 3rd) |
-| 6 | 18 deg | **0** (76 placed) | 0 / 0 / 0 | +10.6 % (leanest 22 deg, quick 8th) |
+| 1 | 8 deg | **0** (168 placed) | 0 / 0 / 0 | +2.5 % (leanest 10 deg, quick 4th) |
+| 2 | 0 deg | **0** (99 placed) | 0 / 0 / 0 | +8.7 % (leanest 4 deg, quick 3rd) |
+| 3 | 18 deg | **0** (76 placed) | 0 / 0 / 0 | +10.6 % (leanest 22 deg, quick 8th) |
 
 **The quick pick is sound on tips and loose on resin**, print heights within 0.7 mm of the pick's. Ruling 3
 (owner, 2026-11-21): fewer tips left out beats less resin - so **option C stays** and no resin term goes
