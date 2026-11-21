@@ -792,5 +792,16 @@ becomes available here - one rule, seen from both sides.
    in 3D (the engine-written trim plane retinted), frame-source planes on by default; captured and measured.
 9. **`rimSide`** (new behaviour, off by default, owner-reviewed); 10. **`rimDrawn`** for dentures.
 
+**Debt written down after Fable's review of the night's diffs (2026-11-22):**
+- The engine's new input check reports a host-only mask kind it cannot evaluate (`basinFill`) as "is a basinFill,
+  not a set of faces" - true for the engine, misleading for the host, where it is a mask. It was refused before
+  too; only the wording should say "cannot be evaluated in this version". Cut: in `zone_graph.rs` `faces`, check
+  the host kinds the engine does not evaluate first.
+- The viewer retints the four plane layers by material. Unverified: whether any GLB writer shares one material
+  between a plane and another layer; if one does, the retint would recolour that layer too. Measured tonight: the
+  trim chains stay red and the planes take their tokens on both a denture and an aligner review.
+- Fixed the same night: the denture facts filter dropped the renamed "Rim plane" row; `viewerScript.test.ts` now
+  fails when a filter names a row the table no longer produces (proven against the regression).
+
 Later, one measurement may shrink the set: the denture's `rimLowPoints` run on aligner scans; if it finds the same
 rim, one finder replaces two. Sharp edges stay two rules (a yes/no set vs a continuous cost - different outputs).
