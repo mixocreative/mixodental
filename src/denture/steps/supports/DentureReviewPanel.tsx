@@ -74,9 +74,10 @@ export function DentureReviewPanel({ gesture, ui, review, ready, send, run, rest
         <ProblemsBlock review={review} ui={ui} send={send} run={run} kind="denture" stale={stale} />
       </ReviewSummary>
       <Panel ui="denture-adjust" title={t('Adjust')} collapsible open={adjustOpen} onToggle={(open) => { rememberAdjust('denture', open); setAdjustOpen(open); }}>
+        {/* Tools before settings: the aligner's Step 3 explains why (DentalSupports.tsx, finding 12). */}
+        <EditSupportsBlock gesture={gesture} ui={ui} review={review} send={send} run={run} kind="denture" />
         <SupportSettingsBlock review={review} kind="denture" onAdjust={setAdjusting} />
         <DentureSettingsSection options={denture.options ?? DEFAULT_DENTURE_OPTIONS} onChange={denture.onOptions} />
-        <EditSupportsBlock gesture={gesture} ui={ui} review={review} send={send} run={run} kind="denture" />
         <IdLabelBlock review={review} kind="denture" />
       </Panel>
     </div>

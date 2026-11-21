@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DentalBar } from './DentalBar';
 import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
@@ -90,6 +90,17 @@ const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true,
     expect(reviewHtml.indexOf('aligner-review-summary')).toBeLessThan(reviewHtml.indexOf('aligner-adjust'));
     expect(reviewHtml).toMatch(/data-ui="aligner-adjust-title" aria-expanded="false"/);
     for (const word of ['Tip size', 'Lift height', 'Tree branches', 'Cross-braces', 'Add supports', 'ID label']) expect(reviewHtml).not.toContain(word);
+    // Opened, Adjust leads with the tools and puts the settings after them (finding 12: at 1280x720 the
+    // tools fell below the fold behind some 300 px of sliders).
+    vi.stubGlobal('sessionStorage', { getItem: () => '1', setItem: () => {} });
+    try {
+      const openHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady review={base} send={() => {}} run={() => {}} />);
+      expect(openHtml).toMatch(/data-ui="aligner-adjust-title" aria-expanded="true"/);
+      expect(openHtml.indexOf('Add supports')).toBeGreaterThan(0);
+      expect(openHtml.indexOf('Add supports')).toBeLessThan(openHtml.indexOf('Tip size'));
+    } finally {
+      vi.unstubAllGlobals();
+    }
     // Step 3's way on is OK or its own Export depending on whether the bench exists to hand back
     // to (src/scenes/sceneMap.ts), so the test asks the registry rather than naming one of them.
     for (const word of [`>${wayOn()}<`, 'Add another aligner', 'Back']) expect(reviewHtml).toContain(word);

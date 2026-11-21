@@ -18,7 +18,7 @@ export type { DentalReview, RimGap } from './DentalReviewBlocks';
 
 /**
  * The aligner Step 3, in the same shape as denture Step 2 and the tilt step before it: the verdict
- * first, then the evidence behind Details, then the settings behind a folded Adjust, then the two ways to
+ * first, then the evidence behind Details, then the tools and settings behind a folded Adjust, then the two ways to
  * finish. A reader opens this step to learn whether the build is sound, so that is what it says first; what
  * they would change in response is one fold away, and Adjust remembers whether they left it open.
  *
@@ -67,8 +67,14 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, rest
       <ProblemsBlock review={review} ui={ui} send={send} run={run} kind="aligner" stale={stale} />
     </ReviewSummary>
     <Panel ui="aligner-adjust" title={t('Adjust')} collapsible open={adjustOpen} onToggle={(open) => { rememberAdjust('aligner', open); setAdjustOpen(open); }}>
-      <SupportSettingsBlock review={review} kind="aligner" onAdjust={setAdjusting} />
+      {/*
+        TOOLS BEFORE SETTINGS (UX review finding 12, measured 2026-11-21). With Adjust open the settings run
+        to some 300 px, and below them Add / Select / Delete fell under the fold at 1280x720 - the controls a
+        reader works the model with, behind the ones they fine-tune with. The way back and on is pinned in
+        `.dental-footer`; what scrolls now is the numbers. Same order on both supports steps, on purpose.
+      */}
       <EditSupportsBlock gesture={gesture} ui={ui} review={review} send={send} run={run} kind="aligner" />
+      <SupportSettingsBlock review={review} kind="aligner" onAdjust={setAdjusting} />
       <IdLabelBlock review={review} kind="aligner" />
     </Panel>
     </div>
