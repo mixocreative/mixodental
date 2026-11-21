@@ -33,8 +33,13 @@ export function layerId(layer: OrientationLayer): string {
   return layer.name.split(' ')[0] ?? layer.name;
 }
 
-/** Plain labels by layer id; an unknown id shows the engine's own name. */
-export const LAYER_LABELS: Record<string, string> = { TRIM: 'Trim lines', UEND: 'U ends', PLANE: 'Bottom plane', BACK: 'Back arrow' };
+/**
+ * Plain labels by layer id; an unknown id shows the engine's own name. PLANE is the TRIM plane - the formal name
+ * (docs/ORIENT-NODES.md section 10, 2026-11-22): the first plane fitted through the trim lines, which aims the rim
+ * search. It was shown as "Bottom plane", one of four names the code used for its planes. The engine's layer id
+ * stays PLANE (a GLB key shared with the engine).
+ */
+export const LAYER_LABELS: Record<string, string> = { TRIM: 'Trim lines', UEND: 'U ends', PLANE: 'Trim plane', BACK: 'Back arrow' };
 
 export function toggleLayer(visible: ReadonlySet<string>, id: string): Set<string> {
   const next = new Set(visible);

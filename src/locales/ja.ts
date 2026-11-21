@@ -962,7 +962,7 @@ export const ja: Dictionary = {
   "Debug": "デバッグ",
   "Trim lines": "トリムライン",
   "U ends": "U端",
-  "Bottom plane": "底平面",
+  "Trim plane": "トリム平面",
   "Back arrow": "戻る矢印",
   "Computing layers…": "レイヤーを計算中…",
   "The layers could not be computed for this model.": "このモデルのレイヤーを計算できませんでした。",

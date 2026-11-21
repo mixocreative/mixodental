@@ -967,7 +967,7 @@ export const zhHant: Dictionary = {
   "Debug": "除錯",
   "Trim lines": "修邊線",
   "U ends": "U端",
-  "Bottom plane": "底平面",
+  "Trim plane": "修邊平面",
   "Back arrow": "返回箭頭",
   "Computing layers…": "正在計算圖層…",
   "The layers could not be computed for this model.": "無法計算此模型的圖層。",
