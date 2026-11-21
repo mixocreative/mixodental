@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, type MutableRefObject } from 'react';
 import { importRefusal } from '@mixo-geocore/editing/status';
 import { openProjectFile } from './openProject';
 import { saveFailure, savedStatus, SAVE_CANCELLED } from '@mixo-geocore/editing/project';
-import type { StatusMessage } from '@mixo-geocore/editing/types';
 import type { EditMode, StatusMessage } from '@mixo-geocore/editing/types';
 import type { UndoAction } from '@mixo-geocore/editing/toast';
 import type { PrintScene } from '../state/project';
