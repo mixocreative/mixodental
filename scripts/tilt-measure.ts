@@ -3,7 +3,10 @@
  * angle whose FULL support build is best? For every local denture scan, full-build EVERY scanned angle
  * and record what a build knows that the quick score does not. Hours of work, no engine change.
  *
- *   npx vite-node --script scripts/tilt-measure.ts [--only 1,3] [--out <file.json>]
+ *   npx vite-node --script scripts/tilt-measure.ts [--only 1,3] [--pick] [--out <file.json>]
+ *
+ * `--pick` builds the quick pick only - for comparing RULES at the angle the app would use (lever B of
+ * docs/ORIENT-NODES.md section 9): set MIXO_RULES='{"branchRodMaxMm":15}' and the row records it under `rules`.
  *
  * Scans are named by their index in dentalwork/fixtures/case-denture (sorted), NEVER by file name:
  * these are patient scans, and the output may be shared. Results are written after every angle, so a
@@ -25,6 +28,7 @@ useNodeEngine();
 const args = process.argv.slice(2);
 const valueOf = (flag: string) => { const at = args.indexOf(flag); return at < 0 ? undefined : args[at + 1]; };
 const only = valueOf('--only')?.split(',').map(Number);
+const pickOnly = args.includes('--pick');
 const outFile = valueOf('--out') ?? 'tilt-measure.json';
 const dir = 'dentalwork/fixtures/case-denture';
 const files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.stl')).sort();
@@ -85,11 +89,12 @@ for (const [k, file] of files.entries()) {
   const { scan } = first;
   const quickRank = new Map(scan.order.map((row, rank) => [row, rank + 1]));
   for (let index = 0; index < scan.rows.length; index++) {
+    if (pickOnly && index !== first.index) continue;
     const started = performance.now();
     const review = index === first.index ? first : buildDentureReview(mesh, undefined, index);
     const row = scan.rows[index]!;
     const base: Row = {
-      scan: k + 1, angle: row.tiltDeg, quickRank: quickRank.get(index) ?? null, picked: index === first.index,
+      scan: k + 1, angle: row.tiltDeg, quickRank: quickRank.get(index) ?? null, picked: index === first.index, rules: process.env.MIXO_RULES ?? null,
       // What the quick score saw at this angle (TiltRow, host/dental/dentalTilt.ts).
       quick: { failed: row.failed.map((f) => f.rule), robust: row.robust, heightMm: row.heightMm, largestLayerMm2: row.largestLayerMm2,
         largestSlenderness: row.largestSlenderness, boxedIn: scan.boxed.counts[index] ?? null },
