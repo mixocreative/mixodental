@@ -10,7 +10,7 @@ import { LAYER_LABELS, layerId, type DebugLayerStatus } from './useDebugLayers';
  *
  * It holds two accounts of what the app decided, because the reader has two questions:
  *   - WHICH WAY IS UP, answered by the orientation layers drawn on the model (trim chains, U ends, the
- *     bottom plane, the back arrow), each a checkbox with the colour it is drawn in;
+ *     trim plane, the back arrow), each a checkbox with the colour it is drawn in;
  *   - WHY THIS ANGLE, answered by what the print-angle search measured at the angle the dial is on. The
  *     search measured all of it already and the app used to throw it away (src/dental/angleEvidence.ts).
  */

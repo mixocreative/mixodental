@@ -28,7 +28,7 @@ import { peelReport } from './peelReport';
 import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureReviewDetail } from './dentureReviewLayers';
 
 export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
-  /** The Step 1 evidence GLB (trim chains, U ends, bottom plane, back arrow) beside `glb`, or ''. */
+  /** The Step 1 evidence GLB (trim chains, U ends, trim plane, back arrow) beside `glb`, or ''. */
   orientationGlb: string;
   /** What the operator chose for this run (the shape check only verifies it). */
   kind: DentalKind;
@@ -170,7 +170,7 @@ function finish(row: CaseRow, started: number, mesh: TriangleMesh | undefined): 
 /** Layer-name prefixes of the client GLB (`client/<case>.glb`): the result without the debug layers. */
 const CLIENT_LAYERS = ['TEAL denture model', 'SUPPORT PILLARS (ours)', 'Allowed area', 'Dental rim', 'ISLAND NOT resolved', 'ISLAND resolved'];
 
-/** The denture path (profileSelect.ts): upright, print angle, tips, supports; the GLB holds the model, supports and the upright plane. */
+/** The denture path (profileSelect.ts): upright, print angle, tips, supports; the GLB holds the model, supports and the arch plane. */
 async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out: string, row: CaseRow, centre: Vector): Promise<void> {
   const review = buildDentureReview(mesh);
   if (review.kind === 'inconclusive') {
@@ -179,7 +179,7 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
   }
   const { supports, scan, index } = review;
   const issues = supports.verdict?.issues ?? [];
-  // The host's denture review layers (faces, edges, box, middle plane), our placed tips and pillars, and the owner's
+  // The host's denture review layers (faces, edges, box, rim plane, symmetry plane), our placed tips and pillars, and the owner's
   // contacts, -sup supports and area comparison: all one GLB under the review frame.
   const detail = dentureReviewDetail(file, mesh, centre, review.frame, review.placed, reviewProfileId('denture'), scan.rows[index]!.tiltDeg, review.leftOutTips, { candidateIds: review.candidateIds, leftOut: review.leftOut });
   const allLayers = [...dentureLayers(mesh, review), ...detail.layers];

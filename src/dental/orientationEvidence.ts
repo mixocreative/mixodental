@@ -4,7 +4,7 @@
 /*
  * Step 1 evidence for the folder review: what the engine's orientation decided on one scan (the
  * owner's trim method, Rust `dental::trim`) and the layers that show it (`diagnose_orientation`:
- * detected trim chains in red, the two U ends in green, the bottom plane's outline, the back arrow).
+ * detected trim chains in red, the two U ends in green, the trim plane's outline (amber), the back arrow).
  */
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import type { DentalCrossCheck } from '@mixo-geocore/host/dental/dental';

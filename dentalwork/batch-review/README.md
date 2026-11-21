@@ -79,8 +79,8 @@ Layers you can switch on and off:
 - **Outer edge, detected** (blue), **joining paths** (green), **Inner opening edge** (red): the edges the detector found. Check that they follow the real trim line and the opening.
 - **Supports** (gold) and **Support tips** (orange).
 - **Step 1** evidence from the companion `case-NNN-orientation.glb`: **trim chains detected** (red lines, the sharp
-  trim edge the orientation fitted its bottom plane through), **the two U ends** (green), the **back arrow**
-  (orange, from the arch apex toward the open side of the U) and, off by default, the **bottom plane** outline.
+  trim edge the orientation fitted its trim plane through), **the two U ends** (green), the **back arrow**
+  (orange, from the arch apex toward the open side of the U) and the **trim plane** outline (amber, on by default - the plane the rim search starts from).
   Check that the red lines follow the real trim, the green ends sit at the two distal ends, and the arrow points
   out of the back of the arch. A ring (the reference) has no arrow.
 - **Markers** (red, amber, purple; blue-grey for low points outside the area, off by default), drawn on top of everything so they show through the supports.
