@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { SupportSettingsBlock, type DentalReview } from './DentalReviewBlocks';
+import { SupportSettingsBlock, reviewNotes, type DentalReview } from './DentalReviewBlocks';
+import { setLanguage } from '../i18n';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 
 /*
@@ -46,5 +47,32 @@ describe('SupportSettingsBlock', () => {
     expect(fixed).toContain('This area was made by hand');
     // Still a readout of what the build will do, not a blank: the defaults it resolves to.
     expect(fixed).toMatch(/aligner-tree-branches[\s\S]*?<input[^>]*checked/);
+  });
+});
+
+/*
+ * THE RIM NOTE IS ONLY ON SCREEN WHEN A BUILD NEEDS A RIM LOOK, and the walk's builds did not (walk `l4`
+ * passed on its quiet branch), so the 2026-11-21 wording was never drawn by a run. Checked here instead:
+ * the sentence, both measured gaps rounded to 0.1 mm, and the Taiwan Chinese with the numbers in place.
+ */
+describe('reviewNotes - the rim gap', () => {
+  it('says where the gaps are and what to do, with both measured gaps', () => {
+    const notes = reviewNotes({ rimGap: { outerMm: 42.24, openingMm: 3.6 } }, 'aligner');
+    expect(notes).toEqual([{ key: 'rim', text: 'The supports leave gaps along the rim: up to 42.2 mm on the outer edge and 3.6 mm at the opening. Look along the rim and add supports where a gap is too wide.' }]);
+  });
+
+  it('has its own line when the rim could not be measured, and none when the rim is fine', () => {
+    expect(reviewNotes({ rimGap: 'unavailable' }, 'aligner')[0]?.text).toMatch(/^Rim coverage could not be verified/);
+    expect(reviewNotes({}, 'aligner')).toEqual([]);
+  });
+
+  it('reads in Taiwan Chinese with the numbers in place', () => {
+    setLanguage('zh-Hant');
+    try {
+      expect(reviewNotes({ rimGap: { outerMm: 42.24, openingMm: 3.6 } }, 'aligner')[0]?.text)
+        .toBe('支撐沿著邊緣留有空隙：外緣最多 42.2 mm，中央開口最多 3.6 mm。請沿著邊緣檢查，並在空隙過寬處新增支撐。');
+    } finally {
+      setLanguage('en');
+    }
   });
 });
