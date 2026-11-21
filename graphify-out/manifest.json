@@ -1441,9 +1441,9 @@
     "semantic_hash": ""
   },
   "src/dental/flow.ts": {
-    "mtime": 1795217072.3784046,
-    "seen": 1795226128.419052,
-    "ast_hash": "98490c711907edeeecdd5f288bdc5563",
+    "mtime": 1795250459.856505,
+    "seen": 1795252676.7371936,
+    "ast_hash": "33da497de15677a6510b96db9345959f",
     "semantic_hash": ""
   },
   "src/components/DentalSupports.tsx": {
@@ -1489,9 +1489,9 @@
     "semantic_hash": ""
   },
   "src/dental/flow.test.ts": {
-    "mtime": 1795217089.0342743,
-    "seen": 1795226128.419052,
-    "ast_hash": "06395c141805ff74c1a065629a299d8a",
+    "mtime": 1795250431.1028402,
+    "seen": 1795252676.7371936,
+    "ast_hash": "51b2224d3fbb027a1f39840de43d6ad1",
     "semantic_hash": ""
   },
   "scripts/test-support/supportParityHarness.ts": {
@@ -5173,9 +5173,9 @@
     "semantic_hash": ""
   },
   "src/scenes/README.md": {
-    "mtime": 1795217089.0305927,
-    "seen": 1795226128.420051,
-    "ast_hash": "2d2baf3b8848153c8b94184eb883aff2",
+    "mtime": 1795250486.38517,
+    "seen": 1795252676.7371936,
+    "ast_hash": "a5fbb6c30cbce9c97abffb832bdba3fa",
     "semantic_hash": ""
   },
   "scripts/measure-rim-loops.mjs": {
@@ -6715,9 +6715,9 @@
     "semantic_hash": ""
   },
   "docs/REVIEW-UX-REFINE.md": {
-    "mtime": 1795232395.1150162,
-    "seen": 1795245124.9607286,
-    "ast_hash": "99dbf2430f349c56d36cd550d3a6d864",
+    "mtime": 1795250486.38517,
+    "seen": 1795252676.7371936,
+    "ast_hash": "1e98da4b3147a0e2aeefefb0aa0de260",
     "semantic_hash": ""
   },
   "docs/TYPE-PIPELINE.md": {
@@ -6775,9 +6775,9 @@
     "semantic_hash": ""
   },
   "docs/ORIENT-NODES.md": {
-    "mtime": 1795244911.3636465,
-    "seen": 1795245124.9607286,
-    "ast_hash": "7acdd3e1fa36ef8ea5178f6b8a266d32",
+    "mtime": 1795248090.5840423,
+    "seen": 1795252676.7371936,
+    "ast_hash": "9a9e5f3e7c1ffe15accb279bd6832248",
     "semantic_hash": ""
   },
   "types/README.md": {
