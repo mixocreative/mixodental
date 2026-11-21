@@ -74,7 +74,7 @@ export interface EditModeExtension {
    * (app UX review 2026-11-20, finding 2). Returning undefined says nothing for that state.
    */
   readonly gestureStatus?: Readonly<Record<string, string | ((press: Gesture) => string | undefined)>>;
-  /** The status line after the user's exit from the mode. */
+  /** The status line after the user's exit from the mode; not said when no object was active (nothing was left). */
   readonly exitStatus?: StatusMessage;
   /** A step inside the mode starts with its own status line (an error or result of the last step does not follow). */
   restatesStatus?(previous: EditSession, next: EditSession): boolean;

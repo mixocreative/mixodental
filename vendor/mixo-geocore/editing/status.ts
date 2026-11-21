@@ -65,7 +65,10 @@ export function sessionStatus(previous: EditSession, next: EditSession, event: S
   if (event.type === 'exit' && next.mode === 'off') {
     if (previous.mode === 'edit') return { key: 'Support edits kept.' };
     if (previous.mode === 'zones') return { key: 'No-support zones kept.' };
-    const left = modeExtension(previous.mode)?.exitStatus;
+    // A mode's exit line reports what was LEFT on the plate, so with no object active it would report
+    // something that is not there (mixoDental: "Left the aligner on the plate" after Exit on an empty
+    // plate, app UX review 2026-11-20, finding 10). Nothing was left, so nothing is said.
+    const left = previous.activeUnitId === undefined ? undefined : modeExtension(previous.mode)?.exitStatus;
     if (left) return left;
   }
   if (next.mode === 'off' || next === previous) return undefined;

@@ -1,7 +1,7 @@
 {
   "repo": "mixocreative/mixo-geocore",
-  "commit": "a27efd4d49b690421b90f3f341a7ed7ba3112057",
-  "committed": "2026-11-21T04:53:32+08:00",
+  "commit": "5319c86aa857131c7b9049202ebc3c9d3243cd57",
+  "committed": "2026-11-21T08:00:43+08:00",
   "engineVersion": 70,
   "sha256": {
     "pkg-browser/mixo_geometry_wasm.js": "b1ca43abda701c3f65d40d994f27ddb96cca3e023d279724e05f99d68c9fe372",
@@ -107,7 +107,7 @@
     "editing/keys.ts": "93eb376cb1d8e6adb651eb053678bc526eccaa7afffc62e63579e5ffc661c048",
     "editing/landing.ts": "c4fe81317c199eacf1d6a5f15f9fe5b7b159ca8e53372cca8ed21d4138e98360",
     "editing/locks.ts": "4c45443f577368ba51b1b6c3113fb847bb56e799a6759c03f8a60e07a336bdc1",
-    "editing/modes.ts": "74052fcf7f4c867cec4f5e073fbd212a194729082c03b5d736b82f19d59c2779",
+    "editing/modes.ts": "1b5402548a2f2a444bcc07c43494f96982cb93efc5fc3aa995eef87bb309e582",
     "editing/numberInput.ts": "0512348fbc2be65261b8a700fbd730d01d7c4926f1ff71737b295a796d4e013f",
     "editing/omittedProblem.ts": "8a738910f15729923c55cbf9214ede1fd370c13ef62224b5669f3ff648a972a1",
     "editing/pick.ts": "354ce7cc91d5a14db9335b49b76de8150712a1cc27a1f934b32825dde366f108",
@@ -119,7 +119,7 @@
     "editing/selectionHighlight.ts": "ae01041eebd4728bdc7509cc62d73b81c6839c1bc7d52e1d502ce8653e090677",
     "editing/session.ts": "d7a8f16340f60c3fd9ce0f068fe72fdbe05b3a5042afc170d25d1b090b780f25",
     "editing/shapeEdit.ts": "5b5652fbac31c7018d71d98909608efd70e40d25d57874aa8ce93c0f8c3e0765",
-    "editing/status.ts": "8210eea8fc946c468021c308ce6d67b897d433cd9a965fddfc851b0a89891c2d",
+    "editing/status.ts": "4b45e0cdee7fc6edacd2ecc223afce9d34ffaa190d9d1e380ce3b9758c8ea779",
     "editing/stroke.ts": "cd4e6d459f92c8ef8bdcf55d0339600c761de2efbc7faafe0605f26fec7b347e",
     "editing/strokeQueue.ts": "bcb3d33f4c7799bb553f646bd4e915361d6f9cd03e1e3f7a5ebb3bf5e804463d",
     "editing/surfaceBrush.ts": "b0f3967f3dd56dc44cb3ee78458d6aa0abe032121c6dc1a1b81e433ee49675ab",
