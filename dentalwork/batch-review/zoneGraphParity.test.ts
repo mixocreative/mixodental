@@ -45,7 +45,10 @@ function corpus(): [string, Graph][] {
   return cases;
 }
 
-/** Where the two validators knowingly disagree today, and why. Empty is the goal of the typed evaluator. */
+/**
+ * Where the two validators knowingly disagree today, and why. Step 3's target was this one BY DESIGN entry, not
+ * an empty list (docs/ORIENT-NODES.md section 10): the host authors ahead of the engine on purpose.
+ */
 const KNOWN_DISAGREEMENTS: Record<string, string> = {
   'the rim strip as the allowed output': 'BY DESIGN (nodeGraph.mjs header): the host lets a graph be authored ahead of the engine; the engine refuses a band whose seeds are not holes at 5 mm and says why',
 };

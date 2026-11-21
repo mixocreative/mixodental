@@ -745,11 +745,14 @@ becomes available here - one rule, seen from both sides.
 ### Build order - each step proven before the next
 
 1. **Shared plane fit** (`dental/plane_fit.rs`) - landing: bit-equal to the old rim fit on 200 point clouds and on
-   the refusal cases; `gate:real` must show no change. Four more copies of the covariance loop are written down as
-   debt in the module.
+   the refusal cases; `gate:real` must show no change. The four other copies of the covariance loop (orient, trim,
+   arch frame, tight box) call the shared `covariance_about` since geocore b50dc99, each keeping its own mean and
+   eigenvector pick; `gate:real`: no differences on the 13 scans.
 2. **Plane names**: the rename above in code, docs and UI strings (ja / zh-Hant), before any node exposes a name.
 3. **Typed evaluator**, engine and host in parity (`zone_graph.rs` evaluates mask-only kinds and refuses the rest;
    `nodeGraph.mjs` refuses unknown kinds). Proof: the default graphs evaluate identically; `gate:real` no change.
+   **DONE 2026-11-22** (mixodental 6596e66, geocore ac4029b): the parity list is down to its one by-design entry,
+   the socket is `rim`, and `gate:real` showed no differences. The rim-area producer was always step 7's (below).
    **Started 2026-11-22:** `dentalwork/batch-review/zoneGraphParity.test.ts` sends one corpus of graphs through both
    validators (host `validate`, engine `setZoneGraph`). They agree except two listed disagreements - the engine
    does not type-check inputs (the typed evaluator's first job); and, BY DESIGN, the host lets a graph be authored
