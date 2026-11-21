@@ -1527,8 +1527,14 @@ async function walk(url, scratch, dentalFixture) {
        * was never about. What this check is FOR is that a saved file carries the header at all.
        */
       const header = JSON.parse(raw.toString('utf8').slice(0, 200).replace(/,"scene".*$/s, '}'));
-      check('i2 Save writes knot.mixodental with the format header, and the leave prompt follows it',
-        saved.suggestedFilename() === 'knot.mixodental' && header.app === 'mixodental' && header.version === PROJECT_VERSION && unsaved === true && (await leavePrompt()) === false && (await d.status()) === 'Saved knot.mixodental.',
+      /*
+       * THIS BROWSER SAVES BY DOWNLOAD (no save dialog here, as in Firefox and Safari), and a page cannot see a
+       * download land - so since cia MD-01 (2026-11-21) that save does NOT clear the leave prompt and does not say
+       * "Saved": it says where the file went. This check used to assert the opposite, which is the unsafe
+       * behaviour the audit found. A save through the dialog still clears it (`saveOutcome`, its unit test).
+       */
+      check('i2 Save writes knot.mixodental with the format header; a download save keeps the leave prompt and says where the file went',
+        saved.suggestedFilename() === 'knot.mixodental' && header.app === 'mixodental' && header.version === PROJECT_VERSION && unsaved === true && (await leavePrompt()) === true && /^Sent knot[.]mixodental to your browser's downloads/.test(await d.status()),
         `file ${saved.suggestedFilename()}, header ${JSON.stringify(header)}, prompt before the save ${unsaved}, status "${await d.status()}"`);
 
       await page.goto(url);
