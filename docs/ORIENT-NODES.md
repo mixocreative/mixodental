@@ -756,6 +756,30 @@ becomes available here - one rule, seen from both sides.
    0-180 tilt check, a third, is closed (the editor now refuses it as the engine does). A new disagreement, or a listed one that goes away, fails the test (proven by breaking it). The
    typed evaluator's job is to empty that list. Also found: the engine's default graph names four outputs (RIM,
    RIMBAND, LOWRIMBAND, SOCK) it does not contain, and checks only nodes reachable from its free outputs.
+   **Step 3, made implementable (EGM readiness review, 2026-11-22):**
+   - **Types it introduces:** exactly today's host set - `mask`, `depthMap`, `position`, `curve` - as a typed value
+     in the engine evaluator. The types the later nodes need arrive WITH those steps: `direction` / `frame` with
+     `lookFrom` (step 6), `rimPlane` / `plane` with `fitPlane` (step 7), `pose` with the print-angle tab; the
+     object/global `space` tag stays deferred (section 7, U4). Per-kind inputs and outputs: the host `KINDS` table
+     in `nodeGraph.mjs` is the reference; `zoneGraphParity.test.ts` holds the engine to it.
+   - **Exit condition:** the parity test's first listed disagreement (the engine did not type-check inputs) is
+     GONE - the engine now refuses a non-face input or free output at validation (geocore `zone_graph.rs`
+     `MASK_KINDS`, 2026-11-22). The second stays, pinned BY DESIGN with its reason (the host authors ahead of the
+     engine). So the target is one entry, not zero.
+   - **Scope:** the engine has five fixed outputs (`hole_band` -> BAND, `rim` -> RIM, `rim_band` -> RIMBAND,
+     `low_rim_band` -> LOWRIMBAND, `sockets` -> SOCK); the last four name nodes its own default graph does not
+     contain, because those values are computed elsewhere in stage 1. Step 3 does NOT add them; step 4 does, as
+     locked nodes. The engine's reachable-only check (it evaluates what the free outputs need) stays: it is how a
+     graph authored ahead of the engine can still run its runnable part.
+   - **`curve` becomes `rim`:** host and engine switch in ONE vendor bump; a saved graph that says `curve` (or the
+     kind `rimCurve`) is read as `rim` by an alias on load, so no saved type file breaks; the alias is removed only
+     with a type-file version bump.
+   - **The proof, precisely:** the graphs are the denture default graph and the parity corpus; identical means the
+     engine's per-output masks are bit-equal (the zone digest unchanged) and `npm run gate:real` prints
+     "No differences" for all 13 scans.
+   - **The rim-area producer** is a node kind `rimArea` (aligner: the signed strip from position / width / density;
+     denture: the 2 mm rim band), built in step 7. Until then the rim area is what today's code makes (the
+     aligner footprint, the denture's fixed RIMBAND).
 4. **Kind-neutral graph**: move `zone_graph.rs` out of `denture/`; an aligner default graph that wraps today's code
    as locked nodes. Proof: `gate:real`.
 5. **`rim` socket**: wrap each finder whole, no logic moved. Proof: bit-equal rim points on the real scans.
@@ -764,6 +788,8 @@ becomes available here - one rule, seen from both sides.
 8. **Plane display** - moved up to run right after step 2 (it needs only the names, and it is the visible value):
    explanations, colours, show-on-select, important planes always on; captured at operator width. Tonight it lands
    in the batch-review viewer, the one place a node graph is shown today; the app has no node canvas for operators.
+   **DONE 2026-11-22** in the viewer: formal names, explanations as hover text, one token per plane on the chip and
+   in 3D (the engine-written trim plane retinted), frame-source planes on by default; captured and measured.
 9. **`rimSide`** (new behaviour, off by default, owner-reviewed); 10. **`rimDrawn`** for dentures.
 
 Later, one measurement may shrink the set: the denture's `rimLowPoints` run on aligner scans; if it finds the same
