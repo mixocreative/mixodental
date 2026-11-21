@@ -417,7 +417,7 @@ const LAYER_TABLE = [
   ['R6 corridor', 'R6 corridor', 'R6 corridor rays: at each left-out tip, a centre ray and a ring straight down to the first hit or the plate.', true, 'rays'],
   ['R7 plate-drop', 'R7 plate-drop', 'R7 plate-drop ray (space map): one sample cell, plate up to the model underside and from above down to the top.', true, 'rays'],
   ['R8 landing', 'R8 landing', 'R8 landing ray: from a pillar top straight down to where it lands.', true, 'rays'],
-  ['Oral cavity ray', 'R2 origin', 'The oral cavity ray origin: on the dental rim plane, at the back edge of the tight box, on the symmetry plane.', true, 'rays'],
+  ['Oral cavity ray', 'R2 origin', 'The oral cavity ray origin: on the rim plane, at the back edge of the tight box, on the symmetry plane.', true, 'rays'],
 
   ['TIGHT BOX', 'Tight box', 'The oriented box the review works in; the oral cavity ray sits on its back edge.', true, 'reference'],
   ['Print tilt', 'Build plate', 'The build plate at the chosen print angle (its normal is up).', true, 'reference'],
@@ -526,10 +526,10 @@ const visible = new Map(LAYERS.map(([prefix, , , on]) => [prefix, on]));
 // Denture only: the layers in the order the review ran its steps. Each step: heading, one-line note, the layer
 // prefixes it draws (the print tilt has no layer: its line comes from the case facts). Other layers come after step 10.
 const DENTURE_STEPS = [
-  ['1. Orient', 'Up decision first (back-face rays: the side whose rays reach farther is the teeth top), then the tight box, dental rim plane and symmetry plane, before the print tilt.', ['TIGHT BOX', 'RIM PLANE', 'SYMMETRY PLANE']],
+  ['1. Orient', 'Up decision first (back-face rays: the side whose rays reach farther is the teeth top), then the tight box, rim plane and symmetry plane, before the print tilt.', ['TIGHT BOX', 'RIM PLANE', 'SYMMETRY PLANE']],
   ['2. Dental rim', 'The dental rim as thick continuous line(s), each closed or open (the count is in the name). Holes: a thick outline round each, and a 5 mm band.', ['Dental rim (continuous', 'Hole outlines', 'Hole band']],
   ['3. No-support zone', 'TWO rays make this zone, not one: R1 at 45 degrees always, and R1b at the steep angle when it is on, unioned together (`no_support = r1 || r1b`). The steep ray\'s own share has its own layer. The zone is composed, not decided - which is why this stage wants ordered rows rather than one box.', ['No-support zone', 'No-support, steep ray']],
-  ['4. Oral cavity ray', 'On the dental rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
+  ['4. Oral cavity ray', 'On the rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
   ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
   ['5b. Undefined area', 'What NEITHER ray reached. Steps 3 and 5 each claim the faces their rays hit first; whatever is left is undecided and gets no tips. It is drawn under both, in its own colour, because it is the absence of a verdict and not one: if it is large, change the pose or the ray grid, not the rules.', ['Undefined (no ray']],
   ['6. Print tilt', 'The build plate at the print angle the build chose.', ['Print tilt']],
@@ -1741,7 +1741,7 @@ function drawTilt(c) {
 // Fact groups of the right panel: [id, title, open by default, the row names in it]. A row not listed lands in "More".
 const FACT_GROUPS = [
   ['result', 'Case result', true, ['Verdict', 'Kind', 'Shape check', 'Result', 'Safety check', 'Why it needs a look', 'Supports crossing the aligner', 'Crossings not judged']],
-  ['tilt', 'Tilt and orientation', true, ['Print angle', 'Up decision', 'Dental rim plane', 'Arch', 'Up/down cross-check', 'Floor offset ratio']],
+  ['tilt', 'Tilt and orientation', true, ['Print angle', 'Up decision', 'Rim plane', 'Arch', 'Up/down cross-check', 'Floor offset ratio']],
   ['islands', 'Islands', true, ['Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Low points with no support', 'Low points outside the area']],
   ['tips', 'Tips', true, ['Tips by source', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Unsupportable tips', 'Structures left out', 'Largest gap, outer edge (mm)', 'Largest gap, opening (mm)', 'Edge coverage needs review']],
   ['peelfacts', 'Peel and supports', false, ['Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area']],
@@ -1762,7 +1762,7 @@ function facts(c) {
   // A denture reads only the rows that apply to it; the aligner-only rows (arch, cross-checks, gaps, edge
   // coverage, support crossings) would show "not oriented" and similar in red for a case that has none.
   const DENTURE_ROWS = ['Kind', 'Shape check', 'Result', 'Safety check', 'Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Print angle', 'Up decision', 'Tips by source', 'Unsupportable tips', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Scan clean-up', 'Time (s)',
-    'Dental rim plane', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
+    'Rim plane', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
   const verdict = c.result !== 'built' ? `Not built${c.reason ? ` - ${c.reason}` : ''}`
     : c.needsLook ? `Built - needs a look${c.reason ? `: ${c.reason}` : ''}` : 'Built - nothing flagged';
   const rows = [

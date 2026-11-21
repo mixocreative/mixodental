@@ -461,7 +461,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     }
     // Step 3: the oral cavity ray origin: on the rim plane, at the back edge of the box, on the symmetry plane.
     const originSphere = sphereMesh(origin, 0.7);
-    layers.push({ name: 'Oral cavity ray (dental rim plane, back edge)', color: C.rayOrigin, positions: originSphere.positions, indices: originSphere.indices });
+    layers.push({ name: 'Oral cavity ray (rim plane, back edge)', color: C.rayOrigin, positions: originSphere.positions, indices: originSphere.indices });
     // Step 6: low points outside the allowed area (orange) and inside it with no tip reaching them (purple).
     const markers = (points: Vector[], name: string, color: number) => {
       if (points.length > 0) layers.push({ name, color, positions: markerPositions(points, 0.45), indices: new Uint32Array(0) });
