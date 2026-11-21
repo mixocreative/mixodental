@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "scripts/walk.mjs": {
-    "mtime": 1795221324.2272024,
-    "seen": 1795226128.419052,
-    "ast_hash": "bc1f928ec40a429e286d2bacd1584909",
+    "mtime": 1795259644.9249182,
+    "seen": 1795263326.4805484,
+    "ast_hash": "fc4f447f5911cd0694e0c359410e7236",
     "semantic_hash": ""
   },
   "src/App.tsx": {
@@ -324,9 +324,9 @@
     "semantic_hash": ""
   },
   "src/components/useProjectFile.ts": {
-    "mtime": 1793270085.6640868,
-    "seen": 1793270106.436683,
-    "ast_hash": "320d86da0bb6659f50a1ca8d6a46605c",
+    "mtime": 1795257542.4058654,
+    "seen": 1795263326.4805484,
+    "ast_hash": "68e588bc50103b56fa7cea5da670c20b",
     "semantic_hash": ""
   },
   "src/components/useRegenerate.ts": {
@@ -564,15 +564,15 @@
     "semantic_hash": ""
   },
   "src/locales/ja.ts": {
-    "mtime": 1795219682.298294,
-    "seen": 1795226128.419052,
-    "ast_hash": "2d5fa075c0135d3dee968a4efc6e49b9",
+    "mtime": 1795257186.7339888,
+    "seen": 1795263326.4805484,
+    "ast_hash": "55c455b8f408e41a84e74732834ab8c6",
     "semantic_hash": ""
   },
   "src/locales/zh-Hant.ts": {
-    "mtime": 1795219682.298294,
-    "seen": 1795226128.419052,
-    "ast_hash": "49bd2dacc67ad1a28953ec6f2831bf5c",
+    "mtime": 1795257186.7349925,
+    "seen": 1795263326.4805484,
+    "ast_hash": "e56de2f7b16446c35d98abb6dee73607",
     "semantic_hash": ""
   },
   "src/main.tsx": {
@@ -5059,9 +5059,9 @@
     "semantic_hash": ""
   },
   "src/assets/fonts/japanese-subset.txt": {
-    "mtime": 1795085789.7928035,
-    "seen": 1795101935.806523,
-    "ast_hash": "375b4bb0b7dabc10470ce0d11d40f500",
+    "mtime": 1795257411.1394753,
+    "seen": 1795263326.4815476,
+    "ast_hash": "b9a59061121cd7c1ada113108b842819",
     "semantic_hash": ""
   },
   "src/dental/README.md": {
@@ -6808,6 +6808,18 @@
     "mtime": 1795216747.1938422,
     "seen": 1795226128.419052,
     "ast_hash": "e09e98828f248fdf5612986bca13e41e",
+    "semantic_hash": ""
+  },
+  "src/components/useProjectFile.test.ts": {
+    "mtime": 1795257186.7349925,
+    "seen": 1795263326.4805484,
+    "ast_hash": "e695445b8e84efbd023286dfb5feb619",
+    "semantic_hash": ""
+  },
+  "cia-audit-report.md": {
+    "mtime": 1795257290.8286355,
+    "seen": 1795263326.4815476,
+    "ast_hash": "12943d75e3981963bcc6d6e3ba416b78",
     "semantic_hash": ""
   }
 }
