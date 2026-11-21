@@ -11,7 +11,8 @@ import { defaultGraph, setParam, validate } from './nodeGraph.mjs';
  * Today they disagree in known ways (Fable's end-to-end review, 2026-11-22: the engine does not type-check inputs,
  * accepts only some wirings, and reads only nodes reachable from its free outputs). Each disagreement is LISTED with
  * its reason, so this test fails when a NEW one appears and when a listed one goes away - either means the contract
- * moved and section 10 must say how. The typed evaluator's job is to empty KNOWN_DISAGREEMENTS.
+ * moved and section 10 must say how. One entry remains, BY DESIGN; the engine's missing input type check, the other,
+ * closed with geocore 0301bfe (MASK_KINDS).
  */
 
 type Graph = ReturnType<typeof defaultGraph>;
@@ -46,7 +47,6 @@ function corpus(): [string, Graph][] {
 
 /** Where the two validators knowingly disagree today, and why. Empty is the goal of the typed evaluator. */
 const KNOWN_DISAGREEMENTS: Record<string, string> = {
-  'union fed a position': 'the engine does not type-check inputs; it validates the wiring and fails only at evaluation',
   'the rim strip as the allowed output': 'BY DESIGN (nodeGraph.mjs header): the host lets a graph be authored ahead of the engine; the engine refuses a band whose seeds are not holes at 5 mm and says why',
 };
 
