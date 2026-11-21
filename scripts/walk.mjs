@@ -479,6 +479,12 @@ function installedChromium() {
   return readdirSync(base).filter((name) => /^chromium-\d+$/.test(name)).sort((a, b) => Number(b.split('-')[1]) - Number(a.split('-')[1])).map((name) => path.join(base, name, exe)).find(existsSync);
 }
 
+/** Whether a request or websocket URL goes off this machine (http, https, ws, wss to anything but loopback). */
+function leavesMachine(url) {
+  const u = new URL(url);
+  return /^(https?|wss?):$/.test(u.protocol) && !['127.0.0.1', 'localhost', '[::1]'].includes(u.hostname);
+}
+
 async function launch() {
   const args = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'];
   // WALK_CHROMIUM names a browser to use; otherwise Playwright's own install is tried, then the newest one on disk.
@@ -1040,10 +1046,9 @@ async function walk(url, scratch, dentalFixture) {
    */
   page.on('crash', () => { crashed = true; errors.push('pageerror: THE BROWSER TAB CRASHED - the failure reported after this is a symptom, not a cause'); });
   const outside = [];
-  page.on('request', (r) => {
-    const u = new URL(r.url());
-    if (/^https?:$/.test(u.protocol) && u.hostname !== '127.0.0.1' && u.hostname !== 'localhost') outside.push(r.url());
-  });
+  // Requests AND websockets: "your files never leave this computer" is broken just as well by a socket (cia MD-04).
+  page.on('request', (r) => { if (leavesMachine(r.url())) outside.push(r.url()); });
+  page.on('websocket', (ws) => { if (leavesMachine(ws.url())) outside.push(ws.url()); });
   const d = makeDriver(page);
   try {
     /*
@@ -4885,6 +4890,11 @@ async function walk(url, scratch, dentalFixture) {
   } catch (error) {
     check('j Terms dialog', false, error.message);
   }
+  // The detector proven to catch before its silence is believed (cia MD-04, sweep S20): an outside http and
+  // websocket URL must be flagged, the dev server must not.
+  check('h0 the outside-request detector flags an outside address and passes a local one',
+    leavesMachine('https://example.com/a') && leavesMachine('wss://example.com/s') && !leavesMachine('http://127.0.0.1:5173/mixodental/') && !leavesMachine('ws://localhost:5173/'),
+    'https / wss outside flagged, 127.0.0.1 / localhost passed');
   check('h no request leaves localhost', outside.length === 0, outside.length ? outside.slice(0, 3).join(' || ') : '0 external requests');
   check('h no console errors or warnings', errors.length === 0, errors.length ? errors.slice(0, 3).join(' || ') : '0 messages');
   // The section a crashed tab died in, for the resume below; undefined when the tab was alive at the end.
@@ -5239,7 +5249,7 @@ if (unknownProbes.length) {
  * It applies only to a COMPLETE run. `--only`, `--probes`, `--locales` and a crash resume each walk
  * less by design, and each already says so in the verdict line.
  */
-const EXPECTED_CHECKS = 200;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison; 195 on 2026-11-19 with u5p and u5q, an area made BY HAND carried through to Step 3 - the one dental path no walk had ever reached - plus the two-check hole in u8's own skip, which `note` printed and nothing counted; 197 with a4m and a4n, the support-tip drag (build-order item 7), which no unit test and no preview pane can see; 199 with u5r and u5s, Escape abandoning an anchor drag - the shared `viewport/dragSession.ts` rule, whose failure is that the key reaches App.tsx instead and steps the operator out of the mode mid-drag; 200 on 2026-11-21 with u5t, the step card's close - the only way to the files inside a dental step once the header key went
+const EXPECTED_CHECKS = 201;   // 188 until 2026-11-14, when g and g-pre retired to mixo-geocore editing/strokeQueue.test.ts; 187 on 2026-11-17 with u5m, the bench's way back to the case; 190 on 2026-11-18 with m11b, the deck's purpose question; 191 with s9a, the preselect; 188 when the deck's tool rail left and m4d became one measured check in place of m4d/m4e/m9/m10; 190 on 2026-11-18 with m12 and m12b, the deck's auto-gen queue end to end; 191 on 2026-11-19 with x0p, the editor-versus-auto-gen parity comparison; 195 on 2026-11-19 with u5p and u5q, an area made BY HAND carried through to Step 3 - the one dental path no walk had ever reached - plus the two-check hole in u8's own skip, which `note` printed and nothing counted; 197 with a4m and a4n, the support-tip drag (build-order item 7), which no unit test and no preview pane can see; 199 with u5r and u5s, Escape abandoning an anchor drag - the shared `viewport/dragSession.ts` rule, whose failure is that the key reaches App.tsx instead and steps the operator out of the mode mid-drag; 200 on 2026-11-21 with u5t, the step card's close - the only way to the files inside a dental step once the header key went; 201 on 2026-11-21 with h0, the outside-request detector shown to catch before its silence is believed (cia MD-04)
 const complete = ONLY.size === 0 && PROBES.size === 0 && !LOCALES && resumed.length === 0;
 if (complete && results.length + skippedByDesign !== EXPECTED_CHECKS) {
   check('walk check count', false,
