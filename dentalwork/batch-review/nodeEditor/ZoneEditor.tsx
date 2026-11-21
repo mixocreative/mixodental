@@ -195,7 +195,7 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
         <div className="zn-row zn-socket" key={name}>
           <Handle type="target" position={Position.Left} id={name} className={`h-${want.split('|')[0]}`} />
           <span className="zn-in">{inputLabel(name)}</span>
-          <span className="zn-type">{want === 'mask|curve' ? 'faces or a line' : want === 'depthMap' ? 'depth map' : want === 'mask' ? 'faces' : want}</span>
+          <span className="zn-type">{want === 'mask|rim' ? 'faces or a rim line' : want === 'depthMap' ? 'depth map' : want === 'mask' ? 'faces' : want}</span>
         </div>
       ))}
       {Object.entries(node.params).map(([key, value]) => {
@@ -235,7 +235,7 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
       {idle && <div className="zn-note">Not connected to the output - not run, costs nothing.</div>}
       {spec.fixed && <div className="zn-note">Found in stage 1 (Orient); fixed here.</div>}
       <div className="zn-row zn-out-row">
-        <span className="zn-outtype">gives {spec.out === 'mask' ? 'faces' : spec.out === 'depthMap' ? 'a depth map' : spec.out === 'position' ? 'a point' : 'a line'}</span>
+        <span className="zn-outtype">gives {spec.out === 'mask' ? 'faces' : spec.out === 'depthMap' ? 'a depth map' : spec.out === 'position' ? 'a point' : 'a rim line'}</span>
         <Handle type="source" position={Position.Right} id="out" className={`h-${spec.out}`} />
       </div>
     </div>

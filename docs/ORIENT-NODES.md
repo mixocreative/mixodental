@@ -281,7 +281,8 @@ angle judged by the same hard rules. So:
 ### Orient outputs (one output node, like Zone output)
 
 `frame` (required, type `frame`) and `pose` (required, type `pose`). The rim curve stays where it is: a
-fixed stage 1 result that stage 2 reads (`rimCurve`, `fixed: true` in `nodeGraph.mjs`).
+fixed stage 1 result that stage 2 reads (kind `rim`, socket `rim`, `fixed: true` in `nodeGraph.mjs`; called
+`rimCurve` / `curve` before 2026-11-22).
 
 **The default denture Orient graph - today, node for node:**
 
@@ -720,7 +721,7 @@ Colours come from the app's style tokens (`mixo-app-style`), one token per plane
 
 The rim tab's results reach the Support zones tab as **fixed inputs**: computed once on the rim tab, shown read-only
 in the zones palette's "From the rim tab" group (today's "From Orient" group in `nodeGraph.mjs`, which already
-carries `rimCurve`), and recomputed only when the rim tab changes - so the zones tab never re-detects a rim.
+carries the `rim` node), and recomputed only when the rim tab changes - so the zones tab never re-detects a rim.
 
 | Handed over | Socket | What the zones tab does with it |
 |---|---|---|
@@ -735,8 +736,8 @@ carries `rimCurve`), and recomputed only when the rim tab changes - so the zones
 **Rim area, named producer (Fable's end-to-end review, 2026-11-22):** the rim tab owns one node that makes it -
 the aligner's signed strip (position / width / density) or the denture's rim band. The denture has two rim strips
 today (2 mm `RIMBAND` and the low 5 mm `LOWRIMBAND`); **the rim area is the 2 mm one**, the low band stays a
-separate fixed input until an owner ruling says otherwise. The host socket is still called `curve`
-(`nodeGraph.mjs`); it becomes `rim` with the typed evaluator (build step 3), not before.
+separate fixed input until an owner ruling says otherwise. The host socket is `rim` (`nodeGraph.mjs`, renamed
+from `curve` in build step 3).
 
 What is greyed out on the rim tab (the rim plane, the rim crossing, anything built from the rim) is exactly what
 becomes available here - one rule, seen from both sides.
@@ -757,7 +758,7 @@ becomes available here - one rule, seen from both sides.
    typed evaluator's job is to empty that list. Also found: the engine's default graph names four outputs (RIM,
    RIMBAND, LOWRIMBAND, SOCK) it does not contain, and checks only nodes reachable from its free outputs.
    **Step 3, made implementable (EGM readiness review, 2026-11-22):**
-   - **Types it introduces:** exactly today's host set - `mask`, `depthMap`, `position`, `curve` - as a typed value
+   - **Types it introduces:** exactly today's host set - `mask`, `depthMap`, `position`, `rim` - as a typed value
      in the engine evaluator. The types the later nodes need arrive WITH those steps: `direction` / `frame` with
      `lookFrom` (step 6), `rimPlane` / `plane` with `fitPlane` (step 7), `pose` with the print-angle tab; the
      object/global `space` tag stays deferred (section 7, U4). Per-kind inputs and outputs: the host `KINDS` table
@@ -771,9 +772,12 @@ becomes available here - one rule, seen from both sides.
      contain, because those values are computed elsewhere in stage 1. Step 3 does NOT add them; step 4 does, as
      locked nodes. The engine's reachable-only check (it evaluates what the free outputs need) stays: it is how a
      graph authored ahead of the engine can still run its runnable part.
-   - **`curve` becomes `rim`:** host and engine switch in ONE vendor bump; a saved graph that says `curve` (or the
-     kind `rimCurve`) is read as `rim` by an alias on load, so no saved type file breaks; the alias is removed only
-     with a type-file version bump.
+   - **`curve` becomes `rim`: DONE 2026-11-22.** The socket type and the node kind are both `rim` now. Measured
+     first: the engine never reads the kind (it only checks that the `rim` output is bound to RIM, `FIXED_OUTPUTS`),
+     so the rename is host-only and needed no engine change; geocore's own test fixture was renamed to match. A
+     saved graph that says `rimCurve` is read as `rim` by `upgradeGraph` (`nodeGraph.mjs` `OLD_KINDS`) - on the
+     viewer's load and in the type-file check (`typeInForce.ts`) - and `nodeGraph.test.ts` proves an old default
+     graph loads valid and default again. The alias is removed only with a type-file version bump.
    - **The proof, precisely:** the graphs are the denture default graph and the parity corpus; identical means the
      engine's per-output masks are bit-equal (the zone digest unchanged) and `npm run gate:real` prints
      "No differences" for all 13 scans.
@@ -793,10 +797,9 @@ becomes available here - one rule, seen from both sides.
 9. **`rimSide`** (new behaviour, off by default, owner-reviewed); 10. **`rimDrawn`** for dentures.
 
 **Debt written down after Fable's review of the night's diffs (2026-11-22):**
-- The engine's new input check reports a host-only mask kind it cannot evaluate (`basinFill`) as "is a basinFill,
-  not a set of faces" - true for the engine, misleading for the host, where it is a mask. It was refused before
-  too; only the wording should say "cannot be evaluated in this version". Cut: in `zone_graph.rs` `faces`, check
-  the host kinds the engine does not evaluate first.
+- FIXED 2026-11-22: the engine's input check called a host-only mask kind (`basinFill`) "not a set of faces".
+  It now says "which this version cannot evaluate yet" (`zone_graph.rs` `HOST_ONLY_MASK_KINDS`, `not_faces`), for
+  an input and for a free output, with both cases in `validation_names_the_problem`. Still refused, as before.
 - The viewer retints the four plane layers by material. Checked (2026-11-22, aligner review at 1440x900): in the
   3D canvas the trim chains stay red (115 px) and the U ends green (13 px) beside the amber trim plane (631 px),
   so the retint did not spill onto a layer sharing a material there. Not checked on every writer.

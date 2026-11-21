@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS,
-  addNode, bindOutput, defaultGraph, isDefault, removeNode, rewire, setParam, unreached, validate,
+  OLD_KINDS, addNode, bindOutput, defaultGraph, isDefault, removeNode, rewire, setParam, unreached, upgradeGraph, validate,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -137,7 +137,7 @@ describe('free editing: add, remove, rewire', () => {
   });
 
   it('refuses to add or remove what stage 1 finds', () => {
-    expect(() => addNode(defaultGraph(), 'rimCurve')).toThrow(/stage 1/);
+    expect(() => addNode(defaultGraph(), 'rim')).toThrow(/stage 1/);
     expect(() => removeNode(defaultGraph(), 'RIM')).toThrow(/stage 1/);
   });
 
@@ -147,7 +147,7 @@ describe('free editing: add, remove, rewire', () => {
   });
 
   it('refuses a strip seeded by anything but Find holes, because the engine would run it as the hole strip anyway', () => {
-    // The socket TYPE allows faces or a curve (the engine's band does both); v1 runs only the hole strip.
+    // The socket TYPE allows faces or a rim line (the engine's band does both); v1 runs only the hole strip.
     expect(validate(rewire(defaultGraph(), 'BAND', 'seeds', 'RIM')).problems)
       .toContain('BAND: in this version a strip must be seeded by Find holes - from anything else it would still run as the hole strip');
   });
@@ -198,5 +198,27 @@ describe('validate - a source of unknown kind', () => {
     let result: ReturnType<typeof validate> | undefined;
     expect(() => { result = validate(g); }).not.toThrow();
     expect(result!.problems).toContain('MYSTERY: unknown kind "noSuchKind"');
+  });
+});
+
+/*
+ * The rim socket was `curve` and its kind `rimCurve` until 2026-11-22. A graph saved before that (a type file,
+ * the viewer's browser storage) must still load as today's default - dropping the alias turns it into
+ * "unknown kind" with no other warning.
+ */
+describe('a graph saved under the old rim names still loads', () => {
+  it('reads kind rimCurve as rim: valid, and the default again', () => {
+    const old = defaultGraph();
+    old.nodes.find((n) => n.id === 'RIM')!.kind = 'rimCurve';
+    expect(validate(old).problems).toContain('RIM: unknown kind "rimCurve"');
+    const read = upgradeGraph(old);
+    expect(validate(read).ok).toBe(true);
+    expect(isDefault(read)).toBe(true);
+  });
+
+  it('leaves a current graph untouched, the same object', () => {
+    const g = defaultGraph();
+    expect(upgradeGraph(g)).toBe(g);
+    expect(OLD_KINDS).toEqual({ rimCurve: 'rim' });
   });
 });

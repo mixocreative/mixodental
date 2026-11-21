@@ -1,4 +1,4 @@
-/* node-editor sources 02cafd1904e6ed42 - rebuild with npm run review:editor */
+/* node-editor sources 0e06fe82b4e6cdbe - rebuild with npm run review:editor */
 /*! Contains third-party code - React, React DOM, @xyflow/react and their dependencies, each MIT or ISC. Full licence texts: THIRD-PARTY-NOTICES.txt, written by npm run build. */
 function Mh(t) {
   return t && t.__esModule && Object.prototype.hasOwnProperty.call(t, "default") ? t.default : t;
@@ -12415,7 +12415,7 @@ function Lk({ data: t, selected: r }) {
       /* @__PURE__ */ j.jsxs("div", { className: "zn-row zn-socket", children: [
         /* @__PURE__ */ j.jsx(Er, { type: "target", position: we.Left, id: x, className: `h-${_.split("|")[0]}` }),
         /* @__PURE__ */ j.jsx("span", { className: "zn-in", children: m(x) }),
-        /* @__PURE__ */ j.jsx("span", { className: "zn-type", children: _ === "mask|curve" ? "faces or a line" : _ === "depthMap" ? "depth map" : _ === "mask" ? "faces" : _ })
+        /* @__PURE__ */ j.jsx("span", { className: "zn-type", children: _ === "mask|rim" ? "faces or a rim line" : _ === "depthMap" ? "depth map" : _ === "mask" ? "faces" : _ })
       ] }, x)
     )),
     Object.entries(l.params).map(([x, _]) => {
@@ -12452,7 +12452,7 @@ function Lk({ data: t, selected: r }) {
     /* @__PURE__ */ j.jsxs("div", { className: "zn-row zn-out-row", children: [
       /* @__PURE__ */ j.jsxs("span", { className: "zn-outtype", children: [
         "gives ",
-        g.out === "mask" ? "faces" : g.out === "depthMap" ? "a depth map" : g.out === "position" ? "a point" : "a line"
+        g.out === "mask" ? "faces" : g.out === "depthMap" ? "a depth map" : g.out === "position" ? "a point" : "a rim line"
       ] }),
       /* @__PURE__ */ j.jsx(Er, { type: "source", position: we.Right, id: "out", className: `h-${g.out}` })
     ] })

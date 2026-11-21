@@ -299,7 +299,8 @@ would create a cycle that today's code hides by ordering. Expose the raw basins
 output — then the cycle is a cycle the validator can refuse, instead of an ordering nobody can see.
 
 **2. Typed sockets make bad wiring impossible, not merely detectable.** There are few types: **mask**,
-**depth map**, **Frame**, **Plane**, **Position**, **Direction**, **curve** (an ON-MESH polyline, since band
+**depth map**, **Frame**, **Plane**, **Position**, **Direction**, **curve** (renamed `rim` on 2026-11-22, see
+ORIENT-NODES section 10 build step 3; an ON-MESH polyline, since band
 seeds are mesh vertices). **Band takes seeds: faces OR a curve's vertices** - the hole band seeds from
 faces, the rim bands from the rim curve. A Depth cast returns a map, which only Holes and Basin fill
 accept, so it cannot feed a combine; a

@@ -250,7 +250,7 @@
 .zone-canvas .h-mask { background: var(--layer-allowed); }
 .zone-canvas .h-depthMap { background: var(--warning); }
 .zone-canvas .h-position { background: var(--red); }
-.zone-canvas .h-curve { background: var(--layer-no-support-steep); }
+.zone-canvas .h-rim { background: var(--layer-no-support-steep); }
 
 /* The run button, folded up from the old benchwork panel to sit beside the stages it runs. */
 .stage-run { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0; font-size: 11px; }
@@ -1196,7 +1196,7 @@ function drawZoneEditor(body, present, names) {
   body.append(status, bar, report, outs, rail);
 }
 
-/** A select of the nodes whose output fits `want` ('mask', or 'mask|curve'). */
+/** A select of the nodes whose output fits `want` ('mask', or 'mask|rim'). */
 function sourceSelect(g, want, current) {
   const sel = document.createElement('select');
   sel.append(Object.assign(document.createElement('option'), { value: '', textContent: '— none —' }));
@@ -1302,7 +1302,7 @@ async function loadGraphLib() {
     graphLib = await import('./nodeGraph.mjs');
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem('review-zone-graph') || 'null'); } catch { saved = null; }
-    zoneGraph = saved && Array.isArray(saved.nodes) ? saved : graphLib.defaultGraph();
+    zoneGraph = saved && Array.isArray(saved.nodes) ? graphLib.upgradeGraph(saved) : graphLib.defaultGraph();
   } catch {
     graphLib = null;
   }

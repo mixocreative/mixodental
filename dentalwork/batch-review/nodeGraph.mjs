@@ -20,14 +20,14 @@
  */
 
 /** Socket types. A wire is only legal between matching types: the connection you cannot make beats the error you would read later. */
-export const TYPES = ['mask', 'depthMap', 'position', 'curve'];
+export const TYPES = ['mask', 'depthMap', 'position', 'rim'];
 
 /**
  * Every node kind: its inputs (name -> type), its output type, its parameters with units, and the
  * engine unit it stands for. `stage` is the owner's three stages; only `zones` kinds are editable here.
  */
 export const KINDS = {
-  rimCurve: { stage: 'orient', label: 'Rim curve', out: 'curve', inputs: {}, params: {}, fixed: true,
+  rim: { stage: 'orient', label: 'Rim', out: 'rim', inputs: {}, params: {}, fixed: true,
     reads: 'denture/rim_lowpoints.rs - found by stage 1, not authored here' },
   intersection: { stage: 'zones', label: 'Intersection', out: 'position', inputs: {},
     params: { planeA: 'rim', planeB: 'symmetry', face: 'back' },
@@ -47,8 +47,8 @@ export const KINDS = {
     reads: 'holes_axis.rs:166' },
   basinFill: { stage: 'zones', label: 'Basin fill', out: 'mask', inputs: { map: 'depthMap' }, params: { minDepthMm: 1 },
     reads: 'sockets.rs:100 - the socket basins, before any cancel' },
-  band: { stage: 'zones', label: 'Band', out: 'mask', inputs: { seeds: 'mask|curve' }, params: { mm: 5 },
-    reads: 'rim_graph.rs:112 - grows along mesh edges from faces OR a curve\'s vertices' },
+  band: { stage: 'zones', label: 'Band', out: 'mask', inputs: { seeds: 'mask|rim' }, params: { mm: 5 },
+    reads: 'rim_graph.rs:112 - grows along mesh edges from faces OR a rim line\'s vertices' },
   union: { stage: 'zones', label: 'Union', out: 'mask', inputs: { a: 'mask', b: 'mask' }, params: {}, reads: 'A or B, per face' },
   subtract: { stage: 'zones', label: 'Subtract', out: 'mask', inputs: { a: 'mask', b: 'mask' }, params: {},
     reads: 'A and not B. A is the minuend: swapping them is a different zone' },
@@ -85,7 +85,7 @@ export const KIND_GROUP = {
   depthCast: 'maps', holes: 'maps', basinFill: 'maps',
   band: 'strips',
   union: 'combine', subtract: 'combine', intersect: 'combine', not: 'combine',
-  rimCurve: 'orient',
+  rim: 'orient',
 };
 
 export const KIND_WORDS = {
@@ -97,7 +97,7 @@ export const KIND_WORDS = {
   holes: { title: 'Find holes', says: 'Openings you can see right through the part, found from the depth map. Its setting is fixed in this version.' },
   basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map. Not runnable yet: the socket depth comes from the rule "socket depth".' },
   band: { title: 'Strip around', says: 'Every face within a set distance of its seeds, measured along the surface. In this version only the 5 mm strip around Find holes runs; the two rim strips are fixed.' },
-  rimCurve: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
+  rim: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
   union: { title: 'Either A or B', says: 'Faces in A, or in B, or in both.' },
   subtract: { title: 'A without B', says: 'Faces in A, minus any that are also in B. A and B are not interchangeable.' },
   intersect: { title: 'Both A and B', says: 'Only the faces that are in both A and B.' },
@@ -187,7 +187,7 @@ export const FIXED = {
  */
 export const REQUIRED_OUTPUTS = {
   no_support: 'mask', allowed: 'mask', allowed_cavity: 'mask', hole_band: 'mask',
-  rim: 'curve', rim_band: 'mask', low_rim_band: 'mask', sockets: 'mask',
+  rim: 'rim', rim_band: 'mask', low_rim_band: 'mask', sockets: 'mask',
 };
 
 /**
@@ -212,7 +212,7 @@ export function defaultGraph() {
     { id: 'MAP', kind: 'depthCast', params: { axis: 'teeth', side: 'tissue', pitchMm: 0.3 }, inputs: {} },
     { id: 'HOLES', kind: 'holes', params: { minAreaMm2: 0.5 }, inputs: { map: 'MAP' } },
     { id: 'BAND', kind: 'band', params: { mm: 5 }, inputs: { seeds: 'HOLES' } },
-    { id: 'RIM', kind: 'rimCurve', params: {}, inputs: {} },
+    { id: 'RIM', kind: 'rim', params: {}, inputs: {} },
     { id: 'RIMBAND', kind: 'band', params: { mm: 2 }, inputs: { seeds: 'RIM' } },
     { id: 'LOWRIMBAND', kind: 'band', params: { mm: 5 }, inputs: { seeds: 'RIM' } },
     { id: 'BASINS', kind: 'basinFill', params: { minDepthMm: 1 }, inputs: { map: 'MAP' } },
@@ -225,6 +225,22 @@ export function defaultGraph() {
     rim: 'RIM', rim_band: 'RIMBAND', low_rim_band: 'LOWRIMBAND', sockets: 'SOCK',
   };
   return { nodes, outputs };
+}
+
+/*
+ * NAMES A SAVED GRAPH MAY STILL USE (docs/ORIENT-NODES.md section 10, build step 3). The rim socket was
+ * called `curve` and its node kind `rimCurve` until 2026-11-22; graphs saved before that - a type file,
+ * the viewer's browser storage - still say so. They are read through `upgradeGraph`, so no saved graph
+ * breaks. Remove an entry only with a type-file version bump: dropping it quietly turns every old graph
+ * into "unknown kind" on the next load. The engine never reads this kind (it checks only that `rim` is
+ * bound to RIM), so the rename needs no engine change.
+ */
+export const OLD_KINDS = { rimCurve: 'rim' };
+
+/** `graph` with any old kind name read as today's. Returns the same object when nothing was renamed. */
+export function upgradeGraph(graph) {
+  if (!Array.isArray(graph?.nodes) || !graph.nodes.some((n) => n.kind in OLD_KINDS)) return graph;
+  return { ...graph, nodes: graph.nodes.map((n) => (n.kind in OLD_KINDS ? { ...n, kind: OLD_KINDS[n.kind] } : n)) };
 }
 
 const byId = (graph, id) => graph.nodes.find((n) => n.id === id);

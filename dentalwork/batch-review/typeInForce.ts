@@ -26,7 +26,7 @@ import { HOST_GEOMETRY_VERSION } from '@mixo-geocore/host/geometryVersion.js';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { unreadBy } from '../../benchwork/rules.mjs';
 import { draftOf, graphText, profileText, proofOf, readTypeFile, typeFileText, type TypeFile, type TypeFileDeps } from '../../src/dentalTypes/typeFile';
-import { steepAngleProblem, validate } from './nodeGraph.mjs';
+import { steepAngleProblem, upgradeGraph, validate } from './nodeGraph.mjs';
 import { useTypeProfile } from './profileSelect';
 
 /** The one set of checks a type file is read with, here as in the app. */
@@ -34,7 +34,7 @@ export const TYPE_DEPS: TypeFileDeps = {
   parseProfile: (category, value) => (category === 'denture' ? parseDentureProfile(value) : parseAlignerProfile(value)),
   ruleNames: RULE_NAMES,
   unreadBy: (category, rules) => unreadBy(category, rules),
-  graphProblems: (graph, rules) => [...validate(graph).problems, ...[steepAngleProblem(graph, rules)].filter((p): p is string => Boolean(p))],
+  graphProblems: (graph, rules) => [...validate(upgradeGraph(graph)).problems, ...[steepAngleProblem(graph, rules)].filter((p): p is string => Boolean(p))],
   engineVersion: HOST_GEOMETRY_VERSION,
 };
 
