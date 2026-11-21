@@ -178,8 +178,8 @@ describe('the Items page', () => {
   });
 
   it('counts what is left from the same rule the press follows', () => {
-    expect(render([unit('a', 'a.stl'), unit('b', 'b.stl'), unit('c', 'c.stl')])).toContain('3 items left');
-    expect(render([unit('a', 'a.stl'), unit('b', 'b.stl')], ['a'])).toContain('1 item left');
+    expect(render([unit('a', 'a.stl'), unit('b', 'b.stl'), unit('c', 'c.stl')])).toContain('3 files left');
+    expect(render([unit('a', 'a.stl'), unit('b', 'b.stl')], ['a'])).toContain('1 file left');
   });
 
   /*
@@ -192,7 +192,7 @@ describe('the Items page', () => {
   it('keeps the primary when every item is through, because finished is not a lock', () => {
     const done = render([unit('a', 'a.stl')], ['a']);
     expect(done).toContain('data-ui="items-start"');
-    expect(done).toContain('0 items left');
+    expect(done).toContain('0 files left');
     expect(render([unit('a', 'a.stl')])).toContain('data-ui="items-start"');
   });
 
@@ -296,19 +296,19 @@ describe('the Items page', () => {
    * reachable only in list order: a flagged row in the middle could not be opened until every row
    * above it was finished or destroyed with Remove.
    */
-  it('names the chosen row on the Start button, not "the first item"', () => {
+  it('names the chosen row on the Start button, not "the first file"', () => {
     const units = [unit('u-a', 'first.stl', verdict()), unit('u-b', 'second.stl', verdict())];
     const asList = renderToStaticMarkup(<ItemsPage {...noAutoGen} purposes={named(units)} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}} units={units} refused={[]} detected={new Map()}
       thumbnails={new Map()} finished={[]} lang="en" onSelect={() => {}} onStart={() => {}}
       onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
 
-    expect(asList).toContain('Start with the first item');
+    expect(asList).toContain('Start with the first file');
     const chosen = renderToStaticMarkup(<ItemsPage {...noAutoGen} purposes={named(units)} onPurpose={() => {}} onPurposeAll={() => {}} onAnyModel={() => {}} units={units} refused={[]} detected={new Map()}
       thumbnails={new Map()} finished={[]} lang="en" selectedUnitId="u-b" onSelect={() => {}} onStart={() => {}}
       onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
 
-    expect(chosen).toContain('Start this item');
-    expect(chosen).not.toContain('Start with the first item');
+    expect(chosen).toContain('Start this file');
+    expect(chosen).not.toContain('Start with the first file');
     // A FINISHED row IS what the press means when it is the one picked out (owner's ruling,
     // 2026-11-18). This used to fall back to the next unfinished row, so choosing a done model and
     // pressing Start quietly opened someone else's.
@@ -316,8 +316,8 @@ describe('the Items page', () => {
       thumbnails={new Map()} finished={['u-b']} lang="en" selectedUnitId="u-b" onSelect={() => {}} onStart={() => {}}
       onRemove={() => {}} onFiles={() => {}} onBack={() => {}} onArrange={() => {}} onExport={() => {}} onRetry={() => {}} />);
 
-    expect(finishedPick).toContain('Start this item');
-    expect(finishedPick).not.toContain('Start with the first item');
+    expect(finishedPick).toContain('Start this file');
+    expect(finishedPick).not.toContain('Start with the first file');
   });
 
   /*

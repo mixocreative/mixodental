@@ -1677,7 +1677,7 @@ async function walk(url, scratch, dentalFixture) {
         && previews.every((text) => /\d+ × \d+ × \d+ mm/.test(text) && /\d+ (KB|MB|GB)/.test(text))
         && previewTitles.every((title) => /\d+ triangles/.test(title))
         && new Set(previews).size === 1
-        && /3 items left/.test(await page.locator('.items-left').innerText()),
+        && /3 files left/.test(await page.locator('.items-left').innerText()),
         `${JSON.stringify(previews)} / ${JSON.stringify(previewTitles)} / ${await page.locator('.items-left').innerText()}`);
       /*
        * THE BATCH RUNS, ROW BY ROW. One `dentalOrient` per row once the purpose is pressed - it takes
@@ -1805,7 +1805,7 @@ async function walk(url, scratch, dentalFixture) {
 
       /*
        * START SAYS WHICH ROW IT WILL OPEN, and opens that one. It used to open the first UNFINISHED
-       * row whatever was highlighted, with a label that said "the first item" either way - and with
+       * row whatever was highlighted, with a label that said "the first item" (now "file") either way - and with
        * the rail's buttons inert, that made rows reachable only in list order: a flagged row in the
        * middle of a case could not be opened until every row above it was finished or removed.
        *
@@ -1824,7 +1824,7 @@ async function walk(url, scratch, dentalFixture) {
       await page.locator('.items-row .remove').first().click();
       await d.idle(500);
       check('m5 Remove takes off one row and the count follows',
-        (await page.locator('.items-row').count()) === 2 && /2 items left/.test(await page.locator('.items-left').innerText()),
+        (await page.locator('.items-row').count()) === 2 && /2 files left/.test(await page.locator('.items-left').innerText()),
         `rows ${await page.locator('.items-row').count()}, ${await page.locator('.items-left').innerText()}`);
 
       /*
@@ -2454,7 +2454,7 @@ async function walk(url, scratch, dentalFixture) {
       /*
        * G1 - A WRITE REFUSED AFTER AN EARLIER ONE COMMITTED.
        *
-       * "Each object with model" plans ONE FILE PER OBJECT (`planExport`), and `useExport` hands them
+       * "Export all STL" (was "Each object with model") plans ONE FILE PER OBJECT (`planExport`), and `useExport` hands them
        * over in a loop: a Blob URL, an `<a download>`, `.click()`, one file at a time. The first
        * click has already put a file in the operator's downloads by the time the second runs, so this
        * is the journey's one true multi-step commit - and the step after the first commit can fail.
@@ -2476,7 +2476,7 @@ async function walk(url, scratch, dentalFixture) {
       await d.idle(500);
       const firstFile = page.waitForEvent('download', { timeout: 120000 }).then((download) => download.suggestedFilename(), () => '');
       await page.evaluate(() => { window.__faultDownload = 2; });
-      await page.getByRole('button', { name: 'Each object with model' }).click();
+      await page.getByRole('button', { name: 'Export all STL' }).click();
       const landed = await firstFile;
       await d.idle(4000);
       const partial = await page.evaluate(() => ({
@@ -4539,7 +4539,7 @@ async function walk(url, scratch, dentalFixture) {
        * abandons every check after it, so one missing sentence cost the whole rest of the walk. The review
        * notes also appear only once the review has finished, so it is given time to arrive first.
        */
-      const rimNote = page.locator('.dental-side').getByText(/Automatic dental rim gaps/).first();
+      const rimNote = page.locator('.dental-side').getByText(/The supports leave gaps along the rim/).first();
       const rimShown = await rimNote.waitFor({ state: 'visible', timeout: 60000 }).then(() => true).catch(() => false);
       const rimWarning = rimShown ? await rimNote.innerText() : '(no rim gap note on screen)';
       /*
@@ -4554,7 +4554,7 @@ async function walk(url, scratch, dentalFixture) {
       const needsReview = placed.dentalNeedsReview === true;
       check('l4 the final rim gap is disclosed when the build says the rim needs a look, and not otherwise',
         needsReview
-          ? rimShown && /Automatic dental rim gaps: outer [\d.]+ mm, opening [\d.]+ mm/.test(rimWarning) && /Review the rim/.test(rimWarning)
+          ? rimShown && /up to [\d.]+ mm on the outer edge and [\d.]+ mm at the opening/.test(rimWarning) && /Look along the rim/.test(rimWarning)
           : !rimShown,
         `needs review ${placed.dentalNeedsReview}, note "${rimWarning.replace(/\s+/g, ' ')}"`);
     }

@@ -114,7 +114,7 @@ export const ICON_CATALOGUE: IconEntry[] = [
 
   // The chrome every step shares.
   { name: 'back', slot: 'free', source: 'lucide', where: 'Every step and start screen: the way back, the arrow top-left and on each bar' },
-  { name: 'next', slot: 'free', source: 'lucide', where: 'Every step bar: the key that goes on, and Start this item on the Items page' },
+  { name: 'next', slot: 'free', source: 'lucide', where: 'Every step bar: the key that goes on, and Start this file on the Items page' },
   { name: 'restore', slot: 'free', source: 'lucide', where: 'Restore step: the round key that puts a finished step back in hand' },
   { name: 'drop-file', slot: 'free', source: 'lucide', where: 'Start screen and Step 0: the Choose STL file key' },
   { name: 'warning', slot: 'free', source: 'drawn', where: 'Viewport, unresolved-point bubble: a tip, lowest point or island with no support yet' },

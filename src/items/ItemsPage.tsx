@@ -415,7 +415,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
           onClick={onExport}
           {...(anySupports ? hint('One STL file per object, each with its supports')
             : { title: t('Nothing to export: no object in this export has supports left.') })}
-        >{t('Each object with model')}</button>
+        >{t('Export all STL')}</button>
       </div>
 
       <div className="items-foot">
@@ -437,7 +437,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
           title={t('The biggest moment of a whole-case run: every model held, plus building supports for the largest one.')}>
           {t('{used} of {allowance} memory', { used: formatBytes(usage.peakBytes), allowance: formatBytes(usage.allowanceBytes) })}
         </span>
-        <span className="items-left" data-ui="items-left">{left === 1 ? t('1 item left') : t('{n} items left', { n: left })}</span>
+        <span className="items-left" data-ui="items-left">{left === 1 ? t('1 file left') : t('{n} files left', { n: left })}</span>
         {waiting > 0 ? <span className="items-progress" data-ui="items-progress">
           {t('Checking {done} of {n}', { done: units.length - waiting + 1, n: units.length })}
         </span> : null}
@@ -458,7 +458,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
              either clip or wrap the row, and the label has to read the same in three languages. */
           title={target.name}
           onClick={() => onStart(target)}>
-          <Icon name="next" />{t(target === next ? 'Start with the first item' : 'Start this item')}
+          <Icon name="next" />{t(target === next ? 'Start with the first file' : 'Start this file')}
         </button> : null}
       </div>
     </div>

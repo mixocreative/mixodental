@@ -94,7 +94,7 @@ export function reviewNotes(review: Pick<DentalReview, 'rimGap' | 'structureFall
   const fallback = review.structureFallback ?? [];
   const rimNote = review.rimGap === 'unavailable'
     ? t('Rim coverage could not be verified. Review the rim and supports before finishing.')
-    : review.rimGap ? t('Automatic dental rim gaps: outer {outer} mm, opening {opening} mm. Review the rim; omitted contacts were not forced.', { outer: review.rimGap.outerMm.toFixed(1), opening: review.rimGap.openingMm.toFixed(1) }) : undefined;
+    : review.rimGap ? t('The supports leave gaps along the rim: up to {outer} mm on the outer edge and {opening} mm at the opening. Look along the rim and add supports where a gap is too wide.', { outer: review.rimGap.outerMm.toFixed(1), opening: review.rimGap.openingMm.toFixed(1) }) : undefined;
   return [
     ...(rimNote ? [{ key: 'rim', text: rimNote }] : []),
     ...(fallback.includes('tree') ? [{ key: 'tree', text: t('Tree branches were omitted because they crossed the model. Review the supports before finishing.') }] : []),
