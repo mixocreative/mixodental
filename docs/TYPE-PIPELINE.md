@@ -499,15 +499,16 @@ With one type per category a row could never hold work built with another type; 
   with an aligner draft), ticks "Apply and run" for a type named by its id alone, and the greyed Rim plane no longer
   promises a Zones-tab node that does not exist.
 
-**Debt, not taken (named so it stays known):**
-1. **Set all cannot set a saved type** (`ItemsPage.tsx`, `value={undefined}`, so no type menu): thirty rows on a saved
-   type take thirty picks. (Its silent half is fixed: Set all to a category now leaves rows already on a type of that
-   category alone, `categoryAnswer`.) A type menu on Set all is a design question for the owner - which type to
-   offer when the rows hold several.
-2. **The type-change toast borrows the `regenerate` kind** (the one that carries its own message) rather than a
-   `changeType` kind in geocore's `editing/toast.ts`. Code debt only - nothing branches on the kind; add it when
-   geocore is next touched.
-3. **The serve.mjs replace path has no automated test** (it was checked in the browser: keep, replace, same bytes).
+**Third pass, same night (the last of the debt):**
+- **Set all has a type list when every row is on one type** (`rowPurpose.ts` `commonPurpose`); picking a type there
+  puts every row on it, picking a category still leaves rows already on a type of it alone (`PurposeSelect`
+  `onCategory`, `setAllPurposes(profile, pick)`). Mixed rows show the category alone: no one type is true there.
+- **The type-change toast has its own kind**, `changeType` in geocore's `editing/toast.ts` (geocore `5ad4c23`).
+- **Save's replace rule is a tested module**, `dentalwork/batch-review/saveType.mjs` (`saveVerdict`).
+
+**Left, by decision:** moving MIXED rows of one category onto one saved type is still a pick per row (or Set all to a
+category first, which leaves them, then per row). Offering a type over rows that disagree would show a value that is
+true of none of them.
 
 ## 9. An MCP server for the workbench — describe an idea, the AI composes it (PLANNED)
 
