@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { exec, spawn } from 'node:child_process';
 import { stampNow } from '../../benchwork/rules.mjs';
 import { guardRun } from './rerunReport.mjs';
+import { saveVerdict } from './saveType.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const [folder] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
@@ -67,9 +68,9 @@ function saveType(response, replace) {
   mkdirSync(dir, { recursive: true });
   const to = join(dir, `${type.id}.type.json`);
   const text = readFileSync(from, 'utf8');
-  // A different file already at that path is REPLACED only when the page says so (`?replace=1`, after asking): Save
-  // used to overwrite a saved type silently, and an uncommitted one is gone for good.
-  if (!replace && existsSync(to) && readFileSync(to, 'utf8') !== text) {
+  // A different file already at that path is REPLACED only when the page says so (`?replace=1`, after asking) - the
+  // rule and its test are saveType.mjs.
+  if (saveVerdict({ existing: existsSync(to) ? readFileSync(to, 'utf8') : null, text, replace }) === 'ask') {
     send(409, { exists: true, path: `types/${type.category}/${type.id}.type.json` });
     return;
   }

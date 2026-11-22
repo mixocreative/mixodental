@@ -103,7 +103,9 @@ For each file, write down whether the edges and the support area are right, wron
 | `src/dental/orientationEvidence.ts` (shared with the app, renderer-free) | Step 1 for the row (arch kind, up/down cross-check, floor offset ratio, note) and the evidence layers (Rust `diagnose_orientation`) |
 | `orientationEvidenceGlb.ts` | Three.js builder that turns the evidence layers into the companion GLB |
 | `reviewCase.test.ts` | Runs the reference aligner through the whole pipeline (about 20 s, part of `npm test`) so a broken import cannot go unnoticed |
-| `serve.mjs` | Serves the viewer, three.js and the run's files (if a run folder is given) on 127.0.0.1 only |
+| `serve.mjs` | Serves the viewer, three.js and the run's files (if a run folder is given) on 127.0.0.1 only; POST `/rerun` runs Apply, POST `/save-type` writes `types/<category>/<id>.type.json` |
+| `saveType.mjs` (+ `saveType.test.ts`) | The rule Save type follows for a file already at its path: write, same bytes, or ask before replacing |
+| `typeInForce.ts` (+ test) | The type a run is: the draft from the built-in, `type.json`, and `type-load.json` - whether the APP will load it (`appLoadVerdict`) |
 | `viewer.html` | The viewer |
 | `nodeGraph.mjs` (+ `nodeGraph.test.ts`) | The node graphs as plain data, tested without a browser: the denture zone graph (kinds, words, validation), the aligner's locked graph, and the rim tab (`rimTabView`, with the rim-derived nodes greyed) |
 | `nodeEditor/` | The React Flow canvases: `ZoneEditor.tsx` (the editable zone graph), `RimCanvas.tsx` (the read-only rim tab on the Orient stage and on aligner runs), `main.tsx` (the entry the viewer imports). Built by `npm run review:editor` into `node-editor/node-editor.js`; `bundle.test.ts` fails when the bundle is older than these sources |
