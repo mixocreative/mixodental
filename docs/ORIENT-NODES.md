@@ -805,7 +805,12 @@ becomes available here - one rule, seen from both sides.
   an input and for a free output, with both cases in `validation_names_the_problem`. Still refused, as before.
 - The viewer retints the four plane layers by material. Checked (2026-11-22, aligner review at 1440x900): in the
   3D canvas the trim chains stay red (115 px) and the U ends green (13 px) beside the amber trim plane (631 px),
-  so the retint did not spill onto a layer sharing a material there. Not checked on every writer.
+  so the retint did not spill onto a layer sharing a material there. CLOSED the same morning, on every writer: in
+  the 31 review GLBs written by fresh denture and aligner batches over the fixture folders, no material is used by
+  more than one mesh at all, so no plane can share one (28 plane meshes, 0 shared). This tests the GLB writers,
+  not any detection result. The check reads the
+  GLB's own material indices and was shown to flag a synthetic file where a plane and the model share one. It
+  holds for today's writers; a writer that starts reusing materials would need the viewer to clone before tinting.
 - Fixed the same night: the denture facts filter dropped the renamed "Rim plane" row; `viewerScript.test.ts` now
   fails when a filter names a row the table no longer produces (proven against the regression).
 
