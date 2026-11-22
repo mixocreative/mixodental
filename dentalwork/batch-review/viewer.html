@@ -149,6 +149,25 @@
 .chain-link { flex: 0 0 auto; align-self: flex-start; margin-top: 28px; width: 14px; text-align: center; color: var(--muted); }
 .chain-note { font-size: 11px; color: var(--muted); margin: 2px 0 0; max-width: 92ch; }
 
+/* The New-type strip: the type being made, and its steps, above the stage tabs. Text left-aligned (house rule). */
+.type-strip { display: flex; flex-direction: column; gap: 6px; padding: 6px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 6px; text-align: left; }
+.type-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.type-title { font-size: 12px; }
+.type-field { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; }
+.type-field .k { color: var(--muted); }
+.type-field input, .type-field select { height: 22px; font-size: 11px; padding: 0 5px; min-width: 0; box-sizing: border-box; }
+.type-field input { width: 160px; }
+.type-field input.type-id { width: 130px; font-family: var(--font-mono, monospace); }
+.type-field input.type-badge-input { width: 56px; }
+.type-based { color: var(--muted); font-size: 11px; }
+.type-new { height: 22px; padding: 0 10px; font-size: 11px; }
+.type-steps { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; font-size: 11px; color: var(--muted); }
+.type-steps li { padding: 1px 8px; border: 1px solid var(--line); border-radius: 10px; }
+.type-steps li.done { color: var(--ink); border-color: var(--ink); }
+.type-steps li.now { color: var(--ink); border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
+.type-step-link { height: auto; padding: 0; border: 0; background: none; color: inherit; font-size: 11px; cursor: pointer; text-decoration: underline; }
+.type-note { margin: 0; font-size: 11px; color: var(--muted); }
+
 /* The three stages: one tab per stage, one stage on screen, so the 3D view keeps its height. */
 .stage-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .stage-tab { height: auto; padding: 4px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; font-weight: 600; }
@@ -340,7 +359,7 @@
       <div class="bench-actions">
         <button id="bench-run" data-ui="bench-run">Apply and run again</button>
         <button id="bench-reset" data-ui="bench-reset" title="Put the search, the zone setup and every setting back to the standard ones. The review on screen is not touched.">Discard my changes</button>
-        <button id="type-save" data-ui="type-save" title="Copy the type the review on screen RAN, with its proof, to types/denture/&lt;name&gt;.type.json - commit it to ship it.">Save type</button>
+        <button id="type-save" data-ui="type-save" title="Copy the type the review on screen RAN, with its proof, to types/&lt;category&gt;/&lt;id&gt;.type.json - commit it to ship it.">Save type</button>
       </div>
       <p class="muted" id="bench-status" data-ui="bench-status"></p>
     </section>
@@ -348,6 +367,7 @@
 </main>
 <section class="chain" id="chain" data-ui="review-node-chain" hidden>
   <div class="chain-divider" id="chain-divider" data-ui="chain-divider" role="separator" aria-orientation="horizontal" aria-label="Resize the stage area" tabindex="0" title="Drag to give the stages more or less height. Double-click to fit. Arrow keys work too."></div>
+  <div class="type-strip" id="type-strip" data-ui="type-strip"></div>
   <div class="stage-tabs" id="stage-tabs" data-ui="review-stage-tabs"></div>
   <div class="stage-run" id="stage-run" data-ui="stage-run" hidden></div>
   <div class="stage-body" id="stage-body" data-ui="review-stage-body"></div>
@@ -487,6 +507,19 @@ let typeName = 'workbench.denture';
 try { typeName = localStorage.getItem('review-type-id') || typeName; } catch { /* per-viewer only */ }
 let typeBadge = '';
 try { typeBadge = localStorage.getItem('review-type-badge') || ''; } catch { /* per-viewer only */ }
+/* The New-type strip's state (drawTypeStrip): the full name, whether the id was typed by hand (else it follows the
+   name), and which type the review on screen RAN and which was SAVED - the steps are marked from these, never guessed. */
+let typeFullName = '';
+try { typeFullName = localStorage.getItem('review-type-full-name') || ''; } catch { /* per-viewer only */ }
+let typeIdTyped = false;
+let ranTypeId = null;
+let savedTypeId = null;
+/* The categories a type may belong to - the app's list (host `DENTAL_KINDS`), never typed. A new category is a code
+   change (src/components/README.md, "Adding a category"); viewerScript.test.ts holds this list to the host's. */
+const TYPE_CATEGORIES = [['denture', 'Denture'], ['aligner', 'Aligner']];
+/* Set once the review server answers (the served summary, near the end of this script): the New-type strip and Save
+   type need it. A plain variable up here, because drawChain may run before that const is reached. */
+let reviewServed = false;
 let lastChain = null;
 /** The search in force on the page: the built-in values with this viewer's edits on top. */
 function searchNow() {
@@ -955,6 +988,103 @@ function settingsBox(settings, names) {
 }
 
 /** The print-angle search: the range auto-detection searches, and how its degrees are measured. */
+/** An id from a full name: lower-case letters, digits and dashes; '' when the name has none (a Japanese name, say). */
+function idOfName(name) {
+  return name.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+
+/**
+ * THE NEW-TYPE STRIP (owner, 2026-11-22: "badge set by user, with full name in drop down; category set by app to choose
+ * from"). One place, above the stage tabs, that says which type is being made and how far it has got: category (the
+ * app's list; the folder decides which one runs), full name, id, badge, and the steps in order with each one marked
+ * from what actually happened - named, run, saved - never guessed. Stages 2-4 are optional edits, so they are links.
+ */
+function drawTypeStrip() {
+  const strip = document.getElementById('type-strip');
+  if (!strip) return;
+  strip.textContent = '';
+  const save = (key, value) => { try { localStorage.setItem(key, value); } catch { /* per-viewer only */ } };
+  const field = (label, ui, input, tip) => {
+    const row = Object.assign(document.createElement('label'), { className: 'type-field' });
+    row.dataset.tipTitle = label;
+    row.dataset.tip = tip;
+    input.dataset.ui = ui;
+    row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: label }), input);
+    return row;
+  };
+  const category = document.createElement('select');
+  for (const [value, label] of TYPE_CATEGORIES) {
+    // The folder on screen was run as one category; a type of another needs a folder of those scans.
+    const option = Object.assign(document.createElement('option'), { value, textContent: label, selected: value === kindNow, disabled: value !== kindNow });
+    if (value !== kindNow) option.title = `This folder was run as ${kindNow === 'denture' ? 'dentures' : 'aligners'}: open a folder of ${label.toLowerCase()} scans to make a ${label.toLowerCase()} type.`;
+    category.append(option);
+  }
+  const fullName = Object.assign(document.createElement('input'), { type: 'text', value: typeFullName, maxLength: 60, placeholder: 'Soft denture', spellcheck: false });
+  const id = Object.assign(document.createElement('input'), { type: 'text', value: typeName, spellcheck: false, className: 'type-id' });
+  const badge = Object.assign(document.createElement('input'), { type: 'text', value: typeBadge, maxLength: 5, placeholder: 'G', spellcheck: false, className: 'type-badge-input' });
+  fullName.addEventListener('input', () => {
+    typeFullName = fullName.value;
+    save('review-type-full-name', typeFullName);
+    // The id follows the name until it is typed by hand; a name with no Latin letters keeps the id there was.
+    const derived = idOfName(typeFullName);
+    if (!typeIdTyped && derived) { typeName = derived; id.value = derived; save('review-type-id', typeName); }
+  });
+  fullName.addEventListener('change', () => drawTypeStrip());
+  id.addEventListener('change', () => { typeName = id.value.trim(); typeIdTyped = true; save('review-type-id', typeName); drawTypeStrip(); });
+  badge.addEventListener('change', () => { typeBadge = badge.value.trim(); save('review-type-badge', typeBadge); drawTypeStrip(); });
+  const newType = Object.assign(document.createElement('button'), { type: 'button', textContent: 'New type', className: 'type-new' });
+  newType.dataset.ui = 'type-new';
+  newType.title = 'Start a new type from the built-in one: clears the name, id and badge and puts the search, the zone setup and every setting back to the standard ones. The review on screen is not touched.';
+  newType.addEventListener('click', () => {
+    typeFullName = ''; typeName = ''; typeBadge = ''; typeIdTyped = false; ranTypeId = null; savedTypeId = null;
+    for (const key of ['review-type-full-name', 'review-type-id', 'review-type-badge']) save(key, '');
+    document.getElementById('bench-reset')?.click();
+    drawTypeStrip();
+    document.querySelector('[data-ui="type-full-name"]')?.focus();
+  });
+  const fields = Object.assign(document.createElement('div'), { className: 'type-fields' });
+  fields.append(
+    Object.assign(document.createElement('b'), { className: 'type-title', textContent: 'Type' }),
+    field('category', 'type-category', category, 'What the type is for - the app\'s list. The folder on screen decides which one runs.'),
+    field('name', 'type-full-name', fullName, 'The full name the app shows in its type list, one line, up to 60 characters.'),
+    field('id', 'type-name', id, 'The file name: lower-case letters, digits, dots and dashes. Follows the name until you type it yourself. Save type writes types/<category>/<id>.type.json.'),
+    field('badge', 'type-badge', badge, 'Up to 5 characters, no spaces: shown beside the name in the app\'s type list. Empty = the app\'s default badge.'),
+    Object.assign(document.createElement('span'), { className: 'type-based', textContent: 'based on the built-in' }),
+    newType,
+  );
+  // The steps, in order, each marked from what happened.
+  const named = /^[a-z0-9][a-z0-9.-]*$/.test(typeName) && typeFullName.trim() !== '';
+  const ran = named && ranTypeId === typeName;
+  const saved = ran && savedTypeId === typeName;
+  const steps = Object.assign(document.createElement('ol'), { className: 'type-steps' });
+  steps.dataset.ui = 'type-steps';
+  const current = !named ? 'name' : !ran ? 'apply' : !saved ? 'save' : null;
+  for (const [key, label, done, stage] of [
+    ['name', 'Name it', named, null], ['orient', '1 Orient', false, 'orient'], ['zones', '2 Zones', false, 'zones'],
+    ['support', '3 Settings', false, 'support'], ['apply', 'Apply and run', ran, null], ['save', 'Save type', saved, null],
+  ]) {
+    const step = document.createElement('li');
+    step.dataset.ui = `type-step-${key}`;
+    step.className = `${done ? 'done' : ''}${current === key ? ' now' : ''}`.trim();
+    if (stage && kindNow === 'denture') {
+      // Optional edits: a link to the stage, not a box to tick.
+      const go = Object.assign(document.createElement('button'), { type: 'button', textContent: label, className: 'type-step-link' });
+      go.addEventListener('click', () => { stageNow = stage; save('review-stage', stage); if (lastChain) drawChain(...lastChain); });
+      step.append(go);
+    } else if (!stage) {
+      step.textContent = `${done ? '✓ ' : ''}${label}`;
+    } else {
+      continue; // an aligner run has no editable stages yet
+    }
+    steps.append(step);
+  }
+  strip.append(fields, steps);
+  if (kindNow === 'aligner') {
+    strip.append(Object.assign(document.createElement('p'), { className: 'type-note',
+      textContent: 'An aligner type can be named, run and saved; the app does not load aligner types yet (docs/TYPE-PIPELINE.md, section 8a).' }));
+  }
+}
+
 function searchCard() {
   const s = searchNow();
   const node = document.createElement('div');
@@ -990,35 +1120,7 @@ function searchCard() {
   how.textContent = '0° is the denture standing upright on the open ends of the U, front of the arch on top. Each degree leans it back so the teeth side faces further up.';
   const box = document.createElement('div');
   box.className = 'chain-sets';
-  // The type's name: what Save type writes, as types/denture/<name>.type.json.
-  const nameRow = document.createElement('label');
-  nameRow.className = 'chain-set';
-  nameRow.dataset.tipTitle = 'type name';
-  nameRow.dataset.tip = 'Lower-case letters, digits, dots and dashes. Apply runs the type under this name; Save type writes it to types/denture/<name>.type.json, to be committed.';
-  const nameInput = Object.assign(document.createElement('input'), { type: 'text', value: typeName, spellcheck: false });
-  nameInput.dataset.ui = 'type-name';
-  nameInput.className = 'type-name';
-  nameInput.addEventListener('change', () => {
-    typeName = nameInput.value.trim();
-    try { localStorage.setItem('review-type-id', typeName); } catch { /* per-viewer only */ }
-  });
-  nameRow.append(Object.assign(document.createElement('span'), { className: 'k', textContent: 'type name' }), nameInput);
-  box.append(nameRow);
-  // The type's badge in the app's type picker: up to 5 characters, beside its full name (owner, 2026-11-22). The type
-  // file reader refuses anything else by name, so this field only limits what can be typed.
-  const badgeRow = document.createElement('label');
-  badgeRow.className = 'chain-set';
-  badgeRow.dataset.tipTitle = 'badge';
-  badgeRow.dataset.tip = 'Up to 5 characters, no spaces: what the app shows beside the type\'s name in its type list. Empty = the app\'s default badge.';
-  const badgeInput = Object.assign(document.createElement('input'), { type: 'text', value: typeBadge, maxLength: 5, spellcheck: false });
-  badgeInput.dataset.ui = 'type-badge';
-  badgeInput.className = 'type-badge';
-  badgeInput.addEventListener('change', () => {
-    typeBadge = badgeInput.value.trim();
-    try { localStorage.setItem('review-type-badge', typeBadge); } catch { /* per-viewer only */ }
-  });
-  badgeRow.append(Object.assign(document.createElement('span'), { className: 'k', textContent: 'badge' }), badgeInput);
-  box.append(badgeRow);
+  // The type's name and badge moved to the New-type strip above the stage tabs (drawTypeStrip).
   // The search: real fields now that the engine takes a type's numbers (engine 70).
   const defaults = graphLib?.PRINT_ANGLE_SEARCH ?? { startDeg: 0, endDeg: 45, stepDeg: 2, marginDeg: 2 };
   for (const [key, label, field, why] of POSE_FIELDS) {
@@ -1063,6 +1165,9 @@ function drawChain(present, names) {
   const tabs = document.getElementById('stage-tabs');
   const body = document.getElementById('stage-body');
   if (!section || !tabs || !body) return;
+  // The type being made sits above the stages for both kinds - only a served review can run or save one.
+  const strip = document.getElementById('type-strip');
+  if (strip) { strip.hidden = !reviewServed; if (reviewServed) drawTypeStrip(); }
   if (kindNow !== 'denture') {
     // An aligner run shows the aligner's LOCKED graph read-only (step 4.4c, docs/ORIENT-NODES.md section 10).
     section.hidden = !graphLib;
@@ -2015,6 +2120,7 @@ addEventListener('keydown', (event) => {
   if (event.key === 'ArrowUp' || event.key === 'PageUp') select(current - 1);
 });
 const served = await fetch('/out/summary.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+reviewServed = Boolean(served);
 if (served) openRun(served, (name) => `/out/${name}`, '/out/summary.csv');
 else empty('Drop a batch-... folder from dentalwork/output here, or its summary.json with the case GLBs. Open folder and Open files do the same.');
 
@@ -2089,6 +2195,8 @@ try {
     const reply = await fetch('/save-type', { method: 'POST' }).catch(() => null);
     const answer = reply ? await reply.json().catch(() => ({})) : { error: 'the server did not answer' };
     status.textContent = answer.ok ? `Saved ${answer.path} - commit it to ship it. It holds what this review ran, with its proof.` : `Not saved: ${answer.error ?? 'no answer'}`;
+    // The strip marks Save done only for the type that ran (`ranTypeId`) - that is what the server copied.
+    if (answer.ok) { savedTypeId = ranTypeId; if (lastChain) drawChain(...lastChain); }
   });
   const run = document.getElementById('bench-run');
   run.addEventListener('click', async () => {
@@ -2099,18 +2207,21 @@ try {
     // node editor's own Apply do nothing for a graph-only edit - found by pressing it.
     const graphEdited = Boolean(graphLib && zoneGraph && !graphLib.isDefault(zoneGraph));
     const poseEdited = Object.keys(poseEdits).length > 0;
-    if (Object.keys(rules).length === 0 && !graphEdited && !poseEdited) { status.textContent = 'Nothing is changed yet. Edit the search (1 Orient), the zone graph (2 Zones) or a setting (3), then apply.'; return; }
+    // A newly named type is a reason to run on its own: it is how a type that keeps the built-in's numbers but has
+    // its own name and badge gets made (the New-type strip).
+    const newType = typeName !== '' && ranTypeId !== typeName;
+    if (Object.keys(rules).length === 0 && !graphEdited && !poseEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the search (1 Orient), the zone graph (2 Zones) or a setting (3), then apply.'; return; }
     const poseProblem = searchProblem(searchNow());
     if (poseProblem) { status.textContent = `Fix the search first (1 Orient): ${poseProblem}.`; return; }
-    if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) { status.textContent = 'The type name (1 Orient) is lower-case letters, digits, dots and dashes.'; return; }
+    if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) { status.textContent = 'The type id (the Type strip above the stages) is lower-case letters, digits, dots and dashes.'; return; }
     const graphProblems = graphEdited ? graphLib.validate(zoneGraph).problems : [];
     if (graphProblems.length) { status.textContent = `Fix the zone graph first (2 Zones): ${graphProblems[0]}`; return; }
     run.disabled = true;
-    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(poseEdited ? ['the edited search'] : [])].join(', ');
+    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(poseEdited ? ['the edited search'] : []), ...(newType ? [`the new type ${typeName}`] : [])].join(', ');
     status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
     try {
       const reply = await fetch('/rerun', { method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, badge: typeBadge, pose: poseEdits,
+        body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, name: typeFullName, badge: typeBadge, pose: poseEdits,
           // The node editor's graph, only when it has been edited: the default is sent as nothing, so a
           // run with no edit is exactly the run it always was.
           zoneGraph: graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null }) });
@@ -2129,6 +2240,9 @@ try {
       // What may be claimed comes from the run's OWN summary, never the request (cia F2; rerunReport.mjs).
       const outcome = rerunOutcome({ graphEdited, summaryGraph: fresh.zoneGraph, names });
       if (outcome.applied) appliedGraphText = graphEdited ? JSON.stringify(zoneGraph) : JSON.stringify(graphLib?.defaultGraph() ?? null);
+      // The run on screen is now this type: the strip marks Apply done, and Save becomes the next step.
+      ranTypeId = typeName;
+      savedTypeId = null;
       openRun(fresh, (name) => `/out/${name}?t=${Date.now()}`, '/out/summary.csv');
       status.textContent = outcome.text;
     } catch (error) {

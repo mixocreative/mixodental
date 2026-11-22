@@ -47,4 +47,18 @@ describe('the folder review page script', () => {
     expect(denture.length).toBeGreaterThan(10);
     expect(missing).toEqual([]);
   });
+
+  /*
+   * THE NEW-TYPE STRIP OFFERS THE APP'S CATEGORIES (owner, 2026-11-22: "Category set by app to choose from"). The page
+   * cannot import the host, so it keeps its own list; this holds it to the engine's `DENTAL_KINDS`, or a new category
+   * would be missing from the workbench without a word.
+   */
+  it('offers exactly the engine\'s categories on the New-type strip', async () => {
+    const { DENTAL_KINDS } = await import('@mixo-geocore/host/dental/dentalKind');
+    const code = scripts.join('\n');
+    const list = /const TYPE_CATEGORIES = (\[[^;]+\]);/.exec(code)?.[1];
+    expect(list, 'TYPE_CATEGORIES in viewer.html').toBeTruthy();
+    const kinds = [...list!.matchAll(/\['([a-z]+)', '/g)].map(([, kind]) => kind);
+    expect(kinds.sort()).toEqual([...DENTAL_KINDS].sort());
+  });
 });

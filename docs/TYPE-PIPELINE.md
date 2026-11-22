@@ -436,7 +436,9 @@ listed with its reason.
     mark. An empty badge or more than 5 characters is refused by name.
   - **Full name in the drop-down:** the type list shows the badge and the type's full name
     (`profile.name` in the operator's language) side by side; the badge alone is never the only label.
-    The workbench sets the name: until the New-type screen has a name field, the id in all three
+    The workbench sets the name on its New-type strip (built 2026-11-22: category from the app's list,
+    full name, id following the name, badge, the steps marked from what happened); with no name typed,
+    the id - in all three
     languages.
   - **Category from the app's list:** the user picks the category from the list the app defines
     (`DENTAL_KINDS` - today aligner, denture), never types one; a type file naming any other category is
