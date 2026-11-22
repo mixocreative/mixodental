@@ -824,8 +824,11 @@ becomes available here - one rule, seen from both sides.
      `alignerGraph()` and a locked `validate` branch for `kind: 'aligner'` with the engine's words; an unknown kind is
      refused. The type file accepts the aligner's locked default on an aligner type only (an edit to it is refused, a
      denture cannot carry it). `zoneGraphParity.test.ts` has six aligner cases and host and engine agree on all of
-     them. Proven: four tests fail with the host's aligner branch removed. **(4c) still to do, the screen:** the
-     viewer shows the aligner's locked graph (read-only, each node greyed with its sentence) on an aligner run.
+     them. Proven: four tests fail with the host's aligner branch removed. **(4c) DONE 2026-11-22, the screen:** on
+     an aligner run the review viewer's stage area shows the aligner's locked graph read-only - six cards, each with
+     a "locked" tag, its plain sentence, what it reads and which output it fills; no control on it, because every
+     node is fixed in this version. Checked in the browser on a fresh aligner run at 1440 x 900 (six cards, the rail
+     fits without scrolling); app gate 1985 tests, walk ALL PASS 199 + 2. Step 4 is complete.
    - **Why `gate:real` alone is not the proof:** an aligner graph that is only declared changes nothing the scans
      record, so the gate passes vacuously; step (3)'s refusal test is the real check until a node is freed.
    - **Traps (checked):** ONE override slot today (`zone_graph.rs` `OVERRIDE`), and `typeInForce.ts` sets the graph
