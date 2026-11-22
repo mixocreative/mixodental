@@ -839,6 +839,23 @@ becomes available here - one rule, seen from both sides.
      aligner (`typeFile.ts`) - keep that until (3), then allow only the default. `default_graph(steep_deg)` and the
      host's `REQUIRED_OUTPUTS` are denture-shaped; `KINDS.rim.reads` names the denture finder.
 5. **`rim` socket**: wrap each finder whole, no logic moved. Proof: bit-equal rim points on the real scans.
+   **Made implementable by Fable (2026-11-22), claims checked:**
+   - **5.1 DONE 2026-11-22** (geocore a4cd919 `dental/standard_rim.rs`): `StandardRim { lines: Vec<RimPolyline>, source }`,
+     `RimPolyline { points: Vec<V3>, closed, vertices: Option<Vec<u32>> }`, `RimSource { Detected, Fallback, Drawn }`,
+     and two pure conversions - `from_aligner(&Rim)` (one closed loop, no ids; f32 points widened exactly, so they
+     come back bit for bit) and `from_denture(&[RimLine])` (one polyline per line, welded-surface ids). No caller
+     changed. Proof: unit tests, plus round-trip assertions in the two real-scan tests (`local_orientation.rs`, 8
+     lab aligner scans; `denture_rules.rs` on the local denture scans), which fail on a reversed rim.
+     `gate:real` alone would not prove this - it records tip counts and GLB hashes, not rim points.
+     Deliberately NOT carried: the denture's per-edge ids and lengths (`rim_tips.rs` and the review read them from
+     `Analysis::rim`), the aligner's frame and visibility raster, and the whole-rim closed / gap facts.
+   - **5.2 next:** add `rim: &StandardRim` to the denture zone graph's `Sources`, built once in `Analysis::of`;
+     add `rim: Option<StandardRim>` to `ZoneOutputs`, filled by following the pinned `rim -> RIM` output. The finder
+     runs once and no mask path changes. Proof: the mask tests unchanged, `outputs.rim` equal to the standard rim of
+     `Analysis::rim` on the denture scans, then `gate:real`.
+   - **Traps (checked):** denture vertex ids index the welded hard-edge surface, not the mesh; convert the aligner from
+     `Rim::points` (f32), not `make_rim`'s f64 loop; never re-sort points; a fallback stays `Fallback` (never
+     authorises supports); do not recompute a line's length from its points (`rim_tips.rs` takes the max of both).
 6. **`lookFrom`** as an explicit input to both finders. Proof: bit-equal.
 7. **`fitPlane` node**, then free the denture rim bands from `FIXED_OUTPUTS`. Proof: mask equality.
 8. **Plane display** - moved up to run right after step 2 (it needs only the names, and it is the visible value):
