@@ -2809,15 +2809,15 @@
     "semantic_hash": ""
   },
   "dentalwork/batch-review/serve.mjs": {
-    "mtime": 1795356773.3076231,
-    "seen": 1795359974.3135643,
-    "ast_hash": "8672ac514e9f71cb41761ffb01fc910e",
+    "mtime": 1795360345.8076704,
+    "seen": 1795363205.8461015,
+    "ast_hash": "af858c28c089ae12c65241cbb69e4d1b",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/viewer.html": {
-    "mtime": 1795356793.1689944,
-    "seen": 1795359974.3135643,
-    "ast_hash": "bf231afe2544e2b98e988c57529fc2eb",
+    "mtime": 1795360476.7083578,
+    "seen": 1795363205.847105,
+    "ast_hash": "ba263e42ab19068dc3c362add41f4eb2",
     "semantic_hash": ""
   },
   ".github/dependabot.yml": {
@@ -6601,9 +6601,9 @@
     "semantic_hash": ""
   },
   "benchwork/cli.mjs": {
-    "mtime": 1795356773.3071187,
-    "seen": 1795359974.3135643,
-    "ast_hash": "0925162d86146d2174c89c362c22b331",
+    "mtime": 1795360345.8076704,
+    "seen": 1795363205.8461015,
+    "ast_hash": "fc8e8e683c579971f99f86b0fcf14247",
     "semantic_hash": ""
   },
   "benchwork/rules.mjs": {
@@ -6721,9 +6721,9 @@
     "semantic_hash": ""
   },
   "docs/TYPE-PIPELINE.md": {
-    "mtime": 1795357583.9269853,
-    "seen": 1795359974.3135643,
-    "ast_hash": "9edb2f30943922f84b9aced2eb9e4443",
+    "mtime": 1795360835.4159424,
+    "seen": 1795363205.847105,
+    "ast_hash": "1ee73a87a2a98cc7df34931d54dcc39e",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/rerunReport.mjs": {
@@ -6751,15 +6751,15 @@
     "semantic_hash": ""
   },
   "dentalwork/batch-review/typeInForce.ts": {
-    "mtime": 1795356757.6270688,
-    "seen": 1795359974.3135643,
-    "ast_hash": "997a38e4f9b4545d73308ae22476f14d",
+    "mtime": 1795360345.8076704,
+    "seen": 1795363205.8461015,
+    "ast_hash": "6111486910b83257eed6bb4d661db709",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/viewerScript.test.ts": {
-    "mtime": 1795293123.68322,
-    "seen": 1795295822.8769403,
-    "ast_hash": "eb760b0c9b4e1db52c0f2cfc3cdc7996",
+    "mtime": 1795360497.0695858,
+    "seen": 1795363205.8461015,
+    "ast_hash": "b9e35ebb5da04760056df6c0d7fea407",
     "semantic_hash": ""
   },
   "scripts/tilt-measure.ts": {
@@ -6781,9 +6781,9 @@
     "semantic_hash": ""
   },
   "types/README.md": {
-    "mtime": 1795357377.4401593,
-    "seen": 1795359974.3135643,
-    "ast_hash": "f8bb7b28856c05ae953d1f910b7bf46a",
+    "mtime": 1795360835.4159424,
+    "seen": 1795363205.847105,
+    "ast_hash": "a168507b895d8f5dfd6353ddd18ce960",
     "semantic_hash": ""
   },
   "src/components/SceneLegend.test.tsx": {
@@ -6829,9 +6829,9 @@
     "semantic_hash": ""
   },
   "dentalwork/batch-review/typeInForce.test.ts": {
-    "mtime": 1795356826.2677064,
-    "seen": 1795359974.3135643,
-    "ast_hash": "8bbb96fec6f880922effa1470e54740d",
+    "mtime": 1795360504.5487552,
+    "seen": 1795363205.8461015,
+    "ast_hash": "7f72fa199d3d38a950de7610b803ffe7",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/nodeEditor/RimCanvas.tsx": {
