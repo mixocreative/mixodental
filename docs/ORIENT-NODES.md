@@ -918,6 +918,56 @@ becomes available here - one rule, seen from both sides.
    in 3D (the engine-written trim plane retinted), frame-source planes on by default; captured and measured.
 9. **`rimSide`** (new behaviour, off by default, owner-reviewed); 10. **`rimDrawn`** for dentures.
 
+### Owner rulings of 2026-11-23, and the build they unlock
+
+| Item | Ruling (owner's words where quoted) | What it means for the build |
+|---|---|---|
+| 7.3 | the profile's width wins; wait for U6 | RIMBAND / LOWRIMBAND are freed together with the editable canvas, and the engine keeps growing them at the profile's width |
+| 9 `rimSide` | off by default | a zone node kind the palette offers, not in any default graph |
+| 10 `rimDrawn` | *"the drawn rim should replace the detected"* | a drawn denture rim REPLACES the detected one for that model, everywhere the rim is read: both strips, rim tips, the rim plane, the sight origin. The sentence above ("a drawn or fallback rim never authorises automatic supports today, and must not start to") is overruled for a DRAWN rim; a FALLBACK rim still never authorises. The aligner already works this way (Done turns the drawing into its real `DentalRim`). |
+| U6 / ruling 1 | *"The flat base should be a new kind with a dental model with a flat base. But the node itself should be used by others if needed"* | the flat-base recipe is the default Orient graph of a NEW kind, dental model; the Orient node kinds are one shared vocabulary, so a denture or aligner graph may use them too. The denture and aligner defaults stay today's orientation. |
+
+**Build order:**
+
+1. **Step 10, engine:** `rim_from_drawn` snaps the drawn points to the welded surface and joins them with the finder's own `join`, so a drawn rim is a `RimFound` of the same shape. A per-model store keyed by the mesh fingerprint holds the drawn points, its digest goes into the analysis cache key, and `Analysis::of` reads it, giving a `StandardRim` with source `Drawn`. wasm: `set_denture_drawn_rim(model, points, closed)`; empty points clear it.
+2. **Step 10, app:** the denture's Step 1 gets the same rim edit mode as the aligner (`src/dental/rim/`, one tool), seeded from the detected denture rim. Done stores the drawing on the unit (one undo step, saved in the project), and the denture worker sets it before every job on that model.
+3. **Step 9:** zone kind `rimSide {side, mm}` - the faces within `mm` of the rim, along the surface, whose normal faces the fitting side (inner) or away from it (outer). Engine `zone_graph.rs`, host `KINDS`, the zones palette. Denture only until an aligner node is freed (the aligner graph is locked).
+4. **U3 -> U4 -> U5** as section 5 says (pose split; `orient_graph.rs` with the shared node kinds; wasm, host and batch `--orient-graph`).
+5. **U6 + 7.3:** the editable Orient canvas in the review viewer, `orientGraph` in the type file, and the rim strips freed.
+6. **U8, the dental-model kind end to end:** needs a sample model file from the owner, plus ruling 4 (turn the base to the plate and support as usual, or print it flat on the plate). Not built before both arrive.
+
+**Fable's review of this plan (2026-11-23), adopted:**
+- ONE in-force slot for the drawn rim, set by the host before every job. A mesh-keyed store would never match: the analysis runs on the file's target part, and two copies of one denture can carry different drawings.
+- Snap only to vertices that have edges, within 2 mm, and drop A-B-A backtracks.
+- A pair the mesh cannot join is REFUSED by name, never cut the way the finder cuts a detour.
+- The drawn rim's largest gap is reported as 0, and the source is reported instead.
+- `orientation_of` needs no digest (orientation never reads the rim).
+- `rimSide` is proven with pictures on real scans before the owner reviews it. Near the border the flange wall runs almost along the fitting direction, so a normal-sign test is noise there; the fallback is the band intersected with the tissue-side visibility.
+- Not yet: 7.3, U8, an aligner `rimSide`, a denture `lookFrom`, a `fitPlane` node.
+- One meaning for both kinds, still open: a drawn ALIGNER rim stays `ProjectionFallback` and never authorises automatic supports, while a drawn DENTURE rim now does. The owner's ruling was given for the denture; whether the aligner follows is a question for the owner.
+
+**Step 9 BUILT 2026-11-23, off by default, waiting for the owner's look** (geocore 70ae5c7, engine 71):
+- **What it is:** zone kind `rimSide` - the faces within `mm` of the rim along the surface, on one side (`which` inner / outer; `mm` above 0 and at most 20). Its input is the RIM node. It is in no default graph, so no result changes until a graph wires it in.
+- **The rule:** each face's normal is tested against the outward direction at its nearest rim point, in the rim's plane - never against the fitting axis, which is noise on the flange wall (Fable). A face square to the rim plane counts as inner. This holds along the buccal flange, which is where the finder's rim runs.
+- **The host:** the palette offers it under Strips as "Rim side", with its words saying its width is its own, not the profile's.
+- **Proof:** a ring slab, wound as a real shell, puts its outer wall outer, its inner wall inner, and every strip face on exactly one side. Engine and host validation agree on three new parity cases.
+- **Not yet proven:** pictures on the real denture scans for the owner's review. No rule depends on it until then, which is why it stays off.
+- **Aligner:** has no `rimSide` until an aligner node is freed (its graph is locked).
+
+**Step 10 DONE 2026-11-23** (geocore 0c6ffe5 + 5d1193b, engine 71):
+- **Engine:** `dental/denture/drawn_rim.rs` holds the one slot. `Analysis::of` uses the drawing in place of `find_rim` (source `Drawn`). A drawing the mesh cannot carry falls back to the detected rim and keeps the reason (`drawn_rim_problem`), which reaches the policy, the review and the wasm. `set_denture_drawn_rim(points, closed)` sets the slot.
+- **App:** `PrintUnit.dentureRim` (`src/denture/state/dentureRim.ts`). Redraw the rim is offered on a denture's Step 1 once the angles are scanned, seeded from detection's rim, and an open U stays open. Done stores the drawing as one undo step and re-scans the print angles. Every denture job carries the drawing, Exit and a type change remove it (and ask first), and Next says so when it could not be laid.
+- **Proof:**
+  - a Rust end-to-end test (replace, the cache key, the fallback with its reason);
+  - a wasm host test;
+  - a real-scan app test (`dentureCore.test.ts`: placement on the drawing, the fallback, no leak into the next job);
+  - unit tests for each rule;
+  - a check in the browser on a real denture scan (Redraw seeded and open, Done re-scans, Next builds with no fallback message).
+- **Debt, written down:**
+  - The walk has no denture-rim check, because there is no public denture fixture to load. The real-scan test is the gate on this machine.
+  - The drawn rim is not drawn in the viewport after Done; only the draft is shown while drawing.
+  - The engine's refusal reason is English-only, so the app's message does not quote it.
+
 **Debt written down after Fable's review of the night's diffs (2026-11-22):**
 - FIXED 2026-11-22: the engine's input check called a host-only mask kind (`basinFill`) "not a set of faces".
   It now says "which this version cannot evaluate yet" (`zone_graph.rs` `HOST_ONLY_MASK_KINDS`, `not_faces`), for

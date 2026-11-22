@@ -42,6 +42,16 @@ function corpus(): [string, Graph][] {
   // A strip around the rim line (2 mm) used as a free output.
   const rimStrip = clone(d); rimStrip.outputs.allowed = 'RIMBAND';
   cases.push(['the rim strip as the allowed output', rimStrip]);
+  // Step 9's rim side (off by default): wired into allowed it runs; a bad side or width is refused by both.
+  const side = (which: unknown, mm: unknown) => {
+    const g = withNode(withNode(d, { id: 'IN', kind: 'rimSide', inputs: { rim: 'RIM' }, params: { which, mm } } as unknown as Node),
+      { id: 'AL2', kind: 'union', inputs: { a: 'AL', b: 'IN' }, params: {} } as unknown as Node);
+    g.outputs.allowed = 'AL2';
+    return g;
+  };
+  cases.push(['the inner rim side added to allowed', side('inner', 2)]);
+  cases.push(['a rim side of no known side', side('middle', 2)]);
+  cases.push(['a rim side 0 mm wide', side('outer', 0)]);
   // The aligner's locked graph (step 4.4b): host `alignerGraph` against engine `dental/aligner_graph.rs`.
   const a = (): Graph => alignerGraph() as unknown as Graph;
   cases.push(['the aligner default graph', a()]);

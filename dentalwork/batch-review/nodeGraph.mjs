@@ -49,6 +49,9 @@ export const KINDS = {
     reads: 'sockets.rs:100 - the socket basins, before any cancel' },
   band: { stage: 'zones', label: 'Band', out: 'mask', inputs: { seeds: 'mask|rim' }, params: { mm: 5 },
     reads: 'rim_graph.rs:112 - grows along mesh edges from faces OR a rim line\'s vertices' },
+  // Step 9 (docs/ORIENT-NODES.md section 10), OFF by default: offered in the palette, in no default graph.
+  rimSide: { stage: 'zones', label: 'Rim side', out: 'mask', inputs: { rim: 'rim' }, params: { which: 'inner', mm: 2 },
+    reads: 'zone_graph.rs rim_side - the strip along the rim on one side, by which way each face looks across the rim' },
   union: { stage: 'zones', label: 'Union', out: 'mask', inputs: { a: 'mask', b: 'mask' }, params: {}, reads: 'A or B, per face' },
   subtract: { stage: 'zones', label: 'Subtract', out: 'mask', inputs: { a: 'mask', b: 'mask' }, params: {},
     reads: 'A and not B. A is the minuend: swapping them is a different zone' },
@@ -83,7 +86,7 @@ export const KIND_GROUP = {
   parallelCast: 'rays', sightCast: 'rays',
   intersection: 'points', planePoint: 'points',
   depthCast: 'maps', holes: 'maps', basinFill: 'maps',
-  band: 'strips',
+  band: 'strips', rimSide: 'strips',
   union: 'combine', subtract: 'combine', intersect: 'combine', not: 'combine',
   rim: 'orient',
 };
@@ -98,6 +101,7 @@ export const KIND_WORDS = {
   basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map. Not runnable yet: the socket depth comes from the rule "socket depth".' },
   band: { title: 'Strip around', says: 'Every face within a set distance of its seeds, measured along the surface. In this version only the 5 mm strip around Find holes is editable; the two rim strips are fixed, and their width comes from the profile, not from this node.' },
   rim: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
+  rimSide: { title: 'Rim side', says: "Faces near the rim on ONE side of it: inner faces the fitting surface, outer is the visible outside. Its width is this node's own, not the profile's rim strip width. Nothing uses it until you wire it in." },
   union: { title: 'Either A or B', says: 'Faces in A, or in B, or in both.' },
   subtract: { title: 'A without B', says: 'Faces in A, minus any that are also in B. A and B are not interchangeable.' },
   intersect: { title: 'Both A and B', says: 'Only the faces that are in both A and B.' },
@@ -142,6 +146,8 @@ export const PARAM_WORDS = {
   minAreaMm2: { label: 'smallest hole (mm2)', help: 'Openings smaller than this are ignored.' },
   minDepthMm: { label: 'shallowest socket (mm)', help: 'Hollows shallower than this are not sockets.' },
   mm: { label: 'strip width (mm)', help: 'How far from the seeds the strip reaches, measured along the surface.' },
+  which: { label: 'side of the rim', help: 'Inner faces the fitting surface; outer is the visible outside.',
+    choices: [['inner', 'inner - facing the fitting surface'], ['outer', 'outer - the visible outside']] },
 };
 
 /**
@@ -376,6 +382,11 @@ export function validate(graph) {
     const was = byId(today, node.id)?.params ?? KINDS[node.kind]?.params ?? {};
     for (const key of FIXED.params[node.kind] ?? []) {
       if (key in node.params && node.params[key] !== was[key]) problems.push(`${node.id}: "${key}" is fixed at ${was[key]} in this version - the engine does not read an edit yet`);
+    }
+    if (node.kind === 'rimSide') {
+      const mm = Number(node.params.mm);
+      if (!(mm > 0 && mm <= 20)) problems.push(`${node.id}: mm must be above 0 and at most 20, got ${node.params.mm}`);
+      if (node.params.which !== 'inner' && node.params.which !== 'outer') problems.push(`${node.id}: which must be inner or outer, got "${node.params.which}"`);
     }
     if (node.kind === 'band' && !['RIMBAND', 'LOWRIMBAND'].includes(node.id) && byId(graph, node.inputs.seeds)?.kind !== 'holes') {
       problems.push(`${node.id}: in this version a strip must be seeded by Find holes - from anything else it would still run as the hole strip`);
