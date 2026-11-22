@@ -479,6 +479,52 @@ function validateAligner(graph) {
   return { problems, warnings: [], ok: problems.length === 0 };
 }
 
+/*
+ * THE RIM TAB (docs/ORIENT-NODES.md section 10): what stage 1 (Orient) finds, as nodes, for each kind - the frame the
+ * search starts from, where it looks from, the rim, and what is grown from the rim. Shown read-only: every node stands
+ * for today's code, and nothing here is wired by an operator yet.
+ *
+ * THE GREYING RULE, from both sides: a node computed FROM the finished rim (the rim plane, the rim crossing) is shown
+ * greyed and disabled here with its reason, and is what the Support zones tab receives. Nothing on the rim tab may
+ * read a greyed node - the rim cannot depend on its own result. `nodeGraph.test.ts` holds that invariant.
+ */
+export const RIM_DERIVED_REASON = 'Needs the rim. Available from the Support zones tab.';
+
+export const RIM_TAB_KINDS = {
+  ...ALIGNER_KINDS,
+  archFrame: { label: 'Arch frame', out: 'frame', inputs: {},
+    says: 'The part\'s own directions - teeth side, front and back, left and right - found from the arch shape.' },
+  rimLowPoints: { label: 'Rim', out: 'rim', inputs: { frame: 'frame' },
+    says: 'The lowest outer edge on the tissue side, followed all the way round the arch.' },
+  rimStrip: { label: 'Rim strip', out: 'mask', inputs: { rim: 'rim' },
+    says: `Faces along the rim, as wide as the profile's rim strip width (${RIM_STRIP_MM.rim_band} mm by default).` },
+  lowRimStrip: { label: 'Low rim strip', out: 'mask', inputs: { rim: 'rim' },
+    says: `The wider strip along the rim, as wide as the profile's low rim strip width (${RIM_STRIP_MM.low_rim_band} mm by default).` },
+  fitPlane: { label: 'Rim plane', out: 'plane', inputs: { rim: 'rim' }, derived: true,
+    says: 'The plane fitted through the finished rim line.' },
+  rimCrossing: { label: 'Rim crossing', out: 'position', inputs: { plane: 'plane' }, derived: true,
+    says: 'Where the rim plane crosses the symmetry plane, at the back of the part. The cavity rays start here.' },
+};
+
+/** The rim tab's graph for `kind` ('aligner' | 'denture'): nodes as `{ id, kind, inputs }`, read-only. */
+export function rimTabGraph(kind) {
+  const node = (id, k, inputs = {}) => ({ id, kind: k, params: {}, inputs });
+  const nodes = kind === 'aligner'
+    ? [...alignerGraph().nodes, node('RIMPLANE', 'fitPlane', { rim: 'RIM' })]
+    : [node('FRAME', 'archFrame'), node('RIM', 'rimLowPoints', { frame: 'FRAME' }), node('RIMBAND', 'rimStrip', { rim: 'RIM' }),
+      node('LOWRIMBAND', 'lowRimStrip', { rim: 'RIM' }), node('RIMPLANE', 'fitPlane', { rim: 'RIM' }), node('CROSSING', 'rimCrossing', { plane: 'RIMPLANE' })];
+  return { kind, nodes, outputs: {} };
+}
+
+/** What the canvas draws for each rim-tab node: its words, whether it is greyed (and why), and its wires. */
+export function rimTabView(kind) {
+  return rimTabGraph(kind).nodes.map((n) => {
+    const spec = RIM_TAB_KINDS[n.kind];
+    return { id: n.id, title: spec.label, says: spec.says, out: spec.out, derived: Boolean(spec.derived),
+      reason: spec.derived ? RIM_DERIVED_REASON : null, inputs: Object.entries(n.inputs) };
+  });
+}
+
 /** True when `graph` is the default, node for node - the only graph that runs today. */
 export function isDefault(graph) {
   return JSON.stringify(graph) === JSON.stringify(defaultGraph());

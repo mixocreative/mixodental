@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
-  ALIGNER_KINDS, OLD_KINDS, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, setParam, unreached, upgradeGraph, validate,
+  ALIGNER_KINDS, OLD_KINDS, RIM_DERIVED_REASON, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, rimTabGraph, rimTabView,
+  setParam, unreached, upgradeGraph, validate,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -257,5 +258,38 @@ describe('the aligner graph is locked', () => {
     expect(validate(defaultGraph()).ok).toBe(true);
     expect(validate({ ...defaultGraph(), kind: 'denture' }).ok).toBe(true);
     expect(validate({ ...alignerGraph(), kind: 'crown' }).problems[0]).toMatch(/"crown"/);
+  });
+});
+
+/* The rim tab (section 10): stage 1's nodes per kind, with the rim-derived ones greyed. */
+describe('the rim tab', () => {
+  for (const kind of ['aligner', 'denture'] as const) {
+    it(`${kind}: every node says what it is, and every wire points at a node on the tab`, () => {
+      const view = rimTabView(kind);
+      const ids = new Set(view.map((n) => n.id));
+      for (const n of view) {
+        expect(n.title && n.says, n.id).toBeTruthy();
+        for (const [, from] of n.inputs) expect(ids.has(from as string), `${n.id} <- ${from}`).toBe(true);
+      }
+    });
+
+    it(`${kind}: the rim plane and what follows it are greyed with the reason, and nothing else reads them`, () => {
+      const view = rimTabView(kind);
+      const greyed = new Set(view.filter((n) => n.derived).map((n) => n.id));
+      expect(greyed.has('RIMPLANE')).toBe(true);
+      for (const n of view.filter((v) => v.derived)) expect(n.reason).toBe(RIM_DERIVED_REASON);
+      // THE INVARIANT: a node that is not greyed never reads a greyed one - the rim cannot depend on its own result.
+      for (const n of view.filter((v) => !v.derived)) {
+        for (const [, from] of n.inputs) expect(greyed.has(from as string), `${n.id} reads greyed ${from}`).toBe(false);
+      }
+    });
+  }
+
+  it('the aligner tab holds the locked aligner graph unchanged; the denture tab names the zone graph strips', () => {
+    const tab = rimTabGraph('aligner').nodes;
+    for (const n of alignerGraph().nodes) expect(tab.find((t) => t.id === n.id)).toEqual(n);
+    const denture = rimTabGraph('denture').nodes.map((n) => n.id);
+    for (const id of ['RIM', 'RIMBAND', 'LOWRIMBAND']) expect(denture).toContain(id);
+    expect(rimTabView('denture').find((n) => n.id === 'CROSSING')!.derived).toBe(true);
   });
 });
