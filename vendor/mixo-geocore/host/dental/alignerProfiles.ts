@@ -179,8 +179,9 @@ export const DEFAULT_PROFILE_ID = 'reference-aligner';
 
 /*
  * Aligner profiles registered at run time (`registerProfile.ts`), beside the built-in files - the
- * lookups below see both, so a registered aligner is never "unknown". The Step 0 cards
- * (`ALIGNER_PROFILES`) stay built-in only until the app lists types (docs/TYPE-PIPELINE.md unit A1).
+ * lookups below see both, so a registered aligner is never "unknown". The card lookups (`profileById`,
+ * `profilesWithoutOpening`) read both too, through `alignerCards()`, since the app lists saved types
+ * (mixoDental docs/TYPE-PIPELINE.md section 8a); `ALIGNER_PROFILES` is the built-in list only.
  */
 const REGISTERED: AlignerProfileData[] = [];
 
@@ -211,8 +212,20 @@ export const ALIGNER_PROFILES: readonly AlignerProfile[] = [...PROFILES]
   .sort((a, b) => Number(b.id === DEFAULT_PROFILE_ID) - Number(a.id === DEFAULT_PROFILE_ID))
   .map(({ id, name, description, opening, card, fixture }) => ({ id, name, description, opening, card, fixture }));
 
-/** The card of `id`, or undefined for an unknown or absent id. */
-export const profileById = (id: string | undefined): AlignerProfile | undefined => ALIGNER_PROFILES.find((profile) => profile.id === id);
+/**
+ * Every card, built-in AND registered, the default first - what the lookups below read. A registered aligner (a saved
+ * type the app loaded, mixoDental docs/TYPE-PIPELINE.md section 8a) must have a card: built-in only, its name and its
+ * orientation choices were undefined in the app while the engine knew the profile. `ALIGNER_PROFILES` stays the
+ * built-in list for callers that want only the shipped cards.
+ */
+export function alignerCards(): readonly AlignerProfile[] {
+  return [...allAlignerProfiles()]
+    .sort((a, b) => Number(b.id === DEFAULT_PROFILE_ID) - Number(a.id === DEFAULT_PROFILE_ID))
+    .map(({ id, name, description, opening, card, fixture }) => ({ id, name, description, opening, card, fixture }));
+}
 
-/** Profiles a mesh without a central opening could be: the ones that do not insist on one. */
-export const profilesWithoutOpening = (): readonly AlignerProfile[] => ALIGNER_PROFILES.filter((profile) => profile.opening !== 'yes');
+/** The card of `id` (built-in or registered), or undefined for an unknown or absent id. */
+export const profileById = (id: string | undefined): AlignerProfile | undefined => alignerCards().find((profile) => profile.id === id);
+
+/** Profiles a mesh without a central opening could be: the ones (built-in or registered) that do not insist on one. */
+export const profilesWithoutOpening = (): readonly AlignerProfile[] => alignerCards().filter((profile) => profile.opening !== 'yes');

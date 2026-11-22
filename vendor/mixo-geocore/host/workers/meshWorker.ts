@@ -18,6 +18,21 @@ const sources = new SourceCache(SOURCE_CACHE_BYTES);
 /** Each unit's build session (preview builds): its model, placed copy and policy stay loaded in WASM. */
 const sessions = new BuildSessions();
 
+/**
+ * What a job waits for before it runs: the engine, by default. A host that registers profiles at run time (mixoDental's
+ * saved types, docs/TYPE-PIPELINE.md section 8a) sets its own - the engine AND those profiles - because this worker has
+ * its own engine and its own host profile list, and an aligner job here resolves its profile by id
+ * (`supports/jobRunner.ts` -> `dental/placement.ts` `dental_policy`).
+ *
+ * TRAP: set it synchronously in the worker entry, right after importing this module. A job arrives as a message event,
+ * which cannot run before the entry's top-level code has finished, so nothing can slip past an early set; a set inside
+ * an `await` could.
+ */
+let ready: () => Promise<unknown> = geometryReady;
+export function setMeshWorkerReady(waitFor: () => Promise<unknown>): void {
+  ready = waitFor;
+}
+
 /** Tests drive this module in-process: a terminated worker frees its WASM state, this does the same. */
 export function releaseBuildSessions(): void {
   sessions.clear();
@@ -82,7 +97,7 @@ serveTask<MeshTask, MeshTaskResult>((task, { progress }) => {
     sessions.forget(task.unitId);
     return { kind: 'forgotten' };
   }
-  return runAfterGeometryReady(geometryReady, () => {
+  return runAfterGeometryReady(ready, () => {
     const models = resolveSources(task.kind === 'build' ? [task.unit] : task.units);
     if (Array.isArray(models)) return { kind: 'need-source', unitIds: models };
     if (task.kind === 'export') return exportFiles(task, models, progress);

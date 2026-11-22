@@ -1,7 +1,7 @@
 {
   "repo": "mixocreative/mixo-geocore",
-  "commit": "31ea8631d0fd270ea487c6456717eb97a5dea5bc",
-  "committed": "2026-11-22T19:37:58+08:00",
+  "commit": "c81890da165ff5036da96791f3ca01dbd79a3be2",
+  "committed": "2026-11-23T00:44:28+08:00",
   "engineVersion": 70,
   "sha256": {
     "pkg-browser/mixo_geometry_wasm.js": "6606573913e8f4de959cc3aea6bd958049a687dce94512d4c0db88e7245127ea",
@@ -28,7 +28,7 @@
     "host/core/supports/zones.ts": "393ac7c5f24375e12aee3b5a4cf366422905d3f7e9a4c29eecc48662de89c5a3",
     "host/core/transform.ts": "8b8c8631f8430181a1509c7fd472f62f491bc5920505033a8bde5a216fe37295",
     "host/core/vec3.ts": "7b1c963bb85fd1f07c01a48b8565fbf982298a842eaa0eb839cfc9a226862cd2",
-    "host/dental/alignerProfiles.ts": "4848d77d5aa23fb115636b9b53e472b6dc406a35ce76aa516c264fff97ae2b09",
+    "host/dental/alignerProfiles.ts": "6c65ae30f01c81c4cdf80634d310a7360597e9047ed42ff8af8a5ac7af7e9985",
     "host/dental/dental.ts": "4bde7e625fd2e7f77839805ac46a0e141ee4d1659b1b23c25dad997218c4847a",
     "host/dental/dentalContactBand.ts": "27a9544a4f3bba71357b9e7b0618fda420a9ca850661dc52b6c17fe56b1718fe",
     "host/dental/dentalContactFootprint.ts": "b31ce51dc0fbc6ef279fd2e65cce5c7247ec34daa2955b2d8dc1c4811279b581",
@@ -86,7 +86,7 @@
     "host/workers/jobActivity.ts": "a8ac46a2c9509a7f64fdcaa022b1957316161c568ab247bf4bfa65df298f8137",
     "host/workers/meshClient.ts": "7557fbef08889ac8397ca926471ca036ced95c42b661d7d361b0eb5a69298738",
     "host/workers/meshProtocol.ts": "3d3de68773954c0136093e4410afa523d4a4f377eac518ed28925b3ea34eae63",
-    "host/workers/meshWorker.ts": "7646acd3aba7056d4568efec0001d70befe991c561aa36bf2447634380ac80f6",
+    "host/workers/meshWorker.ts": "bc4f1263712a0127b53e0abd5dfe2db19ea65514f054bfa66ad0babc63a44298",
     "host/workers/serveTask.ts": "d07341fad36fae5a395283cf762a9573e82f58e6b5e4554ce4c3de7ab3ecc172",
     "host/workers/sourceCache.ts": "b91df9fe210afbfd23b486a8408c972ba4017b29e13cc54ef01e33f81b557892",
     "host/workers/WorkerTask.ts": "f71a9e7fcafd6715ea9e63a9878cfc94936624cb28a739b5deb7e60130dd26d8",
