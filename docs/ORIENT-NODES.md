@@ -819,9 +819,13 @@ becomes available here - one rule, seen from both sides.
      `set_zone_graph` reads a top-level `"kind"` (`dental/graph.rs` `kind_of`; absent = denture, so every saved
      graph and caller is unchanged) and sends `"aligner"` to the locked aligner graph; `putInForce` no longer sends
      "no graph" for an aligner type, which used to clear the denture's graph. Proven: geocore host tests through the
-     wasm build fail with the routing removed; `typeInForce.test.ts` fails with the fix removed. **(4b) still to
-     do, the editor half:** host `KINDS` / outputs per kind so the viewer can show the aligner's locked graph, the
-     type file accepting only the aligner default, and an aligner corpus in `zoneGraphParity.test.ts`.
+     wasm build fail with the routing removed; `typeInForce.test.ts` fails with the fix removed. **(4b) DONE
+     2026-11-22, the host half:** `nodeGraph.mjs` has `ALIGNER_KINDS` (each node with a plain sentence),
+     `alignerGraph()` and a locked `validate` branch for `kind: 'aligner'` with the engine's words; an unknown kind is
+     refused. The type file accepts the aligner's locked default on an aligner type only (an edit to it is refused, a
+     denture cannot carry it). `zoneGraphParity.test.ts` has six aligner cases and host and engine agree on all of
+     them. Proven: four tests fail with the host's aligner branch removed. **(4c) still to do, the screen:** the
+     viewer shows the aligner's locked graph (read-only, each node greyed with its sentence) on an aligner run.
    - **Why `gate:real` alone is not the proof:** an aligner graph that is only declared changes nothing the scans
      record, so the gate passes vacuously; step (3)'s refusal test is the real check until a node is freed.
    - **Traps (checked):** ONE override slot today (`zone_graph.rs` `OVERRIDE`), and `typeInForce.ts` sets the graph
