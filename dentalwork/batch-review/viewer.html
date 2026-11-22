@@ -164,6 +164,7 @@
 .deg-figure svg { width: 100%; height: auto; max-width: 280px; display: block; }
 .deg-figure .picked { fill: var(--red); }
 .chain-node.search input.type-name { width: 150px; }
+.chain-node.search input.type-badge { width: 72px; }
 .chain-none.bad { color: var(--danger); }
 .deg-how { margin: 4px 0 6px; font-size: 11px; color: var(--muted); line-height: 1.35; }
 .deg-figure .plate { stroke: var(--muted); stroke-width: 2; }
@@ -484,6 +485,8 @@ let poseEdits = {};
 try { poseEdits = JSON.parse(localStorage.getItem('review-pose') || '{}') ?? {}; } catch { poseEdits = {}; }
 let typeName = 'workbench.denture';
 try { typeName = localStorage.getItem('review-type-id') || typeName; } catch { /* per-viewer only */ }
+let typeBadge = '';
+try { typeBadge = localStorage.getItem('review-type-badge') || ''; } catch { /* per-viewer only */ }
 let lastChain = null;
 /** The search in force on the page: the built-in values with this viewer's edits on top. */
 function searchNow() {
@@ -1001,6 +1004,21 @@ function searchCard() {
   });
   nameRow.append(Object.assign(document.createElement('span'), { className: 'k', textContent: 'type name' }), nameInput);
   box.append(nameRow);
+  // The type's badge in the app's type picker: up to 5 characters, beside its full name (owner, 2026-11-22). The type
+  // file reader refuses anything else by name, so this field only limits what can be typed.
+  const badgeRow = document.createElement('label');
+  badgeRow.className = 'chain-set';
+  badgeRow.dataset.tipTitle = 'badge';
+  badgeRow.dataset.tip = 'Up to 5 characters, no spaces: what the app shows beside the type\'s name in its type list. Empty = the app\'s default badge.';
+  const badgeInput = Object.assign(document.createElement('input'), { type: 'text', value: typeBadge, maxLength: 5, spellcheck: false });
+  badgeInput.dataset.ui = 'type-badge';
+  badgeInput.className = 'type-badge';
+  badgeInput.addEventListener('change', () => {
+    typeBadge = badgeInput.value.trim();
+    try { localStorage.setItem('review-type-badge', typeBadge); } catch { /* per-viewer only */ }
+  });
+  badgeRow.append(Object.assign(document.createElement('span'), { className: 'k', textContent: 'badge' }), badgeInput);
+  box.append(badgeRow);
   // The search: real fields now that the engine takes a type's numbers (engine 70).
   const defaults = graphLib?.PRINT_ANGLE_SEARCH ?? { startDeg: 0, endDeg: 45, stepDeg: 2, marginDeg: 2 };
   for (const [key, label, field, why] of POSE_FIELDS) {
@@ -2092,7 +2110,7 @@ try {
     status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
     try {
       const reply = await fetch('/rerun', { method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, pose: poseEdits,
+        body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, badge: typeBadge, pose: poseEdits,
           // The node editor's graph, only when it has been edited: the default is sent as nothing, so a
           // run with no edit is exactly the run it always was.
           zoneGraph: graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null }) });

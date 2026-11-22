@@ -50,6 +50,18 @@ export interface TypeFile {
    * `draftOf` on any edit so it cannot vouch for numbers it was not set on.
    */
   proved?: boolean;
+  /**
+   * The type's badge in the app's type picker: 1 to 5 characters, set by the user in the workbench (owner, 2026-11-22).
+   * Absent = the app's default badge. Not part of the profile, so it never changes a fingerprint or a proof.
+   */
+  badge?: string;
+}
+
+/** Why `badge` cannot be a type's badge, or null when it can: 1 to 5 characters, no spaces or control characters. */
+export function badgeProblem(badge: unknown): string | null {
+  if (typeof badge !== 'string') return 'a badge is text';
+  // The `u` flag counts characters, not UTF-16 units, so 5 Japanese or Chinese characters fit too.
+  return /^[^\s\p{C}]{1,5}$/u.test(badge) ? null : `a badge is 1 to 5 characters with no spaces, not "${badge}"`;
 }
 
 /** What reading a type file needs from outside this module. */
@@ -138,7 +150,7 @@ export function draftOf(type: TypeFile): TypeFile {
 
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const REQUIRED_KEYS = ['typeFile', 'category', 'id', 'basedOn', 'profile', 'rules', 'zoneGraph', 'validation'] as const;
-const OPTIONAL_KEYS = ['proved'] as const;
+const OPTIONAL_KEYS = ['proved', 'badge'] as const;
 
 /**
  * Read a type file. Throws `TypeError` naming the problem when the file cannot be a type at all (a key
@@ -164,6 +176,8 @@ export function readTypeFile(text: string, deps: TypeFileDeps): ReadType {
   deps.parseProfile(category, raw.profile); // throws, naming the key, exactly as for a built-in
   if (raw.profile.id !== id) throw new TypeError(`type file ${id}: its profile's id is "${String(raw.profile.id)}" - they must be the same`);
   if (raw.proved !== undefined && typeof raw.proved !== 'boolean') throw new TypeError(`type file ${id}: proved must be true or false`);
+  const badgeWhy = raw.badge === undefined ? null : badgeProblem(raw.badge);
+  if (badgeWhy) throw new TypeError(`type file ${id}: ${badgeWhy}`);
 
   const rules = raw.rules;
   if (!isRecord(rules)) throw new TypeError(`type file ${id}: rules must be an object of name: value`);
@@ -190,6 +204,7 @@ export function readTypeFile(text: string, deps: TypeFileDeps): ReadType {
     rules: rules as Record<string, number | boolean>, zoneGraph: zoneGraph as Record<string, unknown> | null,
     validation: isRecord(raw.validation) ? raw.validation as unknown as TypeValidation : null,
     ...(raw.proved === undefined ? {} : { proved: raw.proved }),
+    ...(raw.badge === undefined ? {} : { badge: raw.badge as string }),
   };
   const measured = labelOf(type, deps.engineVersion);
   // The hand override wins, but the reasons stay, so "proved by hand" never hides what the record says.

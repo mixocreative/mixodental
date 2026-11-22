@@ -7,7 +7,7 @@ import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { unreadBy } from '../../benchwork/rules.mjs';
 import { alignerGraph, defaultGraph, setParam, steepAngleProblem, validate } from '../../dentalwork/batch-review/nodeGraph.mjs';
 import {
-  TYPE_FILE_FORMAT, draftOf, graphText, proofOf, readTypeFile, typeDigest, typeFileText, type TypeFile, type TypeFileDeps,
+  TYPE_FILE_FORMAT, badgeProblem, draftOf, graphText, proofOf, readTypeFile, typeDigest, typeFileText, type TypeFile, type TypeFileDeps,
 } from './typeFile';
 
 const deps: TypeFileDeps = {
@@ -130,5 +130,21 @@ describe('a file that cannot be a type is refused by name', () => {
     (edited.nodes.find((n) => n.id === 'AREA')!.params as Record<string, unknown>).widthMm = 3;
     expect(refused({ ...aligner, zoneGraph: edited })).toThrow(/AREA: takes no parameters/);
     expect(refused({ ...dentureType(), zoneGraph: alignerGraph() })).toThrow(/a denture type cannot carry the aligner graph/);
+  });
+});
+
+/* The badge (owner, 2026-11-22): up to 5 characters set by the user, beside the full name in the app's type list. */
+describe('a type badge', () => {
+  it('is 1 to 5 characters with no spaces - counted as characters, so 5 Japanese ones fit', () => {
+    for (const ok of ['G', 'SOFT', 'NG-2X', '汎用義歯A']) expect(badgeProblem(ok), ok).toBeNull();
+    for (const bad of ['', 'TOOLONG', 'A B', ' G', 'G\n', 3]) expect(badgeProblem(bad), String(bad)).not.toBeNull();
+  });
+
+  it('reads back with the type, is refused by name when it breaks the rule, and changes no fingerprint', () => {
+    const type = { ...dentureType(), badge: 'SOFT' };
+    const read = readTypeFile(typeFileText(type), deps);
+    expect(read.type.badge).toBe('SOFT');
+    expect(read.label).toBe(readTypeFile(typeFileText(dentureType()), deps).label);
+    expect(() => readTypeFile(JSON.stringify({ ...dentureType(), badge: 'TOOLONG' }), deps)).toThrow(/badge is 1 to 5 characters/);
   });
 });

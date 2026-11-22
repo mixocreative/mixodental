@@ -37,3 +37,14 @@ describe('putting an aligner type in force', () => {
     }
   });
 });
+
+/* The workbench gives a draft its own name and the badge the user typed (docs/TYPE-PIPELINE.md section 8a). */
+describe('a drafted type', () => {
+  it('is named after its id in all three languages, and carries the badge', () => {
+    const type = typeOfRun('denture', { MIXO_TYPE_ID: 'soft-denture', MIXO_TYPE_BADGE: 'SOFT' })!;
+    expect(type.profile.name).toEqual({ en: 'soft-denture', ja: 'soft-denture', 'zh-Hant': 'soft-denture' });
+    expect(type.badge).toBe('SOFT');
+    expect(typeOfRun('denture', { MIXO_TYPE_ID: 'plain' })!.badge).toBeUndefined();
+    expect(() => typeOfRun('denture', { MIXO_TYPE_ID: 'bad', MIXO_TYPE_BADGE: 'TOO LONG' })).toThrow(/badge is 1 to 5 characters/);
+  });
+});

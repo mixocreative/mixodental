@@ -103,6 +103,8 @@ function rerun(request, response) {
     if (ask?.typeId !== undefined && !typeId) { send(400, { error: 'a type name is lower-case letters, digits, dots and dashes' }); return; }
     if (typeId) {
       typeArgs.push('--type-id', typeId);
+      // The badge is checked by the type file reader the draft goes through (1-5 characters, no spaces).
+      if (typeof ask?.badge === 'string' && ask.badge.trim() !== '') typeArgs.push('--type-badge', ask.badge.trim());
       const pose = ask?.pose && typeof ask.pose === 'object' ? Object.fromEntries(Object.entries(ask.pose).filter(([k, v]) => /^tilt[A-Za-z]+Deg$/.test(k) && Number.isFinite(v))) : {};
       if (Object.keys(pose).length > 0) {
         mkdirSync(out, { recursive: true });
