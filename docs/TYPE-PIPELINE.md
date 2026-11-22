@@ -423,9 +423,21 @@ listed with its reason.
   only on the main thread would be listed in the picker and unknown where it runs.)
 - **No silent misroute.** `jobKindOf(id)` throws naming the id when an id is given that no profile
   defines (it used to become 'aligner'); a test holds it.
-- **Name and badge.** The workbench sets a new type's `profile.name` (all three languages) to its id
-  until a New-type screen offers a real name; the type file gains an optional `badge: { letter, style }`
-  (style one the stylesheet defines), read before the code table in `purposes.ts`.
+- **Name and badge (owner, 2026-11-22: "icon can be up to 5 letters badge set by user, with full name
+  in drop down. Category set by app to choose from").**
+  - **Badge:** 1 to 5 characters, set by the user in the workbench, saved in the type file as an
+    optional `badge: { text, style }` (style one the stylesheet defines; `generic` by default) and read
+    before the code table in `purposes.ts`. `.purpose-badge` grows with its text (a minimum width and
+    side padding instead of today's fixed 1.9em square), so 5 letters fit and 1 still reads as a mark.
+    More than 5, or none, is refused by name.
+  - **Full name in the drop-down:** the type list shows the badge and the type's full name
+    (`profile.name` in the operator's language) side by side; the badge alone is never the only label.
+    The workbench sets the name: until the New-type screen has a name field, the id in all three
+    languages.
+  - **Category from the app's list:** the user picks the category from the list the app defines
+    (`DENTAL_KINDS` - today aligner, denture), never types one; a type file naming any other category is
+    refused. A new category stays a code change (its engine pipeline, label and art), which is why it is
+    a choice and not a field.
 - **Status, never unlabelled.** The picker label carries "unproved", "proved by hand" or "proved on
   engine N" when the proof is not a clean match; no suffix means a matching proof.
 - **Projects:** a project whose saved type was removed is still refused at load (unit A2 is the fix);
