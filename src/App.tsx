@@ -517,9 +517,9 @@ export default function App() {
       // confirm asked about (`exitNeedsConfirm`): a row painted but not yet built lost work too (Fable, 2026-11-23).
       const lost = changing.filter((unit) => exitNeedsConfirm(unit)).length;
       if (lost > 0) {
-        // 'regenerate' is the toast kind that carries its own report: one history step, undone by `undo()`. The
-        // removeSupports wording ("manual edits are kept") is false here - exitCommands takes those too.
-        const action: UndoAction = { kind: 'regenerate', message: { key: 'Changed the type of 1 model and removed its work.', other: 'Changed the type of {n} models and removed their work.', vars: { n: lost } } };
+        // Its own kind (geocore 5ad4c23), not removeSupports: that one says "manual edits are kept", and exitCommands
+        // takes those too.
+        const action: UndoAction = { kind: 'changeType', count: lost };
         setStatusMessage(undoToast(0, action).message);
         offerUndo(action);
         typeUndo.current = { toastId: toastSeq.current, unitIds: changing.map((unit) => unit.id) };
@@ -547,10 +547,11 @@ export default function App() {
    * question - it says what it will do to the rows, instead of asking something about "the case"
    * that a mixed drop has no single answer to.
    */
-  // Set all names a CATEGORY (it has no type menu), so a row already on a type of that category keeps it - the same
-  // rule as re-picking a row's category (`categoryAnswer`); it moved unworked rows off a saved type with no word.
-  const setAllPurposes = useCallback((profile: string) => askOrApplyPurpose(sceneRef.current.units
-    .filter((unit) => categoryAnswer(profile, resolvedPurposes.get(unit.id)) !== undefined).map((unit) => unit.id), profile), [askOrApplyPurpose, resolvedPurposes, sceneRef]);
+  // A CATEGORY pick leaves a row already on a type of that category alone - the same rule as re-picking a row's
+  // category (`categoryAnswer`); it moved unworked rows off a saved type with no word. A TYPE pick (Set all shows the
+  // type list when the rows agree) puts every row on it.
+  const setAllPurposes = useCallback((profile: string, pick: 'category' | 'type') => askOrApplyPurpose(sceneRef.current.units
+    .filter((unit) => pick === 'type' || categoryAnswer(profile, resolvedPurposes.get(unit.id)) !== undefined).map((unit) => unit.id), profile), [askOrApplyPurpose, resolvedPurposes, sceneRef]);
   /**
    * THE ROW PICTURES (plan §0b increment C), drawn one row at a time while the deck is on screen.
    * Same gate as the batch above and for the same reason: the dental flow shows no rows, so drawing

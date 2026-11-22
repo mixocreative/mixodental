@@ -88,6 +88,12 @@ describe('the Items page', () => {
     expect(unasked([unit('u-a', 'a.stl')])).not.toContain('data-ui="items-set-all"');
   });
 
+  it('shows Set all a type list when every row is on one type, and the category alone otherwise', () => {
+    // Thirty rows onto a saved type took thirty picks while Set all had no type list.
+    expect(render([unit('u-a', 'a.stl'), unit('u-b', 'b.stl')])).toContain('data-ui="items-set-all-type"');
+    expect(unasked([unit('u-a', 'a.stl'), unit('u-b', 'b.stl')])).not.toContain('data-ui="items-set-all-type"');
+  });
+
   /*
    * ONE PRESS SETS THE CASE, A ROW CAN BE RE-ANSWERED (owner's ruling, 2026-11-18). The guard is on
    * both halves: the row control must exist once the case is answered, must show THIS row's answer

@@ -16,6 +16,7 @@ import { jobSentence, jobTally } from '../deck/jobSummary';
 import { isModelFile } from '../components/startDrop';
 import { hint } from '../components/hint';
 import { PurposeSelect } from '../components/PurposeSelect';
+import { commonPurpose } from './rowPurpose';
 import { refusedTypes } from '../dentalTypes/typesReady';
 import { deckUsage, formatBytes } from './deckBudget';
 
@@ -76,8 +77,11 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   purposes: ReadonlyMap<string, string>;
   /** Name one row, and re-detect it under that answer. */
   onPurpose: (unitId: string, profile: string) => void;
-  /** Put one answer on every row now on the plate - the `Set all` convenience, not a question. */
-  onPurposeAll: (profile: string) => void;
+  /**
+   * Put one answer on every row now on the plate - the `Set all` convenience, not a question. `pick` says what was
+   * picked: a 'category' leaves rows already on a type of it alone; a 'type' puts every row on that type.
+   */
+  onPurposeAll: (profile: string, pick: 'category' | 'type') => void;
   /** "Any model": these are plain models, take them to the bench. The deck's third answer. */
   onAnyModel: () => void;
   /** The background-work panel, drawn IN the footer above the case keys (see the footer below). */
@@ -292,8 +296,10 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
       */}
       {units.length > 1 ? <span className="items-setall" data-ui="items-set-all-row">
         <span className="items-setall-label">{t('Set all to')}</span>
-        <PurposeSelect value={undefined} lang={lang} ui="items-set-all"
-          onChange={onPurposeAll} onAnyModel={onAnyModel} />
+        {/* The rows' common type when they all agree, so its type list is there (thirty rows onto a saved type took
+            thirty picks); mixed rows show the category alone - no one type would be true there. */}
+        <PurposeSelect value={commonPurpose(units, purposes)} lang={lang} ui="items-set-all"
+          onChange={(profile) => onPurposeAll(profile, 'type')} onCategory={(profile) => onPurposeAll(profile, 'category')} onAnyModel={onAnyModel} />
       </span> : null}
     </div>
     {/*

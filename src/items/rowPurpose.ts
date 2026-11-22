@@ -55,3 +55,12 @@ export function purposesOf(units: readonly PrintUnit[], chosen: ReadonlyMap<stri
   }
   return out;
 }
+
+/**
+ * The one type every row is on, or undefined when any row is unanswered or they differ. Set all shows its type list
+ * only then: on mixed rows no single type would be a true readout.
+ */
+export function commonPurpose(units: readonly Pick<PrintUnit, 'id'>[], purposes: ReadonlyMap<string, string>): string | undefined {
+  const first = units[0] && purposes.get(units[0].id);
+  return first !== undefined && units.every((unit) => purposes.get(unit.id) === first) ? first : undefined;
+}

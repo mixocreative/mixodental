@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { holdsTypedWork, profileToOpen, purposeOfUnit, purposesOf } from './rowPurpose';
+import { commonPurpose, holdsTypedWork, profileToOpen, purposeOfUnit, purposesOf } from './rowPurpose';
+
+describe('the type Set all shows', () => {
+  it('is the rows\' common type, and nothing when they differ, one is unanswered, or there are none', () => {
+    const rows = [{ id: 'a' }, { id: 'b' }];
+    expect(commonPurpose(rows, new Map([['a', 'x'], ['b', 'x']]))).toBe('x');
+    expect(commonPurpose(rows, new Map([['a', 'x'], ['b', 'y']]))).toBeUndefined();
+    expect(commonPurpose(rows, new Map([['a', 'x']]))).toBeUndefined();
+    expect(commonPurpose([], new Map())).toBeUndefined();
+  });
+});
 import type { PrintUnit } from '../state/project';
 
 const unit = (over: Partial<PrintUnit> = {}) => ({ id: 'u-a', ...over } as PrintUnit);

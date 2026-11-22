@@ -42,7 +42,7 @@ import { type Lang } from '../i18n';
  * the second profile will appear, and it costs one select. The day a second profile file lands it
  * becomes a choice with no code change - which is what the old reasoning was actually protecting.
  */
-export function PurposeSelect({ value, lang, ui, onChange, onAnyModel }: {
+export function PurposeSelect({ value, lang, ui, onChange, onCategory, onAnyModel }: {
   /** The profile this case or row is on, or undefined when nothing has been answered. */
   value: string | undefined;
   lang: Lang;
@@ -55,6 +55,11 @@ export function PurposeSelect({ value, lang, ui, onChange, onAnyModel }: {
   ui: string;
   /** A dental answer: the category's own type, or a type within the category already chosen. */
   onChange: (profileId: string) => void;
+  /**
+   * A CATEGORY was picked (its default profile id), where that means something a type pick does not - Set all: a
+   * category leaves rows already on a type of it alone, a type puts every row on that type. Absent = `onChange`.
+   */
+  onCategory?: (profileId: string) => void;
   /**
    * "Any model" was chosen: these are not dental work. Absent on a control where that is not an
    * answer — a single ROW inside a dental case cannot become "not dental"; the case can.
@@ -78,7 +83,7 @@ export function PurposeSelect({ value, lang, ui, onChange, onAnyModel }: {
     if (next === ANY_MODEL.value) { onAnyModel?.(); return; }
     // Re-picking the category in force keeps its type (`categoryAnswer`).
     const answer = categoryAnswer(next, value);
-    if (answer !== undefined) onChange(answer);
+    if (answer !== undefined) (onCategory ?? onChange)(answer);
   };
   /* The profile names come from the engine already translated, so they are NOT i18n keys. */
   const types: readonly PurposeOption[] = typeList.map((id) => ({ value: id, label: typeName(id), badge: typeBadge(id) }));
