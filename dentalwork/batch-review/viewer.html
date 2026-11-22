@@ -125,6 +125,10 @@
    selected card's title went paper-on-paper and vanished (owner, 2026-11-20). The card border shows selection. */
 .chain-node .n[aria-pressed="true"] { background: none; border: 0; color: var(--ink); }
 .chain-node.absent { opacity: 0.5; }
+/* A locked aligner node: readable, plainly not a control (no pointer, a muted tag instead of a button). */
+.chain-node.locked { cursor: default; }
+.chain-node.locked .n { cursor: default; }
+.chain-node .lock { align-self: flex-start; font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 0 6px; }
 .chain-node .n { font-weight: 600; font-size: 12px; line-height: 1.25; }
 /* Capped, because the rail is as tall as its TALLEST card and step 7 owns nine rules: without this
    the chain ate the page and squeezed the 3D view to a sliver, while the card responsible was
@@ -1031,7 +1035,12 @@ function drawChain(present, names) {
   const tabs = document.getElementById('stage-tabs');
   const body = document.getElementById('stage-body');
   if (!section || !tabs || !body) return;
-  if (kindNow !== 'denture') { section.hidden = true; return; }
+  if (kindNow !== 'denture') {
+    // An aligner run shows the aligner's LOCKED graph read-only (step 4.4c, docs/ORIENT-NODES.md section 10).
+    section.hidden = !graphLib;
+    if (graphLib) { tabs.textContent = ''; body.textContent = ''; drawAlignerGraph(body); }
+    return;
+  }
   section.hidden = false;
   tabs.textContent = '';
   STAGES.forEach((stage, k) => {
@@ -1062,6 +1071,42 @@ function drawChain(present, names) {
     rail.append(card);
   });
   body.append(rail);
+}
+
+/**
+ * The aligner's graph, read-only: today's aligner chain as locked nodes (`nodeGraph.mjs` alignerGraph). Nothing here
+ * is a control - every node is fixed in this version, and a field that accepted an edit the engine refuses would be
+ * a control that lies. Each card says what the step is, what it reads and which output it fills.
+ */
+function drawAlignerGraph(body) {
+  const g = graphLib.alignerGraph();
+  const note = document.createElement('p');
+  note.className = 'chain-note';
+  note.dataset.ui = 'aligner-graph-note';
+  note.textContent = 'The aligner\'s steps as nodes, in the same shape as the denture\'s zone graph. They are locked in this version: each stands for today\'s aligner code. The settings that shape them are in the aligner profile.';
+  const rail = document.createElement('div');
+  rail.className = 'chain-rail';
+  rail.dataset.ui = 'aligner-graph-nodes';
+  g.nodes.forEach((n, k) => {
+    const spec = graphLib.ALIGNER_KINDS[n.kind];
+    if (k > 0) rail.append(Object.assign(document.createElement('span'), { className: 'chain-link', textContent: '>' }));
+    const card = document.createElement('div');
+    card.className = 'chain-node locked';
+    card.dataset.ui = `aligner-node-${n.id}`;
+    const title = Object.assign(document.createElement('span'), { className: 'n', textContent: spec.label });
+    const lock = Object.assign(document.createElement('span'), { className: 'lock', textContent: 'locked' });
+    const says = Object.assign(document.createElement('span'), { className: 'chain-none', textContent: spec.says });
+    card.append(title, lock, says);
+    const from = Object.values(n.inputs);
+    if (from.length > 0) {
+      const names = from.map((id) => graphLib.ALIGNER_KINDS[g.nodes.find((m) => m.id === id).kind].label);
+      card.append(Object.assign(document.createElement('span'), { className: 'chain-none', textContent: `Reads: ${names.join(', ')}` }));
+    }
+    const fills = Object.entries(g.outputs).filter(([, id]) => id === n.id).map(([name]) => name.replace(/_/g, ' '));
+    if (fills.length > 0) card.append(Object.assign(document.createElement('span'), { className: 'chain-none', textContent: `Output: ${fills.join(', ')}` }));
+    rail.append(card);
+  });
+  body.append(note, rail);
 }
 
 /** Stage 2: the zone graph, editable. */
