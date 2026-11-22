@@ -19,6 +19,8 @@ export type UndoAction =
   | { kind: 'removeSupports'; count: number }
   /** `count` objects deleted (one history step). */
   | { kind: 'deleteObjects'; count: number }
+  /** `count` objects moved to another type, the work built with the old one removed (one history step). */
+  | { kind: 'changeType'; count: number }
   /** A project opened over objects (one history step): `name` is the file. */
   | { kind: 'openProject'; name: string }
   | { kind: 'clearSelection'; ids: readonly string[]; unitId: string }
@@ -50,6 +52,8 @@ export function undoToast(id: number, action: UndoAction): UndoToast {
       ? { key: 'Removed the supports of 1 object; the model and manual edits are kept.', other: 'Removed the supports of {n} objects; the models and manual edits are kept.', vars: { n: action.count } }
       : action.kind === 'deleteObjects'
       ? { key: 'Deleted 1 object.', other: 'Deleted {n} objects.', vars: { n: action.count } }
+      : action.kind === 'changeType'
+      ? { key: 'Changed the type of 1 model and removed its work.', other: 'Changed the type of {n} models and removed their work.', vars: { n: action.count } }
       : { key: 'Selection of 1 support cleared.', other: 'Selection of {n} supports cleared.', vars: { n: action.ids.length } };
   return { id, action, message };
 }
