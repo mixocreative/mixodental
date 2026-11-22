@@ -122,6 +122,7 @@ import { useAutoGen } from './autoGen/useAutoGen';
 import { useRecipes } from './recipes/useRecipes';
 import { deckUsage } from './items/deckBudget';
 import { holdsTypedWork, profileToOpen, purposeOfUnit, purposesOf } from './items/rowPurpose';
+import { categoryAnswer } from './components/purposes';
 import type { ToolId } from './state/tools';
 import type { ImportRefusal } from './items/rowState';
 import { hasGeometry, type HeldBuild } from './plate/releasedBuild';
@@ -137,7 +138,7 @@ import type { DentalReview } from './components/DentalSupports';
 import { BUILDING_STATUS, busyStatus, sessionStatus } from '@mixo-geocore/editing/status';
 import { CodedError, errorStatus } from '@mixo-geocore/editing/errors';
 import { stepKind } from './state/stepKind';
-import { toastAlive, undoToast, type UndoAction, type UndoToast as UndoToastState } from '@mixo-geocore/editing/toast';
+import { toastAlive, UNDO_TOAST_MS, undoToast, type UndoAction, type UndoToast as UndoToastState } from '@mixo-geocore/editing/toast';
 import UndoToast from './components/UndoToast';
 import TermsDialog from './components/TermsDialog';
 import { onBench } from './bench/benchScene';
@@ -504,10 +505,10 @@ export default function App() {
   const typeUndo = useRef<{ toastId: number; unitIds: string[] }>();
   const applyPurpose = useCallback((unitIds: readonly string[], profile: string) => {
     const changing = sceneRef.current.units.filter((unit) => unitIds.includes(unit.id) && holdsTypedWork(unit) && purposeOfUnit(unit, undefined) !== profile);
-    for (const unit of changing) {
-      autoGen.cancelIfRunning(unit.id);
-      if (unit.denture) denture.supports.leave(unit.id);
-    }
+    // EVERY row whose type changes stops its auto-gen, worked or not: a card still in its first step holds no work yet,
+    // kept running under the old type, and flipped the row back when it landed (Fable, 2026-11-23).
+    for (const unitId of unitIds) if (resolvedPurposes.get(unitId) !== profile) autoGen.cancelIfRunning(unitId);
+    for (const unit of changing) if (unit.denture) denture.supports.leave(unit.id);
     const commands = changing.flatMap((unit) => exitCommands(unit));
     if (commands.length > 0) {
       dispatch({ type: 'batch', commands });
@@ -531,7 +532,7 @@ export default function App() {
     });
     for (const unitId of unitIds) retryDetect(unitId);
     setTypeAsk(null);
-  }, [autoGen.cancelIfRunning, denture.supports.leave, dispatch, offerUndo, retryDetect, sceneRef]);
+  }, [autoGen.cancelIfRunning, denture.supports.leave, dispatch, offerUndo, resolvedPurposes, retryDetect, sceneRef]);
   const askOrApplyPurpose = useCallback((unitIds: string[], profile: string) => {
     // Ask only when something the operator would miss goes - supports or hand edits (`exitNeedsConfirm`, as Exit asks).
     // A policy straight from detection is still cleared, silently, so the row can take the new type.
@@ -546,7 +547,10 @@ export default function App() {
    * question - it says what it will do to the rows, instead of asking something about "the case"
    * that a mixed drop has no single answer to.
    */
-  const setAllPurposes = useCallback((profile: string) => askOrApplyPurpose(sceneRef.current.units.map((unit) => unit.id), profile), [askOrApplyPurpose, sceneRef]);
+  // Set all names a CATEGORY (it has no type menu), so a row already on a type of that category keeps it - the same
+  // rule as re-picking a row's category (`categoryAnswer`); it moved unworked rows off a saved type with no word.
+  const setAllPurposes = useCallback((profile: string) => askOrApplyPurpose(sceneRef.current.units
+    .filter((unit) => categoryAnswer(profile, resolvedPurposes.get(unit.id)) !== undefined).map((unit) => unit.id), profile), [askOrApplyPurpose, resolvedPurposes, sceneRef]);
   /**
    * THE ROW PICTURES (plan §0b increment C), drawn one row at a time while the deck is on screen.
    * Same gate as the batch above and for the same reason: the dental flow shows no rows, so drawing
@@ -1092,7 +1096,9 @@ export default function App() {
         return send({ type: 'startDental', profile: (() => {
           // The SELECTED model's own answer, since the purpose is per file. This button's label
           // rules a denture out, so a denture answer falls back to the default aligner profile.
-          const own = activeUnit ? unitPurposes.get(activeUnit.id) : undefined;
+          // RESOLVED, not this sitting's answers: a reopened unit built with a saved type has no answer here, and
+          // starting it under the default rewrote its work with no question (Fable, 2026-11-23).
+          const own = activeUnit ? resolvedPurposes.get(activeUnit.id) : undefined;
           return own && !isDentureJob(own) ? own : DEFAULT_PROFILE_ID;
         })() });
       case 'dental.useDetected': return orientRef.current.useDetected();
@@ -1893,7 +1899,8 @@ export default function App() {
         The same toast, mounted where the operator is.
       */}
       <div className="undo-toast-region undo-toast-region--deck" role="status" aria-live="polite">
-        {toast && <UndoToast key={toast.id} toast={toast} onUndo={undoToastAction} onClose={closeToast} />}
+        {/* Twice the house 6 s: on the deck it follows a confirm, and reading that used most of the window (debt 3, TYPE-PIPELINE 8b). */}
+        {toast && <UndoToast key={toast.id} toast={toast} onUndo={undoToastAction} onClose={closeToast} ms={2 * UNDO_TOAST_MS} />}
       </div></>
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
       onScreen={goStart}

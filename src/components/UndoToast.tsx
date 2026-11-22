@@ -3,16 +3,20 @@ import { UNDO_TOAST_MS, type UndoToast as Toast } from '@mixo-geocore/editing/to
 import { t, translateMessage } from '../i18n';
 
 /**
- * "… · Undo" after a destructive action that ran at once (no confirm dialog): gone after 6 s, the
+ * "… · Undo" after a destructive action that ran at once (no confirm dialog): gone after 6 s (`ms`), the
  * countdown paused while the pointer or keyboard focus is on it. The host renders it inside an
  * always-present polite live region, so screen readers announce it.
  */
-export default function UndoToast({ toast, onUndo, onClose }: { toast: Toast; onUndo: () => void; onClose: () => void }) {
+export default function UndoToast({ toast, onUndo, onClose, ms = UNDO_TOAST_MS }: {
+  toast: Toast; onUndo: () => void; onClose: () => void;
+  /** How long it stays; the house 6 s unless a host has a reason (the deck: it follows a confirm the operator just read). */
+  ms?: number;
+}) {
   const [paused, setPaused] = useState(false);
-  const left = useRef(UNDO_TOAST_MS);
+  const left = useRef(ms);
   useEffect(() => {
-    left.current = UNDO_TOAST_MS;
-  }, [toast.id]);
+    left.current = ms;
+  }, [toast.id, ms]);
   useEffect(() => {
     if (paused) return;
     const started = Date.now();
