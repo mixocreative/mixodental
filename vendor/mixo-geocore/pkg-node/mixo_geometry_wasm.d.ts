@@ -903,6 +903,12 @@ export class GeometrySession {
      */
     denture_compare_areas(model: number, owner: Float64Array, generated: Float64Array, radius_mm: number): DentureAreaResult;
     /**
+     * Every node of the Orient graph in force (`set_orient_graph`), evaluated on the model, as JSON text (engine 71):
+     * `{"nodes": {id: {type, ...}}}` - a frame's axes, a pose's up / lean / across, a flat region's plane, area,
+     * protrusion and FILE face ids - or `{"refused": code}`. The review canvas draws each node from it.
+     */
+    denture_orient_nodes(model: number, profile: string): string;
+    /**
      * The denture policy of a unit as a `PolicyResult` for `generate`: every face permitted, the
      * pose's tips as candidates (lowest points, bottom band, bars, light fill), pillars may land on
      * the model, Tree off, Brace by `brace`. `frame` is the unit's placement `[position xyz,
@@ -1577,6 +1583,11 @@ export function manual_dental_area(face_count: number, painted_faces: Uint32Arra
 export function manual_dental_area_from_stamps(positions: Float32Array, indices: Uint32Array, stamps: Float64Array, detected: boolean, profile: string): Uint8Array;
 
 /**
+ * The digest of the Orient graph in force, or "default" (engine 71).
+ */
+export function orient_graph_digest(): string;
+
+/**
  * Tips on every part's exposed faces.
  *
  * `target` is the host's declared target part, or `-1` to let the engine pick the largest. It is
@@ -1692,6 +1703,14 @@ export function rule_names(): string[];
  * is not refused here (that needs the mesh): the analysis uses the detected rim and says why (`drawn_rim_problem`).
  */
 export function set_denture_drawn_rim(points: Float64Array, closed: boolean): string;
+
+/**
+ * Set the Orient graph the next denture orientations evaluate (engine 71; mixoDental `docs/ORIENT-NODES.md` U4/U5),
+ * or "" for today's default (arch frame, up decision, upright pose). VALIDATED HERE: a graph that cannot run throws
+ * `ORIENT_GRAPH_INVALID` with `detail` naming the node, and the previous graph stays. Returns the digest in force
+ * ("default" when cleared); it joins both denture cache keys.
+ */
+export function set_orient_graph(json: string): string;
 
 /**
  * Set the zone graph the next denture analyses evaluate - the graph the node editor composes

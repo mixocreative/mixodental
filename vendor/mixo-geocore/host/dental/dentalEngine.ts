@@ -276,6 +276,8 @@ export interface DentalSession {
   denture_review(model: number, profile: string, tilt_deg: number): DentureReviewResultLike | undefined;
   /** `denture_review` with the support-rule overrides (engine 28). */
   denture_review_ruled(model: number, profile: string, tilt_deg: number, rules: Float64Array): DentureReviewResultLike | undefined;
+  /** Engine 71: every node of the Orient graph in force, as JSON text (`orientGraph.ts` `orientNodes`). */
+  denture_orient_nodes(model: number, profile: string): string;
   /** Support-area comparison of two xyz point lists (mesh frame) within `radiusMm`. */
   denture_compare_areas(model: number, owner: Float64Array, generated: Float64Array, radiusMm: number): DentureAreaResultLike;
 }
@@ -301,6 +303,10 @@ export interface DentalEngine {
    * points in drawn order; empty clears. Throws `DRAWN_RIM_INVALID` with `detail`. Use `setDentureDrawnRim`.
    */
   set_denture_drawn_rim(points: Float64Array, closed: boolean): string;
+  /** Engine 71: set the Orient graph (JSON) the next denture orientations evaluate, "" for today's. Throws `ORIENT_GRAPH_INVALID` with `detail`. Use `setOrientGraph`. */
+  set_orient_graph(json: string): string;
+  /** Engine 71: the digest of the Orient graph in force, or "default". */
+  orient_graph_digest(): string;
   /**
    * Register a whole denture profile from its JSON text (engine 70) and return its id. Throws
    * `PROFILE_INVALID` with `detail` naming the problem. Use `registerDentureProfile`, which keeps the

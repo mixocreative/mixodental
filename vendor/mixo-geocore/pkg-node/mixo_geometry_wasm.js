@@ -2812,6 +2812,34 @@ class GeometrySession {
         return DentureAreaResult.__wrap(ret[0]);
     }
     /**
+     * Every node of the Orient graph in force (`set_orient_graph`), evaluated on the model, as JSON text (engine 71):
+     * `{"nodes": {id: {type, ...}}}` - a frame's axes, a pose's up / lean / across, a flat region's plane, area,
+     * protrusion and FILE face ids - or `{"refused": code}`. The review canvas draws each node from it.
+     * @param {number} model
+     * @param {string} profile
+     * @returns {string}
+     */
+    denture_orient_nodes(model, profile) {
+        let deferred3_0;
+        let deferred3_1;
+        try {
+            const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            const len0 = WASM_VECTOR_LEN;
+            const ret = wasm.geometrysession_denture_orient_nodes(this.__wbg_ptr, model, ptr0, len0);
+            var ptr2 = ret[0];
+            var len2 = ret[1];
+            if (ret[3]) {
+                ptr2 = 0; len2 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred3_0 = ptr2;
+            deferred3_1 = len2;
+            return getStringFromWasm0(ptr2, len2);
+        } finally {
+            wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+        }
+    }
+    /**
      * The denture policy of a unit as a `PolicyResult` for `generate`: every face permitted, the
      * pose's tips as candidates (lowest points, bottom band, bars, light fill), pillars may land on
      * the model, Tree off, Brace by `brace`. `frame` is the unit's placement `[position xyz,
@@ -5300,6 +5328,24 @@ function manual_dental_area_from_stamps(positions, indices, stamps, detected, pr
 exports.manual_dental_area_from_stamps = manual_dental_area_from_stamps;
 
 /**
+ * The digest of the Orient graph in force, or "default" (engine 71).
+ * @returns {string}
+ */
+function orient_graph_digest() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.orient_graph_digest();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+exports.orient_graph_digest = orient_graph_digest;
+
+/**
  * Tips on every part's exposed faces.
  *
  * `target` is the host's declared target part, or `-1` to let the engine pick the largest. It is
@@ -5685,6 +5731,36 @@ function set_denture_drawn_rim(points, closed) {
     }
 }
 exports.set_denture_drawn_rim = set_denture_drawn_rim;
+
+/**
+ * Set the Orient graph the next denture orientations evaluate (engine 71; mixoDental `docs/ORIENT-NODES.md` U4/U5),
+ * or "" for today's default (arch frame, up decision, upright pose). VALIDATED HERE: a graph that cannot run throws
+ * `ORIENT_GRAPH_INVALID` with `detail` naming the node, and the previous graph stays. Returns the digest in force
+ * ("default" when cleared); it joins both denture cache keys.
+ * @param {string} json
+ * @returns {string}
+ */
+function set_orient_graph(json) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.set_orient_graph(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+exports.set_orient_graph = set_orient_graph;
 
 /**
  * Set the zone graph the next denture analyses evaluate - the graph the node editor composes
