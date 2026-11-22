@@ -1937,6 +1937,8 @@ function openRun(summary, glbUrl, csvUrl) {
   // A folder that does not record it (older than engine 69, or a writer that dropped it) is UNKNOWN,
   // not "default": the same label on a good day and a bad day is no label at all (cia F7).
   ranZoneGraph = summary.zoneGraph ?? 'unknown';
+  // "default", not "unknown" as for the zone graph: every folder written before the Orient graph existed (U5) ran the
+  // standard Step 1, so its missing key is a fact, not a gap.
   ranOrientGraph = summary.orientGraph ?? 'default';
   urlOf = glbUrl;
   const needing = cases.filter((c) => c.needsLook);

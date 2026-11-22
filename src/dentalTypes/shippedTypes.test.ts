@@ -6,7 +6,7 @@ import { PROFILE_FILES } from '@mixo-geocore/host/dental/profileFiles';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { unreadBy } from '../../benchwork/rules.mjs';
 import { defaultGraph, steepAngleProblem, validate } from '../../dentalwork/batch-review/nodeGraph.mjs';
-import { validate as validateOrient } from '../../dentalwork/batch-review/orientGraph.mjs';
+import { flatBaseGraph, validate as validateOrient } from '../../dentalwork/batch-review/orientGraph.mjs';
 import { NOT_YET, discoverTypes, type KnownProfile } from './shippedTypes';
 import { typeFileText, type TypeFile, type TypeFileDeps } from './typeFile';
 
@@ -62,6 +62,7 @@ describe('discoverTypes - the types the app can offer', () => {
 
   it('refuses what v1 cannot run - its own zone graph, pinned rules - saying why', () => {
     expect(reasons(at(denture('g', { zoneGraph: defaultGraph() })))).toBe(NOT_YET.graph);
+    expect(reasons(at(denture('o', { orientGraph: flatBaseGraph() as unknown as Record<string, unknown> })))).toBe(NOT_YET.orientGraph);
     expect(reasons(at(denture('r', { rules: { overhangAngleDeg: 55 } })))).toBe(NOT_YET.rules(['overhangAngleDeg']));
   });
 

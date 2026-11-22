@@ -66,6 +66,9 @@ export function discoverTypes(files: Readonly<Record<string, string>>, deps: Typ
     }
     if (type.category !== category || type.id !== id) { refuse(`the file says ${type.category} / ${type.id}, but it sits at ${category} / ${id}`); continue; }
     if (type.zoneGraph !== null) { refuse(NOT_YET.graph); continue; }
+    // Refused HERE, not only through the app's deps: the workbench's load verdict runs this with deps under which the
+    // Orient graph validates, and said "loads" for a file the app then refused (Fable, 2026-11-23).
+    if (type.orientGraph) { refuse(NOT_YET.orientGraph); continue; }
     const pinned = Object.keys(type.rules);
     if (pinned.length > 0) { refuse(NOT_YET.rules(pinned)); continue; }
     if (taken.some((p) => p.id === type.id)) { refuse(`another type already has the id "${type.id}"`); continue; }
