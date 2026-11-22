@@ -802,7 +802,9 @@ becomes available here - one rule, seen from both sides.
      boundary kind, opening direction, front), the visibility mask, `allowed` (`Region.allowed_faces`), the rim area
      (`Region.contact_faces`), the contacts.
    - **Order, each provable alone:** (1) extract `dental/graph.rs` - `cargo test`, denture digest unchanged,
-     `gate:real`; (2) add RIM, RIMBAND, LOWRIMBAND, BASINS, SOCK to the engine's denture default as unreachable nodes -
+     `gate:real` (**DONE 2026-11-22**, geocore c5d073d: `Node`, `Graph`, `num` / `text`, `parse` moved, re-exported
+     from `zone_graph`; geocore 680 Rust tests + 86 host files, `gate:real` no differences, app gate 1981 tests,
+     walk ALL PASS 199 + 2); (2) add RIM, RIMBAND, LOWRIMBAND, BASINS, SOCK to the engine's denture default as unreachable nodes -
      masks bit-equal, `gate:real`; (3) one override slot PER KIND, then the aligner default graph with locked
      validation - a Rust test that it validates, that every edit is refused naming the node, and that the digest
      stays "default"; (4) wasm + host: a kind-aware set, host `KINDS` / outputs per kind, the type file - parity test
