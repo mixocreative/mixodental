@@ -401,6 +401,43 @@ edits a list.
   Update is explicit, re-runs detection (the digest changed, so the cache cannot serve the old
   result) and is undoable until saved (unit D2).
 
+### 8a. The build plan for D1/A1, v1 (2026-11-22; Fable reviewed twice and agrees)
+
+Checked in source before writing. **What v1 does:** denture type files in `types/denture/` reach the
+app's type picker, with their own name and badge, in every engine realm; anything that cannot load is
+listed with its reason.
+
+- **Pure module** `src/dentalTypes/shippedTypes.ts`: `discoverTypes(files, deps, opts)` -> loaded and
+  refused. Refused, with the reason shown: a path that is not `types/<category>/<id>.type.json` or
+  disagrees with the file; anything `readTypeFile` refuses; an ALIGNER type (v1 - the aligner card
+  lookup `profileById` and the vendored mesh worker know built-in aligner profiles only; lifting this
+  needs a geocore host change); a type with its own zone graph (one engine graph slot until E3); a type
+  that pins rules (the app's rules are each unit's settings today - a pinned rule would be silently
+  ignored); an id equal to a built-in's or another file's; a name equal to another profile's in any
+  language. Tested with in-memory files.
+- **Every realm registers them.** `typesReady()` = `geometryReady()`, the eager raw glob of
+  `/types/*/*.type.json`, `discoverTypes`, `registerDentureProfile` per type - once per realm.
+  `main.tsx` and every worker entry in `src/workers/factories.ts` use it IN PLACE OF `geometryReady`;
+  a guard test fails if one of them names `geometryReady` again. (The app runs the engine in four
+  workers besides the main thread, each with its own engine and host profile list: a type registered
+  only on the main thread would be listed in the picker and unknown where it runs.)
+- **No silent misroute.** `jobKindOf(id)` throws naming the id when an id is given that no profile
+  defines (it used to become 'aligner'); a test holds it.
+- **Name and badge.** The workbench sets a new type's `profile.name` (all three languages) to its id
+  until a New-type screen offers a real name; the type file gains an optional `badge: { letter, style }`
+  (style one the stylesheet defines), read before the code table in `purposes.ts`.
+- **Status, never unlabelled.** The picker label carries "unproved", "proved by hand" or "proved on
+  engine N" when the proof is not a clean match; no suffix means a matching proof.
+- **Projects:** a project whose saved type was removed is still refused at load (unit A2 is the fix);
+  v1 makes the denture message name the missing type file.
+- **Order:** workbench naming; reader `badge` + pure module + tests; realm hook + guard + loud
+  `jobKindOf`; picker badge / status / refused line + translations; docs.
+
+**OPEN - the owner's call:** a type whose only problem is "proved on engine N, this app runs M". The
+section 3 table says it LOADS, labelled; section 7's recommendation 4 says a release lists only types
+proved on the engine it ships with. Recommended: load it, labelled "proved on engine N" - otherwise every
+engine update unloads every type and every project made with one stops opening.
+
 ## 9. An MCP server for the workbench — describe an idea, the AI composes it (PLANNED)
 
 **In plain words:** an MCP server is a small local program that gives an AI a fixed set of buttons.
