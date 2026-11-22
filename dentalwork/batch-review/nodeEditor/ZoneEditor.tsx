@@ -36,7 +36,7 @@ import {
  * resize notifications, so in one this component's `requestAnimationFrame` never runs and the canvas
  * looks broken whatever the code does. Test the editor in the fronted tab.
  */
-function MeasureWhenReady({ ids }: { ids: string }) {
+export function MeasureWhenReady({ ids }: { ids: string }) {
   const ready = useStore((s) => s.domNode !== null);
   const update = useUpdateNodeInternals();
   useEffect(() => {
