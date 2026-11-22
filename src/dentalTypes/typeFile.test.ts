@@ -6,6 +6,7 @@ import { PROFILE_FILES } from '@mixo-geocore/host/dental/profileFiles';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { unreadBy } from '../../benchwork/rules.mjs';
 import { alignerGraph, defaultGraph, setParam, steepAngleProblem, validate } from '../../dentalwork/batch-review/nodeGraph.mjs';
+import { defaultGraph as orientDefault, flatBaseGraph, validate as validateOrient } from '../../dentalwork/batch-review/orientGraph.mjs';
 import {
   TYPE_FILE_FORMAT, badgeProblem, draftOf, graphText, proofOf, readTypeFile, typeDigest, typeFileText, type TypeFile, type TypeFileDeps,
 } from './typeFile';
@@ -15,6 +16,7 @@ const deps: TypeFileDeps = {
   ruleNames: RULE_NAMES,
   unreadBy: (category, rules) => unreadBy(category, rules),
   graphProblems: (graph, rules) => [...validate(graph).problems, ...[steepAngleProblem(graph, rules)].filter((p): p is string => Boolean(p))],
+  orientProblems: (graph) => validateOrient(graph as never).problems,
   engineVersion: 70,
 };
 
@@ -114,6 +116,19 @@ describe('a file that cannot be a type is refused by name', () => {
   it('a zone graph that cannot run, or that disagrees with the steep-angle rule', () => {
     expect(refused({ ...dentureType(), zoneGraph: { ...defaultGraph(), outputs: { ...defaultGraph().outputs, allowed: null } } })).toThrow(/cannot run/);
     expect(refused({ ...dentureType(), zoneGraph: setParam(defaultGraph(), 'R1b', 'deg', 60) })).toThrow(/noSupportSteepDeg is not set/);
+  });
+
+  // U6 (docs/ORIENT-NODES.md): a type's own Step 1. Absent is today's; present it must run, and only on a denture.
+  it('an Orient graph reads back, is caught when edited after the proof, and is refused when it cannot run', () => {
+    const flat = flatBaseGraph() as unknown as Record<string, unknown>;
+    const withFlat = dentureType({ orientGraph: flat });
+    const back = readTypeFile(typeFileText(withFlat), deps);
+    expect(back.label).toBe('VALIDATED');
+    expect(back.type.orientGraph).toEqual(flat);
+    expect(readTypeFile(typeFileText({ ...withFlat, orientGraph: orientDefault() as unknown as Record<string, unknown> }), deps).why).toContain('its Orient graph changed after it was proved');
+    const broken = { ...flat, outputs: { frame: 'FR', pose: null } };
+    expect(refused({ ...dentureType(), orientGraph: broken })).toThrow(/Orient graph cannot run/);
+    expect(refused({ ...dentureType(), category: 'aligner', orientGraph: flat } as TypeFile)).toThrow();
   });
 
   it('an aligner pins only what an aligner reads, and takes only its own locked graph', () => {

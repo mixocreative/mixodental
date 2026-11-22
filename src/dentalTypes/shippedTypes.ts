@@ -37,6 +37,7 @@ export interface KnownProfile {
 /** Why v1 refuses whole groups of types - each named where the next step will lift it. */
 export const NOT_YET = {
   graph: 'the app cannot run a type\'s own zone graph yet: the engine has one graph for everything until the graph is registered with its type',
+  orientGraph: 'the app cannot run a type\'s own Orient graph yet: the engine has one Orient graph for everything until it is registered with its type',
   rules: (names: string[]) => `the app cannot apply a type's own rules yet (${names.join(', ')}): each unit's settings are its rules today, so these would be ignored`,
 } as const;
 

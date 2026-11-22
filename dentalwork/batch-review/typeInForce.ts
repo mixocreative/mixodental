@@ -29,6 +29,8 @@ import { unreadBy } from '../../benchwork/rules.mjs';
 import { discoverTypes } from '../../src/dentalTypes/shippedTypes';
 import { draftOf, graphText, profileText, proofOf, readTypeFile, typeFileText, type TypeFile, type TypeFileDeps } from '../../src/dentalTypes/typeFile';
 import { steepAngleProblem, upgradeGraph, validate } from './nodeGraph.mjs';
+import { validate as validateOrient } from './orientGraph.mjs';
+import { setOrientGraph } from '@mixo-geocore/host/dental/orientGraph';
 import { useTypeProfile } from './profileSelect';
 
 /** The one set of checks a type file is read with, here as in the app. */
@@ -37,6 +39,7 @@ export const TYPE_DEPS: TypeFileDeps = {
   ruleNames: RULE_NAMES,
   unreadBy: (category, rules) => unreadBy(category, rules),
   graphProblems: (graph, rules) => [...validate(upgradeGraph(graph)).problems, ...[steepAngleProblem(graph, rules)].filter((p): p is string => Boolean(p))],
+  orientProblems: (graph) => validateOrient(graph as never).problems,
   engineVersion: HOST_GEOMETRY_VERSION,
 };
 
@@ -75,6 +78,8 @@ export function typeOfRun(kind: DentalKind, env: Env): TypeFile | null {
     rules, zoneGraph: kind === 'denture' && env.MIXO_ZONE_GRAPH_FILE ? JSON.parse(readFileSync(env.MIXO_ZONE_GRAPH_FILE, 'utf8')) : null,
     validation: null,
     ...(env.MIXO_TYPE_BADGE ? { badge: env.MIXO_TYPE_BADGE } : {}),
+    // The Orient canvas's graph (U6), so Save type keeps the Step 1 that ran.
+    ...(kind === 'denture' && env.MIXO_ORIENT_GRAPH_FILE ? { orientGraph: JSON.parse(readFileSync(env.MIXO_ORIENT_GRAPH_FILE, 'utf8')) } : {}),
   };
   // Read back through the one reader, so a draft is refused for exactly what a saved file would be.
   return readTypeFile(typeFileText(draft), TYPE_DEPS).type;
@@ -102,6 +107,8 @@ export function putInForce(type: TypeFile, env: Record<string, string | undefine
   // aligner chain reads no graph, so it leaves the zone graph alone: sending null here cleared the DENTURE's graph
   // (Fable's step 4 trap, docs/ORIENT-NODES.md section 10).
   if (type.category === 'aligner') return 'default';
+  // Its Step 1 (U6): its own Orient graph, or today's when it has none - never one a previous run left in force.
+  setOrientGraph(type.orientGraph ? JSON.parse(graphText(type.orientGraph)) : null);
   return setZoneGraph(type.zoneGraph === null ? null : JSON.parse(graphText(type.zoneGraph)));
 }
 

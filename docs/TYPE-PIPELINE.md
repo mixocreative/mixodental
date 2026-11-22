@@ -168,6 +168,7 @@ Rules of the format:
   `crates/geometry-wasm/src/lib.rs:65-68`). An unknown name is an error at load. (`docs/design.md`
   records that the packing step silently drops unknown names today; I did not re-open that file.)
 - **`zoneGraph` is `null` for "the default wiring"**, or the graph exactly as the canvas exports it.
+- **`orientGraph` (optional, denture only, added 2026-11-23 with ORIENT-NODES U6)** is the type's own Step 1 as the Orient canvas exports it. Absent means today's Step 1, so every file written before it is still valid under the same format. When present it must run (`orientGraph.mjs` `validate`, the engine's refusals). Its digest joins the proof (`validation.orientGraphDigest`), so editing it after the proof makes the type UNVALIDATED. The app refuses a type that carries one, with the reason, as it does a type's own zone graph: the engine has one Orient graph for everything until graphs are registered with their type (E3).
 - **An aligner type has only the rules an aligner reads (`overhangAngleDeg` today) and `zoneGraph: null`** - corrected 2026-11-20; the line it replaces said `rules: {}`, and anything else is refused, because
   the aligner chain reads neither (`benchwork/README.md`, "only a denture responds").
 - **`validation` is never trusted by itself.** The loader recomputes both digests; a mismatch means

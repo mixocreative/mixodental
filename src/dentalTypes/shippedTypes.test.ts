@@ -6,6 +6,7 @@ import { PROFILE_FILES } from '@mixo-geocore/host/dental/profileFiles';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { unreadBy } from '../../benchwork/rules.mjs';
 import { defaultGraph, steepAngleProblem, validate } from '../../dentalwork/batch-review/nodeGraph.mjs';
+import { validate as validateOrient } from '../../dentalwork/batch-review/orientGraph.mjs';
 import { NOT_YET, discoverTypes, type KnownProfile } from './shippedTypes';
 import { typeFileText, type TypeFile, type TypeFileDeps } from './typeFile';
 
@@ -15,6 +16,7 @@ const deps: TypeFileDeps = {
   ruleNames: RULE_NAMES,
   unreadBy: (category, rules) => unreadBy(category, rules),
   graphProblems: (graph, rules) => [...validate(graph).problems, ...[steepAngleProblem(graph, rules)].filter((p): p is string => Boolean(p))],
+  orientProblems: (graph) => validateOrient(graph as never).problems,
   engineVersion: 70,
 };
 

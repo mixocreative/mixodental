@@ -32,6 +32,7 @@ export const APP_TYPE_DEPS: TypeFileDeps = {
   ruleNames: RULE_NAMES,
   unreadBy: () => [],
   graphProblems: () => [NOT_YET.graph],
+  orientProblems: () => [NOT_YET.orientGraph],
   engineVersion: HOST_GEOMETRY_VERSION,
 };
 

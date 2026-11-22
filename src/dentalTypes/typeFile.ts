@@ -31,6 +31,8 @@ export interface TypeValidation {
   profileDigest: string;
   /** `typeDigest(graphText(zoneGraph))`, or "default" when the type has no graph. */
   zoneGraphDigest: string;
+  /** `typeDigest(graphText(orientGraph))` (U6); absent or "default" when the type has none. */
+  orientGraphDigest?: string;
   scans: string[];
   at: string;
 }
@@ -43,6 +45,11 @@ export interface TypeFile {
   profile: Record<string, unknown>;
   rules: Record<string, number | boolean>;
   zoneGraph: Record<string, unknown> | null;
+  /**
+   * The type's own Orient graph - its Step 1 (docs/ORIENT-NODES.md U6). Absent = the category's default Step 1, so
+   * every type file written before it stays valid under the same format, as `tiltStartDeg` did. Denture only.
+   */
+  orientGraph?: Record<string, unknown>;
   validation: TypeValidation | null;
   /**
    * The owner's hand override (ruling 4, 2026-11-20): `true` makes the type count as proved whatever
@@ -74,6 +81,8 @@ export interface TypeFileDeps {
   unreadBy(category: TypeCategory, rules: Record<string, unknown>): string[];
   /** Problems with a zone graph together with the rules it runs beside (nodeGraph `validate` + `steepAngleProblem`); empty when runnable. */
   graphProblems(graph: Record<string, unknown>, rules: Record<string, unknown>): string[];
+  /** Problems with an Orient graph (orientGraph `validate`); empty when runnable. */
+  orientProblems(graph: Record<string, unknown>): string[];
   /** The engine version the app ships. */
   engineVersion: number;
 }
@@ -133,6 +142,7 @@ export function proofOf(type: TypeFile, run: { engineVersion: number; scans: str
     engineVersion: run.engineVersion,
     profileDigest: typeDigest(profileText(type.profile)),
     zoneGraphDigest: type.zoneGraph === null ? 'default' : typeDigest(graphText(type.zoneGraph)),
+    ...(type.orientGraph ? { orientGraphDigest: typeDigest(graphText(type.orientGraph)) } : {}),
     scans: run.scans,
     at: run.at,
   };
@@ -150,7 +160,7 @@ export function draftOf(type: TypeFile): TypeFile {
 
 const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const REQUIRED_KEYS = ['typeFile', 'category', 'id', 'basedOn', 'profile', 'rules', 'zoneGraph', 'validation'] as const;
-const OPTIONAL_KEYS = ['proved', 'badge'] as const;
+const OPTIONAL_KEYS = ['proved', 'badge', 'orientGraph'] as const;
 
 /**
  * Read a type file. Throws `TypeError` naming the problem when the file cannot be a type at all (a key
@@ -199,12 +209,21 @@ export function readTypeFile(text: string, deps: TypeFileDeps): ReadType {
     if (problems.length > 0) throw new TypeError(`type file ${id}: its zone graph cannot run - ${problems[0]}`);
   }
 
+  const orientGraph = raw.orientGraph;
+  if (orientGraph !== undefined) {
+    if (!isRecord(orientGraph)) throw new TypeError(`type file ${id}: orientGraph must be a graph`);
+    if (category !== 'denture') throw new TypeError(`type file ${id}: only a denture reads an Orient graph in this version`);
+    const problems = deps.orientProblems(orientGraph);
+    if (problems.length > 0) throw new TypeError(`type file ${id}: its Orient graph cannot run - ${problems[0]}`);
+  }
+
   const type: TypeFile = {
     typeFile: TYPE_FILE_FORMAT, category, id, basedOn: raw.basedOn, profile: raw.profile,
     rules: rules as Record<string, number | boolean>, zoneGraph: zoneGraph as Record<string, unknown> | null,
     validation: isRecord(raw.validation) ? raw.validation as unknown as TypeValidation : null,
     ...(raw.proved === undefined ? {} : { proved: raw.proved }),
     ...(raw.badge === undefined ? {} : { badge: raw.badge as string }),
+    ...(orientGraph === undefined ? {} : { orientGraph: orientGraph as Record<string, unknown> }),
   };
   const measured = labelOf(type, deps.engineVersion);
   // The hand override wins, but the reasons stay, so "proved by hand" never hides what the record says.
@@ -221,6 +240,7 @@ function labelOf(type: TypeFile, engineVersion: number): Pick<ReadType, 'label' 
   if (v.engineVersion !== engineVersion) why.push(`it was proved on engine ${v.engineVersion}, this app runs ${engineVersion}`);
   if (v.profileDigest !== now.profileDigest) why.push('its profile changed after it was proved');
   if (v.zoneGraphDigest !== now.zoneGraphDigest) why.push('its zone graph changed after it was proved');
+  if ((v.orientGraphDigest ?? 'default') !== (now.orientGraphDigest ?? 'default')) why.push('its Orient graph changed after it was proved');
   if (!Array.isArray(v.scans) || v.scans.length === 0) why.push('the proof names no scans');
   return why.length === 0 ? { label: 'VALIDATED', why } : { label: 'UNVALIDATED', why };
 }
