@@ -815,7 +815,13 @@ becomes available here - one rule, seen from both sides.
      delegated). Only the default validates; seven kinds of edit are refused by name; setting it never touches the
      denture's slot. It holds no state until a node can be freed, so "one slot per kind" is that guarantee, not a
      second store. Not vendored: no wasm call reads it until (4)); (4) wasm + host: a kind-aware set, host `KINDS` / outputs per kind, the type file - parity test
-     with an aligner corpus, `vendor:check`, full `gate:real`.
+     with an aligner corpus, `vendor:check`, full `gate:real`. **(4a) DONE 2026-11-22, the engine-facing half:**
+     `set_zone_graph` reads a top-level `"kind"` (`dental/graph.rs` `kind_of`; absent = denture, so every saved
+     graph and caller is unchanged) and sends `"aligner"` to the locked aligner graph; `putInForce` no longer sends
+     "no graph" for an aligner type, which used to clear the denture's graph. Proven: geocore host tests through the
+     wasm build fail with the routing removed; `typeInForce.test.ts` fails with the fix removed. **(4b) still to
+     do, the editor half:** host `KINDS` / outputs per kind so the viewer can show the aligner's locked graph, the
+     type file accepting only the aligner default, and an aligner corpus in `zoneGraphParity.test.ts`.
    - **Why `gate:real` alone is not the proof:** an aligner graph that is only declared changes nothing the scans
      record, so the gate passes vacuously; step (3)'s refusal test is the real check until a node is freed.
    - **Traps (checked):** ONE override slot today (`zone_graph.rs` `OVERRIDE`), and `typeInForce.ts` sets the graph
