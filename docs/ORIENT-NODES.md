@@ -711,6 +711,14 @@ Not "median plane": in anatomy that is the left/right midline, our symmetry plan
 from the Support zones tab"); the engine also refuses a rim-derived wire into `lookFrom` through a separate socket
 type (`rimPlane` is not a `plane`), so the greying is not the only guard against the cycle.
 
+**DONE 2026-11-22 in the review viewer:** the "1 Orient" stage shows the rim tab as a read-only node canvas below its
+cards, and an aligner run shows the same canvas in place of its card row (`nodeGraph.mjs` `rimTabView`,
+`nodeEditor/RimCanvas.tsx`). Denture: arch frame -> rim -> rim strip / low rim strip, with the rim plane and the rim
+crossing greyed and carrying the reason; aligner: its seven locked nodes plus the greyed rim plane. `nodeGraph.test.ts`
+holds the rule from both sides - every greyed node has the reason, and no node that is not greyed reads a greyed one.
+Read-only on purpose: every node stands for today's code, so the editable Orient canvas is still U6 (owner ruling 1).
+Checked in the browser at 1440 x 900 on a denture and an aligner run (6 nodes / 5 wires, 8 nodes / 7 wires).
+
 **Every plane in the UI** (owner, 2026-11-21): a plain explanation (what it is, what it is computed from) in all
 three languages; its own colour, the same on the node's chip and in the 3D view; drawn when its node is selected or
 highlighted, hidden otherwise - except the important ones, always shown: the plane the current tab's result rests

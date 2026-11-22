@@ -105,6 +105,8 @@ For each file, write down whether the edges and the support area are right, wron
 | `reviewCase.test.ts` | Runs the reference aligner through the whole pipeline (about 20 s, part of `npm test`) so a broken import cannot go unnoticed |
 | `serve.mjs` | Serves the viewer, three.js and the run's files (if a run folder is given) on 127.0.0.1 only |
 | `viewer.html` | The viewer |
+| `nodeGraph.mjs` (+ `nodeGraph.test.ts`) | The node graphs as plain data, tested without a browser: the denture zone graph (kinds, words, validation), the aligner's locked graph, and the rim tab (`rimTabView`, with the rim-derived nodes greyed) |
+| `nodeEditor/` | The React Flow canvases: `ZoneEditor.tsx` (the editable zone graph), `RimCanvas.tsx` (the read-only rim tab on the Orient stage and on aligner runs), `main.tsx` (the entry the viewer imports). Built by `npm run review:editor` into `node-editor/node-editor.js`; `bundle.test.ts` fails when the bundle is older than these sources |
 | `tokens.css`, `base.css` | Mixo app style, copied unchanged from the `mixo-app-style` skill |
 
 ## Colours and rule numbers

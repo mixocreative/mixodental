@@ -243,6 +243,12 @@
 .zone-canvas .react-flow__minimap { width: 120px; height: 80px; }
 .zone-canvas .react-flow__minimap svg { width: 120px; height: 80px; }
 @media (max-width: 1100px) { .zone-canvas .react-flow__minimap { display: none; } }
+/* The rim tab (docs/ORIENT-NODES.md section 10): read-only, below the Orient cards, so shorter than the zone editor.
+   A rim-derived node is greyed and plainly not a control; its reason is the line under its title. */
+.rim-canvas { height: 420px; resize: vertical; }
+:root[style*="--chain-h"] .rim-canvas { min-height: 220px; }
+.zone-canvas .zn.derived { opacity: 0.55; border-style: dashed; cursor: not-allowed; }
+.zone-canvas .zn-reason { font-size: 10px; color: var(--muted); margin: 1px 0 2px; }
 .zone-canvas .zn-remove { margin-left: 4px; border: 0; background: none; color: var(--danger); font-size: 14px; line-height: 1; padding: 0 2px; cursor: pointer; }
 /* Two lines of explanation; the whole sentence on hover or when the node is selected. */
 .zone-canvas .zn-says { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -822,6 +828,10 @@ let editorHandle = null;
    React root must stay on the same element or it leaks a root per keystroke. */
 const zoneCanvasHost = Object.assign(document.createElement('div'), { className: 'zone-canvas' });
 zoneCanvasHost.dataset.ui = 'zone-canvas';
+/* The rim tab's read-only canvas: its own host and root, for the same reason (drawChain clears the stage body). */
+const rimCanvasHost = Object.assign(document.createElement('div'), { className: 'zone-canvas rim-canvas' });
+rimCanvasHost.dataset.ui = 'rim-canvas';
+let rimHandle = null;
 /* Where nodes sit. Kept apart from the graph on purpose: layout is not meaning. */
 let zonePositions = null;
 
@@ -1038,7 +1048,8 @@ function drawChain(present, names) {
   if (kindNow !== 'denture') {
     // An aligner run shows the aligner's LOCKED graph read-only (step 4.4c, docs/ORIENT-NODES.md section 10).
     section.hidden = !graphLib;
-    if (graphLib) { tabs.textContent = ''; body.textContent = ''; drawAlignerGraph(body); }
+    // The canvas when the bundle loaded; the plain cards otherwise, so the aligner graph never vanishes.
+    if (graphLib) { tabs.textContent = ''; body.textContent = ''; if (!drawRimCanvas(body, 'aligner')) drawAlignerGraph(body); }
     return;
   }
   section.hidden = false;
@@ -1071,6 +1082,27 @@ function drawChain(present, names) {
     rail.append(card);
   });
   body.append(rail);
+  if (stage.id === 'orient') drawRimCanvas(body, 'denture');
+}
+
+/**
+ * The rim tab as a read-only node canvas (`nodeGraph.mjs` rimTabView, `nodeEditor/RimCanvas.tsx`): what stage 1 finds,
+ * with the nodes computed from the finished rim greyed and their reason. False when the bundle or the graph library
+ * did not load, so the caller can fall back to plain cards.
+ */
+function drawRimCanvas(body, kind) {
+  if (!graphLib || !editorLib?.mountRimCanvas) return false;
+  const note = document.createElement('p');
+  note.className = 'chain-note';
+  note.dataset.ui = 'rim-canvas-note';
+  note.textContent = kind === 'aligner'
+    ? 'The aligner\'s steps as nodes. They are locked in this version: each stands for today\'s aligner code, and the settings that shape them are in the aligner profile. Greyed nodes need the finished rim.'
+    : 'What Orient finds, as nodes: where the search starts, the rim, and the strips grown from it. Greyed nodes need the finished rim, so they appear here only for reference.';
+  body.append(note, rimCanvasHost);
+  const props = { kind, view: graphLib.rimTabView(kind) };
+  if (rimHandle) rimHandle.update(props);
+  else rimHandle = editorLib.mountRimCanvas(rimCanvasHost, props);
+  return true;
 }
 
 /**
