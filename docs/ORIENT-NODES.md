@@ -789,6 +789,33 @@ becomes available here - one rule, seen from both sides.
      aligner footprint, the denture's fixed RIMBAND).
 4. **Kind-neutral graph**: move `zone_graph.rs` out of `denture/`; an aligner default graph that wraps today's code
    as locked nodes. Proof: `gate:real`.
+   **Step 4, made implementable (Fable, 2026-11-22; the trap claims checked against the code):**
+   - **Do NOT move the whole file.** It is built from denture parts (six `use super::` lines, Sources, canon,
+     prepared); a whole move only puts denture code under a neutral name. Cut instead: the generic part - `Node`,
+     `Graph`, `num` / `text`, `parse` - goes to `dental/graph.rs`; the evaluator stays in `denture/`. Nothing denture
+     crosses that cut. The override store crosses it twice (`validate`, `default_graph`).
+   - **A locked node already has a precedent:** `FIXED_OUTPUTS` pins an output name to a node id, refuses any edit,
+     and the value keeps coming from today's code (the graph never dispatches it). The aligner graph starts that way:
+     declared, pinned, never evaluated. Evaluating it by calling the existing function needs a typed value (outputs
+     are four `Vec<bool>` today) - that is step 5's.
+   - **Aligner outputs it names** (what the code produces and reads downstream): the trim frame, `rim` (points,
+     boundary kind, opening direction, front), the visibility mask, `allowed` (`Region.allowed_faces`), the rim area
+     (`Region.contact_faces`), the contacts.
+   - **Order, each provable alone:** (1) extract `dental/graph.rs` - `cargo test`, denture digest unchanged,
+     `gate:real`; (2) add RIM, RIMBAND, LOWRIMBAND, BASINS, SOCK to the engine's denture default as unreachable nodes -
+     masks bit-equal, `gate:real`; (3) one override slot PER KIND, then the aligner default graph with locked
+     validation - a Rust test that it validates, that every edit is refused naming the node, and that the digest
+     stays "default"; (4) wasm + host: a kind-aware set, host `KINDS` / outputs per kind, the type file - parity test
+     with an aligner corpus, `vendor:check`, full `gate:real`.
+   - **Why `gate:real` alone is not the proof:** an aligner graph that is only declared changes nothing the scans
+     record, so the gate passes vacuously; step (3)'s refusal test is the real check until a node is freed.
+   - **Traps (checked):** ONE override slot today (`zone_graph.rs` `OVERRIDE`), and `typeInForce.ts` sets the graph
+     to null for an aligner type - a second kind must not clear the denture's graph. The aligner detection cache keys
+     on mesh and profile only (`region.rs` `propose_region_part`): add the graph digest BEFORE any aligner node is
+     freed, or an edit would return a stale region. `set_zone_graph` in the wasm API is denture-only (prefer a
+     top-level `"kind"` field defaulting to denture over a new parameter). The type file refuses any graph on an
+     aligner (`typeFile.ts`) - keep that until (3), then allow only the default. `default_graph(steep_deg)` and the
+     host's `REQUIRED_OUTPUTS` are denture-shaped; `KINDS.rim.reads` names the denture finder.
 5. **`rim` socket**: wrap each finder whole, no logic moved. Proof: bit-equal rim points on the real scans.
 6. **`lookFrom`** as an explicit input to both finders. Proof: bit-equal.
 7. **`fitPlane` node**, then free the denture rim bands from `FIXED_OUTPUTS`. Proof: mask equality.
