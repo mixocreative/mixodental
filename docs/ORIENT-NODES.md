@@ -877,6 +877,25 @@ becomes available here - one rule, seen from both sides.
    node there would also change the default graph every saved denture graph is compared against. It joins the
    denture graph with a `frame` socket, when the frame source becomes a node.
 7. **`fitPlane` node**, then free the denture rim bands from `FIXED_OUTPUTS`. Proof: mask equality.
+   **Made implementable by Fable (2026-11-22), claims checked - bands first, the plane later:** the strips depend on
+   the rim, not the plane, so the order above is not a dependency; and a plane cannot be evaluated while the graph's
+   values are face masks only, so a `fitPlane` node now would be a declared card and nothing more (written down as
+   debt; the rim plane feeds only the cavity-ray origin, whose plane is already fixed to `rim`).
+   - **7.1 DONE 2026-11-22** (geocore 8429b6f): the two rim strips were the same block written out twice in `Analysis::of`; they are
+     one `EdgeGraph::band(seeds, mm)` now (grow from every rim vertex along the welded surface; empty for no seeds or a
+     width of 0 or less). Same arithmetic, same order. Proof: a ring-slab test (wider grows more, the 2 mm strip lies
+     inside the 5 mm one, the guards); `gate:real` no differences; app gate 1985 tests, walk ALL PASS 199 + 2.
+   - **7.2 next:** add `edges: &EdgeGraph` to the zone graph's `Sources`; a `band` seeded by the `rim` node grows
+     with `EdgeGraph::band` from the standard rim's vertex ids (refuse a rim without ids); `Analysis.rim_band` and
+     `low_rim_band` come FROM the graph, and the duplicate in `Analysis::of` goes. Every reader (`ruled_tips.rs`
+     placement, `review.rs`) reads `Analysis`, so none changes. Proof: `gate:real` no differences.
+     **The trap that decides it: the width has two truths.** The profile sets `rim_band_mm` / `low_rim_band_mm`; the
+     graph's RIMBAND / LOWRIMBAND say 2 and 5. Decision: the PROFILE is the truth - `default_graph` takes the profile
+     widths (as it already takes the steep angle), and the host shows them as fixed values read from the profile, as
+     the print-angle search node does. Otherwise a type with other widths would silently get 2 / 5 mm.
+   - **7.3 then:** free them - remove RIMBAND / LOWRIMBAND from `FIXED_OUTPUTS` and the host's `FIXED.outputs`, and
+     replace the host's id exemption with "a band is seeded by Find holes or the rim". Never before 7.2: freed while
+     the strips still come from `Analysis::of` would make an edit a silent no-op.
 8. **Plane display** - moved up to run right after step 2 (it needs only the names, and it is the visible value):
    explanations, colours, show-on-select, important planes always on; captured at operator width. Tonight it lands
    in the batch-review viewer, the one place a node graph is shown today; the app has no node canvas for operators.
