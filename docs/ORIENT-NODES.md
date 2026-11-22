@@ -773,7 +773,7 @@ becomes available here - one rule, seen from both sides.
    - **Scope:** the engine has five fixed outputs (`hole_band` -> BAND, `rim` -> RIM, `rim_band` -> RIMBAND,
      `low_rim_band` -> LOWRIMBAND, `sockets` -> SOCK); the last four name nodes its own default graph does not
      contain, because those values are computed elsewhere in stage 1. Step 3 does NOT add them; step 4 does, as
-     locked nodes. The engine's reachable-only check (it evaluates what the free outputs need) stays: it is how a
+     locked nodes (added by step 4.2 - unreachable, so still computed elsewhere). The engine's reachable-only check (it evaluates what the free outputs need) stays: it is how a
      graph authored ahead of the engine can still run its runnable part.
    - **`curve` becomes `rim`: DONE 2026-11-22.** The socket type and the node kind are both `rim` now. Measured
      first: the engine never reads the kind (it only checks that the `rim` output is bound to RIM, `FIXED_OUTPUTS`),
@@ -805,7 +805,9 @@ becomes available here - one rule, seen from both sides.
      `gate:real` (**DONE 2026-11-22**, geocore c5d073d: `Node`, `Graph`, `num` / `text`, `parse` moved, re-exported
      from `zone_graph`; geocore 680 Rust tests + 86 host files, `gate:real` no differences, app gate 1981 tests,
      walk ALL PASS 199 + 2); (2) add RIM, RIMBAND, LOWRIMBAND, BASINS, SOCK to the engine's denture default as unreachable nodes -
-     masks bit-equal, `gate:real`; (3) one override slot PER KIND, then the aligner default graph with locked
+     masks bit-equal, `gate:real` (**DONE 2026-11-22**, geocore 027bc4d: appended, unreachable; two new
+     Rust tests - every output names a node the graph contains, and the engine default has the host's ids, kinds
+     and wires - each shown to fail without RIM); (3) one override slot PER KIND, then the aligner default graph with locked
      validation - a Rust test that it validates, that every edit is refused naming the node, and that the digest
      stays "default"; (4) wasm + host: a kind-aware set, host `KINDS` / outputs per kind, the type file - parity test
      with an aligner corpus, `vendor:check`, full `gate:real`.
