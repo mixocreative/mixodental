@@ -885,14 +885,17 @@ becomes available here - one rule, seen from both sides.
      one `EdgeGraph::band(seeds, mm)` now (grow from every rim vertex along the welded surface; empty for no seeds or a
      width of 0 or less). Same arithmetic, same order. Proof: a ring-slab test (wider grows more, the 2 mm strip lies
      inside the 5 mm one, the guards); `gate:real` no differences; app gate 1985 tests, walk ALL PASS 199 + 2.
-   - **7.2 next:** add `edges: &EdgeGraph` to the zone graph's `Sources`; a `band` seeded by the `rim` node grows
-     with `EdgeGraph::band` from the standard rim's vertex ids (refuse a rim without ids); `Analysis.rim_band` and
-     `low_rim_band` come FROM the graph, and the duplicate in `Analysis::of` goes. Every reader (`ruled_tips.rs`
-     placement, `review.rs`) reads `Analysis`, so none changes. Proof: `gate:real` no differences.
-     **The trap that decides it: the width has two truths.** The profile sets `rim_band_mm` / `low_rim_band_mm`; the
-     graph's RIMBAND / LOWRIMBAND say 2 and 5. Decision: the PROFILE is the truth - `default_graph` takes the profile
-     widths (as it already takes the steep angle), and the host shows them as fixed values read from the profile, as
-     the print-angle search node does. Otherwise a type with other widths would silently get 2 / 5 mm.
+   - **7.2 DONE 2026-11-22** (geocore 31ea863): the zone graph grows the rim strips. `Sources` carry the welded surface's `edges` and
+     the profile's `rim_strip_mm`; `evaluate` fills `ZoneOutputs.rim_band` / `low_rim_band` with `EdgeGraph::band`
+     from the standard rim's vertex ids (a rim without ids is refused); `Analysis` takes them from there and its own
+     copy is gone. Every reader (`ruled_tips.rs` placement, `review.rs`) reads `Analysis`, so none changed.
+     `validate` now refuses a graph whose RIMBAND / LOWRIMBAND is not a band seeded by the rim (two new refusal
+     cases), so such a graph fails when set, never mid-run. Proof: `gate:real` no differences (the strips decide
+     rim-strip tips); app gate 1985 tests, walk ALL PASS 199 + 2.
+     **The width has two truths, decided:** the PROFILE is the truth. The graph nodes still say 2 and 5, but the
+     engine grows each strip at the profile's width and never reads the node's `mm` - so a type with other widths
+     keeps them. Still to do (7.2b): the host should show those two widths as fixed values read from the profile, as
+     the print-angle search node does, instead of the node's 2 / 5.
    - **7.3 then:** free them - remove RIMBAND / LOWRIMBAND from `FIXED_OUTPUTS` and the host's `FIXED.outputs`, and
      replace the host's id exemption with "a band is seeded by Find holes or the rim". Never before 7.2: freed while
      the strips still come from `Analysis::of` would make an edit a silent no-op.
