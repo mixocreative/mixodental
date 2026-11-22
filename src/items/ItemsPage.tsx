@@ -16,6 +16,7 @@ import { jobSentence, jobTally } from '../deck/jobSummary';
 import { isModelFile } from '../components/startDrop';
 import { hint } from '../components/hint';
 import { PurposeSelect } from '../components/PurposeSelect';
+import { refusedTypes } from '../dentalTypes/typesReady';
 import { deckUsage, formatBytes } from './deckBudget';
 
 /**
@@ -295,6 +296,16 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
           onChange={onPurposeAll} onAnyModel={onAnyModel} />
       </span> : null}
     </div>
+    {/*
+      SAVED TYPES THAT COULD NOT LOAD (docs/TYPE-PIPELINE.md section 8a): once per page, not on every row, and never
+      silent - a type missing from the list without a word would leave the operator guessing. The reasons are the
+      reader's own (English, naming the file and the problem); open the line to read them. Its own line UNDER the
+      head, not inside it: the head is one row that does not wrap, and there it was squeezed to 29 px off-screen.
+    */}
+    {refusedTypes().length > 0 ? <details className="items-refused-types" data-ui="items-refused-types">
+      <summary>{plural(refusedTypes().length, '1 saved type could not load', '{n} saved types could not load')}</summary>
+      <ul>{refusedTypes().map((r) => <li key={r.file}><code>{r.file}</code>: {r.reason}</li>)}</ul>
+    </details> : null}
 
     {/*
       THE ROWS, AND NOTHING BESIDE THEM.

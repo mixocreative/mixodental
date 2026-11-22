@@ -1770,6 +1770,10 @@ dialog.terms .terms-item > span { flex: none; }
 /* Set all is pushed to the far end: it acts on the rows, so it reads as a tool rather than a title. */
 .items-setall { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
 .items-setall-label { color: var(--muted); font-size: var(--small-size, 11.5px); }
+/* Saved types that could not load: a warning line that opens to the reasons; text left-aligned, never centred. */
+.items-refused-types { margin: 0 0 8px; color: var(--warning); font-size: var(--small-size, 11.5px); text-align: left; }
+.items-refused-types summary { cursor: pointer; }
+.items-refused-types ul { margin: 4px 0 0; padding-left: 18px; color: var(--ink); }
 /* How many rows are still unnamed - a count, not a demand: the screen works without answering it. */
 .items-unanswered { margin-right: auto; color: var(--muted); font-size: var(--small-size, 11.5px); }
 /*
@@ -2093,8 +2097,12 @@ dialog.terms .terms-item > span { flex: none; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.9em;
+  /* Grows with its text: a saved type's badge is up to 5 characters (owner, 2026-11-22); one letter stays square. */
+  min-width: 1.9em;
   height: 1.9em;
+  padding: 0 0.35em;
+  box-sizing: border-box;
+  white-space: nowrap;
   flex: none;
   border: 1px solid var(--line-strong);
   border-radius: 6px;

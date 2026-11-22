@@ -1,6 +1,7 @@
 // Copyright (c) Mixo Creative.
 
 import { DENTAL_KINDS, defaultProfileId, kindOfProfile, profileIdsOf, type DentalKind } from '@mixo-geocore/host/dental/dentalKind';
+import { shippedBadge } from '../dentalTypes/typesReady';
 
 /**
  * THE ANSWERS TO "WHAT ARE YOU MAKING?" — in one list, and this is the only one.
@@ -42,7 +43,20 @@ export interface PurposeCategory {
   readonly icon: string;
 }
 
-const LABELS: Record<DentalKind, { label: string; icon: string }> = {
+/**
+ * THE CATEGORY TABLE - the one list a developer edits to give a category its name and icon.
+ *
+ * - `label`: the English name shown to the operator, which is also its translation key: add the same key to
+ *   `src/locales/ja.ts` and `src/locales/zh-Hant.ts` (Taiwan wording).
+ * - `icon`: the file `src/ui/assets/art/<icon>.svg` (48x48 pixel art, like the others). Drop the file in that
+ *   folder - `src/ui/Art.tsx` picks up every SVG there - and name it here. `purposes.test.ts` fails if the file is
+ *   missing.
+ *
+ * A category is an engine pipeline, so the list of KINDS lives in the engine (`DentalKind`); once a kind is added
+ * there, this file does not compile until the kind has a row here. The step-by-step is in `src/components/README.md`,
+ * "Adding a category". Types inside a category are data, not code: see `types/README.md`.
+ */
+export const CATEGORY_TABLE: Record<DentalKind, { label: string; icon: string }> = {
   aligner: { label: 'Aligner', icon: 'aligner' },
   denture: { label: 'Denture', icon: 'denture' },
 };
@@ -51,7 +65,7 @@ const LABELS: Record<DentalKind, { label: string; icon: string }> = {
 export const PURPOSE_CATEGORIES: readonly PurposeCategory[] = DENTAL_KINDS.map((kind) => ({
   kind,
   id: defaultProfileId(kind),
-  ...LABELS[kind],
+  ...CATEGORY_TABLE[kind],
 }));
 
 /**
@@ -93,7 +107,7 @@ export const typesOf = (kind: DentalKind): readonly string[] => profileIdsOf(kin
  */
 /** What a type wears: the letter, and the STYLE NAME that becomes its CSS class. */
 export interface TypeBadge {
-  /** One or two characters. Never a word - it is read as a mark. */
+  /** 1 to 5 characters: a built-in's one letter, or the badge a saved type's user set (`types/README.md`). */
   readonly letter: string;
   /**
    * The design this badge wears, as `.purpose-badge--<style>` in `src/styles.css`. It is a NAME,
@@ -114,5 +128,11 @@ const TYPE_BADGES: Readonly<Record<string, TypeBadge>> = {
   'reference-denture': { letter: 'G', style: 'generic' },
 };
 
-/** The badge a profile wears. An unlisted profile is general-purpose until somebody says otherwise. */
-export const typeBadge = (profileId: string): TypeBadge => TYPE_BADGES[profileId] ?? { letter: 'G', style: 'generic' };
+/**
+ * The badge a profile wears: a saved type's own badge (its type file, owner 2026-11-22), else this table, else `G` -
+ * an unlisted profile is general-purpose until somebody says otherwise. Saved types all wear the `generic` style.
+ */
+export const typeBadge = (profileId: string): TypeBadge => {
+  const saved = shippedBadge(profileId);
+  return saved ? { letter: saved, style: 'generic' } : TYPE_BADGES[profileId] ?? { letter: 'G', style: 'generic' };
+};

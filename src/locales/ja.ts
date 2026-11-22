@@ -731,6 +731,8 @@ export const ja: Dictionary = {
   // The per-row purpose override on the deck (2026-11-18): a row re-answered on its own.
   'Choose…': '選択してください…',
   'Which type': '種類',
+  '1 saved type could not load': '保存済みの種類 1 件を読み込めませんでした',
+  '{n} saved types could not load': '保存済みの種類 {n} 件を読み込めませんでした',
   'Could not stand this upright. Open it to orient by hand.': 'このモデルを直立させることができませんでした。開いて手動で向きを調整してください。',
   'Set all to': 'すべてに適用',
   '1 file still needs a category': '1つのファイルにカテゴリが未設定です',

@@ -736,6 +736,8 @@ export const zhHant: Dictionary = {
   // The per-row purpose override on the deck (2026-11-18): a row re-answered on its own.
   'Choose…': '請選擇…',
   'Which type': '類型',
+  '1 saved type could not load': '有 1 個已儲存的類型無法載入',
+  '{n} saved types could not load': '有 {n} 個已儲存的類型無法載入',
   'Could not stand this upright. Open it to orient by hand.': '無法將此模型直立。請開啟後手動調整方向。',
   'Set all to': '全部套用',
   '1 file still needs a category': '尚有 1 個檔案需要分類',
