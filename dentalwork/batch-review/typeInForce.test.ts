@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { setZoneGraph, zoneGraphDigest } from '@mixo-geocore/host/dental/zoneGraph';
 import { defaultGraph } from './nodeGraph.mjs';
-import { TYPE_DEPS } from './typeInForce';
+import { putInForce, TYPE_DEPS, typeOfRun } from './typeInForce';
 
 /*
  * A type file saved before 2026-11-22 names the rim node's kind `rimCurve`. It is checked through TYPE_DEPS, the one
@@ -12,5 +13,27 @@ describe('a type file with an old rim name passes the type-file graph check', ()
     const old = defaultGraph();
     old.nodes.find((n) => n.id === 'RIM')!.kind = 'rimCurve';
     expect(TYPE_DEPS.graphProblems(old, {})).toEqual([]);
+  });
+});
+
+/*
+ * Build step 4.4: an aligner type carries no zone graph, and putting it in force used to send "no graph" to the one
+ * slot the engine had - clearing the DENTURE's edited graph as a side effect.
+ */
+describe('putting an aligner type in force', () => {
+  it('leaves the denture zone graph in force', () => {
+    const edited = defaultGraph();
+    edited.nodes.push({ id: 'R2', kind: 'parallelCast', params: { from: 'front', toward: 'tissue', deg: 30, pitchMm: 0.1 }, inputs: {} });
+    edited.nodes.push({ id: 'NS2', kind: 'union', params: {}, inputs: { a: 'NS', b: 'R2' } });
+    edited.outputs.no_support = 'NS2';
+    const denture = setZoneGraph(edited);
+    try {
+      expect(denture).not.toBe('default');
+      const aligner = typeOfRun('aligner', { MIXO_TYPE_ID: 'test-aligner-type' })!;
+      expect(putInForce(aligner, {})).toBe('default');
+      expect(zoneGraphDigest()).toBe(denture);
+    } finally {
+      setZoneGraph(null);
+    }
   });
 });
