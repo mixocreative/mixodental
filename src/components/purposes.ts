@@ -83,6 +83,14 @@ export const categoryOf = (profileId: string | undefined): PurposeCategory | und
   PURPOSE_CATEGORIES.find((category) => category.kind === kindOfProfile(profileId));
 
 /**
+ * What picking category `next` (a category's default profile id) answers, given the profile in force: that default,
+ * or undefined for "no change" when it is the category already in force. Answering the default there reset a saved
+ * type (ALN back to G) - and on a worked row asked to throw its work away - for a click that changed nothing.
+ */
+export const categoryAnswer = (next: string, value: string | undefined): string | undefined =>
+  value !== undefined && categoryOf(value)?.id === next ? undefined : next;
+
+/**
  * The types within a category, in card order. One entry today for both families — see the header:
  * the caller draws it anyway, because a single option still names which profile the engine will run.
  */

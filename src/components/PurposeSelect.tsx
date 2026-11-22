@@ -1,6 +1,6 @@
 // Copyright (c) Mixo Creative.
 
-import { ANY_MODEL, PURPOSE_CATEGORIES, categoryOf, typeBadge, typesOf } from './purposes';
+import { ANY_MODEL, PURPOSE_CATEGORIES, categoryAnswer, categoryOf, typeBadge, typesOf } from './purposes';
 import { PurposeMenu, type PurposeOption } from './PurposeMenu';
 import { t } from '../i18n';
 import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
@@ -74,7 +74,12 @@ export function PurposeSelect({ value, lang, ui, onChange, onAnyModel }: {
     ...PURPOSE_CATEGORIES.map((entry) => ({ value: entry.id, label: t(entry.label), icon: entry.icon })),
     ...(onAnyModel ? [{ value: ANY_MODEL.value, label: t(ANY_MODEL.label), icon: ANY_MODEL.icon }] : []),
   ];
-  const choose = (next: string) => (next === ANY_MODEL.value ? onAnyModel?.() : onChange(next));
+  const choose = (next: string) => {
+    if (next === ANY_MODEL.value) { onAnyModel?.(); return; }
+    // Re-picking the category in force keeps its type (`categoryAnswer`).
+    const answer = categoryAnswer(next, value);
+    if (answer !== undefined) onChange(answer);
+  };
   /* The profile names come from the engine already translated, so they are NOT i18n keys. */
   const types: readonly PurposeOption[] = typeList.map((id) => ({ value: id, label: typeName(id), badge: typeBadge(id) }));
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DENTAL_KINDS } from '@mixo-geocore/host/dental/dentalKind';
 import { ja } from '../locales/ja';
 import { zhHant } from '../locales/zh-Hant';
-import { ANY_MODEL, CATEGORY_TABLE, typeBadge } from './purposes';
+import { ANY_MODEL, CATEGORY_TABLE, categoryAnswer, typeBadge } from './purposes';
 
 /* From the repo root, where vitest runs. */
 const art = (icon: string): string => `src/ui/assets/art/${icon}.svg`;
@@ -34,5 +34,13 @@ describe('a type badge', () => {
   it('falls back to G for a profile no table or saved type names', () => {
     expect(typeBadge('reference-denture')).toEqual({ letter: 'G', style: 'generic' });
     expect(typeBadge('not-a-profile').letter).toBe('G');
+  });
+});
+
+describe('picking a category', () => {
+  it('keeps the type in force when its own category is picked again, and answers the default otherwise', () => {
+    expect(categoryAnswer('reference-aligner', 'reference-aligner')).toBeUndefined();
+    expect(categoryAnswer('reference-denture', 'reference-aligner')).toBe('reference-denture');
+    expect(categoryAnswer('reference-aligner', undefined)).toBe('reference-aligner');
   });
 });
