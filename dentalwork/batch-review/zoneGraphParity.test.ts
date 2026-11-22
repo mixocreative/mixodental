@@ -71,9 +71,9 @@ function corpus(): [string, Graph][] {
  * Where the two validators knowingly disagree today, and why. Step 3's target was this one BY DESIGN entry, not
  * an empty list (docs/ORIENT-NODES.md section 10): the host authors ahead of the engine on purpose.
  */
-const KNOWN_DISAGREEMENTS: Record<string, string> = {
-  'the rim strip as the allowed output': 'BY DESIGN (nodeGraph.mjs header): the host lets a graph be authored ahead of the engine; the engine refuses a band whose seeds are not holes at 5 mm and says why',
-};
+// EMPTY since step 7.3: the one by-design entry ("the rim strip as the allowed output") went away when the engine
+// freed the rim strips - the engine now runs a rim strip wherever it is wired, as the host always allowed.
+const KNOWN_DISAGREEMENTS: Record<string, string> = {};
 
 describe('zone graph parity - host and engine', () => {
   const results = corpus().map(([name, graph]) => ({ name, host: hostAccepts(graph), engine: engineAccepts(graph) }));

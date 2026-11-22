@@ -946,6 +946,36 @@ becomes available here - one rule, seen from both sides.
 - Not yet: 7.3, U8, an aligner `rimSide`, a denture `lookFrom`, a `fitPlane` node.
 - One meaning for both kinds, still open: a drawn ALIGNER rim stays `ProjectionFallback` and never authorises automatic supports, while a drawn DENTURE rim now does. The owner's ruling was given for the denture; whether the aligner follows is a question for the owner.
 
+**U3, U4, U5, U6 and 7.3 BUILT 2026-11-23** (geocore b51ef04, 8933109, ea2bda4, 9157cd2; engine 71):
+- **U3, the pose split:** `pose::PrintPose { up, lean, across }`. The tilt scan, the live tilt and the reach checks read only this, never the arch frame; today's pose is `From<&ArchFrame>`, bit for bit.
+- **U4, the Orient graph** (`dental/denture/orient_graph.rs`):
+  - kinds `archFrame`, `upDecision`, `uprightPose`, `flatRegion`, `boxFrame`, `setBottom`, shared by every kind (owner ruling 1);
+  - the default graph is today's Step 1, node for node, and `orient_denture` IS the graph in force;
+  - the orientation carries the pose, and every tilt, policy and review reads it;
+  - validated when set, one slot, its digest in BOTH cache keys (a test: two graphs give two cached orientations);
+  - refusal codes `no-flat-region`, `base-protrudes`, `lean-along-up`.
+- **U5:** `set_orient_graph`, `orient_graph_digest` and `denture_orient_nodes` (each node's value as JSON, region faces as FILE faces); host `orientGraph.ts`; the batch's `--orient-graph`, recorded as `orientGraph` in summary.json.
+- **U6:**
+  - the "1 Orient" stage of the review page shows Step 1 as an editable canvas (`orientGraph.mjs`, the same canvas component as the zones), with a "Flat-base recipe" button and "Back to standard Step 1";
+  - Apply sends an edited graph, and "Done" is claimed only when the run's summary says it ran;
+  - an edited Step 1's nodes are drawn as review layers (`orientLayers.ts`);
+  - the type file carries an optional `orientGraph` (TYPE-PIPELINE section 4).
+- **7.3:** the rim-strip OUTPUTS are free; the RIMBAND / LOWRIMBAND nodes stay the profile-width strips (owner: the profile's width wins) and may feed any zone. The parity list's one by-design disagreement is gone - the list is empty.
+- **Proof:**
+  - Rust 653 library tests;
+  - the wasm host test (the flat-base recipe orients a slab the default graph refuses);
+  - the canvas/engine parity on an Orient corpus;
+  - a benchwork run on a real denture scan with the flat-base graph, which built, recorded the digest and wrote the Orient layers. Its largest flat area there is 57 mm2 poking out 11 mm, so the default 0.5 mm limit would refuse it, as it should;
+  - a headless check of the canvas: standard Step 1 with 4 wires, flat base with 5, reset back to standard, and the zone canvas keeps its own words;
+  - `gate:real` for the default (see the handoff).
+- **Not built, written down:**
+  - The frame tag `space: object | global` - no global kind exists yet.
+  - The references (`plane`, `centre`, `planePoint`, `lookAt`, `normalOf`) - U7, after the owner accepts U6.
+  - An aligner Orient graph.
+  - The app runs only the default Step 1: a type's own Orient graph is refused, with the reason, until graphs are registered with their type (E3).
+  - U8 - the dental-model kind end to end - waits for the owner's sample file and ruling 4.
+- **The owner looks at the canvas next** (section 5's U6 condition).
+
 **Step 9 BUILT 2026-11-23, off by default, waiting for the owner's look** (geocore 70ae5c7, engine 71):
 - **What it is:** zone kind `rimSide` - the faces within `mm` of the rim along the surface, on one side (`which` inner / outer; `mm` above 0 and at most 20). Its input is the RIM node. It is in no default graph, so no result changes until a graph wires it in.
 - **The rule:** each face's normal is tested against the outward direction at its nearest rim point, in the rim's plane - never against the fitting axis, which is noise on the flange wall (Fable). A face square to the rim plane counts as inner. This holds along the buccal flange, which is where the finder's rim runs.
