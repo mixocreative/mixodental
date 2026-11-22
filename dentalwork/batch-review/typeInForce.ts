@@ -3,8 +3,8 @@
  *
  * docs/TYPE-PIPELINE.md, units B1 + R1 + benchwork --type. A run uses a type when it is given one:
  * - `MIXO_TYPE_FILE` - a saved type file (benchwork --type), read by the ONE reader, `readTypeFile`;
- * - `MIXO_TYPE_ID` (and optionally `MIXO_POSE_FILE`, `MIXO_TYPE_BADGE`) - a DRAFT made here from the built-in
- *   profile, named after its id, with the Orient node's print-angle edits, the turned rules, the edited zone graph
+ * - `MIXO_TYPE_ID` (and optionally `MIXO_POSE_FILE`, `MIXO_TYPE_BADGE`, `MIXO_TYPE_NAME`) - a DRAFT made here from the
+ *   built-in profile, named with the full name typed (else its id), with the Orient node's print-angle edits, the turned rules, the edited zone graph
  *   and the badge the user typed: what the review page's Apply sends.
  * With neither, nothing here runs and the review is exactly the built-in one (gate:real depends on it).
  *
@@ -63,17 +63,27 @@ export function typeOfRun(kind: DentalKind, env: Env): TypeFile | null {
   const pose = env.MIXO_POSE_FILE ? JSON.parse(readFileSync(env.MIXO_POSE_FILE, 'utf8')) as Record<string, number> : {};
   const rules = env.MIXO_RULES ? JSON.parse(env.MIXO_RULES) as Record<string, number | boolean> : {};
   // The type's OWN name, in all three languages: a copy of the built-in's name would put two "Generic denture"
-  // entries in the app's type picker (docs/TYPE-PIPELINE.md section 8a). The id until the workbench has a name field.
+  // entries in the app's type picker (docs/TYPE-PIPELINE.md section 8a). The full name typed on the New-type strip
+  // (`MIXO_TYPE_NAME`), else the id. One text for every language until someone translates it.
   const id = env.MIXO_TYPE_ID;
+  const fullName = typeNameOf(env.MIXO_TYPE_NAME, id);
   const draft: TypeFile = {
     typeFile: 1, category: kind, id, basedOn: String(builtIn.id),
-    profile: { ...builtIn, id, name: { en: id, ja: id, 'zh-Hant': id }, pose: { ...(builtIn.pose as object), ...pose } },
+    profile: { ...builtIn, id, name: { en: fullName, ja: fullName, 'zh-Hant': fullName }, pose: { ...(builtIn.pose as object), ...pose } },
     rules, zoneGraph: kind === 'denture' && env.MIXO_ZONE_GRAPH_FILE ? JSON.parse(readFileSync(env.MIXO_ZONE_GRAPH_FILE, 'utf8')) : null,
     validation: null,
     ...(env.MIXO_TYPE_BADGE ? { badge: env.MIXO_TYPE_BADGE } : {}),
   };
   // Read back through the one reader, so a draft is refused for exactly what a saved file would be.
   return readTypeFile(typeFileText(draft), TYPE_DEPS).type;
+}
+
+/** A type's full name: the text typed (trimmed, 1 to 60 characters, one line), else its id. Throws naming the problem. */
+export function typeNameOf(typed: string | undefined, id: string): string {
+  const name = (typed ?? '').trim();
+  if (name === '') return id;
+  if (name.length > 60 || /[\n\r\t]/.test(name)) throw new TypeError(`a type's name is one line of at most 60 characters, not "${name}"`);
+  return name;
 }
 
 /**

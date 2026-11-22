@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { setZoneGraph, zoneGraphDigest } from '@mixo-geocore/host/dental/zoneGraph';
 import { defaultGraph } from './nodeGraph.mjs';
-import { putInForce, TYPE_DEPS, typeOfRun } from './typeInForce';
+import { putInForce, TYPE_DEPS, typeNameOf, typeOfRun } from './typeInForce';
 
 /*
  * A type file saved before 2026-11-22 names the rim node's kind `rimCurve`. It is checked through TYPE_DEPS, the one
@@ -46,5 +46,13 @@ describe('a drafted type', () => {
     expect(type.badge).toBe('SOFT');
     expect(typeOfRun('denture', { MIXO_TYPE_ID: 'plain' })!.badge).toBeUndefined();
     expect(() => typeOfRun('denture', { MIXO_TYPE_ID: 'bad', MIXO_TYPE_BADGE: 'TOO LONG' })).toThrow(/badge is 1 to 5 characters/);
+  });
+
+  it('takes the full name typed on the New-type strip, in all three languages', () => {
+    const type = typeOfRun('denture', { MIXO_TYPE_ID: 'soft-denture', MIXO_TYPE_NAME: '  Soft denture ' })!;
+    expect(type.profile.name).toEqual({ en: 'Soft denture', ja: 'Soft denture', 'zh-Hant': 'Soft denture' });
+    expect(typeNameOf('', 'x')).toBe('x');
+    expect(() => typeNameOf('a'.repeat(61), 'x')).toThrow(/at most 60 characters/);
+    expect(() => typeNameOf('two\nlines', 'x')).toThrow(/one line/);
   });
 });
