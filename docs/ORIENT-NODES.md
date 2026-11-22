@@ -869,8 +869,13 @@ becomes available here - one rule, seen from both sides.
    finder; not done, because it would make a second frame the axis grid, tissue map and top face do not share.
    Proof: same values reach the same body; geocore tests and the local aligner scans; `gate:real` no differences;
    app gate 1985 tests, walk ALL PASS 199 + 2.
-   **6.2 next:** a fixed `lookFrom` node in both graphs (the `direction` / `frame` socket types arrive with it), shown
-   on the viewer; proof by the parity test, not bit-equality.
+   **6.2 DONE 2026-11-22, aligner only:** the aligner's locked graph has a LOOK node (`lookFrom`, out `direction`)
+   between TRIM and RIM - engine `aligner_graph.rs`, host `ALIGNER_KINDS` / `alignerGraph()`, the viewer's aligner
+   rail (seven cards). The aligner tests now find nodes by id, not position, so the next node added cannot silently
+   retarget an edit. Proof: the parity test (host and engine agree on every aligner case) and the refusal tests.
+   NOT in the denture graph, on purpose: its finder takes a whole frame, not a look-from (6.1), and a `lookFrom`
+   node there would also change the default graph every saved denture graph is compared against. It joins the
+   denture graph with a `frame` socket, when the frame source becomes a node.
 7. **`fitPlane` node**, then free the denture rim bands from `FIXED_OUTPUTS`. Proof: mask equality.
 8. **Plane display** - moved up to run right after step 2 (it needs only the names, and it is the visible value):
    explanations, colours, show-on-select, important planes always on; captured at operator width. Tonight it lands
