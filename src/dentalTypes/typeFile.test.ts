@@ -127,7 +127,7 @@ describe('a file that cannot be a type is refused by name', () => {
     // Step 4.4b: the aligner's locked default is accepted, an edit to it is refused, and a denture cannot carry it.
     expect(readTypeFile(JSON.stringify({ ...aligner, zoneGraph: alignerGraph() }), deps).type.zoneGraph).toEqual(alignerGraph());
     const edited = alignerGraph();
-    (edited.nodes[4]!.params as Record<string, unknown>).widthMm = 3;
+    (edited.nodes.find((n) => n.id === 'AREA')!.params as Record<string, unknown>).widthMm = 3;
     expect(refused({ ...aligner, zoneGraph: edited })).toThrow(/AREA: takes no parameters/);
     expect(refused({ ...dentureType(), zoneGraph: alignerGraph() })).toThrow(/a denture type cannot carry the aligner graph/);
   });

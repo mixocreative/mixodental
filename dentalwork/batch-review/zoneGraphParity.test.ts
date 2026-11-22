@@ -45,9 +45,9 @@ function corpus(): [string, Graph][] {
   // The aligner's locked graph (step 4.4b): host `alignerGraph` against engine `dental/aligner_graph.rs`.
   const a = (): Graph => alignerGraph() as unknown as Graph;
   cases.push(['the aligner default graph', a()]);
-  const aParam = a(); (aParam.nodes[4]!.params as Record<string, unknown>).widthMm = 3;
+  const aParam = a(); (aParam.nodes.find((n) => n.id === 'AREA')!.params as Record<string, unknown>).widthMm = 3;
   cases.push(['an aligner node given a parameter', aParam]);
-  const aKind = a(); aKind.nodes[1]!.kind = 'rimLowPoints';
+  const aKind = a(); aKind.nodes.find((n) => n.id === 'RIM')!.kind = 'rimLowPoints';
   cases.push(['an aligner node of another kind', aKind]);
   const aExtra = withNode(a(), { id: 'R1', kind: 'parallelCast', inputs: {}, params: {} } as unknown as Node);
   cases.push(['an aligner graph with a node added', aExtra]);

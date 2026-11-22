@@ -232,10 +232,10 @@ describe('the aligner graph is locked', () => {
 
   it('refuses each kind of edit, naming the node or output', () => {
     const edit = (change: (g: ReturnType<typeof alignerGraph>) => void) => { const g = alignerGraph(); change(g); return validate(g).problems.join(' | '); };
-    expect(edit((g) => { g.nodes[1]!.kind = 'rimLowPoints'; })).toMatch(/RIM: must be a rimLoopSharp/);
-    expect(edit((g) => { (g.nodes[4]!.params as Record<string, unknown>).widthMm = 3; })).toMatch(/AREA: takes no parameters/);
-    expect(edit((g) => { (g.nodes[3]!.inputs as Record<string, string>).rim = 'TRIM'; })).toMatch(/ALLOWED: its inputs must stay/);
-    expect(edit((g) => { g.nodes.splice(2, 1); })).toMatch(/VIS: missing/);
+    expect(edit((g) => { g.nodes.find((n) => n.id === 'RIM')!.kind = 'rimLowPoints'; })).toMatch(/RIM: must be a rimLoopSharp/);
+    expect(edit((g) => { (g.nodes.find((n) => n.id === 'AREA')!.params as Record<string, unknown>).widthMm = 3; })).toMatch(/AREA: takes no parameters/);
+    expect(edit((g) => { (g.nodes.find((n) => n.id === 'ALLOWED')!.inputs as Record<string, string>).rim = 'TRIM'; })).toMatch(/ALLOWED: its inputs must stay/);
+    expect(edit((g) => { g.nodes.splice(g.nodes.findIndex((n) => n.id === 'VIS'), 1); })).toMatch(/VIS: missing/);
     expect(edit((g) => { g.nodes.push({ id: 'R1', kind: 'parallelCast', params: {}, inputs: {} }); })).toMatch(/R1: a node cannot be added/);
     expect(edit((g) => { g.outputs.allowed = 'AREA'; })).toMatch(/output "allowed" must stay wired to ALLOWED/);
     expect(edit((g) => { (g.outputs as Record<string, string>).no_support = 'TRIM'; })).toMatch(/output "no_support" is not an aligner output/);

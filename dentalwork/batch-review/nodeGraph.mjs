@@ -422,7 +422,9 @@ export function unreached(graph) {
 export const ALIGNER_KINDS = {
   trimPlane: { label: 'Trim plane', out: 'frame', inputs: {},
     says: 'The plane through the detected trim edges; it gives the direction the aligner opens toward.' },
-  rimLoopSharp: { label: 'Rim', out: 'rim', inputs: { frame: 'frame' },
+  lookFrom: { label: 'Look from', out: 'direction', inputs: { frame: 'frame' },
+    says: 'Where the rim search looks from: the middle of the part, toward its open end.' },
+  rimLoopSharp: { label: 'Rim', out: 'rim', inputs: { look: 'direction' },
     says: 'The innermost sharp edge loop at the open end; if there is none, the last ring of the cap.' },
   visibility: { label: 'Visibility', out: 'mask', inputs: { rim: 'rim' },
     says: 'The faces seen from the open side, found from the rim.' },
@@ -440,7 +442,8 @@ export function alignerGraph() {
   return {
     kind: 'aligner',
     nodes: [
-      node('TRIM', 'trimPlane'), node('RIM', 'rimLoopSharp', { frame: 'TRIM' }), node('VIS', 'visibility', { rim: 'RIM' }),
+      node('TRIM', 'trimPlane'), node('LOOK', 'lookFrom', { frame: 'TRIM' }), node('RIM', 'rimLoopSharp', { look: 'LOOK' }),
+      node('VIS', 'visibility', { rim: 'RIM' }),
       node('ALLOWED', 'allowedFaces', { rim: 'RIM' }), node('AREA', 'signedStrip', { allowed: 'ALLOWED' }),
       node('CONTACTS', 'contacts', { area: 'AREA' }),
     ],
