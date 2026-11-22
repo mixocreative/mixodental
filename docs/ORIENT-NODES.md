@@ -707,8 +707,9 @@ visible outside - one meaning for both kinds.
 Retired: "middle plane", "upright plane", "upright arch plane", "bottom plane" (the UI string "Bottom plane" too).
 Not "median plane": in anatomy that is the left/right midline, our symmetry plane.
 
-**On the rim tab, every rim-derived node is greyed out and disabled** with the reason ("Needs the rim. Available
-from the Support zones tab"); the engine also refuses a rim-derived wire into `lookFrom` through a separate socket
+**On the rim tab, every rim-derived node is greyed out and disabled** with the reason ("Needs the finished rim,
+so it cannot feed the rim. Not editable in this version." - it first said "Available from the Support zones tab",
+which no Zones palette offers until U7; corrected 2026-11-23); the engine also refuses a rim-derived wire into `lookFrom` through a separate socket
 type (`rimPlane` is not a `plane`), so the greying is not the only guard against the cycle.
 
 **DONE 2026-11-22 in the review viewer:** the "1 Orient" stage shows the rim tab as a read-only node canvas below its

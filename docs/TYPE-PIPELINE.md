@@ -394,12 +394,15 @@ edits a list.
   job runs only for a `milestone-<name>` tag or a run started by hand on `main` (`ci.yml:137`). So:
   **push = the type is in the repo and on every dev machine after a pull; milestone tag = the type
   is live.** That is the right gate for a clinical recipe and this page does not propose changing it.
-- **What "changed" means.** Every file has a digest (section 4a). At start-up the loader compares,
+- **What "changed" means. (PLANNED - not in v1: v1 registers what reads cleanly and lists the rest; it keeps no
+  digest record, so it cannot tell a changed type from a new one.)** Every file has a digest (section 4a). At start-up the loader compares,
   per id: new id -> new type; same id, new digest -> changed type; unchanged -> nothing. Each file
   is then registered, and anything the engine or loader refuses (schema, graph node, rule name,
   engine version the file's shape does not fit) goes on a **refused list shown in the app with the
   reason** - never dropped quietly, never replaced by Generic.
-- **An open or saved project whose type changed.** The project carries its own copy of the type it
+- **An open or saved project whose type changed. (PLANNED - units A2 and D2 are not built: a project stores only the
+  type id today, so after a type file is replaced it reopens with the NEW numbers. The workbench's replace question
+  says so.)** The project carries its own copy of the type it
   was made with (unit A2), so it keeps running **those** numbers - a job must not change under the
   operator because a file moved. The app shows "a newer version of this type exists"; choosing
   Update is explicit, re-runs detection (the digest changed, so the cache cannot serve the old
@@ -483,13 +486,28 @@ With one type per category a row could never hold work built with another type; 
   <reason>"; the server returns the verdict so it survives a reload. A draft the ENGINE refuses (a built-in id) now
   shows that reason instead of "exit 2" (`rerunReport.mjs` `refusalReason`).
 
+**Second pass, same night (owner: "fix everything"; Fable's full end-to-end read, then agreed):**
+- **Save asks before replacing** a saved type file (`serve.mjs` 409 unless `?replace=1`; the viewer's question also
+  says projects using it open with the new numbers, since A2 is unbuilt). The same bytes save without asking.
+- **Re-picking the category in force keeps the type** (`purposes.ts` `categoryAnswer`, tested).
+- **The deck's Undo toast stays 12 s** (twice the house `UNDO_TOAST_MS`, `UndoToast` `ms`): it follows a confirm.
+- **A type change stops that row's auto-gen** even before it holds work; a card in its first step kept running under
+  the old type and flipped the row back when it landed.
+- **The bench's dental Auto starts under the row's resolved type**, so a reopened unit built with a saved type is not
+  rebuilt under the default without a question.
+- **The workbench sends Orient search edits only with a denture draft** (they persist in the browser and rode along
+  with an aligner draft), ticks "Apply and run" for a type named by its id alone, and the greyed Rim plane no longer
+  promises a Zones-tab node that does not exist.
+
 **Debt, not taken (named so it stays known):**
-1. **Save overwrites silently.** Saving a type whose file already exists replaces it without asking.
-2. **Re-picking a category resets the type** in the row picker; the operator picks the type again.
-3. **The deck toast lasts the standard 6 s** (`UNDO_TOAST_MS`), paused while hovered or focused - after reading a
-   confirm, that is short. Raise it per host only if operators miss it.
-4. **The type-change toast borrows the `regenerate` kind** (the one that carries its own message) rather than a
-   `changeType` kind in geocore's `editing/toast.ts`; add the kind there when geocore is next touched.
+1. **Set all cannot set a saved type** (`ItemsPage.tsx`, `value={undefined}`, so no type menu): thirty rows on a saved
+   type take thirty picks. (Its silent half is fixed: Set all to a category now leaves rows already on a type of that
+   category alone, `categoryAnswer`.) A type menu on Set all is a design question for the owner - which type to
+   offer when the rows hold several.
+2. **The type-change toast borrows the `regenerate` kind** (the one that carries its own message) rather than a
+   `changeType` kind in geocore's `editing/toast.ts`. Code debt only - nothing branches on the kind; add it when
+   geocore is next touched.
+3. **The serve.mjs replace path has no automated test** (it was checked in the browser: keep, replace, same bytes).
 
 ## 9. An MCP server for the workbench — describe an idea, the AI composes it (PLANNED)
 
