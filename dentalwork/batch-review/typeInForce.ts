@@ -82,8 +82,9 @@ export function putInForce(type: TypeFile, env: Record<string, string | undefine
   const id = type.category === 'denture' ? registerDentureProfile(text).id : registerAlignerProfile(text).id;
   useTypeProfile(type.category, id);
   env.MIXO_RULES = JSON.stringify({ ...(env.MIXO_RULES ? JSON.parse(env.MIXO_RULES) as object : {}), ...type.rules });
-  // An aligner type carries no graph (the type file refuses one) and the aligner chain reads none, so it leaves the
-  // zone graph alone: sending null here cleared the DENTURE's graph (Fable's step 4 trap, docs/ORIENT-NODES.md s10).
+  // An aligner type carries at most the aligner's locked default (the type file refuses anything else) and the
+  // aligner chain reads no graph, so it leaves the zone graph alone: sending null here cleared the DENTURE's graph
+  // (Fable's step 4 trap, docs/ORIENT-NODES.md section 10).
   if (type.category === 'aligner') return 'default';
   return setZoneGraph(type.zoneGraph === null ? null : JSON.parse(graphText(type.zoneGraph)));
 }

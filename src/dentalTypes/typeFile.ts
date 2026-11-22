@@ -175,8 +175,11 @@ export function readTypeFile(text: string, deps: TypeFileDeps): ReadType {
   if (unread.length > 0) throw new TypeError(`type file ${id}: ${category === 'aligner' ? 'an' : 'a'} ${category} does not read ${unread.join(', ')} - pinning it would change nothing`);
   const zoneGraph = raw.zoneGraph;
   if (zoneGraph !== null && !isRecord(zoneGraph)) throw new TypeError(`type file ${id}: zoneGraph must be a graph or null`);
-  // Only a denture reads a zone graph (benchwork/README.md): on an aligner it would look like a setting.
-  if (category === 'aligner' && zoneGraph !== null) throw new TypeError(`type file ${id}: an aligner type takes no zone graph - the aligner chain reads none`);
+  // A graph must be its type's kind. An aligner type may carry only the aligner's LOCKED graph (step 4.4b,
+  // docs/ORIENT-NODES.md section 10), which says `kind: 'aligner'`; the aligner chain still reads none, so any edit
+  // to it is refused by graphProblems rather than looking like a setting.
+  if (zoneGraph && category === 'aligner' && zoneGraph.kind !== 'aligner') throw new TypeError(`type file ${id}: an aligner type's zone graph must be the aligner graph (kind "aligner")`);
+  if (zoneGraph && category === 'denture' && zoneGraph.kind === 'aligner') throw new TypeError(`type file ${id}: a denture type cannot carry the aligner graph`);
   if (zoneGraph) {
     const problems = deps.graphProblems(zoneGraph, rules);
     if (problems.length > 0) throw new TypeError(`type file ${id}: its zone graph cannot run - ${problems[0]}`);

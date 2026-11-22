@@ -5,7 +5,7 @@ import { DENTURE_PROFILE_FILES } from '@mixo-geocore/host/dental/dentureProfileF
 import { PROFILE_FILES } from '@mixo-geocore/host/dental/profileFiles';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { unreadBy } from '../../benchwork/rules.mjs';
-import { defaultGraph, setParam, steepAngleProblem, validate } from '../../dentalwork/batch-review/nodeGraph.mjs';
+import { alignerGraph, defaultGraph, setParam, steepAngleProblem, validate } from '../../dentalwork/batch-review/nodeGraph.mjs';
 import {
   TYPE_FILE_FORMAT, draftOf, graphText, proofOf, readTypeFile, typeDigest, typeFileText, type TypeFile, type TypeFileDeps,
 } from './typeFile';
@@ -116,13 +116,19 @@ describe('a file that cannot be a type is refused by name', () => {
     expect(refused({ ...dentureType(), zoneGraph: setParam(defaultGraph(), 'R1b', 'deg', 60) })).toThrow(/noSupportSteepDeg is not set/);
   });
 
-  it('an aligner pins only what an aligner reads, and takes no graph', () => {
+  it('an aligner pins only what an aligner reads, and takes only its own locked graph', () => {
     const profile = { ...builtIn(PROFILE_FILES), id: 'mixo.aligner.a' };
     const aligner = { typeFile: 1, category: 'aligner', id: 'mixo.aligner.a', basedOn: 'reference-aligner', profile, rules: {}, zoneGraph: null, validation: null };
     expect(readTypeFile(JSON.stringify(aligner), deps).label).toBe('UNVALIDATED');
     // overhangAngleDeg reaches an aligner (shared supports layer); a denture-only rule does not.
     expect(readTypeFile(JSON.stringify({ ...aligner, rules: { overhangAngleDeg: 55 } }), deps).type.rules).toEqual({ overhangAngleDeg: 55 });
     expect(refused({ ...aligner, rules: { socketNoSupport: true } })).toThrow(/an aligner does not read socketNoSupport/);
-    expect(refused({ ...aligner, zoneGraph: defaultGraph() })).toThrow(/takes no zone graph/);
+    expect(refused({ ...aligner, zoneGraph: defaultGraph() })).toThrow(/must be the aligner graph/);
+    // Step 4.4b: the aligner's locked default is accepted, an edit to it is refused, and a denture cannot carry it.
+    expect(readTypeFile(JSON.stringify({ ...aligner, zoneGraph: alignerGraph() }), deps).type.zoneGraph).toEqual(alignerGraph());
+    const edited = alignerGraph();
+    (edited.nodes[4]!.params as Record<string, unknown>).widthMm = 3;
+    expect(refused({ ...aligner, zoneGraph: edited })).toThrow(/AREA: takes no parameters/);
+    expect(refused({ ...dentureType(), zoneGraph: alignerGraph() })).toThrow(/a denture type cannot carry the aligner graph/);
   });
 });
