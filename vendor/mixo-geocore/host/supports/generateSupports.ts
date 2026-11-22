@@ -41,6 +41,10 @@ export interface PolicyHandle {
   islands_note(): string;
   /** A denture policy's dental rim lows that face up and got no tip (rule `rimLowNeedsOverhang`); 0 for any other policy. */
   rim_lows_facing_up(): number;
+  /** Engine 71: a denture policy's rim source, 0 detected / 2 drawn; optional so test doubles may omit it. */
+  rim_source?(): number;
+  /** Engine 71: why the drawn denture rim in force could not be used (the detected rim was), else "". */
+  drawn_rim_problem?(): string;
   /** A dental policy's parts (dentures engine 50, aligners engine 56), `PART_STRIDE` numbers each (`dental/dentureParts.ts` decodes them); empty for any other policy. */
   part_list?(): Float64Array;
   /** A dental policy's part id of every face of the file; empty for any other policy. */

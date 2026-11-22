@@ -139,6 +139,10 @@ export interface DentureReview {
   tips: { position: Vector; normal: Vector; stream: TipStream; face: number }[];
   /** The rim (low points joined over the mesh edges, engine 20): one or more ordered polylines; `edges` are the mesh edge ids (segment k joins point k and k + 1, a closed line's last segment closes it). Absent without a rim. */
   rimLoops?: { lines: { points: Vector[]; edges: number[]; closed: boolean }[]; lengthMm: number; allTheWayRound: boolean; largestGapDeg: number };
+  /** Engine 71: `drawn` when the drawn rim in force replaced the detected one (its `largestGapDeg` is then 0). */
+  rimSource: 'detected' | 'drawn';
+  /** Engine 71: why a drawn rim in force was not used (the detected rim was); absent otherwise. */
+  drawnRimProblem?: string;
   /** Hole outlines (hit points around each hole seen along the teeth axis, canonical pose) with the hole area and the count of faces next to it. */
   holeOutlines: { points: Vector[]; areaMm2: number; faceCount: number }[];
   /** Per face: 1 within 5 mm along the surface of a hole (support-allowed). */
@@ -225,7 +229,10 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
     const holeSizes = result.hole_sizes();
     const holeInfo = result.hole_info();
     const decision = result.up_decision();
+    const drawnRimProblem = result.drawn_rim_problem();
     return {
+      rimSource: result.rim_source() === 2 ? 'drawn' : 'detected',
+      ...(drawnRimProblem ? { drawnRimProblem } : {}),
       rimLoops: rimSizes.length === 0 ? undefined : (() => {
         let at = 0;
         let edgeAt = 0;

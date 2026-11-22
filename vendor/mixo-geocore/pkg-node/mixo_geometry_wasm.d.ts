@@ -411,6 +411,10 @@ export class DentureReviewResult {
      */
     drain_sockets(): Float64Array;
     /**
+     * Why the drawn rim in force could not be used (the detected rim was), else empty.
+     */
+    drawn_rim_problem(): string;
+    /**
      * The part id of every face of the file (engine 50; the layer "Parts"); every review runs on the target part.
      */
     face_parts(): Uint32Array;
@@ -546,6 +550,10 @@ export class DentureReviewResult {
      * Point count of each rim polyline.
      */
     rim_sizes(): Uint32Array;
+    /**
+     * Where the rim came from: 0 detected, 2 drawn (`set_denture_drawn_rim`).
+     */
+    rim_source(): number;
     /**
      * Faces of the self-supporting overhang regions (rule `overhangSelfSupport`, engine 38): they get no open-area tips; empty with the rule off.
      */
@@ -1290,6 +1298,11 @@ export class PolicyHandle {
      */
     candidate_points(): Float64Array;
     /**
+     * Why the drawn denture rim in force could not be used - the detected rim was used instead. Empty when it was
+     * used or none is set. The host must show it: a silent fallback would support a rim the operator replaced.
+     */
+    drawn_rim_problem(): string;
+    /**
      * A dental policy's part id of every face of the file (the layer "Parts"); empty for any other policy.
      */
     face_parts(): Uint32Array;
@@ -1334,6 +1347,10 @@ export class PolicyHandle {
      * Local lows of the dental rim whose face points up: no tip (rule `rimLowNeedsOverhang`), counted apart from the left-out tips; 0 for any other policy.
      */
     rim_lows_facing_up(): number;
+    /**
+     * Where a denture policy's rim came from: 0 detected, 2 drawn (`set_denture_drawn_rim`); 0 for any other policy.
+     */
+    rim_source(): number;
     ring_count(): number;
     /**
      * Candidate rows: point xyz, normal xyz, source face (-1 none).
@@ -1665,6 +1682,16 @@ export function repair_strides(): Uint32Array;
  * (`mixo_geometry_core::supports::rules::NAMES`): the host packs its overrides by these names.
  */
 export function rule_names(): string[];
+
+/**
+ * Set the rim the operator drew for the denture the NEXT calls analyse (mixoDental `docs/ORIENT-NODES.md` section
+ * 10, step 10: a drawn rim replaces the detected one), as `x y z` points in the mesh frame in drawn order; an empty
+ * list clears it. ONE slot, not one per model: the host sets or clears it before every denture job. Throws
+ * `DRAWN_RIM_INVALID` with a `detail` for a drawing that can never be a rim, keeping the previous one. Returns the
+ * digest now in force ("none" when cleared); it is part of the analysis cache key. A drawing the model cannot carry
+ * is not refused here (that needs the mesh): the analysis uses the detected rim and says why (`drawn_rim_problem`).
+ */
+export function set_denture_drawn_rim(points: Float64Array, closed: boolean): string;
 
 /**
  * Set the zone graph the next denture analyses evaluate - the graph the node editor composes

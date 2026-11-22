@@ -52,6 +52,15 @@ export function makeDenturePolicy(session: Pick<DentalSession, 'denture_policy_r
 /** The islands a denture policy handle reports (before the build); `settleIslands` adds the build's left-out tips. */
 export const policyIslands = (handle: Pick<PolicyHandle, 'island_facts'>): DentureIsland[] => decodeIslands(handle.island_facts());
 
+/**
+ * Which rim a denture policy's tips stand on (engine 71): `drawn` when the drawing set by `setDentureDrawnRim` was used;
+ * `problem` says why a drawing in force was NOT used (the detected rim was) - the caller must show it.
+ */
+export const policyRim = (handle: Pick<PolicyHandle, 'rim_source' | 'drawn_rim_problem'>): { source: 'detected' | 'drawn'; problem?: string } => {
+  const problem = handle.drawn_rim_problem?.() ?? '';
+  return { source: handle.rim_source?.() === 2 ? 'drawn' : 'detected', ...(problem ? { problem } : {}) };
+};
+
 /** The file's parts a denture policy handle reports (engine 50): the part list with the tips placed on each, and the part id of every face. */
 export const policyParts = (handle: Pick<PolicyHandle, 'part_list' | 'face_parts'>): { parts: DenturePart[]; faceParts: Uint32Array } => partsOf(handle);
 

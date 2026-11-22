@@ -1272,6 +1272,22 @@ class DentureReviewResult {
         return v1;
     }
     /**
+     * Why the drawn rim in force could not be used (the detected rim was), else empty.
+     * @returns {string}
+     */
+    drawn_rim_problem() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.denturereviewresult_drawn_rim_problem(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
      * The part id of every face of the file (engine 50; the layer "Parts"); every review runs on the target part.
      * @returns {Uint32Array}
      */
@@ -1610,6 +1626,14 @@ class DentureReviewResult {
         var v1 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
         wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
         return v1;
+    }
+    /**
+     * Where the rim came from: 0 detected, 2 drawn (`set_denture_drawn_rim`).
+     * @returns {number}
+     */
+    rim_source() {
+        const ret = wasm.denturereviewresult_rim_source(this.__wbg_ptr);
+        return ret;
     }
     /**
      * Faces of the self-supporting overhang regions (rule `overhangSelfSupport`, engine 38): they get no open-area tips; empty with the rule off.
@@ -4161,6 +4185,23 @@ class PolicyHandle {
         return v1;
     }
     /**
+     * Why the drawn denture rim in force could not be used - the detected rim was used instead. Empty when it was
+     * used or none is set. The host must show it: a silent fallback would support a rim the operator replaced.
+     * @returns {string}
+     */
+    drawn_rim_problem() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.policyhandle_drawn_rim_problem(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
      * A dental policy's part id of every face of the file (the layer "Parts"); empty for any other policy.
      * @returns {Uint32Array}
      */
@@ -4288,6 +4329,14 @@ class PolicyHandle {
     rim_lows_facing_up() {
         const ret = wasm.policyhandle_rim_lows_facing_up(this.__wbg_ptr);
         return ret >>> 0;
+    }
+    /**
+     * Where a denture policy's rim came from: 0 detected, 2 drawn (`set_denture_drawn_rim`); 0 for any other policy.
+     * @returns {number}
+     */
+    rim_source() {
+        const ret = wasm.policyhandle_rim_source(this.__wbg_ptr);
+        return ret;
     }
     /**
      * @returns {number}
@@ -5603,6 +5652,39 @@ function rule_names() {
     return v1;
 }
 exports.rule_names = rule_names;
+
+/**
+ * Set the rim the operator drew for the denture the NEXT calls analyse (mixoDental `docs/ORIENT-NODES.md` section
+ * 10, step 10: a drawn rim replaces the detected one), as `x y z` points in the mesh frame in drawn order; an empty
+ * list clears it. ONE slot, not one per model: the host sets or clears it before every denture job. Throws
+ * `DRAWN_RIM_INVALID` with a `detail` for a drawing that can never be a rim, keeping the previous one. Returns the
+ * digest now in force ("none" when cleared); it is part of the analysis cache key. A drawing the model cannot carry
+ * is not refused here (that needs the mesh): the analysis uses the detected rim and says why (`drawn_rim_problem`).
+ * @param {Float64Array} points
+ * @param {boolean} closed
+ * @returns {string}
+ */
+function set_denture_drawn_rim(points, closed) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passArrayF64ToWasm0(points, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.set_denture_drawn_rim(ptr0, len0, closed);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+exports.set_denture_drawn_rim = set_denture_drawn_rim;
 
 /**
  * Set the zone graph the next denture analyses evaluate - the graph the node editor composes

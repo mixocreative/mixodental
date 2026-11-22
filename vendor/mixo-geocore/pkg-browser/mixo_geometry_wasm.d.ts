@@ -359,6 +359,10 @@ export class DentureReviewResult {
      */
     drain_sockets(): Float64Array;
     /**
+     * Why the drawn rim in force could not be used (the detected rim was), else empty.
+     */
+    drawn_rim_problem(): string;
+    /**
      * The part id of every face of the file (engine 50; the layer "Parts"); every review runs on the target part.
      */
     face_parts(): Uint32Array;
@@ -494,6 +498,10 @@ export class DentureReviewResult {
      * Point count of each rim polyline.
      */
     rim_sizes(): Uint32Array;
+    /**
+     * Where the rim came from: 0 detected, 2 drawn (`set_denture_drawn_rim`).
+     */
+    rim_source(): number;
     /**
      * Faces of the self-supporting overhang regions (rule `overhangSelfSupport`, engine 38): they get no open-area tips; empty with the rule off.
      */
@@ -1225,6 +1233,11 @@ export class PolicyHandle {
      */
     candidate_points(): Float64Array;
     /**
+     * Why the drawn denture rim in force could not be used - the detected rim was used instead. Empty when it was
+     * used or none is set. The host must show it: a silent fallback would support a rim the operator replaced.
+     */
+    drawn_rim_problem(): string;
+    /**
      * A dental policy's part id of every face of the file (the layer "Parts"); empty for any other policy.
      */
     face_parts(): Uint32Array;
@@ -1264,6 +1277,10 @@ export class PolicyHandle {
      * Local lows of the dental rim whose face points up: no tip (rule `rimLowNeedsOverhang`), counted apart from the left-out tips; 0 for any other policy.
      */
     rim_lows_facing_up(): number;
+    /**
+     * Where a denture policy's rim came from: 0 detected, 2 drawn (`set_denture_drawn_rim`); 0 for any other policy.
+     */
+    rim_source(): number;
     ring_count(): number;
     /**
      * The dental model-landing allow list (tip ids): those tips may be supported from the model's own surface even when the rule
@@ -1518,6 +1535,16 @@ export function repair_strides(): Uint32Array;
 export function rule_names(): string[];
 
 /**
+ * Set the rim the operator drew for the denture the NEXT calls analyse (mixoDental `docs/ORIENT-NODES.md` section
+ * 10, step 10: a drawn rim replaces the detected one), as `x y z` points in the mesh frame in drawn order; an empty
+ * list clears it. ONE slot, not one per model: the host sets or clears it before every denture job. Throws
+ * `DRAWN_RIM_INVALID` with a `detail` for a drawing that can never be a rim, keeping the previous one. Returns the
+ * digest now in force ("none" when cleared); it is part of the analysis cache key. A drawing the model cannot carry
+ * is not refused here (that needs the mesh): the analysis uses the detected rim and says why (`drawn_rim_problem`).
+ */
+export function set_denture_drawn_rim(points: Float64Array, closed: boolean): string;
+
+/**
  * Set the zone graph the next denture analyses evaluate - the graph the node editor composes
  * (mixoDental `docs/NODE-PLAN.md`, core `dental::denture::zone_graph`) - or clear it with "" to run
  * today's default. VALIDATED HERE, not mid-run: a graph that would not run throws
@@ -1689,6 +1716,7 @@ export interface InitOutput {
     readonly denturereviewresult_drain_mask: (a: number) => [number, number];
     readonly denturereviewresult_drain_pockets: (a: number) => [number, number];
     readonly denturereviewresult_drain_sockets: (a: number) => [number, number];
+    readonly denturereviewresult_drawn_rim_problem: (a: number) => [number, number];
     readonly denturereviewresult_face_parts: (a: number) => [number, number];
     readonly denturereviewresult_fitting_check: (a: number) => [number, number];
     readonly denturereviewresult_fitting_mask: (a: number) => [number, number];
@@ -1723,6 +1751,7 @@ export interface InitOutput {
     readonly denturereviewresult_rim_lows_facing_up: (a: number) => number;
     readonly denturereviewresult_rim_plane: (a: number) => [number, number];
     readonly denturereviewresult_rim_sizes: (a: number) => [number, number];
+    readonly denturereviewresult_rim_source: (a: number) => number;
     readonly denturereviewresult_self_support_faces: (a: number) => [number, number];
     readonly denturereviewresult_self_support_info: (a: number) => [number, number];
     readonly denturereviewresult_socket_mask: (a: number) => [number, number];
@@ -1897,6 +1926,7 @@ export interface InitOutput {
     readonly policyhandle_candidate_faces: (a: number) => [number, number];
     readonly policyhandle_candidate_ids: (a: number) => [number, number];
     readonly policyhandle_candidate_points: (a: number) => [number, number];
+    readonly policyhandle_drawn_rim_problem: (a: number) => [number, number];
     readonly policyhandle_face_parts: (a: number) => [number, number];
     readonly policyhandle_island_facts: (a: number) => [number, number];
     readonly policyhandle_islands_note: (a: number) => [number, number];
@@ -1908,6 +1938,7 @@ export interface InitOutput {
     readonly policyhandle_repair_budget: (a: number) => number;
     readonly policyhandle_reproduced: (a: number) => number;
     readonly policyhandle_rim_lows_facing_up: (a: number) => number;
+    readonly policyhandle_rim_source: (a: number) => number;
     readonly policyhandle_ring_count: (a: number) => number;
     readonly policyhandle_set_model_landing_allow: (a: number, b: number, c: number) => void;
     readonly policyhandle_structures: (a: number) => [number, number];
@@ -1927,6 +1958,7 @@ export interface InitOutput {
     readonly reroute_refusal: (a: number) => [number, number];
     readonly reroute_take_pieces: (a: number) => [number, number];
     readonly rule_names: () => [number, number];
+    readonly set_denture_drawn_rim: (a: number, b: number, c: number) => [number, number, number, number];
     readonly set_zone_graph: (a: number, b: number) => [number, number, number, number];
     readonly supportproblems_take_areas: (a: number) => [number, number];
     readonly supportproblems_take_positions: (a: number) => [number, number];

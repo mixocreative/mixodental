@@ -174,6 +174,10 @@ export interface DentureReviewResultLike {
   rim_closed(): Uint8Array;
   rim_edges(): Uint32Array;
   rim_info(): Float64Array;
+  /** Engine 71: where the rim came from, 0 detected / 2 drawn (`set_denture_drawn_rim`). */
+  rim_source(): number;
+  /** Engine 71: why the drawn rim in force could not be used (the detected rim was), else "". */
+  drawn_rim_problem(): string;
   hole_outlines(): Float64Array;
   hole_sizes(): Uint32Array;
   hole_info(): Float64Array;
@@ -292,6 +296,11 @@ export interface DentalEngine {
   set_zone_graph(json: string): string;
   /** The digest of the zone graph in force, or "default" (engine 69). */
   zone_graph_digest(): string;
+  /**
+   * Set the drawn denture rim the next analyses use instead of the detected one (engine 71): mesh-frame `x y z`
+   * points in drawn order; empty clears. Throws `DRAWN_RIM_INVALID` with `detail`. Use `setDentureDrawnRim`.
+   */
+  set_denture_drawn_rim(points: Float64Array, closed: boolean): string;
   /**
    * Register a whole denture profile from its JSON text (engine 70) and return its id. Throws
    * `PROFILE_INVALID` with `detail` naming the problem. Use `registerDentureProfile`, which keeps the
