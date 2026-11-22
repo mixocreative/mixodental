@@ -124,7 +124,7 @@ is what will make repair safe to write.
 | `ItemRow.tsx` | ONE CARD per model: picture, name, size, a health mark, a status chip, the control that says what THIS one is, and Remove |
 | `RefusedRow.tsx` | a file that never became a unit, as a row with the same columns |
 | `ItemsPage.tsx` | LAYOUT ONLY: the grid of cards, which card's picture is live, the budget line and the tally underneath. It holds no state about a card except that |
-| `rowPurpose.ts` | pure: what a card IS, from the operator's answer or, failing that, the work the unit already carries |
+| `rowPurpose.ts` | pure: what a card IS - the type its work was built with, else the operator's answer; which type a row opens with; whether it holds typed work (a type change on it asks first) |
 
 `drawThumbnail.ts` is **not** in this folder: it lives in `src/components/viewport/` because
 `threeBoundary.test.ts` keeps three.js in the view layer, and they are the three files of the feature that

@@ -6,26 +6,44 @@ import type { PrintUnit } from '../state/project';
 /**
  * WHAT ONE ROW IS, from the two places that can know it.
  *
- * `chosen` is the operator's answer for this unit — the row's own control, or `Set all`. It wins,
- * because it is the most recent thing a person said.
+ * THE UNIT'S OWN WORK WINS (Fable's end-to-end audit, 2026-11-23). A unit that has been through the flow carries the
+ * type it was BUILT with - `dental.profileId` when an orientation was accepted, `denture.policy.profileId` when a
+ * denture job was - and the row must name that type, or it names numbers its supports were not made with. With one
+ * type per category that could not happen; with saved types it did: Auto-gen under "Check aligner", then picking
+ * Generic on the row, left "94 supports placed" under the wrong name. Changing the type of a worked row is
+ * therefore an ACTION with a confirmation (App `setRowPurpose`: it removes the old work, undoably, as Exit does), and
+ * this read only ever has one answer for a unit with work on it.
  *
- * THE UNIT'S OWN POLICY IS THE FALLBACK, AND LEAVING IT OUT WAS A BUG. A unit that has been through
- * the flow already carries what it is: `dental.profileId` is written when an orientation is accepted,
- * and `denture` when a denture job is. The walk caught it at `u5l`+1 — Back out of Step 1 lands on
- * the deck with one row, that row had been worked on, nothing had been typed into the new per-unit
- * map, so the row counted as UNNAMED and the deck drew no Start key at all. A case re-entered from
- * the workspace, or reopened from a saved project, hit the same hole: the scene is serialised, the
- * session's answers are not.
+ * `chosen` - the row's own control or `Set all` - answers for a unit with no work yet.
  *
- * So the row reads the unit, which is the fact, rather than a map of what was said this sitting. The
- * two can never disagree about a unit that has work on it, because only one of them is consulted.
+ * And a unit with work is never unnamed: the walk caught that at `u5l`+1 (Back out of Step 1 lands on the deck with
+ * one worked row, nothing typed into the per-unit map, no Start key), and a reopened project has the same hole - the
+ * scene is serialised, the session's answers are not.
  */
 export function purposeOfUnit(unit: Pick<PrintUnit, 'dental' | 'denture'>, chosen: string | undefined): string | undefined {
-  if (chosen !== undefined) return chosen;
-  if (unit.denture !== undefined) return DENTURE_PROFILE_ID;
+  // A denture unit names ITS type (a saved one too); a policy from before profiles is the reference denture.
+  if (unit.denture !== undefined) return unit.denture.policy?.profileId ?? DENTURE_PROFILE_ID;
   // Only a policy that names its profile: an older saved policy without one says nothing rather
   // than guessing a family, which is the whole point of asking in the first place.
-  return unit.dental !== undefined && 'profileId' in unit.dental ? unit.dental.profileId : undefined;
+  if (unit.dental !== undefined && 'profileId' in unit.dental) return unit.dental.profileId;
+  return chosen;
+}
+
+/**
+ * Whether `unit` carries work made with a dental type - what a type change would have to remove (with its supports,
+ * `flow.ts` `exitCommands`). Generic supports on a plain model are not typed work and are left alone.
+ */
+export const holdsTypedWork = (unit: Pick<PrintUnit, 'dental' | 'denture'>): boolean =>
+  unit.denture !== undefined || unit.dental !== undefined;
+
+/**
+ * The type a row opens with: ITS OWN, never the last row's. The session's profile used to come first, and it is kept
+ * on purpose across rows (editingMode `dentalProfile`), so opening row B after row A ran B under A's type - and a
+ * reopened project, whose answers are not saved, opened a denture as an aligner. The session's profile is only the
+ * fallback for a row nothing names (Fable's audit, 2026-11-23).
+ */
+export function profileToOpen(unitId: string, purposes: ReadonlyMap<string, string>, sessionProfile: string | undefined, fallback: string): string {
+  return purposes.get(unitId) ?? sessionProfile ?? fallback;
 }
 
 /** Every unit's answer, for the deck. Units with no answer are absent, never present-and-undefined. */
