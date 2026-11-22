@@ -21,6 +21,8 @@ export class ZoneGraphRefused extends Error {
 
 /**
  * Make `graph` the zone graph the next denture analyses evaluate, or pass `null` for today's default.
+ * A graph with `kind: 'aligner'` goes to the aligner's locked graph instead: only its default is accepted,
+ * it returns "default", and it never clears the denture's graph (build step 4.4).
  * Returns the digest now in force ("default" when cleared). Throws `ZoneGraphRefused` naming the node
  * when the engine will not run it - and then the previous graph is still the one in force.
  */

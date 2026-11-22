@@ -1524,6 +1524,10 @@ export function rule_names(): string[];
  * `ZONE_GRAPH_INVALID` with `detail` naming the node, and the previous graph stays in force. Returns
  * the digest now in force ("default" when cleared). The digest is part of the analysis cache key, so a
  * changed graph is never handed the masks of the old one.
+ *
+ * A graph whose top-level `"kind"` is `"aligner"` goes to the aligner's LOCKED graph instead
+ * (`dental::aligner_graph`, build step 4.4): only its default is accepted, it returns "default", and it
+ * never touches the denture's graph. No `"kind"` means denture, so every older caller is unchanged.
  */
 export function set_zone_graph(json: string): string;
 
