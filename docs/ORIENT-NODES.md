@@ -894,8 +894,11 @@ becomes available here - one rule, seen from both sides.
      rim-strip tips); app gate 1985 tests, walk ALL PASS 199 + 2.
      **The width has two truths, decided:** the PROFILE is the truth. The graph nodes still say 2 and 5, but the
      engine grows each strip at the profile's width and never reads the node's `mm` - so a type with other widths
-     keeps them. Still to do (7.2b): the host should show those two widths as fixed values read from the profile, as
-     the print-angle search node does, instead of the node's 2 / 5.
+     keeps them. **7.2b DONE 2026-11-22:** the editor's words for the two strips now say their width is the
+     profile's ("as wide as the profile's rim strip width, 2 mm by default"), and the Strip node says the rim strips'
+     width does not come from it. `RIM_STRIP_MM` quotes the shipped profile's defaults; `nodeGraph.test.ts` fails if
+     they drift from `rimBandMm` / `lowRimBandMm` (the print-angle node's precedent). The viewer has no per-run
+     profile, so it quotes the default rather than a type's own width - written down, not hidden.
    - **7.3 then:** free them - remove RIMBAND / LOWRIMBAND from `FIXED_OUTPUTS` and the host's `FIXED.outputs`, and
      replace the host's id exemption with "a band is seeded by Find holes or the rim". Never before 7.2: freed while
      the strips still come from `Analysis::of` would make an edit a silent no-op.
