@@ -463,6 +463,34 @@ with Fable, who agreed.)
   try put that line inside the page head, a one-row strip that does not wrap: it was squeezed to 29 px off-screen,
   so it sits on its own line under the head.
 
+### 8b. End-to-end audit fixes - BUILT 2026-11-23 (Fable audited, then agreed to the fixes)
+
+With one type per category a row could never hold work built with another type; with saved types it could.
+
+- **A row names the type its work was BUILT with** (`src/items/rowPurpose.ts` `purposeOfUnit`): a unit's
+  `dental.profileId` or denture policy wins over the operator's chosen answer, and opening a row uses that row's own
+  type (`profileToOpen`), not the session's last one.
+- **Changing the type of a worked row asks first** (`App.tsx` `askOrApplyPurpose`): only when work the operator would
+  miss goes (`exitNeedsConfirm`: supports, painted areas, moved sliders, hand edits). Confirming removes that work as
+  ONE undo step (`exitCommands`, as Exit does) and offers an Undo toast on the items page, which has no Ctrl+Z. The
+  toast region sits at the top on the deck (at the bottom it covered "Start with the first file"). Undo restores the
+  work, puts the deck hint back on the status line, and re-detects the rows (the detector held the new type's verdict).
+- **The done tick drops** when a row's work is gone (`ItemsPage.tsx`).
+- **The workbench says whether the APP will load a draft** (`typeInForce.ts` `appLoadVerdict`, written by the run as
+  `type-load.json`): the app's own `discoverTypes` over every `types/*/` file plus the draft, run with and without
+  the draft, so a draft that would knock out an already saved type (the loader refuses the LATER of two clashing
+  files) is caught too. The New-type strip shows the reason and Save says "Saved X, but the app will not load it yet:
+  <reason>"; the server returns the verdict so it survives a reload. A draft the ENGINE refuses (a built-in id) now
+  shows that reason instead of "exit 2" (`rerunReport.mjs` `refusalReason`).
+
+**Debt, not taken (named so it stays known):**
+1. **Save overwrites silently.** Saving a type whose file already exists replaces it without asking.
+2. **Re-picking a category resets the type** in the row picker; the operator picks the type again.
+3. **The deck toast lasts the standard 6 s** (`UNDO_TOAST_MS`), paused while hovered or focused - after reading a
+   confirm, that is short. Raise it per host only if operators miss it.
+4. **The type-change toast borrows the `regenerate` kind** (the one that carries its own message) rather than a
+   `changeType` kind in geocore's `editing/toast.ts`; add the kind there when geocore is next touched.
+
 ## 9. An MCP server for the workbench — describe an idea, the AI composes it (PLANNED)
 
 **In plain words:** an MCP server is a small local program that gives an AI a fixed set of buttons.
