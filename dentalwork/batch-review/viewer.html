@@ -1057,7 +1057,9 @@ function drawTypeStrip() {
     newType,
   );
   // The steps, in order, each marked from what happened.
-  const named = /^[a-z0-9][a-z0-9.-]*$/.test(typeName) && typeFullName.trim() !== '';
+  // A valid id is enough: with no full name the type is named after its id (typeInForce typeNameOf), and asking for one
+  // here left Apply and Save working but never ticked (Fable, 2026-11-23).
+  const named = /^[a-z0-9][a-z0-9.-]*$/.test(typeName);
   const ran = named && ranTypeId === typeName;
   const saved = ran && savedTypeId === typeName;
   const steps = Object.assign(document.createElement('ol'), { className: 'type-steps' });
@@ -2203,8 +2205,21 @@ try {
 
   // Save type: only what RAN is saved (the server copies the run's type.json), never unrun edits.
   document.getElementById('type-save').addEventListener('click', async () => {
-    const reply = await fetch('/save-type', { method: 'POST' }).catch(() => null);
-    const answer = reply ? await reply.json().catch(() => ({})) : { error: 'the server did not answer' };
+    const save = async (replace) => {
+      const reply = await fetch(replace ? '/save-type?replace=1' : '/save-type', { method: 'POST' }).catch(() => null);
+      return reply ? await reply.json().catch(() => ({})) : { error: 'the server did not answer' };
+    };
+    let answer = await save(false);
+    // Another type is already saved at that path: replacing it is the operator's call, asked here, never silent.
+    if (answer.exists) {
+      // "a saved type", not "a different type": a re-save of the same type differs too (the proof record's time). And it
+      // says what replacing does to projects - they store only the id, so they reopen with the new numbers (A2 unbuilt).
+      if (!window.confirm(`${answer.path} already holds a saved type. Replace it with the one this review ran? Projects that use it will open with the new numbers.`)) {
+        status.textContent = `Not saved: ${answer.path} was kept. Give the new type another name to keep both.`;
+        return;
+      }
+      answer = await save(true);
+    }
     // The server's verdict first (it survives a page reload), else the one this page fetched after Apply.
     const load = answer.typeLoad ?? ranTypeLoad;
     const refusedByApp = answer.ok && load && !load.loads;
@@ -2222,12 +2237,17 @@ try {
     // An edited zone graph is a reason to run on its own: refusing until a RULE was turned made the
     // node editor's own Apply do nothing for a graph-only edit - found by pressing it.
     const graphEdited = Boolean(graphLib && zoneGraph && !graphLib.isDefault(zoneGraph));
-    const poseEdited = Object.keys(poseEdits).length > 0;
+    // The search edits are a DENTURE type's (the strip says an aligner type keeps the built-in aligner's numbers), and
+    // they persist in localStorage - so a denture session's leftovers rode along with an aligner draft (Fable, 2026-11-23).
+    const poseNow = kindNow === 'denture' ? poseEdits : {};
+    const poseEdited = Object.keys(poseNow).length > 0;
     // A newly named type is a reason to run on its own: it is how a type that keeps the built-in's numbers but has
     // its own name and badge gets made (the New-type strip).
     const newType = typeName !== '' && ranTypeId !== typeName;
     if (Object.keys(rules).length === 0 && !graphEdited && !poseEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the search (1 Orient), the zone graph (2 Zones) or a setting (3), then apply.'; return; }
-    const poseProblem = searchProblem(searchNow());
+    // Only a denture run carries the search (poseNow above): a denture session's bad leftovers refused an aligner run
+    // with "Fix the search first (1 Orient)", a stage the aligner strip does not link to (Fable, 2026-11-23).
+    const poseProblem = kindNow === 'denture' ? searchProblem(searchNow()) : null;
     if (poseProblem) { status.textContent = `Fix the search first (1 Orient): ${poseProblem}.`; return; }
     if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) { status.textContent = 'The type id (the Type strip above the stages) is lower-case letters, digits, dots and dashes.'; return; }
     const graphProblems = graphEdited ? graphLib.validate(zoneGraph).problems : [];
@@ -2237,7 +2257,7 @@ try {
     status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
     try {
       const reply = await fetch('/rerun', { method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, name: typeFullName, badge: typeBadge, pose: poseEdits,
+        body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, name: typeFullName, badge: typeBadge, pose: poseNow,
           // The node editor's graph, only when it has been edited: the default is sent as nothing, so a
           // run with no edit is exactly the run it always was.
           zoneGraph: graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null }) });

@@ -488,7 +488,9 @@ function validateAligner(graph) {
  * greyed and disabled here with its reason, and is what the Support zones tab receives. Nothing on the rim tab may
  * read a greyed node - the rim cannot depend on its own result. `nodeGraph.test.ts` holds that invariant.
  */
-export const RIM_DERIVED_REASON = 'Needs the rim. Available from the Support zones tab.';
+// It said "Available from the Support zones tab", which promised a node no Zones palette offers (an aligner run has no
+// Zones tab; the denture palette has no rim-plane node until U7) - Fable, 2026-11-23.
+export const RIM_DERIVED_REASON = 'Needs the finished rim, so it cannot feed the rim. Not editable in this version.';
 
 export const RIM_TAB_KINDS = {
   ...ALIGNER_KINDS,

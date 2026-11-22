@@ -56,7 +56,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/ja
  * (owner ruling 2: types live in committed files). It saves only what ran - never a page's unrun edits -
  * so a saved type is always one that was proved on at least the scans of that run.
  */
-function saveType(response) {
+function saveType(response, replace) {
   const send = (code, payload) => response.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(payload));
   const from = roots['/out/'] ? join(roots['/out/'], 'type.json') : '';
   if (!from || !existsSync(from)) { send(400, { error: 'the review on screen ran no type - Apply with a type name first' }); return; }
@@ -66,7 +66,14 @@ function saveType(response) {
   const dir = join(here, '..', '..', 'types', type.category);
   mkdirSync(dir, { recursive: true });
   const to = join(dir, `${type.id}.type.json`);
-  writeFileSync(to, readFileSync(from, 'utf8'));
+  const text = readFileSync(from, 'utf8');
+  // A different file already at that path is REPLACED only when the page says so (`?replace=1`, after asking): Save
+  // used to overwrite a saved type silently, and an uncommitted one is gone for good.
+  if (!replace && existsSync(to) && readFileSync(to, 'utf8') !== text) {
+    send(409, { exists: true, path: `types/${type.category}/${type.id}.type.json` });
+    return;
+  }
+  writeFileSync(to, text);
   // Whether the APP will load it (typeInForce.ts appLoadVerdict, written beside type.json by the run): returned here so
   // the Save message says it even after a page reload, when the page no longer holds the run's answer.
   const verdictFile = join(roots['/out/'], 'type-load.json');
@@ -144,7 +151,7 @@ function rerun(request, response) {
 const server = createServer((request, response) => {
   const path = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
   if (request.method === 'POST' && path === '/rerun') { rerun(request, response); return; }
-  if (request.method === 'POST' && path === '/save-type') { saveType(response); return; }
+  if (request.method === 'POST' && path === '/save-type') { saveType(response, new URL(request.url ?? '/', 'http://localhost').searchParams.get('replace') === '1'); return; }
   const [prefix, root] = Object.entries(roots).find(([prefix, root]) => root !== undefined && path.startsWith(prefix));
   const file = normalize(join(root, path === '/' ? 'viewer.html' : path.slice(prefix.length)));
   if (!file.startsWith(normalize(root + sep)) || !existsSync(file) || !statSync(file).isFile()) {
