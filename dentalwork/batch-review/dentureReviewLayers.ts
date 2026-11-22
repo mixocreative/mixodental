@@ -23,6 +23,8 @@ import type { JobTransform } from '@mixo-geocore/host/core/jobs';
 import { selfSupportRule, steepRule } from './profileSelect';
 import { AREA_CLASS, compareDentureAreas, reviewDenture, TRAP_LEVEL, type DentureAreaComparison, type DentureReview } from '@mixo-geocore/host/dental/dentureReview';
 import { zoneGraphDigest } from '@mixo-geocore/host/dental/zoneGraph';
+import { orientGraphDigest, orientNodes } from '@mixo-geocore/host/dental/orientGraph';
+import { orientLayers } from './orientLayers';
 import { parseStl } from '../../scripts/node-engine';
 import { distancesToSurface, readGlbWorldMeshes } from './glbWorld';
 import type { ReviewLayer } from './orientationEvidenceGlb';
@@ -462,6 +464,17 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     // Step 3: the oral cavity ray origin: on the rim plane, at the back edge of the box, on the symmetry plane.
     const originSphere = sphereMesh(origin, 0.7);
     layers.push({ name: 'Oral cavity ray (rim plane, back edge)', color: C.rayOrigin, positions: originSphere.positions, indices: originSphere.indices });
+    // An EDITED Step 1 (the Orient canvas, U6): what its nodes made, so the 3D view shows the chosen base and up.
+    // Never for the default graph - its frame is today's, drawn above, and a second copy would change every review.
+    if (orientGraphDigest() !== 'default') {
+      const read = orientNodes(mesh, profile);
+      if ('nodes' in read) {
+        for (const layer of orientLayers(read.nodes, review.box.centre)) {
+          if (layer.kind === 'faces') layers.push({ name: layer.name, color: C.orientBase, positions: patchPositions(mesh, layer.faces, DOWN_LIFT_MM * 4, sign), indices: new Uint32Array(0) });
+          else edgesLayer(layers, layer.segments, layer.name, C.orientUp);
+        }
+      }
+    }
     // Step 6: low points outside the allowed area (orange) and inside it with no tip reaching them (purple).
     const markers = (points: Vector[], name: string, color: number) => {
       if (points.length > 0) layers.push({ name, color, positions: markerPositions(points, 0.45), indices: new Uint32Array(0) });

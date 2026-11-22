@@ -35,6 +35,13 @@ describe('what "Done" may claim (cia F2)', () => {
     expect(out).toEqual({ applied: true, text: 'Done — showing the re-run with the edited zone graph (graph d7dc809c). The earlier review is still in its own folder.' });
   });
 
+  // U6: the Orient canvas's graph is checked against the run's own `orientGraph` the same way.
+  it('says an edited Orient graph was NOT applied when the run reports the standard Step 1', () => {
+    expect(rerunOutcome({ graphEdited: false, summaryGraph: 'default', names: 'the edited Orient graph', orientEdited: true, summaryOrient: 'default' }).text).toMatch(/Orient graph was NOT applied/);
+    expect(rerunOutcome({ graphEdited: false, summaryGraph: 'default', names: 'the edited Orient graph', orientEdited: true, summaryOrient: 'a1b2c3d4e5' }).applied).toBe(true);
+    expect(refusalReason('x\nThe Orient graph was refused: POSE: "angleDeg" must be between -90 and 90, got 200\nexit 2')).toMatch(/^The Orient graph was refused: POSE/);
+  });
+
   it('a rules-only run on the default graph is plainly done', () => {
     expect(rerunOutcome({ graphEdited: false, summaryGraph: 'default', names: 'overhangAngleDeg=50' }).text).toBe('Done — showing the re-run with overhangAngleDeg=50. The earlier review is still in its own folder.');
   });

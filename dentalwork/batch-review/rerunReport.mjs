@@ -11,7 +11,7 @@
 export function refusalReason(log) {
   const lines = String(log ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   // "The type was refused" (batch.ts): without it a draft reusing a built-in id said only "exit 2".
-  const at = lines.findIndex((line) => /zone graph was refused|type was refused|^--zone-graph|Nothing ran/.test(line));
+  const at = lines.findIndex((line) => /zone graph was refused|Orient graph was refused|type was refused|^--zone-graph|^--orient-graph|Nothing ran/.test(line));
   if (at < 0) return lines.at(-1);
   return /:$/.test(lines[at]) && lines[at + 1] ? `${lines[at]} ${lines[at + 1]}` : lines[at];
 }
@@ -21,10 +21,14 @@ export function refusalReason(log) {
  * its `zoneGraph`), never the request: an edited graph answered with "default" was NOT applied, and
  * saying "Done" there is the claim the audit caught (F2).
  */
-export function rerunOutcome({ graphEdited, summaryGraph, names }) {
+export function rerunOutcome({ graphEdited, summaryGraph, names, orientEdited = false, summaryOrient }) {
   const ran = summaryGraph ?? 'unknown';
   if (graphEdited && ran === 'default') {
     return { applied: false, text: 'The run finished, but the edited zone graph was NOT applied: its summary says the default graph ran.' };
+  }
+  // The same check for the Orient canvas (U6): its run records `orientGraph` beside `zoneGraph`.
+  if (orientEdited && (summaryOrient ?? 'default') === 'default') {
+    return { applied: false, text: 'The run finished, but the edited Orient graph was NOT applied: its summary says the standard Step 1 ran.' };
   }
   const which = ran !== 'default' && ran !== 'unknown' ? ` (graph ${ran.slice(0, 8)})` : '';
   return { applied: true, text: `Done — showing the re-run with ${names}${which}. The earlier review is still in its own folder.` };

@@ -62,6 +62,8 @@ export const LAYER_COLOURS = {
   printTilt: layer('ray-r7'),
   rays: layer('tight-box'),
   rayOrigin: layer('ray-origin'),
+  orientBase: layer('orient-base'),
+  orientUp: layer('orient-up'),
   rayR1: layer('ray-r1'),
   rayR1b: layer('ray-r1b'),
   rayR2: layer('ray-r2'),

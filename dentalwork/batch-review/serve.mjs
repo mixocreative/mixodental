@@ -109,6 +109,13 @@ function rerun(request, response) {
       writeFileSync(file, JSON.stringify(ask.zoneGraph, null, 2));
       graphArgs.push('--zone-graph', file);
     }
+    // The Orient canvas's graph (U6), the same way: only an EDITED Step 1 is sent; absent, the default runs.
+    if (ask?.orientGraph && typeof ask.orientGraph === 'object') {
+      mkdirSync(out, { recursive: true });
+      const file = join(out, 'orient-graph.json');
+      writeFileSync(file, JSON.stringify(ask.orientGraph, null, 2));
+      graphArgs.push('--orient-graph', file);
+    }
     // The type this run is (Orient's print-angle edits + a name): benchwork makes a draft from the
     // built-in and the batch writes what ran to type.json, which Save type copies (TYPE-PIPELINE R1).
     const typeArgs = [];

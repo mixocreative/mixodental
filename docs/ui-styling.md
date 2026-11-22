@@ -568,6 +568,8 @@ The tokens of `dentalwork/batch-review/tokens.css` that the app does not have. T
 | `--layer-trim-plane` | `#c98a2b` | Layer: trim plane (aligner; first estimate from the trim edges) |
 | `--layer-symmetry-plane` | `#2a9d8f` | Layer: symmetry plane |
 | `--layer-ray-origin` | `#ff00ff` | Ray arrow ORIGIN |
+| `--layer-orient-base` | `#3a86ff` | The Orient canvas's chosen flat base (U6), drawn only for an edited Step 1 |
+| `--layer-orient-up` | `#fb5607` | The Orient pose's up at tilt 0 (U6), drawn only for an edited Step 1 |
 | `--layer-ray-r1` | `var(--layer-no-support)` | Ray arrow R1 |
 | `--layer-ray-r1b` | `var(--layer-no-support)` | Ray arrow R1B |
 | `--layer-ray-r2` | `var(--layer-allowed)` | Ray arrow R2 |

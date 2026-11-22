@@ -108,6 +108,8 @@
   --layer-trim-plane: #c98a2b;
   --layer-symmetry-plane: #2a9d8f;
   --layer-ray-origin: #ff00ff;
+  --layer-orient-base: #3a86ff; /* the Orient canvas's chosen flat base (U6), drawn only for an edited Step 1 */
+  --layer-orient-up: #fb5607; /* the Orient pose's up at tilt 0 (U6) */
   --layer-ray-r1: var(--layer-no-support);
   --layer-ray-r1b: var(--layer-no-support);
   --layer-ray-r2: var(--layer-allowed);

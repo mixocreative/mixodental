@@ -125,6 +125,22 @@ if (zoneGraphFile !== undefined) {
   }
 }
 /*
+ * --orient-graph <file>: the Orient graph the review page's Orient canvas composed (engine 71, docs/ORIENT-NODES.md
+ * U5/U6). Step 1 IS this graph: absent, the default (arch frame -> up decision -> upright pose) runs and nothing
+ * changes. Checked to BE JSON here; the engine validates what it means and refuses with the node named.
+ */
+const orientGraphFile = valueOf('--orient-graph');
+if (orientGraphFile !== undefined) {
+  try { JSON.parse(readFileSync(orientGraphFile, 'utf8')); } catch (error) {
+    console.error(`--orient-graph ${orientGraphFile}: not a readable JSON graph (${error.message})`);
+    process.exit(1);
+  }
+  if (kind !== 'denture') {
+    console.error(`--orient-graph: a ${kind} reads no Orient graph - only a denture does in this version. Nothing ran.`);
+    process.exit(1);
+  }
+}
+/*
  * TYPES (docs/TYPE-PIPELINE.md). `--type <file>` runs a saved type file: the batch reads it with the one
  * reader and refuses it by name before any case runs. It carries its own rules and graph, so it does
  * not combine with --set, --zone-graph or --pose - two sources for one number is how a run disagrees
@@ -139,8 +155,8 @@ const typeId = valueOf('--type-id');
 const poseFile = valueOf('--pose');
 const typeBadge = valueOf('--type-badge');
 const typeFullName = valueOf('--type-name');
-if (typeFile !== undefined && (sets.length > 0 || zoneGraphFile !== undefined || poseFile !== undefined || typeId !== undefined)) {
-  console.error('--type runs a saved type as it is: it does not combine with --set, --zone-graph, --pose or --type-id. Nothing ran.');
+if (typeFile !== undefined && (sets.length > 0 || zoneGraphFile !== undefined || orientGraphFile !== undefined || poseFile !== undefined || typeId !== undefined)) {
+  console.error('--type runs a saved type as it is: it does not combine with --set, --zone-graph, --orient-graph, --pose or --type-id. Nothing ran.');
   process.exit(1);
 }
 if (poseFile !== undefined && typeId === undefined) {
@@ -159,7 +175,7 @@ for (const [flag, file] of [['--type', typeFile], ['--pose', poseFile]]) {
     process.exit(1);
   }
 }
-const skip = new Set(['--kind', valueOf('--kind'), '--out', valueOf('--out'), ...sets, '--set', '--open', '--list', '--zone-graph', zoneGraphFile,
+const skip = new Set(['--kind', valueOf('--kind'), '--out', valueOf('--out'), ...sets, '--set', '--open', '--list', '--zone-graph', zoneGraphFile, '--orient-graph', orientGraphFile,
   '--type', typeFile, '--type-id', typeId, '--pose', poseFile, '--type-badge', typeBadge, '--type-name', typeFullName]);
 const folders = args.filter((arg) => !skip.has(arg) && !arg.startsWith('--'));
 if (folders.length === 0) {
@@ -192,9 +208,10 @@ const child = spawn(vite, ['--script', join('dentalwork', 'batch-review', 'batch
   // The type and graph variables reach batch.ts ONLY from these flags: one left in the shell would run a
   // type or graph nobody asked for (cia F8).
   env: {
-    ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !['MIXO_ZONE_GRAPH_FILE', 'MIXO_TYPE_FILE', 'MIXO_TYPE_ID', 'MIXO_POSE_FILE', 'MIXO_TYPE_BADGE', 'MIXO_TYPE_NAME'].includes(k))),
+    ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !['MIXO_ZONE_GRAPH_FILE', 'MIXO_ORIENT_GRAPH_FILE', 'MIXO_TYPE_FILE', 'MIXO_TYPE_ID', 'MIXO_POSE_FILE', 'MIXO_TYPE_BADGE', 'MIXO_TYPE_NAME'].includes(k))),
     MIXO_RULES: JSON.stringify(rules), MIXO_TIMERS: '1',
     ...(zoneGraphFile ? { MIXO_ZONE_GRAPH_FILE: zoneGraphFile } : {}),
+    ...(orientGraphFile ? { MIXO_ORIENT_GRAPH_FILE: orientGraphFile } : {}),
     ...(typeFile ? { MIXO_TYPE_FILE: typeFile } : {}),
     ...(typeId ? { MIXO_TYPE_ID: typeId } : {}),
     ...(poseFile ? { MIXO_POSE_FILE: poseFile } : {}),

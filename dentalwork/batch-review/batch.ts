@@ -15,6 +15,7 @@ import { reviewCase, type CaseRow } from './reviewCase';
 import { parseKind } from './profileSelect';
 import { RULE_DEFAULTS } from './ruleDefaults';
 import { setZoneGraph, ZoneGraphRefused } from '@mixo-geocore/host/dental/zoneGraph';
+import { OrientGraphRefused, orientGraphDigest, setOrientGraph } from '@mixo-geocore/host/dental/orientGraph';
 import { putInForce, recordType, typeOfRun } from './typeInForce';
 
 async function main(): Promise<void> {
@@ -44,6 +45,8 @@ mkdirSync(out, { recursive: true });
 // never halfway through, and never by quietly running the default instead. What ran is recorded in
 // summary.json, because an edited graph and the default otherwise look identical on screen.
 let zoneGraph = 'default';
+// The Orient graph that ran (U6): set by a type (putInForce) or by --orient-graph below; "default" = today's Step 1.
+let orientGraph = 'default';
 // A TYPE (benchwork --type, or the review page's Apply): refused here, before any case runs, for
 // exactly what a saved type file would be refused for. It carries its own rules and graph.
 let type: ReturnType<typeof typeOfRun> = null;
@@ -51,6 +54,7 @@ try {
   type = typeOfRun(kind, process.env);
   if (type) {
     zoneGraph = putInForce(type, process.env);
+    orientGraph = orientGraphDigest();
     process.stdout.write(`Type: ${type.id} (based on ${type.basedOn}), zone graph ${zoneGraph}\n`);
   }
 } catch (error) {
@@ -66,6 +70,18 @@ if (!type && process.env.MIXO_ZONE_GRAPH_FILE) {
   }
   process.stdout.write(`Zone graph: ${zoneGraph} (the edited graph from the node editor)\n`);
 }
+// THE ORIENT GRAPH the review page's Orient canvas composed (benchwork --orient-graph, engine 71; docs/ORIENT-NODES.md
+// U6). Step 1 IS this graph; set before any case, refused by node name here - never halfway through - and recorded in
+// summary.json, because an edited Step 1 and the default otherwise look alike on screen.
+if (!type && process.env.MIXO_ORIENT_GRAPH_FILE) {
+  try {
+    orientGraph = setOrientGraph(JSON.parse(readFileSync(process.env.MIXO_ORIENT_GRAPH_FILE, 'utf8')));
+  } catch (error) {
+    process.stderr.write(`The Orient graph was refused: ${error instanceof OrientGraphRefused ? error.detail : (error as Error).message}\n`);
+    process.exit(2);
+  }
+  process.stdout.write(`Orient graph: ${orientGraph} (the edited Step 1 from the Orient canvas)\n`);
+}
 
 
 const rows: CaseRow[] = [];
@@ -76,7 +92,7 @@ for (const [k, file] of files.entries()) {
   rows.push(row);
   process.stdout.write(`${row.result}${row.verdict ? ` / ${row.verdict}` : ''}${row.reason ? ` (${row.reason})` : ''}${row.printAngleDeg === null ? '' : `, print angle ${row.printAngleDeg}° (stable ${row.stableBand})`} in ${row.seconds} s
 `);
-  writeSummary(rows, out, zoneGraph);
+  writeSummary(rows, out, zoneGraph, orientGraph);
 }
 
 if (type) recordType(out, type, files);
@@ -88,8 +104,8 @@ const failed = rows.filter((row) => row.result === 'error').length;
 if (failed > 0) throw new Error(`${failed} file(s) could not be read or built (see the lines above).`);
 }
 
-function writeSummary(rows: CaseRow[], out: string, zoneGraph: string): void {
-  writeFileSync(join(out, 'summary.json'), JSON.stringify({ created: new Date().toISOString(), ruleDefaults: RULE_DEFAULTS, zoneGraph, cases: rows }, null, 2));
+function writeSummary(rows: CaseRow[], out: string, zoneGraph: string, orientGraph: string): void {
+  writeFileSync(join(out, 'summary.json'), JSON.stringify({ created: new Date().toISOString(), ruleDefaults: RULE_DEFAULTS, zoneGraph, orientGraph, cases: rows }, null, 2));
   const columns = Object.keys(rows[0]!) as Array<keyof CaseRow>;
   const cell = (value: unknown) => /[",\n]/.test(String(value ?? '')) ? `"${String(value).replace(/"/g, '""')}"` : String(value ?? '');
   writeFileSync(join(out, 'summary.csv'), [columns.join(','), ...rows.map((row) => columns.map((c) => cell(row[c])).join(','))].join('\r\n'));
