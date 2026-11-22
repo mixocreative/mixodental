@@ -809,7 +809,12 @@ becomes available here - one rule, seen from both sides.
      Rust tests - every output names a node the graph contains, and the engine default has the host's ids, kinds
      and wires - each shown to fail without RIM); (3) one override slot PER KIND, then the aligner default graph with locked
      validation - a Rust test that it validates, that every edit is refused naming the node, and that the digest
-     stays "default"; (4) wasm + host: a kind-aware set, host `KINDS` / outputs per kind, the type file - parity test
+     stays "default" (**DONE 2026-11-22**, geocore 25708a3 `dental/aligner_graph.rs`: six locked nodes - TRIM `trimPlane`,
+     RIM `rimLoopSharp`, VIS `visibility`, ALLOWED `allowedFaces`, AREA `signedStrip`, CONTACTS `contacts` - and
+     outputs `trim_frame`, `rim`, `visibility`, `allowed`, `rim_area`, `contacts` (Fable's names; naming was
+     delegated). Only the default validates; seven kinds of edit are refused by name; setting it never touches the
+     denture's slot. It holds no state until a node can be freed, so "one slot per kind" is that guarantee, not a
+     second store. Not vendored: no wasm call reads it until (4)); (4) wasm + host: a kind-aware set, host `KINDS` / outputs per kind, the type file - parity test
      with an aligner corpus, `vendor:check`, full `gate:real`.
    - **Why `gate:real` alone is not the proof:** an aligner graph that is only declared changes nothing the scans
      record, so the gate passes vacuously; step (3)'s refusal test is the real check until a node is freed.
