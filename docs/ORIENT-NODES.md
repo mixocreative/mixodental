@@ -860,6 +860,17 @@ becomes available here - one rule, seen from both sides.
      `Rim::points` (f32), not `make_rim`'s f64 loop; never re-sort points; a fallback stays `Fallback` (never
      authorises supports); do not recompute a line's length from its points (`rim_tips.rs` takes the max of both).
 6. **`lookFrom`** as an explicit input to both finders. Proof: bit-equal.
+   **6.1 DONE 2026-11-22** (geocore 652a2dc `dental/look_from.rs`; Fable's design, checked and narrowed): `LookFrom { position,
+   direction }`, direction toward the end the rim is searched at. The aligner finder `trace_rim` takes it - the
+   vertex centroid and the opening (open arch: the reverse of the trim plane's up; ring: the floor rule's axis, so
+   "down from the trim plane" is the open-arch preset only); its body is unchanged. The DENTURE finder needs a whole
+   frame (it bins in the canon frame's across/up plane and takes the lowest point along `teeth`), so it keeps
+   taking its `Canon` - already an explicit input. Fable proposed rebuilding a `Canon` from a `LookFrom` inside the
+   finder; not done, because it would make a second frame the axis grid, tissue map and top face do not share.
+   Proof: same values reach the same body; geocore tests and the local aligner scans; `gate:real` no differences;
+   app gate 1985 tests, walk ALL PASS 199 + 2.
+   **6.2 next:** a fixed `lookFrom` node in both graphs (the `direction` / `frame` socket types arrive with it), shown
+   on the viewer; proof by the parity test, not bit-equality.
 7. **`fitPlane` node**, then free the denture rim bands from `FIXED_OUTPUTS`. Proof: mask equality.
 8. **Plane display** - moved up to run right after step 2 (it needs only the names, and it is the visible value):
    explanations, colours, show-on-select, important planes always on; captured at operator width. Tonight it lands
