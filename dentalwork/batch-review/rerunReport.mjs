@@ -10,7 +10,8 @@
  */
 export function refusalReason(log) {
   const lines = String(log ?? '').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const at = lines.findIndex((line) => /zone graph was refused|^--zone-graph|Nothing ran/.test(line));
+  // "The type was refused" (batch.ts): without it a draft reusing a built-in id said only "exit 2".
+  const at = lines.findIndex((line) => /zone graph was refused|type was refused|^--zone-graph|Nothing ran/.test(line));
   if (at < 0) return lines.at(-1);
   return /:$/.test(lines[at]) && lines[at + 1] ? `${lines[at]} ${lines[at + 1]}` : lines[at];
 }

@@ -13,8 +13,9 @@
  * their bytes, NEVER by file name - a type file is committed, and these are patient scans.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseAlignerProfile } from '@mixo-geocore/host/dental/alignerProfiles';
 import { defaultProfileId, type DentalKind } from '@mixo-geocore/host/dental/dentalKind';
 import { parseDentureProfile } from '@mixo-geocore/host/dental/dentureProfiles';
@@ -25,6 +26,7 @@ import { setZoneGraph } from '@mixo-geocore/host/dental/zoneGraph';
 import { HOST_GEOMETRY_VERSION } from '@mixo-geocore/host/geometryVersion.js';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { unreadBy } from '../../benchwork/rules.mjs';
+import { discoverTypes } from '../../src/dentalTypes/shippedTypes';
 import { draftOf, graphText, profileText, proofOf, readTypeFile, typeFileText, type TypeFile, type TypeFileDeps } from '../../src/dentalTypes/typeFile';
 import { steepAngleProblem, upgradeGraph, validate } from './nodeGraph.mjs';
 import { useTypeProfile } from './profileSelect';
@@ -111,4 +113,41 @@ export function recordType(out: string, type: TypeFile, files: string[]): void {
   const ran = draftOf(type);
   ran.validation = proofOf(ran, { engineVersion: HOST_GEOMETRY_VERSION, scans: files.map(scanPrint), at: new Date().toISOString() });
   writeFileSync(join(out, 'type.json'), typeFileText(ran));
+  // Whether the app will load what Save would write - beside it, read by the review page's Type strip and Save.
+  writeFileSync(join(out, 'type-load.json'), JSON.stringify(appLoadVerdict(ran, TYPES_ROOT)));
+}
+
+/** The repo's `types/` folder, where Save type writes. */
+const TYPES_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'types');
+
+/**
+ * Whether the APP will load `type` once it is saved, and if not, why - by the app's own rule (`discoverTypes`), run
+ * over the files already in `typesRoot` plus this one at the path Save writes. The workbench used to say "commit it
+ * to ship it" for a type the app then refused (pinned rules, its own zone graph, a taken name - Fable's end-to-end
+ * audit, 2026-11-23); one rule in one place means the two can no longer disagree. A file already at that path is
+ * the type being replaced, so it is overwritten by the draft. The known profiles are the BUILT-IN files only - never
+ * this process's registered list, which holds the draft itself - so a draft reusing a built-in's id is still caught.
+ */
+export function appLoadVerdict(type: TypeFile, typesRoot: string): { loads: true } | { loads: false; reason: string } {
+  const path = `/types/${type.category}/${type.id}.type.json`;
+  // Every folder under types/, as the app's glob (types/*/*.type.json) reads it - a list of categories here would
+  // miss a category added later.
+  const files: Record<string, string> = {};
+  if (existsSync(typesRoot)) {
+    for (const entry of readdirSync(typesRoot, { withFileTypes: true }).filter((e) => e.isDirectory())) {
+      const dir = join(typesRoot, entry.name);
+      for (const name of readdirSync(dir).filter((n) => n.endsWith('.type.json'))) files[`/types/${entry.name}/${name}`] = readFileSync(join(dir, name), 'utf8');
+    }
+  }
+  const known = [...Object.values(DENTURE_PROFILE_FILES), ...Object.values(PROFILE_FILES)]
+    .map((p) => p as { id: string; name: Record<string, string> })
+    .map((p) => ({ id: p.id, name: p.name }));
+  const before = new Set(discoverTypes(files, TYPE_DEPS, known).refused.map((r) => r.file));
+  const after = discoverTypes({ ...files, [path]: typeFileText(type) }, TYPE_DEPS, known).refused;
+  const own = after.find((r) => r.file === path);
+  if (own) return { loads: false, reason: own.reason };
+  // The loader refuses the LATER of two clashing files in path order, so a draft that sorts first loads and knocks
+  // out a type already saved - and every project using that one stops opening (Fable, 2026-11-23).
+  const knocked = after.find((r) => !before.has(r.file));
+  return knocked ? { loads: false, reason: `saving it stops "${knocked.id ?? knocked.file}" loading: ${knocked.reason}` } : { loads: true };
 }

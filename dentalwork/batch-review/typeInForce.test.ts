@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { setZoneGraph, zoneGraphDigest } from '@mixo-geocore/host/dental/zoneGraph';
 import { defaultGraph } from './nodeGraph.mjs';
-import { putInForce, TYPE_DEPS, typeNameOf, typeOfRun } from './typeInForce';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { NOT_YET } from '../../src/dentalTypes/shippedTypes';
+import { appLoadVerdict, putInForce, TYPE_DEPS, typeNameOf, typeOfRun } from './typeInForce';
 
 /*
  * A type file saved before 2026-11-22 names the rim node's kind `rimCurve`. It is checked through TYPE_DEPS, the one
@@ -54,5 +58,42 @@ describe('a drafted type', () => {
     expect(typeNameOf('', 'x')).toBe('x');
     expect(() => typeNameOf('a'.repeat(61), 'x')).toThrow(/at most 60 characters/);
     expect(() => typeNameOf('two\nlines', 'x')).toThrow(/one line/);
+  });
+});
+
+/*
+ * THE WORKBENCH SAYS WHAT THE APP WILL DO (Fable's end-to-end audit, 2026-11-23). It said "commit it to ship it" for
+ * types the app then refused; appLoadVerdict runs the app's own rule (discoverTypes) over types/ plus the draft.
+ */
+describe('whether the app will load a drafted type', () => {
+  const root = mkdtempSync(join(tmpdir(), 'types-'));
+
+  it('loads a plain draft, and a draft replacing a saved type of the same id', () => {
+    const draft = typeOfRun('denture', { MIXO_TYPE_ID: 'verdict-plain' })!;
+    expect(appLoadVerdict(draft, root)).toEqual({ loads: true });
+    mkdirSync(join(root, 'denture'), { recursive: true });
+    writeFileSync(join(root, 'denture', 'verdict-plain.type.json'), JSON.stringify(draft));
+    expect(appLoadVerdict(draft, root)).toEqual({ loads: true });
+  });
+
+  it('catches a draft that reuses a built-in id', () => {
+    const copy = typeOfRun('denture', { MIXO_TYPE_ID: 'reference-denture', MIXO_TYPE_NAME: 'My copy' })!;
+    const verdict = appLoadVerdict(copy, root);
+    expect(verdict.loads ? '' : verdict.reason).toMatch(/already has the id "reference-denture"/);
+  });
+
+  it('says why when the app would refuse it - pinned rules, or a name another saved type has', () => {
+    const ruled = typeOfRun('denture', { MIXO_TYPE_ID: 'verdict-ruled', MIXO_RULES: JSON.stringify({ overhangAngleDeg: 55 }) })!;
+    expect(appLoadVerdict(ruled, root)).toEqual({ loads: false, reason: NOT_YET.rules(['overhangAngleDeg']) });
+    const twin = typeOfRun('denture', { MIXO_TYPE_ID: 'verdict-twin', MIXO_TYPE_NAME: 'verdict-plain' })!;
+    const verdict = appLoadVerdict(twin, root);
+    expect(verdict.loads).toBe(false);
+    expect(verdict.loads ? '' : verdict.reason).toMatch(/would look the same as "verdict-plain"/);
+  });
+
+  it('catches a draft that sorts BEFORE its twin, which would load and knock the saved type out', () => {
+    const first = typeOfRun('denture', { MIXO_TYPE_ID: 'a-twin', MIXO_TYPE_NAME: 'verdict-plain' })!;
+    const verdict = appLoadVerdict(first, root);
+    expect(verdict.loads ? '' : verdict.reason).toMatch(/^saving it stops "verdict-plain" loading: .*would look the same as "a-twin"/);
   });
 });

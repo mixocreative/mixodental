@@ -67,7 +67,12 @@ function saveType(response) {
   mkdirSync(dir, { recursive: true });
   const to = join(dir, `${type.id}.type.json`);
   writeFileSync(to, readFileSync(from, 'utf8'));
-  send(200, { ok: true, path: `types/${type.category}/${type.id}.type.json` });
+  // Whether the APP will load it (typeInForce.ts appLoadVerdict, written beside type.json by the run): returned here so
+  // the Save message says it even after a page reload, when the page no longer holds the run's answer.
+  const verdictFile = join(roots['/out/'], 'type-load.json');
+  let typeLoad = null;
+  try { typeLoad = existsSync(verdictFile) ? JSON.parse(readFileSync(verdictFile, 'utf8')) : null; } catch { typeLoad = null; }
+  send(200, { ok: true, path: `types/${type.category}/${type.id}.type.json`, typeLoad });
 }
 
 function rerun(request, response) {

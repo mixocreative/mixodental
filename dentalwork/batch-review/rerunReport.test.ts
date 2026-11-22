@@ -12,6 +12,11 @@ describe('the reason a refused run gives (cia F1)', () => {
     expect(refusalReason('a\nThe zone graph was refused: NS: input "b" is not connected\nexit 2')).toBe('The zone graph was refused: NS: input "b" is not connected');
   });
 
+  it('names a refused type, not the exit line after it', () => {
+    const log = 'out: x\nThe type was refused: denture profile id "reference-denture" is a built-in\n\nThe review did not finish (exit 2).\n';
+    expect(refusalReason(log)).toBe('The type was refused: denture profile id "reference-denture" is a built-in');
+  });
+
   it('falls back to the last line, and says nothing about an empty log', () => {
     expect(refusalReason('one\ntwo\n')).toBe('two');
     expect(refusalReason(undefined)).toBeUndefined();

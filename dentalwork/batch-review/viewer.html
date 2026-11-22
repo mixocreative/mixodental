@@ -167,6 +167,7 @@
 .type-steps li.now { color: var(--ink); border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
 .type-step-link { height: auto; padding: 0; border: 0; background: none; color: inherit; font-size: 11px; cursor: pointer; text-decoration: underline; }
 .type-note { margin: 0; font-size: 11px; color: var(--muted); }
+.type-note.type-warn { color: var(--warning); }
 
 /* The three stages: one tab per stage, one stage on screen, so the 3D view keeps its height. */
 .stage-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -514,6 +515,9 @@ try { typeFullName = localStorage.getItem('review-type-full-name') || ''; } catc
 let typeIdTyped = false;
 let ranTypeId = null;
 let savedTypeId = null;
+/* Whether the APP will load the type that ran ({ loads, reason }), from the run's type-load.json - the app's own rule
+   (typeInForce.ts appLoadVerdict). The strip and Save say it, so the workbench never promises a type the app refuses. */
+let ranTypeLoad = null;
 /* The categories a type may belong to - the app's list (host `DENTAL_KINDS`), never typed. A new category is a code
    change (src/components/README.md, "Adding a category"); viewerScript.test.ts holds this list to the host's. */
 const TYPE_CATEGORIES = [['denture', 'Denture'], ['aligner', 'Aligner']];
@@ -1079,6 +1083,11 @@ function drawTypeStrip() {
     steps.append(step);
   }
   strip.append(fields, steps);
+  if (ran && ranTypeLoad && !ranTypeLoad.loads) {
+    const warn = Object.assign(document.createElement('p'), { className: 'type-note type-warn', textContent: `The app will not load this type yet: ${ranTypeLoad.reason}` });
+    warn.dataset.ui = 'type-load-warning';
+    strip.append(warn);
+  }
   if (kindNow === 'aligner') {
     // An aligner run has no editable stages yet: say what an aligner type can change today, so the missing links read as
     // a fact rather than a fault. (The app loads aligner types since 2026-11-23, docs/TYPE-PIPELINE.md section 8a.)
@@ -2196,7 +2205,12 @@ try {
   document.getElementById('type-save').addEventListener('click', async () => {
     const reply = await fetch('/save-type', { method: 'POST' }).catch(() => null);
     const answer = reply ? await reply.json().catch(() => ({})) : { error: 'the server did not answer' };
-    status.textContent = answer.ok ? `Saved ${answer.path} - commit it to ship it. It holds what this review ran, with its proof.` : `Not saved: ${answer.error ?? 'no answer'}`;
+    // The server's verdict first (it survives a page reload), else the one this page fetched after Apply.
+    const load = answer.typeLoad ?? ranTypeLoad;
+    const refusedByApp = answer.ok && load && !load.loads;
+    status.textContent = !answer.ok ? `Not saved: ${answer.error ?? 'no answer'}`
+      : refusedByApp ? `Saved ${answer.path}, but the app will not load it yet: ${load.reason}`
+      : `Saved ${answer.path} - commit it to ship it. It holds what this review ran, with its proof.`;
     // The strip marks Save done only for the type that ran (`ranTypeId`) - that is what the server copied.
     if (answer.ok) { savedTypeId = ranTypeId; if (lastChain) drawChain(...lastChain); }
   });
@@ -2245,6 +2259,7 @@ try {
       // The run on screen is now this type: the strip marks Apply done, and Save becomes the next step.
       ranTypeId = typeName;
       savedTypeId = null;
+      ranTypeLoad = await fetch(`/out/type-load.json?t=${Date.now()}`).then((response) => (response.ok ? response.json() : null)).catch(() => null);
       openRun(fresh, (name) => `/out/${name}?t=${Date.now()}`, '/out/summary.csv');
       status.textContent = outcome.text;
     } catch (error) {
