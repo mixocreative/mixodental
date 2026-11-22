@@ -849,10 +849,13 @@ becomes available here - one rule, seen from both sides.
      `gate:real` alone would not prove this - it records tip counts and GLB hashes, not rim points.
      Deliberately NOT carried: the denture's per-edge ids and lengths (`rim_tips.rs` and the review read them from
      `Analysis::rim`), the aligner's frame and visibility raster, and the whole-rim closed / gap facts.
-   - **5.2 next:** add `rim: &StandardRim` to the denture zone graph's `Sources`, built once in `Analysis::of`;
-     add `rim: Option<StandardRim>` to `ZoneOutputs`, filled by following the pinned `rim -> RIM` output. The finder
-     runs once and no mask path changes. Proof: the mask tests unchanged, `outputs.rim` equal to the standard rim of
-     `Analysis::rim` on the denture scans, then `gate:real`.
+   - **5.2 DONE 2026-11-22:** the denture zone graph's `Sources` carry `rim: &StandardRim`, built once in
+     `Analysis::of`; `ZoneOutputs.rim` hands it through (the `rim` output is pinned to RIM, so it is always the
+     finder's rim - a plain `StandardRim`, not an `Option`); `Analysis.standard_rim` keeps it as the value the Support
+     zones tab will read. The finder runs once and no mask path changes. Proof: `denture_rules.rs` asserts
+     `analysis.standard_rim == from_denture(&analysis.rim)` on the synthetic shape (always runs) and on the local
+     denture scans, and fails when the graph drops the rim; then `gate:real`. The aligner has no evaluated graph,
+     so its rim stays `from_aligner(&rim)` until a node of it is freed.
    - **Traps (checked):** denture vertex ids index the welded hard-edge surface, not the mesh; convert the aligner from
      `Rim::points` (f32), not `make_rim`'s f64 loop; never re-sort points; a fallback stays `Fallback` (never
      authorises supports); do not recompute a line's length from its points (`rim_tips.rs` takes the max of both).
