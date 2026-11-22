@@ -10,6 +10,30 @@ Two kinds of file live here, and the distinction is worth keeping straight:
 - **Hooks** (`use*.ts`) — one job of the app each, lifted out of `App.tsx`. They hold state, talk to
   the workers, and write the status line. They render nothing.
 
+## Adding a category, or a type
+
+**A category** (aligner, denture: what the operator answers to "What are you making?") is code, because each
+one is its own engine pipeline. To add one, in this order:
+
+1. **The engine** (`mixo-geocore`): the new kind in `DentalKind` / `DENTAL_KINDS` (`host/dental/dentalKind.ts`),
+   its profile family and its pipeline. Vendor it (`npm run vendor:geometry`).
+2. **The table** - one row in `CATEGORY_TABLE` in [`purposes.ts`](purposes.ts):
+   `nightGuard: { label: 'Night guard', icon: 'night-guard' }`. The app does not compile until every engine kind
+   has a row, so this step cannot be forgotten.
+3. **The icon** - the file `src/ui/assets/art/<icon>.svg` (48 x 48 pixel art on a 480 artboard, keeps its own
+   colours; see [`../ui/assets/art/README.md`](../ui/assets/art/README.md)). Dropping it in the folder is enough:
+   `src/ui/Art.tsx` loads every SVG there.
+4. **The words** - the `label` is also its translation key: add it to `src/locales/ja.ts` and
+   `src/locales/zh-Hant.ts` (Taiwan wording).
+
+[`purposes.test.ts`](purposes.test.ts) fails if a row's icon file is missing or its label is untranslated, so a
+category can never appear without its picture or its words.
+
+**A type** (a named recipe inside a category, "Soft denture") is data, not code: save it from the workbench and
+commit the file under `types/<category>/` - the app picks it up with no code change, with the name and the badge
+(up to 5 characters) the user set. How, and what is refused and why: [`types/README.md`](../../types/README.md) and
+`docs/TYPE-PIPELINE.md` section 8a.
+
 ## Vocabulary: what a screen is called, and when it gets a number
 
 Settled 2026-11-12 (audit MIXO-14). The app's words had started to collide: **"Step 1" named both

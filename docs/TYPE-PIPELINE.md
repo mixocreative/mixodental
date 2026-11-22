@@ -342,6 +342,10 @@ the app because nothing calls it yet.
 > angle is set per type in the workbench, with a fallback default** - a denture profile without
 > `tiltStartDeg` starts at 0 deg upright, exactly as before (an aligner already carries its start, `tiltDeg`).
 > Push approved the same day.
+>
+> **Superseded 2026-11-22 for the app (owner: "Do not need prove, make it easier"):** ruling 4 and
+> recommendation 4 below no longer gate anything in the app - a type loads whether or not it was proved,
+> and the picker shows no proof status (section 8a). The proof record is still written, as information.
 
 1. **Is the type file the whole profile, or only what differs from Generic?**
    Recommend: **the whole profile.** The engine's safety is that a missing number is an error. A
@@ -371,7 +375,7 @@ the app because nothing calls it yet.
 
 ---
 
-## 8. Discovery and reload — a new type file shows up with no hand wiring (PLANNED)
+## 8. Discovery and reload — a new type file shows up with no hand wiring (v1 BUILT 2026-11-22, section 8a)
 
 **In plain words:** there is one folder. Put a type file in it and the app has the type. Nobody
 edits a list.
@@ -401,7 +405,7 @@ edits a list.
   Update is explicit, re-runs detection (the digest changed, so the cache cannot serve the old
   result) and is undoable until saved (unit D2).
 
-### 8a. The build plan for D1/A1, v1 (2026-11-22; Fable reviewed twice and agrees)
+### 8a. D1/A1 v1 - BUILT 2026-11-22 (planned with Fable, who agreed after two reviews)
 
 Checked in source before writing. **What v1 does:** denture type files in `types/denture/` reach the
 app's type picker, with their own name and badge, in every engine realm; anything that cannot load is
@@ -426,10 +430,10 @@ listed with its reason.
 - **Name and badge (owner, 2026-11-22: "icon can be up to 5 letters badge set by user, with full name
   in drop down. Category set by app to choose from").**
   - **Badge:** 1 to 5 characters, set by the user in the workbench, saved in the type file as an
-    optional `badge: { text, style }` (style one the stylesheet defines; `generic` by default) and read
-    before the code table in `purposes.ts`. `.purpose-badge` grows with its text (a minimum width and
-    side padding instead of today's fixed 1.9em square), so 5 letters fit and 1 still reads as a mark.
-    More than 5, or none, is refused by name.
+    optional `"badge": "SOFT"` and read before the code table in `purposes.ts` (absent = `G`). Every
+    saved type wears the `generic` badge style. `.purpose-badge` grows with its text (a minimum width
+    and side padding instead of today's fixed 1.9em square), so 5 letters fit and 1 still reads as a
+    mark. An empty badge or more than 5 characters is refused by name.
   - **Full name in the drop-down:** the type list shows the badge and the type's full name
     (`profile.name` in the operator's language) side by side; the badge alone is never the only label.
     The workbench sets the name: until the New-type screen has a name field, the id in all three
@@ -438,17 +442,20 @@ listed with its reason.
     (`DENTAL_KINDS` - today aligner, denture), never types one; a type file naming any other category is
     refused. A new category stays a code change (its engine pipeline, label and art), which is why it is
     a choice and not a field.
-- **Status, never unlabelled.** The picker label carries "unproved", "proved by hand" or "proved on
-  engine N" when the proof is not a clean match; no suffix means a matching proof.
+- **No proof gate (owner, 2026-11-22: "Do not need prove, make it easier").** This REPLACES ruling 4 and
+  recommendation 4 for the app: every type that reads cleanly loads, proved or not, and the picker
+  shows no proof status. The `validation` record stays in the file as information (benchwork and the
+  workbench still write it), but nothing in the app reads it to allow or refuse a type.
 - **Projects:** a project whose saved type was removed is still refused at load (unit A2 is the fix);
   v1 makes the denture message name the missing type file.
-- **Order:** workbench naming; reader `badge` + pure module + tests; realm hook + guard + loud
-  `jobKindOf`; picker badge / status / refused line + translations; docs.
-
-**OPEN - the owner's call:** a type whose only problem is "proved on engine N, this app runs M". The
-section 3 table says it LOADS, labelled; section 7's recommendation 4 says a release lists only types
-proved on the engine it ships with. Recommended: load it, labelled "proved on engine N" - otherwise every
-engine update unloads every type and every project made with one stops opening.
+- **Order:** workbench name and badge; reader `badge` + pure module + tests; realm hook + guard + loud
+  `jobKindOf`; picker badge + refused line; docs.
+- **Verified in the running app (2026-11-22):** with a temporary `types/denture/check-soft.type.json` (badge
+  `SOFT`) and a broken file beside it, the denture type list showed "G Generic denture" and "SOFT Check soft
+  denture" (the badge box 42 px wide, G still a 25 px square), and the items page showed "1 saved type could not
+  load" opening to the file and its reason. No console errors. The temporary files were deleted afterwards. A first
+  try put that line inside the page head, a one-row strip that does not wrap: it was squeezed to 29 px off-screen,
+  so it sits on its own line under the head.
 
 ## 9. An MCP server for the workbench — describe an idea, the AI composes it (PLANNED)
 
