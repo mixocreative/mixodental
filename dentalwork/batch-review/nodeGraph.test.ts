@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS,
+  DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
   ALIGNER_KINDS, OLD_KINDS, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, setParam, unreached, upgradeGraph, validate,
 } from './nodeGraph.mjs';
 
@@ -86,6 +86,18 @@ describe('the print-angle search node shows what the engine actually searches', 
     expect(read('tiltMarginDeg')).toBe(PRINT_ANGLE_SEARCH.marginDeg);
     // 0 is upright by the engine's own definition, not a profile field.
     expect(PRINT_ANGLE_SEARCH.startDeg).toBe(0);
+  });
+});
+
+/* Step 7.2b: the engine grows the rim strips at the profile's widths, so the words quote the profile's defaults. */
+describe('the rim strips say the width the engine actually uses', () => {
+  it('quotes the shipped profile\'s widths, and says they come from the profile', () => {
+    const profile = readFileSync(new URL('../../vendor/mixo-geocore/host/dental/dentureProfileFiles.ts', import.meta.url), 'utf8');
+    const read = (key: string) => Number(new RegExp(`"${key}\\\\?":\\s*([0-9.]+)`).exec(profile)?.[1]);
+    expect(read('rimBandMm')).toBe(RIM_STRIP_MM.rim_band);
+    expect(read('lowRimBandMm')).toBe(RIM_STRIP_MM.low_rim_band);
+    expect(OUTPUT_WORDS.rim_band.says).toContain(`profile's rim strip width (${RIM_STRIP_MM.rim_band} mm by default)`);
+    expect(OUTPUT_WORDS.low_rim_band.says).toContain(`profile's low rim strip width (${RIM_STRIP_MM.low_rim_band} mm by default)`);
   });
 });
 

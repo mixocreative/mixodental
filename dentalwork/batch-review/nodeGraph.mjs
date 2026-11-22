@@ -96,7 +96,7 @@ export const KIND_WORDS = {
   depthCast: { title: 'Depth map', says: 'Looks straight through the part along one direction and records how deep it is at every spot. Feeds Find holes and Find sockets. Its settings are fixed in this version.' },
   holes: { title: 'Find holes', says: 'Openings you can see right through the part, found from the depth map. Its setting is fixed in this version.' },
   basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map. Not runnable yet: the socket depth comes from the rule "socket depth".' },
-  band: { title: 'Strip around', says: 'Every face within a set distance of its seeds, measured along the surface. In this version only the 5 mm strip around Find holes runs; the two rim strips are fixed.' },
+  band: { title: 'Strip around', says: 'Every face within a set distance of its seeds, measured along the surface. In this version only the 5 mm strip around Find holes is editable; the two rim strips are fixed, and their width comes from the profile, not from this node.' },
   rim: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
   union: { title: 'Either A or B', says: 'Faces in A, or in B, or in both.' },
   subtract: { title: 'A without B', says: 'Faces in A, minus any that are also in B. A and B are not interchangeable.' },
@@ -155,8 +155,8 @@ export const OUTPUT_WORDS = {
   allowed_cavity: { title: 'Seen by the cavity rays', says: 'What the cavity rays see before the hole strip is added. Read by "rim obeys no-sup".' },
   hole_band: { title: 'Hole strip', says: 'The 5 mm strip around holes where hole tips are placed. Fixed in this version.' },
   rim: { title: 'Rim line', says: 'The line rim tips are placed along. Found in Orient; fixed here.' },
-  rim_band: { title: 'Rim strip', says: 'The 2 mm strip along the rim where rim-strip tips go. Fixed in this version.' },
-  low_rim_band: { title: 'Low rim strip', says: 'The 5 mm strip along the rim (wider than the rim strip) where a lowest point or island still gets a tip, even inside the no-support zone. Fixed in this version.' },
+  rim_band: { title: 'Rim strip', says: 'The strip along the rim where rim-strip tips go. As wide as the profile\'s rim strip width (2 mm by default). Fixed in this version.' },
+  low_rim_band: { title: 'Low rim strip', says: 'The wider strip along the rim where a lowest point or island still gets a tip, even inside the no-support zone. As wide as the profile\'s low rim strip width (5 mm by default). Fixed in this version.' },
   sockets: { title: 'Sockets', says: 'Hollows that would trap resin. Rim, hole and area tips stay out of them when "sockets deny" is on. Fixed in this version.' },
 };
 
@@ -201,6 +201,13 @@ export const REQUIRED_OUTPUTS = {
  * they drift, because a node showing 45 while the engine searches 30 would be lying.
  */
 export const PRINT_ANGLE_SEARCH = { startDeg: 0, endDeg: 45, stepDeg: 2, marginDeg: 2 };
+
+/**
+ * The rim strips' widths in the shipped denture profile (`rimBandMm`, `lowRimBandMm`), quoted in the words above. The
+ * engine grows each strip at the PROFILE's width and never reads the RIMBAND / LOWRIMBAND node's `mm` (section 10
+ * step 7.2), so these are the defaults a type may change. `nodeGraph.test.ts` fails if they drift from the profile.
+ */
+export const RIM_STRIP_MM = { rim_band: 2, low_rim_band: 5 };
 
 /** Today's denture, node for node (`ruled_tips.rs:151-163`, `:126-143`, `:113-115`). Must reproduce today exactly. */
 export function defaultGraph() {
