@@ -1,5 +1,5 @@
 import '../../workers/engineSource';
-import { geometryReady } from '@mixo-geocore/host/workers/geometryClient';
+import { typesReady } from '../../dentalTypes/typesReady';
 import { serveTask, transferable } from '@mixo-geocore/host/workers/serveTask';
 import { runAfterGeometryReady } from '@mixo-geocore/host/geometryVersion.js';
 import { openLiveTilt, type LiveTilt } from '@mixo-geocore/host/dental/dentureTilt';
@@ -24,7 +24,7 @@ function close(key: string): void {
   live.delete(key);
 }
 
-serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeometryReady(geometryReady, () => {
+serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeometryReady(typesReady, () => {
   let last = 0;
   let lastStage = '';
   const progress = (fraction: number, stage: string) => {

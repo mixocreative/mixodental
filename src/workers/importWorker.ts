@@ -1,6 +1,7 @@
 import './engineSource';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
-import { geometryReady, type GeometryEngine } from '@mixo-geocore/host/workers/geometryClient';
+import type { GeometryEngine } from '@mixo-geocore/host/workers/geometryClient';
+import { typesReady } from '../dentalTypes/typesReady';
 import type { ImportTask, PreparedMesh } from './importProtocol';
 import { buffers, centerImportedWithWasm, decimateWithWasm, diagnoseImported, prepare, weldRawWithWasm, type Progress } from './prepareImport';
 import { serveTask, transferable } from '@mixo-geocore/host/workers/serveTask';
@@ -28,7 +29,7 @@ async function readStl(file: Blob, name: string, progress: Progress, engine: Geo
 
 /** STL reading and welding, glTF welding and display copies, off the main thread. */
 serveTask<ImportTask, PreparedMesh[]>(async (task, { progress: post }) => {
-  const engine = await geometryReady();
+  const engine = await typesReady();
   const center = (item: Parameters<typeof prepare>[0]) => centerImportedWithWasm(item, engine);
   const simplify = (mesh: TriangleMesh, maxTriangles: number) => decimateWithWasm(mesh, engine, maxTriangles);
   let last = 0;

@@ -8,14 +8,14 @@ import { scanDentalTilts } from '@mixo-geocore/host/dental/dentalTilt';
 import { confirmPick } from '../dental/confirmTilt';
 import { areaRisks } from '../dental/areaRisk';
 import type { AnalysisResult, AnalysisTask } from './analysisProtocol';
-import { geometryReady } from '@mixo-geocore/host/workers/geometryClient';
+import { typesReady } from '../dentalTypes/typesReady';
 import { serveTask, transferable } from '@mixo-geocore/host/workers/serveTask';
 import { runAfterGeometryReady } from '@mixo-geocore/host/geometryVersion.js';
 
 const PROGRESS_INTERVAL_MS = 60;
 
 /** Placement and support checks, one job at a time (the client never sends a second before the first answers). */
-serveTask<AnalysisTask, AnalysisResult>((task, { progress: post }) => runAfterGeometryReady(geometryReady, () => {
+serveTask<AnalysisTask, AnalysisResult>((task, { progress: post }) => runAfterGeometryReady(typesReady, () => {
   let last = 0;
   const progress = (fraction: number, stage: string) => {
     const now = performance.now();

@@ -8,10 +8,15 @@ describe('jobKind', () => {
     expect(isDentureJob(DENTURE_PROFILE_ID)).toBe(true);
   });
 
-  it('keeps aligner profiles and unknown ids on the aligner flow', () => {
+  it('keeps aligner profiles and no profile on the aligner flow', () => {
     expect(jobKindOf('reference-aligner')).toBe('aligner');
     expect(jobKindOf(undefined)).toBe('aligner');
-    expect(isDentureJob('no-such-profile')).toBe(false);
+  });
+
+  // An unknown id used to run as an aligner without a word; a saved type missing from a realm would have done so.
+  it('refuses an id no profile has, naming it, instead of running it as an aligner', () => {
+    expect(() => jobKindOf('no-such-profile')).toThrow(/unknown dental profile 'no-such-profile'/);
+    expect(() => isDentureJob('no-such-profile')).toThrow(/no-such-profile/);
   });
 
   it('reads the dial step from the profile family of the job', () => {

@@ -4,7 +4,7 @@ import './dental/editingMode';
 import './workers/engineSource';
 import App from './App';
 import { AppBoundary, Stopped, type StopReason } from './AppBoundary';
-import { geometryReady } from '@mixo-geocore/host/workers/geometryClient';
+import { typesReady } from './dentalTypes/typesReady';
 import { detectLanguage, setLanguage } from './i18n';
 import { startTheme } from './ui/theme';
 import './fonts.css';
@@ -74,7 +74,7 @@ if (!hasWebGL2()) {
 } else {
   // Interactive maths (transforms, pick, brush) is synchronous Rust: the engine is ready before the
   // first render. A REJECTION used to end here unhandled, with nothing rendered and nothing said.
-  void geometryReady().then(
+  void typesReady().then(
     () => {
       bootDone();
       root.render(<StrictMode><AppBoundary><App /></AppBoundary></StrictMode>);

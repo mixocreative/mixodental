@@ -76,7 +76,7 @@ describe('reduceSession: modes', () => {
   });
 
   it('Back goes 2 to 1 keeping the oriented aligner; at Step 1 it puts Step 1 back to waiting', () => {
-    const ready = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading' }, { type: 'dentalOriented', proposal, notices: [] });
+    const ready = run(initialSession, { type: 'startDental', profile: 'reference-aligner' }, { type: 'dentalLoading' }, { type: 'dentalOriented', proposal, notices: [] });
     const area = reduceSession(ready, { type: 'acceptDentalOrientation' });
     const back1 = reduceSession(area, { type: 'backDental' });
     expect(back1).toMatchObject({ dentalStage: 'aligner', dentalAligner: 'ready', dentalProposal: proposal });
@@ -88,22 +88,22 @@ describe('reduceSession: modes', () => {
      */
     const out = reduceSession(back1, { type: 'backDental' });
     expect(out).toMatchObject({ dentalStage: 'aligner', dentalAligner: 'prompt', dentalProposal: undefined, dentalUnitId: undefined });
-    expect(out.dentalProfile).toBe('p');
+    expect(out.dentalProfile).toBe('reference-aligner');
     expect(reduceSession(initialSession, { type: 'backDental' })).toBe(initialSession);
   });
 
   it('Exit leaves the dental mode from every step, and the profile outlives the session', () => {
     for (const events of [[], [{ type: 'dentalLoading' }], [{ type: 'dentalLoading' }, { type: 'dentalBadFile', message: { key: 'x' } }]] as SessionEvent[][]) {
-      const left = run(initialSession, { type: 'startDental', profile: 'p' }, ...events, { type: 'exit' });
+      const left = run(initialSession, { type: 'startDental', profile: 'reference-aligner' }, ...events, { type: 'exit' });
       expect(left.mode).toBe('off');
     }
     // The profile SURVIVES exit, and something reads it: `supports.dentalAuto` prefers the live or
     // batch profile over the default when starting an aligner run.
-    expect(run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'exit' }).dentalProfile).toBe('p');
+    expect(run(initialSession, { type: 'startDental', profile: 'reference-aligner' }, { type: 'exit' }).dentalProfile).toBe('reference-aligner');
   });
 
   it('a bad file keeps Step 1 on its prompt with the message; a new drop clears it', () => {
-    const aligner = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading' });
+    const aligner = run(initialSession, { type: 'startDental', profile: 'reference-aligner' }, { type: 'dentalLoading' });
     const message = { key: 'x' };
     const bad = reduceSession(aligner, { type: 'dentalBadFile', message });
     expect(bad).toMatchObject({ dentalStage: 'aligner', dentalAligner: 'prompt', dentalNotices: [{ kind: 'bad-file', message }] });
@@ -115,7 +115,7 @@ describe('reduceSession: modes', () => {
   });
 
   it('a failed orientation keeps Step 1 ready with its message and no proposal', () => {
-    const loading = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading' });
+    const loading = run(initialSession, { type: 'startDental', profile: 'reference-aligner' }, { type: 'dentalLoading' });
     const failed = reduceSession(loading, { type: 'dentalOrientFailed', notices: [{ kind: 'failed' }] });
     expect(failed).toMatchObject({ dentalStage: 'aligner', dentalAligner: 'ready', dentalProposal: undefined, dentalNotices: [{ kind: 'failed' }] });
     // A late result of a replaced read is ignored.
@@ -130,7 +130,7 @@ describe('reduceSession: modes', () => {
   });
 
   it('no support area: Step 2 opens with its message; leaving Step 2 clears it', () => {
-    const ready = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading' }, { type: 'dentalOriented', proposal, notices: [] });
+    const ready = run(initialSession, { type: 'startDental', profile: 'reference-aligner' }, { type: 'dentalLoading' }, { type: 'dentalOriented', proposal, notices: [] });
     const area = reduceSession(ready, { type: 'acceptDentalOrientation', noArea: true });
     expect(gesture(area)).toMatchObject({ kind: 'dental-area', notices: [{ kind: 'no-area' }] });
     expect(reduceSession(area, { type: 'backDental' }).dentalNotices).toEqual([]);
@@ -287,7 +287,7 @@ describe('Drag over: Select | Unselect and Shift', () => {
 });
 
 describe('reduceSession: dental Step 3 and finishing', () => {
-  const step3 = run(initialSession, { type: 'startDental', profile: 'p' }, { type: 'dentalLoading', unitId: 'u1' },
+  const step3 = run(initialSession, { type: 'startDental', profile: 'reference-aligner' }, { type: 'dentalLoading', unitId: 'u1' },
     { type: 'dentalOriented', proposal, notices: [] }, { type: 'acceptDentalOrientation' }, { type: 'acceptDentalArea' });
 
   it('Step 3 reuses the Support Edit Mode tools: selecting works, the canvas gets the edit gesture', () => {
@@ -312,7 +312,7 @@ describe('reduceSession: dental Step 3 and finishing', () => {
 
   it('Add another aligner finishes this one and returns to Step 1 with the same type, ready for a drop', () => {
     const again = run(step3, { type: 'addAnotherDental', unitId: 'u1' });
-    expect(again).toMatchObject({ mode: 'dental', dentalStage: 'aligner', dentalAligner: 'prompt', dentalProfile: 'p', dentalFinished: ['u1'], dentalUnitId: undefined, dentalProposal: undefined });
+    expect(again).toMatchObject({ mode: 'dental', dentalStage: 'aligner', dentalAligner: 'prompt', dentalProfile: 'reference-aligner', dentalFinished: ['u1'], dentalUnitId: undefined, dentalProposal: undefined });
     expect(acceptsDentalDrop(again)).toBe(true);
     // The loop: the second aligner goes through the steps and finishes too.
     const second = run(again, { type: 'dentalLoading', unitId: 'u2' }, { type: 'dentalOriented', proposal, notices: [] }, { type: 'acceptDentalOrientation' }, { type: 'acceptDentalArea' });
@@ -360,13 +360,13 @@ describe('reduceSession: dental Step 3 and finishing', () => {
     const done = run(step3, { type: 'finishDental', unitId: 'u1' });
     expect(done).toMatchObject({ mode: 'off', dentalFinished: ['u1'] });
     // The deck opening the next row: same case, so the mark survives.
-    expect(run(done, { type: 'startDental', profile: 'p', resume: true }).dentalFinished).toEqual(['u1']);
+    expect(run(done, { type: 'startDental', profile: 'reference-aligner', resume: true }).dentalFinished).toEqual(['u1']);
     // The Drop page starting a new run: a new case, so it does not.
-    expect(run(done, { type: 'startDental', profile: 'p' }).dentalFinished).toEqual([]);
+    expect(run(done, { type: 'startDental', profile: 'reference-aligner' }).dentalFinished).toEqual([]);
   });
 
   it('a new visit to the flow forgets the finished list', () => {
     const done = run(step3, { type: 'finishDental', unitId: 'u1' });
-    expect(run(done, { type: 'startDental', profile: 'p' }).dentalFinished).toEqual([]);
+    expect(run(done, { type: 'startDental', profile: 'reference-aligner' }).dentalFinished).toEqual([]);
   });
 });
