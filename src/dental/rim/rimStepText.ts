@@ -24,8 +24,17 @@ export function rimProblemText(problem: SurfacePathProblem): string {
  * next: finish the loop, then fix it, and only then the one thing they cannot do anything about.
  */
 export function rimDoneReason(state: {
-  dentalRimClosed?: boolean; dentalRimAnchors?: number; dentalRimProblem?: string;
+  dentalRimClosed?: boolean; dentalRimAnchors?: number; dentalRimProblem?: string; dentalKind?: 'aligner' | 'denture';
 }): string | undefined {
+  /*
+   * A DENTURE RIM MAY STAY OPEN. A lower denture's rim is a U with its ends apart, and detection hands it over
+   * that way; closing it would bridge the opening and put rim tips across thin air. Two points make a line.
+   * The aligner's rim is always a loop: its engine call (`dental_rim_from_points`) rasterises the inside.
+   */
+  if (state.dentalKind === 'denture' && !state.dentalRimClosed) {
+    if ((state.dentalRimAnchors ?? 0) < 2) return 'Place at least two points along the rim.';
+    return state.dentalRimProblem ? rimProblemText(state.dentalRimProblem as SurfacePathProblem) : undefined;
+  }
   if (!state.dentalRimClosed) {
     return (state.dentalRimAnchors ?? 0) >= 3
       ? 'Close the loop to finish the rim.'

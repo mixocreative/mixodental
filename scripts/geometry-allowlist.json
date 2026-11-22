@@ -184,6 +184,9 @@
   "src/denture/engine/dentureProtocol.ts": {
     "label": "host-adapter"
   },
+  "src/denture/state/dentureRim.ts": {
+    "label": "host-adapter"
+  },
   "src/denture/steps/orient/useDentureOrient.ts": {
     "label": "host-adapter"
   },

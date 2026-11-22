@@ -18,9 +18,11 @@ Engine calls go through `engine/` only.
 | `engine/keyedQueue.ts` | One-at-a-time queue where a newer job of a key replaces a queued one; `drop(prefix)` removes waiting jobs. |
 | `engine/liveTilt.ts` | The live-tilt throttle: one engine call per animation frame, skip while busy, newest wins. |
 | `state/dentureState.ts` | What a denture unit stores (`PrintUnit.denture`): the denture policy. |
+| `state/dentureRim.ts` | The rim the operator drew (`PrintUnit.dentureRim`; step 10, owner 2026-11-23: "the drawn rim should replace the detected"): the handles plus the curve laid on the surface. `engineDrawnRim(unit)` is what every denture job carries; the worker sets the engine's ONE drawn-rim slot from it first (`engine/dentureCore.ts` `withPolicy` and `orientAndScan`; the worker itself for the live tilt and the spot check). A unit field of its own, because Step 1's Next writes `denture` afresh. |
 | `state/dentureStages.ts` | Step order of a denture inside the dental mode (no support-area step). |
 | `settings/dentureSupportSettings.ts` | The support settings a new denture starts with: profile preset plus the solid raft (2 mm floor, edge 40 degrees from the plate, no rim). |
-| `steps/orient/useDentureOrient.ts` | Step 1: upright, tilt scan, live tips while tilting, Auto orient, Next (placement), handle freed on leave. |
+| `steps/orient/useDentureOrient.ts` | Step 1: upright, tilt scan, live tips while tilting, Auto orient, Next (placement; says so when a drawn rim could not be laid and the detected one was used), handle freed on leave. |
+| `steps/orient/useDentureRim.ts` | Step 1's Redraw the rim on a denture: the aligner's drawing tool (`src/dental/rim/`), seeded from the operator's stored rim or from detection's (worker job `detected-rim`; an open U stays open). Done lays the drawing on the surface and stores it (`dentureRim/set`), and a changed drawn rim - Done, Undo, Redo - scans the print angles again. |
 | `steps/orient/scanOutcome.ts` | How Step 1's scan ended (pick, no pick, failure, crash, cancel): every ending leaves "scanning". |
 | `steps/orient/acceptCommands.ts` | Step 1 Next as one undo step: settings, lifted pose, tips, policy. |
 | `steps/orient/dialSync.ts` | The dial follows the pose after Undo, Redo or Restore step turned the denture (the row whose rotation is shown; a hand pose marks the dial as by hand). |

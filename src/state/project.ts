@@ -8,6 +8,7 @@ import { UNSAVED_TUNING, parseDentalTuning } from '@mixo-geocore/host/dental/tun
 import { DEFAULT_PROFILE_ID, allAlignerProfiles, profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { normalizeDentureState, type DentureState } from '../denture/state/dentureState';
+import { normalizeDrawnRim, type DentureDrawnRim } from '../denture/state/dentureRim';
 import type { SurfaceAnchor, SurfacePath } from '../core/surfacePath/path';
 import type { ImportDiagnosis } from './diagnosis';
 import { TOOL_ORDER } from './tools';
@@ -68,6 +69,8 @@ export interface PrintUnit {
   dental?: DentalPolicy;
   /** A denture unit's accepted policy (src/denture/state/dentureState.ts); absent on any other unit. */
   denture?: DentureState;
+  /** The rim the operator drew on a denture; it replaces the detected rim in every denture job (src/denture/state/dentureRim.ts). */
+  dentureRim?: DentureDrawnRim;
   /**
    * The rim the operator is drawing by hand because detection found none (Step 1's rim define mode).
    * Scene state, so the ordinary snapshot history undoes each anchor.
@@ -186,6 +189,8 @@ export type SceneCommand =
   /** A denture unit's policy (Step 1 accept, the model-landing allow list, the denture settings). */
   | { type: 'denture/set'; unitId: string; denture: DentureState }
   | { type: 'denture/clear'; unitId: string }
+  /** A denture's drawn rim, which replaces the detected one (`undefined`: back to the detected rim). */
+  | { type: 'dentureRim/set'; unitId: string; rim: DentureDrawnRim | undefined }
   /** Gives each named support the patch's keys on top of its own (one history step for all of them). */
   | { type: 'contactSettings/set'; unitId: string; contactIds: string[]; patch: ShapeOverride }
   /** The named supports follow the object's settings again. */
@@ -383,6 +388,8 @@ export function reduceScene(scene: PrintScene, command: SceneCommand): PrintScen
       return updateUnit(scene, command.unitId, (unit) => ({ ...unit, denture: normalizeDentureState(command.denture) }));
     case 'denture/clear':
       return updateUnit(scene, command.unitId, ({ denture: _denture, ...unit }) => unit);
+    case 'dentureRim/set':
+      return updateUnit(scene, command.unitId, ({ dentureRim: _was, ...unit }) => (command.rim ? { ...unit, dentureRim: normalizeDrawnRim(command.rim) } : unit));
     case 'contactSettings/set': {
       const patch = parseShapeOverride(command.patch);
       const unit = scene.units.find((candidate) => candidate.id === command.unitId);
@@ -617,6 +624,7 @@ function normalizeUnit(unit: PrintUnit, copyMesh = true): PrintUnit {
     zones: cloneJsonValue(unit.zones ?? []) as unknown as ZoneStamp[],
     ...(unit.dental === undefined ? {} : { dental: cloneDentalPolicy(unit.dental, unit.source) }),
     ...(unit.denture === undefined ? {} : { denture: normalizeDentureState(unit.denture) }),
+    ...(unit.dentureRim === undefined ? {} : { dentureRim: normalizeDrawnRim(unit.dentureRim) }),
     ...diagnosisField(diagnosis, unit.source),
     ...revisionsField(revisions),
     contactSettings: normalizeContactSettings(unit.contactSettings),

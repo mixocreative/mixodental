@@ -42,6 +42,11 @@ Step 1's detour. The operator places handles on the model, drags them, closes th
 the drawing into a real `DentalRim` through the engine (`dental_rim_from_points`, engine 61). Complete
 and shipped.
 
+**Dentures use it too, since 2026-11-23** (docs/ORIENT-NODES.md section 10, step 10). It is the same tool and dock, but
+the seed comes from the engine's detected denture rim, and the line may stay OPEN (a lower denture's U; `rimDoneReason`
+accepts two points). Done hands the drawing to `src/denture/steps/orient/useDentureRim.ts` (`useRimDrawing`'s
+`dentureDone`), which stores it as the unit's `dentureRim`; it replaces the detected rim in every denture job.
+
 **Two things changed on 2026-11-09 and the rest of this section assumes them.** It is no longer only
 for shapes with no findable rim: **a DETECTED rim can be redrawn**, seeded from detection's own loop
 (`seedFromDetected.ts`). And there is **one tool, not two** - the target under the press decides

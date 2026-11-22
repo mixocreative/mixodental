@@ -673,7 +673,7 @@ registerCommands({
    * That one condition covers all three ways an operator arrives there - detection found no rim and
    * they cancelled out of the drawing, they drew a rim and want it back, detection could not look at
    * all, or - since 2026-11-09 - detection DID find a rim and the operator wants to correct it.
-   * Dentures do not have this mode.
+   * Dentures have it too since 2026-11-23 (step 10): their drawn rim replaces the detected one (`denture/state/dentureRim.ts`).
    *
    * It needs no flag of its own. A flag written and never read is what this feature has now had to
    * delete twice, and the state it would describe is already readable from the step itself.
@@ -690,15 +690,25 @@ registerCommands({
      * cells (`docs/handoff-records.md#geocore-rim-from-points`). Small, and not nothing, so it is said rather
      * than discovered.
      */
-    label: (s) => (s.dentalProposed ? 'Redraw the rim' : 'Draw the rim'),
-    hint: (s) => (s.dentalProposed
+    label: (s) => (s.dentalProposed || s.dentalKind === 'denture' ? 'Redraw the rim' : 'Draw the rim'),
+    /*
+     * DENTURES TOO, since 2026-11-23 (owner: "the drawn rim should replace the detected"; docs/ORIENT-NODES.md
+     * section 10 step 10). The drawing REPLACES the detected rim for the rim strips and rim tips, so the hint says
+     * that, and it opens only once the print angles are scanned: the seed is the rim that scan used.
+     */
+    hint: (s) => (s.dentalKind === 'denture'
+      ? 'Edit the denture rim by hand. The supports then follow the rim you draw instead of the detected one.'
+      : s.dentalProposed
       ? 'Edit the detected rim by hand. Its points become yours to drag; the support area shifts slightly, because a drawn rim sets its own plane.'
       : 'Draw this aligner rim by hand, keeping anything already drawn'),
-    visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind !== 'denture',
-    enabled: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind !== 'denture'
-      && Boolean(s.dentalAlignerReady),
-    disabledReason: (s) => (s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind !== 'denture'
-      && !s.dentalAlignerReady ? { key: 'Wait for the aligner to finish reading.' } : undefined),
+    visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner',
+    enabled: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && Boolean(s.dentalAlignerReady)
+      && (s.dentalKind !== 'denture' || (Boolean(s.dentalProposed) && !s.dentalTiltBusy)),
+    disabledReason: (s) => {
+      if (s.mode !== 'dental' || s.dentalStage !== 'aligner') return undefined;
+      if (s.dentalKind === 'denture') return s.dentalAlignerReady && s.dentalProposed && !s.dentalTiltBusy ? undefined : { key: 'Wait until the print angles are checked.' };
+      return s.dentalAlignerReady ? undefined : { key: 'Wait for the aligner to finish reading.' };
+    },
   },
   /*
    * RIM DEFINE MODE HAS ONE TOOL, AND IT IS THE MODE ITSELF (owner, 2026-11-09).
@@ -758,7 +768,8 @@ registerCommands({
      * orientation standing, and `keepsManualArea` now carries the drawn rim through Next without
      * touching it, so promising a hand turn there is simply wrong.
      */
-    hint: (s) => (s.dentalProposed ? 'Use this rim and keep the detected orientation' : 'Use this rim, then turn the aligner by hand'),
+    hint: (s) => (s.dentalKind === 'denture' ? 'Use this rim instead of the detected one; the print angles are checked again'
+      : s.dentalProposed ? 'Use this rim and keep the detected orientation' : 'Use this rim, then turn the aligner by hand'),
     visible: rim, enabled: (s) => rim(s) && rimDoneReason(s) === undefined,
     disabledReason: (s) => {
       if (!rim(s)) return undefined;

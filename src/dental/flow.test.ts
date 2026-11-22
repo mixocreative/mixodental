@@ -199,6 +199,13 @@ describe('dental flow rules', () => {
     expect(exitNeedsConfirm(unit({ dental: { kind: 'legacy', origin: 'manual-area' } as never }))).toBe(true);
   });
 
+  // Step 10 (docs/ORIENT-NODES.md section 10): a denture's drawn rim is hand work - Exit asks, and then removes it.
+  it('a drawn denture rim is work Exit asks about and removes', () => {
+    const drawn = unit({ dentureRim: { path: { anchors: [], closed: false }, points: [] } });
+    expect(exitNeedsConfirm(drawn)).toBe(true);
+    expect(exitCommands(drawn)).toEqual([{ type: 'dentureRim/set', unitId: 'u1', rim: undefined }]);
+  });
+
   it('Leaving the flow also asks for Step 2 strokes and moved sliders (cia screen sweep, 2026-11-21)', () => {
     const profileId = 'reference-aligner';
     const start = defaultDentalTuning(profileId);

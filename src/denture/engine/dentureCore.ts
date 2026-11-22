@@ -7,7 +7,8 @@ import { orientDenture, type DentureOrientation } from '@mixo-geocore/host/denta
 import { scanDentureTilts } from '@mixo-geocore/host/dental/dentureTilt';
 import type { TiltScan, TiltScanSettings } from '@mixo-geocore/host/dental/dentalTilt';
 import type { DentalSession } from '@mixo-geocore/host/dental/dentalEngine';
-import { makeDenturePolicy, policyParts, type DenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
+import { makeDenturePolicy, policyParts, policyRim, type DenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
+import { setDentureDrawnRim, type DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
 import type { DenturePart } from '@mixo-geocore/host/dental/dentureParts';
 import { positionIds } from '@mixo-geocore/host/supports/contactEdits';
 import { jobContacts } from '@mixo-geocore/host/supports/genericPolicy';
@@ -54,10 +55,16 @@ export interface DentureJob {
   mode: 'preview' | 'export';
   /** The request's revision: `generate` echoes it so an export can tell a stale build (see `exportRefusal`). */
   revision?: number;
+  /** The unit's drawn rim (`DentureState.drawnRim`, as the engine reads it): it replaces the detected one. Absent: detected. */
+  drawnRim?: DrawnDentureRim;
 }
 
-/** Step 1 in one job: the upright frame, then the print-angle search (`onTilt(done, total)` per tilt). */
-export function orientAndScan(mesh: TriangleMesh, profileId: string, settings: TiltScanSettings, onTilt?: (done: number, total: number) => void, onScanStart?: () => void): { orientation: DentureOrientation; scan: TiltScan } {
+/** Which rim a placement's tips stand on, and why a drawn one was not used (the caller must say so). */
+export type DentureRimUsed = { source: 'detected' | 'drawn'; problem?: string };
+
+/** Step 1 in one job: the upright frame, then the print-angle search (`onTilt(done, total)` per tilt), on the unit's drawn rim when it has one. */
+export function orientAndScan(mesh: TriangleMesh, profileId: string, settings: TiltScanSettings, onTilt?: (done: number, total: number) => void, onScanStart?: () => void, drawnRim?: DrawnDentureRim): { orientation: DentureOrientation; scan: TiltScan } {
+  setDentureDrawnRim(drawnRim ?? null);
   const orientation = orientDenture(mesh, profileId);
   if (orientation.kind !== 'oriented') return { orientation, scan: { kind: 'failed', reason: orientation.reason } };
   onScanStart?.();
@@ -89,7 +96,10 @@ function candidatesOf(handle: PolicyHandle, frame: JobTransform): { points: Supp
 }
 
 /** Runs `use` with the job's denture policy made in a session holding the model; the handle is freed after. */
-function withPolicy<T>(job: Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand'>, use: (site: BuildSite, handle: PolicyHandle) => T): T {
+function withPolicy<T>(job: Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand' | 'drawnRim'>, use: (site: BuildSite, handle: PolicyHandle) => T): T {
+  // The engine holds ONE drawn rim, not one per model, so every job sets it - or clears it - first: a job that
+  // skipped this would run on whatever drawing the previous unit's job left in force.
+  setDentureDrawnRim(job.drawnRim ?? null);
   return withOneShotSite(job.mesh, (site) => {
     const handle = makeDenturePolicy(site.session as unknown as Pick<DentalSession, 'denture_policy_ruled'>, site.source, job.policy, job.frame, job.hand.manual, job.rules);
     try {
@@ -101,8 +111,8 @@ function withPolicy<T>(job: Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rule
 }
 
 /** The accepted pose's automatic tips (unit-local, position ids) and the file's parts. */
-export function placeDenture(job: Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand'>): { points: SupportPoint[]; parts: DentureParts } {
-  return withPolicy(job, (_site, handle) => ({ points: candidatesOf(handle, job.frame).points, parts: policyParts(handle) }));
+export function placeDenture(job: Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand' | 'drawnRim'>): { points: SupportPoint[]; parts: DentureParts; rim: DentureRimUsed } {
+  return withPolicy(job, (_site, handle) => ({ points: candidatesOf(handle, job.frame).points, parts: policyParts(handle), rim: policyRim(handle) }));
 }
 
 /** Renames the contact ids a build reports from the policy's names back to the unit's (position ids); others stay. */
@@ -148,7 +158,7 @@ export function buildDenture(job: DentureJob, onProgress?: ProgressCallback): De
  * with `allowModelLanding`, no build). `tip` and `normal` are in the build frame, as the unresolved report gives them.
  * Answers the landing tier, or the engine's refusal.
  */
-export function checkModelLanding(job: Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand' | 'settings' | 'plateY'>, tip: Vector, normal: Vector): RerouteResult {
+export function checkModelLanding(job: Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand' | 'settings' | 'plateY' | 'drawnRim'>, tip: Vector, normal: Vector): RerouteResult {
   const zones = job.hand.zones.map((stamp) => ({ ...stamp, center: transformPoint(job.frame, stamp.center), normal: transformDirection(job.frame, stamp.normal) }));
   return withPolicy(job, (site, handle) => rerouteSupport(site.session as unknown as EditSession, site.placed(job.frame), job.settings, tip, normal, null,
     { allowModelLanding: { policy: handle, zones }, rules: job.rules, plateY: job.plateY }));

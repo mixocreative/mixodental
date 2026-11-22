@@ -22,6 +22,15 @@ describe('rim define mode words', () => {
    * fix its shape - and only be told about the engine once there is nothing left for them to do. Reversing
    * that would greet a first point with a sentence about engine versions.
    */
+  // A lower denture's rim is a U: closing it would bridge the opening, so two points make a finished line (step 10).
+  it('lets a denture rim finish open, from two points', () => {
+    expect(rimDoneReason({ dentalKind: 'denture', dentalRimAnchors: 1 })).toBe('Place at least two points along the rim.');
+    expect(rimDoneReason({ dentalKind: 'denture', dentalRimAnchors: 2 })).toBeUndefined();
+    expect(rimDoneReason({ dentalKind: 'denture', dentalRimAnchors: 4, dentalRimProblem: 'SELF_INTERSECTING' })).toBe(rimProblemText('SELF_INTERSECTING'));
+    // The aligner still needs its loop.
+    expect(rimDoneReason({ dentalKind: 'aligner', dentalRimAnchors: 4 })).toBe('Close the loop to finish the rim.');
+  });
+
   it('says what to do next, in the order the operator can act on it', () => {
     expect(rimDoneReason({ dentalRimAnchors: 0 })).toBe('Place at least three points, then close the loop.');
     expect(rimDoneReason({ dentalRimAnchors: 2 })).toBe('Place at least three points, then close the loop.');

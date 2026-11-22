@@ -182,10 +182,11 @@ export function backCommands(unit: BackFields | undefined, profile: string | und
  * next reader builds on a gap that closed. Debt gets re-checked against the code, like any claim.
  */
 export function exitNeedsConfirm(
-  unit: Pick<PrintUnit, 'id' | 'dental' | 'supports' | 'manual' | 'deleted' | 'contactSettings'> | undefined,
+  unit: Pick<PrintUnit, 'id' | 'dental' | 'supports' | 'manual' | 'deleted' | 'contactSettings' | 'dentureRim'> | undefined,
 ): boolean {
   if (!unit) return false;
-  return Boolean(unit.supports) || backNeedsConfirm(unit)
+  // A denture's drawn rim is hand work like a drawn aligner rim (step 10), so leaving with it asks first.
+  return Boolean(unit.supports) || backNeedsConfirm(unit) || unit.dentureRim !== undefined
     || (unit.dental !== undefined && (isManualArea(unit.dental) || policyHoldsWork(unit.dental)));
 }
 
@@ -212,13 +213,14 @@ function policyHoldsWork(policy: DentalPolicy): boolean {
  * what will go and letting them answer. A model whose print failed, whose file was replaced, or
  * whose supports were wrong is exactly the one you need this press for.
  */
-export function exitCommands(unit: Pick<PrintUnit, 'id' | 'dental' | 'denture' | 'supports' | 'manual' | 'deleted' | 'contactSettings'> | undefined): SceneCommand[] {
+export function exitCommands(unit: Pick<PrintUnit, 'id' | 'dental' | 'denture' | 'dentureRim' | 'supports' | 'manual' | 'deleted' | 'contactSettings'> | undefined): SceneCommand[] {
   if (!unit) return [];
   const commands: SceneCommand[] = [];
   if (unit.supports) commands.push({ type: 'supports/remove', unitId: unit.id });
   if (backNeedsConfirm(unit)) commands.push({ type: 'supports/clear-manual', unitId: unit.id });
   if (unit.dental) commands.push({ type: 'dental/clear', unitId: unit.id });
   if (unit.denture) commands.push({ type: 'denture/clear', unitId: unit.id });
+  if (unit.dentureRim) commands.push({ type: 'dentureRim/set', unitId: unit.id, rim: undefined });
   return commands;
 }
 

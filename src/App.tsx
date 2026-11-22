@@ -941,7 +941,9 @@ export default function App() {
    * stand together); otherwise at the exact hit. A spot that faces up gets a warning on the status line.
    */
   // The two edits of rim define mode; its own module owns them (src/dental/rim/useRimDrawing.ts).
-  const { onRimPoint, onRimPath, onRimSelect, onRimDeletePoint, onRimDone } = useRimDrawing({ session: sessionRef, scene: sceneRef, dispatch, send, setStatus, recipeFor });
+  // A denture's Done stores its drawn rim instead (step 10, src/denture/steps/orient/useDentureRim.ts).
+  const dentureRimDone = useMemo(() => ({ active: () => isDentureJob(sessionRef.current.dentalProfile), done: denture.rim.done }), [denture.rim.done]);
+  const { onRimPoint, onRimPath, onRimSelect, onRimDeletePoint, onRimDone } = useRimDrawing({ session: sessionRef, scene: sceneRef, dispatch, send, setStatus, recipeFor, dentureDone: dentureRimDone });
 
   /*
    * What a pointer does to supports - add, remove, pick - in one module (src/supports/useSupportEdits.ts).
@@ -1247,6 +1249,8 @@ export default function App() {
        * property that actually matters, and the one `u9c` now asserts.
        */
       case 'dental.rim.enter': {
+        // A denture seeds from the engine's detected rim, which is not on the unit (step 10).
+        if (isDentureJob(sessionRef.current.dentalProfile)) return denture.rim.enter();
         const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
         /*
          * THE UNIT'S OWN RIM IS A SEED TOO, and without it "edit the rim I just confirmed" meant

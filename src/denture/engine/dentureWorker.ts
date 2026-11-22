@@ -3,6 +3,8 @@ import { typesReady } from '../../dentalTypes/typesReady';
 import { serveTask, transferable } from '@mixo-geocore/host/workers/serveTask';
 import { runAfterGeometryReady } from '@mixo-geocore/host/geometryVersion.js';
 import { openLiveTilt, type LiveTilt } from '@mixo-geocore/host/dental/dentureTilt';
+import { setDentureDrawnRim, type DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
+import { reviewDenture } from '@mixo-geocore/host/dental/dentureReview';
 import { buildDenture, checkModelLanding, orientAndScan, placeDenture } from './dentureCore';
 import type { DentureResult, DentureTask } from './dentureProtocol';
 import { ruleReasons } from '../check/ruleSpots';
@@ -18,10 +20,13 @@ import { PROGRESS_STAGE } from '@mixo-geocore/host/core/progress';
 
 const PROGRESS_INTERVAL_MS = 60;
 const live = new Map<string, LiveTilt>();
+/** The drawn rim each live handle was opened with: set again before every tilt, since another job may have changed the engine's one slot. */
+const liveRims = new Map<string, DrawnDentureRim | null>();
 
 function close(key: string): void {
   live.get(key)?.free();
   live.delete(key);
+  liveRims.delete(key);
 }
 
 serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeometryReady(typesReady, () => {
@@ -38,17 +43,20 @@ serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeom
   switch (task.kind) {
     case 'orient': {
       progress(0, DENTURE_STAGE.reading);
-      const { orientation, scan } = orientAndScan(task.mesh, task.profileId, task.scan, (done, total) => progress(done / total, DENTURE_STAGE.scanning), () => progress(0, DENTURE_STAGE.scanning));
+      const { orientation, scan } = orientAndScan(task.mesh, task.profileId, task.scan, (done, total) => progress(done / total, DENTURE_STAGE.scanning), () => progress(0, DENTURE_STAGE.scanning), task.drawnRim);
       return { kind: 'oriented', orientation, scan };
     }
     case 'live-open': {
       close(task.key);
+      setDentureDrawnRim(task.drawnRim ?? null);
       const handle = openLiveTilt(task.mesh, task.profileId, task.scan);
       live.set(task.key, handle);
+      liveRims.set(task.key, task.drawnRim ?? null);
       return { kind: 'live-opened', ok: handle.ok, reason: handle.reason };
     }
     case 'live-at': {
       const handle = live.get(task.key);
+      if (handle) setDentureDrawnRim(liveRims.get(task.key) ?? null);
       return { kind: 'live-paths', paths: handle ? handle.at(task.tiltDeg) : { kind: 'failed', reason: 'closed' } };
     }
     case 'live-close':
@@ -56,8 +64,8 @@ serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeom
       return { kind: 'live-closed' };
     case 'place': {
       progress(0, 'Placing denture tips');
-      const { points, parts } = placeDenture(task.job);
-      return { kind: 'placed', points, parts };
+      const { points, parts, rim } = placeDenture(task.job);
+      return { kind: 'placed', points, parts, rim };
     }
     case 'build': {
       const mesh = buildDenture(task.job, (fraction, stage) => progress(fraction, stage));
@@ -68,7 +76,17 @@ serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeom
       const out = exportFiles(task.units, task.files, task.revision, (fraction) => progress(fraction, PROGRESS_STAGE.writingStl));
       return transferable<DentureResult>({ kind: 'files', ...out }, out.files.map((file) => file.buffer));
     }
+    case 'detected-rim': {
+      // Detection's own rim, never a drawing left in force by another job: this is what Redraw starts from.
+      setDentureDrawnRim(null);
+      const review = reviewDenture(task.mesh, task.profileId, 0);
+      const lines = review?.rimLoops?.lines.map((line) => ({ points: line.points, closed: line.closed })) ?? [];
+      // The rim plane's normal points to the top; the drawing's projection ray wants the tissue side, the way out of the lip.
+      const top = review?.rimPlane?.normal ?? review?.up;
+      return { kind: 'detected-rim', rim: lines.length > 0 && top ? { lines, normal: [-top[0], -top[1], -top[2]] } : undefined };
+    }
     case 'classify-spots':
+      setDentureDrawnRim(task.drawnRim ?? null);
       return { kind: 'spot-reasons', reasons: ruleReasons(task.mesh, task.profileId, task.points, task.rules) };
     case 'check-landing': {
       const { tip, normal, ...job } = task.job;

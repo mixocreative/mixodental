@@ -4,7 +4,7 @@ import { withDentalMesh } from '@mixo-geocore/host/dental/dentalEngine';
 import { inverseTransformDirection, inverseTransformPoint } from '@mixo-geocore/host/state/transform';
 import { appendAnchor, closePath, emptyPath, hasAnchor, removeAnchor, type SurfaceAnchor, type SurfacePath } from '../../core/surfacePath/path';
 import type { Message } from '../../i18n';
-import type { PrintScene, SceneCommand } from '../../state/project';
+import type { PrintScene, PrintUnit, SceneCommand } from '../../state/project';
 import { presetCommands } from '../stages';
 import type { SupportRecipe } from '../../recipes/supportRecipe';
 import { manualAreaPolicy } from '../manualArea';
@@ -24,7 +24,7 @@ import { closesLoop } from './rimDraftGeometry';
  * app's own history undoes an anchor the way it undoes anything else, and the mode needs no private
  * undo stack that could interleave with it.
  */
-export function useRimDrawing({ session, scene, dispatch, send, setStatus, recipeFor }: {
+export function useRimDrawing({ session, scene, dispatch, send, setStatus, recipeFor, dentureDone }: {
   /** Live refs, not state: a pointer handler must read what is true NOW, not what it closed over. */
   session: { readonly current: EditSession };
   scene: { readonly current: PrintScene };
@@ -39,6 +39,11 @@ export function useRimDrawing({ session, scene, dispatch, send, setStatus, recip
    * was drawn by hand quietly ignored the recipe its card is labelled with.
    */
   recipeFor: (unitId: string) => SupportRecipe | undefined;
+  /**
+   * Done on a DENTURE (`src/denture/steps/orient/useDentureRim.ts`): its drawn rim is stored on the unit and replaces
+   * the detected one, instead of becoming an aligner's `DentalRim` and area policy. Undefined: aligners only.
+   */
+  dentureDone?: { active: () => boolean; done: (unit: PrintUnit, path: SurfacePath) => void };
 }) {
   /** Only while the mode is open: a stale pointer event must not edit a drawing nobody is looking at. */
   const drawing = () => session.current.mode === 'dental' && session.current.dentalStage === 'rim';
@@ -132,6 +137,7 @@ export function useRimDrawing({ session, scene, dispatch, send, setStatus, recip
     const profile = session.current.dentalProfile;
     const draft = unit?.rimDraft;
     if (!unit || !unitId || !profile || !draft) return;
+    if (dentureDone?.active()) return dentureDone.done(unit, draft);
 
     const outcome = withDentalMesh(unit.source, (engine, mesh) => drawnRim(engine as never, mesh, draft, profile));
 
@@ -154,7 +160,7 @@ export function useRimDrawing({ session, scene, dispatch, send, setStatus, recip
     setStatus(outcome.sideUncertain
       ? 'Rim saved, but which way the opening faces was unclear. Check the aligner is the right way up before going on.'
       : 'Rim saved.');
-  }, [dispatch, scene, send, session, setStatus]);
+  }, [dentureDone, dispatch, scene, send, session, setStatus]);
 
   return { onRimPoint, onRimPath, onRimSelect, onRimDeletePoint, onRimDone };
 }

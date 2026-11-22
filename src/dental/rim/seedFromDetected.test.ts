@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DentalRim } from '@mixo-geocore/host/dental/dental';
 import { pathProblems } from '../../core/surfacePath/validate';
 import { resamplePath } from '../../core/surfacePath/resample';
-import { SEED_MAX_ANCHORS, SEED_MIN_ANCHORS, SEED_MIN_GAP_MM, SEED_SPACING_MM, seedRimDraft } from './seedFromDetected';
+import { SEED_MAX_ANCHORS, SEED_MIN_ANCHORS, SEED_MIN_GAP_MM, SEED_SPACING_MM, seedDentureRimDraft, seedRimDraft } from './seedFromDetected';
 
 /** A detected rim as a circle of `count` points of radius `radius` mm in the y = 0 plane. */
 function ringRim(count: number, radius = 12.6): DentalRim {
@@ -213,5 +213,37 @@ describe('how far the drawn curve strays from the rim detection traced', () => {
   it('does not bulge off a hairpin', () => {
     const stray = strayOf(ringRim(80, 5));
     expect(stray.bulge, `bulge ${stray.bulge}, cut-in ${stray.cutIn}`).toBeLessThan(0.1);
+  });
+});
+
+/*
+ * Step 10 (docs/ORIENT-NODES.md section 10): a DENTURE rim seeds as detection found it. A lower denture's rim is a U,
+ * so an open line must stay open and end on its own last point - closing it would bridge the opening.
+ */
+describe('a detected denture rim as a drawing', () => {
+  const arc = (count: number, radius = 25, sweepDeg = 200): [number, number, number][] =>
+    Array.from({ length: count }, (_, k) => {
+      const a = ((k / (count - 1)) * sweepDeg * Math.PI) / 180;
+      return [Math.cos(a) * radius, 0, Math.sin(a) * radius];
+    });
+
+  it('an open U stays open, from its first point to its last', () => {
+    const points = arc(160);
+    const path = seedDentureRimDraft([{ points, closed: false }], [0, -1, 0]);
+    expect(path?.closed).toBe(false);
+    const f32 = (p: readonly number[]) => Array.from(Float32Array.from(p));
+    expect(path!.anchors[0]!.position).toEqual(f32(points[0]!));
+    expect(path!.anchors[path!.anchors.length - 1]!.position).toEqual(f32(points[points.length - 1]!));
+    expect(pathProblems(path!)).toEqual([]);
+    expect(path!.anchors.every((anchor) => anchor.normal[1] === -1)).toBe(true);
+  });
+
+  it('a ring stays a ring, and of several lines the longest is the seed', () => {
+    const ring = Array.from({ length: 120 }, (_, k): [number, number, number] => [Math.cos(k / 120 * Math.PI * 2) * 25, 0, Math.sin(k / 120 * Math.PI * 2) * 25]);
+    const stub = arc(10, 5, 30);
+    const path = seedDentureRimDraft([{ points: stub, closed: false }, { points: ring, closed: true }], [0, -1, 0]);
+    expect(path?.closed).toBe(true);
+    expect(path!.anchors.length).toBeGreaterThanOrEqual(SEED_MIN_ANCHORS);
+    expect(seedDentureRimDraft([], [0, -1, 0])).toBeUndefined();
   });
 });

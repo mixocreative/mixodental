@@ -6,7 +6,7 @@ import { normalizeDentureOptions, type DentureOptions } from '../settings/dentur
  * What a denture unit stores beside the shared unit fields (src/state/project.ts `PrintUnit.denture`): the
  * accepted denture policy (profile, lattice, the per-tip model-landing allow list) and its denture settings. Its tips live in the shared
  * `placement`, its generation frame in the shared `supports.data.transform`. Plain JSON, so it saves and undoes
- * like every other unit field.
+ * like every other unit field. The drawn rim is NOT here (`drawnRim.ts`): Step 1's Next writes this state afresh.
  */
 
 export interface DentureState {

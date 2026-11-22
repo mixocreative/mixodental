@@ -33,8 +33,8 @@ export function purposeOfUnit(unit: Pick<PrintUnit, 'dental' | 'denture'>, chose
  * Whether `unit` carries work made with a dental type - what a type change would have to remove (with its supports,
  * `flow.ts` `exitCommands`). Generic supports on a plain model are not typed work and are left alone.
  */
-export const holdsTypedWork = (unit: Pick<PrintUnit, 'dental' | 'denture'>): boolean =>
-  unit.denture !== undefined || unit.dental !== undefined;
+export const holdsTypedWork = (unit: Pick<PrintUnit, 'dental' | 'denture' | 'dentureRim'>): boolean =>
+  unit.denture !== undefined || unit.dental !== undefined || unit.dentureRim !== undefined;
 
 /**
  * The type a row opens with: ITS OWN, never the last row's. The session's profile used to come first, and it is kept

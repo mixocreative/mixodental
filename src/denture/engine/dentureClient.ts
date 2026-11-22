@@ -6,8 +6,9 @@ import type { RerouteResult } from '@mixo-geocore/host/supports/editSupport';
 import type { JobLabel } from '@mixo-geocore/host/workers/jobActivity';
 import { REPLACED, WorkerTask, type WorkerLike } from '@mixo-geocore/host/workers/WorkerTask';
 import type { ErrorContext } from '@mixo-geocore/editing/errors';
-import type { DentureJob, DentureMesh, DentureParts } from './dentureCore';
-import type { DentureLandingJob, DenturePlaceJob, DentureResult, DentureTask } from './dentureProtocol';
+import type { DentureJob, DentureMesh, DentureParts, DentureRimUsed } from './dentureCore';
+import type { DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
+import type { DentureLandingJob, DenturePlaceJob, DentureResult, DentureTask, DetectedDentureRim } from './dentureProtocol';
 import { KeyedQueue } from './keyedQueue';
 import type { GenerateRules } from '@mixo-geocore/host/supports/generateRules';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
@@ -31,6 +32,7 @@ const JOB_KIND: Record<DentureTask['kind'], { cancellable: boolean; context: Err
   place: { cancellable: true, context: 'place' },
   build: { cancellable: true, context: 'build' },
   'check-landing': { cancellable: true, context: 'build' },
+  'detected-rim': { cancellable: true, context: 'place' },
   'classify-spots': { cancellable: true, context: 'check' },
   export: { cancellable: true, context: 'export' },
 };
@@ -79,14 +81,14 @@ export class DentureClient {
   }
 
   /** Step 1: the upright frame and the print-angle search (progress: tilts done / total). */
-  orient(unitId: string, mesh: TriangleMesh, profileId: string, scan: TiltScanSettings, label: JobLabel, onProgress?: (fraction: number) => void): Promise<{ orientation: DentureOrientation; scan: TiltScan } | undefined> {
-    return this.run(`orient:${unitId}`, { kind: 'orient', mesh: copyOf(mesh), profileId, scan }, label, onProgress)
+  orient(unitId: string, mesh: TriangleMesh, profileId: string, scan: TiltScanSettings, label: JobLabel, onProgress?: (fraction: number) => void, drawnRim?: DrawnDentureRim): Promise<{ orientation: DentureOrientation; scan: TiltScan } | undefined> {
+    return this.run(`orient:${unitId}`, { kind: 'orient', mesh: copyOf(mesh), profileId, scan, ...(drawnRim ? { drawnRim } : {}) }, label, onProgress)
       .then((result) => (result?.kind === 'oriented' ? { orientation: result.orientation, scan: result.scan } : undefined));
   }
 
   /** Opens the live-tilt handle of the unit's model (per model once); false when the engine cannot orient it. */
-  liveOpen(unitId: string, mesh: TriangleMesh, profileId: string, scan: TiltScanSettings): Promise<boolean> {
-    return this.run(`live-open:${unitId}`, { kind: 'live-open', key: unitId, mesh: copyOf(mesh), profileId, scan }, undefined)
+  liveOpen(unitId: string, mesh: TriangleMesh, profileId: string, scan: TiltScanSettings, drawnRim?: DrawnDentureRim): Promise<boolean> {
+    return this.run(`live-open:${unitId}`, { kind: 'live-open', key: unitId, mesh: copyOf(mesh), profileId, scan, ...(drawnRim ? { drawnRim } : {}) }, undefined)
       .then((result) => result?.kind === 'live-opened' && result.ok);
   }
 
@@ -102,9 +104,9 @@ export class DentureClient {
   }
 
   /** The accepted pose's automatic tips (unit-local) and the file's parts. */
-  place(unitId: string, job: DenturePlaceJob, label: JobLabel): Promise<{ points: SupportPoint[]; parts: DentureParts } | undefined> {
+  place(unitId: string, job: DenturePlaceJob, label: JobLabel): Promise<{ points: SupportPoint[]; parts: DentureParts; rim: DentureRimUsed } | undefined> {
     return this.run(`place:${unitId}`, { kind: 'place', job: { ...job, mesh: copyOf(job.mesh) } }, label)
-      .then((result) => (result?.kind === 'placed' ? { points: result.points, parts: result.parts } : undefined));
+      .then((result) => (result?.kind === 'placed' ? { points: result.points, parts: result.parts, rim: result.rim } : undefined));
   }
 
   /** One support build of the unit (preview or export); a newer build of the same unit and mode replaces a queued one. */
@@ -120,9 +122,15 @@ export class DentureClient {
   }
 
   /** Which of the support check's spots (unit-local) the denture rules leave unsupported on purpose, and why (null: a real problem). */
-  classifySpots(unitId: string, mesh: TriangleMesh, profileId: string, points: Vector[], rules: GenerateRules, label: JobLabel): Promise<(RuleReason | null)[] | undefined> {
-    return this.run(`classify:${unitId}`, { kind: 'classify-spots', mesh: copyOf(mesh), profileId, points, rules }, label)
+  classifySpots(unitId: string, mesh: TriangleMesh, profileId: string, points: Vector[], rules: GenerateRules, label: JobLabel, drawnRim?: DrawnDentureRim): Promise<(RuleReason | null)[] | undefined> {
+    return this.run(`classify:${unitId}`, { kind: 'classify-spots', mesh: copyOf(mesh), profileId, points, rules, ...(drawnRim ? { drawnRim } : {}) }, label)
       .then((result) => (result?.kind === 'spot-reasons' ? result.reasons : undefined));
+  }
+
+  /** The model's DETECTED rim (the seed of Redraw the rim), or undefined when detection found none. */
+  detectedRim(unitId: string, mesh: TriangleMesh, profileId: string, label: JobLabel): Promise<DetectedDentureRim | undefined> {
+    return this.run(`detected-rim:${unitId}`, { kind: 'detected-rim', mesh: copyOf(mesh), profileId }, label)
+      .then((result) => (result?.kind === 'detected-rim' ? result.rim : undefined));
   }
 
   private exports = 0;

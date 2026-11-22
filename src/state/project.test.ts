@@ -437,6 +437,18 @@ describe('stamping a tool revision as work is accepted', () => {
    * ever; and `onRimDone` batches `dental/set` with `rim/clear`, so the number was written and
    * deleted in the same step anyway.
    */
+  // Step 10 (docs/ORIENT-NODES.md section 10): a denture's drawn rim is a unit field, set and cleared as one undo
+  // step, saved with the project, and checked on the way back in - it reaches the engine, so a bad one stops the load.
+  it('a drawn denture rim is set, cleared, saved and checked', () => {
+    const rim = { path: { anchors: [anchor, anchor], closed: false }, points: [[0, 0, 0], [1, 0, 0], [2, 0, 0]] as [number, number, number][] };
+    const drawn = reduceScene(added(), { type: 'dentureRim/set', unitId: 'unit-a', rim });
+    expect(drawn.units[0]!.dentureRim).toEqual(rim);
+    expect(drawn.units[0]!.dentureRim).not.toBe(rim);
+    expect(deserializeScene(serializeScene(drawn)).units[0]!.dentureRim).toEqual(rim);
+    expect(reduceScene(drawn, { type: 'dentureRim/set', unitId: 'unit-a', rim: undefined }).units[0]!).not.toHaveProperty('dentureRim');
+    expect(() => reduceScene(added(), { type: 'dentureRim/set', unitId: 'unit-a', rim: { ...rim, points: [[0, 0, 0], [1, 0, 0], [2, 0, Number.NaN]] } })).toThrow(/finite/);
+  });
+
   it('records nothing while a rim is being drawn, closed or not', () => {
     const open = reduceScene(added(), { type: 'rim/set', unitId: 'unit-a', path: { anchors: [anchor], closed: false } });
     expect(open.units[0]!).not.toHaveProperty('revisions');

@@ -23,6 +23,7 @@ import { dialFollowsPose } from './dialSync';
 import { scanOutcome, type ScanSettled } from './scanOutcome';
 import { stepPanelInset } from '../../../dental/stepPanelInset';
 import { isAbort } from '../../../components/appShared';
+import { engineDrawnRim } from '../../state/dentureRim';
 
 /*
  * Step 1 of the denture job (Round D): stand the dropped denture upright and search its print angle in the
@@ -111,7 +112,7 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     void client().orient(unit.id, unit.source, profile, scanSettings, { key: 'Orienting {name}', vars: { name: unit.name } }, (fraction) => {
       const current = tiltRef.current;
       if (!stale() && current?.status === 'scanning') setTilt({ ...current, done: Math.round(fraction * total) });
-    }).then((result): ScanSettled => ({ result }), (error: unknown): ScanSettled => ({ error })).then((settled) => {
+    }, engineDrawnRim(unit)).then((result): ScanSettled => ({ result }), (error: unknown): ScanSettled => ({ error })).then((settled) => {
       if (stale()) return;
       // Every ending leaves "scanning" (scanOutcome.ts): a crash, timeout or cancel never keeps Next waiting.
       const outcome = scanOutcome(unit.id, settled);
@@ -133,7 +134,7 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
         if (paths.kind === 'paths') setLive({ unitId: unit.id, tiltDeg, paths });
       });
       throttle.current = { unitId: unit.id, throttle: handle };
-      void client().liveOpen(unit.id, unit.source, profile, scanSettings).then((ok) => {
+      void client().liveOpen(unit.id, unit.source, profile, scanSettings, engineDrawnRim(unit)).then((ok) => {
         if (ok && throttle.current?.throttle === handle) showTips(tiltRef.current);
       }, () => undefined);
     });
@@ -179,7 +180,8 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     const policy = defaultDenturePolicy(profile, settings.trussEnabled);
     const rules = dentureRulesOf(unit);
     setStatus('Placing the denture support tips…');
-    void client().place(unit.id, { mesh: unit.source, policy, frame, rules, hand: { manual: unit.manual, deleted: unit.deleted, zones: unit.zones, contactSettings: unit.contactSettings } },
+    const drawnRim = engineDrawnRim(unit);
+    void client().place(unit.id, { mesh: unit.source, policy, frame, rules, hand: { manual: unit.manual, deleted: unit.deleted, zones: unit.zones, contactSettings: unit.contactSettings }, ...(drawnRim ? { drawnRim } : {}) },
       { key: 'Placing support tips on {name}', vars: { name: unit.name } }).then((placed) => {
       if (seq.current !== token || unitOf(unit.id) !== unit || sessionRef.current.dentalStage !== 'aligner') return;
       if (!placed) return setStatus('The denture support tips could not be placed. Turn the denture, then press Next again.');
@@ -188,6 +190,9 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
       send({ type: 'acceptDentalOrientation' });
       // Step 2's panel docks on the right: the denture is framed in the area left of it.
       requestView('fit', stepPanelInset({ mode: 'dental', dentalStage: 'review' }));
+      // The operator replaced the rim; if the model could not carry the drawing, the tips stand on the DETECTED rim
+      // instead, and that is said out loud - silence would read as "your rim was used".
+      if (placed.rim.problem) setStatus('Your drawn rim could not be laid on this model, so the detected rim was used. Go back to Step 1 and redraw the rim.');
     }, (error: unknown) => {
       if (seq.current !== token) return;
       setStatus(isAbort(error) ? 'Placing the denture support tips was cancelled. Press Next again.' : 'The denture support tips could not be placed. Turn the denture, then press Next again.');

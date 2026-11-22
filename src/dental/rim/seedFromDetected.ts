@@ -83,11 +83,13 @@ const at = (points: Float32Array, index: number): Vector =>
 const gap = (a: Vector, b: Vector): number => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
 /** The rim's heading at `index`, as a unit vector across `HEADING_SPAN_MM` of curve either side. */
-function headingAt(points: Float32Array, count: number, index: number): Vector | undefined {
+function headingAt(points: Float32Array, count: number, index: number, closed = true): Vector | undefined {
   const step = (from: number, direction: 1 | -1): number => {
     let walked = 0;
     let cursor = from;
     while (walked < HEADING_SPAN_MM / 2) {
+      // An open line stops at its ends instead of wrapping round to the other one.
+      if (!closed && (cursor + direction < 0 || cursor + direction >= count)) break;
       const next = (cursor + direction + count) % count;
       walked += gap(at(points, cursor), at(points, next));
       cursor = next;
@@ -106,18 +108,19 @@ const degreesBetween = (a: Vector, b: Vector): number =>
   (Math.acos(Math.min(1, Math.max(-1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]))) * 180) / Math.PI;
 
 /** One pass of the walk at the given thresholds; `undefined` when there is not enough curve. */
-function walkLoop(rim: DentalRim, spacingMm: number, turnDeg: number): SurfaceAnchor[] | undefined {
+function walkLoop(rim: Pick<DentalRim, 'points' | 'openingDirection'>, spacingMm: number, turnDeg: number, closed = true): SurfaceAnchor[] | undefined {
   const count = Math.floor(rim.points.length / 3);
-  if (count < SEED_MIN_ANCHORS) return undefined;
+  const least = closed ? SEED_MIN_ANCHORS : 2;
+  if (count < least) return undefined;
   const normal = rim.openingDirection;
   const kept: SurfaceAnchor[] = [{ position: at(rim.points, 0), normal }];
-  let heading = headingAt(rim.points, count, 0);
+  let heading = headingAt(rim.points, count, 0, closed);
   let since = 0;
   for (let index = 1; index < count; index += 1) {
     since += gap(at(rim.points, index - 1), at(rim.points, index));
     // Nothing is ever placed inside the grab reach of the last handle, whatever the curve is doing.
     if (since < SEED_MIN_GAP_MM) continue;
-    const here = headingAt(rim.points, count, index);
+    const here = headingAt(rim.points, count, index, closed);
     const turned = heading && here ? degreesBetween(heading, here) : 0;
     if (since < spacingMm && turned < turnDeg) continue;
     kept.push({ position: at(rim.points, index), normal });
@@ -129,8 +132,17 @@ function walkLoop(rim: DentalRim, spacingMm: number, turnDeg: number): SurfaceAn
    * dropped: two anchors a hair apart are one handle the operator cannot separate, and `pathProblems`
    * would rightly complain about the zero-length segment between them.
    */
-  if (kept.length > SEED_MIN_ANCHORS && gap(kept[kept.length - 1]!.position, kept[0]!.position) < SEED_MIN_GAP_MM) kept.pop();
-  return kept.length < SEED_MIN_ANCHORS ? undefined : kept;
+  if (closed && kept.length > SEED_MIN_ANCHORS && gap(kept[kept.length - 1]!.position, kept[0]!.position) < SEED_MIN_GAP_MM) kept.pop();
+  /*
+   * An OPEN line ends where the rim ends: its last point is a handle whatever the spacing, or the drawing would
+   * stop short of the rim's end and the strip there would go with it.
+   */
+  if (!closed && count > 1) {
+    const end = at(rim.points, count - 1);
+    if (gap(kept[kept.length - 1]!.position, end) >= SEED_MIN_GAP_MM / 2) kept.push({ position: end, normal });
+    else kept[kept.length - 1] = { position: end, normal };
+  }
+  return kept.length < least ? undefined : kept;
 }
 
 /**
@@ -146,13 +158,26 @@ function walkLoop(rim: DentalRim, spacingMm: number, turnDeg: number): SurfaceAn
  * evenly, which takes them from the corners that earned them and leaves the straight runs alone -
  * the opposite of the rule.
  */
-export function seedRimDraft(rim: DentalRim, spacingMm = SEED_SPACING_MM, turnDeg = SEED_TURN_DEG): SurfacePath | undefined {
-  let anchors = walkLoop(rim, spacingMm, turnDeg);
+export function seedRimDraft(rim: Pick<DentalRim, 'points' | 'openingDirection'>, spacingMm = SEED_SPACING_MM, turnDeg = SEED_TURN_DEG, closed = true): SurfacePath | undefined {
+  let anchors = walkLoop(rim, spacingMm, turnDeg, closed);
   for (let relax = 0; anchors && anchors.length > SEED_MAX_ANCHORS && relax < 8; relax += 1) {
     spacingMm *= 1.5;
     turnDeg *= 1.5;
-    anchors = walkLoop(rim, spacingMm, turnDeg);
+    anchors = walkLoop(rim, spacingMm, turnDeg, closed);
   }
   if (!anchors) return undefined;
-  return { anchors: anchors.slice(0, SEED_MAX_ANCHORS), closed: true };
+  return { anchors: anchors.slice(0, SEED_MAX_ANCHORS), closed };
+}
+
+/**
+ * A detected DENTURE rim as a drawing: its longest line, open or closed as detection found it, every handle given
+ * the rim plane's normal (`normal`, toward the tissue side) - the ray that puts resampled points back on the
+ * surface, as the opening direction is for an aligner. A rim of several lines seeds only the longest; the drawing
+ * then REPLACES all of them, and the command's hint says the drawn rim is what the supports follow.
+ */
+export function seedDentureRimDraft(lines: readonly { points: readonly Vector[]; closed: boolean }[], normal: Vector): SurfacePath | undefined {
+  const length = (points: readonly Vector[]) => points.reduce((sum, p, k) => (k === 0 ? 0 : sum + gap(points[k - 1]!, p)), 0);
+  const longest = [...lines].sort((a, b) => length(b.points) - length(a.points))[0];
+  if (!longest) return undefined;
+  return seedRimDraft({ points: Float32Array.from(longest.points.flat()), openingDirection: normal }, SEED_SPACING_MM, SEED_TURN_DEG, longest.closed);
 }

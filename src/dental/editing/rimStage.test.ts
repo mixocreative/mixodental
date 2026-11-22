@@ -110,8 +110,14 @@ describe('rim define mode: the way back in', () => {
     expect(resolve('dental.rim.enter', step1()).enabled).toBe(true);
     expect(resolve('dental.rim.enter', step1({ dentalProposed: true })).visible).toBe(true);
     expect(resolve('dental.rim.enter', step1({ dentalProposed: true })).enabled).toBe(true);
-    // Dentures do not have this mode at all.
-    expect(resolve('dental.rim.enter', step1({ dentalKind: 'denture' })).visible).toBe(false);
+    // Dentures have it since step 10 (owner 2026-11-23), once the print angles are scanned: the seed is that scan's rim.
+    expect(resolve('dental.rim.enter', step1({ dentalKind: 'denture' })).visible).toBe(true);
+    expect(resolve('dental.rim.enter', step1({ dentalKind: 'denture' })).enabled).toBe(false);
+    expect(resolve('dental.rim.enter', step1({ dentalKind: 'denture', dentalProposed: true, dentalTiltBusy: true })).enabled).toBe(false);
+    const denture = resolve('dental.rim.enter', step1({ dentalKind: 'denture', dentalProposed: true }));
+    expect(denture.enabled).toBe(true);
+    expect(denture.label).toBe('Redraw the rim');
+    expect(String(denture.hint)).toMatch(/instead of the detected/);
     // Nor is it offered from any other step.
     expect(resolve('dental.rim.enter', step1({ dentalStage: 'area' })).visible).toBe(false);
     expect(resolve('dental.rim.enter', step1({ dentalStage: 'rim' })).visible).toBe(false);

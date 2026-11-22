@@ -5,6 +5,7 @@ import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { transformedMinY } from '@mixo-geocore/host/state/transform';
+import { reviewDenture } from '@mixo-geocore/host/dental/dentureReview';
 import { nodeEngine, parseStl } from '../../../scripts/node-engine';
 import { dentureSupportSettings } from '../settings/dentureSupportSettings';
 import { buildDenture, checkModelLanding, liftedFrame, orientAndScan, placeDenture, scanSettingsOf, withUnitIds, type DentureJob } from './dentureCore';
@@ -83,5 +84,29 @@ describe.skipIf(!SMALLEST)('denture pipeline (local real scan)', () => {
       const allowed = buildDenture({ ...job, policy: { ...job.policy, modelLandingAllow: [point.id] } });
       expect(allowed.modelLanded?.some((entry) => entry.id === point.id)).toBe(true);
     }
+  });
+
+  /*
+   * Step 10 (docs/ORIENT-NODES.md section 10; owner 2026-11-23): the job's drawn rim REPLACES the detected one in
+   * placement, a drawing the model cannot carry says so, and a job WITHOUT one runs on the detected rim again - the
+   * engine holds one slot, so a job that skipped setting it would inherit the last unit's drawing.
+   */
+  it('places on the drawn rim, says when it cannot, and never leaks it into the next job', () => {
+    const bytes = readFileSync(SMALLEST!);
+    const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+    nodeEngine.center_positions_in_place(mesh.positions);
+    const settings = dentureSupportSettings('reference-denture');
+    const { scan } = orientAndScan(mesh, 'reference-denture', scanSettingsOf(settings, undefined));
+    if (scan.kind !== 'scan') throw new Error('scan failed');
+    const frame = liftedFrame(mesh, scan.rows[0]!.rotation as Vector, settings.liftHeight, [0, 0]);
+    const job: DentureJob = { mesh, policy: defaultDenturePolicy('reference-denture', settings.trussEnabled), frame, plateY: 0, settings, rules: {},
+      hand: { manual: [], deleted: [], zones: [], contactSettings: {} }, labelText: 'D', mode: 'preview' };
+    expect(placeDenture(job).rim).toEqual({ source: 'detected' });
+    const line = reviewDenture(mesh, 'reference-denture', 0)!.rimLoops!.lines.sort((a, b) => b.points.length - a.points.length)[0]!;
+    expect(placeDenture({ ...job, drawnRim: { points: line.points, closed: line.closed } }).rim).toEqual({ source: 'drawn' });
+    const off = placeDenture({ ...job, drawnRim: { points: [[999, 0, 0], [1000, 0, 0]], closed: false } }).rim;
+    expect(off.source).toBe('detected');
+    expect(off.problem).toMatch(/point 1/);
+    expect(placeDenture(job).rim).toEqual({ source: 'detected' });
   });
 });
