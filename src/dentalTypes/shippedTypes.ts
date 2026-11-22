@@ -36,7 +36,6 @@ export interface KnownProfile {
 
 /** Why v1 refuses whole groups of types - each named where the next step will lift it. */
 export const NOT_YET = {
-  aligner: 'aligner types do not load yet: the app\'s aligner card lookup and its mesh worker know only the built-in aligner profiles (the next step changes the engine side)',
   graph: 'the app cannot run a type\'s own zone graph yet: the engine has one graph for everything until the graph is registered with its type',
   rules: (names: string[]) => `the app cannot apply a type's own rules yet (${names.join(', ')}): each unit's settings are its rules today, so these would be ignored`,
 } as const;
@@ -65,7 +64,6 @@ export function discoverTypes(files: Readonly<Record<string, string>>, deps: Typ
       continue;
     }
     if (type.category !== category || type.id !== id) { refuse(`the file says ${type.category} / ${type.id}, but it sits at ${category} / ${id}`); continue; }
-    if (type.category === 'aligner') { refuse(NOT_YET.aligner); continue; }
     if (type.zoneGraph !== null) { refuse(NOT_YET.graph); continue; }
     const pinned = Object.keys(type.rules);
     if (pinned.length > 0) { refuse(NOT_YET.rules(pinned)); continue; }

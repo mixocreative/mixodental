@@ -50,10 +50,15 @@ describe('discoverTypes - the types the app can offer', () => {
     expect(reasons({ '/types/denture/x.type.json': typeFileText({ ...denture('x'), badge: 'TOOLONG' }) })).toMatch(/badge is 1 to 5/);
   });
 
-  it('refuses what v1 cannot run - an aligner type, its own zone graph, pinned rules - saying why', () => {
+  it('loads an aligner type like a denture one', () => {
     const profile = { ...builtIn(PROFILE_FILES), id: 'al', name: { en: 'al', ja: 'al', 'zh-Hant': 'al' } };
-    const aligner: TypeFile = { typeFile: 1, category: 'aligner', id: 'al', basedOn: 'reference-aligner', profile, rules: {}, zoneGraph: null, validation: null };
-    expect(reasons(at(aligner))).toBe(NOT_YET.aligner);
+    const aligner: TypeFile = { typeFile: 1, category: 'aligner', id: 'al', basedOn: 'reference-aligner', profile, rules: {}, zoneGraph: null, validation: null, badge: 'AL' };
+    const found = discoverTypes(at(aligner), deps, known);
+    expect(found.refused).toEqual([]);
+    expect(found.loaded.map((t) => [t.category, t.id, t.badge])).toEqual([['aligner', 'al', 'AL']]);
+  });
+
+  it('refuses what v1 cannot run - its own zone graph, pinned rules - saying why', () => {
     expect(reasons(at(denture('g', { zoneGraph: defaultGraph() })))).toBe(NOT_YET.graph);
     expect(reasons(at(denture('r', { rules: { overhangAngleDeg: 55 } })))).toBe(NOT_YET.rules(['overhangAngleDeg']));
   });

@@ -30,7 +30,6 @@ every engine realm, so a committed type appears in the app's type picker with no
 id) and its badge. A file the app cannot use
 is listed on the items page ("N saved types could not load") with the reason - never dropped quietly, never
 replaced by Generic. Today it refuses, with that reason:
-- an **aligner** type (the aligner side of the app knows built-in aligners only - the next step);
 - a type with **its own zone graph** (one engine graph for everything until the graph is registered with
   its type) or that **pins rules** (each unit's settings are its rules in the app today);
 - an id or a name (in any language) another profile already has.

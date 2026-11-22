@@ -1080,8 +1080,10 @@ function drawTypeStrip() {
   }
   strip.append(fields, steps);
   if (kindNow === 'aligner') {
+    // An aligner run has no editable stages yet: say what an aligner type can change today, so the missing links read as
+    // a fact rather than a fault. (The app loads aligner types since 2026-11-23, docs/TYPE-PIPELINE.md section 8a.)
     strip.append(Object.assign(document.createElement('p'), { className: 'type-note',
-      textContent: 'An aligner type can be named, run and saved; the app does not load aligner types yet (docs/TYPE-PIPELINE.md, section 8a).' }));
+      textContent: 'An aligner type carries its own name and badge; its numbers are the built-in aligner\'s until the aligner stages become editable.' }));
   }
 }
 

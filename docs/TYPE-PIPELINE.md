@@ -407,15 +407,19 @@ edits a list.
 
 ### 8a. D1/A1 v1 - BUILT 2026-11-22 (planned with Fable, who agreed after two reviews)
 
-Checked in source before writing. **What v1 does:** denture type files in `types/denture/` reach the
-app's type picker, with their own name and badge, in every engine realm; anything that cannot load is
-listed with its reason.
+Checked in source before writing. **What v1 does:** denture and aligner type files in `types/<category>/`
+reach the app's type picker, with their own name and badge, in every engine realm; anything that cannot
+load is listed with its reason. (Aligner types joined 2026-11-23: geocore's aligner card lookups
+`profileById` / `profilesWithoutOpening` read registered profiles too (`alignerCards()`), and the vendored
+mesh worker - which resolves an aligner job's profile by id in its own engine - waits on the app's
+`typesReady` through `setMeshWorkerReady`, set at the top level of `src/workers/meshWorker.entry.ts`. Planned
+with Fable, who agreed.)
 
 - **Pure module** `src/dentalTypes/shippedTypes.ts`: `discoverTypes(files, deps, opts)` -> loaded and
   refused. Refused, with the reason shown: a path that is not `types/<category>/<id>.type.json` or
-  disagrees with the file; anything `readTypeFile` refuses; an ALIGNER type (v1 - the aligner card
-  lookup `profileById` and the vendored mesh worker know built-in aligner profiles only; lifting this
-  needs a geocore host change); a type with its own zone graph (one engine graph slot until E3); a type
+  disagrees with the file; anything `readTypeFile` refuses; a type with its own zone graph (one engine
+  graph slot until E3 - an aligner type carrying the locked aligner graph too; the workbench never writes
+  one, so this costs nothing today); a type
   that pins rules (the app's rules are each unit's settings today - a pinned rule would be silently
   ignored); an id equal to a built-in's or another file's; a name equal to another profile's in any
   language. Tested with in-memory files.

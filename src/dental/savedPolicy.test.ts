@@ -80,5 +80,7 @@ describe('saved dental policy on load', () => {
     // An aligner type no profile file defines is refused, not guessed.
     dental.profileId = 'retired-aligner';
     expect(() => decodeProject(JSON.stringify(file))).toThrow('unknown aligner profile');
+    // ...and names the saved type file to restore, if it was one (docs/TYPE-PIPELINE.md 8a).
+    expect(() => decodeProject(JSON.stringify(file))).toThrow('restore types/aligner/retired-aligner.type.json');
   }, 60000);
 });

@@ -5,7 +5,7 @@ import { migrateOverhangAngle } from './overhangMigration';
 import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
 import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import { UNSAVED_TUNING, parseDentalTuning } from '@mixo-geocore/host/dental/tuning';
-import { DEFAULT_PROFILE_ID, profileData } from '@mixo-geocore/host/dental/alignerProfiles';
+import { DEFAULT_PROFILE_ID, allAlignerProfiles, profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import type { ModelTransform } from '@mixo-geocore/host/state/transform';
 import { normalizeDentureState, type DentureState } from '../denture/state/dentureState';
 import type { SurfaceAnchor, SurfacePath } from '../core/surfacePath/path';
@@ -742,6 +742,11 @@ function cloneDentalPolicy(policy: DentalPolicy, mesh: TriangleMesh): DentalPoli
   // profile file defines is refused (its thresholds and limits are unknown).
   const profileId = (policy as { profileId?: unknown }).profileId ?? DEFAULT_PROFILE_ID;
   if (typeof profileId !== 'string') throw new TypeError('dental aligner profile must be an id');
+  // A project made with a saved aligner type whose file is gone names the file to restore (docs/TYPE-PIPELINE.md 8a;
+  // the lasting fix is unit A2 - the project carries its own copy of the type).
+  if (!allAlignerProfiles().some((profile) => profile.id === profileId)) {
+    throw new TypeError(`unknown aligner profile '${profileId}': if it was a saved type, restore types/aligner/${profileId}.type.json and rebuild`);
+  }
   profileData(profileId);
   const base: Pick<DentalPolicy, 'profileId' | 'rim' | 'stamps'> = {
     profileId,

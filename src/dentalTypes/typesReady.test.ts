@@ -26,29 +26,23 @@ describe('every engine realm awaits typesReady', () => {
   const entries = [...factories.matchAll(/new URL\('([^']+)', import\.meta\.url\)/g)]
     // `../x` from src/workers and from src/dentalTypes is the same file (both sit directly under src/).
     .map(([, path]) => (path!.startsWith('../') ? path! : `../workers/${path!.replace(/^\.\//, '')}`));
-  /** Entries that may not, with the reason. */
-  const ALLOWED: Record<string, string> = {
-    // The vendored mesh worker boots the engine itself and runs only the aligner policy; aligner types are refused in
-    // v1 (NOT_YET.aligner, asserted below), so it needs no shipped type. Lifting that refusal needs a geocore change.
-    'meshWorker.entry.ts': 'vendored, aligner-only',
-  };
-
   it('finds the workers', () => {
     expect(entries.length).toBeGreaterThanOrEqual(5);
   });
 
+  // No exceptions: the vendored mesh worker waits on typesReady through setMeshWorkerReady (aligner jobs resolve their
+  // profile by id in its engine), so it is held to the same rule.
   it('main.tsx and every worker entry use typesReady, never geometryReady', () => {
     for (const file of ['../main.tsx', ...entries]) {
       const name = file.split('/').pop()!;
-      if (name in ALLOWED) continue;
       const code = read(file);
       expect(code, name).not.toMatch(/\bgeometryReady\b/);
       expect(code, name).toMatch(/\btypesReady\b/);
     }
   });
 
-  it('the allowed exception still holds: aligner types are refused', () => {
-    expect(NOT_YET.aligner).toMatch(/aligner types do not load yet/);
+  it('the mesh worker sets its wait at the top level, before any job can arrive', () => {
+    expect(read('../workers/meshWorker.entry.ts')).toMatch(/^setMeshWorkerReady\(typesReady\);$/m);
   });
 });
 

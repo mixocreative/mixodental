@@ -15,7 +15,7 @@ import { geometryReady, type GeometryEngine } from '@mixo-geocore/host/workers/g
 import { HOST_GEOMETRY_VERSION } from '@mixo-geocore/host/geometryVersion.js';
 import { allAlignerProfiles, parseAlignerProfile } from '@mixo-geocore/host/dental/alignerProfiles';
 import { allDentureProfiles, parseDentureProfile } from '@mixo-geocore/host/dental/dentureProfiles';
-import { registerDentureProfile } from '@mixo-geocore/host/dental/registerProfile';
+import { registerAlignerProfile, registerDentureProfile } from '@mixo-geocore/host/dental/registerProfile';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { NOT_YET, discoverTypes, type DiscoveredTypes, type KnownProfile, type RefusedType } from './shippedTypes';
 import { profileText, type TypeFileDeps } from './typeFile';
@@ -52,7 +52,9 @@ export function registerTypes(files: Readonly<Record<string, string>>): Discover
   const refused: RefusedType[] = [...discovered.refused];
   const loaded = discovered.loaded.filter((type) => {
     try {
-      registerDentureProfile(profileText(type.profile));
+      const text = profileText(type.profile);
+      if (type.category === 'aligner') registerAlignerProfile(text);
+      else registerDentureProfile(text);
       if (type.badge) badges.set(type.id, type.badge);
       return true;
     } catch (error) {
