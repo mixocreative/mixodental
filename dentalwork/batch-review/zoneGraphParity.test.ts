@@ -1,7 +1,7 @@
 import '../../scripts/test-support/useNodeEngine';
 import { describe, expect, it } from 'vitest';
 import { setZoneGraph } from '@mixo-geocore/host/dental/zoneGraph';
-import { defaultGraph, setParam, validate } from './nodeGraph.mjs';
+import { alignerGraph, defaultGraph, setParam, validate } from './nodeGraph.mjs';
 
 /*
  * HOST AND ENGINE VALIDATE THE SAME GRAPHS - the parity check build step 3 of docs/ORIENT-NODES.md section 10 needs
@@ -42,6 +42,18 @@ function corpus(): [string, Graph][] {
   // A strip around the rim line (2 mm) used as a free output.
   const rimStrip = clone(d); rimStrip.outputs.allowed = 'RIMBAND';
   cases.push(['the rim strip as the allowed output', rimStrip]);
+  // The aligner's locked graph (step 4.4b): host `alignerGraph` against engine `dental/aligner_graph.rs`.
+  const a = (): Graph => alignerGraph() as unknown as Graph;
+  cases.push(['the aligner default graph', a()]);
+  const aParam = a(); (aParam.nodes[4]!.params as Record<string, unknown>).widthMm = 3;
+  cases.push(['an aligner node given a parameter', aParam]);
+  const aKind = a(); aKind.nodes[1]!.kind = 'rimLowPoints';
+  cases.push(['an aligner node of another kind', aKind]);
+  const aExtra = withNode(a(), { id: 'R1', kind: 'parallelCast', inputs: {}, params: {} } as unknown as Node);
+  cases.push(['an aligner graph with a node added', aExtra]);
+  const aRewired = a(); (aRewired.outputs as Record<string, string>).allowed = 'AREA';
+  cases.push(['an aligner output rewired', aRewired]);
+  cases.push(['a graph of an unknown kind', { ...a(), kind: 'crown' } as unknown as Graph]);
   return cases;
 }
 

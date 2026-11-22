@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS,
-  OLD_KINDS, addNode, bindOutput, defaultGraph, isDefault, removeNode, rewire, setParam, unreached, upgradeGraph, validate,
+  ALIGNER_KINDS, OLD_KINDS, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, setParam, unreached, upgradeGraph, validate,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -220,5 +220,30 @@ describe('a graph saved under the old rim names still loads', () => {
     const g = defaultGraph();
     expect(upgradeGraph(g)).toBe(g);
     expect(OLD_KINDS).toEqual({ rimCurve: 'rim' });
+  });
+});
+
+/* The aligner's graph (step 4.4b): locked, mirrored from the engine's dental/aligner_graph.rs. */
+describe('the aligner graph is locked', () => {
+  it('accepts only its default, and every node says what it is', () => {
+    expect(validate(alignerGraph()).ok).toBe(true);
+    for (const node of alignerGraph().nodes) expect(ALIGNER_KINDS[node.kind as keyof typeof ALIGNER_KINDS]?.says).toBeTruthy();
+  });
+
+  it('refuses each kind of edit, naming the node or output', () => {
+    const edit = (change: (g: ReturnType<typeof alignerGraph>) => void) => { const g = alignerGraph(); change(g); return validate(g).problems.join(' | '); };
+    expect(edit((g) => { g.nodes[1]!.kind = 'rimLowPoints'; })).toMatch(/RIM: must be a rimLoopSharp/);
+    expect(edit((g) => { (g.nodes[4]!.params as Record<string, unknown>).widthMm = 3; })).toMatch(/AREA: takes no parameters/);
+    expect(edit((g) => { (g.nodes[3]!.inputs as Record<string, string>).rim = 'TRIM'; })).toMatch(/ALLOWED: its inputs must stay/);
+    expect(edit((g) => { g.nodes.splice(2, 1); })).toMatch(/VIS: missing/);
+    expect(edit((g) => { g.nodes.push({ id: 'R1', kind: 'parallelCast', params: {}, inputs: {} }); })).toMatch(/R1: a node cannot be added/);
+    expect(edit((g) => { g.outputs.allowed = 'AREA'; })).toMatch(/output "allowed" must stay wired to ALLOWED/);
+    expect(edit((g) => { (g.outputs as Record<string, string>).no_support = 'TRIM'; })).toMatch(/output "no_support" is not an aligner output/);
+  });
+
+  it('a graph with no kind is still a denture graph, and an unknown kind is refused', () => {
+    expect(validate(defaultGraph()).ok).toBe(true);
+    expect(validate({ ...defaultGraph(), kind: 'denture' }).ok).toBe(true);
+    expect(validate({ ...alignerGraph(), kind: 'crown' }).problems[0]).toMatch(/"crown"/);
   });
 });

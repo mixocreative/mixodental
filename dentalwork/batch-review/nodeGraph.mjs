@@ -306,6 +306,11 @@ const accepts = (want, got) => want.split('|').includes(got);
  * nothing is malformed; they must be visible instead.
  */
 export function validate(graph) {
+  // A graph says its kind (step 4.4); none means denture, as every graph saved before the aligner had one.
+  if (graph?.kind === 'aligner') return validateAligner(graph);
+  if (graph?.kind !== undefined && graph.kind !== 'denture') {
+    return { problems: [`"kind" must be "denture" or "aligner", not "${graph.kind}"`], warnings: [], ok: false };
+  }
   const problems = [];
   const warnings = [];
   for (const node of graph.nodes) {
@@ -405,6 +410,63 @@ export function unreached(graph) {
   };
   for (const from of Object.values(graph.outputs)) walk(from);
   return graph.nodes.filter((n) => !seen.has(n.id)).map((n) => n.id);
+}
+
+/*
+ * THE ALIGNER'S GRAPH (build step 4.4b, docs/ORIENT-NODES.md section 10). Today's aligner chain as LOCKED nodes,
+ * mirrored from the engine (`dental/aligner_graph.rs`): declared so it can be shown and saved in the same shape as
+ * the denture's graph, refused on any edit, evaluated by nothing - the aligner still runs orient -> region ->
+ * footprint. A graph is an aligner's when it says `kind: 'aligner'`; no kind means denture, so every saved graph
+ * stays what it was. `zoneGraphParity.test.ts` holds this table and the engine's to the same verdicts.
+ */
+export const ALIGNER_KINDS = {
+  trimPlane: { label: 'Trim plane', out: 'frame', inputs: {},
+    says: 'The plane through the detected trim edges; it gives the direction the aligner opens toward.' },
+  rimLoopSharp: { label: 'Rim', out: 'rim', inputs: { frame: 'frame' },
+    says: 'The innermost sharp edge loop at the open end; if there is none, the last ring of the cap.' },
+  visibility: { label: 'Visibility', out: 'mask', inputs: { rim: 'rim' },
+    says: 'The faces seen from the open side, found from the rim.' },
+  allowedFaces: { label: 'Allowed area', out: 'mask', inputs: { rim: 'rim' },
+    says: 'The faces supports may stand on: inside the trim contours.' },
+  signedStrip: { label: 'Rim area', out: 'mask', inputs: { allowed: 'mask' },
+    says: 'The strip along the rim set by position, width and density in the aligner settings.' },
+  contacts: { label: 'Contacts', out: 'position', inputs: { area: 'mask' },
+    says: 'The support contacts placed on the rim area.' },
+};
+
+/** The aligner's graph, node for node - the only one this version accepts. */
+export function alignerGraph() {
+  const node = (id, kind, inputs = {}) => ({ id, kind, params: {}, inputs });
+  return {
+    kind: 'aligner',
+    nodes: [
+      node('TRIM', 'trimPlane'), node('RIM', 'rimLoopSharp', { frame: 'TRIM' }), node('VIS', 'visibility', { rim: 'RIM' }),
+      node('ALLOWED', 'allowedFaces', { rim: 'RIM' }), node('AREA', 'signedStrip', { allowed: 'ALLOWED' }),
+      node('CONTACTS', 'contacts', { area: 'AREA' }),
+    ],
+    outputs: { trim_frame: 'TRIM', rim: 'RIM', visibility: 'VIS', allowed: 'ALLOWED', rim_area: 'AREA', contacts: 'CONTACTS' },
+  };
+}
+
+const ALIGNER_LOCKED = 'the aligner graph is locked in this version - its nodes stand for today\'s aligner chain, which reads no graph';
+
+/** The aligner graph's problems: empty only for `alignerGraph()`. Same order and words as the engine's refusals. */
+function validateAligner(graph) {
+  const today = alignerGraph();
+  const problems = [];
+  for (const want of today.nodes) {
+    const node = byId(graph, want.id);
+    if (!node) { problems.push(`${want.id}: missing - ${ALIGNER_LOCKED}`); continue; }
+    if (node.kind !== want.kind) problems.push(`${want.id}: must be a ${want.kind}, not a ${node.kind} - ${ALIGNER_LOCKED}`);
+    else if (Object.keys(node.params ?? {}).length > 0) problems.push(`${want.id}: takes no parameters - the aligner's settings come from its profile and tuning; ${ALIGNER_LOCKED}`);
+    else if (JSON.stringify(node.inputs ?? {}) !== JSON.stringify(want.inputs)) problems.push(`${want.id}: its inputs must stay as they are - ${ALIGNER_LOCKED}`);
+  }
+  for (const node of graph.nodes) if (!byId(today, node.id)) problems.push(`${node.id}: a node cannot be added - ${ALIGNER_LOCKED}`);
+  for (const [name, from] of Object.entries(today.outputs)) {
+    if (graph.outputs?.[name] !== from) problems.push(`output "${name}" must stay wired to ${from} - ${ALIGNER_LOCKED}`);
+  }
+  for (const name of Object.keys(graph.outputs ?? {})) if (!(name in today.outputs)) problems.push(`output "${name}" is not an aligner output - ${ALIGNER_LOCKED}`);
+  return { problems, warnings: [], ok: problems.length === 0 };
 }
 
 /** True when `graph` is the default, node for node - the only graph that runs today. */
