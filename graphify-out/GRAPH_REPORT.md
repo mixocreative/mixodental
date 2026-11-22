@@ -1,17 +1,17 @@
 # Graph Report - mixodental  (2026-11-22)
 
 ## Corpus Check
-- 1080 files · ~1,418,680 words
+- 1080 files · ~1,419,226 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 55 file(s) not represented in the graph (top: .stl 26, (none) 8, .css 6)
 
 ## Summary
-- 10243 nodes · 25916 edges · 805 communities (267 shown, 538 thin omitted)
-- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 2581 edges (avg confidence: 0.92)
+- 10243 nodes · 25920 edges · 803 communities (265 shown, 538 thin omitted)
+- Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 2585 edges (avg confidence: 0.92)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `270a677d`
+- Built from commit: `bfe73101`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -758,7 +758,6 @@
 - EditAnswer
 - BinaryStlSession
 - 2026-10-25 — Dental contour contacts implementation plan
-- CLAUDE.md
 - 2026-10-20 — Resin Supports Core Implementation Plan
 - Plans and specs from the superpowers workflow
 - PickIndex
@@ -786,7 +785,6 @@
 - prepare-dental-reference.mjs
 - Latest completed step (the `/goal` sweep: every open mixoDental finding - 2026-11-12)
 - SupportProblemsHandle
-- 1. What the owner means
 - vite
 - phase_names
 - repair_strides
@@ -847,7 +845,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (805 total, 538 thin omitted)
+## Communities (803 total, 538 thin omitted)
 
 ### Community 0 - "built"
 Cohesion: 0.05
@@ -1426,8 +1424,8 @@ Cohesion: 0.15
 Nodes (13): 2026-11-07 — Resolution — review of `docs/design/2026-11-07-import-and-items-flow.md`, C1 — "No problem statement, goals, non-goals or success measure" · CONTEST IN PART · design, C2 — "The Alternatives Rule is not met for the Items row and upload-first" · ACCEPTED, recorded as a contest only because I first wanted to argue it · design, C3 — "Engine-implementation altitude in an app-flow plan" · CONTEST · zoom-out (self-flagged as weak), C4 — "`data-ui` per row may be implementation detail" · CONTEST REJECTED — accepted instead, Contested, F1 — `ledger` cannot draw what §3 specifies · PROPOSE FIX · **7 of 7 reviewers**, F2 — Export wrote the file and Exit destroyed the work · **FIXED IN CODE** · design critic (+5 more)
 
 ### Community 177 - "uiStylingDoc.test.ts"
-Cohesion: 0.25
-Nodes (3): SOURCES, STYLESHEETS, USED
+Cohesion: 0.15
+Nodes (7): code principle, graphify, two graphs, two jobs, one source of truth, path(), SOURCES, STYLESHEETS, USED
 
 ### Community 178 - "dump_nodes.py"
 Cohesion: 0.24
@@ -1554,8 +1552,8 @@ Cohesion: 0.06
 Nodes (25): ALLOWED, root, SKIP, TEXT, dirty, failed, file, head (+17 more)
 
 ### Community 241 - "Orient as nodes - the owner's idea of 2026-11-20, read, judged and planned"
-Cohesion: 0.20
-Nodes (9): Node, 0. What the owner is aiming for, in five lines, 4. How it fits what exists, 5. Build order, 6. Questions for the owner, 7. One vocabulary for Orient AND Zones - and the two frames, 8. Why the print angle looks finished before the zones - and the fix, Orient as nodes - the owner's idea of 2026-11-20, read, judged and planned (+1 more)
+Cohesion: 0.18
+Nodes (10): 0. What the owner is aiming for, in five lines, 1. What the owner means, 5. Build order, 6. Questions for the owner, 7. One vocabulary for Orient AND Zones - and the two frames, 8. Why the print angle looks finished before the zones - and the fix, a) to d), restated, In plain words (+2 more)
 
 ### Community 242 - "Part 2 — the recipe system (Fable's design)"
 Cohesion: 0.13
@@ -1754,8 +1752,8 @@ Cohesion: 0.11
 Nodes (36): 2. 🔴 `rimDraft` is written to the project file, unvalidated, and a code comment denies it, nodeHost(), migrateOverhangAngle(), OLD_SCATTER_ANGLE_DEFAULT, checkedMesh(), cloneDentalPolicy(), cloneDentalStamp(), cloneJsonValue() (+28 more)
 
 ### Community 700 - "10. Rim detection as shared nodes - one node set, two presets (owner, 2026-11-21; refined by Fable)"
-Cohesion: 0.33
-Nodes (6): 10. Rim detection as shared nodes - one node set, two presets (owner, 2026-11-21; refined by Fable), Build order - each step proven before the next, Handover to the Support zones tab - what the next tab reuses, Plane names - one name per plane, everywhere (code, docs, UI, three languages), The node set and the two presets, Today (geocore engine 70)
+Cohesion: 0.25
+Nodes (9): Node, 10. Rim detection as shared nodes - one node set, two presets (owner, 2026-11-21; refined by Fable), 4. How it fits what exists, Build order - each step proven before the next, Handover to the Support zones tab - what the next tab reuses, Plane names - one name per plane, everywhere (code, docs, UI, three languages), The node set and the two presets, Today (geocore engine 70) (+1 more)
 
 ### Community 701 - "Review Focus"
 Cohesion: 0.14
@@ -1804,10 +1802,6 @@ Nodes (7): 1. THE ZONE MODEL — three origins, two outcomes, and that is the bu
 ### Community 743 - "2026-10-25 — Dental contour contacts implementation plan"
 Cohesion: 0.29
 Nodes (7): 2026-10-25 — Dental contour contacts implementation plan, Handoff after every checkpoint, Task 0: establish exact contour-face incidence (completed checkpoint), Task 1: freeze current behavior and isolate detection (completed checkpoint), Task 2: classify central-opening state, Task 3: certify exterior-side strips, Task 5: operator flow and validation
-
-### Community 744 - "CLAUDE.md"
-Cohesion: 0.40
-Nodes (4): code principle, graphify, two graphs, two jobs, one source of truth, path()
 
 ### Community 745 - "2026-10-20 — Resin Supports Core Implementation Plan"
 Cohesion: 0.33
@@ -1872,10 +1866,6 @@ Nodes (3): copy, onDisk, original
 ### Community 770 - "Latest completed step (the `/goal` sweep: every open mixoDental finding - 2026-11-12)"
 Cohesion: 0.50
 Nodes (4): Latest completed step (the `/goal` sweep: every open mixoDental finding - 2026-11-12), The fourth repo: `mixo-app-style`, fixed at the source *(`fc11115`, pushed)*, The other two repos finished the same sweep, and neither is pushed, deg()
-
-### Community 772 - "1. What the owner means"
-Cohesion: 0.50
-Nodes (4): 1. What the owner means, a) to d), restated, In plain words, What is ambiguous
 
 ### Community 773 - "vite"
 Cohesion: 0.50
