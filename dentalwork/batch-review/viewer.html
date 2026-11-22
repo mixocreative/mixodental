@@ -874,6 +874,17 @@ rimCanvasHost.dataset.ui = 'rim-canvas';
 let rimHandle = null;
 /* Where nodes sit. Kept apart from the graph on purpose: layout is not meaning. */
 let zonePositions = null;
+/* THE ORIENT CANVAS (docs/ORIENT-NODES.md U6): Step 1 as an editable graph (`orientGraph.mjs`), drawn by the SAME
+   canvas component as the zones, on its own host and root (drawChain clears the stage body). Denture only in this
+   version; the default is today's Step 1, so an untouched canvas sends nothing. */
+let orientLib = null;
+let orientGraph = null;
+let orientPositions = null;
+let orientHandle = null;
+const orientCanvasHost = Object.assign(document.createElement('div'), { className: 'zone-canvas orient-canvas' });
+orientCanvasHost.dataset.ui = 'orient-canvas';
+/* What produced the review on screen: its summary's `orientGraph` ("default" = the standard Step 1). */
+let ranOrientGraph = 'default';
 
 /** One step's card: what it produced, and the settings it is known to own. */
 function chainCard(at, present, names) {
@@ -1218,7 +1229,71 @@ function drawChain(present, names) {
     rail.append(card);
   });
   body.append(rail);
-  if (stage.id === 'orient') drawRimCanvas(body, 'denture');
+  if (stage.id === 'orient') { drawOrientEditor(body); drawRimCanvas(body, 'denture'); }
+}
+
+/**
+ * Stage 1's Orient graph, editable (U6): which face goes to the plate and which way is up. The standard setup is
+ * today's denture Step 1; "Flat-base recipe" is the owner's new kind's (ruling 1, 2026-11-23): the largest flat area
+ * set on the plate. Every rule lives in `orientGraph.mjs`; this only draws it and keeps it.
+ */
+function drawOrientEditor(body) {
+  if (!orientLib || !editorLib) return;
+  const g = orientGraph;
+  const { problems } = orientLib.validate(g);
+  const save = (next) => {
+    orientGraph = next;
+    try { localStorage.setItem('review-orient-graph', JSON.stringify(next)); } catch { /* per-viewer only */ }
+    if (lastChain) drawChain(...lastChain);
+  };
+  const status = document.createElement('div');
+  status.className = orientLib.isDefault(g) ? 'zone-status default' : 'zone-status edited';
+  status.dataset.ui = 'orient-status';
+  const ran = ranOrientGraph === 'default' ? 'the standard Step 1' : `your Orient setup (${ranOrientGraph.slice(0, 8)})`;
+  status.textContent = (orientLib.isDefault(g)
+    ? `Orient graph: the standard Step 1 - nothing changed. The review on screen used ${ran}.`
+    : `Orient graph: changed - Apply and run again to use it. The review on screen used ${ran}.`);
+  const bar = document.createElement('div');
+  bar.className = 'zone-bar';
+  const summary = document.createElement('span');
+  summary.dataset.ui = 'orient-report';
+  summary.className = problems.length ? 'zone-summary bad' : 'zone-summary ok';
+  summary.textContent = problems.length === 0 ? 'All connections are complete.' : `${problems.length} to fix: ${problems[0]}`;
+  const pick = document.createElement('select');
+  pick.dataset.ui = 'orient-add-kind';
+  for (const [groupKey, group] of Object.entries(orientLib.NODE_GROUPS)) {
+    const optgroup = Object.assign(document.createElement('optgroup'), { label: group.title });
+    for (const kind of Object.keys(orientLib.KINDS).filter((k) => orientLib.KIND_GROUP[k] === groupKey)) {
+      optgroup.append(Object.assign(document.createElement('option'), { value: kind, textContent: orientLib.KIND_WORDS[kind].title, title: orientLib.KIND_WORDS[kind].says }));
+    }
+    pick.append(optgroup);
+  }
+  const add = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Add node', title: 'Adds the chosen node in the middle of the view.' });
+  add.dataset.ui = 'orient-add';
+  add.addEventListener('click', () => save(orientLib.addNode(g, pick.value)));
+  const flat = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Flat-base recipe', title: 'Largest flat area -> Set as bottom: the base goes on the plate. Made for a model with a flat base.' });
+  flat.dataset.ui = 'orient-flat-base';
+  flat.addEventListener('click', () => { orientPositions = editorLib.autoLayout(orientLib.flatBaseGraph(), []); save(orientLib.flatBaseGraph()); });
+  const reset = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Back to standard Step 1', title: 'The canvas goes back to today\'s Step 1.' });
+  reset.dataset.ui = 'orient-reset';
+  reset.disabled = orientLib.isDefault(g);
+  reset.addEventListener('click', () => { orientPositions = editorLib.autoLayout(orientLib.defaultGraph(), []); save(orientLib.defaultGraph()); });
+  const tools = Object.assign(document.createElement('span'), { className: 'zone-tools-row' });
+  tools.append(pick, add, flat, reset);
+  bar.append(summary, tools);
+  const props = {
+    lib: orientLib, graph: g, positions: orientPositions, liveParams: [], onGraph: save,
+    onPositions: (next) => {
+      orientPositions = next;
+      try { localStorage.setItem('review-orient-layout', JSON.stringify(next)); } catch { /* per-viewer only */ }
+      orientHandle?.update({ ...props, positions: next });
+    },
+  };
+  if (!orientPositions?.outputs) orientPositions = { ...editorLib.autoLayout(g, []), ...(orientPositions ?? {}) };
+  props.positions = orientPositions;
+  body.append(status, bar, orientCanvasHost);
+  if (orientHandle) orientHandle.update(props);
+  else orientHandle = editorLib.mountZoneEditor(orientCanvasHost, props);
 }
 
 /**
@@ -1518,6 +1593,15 @@ async function loadGraphLib() {
     zoneGraph = saved && Array.isArray(saved.nodes) ? graphLib.upgradeGraph(saved) : graphLib.defaultGraph();
   } catch {
     graphLib = null;
+  }
+  try {
+    orientLib = await import('./orientGraph.mjs');
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('review-orient-graph') || 'null'); } catch { saved = null; }
+    orientGraph = saved && Array.isArray(saved.nodes) ? saved : orientLib.defaultGraph();
+    try { orientPositions = JSON.parse(localStorage.getItem('review-orient-layout') || 'null'); } catch { orientPositions = null; }
+  } catch {
+    orientLib = null;
   }
   try {
     editorLib = await import('./node-editor/node-editor.js');
@@ -1853,6 +1937,7 @@ function openRun(summary, glbUrl, csvUrl) {
   // A folder that does not record it (older than engine 69, or a writer that dropped it) is UNKNOWN,
   // not "default": the same label on a good day and a bad day is no label at all (cia F7).
   ranZoneGraph = summary.zoneGraph ?? 'unknown';
+  ranOrientGraph = summary.orientGraph ?? 'default';
   urlOf = glbUrl;
   const needing = cases.filter((c) => c.needsLook);
   const built = cases.filter((c) => c.result === 'built').length;
@@ -2237,6 +2322,8 @@ try {
     // An edited zone graph is a reason to run on its own: refusing until a RULE was turned made the
     // node editor's own Apply do nothing for a graph-only edit - found by pressing it.
     const graphEdited = Boolean(graphLib && zoneGraph && !graphLib.isDefault(zoneGraph));
+    // The Orient canvas (U6): a denture's only, like the search - an aligner reads no Orient graph in this version.
+    const orientEdited = Boolean(kindNow === 'denture' && orientLib && orientGraph && !orientLib.isDefault(orientGraph));
     // The search edits are a DENTURE type's (the strip says an aligner type keeps the built-in aligner's numbers), and
     // they persist in localStorage - so a denture session's leftovers rode along with an aligner draft (Fable, 2026-11-23).
     const poseNow = kindNow === 'denture' ? poseEdits : {};
@@ -2244,7 +2331,7 @@ try {
     // A newly named type is a reason to run on its own: it is how a type that keeps the built-in's numbers but has
     // its own name and badge gets made (the New-type strip).
     const newType = typeName !== '' && ranTypeId !== typeName;
-    if (Object.keys(rules).length === 0 && !graphEdited && !poseEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the search (1 Orient), the zone graph (2 Zones) or a setting (3), then apply.'; return; }
+    if (Object.keys(rules).length === 0 && !graphEdited && !orientEdited && !poseEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the Orient graph or the search (1 Orient), the zone graph (2 Zones) or a setting (3), then apply.'; return; }
     // Only a denture run carries the search (poseNow above): a denture session's bad leftovers refused an aligner run
     // with "Fix the search first (1 Orient)", a stage the aligner strip does not link to (Fable, 2026-11-23).
     const poseProblem = kindNow === 'denture' ? searchProblem(searchNow()) : null;
@@ -2252,15 +2339,18 @@ try {
     if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) { status.textContent = 'The type id (the Type strip above the stages) is lower-case letters, digits, dots and dashes.'; return; }
     const graphProblems = graphEdited ? graphLib.validate(zoneGraph).problems : [];
     if (graphProblems.length) { status.textContent = `Fix the zone graph first (2 Zones): ${graphProblems[0]}`; return; }
+    const orientProblems = orientEdited ? orientLib.validate(orientGraph).problems : [];
+    if (orientProblems.length) { status.textContent = `Fix the Orient graph first (1 Orient): ${orientProblems[0]}`; return; }
     run.disabled = true;
-    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(poseEdited ? ['the edited search'] : []), ...(newType ? [`the new type ${typeName}`] : [])].join(', ');
+    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(orientEdited ? ['the edited Orient graph'] : []), ...(poseEdited ? ['the edited search'] : []), ...(newType ? [`the new type ${typeName}`] : [])].join(', ');
     status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
     try {
       const reply = await fetch('/rerun', { method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, name: typeFullName, badge: typeBadge, pose: poseNow,
           // The node editor's graph, only when it has been edited: the default is sent as nothing, so a
           // run with no edit is exactly the run it always was.
-          zoneGraph: graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null }) });
+          zoneGraph: graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null,
+          orientGraph: orientEdited ? orientGraph : null }) });
       const answer = await reply.json().catch(() => ({}));
       if (!reply.ok || !answer.ok) {
         // The reason is in the run's log; an exit code alone names nothing (cia F1; rerunReport.mjs).
@@ -2274,7 +2364,7 @@ try {
        */
       const fresh = await fetch(`/out/summary.json?t=${Date.now()}`).then((response) => response.json());
       // What may be claimed comes from the run's OWN summary, never the request (cia F2; rerunReport.mjs).
-      const outcome = rerunOutcome({ graphEdited, summaryGraph: fresh.zoneGraph, names });
+      const outcome = rerunOutcome({ graphEdited, summaryGraph: fresh.zoneGraph, names, orientEdited, summaryOrient: fresh.orientGraph });
       if (outcome.applied) appliedGraphText = graphEdited ? JSON.stringify(zoneGraph) : JSON.stringify(graphLib?.defaultGraph() ?? null);
       // The run on screen is now this type: the strip marks Apply done, and Save becomes the next step.
       ranTypeId = typeName;

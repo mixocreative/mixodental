@@ -59,6 +59,11 @@ export interface GraphLib {
   KIND_WORDS: Record<string, Words>;
   PARAM_WORDS: Record<string, ParamWords>;
   OUTPUT_WORDS: Record<string, Words>;
+  /* What each value type is called on a node's output ("gives faces"), and the output node's own words: the zone
+     and Orient libraries say different things, and a canvas that hard-coded the zones' told an Orient node it
+     "gives a rim line". */
+  TYPE_WORDS: Record<string, string>;
+  OUTPUT_NODE: Words;
   /* The groups and each kind's group: a coloured stripe per group, so kinds are found at a glance. */
   NODE_GROUPS: Record<string, { title: string; says: string; token: string }>;
   KIND_GROUP: Record<string, string>;
@@ -235,7 +240,7 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
       {idle && <div className="zn-note">Not connected to the output - not run, costs nothing.</div>}
       {spec.fixed && <div className="zn-note">Found in stage 1 (Orient); fixed here.</div>}
       <div className="zn-row zn-out-row">
-        <span className="zn-outtype">gives {spec.out === 'mask' ? 'faces' : spec.out === 'depthMap' ? 'a depth map' : spec.out === 'position' ? 'a point' : 'a rim line'}</span>
+        <span className="zn-outtype">gives {lib.TYPE_WORDS[spec.out] ?? spec.out}</span>
         <Handle type="source" position={Position.Right} id="out" className={`h-${spec.out}`} />
       </div>
     </div>
@@ -250,8 +255,8 @@ function OutputNode({ data }: NodeProps<Node<OutputData>>) {
   const { lib, filled } = data;
   return (
     <div className="zo">
-      <div className="zn-head"><b>Zone output</b></div>
-      <div className="zn-says">What the engine reads. Each socket below decides one thing about where tips may go.</div>
+      <div className="zn-head"><b>{lib.OUTPUT_NODE.title}</b></div>
+      <div className="zn-says">{lib.OUTPUT_NODE.says}</div>
       {Object.entries(lib.REQUIRED_OUTPUTS).map(([name, want]) => (
         <div className={`zn-row zn-socket zo-row${filled[name] ? '' : ' empty'}${lib.FIXED.outputs.includes(name) ? ' fixed' : ''}`} key={name} title={lib.OUTPUT_WORDS[name].says}>
           {lib.FIXED.outputs.includes(name)
