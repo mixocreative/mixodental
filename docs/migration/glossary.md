@@ -27,7 +27,7 @@ one; the add-on's Japanese **オーバーハングの縁を補強** is the label
 | Export | export | 匯出 | 書き出し (書き出) | zh 輸出, ja エクスポート |
 | Delete | delete (exactly the selected) | 刪除 | 削除 | |
 | Remove (supports) | remove (within Remove radius, or all supports) | 移除 | 削除 | |
-| Paint (surface) | paint | 塗刷 | 塗る (塗り, 塗装, 塗ります, 塗って) | en: model-surface marking, not support picking |
+| Paint (surface) | paint | 塗刷 | 塗る (塗り, 塗装, 塗ります, 塗って, 塗った) | en: model-surface marking, not support picking |
 | Erase (surface) | erase | 擦除 | 消す (消し, 消去) | en: model-surface marking, not support picking |
 | Undo | undo | 復原 | 元に戻す (元に戻) | |
 

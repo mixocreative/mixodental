@@ -121,7 +121,7 @@ import { useBatchDetect } from './items/useBatchDetect';
 import { useAutoGen } from './autoGen/useAutoGen';
 import { useRecipes } from './recipes/useRecipes';
 import { deckUsage } from './items/deckBudget';
-import { purposesOf } from './items/rowPurpose';
+import { holdsTypedWork, profileToOpen, purposeOfUnit, purposesOf } from './items/rowPurpose';
 import type { ToolId } from './state/tools';
 import type { ImportRefusal } from './items/rowState';
 import { hasGeometry, type HeldBuild } from './plate/releasedBuild';
@@ -492,25 +492,61 @@ export default function App() {
    * old answer's verdict - which is the state that told a denture to draw a rim in the first place.
    * `retryDetect` forgets the row so the queue takes it again, under the new answer.
    */
-  const setRowPurpose = useCallback((unitId: string, profile: string) => {
-    setUnitPurposes((current) => new Map(current).set(unitId, profile));
-    retryDetect(unitId);
-  }, [retryDetect]);
+  /*
+   * A TYPE CHANGE ON A WORKED ROW IS AN ACTION, ASKED FIRST (Fable's end-to-end audit, 2026-11-23). Supports built
+   * with one type stayed on the row after another type was picked, under the new name - with one type per category
+   * that could not happen; with saved types it did. The row names the type its work was BUILT with (rowPurpose
+   * `purposeOfUnit`), so changing it means removing that work, exactly as Exit does (`exitCommands`), as one undoable
+   * step - and that is said before it happens. Rows without dental work change at once, as before.
+   */
+  const [typeAsk, setTypeAsk] = useState<{ unitIds: string[]; profile: string; worked: number } | null>(null);
+  /** The rows a type-change toast's Undo gives back: their detection verdict is the new type's, so they detect again. */
+  const typeUndo = useRef<{ toastId: number; unitIds: string[] }>();
+  const applyPurpose = useCallback((unitIds: readonly string[], profile: string) => {
+    const changing = sceneRef.current.units.filter((unit) => unitIds.includes(unit.id) && holdsTypedWork(unit) && purposeOfUnit(unit, undefined) !== profile);
+    for (const unit of changing) {
+      autoGen.cancelIfRunning(unit.id);
+      if (unit.denture) denture.supports.leave(unit.id);
+    }
+    const commands = changing.flatMap((unit) => exitCommands(unit));
+    if (commands.length > 0) {
+      dispatch({ type: 'batch', commands });
+      // The deck has no Ctrl+Z (the keyboard handler stands down on a start screen), so the undo is OFFERED here - the
+      // confirmation's "Undo brings it back" must be a control the operator can press. Offered for exactly the rows the
+      // confirm asked about (`exitNeedsConfirm`): a row painted but not yet built lost work too (Fable, 2026-11-23).
+      const lost = changing.filter((unit) => exitNeedsConfirm(unit)).length;
+      if (lost > 0) {
+        // 'regenerate' is the toast kind that carries its own report: one history step, undone by `undo()`. The
+        // removeSupports wording ("manual edits are kept") is false here - exitCommands takes those too.
+        const action: UndoAction = { kind: 'regenerate', message: { key: 'Changed the type of 1 model and removed its work.', other: 'Changed the type of {n} models and removed their work.', vars: { n: lost } } };
+        setStatusMessage(undoToast(0, action).message);
+        offerUndo(action);
+        typeUndo.current = { toastId: toastSeq.current, unitIds: changing.map((unit) => unit.id) };
+      }
+    }
+    setUnitPurposes((current) => {
+      const next = new Map(current);
+      for (const unitId of unitIds) next.set(unitId, profile);
+      return next;
+    });
+    for (const unitId of unitIds) retryDetect(unitId);
+    setTypeAsk(null);
+  }, [autoGen.cancelIfRunning, denture.supports.leave, dispatch, offerUndo, retryDetect, sceneRef]);
+  const askOrApplyPurpose = useCallback((unitIds: string[], profile: string) => {
+    // Ask only when something the operator would miss goes - supports or hand edits (`exitNeedsConfirm`, as Exit asks).
+    // A policy straight from detection is still cleared, silently, so the row can take the new type.
+    const worked = sceneRef.current.units.filter((unit) => unitIds.includes(unit.id) && holdsTypedWork(unit) && purposeOfUnit(unit, undefined) !== profile && exitNeedsConfirm(unit)).length;
+    if (worked > 0) setTypeAsk({ unitIds, profile, worked });
+    else applyPurpose(unitIds, profile);
+  }, [applyPurpose, sceneRef]);
+  const setRowPurpose = useCallback((unitId: string, profile: string) => askOrApplyPurpose([unitId], profile), [askOrApplyPurpose]);
   /**
    * SET ALL: the same answer onto every row that is on the plate right now. It is what keeps a stage
    * case of thirty same-kind models to one press, and it is deliberately an ACTION rather than a
    * question - it says what it will do to the rows, instead of asking something about "the case"
    * that a mixed drop has no single answer to.
    */
-  const setAllPurposes = useCallback((profile: string) => {
-    const units = sceneRef.current.units;
-    setUnitPurposes((current) => {
-      const next = new Map(current);
-      for (const unit of units) next.set(unit.id, profile);
-      return next;
-    });
-    for (const unit of units) retryDetect(unit.id);
-  }, [retryDetect, sceneRef]);
+  const setAllPurposes = useCallback((profile: string) => askOrApplyPurpose(sceneRef.current.units.map((unit) => unit.id), profile), [askOrApplyPurpose, sceneRef]);
   /**
    * THE ROW PICTURES (plan §0b increment C), drawn one row at a time while the deck is on screen.
    * Same gate as the batch above and for the same reason: the dental flow shows no rows, so drawing
@@ -939,13 +975,20 @@ export default function App() {
     if (!current) return;
     if (current.action.kind !== 'clearSelection') {
       if (!undo()) setStatus('Nothing to undo here: leave the mode to undo earlier steps.');
+      else {
+        // The deck's status line still said "Removed..." after Undo had brought the work back.
+        if (startScreen === 'items') setStatus(START_HINT.items);
+        // The rows got their old work, and so their old type, back; the detector still held the new type's verdict.
+        if (typeUndo.current?.toastId === current.id) typeUndo.current.unitIds.forEach(retryDetect);
+      }
+      typeUndo.current = undefined;
       return;
     }
     // Supports deleted since are not selected again.
     const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.activeUnitId);
     const alive = new Set(unit ? contactsOf(unit).map((contact) => contact.id) : []);
     send({ type: 'restoreSelection', ids: current.action.ids.filter((id) => alive.has(id)) });
-  }, [contactsOf, send, setStatus, toast, undo]);
+  }, [contactsOf, retryDetect, send, setStatus, startScreen, toast, undo]);
   // The toast goes once its Undo would undo something else (a later edit, undo, leaving the mode).
   useEffect(() => {
     if (!toast) return;
@@ -1336,7 +1379,9 @@ export default function App() {
      * model opens at the start of its flow. Whether a rim that WAS detected may be redrawn is the
      * owner's call and is not decided here.
      */
-    const rimPressed = tool === 'rim' && batchDetected.get(unit.id)?.kind === 'no-rim' && !isDentureJob(live.dentalProfile);
+    // The row's OWN type decides, never the last row's (rowPurpose `profileToOpen`; Fable's audit, 2026-11-23).
+    const profile = profileToOpen(unit.id, resolvedPurposes, live.dentalProfile, DEFAULT_PROFILE_ID);
+    const rimPressed = tool === 'rim' && batchDetected.get(unit.id)?.kind === 'no-rim' && !isDentureJob(profile);
     /*
      * ONE PATH IN, WHATEVER THE SESSION WAS DOING. This used to fork on `mode !== 'dental'`, and the
      * dental half could only cope with a session parked at Step 1:
@@ -1365,7 +1410,6 @@ export default function App() {
      */
     autoGen.cancelIfRunning(unit.id);
     send({ type: 'exit' });
-    const profile = live.dentalProfile ?? unitPurposes.get(unit.id) ?? DEFAULT_PROFILE_ID;
     send({ type: 'startDental', profile, resume: true });
     /*
      * A MODEL THAT ALREADY HAS ITS SUPPORTS OPENS AT STEP 3, which is owner's ruling 2 and the only
@@ -1687,6 +1731,16 @@ export default function App() {
       yes-key is generic makes the operator reconstruct what they are agreeing to from the sentence
       above it, and this one is agreeing to throw work away.
     */}
+    {typeAsk ? <ConfirmModal label={t('Change type')} onCancel={() => setTypeAsk(null)}>
+      <p className="confirm-modal-question" data-ui="type-ask-question">{plural(typeAsk.worked,
+        'This model has work made with another type: supports, painted zones or settings. Changing its type removes that work. Undo brings it back.',
+        '{n} models have work made with another type: supports, painted zones or settings. Changing their type removes that work. Undo brings it back.')}</p>
+      <div className="confirm-modal-row">
+        <button type="button" data-ui="type-ask-cancel" title={t('Cancel')} onClick={() => setTypeAsk(null)}>{t('Cancel')}</button>
+        <button type="button" className="danger" data-ui="type-ask-confirm" title={t('Change type')}
+          onClick={() => applyPurpose(typeAsk.unitIds, typeAsk.profile)}>{t('Change type')}</button>
+      </div>
+    </ConfirmModal> : null}
     {exitAsk ? <ConfirmModal label={t('Exit')} onCancel={() => setExitAsk(false)}>
       <p className="confirm-modal-question">{t('This removes the supports and dental settings on this model. It stays on the plate, and anything you have already finished is left alone.')}</p>
       <div className="confirm-modal-row">
@@ -1831,7 +1885,16 @@ export default function App() {
         offerUndo({ kind: 'deleteObjects', count: 1 });
       }}
       onBack={() => setStartScreen('drop')}
-      onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} /></PanelBoundary></>
+      onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} /></PanelBoundary>
+      {/*
+        THE DECK'S UNDO. The undo toast lives in the viewport, which is not on screen here, and the keyboard handler
+        stands down on a start screen - so Remove and a confirmed type change offered an undo nobody could see, and
+        "Undo brings them back" was a promise with no control (found 2026-11-23 checking Fable's fix 1 in the app).
+        The same toast, mounted where the operator is.
+      */}
+      <div className="undo-toast-region undo-toast-region--deck" role="status" aria-live="polite">
+        {toast && <UndoToast key={toast.id} toast={toast} onUndo={undoToastAction} onClose={closeToast} />}
+      </div></>
       : startScreen !== null ? <StartScreen screen={startScreen} profile={session.dentalProfile} lang={lang}
       onScreen={goStart}
       /*

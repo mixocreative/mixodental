@@ -1178,6 +1178,11 @@ footer.on-scene button { pointer-events: auto; }
 .viewport--editing .viewport-view { top: auto; bottom: 14px; }
 
 /* ---- Undo toast (mixo-app-style: surface, hairline, 2 px radius, no shadow) ---- */
+/* On the deck the region is fixed to the window (the deck scrolls and has no viewport to sit in) and sits at the TOP:
+   at the bottom it covered "Start with the first file", and a press meant for an expired toast opened a model. */
+/* width: max-content because left: 50% leaves a shrink-to-fit box only half the window wide - on a phone the message
+   wrapped one word per line. */
+.undo-toast-region.undo-toast-region--deck { position: fixed; z-index: 30; top: 64px; bottom: auto; width: max-content; max-width: calc(100vw - 28px); }
 .undo-toast-region {
   position: absolute;
   left: 50%;

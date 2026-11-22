@@ -237,9 +237,17 @@ describe('the Items page', () => {
   });
 
   it('marks a finished row without removing it', () => {
-    const html = render([unit('a', 'a.stl', verdict()), unit('b', 'b.stl', verdict())], ['a']);
+    // A finished row carries its work (here a dental policy) - the done mark stands with it.
+    const worked = { ...unit('a', 'a.stl', verdict()), dental: { kind: 'legacy' } } as ReturnType<typeof unit>;
+    const html = render([worked, unit('b', 'b.stl', verdict())], ['a']);
     expect(html).toContain('items-row items-row--done');
     expect(html).toContain('a.stl');
+  });
+
+  // Fable's audit, 2026-11-23: a type change (or Exit) removes a finished row's work; the row must not still look done.
+  it('drops the done mark from a finished row whose work was removed', () => {
+    const html = render([unit('a', 'a.stl', verdict()), unit('b', 'b.stl', verdict())], ['a']);
+    expect(html).not.toContain('items-row--done');
   });
 
   /*

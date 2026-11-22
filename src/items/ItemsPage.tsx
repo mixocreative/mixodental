@@ -339,7 +339,9 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
            * It is a label and nothing else: the row stays selectable, the rail still acts on it,
            * and Start still opens it (owner's ruling, 2026-11-18 - a done mark never blocks a redo).
            */
-          done={finished.includes(unit.id) || unit.supports !== undefined}
+          // A finished mark stands only while the unit still carries its work: a type change or Exit removes it, and a
+          // row with nothing on it must not look done (Fable's audit, 2026-11-23).
+          done={(finished.includes(unit.id) && (unit.supports !== undefined || unit.dental !== undefined || unit.denture !== undefined)) || unit.supports !== undefined}
           willOpen={target?.id === unit.id}
           detected={detected.get(unit.id)}
           thumbnails={thumbnails}
