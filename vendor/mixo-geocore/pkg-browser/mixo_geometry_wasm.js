@@ -1571,6 +1571,33 @@ export class DentureReviewResult {
         wasm.__wbindgen_free(ret[0], ret[1] * 8, 8);
         return v1;
     }
+    /**
+     * The zone-graph nodes the run evaluated, as a JSON array of ids, in the order of `zone_node_values` (plan D2).
+     * @returns {string}
+     */
+    zone_node_ids() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.denturereviewresult_zone_node_ids(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Each evaluated node's value per face, node after node (`Review::zone_node_values`): a set of faces 0 / 1, a
+     * Mark 0 Undefined / 1 Support / 2 No-support.
+     * @returns {Uint8Array}
+     */
+    zone_node_values() {
+        const ret = wasm.denturereviewresult_zone_node_values(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
 }
 if (Symbol.dispose) DentureReviewResult.prototype[Symbol.dispose] = DentureReviewResult.prototype.free;
 

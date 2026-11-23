@@ -138,6 +138,8 @@ export interface DentureReviewResultLike {
   allowed_mask(): Uint8Array;
   /** The allowed area as the oral cavity ray alone saw it, before the hole band widened it (what `rimRespectsNoSupport` reads). */
   allowed_cavity_mask(): Uint8Array;
+  zone_node_ids(): string;
+  zone_node_values(): Uint8Array;
   hard_edges(): Float64Array;
   down_edges(): Float64Array;
   chain_points(): Float64Array;

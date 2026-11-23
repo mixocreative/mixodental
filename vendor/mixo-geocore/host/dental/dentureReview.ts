@@ -86,6 +86,11 @@ export interface DentureReview {
   allowedMask: Uint8Array;
   /** The allowed area as the oral cavity ray alone saw it, before the hole band widened it: what `rimRespectsNoSupport` reads. */
   allowedCavityMask: Uint8Array;
+  /**
+   * Every zone-graph node the run evaluated, by id, with its value per face (plan D2, the workbench's per-node
+   * preview): a set of faces 0 / 1; a Mark 0 Undefined, 1 Support, 2 No-support.
+   */
+  zoneNodes: { id: string; values: Uint8Array }[];
   /** Every hard edge. */
   hardEdges: Segment[];
   /** The hard edges that face down in the oriented pose (before the print tilt): the support candidates. */
@@ -282,6 +287,12 @@ export function decodeDentureReview(result: DentureReviewResultLike): DentureRev
       noSupportSteepDeg: result.no_support_steep_deg(),
       allowedMask: result.allowed_mask(),
       allowedCavityMask: result.allowed_cavity_mask(),
+      zoneNodes: (() => {
+        const ids = JSON.parse(result.zone_node_ids()) as string[];
+        const values = result.zone_node_values();
+        const faces = ids.length === 0 ? 0 : values.length / ids.length;
+        return ids.map((id, k) => ({ id, values: values.subarray(k * faces, (k + 1) * faces) }));
+      })(),
       hardEdges: segments(result.hard_edges()),
       downEdges: segments(result.down_edges()),
       downChains: (() => {

@@ -562,6 +562,15 @@ export class DentureReviewResult {
      * The up decision (layout in `denture/review.rs` `up_decision_values`): T1b diagnostic (box axis, decided, flipped, medians, margin, hits), up xyz, arch frame up before xyz, slice votes (for, against, abstain), confidence, top xyz, teeth flipped, back xyz, front/back margin, cross-check agrees, end widths; empty for a mesh with no box.
      */
     up_decision(): Float64Array;
+    /**
+     * The zone-graph nodes the run evaluated, as a JSON array of ids, in the order of `zone_node_values` (plan D2).
+     */
+    zone_node_ids(): string;
+    /**
+     * Each evaluated node's value per face, node after node (`Review::zone_node_values`): a set of faces 0 / 1, a
+     * Mark 0 Undefined / 1 Support / 2 No-support.
+     */
+    zone_node_values(): Uint8Array;
 }
 
 /**
@@ -1793,6 +1802,8 @@ export interface InitOutput {
     readonly denturereviewresult_unsupportable: (a: number) => [number, number];
     readonly denturereviewresult_up: (a: number) => [number, number];
     readonly denturereviewresult_up_decision: (a: number) => [number, number];
+    readonly denturereviewresult_zone_node_ids: (a: number) => [number, number];
+    readonly denturereviewresult_zone_node_values: (a: number) => [number, number];
     readonly denturetiltpaths_counts: (a: number) => [number, number];
     readonly denturetiltpaths_ok: (a: number) => number;
     readonly denturetiltpaths_overhang_mm2: (a: number) => number;
