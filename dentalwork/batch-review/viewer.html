@@ -693,7 +693,7 @@ document.querySelectorAll('[data-view]').forEach((button) => button.addEventList
 function applyVisibility() {
   model?.traverse((object) => {
     const key = object.name && keyOf(object.name);
-    if (key) object.visible = isShown(key) && !(underside && PILLAR_KEYS.includes(key));
+    if (key) object.visible = isShown(key) && !(underside && PILLAR_KEYS.includes(key)) && !(zoneOverlay && ZONE_LAYER_KEYS.includes(key));
   });
 }
 
@@ -902,6 +902,18 @@ const orientCanvasHost = Object.assign(document.createElement('div'), { classNam
 orientCanvasHost.dataset.ui = 'orient-canvas';
 /* What produced the review on screen: its summary's `orientGraph` ("default" = the standard Step 1). */
 let ranOrientGraph = 'default';
+/* THE PER-NODE PREVIEW (plan D2, `zonePreview.mjs`): the zone graph that ran (summary `zoneGraphRan`, null = the
+   standard setup), this case's per-node values (`<case>-zones.json` + `.bin`), the node selected on the Zones canvas,
+   and the overlay drawn for it on the model. While a node is selected the overlay takes the zone layers' place. */
+let ranZoneGraphJson = null;
+let zonesRead = null;
+let zoneSelected = null;
+let zoneOverlay = null;
+let previewLib = null;
+const zonePreviewNote = Object.assign(document.createElement('div'), { className: 'chain-note zone-preview-note' });
+zonePreviewNote.dataset.ui = 'zone-preview-note';
+// The zone layers the overlay replaces while a node is selected (keys of LAYERS).
+const ZONE_LAYER_KEYS = ['Undefined (no ray', 'No-support, steep ray', 'No-support zone', 'Allowed area (seen'];
 
 /** One step's card: what it produced, and the settings it is known to own. */
 function chainCard(at, present, names) {
@@ -1252,6 +1264,8 @@ function drawChain(present, names) {
       // Only what this tab and the earlier ones produce (the owner's preview rule): the step walk's cut-off.
       setStep(stage.cut);
       drawChain(present, names);
+      // The per-node overlay belongs to the Zones tab only.
+      showZonePreview();
     });
     tabs.append(tab);
   });
@@ -1502,6 +1516,8 @@ function drawZoneEditor(body, present, names) {
       lib: graphLib, graph: g, positions: zonePositions,
       liveParams: benchFields?.has('noSupportSteepDeg') ? ['R1b.deg'] : [],
       onGraph: save,
+      // The selected node's values on the model (plan D2): the zone as it stands at that node.
+      onSelect: (id) => { if (id !== zoneSelected) { zoneSelected = id; showZonePreview(); } },
       onPositions: (next) => {
         zonePositions = next;
         try { localStorage.setItem('review-zone-layout-2', JSON.stringify(next)); } catch { /* per-viewer only */ }
@@ -1511,7 +1527,9 @@ function drawZoneEditor(body, present, names) {
     // Only the output node is filled in here: a node ADDED from the toolbar is left unplaced, and the
     // canvas puts it in the middle of the view, where the operator is looking.
     if (!zonePositions.outputs) zonePositions = { ...editorLib.autoLayout(g, graphLib.FIXED.outputs), ...zonePositions };
-    body.append(status, bar, zoneCanvasHost);
+    body.append(status, bar, zonePreviewNote, zoneCanvasHost);
+    // An edit can change what the selected node means against the run: the note says so.
+    if (zoneSelected) showZonePreview();
     if (editorHandle) editorHandle.update(props);
     else editorHandle = editorLib.mountZoneEditor(zoneCanvasHost, props);
     return;
@@ -1985,6 +2003,7 @@ function openRun(summary, glbUrl, csvUrl) {
   // "default", not "unknown" as for the zone graph: every folder written before the Orient graph existed (U5) ran the
   // standard Step 1, so its missing key is a fact, not a gap.
   ranOrientGraph = summary.orientGraph ?? 'default';
+  ranZoneGraphJson = summary.zoneGraphRan ?? null;
   urlOf = glbUrl;
   const needing = cases.filter((c) => c.needsLook);
   const built = cases.filter((c) => c.result === 'built').length;
@@ -2203,6 +2222,58 @@ function facts(c) {
   drawTilt(c);
   drawPeel(c);
   loadOrientFile(c);
+  loadZonesFile(c);
+}
+
+/*
+ * THE ZONES TAB'S CASE FILE (plan D2, written by reviewCase.ts): every zone-graph node's value per face, for the
+ * per-node preview. Loaded per case; the overlay is rebuilt for the node still selected.
+ */
+async function loadZonesFile(c) {
+  zonesRead = null;
+  if (c.kind === 'denture' && c.zonesFile) {
+    const meta = await fetch(urlOf(c.zonesFile)).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const bin = meta ? await fetch(urlOf(meta.bin)).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null) : null;
+    if (caseNow !== c && caseNow?.case !== c.case) return;
+    if (meta && bin && bin.byteLength === meta.ids.length * meta.faces) zonesRead = { ids: meta.ids, faces: meta.faces, values: new Uint8Array(bin) };
+  }
+  showZonePreview();
+}
+
+/** The overlay for the selected node, or none: the zone layers come back when nothing is selected or off the Zones tab. */
+async function showZonePreview() {
+  if (zoneOverlay) { zoneOverlay.parent?.remove(zoneOverlay); zoneOverlay.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); zoneOverlay = null; }
+  const active = zoneSelected && stageNow === 'zones' && kindNow === 'denture' && graphLib;
+  zonePreviewNote.hidden = !active;
+  if (!active) { applyVisibility(); return; }
+  previewLib ??= await import('./zonePreview.mjs');
+  const node = zoneGraph?.nodes.find((n) => n.id === zoneSelected);
+  const title = node ? (graphLib.KIND_WORDS[node.kind]?.title ?? node.kind) : zoneSelected;
+  const values = previewLib.nodeValues(zonesRead, zoneSelected);
+  const isZone = graphLib.KINDS[node?.kind]?.out === 'zone';
+  const groups = values ? previewLib.previewGroups(values, isZone) : null;
+  const ran = ranZoneGraphJson ? graphLib.upgradeGraph(ranZoneGraphJson) : graphLib.defaultGraph();
+  const canvasChanged = JSON.stringify(ran) !== JSON.stringify(zoneGraph);
+  zonePreviewNote.textContent = previewLib.previewNote({ title, groups, hasRead: Boolean(zonesRead), canvasChanged });
+  // The model: the GLB's denture mesh, written with the engine's own face order (reviewCase.ts), so face k is face k.
+  let base = null;
+  model?.traverse((o) => { if (!base && o.isMesh && keyOf(o.name) === 'DENTURE') base = o; });
+  const index = base?.geometry.index;
+  if (!groups || !index || index.count / 3 !== zonesRead.faces) { applyVisibility(); return; }
+  zoneOverlay = new THREE.Group();
+  for (const group of groups) {
+    if (group.faces.length === 0) continue;
+    const ix = new Uint32Array(group.faces.length * 3);
+    group.faces.forEach((f, k) => { ix[k * 3] = index.getX(f * 3); ix[k * 3 + 1] = index.getX(f * 3 + 1); ix[k * 3 + 2] = index.getX(f * 3 + 2); });
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', base.geometry.getAttribute('position'));
+    geometry.setIndex(new THREE.BufferAttribute(ix, 1));
+    // Drawn just in front of the model (polygon offset), so the tint sits on the surface it describes.
+    const material = new THREE.MeshBasicMaterial({ color: cssToken(group.token), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    zoneOverlay.add(new THREE.Mesh(geometry, material));
+  }
+  base.add(zoneOverlay);
+  applyVisibility();
 }
 
 /*

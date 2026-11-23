@@ -72,6 +72,8 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   peelFile: string; peelNote: string;
   /** The Orient tab's file for this case (`<case>-orient.json`): each node's readout lines and the six named sides, in display space. */
   orientFile: string;
+  /** The Zones tab's file for this case (`<case>-zones.json` + `.bin`): every zone-graph node's value per face (plan D2). */
+  zonesFile: string;
   /** Denture only, when MIXO_TIMERS is set: seconds per stage of the flow ('scan 3.1 / policy 0.4 / generate 20 / flow 24'); '' otherwise. */
   stageTimes: string;
 };
@@ -85,7 +87,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
     ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, rimPlane: '',
     upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
-    peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', stageTimes: '',
+    peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', zonesFile: '', stageTimes: '',
     ...noEvidence, orientationGlb: '' };
   let shapeMesh: TriangleMesh | undefined;
   try {
@@ -200,6 +202,15 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
     const lines = Object.fromEntries(Object.entries(read.nodes).map(([id, value]) => [id, readoutLines(value)]));
     writeFileSync(join(out, `${name}-orient.json`), JSON.stringify({ lines, sides, outputs: read.outputs }));
     row.orientFile = `${name}-orient.json`;
+  }
+  // The Zones tab's per-node values (plan D2): ids in a small JSON, the values raw beside it - node after node, one
+  // byte per face of the GLB's model (`TEAL denture model` is this mesh with these indices, so face k is face k).
+  // Written only when they fit that model: a preview on the wrong faces would be worse than none.
+  const faces = mesh.indices.length / 3;
+  if (detail.zoneNodes.length > 0 && detail.zoneNodes.every((n) => n.values.length === faces)) {
+    writeFileSync(join(out, `${name}-zones.bin`), Buffer.concat(detail.zoneNodes.map((n) => Buffer.from(n.values.buffer, n.values.byteOffset, n.values.byteLength))));
+    writeFileSync(join(out, `${name}-zones.json`), JSON.stringify({ ids: detail.zoneNodes.map((n) => n.id), faces, bin: `${name}-zones.bin` }));
+    row.zonesFile = `${name}-zones.json`;
   }
   // Peel and strength report: layer areas of our print against the owner print, from the GLB just written. Never stops the case.
   try {

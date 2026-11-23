@@ -90,6 +90,8 @@ export interface DentureDetail {
   islands: IslandSummary | undefined;
   /** Facts row: the unresolved islands with height, size and reason ('none', or why the report is missing). */
   unresolvedIslands: string;
+  /** Every zone-graph node the run evaluated, with its value per face (plan D2); empty without a review. */
+  zoneNodes: { id: string; values: Uint8Array }[];
 }
 
 /** The up decision as one plain line (the dental rim's, from up_decision). */
@@ -560,6 +562,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
   }
   return {
     layers,
+    zoneNodes: review?.zoneNodes ?? [],
     ownerContacts: points ? points.length : null,
     ownerContactsMedianMm: medianMm === undefined ? null : Math.round(medianMm * 100) / 100,
     ownerAreaCoveredPct: comparison ? pct(comparison.coverage) : null,

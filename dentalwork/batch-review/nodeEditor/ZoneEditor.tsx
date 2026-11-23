@@ -47,11 +47,11 @@ export function MeasureWhenReady({ ids }: { ids: string }) {
 
 
 /* The model's shape, as far as this view needs it. The model itself is plain JS (`nodeGraph.mjs`). */
-export interface GraphNode { id: string; kind: string; params: Record<string, string | number>; inputs: Record<string, string | null>; note?: string }
+export interface GraphNode { id: string; kind: string; params: Record<string, string | number | boolean>; inputs: Record<string, string | null>; note?: string }
 export interface Graph { nodes: GraphNode[]; outputs: Record<string, string | null> }
 interface KindSpec { label: string; out: string; inputs: Record<string, string>; params: Record<string, string | number>; fixed?: boolean; reads: string; stage: string }
 interface Words { title: string; says: string }
-interface ParamWords { label: string; help: string; choices?: [string, string][] }
+interface ParamWords { label: string; help: string; choices?: [string | boolean, string][] }
 export interface GraphLib {
   KINDS: Record<string, KindSpec>;
   REQUIRED_OUTPUTS: Record<string, string>;
@@ -65,7 +65,7 @@ export interface GraphLib {
   TYPE_WORDS: Record<string, string>;
   OUTPUT_NODE: Words;
   /* A parameter's standard value: the default graph's node with the same id, else the kind's own default. */
-  defaultOf(node: GraphNode, key: string): string | number | undefined;
+  defaultOf(node: GraphNode, key: string): string | number | boolean | undefined;
   /* The groups and each kind's group: a coloured stripe per group, so kinds are found at a glance. */
   NODE_GROUPS: Record<string, { title: string; says: string; token: string }>;
   KIND_GROUP: Record<string, string>;
@@ -74,7 +74,7 @@ export interface GraphLib {
   rewire(g: Graph, id: string, input: string, from: string | null): Graph;
   bindOutput(g: Graph, name: string, from: string | null): Graph;
   removeNode(g: Graph, id: string): Graph;
-  setParam(g: Graph, id: string, key: string, value: string | number): Graph;
+  setParam(g: Graph, id: string, key: string, value: string | number | boolean): Graph;
   unreached(g: Graph): string[];
   validate(g: Graph): { problems: string[]; warnings: string[] };
 }
@@ -94,6 +94,11 @@ export interface ZoneEditorProps {
   onPositions(next: Positions): void;
   /** Lines per node id: what that step measured on the case on screen (the Orient readouts). Absent: none. */
   values?: Record<string, string[]>;
+  /**
+   * The ONE selected node's id, or null for none (or the output card, or several): the viewer shows that node's values
+   * in 3D (plan D2, `zonePreview.mjs`). Absent: selection stays a canvas matter.
+   */
+  onSelect?(id: string | null): void;
 }
 
 /* ONE output node with a socket per output, like Blender's Material Output - eight separate output
@@ -164,7 +169,7 @@ interface ZoneData extends Record<string, unknown> {
   values?: string[];
   /* The model's problems that name THIS node ("R1: ..."), shown on it; the rest stay in the list above. */
   issues: { text: string; warn: boolean }[];
-  onParam(id: string, key: string, value: string | number): void;
+  onParam(id: string, key: string, value: string | number | boolean): void;
   onRemove(id: string): void;
 }
 interface OutputData extends Record<string, unknown> { lib: GraphLib; filled: Record<string, boolean> }
@@ -264,7 +269,7 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
             {(() => {
               const back = lib.defaultOf(node, key);
               return back !== undefined && String(back) !== String(value)
-                ? <button type="button" className="zn-restore nodrag" data-ui="node-restore" title={`Restore to ${p.choices?.find(([v]) => v === String(back))?.[1] ?? String(back)}`} aria-label={`Restore ${p.label}`} onClick={(e) => { e.preventDefault(); onParam(node.id, key, back); }}>↺</button>
+                ? <button type="button" className="zn-restore nodrag" data-ui="node-restore" title={`Restore to ${p.choices?.find(([v]) => String(v) === String(back))?.[1] ?? String(back)}`} aria-label={`Restore ${p.label}`} onClick={(e) => { e.preventDefault(); onParam(node.id, key, back); }}>↺</button>
                 : null;
             })()}
           </label>
@@ -316,7 +321,7 @@ function minimapColor(node: Node): string {
   return token ? getComputedStyle(document.documentElement).getPropertyValue(token).trim() || 'gray' : getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
 }
 
-export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, onPositions, values }: ZoneEditorProps) {
+export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, onPositions, values, onSelect }: ZoneEditorProps) {
   const idle = useMemo(() => new Set(lib.unreached(graph)), [lib, graph]);
   const fixed = useMemo(() => fixedOnly(graph, lib.FIXED.outputs), [graph, lib]);
   // Every model message that concerns one node starts with its id and a colon - the one convention
@@ -333,7 +338,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
     warnings.forEach((m) => add(m, true));
     return by;
   }, [lib, graph]);
-  const onParam = useCallback((id: string, key: string, value: string | number) => onGraph(lib.setParam(graph, id, key, value)), [lib, graph, onGraph]);
+  const onParam = useCallback((id: string, key: string, value: string | number | boolean) => onGraph(lib.setParam(graph, id, key, value)), [lib, graph, onGraph]);
   const onRemove = useCallback((id: string) => onGraph(lib.removeNode(graph, id)), [lib, graph, onGraph]);
 
   const derived: Node[] = useMemo(() => [
@@ -438,6 +443,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
       onNodeDragStop={onNodeDragStop}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
+      onSelectionChange={({ nodes: picked }) => onSelect?.(picked.length === 1 && picked[0]!.id !== OUTPUTS ? picked[0]!.id : null)}
       deleteKeyCode={['Backspace', 'Delete']}
       fitView
       // Fit the part the operator EDITS - the free nodes and the output - not all of it: fitting every node

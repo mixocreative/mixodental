@@ -45,6 +45,9 @@ mkdirSync(out, { recursive: true });
 // never halfway through, and never by quietly running the default instead. What ran is recorded in
 // summary.json, because an edited graph and the default otherwise look identical on screen.
 let zoneGraph = 'default';
+// The graph itself, so the review page can tell which of its canvas's nodes ran (plan D2's per-node preview); null =
+// the engine's own standard setup.
+let zoneGraphRan: unknown = null;
 // The Orient graph that ran (U6): set by a type (putInForce) or by --orient-graph below; "default" = today's Step 1.
 let orientGraph = 'default';
 // A TYPE (benchwork --type, or the review page's Apply): refused here, before any case runs, for
@@ -54,6 +57,7 @@ try {
   type = typeOfRun(kind, process.env);
   if (type) {
     zoneGraph = putInForce(type, process.env);
+    zoneGraphRan = type.zoneGraph ?? null;
     orientGraph = orientGraphDigest();
     process.stdout.write(`Type: ${type.id} (based on ${type.basedOn}), zone graph ${zoneGraph}\n`);
   }
@@ -63,7 +67,8 @@ try {
 }
 if (!type && process.env.MIXO_ZONE_GRAPH_FILE) {
   try {
-    zoneGraph = setZoneGraph(JSON.parse(readFileSync(process.env.MIXO_ZONE_GRAPH_FILE, 'utf8')));
+    zoneGraphRan = JSON.parse(readFileSync(process.env.MIXO_ZONE_GRAPH_FILE, 'utf8'));
+    zoneGraph = setZoneGraph(zoneGraphRan);
   } catch (error) {
     process.stderr.write(`The zone graph was refused: ${error instanceof ZoneGraphRefused ? error.detail : (error as Error).message}\n`);
     process.exit(2);
@@ -92,7 +97,7 @@ for (const [k, file] of files.entries()) {
   rows.push(row);
   process.stdout.write(`${row.result}${row.verdict ? ` / ${row.verdict}` : ''}${row.reason ? ` (${row.reason})` : ''}${row.printAngleDeg === null ? '' : `, print angle ${row.printAngleDeg}° (stable ${row.stableBand})`} in ${row.seconds} s
 `);
-  writeSummary(rows, out, zoneGraph, orientGraph);
+  writeSummary(rows, out, zoneGraph, orientGraph, zoneGraphRan);
 }
 
 if (type) recordType(out, type, files);
@@ -104,8 +109,8 @@ const failed = rows.filter((row) => row.result === 'error').length;
 if (failed > 0) throw new Error(`${failed} file(s) could not be read or built (see the lines above).`);
 }
 
-function writeSummary(rows: CaseRow[], out: string, zoneGraph: string, orientGraph: string): void {
-  writeFileSync(join(out, 'summary.json'), JSON.stringify({ created: new Date().toISOString(), ruleDefaults: RULE_DEFAULTS, zoneGraph, orientGraph, cases: rows }, null, 2));
+function writeSummary(rows: CaseRow[], out: string, zoneGraph: string, orientGraph: string, zoneGraphRan: unknown): void {
+  writeFileSync(join(out, 'summary.json'), JSON.stringify({ created: new Date().toISOString(), ruleDefaults: RULE_DEFAULTS, zoneGraph, zoneGraphRan, orientGraph, cases: rows }, null, 2));
   const columns = Object.keys(rows[0]!) as Array<keyof CaseRow>;
   const cell = (value: unknown) => /[",\n]/.test(String(value ?? '')) ? `"${String(value).replace(/"/g, '""')}"` : String(value ?? '');
   writeFileSync(join(out, 'summary.csv'), [columns.join(','), ...rows.map((row) => columns.map((c) => cell(row[c])).join(','))].join('\r\n'));
