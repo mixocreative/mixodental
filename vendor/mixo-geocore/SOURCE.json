@@ -1,14 +1,14 @@
 {
   "repo": "mixocreative/mixo-geocore",
-  "commit": "9157cd247870e434982949abc9a4b36203d29d09",
-  "committed": "2026-11-23T07:27:21+08:00",
+  "commit": "7ab97cc81b3fced6ee5ab265255a4689819f0a79",
+  "committed": "2026-11-23T07:35:38+08:00",
   "engineVersion": 71,
   "sha256": {
     "pkg-browser/mixo_geometry_wasm.js": "5d14a40155f57dc541b5335f59a01055a8569c09c85dd41e9cd0199762874935",
-    "pkg-browser/mixo_geometry_wasm_bg.wasm": "98b8d9e540c3e560627fabb8dd4d2be802893cfa93c9788869d394877d2d8d18",
+    "pkg-browser/mixo_geometry_wasm_bg.wasm": "65140e00d30bbf0098ebb7d09774c5d573b4c3cc75c76354d000bbdd02e7adab",
     "pkg-browser/mixo_geometry_wasm.d.ts": "56556bf664e72bdbc745f48c0e8543d9be933385ab8ae205f5c28e5dae1d8a3a",
     "pkg-node/mixo_geometry_wasm.js": "94363a5444cfc4a1eddd6e93300d984b84974d6088c93a8ff207bc9ff4a193f4",
-    "pkg-node/mixo_geometry_wasm_bg.wasm": "7f46e4d1ea29333654d43f0eb67c250ffeccd68afb0d0456e4920a6466acddd7",
+    "pkg-node/mixo_geometry_wasm_bg.wasm": "b74451628314517d04ccf78a794ddf0ee549e34512ac98546bc765f1ba00547e",
     "pkg-node/mixo_geometry_wasm.d.ts": "9afede2235acc69ed8cd6ba78119cb0be126a15c8570c9136acaf0586979b57f",
     "pkg-node/mixo_geometry_wasm_bg.wasm.d.ts": "e2672906069e8820313b2f9ccbf72c0e2ac2e3752473156afb6f0f8651c4bc67",
     "pkg-node/package.json": "bf090533cb91e07d74db97cf7ffa55cc33ce5e1caa161a98871341c5d07dc646",
