@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultGraph, flatBaseGraph, setParam } from './orientGraph.mjs';
-import { STANDARD_CHOICES, choicesChanged, previewLabel, sideChoices } from './sidePreview.mjs';
+import { STANDARD_CHOICES, choicesChanged, previewLabel, sideChoices, turnFor } from './sidePreview.mjs';
 
 const SIX = ['Front', 'Back', 'Teeth side', 'Tissue side', 'Left', 'Right'];
 const label = (now: typeof STANDARD_CHOICES) => SIX.map((name) => previewLabel(name, STANDARD_CHOICES, now));
@@ -27,6 +27,32 @@ describe('the side labels follow the Orient choices before Apply', () => {
     expect(label(teeth)).toEqual(['Front', 'Back · on the plate', 'Tissue side', 'Teeth side · rises as it leans', 'Right', 'Left']);
     const both = sideChoices(setParam(setParam(defaultGraph(), 'UP', 'teethSide', 'other'), 'UP', 'front', 'other'))!;
     expect(label(both).slice(4)).toEqual(['Left', 'Right']);
+  });
+
+  // The live turn: labels along the axes (front +y, teeth +z, left +x), the run standing on its Back leaning to Teeth.
+  const SIDES = [
+    { name: 'Front', position: [0, 10, 0] }, { name: 'Back', position: [0, -10, 0] },
+    { name: 'Teeth side', position: [0, 0, 5] }, { name: 'Tissue side', position: [0, 0, -5] },
+    { name: 'Left', position: [3, 0, 0] }, { name: 'Right', position: [-3, 0, 0] },
+  ];
+  const apply = (r: number[], v: number[]) => [0, 1, 2].map((i) => r[i * 3]! * v[0]! + r[i * 3 + 1]! * v[1]! + r[i * 3 + 2]! * v[2]!).map((c) => Math.round(c * 1e9) / 1e9 + 0);
+
+  it('turns nothing when the choices are the run\'s', () => {
+    expect(turnFor(SIDES, STANDARD_CHOICES, STANDARD_CHOICES)).toBeNull();
+  });
+
+  it('a front flip stands the other end on the plate: front goes where back was, the teeth side stays', () => {
+    const turn = turnFor(SIDES, STANDARD_CHOICES, sideChoices(setParam(defaultGraph(), 'UP', 'front', 'other'))!)!;
+    expect(apply(turn.rotation, [0, 1, 0])).toEqual([0, -1, 0]);
+    expect(apply(turn.rotation, [0, 0, 1])).toEqual([0, 0, 1]);
+  });
+
+  it('a new plate side turns that side to the plate and the new lean side to where the run leaned', () => {
+    const now = sideChoices(setParam(setParam(defaultGraph(), 'POSE', 'plate', 'tissue'), 'POSE', 'leanToward', 'front'))!;
+    const turn = turnFor(SIDES, STANDARD_CHOICES, now)!;
+    expect(apply(turn.rotation, [0, 0, -1])).toEqual([0, -1, 0]);
+    expect(apply(turn.rotation, [0, 1, 0])).toEqual([0, 0, 1]);
+    expect(turnFor(SIDES.slice(1), STANDARD_CHOICES, now)).toBeNull();
   });
 
   it('a new plate side moves the marks to the sides chosen', () => {

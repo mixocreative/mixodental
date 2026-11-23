@@ -721,7 +721,7 @@ document.querySelectorAll('[data-view]').forEach((button) => button.addEventList
 function applyVisibility() {
   model?.traverse((object) => {
     const key = object.name && keyOf(object.name);
-    if (key) object.visible = isShown(key) && !(underside && PILLAR_KEYS.includes(key)) && !(zoneOverlay && ZONE_LAYER_KEYS.includes(key));
+    if (key) object.visible = isShown(key) && !(underside && PILLAR_KEYS.includes(key)) && !(zoneOverlay && ZONE_LAYER_KEYS.includes(key)) && !(orientTurn && SUPPORT_KEYS.includes(key));
   });
 }
 
@@ -936,6 +936,8 @@ let ranOrientGraph = 'default';
 let ranZoneGraphJson = null;
 /* The Orient graph that ran (summary `orientGraphRan`, null = the standard Step 1) and the live side names' library. */
 let ranOrientGraphJson = null;
+/* The live turn on the Orient tab (sidePreview.mjs turnFor), or null: the model stands as the run put it. */
+let orientTurn = null;
 /* The strip widths the run on screen used (summary `placementRan`, null = the profile's own). */
 let ranPlacement = null;
 let sidePreviewLib = null;
@@ -2094,6 +2096,8 @@ async function show(row) {
     // The zone overlay belongs to THIS model: the zone file can land before the GLB, and the overlay it built then was
     // hung on the previous case's model (Fable's review).
     if (zoneSelected) showZonePreview();
+    // A new model stands as its run put it; the live turn (if the canvas still differs from that run) is re-applied.
+    relabelSides();
   }
   drawLayers();
 }
@@ -2433,8 +2437,28 @@ function relabelSides() {
     label.el.textContent = sidePreviewLib ? sidePreviewLib.previewLabel(label.name, ran, now) : label.name;
   }
   const changed = Boolean(sidePreviewLib?.choicesChanged(ran, now));
+  // THE LIVE TURN (sidePreview.mjs turnFor): the part turns at once to stand on the chosen plate side, from the axes the
+  // run's own labels give. Its supports belong to the run's pose, so they hide while it is turned; the run that follows
+  // (Orient edits run on their own) builds them for the new pose and puts the model back square.
+  orientTurn = changed ? sidePreviewLib?.turnFor(orientRead?.sides, ran, now) ?? null : null;
+  turnModel();
   orientSideNote.hidden = !changed || sideLabels.length === 0;
-  orientSideNote.textContent = 'The side names in 3D already follow your choices. The part itself turns only after Apply and run.';
+  orientSideNote.textContent = orientTurn
+    ? 'Preview: the part is turned to stand on the side you chose, and the side names follow. Its supports are hidden until the run builds them for this pose. The lean angle is the print-angle search\'s, so it shows after the run.'
+    : 'The side names in 3D already follow your choices. The part itself turns only after Apply and run.';
+}
+
+/** Puts the model in the live-turn pose (`orientTurn`), or back square; the side labels ride on the model's matrix. */
+function turnModel() {
+  if (!model) return;
+  const m = orientTurn?.rotation;
+  const q = m ? new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().set(m[0], m[1], m[2], 0, m[3], m[4], m[5], 0, m[6], m[7], m[8], 0, 0, 0, 0, 1)) : new THREE.Quaternion();
+  const centre = new THREE.Vector3(...(orientTurn?.centre ?? [0, 0, 0]));
+  model.quaternion.copy(q);
+  // Turn about the part's centre: p' = q (p - c) + c, so the model's position is c - q c.
+  model.position.copy(centre.clone().sub(centre.clone().applyQuaternion(q)));
+  model.updateMatrixWorld(true);
+  applyVisibility();
 }
 function placeSideLabels() {
   for (const { el, at } of sideLabels) {
