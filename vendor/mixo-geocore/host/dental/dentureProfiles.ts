@@ -53,6 +53,16 @@ export interface DenturePlacement {
    * engine refuses anything else below 0.2 mm when a type registers (`profile.rs` `check_placement`).
    */
   rimStripPitchMm?: number;
+  /**
+   * The rim strip as a belt: its width on the inner side (the fitting surface) and the outer side (the visible
+   * outside), mm. Neither set: the symmetric `rimBandMm` strip, as before; one set: the other side keeps `rimBandMm`;
+   * 0: no strip on that side. The engine refuses a side above 20 mm or both 0 (`profile.rs` `check_placement`).
+   */
+  rimBandInnerMm?: number;
+  rimBandOuterMm?: number;
+  /** The low rim strip as a belt, the same way around `lowRimBandMm`. */
+  lowRimBandInnerMm?: number;
+  lowRimBandOuterMm?: number;
   /** Overhang faces within this distance (mm along the surface) of the dental rim are support-allowed outside the oral cavity area. */
   rimBandMm: number;
   /** A lowest point outside the allowed area still gets a tip outside the no-support zone or within this distance (mm along the surface) of the dental rim. */
@@ -118,7 +128,7 @@ const POSE_KEYS: readonly Exclude<keyof DenturePose, 'tiltStartDeg'>[] = ['tiltR
 // `tiltStartDeg` is optional and NOT in POSE_KEYS (which are required): absent means 0, upright - the
 // owner's fallback default (2026-11-20). A value in the file always wins over the default.
 const withStart = (pose: Record<string, number>): DenturePose => ({ ...pose, tiltStartDeg: typeof pose.tiltStartDeg === 'number' ? pose.tiltStartDeg : 0 }) as DenturePose;
-const PLACEMENT_OPTIONAL = ['dentalRimPitchMm', 'holePitchMm', 'rimStripPitchMm'] as const;
+const PLACEMENT_OPTIONAL = ['dentalRimPitchMm', 'holePitchMm', 'rimStripPitchMm', 'rimBandInnerMm', 'rimBandOuterMm', 'lowRimBandInnerMm', 'lowRimBandOuterMm'] as const;
 const PLACEMENT_KEYS: readonly (keyof DenturePlacement)[] = ['tipPitchMm', 'barPitchMultiplier', 'lightPitchMultiplier', 'bottomBandMm', 'barThicknessMaxMm',
   'minimumProminenceMm', 'tipMinFromUpBarDeg', 'hardEdgeDeg', 'middleEdgeNearMm', 'middleEdgeMinLengthMm', 'downEdgeMaxDeg', 'downBandMm', 'downPitchMm', 'rimBandMm', 'lowRimBandMm'];
 const SUPPORT_NUMBERS = ['tipBallMm', 'frustumBaseMm', 'frustumHeightMm', 'pillarDiameterMm', 'liftHeightMm', 'biteDepthMm', 'upperDiameterMm', 'minClearanceMm', 'neckMaxShiftMm'] as const;
