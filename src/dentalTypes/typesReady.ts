@@ -17,22 +17,24 @@ import { allAlignerProfiles, parseAlignerProfile } from '@mixo-geocore/host/dent
 import { allDentureProfiles, parseDentureProfile } from '@mixo-geocore/host/dental/dentureProfiles';
 import { registerAlignerProfile, registerDentureProfile } from '@mixo-geocore/host/dental/registerProfile';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
-import { NOT_YET, discoverTypes, type DiscoveredTypes, type KnownProfile, type RefusedType } from './shippedTypes';
+import { discoverTypes, type DiscoveredTypes, type KnownProfile, type RefusedType } from './shippedTypes';
+import { orientGraphProblems, rememberTypeGraphs, zoneGraphProblems } from './typeGraphs';
 import { profileText, type TypeFileDeps } from './typeFile';
 
 const FILES = import.meta.glob('/types/*/*.type.json', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 /**
  * The reader's checks as the app runs them. `src/` imports nothing from `benchwork/` or `dentalwork/`: a graph is
- * refused outright (the app cannot run one yet) and pinned rules are refused by `discoverTypes`, so neither the
- * workbench's graph validator nor its per-category rule table is needed here.
+ * checked by the engine itself (`typeGraphs.ts`, plan E1) and pinned rules are refused by `discoverTypes`, so neither
+ * the workbench's graph validator nor its per-category rule table is needed here. Needs the engine: `registerTypes`
+ * runs after geometryReady.
  */
 export const APP_TYPE_DEPS: TypeFileDeps = {
   parseProfile: (category, value) => (category === 'denture' ? parseDentureProfile(value) : parseAlignerProfile(value)),
   ruleNames: RULE_NAMES,
   unreadBy: () => [],
-  graphProblems: () => [NOT_YET.graph],
-  orientProblems: () => [NOT_YET.orientGraph],
+  graphProblems: (graph) => zoneGraphProblems(graph),
+  orientProblems: (graph) => orientGraphProblems(graph),
   engineVersion: HOST_GEOMETRY_VERSION,
 };
 
@@ -55,7 +57,12 @@ export function registerTypes(files: Readonly<Record<string, string>>): Discover
     try {
       const text = profileText(type.profile);
       if (type.category === 'aligner') registerAlignerProfile(text);
-      else registerDentureProfile(text);
+      else {
+        registerDentureProfile(text);
+        // Only a denture job sets the graph slots: an aligner's zone graph is the locked default (typeFile.ts refuses
+        // any other kind for it), so it changes nothing.
+        rememberTypeGraphs(type.id, type.zoneGraph, type.orientGraph);
+      }
       if (type.badge) badges.set(type.id, type.badge);
       return true;
     } catch (error) {

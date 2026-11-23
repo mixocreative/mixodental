@@ -834,6 +834,7 @@ export const ja: Dictionary = {
   'Unflip front': '前側の反転を解除',
   'Flip teeth side': '歯の側を反転',
   'Unflip teeth side': '歯の側の反転を解除',
+  'This type stands on a flat base: it has no front or teeth side to turn round.': 'このタイプは平らな底面で立つため、反転できる前側や歯の側がありません。',
   'Turn this scan round: the end the detector called the front becomes the back. For this scan only.': 'このスキャンを回転：検出が前側と判定した端が後側になります。このスキャンのみ。',
   'Turn this scan over: the side the detector called the teeth side becomes the tissue side. For this scan only.': 'このスキャンを裏返す：検出が歯の側と判定した側が粘膜側になります。このスキャンのみ。',
   'Sides turned for this scan. Checking the print angles again…': 'このスキャンの面を反転しました。造形角度を再確認中…',

@@ -972,7 +972,7 @@ becomes available here - one rule, seen from both sides.
   - The frame tag `space: object | global` - no global kind exists yet.
   - The references (`plane`, `centre`, `planePoint`, `lookAt`, `normalOf`) - U7, after the owner accepts U6.
   - An aligner Orient graph.
-  - The app runs only the default Step 1: a type's own Orient graph is refused, with the reason, until graphs are registered with their type (E3).
+  - Since 2026-11-23 (WORKBENCH-TABS-PLAN E1) the app runs a type's own Orient graph: checked by the engine when the type loads, set before every denture job on it. E3 (one engine slot per type instead of the per-job set) is still planned.
   - U8 - the dental-model kind end to end - waits for the owner's sample file and ruling 4.
 - **The owner looks at the canvas next** (section 5's U6 condition).
 

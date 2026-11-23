@@ -60,9 +60,10 @@ describe('discoverTypes - the types the app can offer', () => {
     expect(found.loaded.map((t) => [t.category, t.id, t.badge])).toEqual([['aligner', 'al', 'AL']]);
   });
 
-  it('refuses what v1 cannot run - its own zone graph, pinned rules - saying why', () => {
-    expect(reasons(at(denture('g', { zoneGraph: defaultGraph() })))).toBe(NOT_YET.graph);
-    expect(reasons(at(denture('o', { orientGraph: flatBaseGraph() as unknown as Record<string, unknown> })))).toBe(NOT_YET.orientGraph);
+  // Plan E1: a type's own zone and Orient graphs load (typeGraphs.ts puts them in force per job); pinned rules do not yet.
+  it('loads a type with its own graphs, and refuses pinned rules saying why', () => {
+    const graphs = denture('g', { zoneGraph: defaultGraph(), orientGraph: flatBaseGraph() as unknown as Record<string, unknown> });
+    expect(discoverTypes(at(graphs), deps, known).loaded.map((t) => t.id)).toEqual(['g']);
     expect(reasons(at(denture('r', { rules: { overhangAngleDeg: 55 } })))).toBe(NOT_YET.rules(['overhangAngleDeg']));
   });
 

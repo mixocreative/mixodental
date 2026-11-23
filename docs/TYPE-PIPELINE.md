@@ -28,8 +28,11 @@ Companion pages: `docs/NODE-PLAN.md` (the nodes), `benchwork/README.md` (the pro
 >   `types/<category>/<id>.type.json` (`types/README.md`); `benchwork --type <file>` runs a saved one.
 >   Proof: start 10 / end 20 gave a search of 10-20 (picked 10, where the built-in picked 8); the saved
 >   file read back VALIDATED; `--type` on it reproduced 10 deg with the identical profile fingerprint.
-> - **The zone graph is still ONE global engine slot.** Until it is registered with the profile (E3),
->   the app must refuse a type that carries a graph rather than run it on the default wiring.
+> - **The zone graph is still ONE global engine slot, and the app now sets it per job (A3, built
+>   2026-11-23 as WORKBENCH-TABS-PLAN E1).** A type's own zone and Orient graphs load: the engine checks
+>   them when the type loads (`src/dentalTypes/typeGraphs.ts`), and every denture job puts its type's
+>   graphs in force first (`setCaseSlots` in `src/denture/engine/dentureCore.ts`). E3 - the graph
+>   registered with the profile, the slot gone - is still planned.
 
 ## 1. The answer, in plain words
 
@@ -168,7 +171,7 @@ Rules of the format:
   `crates/geometry-wasm/src/lib.rs:65-68`). An unknown name is an error at load. (`docs/design.md`
   records that the packing step silently drops unknown names today; I did not re-open that file.)
 - **`zoneGraph` is `null` for "the default wiring"**, or the graph exactly as the canvas exports it.
-- **`orientGraph` (optional, denture only, added 2026-11-23 with ORIENT-NODES U6)** is the type's own Step 1 as the Orient canvas exports it. Absent means today's Step 1, so every file written before it is still valid under the same format. When present it must run (`orientGraph.mjs` `validate`, the engine's refusals). Its digest joins the proof (`validation.orientGraphDigest`), so editing it after the proof makes the type UNVALIDATED. The app refuses a type that carries one, with the reason, as it does a type's own zone graph: the engine has one Orient graph for everything until graphs are registered with their type (E3).
+- **`orientGraph` (optional, denture only, added 2026-11-23 with ORIENT-NODES U6)** is the type's own Step 1 as the Orient canvas exports it. Absent means today's Step 1, so every file written before it is still valid under the same format. When present it must run (`orientGraph.mjs` `validate`, the engine's refusals). Its digest joins the proof (`validation.orientGraphDigest`), so editing it after the proof makes the type UNVALIDATED. Since 2026-11-23 (WORKBENCH-TABS-PLAN E1) the app loads a type that carries one: the engine checks it when the type loads, and every denture job on the type sets it first. A type whose Orient graph has no `upDecision` (the flat-base recipe) has no front or teeth side, so the app greys the Flip buttons with that reason.
 - **An aligner type has only the rules an aligner reads (`overhangAngleDeg` today) and `zoneGraph: null`** - corrected 2026-11-20; the line it replaces said `rules: {}`, and anything else is refused, because
   the aligner chain reads neither (`benchwork/README.md`, "only a denture responds").
 - **`validation` is never trusted by itself.** The loader recomputes both digests; a mismatch means
@@ -205,9 +208,10 @@ signatures. CANDIDATE: I counted call sites, I did not trace each one.
 next analyses use" - not a per-type setting. Fine for the review page, which runs one type per
 folder. In the app, a plate could hold two denture types. So:
 
-- **First (app unit A3 below):** the app sets the type's graph in ONE place, immediately before each
-  denture job, and every result already reports the digest that ran. Correct, because the engine is
-  single-threaded and the digest is in the cache key.
+- **First (app unit A3 below, BUILT 2026-11-23):** the app sets the type's graph in ONE place,
+  immediately before each denture job (`setCaseSlots`, beside the drawn rim and the case flip), and
+  every result already reports the digest that ran. Correct, because the engine is single-threaded
+  per realm and the digest is in the cache key.
 - **Later (PLANNED engine unit E3):** the graph is registered *with* the type, so the engine picks
   it by the same digest as the profile and the global slot goes away. This is the proper end state:
   one handle means one type, and there is nothing to forget to set.
@@ -421,9 +425,9 @@ with Fable, who agreed.)
 
 - **Pure module** `src/dentalTypes/shippedTypes.ts`: `discoverTypes(files, deps, opts)` -> loaded and
   refused. Refused, with the reason shown: a path that is not `types/<category>/<id>.type.json` or
-  disagrees with the file; anything `readTypeFile` refuses; a type with its own zone graph (one engine
-  graph slot until E3 - an aligner type carrying the locked aligner graph too; the workbench never writes
-  one, so this costs nothing today); a type
+  disagrees with the file; anything `readTypeFile` refuses - in the app that includes a zone or Orient
+  graph the ENGINE will not run, and a zone graph that turns the steep ray R1b on (the rule it needs
+  cannot be pinned yet); since 2026-11-23 (E1) a runnable graph loads; a type
   that pins rules (the app's rules are each unit's settings today - a pinned rule would be silently
   ignored); an id equal to a built-in's or another file's; a name equal to another profile's in any
   language. Tested with in-memory files.
@@ -601,7 +605,7 @@ weaker one `NODE-PLAN.md` states: it passes because the same code runs, not beca
 |---|---|---|
 | No door for profile numbers | every Orient and most Support edits, both categories | E1, E1h |
 | Host treats an unknown id as an aligner | any second denture type | E1h, guard in A1 |
-| App never sets a zone graph | running an edited denture type in the app | A3, then E3 |
+| ~~App never sets a zone graph~~ - set per job since 2026-11-23 | running an edited denture type in the app | A3 built; E3 planned |
 | Start angle is a literal | Orient start | E2 |
 | Steep-ray rule vs spelled-out graph precedence | parity proof 2 | settle inside P1; engine fix if they disagree |
 | Aligner has no rules channel, no zone nodes, no editor stage | editing an aligner beyond profile numbers | not yet units - an engine project, to be planned after P1 passes |

@@ -234,6 +234,8 @@ declare module '@mixo-geocore/editing/commands' {
     dentalProposed?: boolean;
     /** A denture's case flip (`PrintUnit.dentureFlip`): the sides turned round on this scan. */
     dentalFlip?: { front: boolean; teeth: boolean };
+    /** The case's type orients without a front or teeth side (its Orient graph has no upDecision), so Flip does nothing. */
+    dentalNoSides?: boolean;
     /** The dental step: Back is offered from Step 1 on. */
     dentalStage?: DentalStage;
     /** Dental Step 3: the supports are built for the current model and settings, so the aligner can be finished. */
@@ -452,6 +454,17 @@ const reviewing = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dent
 const area = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' && s.dentalStage === 'area';
 /** Rim define mode: Step 1's detour where the operator draws the rim detection could not find. */
 const rim = (s: Pick<UiState, 'mode' | 'dentalStage'>) => s.mode === 'dental' && s.dentalStage === 'rim';
+
+/**
+ * Why a denture's Flip buttons are greyed on Step 1, or undefined when they work (also undefined off Step 1, where
+ * they are hidden). A type without a front or teeth side says so: the flip acts inside the Orient graph's upDecision,
+ * and a button that silently did nothing is the failure this guards against (plan E1).
+ */
+const flipBlocked = (s: UiState): { key: string } | undefined => {
+  if (s.mode !== 'dental' || s.dentalStage !== 'aligner' || s.dentalKind !== 'denture') return undefined;
+  if (s.dentalNoSides) return { key: 'This type stands on a flat base: it has no front or teeth side to turn round.' };
+  return s.dentalAlignerReady && s.dentalProposed && !s.dentalTiltBusy ? undefined : { key: 'Wait until the print angles are checked.' };
+};
 
 registerEditMode({
   id: 'dental',
@@ -692,16 +705,16 @@ registerCommands({
     label: (s) => (s.dentalFlip?.front ? 'Unflip front' : 'Flip front'),
     hint: () => 'Turn this scan round: the end the detector called the front becomes the back. For this scan only.',
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture',
-    enabled: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture' && Boolean(s.dentalAlignerReady) && Boolean(s.dentalProposed) && !s.dentalTiltBusy,
-    disabledReason: (s) => (s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture' && !(s.dentalAlignerReady && s.dentalProposed && !s.dentalTiltBusy) ? { key: 'Wait until the print angles are checked.' } : undefined),
+    enabled: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture' && flipBlocked(s) === undefined,
+    disabledReason: (s) => flipBlocked(s),
   },
   'dental.denture.flipTeeth': {
     role: 'secondary',
     label: (s) => (s.dentalFlip?.teeth ? 'Unflip teeth side' : 'Flip teeth side'),
     hint: () => 'Turn this scan over: the side the detector called the teeth side becomes the tissue side. For this scan only.',
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture',
-    enabled: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture' && Boolean(s.dentalAlignerReady) && Boolean(s.dentalProposed) && !s.dentalTiltBusy,
-    disabledReason: (s) => (s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture' && !(s.dentalAlignerReady && s.dentalProposed && !s.dentalTiltBusy) ? { key: 'Wait until the print angles are checked.' } : undefined),
+    enabled: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture' && flipBlocked(s) === undefined,
+    disabledReason: (s) => flipBlocked(s),
   },
   'dental.rim.enter': {
     role: 'secondary',

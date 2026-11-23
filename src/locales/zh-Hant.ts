@@ -839,6 +839,7 @@ export const zhHant: Dictionary = {
   'Unflip front': '取消翻轉前側',
   'Flip teeth side': '翻轉牙齒側',
   'Unflip teeth side': '取消翻轉牙齒側',
+  'This type stands on a flat base: it has no front or teeth side to turn round.': '此類型以平坦底面站立，沒有可翻轉的前側或牙齒側。',
   'Turn this scan round: the end the detector called the front becomes the back. For this scan only.': '旋轉此掃描：偵測判定為前側的一端變成後側。僅適用於此掃描。',
   'Turn this scan over: the side the detector called the teeth side becomes the tissue side. For this scan only.': '翻轉此掃描：偵測判定為牙齒側的一側變成組織側。僅適用於此掃描。',
   'Sides turned for this scan. Checking the print angles again…': '已變更此掃描的各側。正在重新檢查列印角度…',

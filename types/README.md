@@ -30,8 +30,11 @@ every engine realm, so a committed type appears in the app's type picker with no
 id) and its badge. A file the app cannot use
 is listed on the items page ("N saved types could not load") with the reason - never dropped quietly, never
 replaced by Generic. Today it refuses, with that reason:
-- a type with **its own zone graph** (one engine graph for everything until the graph is registered with
-  its type) or that **pins rules** (each unit's settings are its rules in the app today);
+- a type that **pins rules** (each unit's settings are its rules in the app today);
+- a zone or Orient graph **the engine will not run** (checked by the engine itself when the type loads,
+  `src/dentalTypes/typeGraphs.ts`), or a zone graph that turns the steep ray R1b on (the rule it needs
+  cannot be pinned yet). A runnable graph loads since 2026-11-23 and is put in force before every
+  denture job on its type (WORKBENCH-TABS-PLAN E1);
 - an id or a name (in any language) another profile already has.
 
 **Proof is not required to load** (owner, 2026-11-22: "Do not need prove, make it easier"). The

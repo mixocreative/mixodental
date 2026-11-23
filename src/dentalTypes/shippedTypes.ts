@@ -34,10 +34,11 @@ export interface KnownProfile {
   name: Record<string, string>;
 }
 
-/** Why v1 refuses whole groups of types - each named where the next step will lift it. */
+/**
+ * Why v1 refuses whole groups of types - each named where the next step will lift it. A type's zone and Orient graphs
+ * load since plan E1 (`typeGraphs.ts` checks them with the engine and puts them in force per job); its rules do not yet.
+ */
 export const NOT_YET = {
-  graph: 'the app cannot run a type\'s own zone graph yet: the engine has one graph for everything until the graph is registered with its type',
-  orientGraph: 'the app cannot run a type\'s own Orient graph yet: the engine has one Orient graph for everything until it is registered with its type',
   rules: (names: string[]) => `the app cannot apply a type's own rules yet (${names.join(', ')}): each unit's settings are its rules today, so these would be ignored`,
 } as const;
 
@@ -65,10 +66,6 @@ export function discoverTypes(files: Readonly<Record<string, string>>, deps: Typ
       continue;
     }
     if (type.category !== category || type.id !== id) { refuse(`the file says ${type.category} / ${type.id}, but it sits at ${category} / ${id}`); continue; }
-    if (type.zoneGraph !== null) { refuse(NOT_YET.graph); continue; }
-    // Refused HERE, not only through the app's deps: the workbench's load verdict runs this with deps under which the
-    // Orient graph validates, and said "loads" for a file the app then refused (Fable, 2026-11-23).
-    if (type.orientGraph) { refuse(NOT_YET.orientGraph); continue; }
     const pinned = Object.keys(type.rules);
     if (pinned.length > 0) { refuse(NOT_YET.rules(pinned)); continue; }
     if (taken.some((p) => p.id === type.id)) { refuse(`another type already has the id "${type.id}"`); continue; }

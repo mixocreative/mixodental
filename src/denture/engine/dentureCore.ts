@@ -10,6 +10,7 @@ import type { DentalSession } from '@mixo-geocore/host/dental/dentalEngine';
 import { makeDenturePolicy, policyParts, policyRim, type DenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { setDentureDrawnRim, type DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
 import { setDentureCaseFlip, type CaseFlip } from '@mixo-geocore/host/dental/orientGraph';
+import { applyTypeGraphs } from '../../dentalTypes/typeGraphs';
 import type { DenturePart } from '@mixo-geocore/host/dental/dentureParts';
 import { positionIds } from '@mixo-geocore/host/supports/contactEdits';
 import { jobContacts } from '@mixo-geocore/host/supports/genericPolicy';
@@ -65,10 +66,21 @@ export interface DentureJob {
 /** Which rim a placement's tips stand on, and why a drawn one was not used (the caller must say so). */
 export type DentureRimUsed = { source: 'detected' | 'drawn'; problem?: string };
 
-/** Step 1 in one job: the upright frame, then the print-angle search (`onTilt(done, total)` per tilt), on the unit's drawn rim when it has one. */
-export function orientAndScan(mesh: TriangleMesh, profileId: string, settings: TiltScanSettings, onTilt?: (done: number, total: number) => void, onScanStart?: () => void, drawnRim?: DrawnDentureRim, caseFlip?: CaseFlip): { orientation: DentureOrientation; scan: TiltScan } {
+/**
+ * Put ONE case's engine slots in force before a denture job: its type's zone and Orient graphs, its drawn rim, its
+ * flip. The engine holds one of each per realm, not one per model, so every job sets all four - or clears them - first:
+ * a job that skipped one would run on what the previous job left (`typesReady.test.ts` fails on a site that sets the
+ * rim or the flip without this).
+ */
+export function setCaseSlots(profileId: string, drawnRim: DrawnDentureRim | null | undefined, caseFlip: CaseFlip | null | undefined): void {
+  applyTypeGraphs(profileId);
   setDentureDrawnRim(drawnRim ?? null);
   setDentureCaseFlip(caseFlip ?? null);
+}
+
+/** Step 1 in one job: the upright frame, then the print-angle search (`onTilt(done, total)` per tilt), on the unit's drawn rim when it has one. */
+export function orientAndScan(mesh: TriangleMesh, profileId: string, settings: TiltScanSettings, onTilt?: (done: number, total: number) => void, onScanStart?: () => void, drawnRim?: DrawnDentureRim, caseFlip?: CaseFlip): { orientation: DentureOrientation; scan: TiltScan } {
+  setCaseSlots(profileId, drawnRim, caseFlip);
   const orientation = orientDenture(mesh, profileId);
   if (orientation.kind !== 'oriented') return { orientation, scan: { kind: 'failed', reason: orientation.reason } };
   onScanStart?.();
@@ -101,10 +113,7 @@ function candidatesOf(handle: PolicyHandle, frame: JobTransform): { points: Supp
 
 /** Runs `use` with the job's denture policy made in a session holding the model; the handle is freed after. */
 function withPolicy<T>(job: Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand' | 'drawnRim' | 'caseFlip'>, use: (site: BuildSite, handle: PolicyHandle) => T): T {
-  // The engine holds ONE drawn rim, not one per model, so every job sets it - or clears it - first: a job that
-  // skipped this would run on whatever drawing the previous unit's job left in force.
-  setDentureDrawnRim(job.drawnRim ?? null);
-  setDentureCaseFlip(job.caseFlip ?? null);
+  setCaseSlots(job.policy.profileId, job.drawnRim, job.caseFlip);
   return withOneShotSite(job.mesh, (site) => {
     const handle = makeDenturePolicy(site.session as unknown as Pick<DentalSession, 'denture_policy_ruled'>, site.source, job.policy, job.frame, job.hand.manual, job.rules);
     try {
