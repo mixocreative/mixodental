@@ -280,6 +280,8 @@ export interface DentalSession {
   denture_review_ruled(model: number, profile: string, tilt_deg: number, rules: Float64Array): DentureReviewResultLike | undefined;
   /** Engine 71: every node of the Orient graph in force, as JSON text (`orientGraph.ts` `orientNodes`). */
   denture_orient_nodes(model: number, profile: string): string;
+  /** Every zone-graph node of the graph in force, with its value per face (`zoneGraph.ts` `zoneNodesOf`, plan D3). */
+  denture_zone_nodes(model: number, profile: string, steep_deg: number): { ids(): string; values(): Uint8Array; free(): void };
   /** Support-area comparison of two xyz point lists (mesh frame) within `radiusMm`. */
   denture_compare_areas(model: number, owner: Float64Array, generated: Float64Array, radiusMm: number): DentureAreaResultLike;
 }

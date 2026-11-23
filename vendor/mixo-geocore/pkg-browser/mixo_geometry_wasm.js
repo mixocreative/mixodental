@@ -1696,6 +1696,55 @@ export class DentureTiltPaths {
 if (Symbol.dispose) DentureTiltPaths.prototype[Symbol.dispose] = DentureTiltPaths.prototype.free;
 
 /**
+ * Every evaluated zone-graph node's value per face: `ids()` (JSON array) and `values()`, node after node.
+ */
+export class DentureZoneNodes {
+    static __wrap(ptr) {
+        const obj = Object.create(DentureZoneNodes.prototype);
+        obj.__wbg_ptr = ptr;
+        DentureZoneNodesFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        DentureZoneNodesFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_denturezonenodes_free(ptr, 0);
+    }
+    /**
+     * The node ids as a JSON array, in the order of `values`.
+     * @returns {string}
+     */
+    ids() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.denturezonenodes_ids(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * Each node's value per face, node after node: a set of faces 0 / 1, a Mark 0 Undefined / 1 Support / 2 No-support.
+     * @returns {Uint8Array}
+     */
+    values() {
+        const ret = wasm.denturezonenodes_values(this.__wbg_ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+}
+if (Symbol.dispose) DentureZoneNodes.prototype[Symbol.dispose] = DentureZoneNodes.prototype.free;
+
+/**
  * The review GLB data of `diagnose`: coloured layers, one per role (docs/SHIP-PLAN.md ABI).
  */
 export class Diagnosis {
@@ -2750,6 +2799,24 @@ export class GeometrySession {
             throw takeFromExternrefTable0(ret[1]);
         }
         return DentalTiltScanResult.__wrap(ret[0]);
+    }
+    /**
+     * Every zone-graph node of the graph in force (`set_zone_graph`), evaluated on the model, with its value per face
+     * (WORKBENCH-TABS-PLAN D3, the Zones tab's live preview): no placement, no build, so an edit shows in seconds.
+     * Empty for a model too small to analyse.
+     * @param {number} model
+     * @param {string} profile
+     * @param {number} steep_deg
+     * @returns {DentureZoneNodes}
+     */
+    denture_zone_nodes(model, profile, steep_deg) {
+        const ptr0 = passStringToWasm0(profile, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.geometrysession_denture_zone_nodes(this.__wbg_ptr, model, ptr0, len0, steep_deg);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        return DentureZoneNodes.__wrap(ret[0]);
     }
     /**
      * Review layers of a loaded aligner: the contact strip, the contours and, when given, the
@@ -5357,6 +5424,9 @@ const DentureReviewResultFinalization = (typeof FinalizationRegistry === 'undefi
 const DentureTiltPathsFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_denturetiltpaths_free(ptr, 1));
+const DentureZoneNodesFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_denturezonenodes_free(ptr, 1));
 const DiagnosisFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_diagnosis_free(ptr, 1));

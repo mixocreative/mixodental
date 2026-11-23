@@ -660,6 +660,23 @@ export class DentureTiltPaths {
 }
 
 /**
+ * Every evaluated zone-graph node's value per face: `ids()` (JSON array) and `values()`, node after node.
+ */
+export class DentureZoneNodes {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * The node ids as a JSON array, in the order of `values`.
+     */
+    ids(): string;
+    /**
+     * Each node's value per face, node after node: a set of faces 0 / 1, a Mark 0 Undefined / 1 Support / 2 No-support.
+     */
+    values(): Uint8Array;
+}
+
+/**
  * The review GLB data of `diagnose`: coloured layers, one per role (docs/SHIP-PLAN.md ABI).
  */
 export class Diagnosis {
@@ -960,6 +977,12 @@ export class GeometrySession {
      * `boxed_reasons()` (the picked row's boxed-in points).
      */
     denture_tilt_scan_ruled(model: number, profile: string, neck_length_mm: number, pillar_diameter_mm: number, lift_mm: number, braced: boolean, rules: Float64Array, on_tilt?: Function | null): DentalTiltScanResult;
+    /**
+     * Every zone-graph node of the graph in force (`set_zone_graph`), evaluated on the model, with its value per face
+     * (WORKBENCH-TABS-PLAN D3, the Zones tab's live preview): no placement, no build, so an edit shows in seconds.
+     * Empty for a model too small to analyse.
+     */
+    denture_zone_nodes(model: number, profile: string, steep_deg: number): DentureZoneNodes;
     /**
      * Review layers of a loaded aligner: the contact strip, the contours and, when given, the
      * diagnostic strips (`bands`: four masks of one byte per face, or empty), the sampled

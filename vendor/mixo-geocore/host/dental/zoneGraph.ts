@@ -9,7 +9,8 @@
  * The digest that comes back is what the run reports. It is how anyone reading a result can tell an
  * edited graph ran from the default running, which otherwise look exactly alike on screen.
  */
-import { dentalEngine } from './dentalEngine';
+import { dentalEngine, withDentalMesh } from './dentalEngine';
+import type { TriangleMesh } from '../core/analysis/types';
 
 /** A graph the engine refused, with the node and reason in `detail`. */
 export class ZoneGraphRefused extends Error {
@@ -39,4 +40,24 @@ export function setZoneGraph(graph: unknown): string {
 /** The digest of the zone graph in force, or "default". */
 export function zoneGraphDigest(): string {
   return dentalEngine().zone_graph_digest();
+}
+
+/**
+ * Every node of the zone graph in force, evaluated on `mesh` (unit-local) under denture type `profile`, with its value
+ * per face - the values a review carries (`DentureReview.zoneNodes`), without the placement and the build, so the
+ * workbench can show an edited graph in seconds (plan D3). `steepDeg` is the steep-ray rule, read only by the default
+ * graph. Empty for a mesh too small to analyse.
+ */
+export function zoneNodesOf(mesh: TriangleMesh, profile: string, steepDeg = 0): { id: string; values: Uint8Array }[] {
+  return withDentalMesh(mesh, (session, model) => {
+    const result = session.denture_zone_nodes(model, profile, steepDeg);
+    try {
+      const ids = JSON.parse(result.ids()) as string[];
+      const values = result.values();
+      const faces = ids.length === 0 ? 0 : values.length / ids.length;
+      return ids.map((id, k) => ({ id, values: values.slice(k * faces, (k + 1) * faces) }));
+    } finally {
+      result.free();
+    }
+  });
 }
