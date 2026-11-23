@@ -71,6 +71,8 @@ export interface GraphLib {
   KIND_GROUP: Record<string, string>;
   /* What this version does not read (mirrors zone_graph.rs): drawn as fixed, never as a field. */
   FIXED: { params: Record<string, string[]>; outputs: string[] };
+  /** Whether a node's setting is fixed: FIXED.params by kind, plus a library's own per-node rule (a rim strip's width). */
+  fixedParam(node: GraphNode, key: string): boolean;
   rewire(g: Graph, id: string, input: string, from: string | null): Graph;
   bindOutput(g: Graph, name: string, from: string | null): Graph;
   removeNode(g: Graph, id: string): Graph;
@@ -236,13 +238,15 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
         const isLive = live.includes(`${node.id}.${key}`);
         // A node found in an earlier stage (the rim) shows its settings as text here: they are edited on their own tab,
         // and two places to edit one number is how they disagree.
-        if (lib.FIXED.params[node.kind]?.includes(key) || spec.fixed) {
-          // A field the engine ignores is a control that lies, so a fixed setting is text, not an input.
+        if (lib.fixedParam(node, key) || spec.fixed) {
+          // A field the engine ignores is a control that lies, so a fixed setting is text, not an input. A strip's
+          // width is fixed only on the two rim strips, whose width the profile gives - set on 2 Rim, not "locked".
+          const onRim = spec.fixed || (node.kind === 'band' && key === 'mm');
           const shown = p.choices?.find(([v]) => String(v) === String(value))?.[1] ?? String(value);
           return (
-            <div className="zn-row" key={key} title={spec.fixed ? `${p.help} Set on the Rim tab.` : `${p.help} Locked: this version of the engine does not read a change to it yet.`}>
+            <div className="zn-row" key={key} title={onRim ? `${p.help} Set on the Rim tab.` : `${p.help} Locked: this version of the engine does not read a change to it yet.`}>
               <span className="zn-in">{p.label}</span>
-              <span className="zn-fixed">{shown} · {spec.fixed ? 'set on 2 Rim' : 'locked'}</span>
+              <span className="zn-fixed">{shown} · {onRim ? 'set on 2 Rim' : 'locked'}</span>
             </div>
           );
         }

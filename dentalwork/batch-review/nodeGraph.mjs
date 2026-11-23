@@ -124,7 +124,7 @@ export const KIND_WORDS = {
   holes: { title: 'Find holes', says: 'Openings you can see right through the part, found from the depth map. Its setting is fixed in this version.' },
   basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map. Not runnable yet: the socket depth comes from the rule "socket depth".' },
   // Owner 2026-11-23: "i still dont get what strip around does" - the title says the action, the sentence the picture.
-  band: { title: 'Grow a strip', says: 'Grows its input outward along the surface: every face within the set distance of it, like painting a border round each hole. Only the 5 mm strip around Find holes takes its width from here. The two rim strips are grown from the rim at the profile\'s widths, not from this node; since step 7.3 they may feed any zone.' },
+  band: { title: 'Grow a strip', says: 'Grows its input outward along the surface: every face within the set distance of it, like painting a border round each hole. The hole strip takes its width from here (standard 5 mm; it is where hole tips stand). The two rim strips are grown from the rim at the profile\'s widths, not from this node; since step 7.3 they may feed any zone.' },
   rim: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
   rimSide: { title: 'Rim side', says: "Faces near the rim on ONE side of it: inner faces the fitting surface, outer is the visible outside. Its width is this node's own, not the profile's rim strip width. Nothing uses it until you wire it in." },
   // Names from docs/WORKBENCH-TABS-PLAN.md section 2: "Either A or B" read like a switch that picks one. It is the
@@ -199,7 +199,7 @@ export const PARAM_WORDS = {
 export const OUTPUT_WORDS = {
   // The one-zone form (plan D1): what the three old outputs said, now said by the Zone's three states.
   zone: { title: 'Zone', says: 'Every face ends up Support, No-support or Undefined (no Mark touched it). Area tips stand only on Support. With "low outside" at 1 (the default), lowest-point and island tips stay off No-support unless the face is in the low rim strip; on Undefined they still stand. A later Mark wins.' },
-  hole_band: { title: 'Hole strip', says: 'The 5 mm strip around holes where hole tips are placed. Fixed in this version.' },
+  hole_band: { title: 'Hole strip', says: 'The strip around holes where hole tips are placed - as wide as its Grow a strip node (standard 5 mm). The output itself stays wired to that node.' },
   rim: { title: 'Rim line', says: 'The line rim tips are placed along. Found in Orient; fixed here.' },
   rim_band: { title: 'Rim strip', says: 'The strip along the rim where rim-strip tips go. As wide as the profile\'s rim strip width (2 mm by default). Free since step 7.3: fill it with any faces, e.g. the rim strip on the rim\'s inner side only. Rim tips go on these faces whether or not they are Allowed, so faces from the no-support zone here get rim tips.' },
   low_rim_band: { title: 'Low rim strip', says: 'The wider strip along the rim where a lowest point or island still gets a tip, even inside the no-support zone. As wide as the profile\'s low rim strip width (5 mm by default). Free since step 7.3.' },
@@ -213,6 +213,14 @@ export const OUTPUT_WORDS = {
  * depth-map and hole settings, the cavity origin's planes and a rewired hole strip all ran "clean" and
  * changed nothing). The engine refuses them too; this is so the operator never gets that far.
  */
+/** The two rim strips, by node id: grown at the PROFILE's widths, so their node's `mm` is never read (engine RIM_STRIP_NODES). */
+export const RIM_STRIP_IDS = ['RIMBAND', 'LOWRIMBAND'];
+
+/** Whether `key` of `node` is fixed in this version: the kind's fixed settings, and a rim strip's width. */
+export function fixedParam(node, key) {
+  return (FIXED.params[node.kind] ?? []).includes(key) || (node.kind === 'band' && key === 'mm' && RIM_STRIP_IDS.includes(node.id));
+}
+
 export const FIXED = {
   params: {
     parallelCast: ['pitchMm'],
@@ -220,7 +228,8 @@ export const FIXED = {
     holes: ['minAreaMm2'],
     basinFill: ['minDepthMm'],
     intersection: ['planeA', 'planeB', 'face'],
-    band: ['mm'],
+    // A strip's width is NOT here since 2026-11-23: the hole strip grows at its node's width. The two rim strips'
+    // width stays the profile's (set on 2 Rim), so their `mm` alone is fixed - by node, in `fixedParam`.
   },
   // rim_band and low_rim_band were freed in step 7.3 (owner ruling 2026-11-23); the strips' WIDTH stays the profile's.
   outputs: ['hole_band', 'rim', 'sockets'],
@@ -505,7 +514,7 @@ export function validate(graph) {
   }
   for (const node of graph.nodes) {
     const was = byId(today, node.id)?.params ?? KINDS[node.kind]?.params ?? {};
-    for (const key of FIXED.params[node.kind] ?? []) {
+    for (const key of Object.keys({ ...(KINDS[node.kind]?.params ?? {}), ...node.params }).filter((k) => fixedParam(node, k))) {
       if (key in node.params && node.params[key] !== was[key]) problems.push(`${node.id}: "${key}" is fixed at ${was[key]} in this version - the engine does not read an edit yet`);
     }
     if (node.kind === 'rim') problems.push(...rimProblems(node));
@@ -517,7 +526,11 @@ export function validate(graph) {
       if (!(mm > 0 && mm <= 20)) problems.push(`${node.id}: mm must be above 0 and at most 20, got ${node.params.mm}`);
       if (node.params.which !== 'inner' && node.params.which !== 'outer') problems.push(`${node.id}: which must be inner or outer, got "${node.params.which}"`);
     }
-    if (node.kind === 'band' && !['RIMBAND', 'LOWRIMBAND'].includes(node.id) && byId(graph, node.inputs.seeds)?.kind !== 'holes') {
+    // The hole strip's width, as the engine checks it (zone_graph.rs HOLE_BAND_MAX_MM).
+    if (node.kind === 'band' && !RIM_STRIP_IDS.includes(node.id) && !(Number(node.params.mm) > 0 && Number(node.params.mm) <= 20)) {
+      problems.push(`${node.id}: the hole strip's width must be above 0 and at most 20 mm, got ${node.params.mm}`);
+    }
+    if (node.kind === 'band' && !RIM_STRIP_IDS.includes(node.id) && byId(graph, node.inputs.seeds)?.kind !== 'holes') {
       problems.push(`${node.id}: in this version a strip must be seeded by Find holes - from anything else it would still run as the hole strip`);
     }
   }

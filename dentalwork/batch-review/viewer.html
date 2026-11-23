@@ -1785,7 +1785,7 @@ function zoneCard(g, n, k, idle, save) {
     else for (const [v, label] of words.choices ?? []) input.append(new Option(label, v));
     input.value = String(value);
     // Fixed in this version (graphLib.FIXED mirrors the engine): shown, never editable.
-    const fixedHere = Boolean(graphLib.FIXED.params[n.kind]?.includes(key));
+    const fixedHere = graphLib.fixedParam(n, key);
     input.disabled = fixedHere;
     input.dataset.ui = `zone-param-${n.id}-${key}`;
     // R1b's angle is the ONE zone parameter that already runs today, through the rule

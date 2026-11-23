@@ -88,6 +88,8 @@ export const OUTPUT_NODE = { title: 'Final orientation', says: 'What every later
 
 /** Nothing in an Orient graph is fixed in this version: every parameter shown is one the engine reads. */
 export const FIXED = { params: {}, outputs: [] };
+/** The canvas asks every library which settings are fixed (nodeGraph.mjs has a per-node rule); none are here. */
+export const fixedParam = (node, key) => (FIXED.params[node.kind] ?? []).includes(key);
 
 /** Today's Step 1, node for node - the engine's `orient_graph::default_graph`. */
 export function defaultGraph() {

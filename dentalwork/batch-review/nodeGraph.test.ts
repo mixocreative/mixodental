@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
   ALIGNER_KINDS, OLD_KINDS, RIM_DERIVED_REASON, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, rimTabGraph, rimTabView,
-  setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines, FLAT_EDGE_NEEDS_BASE, sameGraph, RIM_LINE_PITCH_MM, placementProblem,
+  setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines, FLAT_EDGE_NEEDS_BASE, sameGraph, RIM_LINE_PITCH_MM, placementProblem, fixedParam,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -412,6 +412,17 @@ describe('the rim tab', () => {
     const lines = rimOutputLines('denture', { placement: {}, ran: { rimBandMm: 3, lowRimBandMm: 5 } });
     expect(lines[1]).toBe('Rim strip - 2 mm along the rim (the run on screen used 3 mm); rim tips at 2 mm over the whole strip');
     expect(lines[2]).toBe('Low rim strip - 5 mm along the rim');
+  });
+
+  // Owner 2026-11-23: "why strip width is locked?" - the hole strip's is not any more; a rim strip's stays the profile's.
+  it('lets the hole strip take its own width, keeps a rim strip node\'s fixed, and refuses a width the engine would', () => {
+    const band = defaultGraph().nodes.find((n) => n.id === 'BAND')!;
+    const rimBand = defaultGraph().nodes.find((n) => n.id === 'RIMBAND')!;
+    expect(fixedParam(band, 'mm')).toBe(false);
+    expect(fixedParam(rimBand, 'mm')).toBe(true);
+    expect(validate(setParam(defaultGraph(), 'BAND', 'mm', 3)).problems).toEqual([]);
+    expect(validate(setParam(defaultGraph(), 'BAND', 'mm', 0)).problems).toContain('BAND: the hole strip\'s width must be above 0 and at most 20 mm, got 0');
+    expect(validate(setParam(defaultGraph(), 'RIMBAND', 'mm', 4)).problems.join(' ')).toContain('"mm" is fixed');
   });
 
   // Owner 2026-11-23: tips along the rim line at one spacing; the strip's area like the supported area, or its own grid.

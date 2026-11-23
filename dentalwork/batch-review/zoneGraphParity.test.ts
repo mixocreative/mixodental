@@ -64,6 +64,12 @@ function corpus(): [string, Graph][] {
   const underMask = clone(d); (underMask.nodes.find((n) => n.id === 'Z2')!.inputs as Record<string, string>).under = 'NS';
   cases.push(['a Mark with a set of faces under it', underMask]);
   cases.push(['a seen switch that is text', setParam(clone(d), 'Z2', 'seen', 'yes')]);
+  // The hole strip's width (owner 2026-11-23): free between 0 and 20 mm; a rim strip's stays the profile's.
+  cases.push(['a 3 mm hole strip', setParam(clone(d), 'BAND', 'mm', 3)]);
+  cases.push(['a hole strip 0 mm wide', setParam(clone(d), 'BAND', 'mm', 0)]);
+  cases.push(['a hole strip 25 mm wide', setParam(clone(d), 'BAND', 'mm', 25)]);
+  // Not here: a rim strip node's own `mm`. The engine never reads it (the profile's width wins) and so accepts any;
+  // the canvas shows it as "set on 2 Rim" and refuses an edit. A known difference on a field no one can edit.
   const both = clone(d); (both.outputs as Record<string, string>).allowed = 'AL';
   cases.push(['the zone and an old output wired together', both]);
   const firstMark = clone(d); delete (firstMark.nodes.find((n) => n.id === 'Z2')!.inputs as Record<string, string>).under;
