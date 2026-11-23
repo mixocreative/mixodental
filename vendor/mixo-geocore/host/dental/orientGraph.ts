@@ -37,11 +37,21 @@ export function orientGraphDigest(): string {
 
 /** What one node made. A region's faces are the FILE's face ids. */
 export type OrientNodeValue =
-  | { type: 'frame'; centroid: Vector; up: Vector; lean: Vector; across: Vector; decided: boolean }
+  | {
+    type: 'frame'; centroid: Vector; up: Vector; lean: Vector; across: Vector; decided: boolean;
+    /** What the arch rule measured (every frame-giving node carries it for an arch frame; zeros for a base frame). */
+    arch: { flatness: number; legsGapRatio: number; teethOffsetMm: number; teethGuessSure: boolean };
+    /** After `upDecision`: the front/back and slice-vote results, and whether each first guess was turned round. */
+    sides?: {
+      frontBack: { widthMm: [number, number]; margin: number; crossCheckAgrees: boolean } | null;
+      sliceVotes: { forTeethSide: number; against: number; notVoting: number };
+      confidence: number; frontTurnedRound: boolean; teethSideTurnedRound: boolean;
+    };
+  }
   | { type: 'pose'; up: Vector; lean: Vector; across: Vector }
   | { type: 'region'; centroid: Vector; normal: Vector; areaMm2: number; protrusionMm: number; faces: number[] };
 
 /** Every node of the graph in force on `mesh`, by id - or the engine's refusal code when the graph cannot orient it. */
-export function orientNodes(mesh: TriangleMesh, profile: string): { nodes: Record<string, OrientNodeValue> } | { refused: string } {
+export function orientNodes(mesh: TriangleMesh, profile: string): { nodes: Record<string, OrientNodeValue>; outputs: { frame: string; pose: string } } | { refused: string } {
   return withDentalMesh(mesh, (session, model) => JSON.parse(session.denture_orient_nodes(model, profile)));
 }

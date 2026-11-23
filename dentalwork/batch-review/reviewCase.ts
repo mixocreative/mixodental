@@ -26,6 +26,9 @@ import { LAYER_COLOURS } from './layerColours';
 import { alignerRules, buildDentureReview, dentureLayers, reviewProfileId, shapeNote, type DentalKind } from './profileSelect';
 import { peelReport } from './peelReport';
 import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureReviewDetail } from './dentureReviewLayers';
+import { orientNodes } from '@mixo-geocore/host/dental/orientGraph';
+import { transformPoint } from '@mixo-geocore/host/state/transform';
+import { readoutLines, sideAnchors } from './orientReadout';
 
 export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   /** The Step 1 evidence GLB (trim chains, U ends, trim plane, back arrow) beside `glb`, or ''. */
@@ -67,6 +70,8 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   peelMaxOurs: number | null; peelMaxOursAtMm: number | null; peelMaxOwner: number | null; peelMaxOwnerAtMm: number | null; peelRaftTopMm: number | null; peelModelOnlyRatio: number | null; peelLayersOver: number | null; maxTipsPerTrunk: number | null; trunkToNeckArea: number | null;
   /** The per-layer chart data file (`case-001-peel.json`) beside the GLB, or ''; and why the report is missing, if it is. */
   peelFile: string; peelNote: string;
+  /** The Orient tab's file for this case (`<case>-orient.json`): each node's readout lines and the six named sides, in display space. */
+  orientFile: string;
   /** Denture only, when MIXO_TIMERS is set: seconds per stage of the flow ('scan 3.1 / policy 0.4 / generate 20 / flow 24'); '' otherwise. */
   stageTimes: string;
 };
@@ -80,7 +85,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
     ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, rimPlane: '',
     upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
-    peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', stageTimes: '',
+    peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', stageTimes: '',
     ...noEvidence, orientationGlb: '' };
   let shapeMesh: TriangleMesh | undefined;
   try {
@@ -185,6 +190,17 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
   const allLayers = [...dentureLayers(mesh, review), ...detail.layers];
   const glb = Buffer.from(await orientationGlb(allLayers, review.frame));
   writeFileSync(join(out, `${name}.glb`), glb);
+  // The Orient tab's readouts and the six named sides of the FINAL orientation (WORKBENCH-TABS-PLAN B3), in the
+  // GLB's display space (the frame applied, as orientationGlb applies it). A JSON beside the GLB, never a layer in it,
+  // so the review files the real-scan gate compares are unchanged.
+  const read = orientNodes(mesh, reviewProfileId('denture'));
+  if ('nodes' in read) {
+    const final = read.nodes[read.outputs.frame];
+    const sides = final?.type === 'frame' ? sideAnchors(mesh.positions, final).map((a) => ({ ...a, position: transformPoint(review.frame, a.position) })) : [];
+    const lines = Object.fromEntries(Object.entries(read.nodes).map(([id, value]) => [id, readoutLines(value)]));
+    writeFileSync(join(out, `${name}-orient.json`), JSON.stringify({ lines, sides, outputs: read.outputs }));
+    row.orientFile = `${name}-orient.json`;
+  }
   // Peel and strength report: layer areas of our print against the owner print, from the GLB just written. Never stops the case.
   try {
     const peel = peelReport(glb, review.supports);

@@ -92,6 +92,8 @@ export interface ZoneEditorProps {
   liveParams?: string[];
   onGraph(next: Graph): void;
   onPositions(next: Positions): void;
+  /** Lines per node id: what that step measured on the case on screen (the Orient readouts). Absent: none. */
+  values?: Record<string, string[]>;
 }
 
 /* ONE output node with a socket per output, like Blender's Material Output - eight separate output
@@ -158,6 +160,8 @@ export function autoLayout(g: Graph, fixedOutputs: string[] = []): Positions {
 
 interface ZoneData extends Record<string, unknown> {
   lib: GraphLib; node: GraphNode; idle: boolean; live: string[];
+  /* What this node measured on the case on screen (the Orient readouts); absent for none. */
+  values?: string[];
   /* The model's problems that name THIS node ("R1: ..."), shown on it; the rest stay in the list above. */
   issues: { text: string; warn: boolean }[];
   onParam(id: string, key: string, value: string | number): void;
@@ -200,6 +204,11 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
       <div className="zn-says">{words.says}</div>
       {/* TAKES / GIVES, generated from the kind table so they cannot drift from the wiring (WORKBENCH-TABS-PLAN
           section 8): the owner could not tell what a node took in or handed on. */}
+      {(data.values?.length ?? 0) > 0 && (
+        <div className="zn-readout" data-ui="node-readout" title="What this step measured on the case on screen">
+          {data.values!.map((line) => <div key={line}>{line}</div>)}
+        </div>
+      )}
       <div className="zn-takes" data-ui="node-takes">
         <b>Takes:</b> {Object.keys(spec.inputs).length === 0 ? 'the scan itself' : Object.values(spec.inputs).map(typeText).join(', ')}
         {' · '}<b>Gives:</b> {typeText(spec.out)}
@@ -299,7 +308,7 @@ function minimapColor(node: Node): string {
   return token ? getComputedStyle(document.documentElement).getPropertyValue(token).trim() || 'gray' : getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
 }
 
-export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, onPositions }: ZoneEditorProps) {
+export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, onPositions, values }: ZoneEditorProps) {
   const idle = useMemo(() => new Set(lib.unreached(graph)), [lib, graph]);
   const fixed = useMemo(() => fixedOnly(graph, lib.FIXED.outputs), [graph, lib]);
   // Every model message that concerns one node starts with its id and a colon - the one convention
@@ -326,13 +335,13 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
     ...graph.nodes.filter((n) => !fixed.has(n.id)).map((n) => ({
       id: n.id, type: 'zone', position: positions[n.id] ?? { x: 0, y: 0 },
       deletable: !lib.KINDS[n.kind].fixed,
-      data: { lib, node: n, idle: idle.has(n.id), live: liveParams, onParam, onRemove, issues: issues.get(n.id) ?? [] } satisfies ZoneData,
+      data: { lib, node: n, idle: idle.has(n.id), live: liveParams, onParam, onRemove, issues: issues.get(n.id) ?? [], values: values?.[n.id] } satisfies ZoneData,
     })),
     {
       id: OUTPUTS, type: 'zoneOutput', position: positions[OUTPUTS] ?? { x: 0, y: 0 }, deletable: false,
       data: { lib, filled: Object.fromEntries(Object.keys(lib.REQUIRED_OUTPUTS).map((k) => [k, Boolean(graph.outputs[k])])) } satisfies OutputData,
     },
-  ], [graph, positions, lib, idle, liveParams, onParam, onRemove, issues, fixed]);
+  ], [graph, positions, lib, idle, liveParams, onParam, onRemove, issues, fixed, values]);
 
   /*
    * React Flow keeps each node's MEASURED size in the node object, delivered through onNodesChange.

@@ -82,6 +82,7 @@
   /* The box centre's label, pinned to its sphere each frame. */
   .marker-label { position: absolute; left: 0; top: 0; transform: translate(10px, -26px); padding: 1px 6px; border-radius: 3px; background: var(--surface); border: 1px solid var(--line-strong); font-size: var(--fs-sm); white-space: nowrap; pointer-events: none; }
   .marker-label[hidden] { display: none; }
+  .side-label { transform: translate(-50%, -50%); background: var(--paper); font-weight: 600; }
   /* Hover tooltip (3D objects and panel labels): flat, hairline, never takes the pointer. */
   .hover-tip { position: fixed; z-index: 30; max-width: 280px; padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); font-size: var(--fs-sm); line-height: 1.35; pointer-events: none; }
   .hover-tip[hidden] { display: none; }
@@ -223,6 +224,7 @@
 .zone-canvas .zn-head { display: flex; align-items: baseline; gap: 6px; font-size: 12px; }
 .zone-canvas .zn-id { margin-left: auto; color: var(--muted); font-size: 10px; }
 .zone-canvas .zn-says { color: var(--muted); font-size: 10px; line-height: 1.35; margin: 2px 0 6px; }
+.zone-canvas .zn-readout { font-size: 10px; line-height: 1.35; margin: 0 0 6px; padding: 3px 5px; background: var(--paper); border-radius: 3px; color: var(--ink); }
 .zone-canvas .zn-takes { font-size: 10px; line-height: 1.35; margin: 0 0 6px; color: var(--ink); }
 .restore-mark { margin-left: 4px; padding: 0 5px; font-size: 11px; line-height: 16px; border: 1px solid var(--line); border-radius: 3px; background: var(--paper); cursor: pointer; }
 .restore-mark[hidden] { display: none; }
@@ -628,6 +630,10 @@ const PILLAR_KEYS = ['GOLD', 'SUPPORT PILLARS', 'YOUR SUPPORTS'];
 // The denture box centre's label, pinned to the sphere (set in show()).
 const boxLabel = document.getElementById('box-label');
 let boxAnchor = null;
+// Declared up here, not beside loadOrientFile: the render loop starts at load and reads them every frame, and a
+// `let` read before its line throws (the first version did, and no label ever moved).
+let orientRead = null;
+let sideLabels = [];
 // Matte, low specular: resin/ABS supports, not glossy.
 const PLASTIC = new THREE.MeshPhysicalMaterial({ color: cssToken('--layer-vertex-base'), vertexColors: true, metalness: 0, roughness: 0.85,
   clearcoat: 0, specularIntensity: 0.15, envMapIntensity: 0.3, side: THREE.DoubleSide });
@@ -655,6 +661,7 @@ renderer.setAnimationLoop(() => {
   const below = floorY !== null && camera.position.y < floorY;
   if (below !== underside) { underside = below; applyVisibility(); }
   placeBoxLabel();
+  placeSideLabels();
   renderer.render(scene, camera);
 });
 
@@ -1315,6 +1322,8 @@ function drawOrientEditor(body) {
   bar.append(summary, tools);
   const props = {
     lib: orientLib, graph: g, positions: orientPositions, liveParams: [], onGraph: save,
+    // What each step measured on the case on screen (B3): the readouts of the graph that RAN for it.
+    values: orientRead?.lines ?? {},
     onPositions: (next) => {
       orientPositions = next;
       try { localStorage.setItem('review-orient-layout', JSON.stringify(next)); } catch { /* per-viewer only */ }
@@ -2189,6 +2198,37 @@ function facts(c) {
   document.getElementById('source').textContent = c.source ?? '';
   drawTilt(c);
   drawPeel(c);
+  loadOrientFile(c);
+}
+
+/*
+ * THE ORIENT TAB'S CASE FILE (WORKBENCH-TABS-PLAN B3, written by reviewCase.ts): each Orient node's readout lines
+ * ("how sure was it") and the six named sides of the FINAL orientation. The side names are drawn on the 3D view on
+ * every tab - Front, Back, Teeth side, Tissue side, Left, Right - so every later tab can refer to them. Positions are in
+ * the review file's own space; the model's world matrix carries them wherever the view puts the model.
+ */
+async function loadOrientFile(c) {
+  const data = c.kind === 'denture' && c.orientFile ? await fetch(urlOf(c.orientFile)).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null;
+  if (caseNow !== c && caseNow?.case !== c.case) return;
+  orientRead = data;
+  for (const label of sideLabels) label.el.remove();
+  sideLabels = (data?.sides ?? []).map((side) => {
+    const el = Object.assign(document.createElement('div'), { className: 'marker-label side-label', textContent: side.name });
+    el.dataset.ui = `side-label-${side.name.toLowerCase().replace(/\s+/g, '-')}`;
+    el.title = side.name === 'Left' || side.name === 'Right' ? `${side.name}: as seen from the Front with the Teeth side up` : `${side.name} side of the part, in its final orientation`;
+    boxLabel.parentElement.append(el);
+    return { el, at: new THREE.Vector3(...side.position) };
+  });
+  if (lastChain && stageNow === 'orient') drawChain(...lastChain);
+}
+function placeSideLabels() {
+  for (const { el, at } of sideLabels) {
+    if (!model) { el.style.display = 'none'; continue; }
+    const p = at.clone().applyMatrix4(model.matrixWorld).project(camera);
+    el.style.display = p.z > 1 ? 'none' : '';
+    el.style.left = `${(p.x * 0.5 + 0.5) * stage.clientWidth}px`;
+    el.style.top = `${(-p.y * 0.5 + 0.5) * stage.clientHeight}px`;
+  }
 }
 
 // The peel chart: layer area of our print (red) and the owner's (ink) by height, from the case's -peel.json.
