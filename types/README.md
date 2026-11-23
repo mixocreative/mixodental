@@ -30,10 +30,11 @@ every engine realm, so a committed type appears in the app's type picker with no
 id) and its badge. A file the app cannot use
 is listed on the items page ("N saved types could not load") with the reason - never dropped quietly, never
 replaced by Generic. Today it refuses, with that reason:
-- a type that pins one of the three **denture options** (`dentalModelLanding`, `lowOutsideAllowed`,
-  `lastResortClearanceMm`): each unit sets those with its own controls. Every other pinned rule loads and rides in
-  each job on the type (`src/dentalTypes/typeRules.ts`); the Overhang angle `overhangAngleDeg` loads too and becomes the
-  starting value of a new unit's Overhang control, which owns it from there;
+- a pinned **denture option** whose value the unit's control cannot show (a model landing other than 0 / 1 / 2, a
+  clearance floor outside 0.5 to 1.5 mm). Pinned rules otherwise load (`src/dentalTypes/typeRules.ts`): the four a
+  unit sets with its own controls - the Overhang angle `overhangAngleDeg` and the denture options `dentalModelLanding`,
+  `lowOutsideAllowed`, `lastResortClearanceMm` - become the starting values of a new unit's controls, which own them from
+  there; every other pinned rule rides in each job on the type;
 - a zone or Orient graph **the engine will not run** (checked by the engine itself when the type loads,
   `src/dentalTypes/typeGraphs.ts`), or a zone graph that turns the steep ray R1b on (the rule it needs
   cannot be pinned yet). A runnable graph loads since 2026-11-23 and is put in force before every

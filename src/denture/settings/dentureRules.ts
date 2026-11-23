@@ -2,7 +2,7 @@ import type { GenerateRules } from '@mixo-geocore/host/supports/generateRules';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import type { PrintUnit } from '../../state/project';
 import { DEFAULT_DENTURE_OPTIONS, type DentureOptions } from './dentureOptions';
-import { typeRulesOf } from '../../dentalTypes/typeRules';
+import { typeOptionsSeedOf, typeRulesOf } from '../../dentalTypes/typeRules';
 
 /*
  * The engine rules a denture unit is scanned, placed, built and checked with: its denture settings mapped onto
@@ -37,7 +37,19 @@ export function overhangRuleOf(settings: PrintUnit['settings'] | undefined): Gen
  * engine rules unchanged.
  */
 export function dentureRulesOf(unit: Pick<PrintUnit, 'denture'> & Partial<Pick<PrintUnit, 'settings'>> | undefined, profileId?: string, settings?: PrintUnit['settings']): GenerateRules {
-  // `profileId` and `settings`: Step 1 scans the type being chosen with the settings it will start from (a saved type
-  // may seed the Overhang angle), which are not yet the unit's accepted ones - the scan must use what the build will.
-  return { ...typeRulesOf(profileId ?? unit?.denture?.policy.profileId), ...rulesOfOptions(unit?.denture?.options ?? DEFAULT_DENTURE_OPTIONS), ...overhangRuleOf(settings ?? unit?.settings) };
+  // `profileId` and `settings`: Step 1 scans the type being chosen with the settings and options it will start from (a
+  // saved type may seed them), which are not yet the unit's accepted ones - the scan must use what the build will.
+  const options = profileId === undefined ? unit?.denture?.options : startingOptionsOf(unit, profileId);
+  return { ...typeRulesOf(profileId ?? unit?.denture?.policy.profileId), ...rulesOfOptions(options ?? DEFAULT_DENTURE_OPTIONS), ...overhangRuleOf(settings ?? unit?.settings) };
+}
+
+/**
+ * The denture options a unit has once it is a denture of `profileId`: its own when it already is one (absent = the
+ * defaults); else what it had, with the type's pinned options on top (`typeRules.ts`) - so the unit's controls start at
+ * the type's values and show them. Stored at Step 1's accept (`useDentureOrient.ts`); undefined = the defaults.
+ */
+export function startingOptionsOf(unit: Pick<PrintUnit, 'denture'> | undefined, profileId: string): DentureOptions | undefined {
+  if (unit?.denture?.policy.profileId === profileId) return unit.denture.options;
+  const seed = typeOptionsSeedOf(profileId);
+  return Object.keys(seed).length > 0 ? { ...(unit?.denture?.options ?? DEFAULT_DENTURE_OPTIONS), ...seed } : unit?.denture?.options;
 }

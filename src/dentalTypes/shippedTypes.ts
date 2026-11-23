@@ -14,7 +14,7 @@
  * not its `validation` record matches. The record stays in the file as information.
  */
 import { readTypeFile, type TypeFile, type TypeFileDeps } from './typeFile';
-import { SEEDED_RULES, UNIT_OWNED_RULES } from './typeRules';
+import { typeRuleProblem } from './typeRules';
 
 /** A file the app was built with that it cannot offer, and why. */
 export interface RefusedType {
@@ -34,14 +34,6 @@ export interface KnownProfile {
   id: string;
   name: Record<string, string>;
 }
-
-/**
- * Why v1 refuses whole groups of types - each named where the next step will lift it. A type's zone and Orient graphs
- * load since plan E1 (`typeGraphs.ts` checks them with the engine and puts them in force per job); its pinned rules too, but the four each unit sets itself (`typeRules.ts`).
- */
-export const NOT_YET = {
-  rules: (names: string[]) => `a type cannot pin ${names.join(', ')}: in the app each unit sets ${names.length === 1 ? 'it' : 'them'} with its own controls, which would show the standard while the type's number ran - set ${names.length === 1 ? 'it' : 'them'} on the unit instead`,
-} as const;
 
 /** `types/<category>/<id>.type.json`, wherever the glob roots it. */
 const PATH = /(?:^|\/)types\/([^/]+)\/([^/]+)\.type\.json$/;
@@ -67,9 +59,10 @@ export function discoverTypes(files: Readonly<Record<string, string>>, deps: Typ
       continue;
     }
     if (type.category !== category || type.id !== id) { refuse(`the file says ${type.category} / ${type.id}, but it sits at ${category} / ${id}`); continue; }
-    // A type may pin any rule but the four each unit sets itself (typeRules.ts says why); those are refused by name.
-    const owned = Object.keys(type.rules).filter((name) => UNIT_OWNED_RULES.includes(name) && !(name in SEEDED_RULES));
-    if (owned.length > 0) { refuse(NOT_YET.rules(owned)); continue; }
+    // Since plan E1 a type's graphs and every pinned rule load (typeGraphs.ts, typeRules.ts); a pinned denture option
+    // that a unit's control could not start from is the one rule refused, by its reason.
+    const ruleProblem = typeRuleProblem(type.rules);
+    if (ruleProblem) { refuse(ruleProblem); continue; }
     if (taken.some((p) => p.id === type.id)) { refuse(`another type already has the id "${type.id}"`); continue; }
     const name = type.profile.name as Record<string, string>;
     const twin = taken.find((p) => Object.entries(name).some(([lang, text]) => p.name[lang] === text));

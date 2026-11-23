@@ -220,10 +220,10 @@ folder. In the app, a plate could hold two denture types. So:
 `denture.rs:197`). The type's pinned rules become the starting values of the unit's rules; the
 operator's per-job edits layer on top, as they do today. **AS BUILT 2026-11-23 (E1, rules half):**
 `dentureRulesOf` = the type's pinned rules (`src/dentalTypes/typeRules.ts`), then the unit's own four
-(the Overhang angle and the three denture options). A type never puts one of those four in a job:
-the Overhang angle seeds a new unit's control instead (`SEEDED_RULES`), and a type pinning one of the
-three options is refused at load, because the unit's control would show the standard while the
-type's number ran.
+(the Overhang angle and the three denture options). A type never puts one of those four in a job -
+the unit's control would show the standard while the type's number ran. Instead they SEED a new
+unit's controls (`typeSettingsSeedOf`, `typeOptionsSeedOf`, stored at Step 1's accept), which then
+own them; a seeded value no control can show is refused at load (`typeRuleProblem`).
 
 ### 4c. The host side (geocore's `host/`, PLANNED)
 
@@ -432,8 +432,8 @@ with Fable, who agreed.)
   refused. Refused, with the reason shown: a path that is not `types/<category>/<id>.type.json` or
   disagrees with the file; anything `readTypeFile` refuses - in the app that includes a zone or Orient
   graph the ENGINE will not run, and a zone graph whose steep ray R1b disagrees with the type's pinned
-  `noSupportSteepDeg`; since 2026-11-23 (E1) a runnable graph loads, and so do pinned rules, but a
-  type pinning one of the three denture options (each unit's own control) is refused; an id equal to
+  `noSupportSteepDeg`; since 2026-11-23 (E1) a runnable graph loads, and so do pinned rules (the
+  unit's own four seed its controls), but a seeded value no control can show is refused; an id equal to
   a built-in's or another file's; a name equal to another profile's in any
   language. Tested with in-memory files.
 - **Every realm registers them.** `typesReady()` = `geometryReady()`, the eager raw glob of

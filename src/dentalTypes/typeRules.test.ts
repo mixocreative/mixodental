@@ -3,7 +3,7 @@ import { DEFAULT_DENTURE_OPTIONS, type DentureOptions } from '../denture/setting
 import { overhangRuleOf, rulesOfOptions } from '../denture/settings/dentureRules';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { dentureSupportSettings } from '../denture/settings/dentureSupportSettings';
-import { UNIT_OWNED_RULES, rememberTypeRules, typeRulesOf, typeSettingsSeedOf } from './typeRules';
+import { UNIT_OWNED_RULES, rememberTypeRules, typeOptionsSeedOf, typeRuleProblem, typeRulesOf, typeSettingsSeedOf } from './typeRules';
 
 /*
  * A type may pin every rule but the ones a unit's own controls set (typeRules.ts). This turns EVERY unit option away
@@ -25,6 +25,13 @@ describe('the rules a type may not pin', () => {
     rememberTypeRules('test-seeded', { overhangAngleDeg: 55, rimRespectsNoSupport: true });
     expect(typeRulesOf('test-seeded')).toEqual({ rimRespectsNoSupport: true });
     expect(typeSettingsSeedOf('test-seeded')).toEqual({ scatterAngle: 55 });
+    // The three options seed the option controls; a value no control can show is a load problem, named.
+    rememberTypeRules('test-opts', { dentalModelLanding: 1, lastResortClearanceMm: 1.2 });
+    expect(typeOptionsSeedOf('test-opts')).toEqual({ modelLanding: 'lows', lastResortClearanceMm: 1.2 });
+    expect(typeRulesOf('test-opts')).toEqual({});
+    expect(typeRuleProblem({ dentalModelLanding: 2 })).toBeNull();
+    expect(typeRuleProblem({ dentalModelLanding: 5 })).toMatch(/model landing must be off, lows or any/);
+    expect(typeRuleProblem({ lastResortClearanceMm: 0.1 })).toMatch(/clearance floor must be 0.5 to 1.5 mm/);
     expect(dentureSupportSettings('reference-denture').scatterAngle).toBe(defaultSupportSettings.scatterAngle);
     expect(typeRulesOf('reference-denture')).toEqual({});
     expect(typeRulesOf(undefined)).toEqual({});

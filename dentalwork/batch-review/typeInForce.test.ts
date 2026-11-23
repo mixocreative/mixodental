@@ -4,7 +4,6 @@ import { defaultGraph } from './nodeGraph.mjs';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { NOT_YET } from '../../src/dentalTypes/shippedTypes';
 import { appLoadVerdict, putInForce, TYPE_DEPS, typeNameOf, typeOfRun } from './typeInForce';
 
 /*
@@ -95,12 +94,10 @@ describe('whether the app will load a drafted type', () => {
     expect(verdict.loads ? '' : verdict.reason).toMatch(/already has the id "reference-denture"/);
   });
 
-  it('says why when the app would refuse it - a rule the unit owns, or a name another saved type has', () => {
-    // The Overhang angle loads (it seeds the unit's control); a denture option is the unit's alone (src/dentalTypes/typeRules.ts).
-    const seeded = typeOfRun('denture', { MIXO_TYPE_ID: 'verdict-seeded', MIXO_RULES: JSON.stringify({ overhangAngleDeg: 55 }) })!;
+  it('loads a type that pins the unit-owned rules, and says why it would refuse a name another saved type has', () => {
+    // The unit-owned rules load and seed the unit's controls (src/dentalTypes/typeRules.ts).
+    const seeded = typeOfRun('denture', { MIXO_TYPE_ID: 'verdict-seeded', MIXO_RULES: JSON.stringify({ overhangAngleDeg: 55, lowOutsideAllowed: 0 }) })!;
     expect(appLoadVerdict(seeded, root)).toEqual({ loads: true });
-    const ruled = typeOfRun('denture', { MIXO_TYPE_ID: 'verdict-ruled', MIXO_RULES: JSON.stringify({ lowOutsideAllowed: 0 }) })!;
-    expect(appLoadVerdict(ruled, root)).toEqual({ loads: false, reason: NOT_YET.rules(['lowOutsideAllowed']) });
     const twin = typeOfRun('denture', { MIXO_TYPE_ID: 'verdict-twin', MIXO_TYPE_NAME: 'verdict-plain' })!;
     const verdict = appLoadVerdict(twin, root);
     expect(verdict.loads).toBe(false);

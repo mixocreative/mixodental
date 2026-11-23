@@ -8,7 +8,7 @@ import { defaultGraph, upgradeGraph } from '../../dentalwork/batch-review/nodeGr
 import { flatBaseGraph } from '../../dentalwork/batch-review/orientGraph.mjs';
 import { applyTypeGraphs } from './typeGraphs';
 import { typeRulesOf } from './typeRules';
-import { dentureRulesOf } from '../denture/settings/dentureRules';
+import { dentureRulesOf, startingOptionsOf } from '../denture/settings/dentureRules';
 import { dentureSupportSettings } from '../denture/settings/dentureSupportSettings';
 import { typeFileText, type TypeFile } from './typeFile';
 import { refusedTypes, registerTypes, shippedBadge } from './typesReady';
@@ -111,6 +111,18 @@ describe('registerTypes - a saved type becomes a profile this realm knows', () =
     const settings = dentureSupportSettings('test-overhang');
     expect(settings.scatterAngle).toBe(55);
     expect(dentureRulesOf(undefined, 'test-overhang', settings)).toEqual({ overhangAngleDeg: 55 });
+  });
+
+  // The three denture options seed the unit's option controls the same way; once the unit IS that type, its own win.
+  it('starts a new unit\'s denture options at the type\'s, keeps a unit\'s own, and Step 1 scans with them', () => {
+    const found = registerTypes({ '/types/denture/test-options.type.json': typeFileText({ ...type('test-options'), rules: { dentalModelLanding: 2, lowOutsideAllowed: 0 } }) });
+    expect(found.refused).toEqual([]);
+    const fresh = startingOptionsOf(undefined, 'test-options');
+    expect(fresh).toEqual({ modelLanding: 'any', lowOutsideAllowed: false, lastResortClearanceMm: 1 });
+    expect(dentureRulesOf(undefined, 'test-options')).toEqual({ dentalModelLanding: 2, lowOutsideAllowed: 0 });
+    const own = { denture: { policy: { kind: 'denture', profileId: 'test-options' }, options: { modelLanding: 'off', lowOutsideAllowed: true, lastResortClearanceMm: 1 } } } as never;
+    expect(startingOptionsOf(own, 'test-options')).toEqual({ modelLanding: 'off', lowOutsideAllowed: true, lastResortClearanceMm: 1 });
+    expect(dentureRulesOf(own)).toEqual({});
   });
 
   it('loads a type with runnable graphs and puts them in force for its jobs only', () => {

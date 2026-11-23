@@ -14,7 +14,7 @@ import type { DentureClient } from '../../engine/dentureClient';
 import { liftedFrame, scanSettingsOf } from '../../engine/dentureCore';
 import { liveTiltThrottle, type LiveTiltThrottle } from '../../engine/liveTilt';
 import { dentureSupportSettings } from '../../settings/dentureSupportSettings';
-import { dentureRulesOf } from '../../settings/dentureRules';
+import { dentureRulesOf, startingOptionsOf } from '../../settings/dentureRules';
 import { packRules } from '@mixo-geocore/host/supports/generateRules';
 import { acceptCommands } from './acceptCommands';
 import { liveTipLayers, tipCounts } from './liveTipLayers';
@@ -197,7 +197,9 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
       { key: 'Placing support tips on {name}', vars: { name: unit.name } }).then((placed) => {
       if (seq.current !== token || unitOf(unit.id) !== unit || sessionRef.current.dentalStage !== 'aligner') return;
       if (!placed) return setStatus('The denture support tips could not be placed. Turn the denture, then press Next again.');
-      dispatch({ type: 'batch', commands: acceptCommands(unit, { frame, points: placed.points, settings, denture: { policy, ...(unit.denture?.options ? { options: unit.denture.options } : {}) } }) });
+      // The options the unit starts from as this type (a saved type may seed them), the same ones the scan just used.
+      const options = startingOptionsOf(unit, profile);
+      dispatch({ type: 'batch', commands: acceptCommands(unit, { frame, points: placed.points, settings, denture: { policy, ...(options ? { options } : {}) } }) });
       closeLive();
       send({ type: 'acceptDentalOrientation' });
       // Step 2's panel docks on the right: the denture is framed in the area left of it.

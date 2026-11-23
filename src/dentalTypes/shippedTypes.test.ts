@@ -7,7 +7,7 @@ import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { unreadBy } from '../../benchwork/rules.mjs';
 import { defaultGraph, steepAngleProblem, validate } from '../../dentalwork/batch-review/nodeGraph.mjs';
 import { flatBaseGraph, validate as validateOrient } from '../../dentalwork/batch-review/orientGraph.mjs';
-import { NOT_YET, discoverTypes, type KnownProfile } from './shippedTypes';
+import { discoverTypes, type KnownProfile } from './shippedTypes';
 import { typeFileText, type TypeFile, type TypeFileDeps } from './typeFile';
 
 /* The workbench's own checks, so a refusal here is a refusal by the real rules, not by a stand-in. */
@@ -64,9 +64,10 @@ describe('discoverTypes - the types the app can offer', () => {
   it('loads a type with its own graphs and rules, and refuses a rule the unit owns, saying why', () => {
     const graphs = denture('g', { zoneGraph: defaultGraph(), orientGraph: flatBaseGraph() as unknown as Record<string, unknown>, rules: { rimRespectsNoSupport: true } });
     expect(discoverTypes(at(graphs), deps, known).loaded.map((t) => t.id)).toEqual(['g']);
-    // The Overhang angle loads (it seeds the unit's own control); a denture option stays the unit's alone.
-    expect(discoverTypes(at(denture('o', { rules: { overhangAngleDeg: 55 } })), deps, known).loaded.map((t) => t.id)).toEqual(['o']);
-    expect(reasons(at(denture('r', { rules: { lowOutsideAllowed: 0, rimRespectsNoSupport: true } })))).toBe(NOT_YET.rules(['lowOutsideAllowed']));
+    // The unit-owned rules load too (they seed the unit's own controls); only a value a control cannot show is refused.
+    expect(discoverTypes(at(denture('o', { rules: { overhangAngleDeg: 55, lowOutsideAllowed: 0 } })), deps, known).loaded.map((t) => t.id)).toEqual(['o']);
+    // A value no control can show is refused by typeRules.ts typeRuleProblem (tested there); through the workbench's
+    // reader only bench rules reach a type file, and model landing and the clearance floor are not among them.
   });
 
   it('refuses a type that would collide with one already there - by id or by a name in any language', () => {
