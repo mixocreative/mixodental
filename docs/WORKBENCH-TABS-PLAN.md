@@ -1,10 +1,12 @@
 # Workbench tabs - the owner's feedback of 2026-11-23, checked against the code and planned
 
-**Status, 2026-11-23: A1, B1 and B2 BUILT** (the goal: "fix everything according to UX flow and Fable's agreement"; built on Fable's recommendations D1, D4 and D6 while the owner's answers are open):
+**Status, 2026-11-23: A1, B1, B2, B3 and C2 BUILT** (the goal: "fix everything according to UX flow and Fable's agreement"; built on Fable's recommendations D1, D4 and D6 while the owner's answers are open):
 - **A1:** the names of section 2 on the canvases (Arch shape, Name the sides, Stand on the back, Final orientation, Part frame; Combine / Subtract / Overlap / Invert; Support zone). The two wrong ray explanations and the Undefined text are corrected. Every node shows a Takes / Gives line generated from its kind.
 - **B1:** five tabs, Print angle last; picking a tab cuts the 3D layers through the step walk.
 - **B2:** a restore mark on every node parameter (`defaultParam`, tested on R1b), the search fields and the rule fields.
-- **Not yet:** the Plate side node and the per-case flip (C2), the editable Rim tab (C3), one zone output (D1), live previews (C1/D3), the six side labels in 3D (B3), and graphs registered with their type (E1).
+- **B3:** the Orient nodes show what they measured (arch flatness, the front/back widths, the slice votes), and the review's 3D view names the six sides.
+- **C2:** Name the sides takes `front` and `teethSide` (auto / the other one) for a kind of part the detector reads the wrong way round; the Plate side node (`plateSide`: which side faces the plate, which side leans, the angle) replaces Stand on the back in the workbench's standard Step 1, bit-equal at its defaults (a Rust test; the engine's own default keeps the old node; geocore `2693b1a`). A denture's Step 1 has Flip front and Flip teeth side, which turn ONE scan round (`PrintUnit.dentureFlip`, `src/denture/state/caseFlip.ts`): every denture job carries the flip, the engine XORs it with the type's choice, and the print angles are checked again.
+- **Not yet:** the editable Rim tab (C3), one zone output (D1), live previews (C1/D3), and graphs registered with their type (E1).
 
 **Original status: PLANNED. Nothing on this page was built when it was written.** Engine and host facts were opened in source on
 2026-11-23 (mixodental `a7a2e2ba`, geocore engine 71). Nothing was run for this page. A line marked

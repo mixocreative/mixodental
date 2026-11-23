@@ -976,6 +976,13 @@ becomes available here - one rule, seen from both sides.
   - U8 - the dental-model kind end to end - waits for the owner's sample file and ruling 4.
 - **The owner looks at the canvas next** (section 5's U6 condition).
 
+**WORKBENCH-TABS-PLAN C2 BUILT 2026-11-23** (geocore 2693b1a, engine 71) - the owner: "it should let user choose which side is top and which side is front ... POSE fail to use what is given be the previous node":
+- **Side choices:** `upDecision` takes `front` and `teethSide`, each `auto` or `other`. `other` turns the detector's answer round for every part of that kind (the type's override).
+- **Plate side:** kind `plateSide` with `plate` and `leanToward` (one of the six named sides, which must be square to each other, refusal `lean-along-up`) and `angleDeg`. The workbench's standard Step 1 shows it in place of `uprightPose`; at `plate: back, leanToward: teeth, angle 0` it is today's pose bit for bit (a Rust test), and the canvas counts that graph as the standard one, so applying it sends nothing. The engine's own default graph keeps `uprightPose`, as the zone graph keeps its old default, so parity needs no new reading.
+- **Per-case flip:** one slot, `set_denture_case_flip(front, teeth)`, set by the host before every job and XORed with the type's choice in `upDecision`; its digest is in both cache keys. The app stores it as `PrintUnit.dentureFlip` (Step 1's Flip front / Flip teeth side, one undo step, removed on Exit), and a change re-scans the print angles.
+- **Proof:** Rust tests on a local scan (the overrides and the flip turn the named sides; the default is bit-equal); the host test; canvas/engine parity (5 new cases); app unit tests for the flip rules; `gate:real` for the default.
+- **Debt:** the walk has no flip check, for the same reason as the drawn rim (no public denture fixture).
+
 **Step 9 BUILT 2026-11-23, off by default, waiting for the owner's look** (geocore 70ae5c7, engine 71):
 - **What it is:** zone kind `rimSide` - the faces within `mm` of the rim along the surface, on one side (`which` inner / outer; `mm` above 0 and at most 20). Its input is the RIM node. It is in no default graph, so no result changes until a graph wires it in.
 - **The rule:** each face's normal is tested against the outward direction at its nearest rim point, in the rim's plane - never against the fitting axis, which is noise on the flange wall (Fable). A face square to the rim plane counts as inner. This holds along the buccal flange, which is where the finder's rim runs.

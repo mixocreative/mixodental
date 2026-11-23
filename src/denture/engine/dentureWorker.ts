@@ -4,6 +4,7 @@ import { serveTask, transferable } from '@mixo-geocore/host/workers/serveTask';
 import { runAfterGeometryReady } from '@mixo-geocore/host/geometryVersion.js';
 import { openLiveTilt, type LiveTilt } from '@mixo-geocore/host/dental/dentureTilt';
 import { setDentureDrawnRim, type DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
+import { setDentureCaseFlip, type CaseFlip } from '@mixo-geocore/host/dental/orientGraph';
 import { reviewDenture } from '@mixo-geocore/host/dental/dentureReview';
 import { buildDenture, checkModelLanding, orientAndScan, placeDenture } from './dentureCore';
 import type { DentureResult, DentureTask } from './dentureProtocol';
@@ -22,11 +23,14 @@ const PROGRESS_INTERVAL_MS = 60;
 const live = new Map<string, LiveTilt>();
 /** The drawn rim each live handle was opened with: set again before every tilt, since another job may have changed the engine's one slot. */
 const liveRims = new Map<string, DrawnDentureRim | null>();
+/** The case flip each live handle was opened with, set again before every tilt for the same reason. */
+const liveFlips = new Map<string, CaseFlip | null>();
 
 function close(key: string): void {
   live.get(key)?.free();
   live.delete(key);
   liveRims.delete(key);
+  liveFlips.delete(key);
 }
 
 serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeometryReady(typesReady, () => {
@@ -43,20 +47,22 @@ serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeom
   switch (task.kind) {
     case 'orient': {
       progress(0, DENTURE_STAGE.reading);
-      const { orientation, scan } = orientAndScan(task.mesh, task.profileId, task.scan, (done, total) => progress(done / total, DENTURE_STAGE.scanning), () => progress(0, DENTURE_STAGE.scanning), task.drawnRim);
+      const { orientation, scan } = orientAndScan(task.mesh, task.profileId, task.scan, (done, total) => progress(done / total, DENTURE_STAGE.scanning), () => progress(0, DENTURE_STAGE.scanning), task.drawnRim, task.caseFlip);
       return { kind: 'oriented', orientation, scan };
     }
     case 'live-open': {
       close(task.key);
       setDentureDrawnRim(task.drawnRim ?? null);
+      setDentureCaseFlip(task.caseFlip ?? null);
       const handle = openLiveTilt(task.mesh, task.profileId, task.scan);
       live.set(task.key, handle);
       liveRims.set(task.key, task.drawnRim ?? null);
+      liveFlips.set(task.key, task.caseFlip ?? null);
       return { kind: 'live-opened', ok: handle.ok, reason: handle.reason };
     }
     case 'live-at': {
       const handle = live.get(task.key);
-      if (handle) setDentureDrawnRim(liveRims.get(task.key) ?? null);
+      if (handle) { setDentureDrawnRim(liveRims.get(task.key) ?? null); setDentureCaseFlip(liveFlips.get(task.key) ?? null); }
       return { kind: 'live-paths', paths: handle ? handle.at(task.tiltDeg) : { kind: 'failed', reason: 'closed' } };
     }
     case 'live-close':
@@ -77,8 +83,10 @@ serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeom
       return transferable<DentureResult>({ kind: 'files', ...out }, out.files.map((file) => file.buffer));
     }
     case 'detected-rim': {
-      // Detection's own rim, never a drawing left in force by another job: this is what Redraw starts from.
+      // Detection's own rim, never a drawing left in force by another job: this is what Redraw starts from - but in
+      // THIS case's sides, so a flipped case is redrawn the way it stands.
       setDentureDrawnRim(null);
+      setDentureCaseFlip(task.caseFlip ?? null);
       const review = reviewDenture(task.mesh, task.profileId, 0);
       const lines = review?.rimLoops?.lines.map((line) => ({ points: line.points, closed: line.closed })) ?? [];
       // The rim plane's normal points to the top; the drawing's projection ray wants the tissue side, the way out of the lip.
@@ -87,6 +95,7 @@ serveTask<DentureTask, DentureResult>((task, { progress: post }) => runAfterGeom
     }
     case 'classify-spots':
       setDentureDrawnRim(task.drawnRim ?? null);
+      setDentureCaseFlip(task.caseFlip ?? null);
       return { kind: 'spot-reasons', reasons: ruleReasons(task.mesh, task.profileId, task.points, task.rules) };
     case 'check-landing': {
       const { tip, normal, ...job } = task.job;

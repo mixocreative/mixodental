@@ -8,6 +8,7 @@ import { REPLACED, WorkerTask, type WorkerLike } from '@mixo-geocore/host/worker
 import type { ErrorContext } from '@mixo-geocore/editing/errors';
 import type { DentureJob, DentureMesh, DentureParts, DentureRimUsed } from './dentureCore';
 import type { DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
+import type { CaseFlip } from '@mixo-geocore/host/dental/orientGraph';
 import type { DentureLandingJob, DenturePlaceJob, DentureResult, DentureTask, DetectedDentureRim } from './dentureProtocol';
 import { KeyedQueue } from './keyedQueue';
 import type { GenerateRules } from '@mixo-geocore/host/supports/generateRules';
@@ -81,14 +82,14 @@ export class DentureClient {
   }
 
   /** Step 1: the upright frame and the print-angle search (progress: tilts done / total). */
-  orient(unitId: string, mesh: TriangleMesh, profileId: string, scan: TiltScanSettings, label: JobLabel, onProgress?: (fraction: number) => void, drawnRim?: DrawnDentureRim): Promise<{ orientation: DentureOrientation; scan: TiltScan } | undefined> {
-    return this.run(`orient:${unitId}`, { kind: 'orient', mesh: copyOf(mesh), profileId, scan, ...(drawnRim ? { drawnRim } : {}) }, label, onProgress)
+  orient(unitId: string, mesh: TriangleMesh, profileId: string, scan: TiltScanSettings, label: JobLabel, onProgress?: (fraction: number) => void, drawnRim?: DrawnDentureRim, caseFlip?: CaseFlip): Promise<{ orientation: DentureOrientation; scan: TiltScan } | undefined> {
+    return this.run(`orient:${unitId}`, { kind: 'orient', mesh: copyOf(mesh), profileId, scan, ...(drawnRim ? { drawnRim } : {}), ...(caseFlip ? { caseFlip } : {}) }, label, onProgress)
       .then((result) => (result?.kind === 'oriented' ? { orientation: result.orientation, scan: result.scan } : undefined));
   }
 
   /** Opens the live-tilt handle of the unit's model (per model once); false when the engine cannot orient it. */
-  liveOpen(unitId: string, mesh: TriangleMesh, profileId: string, scan: TiltScanSettings, drawnRim?: DrawnDentureRim): Promise<boolean> {
-    return this.run(`live-open:${unitId}`, { kind: 'live-open', key: unitId, mesh: copyOf(mesh), profileId, scan, ...(drawnRim ? { drawnRim } : {}) }, undefined)
+  liveOpen(unitId: string, mesh: TriangleMesh, profileId: string, scan: TiltScanSettings, drawnRim?: DrawnDentureRim, caseFlip?: CaseFlip): Promise<boolean> {
+    return this.run(`live-open:${unitId}`, { kind: 'live-open', key: unitId, mesh: copyOf(mesh), profileId, scan, ...(drawnRim ? { drawnRim } : {}), ...(caseFlip ? { caseFlip } : {}) }, undefined)
       .then((result) => result?.kind === 'live-opened' && result.ok);
   }
 
@@ -122,14 +123,14 @@ export class DentureClient {
   }
 
   /** Which of the support check's spots (unit-local) the denture rules leave unsupported on purpose, and why (null: a real problem). */
-  classifySpots(unitId: string, mesh: TriangleMesh, profileId: string, points: Vector[], rules: GenerateRules, label: JobLabel, drawnRim?: DrawnDentureRim): Promise<(RuleReason | null)[] | undefined> {
-    return this.run(`classify:${unitId}`, { kind: 'classify-spots', mesh: copyOf(mesh), profileId, points, rules, ...(drawnRim ? { drawnRim } : {}) }, label)
+  classifySpots(unitId: string, mesh: TriangleMesh, profileId: string, points: Vector[], rules: GenerateRules, label: JobLabel, drawnRim?: DrawnDentureRim, caseFlip?: CaseFlip): Promise<(RuleReason | null)[] | undefined> {
+    return this.run(`classify:${unitId}`, { kind: 'classify-spots', mesh: copyOf(mesh), profileId, points, rules, ...(drawnRim ? { drawnRim } : {}), ...(caseFlip ? { caseFlip } : {}) }, label)
       .then((result) => (result?.kind === 'spot-reasons' ? result.reasons : undefined));
   }
 
   /** The model's DETECTED rim (the seed of Redraw the rim), or undefined when detection found none. */
-  detectedRim(unitId: string, mesh: TriangleMesh, profileId: string, label: JobLabel): Promise<DetectedDentureRim | undefined> {
-    return this.run(`detected-rim:${unitId}`, { kind: 'detected-rim', mesh: copyOf(mesh), profileId }, label)
+  detectedRim(unitId: string, mesh: TriangleMesh, profileId: string, label: JobLabel, caseFlip?: CaseFlip): Promise<DetectedDentureRim | undefined> {
+    return this.run(`detected-rim:${unitId}`, { kind: 'detected-rim', mesh: copyOf(mesh), profileId, ...(caseFlip ? { caseFlip } : {}) }, label)
       .then((result) => (result?.kind === 'detected-rim' ? result.rim : undefined));
   }
 

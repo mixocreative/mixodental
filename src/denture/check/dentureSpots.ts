@@ -3,6 +3,7 @@ import type { PrintUnit } from '../../state/project';
 import type { DentureClient } from '../engine/dentureClient';
 import { dentureRulesOf } from '../settings/dentureRules';
 import { engineDrawnRim } from '../state/dentureRim';
+import { engineCaseFlip } from '../state/caseFlip';
 import { splitByRule, type AcceptedGroup } from './acceptedSpots';
 
 /*
@@ -19,6 +20,6 @@ export interface SpotSplit<S> {
 /** `spots` are unit-local. A unit without a denture policy (an aligner) has nothing accepted. */
 export async function splitDentureSpots<S extends { position: Vector }>(client: DentureClient, unit: PrintUnit, spots: readonly S[], label: Parameters<DentureClient['classifySpots']>[5]): Promise<SpotSplit<S>> {
   if (!unit.denture || spots.length === 0) return { real: [...spots], accepted: [] };
-  const reasons = await client.classifySpots(unit.id, unit.source, unit.denture.policy.profileId, spots.map((spot) => spot.position), dentureRulesOf(unit), label, engineDrawnRim(unit)).catch(() => undefined);
+  const reasons = await client.classifySpots(unit.id, unit.source, unit.denture.policy.profileId, spots.map((spot) => spot.position), dentureRulesOf(unit), label, engineDrawnRim(unit), engineCaseFlip(unit)).catch(() => undefined);
   return reasons ? splitByRule(spots, reasons) : { real: [...spots], accepted: [] };
 }

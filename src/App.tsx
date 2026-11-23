@@ -69,6 +69,7 @@ import { useAreaRisks } from './components/useAreaRisks';
 import { useDentalFlow } from './components/useDentalFlow';
 import { useDentureJob } from './denture/useDentureJob';
 import { isDentureJob, jobKindOf } from './denture/jobKind';
+import { toggledFlip } from './denture/state/caseFlip';
 import { kindMessage, kindText } from './denture/kindText';
 import type { DentalKind } from '@mixo-geocore/host/dental/dentalKind';
 import { fileStepText } from './denture/steps/start/startText';
@@ -1248,6 +1249,14 @@ export default function App() {
        * does not reach it. Cancel does, and leaves the detected rim exactly as it was - which is the
        * property that actually matters, and the one `u9c` now asserts.
        */
+      // A denture's case flip (C2): one undo step; the changed flip scans the print angles again (useDentureRim).
+      case 'dental.denture.flipFront':
+      case 'dental.denture.flipTeeth': {
+        const unit = sceneRef.current.units.find((candidate) => candidate.id === sessionRef.current.dentalUnitId);
+        if (!unit) return;
+        dispatch({ type: 'dentureFlip/set', unitId: unit.id, flip: toggledFlip(unit.dentureFlip, id === 'dental.denture.flipFront' ? 'front' : 'teeth') });
+        return setStatus('Sides turned for this scan. Checking the print angles again…');
+      }
       case 'dental.rim.enter': {
         // A denture seeds from the engine's detected rim, which is not on the unit (step 10).
         if (isDentureJob(sessionRef.current.dentalProfile)) return denture.rim.enter();
@@ -1542,7 +1551,7 @@ export default function App() {
     mode: editMode, activeName: activeUnit?.name, supported: scene.units.some((unit) => unit.supports), zones: activeUnit?.zones.length ?? 0, exporting, active: Boolean(activeUnit), heavy: activeHeavy, units: scene.units.length, selectedObjects: selectedCount, tool: session.tool, addAction: session.addAction, method: session.selectStyle, dragAction: effectiveBrushMode(session.brushMode, session.shiftHeld),
     selection: selection.size, customisedActive, customisedSelected, customisedTargeted: bandCounts.customised, customisedOthers: Math.max(0, bandCounts.customised - customisedActive), activeSupported: Boolean(activeUnit?.supports), generating, dentalPreviewReady: Boolean(dentalPreview?.result.points.length), dentalReviewReady: Boolean(activeUnit?.supports && built.get(activeUnit.id)?.unit === activeUnit), dentalBuildFailed: Boolean(activeUnit && failedBuilds.get(activeUnit.id) === activeUnit), dentalStage: session.dentalStage, ...(session.dentalRimSelected === undefined ? {} : { dentalRimSelected: session.dentalRimSelected }),
     dentalRimAnchors: activeUnit?.rimDraft?.anchors.length ?? 0, dentalRimClosed: activeUnit?.rimDraft?.closed ?? false,
-    ...(activeUnit?.rimDraft && pathProblems(activeUnit.rimDraft)[0] ? { dentalRimProblem: pathProblems(activeUnit.rimDraft)[0] } : {}), dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: orientFlow.tilt?.unitId === activeUnit?.id && (orientFlow.tilt?.status === 'scanning' || (orientFlow.tilt?.status === 'ready' && orientFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal) || (denture.active && denture.orient.proposed), dentalKind: denture.active ? 'denture' : 'aligner', dentureResolvable: activeMesh?.unresolved?.filter(denture.supports.resolvable).length ?? 0, canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
+    ...(activeUnit?.rimDraft && pathProblems(activeUnit.rimDraft)[0] ? { dentalRimProblem: pathProblems(activeUnit.rimDraft)[0] } : {}), dentalAlignerReady: session.dentalAligner === 'ready', dentalTiltBusy: orientFlow.tilt?.unitId === activeUnit?.id && (orientFlow.tilt?.status === 'scanning' || (orientFlow.tilt?.status === 'ready' && orientFlow.tilt.confirming)), dentalProposed: Boolean(session.dentalProposal) || (denture.active && denture.orient.proposed), ...(activeUnit?.dentureFlip ? { dentalFlip: activeUnit.dentureFlip } : {}), dentalKind: denture.active ? 'denture' : 'aligner', dentureResolvable: activeMesh?.unresolved?.filter(denture.supports.resolvable).length ?? 0, canUndo, canRedo: history.future.length > 0, undoStep, redoStep, modelsVisible: modelVisible, wireframe, generated: scopeGenerated,
   };
   const command = (id: CommandId) => resolve(id, ui);
   // Denture Step 2: the add-on parts of a multi-part file, tinted on the model (src/denture/parts).

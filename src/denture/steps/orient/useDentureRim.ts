@@ -9,6 +9,7 @@ import { RIM_SAMPLE_SPACING_MM, projectOntoMesh, type RimSession } from '../../.
 import { seedDentureRimDraft } from '../../../dental/rim/seedFromDetected';
 import { rimProblemText } from '../../../dental/rim/rimStepText';
 import type { DentureClient } from '../../engine/dentureClient';
+import { engineCaseFlip } from '../../state/caseFlip';
 
 /*
  * ONE JOB: a denture's drawn rim in Step 1 (docs/ORIENT-NODES.md section 10 step 10; owner 2026-11-23: "the drawn
@@ -45,7 +46,7 @@ export function useDentureRim({ client, dispatch, send, sceneRef, sessionRef, se
       return send({ type: 'dentalRimReopen' });
     }
     setStatus('Reading the detected rim…');
-    void client().detectedRim(unit.id, unit.source, profile, { key: 'Reading the rim of {name}', vars: { name: unit.name } }).then((found) => {
+    void client().detectedRim(unit.id, unit.source, profile, { key: 'Reading the rim of {name}', vars: { name: unit.name } }, engineCaseFlip(unit)).then((found) => {
       // Left Step 1 or moved to another unit while it ran: the answer is for a screen nobody is on.
       if (sessionRef.current.dentalStage !== 'aligner' || sessionRef.current.dentalUnitId !== unit.id) return;
       const seeded = found && seedDentureRimDraft(found.lines, found.normal);
@@ -71,7 +72,10 @@ export function useDentureRim({ client, dispatch, send, sceneRef, sessionRef, se
 
   // The re-scan. Keyed by unit, so moving to another denture is not mistaken for a changed rim.
   const unitId = session.dentalUnitId;
-  const rimNow = unitOf(unitId)?.dentureRim;
+  const unitNow = unitOf(unitId);
+  // The rim AND the flip: either changes the rim tips, and the tips decide the angle. One object per change, so a
+  // reference compare sees every Done, Undo and Redo of either.
+  const rimNow = unitNow ? `${JSON.stringify(unitNow.dentureRim ?? null)}|${JSON.stringify(unitNow.dentureFlip ?? null)}` : undefined;
   const seen = useRef<{ unitId: string | undefined; rim: unknown }>({ unitId, rim: rimNow });
   const ready = session.mode === 'dental' && session.dentalStage === 'aligner' && session.dentalAligner === 'ready';
   useEffect(() => {

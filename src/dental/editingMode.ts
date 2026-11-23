@@ -220,6 +220,7 @@ declare module '@mixo-geocore/editing/commands' {
     'supports.dentalAuto': true;
     'dental.useDetected': true; 'dental.next': true; 'dental.generate': true; 'dental.back': true; 'dental.exit': true; 'dental.finish': true; 'dental.addAnother': true; 'dental.export': true;
     'dental.tool.paint': true; 'dental.tool.erase': true; 'dental.tool.add': true; 'dental.tool.select': true;
+    'dental.denture.flipFront': true; 'dental.denture.flipTeeth': true;
     'dental.rim.enter': true; 'dental.rim.close': true; 'dental.rim.clear': true; 'dental.rim.deletePoint': true; 'dental.rim.done': true;
   }
   interface UiState {
@@ -231,6 +232,8 @@ declare module '@mixo-geocore/editing/commands' {
     dentalTiltBusy?: boolean;
     /** Dental Step 1: the detector proposed an orientation (Auto orientation can re-apply it). */
     dentalProposed?: boolean;
+    /** A denture's case flip (`PrintUnit.dentureFlip`): the sides turned round on this scan. */
+    dentalFlip?: { front: boolean; teeth: boolean };
     /** The dental step: Back is offered from Step 1 on. */
     dentalStage?: DentalStage;
     /** Dental Step 3: the supports are built for the current model and settings, so the aligner can be finished. */
@@ -678,6 +681,28 @@ registerCommands({
    * It needs no flag of its own. A flag written and never read is what this feature has now had to
    * delete twice, and the state it would describe is already readable from the step itself.
    */
+  /*
+   * TURN THIS SCAN'S SIDES ROUND (WORKBENCH-TABS-PLAN C2; owner 2026-11-23: "it should let user choose which side is
+   * top and which side is front"). The detector decides; these turn its answer round for THIS scan only - a type-wide
+   * override lives on the Orient graph instead. The flip is scene state (one undo step, saved with the project), every
+   * denture job carries it, and a change scans the print angles again (`useDentureRim`).
+   */
+  'dental.denture.flipFront': {
+    role: 'secondary',
+    label: (s) => (s.dentalFlip?.front ? 'Unflip front' : 'Flip front'),
+    hint: () => 'Turn this scan round: the end the detector called the front becomes the back. For this scan only.',
+    visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture',
+    enabled: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture' && Boolean(s.dentalAlignerReady) && Boolean(s.dentalProposed) && !s.dentalTiltBusy,
+    disabledReason: (s) => (s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture' && !(s.dentalAlignerReady && s.dentalProposed && !s.dentalTiltBusy) ? { key: 'Wait until the print angles are checked.' } : undefined),
+  },
+  'dental.denture.flipTeeth': {
+    role: 'secondary',
+    label: (s) => (s.dentalFlip?.teeth ? 'Unflip teeth side' : 'Flip teeth side'),
+    hint: () => 'Turn this scan over: the side the detector called the teeth side becomes the tissue side. For this scan only.',
+    visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture',
+    enabled: (s) => s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture' && Boolean(s.dentalAlignerReady) && Boolean(s.dentalProposed) && !s.dentalTiltBusy,
+    disabledReason: (s) => (s.mode === 'dental' && s.dentalStage === 'aligner' && s.dentalKind === 'denture' && !(s.dentalAlignerReady && s.dentalProposed && !s.dentalTiltBusy) ? { key: 'Wait until the print angles are checked.' } : undefined),
+  },
   'dental.rim.enter': {
     role: 'secondary',
     /*

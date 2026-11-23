@@ -24,6 +24,7 @@ import { scanOutcome, type ScanSettled } from './scanOutcome';
 import { stepPanelInset } from '../../../dental/stepPanelInset';
 import { isAbort } from '../../../components/appShared';
 import { engineDrawnRim } from '../../state/dentureRim';
+import { engineCaseFlip } from '../../state/caseFlip';
 
 /*
  * Step 1 of the denture job (Round D): stand the dropped denture upright and search its print angle in the
@@ -112,7 +113,7 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     void client().orient(unit.id, unit.source, profile, scanSettings, { key: 'Orienting {name}', vars: { name: unit.name } }, (fraction) => {
       const current = tiltRef.current;
       if (!stale() && current?.status === 'scanning') setTilt({ ...current, done: Math.round(fraction * total) });
-    }, engineDrawnRim(unit)).then((result): ScanSettled => ({ result }), (error: unknown): ScanSettled => ({ error })).then((settled) => {
+    }, engineDrawnRim(unit), engineCaseFlip(unit)).then((result): ScanSettled => ({ result }), (error: unknown): ScanSettled => ({ error })).then((settled) => {
       if (stale()) return;
       // Every ending leaves "scanning" (scanOutcome.ts): a crash, timeout or cancel never keeps Next waiting.
       const outcome = scanOutcome(unit.id, settled);
@@ -134,7 +135,7 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
         if (paths.kind === 'paths') setLive({ unitId: unit.id, tiltDeg, paths });
       });
       throttle.current = { unitId: unit.id, throttle: handle };
-      void client().liveOpen(unit.id, unit.source, profile, scanSettings, engineDrawnRim(unit)).then((ok) => {
+      void client().liveOpen(unit.id, unit.source, profile, scanSettings, engineDrawnRim(unit), engineCaseFlip(unit)).then((ok) => {
         if (ok && throttle.current?.throttle === handle) showTips(tiltRef.current);
       }, () => undefined);
     });
@@ -181,7 +182,8 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     const rules = dentureRulesOf(unit);
     setStatus('Placing the denture support tips…');
     const drawnRim = engineDrawnRim(unit);
-    void client().place(unit.id, { mesh: unit.source, policy, frame, rules, hand: { manual: unit.manual, deleted: unit.deleted, zones: unit.zones, contactSettings: unit.contactSettings }, ...(drawnRim ? { drawnRim } : {}) },
+    const caseFlip = engineCaseFlip(unit);
+    void client().place(unit.id, { mesh: unit.source, policy, frame, rules, hand: { manual: unit.manual, deleted: unit.deleted, zones: unit.zones, contactSettings: unit.contactSettings }, ...(drawnRim ? { drawnRim } : {}), ...(caseFlip ? { caseFlip } : {}) },
       { key: 'Placing support tips on {name}', vars: { name: unit.name } }).then((placed) => {
       if (seq.current !== token || unitOf(unit.id) !== unit || sessionRef.current.dentalStage !== 'aligner') return;
       if (!placed) return setStatus('The denture support tips could not be placed. Turn the denture, then press Next again.');

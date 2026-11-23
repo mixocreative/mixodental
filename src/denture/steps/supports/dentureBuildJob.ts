@@ -4,6 +4,7 @@ import { generationPlate, generationTransform, resolveSettings } from '@mixo-geo
 import type { PrintUnit } from '../../../state/project';
 import type { DentureJob } from '../../engine/dentureCore';
 import { engineDrawnRim } from '../../state/dentureRim';
+import { engineCaseFlip } from '../../state/caseFlip';
 
 /*
  * A denture unit as a denture build job (the denture counterpart of the shared `supportJobOf`): its model, its
@@ -25,5 +26,6 @@ export function dentureJobOf(unit: PrintUnit, mode: 'preview' | 'export', rules:
     mode,
     ...(revision === undefined ? {} : { revision }),
     ...(unit.dentureRim ? { drawnRim: engineDrawnRim(unit) } : {}),
+    ...(engineCaseFlip(unit) ? { caseFlip: engineCaseFlip(unit) } : {}),
   };
 }

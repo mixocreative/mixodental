@@ -80,6 +80,11 @@ export function OrientationBar({ notices, profile, lang, ui, send, run, tilt, on
       {resolve('dental.rim.enter', ui).visible ? <div className="orient-row">
         <CommandButton command={resolve('dental.rim.enter', ui)} run={run} />
       </div> : null}
+      {/* A denture's case flip (C2): turn the detector's front / teeth side round for this scan. */}
+      {resolve('dental.denture.flipFront', ui).visible ? <div className="orient-row">
+        <CommandButton command={resolve('dental.denture.flipFront', ui)} run={run} />
+        <CommandButton command={resolve('dental.denture.flipTeeth', ui)} run={run} />
+      </div> : null}
       <div className="orient-row orient-free">
         <button type="button" className="orient-free-btn" onClick={() => free?.ask()}>{t('Free transform')}</button>
       </div>

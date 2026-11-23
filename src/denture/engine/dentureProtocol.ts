@@ -7,6 +7,7 @@ import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { ExportFilePlan } from '@mixo-geocore/host/supports/export';
 import type { DentureJob, DentureMesh, DentureParts, DentureRimUsed } from './dentureCore';
 import type { DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
+import type { CaseFlip } from '@mixo-geocore/host/dental/orientGraph';
 import type { GenerateRules } from '@mixo-geocore/host/supports/generateRules';
 import type { RuleReason } from '../check/ruleSpots';
 import type { ExportedFiles, ExportUnitJob } from './dentureExport';
@@ -24,21 +25,21 @@ export interface DetectedDentureRim {
   normal: Vector;
 }
 
-export type DenturePlaceJob = Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand' | 'drawnRim'>;
+export type DenturePlaceJob = Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand' | 'drawnRim' | 'caseFlip'>;
 /** The one-point model-surface check reads the build's inputs and the point (build frame). */
-export type DentureLandingJob = Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand' | 'settings' | 'plateY' | 'drawnRim'> & { tip: Vector; normal: Vector };
+export type DentureLandingJob = Pick<DentureJob, 'mesh' | 'policy' | 'frame' | 'rules' | 'hand' | 'settings' | 'plateY' | 'drawnRim' | 'caseFlip'> & { tip: Vector; normal: Vector };
 
 export type DentureTask =
-  | { kind: 'orient'; mesh: TriangleMesh; profileId: string; scan: TiltScanSettings; drawnRim?: DrawnDentureRim }
-  | { kind: 'live-open'; key: string; mesh: TriangleMesh; profileId: string; scan: TiltScanSettings; drawnRim?: DrawnDentureRim }
+  | { kind: 'orient'; mesh: TriangleMesh; profileId: string; scan: TiltScanSettings; drawnRim?: DrawnDentureRim; caseFlip?: CaseFlip }
+  | { kind: 'live-open'; key: string; mesh: TriangleMesh; profileId: string; scan: TiltScanSettings; drawnRim?: DrawnDentureRim; caseFlip?: CaseFlip }
   | { kind: 'live-at'; key: string; tiltDeg: number }
   | { kind: 'live-close'; key: string }
   | { kind: 'place'; job: DenturePlaceJob }
   | { kind: 'build'; job: DentureJob }
   | { kind: 'check-landing'; job: DentureLandingJob }
   /** The DETECTED rim of the model at tilt 0 (the drawn rim is cleared for it): the seed of Redraw the rim. */
-  | { kind: 'detected-rim'; mesh: TriangleMesh; profileId: string }
-  | { kind: 'classify-spots'; mesh: TriangleMesh; profileId: string; points: Vector[]; rules: GenerateRules; drawnRim?: DrawnDentureRim }
+  | { kind: 'detected-rim'; mesh: TriangleMesh; profileId: string; caseFlip?: CaseFlip }
+  | { kind: 'classify-spots'; mesh: TriangleMesh; profileId: string; points: Vector[]; rules: GenerateRules; drawnRim?: DrawnDentureRim; caseFlip?: CaseFlip }
   | { kind: 'export'; units: ExportUnitJob[]; files: ExportFilePlan[]; revision: number };
 
 export type DentureResult =
