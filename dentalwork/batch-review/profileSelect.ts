@@ -21,7 +21,7 @@ import { generateSupports, withOneShotSite } from '@mixo-geocore/host/supports/g
 import { packRules } from '@mixo-geocore/host/supports/generateRules';
 import type { LiftAttempt } from '@mixo-geocore/host/dental/dentureGenerate';
 import { supportMeshToUnitLocal } from '@mixo-geocore/host/supports/supportFrame';
-import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
+import type { TiltScan, TiltScanSettings } from '@mixo-geocore/host/dental/dentalTilt';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { LAYER_COLOURS } from './layerColours';
 
@@ -118,6 +118,29 @@ export type DentureReview =
     extraLiftMm: number; liftAttempts: LiftAttempt[] }
   | { kind: 'inconclusive'; reason: string };
 
+/**
+ * The support settings a denture review builds with. Engine 14 finding: with the preset's contactShape SPHERE the
+ * denture build drops every tip (149 of 149 on the reference scan, empty support mesh), so the review builds with the
+ * preset's other values and no contact ball.
+ */
+export const dentureReviewSettings = (profileId: string) =>
+  ({ ...defaultSupportSettings, ...dentureSupportPreset(dentureProfileData(profileId)), contactShape: 'NONE' as const, roofSeededModes: [] });
+
+/**
+ * What a denture review's print-angle search reads: the settings' neck, pillar, lift and bracing, and this run's rules.
+ * ONE place, because the tabs 4 and 5 live preview (tiltPreviewRun.ts, plan D3) must search exactly as the run does -
+ * a preview that picked another angle from the same settings would be a preview that lies.
+ */
+export function dentureScanSettings(profileId: string): TiltScanSettings {
+  const settings = dentureReviewSettings(profileId);
+  // MIXO_LANDING=1 picks the tilt by the landing-circle path score (rule landingTiltWeight); unset keeps the old pick.
+  // TEMP experiment envs (not committed): MIXO_TILT_ALLOWED=1 -> tiltAllowedLowsOnly, MIXO_TILT_ORDER=1 -> tiltPickOrder 1.
+  const rules = process.env.MIXO_LANDING || process.env.MIXO_TILT_ALLOWED || process.env.MIXO_TILT_ORDER || process.env.MIXO_STEEP_NO_SUPPORT || process.env.MIXO_SELF_SUPPORT || process.env.MIXO_SELF_STREAMS || process.env.MIXO_RIM_NO_SUPPORT || process.env.MIXO_SOCKETS || process.env.MIXO_OVERHANG_ANGLE || process.env.MIXO_RULES
+    ? packRules({ ...steepRule(), ...selfSupportRule(), ...(process.env.MIXO_LANDING ? { landingTiltWeight: 1 } : {}), ...(process.env.MIXO_TILT_ALLOWED ? { tiltAllowedLowsOnly: true } : {}), ...(process.env.MIXO_TILT_ORDER ? { tiltPickOrder: 1 as const } : {}) })
+    : undefined;
+  return { neckLengthMm: settings.neckLength, pillarDiameterMm: settings.pillarDiameter, liftMm: settings.liftHeight, braced: settings.trussEnabled, ...(rules ? { rules } : {}) };
+}
+
 /** The denture flow on a centred `mesh`: upright, print angle, tips, supports (one pipeline, no UI). */
 /**
  * `angleIndex` builds at that row of the print-angle scan instead of the engine's pick - for measuring
@@ -129,17 +152,9 @@ export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfile
   const lap = (from: number) => +((performance.now() - from) / 1000).toFixed(2);
   const orientation = orientDenture(mesh, profileId);
   if (orientation.kind !== 'oriented') return { kind: 'inconclusive', reason: `denture-orient-${orientation.reason}` };
-  // Engine 14 finding: with the preset's contactShape SPHERE the denture build drops every tip (149 of 149 on the
-  // reference scan, empty support mesh), so the review builds with the preset's other values and no contact ball.
-  const settings = { ...defaultSupportSettings, ...dentureSupportPreset(dentureProfileData(profileId)), contactShape: 'NONE' as const, roofSeededModes: [] };
-  // MIXO_LANDING=1 picks the tilt by the landing-circle path score (rule landingTiltWeight); unset keeps the old pick.
-  // TEMP experiment envs (not committed): MIXO_TILT_ALLOWED=1 -> tiltAllowedLowsOnly, MIXO_TILT_ORDER=1 -> tiltPickOrder 1.
-  const rules = process.env.MIXO_LANDING || process.env.MIXO_TILT_ALLOWED || process.env.MIXO_TILT_ORDER || process.env.MIXO_STEEP_NO_SUPPORT || process.env.MIXO_SELF_SUPPORT || process.env.MIXO_SELF_STREAMS || process.env.MIXO_RIM_NO_SUPPORT || process.env.MIXO_SOCKETS || process.env.MIXO_OVERHANG_ANGLE || process.env.MIXO_RULES
-    ? packRules({ ...steepRule(), ...selfSupportRule(), ...(process.env.MIXO_LANDING ? { landingTiltWeight: 1 } : {}), ...(process.env.MIXO_TILT_ALLOWED ? { tiltAllowedLowsOnly: true } : {}), ...(process.env.MIXO_TILT_ORDER ? { tiltPickOrder: 1 as const } : {}) })
-    : undefined;
+  const settings = dentureReviewSettings(profileId);
   const scanStarted = performance.now();
-  const scan = scanDentureTilts(mesh, profileId, { neckLengthMm: settings.neckLength, pillarDiameterMm: settings.pillarDiameter,
-    liftMm: settings.liftHeight, braced: settings.trussEnabled, ...(rules ? { rules } : {}) });
+  const scan = scanDentureTilts(mesh, profileId, dentureScanSettings(profileId));
   const scanSeconds = lap(scanStarted);
   if (scan.kind !== 'scan') return { kind: 'inconclusive', reason: `denture-tilt-scan-${scan.reason}` };
   if (process.env.MIXO_TILT_ORDER || process.env.MIXO_TILT_ALLOWED) console.log('TILTDUMP', JSON.stringify({ deg: scan.rows.map((r) => r.tiltDeg), tips: scan.boxed.tips, lows: scan.boxed.lows, picked: scan.rows[scan.order[0]!]!.tiltDeg, robust: scan.rows.map((r) => r.robust) }));
