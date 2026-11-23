@@ -149,6 +149,9 @@
 .chain-node .count { margin-left: auto; font-variant-numeric: tabular-nums; }
 .chain-link { flex: 0 0 auto; align-self: flex-start; margin-top: 28px; width: 14px; text-align: center; color: var(--muted); }
 .chain-note { font-size: 11px; color: var(--muted); margin: 2px 0 0; max-width: 92ch; }
+.chain-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 11px; color: var(--muted); margin: 8px 0 2px; }
+.chain-key .out { display: inline-flex; align-items: center; gap: 5px; color: var(--ink); }
+.chain-key .k { font-weight: 600; }
 
 /* The New-type strip: the type being made, and its steps, above the stage tabs. Text left-aligned (house rule). */
 .type-strip { display: flex; flex-direction: column; gap: 6px; padding: 6px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 6px; text-align: left; }
@@ -921,6 +924,25 @@ zonePreviewNote.dataset.ui = 'zone-preview-note';
 const ZONE_LAYER_KEYS = ['Undefined (no ray', 'No-support, steep ray', 'No-support zone', 'Allowed area (seen'];
 
 /** One step's card: what it produced, and the settings it is known to own. */
+/** One line: the colour of each layer this tab's steps drew, in place of the step cards above a canvas. */
+function colourKey(stage, present) {
+  const line = document.createElement('div');
+  line.className = 'chain-key';
+  line.dataset.ui = `chain-key-${stage.id}`;
+  line.append(Object.assign(document.createElement('span'), { className: 'k', textContent: 'In 3D:' }));
+  for (const key of stage.steps.flatMap((at) => DENTURE_STEPS[at][2]).filter((k) => present.has(k))) {
+    const item = document.createElement('span');
+    item.className = 'out';
+    const entry = entryOf(key);
+    if (entry) { item.dataset.tipTitle = entry[1]; item.dataset.tip = entry[2]; }
+    const swatch = Object.assign(document.createElement('span'), { className: 'swatch' });
+    swatch.style.background = colourOf(key);
+    item.append(swatch, Object.assign(document.createElement('span'), { textContent: shortLabel(key) }));
+    line.append(item);
+  }
+  return line;
+}
+
 function chainCard(at, present, names) {
   const [label, , keys] = DENTURE_STEPS[at];
   const here = keys.filter((key) => present.has(key));
@@ -1277,6 +1299,17 @@ function drawChain(present, names) {
   body.textContent = '';
   const stage = STAGES.find((s) => s.id === stageNow) ?? STAGES.find((s) => s.id === 'zones');
   if (stage.id === 'zones') { drawZoneEditor(body, present, names); return; }
+  // ORIENT AND RIM SHOW THEIR STEPS AS NODES on the canvas below, so the step cards only repeated them and took the
+  // room (owner 2026-11-23: "do we still need these, or combine it with the canvas"). What the cards still told you -
+  // which colour in 3D is which - stays as one line of swatches; the tab itself already cuts the 3D to its steps.
+  // Without the canvas bundle the cards come back, so the tab is never empty.
+  const hasCanvas = stage.id === 'orient' ? Boolean(orientLib && editorLib) : stage.id === 'rim' ? Boolean(graphLib && editorLib?.mountRimCanvas) : false;
+  if (hasCanvas) {
+    body.append(colourKey(stage, present));
+    if (stage.id === 'orient') drawOrientEditor(body);
+    else drawRimCanvas(body, 'denture');
+    return;
+  }
   const rail = document.createElement('div');
   rail.className = 'chain-rail';
   rail.dataset.ui = `stage-rail-${stage.id}`;
