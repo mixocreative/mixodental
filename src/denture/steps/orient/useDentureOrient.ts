@@ -108,7 +108,7 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     if (!profile) return failed();
     const settings = unit.denture?.policy.profileId === profile ? resolveSettings(unit.settings) : dentureSupportSettings(profile, resolveSettings(unit.settings));
     // The unit's denture settings (a denture seen before) shape the scan, the live tips and the placement too.
-    const rules = dentureRulesOf(unit);
+    const rules = dentureRulesOf(unit, profile, settings);
     const scanSettings = scanSettingsOf(settings, Object.keys(rules).length > 0 ? packRules(rules) : undefined);
     // The denture scan runs from the profile's start (0, upright, unless the type sets one) to its range
     // (Rust `denture::tilt::scan_tilts`); counting from 0 overstated the total for a later start.
@@ -189,7 +189,7 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     const settings = own ? resolveSettings(unit.settings) : dentureSupportSettings(profile, resolveSettings(unit.settings));
     const frame = liftedFrame(unit.source, unit.transform.rotation, settings.liftHeight, [unit.transform.position[0], unit.transform.position[2]]);
     const policy = defaultDenturePolicy(profile, settings.trussEnabled);
-    const rules = dentureRulesOf(unit);
+    const rules = dentureRulesOf(unit, profile, settings);
     setStatus('Placing the denture support tips…');
     const drawnRim = engineDrawnRim(unit);
     const caseFlip = engineCaseFlip(unit);

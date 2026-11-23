@@ -7,6 +7,9 @@ import { orientGraphDigest } from '@mixo-geocore/host/dental/orientGraph';
 import { defaultGraph, upgradeGraph } from '../../dentalwork/batch-review/nodeGraph.mjs';
 import { flatBaseGraph } from '../../dentalwork/batch-review/orientGraph.mjs';
 import { applyTypeGraphs } from './typeGraphs';
+import { typeRulesOf } from './typeRules';
+import { dentureRulesOf } from '../denture/settings/dentureRules';
+import { dentureSupportSettings } from '../denture/settings/dentureSupportSettings';
 import { typeFileText, type TypeFile } from './typeFile';
 import { refusedTypes, registerTypes, shippedBadge } from './typesReady';
 
@@ -86,11 +89,28 @@ describe('registerTypes - a saved type becomes a profile this realm knows', () =
     expect(orientGraphDigest()).toBe('default');
   });
 
-  it('refuses a zone graph that turns the steep ray on, since a type cannot set the rule it needs', () => {
+  // The steep ray is read by the zones from the graph and by the policy and report from the rule: they must agree.
+  it('loads a steep-ray zone graph only with the rule pinned to the same angle, and puts that rule in its jobs', () => {
     const graph = upgradeGraph(defaultGraph()) as { nodes: { id: string; params: Record<string, unknown> }[] };
     const steep = { ...graph, nodes: graph.nodes.map((n) => (n.id === 'R1b' ? { ...n, params: { ...n.params, deg: 60 } } : n)) };
-    const found = registerTypes({ '/types/denture/test-steep.type.json': typeFileText({ ...type('test-steep'), zoneGraph: steep }) });
-    expect(found.refused[0]?.reason).toContain('steep ray R1b');
+    const without = registerTypes({ '/types/denture/test-steep.type.json': typeFileText({ ...type('test-steep'), zoneGraph: steep }) });
+    expect(without.refused[0]?.reason).toContain('does not pin noSupportSteepDeg');
+    const other = registerTypes({ '/types/denture/test-steep.type.json': typeFileText({ ...type('test-steep'), zoneGraph: steep, rules: { noSupportSteepDeg: 70 } }) });
+    expect(other.refused[0]?.reason).toContain('pins noSupportSteepDeg 70');
+    const agreed = registerTypes({ '/types/denture/test-steep.type.json': typeFileText({ ...type('test-steep'), zoneGraph: steep, rules: { noSupportSteepDeg: 60 } }) });
+    expect(agreed.refused).toEqual([]);
+    expect(typeRulesOf('test-steep')).toEqual({ noSupportSteepDeg: 60 });
+    expect(dentureRulesOf(undefined, 'test-steep')).toEqual({ noSupportSteepDeg: 60 });
+  });
+
+  // A type's Overhang angle seeds the unit's own control: a new unit of the type starts at it (so the control shows the
+  // number that runs), and Step 1's scan sends it with the settings the unit will start from.
+  it('starts a new unit\'s Overhang angle at the type\'s, and Step 1 scans with it', () => {
+    const found = registerTypes({ '/types/denture/test-overhang.type.json': typeFileText({ ...type('test-overhang'), rules: { overhangAngleDeg: 55 } }) });
+    expect(found.refused).toEqual([]);
+    const settings = dentureSupportSettings('test-overhang');
+    expect(settings.scatterAngle).toBe(55);
+    expect(dentureRulesOf(undefined, 'test-overhang', settings)).toEqual({ overhangAngleDeg: 55 });
   });
 
   it('loads a type with runnable graphs and puts them in force for its jobs only', () => {

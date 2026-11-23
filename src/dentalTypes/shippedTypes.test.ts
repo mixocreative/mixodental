@@ -60,11 +60,13 @@ describe('discoverTypes - the types the app can offer', () => {
     expect(found.loaded.map((t) => [t.category, t.id, t.badge])).toEqual([['aligner', 'al', 'AL']]);
   });
 
-  // Plan E1: a type's own zone and Orient graphs load (typeGraphs.ts puts them in force per job); pinned rules do not yet.
-  it('loads a type with its own graphs, and refuses pinned rules saying why', () => {
-    const graphs = denture('g', { zoneGraph: defaultGraph(), orientGraph: flatBaseGraph() as unknown as Record<string, unknown> });
+  // Plan E1: a type's own zone and Orient graphs load, and its pinned rules - but the four each unit sets itself.
+  it('loads a type with its own graphs and rules, and refuses a rule the unit owns, saying why', () => {
+    const graphs = denture('g', { zoneGraph: defaultGraph(), orientGraph: flatBaseGraph() as unknown as Record<string, unknown>, rules: { rimRespectsNoSupport: true } });
     expect(discoverTypes(at(graphs), deps, known).loaded.map((t) => t.id)).toEqual(['g']);
-    expect(reasons(at(denture('r', { rules: { overhangAngleDeg: 55 } })))).toBe(NOT_YET.rules(['overhangAngleDeg']));
+    // The Overhang angle loads (it seeds the unit's own control); a denture option stays the unit's alone.
+    expect(discoverTypes(at(denture('o', { rules: { overhangAngleDeg: 55 } })), deps, known).loaded.map((t) => t.id)).toEqual(['o']);
+    expect(reasons(at(denture('r', { rules: { lowOutsideAllowed: 0, rimRespectsNoSupport: true } })))).toBe(NOT_YET.rules(['lowOutsideAllowed']));
   });
 
   it('refuses a type that would collide with one already there - by id or by a name in any language', () => {

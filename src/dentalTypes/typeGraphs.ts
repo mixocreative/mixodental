@@ -19,13 +19,17 @@ interface TypeGraphs { zone: Record<string, unknown> | null; orient: Record<stri
 /** This realm's denture types that carry a graph, by profile id. Every realm registers the types itself (typesReady). */
 const byProfile = new Map<string, TypeGraphs>();
 
-/** Why the engine will not run `graph` as a zone graph, or nothing. The slot is left at the default either way. */
-export function zoneGraphProblems(graph: Record<string, unknown>): string[] {
+/**
+ * Why the engine will not run `graph` as a zone graph under the type's pinned `rules`, or nothing. The slot is left at
+ * the default either way.
+ */
+export function zoneGraphProblems(graph: Record<string, unknown>, rules: Readonly<Record<string, unknown>> = {}): string[] {
   // The steep ray is read by the zones only when the graph sets it, but by the policy and the report through the rule
-  // noSupportSteepDeg - which a type cannot pin in the app yet - so the zones would use one angle and the report the
-  // other (the workbench's steepAngleProblem, for the one case the app can reach: rules always empty).
+  // noSupportSteepDeg, so the two must agree - the workbench's steepAngleProblem, which the app cannot import.
   const steep = (graph.nodes as { id?: string; params?: { deg?: unknown } }[] | undefined)?.find?.((n) => n.id === 'R1b')?.params?.deg;
-  if (Number(steep) > 0) return [`the zone graph turns the steep ray R1b on (${String(steep)} deg), but the rule noSupportSteepDeg it needs cannot be set by a type in the app yet`];
+  const rule = rules.noSupportSteepDeg;
+  if (steep !== undefined && rule !== undefined && Number(steep) !== Number(rule)) return [`the zone graph sets the steep ray R1b to ${String(steep)} deg but the type pins noSupportSteepDeg ${String(rule)}: the zones would use one and the report the other`];
+  if (Number(steep) > 0 && rule === undefined) return [`the zone graph turns the steep ray R1b on (${String(steep)} deg) but the type does not pin noSupportSteepDeg to it, so the policy and the report would treat it as off`];
   return engineProblems(() => setZoneGraph(graph), () => setZoneGraph(null), ZoneGraphRefused);
 }
 

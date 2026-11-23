@@ -19,6 +19,7 @@ import { registerAlignerProfile, registerDentureProfile } from '@mixo-geocore/ho
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { discoverTypes, type DiscoveredTypes, type KnownProfile, type RefusedType } from './shippedTypes';
 import { orientGraphProblems, rememberTypeGraphs, zoneGraphProblems } from './typeGraphs';
+import { rememberTypeRules } from './typeRules';
 import { profileText, type TypeFileDeps } from './typeFile';
 
 const FILES = import.meta.glob('/types/*/*.type.json', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
@@ -33,7 +34,7 @@ export const APP_TYPE_DEPS: TypeFileDeps = {
   parseProfile: (category, value) => (category === 'denture' ? parseDentureProfile(value) : parseAlignerProfile(value)),
   ruleNames: RULE_NAMES,
   unreadBy: () => [],
-  graphProblems: (graph) => zoneGraphProblems(graph),
+  graphProblems: (graph, rules) => zoneGraphProblems(graph, rules),
   orientProblems: (graph) => orientGraphProblems(graph),
   engineVersion: HOST_GEOMETRY_VERSION,
 };
@@ -62,6 +63,7 @@ export function registerTypes(files: Readonly<Record<string, string>>): Discover
         // Only a denture job sets the graph slots: an aligner's zone graph is the locked default (typeFile.ts refuses
         // any other kind for it), so it changes nothing.
         rememberTypeGraphs(type.id, type.zoneGraph, type.orientGraph);
+        rememberTypeRules(type.id, type.rules);
       }
       if (type.badge) badges.set(type.id, type.badge);
       return true;

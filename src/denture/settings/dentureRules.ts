@@ -2,6 +2,7 @@ import type { GenerateRules } from '@mixo-geocore/host/supports/generateRules';
 import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import type { PrintUnit } from '../../state/project';
 import { DEFAULT_DENTURE_OPTIONS, type DentureOptions } from './dentureOptions';
+import { typeRulesOf } from '../../dentalTypes/typeRules';
 
 /*
  * The engine rules a denture unit is scanned, placed, built and checked with: its denture settings mapped onto
@@ -30,7 +31,13 @@ export function overhangRuleOf(settings: PrintUnit['settings'] | undefined): Gen
   return typeof angle === 'number' && Number.isFinite(angle) && angle !== defaultSupportSettings.scatterAngle ? { overhangAngleDeg: angle } : {};
 }
 
-/** The rules of a unit (its stored options and its Overhang angle, else the defaults: the engine rules unchanged). */
-export function dentureRulesOf(unit: Pick<PrintUnit, 'denture'> & Partial<Pick<PrintUnit, 'settings'>> | undefined): GenerateRules {
-  return { ...rulesOfOptions(unit?.denture?.options ?? DEFAULT_DENTURE_OPTIONS), ...overhangRuleOf(unit?.settings) };
+/**
+ * The rules of a unit: its type's pinned rules (a saved type's, `typeRules.ts`), then its stored options and its Overhang
+ * angle - the four rules a type may NOT pin, so neither can hide the other. At the defaults with a built-in type: the
+ * engine rules unchanged.
+ */
+export function dentureRulesOf(unit: Pick<PrintUnit, 'denture'> & Partial<Pick<PrintUnit, 'settings'>> | undefined, profileId?: string, settings?: PrintUnit['settings']): GenerateRules {
+  // `profileId` and `settings`: Step 1 scans the type being chosen with the settings it will start from (a saved type
+  // may seed the Overhang angle), which are not yet the unit's accepted ones - the scan must use what the build will.
+  return { ...typeRulesOf(profileId ?? unit?.denture?.policy.profileId), ...rulesOfOptions(unit?.denture?.options ?? DEFAULT_DENTURE_OPTIONS), ...overhangRuleOf(settings ?? unit?.settings) };
 }

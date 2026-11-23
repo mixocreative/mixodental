@@ -1,5 +1,6 @@
 import { defaultSupportSettings, type LiveSupportSettings } from '@mixo-geocore/host/core/supports/settings';
 import { dentureProfileData, dentureSupportPreset } from '@mixo-geocore/host/dental/dentureProfiles';
+import { typeSettingsSeedOf } from '../../dentalTypes/typeRules';
 
 /*
  * The support settings a denture is built with: the engine defaults, then the preset of the denture profile
@@ -23,7 +24,10 @@ export const DENTURE_RAFT: Readonly<Pick<LiveSupportSettings, 'raftEnabled' | 'r
   raftWallAngle: 90 - DENTURE_RAFT_EDGE_FROM_PLATE_DEG,
 };
 
-/** The profile's settings for a new denture unit; `labelText` (the ID label) is kept from `current`. */
+/**
+ * The profile's settings for a new denture unit; `labelText` (the ID label) is kept from `current`. A saved type that
+ * pinned the Overhang angle starts the unit's control at its number (`typeRules.ts` SEEDED_RULES); the unit owns it after.
+ */
 export function dentureSupportSettings(profileId: string, current: Readonly<LiveSupportSettings> = defaultSupportSettings as LiveSupportSettings): LiveSupportSettings {
-  return { ...defaultSupportSettings, roofSeededModes: [], ...dentureSupportPreset(dentureProfileData(profileId)), contactShape: 'NONE', ...DENTURE_RAFT, labelText: current.labelText };
+  return { ...defaultSupportSettings, roofSeededModes: [], ...dentureSupportPreset(dentureProfileData(profileId)), contactShape: 'NONE', ...DENTURE_RAFT, ...typeSettingsSeedOf(profileId), labelText: current.labelText };
 }
