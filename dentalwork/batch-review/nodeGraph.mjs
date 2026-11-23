@@ -685,10 +685,37 @@ export const RIM_TAKES = 'the final orientation, from 1 Orient';
 /** The two strip widths a type may set on the Rim tab: profile placement keys, with their engine defaults. */
 export const RIM_STRIP_WIDTHS = { RIMBAND: { key: 'rimBandMm', standard: RIM_STRIP_MM.rim_band }, LOWRIMBAND: { key: 'lowRimBandMm', standard: RIM_STRIP_MM.low_rim_band } };
 
-/** A strip width the profile could not take, or null: above 0 and at most 20 mm. */
-export function widthProblem(key, value) {
-  return Number(value) > 0 && Number(value) <= 20 ? null : `${key} must be above 0 and at most 20 mm, got ${value}`;
+/**
+ * The standard spacing of the tips along the rim line: the shipped denture's `downPitchMm`, which an unset
+ * `dentalRimPitchMm` inherits (engine `profile.rs` `dental_rim_pitch`). `nodeGraph.test.ts` fails if it drifts.
+ */
+export const RIM_LINE_PITCH_MM = 2;
+
+/**
+ * EVERY profile number the Rim tab may set, and its check - the ONE list: `typeInForce.ts` (the draft), `serve.mjs`
+ * (what /rerun and /tilt-preview pass on) and the page all read it, so a key cannot be offered in one and dropped in
+ * another. The strip widths (C3) and, since 2026-11-23, the two spacings (owner: tips along the line at one spacing,
+ * the strip's area like the supported area): `dentalRimPitchMm` along the rim line, `rimStripPitchMm` over the strip's
+ * area (0 = none of its own, left to the area pass; engine `check_placement` refuses under 0.2 mm).
+ */
+export const RIM_PLACEMENT = {
+  rimBandMm: (v) => v > 0 && v <= 20 ? null : 'must be above 0 and at most 20 mm',
+  lowRimBandMm: (v) => v > 0 && v <= 20 ? null : 'must be above 0 and at most 20 mm',
+  dentalRimPitchMm: (v) => v >= 0.2 && v <= 10 ? null : 'must be 0.2 to 10 mm',
+  rimStripPitchMm: (v) => v === 0 || (v >= 0.2 && v <= 10) ? null : 'must be 0 (like the supported area) or 0.2 to 10 mm',
+};
+
+/** A Rim-tab profile number the profile could not take, or null. A key the tab does not set is a problem too. */
+export function placementProblem(key, value) {
+  const check = RIM_PLACEMENT[key];
+  if (!check) return `the Rim tab sets only ${Object.keys(RIM_PLACEMENT).join(', ')}, not ${key}`;
+  const n = typeof value === 'number' ? value : Number.NaN;
+  const why = Number.isFinite(n) ? check(n) : 'must be a number';
+  return why ? `${key} ${why}, got ${value}` : null;
 }
+
+/** The old name, kept for the strip widths' callers. */
+export const widthProblem = placementProblem;
 
 /**
  * The editable fields of one rim-tab node (WORKBENCH-TABS-PLAN C3), on the DENTURE's tab only: the Rim node's four
@@ -706,8 +733,18 @@ function rimFields(kind, id, graph, placement) {
   }
   const width = RIM_STRIP_WIDTHS[id];
   if (!width) return [];
-  return [{ key: width.key, label: 'strip width (mm)', help: `This type's ${id === 'RIMBAND' ? 'rim strip' : 'low rim strip'} width, a profile number: the engine grows the strip this far from the rim, along the surface. Above 0, at most 20.`,
-    value: placement?.[width.key] ?? width.standard, standard: width.standard, target: 'placement' }];
+  const widthField = { key: width.key, label: 'strip width (mm)', help: `This type's ${id === 'RIMBAND' ? 'rim strip' : 'low rim strip'} width, a profile number: the engine grows the strip this far from the rim, along the surface. Above 0, at most 20.`,
+    value: placement?.[width.key] ?? width.standard, standard: width.standard, target: 'placement' };
+  if (id !== 'RIMBAND') return [widthField];
+  // The rim strip's tips (owner 2026-11-23): one spacing along the rim LINE, and the strip's AREA either at the line's
+  // spacing (as before), at its own, or left to the area pass like any supported area. Absent keys are the standard.
+  return [widthField,
+    { key: 'dentalRimPitchMm', label: 'tip spacing along the rim line (mm)', help: `The distance between tips placed along the rim line itself. Standard ${RIM_LINE_PITCH_MM} mm, the supported area's spacing. 0.2 to 10.`,
+      value: placement?.dentalRimPitchMm ?? RIM_LINE_PITCH_MM, standard: RIM_LINE_PITCH_MM, target: 'placement' },
+    { key: 'rimStripPitchMm', label: 'tips over the rest of the strip', help: 'The strip\'s faces off the rim line. "Same as the line": a grid of rim tips at the line\'s spacing, even outside the allowed area (as before). "Like the supported area": no grid of its own - the strip gets the normal area tips, only where support is allowed. Or a spacing of its own.',
+      value: placement?.rimStripPitchMm === undefined ? '' : String(placement.rimStripPitchMm), standard: '', target: 'placement',
+      choices: [['', 'same as the line'], ['0', 'like the supported area'], ['1', '1 mm grid'], ['1.5', '1.5 mm grid'], ['3', '3 mm grid'], ['4', '4 mm grid']] },
+  ];
 }
 
 /**
@@ -731,7 +768,8 @@ export function rimTabView(kind, ctx = {}) {
         // the case facts say why), so the tab says it BEFORE the run (Fable's review).
         ...(ctx.standsOnFlatArea === false && fields.some((f) => f.key === 'source' && f.value === 'flatEdge')
           ? [FLAT_EDGE_NEEDS_BASE] : [])]
-      : fields.map((f) => widthProblem(f.key, f.value)).filter(Boolean);
+      // A dropdown's value is text ('' = the standard, which is no number at all and needs no check).
+      : fields.filter((f) => f.value !== '').map((f) => placementProblem(f.key, f.choices ? Number(f.value) : f.value)).filter(Boolean);
     return { id: n.id, title: spec.label, says: spec.says, out: spec.out, derived: Boolean(spec.derived),
       reason: spec.derived ? RIM_DERIVED_REASON : null, inputs: Object.entries(n.inputs), takes, fields, problems };
   });
@@ -746,9 +784,12 @@ export function rimOutputLines(kind, ctx = {}) {
   // storage, so another browser or a cleared one shows the standard while the run used something else (Fable's review).
   const ranWidth = (id) => ctx.ran?.[RIM_STRIP_WIDTHS[id].key] ?? RIM_STRIP_WIDTHS[id].standard;
   const ranNote = (id) => (ranWidth(id) !== width(id) ? ` (the run on screen used ${ranWidth(id)} mm)` : '');
+  const linePitch = ctx.placement?.dentalRimPitchMm ?? RIM_LINE_PITCH_MM;
+  const strip = ctx.placement?.rimStripPitchMm;
+  const stripTips = strip === undefined ? `rim tips at ${linePitch} mm over the whole strip` : strip === 0 ? 'the rest of the strip gets the supported area\'s tips' : `the rest of the strip a ${strip} mm grid`;
   return [
-    `Rim line - ${rim.source === 'flatEdge' ? 'the edge of the flat area the part stands on' : 'the lowest edge, found'} (a rim drawn for one case in the app replaces it)`,
-    `Rim strip - ${width('RIMBAND')} mm along the rim${ranNote('RIMBAND')}`,
+    `Rim line - ${rim.source === 'flatEdge' ? 'the edge of the flat area the part stands on' : 'the lowest edge, found'} (a rim drawn for one case in the app replaces it); tips every ${linePitch} mm along it`,
+    `Rim strip - ${width('RIMBAND')} mm along the rim${ranNote('RIMBAND')}; ${stripTips}`,
     `Low rim strip - ${width('LOWRIMBAND')} mm along the rim${ranNote('LOWRIMBAND')}`,
     'Rim plane - fitted through the rim line',
     'Rim crossing - where the rim plane meets the symmetry plane: the cavity rays start here',

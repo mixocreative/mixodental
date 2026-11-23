@@ -13,6 +13,7 @@ import { exec, spawn } from 'node:child_process';
 import { stampNow } from '../../benchwork/rules.mjs';
 import { guardRun, refusalReason } from './rerunReport.mjs';
 import { saveVerdict } from './saveType.mjs';
+import { RIM_PLACEMENT } from './nodeGraph.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const [folder] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
@@ -139,9 +140,9 @@ function rerun(request, response) {
         writeFileSync(file, JSON.stringify(pose));
         typeArgs.push('--pose', file);
       }
-      // The Rim tab's strip widths (WORKBENCH-TABS-PLAN C3): only the two profile numbers the tab offers; their range is
-      // checked where the draft is made (typeInForce.ts) and again by the profile reader.
-      const placement = ask?.placement && typeof ask.placement === 'object' ? Object.fromEntries(Object.entries(ask.placement).filter(([k, v]) => (k === 'rimBandMm' || k === 'lowRimBandMm') && Number.isFinite(v))) : {};
+      // The Rim tab's profile numbers (WORKBENCH-TABS-PLAN C3; nodeGraph.mjs RIM_PLACEMENT is the one list): only those
+      // keys pass; their range is checked where the draft is made (typeInForce.ts) and again by the profile reader.
+      const placement = ask?.placement && typeof ask.placement === 'object' ? Object.fromEntries(Object.entries(ask.placement).filter(([k, v]) => k in RIM_PLACEMENT && Number.isFinite(v))) : {};
       if (Object.keys(placement).length > 0) {
         mkdirSync(out, { recursive: true });
         const file = join(out, 'placement.json');
@@ -246,11 +247,11 @@ const zonePreview = (request, response) => runPreview('zone', request, response,
 }));
 const tiltPreview = (request, response) => runPreview('tilt', request, response, (ask, out) => {
   // The same names and the same checks as /rerun: a rule name is a plain identifier (packRules refuses an unknown one
-  // with its name), the search keys are tilt*Deg, the widths are the Rim tab's two.
+  // with its name), the search keys are tilt*Deg, the placement keys are the Rim tab's (RIM_PLACEMENT).
   const rules = Object.fromEntries(Object.entries(ask?.rules && typeof ask.rules === 'object' ? ask.rules : {})
     .filter(([name, value]) => /^[A-Za-z][A-Za-z0-9]*$/.test(name) && (typeof value === 'boolean' || Number.isFinite(value))));
   const pose = Object.fromEntries(Object.entries(ask?.pose && typeof ask.pose === 'object' ? ask.pose : {}).filter(([k, v]) => /^tilt[A-Za-z]+Deg$/.test(k) && Number.isFinite(v)));
-  const placement = Object.fromEntries(Object.entries(ask?.placement && typeof ask.placement === 'object' ? ask.placement : {}).filter(([k, v]) => (k === 'rimBandMm' || k === 'lowRimBandMm') && Number.isFinite(v)));
+  const placement = Object.fromEntries(Object.entries(ask?.placement && typeof ask.placement === 'object' ? ask.placement : {}).filter(([k, v]) => k in RIM_PLACEMENT && Number.isFinite(v)));
   const draft = Object.keys(pose).length > 0 || Object.keys(placement).length > 0;
   const frame = ask?.frame;
   if (frame !== undefined && frame !== null && !(Array.isArray(frame.position) && Array.isArray(frame.rotation))) throw new TypeError('frame must have a position and a rotation');

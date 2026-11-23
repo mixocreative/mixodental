@@ -70,7 +70,7 @@ describe('a drafted type', () => {
     expect([placement.rimBandMm, placement.lowRimBandMm]).toEqual([3, 7]);
     expect(placement.tipPitchMm).toBeGreaterThan(0);
     expect(() => typeOfRun('denture', { MIXO_TYPE_ID: 'x', MIXO_PLACEMENT_FILE: file({ rimBandMm: 0 }) })).toThrow(/rimBandMm must be above 0 and at most 20 mm/);
-    expect(() => typeOfRun('denture', { MIXO_TYPE_ID: 'x', MIXO_PLACEMENT_FILE: file({ tipPitchMm: 1 }) })).toThrow(/sets only rimBandMm and lowRimBandMm/);
+    expect(() => typeOfRun('denture', { MIXO_TYPE_ID: 'x', MIXO_PLACEMENT_FILE: file({ tipPitchMm: 1 }) })).toThrow(/sets only rimBandMm, lowRimBandMm, dentalRimPitchMm, rimStripPitchMm, not tipPitchMm/);
   });
 });
 

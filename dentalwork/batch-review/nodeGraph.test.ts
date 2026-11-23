@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
   ALIGNER_KINDS, OLD_KINDS, RIM_DERIVED_REASON, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, rimTabGraph, rimTabView,
-  setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines, FLAT_EDGE_NEEDS_BASE, sameGraph,
+  setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines, FLAT_EDGE_NEEDS_BASE, sameGraph, RIM_LINE_PITCH_MM, placementProblem,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -381,7 +381,9 @@ describe('the rim tab', () => {
     expect(rim.takes).toEqual([RIM_TAKES]);
     expect(rim.fields.map((f) => [f.key, f.value, f.target])).toEqual([['source', 'finder', 'graph'], ['binDeg', 3, 'graph'], ['shellMm', 2, 'graph'], ['openGapDeg', 20, 'graph']]);
     expect(rim.problems).toEqual([]);
-    expect(view.find((n) => n.id === 'RIMBAND')!.fields).toMatchObject([{ key: 'rimBandMm', value: RIM_STRIP_MM.rim_band, target: 'placement' }]);
+    expect(view.find((n) => n.id === 'RIMBAND')!.fields).toMatchObject([{ key: 'rimBandMm', value: RIM_STRIP_MM.rim_band, target: 'placement' },
+      { key: 'dentalRimPitchMm', value: RIM_LINE_PITCH_MM, target: 'placement' }, { key: 'rimStripPitchMm', value: '', standard: '', target: 'placement' }]);
+    expect(view.find((n) => n.id === 'RIMBAND')!.problems).toEqual([]);
     expect(rimTabView('aligner').every((n) => n.fields.length === 0)).toBe(true);
   });
 
@@ -408,8 +410,28 @@ describe('the rim tab', () => {
     expect(rimTabView('denture', { graph, standsOnFlatArea: true }).find((n) => n.id === 'RIM')!.problems).toEqual([]);
     expect(rimTabView('denture', { standsOnFlatArea: false }).find((n) => n.id === 'RIM')!.problems).toEqual([]);
     const lines = rimOutputLines('denture', { placement: {}, ran: { rimBandMm: 3, lowRimBandMm: 5 } });
-    expect(lines[1]).toBe('Rim strip - 2 mm along the rim (the run on screen used 3 mm)');
+    expect(lines[1]).toBe('Rim strip - 2 mm along the rim (the run on screen used 3 mm); rim tips at 2 mm over the whole strip');
     expect(lines[2]).toBe('Low rim strip - 5 mm along the rim');
+  });
+
+  // Owner 2026-11-23: tips along the rim line at one spacing; the strip's area like the supported area, or its own grid.
+  it('sets the rim line\'s spacing and the strip area\'s, says both on the output card, and refuses what the engine would', () => {
+    const profile = readFileSync(new URL('../../vendor/mixo-geocore/host/dental/dentureProfileFiles.ts', import.meta.url), 'utf8');
+    expect(Number(/"downPitchMm\\?":\s*([0-9.]+)/.exec(profile)?.[1])).toBe(RIM_LINE_PITCH_MM);
+    const placement = { dentalRimPitchMm: 1.5, rimStripPitchMm: 0 };
+    const strip = rimTabView('denture', { placement }).find((n) => n.id === 'RIMBAND')!;
+    expect(strip.fields.map((f) => f.value)).toEqual([RIM_STRIP_MM.rim_band, 1.5, '0']);
+    expect(strip.problems).toEqual([]);
+    const lines = rimOutputLines('denture', { placement });
+    expect(lines[0]).toContain('tips every 1.5 mm along it');
+    expect(lines[1]).toContain('the rest of the strip gets the supported area\'s tips');
+    expect(rimOutputLines('denture', { placement: { rimStripPitchMm: 3 } })[1]).toContain('the rest of the strip a 3 mm grid');
+    expect(placementProblem('rimStripPitchMm', 0.1)).toBe('rimStripPitchMm must be 0 (like the supported area) or 0.2 to 10 mm, got 0.1');
+    expect(placementProblem('dentalRimPitchMm', 0)).toContain('must be 0.2 to 10 mm');
+    expect(placementProblem('rimStripPitchMm', '3')).toContain('must be a number');
+    expect(placementProblem('tipPitchMm', 1)).toContain('sets only rimBandMm, lowRimBandMm, dentalRimPitchMm, rimStripPitchMm');
+    // Every choice the dropdown offers passes the check, so no choice is refused only after a press.
+    for (const [value] of strip.fields[2]!.choices!) if (value !== '') expect(placementProblem('rimStripPitchMm', Number(value))).toBeNull();
   });
 });
 

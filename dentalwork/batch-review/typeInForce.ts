@@ -28,7 +28,7 @@ import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
 import { unreadBy } from '../../benchwork/rules.mjs';
 import { discoverTypes } from '../../src/dentalTypes/shippedTypes';
 import { draftOf, graphText, profileText, proofOf, readTypeFile, typeFileText, type TypeFile, type TypeFileDeps } from '../../src/dentalTypes/typeFile';
-import { steepAngleProblem, upgradeGraph, validate } from './nodeGraph.mjs';
+import { placementProblem, steepAngleProblem, upgradeGraph, validate } from './nodeGraph.mjs';
 import { validate as validateOrient } from './orientGraph.mjs';
 import { setOrientGraph } from '@mixo-geocore/host/dental/orientGraph';
 import { useTypeProfile } from './profileSelect';
@@ -66,12 +66,13 @@ export function typeOfRun(kind: DentalKind, env: Env): TypeFile | null {
   if (!env.MIXO_TYPE_ID) return null;
   const builtIn = builtInProfile(kind);
   const pose = env.MIXO_POSE_FILE ? JSON.parse(readFileSync(env.MIXO_POSE_FILE, 'utf8')) as Record<string, number> : {};
-  // The Rim tab's strip widths (WORKBENCH-TABS-PLAN C3), a denture's: the two placement numbers, each above 0 and at
-  // most 20 mm, refused by name here rather than as an anonymous profile error later.
+  // The Rim tab's profile numbers (WORKBENCH-TABS-PLAN C3: the strip widths; 2026-11-23: the two rim spacings), a denture's,
+  // refused by name here rather than as an anonymous profile error later.
   const placement = kind === 'denture' && env.MIXO_PLACEMENT_FILE ? JSON.parse(readFileSync(env.MIXO_PLACEMENT_FILE, 'utf8')) as Record<string, number> : {};
+  // The one list of what the Rim tab may set and its ranges (nodeGraph.mjs RIM_PLACEMENT).
   for (const [key, value] of Object.entries(placement)) {
-    if (key !== 'rimBandMm' && key !== 'lowRimBandMm') throw new TypeError(`the Rim tab sets only rimBandMm and lowRimBandMm, not ${key}`);
-    if (!(typeof value === 'number' && value > 0 && value <= 20)) throw new TypeError(`${key} must be above 0 and at most 20 mm, got ${value}`);
+    const problem = placementProblem(key, value);
+    if (problem) throw new TypeError(problem);
   }
   const rules = env.MIXO_RULES ? JSON.parse(env.MIXO_RULES) as Record<string, number | boolean> : {};
   // The type's OWN name, in all three languages: a copy of the built-in's name would put two "Generic denture"
