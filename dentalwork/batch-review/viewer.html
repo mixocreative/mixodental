@@ -259,6 +259,8 @@
 .zone-canvas .zn-issue { color: var(--danger); font-size: 10px; line-height: 1.35; margin: 2px 0; }
 .zone-canvas .zn-warn { color: var(--warning); font-size: 10px; line-height: 1.35; margin: 2px 0; }
 .zone-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 4px 0 6px; font-size: 12px; }
+.zone-bar .chain-key { margin: 0; }
+.zone-bar .chain-note { flex: 1 1 420px; margin: 0; }
 .zone-summary.ok { color: var(--success); }
 .zone-summary.bad { color: var(--danger); }
 .zone-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--muted); font-size: 11px; }
@@ -553,8 +555,11 @@ function searchProblem(s) {
   if (!(s.marginDeg >= 0)) return 'tie margin must not be negative';
   return null;
 }
-/** The canvas graph (JSON text) the last successful Apply on this page ran; undefined until one has. */
-let appliedGraphText;
+/**
+ * Whether a canvas holds the graph the review on screen RAN (the summary's `zoneGraphRan` / `orientGraphRan`; null = the
+ * standard). It is what decides "Apply and run again" on each canvas's status line.
+ */
+const ranThis = (lib, graph, ranJson) => (ranJson ? lib.sameGraph(graph, ranJson) : lib.isDefault(graph));
 const ruleText = (text) => text.replace(/\{globalOverhang\}/g, RULES.overhangAngleDeg ?? '?').replace(/\{rimOverhang\}/g, RULES.dentalRimOverhangAngleDeg ?? '?');
 // GLTFLoader turns spaces in node names into underscores; compare with them put back.
 const plain = (name) => (name ?? '').replace(/_/g, ' ');
@@ -915,6 +920,8 @@ let ranOrientGraph = 'default';
 let ranZoneGraphJson = null;
 /* The Orient graph that ran (summary `orientGraphRan`, null = the standard Step 1) and the live side names' library. */
 let ranOrientGraphJson = null;
+/* The strip widths the run on screen used (summary `placementRan`, null = the profile's own). */
+let ranPlacement = null;
 let sidePreviewLib = null;
 const orientSideNote = Object.assign(document.createElement('div'), { className: 'chain-note orient-side-note', hidden: true });
 orientSideNote.dataset.ui = 'orient-side-note';
@@ -1308,10 +1315,11 @@ function drawChain(present, names) {
   // which colour in 3D is which - stays as one line of swatches; the tab itself already cuts the 3D to its steps.
   // Without the canvas bundle the cards come back, so the tab is never empty.
   const hasCanvas = stage.id === 'orient' ? Boolean(orientLib && editorLib) : stage.id === 'rim' ? Boolean(graphLib && editorLib?.mountRimCanvas) : false;
+  // The key rides in the canvas's own toolbar row, not a row of its own (owner 2026-11-23: "combine with the bottom
+  // canvas so there's more space").
   if (hasCanvas) {
-    body.append(colourKey(stage, present));
-    if (stage.id === 'orient') drawOrientEditor(body);
-    else drawRimCanvas(body, 'denture');
+    if (stage.id === 'orient') drawOrientEditor(body, colourKey(stage, present));
+    else drawRimCanvas(body, 'denture', colourKey(stage, present));
     return;
   }
   const rail = document.createElement('div');
@@ -1333,7 +1341,7 @@ function drawChain(present, names) {
  * today's denture Step 1; "Flat-base recipe" is the owner's new kind's (ruling 1, 2026-11-23): the largest flat area
  * set on the plate. Every rule lives in `orientGraph.mjs`; this only draws it and keeps it.
  */
-function drawOrientEditor(body) {
+function drawOrientEditor(body, key = null) {
   if (!orientLib || !editorLib) return;
   const g = orientGraph;
   const { problems } = orientLib.validate(g);
@@ -1347,9 +1355,10 @@ function drawOrientEditor(body) {
   status.className = orientLib.isDefault(g) ? 'zone-status default' : 'zone-status edited';
   status.dataset.ui = 'orient-status';
   const ran = ranOrientGraph === 'default' ? 'the standard Step 1' : `your Orient setup (${ranOrientGraph.slice(0, 8)})`;
-  status.textContent = (orientLib.isDefault(g)
-    ? `Orient graph: the standard Step 1 - nothing changed. The review on screen used ${ran}.`
-    : `Orient graph: changed - Apply and run again to use it. The review on screen used ${ran}.`);
+  // Measured against what RAN, not against the standard: "changed - Apply" right after an Apply read as a dead button.
+  status.textContent = ranThis(orientLib, g, ranOrientGraphJson)
+    ? `Orient graph: ${ran} - the review on screen ran this.`
+    : `Orient graph: changed - Apply and run again to use it. The review on screen used ${ran}.`;
   const bar = document.createElement('div');
   bar.className = 'zone-bar';
   const summary = document.createElement('span');
@@ -1377,7 +1386,7 @@ function drawOrientEditor(body) {
   reset.addEventListener('click', () => { orientPositions = editorLib.autoLayout(orientLib.defaultGraph(), []); save(orientLib.defaultGraph()); });
   const tools = Object.assign(document.createElement('span'), { className: 'zone-tools-row' });
   tools.append(pick, add, flat, reset);
-  bar.append(summary, tools);
+  bar.append(summary, ...(key ? [key] : []), tools);
   const props = {
     lib: orientLib, graph: g, positions: orientPositions, liveParams: [], onGraph: save,
     // What each step measured on the case on screen (B3): the readouts of the graph that RAN for it.
@@ -1402,7 +1411,7 @@ function drawOrientEditor(body) {
  * greyed with their reason. False when the bundle or the graph library did not load, so the caller can fall back to
  * plain cards.
  */
-function drawRimCanvas(body, kind) {
+function drawRimCanvas(body, kind, key = null) {
   if (!graphLib || !editorLib?.mountRimCanvas) return false;
   const note = document.createElement('p');
   note.className = 'chain-note';
@@ -1410,8 +1419,16 @@ function drawRimCanvas(body, kind) {
   note.textContent = kind === 'aligner'
     ? 'The aligner\'s steps as nodes. They are locked in this version: each stands for today\'s aligner code, and the settings that shape them are in the aligner profile. Greyed nodes need the finished rim.'
     : 'The rim and the strips grown from it, with their settings: change one and Apply and run to see it. The rim reads the final orientation of 1 Orient. Greyed nodes need the finished rim, so they appear here only for reference.';
-  body.append(note, rimCanvasHost);
-  const ctx = { graph: zoneGraph, placement: placementEdits };
+  if (key) {
+    const bar = Object.assign(document.createElement('div'), { className: 'zone-bar' });
+    bar.append(note, key);
+    body.append(bar, rimCanvasHost);
+  } else {
+    body.append(note, rimCanvasHost);
+  }
+  // standsOnFlatArea: the Orient canvas's pose is a Stand on the flat area, the only pose the flat edge can follow.
+  const pose = orientGraph?.nodes?.find((n) => n.id === orientGraph.outputs?.pose);
+  const ctx = { graph: zoneGraph, placement: placementEdits, ran: ranPlacement, standsOnFlatArea: pose?.kind === 'setBottom' };
   const props = { kind, view: graphLib.rimTabView(kind, ctx), output: graphLib.rimOutputLines(kind, ctx), onField: kind === 'denture' ? onRimField : undefined };
   if (rimHandle) rimHandle.update(props);
   else rimHandle = editorLib.mountRimCanvas(rimCanvasHost, props);
@@ -1506,10 +1523,12 @@ function drawZoneEditor(body, present, names) {
   const ran = ranZoneGraph === 'default' ? 'the standard setup'
     : ranZoneGraph === 'unknown' ? 'a setup this folder does not record' : `your setup (${ranZoneGraph.slice(0, 8)})`;
   // F5: once this page has applied a graph, say whether the canvas still IS that graph.
-  const same = appliedGraphText === undefined ? '' : JSON.stringify(g) === appliedGraphText ? ' The canvas matches that run.' : ' The canvas has changed since that run.';
-  status.textContent = (graphLib.isDefault(g)
-    ? `Standard zone setup - nothing changed. The review on screen used ${ran}.`
-    : `Your zone setup (changed) - Apply and run again to use it. The review on screen used ${ran}.`) + same;
+  // Measured against what RAN (the summary's graph), as the Orient tab's: a folder that does not record it keeps the
+  // old wording, since nothing on screen can say whether the canvas matches it.
+  status.textContent = ranZoneGraph !== 'unknown' && ranThis(graphLib, g, ranZoneGraphJson)
+    ? `Zone setup: ${ran} - the review on screen ran this.`
+    : graphLib.isDefault(g) ? `Standard zone setup. The review on screen used ${ran}.`
+    : `Your zone setup (changed) - Apply and run again to use it. The review on screen used ${ran}.`;
 
   // One toolbar: is it complete, the colour key, add a node, back to standard.
   const bar = document.createElement('div');
@@ -2047,9 +2066,15 @@ async function show(row) {
     });
     floorY = supports.isEmpty() ? null : supports.min.y;
     underside = false;
+    // The open tab's 3D cut, also on load: it was set only by a tab CLICK, so a reload on 1 Orient showed every layer,
+    // supports included, until a tab was pressed (Fable's review).
+    if (kindNow === 'denture' && stepAt === null) stepAt = STAGES.find((s) => s.id === stageNow)?.cut ?? null;
     applyVisibility();
     look(VIEWS.fit());
     document.getElementById('note').textContent = '';
+    // The zone overlay belongs to THIS model: the zone file can land before the GLB, and the overlay it built then was
+    // hung on the previous case's model (Fable's review).
+    if (zoneSelected) showZonePreview();
   }
   drawLayers();
 }
@@ -2074,6 +2099,7 @@ function openRun(summary, glbUrl, csvUrl) {
   ranOrientGraph = summary.orientGraph ?? 'default';
   ranZoneGraphJson = summary.zoneGraphRan ?? null;
   ranOrientGraphJson = summary.orientGraphRan ?? null;
+  ranPlacement = summary.placementRan ?? null;
   urlOf = glbUrl;
   const needing = cases.filter((c) => c.needsLook);
   const built = cases.filter((c) => c.result === 'built').length;
@@ -2175,7 +2201,7 @@ function drawTilt(c) {
 // Fact groups of the right panel: [id, title, open by default, the row names in it]. A row not listed lands in "More".
 const FACT_GROUPS = [
   ['result', 'Case result', true, ['Verdict', 'Kind', 'Shape check', 'Result', 'Safety check', 'Why it needs a look', 'Supports crossing the aligner', 'Crossings not judged']],
-  ['tilt', 'Tilt and orientation', true, ['Print angle', 'Up decision', 'Rim plane', 'Arch', 'Up/down cross-check', 'Floor offset ratio']],
+  ['tilt', 'Tilt and orientation', true, ['Print angle', 'Up decision', 'Rim plane', 'Rim note', 'Arch', 'Up/down cross-check', 'Floor offset ratio']],
   ['islands', 'Islands', true, ['Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Low points with no support', 'Low points outside the area']],
   ['tips', 'Tips', true, ['Tips by source', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Unsupportable tips', 'Structures left out', 'Largest gap, outer edge (mm)', 'Largest gap, opening (mm)', 'Edge coverage needs review']],
   ['peelfacts', 'Peel and supports', false, ['Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area']],
@@ -2196,7 +2222,7 @@ function facts(c) {
   // A denture reads only the rows that apply to it; the aligner-only rows (arch, cross-checks, gaps, edge
   // coverage, support crossings) would show "not oriented" and similar in red for a case that has none.
   const DENTURE_ROWS = ['Kind', 'Shape check', 'Result', 'Safety check', 'Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Print angle', 'Up decision', 'Tips by source', 'Unsupportable tips', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Scan clean-up', 'Time (s)',
-    'Rim plane', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
+    'Rim plane', 'Rim note', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
   const verdict = c.result !== 'built' ? `Not built${c.reason ? ` - ${c.reason}` : ''}`
     : c.needsLook ? `Built - needs a look${c.reason ? `: ${c.reason}` : ''}` : 'Built - nothing flagged';
   const rows = [
@@ -2245,6 +2271,8 @@ function facts(c) {
     ['Trunk area / neck area', c.trunkToNeckArea ?? 'n/a', false],
     ['Owner contacts', c.ownerContacts ?? '-', false],
     ['Rim plane', (c.rimPlane ?? c.middlePlane) || '-', false],
+    // The rim asked for and not used (a drawn rim, or the flat area's edge): red, because the run fell back silently otherwise.
+    ['Rim note', c.rimNote || 'the rim asked for was used', Boolean(c.rimNote)],
     ['Owner contacts, median distance to displayed model (mm)', c.ownerContactsMedianMm ?? '-', c.ownerContactsMedianMm != null && c.ownerContactsMedianMm > 1],
     ['Owner area covered %', c.ownerAreaCoveredPct ?? '-', false],
     ['Our area outside owner %', c.outsideOwnerAreaPct ?? '-', false],
@@ -2311,25 +2339,31 @@ async function loadZonesFile(c) {
 }
 
 /** The overlay for the selected node, or none: the zone layers come back when nothing is selected or off the Zones tab. */
+let previewTicket = 0;
 async function showZonePreview() {
+  // A ticket, as show() uses: two calls racing across the first import (or a case change) must not both build an
+  // overlay, or one is orphaned on the model (Fable's review).
+  const ticket = ++previewTicket;
   if (zoneOverlay) { zoneOverlay.parent?.remove(zoneOverlay); zoneOverlay.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); zoneOverlay = null; }
   const active = zoneSelected && stageNow === 'zones' && kindNow === 'denture' && graphLib;
   zonePreviewNote.hidden = !active;
   if (!active) { applyVisibility(); return; }
   previewLib ??= await import('./zonePreview.mjs');
+  if (ticket !== previewTicket) return;
   const node = zoneGraph?.nodes.find((n) => n.id === zoneSelected);
   const title = node ? (graphLib.KIND_WORDS[node.kind]?.title ?? node.kind) : zoneSelected;
+  const gives = graphLib.KINDS[node?.kind]?.out;
   const values = previewLib.nodeValues(zonesRead, zoneSelected);
-  const isZone = graphLib.KINDS[node?.kind]?.out === 'zone';
-  const groups = values ? previewLib.previewGroups(values, isZone) : null;
+  const groups = values && (gives === 'mask' || gives === 'zone') ? previewLib.previewGroups(values, gives === 'zone') : null;
   const ran = ranZoneGraphJson ? graphLib.upgradeGraph(ranZoneGraphJson) : graphLib.defaultGraph();
-  const canvasChanged = JSON.stringify(ran) !== JSON.stringify(zoneGraph);
-  zonePreviewNote.textContent = previewLib.previewNote({ title, groups, hasRead: Boolean(zonesRead), canvasChanged });
+  const canvasChanged = !previewLib.sameGraph(ran, zoneGraph);
   // The model: the GLB's denture mesh, written with the engine's own face order (reviewCase.ts), so face k is face k.
   let base = null;
   model?.traverse((o) => { if (!base && o.isMesh && keyOf(o.name) === 'DENTURE') base = o; });
   const index = base?.geometry.index;
-  if (!groups || !index || index.count / 3 !== zonesRead.faces) { applyVisibility(); return; }
+  const drawn = Boolean(groups && index && index.count / 3 === zonesRead.faces);
+  zonePreviewNote.textContent = previewLib.previewNote({ title, groups, hasRead: Boolean(zonesRead), canvasChanged, gives, drawn });
+  if (!drawn) { applyVisibility(); return; }
   zoneOverlay = new THREE.Group();
   for (const group of groups) {
     if (group.faces.length === 0) continue;
@@ -2617,7 +2651,6 @@ try {
       const fresh = await fetch(`/out/summary.json?t=${Date.now()}`).then((response) => response.json());
       // What may be claimed comes from the run's OWN summary, never the request (cia F2; rerunReport.mjs).
       const outcome = rerunOutcome({ graphEdited, summaryGraph: fresh.zoneGraph, names, orientEdited, summaryOrient: fresh.orientGraph });
-      if (outcome.applied) appliedGraphText = graphEdited ? JSON.stringify(zoneGraph) : JSON.stringify(graphLib?.defaultGraph() ?? null);
       // The run on screen is now this type: the strip marks Apply done, and Save becomes the next step.
       ranTypeId = typeName;
       savedTypeId = null;

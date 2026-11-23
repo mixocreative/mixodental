@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
   ALIGNER_KINDS, OLD_KINDS, RIM_DERIVED_REASON, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, rimTabGraph, rimTabView,
-  setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines,
+  setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines, FLAT_EDGE_NEEDS_BASE, sameGraph,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -399,6 +399,18 @@ describe('the rim tab', () => {
     expect(bad.find((n) => n.id === 'LOWRIMBAND')!.problems).toEqual(['lowRimBandMm must be above 0 and at most 20 mm, got 0']);
     expect(validate(setParam(defaultGraph(), 'RIM', 'source', 'edge')).problems).toContain('RIM: "source" must be finder or flatEdge, got "edge"');
   });
+
+  // Fable's review: the flat edge without a flat area falls back silently unless the tab says so first; and widths kept
+  // in browser storage can differ from the run on screen, so the output card says what the run used.
+  it('warns before the run that the flat edge needs a Stand on the flat area, and names the widths the run used', () => {
+    const graph = setParam(defaultGraph(), 'RIM', 'source', 'flatEdge');
+    expect(rimTabView('denture', { graph, standsOnFlatArea: false }).find((n) => n.id === 'RIM')!.problems).toContain(FLAT_EDGE_NEEDS_BASE);
+    expect(rimTabView('denture', { graph, standsOnFlatArea: true }).find((n) => n.id === 'RIM')!.problems).toEqual([]);
+    expect(rimTabView('denture', { standsOnFlatArea: false }).find((n) => n.id === 'RIM')!.problems).toEqual([]);
+    const lines = rimOutputLines('denture', { placement: {}, ran: { rimBandMm: 3, lowRimBandMm: 5 } });
+    expect(lines[1]).toBe('Rim strip - 2 mm along the rim (the run on screen used 3 mm)');
+    expect(lines[2]).toBe('Low rim strip - 5 mm along the rim');
+  });
 });
 
 // WORKBENCH-TABS-PLAN section 4: every restore mark puts back the STANDARD graph's value first, the kind's second.
@@ -409,5 +421,18 @@ describe('a restore mark puts back the standard value', () => {
     const added = addNode(defaultGraph(), 'parallelCast').nodes.at(-1)!;
     expect(defaultOf(added, 'deg')).toBe(KINDS.parallelCast.params.deg);
     expect(defaultOf(added, 'noSuchKey')).toBeUndefined();
+  });
+});
+
+/* The canvas status compares the canvas to the graph the run recorded, which the summary writes with sorted keys. */
+describe('the canvas holds the graph that ran', () => {
+  it('whatever order the keys were written in, and not once a value or the node order differs', () => {
+    const g = defaultGraph();
+    const resorted = JSON.parse(JSON.stringify(g, (_, v) => (v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(Object.keys(v).sort().reverse().map((k) => [k, v[k]])) : v)));
+    expect(JSON.stringify(resorted)).not.toBe(JSON.stringify(g));
+    expect(sameGraph(g, resorted)).toBe(true);
+    expect(sameGraph(g, setParam(g, 'RIM', 'binDeg', 5))).toBe(false);
+    expect(sameGraph(g, { ...g, nodes: [...g.nodes].reverse() })).toBe(false);
   });
 });

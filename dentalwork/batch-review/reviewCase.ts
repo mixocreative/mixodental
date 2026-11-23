@@ -53,6 +53,8 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   ownerContacts: number | null; ownerContactsMedianMm: number | null; ownerAreaCoveredPct: number | null; outsideOwnerAreaPct: number | null;
   /** Denture only: the rim plane's state (fitted, or none); '' for an aligner. Was `middlePlane`, a retired name. */
   rimPlane: string;
+  /** Denture only: why the rim asked for (a drawn one, or the flat area's edge) could not be used and the found rim was ('' when it was used, or for an aligner). */
+  rimNote: string;
   /** Denture only: the up decision from the rim, in words ('' for an aligner or no review). */
   upDecision: string;
   /** Denture only: the review's tips per source, e.g. 'rim 12 / hole 3 / area 40 / low 2' ('' for an aligner). */
@@ -85,7 +87,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
   const row: CaseRow = { kind, shapeNote: '', case: name, source: file, result: 'error', reason: '', explanation: '', seconds: 0, verdict: '', crossings: 0, uncertain: 0,
     islandsUnresolved: 0, islandsOutsideArea: 0, islandsResolved: 0, unresolvedIslands: '', tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
-    ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, rimPlane: '',
+    ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, rimPlane: '', rimNote: '',
     upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
     peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', zonesFile: '', stageTimes: '',
     ...noEvidence, orientationGlb: '' };
@@ -239,7 +241,7 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
     stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none',
     structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
     ownerContacts: detail.ownerContacts, ownerContactsMedianMm: row.ownerContactsMedianMm ?? detail.ownerContactsMedianMm,
-    ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, rimPlane: detail.rimPlane,
+    ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, rimPlane: detail.rimPlane, rimNote: detail.rimNote,
     stageTimes: process.env.MIXO_TIMERS ? `scan ${review.stageSeconds.scan} / policy ${review.stageSeconds.policy} / generate ${review.stageSeconds.generate} / flow ${review.stageSeconds.total}` : '',
     upDecision: detail.upDecision, tipsBySource: detail.tipsBySource, selfSupport: detail.selfSupport, traps: detail.traps, unsupportableTips: detail.unsupportableTips, tipsLeftOutReasons: detail.tipsLeftOutReasons,
   });

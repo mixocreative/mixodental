@@ -92,7 +92,12 @@ if (!type && process.env.MIXO_ORIENT_GRAPH_FILE) {
   }
   process.stdout.write(`Orient graph: ${orientGraph} (the edited Step 1 from the Orient canvas)\n`);
 }
-
+// The rim strip widths this run used, from the type in force (a draft with the Rim tab's edits, or a saved type), so
+// the review page can say when its Rim tab shows other numbers than the run on screen (Fable's review). null = the
+// built-in profile's own.
+const placementOf = (profile: Record<string, unknown>) => profile.placement as { rimBandMm: number; lowRimBandMm: number } | undefined;
+const typePlacement = type?.category === 'denture' ? placementOf(type.profile) : undefined;
+const placementRan = typePlacement ? { rimBandMm: typePlacement.rimBandMm, lowRimBandMm: typePlacement.lowRimBandMm } : null;
 
 const rows: CaseRow[] = [];
 for (const [k, file] of files.entries()) {
@@ -102,7 +107,7 @@ for (const [k, file] of files.entries()) {
   rows.push(row);
   process.stdout.write(`${row.result}${row.verdict ? ` / ${row.verdict}` : ''}${row.reason ? ` (${row.reason})` : ''}${row.printAngleDeg === null ? '' : `, print angle ${row.printAngleDeg}° (stable ${row.stableBand})`} in ${row.seconds} s
 `);
-  writeSummary(rows, out, zoneGraph, orientGraph, zoneGraphRan, orientGraphRan);
+  writeSummary(rows, out, zoneGraph, orientGraph, zoneGraphRan, orientGraphRan, placementRan);
 }
 
 if (type) recordType(out, type, files);
@@ -114,8 +119,8 @@ const failed = rows.filter((row) => row.result === 'error').length;
 if (failed > 0) throw new Error(`${failed} file(s) could not be read or built (see the lines above).`);
 }
 
-function writeSummary(rows: CaseRow[], out: string, zoneGraph: string, orientGraph: string, zoneGraphRan: unknown, orientGraphRan: unknown): void {
-  writeFileSync(join(out, 'summary.json'), JSON.stringify({ created: new Date().toISOString(), ruleDefaults: RULE_DEFAULTS, zoneGraph, zoneGraphRan, orientGraph, orientGraphRan, cases: rows }, null, 2));
+function writeSummary(rows: CaseRow[], out: string, zoneGraph: string, orientGraph: string, zoneGraphRan: unknown, orientGraphRan: unknown, placementRan: unknown): void {
+  writeFileSync(join(out, 'summary.json'), JSON.stringify({ created: new Date().toISOString(), ruleDefaults: RULE_DEFAULTS, zoneGraph, zoneGraphRan, orientGraph, orientGraphRan, placementRan, cases: rows }, null, 2));
   const columns = Object.keys(rows[0]!) as Array<keyof CaseRow>;
   const cell = (value: unknown) => /[",\n]/.test(String(value ?? '')) ? `"${String(value).replace(/"/g, '""')}"` : String(value ?? '');
   writeFileSync(join(out, 'summary.csv'), [columns.join(','), ...rows.map((row) => columns.map((c) => cell(row[c])).join(','))].join('\r\n'));

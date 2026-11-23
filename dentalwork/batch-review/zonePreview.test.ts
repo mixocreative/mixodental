@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SET_TOKEN, ZONE_STATES, nodeValues, previewGroups, previewNote } from './zonePreview.mjs';
+import { SET_TOKEN, ZONE_STATES, nodeValues, previewGroups, previewNote, sameGraph } from './zonePreview.mjs';
 
 // Two nodes, five faces each: NS a set of faces, Z2 a Mark's zone (0 Undefined, 1 Support, 2 No-support).
 const read = { ids: ['NS', 'Z2'], faces: 5, values: Uint8Array.from([1, 1, 0, 0, 1, 2, 1, 0, 1, 2]) };
@@ -29,5 +29,22 @@ describe('the per-node preview (plan D2)', () => {
     expect(previewNote({ title: 'Mark support', groups, hasRead: true, canvasChanged: true })).toContain('this is what RAN, not your edit');
     expect(previewNote({ title: 'Mark support', groups: null, hasRead: true, canvasChanged: false })).toContain('has not run on this case');
     expect(previewNote({ title: 'Mark support', groups: null, hasRead: false, canvasChanged: false })).toContain('no per-node values');
+  });
+
+  // Fable's review: a node with no faces ran (re-running cannot help), and values that do not fit draw nothing.
+  it('says a point or depth-map node has nothing to tint, and never says "Showing" when nothing was drawn', () => {
+    expect(previewNote({ title: 'Rim crossing', groups: null, hasRead: true, canvasChanged: false, gives: 'position' })).toContain('gives a point, not faces');
+    expect(previewNote({ title: 'Depth map', groups: null, hasRead: true, canvasChanged: false, gives: 'depthMap' })).not.toContain('Apply');
+    const groups = previewGroups(nodeValues(read, 'Z2')!, true);
+    expect(previewNote({ title: 'Mark support', groups, hasRead: true, canvasChanged: false, gives: 'zone', drawn: false })).toContain('nothing is drawn');
+  });
+
+  it('compares graphs whatever order their keys were written in', () => {
+    const canvas = { nodes: [{ id: 'A', kind: 'union', params: {}, inputs: { a: 'X', b: 'Y' } }], outputs: { zone: 'Z' } };
+    const ran = { outputs: { zone: 'Z' }, nodes: [{ id: 'A', inputs: { a: 'X', b: 'Y' }, kind: 'union', params: {} }] };
+    expect(sameGraph(canvas, ran)).toBe(true);
+    expect(sameGraph(canvas, { ...ran, outputs: { zone: 'Q' } })).toBe(false);
+    // Order inside a list is meaning (node order), so it is kept.
+    expect(sameGraph({ list: [1, 2] }, { list: [2, 1] })).toBe(false);
   });
 });

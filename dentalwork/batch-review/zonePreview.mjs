@@ -48,11 +48,27 @@ export function previewGroups(values, isZone) {
  * `previewGroups` gave, or null when there is nothing to show; `hasRead` says whether this case has per-node values at
  * all; `canvasChanged` says the canvas differs from the graph that ran.
  */
-export function previewNote({ title, groups, hasRead, canvasChanged }) {
+export function previewNote({ title, groups, hasRead, canvasChanged, gives, drawn = true }) {
+  // A node that gives a point, a depth map or a rim line ran, but has no faces to tint: re-running would not help, so
+  // the note must not say it would (Fable's review, 2026-11-23).
+  if (gives && gives !== 'mask' && gives !== 'zone') return `${title} gives ${gives === 'position' ? 'a point' : gives === 'depthMap' ? 'a depth map' : 'a rim line'}, not faces - nothing to show on the model. Select a ray, strip, combine or Mark node.`;
   if (!hasRead) return `${title}: this case has no per-node values - run it again (Apply and run) to see each node in 3D.`;
   if (!groups) return `${title} has not run on this case - Apply and run again to see it in 3D.`;
+  // The values exist but could not be laid on this model (its face count differs): say so, never "Showing".
+  if (!drawn) return `${title} ran, but its values do not fit the model on screen, so nothing is drawn. Run the case again.`;
   const counts = groups.map((g) => `${g.label} ${g.faces.length.toLocaleString('en')}`).join(', ');
   const shown = groups.length > 1 ? `the zone as it stands at ${title}: ${counts} faces` : `${title}: ${counts} faces`;
   const stale = canvasChanged ? ' The canvas has changed since this run, so this is what RAN, not your edit - Apply to see the edit.' : '';
   return `Showing ${shown}. Click the empty canvas to see the final zone again.${stale}`;
+}
+
+/**
+ * True when two graphs say the same thing whatever order their keys were written in. The graph that RAN comes back
+ * through the type file's writer, which sorts keys, while the canvas keeps the order it was built in - so comparing
+ * their JSON text called every applied edit "changed since this run" (Fable's review, 2026-11-23).
+ */
+export function sameGraph(a, b) {
+  const sorted = (value) => (Array.isArray(value) ? value.map(sorted)
+    : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, sorted(value[key])])) : value);
+  return JSON.stringify(sorted(a)) === JSON.stringify(sorted(b));
 }

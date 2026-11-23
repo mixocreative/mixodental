@@ -671,6 +671,9 @@ export function rimTabGraph(kind) {
   return { kind, nodes, outputs: {} };
 }
 
+/** The Rim node's warning when it follows the flat area's edge but 1 Orient stands the part on no flat area. */
+export const FLAT_EDGE_NEEDS_BASE = 'RIM: the rim follows the flat area\'s edge, but 1 Orient does not stand the part on a flat area (no "Stand on the flat area"), so the found rim will be used.';
+
 /** What the rim node takes, said on it: it has no wire on this tab, because it reads the final orientation of tab 1. */
 export const RIM_TAKES = 'the final orientation, from 1 Orient';
 
@@ -704,8 +707,9 @@ function rimFields(kind, id, graph, placement) {
 
 /**
  * What the canvas draws for each rim-tab node: its words, whether it is greyed (and why), its wires, and - on the
- * denture's tab - its editable fields and their problems. `ctx` is `{ graph, placement }`; absent, the fields show
- * their standard values.
+ * denture's tab - its editable fields and their problems. `ctx` is `{ graph, placement, ran, standsOnFlatArea }`;
+ * absent, the fields show their standard values. `standsOnFlatArea` (false when the Orient canvas's pose is not a
+ * Stand on the flat area) lets the Rim warn that the flat area's edge cannot be had.
  */
 export function rimTabView(kind, ctx = {}) {
   const graph = rimTabGraph(kind);
@@ -717,7 +721,11 @@ export function rimTabView(kind, ctx = {}) {
       : Object.values(n.inputs).map((from) => RIM_TAB_KINDS[graph.nodes.find((m) => m.id === from)?.kind]?.out ?? 'unknown');
     const fields = rimFields(kind, n.id, ctx.graph, ctx.placement);
     const problems = n.id === 'RIM' && kind === 'denture'
-      ? rimProblems({ id: 'RIM', params: Object.fromEntries(fields.map((f) => [f.key, f.value])) })
+      ? [...rimProblems({ id: 'RIM', params: Object.fromEntries(fields.map((f) => [f.key, f.value])) }),
+        // The flat area's edge needs a flat area to stand on: without one the engine falls back to the found rim (and
+        // the case facts say why), so the tab says it BEFORE the run (Fable's review).
+        ...(ctx.standsOnFlatArea === false && fields.some((f) => f.key === 'source' && f.value === 'flatEdge')
+          ? [FLAT_EDGE_NEEDS_BASE] : [])]
       : fields.map((f) => widthProblem(f.key, f.value)).filter(Boolean);
     return { id: n.id, title: spec.label, says: spec.says, out: spec.out, derived: Boolean(spec.derived),
       reason: spec.derived ? RIM_DERIVED_REASON : null, inputs: Object.entries(n.inputs), takes, fields, problems };
@@ -729,10 +737,14 @@ export function rimOutputLines(kind, ctx = {}) {
   if (kind !== 'denture') return [];
   const rim = ctx.graph?.nodes?.find((n) => n.id === 'RIM')?.params ?? {};
   const width = (id) => ctx.placement?.[RIM_STRIP_WIDTHS[id].key] ?? RIM_STRIP_WIDTHS[id].standard;
+  // What the run on screen used (summary `placementRan`), when it differs from the tab: the widths live in browser
+  // storage, so another browser or a cleared one shows the standard while the run used something else (Fable's review).
+  const ranWidth = (id) => ctx.ran?.[RIM_STRIP_WIDTHS[id].key] ?? RIM_STRIP_WIDTHS[id].standard;
+  const ranNote = (id) => (ranWidth(id) !== width(id) ? ` (the run on screen used ${ranWidth(id)} mm)` : '');
   return [
     `Rim line - ${rim.source === 'flatEdge' ? 'the edge of the flat area the part stands on' : 'the lowest edge, found'} (a rim drawn for one case in the app replaces it)`,
-    `Rim strip - ${width('RIMBAND')} mm along the rim`,
-    `Low rim strip - ${width('LOWRIMBAND')} mm along the rim`,
+    `Rim strip - ${width('RIMBAND')} mm along the rim${ranNote('RIMBAND')}`,
+    `Low rim strip - ${width('LOWRIMBAND')} mm along the rim${ranNote('LOWRIMBAND')}`,
     'Rim plane - fitted through the rim line',
     'Rim crossing - where the rim plane meets the symmetry plane: the cavity rays start here',
   ];
@@ -741,4 +753,15 @@ export function rimOutputLines(kind, ctx = {}) {
 /** True when `graph` is the default, node for node - the only graph that runs today. */
 export function isDefault(graph) {
   return JSON.stringify(graph) === JSON.stringify(defaultGraph());
+}
+
+/**
+ * Whether two graphs are the same graph, whatever order their keys were written in. The run's summary records the graph
+ * it ran with its keys sorted, so comparing the canvas to it by plain JSON text said "changed" right after an Apply had
+ * run exactly that graph (owner 2026-11-23: "apply and run is not working"). Array order still counts: it is meaning.
+ */
+export function sameGraph(a, b) {
+  const sorted = (v) => (Array.isArray(v) ? v.map(sorted)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted(v[k])])) : v);
+  return JSON.stringify(sorted(a)) === JSON.stringify(sorted(b));
 }
