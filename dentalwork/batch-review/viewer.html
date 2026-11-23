@@ -288,6 +288,7 @@
 .zone-canvas .h-depthMap { background: var(--warning); }
 .zone-canvas .h-position { background: var(--red); }
 .zone-canvas .h-rim { background: var(--layer-no-support-steep); }
+.zone-canvas .h-zone { background: var(--node-marks); }
 
 /* The run button, folded up from the old benchwork panel to sit beside the stages it runs. */
 .stage-run { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 6px 0; font-size: 11px; }
@@ -1486,7 +1487,7 @@ function drawZoneEditor(body, present, names) {
     const label = document.createElement('label');
     label.className = 'zone-out';
     label.dataset.tipTitle = graphLib.OUTPUT_WORDS[name].title;
-    label.dataset.tip = `${graphLib.OUTPUT_WORDS[name].says} Needs ${want === 'mask' ? 'faces' : 'a line'}; left empty, the run is refused.`;
+    label.dataset.tip = `${graphLib.OUTPUT_WORDS[name].says} Needs ${graphLib.TYPE_WORDS[want] ?? want}; left empty, the run is refused.`;
     const sel = sourceSelect(g, want, g.outputs[name]);
     sel.dataset.ui = `zone-out-${name}`;
     sel.addEventListener('change', () => save(graphLib.bindOutput(g, name, sel.value || null)));
@@ -1529,7 +1530,8 @@ function drawZoneEditor(body, present, names) {
 function sourceSelect(g, want, current) {
   const sel = document.createElement('select');
   sel.append(Object.assign(document.createElement('option'), { value: '', textContent: '— none —' }));
-  const fits = want.split('|');
+  // A Mark's `under` is optional ("zone?"): the mark is not part of the type.
+  const fits = graphLib.inputType(want).split('|');
   for (const n of g.nodes) {
     const out = graphLib.KINDS[n.kind]?.out;
     if (!fits.includes(out)) continue;
@@ -1613,7 +1615,9 @@ function zoneCard(g, n, k, idle, save) {
       input.value = live.input.value === '' ? String(value) : live.input.value;
       input.addEventListener('input', () => { live.input.value = input.value === '0' ? '' : input.value; });
     }
-    input.addEventListener('change', () => save(graphLib.setParam(g, n.id, key, numeric ? Number(input.value) : input.value)));
+    // A dropdown hands back its choice's OWN value: a Mark's `seen` is true / false, and the engine refuses "true".
+    const picked = () => (words.choices ?? []).find(([v]) => String(v) === input.value)?.[0] ?? input.value;
+    input.addEventListener('change', () => save(graphLib.setParam(g, n.id, key, numeric ? Number(input.value) : picked())));
     row.title = fixedHere ? `${words.help} Fixed in this version: the engine does not read an edit yet.` : words.help;
     row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: live ? `${words.label} · live` : words.label }), input);
     if (key === 'deg' && n.kind === 'parallelCast') {

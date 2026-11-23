@@ -277,6 +277,12 @@ is fixed but the four things below, and each is a consequence of the engine, not
 
 **1. The REQUIRED OUTPUTS are named, and there are EIGHT.**
 
+> **SUPERSEDED 2026-11-23 by plan D1 (docs/WORKBENCH-TABS-PLAN.md section 9):** `allowed`, `no_support` and
+> `allowed_cavity` are now ONE output, `zone`, stacked from Mark support / Mark no-support nodes. The engine derives
+> the three masks below from it, so what placement reads is unchanged; the graph has six outputs. A graph saved with
+> the three old ones still runs in the engine and is upgraded into a stack by the editor. The rest of this section
+> is the reasoning that led there and stays as written.
+
 > **What a required output is, in one line:** a name the engine reads. Placement never looks at your
 > graph - it asks for a mask *by name*, the way a render only ever looks at Blender's Material Output
 > however much is wired behind it. Your graph may contain any nodes in any arrangement, and it must

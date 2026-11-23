@@ -541,6 +541,7 @@ The tokens of `dentalwork/batch-review/tokens.css` that the app does not have. T
 | `--node-maps` | `var(--success)` | Node editor group: Maps & finds (depth map, find holes, find sockets) |
 | `--node-strips` | `var(--warning)` | Node editor group: Strips (strip around) |
 | `--node-combine` | `var(--muted)` | Node editor group: Combine (either, without, both, everything but) |
+| `--node-marks` | `var(--red)` | Node editor group: Mark the zone (Mark support, Mark no-support - plan D1), and the zone socket's handle. The accent, because the Zone is the one output the stack builds |
 | `--node-orient` | `var(--ink)` | Node editor group: From Orient (the rim line; not drawn on the zone canvas) |
 | `--layer-undefined` | `#6e6a86` | Layer: no ray reached this face - the absence of a verdict, deliberately outside the red/green/amber family the decided zones use |
 | `--layer-allowed` | `#2e9e5b` | Layer: allowed |

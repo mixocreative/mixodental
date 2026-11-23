@@ -29,7 +29,7 @@ describe('putting an aligner type in force', () => {
     const edited = defaultGraph();
     edited.nodes.push({ id: 'R2', kind: 'parallelCast', params: { from: 'front', toward: 'tissue', deg: 30, pitchMm: 0.1 }, inputs: {} });
     edited.nodes.push({ id: 'NS2', kind: 'union', params: {}, inputs: { a: 'NS', b: 'R2' } });
-    edited.outputs.no_support = 'NS2';
+    edited.nodes.find((n) => n.id === 'Z1')!.inputs.faces = 'NS2';
     const denture = setZoneGraph(edited);
     try {
       expect(denture).not.toBe('default');

@@ -114,7 +114,7 @@ describe('a file that cannot be a type is refused by name', () => {
   });
 
   it('a zone graph that cannot run, or that disagrees with the steep-angle rule', () => {
-    expect(refused({ ...dentureType(), zoneGraph: { ...defaultGraph(), outputs: { ...defaultGraph().outputs, allowed: null } } })).toThrow(/cannot run/);
+    expect(refused({ ...dentureType(), zoneGraph: { ...defaultGraph(), outputs: { ...defaultGraph().outputs, zone: null } } })).toThrow(/cannot run/);
     expect(refused({ ...dentureType(), zoneGraph: setParam(defaultGraph(), 'R1b', 'deg', 60) })).toThrow(/noSupportSteepDeg is not set/);
   });
 

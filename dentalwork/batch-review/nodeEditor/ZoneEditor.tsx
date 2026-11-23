@@ -190,8 +190,13 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
   const spec = lib.KINDS[node.kind];
   const words = lib.KIND_WORDS[node.kind];
   const group = lib.NODE_GROUPS[lib.KIND_GROUP[node.kind]];
-  const typeText = (want: string) => want.split('|').map((t) => lib.TYPE_WORDS[t] ?? t).join(' or ');
-  const inputLabel = (name: string) => (node.kind === 'subtract' ? (name === 'a' ? 'A - kept' : 'B - removed from A') : name === 'a' || name === 'b' ? name.toUpperCase() : name);
+  // A type ending in `?` is an input that may stay empty (a Mark's `under`, plan D1).
+  const typeText = (want: string) => {
+    const words = want.replace(/\?$/, '').split('|').map((t) => lib.TYPE_WORDS[t] ?? t).join(' or ');
+    return want.endsWith('?') ? `${words} (optional)` : words;
+  };
+  const inputLabel = (name: string) => (node.kind === 'subtract' ? (name === 'a' ? 'A - kept' : 'B - removed from A')
+    : name === 'a' || name === 'b' ? name.toUpperCase() : name === 'under' ? 'zone so far' : name);
   return (
     <div className={`zn${idle ? ' idle' : ''}${spec.fixed ? ' fixed' : ''}${issues.some((i) => !i.warn) ? ' has-issue' : ''}`} style={{ '--zn-group': `var(${group?.token ?? '--muted'})` } as CSSProperties}>
       <div className="zn-group">{group?.title}</div>
@@ -216,7 +221,7 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
       {Object.entries(spec.inputs).map(([name, want]) => (
         // The handle lives INSIDE its row, so it lines up with its label however the sentence above wraps.
         <div className="zn-row zn-socket" key={name}>
-          <Handle type="target" position={Position.Left} id={name} className={`h-${want.split('|')[0]}`} />
+          <Handle type="target" position={Position.Left} id={name} className={`h-${want.replace(/\?$/, '').split('|')[0]}`} />
           <span className="zn-in">{inputLabel(name)}</span>
           <span className="zn-type">{typeText(want)}</span>
         </div>
@@ -239,8 +244,11 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
             <span className="zn-in">{p.label}{isLive && <b className="zn-live"> · live</b>}</span>
             {p.choices
               ? (
-                <select className="nodrag" defaultValue={String(value)} title={p.choices.find(([v]) => v === String(value))?.[1]} onChange={(e) => onParam(node.id, key, e.target.value)}>
-                  {p.choices.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+                // The choice's OWN value goes back, not the option's text: a yes / no is `true`, and the engine
+                // refuses the string "true" (a Mark's `seen`, plan D1).
+                <select className="nodrag" defaultValue={String(value)} title={p.choices.find(([v]) => String(v) === String(value))?.[1]}
+                  onChange={(e) => onParam(node.id, key, p.choices!.find(([v]) => String(v) === e.target.value)?.[0] ?? e.target.value)}>
+                  {p.choices.map(([v, label]) => <option key={String(v)} value={String(v)}>{label}</option>)}
                 </select>
                 )
               : (
@@ -386,7 +394,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
     if (c.target === OUTPUTS) return Boolean(c.targetHandle) && !lib.FIXED.outputs.includes(c.targetHandle as string) && lib.REQUIRED_OUTPUTS[c.targetHandle as string] === out;
     const to = graph.nodes.find((n) => n.id === c.target);
     const want = to && c.targetHandle ? lib.KINDS[to.kind].inputs[c.targetHandle] : undefined;
-    return Boolean(want && want.split('|').includes(out));
+    return Boolean(want && want.replace(/\?$/, '').split('|').includes(out));
   }, [graph, lib]);
 
   const onConnect = useCallback((c: Connection) => {

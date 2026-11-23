@@ -34,6 +34,7 @@
   --node-maps: var(--success);
   --node-strips: var(--warning);
   --node-combine: var(--muted);
+  --node-marks: var(--red);
   --node-orient: var(--ink);
   --info:    #3b4a5c;
 

@@ -14,13 +14,25 @@
  *
  * IT RUNS (engine 69). Apply sends an edited graph to the engine, which evaluates it in
  * `dental::denture::zone_graph`. The engine validates a graph when it is SET and refuses with the node
- * named, so the checks here are the fast first pass, not the last word. The engine is stricter in one
- * place this version: it refuses rewiring `rim`, `rim_band`, `low_rim_band` and `sockets`, which it
- * computes elsewhere today - this module allows the wiring, the engine says why it cannot run it.
+ * named, so the checks here are the fast first pass, not the last word; `zoneGraphParity.test.ts` holds
+ * the two to the same verdicts.
+ *
+ * ONE ZONE (plan D1, docs/WORKBENCH-TABS-PLAN.md section 9). The graph's answer to "may a tip stand here"
+ * is ONE output, `zone`, stacked from Mark support / Mark no-support nodes - a later Mark wins. The engine
+ * derives the three masks placement reads from it, so no reader changed. A graph saved with the three old
+ * outputs (`OLD_ZONE_OUTPUTS`) is turned into a stack by `upgradeGraph`, which every loader calls first.
  */
 
 /** Socket types. A wire is only legal between matching types: the connection you cannot make beats the error you would read later. */
-export const TYPES = ['mask', 'depthMap', 'position', 'rim'];
+export const TYPES = ['mask', 'depthMap', 'position', 'rim', 'zone'];
+
+/**
+ * An input whose type ends in `?` may stay empty (plan D1): a Mark's `under` - the first Mark of a stack has nothing
+ * under it and starts from every face Undefined. Every other input must be wired.
+ */
+const optional = (want) => want.endsWith('?');
+/** The type an input takes, without the optional mark. */
+export const inputType = (want) => want.replace(/\?$/, '');
 
 /**
  * Every node kind: its inputs (name -> type), its output type, its parameters with units, and the
@@ -58,6 +70,13 @@ export const KINDS = {
   intersect: { stage: 'zones', label: 'Intersect', out: 'mask', inputs: { a: 'mask', b: 'mask' }, params: {}, reads: 'A and B, per face' },
   not: { stage: 'zones', label: 'Not', out: 'mask', inputs: { a: 'mask' }, params: {},
     reads: 'every face A does not hold - forced by the engine: low admission tests !no_support (ruled_tips.rs:191)' },
+  // THE ONE-ZONE STACK (docs/WORKBENCH-TABS-PLAN.md section 9, plan D1; engine `zone_graph.rs` Zone). Each Mark takes
+  // the zone so far (`under`, optional) and a set of faces, and gives the zone with those faces marked; a later Mark
+  // wins. The engine derives the three masks placement reads from the Zone, so no reader changed.
+  markSupport: { stage: 'zones', label: 'Mark support', out: 'zone', inputs: { under: 'zone?', faces: 'mask' }, params: { seen: true },
+    reads: 'zone_graph.rs Zone::mark - Support on its faces; `seen` keeps rim and hole tips there under "rim obeys no-support"' },
+  markNoSupport: { stage: 'zones', label: 'Mark no-support', out: 'zone', inputs: { under: 'zone?', faces: 'mask' }, params: {},
+    reads: 'zone_graph.rs Zone::mark - No-support on its faces; the angle ranking still counts them under a later Support' },
 };
 
 /*
@@ -78,6 +97,7 @@ export const NODE_GROUPS = {
   maps: { title: 'Maps & finds', says: 'Look through the part and find holes or sockets.', token: '--node-maps' },
   strips: { title: 'Strips', says: 'Faces within a distance of something.', token: '--node-strips' },
   combine: { title: 'Combine', says: 'Join, remove, overlap or invert sets of faces.', token: '--node-combine' },
+  marks: { title: 'Mark the zone', says: 'Stack layers into the Zone: each Mark sets its faces to Support or No-support, and a later Mark wins.', token: '--node-marks' },
   orient: { title: 'From Orient', says: 'Found in stage 1; fixed here.', token: '--node-orient' },
 };
 
@@ -88,6 +108,7 @@ export const KIND_GROUP = {
   depthCast: 'maps', holes: 'maps', basinFill: 'maps',
   band: 'strips', rimSide: 'strips',
   union: 'combine', subtract: 'combine', intersect: 'combine', not: 'combine',
+  markSupport: 'marks', markNoSupport: 'marks',
   rim: 'orient',
 };
 
@@ -108,6 +129,8 @@ export const KIND_WORDS = {
   subtract: { title: 'Subtract (A - B)', says: 'Faces in A, minus any that are also in B. A and B are not interchangeable.' },
   intersect: { title: 'Overlap (A and B)', says: 'Only the faces that are in both A and B.' },
   not: { title: 'Invert', says: 'Every face that is NOT in A.' },
+  markSupport: { title: 'Mark support', says: 'The faces wired in become Support - area tips may stand there - on top of the zone wired under it. A later Mark wins where they overlap.' },
+  markNoSupport: { title: 'Mark no-support', says: 'The faces wired in become No-support on top of the zone wired under it. A later Mark wins where they overlap; the print-angle search still counts them as unwanted even if a later Mark makes them Support.' },
 };
 
 /**
@@ -150,6 +173,9 @@ export const PARAM_WORDS = {
   mm: { label: 'strip width (mm)', help: 'How far from the seeds the strip reaches, measured along the surface.' },
   which: { label: 'side of the rim', help: 'Inner faces the fitting surface; outer is the visible outside.',
     choices: [['inner', 'inner - facing the fitting surface'], ['outer', 'outer - the visible outside']] },
+  // A true / false choice: the canvas hands back the choice's own value, never its text (the engine refuses "true").
+  seen: { label: 'rim and hole tips count it as seen', help: 'Only matters with the rule "rim obeys no-support" on: rim and hole tips are kept on these faces even where a No-support Mark covered them earlier. Yes for what the cavity rays see; no for the strip round the holes.',
+    choices: [[true, 'yes'], [false, 'no']] },
 };
 
 /**
@@ -158,9 +184,8 @@ export const PARAM_WORDS = {
  * readers (docs/NODE-PLAN.md, the six consumers): no_support does NOT gate area tips - allowed does.
  */
 export const OUTPUT_WORDS = {
-  allowed: { title: 'Support zone', says: 'The ONLY faces where area tips may stand. A face here wins over the no-support zone.' },
-  no_support: { title: 'No-support zone', says: 'With "low outside" at 1 (the default), lowest-point and island tips stay off these faces unless the face is also Allowed or in the low rim strip. With "rim obeys no-sup" on, rim and hole tips stay off them too, unless the cavity rays see the face. It does not limit area tips - Allowed does.' },
-  allowed_cavity: { title: 'Seen by the cavity rays', says: 'What the cavity rays see before the hole strip is added. Read by "rim obeys no-sup".' },
+  // The one-zone form (plan D1): what the three old outputs said, now said by the Zone's three states.
+  zone: { title: 'Zone', says: 'Every face ends up Support, No-support or Undefined (no Mark touched it). Area tips stand only on Support. With "low outside" at 1 (the default), lowest-point and island tips stay off No-support unless the face is in the low rim strip; on Undefined they still stand. A later Mark wins.' },
   hole_band: { title: 'Hole strip', says: 'The 5 mm strip around holes where hole tips are placed. Fixed in this version.' },
   rim: { title: 'Rim line', says: 'The line rim tips are placed along. Found in Orient; fixed here.' },
   rim_band: { title: 'Rim strip', says: 'The strip along the rim where rim-strip tips go. As wide as the profile\'s rim strip width (2 mm by default). Free since step 7.3: fill it with any faces, e.g. the rim strip on the rim\'s inner side only. Rim tips go on these faces whether or not they are Allowed, so faces from the no-support zone here get rim tips.' },
@@ -195,12 +220,17 @@ export const FIXED = {
  * run having done nothing it was asked to.
  */
 export const REQUIRED_OUTPUTS = {
-  no_support: 'mask', allowed: 'mask', allowed_cavity: 'mask', hole_band: 'mask',
-  rim: 'rim', rim_band: 'mask', low_rim_band: 'mask', sockets: 'mask',
+  zone: 'zone', hole_band: 'mask', rim: 'rim', rim_band: 'mask', low_rim_band: 'mask', sockets: 'mask',
 };
 
+/**
+ * The three outputs a graph saved before plan D1 used, which the Zone now decides. `upgradeGraph` turns them into
+ * Marks; a graph naming both forms is refused, as the engine refuses it ("the zone decides it").
+ */
+export const OLD_ZONE_OUTPUTS = ['no_support', 'allowed', 'allowed_cavity'];
+
 /** What each value type is called on a node's output ("gives faces"), for the canvas. */
-export const TYPE_WORDS = { mask: 'faces', depthMap: 'a depth map', position: 'a point', rim: 'a rim line' };
+export const TYPE_WORDS = { mask: 'faces', depthMap: 'a depth map', position: 'a point', rim: 'a rim line', zone: 'a zone' };
 
 /** The output node's own words on the canvas. */
 export const OUTPUT_NODE = { title: 'Zone output', says: 'What the engine reads. Each socket below decides one thing about where tips may go.' };
@@ -241,11 +271,16 @@ export function defaultGraph() {
     { id: 'NS', kind: 'union', params: {}, inputs: { a: 'R1', b: 'R1b' } },
     { id: 'AL', kind: 'union', params: {}, inputs: { a: 'SIGHT', b: 'BAND' } },
     { id: 'SOCK', kind: 'subtract', params: {}, inputs: { a: 'BASINS', b: 'AL' } },
+    // The stack (plan D1), the engine's `zone_default_graph`: the rays No-support, then what the cavity rays see
+    // Support (seen), then the strip round the holes Support (not seen). The later Mark wins, so "allowed overrides
+    // no-support" IS the order. AL stays because the sockets read it. Proved bit-equal to the old three outputs on
+    // the local scans (geocore tests/denture_rules.rs) and by gate:real.
+    { id: 'Z1', kind: 'markNoSupport', params: {}, inputs: { faces: 'NS' } },
+    { id: 'Z2', kind: 'markSupport', params: { seen: true }, inputs: { under: 'Z1', faces: 'SIGHT' } },
+    { id: 'Z3', kind: 'markSupport', params: { seen: false }, inputs: { under: 'Z2', faces: 'BAND' } },
   ];
-  const outputs = {
-    no_support: 'NS', allowed: 'AL', allowed_cavity: 'SIGHT', hole_band: 'BAND',
-    rim: 'RIM', rim_band: 'RIMBAND', low_rim_band: 'LOWRIMBAND', sockets: 'SOCK',
-  };
+  // Key order matches what `upgradeGraph` makes of the old default, so `isDefault` holds for an upgraded one.
+  const outputs = { hole_band: 'BAND', rim: 'RIM', rim_band: 'RIMBAND', low_rim_band: 'LOWRIMBAND', sockets: 'SOCK', zone: 'Z3' };
   return { nodes, outputs };
 }
 
@@ -259,10 +294,54 @@ export function defaultGraph() {
  */
 export const OLD_KINDS = { rimCurve: 'rim' };
 
-/** `graph` with any old kind name read as today's. Returns the same object when nothing was renamed. */
+/**
+ * `graph` in today's form: old kind names read as today's, and a graph saved with the three old zone outputs turned
+ * into a Mark stack (plan D1). Returns the same object when nothing changed. An aligner graph is left alone.
+ */
 export function upgradeGraph(graph) {
-  if (!Array.isArray(graph?.nodes) || !graph.nodes.some((n) => n.kind in OLD_KINDS)) return graph;
-  return { ...graph, nodes: graph.nodes.map((n) => (n.kind in OLD_KINDS ? { ...n, kind: OLD_KINDS[n.kind] } : n)) };
+  if (!Array.isArray(graph?.nodes) || graph.kind === 'aligner') return graph;
+  const renamed = graph.nodes.some((n) => n.kind in OLD_KINDS)
+    ? { ...graph, nodes: graph.nodes.map((n) => (n.kind in OLD_KINDS ? { ...n, kind: OLD_KINDS[n.kind] } : n)) }
+    : graph;
+  return toOneZone(renamed);
+}
+
+/**
+ * The three old outputs (no_support N, allowed A, allowed_cavity C) as a stack: Mark no-support N, then Mark support
+ * C with `seen`, then Mark support the rest of A without it. Derived back: allowed = C or A, no_support = N, cavity =
+ * C - EXACT when C lies inside A. That holds when A is a union with C as one input (today's default and every graph
+ * built from it), and then the rest of A is the union's other input; it holds when A is C. Otherwise C cannot be
+ * proved inside A without a mesh, so the seen Mark takes Overlap(C, A): allowed and no_support stay exact, and the
+ * cavity loses the faces of C outside A - which only the rule "rim obeys no-support" reads, only on those faces.
+ * A graph with one of the three left unwired is not converted: its problems say what to wire.
+ */
+function toOneZone(graph) {
+  const out = graph.outputs ?? {};
+  if (out.zone || !OLD_ZONE_OUTPUTS.every((name) => out[name])) return graph;
+  const { no_support: n, allowed: a, allowed_cavity: c, ...rest } = out;
+  const nodes = [...graph.nodes];
+  const used = new Set(nodes.map((node) => node.id));
+  const id = (wanted, stem) => { let pick = wanted; for (let k = 1; used.has(pick); k += 1) pick = `${stem}${k}`; used.add(pick); return pick; };
+  const union = nodes.find((node) => node.id === a);
+  let seenFaces = c;
+  let restFaces = null;
+  if (a === c) restFaces = null;
+  else if (union?.kind === 'union' && (union.inputs.a === c || union.inputs.b === c)) restFaces = union.inputs.a === c ? union.inputs.b : union.inputs.a;
+  else {
+    seenFaces = id('SEEN', 'SEEN');
+    nodes.push({ id: seenFaces, kind: 'intersect', params: {}, inputs: { a: c, b: a } });
+    restFaces = a;
+  }
+  const z1 = id('Z1', 'ZN');
+  const z2 = id('Z2', 'ZS');
+  nodes.push({ id: z1, kind: 'markNoSupport', params: {}, inputs: { faces: n } });
+  nodes.push({ id: z2, kind: 'markSupport', params: { seen: true }, inputs: { under: z1, faces: seenFaces } });
+  let top = z2;
+  if (restFaces) {
+    top = id('Z3', 'ZS');
+    nodes.push({ id: top, kind: 'markSupport', params: { seen: false }, inputs: { under: z2, faces: restFaces } });
+  }
+  return { ...graph, nodes, outputs: { ...rest, zone: top } };
 }
 
 const byId = (graph, id) => graph.nodes.find((n) => n.id === id);
@@ -358,9 +437,13 @@ export function validate(graph) {
     // so the graph failed only when it reached the engine (zoneGraphParity.test.ts listed it, 2026-11-22).
     const deg = node.params?.deg;
     if (deg !== undefined && !(Number.isFinite(deg) && deg >= 0 && deg <= 180)) problems.push(`${node.id}: tilt must be from 0 to 180 degrees, not ${deg}`);
-    for (const [name, want] of Object.entries(spec.inputs)) {
+    for (const [name, wantRaw] of Object.entries(spec.inputs)) {
       const from = node.inputs[name];
-      if (from === null || from === undefined) { problems.push(`${node.id}: input "${name}" is not connected`); continue; }
+      if (from === null || from === undefined) {
+        if (!optional(wantRaw)) problems.push(`${node.id}: input "${name}" is not connected`);
+        continue;
+      }
+      const want = inputType(wantRaw);
       const source = byId(graph, from);
       if (!source) { problems.push(`${node.id}: input "${name}" points at ${from}, which does not exist`); continue; }
       // A source of unknown kind is reported once, by the loop above; its type is unknowable, so nothing to compare
@@ -369,6 +452,10 @@ export function validate(graph) {
       if (got === undefined) continue;
       if (!accepts(want, got)) problems.push(`${node.id}: input "${name}" takes ${want.replace('|', ' or ')}, but ${from} gives ${got}`);
     }
+  }
+  // One answer to "may a tip stand here": the Zone, or the three old outputs - never both (the engine refuses it too).
+  for (const name of OLD_ZONE_OUTPUTS) {
+    if (graph.outputs[name]) problems.push(`output "${name}" cannot be wired with a zone output - the zone decides it`);
   }
   for (const [name, want] of Object.entries(REQUIRED_OUTPUTS)) {
     const from = graph.outputs[name];
@@ -407,6 +494,9 @@ export function validate(graph) {
     const was = byId(today, node.id)?.params ?? KINDS[node.kind]?.params ?? {};
     for (const key of FIXED.params[node.kind] ?? []) {
       if (key in node.params && node.params[key] !== was[key]) problems.push(`${node.id}: "${key}" is fixed at ${was[key]} in this version - the engine does not read an edit yet`);
+    }
+    if (node.kind === 'markSupport' && 'seen' in node.params && typeof node.params.seen !== 'boolean') {
+      problems.push(`${node.id}: "seen" must be true or false, not ${JSON.stringify(node.params.seen)}`);
     }
     if (node.kind === 'rimSide') {
       const mm = Number(node.params.mm);

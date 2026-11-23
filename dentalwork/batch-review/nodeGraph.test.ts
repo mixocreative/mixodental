@@ -114,9 +114,15 @@ describe('the default graph is today, node for node', () => {
     const n = (id) => g.nodes.find((x) => x.id === id);
     // no_support = r1 || r1b
     expect(n('NS')).toMatchObject({ kind: 'union', inputs: { a: 'R1', b: 'R1b' } });
-    // allowed = sight || band, and allowed_cavity is the sight result BEFORE the band - a wire, not a position.
+    // The one-zone stack (plan D1): the rays No-support, then the cavity's view Support with `seen` (today's
+    // allowed_cavity), then the hole strip Support without it - allowed = sight || band, the later Mark winning.
+    expect(n('Z1')).toMatchObject({ kind: 'markNoSupport', inputs: { faces: 'NS' } });
+    expect(n('Z2')).toMatchObject({ kind: 'markSupport', params: { seen: true }, inputs: { under: 'Z1', faces: 'SIGHT' } });
+    expect(n('Z3')).toMatchObject({ kind: 'markSupport', params: { seen: false }, inputs: { under: 'Z2', faces: 'BAND' } });
+    expect(g.outputs.zone).toBe('Z3');
+    expect(g.outputs.allowed ?? g.outputs.no_support ?? g.outputs.allowed_cavity).toBeUndefined();
+    // AL stays: the socket cancel reads the final allowed area.
     expect(n('AL')).toMatchObject({ kind: 'union', inputs: { a: 'SIGHT', b: 'BAND' } });
-    expect(g.outputs.allowed_cavity).toBe('SIGHT');
     // The socket cancel reads the FINAL allowed, made explicit so it cannot become a hidden cycle.
     expect(n('SOCK')).toMatchObject({ kind: 'subtract', inputs: { a: 'BASINS', b: 'AL' } });
     // R1 leans to the TISSUE side; "back->top" is the mirror ray and was in an earlier draft.
@@ -144,9 +150,12 @@ describe('free editing: add, remove, rewire', () => {
   it('removing a node empties the wires to it and names every consequence, never reshaping quietly', () => {
     const g = removeNode(defaultGraph(), 'SIGHT');
     const { problems } = validate(g);
-    // The rule rimRespectsNoSupport reads allowed_cavity, so losing the sight cast must be loud.
-    expect(problems).toContain('output "allowed_cavity" is not filled - the engine reads it by name');
+    // The seen Mark and the socket cancel both lost their input, and each says so.
+    expect(problems).toContain('Z2: input "faces" is not connected');
     expect(problems).toContain('AL: input "a" is not connected');
+    // A Mark's `under` may be empty - the first Mark of a stack - but removing the Mark under one names nothing
+    // wrong with the stack shape itself, only what the removed node fed.
+    expect(validate(removeNode(defaultGraph(), 'Z1')).problems).toEqual([]);
   });
 
   it('refuses to add or remove what stage 1 finds', () => {
@@ -233,6 +242,76 @@ describe('a graph saved under the old rim names still loads', () => {
     const g = defaultGraph();
     expect(upgradeGraph(g)).toBe(g);
     expect(OLD_KINDS).toEqual({ rimCurve: 'rim' });
+  });
+});
+
+/*
+ * PLAN D1: the three old zone outputs become a Mark stack. A graph saved before D1 (browser storage, a type file)
+ * must load as a valid graph meaning the same thing - and the old default must come back as the default exactly.
+ */
+describe('a graph saved with the three old zone outputs loads as a Mark stack', () => {
+  /** Today's graph as it was saved before D1: the three outputs, no Marks. */
+  const oldForm = () => {
+    const g = defaultGraph();
+    const { zone: _zone, ...rest } = g.outputs;
+    return {
+      nodes: g.nodes.filter((n) => !n.kind.startsWith('mark')),
+      outputs: { no_support: 'NS', allowed: 'AL', allowed_cavity: 'SIGHT', ...rest },
+    };
+  };
+
+  it('the old default becomes the default, node for node', () => {
+    const read = upgradeGraph(oldForm());
+    expect(validate(read).ok).toBe(true);
+    expect(isDefault(read)).toBe(true);
+  });
+
+  it('an edited allowed that still contains the cavity keeps its other input as the unseen Mark', () => {
+    const old = oldForm();
+    old.nodes.push({ id: 'R2', kind: 'parallelCast', params: { from: 'front', toward: 'tissue', deg: 30, pitchMm: 0.1 }, inputs: {} });
+    old.nodes.push({ id: 'AL2', kind: 'union', params: {}, inputs: { a: 'R2', b: 'SIGHT' } });
+    old.outputs.allowed = 'AL2';
+    const read = upgradeGraph(old);
+    expect(validate(read).problems).toEqual([]);
+    const z = (id: string) => read.nodes.find((n) => n.id === id);
+    expect(z('Z2')).toMatchObject({ kind: 'markSupport', params: { seen: true }, inputs: { faces: 'SIGHT' } });
+    expect(z('Z3')).toMatchObject({ kind: 'markSupport', params: { seen: false }, inputs: { faces: 'R2' } });
+  });
+
+  it('an allowed that need not contain the cavity marks only their overlap as seen, so allowed stays exact', () => {
+    const old = oldForm();
+    old.outputs.allowed = 'BAND';
+    const read = upgradeGraph(old);
+    expect(validate(read).problems).toEqual([]);
+    const seen = read.nodes.find((n) => n.id === 'SEEN');
+    expect(seen).toMatchObject({ kind: 'intersect', inputs: { a: 'SIGHT', b: 'BAND' } });
+    expect(read.nodes.find((n) => n.id === 'Z2')).toMatchObject({ inputs: { faces: 'SEEN' } });
+    expect(read.nodes.find((n) => n.id === 'Z3')).toMatchObject({ inputs: { faces: 'BAND' } });
+  });
+
+  it('an old graph with an output left unwired is not guessed at: its problems say what to wire', () => {
+    const old = oldForm();
+    old.outputs.allowed_cavity = null as never;
+    expect(upgradeGraph(old)).toBe(old);
+    expect(validate(old).problems).toContain('output "zone" is not filled - the engine reads it by name');
+  });
+});
+
+describe('the Mark stack is checked as the engine checks it', () => {
+  it('refuses naming the zone and an old output together, a zone from a set of faces, and a seen that is not a yes/no', () => {
+    const both = bindOutput(defaultGraph(), 'zone', 'Z3');
+    both.outputs = { ...both.outputs, allowed: 'AL' };
+    expect(validate(both).problems).toContain('output "allowed" cannot be wired with a zone output - the zone decides it');
+    expect(validate(bindOutput(defaultGraph(), 'zone', 'NS')).problems).toContain('output "zone" needs a zone, but NS gives mask');
+    expect(validate(setParam(defaultGraph(), 'Z2', 'seen', 'true')).problems).toContain('Z2: "seen" must be true or false, not "true"');
+    expect(validate(rewire(defaultGraph(), 'Z2', 'under', 'NS')).problems).toContain('Z2: input "under" takes zone, but NS gives mask');
+  });
+
+  it('a new Mark arrives with nothing under it and its seen switch on', () => {
+    const g = addNode(defaultGraph(), 'markSupport');
+    const added = g.nodes[g.nodes.length - 1]!;
+    expect(added).toMatchObject({ kind: 'markSupport', params: { seen: true }, inputs: { under: null, faces: null } });
+    expect(validate(g).problems).toEqual([`${added.id}: input "faces" is not connected`]);
   });
 });
 
