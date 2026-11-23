@@ -13,6 +13,7 @@ import { keepsManualArea } from '../dental/flow';
 import type { TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
 import { profileData } from '@mixo-geocore/host/dental/alignerProfiles';
 import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
+import { isDentureJob } from '../denture/jobKind';
 
 /**
  * Step 1's print-angle search (docs/ROADMAP.md F): scanning (tilts done of total), the scan with
@@ -243,6 +244,10 @@ export function useDentalFlow({ analysis, dispatch, send, sceneRef, sessionRef, 
     const profile = session.dentalProfile;
     const unit = unitId ? sceneRef.current.units.find((candidate) => candidate.id === unitId) : undefined;
     if (!unit || !profile) return;
+    // An ALIGNER's area preview: a denture reaches the same "Step 1 ready" state, and sending its profile to the
+    // aligner's area finder failed with "unknown aligner profile" on screen, once per scan (found 2026-11-23 by the
+    // app side-label check, which a flip ran twice). A denture has no aligner area to preview.
+    if (isDentureJob(profile)) return;
     // Already held, or already in the scene from a step the reader has been through before.
     const held = areaPreviewRef.current;
     if (held?.unitId === unit.id && held.profile === profile) return;
