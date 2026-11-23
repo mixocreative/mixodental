@@ -9,9 +9,9 @@
 //
 // Step 1 IS this graph: the default reproduces today exactly (arch shape -> front/back and top -> upright pose), and
 // `orientGraph.test.ts` holds the canvas's verdict to the engine's on a corpus of graphs.
-import { defaultParam, rewire, setParam, unreached } from './nodeGraph.mjs';
+import { defaultParam, rewire, sameGraph, setParam, unreached } from './nodeGraph.mjs';
 
-export { rewire, setParam, unreached };
+export { rewire, sameGraph, setParam, unreached };
 
 /** The value types a wire carries. */
 export const TYPES = ['frame', 'pose', 'region'];

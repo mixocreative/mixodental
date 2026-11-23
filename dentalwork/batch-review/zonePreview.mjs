@@ -62,13 +62,7 @@ export function previewNote({ title, groups, hasRead, canvasChanged, gives, draw
   return `Showing ${shown}. Click the empty canvas to see the final zone again.${stale}`;
 }
 
-/**
- * True when two graphs say the same thing whatever order their keys were written in. The graph that RAN comes back
- * through the type file's writer, which sorts keys, while the canvas keeps the order it was built in - so comparing
- * their JSON text called every applied edit "changed since this run" (Fable's review, 2026-11-23).
- */
-export function sameGraph(a, b) {
-  const sorted = (value) => (Array.isArray(value) ? value.map(sorted)
-    : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, sorted(value[key])])) : value);
-  return JSON.stringify(sorted(a)) === JSON.stringify(sorted(b));
-}
+// Whether the canvas is the graph that RAN, whatever order their keys were written in: ONE rule, owned by nodeGraph.mjs
+// (the type file's writer sorts keys, so plain JSON text called every applied edit "changed"). Re-exported here because
+// the preview's note asks it too; a second copy written the same night was folded into this one.
+export { sameGraph } from './nodeGraph.mjs';
