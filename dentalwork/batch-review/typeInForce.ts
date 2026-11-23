@@ -66,6 +66,13 @@ export function typeOfRun(kind: DentalKind, env: Env): TypeFile | null {
   if (!env.MIXO_TYPE_ID) return null;
   const builtIn = builtInProfile(kind);
   const pose = env.MIXO_POSE_FILE ? JSON.parse(readFileSync(env.MIXO_POSE_FILE, 'utf8')) as Record<string, number> : {};
+  // The Rim tab's strip widths (WORKBENCH-TABS-PLAN C3), a denture's: the two placement numbers, each above 0 and at
+  // most 20 mm, refused by name here rather than as an anonymous profile error later.
+  const placement = kind === 'denture' && env.MIXO_PLACEMENT_FILE ? JSON.parse(readFileSync(env.MIXO_PLACEMENT_FILE, 'utf8')) as Record<string, number> : {};
+  for (const [key, value] of Object.entries(placement)) {
+    if (key !== 'rimBandMm' && key !== 'lowRimBandMm') throw new TypeError(`the Rim tab sets only rimBandMm and lowRimBandMm, not ${key}`);
+    if (!(typeof value === 'number' && value > 0 && value <= 20)) throw new TypeError(`${key} must be above 0 and at most 20 mm, got ${value}`);
+  }
   const rules = env.MIXO_RULES ? JSON.parse(env.MIXO_RULES) as Record<string, number | boolean> : {};
   // The type's OWN name, in all three languages: a copy of the built-in's name would put two "Generic denture"
   // entries in the app's type picker (docs/TYPE-PIPELINE.md section 8a). The full name typed on the New-type strip
@@ -74,7 +81,9 @@ export function typeOfRun(kind: DentalKind, env: Env): TypeFile | null {
   const fullName = typeNameOf(env.MIXO_TYPE_NAME, id);
   const draft: TypeFile = {
     typeFile: 1, category: kind, id, basedOn: String(builtIn.id),
-    profile: { ...builtIn, id, name: { en: fullName, ja: fullName, 'zh-Hant': fullName }, pose: { ...(builtIn.pose as object), ...pose } },
+    profile: { ...builtIn, id, name: { en: fullName, ja: fullName, 'zh-Hant': fullName }, pose: { ...(builtIn.pose as object), ...pose },
+      // Only a denture's profile has a placement section; an aligner's reader refuses the key.
+      ...(kind === 'denture' ? { placement: { ...(builtIn.placement as object), ...placement } } : {}) },
     rules, zoneGraph: kind === 'denture' && env.MIXO_ZONE_GRAPH_FILE ? JSON.parse(readFileSync(env.MIXO_ZONE_GRAPH_FILE, 'utf8')) : null,
     validation: null,
     ...(env.MIXO_TYPE_BADGE ? { badge: env.MIXO_TYPE_BADGE } : {}),

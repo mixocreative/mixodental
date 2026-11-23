@@ -145,7 +145,8 @@ if (orientGraphFile !== undefined) {
  * reader and refuses it by name before any case runs. It carries its own rules and graph, so it does
  * not combine with --set, --zone-graph or --pose - two sources for one number is how a run disagrees
  * with itself. `--type-id <id>` makes a DRAFT from the built-in (with `--pose <file>`, the Orient node's
- * print-angle edits, `--type-badge <1-5 characters>`, its badge in the app's type picker, and `--type-name <text>`, its
+ * print-angle edits, `--placement <file>`, the Rim tab's strip widths, `--type-badge <1-5 characters>`, its badge in the
+ * app's type picker, and `--type-name <text>`, its
  * full name there), which is what the
  * review page's Apply sends; the batch writes the type that ran,
  * with its proof, to type.json for Save type.
@@ -153,14 +154,16 @@ if (orientGraphFile !== undefined) {
 const typeFile = valueOf('--type');
 const typeId = valueOf('--type-id');
 const poseFile = valueOf('--pose');
+// The Rim tab's strip widths (WORKBENCH-TABS-PLAN C3): profile placement numbers for the draft, like --pose.
+const placementFile = valueOf('--placement');
 const typeBadge = valueOf('--type-badge');
 const typeFullName = valueOf('--type-name');
-if (typeFile !== undefined && (sets.length > 0 || zoneGraphFile !== undefined || orientGraphFile !== undefined || poseFile !== undefined || typeId !== undefined)) {
-  console.error('--type runs a saved type as it is: it does not combine with --set, --zone-graph, --orient-graph, --pose or --type-id. Nothing ran.');
+if (typeFile !== undefined && (sets.length > 0 || zoneGraphFile !== undefined || orientGraphFile !== undefined || poseFile !== undefined || placementFile !== undefined || typeId !== undefined)) {
+  console.error('--type runs a saved type as it is: it does not combine with --set, --zone-graph, --orient-graph, --pose, --placement or --type-id. Nothing ran.');
   process.exit(1);
 }
-if (poseFile !== undefined && typeId === undefined) {
-  console.error('--pose edits a draft type: give it a name with --type-id. Nothing ran.');
+if ((poseFile !== undefined || placementFile !== undefined) && typeId === undefined) {
+  console.error('--pose and --placement edit a draft type: give it a name with --type-id. Nothing ran.');
   process.exit(1);
 }
 // The badge's own rule (1-5 characters, no spaces) is checked once, by the type file reader the draft goes through.
@@ -168,7 +171,7 @@ if ((typeBadge !== undefined || typeFullName !== undefined) && typeId === undefi
   console.error('--type-badge and --type-name belong to a draft type: give it an id with --type-id. Nothing ran.');
   process.exit(1);
 }
-for (const [flag, file] of [['--type', typeFile], ['--pose', poseFile]]) {
+for (const [flag, file] of [['--type', typeFile], ['--pose', poseFile], ['--placement', placementFile]]) {
   if (file === undefined) continue;
   try { JSON.parse(readFileSync(file, 'utf8')); } catch (error) {
     console.error(`${flag} ${file}: not readable JSON (${error.message}). Nothing ran.`);
@@ -176,7 +179,7 @@ for (const [flag, file] of [['--type', typeFile], ['--pose', poseFile]]) {
   }
 }
 const skip = new Set(['--kind', valueOf('--kind'), '--out', valueOf('--out'), ...sets, '--set', '--open', '--list', '--zone-graph', zoneGraphFile, '--orient-graph', orientGraphFile,
-  '--type', typeFile, '--type-id', typeId, '--pose', poseFile, '--type-badge', typeBadge, '--type-name', typeFullName]);
+  '--type', typeFile, '--type-id', typeId, '--pose', poseFile, '--placement', placementFile, '--type-badge', typeBadge, '--type-name', typeFullName]);
 const folders = args.filter((arg) => !skip.has(arg) && !arg.startsWith('--'));
 if (folders.length === 0) {
   console.error('Give the folder holding the STL files (subfolders included). Run --list to see the rules.');
@@ -208,13 +211,14 @@ const child = spawn(vite, ['--script', join('dentalwork', 'batch-review', 'batch
   // The type and graph variables reach batch.ts ONLY from these flags: one left in the shell would run a
   // type or graph nobody asked for (cia F8).
   env: {
-    ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !['MIXO_ZONE_GRAPH_FILE', 'MIXO_ORIENT_GRAPH_FILE', 'MIXO_TYPE_FILE', 'MIXO_TYPE_ID', 'MIXO_POSE_FILE', 'MIXO_TYPE_BADGE', 'MIXO_TYPE_NAME'].includes(k))),
+    ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !['MIXO_ZONE_GRAPH_FILE', 'MIXO_ORIENT_GRAPH_FILE', 'MIXO_TYPE_FILE', 'MIXO_TYPE_ID', 'MIXO_POSE_FILE', 'MIXO_PLACEMENT_FILE', 'MIXO_TYPE_BADGE', 'MIXO_TYPE_NAME'].includes(k))),
     MIXO_RULES: JSON.stringify(rules), MIXO_TIMERS: '1',
     ...(zoneGraphFile ? { MIXO_ZONE_GRAPH_FILE: zoneGraphFile } : {}),
     ...(orientGraphFile ? { MIXO_ORIENT_GRAPH_FILE: orientGraphFile } : {}),
     ...(typeFile ? { MIXO_TYPE_FILE: typeFile } : {}),
     ...(typeId ? { MIXO_TYPE_ID: typeId } : {}),
     ...(poseFile ? { MIXO_POSE_FILE: poseFile } : {}),
+    ...(placementFile ? { MIXO_PLACEMENT_FILE: placementFile } : {}),
     ...(typeBadge ? { MIXO_TYPE_BADGE: typeBadge } : {}),
     ...(typeFullName ? { MIXO_TYPE_NAME: typeFullName } : {}),
   },

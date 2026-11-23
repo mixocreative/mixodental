@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
   ALIGNER_KINDS, OLD_KINDS, RIM_DERIVED_REASON, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, rimTabGraph, rimTabView,
-  setParam, unreached, upgradeGraph, validate, defaultOf,
+  setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -370,6 +370,34 @@ describe('the rim tab', () => {
     const denture = rimTabGraph('denture').nodes.map((n) => n.id);
     for (const id of ['RIM', 'RIMBAND', 'LOWRIMBAND']) expect(denture).toContain(id);
     expect(rimTabView('denture').find((n) => n.id === 'CROSSING')!.derived).toBe(true);
+  });
+
+  // C3: the Rim tab is editable. Arch frame is gone (the same thing as Orient's Arch shape); the Rim says it reads tab
+  // 1's final orientation; its four settings sit on the zone graph's RIM node and the strip widths on the profile.
+  it('denture: no Arch frame; the Rim takes tab 1\'s orientation and offers its four settings at the engine defaults', () => {
+    const view = rimTabView('denture');
+    expect(view.map((n) => n.id)).not.toContain('FRAME');
+    const rim = view.find((n) => n.id === 'RIM')!;
+    expect(rim.takes).toEqual([RIM_TAKES]);
+    expect(rim.fields.map((f) => [f.key, f.value, f.target])).toEqual([['source', 'finder', 'graph'], ['binDeg', 3, 'graph'], ['shellMm', 2, 'graph'], ['openGapDeg', 20, 'graph']]);
+    expect(rim.problems).toEqual([]);
+    expect(view.find((n) => n.id === 'RIMBAND')!.fields).toMatchObject([{ key: 'rimBandMm', value: RIM_STRIP_MM.rim_band, target: 'placement' }]);
+    expect(rimTabView('aligner').every((n) => n.fields.length === 0)).toBe(true);
+  });
+
+  it('an edit shows on the tab and on the Rim output card, and an out-of-range one is named before any run', () => {
+    const graph = setParam(setParam(defaultGraph(), 'RIM', 'source', 'flatEdge'), 'RIM', 'binDeg', 6);
+    const view = rimTabView('denture', { graph, placement: { rimBandMm: 3 } });
+    expect(view.find((n) => n.id === 'RIM')!.fields.find((f) => f.key === 'binDeg')!.value).toBe(6);
+    // A 6 degree step needs an open gap of at least 12: the default 20 still fits.
+    expect(view.find((n) => n.id === 'RIM')!.problems).toEqual([]);
+    const lines = rimOutputLines('denture', { graph, placement: { rimBandMm: 3 } });
+    expect(lines[0]).toContain('the edge of the flat area');
+    expect(lines[1]).toContain('3 mm');
+    const bad = rimTabView('denture', { graph: setParam(defaultGraph(), 'RIM', 'binDeg', 15), placement: { lowRimBandMm: 0 } });
+    expect(bad.find((n) => n.id === 'RIM')!.problems).toContain('RIM: binDeg must be between 1 and 10, got 15');
+    expect(bad.find((n) => n.id === 'LOWRIMBAND')!.problems).toEqual(['lowRimBandMm must be above 0 and at most 20 mm, got 0']);
+    expect(validate(setParam(defaultGraph(), 'RIM', 'source', 'edge')).problems).toContain('RIM: "source" must be finder or flatEdge, got "edge"');
   });
 });
 

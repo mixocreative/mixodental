@@ -514,6 +514,10 @@ const POSE_FIELDS = [
 ];
 let poseEdits = {};
 try { poseEdits = JSON.parse(localStorage.getItem('review-pose') || '{}') ?? {}; } catch { poseEdits = {}; }
+/* The Rim tab's strip widths (WORKBENCH-TABS-PLAN C3): profile placement numbers this type changes, sent with Apply like
+   the search's numbers and made into the draft type's profile (typeInForce.ts). Only keys that differ are kept. */
+let placementEdits = {};
+try { placementEdits = JSON.parse(localStorage.getItem('review-placement') || '{}') ?? {}; } catch { placementEdits = {}; }
 let typeName = 'workbench.denture';
 try { typeName = localStorage.getItem('review-type-id') || typeName; } catch { /* per-viewer only */ }
 let typeBadge = '';
@@ -1393,9 +1397,10 @@ function drawOrientEditor(body) {
 }
 
 /**
- * The rim tab as a read-only node canvas (`nodeGraph.mjs` rimTabView, `nodeEditor/RimCanvas.tsx`): what stage 1 finds,
- * with the nodes computed from the finished rim greyed and their reason. False when the bundle or the graph library
- * did not load, so the caller can fall back to plain cards.
+ * The rim tab as a node canvas (`nodeGraph.mjs` rimTabView / rimOutputLines, `nodeEditor/RimCanvas.tsx`): the rim and
+ * the strips grown from it, with their settings (C3) and the Rim output card; the nodes computed from the finished rim
+ * greyed with their reason. False when the bundle or the graph library did not load, so the caller can fall back to
+ * plain cards.
  */
 function drawRimCanvas(body, kind) {
   if (!graphLib || !editorLib?.mountRimCanvas) return false;
@@ -1404,12 +1409,35 @@ function drawRimCanvas(body, kind) {
   note.dataset.ui = 'rim-canvas-note';
   note.textContent = kind === 'aligner'
     ? 'The aligner\'s steps as nodes. They are locked in this version: each stands for today\'s aligner code, and the settings that shape them are in the aligner profile. Greyed nodes need the finished rim.'
-    : 'What Orient finds, as nodes: where the search starts, the rim, and the strips grown from it. Greyed nodes need the finished rim, so they appear here only for reference.';
+    : 'The rim and the strips grown from it, with their settings: change one and Apply and run to see it. The rim reads the final orientation of 1 Orient. Greyed nodes need the finished rim, so they appear here only for reference.';
   body.append(note, rimCanvasHost);
-  const props = { kind, view: graphLib.rimTabView(kind) };
+  const ctx = { graph: zoneGraph, placement: placementEdits };
+  const props = { kind, view: graphLib.rimTabView(kind, ctx), output: graphLib.rimOutputLines(kind, ctx), onField: kind === 'denture' ? onRimField : undefined };
   if (rimHandle) rimHandle.update(props);
   else rimHandle = editorLib.mountRimCanvas(rimCanvasHost, props);
   return true;
+}
+
+/**
+ * One Rim tab field changed (C3). The Rim's settings go on the zone graph's RIM node - the one graph the engine reads,
+ * drawn on two tabs - and a value equal to the standard is REMOVED rather than written, so an undone edit leaves the
+ * standard graph standard. The strip widths go to `placementEdits`, the type's profile numbers sent with Apply.
+ */
+function onRimField(nodeId, field, value) {
+  const back = value === null || String(value) === String(field.standard);
+  if (field.target === 'graph') {
+    zoneGraph = { ...zoneGraph, nodes: zoneGraph.nodes.map((n) => {
+      if (n.id !== nodeId) return n;
+      const { [field.key]: _old, ...rest } = n.params ?? {};
+      return { ...n, params: back ? rest : { ...rest, [field.key]: value } };
+    }) };
+    try { localStorage.setItem('review-zone-graph', JSON.stringify(zoneGraph)); } catch { /* per-viewer only */ }
+  } else {
+    if (back) delete placementEdits[field.key];
+    else placementEdits[field.key] = value;
+    try { localStorage.setItem('review-placement', JSON.stringify(placementEdits)); } catch { /* per-viewer only */ }
+  }
+  if (lastChain) drawChain(...lastChain);
 }
 
 /**
@@ -2496,7 +2524,8 @@ try {
   document.getElementById('bench-reset').addEventListener('click', () => {
     for (const { input, rule } of fields.values()) { if (rule.type === 'flag') input.checked = false; else input.value = ''; }
     poseEdits = {};
-    try { localStorage.removeItem('review-pose'); localStorage.removeItem('review-zone-layout-2'); } catch { /* per-viewer only */ }
+    placementEdits = {};
+    try { localStorage.removeItem('review-pose'); localStorage.removeItem('review-placement'); localStorage.removeItem('review-zone-layout-2'); } catch { /* per-viewer only */ }
     if (graphLib) {
       zoneGraph = graphLib.defaultGraph();
       try { localStorage.setItem('review-zone-graph', JSON.stringify(zoneGraph)); } catch { /* per-viewer only */ }
@@ -2546,25 +2575,30 @@ try {
     // they persist in localStorage - so a denture session's leftovers rode along with an aligner draft (Fable, 2026-11-23).
     const poseNow = kindNow === 'denture' ? poseEdits : {};
     const poseEdited = Object.keys(poseNow).length > 0;
+    // The Rim tab's strip widths, a denture type's like the search.
+    const placementNow = kindNow === 'denture' ? placementEdits : {};
+    const placementEdited = Object.keys(placementNow).length > 0;
     // A newly named type is a reason to run on its own: it is how a type that keeps the built-in's numbers but has
     // its own name and badge gets made (the New-type strip).
     const newType = typeName !== '' && ranTypeId !== typeName;
-    if (Object.keys(rules).length === 0 && !graphEdited && !orientEdited && !poseEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the Orient graph (1 Orient), the zone graph (3 Zones), a setting (4) or the search (5 Print angle), then apply.'; return; }
+    if (Object.keys(rules).length === 0 && !graphEdited && !orientEdited && !poseEdited && !placementEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the Orient graph (1 Orient), the rim (2 Rim), the zone graph (3 Zones), a setting (4) or the search (5 Print angle), then apply.'; return; }
     // Only a denture run carries the search (poseNow above): a denture session's bad leftovers refused an aligner run
     // with "Fix the search first", a tab the aligner strip does not link to (Fable, 2026-11-23).
     const poseProblem = kindNow === 'denture' ? searchProblem(searchNow()) : null;
     if (poseProblem) { status.textContent = `Fix the search first (5 Print angle): ${poseProblem}.`; return; }
+    const widthProblem = Object.entries(placementNow).map(([key, value]) => graphLib?.widthProblem(key, value)).find(Boolean);
+    if (widthProblem) { status.textContent = `Fix the rim first (2 Rim): ${widthProblem}.`; return; }
     if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) { status.textContent = 'The type id (the Type strip above the stages) is lower-case letters, digits, dots and dashes.'; return; }
     const graphProblems = graphEdited ? graphLib.validate(zoneGraph).problems : [];
     if (graphProblems.length) { status.textContent = `Fix the zone graph first (3 Zones): ${graphProblems[0]}`; return; }
     const orientProblems = orientEdited ? orientLib.validate(orientGraph).problems : [];
     if (orientProblems.length) { status.textContent = `Fix the Orient graph first (1 Orient): ${orientProblems[0]}`; return; }
     run.disabled = true;
-    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(orientEdited ? ['the edited Orient graph'] : []), ...(poseEdited ? ['the edited search'] : []), ...(newType ? [`the new type ${typeName}`] : [])].join(', ');
+    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(orientEdited ? ['the edited Orient graph'] : []), ...(poseEdited ? ['the edited search'] : []), ...(placementEdited ? ['the edited strip widths'] : []), ...(newType ? [`the new type ${typeName}`] : [])].join(', ');
     status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
     try {
       const reply = await fetch('/rerun', { method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, name: typeFullName, badge: typeBadge, pose: poseNow,
+        body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, name: typeFullName, badge: typeBadge, pose: poseNow, placement: placementNow,
           // The node editor's graph, only when it has been edited: the default is sent as nothing, so a
           // run with no edit is exactly the run it always was.
           zoneGraph: graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null,

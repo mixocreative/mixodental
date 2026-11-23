@@ -59,6 +59,19 @@ describe('a drafted type', () => {
     expect(() => typeNameOf('a'.repeat(61), 'x')).toThrow(/at most 60 characters/);
     expect(() => typeNameOf('two\nlines', 'x')).toThrow(/one line/);
   });
+
+  // C3: the Rim tab's strip widths become the draft's profile numbers, the rest of placement kept; out of range, or a
+  // key the tab does not offer, is refused by name before any run.
+  it('takes the Rim tab\'s strip widths into its profile, and refuses one out of range by name', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'placement-'));
+    const file = (body: object) => { const at = join(dir, `${Math.random()}.json`); writeFileSync(at, JSON.stringify(body)); return at; };
+    const type = typeOfRun('denture', { MIXO_TYPE_ID: 'wide-rim', MIXO_PLACEMENT_FILE: file({ rimBandMm: 3, lowRimBandMm: 7 }) })!;
+    const placement = type.profile.placement as Record<string, number>;
+    expect([placement.rimBandMm, placement.lowRimBandMm]).toEqual([3, 7]);
+    expect(placement.tipPitchMm).toBeGreaterThan(0);
+    expect(() => typeOfRun('denture', { MIXO_TYPE_ID: 'x', MIXO_PLACEMENT_FILE: file({ rimBandMm: 0 }) })).toThrow(/rimBandMm must be above 0 and at most 20 mm/);
+    expect(() => typeOfRun('denture', { MIXO_TYPE_ID: 'x', MIXO_PLACEMENT_FILE: file({ tipPitchMm: 1 }) })).toThrow(/sets only rimBandMm and lowRimBandMm/);
+  });
 });
 
 /*

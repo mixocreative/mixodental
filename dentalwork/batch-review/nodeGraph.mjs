@@ -39,8 +39,11 @@ export const inputType = (want) => want.replace(/\?$/, '');
  * engine unit it stands for. `stage` is the owner's three stages; only `zones` kinds are editable here.
  */
 export const KINDS = {
-  rim: { stage: 'orient', label: 'Rim', out: 'rim', inputs: {}, params: {}, fixed: true,
-    reads: 'denture/rim_lowpoints.rs - found by stage 1, not authored here' },
+  // The rim's settings are edited on the RIM tab (WORKBENCH-TABS-PLAN C3), not on the zone canvas, where the node is
+  // fixed. Defaults are the engine's constants; the standard graph carries none of them (absent = default), so it stays
+  // the standard graph until one is changed. `zone_graph.rs` rim_source / rim_finder check the same limits.
+  rim: { stage: 'orient', label: 'Rim', out: 'rim', inputs: {}, params: { source: 'finder', binDeg: 3, shellMm: 2, openGapDeg: 20 }, fixed: true,
+    reads: 'denture/rim_lowpoints.rs (the finder) or flat_edge_rim.rs (the flat area\'s edge) - set on the Rim tab' },
   intersection: { stage: 'zones', label: 'Intersection', out: 'position', inputs: {},
     params: { planeA: 'rim', planeB: 'symmetry', face: 'back' },
     reads: 'oral_cavity_ray.rs:49-70 - the two planes meet the box face; three fallbacks when they cannot' },
@@ -173,6 +176,13 @@ export const PARAM_WORDS = {
   mm: { label: 'strip width (mm)', help: 'How far from the seeds the strip reaches, measured along the surface.' },
   which: { label: 'side of the rim', help: 'Inner faces the fitting surface; outer is the visible outside.',
     choices: [['inner', 'inner - facing the fitting surface'], ['outer', 'outer - the visible outside']] },
+  // The Rim node's settings (C3), edited on the Rim tab. The finder cuts the arch into bins round its centre and takes
+  // the lowest point of the outer shell in each; an empty stretch of at least the gap cuts the rim (an open U's end).
+  source: { label: 'rim from', help: 'Where the rim line comes from. The lowest edge: the finder, as today. The flat area\'s edge: the outline of the flat area the part stands on (Orient\'s "Stand on the flat area"); without one, the found rim is used and the review says why.',
+    choices: [['finder', 'the lowest edge (found)'], ['flatEdge', 'the edge of the flat area it stands on']] },
+  binDeg: { label: 'search step (deg)', help: 'The finder looks for the lowest point once per this many degrees round the arch. Smaller follows the rim more closely and is slower. 1 to 10.' },
+  shellMm: { label: 'outer shell (mm)', help: 'Only points within this distance of the outermost point of each step count, so the rim stays on the outer edge. Above 0, at most 10.' },
+  openGapDeg: { label: 'open end gap (deg)', help: 'An empty stretch of at least this many degrees cuts the rim there - the open end of a U. At least two search steps, at most 120.' },
   // A true / false choice: the canvas hands back the choice's own value, never its text (the engine refuses "true").
   seen: { label: 'rim and hole tips count it as seen', help: 'Only matters with the rule "rim obeys no-support" on: rim and hole tips are kept on these faces even where a No-support Mark covered them earlier. Yes for what the cavity rays see; no for the strip round the holes.',
     choices: [[true, 'yes'], [false, 'no']] },
@@ -495,6 +505,7 @@ export function validate(graph) {
     for (const key of FIXED.params[node.kind] ?? []) {
       if (key in node.params && node.params[key] !== was[key]) problems.push(`${node.id}: "${key}" is fixed at ${was[key]} in this version - the engine does not read an edit yet`);
     }
+    if (node.kind === 'rim') problems.push(...rimProblems(node));
     if (node.kind === 'markSupport' && 'seen' in node.params && typeof node.params.seen !== 'boolean') {
       problems.push(`${node.id}: "seen" must be true or false, not ${JSON.stringify(node.params.seen)}`);
     }
@@ -512,6 +523,22 @@ export function validate(graph) {
     if (node.kind === 'parallelCast' && Number(node.params.deg) === 0) warnings.push(`${node.id}: tilt is 0° - this ray is off and marks nothing`);
   }
   return { problems, warnings, ok: problems.length === 0 };
+}
+
+/**
+ * The Rim node's settings out of range, worded as the engine words them (`zone_graph.rs` rim_source, rim_finder), so
+ * a value is refused on the Rim tab before any run. Absent means the default.
+ */
+export function rimProblems(node) {
+  const p = node.params ?? {};
+  const out = [];
+  if ('source' in p && p.source !== 'finder' && p.source !== 'flatEdge') out.push(`${node.id}: "source" must be finder or flatEdge, got ${JSON.stringify(p.source)}`);
+  const num = (key, standard) => (key in p ? Number(p[key]) : standard);
+  const [bin, shell, gap] = [num('binDeg', 3), num('shellMm', 2), num('openGapDeg', 20)];
+  if (!(bin >= 1 && bin <= 10)) out.push(`${node.id}: binDeg must be between 1 and 10, got ${p.binDeg}`);
+  if (!(shell > 0 && shell <= 10)) out.push(`${node.id}: shellMm must be above 0 and at most 10, got ${p.shellMm}`);
+  if (!(gap >= 2 * bin && gap <= 120)) out.push(`${node.id}: openGapDeg must be at least two bins (${2 * bin}) and at most 120, got ${p.openGapDeg ?? gap}`);
+  return out;
 }
 
 /**
@@ -620,10 +647,10 @@ export const RIM_DERIVED_REASON = 'Needs the finished rim, so it cannot feed the
 
 export const RIM_TAB_KINDS = {
   ...ALIGNER_KINDS,
-  archFrame: { label: 'Arch frame', out: 'frame', inputs: {},
-    says: 'The part\'s own directions - teeth side, front and back, left and right - found from the arch shape.' },
-  rimLowPoints: { label: 'Rim', out: 'rim', inputs: { frame: 'frame' },
-    says: 'The lowest outer edge on the tissue side, followed all the way round the arch.' },
+  // C3: no Arch frame node here any more - it was Orient's Arch shape under a second name (owner: "are they doing the
+  // same thing?"). The rim reads the FINAL orientation from tab 1, and its node says so (`RIM_TAKES`).
+  rimLowPoints: { label: 'Rim', out: 'rim', inputs: {},
+    says: 'The rim line: by default the lowest outer edge on the tissue side, followed all the way round the arch - or the outline of the flat area the part stands on.' },
   rimStrip: { label: 'Rim strip', out: 'mask', inputs: { rim: 'rim' },
     says: `Faces along the rim, as wide as the profile's rim strip width (${RIM_STRIP_MM.rim_band} mm by default).` },
   lowRimStrip: { label: 'Low rim strip', out: 'mask', inputs: { rim: 'rim' },
@@ -639,22 +666,76 @@ export function rimTabGraph(kind) {
   const node = (id, k, inputs = {}) => ({ id, kind: k, params: {}, inputs });
   const nodes = kind === 'aligner'
     ? [...alignerGraph().nodes, node('RIMPLANE', 'fitPlane', { rim: 'RIM' })]
-    : [node('FRAME', 'archFrame'), node('RIM', 'rimLowPoints', { frame: 'FRAME' }), node('RIMBAND', 'rimStrip', { rim: 'RIM' }),
+    : [node('RIM', 'rimLowPoints'), node('RIMBAND', 'rimStrip', { rim: 'RIM' }),
       node('LOWRIMBAND', 'lowRimStrip', { rim: 'RIM' }), node('RIMPLANE', 'fitPlane', { rim: 'RIM' }), node('CROSSING', 'rimCrossing', { plane: 'RIMPLANE' })];
   return { kind, nodes, outputs: {} };
 }
 
-/** What the canvas draws for each rim-tab node: its words, whether it is greyed (and why), and its wires. */
-export function rimTabView(kind) {
+/** What the rim node takes, said on it: it has no wire on this tab, because it reads the final orientation of tab 1. */
+export const RIM_TAKES = 'the final orientation, from 1 Orient';
+
+/** The two strip widths a type may set on the Rim tab: profile placement keys, with their engine defaults. */
+export const RIM_STRIP_WIDTHS = { RIMBAND: { key: 'rimBandMm', standard: RIM_STRIP_MM.rim_band }, LOWRIMBAND: { key: 'lowRimBandMm', standard: RIM_STRIP_MM.low_rim_band } };
+
+/** A strip width the profile could not take, or null: above 0 and at most 20 mm. */
+export function widthProblem(key, value) {
+  return Number(value) > 0 && Number(value) <= 20 ? null : `${key} must be above 0 and at most 20 mm, got ${value}`;
+}
+
+/**
+ * The editable fields of one rim-tab node (WORKBENCH-TABS-PLAN C3), on the DENTURE's tab only: the Rim node's four
+ * settings live on the zone graph's RIM node (`graph`), the strip widths on the type's profile (`placement`, the edits
+ * not yet run). `value` is what the field shows, `standard` what its restore mark puts back; `target` says where an
+ * edit goes. The aligner's tab stays locked.
+ */
+function rimFields(kind, id, graph, placement) {
+  if (kind !== 'denture') return [];
+  if (id === 'RIM') {
+    const rim = graph?.nodes?.find((n) => n.id === 'RIM')?.params ?? {};
+    return Object.entries(KINDS.rim.params).map(([key, standard]) => ({
+      key, ...PARAM_WORDS[key], value: key in rim ? rim[key] : standard, standard, target: 'graph',
+    }));
+  }
+  const width = RIM_STRIP_WIDTHS[id];
+  if (!width) return [];
+  return [{ key: width.key, label: 'strip width (mm)', help: `This type's ${id === 'RIMBAND' ? 'rim strip' : 'low rim strip'} width, a profile number: the engine grows the strip this far from the rim, along the surface. Above 0, at most 20.`,
+    value: placement?.[width.key] ?? width.standard, standard: width.standard, target: 'placement' }];
+}
+
+/**
+ * What the canvas draws for each rim-tab node: its words, whether it is greyed (and why), its wires, and - on the
+ * denture's tab - its editable fields and their problems. `ctx` is `{ graph, placement }`; absent, the fields show
+ * their standard values.
+ */
+export function rimTabView(kind, ctx = {}) {
   const graph = rimTabGraph(kind);
   return graph.nodes.map((n) => {
     const spec = RIM_TAB_KINDS[n.kind];
     // `takes`: what each input carries (the source's output type), for the node's "Takes:" line - `inputs` holds
     // the source node's ID, which is what the wires need and not what a reader wants to see.
-    const takes = Object.values(n.inputs).map((from) => RIM_TAB_KINDS[graph.nodes.find((m) => m.id === from)?.kind]?.out ?? 'unknown');
+    const takes = n.kind === 'rimLowPoints' ? [RIM_TAKES]
+      : Object.values(n.inputs).map((from) => RIM_TAB_KINDS[graph.nodes.find((m) => m.id === from)?.kind]?.out ?? 'unknown');
+    const fields = rimFields(kind, n.id, ctx.graph, ctx.placement);
+    const problems = n.id === 'RIM' && kind === 'denture'
+      ? rimProblems({ id: 'RIM', params: Object.fromEntries(fields.map((f) => [f.key, f.value])) })
+      : fields.map((f) => widthProblem(f.key, f.value)).filter(Boolean);
     return { id: n.id, title: spec.label, says: spec.says, out: spec.out, derived: Boolean(spec.derived),
-      reason: spec.derived ? RIM_DERIVED_REASON : null, inputs: Object.entries(n.inputs), takes };
+      reason: spec.derived ? RIM_DERIVED_REASON : null, inputs: Object.entries(n.inputs), takes, fields, problems };
   });
+}
+
+/** The Rim output card: what tab 3 receives from this tab, one line each (C3). */
+export function rimOutputLines(kind, ctx = {}) {
+  if (kind !== 'denture') return [];
+  const rim = ctx.graph?.nodes?.find((n) => n.id === 'RIM')?.params ?? {};
+  const width = (id) => ctx.placement?.[RIM_STRIP_WIDTHS[id].key] ?? RIM_STRIP_WIDTHS[id].standard;
+  return [
+    `Rim line - ${rim.source === 'flatEdge' ? 'the edge of the flat area the part stands on' : 'the lowest edge, found'} (a rim drawn for one case in the app replaces it)`,
+    `Rim strip - ${width('RIMBAND')} mm along the rim`,
+    `Low rim strip - ${width('LOWRIMBAND')} mm along the rim`,
+    'Rim plane - fitted through the rim line',
+    'Rim crossing - where the rim plane meets the symmetry plane: the cavity rays start here',
+  ];
 }
 
 /** True when `graph` is the default, node for node - the only graph that runs today. */

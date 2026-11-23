@@ -234,13 +234,15 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
       {Object.entries(node.params).map(([key, value]) => {
         const p = lib.PARAM_WORDS[key] ?? { label: key, help: '' };
         const isLive = live.includes(`${node.id}.${key}`);
-        if (lib.FIXED.params[node.kind]?.includes(key)) {
+        // A node found in an earlier stage (the rim) shows its settings as text here: they are edited on their own tab,
+        // and two places to edit one number is how they disagree.
+        if (lib.FIXED.params[node.kind]?.includes(key) || spec.fixed) {
           // A field the engine ignores is a control that lies, so a fixed setting is text, not an input.
-          const shown = p.choices?.find(([v]) => v === value)?.[1] ?? String(value);
+          const shown = p.choices?.find(([v]) => String(v) === String(value))?.[1] ?? String(value);
           return (
-            <div className="zn-row" key={key} title={`${p.help} Locked: this version of the engine does not read a change to it yet.`}>
+            <div className="zn-row" key={key} title={spec.fixed ? `${p.help} Set on the Rim tab.` : `${p.help} Locked: this version of the engine does not read a change to it yet.`}>
               <span className="zn-in">{p.label}</span>
-              <span className="zn-fixed">{shown} · locked</span>
+              <span className="zn-fixed">{shown} · {spec.fixed ? 'set on 2 Rim' : 'locked'}</span>
             </div>
           );
         }

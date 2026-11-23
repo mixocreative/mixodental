@@ -134,6 +134,15 @@ function rerun(request, response) {
         writeFileSync(file, JSON.stringify(pose));
         typeArgs.push('--pose', file);
       }
+      // The Rim tab's strip widths (WORKBENCH-TABS-PLAN C3): only the two profile numbers the tab offers; their range is
+      // checked where the draft is made (typeInForce.ts) and again by the profile reader.
+      const placement = ask?.placement && typeof ask.placement === 'object' ? Object.fromEntries(Object.entries(ask.placement).filter(([k, v]) => (k === 'rimBandMm' || k === 'lowRimBandMm') && Number.isFinite(v))) : {};
+      if (Object.keys(placement).length > 0) {
+        mkdirSync(out, { recursive: true });
+        const file = join(out, 'placement.json');
+        writeFileSync(file, JSON.stringify(placement));
+        typeArgs.push('--placement', file);
+      }
     }
     const child = spawn(process.execPath, [join(here, '..', '..', 'benchwork', 'cli.mjs'), '--kind', kind, '--out', out, ...sets, ...graphArgs, ...typeArgs, source],
       { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'] });
