@@ -1522,11 +1522,6 @@ function onRimField(nodeId, field, value) {
       return { ...n, params: back ? rest : { ...rest, [field.key]: value } };
     }) };
     try { localStorage.setItem('review-zone-graph', JSON.stringify(zoneGraph)); } catch { /* per-viewer only */ }
-  } else if (field.target === 'side') {
-    // The strip's Side choice is a zone-graph edit (nodeGraph.mjs withStripSide): it runs and is saved with the graph.
-    zoneGraph = graphLib.withStripSide(zoneGraph, nodeId, back ? 'both' : value);
-    try { localStorage.setItem('review-zone-graph', JSON.stringify(zoneGraph)); } catch { /* per-viewer only */ }
-    scheduleZonePreview();
   } else {
     if (back) delete placementEdits[field.key];
     // A dropdown answers in text ("0", "1.5"); a profile number is a number, or the server drops it (RIM_PLACEMENT).
@@ -2892,7 +2887,8 @@ try {
     // with "Fix the search first", a tab the aligner strip does not link to (Fable, 2026-11-23).
     const poseProblem = kindNow === 'denture' ? searchProblem(searchNow()) : null;
     if (poseProblem) { status.textContent = `Fix the search first (5 Print angle): ${poseProblem}.`; return; }
-    const widthProblem = Object.entries(placementNow).map(([key, value]) => graphLib?.widthProblem(key, value)).find(Boolean);
+    const widthProblem = [...Object.entries(placementNow).map(([key, value]) => graphLib?.widthProblem(key, value)),
+      ...['RIMBAND', 'LOWRIMBAND'].map((id) => graphLib?.beltProblem(placementNow, id))].find(Boolean);
     if (widthProblem) { status.textContent = `Fix the rim first (2 Rim): ${widthProblem}.`; return; }
     if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) { status.textContent = 'The type id (the Type strip above the stages) is lower-case letters, digits, dots and dashes.'; return; }
     const graphProblems = graphEdited ? graphLib.validate(zoneGraph).problems : [];

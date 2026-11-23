@@ -669,10 +669,12 @@ export const RIM_TAB_KINDS = {
   // same thing?"). The rim reads the FINAL orientation from tab 1, and its node says so (`RIM_TAKES`).
   rimLowPoints: { label: 'Rim', out: 'rim', inputs: {},
     says: 'The rim line: by default the lowest outer edge on the tissue side, followed all the way round the arch - or the outline of the flat area the part stands on.' },
-  rimStrip: { label: 'Rim strip', out: 'mask', inputs: { rim: 'rim' },
-    says: `Faces along the rim, as wide as the profile's rim strip width (${RIM_STRIP_MM.rim_band} mm by default).` },
-  lowRimStrip: { label: 'Low rim strip', out: 'mask', inputs: { rim: 'rim' },
-    says: `The wider strip along the rim, as wide as the profile's low rim strip width (${RIM_STRIP_MM.low_rim_band} mm by default).` },
+  // Owner 2026-11-23: "rim strip is one node, then rim strip belt is another. The belt turns the rim strip line into a
+  // width area, setting inner and outer width from the line." The Rim node is the line; these two are its belts.
+  rimStrip: { label: 'Rim belt', out: 'mask', inputs: { rim: 'rim' },
+    says: `The rim line widened into an area: so far on the inner side (the fitting surface) and so far on the outer side (the visible outside). Rim tips stand here. Standard ${RIM_STRIP_MM.rim_band} mm on both sides.` },
+  lowRimStrip: { label: 'Low rim belt', out: 'mask', inputs: { rim: 'rim' },
+    says: `The wider belt along the rim line, inner and outer widths the same way: a lowest point here still gets a tip. Standard ${RIM_STRIP_MM.low_rim_band} mm on both sides.` },
   fitPlane: { label: 'Rim plane', out: 'plane', inputs: { rim: 'rim' }, derived: true,
     says: 'The plane fitted through the finished rim line.' },
   rimCrossing: { label: 'Rim crossing', out: 'position', inputs: { plane: 'plane' }, derived: true,
@@ -695,8 +697,21 @@ export const FLAT_EDGE_NEEDS_BASE = 'RIM: the rim follows the flat area\'s edge,
 /** What the rim node takes, said on it: it has no wire on this tab, because it reads the final orientation of tab 1. */
 export const RIM_TAKES = 'the final orientation, from 1 Orient';
 
-/** The two strip widths a type may set on the Rim tab: profile placement keys, with their engine defaults. */
-export const RIM_STRIP_WIDTHS = { RIMBAND: { key: 'rimBandMm', standard: RIM_STRIP_MM.rim_band }, LOWRIMBAND: { key: 'lowRimBandMm', standard: RIM_STRIP_MM.low_rim_band } };
+/**
+ * The two belts a type may set on the Rim tab, as profile placement keys: the symmetric width (`key`, the strip of old)
+ * and the belt's two sides (`inner`, `outer`; engine `Placement::rim_belt`). A side not set keeps the symmetric width.
+ */
+export const RIM_STRIP_WIDTHS = {
+  RIMBAND: { key: 'rimBandMm', inner: 'rimBandInnerMm', outer: 'rimBandOuterMm', standard: RIM_STRIP_MM.rim_band },
+  LOWRIMBAND: { key: 'lowRimBandMm', inner: 'lowRimBandInnerMm', outer: 'lowRimBandOuterMm', standard: RIM_STRIP_MM.low_rim_band },
+};
+
+/** A belt's (inner, outer) widths as `placement` sets them, each side falling back to the symmetric width. */
+export function beltOf(placement, id) {
+  const w = RIM_STRIP_WIDTHS[id];
+  const both = placement?.[w.key] ?? w.standard;
+  return { inner: placement?.[w.inner] ?? both, outer: placement?.[w.outer] ?? both, both };
+}
 
 /**
  * The standard spacing of the tips along the rim line: the shipped denture's `downPitchMm`, which an unset
@@ -716,7 +731,18 @@ export const RIM_PLACEMENT = {
   lowRimBandMm: (v) => v > 0 && v <= 20 ? null : 'must be above 0 and at most 20 mm',
   dentalRimPitchMm: (v) => v >= 0.2 && v <= 10 ? null : 'must be 0.2 to 10 mm',
   rimStripPitchMm: (v) => v === 0 || (v >= 0.2 && v <= 10) ? null : 'must be 0 (like the supported area) or 0.2 to 10 mm',
+  // The belts' sides (owner 2026-11-23): 0 is no strip on that side; both 0 is refused by `beltProblem`.
+  rimBandInnerMm: (v) => v >= 0 && v <= 20 ? null : 'must be 0 to 20 mm',
+  rimBandOuterMm: (v) => v >= 0 && v <= 20 ? null : 'must be 0 to 20 mm',
+  lowRimBandInnerMm: (v) => v >= 0 && v <= 20 ? null : 'must be 0 to 20 mm',
+  lowRimBandOuterMm: (v) => v >= 0 && v <= 20 ? null : 'must be 0 to 20 mm',
 };
+
+/** A belt that covers nothing (0 on both sides), as the engine refuses it (`profile.rs` check_placement), or null. */
+export function beltProblem(placement, id) {
+  const { inner, outer } = beltOf(placement, id);
+  return inner === 0 && outer === 0 ? `${id === 'RIMBAND' ? 'the rim belt' : 'the low rim belt'} is 0 mm on both sides - it would cover nothing` : null;
+}
 
 /** A Rim-tab profile number the profile could not take, or null. A key the tab does not set is a problem too. */
 export function placementProblem(key, value) {
@@ -729,40 +755,6 @@ export function placementProblem(key, value) {
 
 /** The old name, kept for the strip widths' callers. */
 export const widthProblem = placementProblem;
-
-/**
- * WHICH SIDE OF THE RIM a strip covers (WORKBENCH-TABS-PLAN C3, the strips' Side choice): both (the standard), inner
- * (the fitting surface) or outer (the visible outside). No engine change: the strip's output is free since step 7.3, so
- * a side is the strip AND an engine Rim side node (`rimSide`, step 9), wired in its place. `mm` 20 is the widest Rim
- * side, so the cut only picks the side and the strip keeps its own (profile) width. "both" removes the two nodes and
- * wires the output back to the strip, so an untouched choice leaves the standard graph exactly as it was.
- */
-export const STRIP_SIDES = [['both', 'both sides (standard)'], ['inner', 'inner - the fitting surface'], ['outer', 'outer - the visible outside']];
-const SIDE_NODES = {
-  RIMBAND: { side: 'RIMBAND_SIDE', cut: 'RIMBAND_ON_SIDE', output: 'rim_band' },
-  LOWRIMBAND: { side: 'LOWRIMBAND_SIDE', cut: 'LOWRIMBAND_ON_SIDE', output: 'low_rim_band' },
-};
-
-/** The side `stripId`'s strip covers in `graph`: 'both', 'inner' or 'outer'. */
-export function stripSideOf(graph, stripId) {
-  const nodes = SIDE_NODES[stripId];
-  const side = nodes && graph?.outputs?.[nodes.output] === nodes.cut ? byId(graph, nodes.side)?.params?.which : undefined;
-  return side === 'inner' || side === 'outer' ? side : 'both';
-}
-
-/** `graph` with `stripId`'s strip on `side`: the Rim side and its cut added and wired to the output, or removed for 'both'. */
-export function withStripSide(graph, stripId, side) {
-  const { side: sideId, cut, output } = SIDE_NODES[stripId];
-  const nodes = graph.nodes.filter((n) => n.id !== sideId && n.id !== cut);
-  if (side !== 'inner' && side !== 'outer') return { ...graph, nodes, outputs: { ...graph.outputs, [output]: stripId } };
-  return {
-    ...graph,
-    nodes: [...nodes,
-      { id: sideId, kind: 'rimSide', params: { which: side, mm: 20 }, inputs: { rim: 'RIM' } },
-      { id: cut, kind: 'intersect', params: {}, inputs: { a: stripId, b: sideId } }],
-    outputs: { ...graph.outputs, [output]: cut },
-  };
-}
 
 /**
  * The editable fields of one rim-tab node (WORKBENCH-TABS-PLAN C3), on the DENTURE's tab only: the Rim node's four
@@ -780,19 +772,23 @@ function rimFields(kind, id, graph, placement) {
   }
   const width = RIM_STRIP_WIDTHS[id];
   if (!width) return [];
-  const widthField = { key: width.key, label: 'strip width (mm)', help: `This type's ${id === 'RIMBAND' ? 'rim strip' : 'low rim strip'} width, a profile number: the engine grows the strip this far from the rim, along the surface. Above 0, at most 20.`,
-    value: placement?.[width.key] ?? width.standard, standard: width.standard, target: 'placement' };
-  // The Side choice: a graph edit (`withStripSide`), so `target: 'side'`. Its help says to look at the rim-side pictures
-  // first - the owner's condition for using it (WORKBENCH-TABS-PLAN C3); the standard stays both sides.
-  const sideField = { key: 'side', label: 'which side of the rim', help: 'Both sides is the standard. Inner keeps only the fitting-surface side of the strip, outer only the visible outside - the other side then gets no strip tips. Look at the rim-side pictures (dentalwork/output/rimside-pictures) before relying on one side.',
-    value: stripSideOf(graph, id), standard: 'both', target: 'side', choices: STRIP_SIDES };
-  if (id !== 'RIMBAND') return [widthField, sideField];
-  // The rim strip's tips (owner 2026-11-23): one spacing along the rim LINE, and the strip's AREA either at the line's
+  // THE BELT (owner 2026-11-23): two widths from the rim line, one per side, where there was one width and a side
+  // dropdown. Each side's standard is the symmetric width, so an untouched belt is today's strip; 0 = nothing that side.
+  const belt = beltOf(placement, id);
+  const name = id === 'RIMBAND' ? 'rim belt' : 'low rim belt';
+  const sideFields = [
+    { key: width.inner, label: 'inner width (mm) - fitting surface', help: `How far the ${name} reaches from the rim line on the inner side, the fitting surface, along the surface. 0 = no belt on that side. Standard ${belt.both} mm, the same as the outer side. 0 to 20.`,
+      value: belt.inner, standard: belt.both, target: 'placement' },
+    { key: width.outer, label: 'outer width (mm) - visible outside', help: `How far the ${name} reaches from the rim line on the outer side, the visible outside. 0 = no belt on that side. Standard ${belt.both} mm. 0 to 20.`,
+      value: belt.outer, standard: belt.both, target: 'placement' },
+  ];
+  if (id !== 'RIMBAND') return sideFields;
+  // The rim belt's tips (owner 2026-11-23): one spacing along the rim LINE, and the belt's AREA either at the line's
   // spacing (as before), at its own, or left to the area pass like any supported area. Absent keys are the standard.
-  return [widthField, sideField,
+  return [...sideFields,
     { key: 'dentalRimPitchMm', label: 'tip spacing along the rim line (mm)', help: `The distance between tips placed along the rim line itself. Standard ${RIM_LINE_PITCH_MM} mm, the supported area's spacing. 0.2 to 10.`,
       value: placement?.dentalRimPitchMm ?? RIM_LINE_PITCH_MM, standard: RIM_LINE_PITCH_MM, target: 'placement' },
-    { key: 'rimStripPitchMm', label: 'tips over the rest of the strip', help: 'The strip\'s faces off the rim line. "Same as the line": a grid of rim tips at the line\'s spacing, even outside the allowed area (as before). "Like the supported area": no grid of its own - the strip gets the normal area tips, only where support is allowed. Or a spacing of its own.',
+    { key: 'rimStripPitchMm', label: 'tips over the rest of the belt', help: 'The belt\'s faces off the rim line. "Same as the line": a grid of rim tips at the line\'s spacing, even outside the allowed area (as before). "Like the supported area": no grid of its own - the belt gets the normal area tips, only where support is allowed. Or a spacing of its own.',
       value: placement?.rimStripPitchMm === undefined ? '' : String(placement.rimStripPitchMm), standard: '', target: 'placement',
       choices: [['', 'same as the line'], ['0', 'like the supported area'], ['1', '1 mm grid'], ['1.5', '1.5 mm grid'], ['3', '3 mm grid'], ['4', '4 mm grid']] },
   ];
@@ -819,9 +815,10 @@ export function rimTabView(kind, ctx = {}) {
         // the case facts say why), so the tab says it BEFORE the run (Fable's review).
         ...(ctx.standsOnFlatArea === false && fields.some((f) => f.key === 'source' && f.value === 'flatEdge')
           ? [FLAT_EDGE_NEEDS_BASE] : [])]
-      // A dropdown's value is text ('' = the standard, which is no number at all and needs no check).
-      // Profile numbers only: the Side choice is a graph edit, checked with the graph (`validate`).
-      : fields.filter((f) => f.target === 'placement' && f.value !== '').map((f) => placementProblem(f.key, f.choices ? Number(f.value) : f.value)).filter(Boolean);
+      // A dropdown's value is text ('' = the standard, which is no number at all and needs no check). A belt also may
+      // not be 0 on both sides.
+      : [...fields.filter((f) => f.target === 'placement' && f.value !== '').map((f) => placementProblem(f.key, f.choices ? Number(f.value) : f.value)),
+        ...(RIM_STRIP_WIDTHS[n.id] && kind === 'denture' ? [beltProblem(ctx.placement, n.id)] : [])].filter(Boolean);
     return { id: n.id, title: spec.label, says: spec.says, out: spec.out, derived: Boolean(spec.derived),
       reason: spec.derived ? RIM_DERIVED_REASON : null, inputs: Object.entries(n.inputs), takes, fields, problems };
   });
@@ -831,19 +828,19 @@ export function rimTabView(kind, ctx = {}) {
 export function rimOutputLines(kind, ctx = {}) {
   if (kind !== 'denture') return [];
   const rim = ctx.graph?.nodes?.find((n) => n.id === 'RIM')?.params ?? {};
-  const width = (id) => ctx.placement?.[RIM_STRIP_WIDTHS[id].key] ?? RIM_STRIP_WIDTHS[id].standard;
+  const beltText = ({ inner, outer }) => (inner === outer ? `${inner} mm each side of the rim line` : `inner ${inner} mm, outer ${outer} mm from the rim line`);
+  const width = (id) => beltText(beltOf(ctx.placement, id));
   // What the run on screen used (summary `placementRan`), when it differs from the tab: the widths live in browser
   // storage, so another browser or a cleared one shows the standard while the run used something else (Fable's review).
-  const ranWidth = (id) => ctx.ran?.[RIM_STRIP_WIDTHS[id].key] ?? RIM_STRIP_WIDTHS[id].standard;
-  const ranNote = (id) => (ranWidth(id) !== width(id) ? ` (the run on screen used ${ranWidth(id)} mm)` : '');
-  const sideNote = (id) => { const side = stripSideOf(ctx.graph, id); return side === 'both' ? '' : `, ${side} side only`; };
+  const ranWidth = (id) => beltText(beltOf(ctx.ran, id));
+  const ranNote = (id) => (ranWidth(id) !== width(id) ? ` (the run on screen used ${ranWidth(id)})` : '');
   const linePitch = ctx.placement?.dentalRimPitchMm ?? RIM_LINE_PITCH_MM;
   const strip = ctx.placement?.rimStripPitchMm;
-  const stripTips = strip === undefined ? `rim tips at ${linePitch} mm over the whole strip` : strip === 0 ? 'the rest of the strip gets the supported area\'s tips' : `the rest of the strip a ${strip} mm grid`;
+  const stripTips = strip === undefined ? `rim tips at ${linePitch} mm over the whole belt` : strip === 0 ? 'the rest of the belt gets the supported area\'s tips' : `the rest of the belt a ${strip} mm grid`;
   return [
     `Rim line - ${rim.source === 'flatEdge' ? 'the edge of the flat area the part stands on' : 'the lowest edge, found'} (a rim drawn for one case in the app replaces it); tips every ${linePitch} mm along it`,
-    `Rim strip - ${width('RIMBAND')} mm along the rim${sideNote('RIMBAND')}${ranNote('RIMBAND')}; ${stripTips}`,
-    `Low rim strip - ${width('LOWRIMBAND')} mm along the rim${sideNote('LOWRIMBAND')}${ranNote('LOWRIMBAND')}`,
+    `Rim belt - ${width('RIMBAND')}${ranNote('RIMBAND')}; ${stripTips}`,
+    `Low rim belt - ${width('LOWRIMBAND')}${ranNote('LOWRIMBAND')}`,
     'Rim plane - fitted through the rim line',
     'Rim crossing - where the rim plane meets the symmetry plane: the cavity rays start here',
   ];

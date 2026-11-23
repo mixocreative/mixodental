@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
   ALIGNER_KINDS, OLD_KINDS, RIM_DERIVED_REASON, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, rimTabGraph, rimTabView,
-  setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines, FLAT_EDGE_NEEDS_BASE, sameGraph, RIM_LINE_PITCH_MM, placementProblem, fixedParam, withStripSide, stripSideOf,
+  setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines, FLAT_EDGE_NEEDS_BASE, sameGraph, RIM_LINE_PITCH_MM, placementProblem, fixedParam, beltOf, beltProblem,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -381,8 +381,9 @@ describe('the rim tab', () => {
     expect(rim.takes).toEqual([RIM_TAKES]);
     expect(rim.fields.map((f) => [f.key, f.value, f.target])).toEqual([['source', 'finder', 'graph'], ['binDeg', 3, 'graph'], ['shellMm', 2, 'graph'], ['openGapDeg', 20, 'graph']]);
     expect(rim.problems).toEqual([]);
-    expect(view.find((n) => n.id === 'RIMBAND')!.fields).toMatchObject([{ key: 'rimBandMm', value: RIM_STRIP_MM.rim_band, target: 'placement' },
-      { key: 'side', value: 'both', standard: 'both', target: 'side' },
+    expect(view.find((n) => n.id === 'RIMBAND')!.fields).toMatchObject([
+      { key: 'rimBandInnerMm', value: RIM_STRIP_MM.rim_band, standard: RIM_STRIP_MM.rim_band, target: 'placement' },
+      { key: 'rimBandOuterMm', value: RIM_STRIP_MM.rim_band, standard: RIM_STRIP_MM.rim_band, target: 'placement' },
       { key: 'dentalRimPitchMm', value: RIM_LINE_PITCH_MM, target: 'placement' }, { key: 'rimStripPitchMm', value: '', standard: '', target: 'placement' }]);
     expect(view.find((n) => n.id === 'RIMBAND')!.problems).toEqual([]);
     expect(rimTabView('aligner').every((n) => n.fields.length === 0)).toBe(true);
@@ -399,7 +400,7 @@ describe('the rim tab', () => {
     expect(lines[1]).toContain('3 mm');
     const bad = rimTabView('denture', { graph: setParam(defaultGraph(), 'RIM', 'binDeg', 15), placement: { lowRimBandMm: 0 } });
     expect(bad.find((n) => n.id === 'RIM')!.problems).toContain('RIM: binDeg must be between 1 and 10, got 15');
-    expect(bad.find((n) => n.id === 'LOWRIMBAND')!.problems).toEqual(['lowRimBandMm must be above 0 and at most 20 mm, got 0']);
+    expect(bad.find((n) => n.id === 'LOWRIMBAND')!.problems).toEqual(['the low rim belt is 0 mm on both sides - it would cover nothing']);
     expect(validate(setParam(defaultGraph(), 'RIM', 'source', 'edge')).problems).toContain('RIM: "source" must be finder or flatEdge, got "edge"');
   });
 
@@ -411,8 +412,8 @@ describe('the rim tab', () => {
     expect(rimTabView('denture', { graph, standsOnFlatArea: true }).find((n) => n.id === 'RIM')!.problems).toEqual([]);
     expect(rimTabView('denture', { standsOnFlatArea: false }).find((n) => n.id === 'RIM')!.problems).toEqual([]);
     const lines = rimOutputLines('denture', { placement: {}, ran: { rimBandMm: 3, lowRimBandMm: 5 } });
-    expect(lines[1]).toBe('Rim strip - 2 mm along the rim (the run on screen used 3 mm); rim tips at 2 mm over the whole strip');
-    expect(lines[2]).toBe('Low rim strip - 5 mm along the rim');
+    expect(lines[1]).toBe('Rim belt - 2 mm each side of the rim line (the run on screen used 3 mm each side of the rim line); rim tips at 2 mm over the whole belt');
+    expect(lines[2]).toBe('Low rim belt - 5 mm each side of the rim line');
   });
 
   // Owner 2026-11-23: "why strip width is locked?" - the hole strip's is not any more; a rim strip's stays the profile's.
@@ -432,12 +433,12 @@ describe('the rim tab', () => {
     expect(Number(/"downPitchMm\\?":\s*([0-9.]+)/.exec(profile)?.[1])).toBe(RIM_LINE_PITCH_MM);
     const placement = { dentalRimPitchMm: 1.5, rimStripPitchMm: 0 };
     const strip = rimTabView('denture', { placement }).find((n) => n.id === 'RIMBAND')!;
-    expect(strip.fields.map((f) => f.value)).toEqual([RIM_STRIP_MM.rim_band, 'both', 1.5, '0']);
+    expect(strip.fields.map((f) => f.value)).toEqual([RIM_STRIP_MM.rim_band, RIM_STRIP_MM.rim_band, 1.5, '0']);
     expect(strip.problems).toEqual([]);
     const lines = rimOutputLines('denture', { placement });
     expect(lines[0]).toContain('tips every 1.5 mm along it');
-    expect(lines[1]).toContain('the rest of the strip gets the supported area\'s tips');
-    expect(rimOutputLines('denture', { placement: { rimStripPitchMm: 3 } })[1]).toContain('the rest of the strip a 3 mm grid');
+    expect(lines[1]).toContain('the rest of the belt gets the supported area\'s tips');
+    expect(rimOutputLines('denture', { placement: { rimStripPitchMm: 3 } })[1]).toContain('the rest of the belt a 3 mm grid');
     expect(placementProblem('rimStripPitchMm', 0.1)).toBe('rimStripPitchMm must be 0 (like the supported area) or 0.2 to 10 mm, got 0.1');
     expect(placementProblem('dentalRimPitchMm', 0)).toContain('must be 0.2 to 10 mm');
     expect(placementProblem('rimStripPitchMm', '3')).toContain('must be a number');
@@ -446,19 +447,18 @@ describe('the rim tab', () => {
     for (const [value] of strip.fields.find((f) => f.key === 'rimStripPitchMm')!.choices!) if (value !== '') expect(placementProblem('rimStripPitchMm', Number(value))).toBeNull();
   });
 
-  // The strips' Side choice (C3): a graph edit that wires an engine Rim side behind the strip, and undoes itself exactly.
-  it('puts a strip on one side of the rim by wiring a Rim side in, and "both" gives back the standard graph exactly', () => {
-    const inner = withStripSide(defaultGraph(), 'RIMBAND', 'inner');
-    expect(stripSideOf(inner, 'RIMBAND')).toBe('inner');
-    expect(stripSideOf(inner, 'LOWRIMBAND')).toBe('both');
-    expect(inner.outputs.rim_band).toBe('RIMBAND_ON_SIDE');
-    expect(validate(inner).problems).toEqual([]);
-    const both = withStripSide(withStripSide(inner, 'LOWRIMBAND', 'outer'), 'LOWRIMBAND', 'both');
-    expect(stripSideOf(both, 'LOWRIMBAND')).toBe('both');
-    expect(isDefault(withStripSide(both, 'RIMBAND', 'both'))).toBe(true);
-    const view = rimTabView('denture', { graph: inner });
-    expect(view.find((n) => n.id === 'RIMBAND')!.fields.find((f) => f.key === 'side')!.value).toBe('inner');
-    expect(rimOutputLines('denture', { graph: inner })[1]).toContain('inner side only');
+  // Owner 2026-11-23: the rim line is one node and the belt another, with an inner and an outer width.
+  it('sets a belt\'s inner and outer widths, each side falling back to the symmetric width, and refuses one that covers nothing', () => {
+    expect(beltOf({}, 'RIMBAND')).toEqual({ inner: RIM_STRIP_MM.rim_band, outer: RIM_STRIP_MM.rim_band, both: RIM_STRIP_MM.rim_band });
+    expect(beltOf({ rimBandMm: 3, rimBandOuterMm: 0 }, 'RIMBAND')).toEqual({ inner: 3, outer: 0, both: 3 });
+    const placement = { rimBandInnerMm: 3, rimBandOuterMm: 0 };
+    const belt = rimTabView('denture', { placement }).find((n) => n.id === 'RIMBAND')!;
+    expect(belt.title).toBe('Rim belt');
+    expect(belt.fields.slice(0, 2).map((f) => [f.key, f.value])).toEqual([['rimBandInnerMm', 3], ['rimBandOuterMm', 0]]);
+    expect(belt.problems).toEqual([]);
+    expect(rimOutputLines('denture', { placement })[1]).toContain('Rim belt - inner 3 mm, outer 0 mm from the rim line');
+    expect(beltProblem({ lowRimBandInnerMm: 0, lowRimBandOuterMm: 0 }, 'LOWRIMBAND')).toContain('cover nothing');
+    expect(placementProblem('rimBandInnerMm', 25)).toBe('rimBandInnerMm must be 0 to 20 mm, got 25');
   });
 });
 

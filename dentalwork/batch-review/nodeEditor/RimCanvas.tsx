@@ -14,7 +14,7 @@ import { Background, Controls, Handle, Position, ReactFlow, applyNodeChanges, ty
 import { MeasureWhenReady, type Positions } from './ZoneEditor';
 
 /** One editable field on a rim-tab node (`nodeGraph.mjs` rimFields): where its edit goes is `target`. */
-export interface RimField { key: string; label: string; help: string; value: string | number; standard: string | number; target: 'graph' | 'placement' | 'side'; choices?: [string, string][] }
+export interface RimField { key: string; label: string; help: string; value: string | number; standard: string | number; target: 'graph' | 'placement'; choices?: [string, string][] }
 /** One node as `rimTabView` describes it. */
 export interface RimTabNode { id: string; title: string; says: string; out: string; derived: boolean; reason: string | null; inputs: [string, string][]; takes: string[]; fields?: RimField[]; problems?: string[] }
 export interface RimCanvasProps {
