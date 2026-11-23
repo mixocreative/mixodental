@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SET_TOKEN, ZONE_STATES, nodeValues, previewGroups, previewNote, sameGraph } from './zonePreview.mjs';
+import { SET_TOKEN, ZONE_STATES, boundaryEdges, glowLevel, nodeValues, previewGroups, previewNote, sameGraph } from './zonePreview.mjs';
 
 // Two nodes, five faces each: NS a set of faces, Z2 a Mark's zone (0 Undefined, 1 Support, 2 No-support).
 const read = { ids: ['NS', 'Z2'], faces: 5, values: Uint8Array.from([1, 1, 0, 0, 1, 2, 1, 0, 1, 2]) };
@@ -42,6 +42,21 @@ describe('the per-node preview (plan D2)', () => {
   it('with nothing selected, says the final zone is shown and how to see a node instead', () => {
     const groups = previewGroups(nodeValues(read, 'Z2')!, true);
     expect(previewNote({ title: 'Mark support', groups, hasRead: true, canvasChanged: false, gives: 'zone', final: true })).toContain('This is the final zone; select a node');
+  });
+
+  // Owner 2026-11-23: the selected strip glows and its outline is drawn, so it reads as THAT node's faces.
+  it('outlines a face set by the edges only one of its faces uses, and glows between 0.35 and 1', () => {
+    // A square of two triangles (0-1-2, 0-2-3) and a third triangle beside it (1-4-2).
+    const index = [0, 1, 2, 0, 2, 3, 1, 4, 2];
+    const pairs = (flat: Uint32Array) => Array.from({ length: flat.length / 2 }, (_, k) => `${flat[k * 2]}-${flat[k * 2 + 1]}`).sort();
+    // The square alone: its four sides, not its diagonal 0-2.
+    expect(pairs(boundaryEdges(index, [0, 1]))).toEqual(['0-1', '0-3', '1-2', '2-3']);
+    // With the third triangle the shared side 1-2 goes inside.
+    expect(pairs(boundaryEdges(index, [0, 1, 2]))).toEqual(['0-1', '0-3', '1-4', '2-3', '2-4']);
+    expect(boundaryEdges(index, []).length).toBe(0);
+    const levels = Array.from({ length: 64 }, (_, k) => glowLevel(k * 50));
+    expect(Math.min(...levels)).toBeGreaterThanOrEqual(0.35 - 1e-9);
+    expect(Math.max(...levels)).toBeLessThanOrEqual(1 + 1e-9);
   });
 
   it('compares graphs whatever order their keys were written in', () => {

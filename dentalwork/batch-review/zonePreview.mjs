@@ -69,3 +69,27 @@ export function previewNote({ title, groups, hasRead, canvasChanged, gives, draw
 // (the type file's writer sorts keys, so plain JSON text called every applied edit "changed"). Re-exported here because
 // the preview's note asks it too; a second copy written the same night was folded into this one.
 export { sameGraph } from './nodeGraph.mjs';
+
+/**
+ * The outline of a set of faces (owner 2026-11-23: "glow it so we know which is the selected node's strip"): every
+ * edge only ONE of the faces uses, as vertex pairs, flat. `index` is the model's triangle index (3 per face), `faces`
+ * the selected face ids. An edge two selected faces share is inside the set and is not drawn; one at the set's edge,
+ * or at the model's own open edge, is. Pure, so the rule is tested without a page.
+ */
+export function boundaryEdges(index, faces) {
+  const uses = new Map();
+  for (const f of faces) {
+    for (let k = 0; k < 3; k += 1) {
+      const a = index[f * 3 + k];
+      const b = index[f * 3 + ((k + 1) % 3)];
+      const key = a < b ? `${a},${b}` : `${b},${a}`;
+      uses.set(key, (uses.get(key) ?? 0) + 1);
+    }
+  }
+  const out = [];
+  for (const [key, count] of uses) if (count === 1) out.push(...key.split(',').map(Number));
+  return Uint32Array.from(out);
+}
+
+/** How bright the selected set glows at `ms` (0.35 to 1, a 1.6 s breath): enough to find it, never to hide the model. */
+export const glowLevel = (ms) => 0.675 + 0.325 * Math.sin((ms / 1600) * 2 * Math.PI);
