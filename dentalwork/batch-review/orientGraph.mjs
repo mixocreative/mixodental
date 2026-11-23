@@ -19,10 +19,12 @@ export const TYPES = ['frame', 'pose', 'region'];
 /** Every kind: what it reads, what it gives, its parameters' defaults. Mirrors `orient_graph.rs` `spec` and `PARAMS`. */
 export const KINDS = {
   archFrame: { stage: 'orient', label: 'Arch shape', out: 'frame', inputs: {}, params: {}, reads: 'upright.rs arch_frame - the arch plane and the two legs' },
-  upDecision: { stage: 'orient', label: 'Name the sides', out: 'frame', inputs: { frame: 'frame' }, params: {}, reads: 'up_decision.rs decide - arch_slices: the open end of the U is the back, the slices\' domes point to the teeth (the ray test is a diagnostic only)' },
+  upDecision: { stage: 'orient', label: 'Name the sides', out: 'frame', inputs: { frame: 'frame' }, params: { front: 'auto', teethSide: 'auto' }, reads: 'up_decision.rs decide - arch_slices: the open end of the U is the back, the slices\' domes point to the teeth (the ray test is a diagnostic only)' },
   uprightPose: { stage: 'orient', label: 'Stand on the back', out: 'pose', inputs: { frame: 'frame' }, params: {}, reads: 'pose.rs PrintPose::from - up is the frame\'s up, lean is its teeth side' },
   flatRegion: { stage: 'orient', label: 'Largest flat area', out: 'region', inputs: {}, params: { toleranceDeg: 5, minAreaMm2: 20, rank: 1 }, reads: 'flat_regions.rs - faces joined by angle to the REGION\'s normal, ranked by total area' },
   boxFrame: { stage: 'orient', label: 'Frame from the base', out: 'frame', inputs: { base: 'region' }, params: {}, reads: 'orient_graph.rs box_frame - up into the part from the base, lean along the box\'s long side' },
+  // C2: which named side faces the plate. At Back / Teeth side / 0 it runs today's pose function, bit for bit.
+  plateSide: { stage: 'orient', label: 'Plate side', out: 'pose', inputs: { frame: 'frame' }, params: { plate: 'back', leanToward: 'teeth', angleDeg: 0 }, reads: 'orient_graph.rs plateSide - the chosen side\'s outward normal faces the plate (set_bottom\'s rule); back / teeth / 0 is PrintPose::from' },
   setBottom: { stage: 'orient', label: 'Stand on the flat area', out: 'pose', inputs: { base: 'region', frame: 'frame' }, params: { angleDeg: 0, maxProtrusionMm: 0.5 }, reads: 'orient_graph.rs set_bottom - the base faces the plate, leaning toward the frame\'s lean side' },
 };
 
@@ -37,12 +39,22 @@ export const NODE_GROUPS = {
   pose: { title: 'Pose', says: 'How the part sits on the plate before the print angle is searched.', token: '--node-points' },
 };
 
-export const KIND_GROUP = { archFrame: 'frames', upDecision: 'frames', boxFrame: 'frames', flatRegion: 'find', uprightPose: 'pose', setBottom: 'pose' };
+export const KIND_GROUP = { archFrame: 'frames', upDecision: 'frames', boxFrame: 'frames', flatRegion: 'find', uprightPose: 'pose', plateSide: 'pose', setBottom: 'pose' };
+
+/** The six named sides (docs/WORKBENCH-TABS-PLAN.md section 2), as the engine's `SIDES`. */
+const SIDE_CHOICES = [['back', 'Back (the two legs)'], ['front', 'Front'], ['teeth', 'Teeth side'], ['tissue', 'Tissue side'], ['left', 'Left (seen from the front, teeth up)'], ['right', 'Right (seen from the front, teeth up)']];
+
+/** Text parameters and the values each may take (`orient_graph.rs` TEXT_PARAMS). */
+export const TEXT_CHOICES = {
+  front: ['auto', 'other'], teethSide: ['auto', 'other'],
+  plate: SIDE_CHOICES.map(([v]) => v), leanToward: SIDE_CHOICES.map(([v]) => v),
+};
 
 export const KIND_WORDS = {
   archFrame: { title: 'Arch shape', says: 'Finds the arch\'s flat plane and the end where it splits into two legs, with a FIRST GUESS at which side holds the teeth. The next node checks both guesses.' },
   upDecision: { title: 'Name the sides', says: 'The open end of the U (where the two legs are) is the back. Eleven slices across the arch each look like an n; the side their domes point to is the teeth side. The frame is turned to match, and its six sides get their names: Front, Back, Teeth side, Tissue side, Left, Right.' },
-  uprightPose: { title: 'Stand on the back', says: 'The Back (the two legs) faces the plate, and the print angle leans the part toward the Teeth side. Today\'s denture pose. It makes no choice: choosing another side for the plate comes with the Plate side node (WORKBENCH-TABS-PLAN step C2).' },
+  uprightPose: { title: 'Stand on the back', says: 'The Back (the two legs) faces the plate, and the print angle leans the part toward the Teeth side. The old name of Plate side at its defaults - Plate side lets you choose.' },
+  plateSide: { title: 'Plate side', says: 'Which side of the part faces the build plate at print angle 0, and which side rises as the print angle grows. Today\'s denture stands on its Back and leans toward its Teeth side.' },
   flatRegion: { title: 'Largest flat area', says: 'The biggest near-flat area of the part, by total size. A face joins when it is within the tolerance of the AREA\'s direction, so a round side never counts as flat. Rank 2 is the next largest.' },
   boxFrame: { title: 'Frame from the base', says: 'A frame for a part with no arch: up points into the part from the base, and the lean side runs along the part\'s longest side.' },
   setBottom: { title: 'Stand on the flat area', says: 'Puts the base on the plate (supports and lift as usual), leaning toward the frame\'s lean side by the angle. Refused when the part pokes out past the base by more than the limit - it would sit inside the plate.' },
@@ -54,6 +66,10 @@ export const PARAM_WORDS = {
   rank: { label: 'which area', help: '1 = the largest flat area, 2 = the next largest, and so on.' },
   angleDeg: { label: 'lean (deg)', help: 'Tilts the part toward its lean side before the print-angle search starts. Positive raises the lean side. With the default lean this overlaps the search\'s own start angle.' },
   maxProtrusionMm: { label: 'may poke out (mm)', help: 'How far the part may reach past the base on the plate side before Set as bottom refuses.' },
+  front: { label: 'front is', help: 'auto: the narrower end, as the arch test decides. The other end: for a kind of part the test reads the wrong way round. To turn ONE scan round, use that case\'s flip instead.', choices: [['auto', 'auto (the narrower end)'], ['other', 'the other end']] },
+  teethSide: { label: 'teeth side is', help: 'auto: where the slices\' domes point. The other side: for a kind of part the vote reads the wrong way round.', choices: [['auto', 'auto (where the slices point)'], ['other', 'the other side']] },
+  plate: { label: 'faces the plate', help: 'The side of the part that faces the build plate at print angle 0.', choices: SIDE_CHOICES },
+  leanToward: { label: 'leans toward', help: 'The side that rises as the print angle grows. Must be square to the plate side.', choices: SIDE_CHOICES },
 };
 
 export const OUTPUT_WORDS = {
@@ -78,8 +94,12 @@ export function defaultGraph() {
   return {
     nodes: [
       { id: 'ARCH', kind: 'archFrame', params: {}, inputs: {} },
-      { id: 'UP', kind: 'upDecision', params: {}, inputs: { frame: 'ARCH' } },
-      { id: 'POSE', kind: 'uprightPose', params: {}, inputs: { frame: 'UP' } },
+      // The canvas's standard Step 1 shows its CHOICES (the canvas draws only the parameters a node carries), so it
+      // names them at their defaults and stands on Plate side rather than uprightPose. The engine gives the same
+      // result for it - absent and default parameters are one thing there, and Plate side at its defaults runs
+      // uprightPose's function - and an untouched canvas is never sent anyway (`isDefault`).
+      { id: 'UP', kind: 'upDecision', params: { front: 'auto', teethSide: 'auto' }, inputs: { frame: 'ARCH' } },
+      { id: 'POSE', kind: 'plateSide', params: { plate: 'back', leanToward: 'teeth', angleDeg: 0 }, inputs: { frame: 'UP' } },
     ],
     outputs: { frame: 'UP', pose: 'POSE' },
   };
@@ -102,7 +122,10 @@ export function flatBaseGraph() {
 export const defaultOf = (node, key) => defaultParam(defaultGraph(), KINDS, node, key);
 
 export function isDefault(graph) {
-  return JSON.stringify(graph) === JSON.stringify(defaultGraph());
+  // A graph saved before the choices were named (its nodes carry no params, the engine's own default graph) is the
+  // standard Step 1 too; reading it as "changed" would send an edit nobody made.
+  const old = { ...defaultGraph(), nodes: [{ id: 'ARCH', kind: 'archFrame', params: {}, inputs: {} }, { id: 'UP', kind: 'upDecision', params: {}, inputs: { frame: 'ARCH' } }, { id: 'POSE', kind: 'uprightPose', params: {}, inputs: { frame: 'UP' } }] };
+  return [defaultGraph(), old].some((standard) => JSON.stringify(graph) === JSON.stringify(standard));
 }
 
 const freshId = (graph, kind) => {
@@ -147,9 +170,20 @@ export function validate(graph) {
     if (!spec) { problems.push(`${node.id}: a ${node.kind} node is not an Orient node in this version`); continue; }
     for (const key of Object.keys(node.params ?? {})) {
       if (!(key in spec.params)) { problems.push(`${node.id}: a ${node.kind} has no parameter "${key}"`); continue; }
+      if (key in TEXT_CHOICES) {
+        if (!TEXT_CHOICES[key].includes(node.params[key])) problems.push(`${node.id}: "${key}" must be one of ${TEXT_CHOICES[key].join(', ')}, got "${node.params[key]}"`);
+        continue;
+      }
       const v = Number(node.params[key]);
       const [low, high] = LIMITS[key];
       if (!Number.isFinite(v) || v < low || v > high) problems.push(`${node.id}: "${key}" must be between ${low} and ${high}, got ${node.params[key]}`);
+    }
+    if (node.kind === 'plateSide') {
+      const axis = (side) => Math.floor(SIDE_CHOICES.findIndex(([v]) => v === side) / 2);
+      const plate = node.params.plate ?? 'back';
+      const lean = node.params.leanToward ?? 'teeth';
+      // SIDE_CHOICES pairs opposites (back/front, teeth/tissue, left/right), as the engine's SIDES does.
+      if (axis(plate) === axis(lean)) problems.push(`${node.id}: the lean side (${lean}) runs along the plate side (${plate}) - pick a side square to it`);
     }
     for (const [name, want] of Object.entries(spec.inputs)) {
       const from = node.inputs?.[name];

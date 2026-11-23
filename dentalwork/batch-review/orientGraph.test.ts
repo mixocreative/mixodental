@@ -13,7 +13,7 @@ describe('the Orient graph model (U6)', () => {
       expect(orient.TYPES).toContain(spec.out);
       for (const key of Object.keys(spec.params)) {
         expect(orient.PARAM_WORDS[key as keyof typeof orient.PARAM_WORDS], key).toBeTruthy();
-        expect(orient.LIMITS[key as keyof typeof orient.LIMITS], key).toBeTruthy();
+        expect(orient.LIMITS[key as keyof typeof orient.LIMITS] ?? orient.TEXT_CHOICES[key as keyof typeof orient.TEXT_CHOICES], key).toBeTruthy();
       }
     }
     for (const name of Object.keys(orient.REQUIRED_OUTPUTS)) expect(orient.OUTPUT_WORDS[name as keyof typeof orient.OUTPUT_WORDS]).toBeTruthy();
@@ -43,6 +43,11 @@ describe('the canvas and the engine judge an Orient graph alike', () => {
   const corpus: [string, Graph][] = [
     ['the default', orient.defaultGraph()],
     ['the flat-base recipe', orient.flatBaseGraph()],
+    ['plate side: the front on the plate, leaning to the teeth side', (() => { const g = orient.defaultGraph(); (g.nodes[2]!.params as Record<string, unknown>).plate = 'front'; return g; })()],
+    ['plate side: a lean along the plate side', (() => { const g = orient.defaultGraph(); Object.assign(g.nodes[2]!.params as Record<string, unknown>, { plate: 'front', leanToward: 'back' }); return g; })()],
+    ['plate side: an unknown side', (() => { const g = orient.defaultGraph(); (g.nodes[2]!.params as Record<string, unknown>).plate = 'top'; return g; })()],
+    ['name the sides: the other end is the front', (() => { const g = orient.defaultGraph(); (g.nodes[1]!.params as Record<string, unknown>).front = 'other'; return g; })()],
+    ['name the sides: an unknown choice', (() => { const g = orient.defaultGraph(); (g.nodes[1]!.params as Record<string, unknown>).teethSide = 'maybe'; return g; })()],
     ['a lean of 200 degrees', (() => { const g = orient.flatBaseGraph(); (g.nodes[2]!.params as Record<string, number>).angleDeg = 200; return g; })()],
     ['an unknown parameter', (() => { const g = orient.flatBaseGraph(); (g.nodes[0]!.params as Record<string, number>).size = 3; return g; })()],
     ['a pose fed a region', (() => { const g = clone(orient.defaultGraph()); g.nodes.push({ id: 'F', kind: 'flatRegion', params: {}, inputs: {} }); (g.nodes[2]!.inputs as Record<string, string>).frame = 'F'; return g; })()],
