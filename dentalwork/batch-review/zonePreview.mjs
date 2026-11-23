@@ -48,7 +48,7 @@ export function previewGroups(values, isZone) {
  * `previewGroups` gave, or null when there is nothing to show; `hasRead` says whether this case has per-node values at
  * all; `canvasChanged` says the canvas differs from the graph that ran.
  */
-export function previewNote({ title, groups, hasRead, canvasChanged, gives, drawn = true }) {
+export function previewNote({ title, groups, hasRead, canvasChanged, gives, drawn = true, final = false }) {
   // A node that gives a point, a depth map or a rim line ran, but has no faces to tint: re-running would not help, so
   // the note must not say it would (Fable's review, 2026-11-23).
   if (gives && gives !== 'mask' && gives !== 'zone') return `${title} gives ${gives === 'position' ? 'a point' : gives === 'depthMap' ? 'a depth map' : 'a rim line'}, not faces - nothing to show on the model. Select a ray, strip, combine or Mark node.`;
@@ -59,7 +59,10 @@ export function previewNote({ title, groups, hasRead, canvasChanged, gives, draw
   const counts = groups.map((g) => `${g.label} ${g.faces.length.toLocaleString('en')}`).join(', ');
   const shown = groups.length > 1 ? `the zone as it stands at ${title}: ${counts} faces` : `${title}: ${counts} faces`;
   const stale = canvasChanged ? ' The canvas has changed since this run, so this is what RAN, not your edit - Apply to see the edit.' : '';
-  return `Showing ${shown}. Click the empty canvas to see the final zone again.${stale}`;
+  // `final`: nothing is selected and this IS the final zone (the live preview shows it unasked), so the hint points the
+  // other way.
+  const hint = final ? 'This is the final zone; select a node to see the zone at that point.' : 'Click the empty canvas to see the final zone again.';
+  return `Showing ${shown}. ${hint}${stale}`;
 }
 
 // Whether the canvas is the graph that RAN, whatever order their keys were written in: ONE rule, owned by nodeGraph.mjs

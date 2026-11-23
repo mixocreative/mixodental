@@ -944,6 +944,12 @@ let sidePreviewLib = null;
 const orientSideNote = Object.assign(document.createElement('div'), { className: 'chain-note orient-side-note', hidden: true });
 orientSideNote.dataset.ui = 'orient-side-note';
 let zonesRead = null;
+/* The Zones tab's live preview (plan D3, serve.mjs POST /zone-preview): the canvas graph it was computed for and its
+   per-node values, whether one is on its way, and the debounce timer. Cleared on a case change. */
+let livePreview = null;
+let livePending = false;
+let livePreviewTimer = null;
+let livePreviewSeq = 0;
 let zoneSelected = null;
 let zoneOverlay = null;
 let previewLib = null;
@@ -1531,6 +1537,7 @@ function drawZoneEditor(body, present, names) {
     if (live && deg !== undefined) live.input.value = Number(deg) > 0 ? String(deg) : '';
     zoneGraph = next;
     try { localStorage.setItem('review-zone-graph', JSON.stringify(next)); } catch { /* per-viewer only */ }
+    scheduleZonePreview();
     drawChain(present, names);
   };
 
@@ -2352,40 +2359,90 @@ function facts(c) {
  */
 async function loadZonesFile(c) {
   zonesRead = null;
+  // A live preview belongs to one case's scan: a new case (or a run's result) drops it and asks again if still edited.
+  livePreview = null;
+  livePending = false;
   if (c.kind === 'denture' && c.zonesFile) {
     const meta = await fetch(urlOf(c.zonesFile)).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     const bin = meta ? await fetch(urlOf(meta.bin)).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null) : null;
     if (caseNow !== c && caseNow?.case !== c.case) return;
     if (meta && bin && bin.byteLength === meta.ids.length * meta.faces) zonesRead = { ids: meta.ids, faces: meta.faces, values: new Uint8Array(bin) };
   }
-  showZonePreview();
+  scheduleZonePreview();
 }
 
 /** The overlay for the selected node, or none: the zone layers come back when nothing is selected or off the Zones tab. */
+/**
+ * After a Zones edit, ask the server for a live preview of the canvas (plan D3) - debounced, so a burst of edits asks
+ * once. Only for a served denture review, only for a graph that differs from the run and validates; an answer for an
+ * older canvas, or another case, is dropped.
+ */
+async function scheduleZonePreview() {
+  clearTimeout(livePreviewTimer);
+  previewLib ??= await import('./zonePreview.mjs');
+  if (!reviewServed || kindNow !== 'denture' || !caseNow?.source || !graphLib) { showZonePreview(); return; }
+  const ran = ranZoneGraphJson ? graphLib.upgradeGraph(ranZoneGraphJson) : graphLib.defaultGraph();
+  if (previewLib.sameGraph(ran, zoneGraph) || graphLib.validate(zoneGraph).problems.length > 0) { livePending = false; showZonePreview(); return; }
+  livePending = true;
+  showZonePreview();
+  livePreviewTimer = setTimeout(async () => {
+    const seq = ++livePreviewSeq;
+    const graph = zoneGraph;
+    const c = caseNow;
+    const fail = (why) => { if (seq !== livePreviewSeq) return; livePending = false; zonePreviewNote.hidden = false; zonePreviewNote.textContent = `The live preview did not run: ${why}. Apply and run to see the edit.`; };
+    try {
+      const reply = await fetch('/zone-preview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ source: c.source, zoneGraph: graph }) });
+      const answer = await reply.json().catch(() => ({}));
+      if (seq !== livePreviewSeq || caseNow !== c) return;
+      if (!reply.ok || !answer.ok) { if (reply.status !== 409) fail(refusalReason(answer.log) ?? answer.error ?? reply.status); return; }
+      const bin = await fetch(answer.bin).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
+      if (seq !== livePreviewSeq || caseNow !== c) return;
+      if (!bin || bin.byteLength !== answer.ids.length * answer.faces) { fail('its values did not arrive whole'); return; }
+      livePending = false;
+      livePreview = { graph, read: { ids: answer.ids, faces: answer.faces, values: new Uint8Array(bin) }, seconds: answer.seconds };
+      showZonePreview();
+    } catch (error) {
+      fail(error.message);
+    }
+  }, 800);
+}
+
 let previewTicket = 0;
 async function showZonePreview() {
   // A ticket, as show() uses: two calls racing across the first import (or a case change) must not both build an
   // overlay, or one is orphaned on the model (Fable's review).
   const ticket = ++previewTicket;
   if (zoneOverlay) { zoneOverlay.parent?.remove(zoneOverlay); zoneOverlay.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); zoneOverlay = null; }
-  const active = zoneSelected && stageNow === 'zones' && kindNow === 'denture' && graphLib;
-  zonePreviewNote.hidden = !active;
-  if (!active) { applyVisibility(); return; }
   previewLib ??= await import('./zonePreview.mjs');
   if (ticket !== previewTicket) return;
-  const node = zoneGraph?.nodes.find((n) => n.id === zoneSelected);
-  const title = node ? (graphLib.KIND_WORDS[node.kind]?.title ?? node.kind) : zoneSelected;
+  const ran = graphLib ? (ranZoneGraphJson ? graphLib.upgradeGraph(ranZoneGraphJson) : graphLib.defaultGraph()) : null;
+  const canvasChanged = Boolean(graphLib && !previewLib.sameGraph(ran, zoneGraph));
+  // THE LIVE PREVIEW (plan D3): when the canvas differs from the run and a preview of THIS canvas has come back, the
+  // values are the preview's; and with nothing selected the final Zone is shown, so an edit shows its effect at once.
+  const live = canvasChanged && livePreview && previewLib.sameGraph(livePreview.graph, zoneGraph) ? livePreview : null;
+  const read = live ? live.read : zonesRead;
+  const shownId = zoneSelected ?? (live ? zoneGraph.outputs?.zone : null);
+  const active = shownId && stageNow === 'zones' && kindNow === 'denture' && graphLib;
+  zonePreviewNote.hidden = !active && !(canvasChanged && livePending && stageNow === 'zones');
+  if (!active) {
+    if (!zonePreviewNote.hidden) zonePreviewNote.textContent = 'Previewing your edit on the model (zones only, nothing is built)…';
+    applyVisibility();
+    return;
+  }
+  const node = zoneGraph?.nodes.find((n) => n.id === shownId);
+  const title = node ? (graphLib.KIND_WORDS[node.kind]?.title ?? node.kind) : shownId;
   const gives = graphLib.KINDS[node?.kind]?.out;
-  const values = previewLib.nodeValues(zonesRead, zoneSelected);
+  const values = previewLib.nodeValues(read, shownId);
   const groups = values && (gives === 'mask' || gives === 'zone') ? previewLib.previewGroups(values, gives === 'zone') : null;
-  const ran = ranZoneGraphJson ? graphLib.upgradeGraph(ranZoneGraphJson) : graphLib.defaultGraph();
-  const canvasChanged = !previewLib.sameGraph(ran, zoneGraph);
   // The model: the GLB's denture mesh, written with the engine's own face order (reviewCase.ts), so face k is face k.
   let base = null;
   model?.traverse((o) => { if (!base && o.isMesh && keyOf(o.name) === 'DENTURE') base = o; });
   const index = base?.geometry.index;
-  const drawn = Boolean(groups && index && index.count / 3 === zonesRead.faces);
-  zonePreviewNote.textContent = previewLib.previewNote({ title, groups, hasRead: Boolean(zonesRead), canvasChanged, gives, drawn });
+  const drawn = Boolean(groups && index && index.count / 3 === read.faces);
+  const note = previewLib.previewNote({ title, groups, hasRead: Boolean(read), canvasChanged: canvasChanged && !live, gives, drawn, final: !zoneSelected });
+  zonePreviewNote.textContent = live
+    ? `Live preview of your edit (zones only - nothing is built until Apply; the standard profile's strip widths; ${live.seconds} s). ${note}`
+    : canvasChanged && livePending ? `${note} Previewing your edit…` : note;
   if (!drawn) { applyVisibility(); return; }
   zoneOverlay = new THREE.Group();
   for (const group of groups) {

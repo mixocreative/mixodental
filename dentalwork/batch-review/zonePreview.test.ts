@@ -39,6 +39,11 @@ describe('the per-node preview (plan D2)', () => {
     expect(previewNote({ title: 'Mark support', groups, hasRead: true, canvasChanged: false, gives: 'zone', drawn: false })).toContain('nothing is drawn');
   });
 
+  it('with nothing selected, says the final zone is shown and how to see a node instead', () => {
+    const groups = previewGroups(nodeValues(read, 'Z2')!, true);
+    expect(previewNote({ title: 'Mark support', groups, hasRead: true, canvasChanged: false, gives: 'zone', final: true })).toContain('This is the final zone; select a node');
+  });
+
   it('compares graphs whatever order their keys were written in', () => {
     const canvas = { nodes: [{ id: 'A', kind: 'union', params: {}, inputs: { a: 'X', b: 'Y' } }], outputs: { zone: 'Z' } };
     const ran = { outputs: { zone: 'Z' }, nodes: [{ id: 'A', inputs: { a: 'X', b: 'Y' }, kind: 'union', params: {} }] };

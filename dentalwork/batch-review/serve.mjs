@@ -5,7 +5,8 @@
 // --lan also listens on the local network (e.g. to look from a phone); review files hold patient scans,
 // so use it only on a trusted home/office network.
 import { createServer } from 'node:http';
-import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec, spawn } from 'node:child_process';
@@ -32,10 +33,14 @@ if (folder && !existsSync(join(resolve(folder), 'summary.json'))) {
  * ORDER: `'/out/x'.startsWith('/')` is true, so an `/out/` added after `/` would never win and every
  * re-run would silently serve the viewer's own directory instead of the review.
  */
+// The Zones tab's live previews (plan D3) land in one folder per server, outside every review folder, so a preview
+// never writes into the review on screen.
+const previewDir = mkdtempSync(join(tmpdir(), 'mixo-zone-preview-'));
 const roots = {
   '/three/': join(here, '..', '..', 'node_modules', 'three'),
   '/benchwork/': join(here, '..', '..', 'benchwork'),
   '/out/': folder ? resolve(folder) : undefined,
+  '/preview/': previewDir,
   '/': here,
 };
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
@@ -165,9 +170,68 @@ function rerun(request, response) {
   });
 }
 
+/*
+ * POST /zone-preview - the Zones tab's live preview (plan D3): every zone node's value for the page's graph on the
+ * case's scan, without a build (zonePreviewRun.ts), in seconds. ONE at a time: a newer request stops the one still
+ * running, because only the canvas as it is now is worth showing. Same source check as /rerun.
+ */
+let previewChild = null;
+let previewSeq = 0;
+/** Stops a running preview - its whole tree on Windows, where the child is a shell and kill() would stop only that. */
+function stopPreview(child) {
+  if (!child || child.exitCode !== null) return;
+  if (process.platform === 'win32' && child.pid) exec(`taskkill /pid ${child.pid} /T /F`, () => undefined);
+  else child.kill();
+}
+function zonePreview(request, response) {
+  let body = '';
+  request.on('data', (chunk) => { body += chunk; if (body.length > 64_000) request.destroy(); });
+  request.on('end', () => {
+    const send = (code, payload) => response.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(payload));
+    let ask;
+    try { ask = JSON.parse(body); } catch { send(400, { error: 'not JSON' }); return; }
+    const source = typeof ask?.source === 'string' ? resolve(ask.source) : '';
+    if (!source.toLowerCase().endsWith('.stl') || !existsSync(source) || !statSync(source).isFile()) {
+      send(400, { error: `not an STL on this machine: ${ask?.source ?? '(none)'}` });
+      return;
+    }
+    // Each preview its own folder: a stopped one that still finishes late cannot overwrite a newer result.
+    const seq = ++previewSeq;
+    const out = join(previewDir, String(seq));
+    mkdirSync(out, { recursive: true });
+    const args = ['--script', join('dentalwork', 'batch-review', 'zonePreviewRun.ts'), '--source', source, '--out', out];
+    if (ask?.zoneGraph && typeof ask.zoneGraph === 'object') {
+      const file = join(out, 'zone-graph.json');
+      writeFileSync(file, JSON.stringify(ask.zoneGraph));
+      args.push('--graph', file);
+    }
+    if (Number.isFinite(ask?.steepDeg)) args.push('--steep', String(ask.steepDeg));
+    stopPreview(previewChild);
+    const viteNode = join(here, '..', '..', 'node_modules', '.bin', process.platform === 'win32' ? 'vite-node.cmd' : 'vite-node');
+    const child = spawn(viteNode, args, { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' });
+    previewChild = child;
+    let log = '';
+    child.stdout.on('data', (chunk) => { log += chunk; });
+    child.stderr.on('data', (chunk) => { log += chunk; });
+    guardRun(child, 5 * 60 * 1000, {
+      timeout: () => { stopPreview(child); send(500, { error: 'the preview took over 5 minutes and was stopped', log: log.slice(-2000) }); },
+      error: (error) => send(500, { error: `the preview could not start: ${error.message}`, log: log.slice(-2000) }),
+      exit: (code) => {
+        if (previewChild === child) previewChild = null;
+        if (seq !== previewSeq) { send(409, { error: 'replaced by a newer preview' }); return; }
+        const meta = join(out, 'zone-preview.json');
+        if (code !== 0 || !existsSync(meta)) { send(500, { error: `the preview did not finish (exit ${code})`, log: log.slice(-2000) }); return; }
+        const read = JSON.parse(readFileSync(meta, 'utf8'));
+        send(200, { ok: true, ...read, bin: `/preview/${seq}/${read.bin}` });
+      },
+    });
+  });
+}
+
 const server = createServer((request, response) => {
   const path = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
   if (request.method === 'POST' && path === '/rerun') { rerun(request, response); return; }
+  if (request.method === 'POST' && path === '/zone-preview') { zonePreview(request, response); return; }
   if (request.method === 'POST' && path === '/save-type') { saveType(response, new URL(request.url ?? '/', 'http://localhost').searchParams.get('replace') === '1'); return; }
   const [prefix, root] = Object.entries(roots).find(([prefix, root]) => root !== undefined && path.startsWith(prefix));
   const file = normalize(join(root, path === '/' ? 'viewer.html' : path.slice(prefix.length)));
