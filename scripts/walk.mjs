@@ -4602,7 +4602,15 @@ async function walk(url, scratch, dentalFixture) {
         transfer.items.add(new File([text], fileName));
         document.querySelector('.start-screen').dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
       }, { fileName: name, text: content });
-      const atStep1 = (ms = 180000) => page.waitForFunction(() => (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('print angle · 1 / 3'), null, { timeout: ms });
+      /*
+       * Step 1 for a dropped CUBE - its only caller. A cube ALWAYS fails orientation, so Step 1 always ends in rim define
+       * mode; "Print angle · 1 / 3" on the badge is only the moment between. Waiting for that moment timed out on
+       * 2026-11-23 with the engine's test suite running beside the walk: `waitForFunction` polls per animation frame, a
+       * loaded machine renders few of them, and the poll stepped OVER the badge into rim mode (the screenshot showed
+       * "Define the rim"). Wait for the settled state - the rim mode's reason - or the badge, whichever the poll sees.
+       */
+      const atStep1 = (ms = 180000) => page.waitForFunction(() => document.querySelector('[data-ui="rim-why"]') !== null
+        || (document.querySelector('.edit-badge')?.textContent ?? '').toLowerCase().includes('print angle · 1 / 3'), null, { timeout: ms });
       const supports = () => page.getByRole('button', { name: 'Aligner', exact: true });
 
       await page.goto(url);
