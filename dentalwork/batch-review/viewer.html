@@ -906,6 +906,11 @@ let ranOrientGraph = 'default';
    standard setup), this case's per-node values (`<case>-zones.json` + `.bin`), the node selected on the Zones canvas,
    and the overlay drawn for it on the model. While a node is selected the overlay takes the zone layers' place. */
 let ranZoneGraphJson = null;
+/* The Orient graph that ran (summary `orientGraphRan`, null = the standard Step 1) and the live side names' library. */
+let ranOrientGraphJson = null;
+let sidePreviewLib = null;
+const orientSideNote = Object.assign(document.createElement('div'), { className: 'chain-note orient-side-note', hidden: true });
+orientSideNote.dataset.ui = 'orient-side-note';
 let zonesRead = null;
 let zoneSelected = null;
 let zoneOverlay = null;
@@ -1298,6 +1303,7 @@ function drawOrientEditor(body) {
   const save = (next) => {
     orientGraph = next;
     try { localStorage.setItem('review-orient-graph', JSON.stringify(next)); } catch { /* per-viewer only */ }
+    relabelSides();
     if (lastChain) drawChain(...lastChain);
   };
   const status = document.createElement('div');
@@ -1347,7 +1353,8 @@ function drawOrientEditor(body) {
   };
   if (!orientPositions?.outputs) orientPositions = { ...editorLib.autoLayout(g, []), ...(orientPositions ?? {}) };
   props.positions = orientPositions;
-  body.append(status, bar, orientCanvasHost);
+  body.append(status, bar, orientSideNote, orientCanvasHost);
+  relabelSides();
   if (orientHandle) orientHandle.update(props);
   else orientHandle = editorLib.mountZoneEditor(orientCanvasHost, props);
 }
@@ -1659,6 +1666,7 @@ async function loadGraphLib() {
   }
   try {
     orientLib = await import('./orientGraph.mjs');
+    sidePreviewLib = await import('./sidePreview.mjs');
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem('review-orient-graph') || 'null'); } catch { saved = null; }
     orientGraph = saved && Array.isArray(saved.nodes) ? saved : orientLib.defaultGraph();
@@ -2004,6 +2012,7 @@ function openRun(summary, glbUrl, csvUrl) {
   // standard Step 1, so its missing key is a fact, not a gap.
   ranOrientGraph = summary.orientGraph ?? 'default';
   ranZoneGraphJson = summary.zoneGraphRan ?? null;
+  ranOrientGraphJson = summary.orientGraphRan ?? null;
   urlOf = glbUrl;
   const needing = cases.filter((c) => c.needsLook);
   const built = cases.filter((c) => c.result === 'built').length;
@@ -2292,9 +2301,26 @@ async function loadOrientFile(c) {
     el.dataset.ui = `side-label-${side.name.toLowerCase().replace(/\s+/g, '-')}`;
     el.title = side.name === 'Left' || side.name === 'Right' ? `${side.name}: as seen from the Front with the Teeth side up` : `${side.name} side of the part, in its final orientation`;
     boxLabel.parentElement.append(el);
-    return { el, at: new THREE.Vector3(...side.position) };
+    return { el, at: new THREE.Vector3(...side.position), name: side.name };
   });
+  relabelSides();
   if (lastChain && stageNow === 'orient') drawChain(...lastChain);
+}
+
+/*
+ * THE LIVE SIDE NAMES (sidePreview.mjs; owner 2026-11-23: choosing a side "is clueless to human not seeing"). The labels
+ * stay where the run put the sides; their TEXT follows the Orient canvas at once - a flip renames, Plate side marks
+ * the side on the plate and the side that rises. The part itself turns only after Apply, and the note says so.
+ */
+function relabelSides() {
+  const ran = sidePreviewLib?.sideChoices(ranOrientGraphJson ?? orientLib?.defaultGraph());
+  const now = sidePreviewLib?.sideChoices(orientGraph);
+  for (const label of sideLabels) {
+    label.el.textContent = sidePreviewLib ? sidePreviewLib.previewLabel(label.name, ran, now) : label.name;
+  }
+  const changed = Boolean(sidePreviewLib?.choicesChanged(ran, now));
+  orientSideNote.hidden = !changed || sideLabels.length === 0;
+  orientSideNote.textContent = 'The side names in 3D already follow your choices. The part itself turns only after Apply and run.';
 }
 function placeSideLabels() {
   for (const { el, at } of sideLabels) {
