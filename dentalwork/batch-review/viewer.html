@@ -721,7 +721,8 @@ document.querySelectorAll('[data-view]').forEach((button) => button.addEventList
 function applyVisibility() {
   model?.traverse((object) => {
     const key = object.name && keyOf(object.name);
-    if (key) object.visible = isShown(key) && !(underside && PILLAR_KEYS.includes(key)) && !(zoneOverlay && ZONE_LAYER_KEYS.includes(key)) && !(orientTurn && SUPPORT_KEYS.includes(key));
+    if (key) object.visible = isShown(key) && !(underside && PILLAR_KEYS.includes(key)) && !(zoneOverlay && ZONE_LAYER_KEYS.includes(key)) && !(orientTurn && SUPPORT_KEYS.includes(key))
+      && !(tiltOverlay && OUR_SUPPORT_KEYS.includes(key));
   });
 }
 
@@ -957,6 +958,24 @@ const zonePreviewNote = Object.assign(document.createElement('div'), { className
 zonePreviewNote.dataset.ui = 'zone-preview-note';
 // The zone layers the overlay replaces while a node is selected (keys of LAYERS).
 const ZONE_LAYER_KEYS = ['Undefined (no ray', 'No-support, steep ray', 'No-support zone', 'Allowed area (seen'];
+/* The tabs 4 and 5 live preview's state (plan D3; scheduleTiltPreview and showTiltPreview below). Declared up here,
+   before the module's first await, because applyVisibility and drawChain read it and may run during that await. */
+let tiltLib = null;
+let tiltLive = null;
+let tiltPending = false;
+let tiltTimer = null;
+let tiltSeq = 0;
+let tiltOverlay = null;
+let tiltError = null;
+let tiltRedrawing = false;
+/** The page's settings the run on screen used: the untouched page until an Apply says otherwise. */
+let ranTiltKey = null;
+/** The rules typed on the settings nodes (the benchwork panel's `turned`), once that panel has loaded. */
+let benchRulesNow = () => ({});
+const tiltPreviewNote = Object.assign(document.createElement('div'), { className: 'chain-note tilt-preview-note', hidden: true });
+tiltPreviewNote.dataset.ui = 'tilt-preview-note';
+// Our run's tips and pillars, hidden while the preview's tips are drawn; the owner's supports stay for comparison.
+const OUR_SUPPORT_KEYS = SUPPORT_KEYS.filter((key) => key !== 'YOUR SUPPORTS');
 
 /** One step's card: what it produced, and the settings it is known to own. */
 /** One line: the colour of each layer this tab's steps drew, in place of the step cards above a canvas. */
@@ -1043,6 +1062,9 @@ function settingsBox(settings, names) {
     const field = setting.rule && benchFields?.get(setting.rule);
     k.textContent = field?.rule.label ?? setting.key;
     row.append(k);
+    // After the field's own handler has copied the value into the rule list (a bubbling listener runs after the
+    // target's): tabs 4 and 5 preview the new setting (plan D3).
+    if (field) row.addEventListener('change', () => scheduleTiltPreview());
     if (field && field.rule.choices) {
       // A mode is a dropdown of its described choices; empty means the engine's own default.
       const input = document.createElement('select');
@@ -1264,6 +1286,7 @@ function searchCard() {
       else poseEdits[key] = value;
       try { localStorage.setItem('review-pose', JSON.stringify(poseEdits)); } catch { /* per-viewer only */ }
       if (lastChain) drawChain(...lastChain);
+      scheduleTiltPreview();
     });
     row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: `${label} (°)${poseEdits[key] !== undefined ? ' · edited' : ''}` }), input);
     if (poseEdits[key] !== undefined) {
@@ -1271,6 +1294,7 @@ function searchCard() {
         delete poseEdits[key];
         try { localStorage.setItem('review-pose', JSON.stringify(poseEdits)); } catch { /* per-viewer only */ }
         if (lastChain) drawChain(...lastChain);
+        scheduleTiltPreview();
       }));
     }
     box.append(row);
@@ -1282,6 +1306,22 @@ function searchCard() {
   pickedRow.innerHTML = '<span class="k">picked</span><span class="v"></span>';
   pickedRow.querySelector('.v').textContent = caseNow?.printAngleDeg == null ? '-' : `${caseNow.printAngleDeg}°`;
   box.append(pickedRow);
+  // The live preview (plan D3): the pick the page's settings give, and every angle the search tried with them.
+  const live = tiltNow();
+  if (live?.kind === 'scan') {
+    const previewRow = document.createElement('div');
+    previewRow.className = 'chain-set';
+    previewRow.dataset.ui = 'search-preview-pick';
+    previewRow.dataset.tipTitle = 'preview';
+    previewRow.dataset.tip = 'What the search picks with the settings on this page, before Apply. No support is built for it.';
+    previewRow.innerHTML = '<span class="k">preview</span><span class="v"></span>';
+    previewRow.querySelector('.v').textContent = `${live.pickedDeg}°${live.band ? `, stable ${live.band[0]}-${live.band[1]}°` : ''}`;
+    const angles = document.createElement('div');
+    angles.className = 'chain-none';
+    angles.dataset.ui = 'search-preview-angles';
+    angles.textContent = `Angles tried: ${live.rows.map((r) => `${r.tiltDeg}° ${r.failed.length ? `fails ${r.failed.join(', ')}` : r.robust ? 'robust' : 'passes'}`).join(' · ')}`;
+    box.append(previewRow, angles);
+  }
   const problem = searchProblem(s);
   const note = document.createElement('div');
   note.className = problem ? 'chain-none bad' : 'chain-none';
@@ -1328,6 +1368,8 @@ function drawChain(present, names) {
       drawChain(present, names);
       // The per-node overlay belongs to the Zones tab only.
       showZonePreview();
+      // Tabs 4 and 5 preview the page's settings (plan D3); off them their tips come down.
+      scheduleTiltPreview();
     });
     tabs.append(tab);
   });
@@ -1356,6 +1398,7 @@ function drawChain(present, names) {
     rail.append(card);
   });
   body.append(rail);
+  if (stage.id === 'support' || stage.id === 'angle') body.append(tiltPreviewNote);
   if (stage.id === 'orient') drawOrientEditor(body);
   if (stage.id === 'rim') drawRimCanvas(body, 'denture');
 }
@@ -1482,6 +1525,7 @@ function onRimField(nodeId, field, value) {
     try { localStorage.setItem('review-placement', JSON.stringify(placementEdits)); } catch { /* per-viewer only */ }
   }
   if (lastChain) drawChain(...lastChain);
+  scheduleTiltPreview();
 }
 
 /**
@@ -2407,6 +2451,98 @@ async function scheduleZonePreview() {
   }, 800);
 }
 
+/*
+ * THE TABS 4 AND 5 LIVE PREVIEW (plan D3, serve.mjs POST /tilt-preview, tiltPreviewRun.ts, words in tiltPreview.mjs).
+ * A setting changed on tab 4 or a search number on tab 5 (or the strip widths, or a canvas) asks the engine for the
+ * print-angle search with the page's settings and the tips at the angle it picks - no build, about 7 s. Tab 4 draws
+ * those tips on the model, coloured by their path to the plate, with the run's own tips and pillars hidden; tab 5 shows
+ * the pick and every angle tried. Only while the page differs from what the run on screen used (`ranTiltKey`, reset by
+ * Apply): a preview of what already ran would hide the built supports for nothing.
+ */
+/** What a preview is asked with - the same edits Apply sends - and its key; the key alone when nothing is edited. */
+function tiltAsk() {
+  const rules = benchRulesNow();
+  const pose = kindNow === 'denture' ? poseEdits : {};
+  const placement = kindNow === 'denture' ? placementEdits : {};
+  const zone = graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null;
+  const orient = kindNow === 'denture' && orientLib && orientGraph && !orientLib.isDefault(orientGraph) ? orientGraph : null;
+  const key = JSON.stringify({ rules, pose, placement, zone, orient });
+  return { key, ask: { rules, pose, placement, zoneGraph: zone, orientGraph: orient } };
+}
+
+/** Ask for a preview of the page's settings, debounced; drop it when the page matches the run or cannot preview. */
+async function scheduleTiltPreview() {
+  clearTimeout(tiltTimer);
+  tiltLib ??= await import('./tiltPreview.mjs');
+  const { key, ask } = tiltAsk();
+  ranTiltKey ??= JSON.stringify({ rules: {}, pose: {}, placement: {}, zone: null, orient: null });
+  const wanted = reviewServed && kindNow === 'denture' && caseNow?.source && (stageNow === 'support' || stageNow === 'angle') && key !== ranTiltKey;
+  // The search cannot run on numbers tab 5 already refuses; its own note says why.
+  if (!wanted || searchProblem(searchNow())) {
+    tiltPending = false;
+    if (key === ranTiltKey) { tiltLive = null; tiltError = null; }
+    showTiltPreview();
+    return;
+  }
+  if (tiltLive?.key === key && tiltLive.case === caseNow) { showTiltPreview(); return; }
+  tiltPending = true;
+  showTiltPreview();
+  tiltTimer = setTimeout(async () => {
+    const seq = ++tiltSeq;
+    const c = caseNow;
+    try {
+      const reply = await fetch('/tilt-preview', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ source: c.source, ...ask, frame: orientRead?.frame ?? null }) });
+      const answer = await reply.json().catch(() => ({}));
+      if (seq !== tiltSeq || caseNow !== c) return;
+      if (reply.status === 409) return;
+      tiltPending = false;
+      if (!reply.ok || !answer.ok) { tiltError = answer.error ?? `answer ${reply.status}`; tiltLive = null; }
+      else { tiltError = null; tiltLive = { key, case: c, result: answer }; }
+    } catch (error) {
+      if (seq !== tiltSeq) return;
+      tiltPending = false;
+      tiltError = error.message;
+    }
+    showTiltPreview();
+  }, 800);
+}
+
+/** The preview, if it is of the page as it is now and of this case. A declaration, so searchCard may call it early. */
+function tiltNow() {
+  return tiltLive && tiltLive.case === caseNow && tiltLive.key === tiltAsk().key ? tiltLive.result : null;
+}
+
+/** Draws the preview's tips (tab 4) and writes the note (tabs 4 and 5); the search card reads `tiltNow()` itself. */
+function showTiltPreview() {
+  if (tiltOverlay) { tiltOverlay.parent?.remove(tiltOverlay); tiltOverlay.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); tiltOverlay = null; }
+  const onTab = kindNow === 'denture' && (stageNow === 'support' || stageNow === 'angle');
+  const result = tiltNow();
+  tiltPreviewNote.hidden = !onTab || !(result || tiltPending || tiltError);
+  if (!tiltPreviewNote.hidden && tiltLib) {
+    tiltPreviewNote.textContent = tiltError && !tiltPending
+      ? `The live preview did not run: ${tiltError}. Apply and run to see the settings.`
+      : `${tiltLib.tiltPreviewNote(result, { tab: stageNow, ranDeg: caseNow?.printAngleDeg ?? null, pending: tiltPending })}${result ? ` (${result.seconds} s)` : ''}`;
+  }
+  if (stageNow === 'angle' && lastChain && !tiltRedrawing) { tiltRedrawing = true; drawChain(...lastChain); tiltRedrawing = false; }
+  if (onTab && stageNow === 'support' && result?.kind === 'scan' && result.tips && model && tiltLib) {
+    tiltOverlay = new THREE.Group();
+    tiltOverlay.name = 'tilt-preview-tips';
+    const ball = new THREE.SphereGeometry(0.45, 10, 8);
+    for (const [state, { token }] of Object.entries(tiltLib.TIP_STATES)) {
+      const tips = result.tips.filter((t) => (state === 'unknown' ? !(t.state in tiltLib.TIP_STATES) || t.state === 'unknown' : t.state === state));
+      if (tips.length === 0) continue;
+      const mesh = new THREE.InstancedMesh(ball, new THREE.MeshBasicMaterial({ color: cssToken(token) }), tips.length);
+      const at = new THREE.Matrix4();
+      tips.forEach((t, k) => mesh.setMatrixAt(k, at.makeTranslation(t.position[0], t.position[1], t.position[2])));
+      tiltOverlay.add(mesh);
+    }
+    // In the GLB's own space, like the side labels: the model's matrix carries the tips with it.
+    model.add(tiltOverlay);
+  }
+  applyVisibility();
+}
+
 let previewTicket = 0;
 async function showZonePreview() {
   // A ticket, as show() uses: two calls racing across the first import (or a case change) must not both build an
@@ -2480,6 +2616,9 @@ async function loadOrientFile(c) {
   });
   relabelSides();
   if (lastChain && stageNow === 'orient') drawChain(...lastChain);
+  // The tips preview needs this file's frame (where the GLB puts the scan), and belongs to one case: ask again.
+  tiltLive = null;
+  scheduleTiltPreview();
 }
 
 /*
@@ -2652,6 +2791,9 @@ try {
     }
     return rules;
   };
+  // The tabs 4 and 5 live preview reads the same rules Apply sends, and asks again after each one changes (plan D3).
+  benchRulesNow = turned;
+  box.addEventListener('change', () => scheduleTiltPreview());
 
   // Discard my changes: every edit on the page, in every stage - the settings, the Orient search and the
   // zone setup - back to standard. The review on screen is not touched; it is in its own folder.
@@ -2666,6 +2808,7 @@ try {
       zonePositions = editorLib ? editorLib.autoLayout(zoneGraph, graphLib.FIXED.outputs) : null;
     }
     if (lastChain) drawChain(...lastChain);
+    scheduleTiltPreview();
     status.textContent = 'Changes discarded: the search, the zone setup and the settings are the standard ones again.';
   });
 
@@ -2735,6 +2878,7 @@ try {
     const orientProblems = orientEdited ? orientLib.validate(orientGraph).problems : [];
     if (orientProblems.length) { status.textContent = `Fix the Orient graph first (1 Orient): ${orientProblems[0]}`; return; }
     run.disabled = true;
+    const sentTiltKey = tiltAsk().key;
     const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(orientEdited ? ['the edited Orient graph'] : []), ...(orientBack ? ['the standard Step 1'] : []), ...(poseEdited ? ['the edited search'] : []), ...(placementEdited ? ['the edited strip widths'] : []), ...(newType ? [`the new type ${typeName}`] : [])].join(', ');
     status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
     try {
@@ -2761,6 +2905,9 @@ try {
       // The run on screen is now this type: the strip marks Apply done, and Save becomes the next step.
       ranTypeId = typeName;
       savedTypeId = null;
+      // The run on screen now used the page's settings as they were sent, so tabs 4 and 5 stop previewing them.
+      ranTiltKey = sentTiltKey;
+      tiltLive = null;
       ranTypeLoad = await fetch(`/out/type-load.json?t=${Date.now()}`).then((response) => (response.ok ? response.json() : null)).catch(() => null);
       openRun(fresh, (name) => `/out/${name}?t=${Date.now()}`, '/out/summary.csv');
       status.textContent = outcome.text;

@@ -11,7 +11,7 @@ import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec, spawn } from 'node:child_process';
 import { stampNow } from '../../benchwork/rules.mjs';
-import { guardRun } from './rerunReport.mjs';
+import { guardRun, refusalReason } from './rerunReport.mjs';
 import { saveVerdict } from './saveType.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -35,7 +35,7 @@ if (folder && !existsSync(join(resolve(folder), 'summary.json'))) {
  */
 // The Zones tab's live previews (plan D3) land in one folder per server, outside every review folder, so a preview
 // never writes into the review on screen.
-const previewDir = mkdtempSync(join(tmpdir(), 'mixo-zone-preview-'));
+const previewDir = mkdtempSync(join(tmpdir(), 'mixo-preview-'));
 const roots = {
   '/three/': join(here, '..', '..', 'node_modules', 'three'),
   '/benchwork/': join(here, '..', '..', 'benchwork'),
@@ -171,19 +171,32 @@ function rerun(request, response) {
 }
 
 /*
- * POST /zone-preview - the Zones tab's live preview (plan D3): every zone node's value for the page's graph on the
- * case's scan, without a build (zonePreviewRun.ts), in seconds. ONE at a time: a newer request stops the one still
- * running, because only the canvas as it is now is worth showing. Same source check as /rerun.
+ * THE LIVE PREVIEWS (plan D3), each a short engine run with no build, in seconds:
+ * - POST /zone-preview - the Zones tab: every zone node's value for the page's graph (zonePreviewRun.ts);
+ * - POST /tilt-preview - tabs 4 and 5: the print-angle search with the page's settings and the tips at its pick
+ *   (tiltPreviewRun.ts), given exactly the inputs /rerun gives benchwork.
+ * ONE of each at a time: a newer request stops the one of its kind still running, because only the page as it is now
+ * is worth showing. Each run writes to its own folder, so a stopped one that finishes late cannot overwrite a newer
+ * result. Same source check as /rerun.
  */
-let previewChild = null;
-let previewSeq = 0;
+const previews = { zone: { child: null, seq: 0 }, tilt: { child: null, seq: 0 } };
 /** Stops a running preview - its whole tree on Windows, where the child is a shell and kill() would stop only that. */
 function stopPreview(child) {
   if (!child || child.exitCode !== null) return;
   if (process.platform === 'win32' && child.pid) exec(`taskkill /pid ${child.pid} /T /F`, () => undefined);
   else child.kill();
 }
-function zonePreview(request, response) {
+/** Writes `value` as JSON into the run's folder and returns the file, for a script argument or an env variable. */
+function fileOf(out, name, value) {
+  const file = join(out, name);
+  writeFileSync(file, JSON.stringify(value));
+  return file;
+}
+/**
+ * Runs one preview of `kind`: `prepare(ask, out)` gives the script, its extra arguments and env (or throws a
+ * TypeError naming a bad input, answered 400); the answer is the script's `<meta>` JSON, with `bin` turned into its URL.
+ */
+function runPreview(kind, request, response, prepare) {
   let body = '';
   request.on('data', (chunk) => { body += chunk; if (body.length > 64_000) request.destroy(); });
   request.on('end', () => {
@@ -195,21 +208,20 @@ function zonePreview(request, response) {
       send(400, { error: `not an STL on this machine: ${ask?.source ?? '(none)'}` });
       return;
     }
-    // Each preview its own folder: a stopped one that still finishes late cannot overwrite a newer result.
-    const seq = ++previewSeq;
-    const out = join(previewDir, String(seq));
+    const slot = previews[kind];
+    const seq = ++slot.seq;
+    const folder = `${kind}-${seq}`;
+    const out = join(previewDir, folder);
     mkdirSync(out, { recursive: true });
-    const args = ['--script', join('dentalwork', 'batch-review', 'zonePreviewRun.ts'), '--source', source, '--out', out];
-    if (ask?.zoneGraph && typeof ask.zoneGraph === 'object') {
-      const file = join(out, 'zone-graph.json');
-      writeFileSync(file, JSON.stringify(ask.zoneGraph));
-      args.push('--graph', file);
-    }
-    if (Number.isFinite(ask?.steepDeg)) args.push('--steep', String(ask.steepDeg));
-    stopPreview(previewChild);
+    let plan;
+    try { plan = prepare(ask, out); } catch (error) { send(400, { error: error.message }); return; }
+    const args = ['--script', join('dentalwork', 'batch-review', plan.script), '--source', source, '--out', out, ...(plan.args ?? [])];
+    stopPreview(slot.child);
     const viteNode = join(here, '..', '..', 'node_modules', '.bin', process.platform === 'win32' ? 'vite-node.cmd' : 'vite-node');
-    const child = spawn(viteNode, args, { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' });
-    previewChild = child;
+    // Only the variables this preview sets: a MIXO_* left in the server's own environment must not ride along.
+    const env = { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('MIXO_'))), ...(plan.env ?? {}) };
+    const child = spawn(viteNode, args, { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32', env });
+    slot.child = child;
     let log = '';
     child.stdout.on('data', (chunk) => { log += chunk; });
     child.stderr.on('data', (chunk) => { log += chunk; });
@@ -217,21 +229,51 @@ function zonePreview(request, response) {
       timeout: () => { stopPreview(child); send(500, { error: 'the preview took over 5 minutes and was stopped', log: log.slice(-2000) }); },
       error: (error) => send(500, { error: `the preview could not start: ${error.message}`, log: log.slice(-2000) }),
       exit: (code) => {
-        if (previewChild === child) previewChild = null;
-        if (seq !== previewSeq) { send(409, { error: 'replaced by a newer preview' }); return; }
-        const meta = join(out, 'zone-preview.json');
-        if (code !== 0 || !existsSync(meta)) { send(500, { error: `the preview did not finish (exit ${code})`, log: log.slice(-2000) }); return; }
+        if (slot.child === child) slot.child = null;
+        if (seq !== slot.seq) { send(409, { error: 'replaced by a newer preview' }); return; }
+        const meta = join(out, plan.meta);
+        if (code !== 0 || !existsSync(meta)) { send(500, { error: refusalReason(log) ?? `the preview did not finish (exit ${code})`, log: log.slice(-2000) }); return; }
         const read = JSON.parse(readFileSync(meta, 'utf8'));
-        send(200, { ok: true, ...read, bin: `/preview/${seq}/${read.bin}` });
+        send(200, { ok: true, ...read, ...(read.bin ? { bin: `/preview/${folder}/${read.bin}` } : {}) });
       },
     });
   });
 }
+const zonePreview = (request, response) => runPreview('zone', request, response, (ask, out) => ({
+  script: 'zonePreviewRun.ts', meta: 'zone-preview.json',
+  args: [...(ask?.zoneGraph && typeof ask.zoneGraph === 'object' ? ['--graph', fileOf(out, 'zone-graph.json', ask.zoneGraph)] : []),
+    ...(Number.isFinite(ask?.steepDeg) ? ['--steep', String(ask.steepDeg)] : [])],
+}));
+const tiltPreview = (request, response) => runPreview('tilt', request, response, (ask, out) => {
+  // The same names and the same checks as /rerun: a rule name is a plain identifier (packRules refuses an unknown one
+  // with its name), the search keys are tilt*Deg, the widths are the Rim tab's two.
+  const rules = Object.fromEntries(Object.entries(ask?.rules && typeof ask.rules === 'object' ? ask.rules : {})
+    .filter(([name, value]) => /^[A-Za-z][A-Za-z0-9]*$/.test(name) && (typeof value === 'boolean' || Number.isFinite(value))));
+  const pose = Object.fromEntries(Object.entries(ask?.pose && typeof ask.pose === 'object' ? ask.pose : {}).filter(([k, v]) => /^tilt[A-Za-z]+Deg$/.test(k) && Number.isFinite(v)));
+  const placement = Object.fromEntries(Object.entries(ask?.placement && typeof ask.placement === 'object' ? ask.placement : {}).filter(([k, v]) => (k === 'rimBandMm' || k === 'lowRimBandMm') && Number.isFinite(v)));
+  const draft = Object.keys(pose).length > 0 || Object.keys(placement).length > 0;
+  const frame = ask?.frame;
+  if (frame !== undefined && frame !== null && !(Array.isArray(frame.position) && Array.isArray(frame.rotation))) throw new TypeError('frame must have a position and a rotation');
+  return {
+    script: 'tiltPreviewRun.ts', meta: 'tilt-preview.json',
+    args: frame ? ['--frame', fileOf(out, 'frame.json', { position: frame.position.map(Number), rotation: frame.rotation.map(Number) })] : [],
+    env: {
+      ...(Object.keys(rules).length > 0 ? { MIXO_RULES: JSON.stringify(rules) } : {}),
+      // A draft type, only when the search or the strip widths are edited: that is how a run gets them (typeInForce.ts).
+      ...(draft ? { MIXO_TYPE_ID: 'preview' } : {}),
+      ...(Object.keys(pose).length > 0 ? { MIXO_POSE_FILE: fileOf(out, 'pose.json', pose) } : {}),
+      ...(Object.keys(placement).length > 0 ? { MIXO_PLACEMENT_FILE: fileOf(out, 'placement.json', placement) } : {}),
+      ...(ask?.zoneGraph && typeof ask.zoneGraph === 'object' ? { MIXO_ZONE_GRAPH_FILE: fileOf(out, 'zone-graph.json', ask.zoneGraph) } : {}),
+      ...(ask?.orientGraph && typeof ask.orientGraph === 'object' ? { MIXO_ORIENT_GRAPH_FILE: fileOf(out, 'orient-graph.json', ask.orientGraph) } : {}),
+    },
+  };
+});
 
 const server = createServer((request, response) => {
   const path = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
   if (request.method === 'POST' && path === '/rerun') { rerun(request, response); return; }
   if (request.method === 'POST' && path === '/zone-preview') { zonePreview(request, response); return; }
+  if (request.method === 'POST' && path === '/tilt-preview') { tiltPreview(request, response); return; }
   if (request.method === 'POST' && path === '/save-type') { saveType(response, new URL(request.url ?? '/', 'http://localhost').searchParams.get('replace') === '1'); return; }
   const [prefix, root] = Object.entries(roots).find(([prefix, root]) => root !== undefined && path.startsWith(prefix));
   const file = normalize(join(root, path === '/' ? 'viewer.html' : path.slice(prefix.length)));

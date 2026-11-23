@@ -202,7 +202,9 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
     const final = read.nodes[read.outputs.frame];
     const sides = final?.type === 'frame' ? sideAnchors(mesh.positions, final).map((a) => ({ ...a, position: transformPoint(review.frame, a.position) })) : [];
     const lines = Object.fromEntries(Object.entries(read.nodes).map(([id, value]) => [id, readoutLines(value)]));
-    writeFileSync(join(out, `${name}-orient.json`), JSON.stringify({ lines, sides, outputs: read.outputs }));
+    // `frame` is the GLB's own (scan frame -> display space): the tabs 4 and 5 live preview (tiltPreviewRun.ts, D3)
+    // puts the engine's tips through it so they sit on the model on screen.
+    writeFileSync(join(out, `${name}-orient.json`), JSON.stringify({ lines, sides, outputs: read.outputs, frame: review.frame }));
     row.orientFile = `${name}-orient.json`;
   }
   // The Zones tab's per-node values (plan D2): ids in a small JSON, the values raw beside it - node after node, one
