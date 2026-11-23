@@ -4975,6 +4975,27 @@ export function rule_names() {
 }
 
 /**
+ * Turn THIS case's front and/or teeth side round from what the detector decided (engine 71; mixoDental
+ * WORKBENCH-TABS-PLAN C2): one slot, set by the host before every denture job on the case, (false, false) clears it.
+ * Returns the flip as a word ("none", "front", "teeth", "front+teeth"); it joins both denture cache keys.
+ * @param {boolean} front
+ * @param {boolean} teeth
+ * @returns {string}
+ */
+export function set_denture_case_flip(front, teeth) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.set_denture_case_flip(front, teeth);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * Set the rim the operator drew for the denture the NEXT calls analyse (mixoDental `docs/ORIENT-NODES.md` section
  * 10, step 10: a drawn rim replaces the detected one), as `x y z` points in the mesh frame in drawn order; an empty
  * list clears it. ONE slot, not one per model: the host sets or clears it before every denture job. Throws

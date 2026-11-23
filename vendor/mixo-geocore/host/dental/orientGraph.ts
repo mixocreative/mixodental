@@ -30,6 +30,17 @@ export function setOrientGraph(graph: unknown): string {
   }
 }
 
+/** This case's flip: the sides the operator turned round from what the detector decided (WORKBENCH-TABS-PLAN C2). */
+export interface CaseFlip { front: boolean; teeth: boolean }
+
+/**
+ * Set THIS case's flip before a denture job, or `null` to clear it. ONE slot in the engine, like the drawn rim: the
+ * caller sets or clears it before EVERY job on a case, or the next case would inherit this one's flip.
+ */
+export function setDentureCaseFlip(flip: CaseFlip | null): string {
+  return dentalEngine().set_denture_case_flip(Boolean(flip?.front), Boolean(flip?.teeth));
+}
+
 /** The digest of the Orient graph in force, or "default". */
 export function orientGraphDigest(): string {
   return dentalEngine().orient_graph_digest();

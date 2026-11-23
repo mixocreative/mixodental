@@ -398,6 +398,7 @@ export const reroute_landing_tier: (a: number) => number;
 export const reroute_refusal: (a: number) => [number, number];
 export const reroute_take_pieces: (a: number) => [number, number];
 export const rule_names: () => [number, number];
+export const set_denture_case_flip: (a: number, b: number) => [number, number];
 export const set_denture_drawn_rim: (a: number, b: number, c: number) => [number, number, number, number];
 export const set_orient_graph: (a: number, b: number) => [number, number, number, number];
 export const set_zone_graph: (a: number, b: number) => [number, number, number, number];

@@ -1546,6 +1546,13 @@ export function repair_strides(): Uint32Array;
 export function rule_names(): string[];
 
 /**
+ * Turn THIS case's front and/or teeth side round from what the detector decided (engine 71; mixoDental
+ * WORKBENCH-TABS-PLAN C2): one slot, set by the host before every denture job on the case, (false, false) clears it.
+ * Returns the flip as a word ("none", "front", "teeth", "front+teeth"); it joins both denture cache keys.
+ */
+export function set_denture_case_flip(front: boolean, teeth: boolean): string;
+
+/**
  * Set the rim the operator drew for the denture the NEXT calls analyse (mixoDental `docs/ORIENT-NODES.md` section
  * 10, step 10: a drawn rim replaces the detected one), as `x y z` points in the mesh frame in drawn order; an empty
  * list clears it. ONE slot, not one per model: the host sets or clears it before every denture job. Throws
@@ -1979,6 +1986,7 @@ export interface InitOutput {
     readonly reroute_refusal: (a: number) => [number, number];
     readonly reroute_take_pieces: (a: number) => [number, number];
     readonly rule_names: () => [number, number];
+    readonly set_denture_case_flip: (a: number, b: number) => [number, number];
     readonly set_denture_drawn_rim: (a: number, b: number, c: number) => [number, number, number, number];
     readonly set_orient_graph: (a: number, b: number) => [number, number, number, number];
     readonly set_zone_graph: (a: number, b: number) => [number, number, number, number];

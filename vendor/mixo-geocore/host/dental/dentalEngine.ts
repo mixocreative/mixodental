@@ -307,6 +307,8 @@ export interface DentalEngine {
   set_orient_graph(json: string): string;
   /** Engine 71: the digest of the Orient graph in force, or "default". */
   orient_graph_digest(): string;
+  /** Engine 71: turn this case's front / teeth side round; set before every denture job (`setDentureCaseFlip`). */
+  set_denture_case_flip(front: boolean, teeth: boolean): string;
   /**
    * Register a whole denture profile from its JSON text (engine 70) and return its id. Throws
    * `PROFILE_INVALID` with `detail` naming the problem. Use `registerDentureProfile`, which keeps the
