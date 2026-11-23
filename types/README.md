@@ -8,7 +8,7 @@ ruling 2, `docs/TYPE-PIPELINE.md` section 7).
 strip above the stage tabs walks it: press **New type** (starts from the built-in), type its **name** (the
 full name the app shows; the **id** follows it until you type one), an optional **badge**, and the
 **category** is the app's list - the folder on screen decides which one runs. Then, if you want, edit
-**1 Orient** (the print-angle search), **2 Zones** and **3 Settings**; press **Apply and run again**; then
+**1 Orient** (the Orient graph), **3 Zones**, **4 Settings** and **5 Print angle** (the print-angle search) - **2 Rim** shows the rim nodes; press **Apply and run again**; then
 **Save type**. The strip marks each step from what happened (named, run, saved). Save copies the type that
 RAN - with the proof record of that run - never edits that did not run. A newly named type may be run with
 no other edit: that is how a type keeping the built-in's numbers gets its own name and badge.

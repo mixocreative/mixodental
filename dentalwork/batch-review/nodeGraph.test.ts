@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
   ALIGNER_KINDS, OLD_KINDS, RIM_DERIVED_REASON, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, rimTabGraph, rimTabView,
-  setParam, unreached, upgradeGraph, validate,
+  setParam, unreached, upgradeGraph, validate, defaultOf,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -291,5 +291,16 @@ describe('the rim tab', () => {
     const denture = rimTabGraph('denture').nodes.map((n) => n.id);
     for (const id of ['RIM', 'RIMBAND', 'LOWRIMBAND']) expect(denture).toContain(id);
     expect(rimTabView('denture').find((n) => n.id === 'CROSSING')!.derived).toBe(true);
+  });
+});
+
+// WORKBENCH-TABS-PLAN section 4: every restore mark puts back the STANDARD graph's value first, the kind's second.
+describe('a restore mark puts back the standard value', () => {
+  it('R1b restores to off (0), never to its kind\'s 45, and a new node to its kind\'s default', () => {
+    const r1b = defaultGraph().nodes.find((n) => n.id === 'R1b')!;
+    expect(defaultOf({ ...r1b, params: { ...r1b.params, deg: 70 } }, 'deg')).toBe(0);
+    const added = addNode(defaultGraph(), 'parallelCast').nodes.at(-1)!;
+    expect(defaultOf(added, 'deg')).toBe(KINDS.parallelCast.params.deg);
+    expect(defaultOf(added, 'noSuchKey')).toBeUndefined();
   });
 });

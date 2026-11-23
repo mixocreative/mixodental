@@ -64,6 +64,8 @@ export interface GraphLib {
      "gives a rim line". */
   TYPE_WORDS: Record<string, string>;
   OUTPUT_NODE: Words;
+  /* A parameter's standard value: the default graph's node with the same id, else the kind's own default. */
+  defaultOf(node: GraphNode, key: string): string | number | undefined;
   /* The groups and each kind's group: a coloured stripe per group, so kinds are found at a glance. */
   NODE_GROUPS: Record<string, { title: string; says: string; token: string }>;
   KIND_GROUP: Record<string, string>;
@@ -184,6 +186,7 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
   const spec = lib.KINDS[node.kind];
   const words = lib.KIND_WORDS[node.kind];
   const group = lib.NODE_GROUPS[lib.KIND_GROUP[node.kind]];
+  const typeText = (want: string) => want.split('|').map((t) => lib.TYPE_WORDS[t] ?? t).join(' or ');
   const inputLabel = (name: string) => (node.kind === 'subtract' ? (name === 'a' ? 'A - kept' : 'B - removed from A') : name === 'a' || name === 'b' ? name.toUpperCase() : name);
   return (
     <div className={`zn${idle ? ' idle' : ''}${spec.fixed ? ' fixed' : ''}${issues.some((i) => !i.warn) ? ' has-issue' : ''}`} style={{ '--zn-group': `var(${group?.token ?? '--muted'})` } as CSSProperties}>
@@ -195,12 +198,18 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
       </div>
       {issues.map((i) => <div className={i.warn ? 'zn-warn' : 'zn-issue'} key={i.text}>{i.text}</div>)}
       <div className="zn-says">{words.says}</div>
+      {/* TAKES / GIVES, generated from the kind table so they cannot drift from the wiring (WORKBENCH-TABS-PLAN
+          section 8): the owner could not tell what a node took in or handed on. */}
+      <div className="zn-takes" data-ui="node-takes">
+        <b>Takes:</b> {Object.keys(spec.inputs).length === 0 ? 'the scan itself' : Object.values(spec.inputs).map(typeText).join(', ')}
+        {' · '}<b>Gives:</b> {typeText(spec.out)}
+      </div>
       {Object.entries(spec.inputs).map(([name, want]) => (
         // The handle lives INSIDE its row, so it lines up with its label however the sentence above wraps.
         <div className="zn-row zn-socket" key={name}>
           <Handle type="target" position={Position.Left} id={name} className={`h-${want.split('|')[0]}`} />
           <span className="zn-in">{inputLabel(name)}</span>
-          <span className="zn-type">{want === 'mask|rim' ? 'faces or a rim line' : want === 'depthMap' ? 'depth map' : want === 'mask' ? 'faces' : want}</span>
+          <span className="zn-type">{typeText(want)}</span>
         </div>
       ))}
       {Object.entries(node.params).map(([key, value]) => {
@@ -234,6 +243,13 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
                   onBlur={(e) => onParam(node.id, key, Number(e.target.value))}
                 />
                 )}
+            {/* RESTORE (WORKBENCH-TABS-PLAN section 4): shown only when the value differs, and it says what it restores to. */}
+            {(() => {
+              const back = lib.defaultOf(node, key);
+              return back !== undefined && String(back) !== String(value)
+                ? <button type="button" className="zn-restore nodrag" data-ui="node-restore" title={`Restore to ${p.choices?.find(([v]) => v === String(back))?.[1] ?? String(back)}`} aria-label={`Restore ${p.label}`} onClick={(e) => { e.preventDefault(); onParam(node.id, key, back); }}>↺</button>
+                : null;
+            })()}
           </label>
         );
       })}

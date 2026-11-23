@@ -9,7 +9,7 @@
 //
 // Step 1 IS this graph: the default reproduces today exactly (arch shape -> front/back and top -> upright pose), and
 // `orientGraph.test.ts` holds the canvas's verdict to the engine's on a corpus of graphs.
-import { rewire, setParam, unreached } from './nodeGraph.mjs';
+import { defaultParam, rewire, setParam, unreached } from './nodeGraph.mjs';
 
 export { rewire, setParam, unreached };
 
@@ -19,11 +19,11 @@ export const TYPES = ['frame', 'pose', 'region'];
 /** Every kind: what it reads, what it gives, its parameters' defaults. Mirrors `orient_graph.rs` `spec` and `PARAMS`. */
 export const KINDS = {
   archFrame: { stage: 'orient', label: 'Arch shape', out: 'frame', inputs: {}, params: {}, reads: 'upright.rs arch_frame - the arch plane and the two legs' },
-  upDecision: { stage: 'orient', label: 'Front/back and top', out: 'frame', inputs: { frame: 'frame' }, params: {}, reads: 'up_decision.rs decide - arch_slices: the open end of the U is the back, the slices\' domes point to the teeth (the ray test is a diagnostic only)' },
-  uprightPose: { stage: 'orient', label: 'Upright from frame', out: 'pose', inputs: { frame: 'frame' }, params: {}, reads: 'pose.rs PrintPose::from - up is the frame\'s up, lean is its teeth side' },
+  upDecision: { stage: 'orient', label: 'Name the sides', out: 'frame', inputs: { frame: 'frame' }, params: {}, reads: 'up_decision.rs decide - arch_slices: the open end of the U is the back, the slices\' domes point to the teeth (the ray test is a diagnostic only)' },
+  uprightPose: { stage: 'orient', label: 'Stand on the back', out: 'pose', inputs: { frame: 'frame' }, params: {}, reads: 'pose.rs PrintPose::from - up is the frame\'s up, lean is its teeth side' },
   flatRegion: { stage: 'orient', label: 'Largest flat area', out: 'region', inputs: {}, params: { toleranceDeg: 5, minAreaMm2: 20, rank: 1 }, reads: 'flat_regions.rs - faces joined by angle to the REGION\'s normal, ranked by total area' },
-  boxFrame: { stage: 'orient', label: 'Box-and-base frame', out: 'frame', inputs: { base: 'region' }, params: {}, reads: 'orient_graph.rs box_frame - up into the part from the base, lean along the box\'s long side' },
-  setBottom: { stage: 'orient', label: 'Set as bottom', out: 'pose', inputs: { base: 'region', frame: 'frame' }, params: { angleDeg: 0, maxProtrusionMm: 0.5 }, reads: 'orient_graph.rs set_bottom - the base faces the plate, leaning toward the frame\'s lean side' },
+  boxFrame: { stage: 'orient', label: 'Frame from the base', out: 'frame', inputs: { base: 'region' }, params: {}, reads: 'orient_graph.rs box_frame - up into the part from the base, lean along the box\'s long side' },
+  setBottom: { stage: 'orient', label: 'Stand on the flat area', out: 'pose', inputs: { base: 'region', frame: 'frame' }, params: { angleDeg: 0, maxProtrusionMm: 0.5 }, reads: 'orient_graph.rs set_bottom - the base faces the plate, leaning toward the frame\'s lean side' },
 };
 
 /** The limits the engine holds each parameter to (`orient_graph.rs` PARAMS): [lowest, highest]. */
@@ -40,12 +40,12 @@ export const NODE_GROUPS = {
 export const KIND_GROUP = { archFrame: 'frames', upDecision: 'frames', boxFrame: 'frames', flatRegion: 'find', uprightPose: 'pose', setBottom: 'pose' };
 
 export const KIND_WORDS = {
-  archFrame: { title: 'Arch shape', says: 'Finds the flat plane of the arch and its two legs - a denture\'s own frame. Not yet told which end is the top.' },
-  upDecision: { title: 'Front/back and top', says: 'The open end of the U (where the two legs are) is the back. Eleven slices across the arch each look like an n; the side their domes point to is the teeth side. The frame is turned to match.' },
-  uprightPose: { title: 'Upright from frame', says: 'Stands the part on its frame: up is the frame\'s up, and the print angle leans it toward the teeth side. Today\'s denture pose.' },
+  archFrame: { title: 'Arch shape', says: 'Finds the arch\'s flat plane and the end where it splits into two legs, with a FIRST GUESS at which side holds the teeth. The next node checks both guesses.' },
+  upDecision: { title: 'Name the sides', says: 'The open end of the U (where the two legs are) is the back. Eleven slices across the arch each look like an n; the side their domes point to is the teeth side. The frame is turned to match, and its six sides get their names: Front, Back, Teeth side, Tissue side, Left, Right.' },
+  uprightPose: { title: 'Stand on the back', says: 'The Back (the two legs) faces the plate, and the print angle leans the part toward the Teeth side. Today\'s denture pose. It makes no choice: choosing another side for the plate comes with the Plate side node (WORKBENCH-TABS-PLAN step C2).' },
   flatRegion: { title: 'Largest flat area', says: 'The biggest near-flat area of the part, by total size. A face joins when it is within the tolerance of the AREA\'s direction, so a round side never counts as flat. Rank 2 is the next largest.' },
-  boxFrame: { title: 'Box-and-base frame', says: 'A frame for a part with no arch: up points into the part from the base, and the lean side runs along the part\'s longest side.' },
-  setBottom: { title: 'Set as bottom', says: 'Puts the base on the plate (supports and lift as usual), leaning toward the frame\'s lean side by the angle. Refused when the part pokes out past the base by more than the limit - it would sit inside the plate.' },
+  boxFrame: { title: 'Frame from the base', says: 'A frame for a part with no arch: up points into the part from the base, and the lean side runs along the part\'s longest side.' },
+  setBottom: { title: 'Stand on the flat area', says: 'Puts the base on the plate (supports and lift as usual), leaning toward the frame\'s lean side by the angle. Refused when the part pokes out past the base by more than the limit - it would sit inside the plate.' },
 };
 
 export const PARAM_WORDS = {
@@ -57,18 +57,18 @@ export const PARAM_WORDS = {
 };
 
 export const OUTPUT_WORDS = {
-  frame: { title: 'Frame', says: 'Which way is up, front and across on the part. The zones and references are measured in it.' },
-  pose: { title: 'Pose', says: 'How the part sits on the plate at print angle 0. The print-angle search leans it from here.' },
+  frame: { title: 'Part frame', says: 'The six named sides of the part: Front, Back, Teeth side, Tissue side, Left, Right. Every later tab refers to these names.' },
+  pose: { title: 'Plate side and lean', says: 'Which side faces the plate at print angle 0, and which side rises as the angle grows. The print-angle search leans the part from here.' },
 };
 
 /** The outputs the engine reads, by name. Both must be filled, or the run is refused. */
 export const REQUIRED_OUTPUTS = { frame: 'frame', pose: 'pose' };
 
 /** What each value type is called on a node's output ("gives a frame"), for the canvas. */
-export const TYPE_WORDS = { frame: 'a frame', pose: 'a pose', region: 'a flat area' };
+export const TYPE_WORDS = { frame: 'a part frame', pose: 'how it stands (plate side, lean side)', region: 'a flat area' };
 
 /** The output node's own words on the canvas. */
-export const OUTPUT_NODE = { title: 'Orient output', says: 'What Step 1 hands on: the frame the zones are measured in, and how the part sits on the plate.' };
+export const OUTPUT_NODE = { title: 'Final orientation', says: 'What every later tab starts from: the Part frame (six named sides) and how the part stands on the plate at print angle 0.' };
 
 /** Nothing in an Orient graph is fixed in this version: every parameter shown is one the engine reads. */
 export const FIXED = { params: {}, outputs: [] };
@@ -98,6 +98,9 @@ export function flatBaseGraph() {
 }
 
 /** Whether `graph` is today's Step 1 (so nothing needs sending). */
+/** A parameter's standard value, what its restore mark puts back (`nodeGraph.mjs` `defaultParam`). */
+export const defaultOf = (node, key) => defaultParam(defaultGraph(), KINDS, node, key);
+
 export function isDefault(graph) {
   return JSON.stringify(graph) === JSON.stringify(defaultGraph());
 }

@@ -102,10 +102,12 @@ export const KIND_WORDS = {
   band: { title: 'Strip around', says: 'Every face within a set distance of its seeds, measured along the surface. Only the 5 mm strip around Find holes takes its width from here. The two rim strips are grown from the rim at the profile\'s widths, not from this node; since step 7.3 they may feed any zone.' },
   rim: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
   rimSide: { title: 'Rim side', says: "Faces near the rim on ONE side of it: inner faces the fitting surface, outer is the visible outside. Its width is this node's own, not the profile's rim strip width. Nothing uses it until you wire it in." },
-  union: { title: 'Either A or B', says: 'Faces in A, or in B, or in both.' },
-  subtract: { title: 'A without B', says: 'Faces in A, minus any that are also in B. A and B are not interchangeable.' },
-  intersect: { title: 'Both A and B', says: 'Only the faces that are in both A and B.' },
-  not: { title: 'Everything but A', says: 'Every face that is NOT in A.' },
+  // Names from docs/WORKBENCH-TABS-PLAN.md section 2: "Either A or B" read like a switch that picks one. It is the
+  // combine node; the four keep their engine kinds, so every saved graph still loads.
+  union: { title: 'Combine (A + B)', says: 'Faces in A, or in B, or in both.' },
+  subtract: { title: 'Subtract (A - B)', says: 'Faces in A, minus any that are also in B. A and B are not interchangeable.' },
+  intersect: { title: 'Overlap (A and B)', says: 'Only the faces that are in both A and B.' },
+  not: { title: 'Invert', says: 'Every face that is NOT in A.' },
 };
 
 /**
@@ -156,7 +158,7 @@ export const PARAM_WORDS = {
  * readers (docs/NODE-PLAN.md, the six consumers): no_support does NOT gate area tips - allowed does.
  */
 export const OUTPUT_WORDS = {
-  allowed: { title: 'Allowed area', says: 'The ONLY faces where area tips may stand.' },
+  allowed: { title: 'Support zone', says: 'The ONLY faces where area tips may stand. A face here wins over the no-support zone.' },
   no_support: { title: 'No-support zone', says: 'With "low outside" at 1 (the default), lowest-point and island tips stay off these faces unless the face is also Allowed or in the low rim strip. With "rim obeys no-sup" on, rim and hole tips stay off them too, unless the cavity rays see the face. It does not limit area tips - Allowed does.' },
   allowed_cavity: { title: 'Seen by the cavity rays', says: 'What the cavity rays see before the hole strip is added. Read by "rim obeys no-sup".' },
   hole_band: { title: 'Hole strip', says: 'The 5 mm strip around holes where hole tips are placed. Fixed in this version.' },
@@ -295,6 +297,22 @@ export function removeNode(graph, id) {
   const outputs = Object.fromEntries(Object.entries(graph.outputs).map(([k, v]) => [k, v === id ? null : v]));
   return { nodes, outputs };
 }
+
+/**
+ * A parameter's STANDARD value, what its restore mark puts back (docs/WORKBENCH-TABS-PLAN.md section 4): the
+ * standard graph's node with the same id first, the kind's own default second; undefined when neither has the key.
+ * THE TRAP, in that order: a kind's default is not the standard graph's value - `parallelCast.deg` is 45 but the
+ * standard graph's R1b is 0 (off), so restoring R1b to its kind's 45 would switch the steep ray ON. Shared by the
+ * Orient library, which passes its own standard graph and kinds.
+ */
+export function defaultParam(standard, kinds, node, key) {
+  const same = standard.nodes.find((n) => n.id === node.id && n.kind === node.kind);
+  if (same && key in (same.params ?? {})) return same.params[key];
+  return kinds[node.kind]?.params?.[key];
+}
+
+/** `defaultParam` for the zone graph. */
+export const defaultOf = (node, key) => defaultParam(defaultGraph(), KINDS, node, key);
 
 /** A new graph with input `input` of node `id` wired to `from` (or emptied with null). */
 export function rewire(graph, id, input, from) {
@@ -538,10 +556,14 @@ export function rimTabGraph(kind) {
 
 /** What the canvas draws for each rim-tab node: its words, whether it is greyed (and why), and its wires. */
 export function rimTabView(kind) {
-  return rimTabGraph(kind).nodes.map((n) => {
+  const graph = rimTabGraph(kind);
+  return graph.nodes.map((n) => {
     const spec = RIM_TAB_KINDS[n.kind];
+    // `takes`: what each input carries (the source's output type), for the node's "Takes:" line - `inputs` holds
+    // the source node's ID, which is what the wires need and not what a reader wants to see.
+    const takes = Object.values(n.inputs).map((from) => RIM_TAB_KINDS[graph.nodes.find((m) => m.id === from)?.kind]?.out ?? 'unknown');
     return { id: n.id, title: spec.label, says: spec.says, out: spec.out, derived: Boolean(spec.derived),
-      reason: spec.derived ? RIM_DERIVED_REASON : null, inputs: Object.entries(n.inputs) };
+      reason: spec.derived ? RIM_DERIVED_REASON : null, inputs: Object.entries(n.inputs), takes };
   });
 }
 

@@ -1,6 +1,12 @@
 # Workbench tabs - the owner's feedback of 2026-11-23, checked against the code and planned
 
-**Status: PLANNED. Nothing on this page is built.** Engine and host facts were opened in source on
+**Status, 2026-11-23: A1, B1 and B2 BUILT** (the goal: "fix everything according to UX flow and Fable's agreement"; built on Fable's recommendations D1, D4 and D6 while the owner's answers are open):
+- **A1:** the names of section 2 on the canvases (Arch shape, Name the sides, Stand on the back, Final orientation, Part frame; Combine / Subtract / Overlap / Invert; Support zone). The two wrong ray explanations and the Undefined text are corrected. Every node shows a Takes / Gives line generated from its kind.
+- **B1:** five tabs, Print angle last; picking a tab cuts the 3D layers through the step walk.
+- **B2:** a restore mark on every node parameter (`defaultParam`, tested on R1b), the search fields and the rule fields.
+- **Not yet:** the Plate side node and the per-case flip (C2), the editable Rim tab (C3), one zone output (D1), live previews (C1/D3), the six side labels in 3D (B3), and graphs registered with their type (E1).
+
+**Original status: PLANNED. Nothing on this page was built when it was written.** Engine and host facts were opened in source on
 2026-11-23 (mixodental `a7a2e2ba`, geocore engine 71). Nothing was run for this page. A line marked
 CANDIDATE is something I read but did not prove, or did not measure. Paths starting `denture/` are
 under `mixo-geocore/crates/geometry-core/src/dental/denture/`; `viewer.html`, `nodeGraph.mjs`,

@@ -91,8 +91,8 @@ share no fields). A new *category* is an engine project, not a workbench action.
 
 | Stage in the editor | Edits | Part of the type file | State today |
 |---|---|---|---|
-| **1 Orient** | print-angle search (start, end, step, margin); later the upright numbers | `profile.pose`, `profile.upright` | read-only (`viewer.html:913`) - waits for the door |
-| **2 Zones** | the node canvas | `zoneGraph` | **works** in the review (engine 69); 7 edits refused by name as "fixed" |
+| **1 Orient** (since 2026-11-23 the review page has five tabs: WORKBENCH-TABS-PLAN.md; the search moved to **5 Print angle**) | print-angle search (start, end, step, margin); later the upright numbers | `profile.pose`, `profile.upright` | historical row: the search fields became real (engine 70) |
+| **2 Zones** (now **3 Zones**) | the node canvas | `zoneGraph` | **works** in the review (engine 69); 7 edits refused by name as "fixed" |
 | **3 Support settings** | pinned rules; later tip spacing and support sizes | `rules`, `profile.placement`, `profile.supports` | 13 rules work; profile numbers wait for the door |
 
 **Prove.** Apply runs the real engine on a folder of real scans (about 23 s a case, measured) and

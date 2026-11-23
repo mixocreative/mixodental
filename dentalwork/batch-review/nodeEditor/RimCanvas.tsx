@@ -11,7 +11,7 @@ import { Background, Controls, Handle, Position, ReactFlow, applyNodeChanges, ty
 import { MeasureWhenReady, type Positions } from './ZoneEditor';
 
 /** One node as `rimTabView` describes it. */
-export interface RimTabNode { id: string; title: string; says: string; out: string; derived: boolean; reason: string | null; inputs: [string, string][] }
+export interface RimTabNode { id: string; title: string; says: string; out: string; derived: boolean; reason: string | null; inputs: [string, string][]; takes: string[] }
 export interface RimCanvasProps { kind: string; view: RimTabNode[] }
 
 const GIVES: Record<string, string> = { frame: 'a frame', direction: 'a direction', rim: 'a rim line', mask: 'faces', plane: 'a plane', position: 'a point' };
@@ -30,6 +30,11 @@ function RimNode({ data }: NodeProps<Node<{ n: RimTabNode }>>) {
       <div className="zn-head" title={`${n.id} - ${n.says}`}><b>{n.title}</b></div>
       {n.reason && <div className="zn-reason">{n.reason}</div>}
       <div className="zn-says">{n.says}</div>
+      {/* Takes / Gives, from the node's own wiring (WORKBENCH-TABS-PLAN section 8). */}
+      <div className="zn-takes" data-ui="node-takes">
+        <b>Takes:</b> {n.takes.length === 0 ? 'the scan itself' : n.takes.map((type) => GIVES[type] ?? type).join(', ')}
+        {' · '}<b>Gives:</b> {GIVES[n.out] ?? n.out}
+      </div>
       {n.inputs.map(([name]) => (
         <div className="zn-row zn-socket" key={name}>
           <Handle type="target" position={Position.Left} id={name} isConnectable={false} />

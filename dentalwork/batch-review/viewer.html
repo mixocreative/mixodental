@@ -223,6 +223,10 @@
 .zone-canvas .zn-head { display: flex; align-items: baseline; gap: 6px; font-size: 12px; }
 .zone-canvas .zn-id { margin-left: auto; color: var(--muted); font-size: 10px; }
 .zone-canvas .zn-says { color: var(--muted); font-size: 10px; line-height: 1.35; margin: 2px 0 6px; }
+.zone-canvas .zn-takes { font-size: 10px; line-height: 1.35; margin: 0 0 6px; color: var(--ink); }
+.restore-mark { margin-left: 4px; padding: 0 5px; font-size: 11px; line-height: 16px; border: 1px solid var(--line); border-radius: 3px; background: var(--paper); cursor: pointer; }
+.restore-mark[hidden] { display: none; }
+.zone-canvas .zn-restore { margin-left: 4px; padding: 0 5px; font-size: 11px; line-height: 16px; border: 1px solid var(--line); border-radius: 3px; background: var(--paper); cursor: pointer; }
 /* position: relative so each Handle sits on ITS row, not at a fraction of the node's height. */
 .zone-canvas .zn-row { position: relative; display: flex; align-items: center; gap: 6px; min-height: 22px; }
 .zone-canvas .zn-in { color: var(--muted); }
@@ -418,10 +422,10 @@ const LAYER_TABLE = [
   ['ORANGE', 'Support tips (aligner)', 'Aligner: the tip cones.', true, 'supports'],
 
   ['TEAL', 'Support area', 'Aligner: the faces where tips may go.', true, 'zones'],
-  ['Undefined (no ray', 'Undefined (no ray reached)', 'Faces NO ray reached: neither the 45-degree rays nor the oral cavity ray. They get no tips, same as the no-support zone - but that is a different FACT. A no-support face was DECIDED by a rule; an undefined face was never SEEN, which points at the ray grid or the pose rather than at the rule. A large undefined area on a scan means the detector did not cover it, however clean the rest of the picture looks.', true, 'zones'],
+  ['Undefined (no ray', 'Undefined (no ray reached)', 'Faces NO ray reached: neither the 45-degree rays nor the oral cavity ray. Area tips never stand here; but unlike the no-support zone, a lowest point or island here still gets a tip under the default rule (low outside allowed = 1, ruled_tips.rs low_reason). It is also a different FACT. A no-support face was DECIDED by a rule; an undefined face was never SEEN, which points at the ray grid or the pose rather than at the rule. A large undefined area on a scan means the detector did not cover it, however clean the rest of the picture looks.', true, 'zones'],
   ['No-support, steep ray', 'No-support: steep ray only (R1b)', 'What the SECOND forbidding ray added that the first had not already hit - the engine computes it as `r1b AND NOT r1`. It is a subset of the no-support zone, drawn just above it. Two rays make that zone; this is the one you can turn, and seeing its share is how you tell whether turning it did anything.', true, 'zones'],
   ['No-support zone', 'No-support zone', 'Faces the parallel 45-degree rays (R1, and R1b when on) from the front-top hit first. The allowed area overrides it.', true, 'zones'],
-  ['Allowed area (seen', 'Allowed area', 'Tips may stand on these faces: the oral cavity ray (R2) reaches them first. Overrides the no-support zone.', true, 'zones'],
+  ['Allowed area (seen', 'Support zone', 'The support zone: tips may stand on these faces (the oral cavity ray, R2, reaches them first, or the hole strip holds them). Wins over the no-support zone.', true, 'zones'],
   ['Hole band', 'Hole band', 'Faces within 5 mm of a hole edge; tips may stand here if they overhang.', true, 'zones'],
   ['Down-facing area', 'Down-facing area', 'Faces whose slope from horizontal is under the overhang angle in the print pose (0 = flat ceiling, 90 = vertical wall; global {globalOverhang}, rim band {rimOverhang}): the support candidates.', false, 'zones'],
   ['Self-supporting overhangs', 'Self-supporting overhangs (no tips needed)', 'Overhang patches (faces joined by edges) that need no open-area tips: no island or lowest point inside, projected area under the minimum (4 mm2), flattest face not within 19 degrees of horizontal, and reach under 3 mm from where they join the model. Only with the rule overhangSelfSupport on. Rim, hole, island and low-point tips are never dropped.', true, 'zones'],
@@ -581,7 +585,7 @@ const DENTURE_STEPS = [
   ['3. No-support zone', 'TWO rays make this zone, not one: R1 at 45 degrees always, and R1b at the steep angle when it is on, unioned together (`no_support = r1 || r1b`). The steep ray\'s own share has its own layer. The zone is composed, not decided - which is why this stage wants ordered rows rather than one box.', ['No-support zone', 'No-support, steep ray']],
   ['4. Oral cavity ray', 'On the rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
   ['5. Allowed area', 'What the oral cavity ray sees. This overrides step 3: a face in both is allowed.', ['Allowed area (seen']],
-  ['5b. Undefined area', 'What NEITHER ray reached. Steps 3 and 5 each claim the faces their rays hit first; whatever is left is undecided and gets no tips. It is drawn under both, in its own colour, because it is the absence of a verdict and not one: if it is large, change the pose or the ray grid, not the rules.', ['Undefined (no ray']],
+  ['5b. Undefined area', 'What NEITHER ray reached. Steps 3 and 5 each claim the faces their rays hit first; whatever is left is undecided: no area tips, though a lowest point there still gets one under the default rule. It is drawn under both, in its own colour, because it is the absence of a verdict and not one: if it is large, change the pose or the ray grid, not the rules.', ['Undefined (no ray']],
   ['6. Print tilt', 'The build plate at the print angle the build chose.', ['Print tilt']],
   ['7. Overhangs and low points', 'Faces whose slope from horizontal is under the overhang angle (global {globalOverhang}, rim {rimOverhang}; 0 = flat ceiling, 90 = vertical wall), the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'Suction cups', 'Drain / clean', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
   ['8. Tips', 'Tips by source: dental rim, hole, area, low. Black cones: overhang tips with no free path to the plate - BUT THAT CHECK IS NOT WIRED (2026-11-20): `Placed::unsupportable` is created empty in ruled_tips.rs and nothing ever pushes to it, and reach.rs::plate_reachable has no caller, so this layer is ALWAYS empty and its emptiness means the check did not run, not that none were found. Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
@@ -839,8 +843,10 @@ const NODE_SETTINGS = {
 };
 
 /*
- * THE THREE STAGES (docs/NODE-PLAN.md, the owner's division): 1 Orient, 2 Zones, 3 Support settings.
- * One stage on screen at a time, chosen by the tabs, so the 3D view keeps its height.
+ * THE FIVE TABS (docs/WORKBENCH-TABS-PLAN.md section 3; the owner, 2026-11-23): 1 Orient, 2 Rim, 3 Zones,
+ * 4 Support settings, 5 Print angle - Print angle LAST, because the angle is picked USING the zones and the support
+ * rules (denture/tilt.rs row_with). One tab on screen at a time, so the 3D view keeps its height, and choosing a tab
+ * cuts the 3D layers to what that tab and the earlier ones produce (`cut`, through the step walk's setStep).
  *
  * Stage 2 is a real graph editor over `nodeGraph.mjs`: add a node, remove one, rewire any input,
  * rebind any output, edit parameters. Order is the WIRING - which input feeds which side of a
@@ -853,9 +859,12 @@ const NODE_SETTINGS = {
  * an edit they differ until Apply runs it, and that gap is exactly what must be visible.
  */
 const STAGES = [
-  { id: 'orient', title: '1 Orient', steps: [0, 1] },
-  { id: 'zones', title: '2 Zones', steps: [2, 3, 4, 5] },
-  { id: 'support', title: '3 Support settings', steps: [7, 8, 9, 10] },
+  // `steps`: the DENTURE_STEPS cards the tab shows; `cut`: the last step whose layers it draws (null = all).
+  { id: 'orient', title: '1 Orient', steps: [0], cut: 1 },
+  { id: 'rim', title: '2 Rim', steps: [1], cut: 2 },
+  { id: 'zones', title: '3 Zones', steps: [2, 3, 4, 5], cut: 6 },
+  { id: 'support', title: '4 Support settings', steps: [7, 8, 9, 10], cut: null },
+  { id: 'angle', title: '5 Print angle', steps: [6], cut: null },
 ];
 let stageNow = (() => { try { return localStorage.getItem('review-stage') || 'zones'; } catch { return 'zones'; } })();
 let graphLib = null;
@@ -896,7 +905,7 @@ function chainCard(at, present, names) {
   const title = document.createElement('button');
   title.type = 'button';
   title.className = 'n';
-  // The stage tabs are the one numbering (1 Orient, 2 Zones, 3 Support settings); a card's own step
+  // The tabs are the one numbering (1 Orient ... 5 Print angle); a card's own step
   // number beside them read as a fourth and fifth stage (UX review 2026-11-20).
   title.textContent = label.replace(/^\d+\.\s*/, '');
   title.setAttribute('aria-pressed', String(stepAt === at + 1));
@@ -1077,8 +1086,8 @@ function drawTypeStrip() {
   steps.dataset.ui = 'type-steps';
   const current = !named ? 'name' : !ran ? 'apply' : !saved ? 'save' : null;
   for (const [key, label, done, stage] of [
-    ['name', 'Name it', named, null], ['orient', '1 Orient', false, 'orient'], ['zones', '2 Zones', false, 'zones'],
-    ['support', '3 Settings', false, 'support'], ['apply', 'Apply and run', ran, null], ['save', 'Save type', saved, null],
+    ['name', 'Name it', named, null], ['orient', '1 Orient', false, 'orient'], ['rim', '2 Rim', false, 'rim'], ['zones', '3 Zones', false, 'zones'],
+    ['support', '4 Settings', false, 'support'], ['angle', '5 Print angle', false, 'angle'], ['apply', 'Apply and run', ran, null], ['save', 'Save type', saved, null],
   ]) {
     const step = document.createElement('li');
     step.dataset.ui = `type-step-${key}`;
@@ -1107,6 +1116,19 @@ function drawTypeStrip() {
     strip.append(Object.assign(document.createElement('p'), { className: 'type-note',
       textContent: 'An aligner type carries its own name and badge; its numbers are the built-in aligner\'s until the aligner stages become editable.' }));
   }
+}
+
+/**
+ * The restore mark (docs/WORKBENCH-TABS-PLAN.md section 4): one small button beside an edited value that puts back
+ * its standard value and says which. The caller shows it only while the value differs. The canvas nodes draw the
+ * same mark (nodeEditor/ZoneEditor.tsx), with the standard value from the library's `defaultOf`.
+ */
+function restoreMark(standard, onRestore) {
+  const button = Object.assign(document.createElement('button'), { type: 'button', className: 'restore-mark', textContent: '↺', title: `Restore to ${standard}` });
+  button.dataset.ui = 'restore-mark';
+  button.setAttribute('aria-label', `Restore to ${standard}`);
+  button.addEventListener('click', (event) => { event.preventDefault(); onRestore(); });
+  return button;
 }
 
 function searchCard() {
@@ -1162,6 +1184,13 @@ function searchCard() {
       if (lastChain) drawChain(...lastChain);
     });
     row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: `${label} (°)${poseEdits[key] !== undefined ? ' · edited' : ''}` }), input);
+    if (poseEdits[key] !== undefined) {
+      row.append(restoreMark(`the built-in ${defaults[field]}°`, () => {
+        delete poseEdits[key];
+        try { localStorage.setItem('review-pose', JSON.stringify(poseEdits)); } catch { /* per-viewer only */ }
+        if (lastChain) drawChain(...lastChain);
+      }));
+    }
     box.append(row);
   }
   const pickedRow = document.createElement('div');
@@ -1212,24 +1241,27 @@ function drawChain(present, names) {
     tab.addEventListener('click', () => {
       stageNow = stage.id;
       try { localStorage.setItem('review-stage', stageNow); } catch { /* per-viewer convenience only */ }
+      // Only what this tab and the earlier ones produce (the owner's preview rule): the step walk's cut-off.
+      setStep(stage.cut);
       drawChain(present, names);
     });
     tabs.append(tab);
   });
   body.textContent = '';
-  const stage = STAGES.find((s) => s.id === stageNow) ?? STAGES[1];
+  const stage = STAGES.find((s) => s.id === stageNow) ?? STAGES.find((s) => s.id === 'zones');
   if (stage.id === 'zones') { drawZoneEditor(body, present, names); return; }
   const rail = document.createElement('div');
   rail.className = 'chain-rail';
   rail.dataset.ui = `stage-rail-${stage.id}`;
   const cards = stage.steps.map((at) => chainCard(at, present, names));
-  if (stage.id === 'orient') cards.push(searchCard());
+  if (stage.id === 'angle') cards.push(searchCard());
   cards.forEach((card, k) => {
     if (k > 0) rail.append(Object.assign(document.createElement('span'), { className: 'chain-link', textContent: '>' }));
     rail.append(card);
   });
   body.append(rail);
-  if (stage.id === 'orient') { drawOrientEditor(body); drawRimCanvas(body, 'denture'); }
+  if (stage.id === 'orient') drawOrientEditor(body);
+  if (stage.id === 'rim') drawRimCanvas(body, 'denture');
 }
 
 /**
@@ -2261,7 +2293,17 @@ try {
     const unit = document.createElement('span');
     unit.className = 'muted bench-unit';
     unit.textContent = rule.type === 'flag' ? '' : rule.type;
-    row.append(input, name, unit);
+    // Restore = empty, which means "the engine's own value" - shown only while a value is set.
+    const back = restoreMark('the engine default', () => {
+      if (rule.type === 'flag') input.checked = false; else input.value = '';
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      sync();
+    });
+    const sync = () => { back.hidden = rule.type === 'flag' ? !input.checked : input.value === ''; };
+    input.addEventListener('input', sync);
+    input.addEventListener('change', sync);
+    sync();
+    row.append(input, name, unit, back);
     box.append(row);
   }
 
@@ -2333,14 +2375,14 @@ try {
     // A newly named type is a reason to run on its own: it is how a type that keeps the built-in's numbers but has
     // its own name and badge gets made (the New-type strip).
     const newType = typeName !== '' && ranTypeId !== typeName;
-    if (Object.keys(rules).length === 0 && !graphEdited && !orientEdited && !poseEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the Orient graph or the search (1 Orient), the zone graph (2 Zones) or a setting (3), then apply.'; return; }
+    if (Object.keys(rules).length === 0 && !graphEdited && !orientEdited && !poseEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the Orient graph (1 Orient), the zone graph (3 Zones), a setting (4) or the search (5 Print angle), then apply.'; return; }
     // Only a denture run carries the search (poseNow above): a denture session's bad leftovers refused an aligner run
-    // with "Fix the search first (1 Orient)", a stage the aligner strip does not link to (Fable, 2026-11-23).
+    // with "Fix the search first", a tab the aligner strip does not link to (Fable, 2026-11-23).
     const poseProblem = kindNow === 'denture' ? searchProblem(searchNow()) : null;
-    if (poseProblem) { status.textContent = `Fix the search first (1 Orient): ${poseProblem}.`; return; }
+    if (poseProblem) { status.textContent = `Fix the search first (5 Print angle): ${poseProblem}.`; return; }
     if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) { status.textContent = 'The type id (the Type strip above the stages) is lower-case letters, digits, dots and dashes.'; return; }
     const graphProblems = graphEdited ? graphLib.validate(zoneGraph).problems : [];
-    if (graphProblems.length) { status.textContent = `Fix the zone graph first (2 Zones): ${graphProblems[0]}`; return; }
+    if (graphProblems.length) { status.textContent = `Fix the zone graph first (3 Zones): ${graphProblems[0]}`; return; }
     const orientProblems = orientEdited ? orientLib.validate(orientGraph).problems : [];
     if (orientProblems.length) { status.textContent = `Fix the Orient graph first (1 Orient): ${orientProblems[0]}`; return; }
     run.disabled = true;
