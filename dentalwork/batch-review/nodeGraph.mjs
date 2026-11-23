@@ -123,7 +123,8 @@ export const KIND_WORDS = {
   depthCast: { title: 'Depth map', says: 'Looks straight through the part along one direction and records how deep it is at every spot. Feeds Find holes and Find sockets. Its settings are fixed in this version.' },
   holes: { title: 'Find holes', says: 'Openings you can see right through the part, found from the depth map. Its setting is fixed in this version.' },
   basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map. Not runnable yet: the socket depth comes from the rule "socket depth".' },
-  band: { title: 'Strip around', says: 'Every face within a set distance of its seeds, measured along the surface. Only the 5 mm strip around Find holes takes its width from here. The two rim strips are grown from the rim at the profile\'s widths, not from this node; since step 7.3 they may feed any zone.' },
+  // Owner 2026-11-23: "i still dont get what strip around does" - the title says the action, the sentence the picture.
+  band: { title: 'Grow a strip', says: 'Grows its input outward along the surface: every face within the set distance of it, like painting a border round each hole. Only the 5 mm strip around Find holes takes its width from here. The two rim strips are grown from the rim at the profile\'s widths, not from this node; since step 7.3 they may feed any zone.' },
   rim: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
   rimSide: { title: 'Rim side', says: "Faces near the rim on ONE side of it: inner faces the fitting surface, outer is the visible outside. Its width is this node's own, not the profile's rim strip width. Nothing uses it until you wire it in." },
   // Names from docs/WORKBENCH-TABS-PLAN.md section 2: "Either A or B" read like a switch that picks one. It is the
@@ -184,7 +185,9 @@ export const PARAM_WORDS = {
   shellMm: { label: 'outer shell (mm)', help: 'Only points within this distance of the outermost point of each step count, so the rim stays on the outer edge. Above 0, at most 10.' },
   openGapDeg: { label: 'open end gap (deg)', help: 'An empty stretch of at least this many degrees cuts the rim there - the open end of a U. At least two search steps, at most 120.' },
   // A true / false choice: the canvas hands back the choice's own value, never its text (the engine refuses "true").
-  seen: { label: 'rim and hole tips count it as seen', help: 'Only matters with the rule "rim obeys no-support" on: rim and hole tips are kept on these faces even where a No-support Mark covered them earlier. Yes for what the cavity rays see; no for the strip round the holes.',
+  // Owner 2026-11-23 could not read "count it as seen": the label now says what it does. The engine reads it only
+  // under rimRespectsNoSupport (ruled_tips.rs: a rim or hole tip on a No-support face is dropped unless it is seen).
+  seen: { label: 'keep rim and hole tips here', help: 'Only acts with the rule "rim obeys no-support" on (off by default). That rule removes rim and hole tips from No-support faces - except on faces a Mark support with this set to yes covered, where they are kept. Standard: yes for what the cavity rays see, no for the strip round the holes.',
     choices: [[true, 'yes'], [false, 'no']] },
 };
 

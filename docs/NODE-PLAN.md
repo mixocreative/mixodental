@@ -430,7 +430,7 @@ view, as **three stage tabs**:
   `nodeGraph.mjs` (pure, tested); the canvas only maps gestures onto it, and its connection check asks
   the model's socket types, so a wrong wire cannot be drawn.
 - **Plain words everywhere** (owner, 2026-11-20: "what is tissue, what is band, what is basin fill").
-  Each node shows a plain title and one sentence (`KIND_WORDS`: "Parallel rays", "Strip around",
+  Each node shows a plain title and one sentence (`KIND_WORDS`: "Parallel rays", "Grow a strip" (was "Strip around"),
   "Find sockets"); every setting has a label and help (`PARAM_WORDS`); anything that is not a number
   is a **dropdown** of the values the engine accepts, with each direction explained ("tissue side -
   the side that rests on the gums"); each output socket says what the engine does with it
@@ -462,7 +462,7 @@ Fable checked each on-screen sentence against the engine on 2026-11-20 and found
   engine's own masks for these, not the graph's;
 - **ray spacing** on a parallel cast (0.1 mm), every **Depth map** setting, the **smallest hole**
   (0.5 mm²), the cavity origin's **planes and side**;
-- a **Strip around** of any width but 5 mm, or seeded by anything but Find holes;
+- a **Grow a strip** (was "Strip around") of any width but 5 mm, or seeded by anything but Find holes;
 - Point on a plane, and Find sockets (its depth comes from the rule "socket depth").
 
 Free: parallel casts (direction and angle), rays from the planes' crossing, and Either / Remove /
