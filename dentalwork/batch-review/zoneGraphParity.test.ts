@@ -1,7 +1,7 @@
 import '../../scripts/test-support/useNodeEngine';
 import { describe, expect, it } from 'vitest';
 import { setZoneGraph } from '@mixo-geocore/host/dental/zoneGraph';
-import { alignerGraph, defaultGraph, setParam, upgradeGraph, validate } from './nodeGraph.mjs';
+import { alignerGraph, defaultGraph, setParam, upgradeGraph, validate, withStripSide } from './nodeGraph.mjs';
 
 /*
  * HOST AND ENGINE VALIDATE THE SAME GRAPHS - the parity check build step 3 of docs/ORIENT-NODES.md section 10 needs
@@ -68,6 +68,9 @@ function corpus(): [string, Graph][] {
   cases.push(['a 3 mm hole strip', setParam(clone(d), 'BAND', 'mm', 3)]);
   cases.push(['a hole strip 0 mm wide', setParam(clone(d), 'BAND', 'mm', 0)]);
   cases.push(['a hole strip 25 mm wide', setParam(clone(d), 'BAND', 'mm', 25)]);
+  // The strips' Side choice (C3): the graph withStripSide builds, as the Rim tab sends it.
+  cases.push(['the rim strip on its inner side', withStripSide(clone(d), 'RIMBAND', 'inner') as Graph]);
+  cases.push(['the low rim strip on its outer side', withStripSide(clone(d), 'LOWRIMBAND', 'outer') as Graph]);
   // Not here: a rim strip node's own `mm`. The engine never reads it (the profile's width wins) and so accepts any;
   // the canvas shows it as "set on 2 Rim" and refuses an edit. A known difference on a field no one can edit.
   const both = clone(d); (both.outputs as Record<string, string>).allowed = 'AL';

@@ -1522,6 +1522,11 @@ function onRimField(nodeId, field, value) {
       return { ...n, params: back ? rest : { ...rest, [field.key]: value } };
     }) };
     try { localStorage.setItem('review-zone-graph', JSON.stringify(zoneGraph)); } catch { /* per-viewer only */ }
+  } else if (field.target === 'side') {
+    // The strip's Side choice is a zone-graph edit (nodeGraph.mjs withStripSide): it runs and is saved with the graph.
+    zoneGraph = graphLib.withStripSide(zoneGraph, nodeId, back ? 'both' : value);
+    try { localStorage.setItem('review-zone-graph', JSON.stringify(zoneGraph)); } catch { /* per-viewer only */ }
+    scheduleZonePreview();
   } else {
     if (back) delete placementEdits[field.key];
     // A dropdown answers in text ("0", "1.5"); a profile number is a number, or the server drops it (RIM_PLACEMENT).
