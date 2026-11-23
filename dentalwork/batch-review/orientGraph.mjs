@@ -19,7 +19,7 @@ export const TYPES = ['frame', 'pose', 'region'];
 /** Every kind: what it reads, what it gives, its parameters' defaults. Mirrors `orient_graph.rs` `spec` and `PARAMS`. */
 export const KINDS = {
   archFrame: { stage: 'orient', label: 'Arch shape', out: 'frame', inputs: {}, params: {}, reads: 'upright.rs arch_frame - the arch plane and the two legs' },
-  upDecision: { stage: 'orient', label: 'Front/back and top', out: 'frame', inputs: { frame: 'frame' }, params: {}, reads: 'up_decision.rs decide - the ray test turns the frame the right way up' },
+  upDecision: { stage: 'orient', label: 'Front/back and top', out: 'frame', inputs: { frame: 'frame' }, params: {}, reads: 'up_decision.rs decide - arch_slices: the open end of the U is the back, the slices\' domes point to the teeth (the ray test is a diagnostic only)' },
   uprightPose: { stage: 'orient', label: 'Upright from frame', out: 'pose', inputs: { frame: 'frame' }, params: {}, reads: 'pose.rs PrintPose::from - up is the frame\'s up, lean is its teeth side' },
   flatRegion: { stage: 'orient', label: 'Largest flat area', out: 'region', inputs: {}, params: { toleranceDeg: 5, minAreaMm2: 20, rank: 1 }, reads: 'flat_regions.rs - faces joined by angle to the REGION\'s normal, ranked by total area' },
   boxFrame: { stage: 'orient', label: 'Box-and-base frame', out: 'frame', inputs: { base: 'region' }, params: {}, reads: 'orient_graph.rs box_frame - up into the part from the base, lean along the box\'s long side' },
@@ -41,7 +41,7 @@ export const KIND_GROUP = { archFrame: 'frames', upDecision: 'frames', boxFrame:
 
 export const KIND_WORDS = {
   archFrame: { title: 'Arch shape', says: 'Finds the flat plane of the arch and its two legs - a denture\'s own frame. Not yet told which end is the top.' },
-  upDecision: { title: 'Front/back and top', says: 'Rays decide which end is the top and which side holds the teeth, and turn the frame to match.' },
+  upDecision: { title: 'Front/back and top', says: 'The open end of the U (where the two legs are) is the back. Eleven slices across the arch each look like an n; the side their domes point to is the teeth side. The frame is turned to match.' },
   uprightPose: { title: 'Upright from frame', says: 'Stands the part on its frame: up is the frame\'s up, and the print angle leans it toward the teeth side. Today\'s denture pose.' },
   flatRegion: { title: 'Largest flat area', says: 'The biggest near-flat area of the part, by total size. A face joins when it is within the tolerance of the AREA\'s direction, so a round side never counts as flat. Rank 2 is the next largest.' },
   boxFrame: { title: 'Box-and-base frame', says: 'A frame for a part with no arch: up points into the part from the base, and the lean side runs along the part\'s longest side.' },

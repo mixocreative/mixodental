@@ -576,7 +576,7 @@ const visible = new Map(LAYERS.map(([prefix, , , on]) => [prefix, on]));
 // Denture only: the layers in the order the review ran its steps. Each step: heading, one-line note, the layer
 // prefixes it draws (the print tilt has no layer: its line comes from the case facts). Other layers come after step 10.
 const DENTURE_STEPS = [
-  ['1. Orient', 'Up decision first (back-face rays: the side whose rays reach farther is the teeth top), then the tight box, rim plane and symmetry plane, before the print tilt.', ['TIGHT BOX', 'RIM PLANE', 'SYMMETRY PLANE']],
+  ['1. Orient', 'Up decision first (the open end of the U is the back; slices across the arch vote on the teeth side - the old back-face ray test is a diagnostic only), then the tight box, rim plane and symmetry plane, before the print tilt.', ['TIGHT BOX', 'RIM PLANE', 'SYMMETRY PLANE']],
   ['2. Dental rim', 'The dental rim as thick continuous line(s), each closed or open (the count is in the name). Holes: a thick outline round each, and a 5 mm band.', ['Dental rim (continuous', 'Hole outlines', 'Hole band']],
   ['3. No-support zone', 'TWO rays make this zone, not one: R1 at 45 degrees always, and R1b at the steep angle when it is on, unioned together (`no_support = r1 || r1b`). The steep ray\'s own share has its own layer. The zone is composed, not decided - which is why this stage wants ordered rows rather than one box.', ['No-support zone', 'No-support, steep ray']],
   ['4. Oral cavity ray', 'On the rim plane at the back edge of the box, on the symmetry plane: the allowed-area rays start here (not the 45-degree rays).', ['Oral cavity ray']],
