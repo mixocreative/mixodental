@@ -50,6 +50,14 @@ function corpus(): [string, Graph][] {
   cases.push(['the inner rim side added to allowed', side('inner', 2)]);
   cases.push(['a rim side of no known side', side('middle', 2)]);
   cases.push(['a rim side 0 mm wide', side('outer', 0)]);
+  // C3: the Rim node's settings - the corpus had none, which is how an engine that ignored `source` passed (Fable).
+  const rim = (params: Record<string, unknown>): Graph => { const out = clone(d); (out.nodes.find((n) => n.id === 'RIM')!.params as Record<string, unknown>) = params; return out; };
+  cases.push(['the rim from the flat area\'s edge', rim({ source: 'flatEdge' })]);
+  cases.push(['the rim from no known source', rim({ source: 'edge' })]);
+  cases.push(['a rim search step of 20 degrees', rim({ binDeg: 20 })]);
+  cases.push(['a rim open gap under two search steps', rim({ binDeg: 6, openGapDeg: 8 })]);
+  cases.push(['a rim setting the rim does not read', rim({ widthMm: 3 })]);
+  cases.push(['the rim settings at other legal values', rim({ binDeg: 5, shellMm: 3, openGapDeg: 30 })]);
   // Plan D1, the one-zone form: each Mark wiring both validators must agree on.
   const zoneFrom = clone(d); (zoneFrom.outputs as Record<string, string>).zone = 'NS';
   cases.push(['the zone output fed a set of faces', zoneFrom]);

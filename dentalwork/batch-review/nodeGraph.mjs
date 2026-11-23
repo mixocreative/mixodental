@@ -532,6 +532,8 @@ export function validate(graph) {
 export function rimProblems(node) {
   const p = node.params ?? {};
   const out = [];
+  // A key the rim does not read is refused, as the engine refuses it: accepting it would ignore the edit.
+  for (const key of Object.keys(p)) if (!(key in KINDS.rim.params)) out.push(`${node.id}: "${key}" is not a rim setting - the rim reads only ${Object.keys(KINDS.rim.params).join(', ')}`);
   if ('source' in p && p.source !== 'finder' && p.source !== 'flatEdge') out.push(`${node.id}: "source" must be finder or flatEdge, got ${JSON.stringify(p.source)}`);
   const num = (key, standard) => (key in p ? Number(p[key]) : standard);
   const [bin, shell, gap] = [num('binDeg', 3), num('shellMm', 2), num('openGapDeg', 20)];
