@@ -213,6 +213,7 @@ Kept here because the wrong answer was the plausible one, and the next renderer 
 | `faceMaskOverlay.ts`, `FaceTintLayer.tsx` | the approved-footprint overlay and its tint over the model |
 | `RimDraftLayer.tsx` | the rim the operator is drawing, on the model |
 | `UnresolvedBubbles.tsx` | one bubble per unresolved point, with a tail pointing at it |
+| `SideLabel.tsx` | a denture's six named sides on Step 1 (`dental/sideAnchors.ts`; prop `sideLabels`): plain DOM, so drei `<Html>` and Babylon's `AnchoredDom` mount the same label. What Flip front / Flip teeth side turn round |
 | `AddFlash.tsx`, `flash.ts` | the ring where a support was just added, and how long it stays |
 | `CirclePreview.tsx` | the brush circle while its slider is held |
 | `PrintAngleArc.tsx` | the print-angle mark beside the model |

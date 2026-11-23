@@ -138,6 +138,11 @@
   "src/dental/confirmTilt.ts": {
     "label": "host-adapter"
   },
+  "src/dental/sideAnchors.ts": {
+    "label": "host-math",
+    "maxMath": 2,
+    "why": "where a LABEL sits: the centroid and, for each of the engine frame's six directions, how far the part reaches that way, plus a 3 mm gap. Display only - the frame (front, teeth side, across) is the engine's own orientation result, and nothing reads these points back into a decision"
+  },
   "src/dental/rim/drawnRim.ts": {
     "label": "host-math",
     "maxMath": 1,

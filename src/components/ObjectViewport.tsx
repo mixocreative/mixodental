@@ -1,4 +1,4 @@
-import { Grid, OrbitControls, TransformControls } from '@react-three/drei';
+import { Grid, Html, OrbitControls, TransformControls } from '@react-three/drei';
 import { PrintAngleMark } from './viewport/PrintAngleArc';
 import { Canvas } from '@react-three/fiber';
 import { useEffect, useRef, useState } from 'react';
@@ -15,6 +15,7 @@ import { useViewportColours } from './viewport/sceneColours';
 import { UnitObject } from './viewport/UnitObject';
 import { PlateOutline } from './viewport/PlateOutline';
 import { UnresolvedBubbles } from './viewport/UnresolvedBubbles';
+import { SideLabel } from './viewport/SideLabel';
 import { FaceTintLayer } from './viewport/FaceTintLayer';
 import { generationTransform } from '@mixo-geocore/host/supports/unitSupports';
 
@@ -175,6 +176,10 @@ export default function ObjectViewport(props: ObjectViewportProps) {
         : null;
     })}
     {props.printAngle ? <PrintAngleMark unitId={props.printAngle.unitId} deg={props.printAngle.deg} /> : null}
+    {/* A denture's six named sides on Step 1: unit-local, so in a group with the unit's own transform (as the tint). */}
+    {props.sideLabels ? scene.units.filter((unit) => unit.id === props.sideLabels!.unitId).map((unit) => <group key={`sides:${unit.id}`} position={unit.transform.position} rotation={unit.transform.rotation}>
+      {props.sideLabels!.sides.map((side) => <Html key={side.name} position={side.position} zIndexRange={[3, 2]} className="side-anchor"><SideLabel name={side.name} /></Html>)}
+    </group>) : null}
     {props.unitTint ? scene.units.filter((unit) => unit.id === props.unitTint!.unitId).map((unit) => <group key={`overlay:${unit.id}`} position={unit.transform.position} rotation={unit.transform.rotation}><FaceTintLayer mesh={unit.source} mask={props.unitTint!.mask} colour={new THREE.Color(props.unitTint!.colour).getHex()} /></group>) : null}
     {activeId && activeGroup?.unitId === activeId && gizmo && <UnitTransformControls
       mode={gizmo}

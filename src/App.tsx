@@ -2027,6 +2027,8 @@ export default function App() {
           supportMeshes={orienting ? NO_SUPPORT_MESHES : supportMeshes}
           {...(shownPreview ? { dentalTips: { unitId: shownPreview.unitId, points: areaContacts } }
             : stepOneUnit && stepOneTips ? { dentalTips: { unitId: stepOneUnit.id, points: stepOneTips } } : {})}
+          {...(// A denture's six named sides on its Step 1 (WORKBENCH-TABS-PLAN C2): what Flip front / Flip teeth side turn.
+            editMode === 'dental' && session.dentalStage === 'aligner' && denture.active && denture.orient.sides ? { sideLabels: denture.orient.sides } : {})}
           {...(inArea ? { dentalArea: true } : {})}
           {...(editMode === 'dental' && session.dentalStage === 'aligner' && dentalFlow.areaPreview
             ? { dentalAreaPreview: { unitId: dentalFlow.areaPreview.unitId, policy: dentalFlow.areaPreview.policy } }

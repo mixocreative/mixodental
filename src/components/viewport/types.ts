@@ -5,6 +5,7 @@ import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh
 import type { ZoneStamp } from '@mixo-geocore/host/core/supports/zones';
 import type { DentalAllowStamp, DentalPolicy } from '@mixo-geocore/host/dental/dentalPolicy';
 import type { SurfacePath } from '../../core/surfacePath/path';
+import type { SideAnchor } from '../../dental/sideAnchors';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { Gesture } from '@mixo-geocore/editing/gesture';
 import type { AddAction, BrushMode, EditTool, SelectStyle } from '@mixo-geocore/editing/types';
@@ -22,6 +23,8 @@ export interface ObjectViewportProps {
   supportMeshes: ReadonlyMap<string, GeneratedSupportMesh>;
   /** Dental Step 2 markers from the placement worker, never a built support mesh. */
   dentalTips?: { unitId: string; points: readonly Pick<SupportPoint, 'id' | 'position' | 'normal'>[] };
+  /** A denture's six named sides on Step 1, unit-local (`dental/sideAnchors.ts`): what the Flip buttons turn round. */
+  sideLabels?: { unitId: string; sides: readonly SideAnchor[] };
   /** Dental Step 2 is on (whichever tool): the area and tips show, no support bodies. */
   dentalArea?: boolean;
   /**

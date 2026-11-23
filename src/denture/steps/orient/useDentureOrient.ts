@@ -25,6 +25,7 @@ import { stepPanelInset } from '../../../dental/stepPanelInset';
 import { isAbort } from '../../../components/appShared';
 import { engineDrawnRim } from '../../state/dentureRim';
 import { engineCaseFlip } from '../../state/caseFlip';
+import { sideAnchors, type SideAnchor } from '../../../dental/sideAnchors';
 
 /*
  * Step 1 of the denture job (Round D): stand the dropped denture upright and search its print angle in the
@@ -60,6 +61,8 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
   /** The automatic pick's pose, for Auto orient (restore, no re-run). */
   const detected = useRef<{ unitId: string; rotation: Vector } | undefined>(undefined);
   const [live, setLive] = useState<LiveTips>(undefined);
+  /** The six named sides of the oriented scan, unit-local (`dental/sideAnchors.ts`): what the Flip buttons turn round. */
+  const [sides, setSides] = useState<{ unitId: string; sides: SideAnchor[] } | undefined>(undefined);
   const throttle = useRef<{ unitId: string; throttle: LiveTiltThrottle } | undefined>(undefined);
 
   const unitOf = useCallback((unitId: string) => sceneRef.current.units.find((candidate) => candidate.id === unitId), [sceneRef]);
@@ -98,6 +101,8 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     client().cancel('orient:');
     client().cancel('place:');
     send({ type: 'dentalLoading', unitId: unit.id });
+    // The old sides go with the old orientation: a re-scan (a flip, a redrawn rim) names them afresh.
+    setSides(undefined);
     const stale = () => seq.current !== token || sceneRef.current.activeUnitId !== unit.id;
     const failed = () => send({ type: 'dentalOrientFailed', notices: [{ kind: 'denture-failed' }] });
     if (!profile) return failed();
@@ -126,6 +131,11 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
       const ready = outcome.tilt;
       const { scan, index } = ready;
       setTilt(ready);
+      // The sides as the engine named them (its frame: up = front, teeth, across), so a flip shows what it turned.
+      const orientation = 'result' in settled ? settled.result?.orientation : undefined;
+      setSides(orientation?.kind === 'oriented'
+        ? { unitId: unit.id, sides: sideAnchors(unit.source.positions, { up: orientation.frame.up, lean: orientation.frame.teeth, across: orientation.frame.across }) }
+        : undefined);
       detected.current = { unitId: unit.id, rotation: scan.rows[index]!.rotation };
       turnTo(unit.id, scan.rows[index]!.rotation);
       requestView('fit');
@@ -234,5 +244,7 @@ export function useDentureOrient({ client, dispatch, send, sceneRef, sessionRef,
     () => (showLive && live ? { unitId: live.unitId, layers: liveTipLayers(live.paths, tipColours()) } : undefined), [live, showLive]);
   const counts = showLive && live ? tipCounts(live.paths) : undefined;
 
-  return { start, useDetected, next, invalidate, tilt, chooseTilt, markHand, proposed: tilt?.status === 'ready', tipLayers, counts };
+  // The sides only while their scan's Step 1 is ready: a failed or newer scan never shows the old names.
+  const sidesShown = sides && tilt?.status === 'ready' && tilt.unitId === sides.unitId ? sides : undefined;
+  return { start, useDetected, next, invalidate, tilt, chooseTilt, markHand, proposed: tilt?.status === 'ready', tipLayers, counts, sides: sidesShown };
 }

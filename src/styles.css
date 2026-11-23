@@ -1680,6 +1680,21 @@ dialog.terms .terms-item > span { flex: none; }
   background: color-mix(in srgb, var(--warning) 10%, transparent);
 }
 
+/* ---- A denture's six named sides on Step 1 (SideLabel.tsx) -------------------- */
+/* Centred on its point just past the part; never takes a click, so the model stays draggable through it. */
+.side-anchor { pointer-events: none; }
+.side-label {
+  display: inline-block;
+  transform: translate(-50%, -50%);
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--small-size, 11.5px);
+  white-space: nowrap;
+}
+
 /* ---- Unresolved points (Round C) ------------------------------------------- */
 /* The anchor sits on the point; the bubble stands above it, its tail's tip on the point. */
 .unresolved-anchor, .landing-anchor { pointer-events: none; }

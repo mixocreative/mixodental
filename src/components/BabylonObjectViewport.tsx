@@ -37,6 +37,7 @@ import type { SurfacePath } from '../core/surfacePath/path';
 import { drawPrintAngle } from './viewport/babylon/printAngle';
 import { tokenCss } from '../ui/tokenColour';
 import { AnchoredDom, type AnchoredItem } from './viewport/babylon/AnchoredDom';
+import { SideLabel } from './viewport/SideLabel';
 import { bubblePointsFor } from './viewport/babylon/bubblePoints';
 import { displayMesh } from '../state/meshExtras';
 import { UnresolvedBubble, LandingMark } from './viewport/UnresolvedBubbles';
@@ -1126,8 +1127,13 @@ export default function BabylonObjectViewport(props: ObjectViewportProps) {
         });
       }
     }
+    // A denture's six named sides on Step 1: the same SideLabel the three.js view mounts, at unit-local points.
+    const sides = props.sideLabels;
+    for (const side of sides?.sides ?? []) {
+      out.push({ key: `side:${sides!.unitId}:${side.name}`, className: 'side-anchor', at: () => pointerRef.current?.toWorld(sides!.unitId, side.position), node: <SideLabel name={side.name} /> });
+    }
     return out;
-  }, [sceneReady, printScene.units, supportMeshes, props.bubbleResolve]);
+  }, [sceneReady, printScene.units, supportMeshes, props.bubbleResolve, props.sideLabels]);
 
   return (
     <div className="babylon-viewport" data-ui="viewport-babylon">
