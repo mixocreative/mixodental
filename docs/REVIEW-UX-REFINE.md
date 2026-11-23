@@ -130,5 +130,10 @@ space. so does Rim".
 | Apply ran the edited Orient graph (the run turned 8° to 0°, 168 tips to 122), but the Orient status still said "changed - Apply and run again", and so did the Zones status after an edited zone run: both compared the canvas to the STANDARD graph, never to the graph that ran. It read as a dead button. | Each status compares the canvas to the graph the run's summary records (`zoneGraphRan` / `orientGraphRan`) with `nodeGraph.mjs` `sameGraph`, which ignores key order - the summary writes its keys sorted, so plain JSON text would still have said "changed". It now says "... - the review on screen ran this." until the canvas is edited again. |
 | The colour key took a row of its own above the Orient and Rim canvases | It rides in the canvas's toolbar row (Orient: beside "All connections are complete."; Rim: beside the tab's note). |
 
-Not taken: Orient changes running on their own. A run is about 27 s and writes a new folder of about 70 MB, so a run
-per dropdown change would pile up folders while the operator is still choosing. It waits for the owner's call.
+Then, owner: "Yes, auto-run". **An Orient edit now runs on its own** (`viewer.html` `autoRunOrient`): edits are gathered
+for 1.2 s, an edit undone before its run starts runs nothing, and an edit made during a run waits and runs once after it
+- never two runs at once (the server has one `/out/`). The status line says "it runs on its own in a moment" only while
+a run is really queued; a canvas edited before a reload starts nothing until it is edited again. Each run is about 27 s
+and a new folder of about 70 MB in `dentalwork/output/`, so a long session of edits leaves folders to clear. Going back
+to the standard Step 1 after an edited run is now a change Apply runs (it said "Nothing is changed yet" and left the
+edited run on screen). Proved in the browser: an edit ran (8°, 106 tips); a second edit during it waited and ran once.

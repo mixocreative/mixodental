@@ -560,6 +560,22 @@ function searchProblem(s) {
  * standard). It is what decides "Apply and run again" on each canvas's status line.
  */
 const ranThis = (lib, graph, ranJson) => (ranJson ? lib.sameGraph(graph, ranJson) : lib.isDefault(graph));
+
+/*
+ * ORIENT EDITS RUN ON THEIR OWN (owner 2026-11-23: "Yes, auto-run"). A run is about 27 s and writes a new folder, so
+ * edits are gathered for a moment before one starts, and an edit made DURING a run waits for it and then runs once -
+ * never two runs at once (the server has one /out/, serve.mjs F6). `applyRun` is set by the benchwork panel; it stays
+ * null without a server, and then nothing runs.
+ */
+const AUTO_RUN_MS = 1200;
+let autoRunTimer = null;
+let autoRunWaiting = false;
+let applyRun = null;
+function autoRunOrient() {
+  if (!applyRun || kindNow !== 'denture') return;
+  clearTimeout(autoRunTimer);
+  autoRunTimer = setTimeout(() => { autoRunTimer = null; applyRun({ auto: true }); }, AUTO_RUN_MS);
+}
 const ruleText = (text) => text.replace(/\{globalOverhang\}/g, RULES.overhangAngleDeg ?? '?').replace(/\{rimOverhang\}/g, RULES.dentalRimOverhangAngleDeg ?? '?');
 // GLTFLoader turns spaces in node names into underscores; compare with them put back.
 const plain = (name) => (name ?? '').replace(/_/g, ' ');
@@ -1349,6 +1365,7 @@ function drawOrientEditor(body, key = null) {
     orientGraph = next;
     try { localStorage.setItem('review-orient-graph', JSON.stringify(next)); } catch { /* per-viewer only */ }
     relabelSides();
+    autoRunOrient(); // before the redraw, so the status line already says a run is coming
     if (lastChain) drawChain(...lastChain);
   };
   const status = document.createElement('div');
@@ -1358,6 +1375,8 @@ function drawOrientEditor(body, key = null) {
   // Measured against what RAN, not against the standard: "changed - Apply" right after an Apply read as a dead button.
   status.textContent = ranThis(orientLib, g, ranOrientGraphJson)
     ? `Orient graph: ${ran} - the review on screen ran this.`
+    // Only while a run is really queued: a canvas edited before a reload starts nothing until it is edited again.
+    : autoRunTimer !== null || autoRunWaiting ? `Orient graph: changed - it runs on its own in a moment (about 27 s). The review on screen used ${ran}.`
     : `Orient graph: changed - Apply and run again to use it. The review on screen used ${ran}.`;
   const bar = document.createElement('div');
   bar.className = 'zone-bar';
@@ -2596,7 +2615,11 @@ try {
     if (answer.ok) { savedTypeId = ranTypeId; if (lastChain) drawChain(...lastChain); }
   });
   const run = document.getElementById('bench-run');
-  run.addEventListener('click', async () => {
+  const applyNow = async ({ auto = false } = {}) => {
+    // A run is going: an Orient edit waits for it (the finally below), a second press does nothing.
+    if (run.disabled) { autoRunWaiting ||= auto; return; }
+    // An edit undone before its run started: the review on screen already is that graph.
+    if (auto && orientLib && ranThis(orientLib, orientGraph, ranOrientGraphJson)) return;
     const row = caseNow;
     if (!row?.source) { status.textContent = 'Open a case first: the re-run needs the STL it came from.'; return; }
     const rules = turned();
@@ -2605,6 +2628,9 @@ try {
     const graphEdited = Boolean(graphLib && zoneGraph && !graphLib.isDefault(zoneGraph));
     // The Orient canvas (U6): a denture's only, like the search - an aligner reads no Orient graph in this version.
     const orientEdited = Boolean(kindNow === 'denture' && orientLib && orientGraph && !orientLib.isDefault(orientGraph));
+    // Back to the standard Step 1 after an edited run is a change too: refusing it as "nothing changed" left the edited
+    // run on screen with no way back but a reload, and an auto-run of a choice set back to "auto" never ran.
+    const orientBack = Boolean(kindNow === 'denture' && orientLib && !orientEdited && !ranThis(orientLib, orientGraph, ranOrientGraphJson));
     // The search edits are a DENTURE type's (the strip says an aligner type keeps the built-in aligner's numbers), and
     // they persist in localStorage - so a denture session's leftovers rode along with an aligner draft (Fable, 2026-11-23).
     const poseNow = kindNow === 'denture' ? poseEdits : {};
@@ -2615,7 +2641,7 @@ try {
     // A newly named type is a reason to run on its own: it is how a type that keeps the built-in's numbers but has
     // its own name and badge gets made (the New-type strip).
     const newType = typeName !== '' && ranTypeId !== typeName;
-    if (Object.keys(rules).length === 0 && !graphEdited && !orientEdited && !poseEdited && !placementEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the Orient graph (1 Orient), the rim (2 Rim), the zone graph (3 Zones), a setting (4) or the search (5 Print angle), then apply.'; return; }
+    if (Object.keys(rules).length === 0 && !graphEdited && !orientEdited && !orientBack && !poseEdited && !placementEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the Orient graph (1 Orient), the rim (2 Rim), the zone graph (3 Zones), a setting (4) or the search (5 Print angle), then apply.'; return; }
     // Only a denture run carries the search (poseNow above): a denture session's bad leftovers refused an aligner run
     // with "Fix the search first", a tab the aligner strip does not link to (Fable, 2026-11-23).
     const poseProblem = kindNow === 'denture' ? searchProblem(searchNow()) : null;
@@ -2628,7 +2654,7 @@ try {
     const orientProblems = orientEdited ? orientLib.validate(orientGraph).problems : [];
     if (orientProblems.length) { status.textContent = `Fix the Orient graph first (1 Orient): ${orientProblems[0]}`; return; }
     run.disabled = true;
-    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(orientEdited ? ['the edited Orient graph'] : []), ...(poseEdited ? ['the edited search'] : []), ...(placementEdited ? ['the edited strip widths'] : []), ...(newType ? [`the new type ${typeName}`] : [])].join(', ');
+    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(orientEdited ? ['the edited Orient graph'] : []), ...(orientBack ? ['the standard Step 1'] : []), ...(poseEdited ? ['the edited search'] : []), ...(placementEdited ? ['the edited strip widths'] : []), ...(newType ? [`the new type ${typeName}`] : [])].join(', ');
     status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
     try {
       const reply = await fetch('/rerun', { method: 'POST', headers: { 'content-type': 'application/json' },
@@ -2661,8 +2687,11 @@ try {
       status.textContent = `It did not run: ${error.message}`;
     } finally {
       run.disabled = false;
+      if (autoRunWaiting) { autoRunWaiting = false; autoRunOrient(); }
     }
-  });
+  };
+  run.addEventListener('click', () => applyNow());
+  applyRun = applyNow;
 
   // FOLDED INTO THE STAGES (owner, 2026-11-20: "wouldn't it be more organized if folded into nodes?").
   // Every rule this panel listed now sits on the node that reads it, so showing the list too was a
