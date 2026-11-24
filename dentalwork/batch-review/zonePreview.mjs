@@ -58,10 +58,12 @@ export function previewNote({ title, groups, hasRead, canvasChanged, gives, draw
   if (!drawn) return `${title} ran, but its values do not fit the model on screen, so nothing is drawn. Run the case again.`;
   const counts = groups.map((g) => `${g.label} ${g.faces.length.toLocaleString('en')}`).join(', ');
   const shown = groups.length > 1 ? `the zone as it stands at ${title}: ${counts} faces` : `${title}: ${counts} faces`;
-  const stale = canvasChanged ? ' The canvas has changed since this run, so this is what RAN, not your edit - Apply to see the edit.' : '';
+  const stale = canvasChanged ? ' You have changed the graph or the belt widths since this run, so this is what RAN, not your edit - Apply to see the edit.' : '';
   // `final`: nothing is selected and this IS the final zone (the live preview shows it unasked), so the hint points the
   // other way.
-  const hint = final ? 'This is the final zone; select a node to see the zone at that point.' : 'Click the empty canvas to see the final zone again.';
+  // A selected node is shown alone on the model (the viewer's isolatedKeys, owner 2026-11-24), so the hint says how
+  // to get everything back.
+  const hint = final ? 'This is the final zone; select a node to see the zone at that point.' : 'Only this node is shown on the model; click the empty canvas to see everything again.';
   return `Showing ${shown}. ${hint}${stale}`;
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultGraph, flatBaseGraph, setParam } from './orientGraph.mjs';
-import { STANDARD_CHOICES, choicesChanged, previewLabel, sideChoices, turnFor } from './sidePreview.mjs';
+import { STANDARD_CHOICES, choicesChanged, composeTurns, previewLabel, restTurn, sideChoices, turnFor } from './sidePreview.mjs';
 
 const SIX = ['Front', 'Back', 'Teeth side', 'Tissue side', 'Left', 'Right'];
 const label = (now: typeof STANDARD_CHOICES) => SIX.map((name) => previewLabel(name, STANDARD_CHOICES, now));
@@ -53,6 +53,24 @@ describe('the side labels follow the Orient choices before Apply', () => {
     expect(apply(turn.rotation, [0, 0, -1])).toEqual([0, -1, 0]);
     expect(apply(turn.rotation, [0, 1, 0])).toEqual([0, 0, 1]);
     expect(turnFor(SIDES.slice(1), STANDARD_CHOICES, now)).toBeNull();
+  });
+
+  // Owner 2026-11-24: the Orient tab shows the part at rest - plate side straight down - not leaning at the print angle.
+  it('stands a leaning part back on its plate side, and leaves an upright one alone', () => {
+    const deg = 10 * Math.PI / 180;
+    const lean = (v: number[]) => [v[0]!, v[1]! * Math.cos(deg) - v[2]! * Math.sin(deg), v[1]! * Math.sin(deg) + v[2]! * Math.cos(deg)];
+    const leaning = SIDES.map((s) => ({ ...s, position: lean(s.position) }));
+    const rest = restTurn(leaning, 'Back')!;
+    expect(apply(rest.rotation, lean([0, -1, 0]))).toEqual([0, -1, 0]);
+    expect(apply(rest.rotation, lean([0, 0, 1]))).toEqual([0, 0, 1]);
+    expect(restTurn(SIDES, 'Back')).toBeNull();
+    expect(restTurn(leaning, null)).toBeNull();
+    expect(restTurn(leaning.slice(1), 'Back')).toBeNull();
+    // A live side turn first, then the rest turn: the composed turn is the two applied in that order.
+    const turn = turnFor(leaning, STANDARD_CHOICES, sideChoices(setParam(defaultGraph(), 'UP', 'front', 'other'))!)!;
+    const both = composeTurns(turn, rest)!;
+    expect(apply(both.rotation, [1, 2, 3])).toEqual(apply(rest.rotation, apply(turn.rotation, [1, 2, 3])));
+    expect(composeTurns(null, rest)).toBe(rest);
   });
 
   it('a new plate side moves the marks to the sides chosen', () => {

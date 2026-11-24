@@ -25,7 +25,7 @@ describe('the per-node preview (plan D2)', () => {
   it('says what it shows, and says so plainly when it cannot or when the canvas has moved on', () => {
     const groups = previewGroups(nodeValues(read, 'Z2')!, true);
     expect(previewNote({ title: 'Mark support', groups, hasRead: true, canvasChanged: false }))
-      .toBe('Showing the zone as it stands at Mark support: Support 2, No-support 2, Undefined 1 faces. Click the empty canvas to see the final zone again.');
+      .toBe('Showing the zone as it stands at Mark support: Support 2, No-support 2, Undefined 1 faces. Only this node is shown on the model; click the empty canvas to see everything again.');
     expect(previewNote({ title: 'Mark support', groups, hasRead: true, canvasChanged: true })).toContain('this is what RAN, not your edit');
     expect(previewNote({ title: 'Mark support', groups: null, hasRead: true, canvasChanged: false })).toContain('has not run on this case');
     expect(previewNote({ title: 'Mark support', groups: null, hasRead: false, canvasChanged: false })).toContain('no per-node values');

@@ -124,9 +124,9 @@ export const KIND_WORDS = {
   holes: { title: 'Find holes', says: 'Openings you can see right through the part, found from the depth map. Its setting is fixed in this version.' },
   basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map. Not runnable yet: the socket depth comes from the rule "socket depth".' },
   // Owner 2026-11-23: "i still dont get what strip around does" - the title says the action, the sentence the picture.
-  band: { title: 'Grow a strip', says: 'Grows its input outward along the surface: every face within the set distance of it, like painting a border round each hole. The hole strip takes its width from here (standard 5 mm; it is where hole tips stand). The two rim strips are grown from the rim at the profile\'s widths, not from this node; since step 7.3 they may feed any zone.' },
+  band: { title: 'Grow a strip', says: 'Grows its input outward along the surface: every face within the set distance of it, like painting a border round each hole. The hole strip takes its width from here (standard 5 mm; it is where hole tips stand). The rim tips belt and the low-point belt are their own nodes: they grow from the rim line at the widths set on 2 Rim.' },
   rim: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
-  rimSide: { title: 'Rim side', says: "Faces near the rim on ONE side of it: inner faces the fitting surface, outer is the visible outside. Its width is this node's own, not the profile's rim strip width. Nothing uses it until you wire it in." },
+  rimSide: { title: 'Rim side', says: "Faces near the rim on ONE side of it: inner faces the fitting surface, outer is the visible outside. Its width is this node's own, not the rim tips belt's. Nothing uses it until you wire it in." },
   // Names from docs/WORKBENCH-TABS-PLAN.md section 2: "Either A or B" read like a switch that picks one. It is the
   // combine node; the four keep their engine kinds, so every saved graph still loads.
   union: { title: 'Combine (A + B)', says: 'Faces in A, or in B, or in both.' },
@@ -192,17 +192,40 @@ export const PARAM_WORDS = {
 };
 
 /**
+ * The rim strips' widths in the shipped denture profile (`rimBandMm`, `lowRimBandMm`), quoted in the words below. The
+ * engine grows each strip at the PROFILE's width and never reads the RIMBAND / LOWRIMBAND node's `mm` (section 10
+ * step 7.2), so these are the defaults a type may change. `nodeGraph.test.ts` fails if they drift from the profile.
+ */
+export const RIM_STRIP_MM = { rim_band: 2, low_rim_band: 5 };
+
+/**
+ * THE TWO RIM BELTS, NAMED BY THEIR JOB (owner 2026-11-24: "i do not know why there's a low rim strip, and how and why
+ * it needs to be separated from rim strip"). Both are the rim line widened, but they do different things in the engine
+ * (`ruled_tips.rs`): the first PLACES tips - a grid on its overhanging faces, even where support is not allowed, which
+ * holds the rim edge up; the second places none and is only an exception - a lowest point or island inside it keeps
+ * its tip on No-support faces (`low_reason`, clause 2). Merging them would change what gets built, so they stay two.
+ * One name each, read on 2 Rim, on the Zones canvas and on the output sockets: the same belt is never called two things
+ * (Fable, 2026-11-24). Keyed by node id, as RIM_STRIP_WIDTHS is.
+ */
+export const RIM_BELTS = {
+  RIMBAND: { title: 'Rim tips belt', short: 'rim tips belt',
+    says: `The rim line widened into a belt that holds the rim edge up: rim tips are placed on its overhanging faces, even where support is not allowed - unless its tips are set to "like the supported area", when it gets the area's tips like any supported face. Standard ${RIM_STRIP_MM.rim_band} mm each side.` },
+  LOWRIMBAND: { title: 'Low-point belt', short: 'low-point belt',
+    says: `The rim line widened into a wider belt that places no tips of its own. It is an exception: a lowest point or island inside it still gets a tip, even where support is not allowed. Standard ${RIM_STRIP_MM.low_rim_band} mm each side.` },
+};
+
+/**
  * What the engine DOES with each output, in plain words - because "no_support" names a mask, not a
  * consequence, and an operator wiring it needs the consequence. Checked against the engine's own
  * readers (docs/NODE-PLAN.md, the six consumers): no_support does NOT gate area tips - allowed does.
  */
 export const OUTPUT_WORDS = {
   // The one-zone form (plan D1): what the three old outputs said, now said by the Zone's three states.
-  zone: { title: 'Zone', says: 'Every face ends up Support, No-support or Undefined (no Mark touched it). Area tips stand only on Support. With "low outside" at 1 (the default), lowest-point and island tips stay off No-support unless the face is in the low rim strip; on Undefined they still stand. A later Mark wins.' },
+  zone: { title: 'Zone', says: 'Every face ends up Support, No-support or Undefined (no Mark touched it). Area tips stand only on Support. With "low outside" at 1 (the default), lowest-point and island tips stay off No-support unless the face is in the low-point belt; on Undefined they still stand. A later Mark wins.' },
   hole_band: { title: 'Hole strip', says: 'The strip around holes where hole tips are placed - as wide as its Grow a strip node (standard 5 mm). The output itself stays wired to that node.' },
   rim: { title: 'Rim line', says: 'The line rim tips are placed along. Found in Orient; fixed here.' },
-  rim_band: { title: 'Rim strip', says: 'The strip along the rim where rim-strip tips go. As wide as the profile\'s rim strip width (2 mm by default). Free since step 7.3: fill it with any faces, e.g. the rim strip on the rim\'s inner side only. Rim tips go on these faces whether or not they are Allowed, so faces from the no-support zone here get rim tips.' },
-  low_rim_band: { title: 'Low rim strip', says: 'The wider strip along the rim where a lowest point or island still gets a tip, even inside the no-support zone. As wide as the profile\'s low rim strip width (5 mm by default). Free since step 7.3.' },
+  rim_band: { title: RIM_BELTS.RIMBAND.title, says: `The faces that get rim tips, even where support is not allowed. Standard: the rim tips belt, ${RIM_STRIP_MM.rim_band} mm each side of the rim line (widths set on 2 Rim). It may take any faces, e.g. a Rim side node for one side only.` },
+  low_rim_band: { title: RIM_BELTS.LOWRIMBAND.title, says: `Places no tips. A lowest point or island on these faces still gets a tip, even where support is not allowed. Standard: the low-point belt, ${RIM_STRIP_MM.low_rim_band} mm each side of the rim line (widths set on 2 Rim). It may take any faces.` },
   sockets: { title: 'Sockets', says: 'Hollows that would trap resin. Rim, hole and area tips stay out of them when "sockets deny" is on. Fixed in this version.' },
 };
 
@@ -219,6 +242,21 @@ export const RIM_STRIP_IDS = ['RIMBAND', 'LOWRIMBAND'];
 /** Whether `key` of `node` is fixed in this version: the kind's fixed settings, and a rim strip's width. */
 export function fixedParam(node, key) {
   return (FIXED.params[node.kind] ?? []).includes(key) || (node.kind === 'band' && key === 'mm' && RIM_STRIP_IDS.includes(node.id));
+}
+
+/**
+ * A zone node's title and sentence on the canvas. A rim strip is a plain `band` node to the engine, so by kind alone the
+ * hole strip and both rim belts all read "Grow a strip" (owner 2026-11-24: "how does grow a strip differentiate both from
+ * a single input"). A rim strip node is named by the OUTPUT it fills - the job - since step 7.3 lets those outputs take
+ * other faces; one not wired to its output keeps a neutral name (Fable, 2026-11-24).
+ */
+export function wordsOf(node, graph) {
+  if (node.kind !== 'band' || !RIM_STRIP_IDS.includes(node.id)) return KIND_WORDS[node.kind];
+  const out = node.id === 'RIMBAND' ? 'rim_band' : 'low_rim_band';
+  if (graph?.outputs?.[out] !== node.id) {
+    return { title: 'Rim belt', says: `The rim line widened at the ${RIM_BELTS[node.id].short}'s widths (set on 2 Rim). Not wired to its output, so it does that job only where you wire it.` };
+  }
+  return { title: RIM_BELTS[node.id].title, says: `${RIM_BELTS[node.id].says} Its widths are set on 2 Rim.` };
 }
 
 export const FIXED = {
@@ -269,12 +307,6 @@ export const OUTPUT_NODE = { title: 'Zone output', says: 'What the engine reads.
  */
 export const PRINT_ANGLE_SEARCH = { startDeg: 0, endDeg: 45, stepDeg: 2, marginDeg: 2 };
 
-/**
- * The rim strips' widths in the shipped denture profile (`rimBandMm`, `lowRimBandMm`), quoted in the words above. The
- * engine grows each strip at the PROFILE's width and never reads the RIMBAND / LOWRIMBAND node's `mm` (section 10
- * step 7.2), so these are the defaults a type may change. `nodeGraph.test.ts` fails if they drift from the profile.
- */
-export const RIM_STRIP_MM = { rim_band: 2, low_rim_band: 5 };
 
 /** Today's denture, node for node (`ruled_tips.rs:151-163`, `:126-143`, `:113-115`). Must reproduce today exactly. */
 export function defaultGraph() {
@@ -671,10 +703,9 @@ export const RIM_TAB_KINDS = {
     says: 'The rim line: by default the lowest outer edge on the tissue side, followed all the way round the arch - or the outline of the flat area the part stands on.' },
   // Owner 2026-11-23: "rim strip is one node, then rim strip belt is another. The belt turns the rim strip line into a
   // width area, setting inner and outer width from the line." The Rim node is the line; these two are its belts.
-  rimStrip: { label: 'Rim belt', out: 'mask', inputs: { rim: 'rim' },
-    says: `The rim line widened into an area: so far on the inner side (the fitting surface) and so far on the outer side (the visible outside). Rim tips stand here. Standard ${RIM_STRIP_MM.rim_band} mm on both sides.` },
-  lowRimStrip: { label: 'Low rim belt', out: 'mask', inputs: { rim: 'rim' },
-    says: `The wider belt along the rim line, inner and outer widths the same way: a lowest point here still gets a tip. Standard ${RIM_STRIP_MM.low_rim_band} mm on both sides.` },
+  // Named by their job since 2026-11-24 (RIM_BELTS): inner = the fitting surface, outer = the visible outside.
+  rimStrip: { label: RIM_BELTS.RIMBAND.title, out: 'mask', inputs: { rim: 'rim' }, says: RIM_BELTS.RIMBAND.says },
+  lowRimStrip: { label: RIM_BELTS.LOWRIMBAND.title, out: 'mask', inputs: { rim: 'rim' }, says: RIM_BELTS.LOWRIMBAND.says },
   fitPlane: { label: 'Rim plane', out: 'plane', inputs: { rim: 'rim' }, derived: true,
     says: 'The plane fitted through the finished rim line.' },
   rimCrossing: { label: 'Rim crossing', out: 'position', inputs: { plane: 'plane' }, derived: true,
@@ -713,6 +744,27 @@ export function beltOf(placement, id) {
   return { inner: placement?.[w.inner] ?? both, outer: placement?.[w.outer] ?? both, both };
 }
 
+/** The belt widths alone out of a placement - the keys that change which faces a belt covers - for the zone preview. */
+export function beltEdits(placement) {
+  const keys = Object.values(RIM_STRIP_WIDTHS).flatMap((w) => [w.key, w.inner, w.outer]);
+  return Object.fromEntries(keys.filter((k) => Number.isFinite(placement?.[k])).map((k) => [k, placement[k]]));
+}
+
+/** Whether two placements give the same belts side for side; an absent width is the standard, so {} equals the profile's own. */
+export function sameBelts(a, b) {
+  return RIM_STRIP_IDS.every((id) => { const x = beltOf(a, id), y = beltOf(b, id); return x.inner === y.inner && x.outer === y.outer; });
+}
+
+/**
+ * The zone-graph node a Rim-tab node is shown by in 3D: the Rim line itself, or for a belt the node its OUTPUT is wired
+ * to - what the engine actually uses, since step 7.3 lets the output take other faces (Fable, 2026-11-24). null: none.
+ */
+export function rimTabTarget(id, graph) {
+  if (id === 'RIM') return 'RIM';
+  const out = { RIMBAND: 'rim_band', LOWRIMBAND: 'low_rim_band' }[id];
+  return out ? graph?.outputs?.[out] ?? null : null;
+}
+
 /**
  * The standard spacing of the tips along the rim line: the shipped denture's `downPitchMm`, which an unset
  * `dentalRimPitchMm` inherits (engine `profile.rs` `dental_rim_pitch`). `nodeGraph.test.ts` fails if it drifts.
@@ -741,7 +793,7 @@ export const RIM_PLACEMENT = {
 /** A belt that covers nothing (0 on both sides), as the engine refuses it (`profile.rs` check_placement), or null. */
 export function beltProblem(placement, id) {
   const { inner, outer } = beltOf(placement, id);
-  return inner === 0 && outer === 0 ? `${id === 'RIMBAND' ? 'the rim belt' : 'the low rim belt'} is 0 mm on both sides - it would cover nothing` : null;
+  return inner === 0 && outer === 0 ? `the ${RIM_BELTS[id].short} is 0 mm on both sides - it would cover nothing` : null;
 }
 
 /** A Rim-tab profile number the profile could not take, or null. A key the tab does not set is a problem too. */
@@ -775,7 +827,7 @@ function rimFields(kind, id, graph, placement) {
   // THE BELT (owner 2026-11-23): two widths from the rim line, one per side, where there was one width and a side
   // dropdown. Each side's standard is the symmetric width, so an untouched belt is today's strip; 0 = nothing that side.
   const belt = beltOf(placement, id);
-  const name = id === 'RIMBAND' ? 'rim belt' : 'low rim belt';
+  const name = RIM_BELTS[id].short;
   const sideFields = [
     { key: width.inner, label: 'inner width (mm) - fitting surface', help: `How far the ${name} reaches from the rim line on the inner side, the fitting surface, along the surface. 0 = no belt on that side. Standard ${belt.both} mm, the same as the outer side. 0 to 20.`,
       value: belt.inner, standard: belt.both, target: 'placement' },
@@ -839,8 +891,8 @@ export function rimOutputLines(kind, ctx = {}) {
   const stripTips = strip === undefined ? `rim tips at ${linePitch} mm over the whole belt` : strip === 0 ? 'the rest of the belt gets the supported area\'s tips' : `the rest of the belt a ${strip} mm grid`;
   return [
     `Rim line - ${rim.source === 'flatEdge' ? 'the edge of the flat area the part stands on' : 'the lowest edge, found'} (a rim drawn for one case in the app replaces it); tips every ${linePitch} mm along it`,
-    `Rim belt - ${width('RIMBAND')}${ranNote('RIMBAND')}; ${stripTips}`,
-    `Low rim belt - ${width('LOWRIMBAND')}${ranNote('LOWRIMBAND')}`,
+    `${RIM_BELTS.RIMBAND.title} - ${width('RIMBAND')}${ranNote('RIMBAND')}; ${stripTips}`,
+    `${RIM_BELTS.LOWRIMBAND.title} - ${width('LOWRIMBAND')}${ranNote('LOWRIMBAND')}; places no tips, lets a lowest point keep its tip`,
     'Rim plane - fitted through the rim line',
     'Rim crossing - where the rim plane meets the symmetry plane: the cavity rays start here',
   ];

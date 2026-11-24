@@ -4,6 +4,7 @@ import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
   ALIGNER_KINDS, OLD_KINDS, RIM_DERIVED_REASON, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, rimTabGraph, rimTabView,
   setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines, FLAT_EDGE_NEEDS_BASE, sameGraph, RIM_LINE_PITCH_MM, placementProblem, fixedParam, beltOf, beltProblem,
+  wordsOf, RIM_BELTS, RIM_TAB_KINDS, rimTabTarget, beltEdits, sameBelts,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -97,8 +98,39 @@ describe('the rim strips say the width the engine actually uses', () => {
     const read = (key: string) => Number(new RegExp(`"${key}\\\\?":\\s*([0-9.]+)`).exec(profile)?.[1]);
     expect(read('rimBandMm')).toBe(RIM_STRIP_MM.rim_band);
     expect(read('lowRimBandMm')).toBe(RIM_STRIP_MM.low_rim_band);
-    expect(OUTPUT_WORDS.rim_band.says).toContain(`profile's rim strip width (${RIM_STRIP_MM.rim_band} mm by default)`);
-    expect(OUTPUT_WORDS.low_rim_band.says).toContain(`profile's low rim strip width (${RIM_STRIP_MM.low_rim_band} mm by default)`);
+    expect(OUTPUT_WORDS.rim_band.says).toContain(`${RIM_STRIP_MM.rim_band} mm each side of the rim line (widths set on 2 Rim)`);
+    expect(OUTPUT_WORDS.low_rim_band.says).toContain(`${RIM_STRIP_MM.low_rim_band} mm each side of the rim line (widths set on 2 Rim)`);
+  });
+});
+
+/* Owner 2026-11-24: three "Grow a strip" boxes for three different jobs. Each rim belt is named by the output it fills,
+   with the same name on 2 Rim, on the Zones canvas and on the output socket (Fable: never two names for one belt). */
+describe('the rim belts are named by their job', () => {
+  const g = defaultGraph();
+  const of = (id: string) => g.nodes.find((n) => n.id === id)!;
+  it('names the hole strip by its kind and each wired rim belt by its output, the same on every tab', () => {
+    expect(wordsOf(of('BAND'), g).title).toBe('Grow a strip');
+    for (const [id, out, kind] of [['RIMBAND', 'rim_band', 'rimStrip'], ['LOWRIMBAND', 'low_rim_band', 'lowRimStrip']] as const) {
+      expect(wordsOf(of(id), g).title).toBe(RIM_BELTS[id].title);
+      expect(OUTPUT_WORDS[out].title).toBe(RIM_BELTS[id].title);
+      expect(rimTabView('denture').find((n) => n.id === id)!.title).toBe(RIM_BELTS[id].title);
+      expect(RIM_TAB_KINDS[kind].label).toBe(RIM_BELTS[id].title);
+    }
+    expect(RIM_BELTS.LOWRIMBAND.says).toContain('places no tips');
+  });
+  it('tells the Rim tab\'s live preview which node to show and whether the belts differ from the run', () => {
+    expect(rimTabTarget('RIM', g)).toBe('RIM');
+    expect(rimTabTarget('LOWRIMBAND', g)).toBe('LOWRIMBAND');
+    expect(rimTabTarget('RIMBAND', { ...g, outputs: { ...g.outputs, rim_band: 'BAND' } })).toBe('BAND');
+    expect(rimTabTarget('RIMPLANE', g)).toBeNull();
+    expect(beltEdits({ rimBandOuterMm: 0, dentalRimPitchMm: 3 })).toEqual({ rimBandOuterMm: 0 });
+    // The profile's own numbers are the standard: a run on them and an untouched page are the same belts.
+    expect(sameBelts({ rimBandMm: RIM_STRIP_MM.rim_band, lowRimBandMm: RIM_STRIP_MM.low_rim_band }, {})).toBe(true);
+    expect(sameBelts(null, { rimBandOuterMm: 0 })).toBe(false);
+  });
+  it('gives a rim belt not wired to its output a neutral name, since that output may take other faces', () => {
+    const rewired = { ...g, outputs: { ...g.outputs, rim_band: 'BAND' } };
+    expect(wordsOf(of('RIMBAND'), rewired).title).toBe('Rim belt');
   });
 });
 
@@ -400,7 +432,7 @@ describe('the rim tab', () => {
     expect(lines[1]).toContain('3 mm');
     const bad = rimTabView('denture', { graph: setParam(defaultGraph(), 'RIM', 'binDeg', 15), placement: { lowRimBandMm: 0 } });
     expect(bad.find((n) => n.id === 'RIM')!.problems).toContain('RIM: binDeg must be between 1 and 10, got 15');
-    expect(bad.find((n) => n.id === 'LOWRIMBAND')!.problems).toEqual(['the low rim belt is 0 mm on both sides - it would cover nothing']);
+    expect(bad.find((n) => n.id === 'LOWRIMBAND')!.problems).toEqual(['the low-point belt is 0 mm on both sides - it would cover nothing']);
     expect(validate(setParam(defaultGraph(), 'RIM', 'source', 'edge')).problems).toContain('RIM: "source" must be finder or flatEdge, got "edge"');
   });
 
@@ -412,8 +444,8 @@ describe('the rim tab', () => {
     expect(rimTabView('denture', { graph, standsOnFlatArea: true }).find((n) => n.id === 'RIM')!.problems).toEqual([]);
     expect(rimTabView('denture', { standsOnFlatArea: false }).find((n) => n.id === 'RIM')!.problems).toEqual([]);
     const lines = rimOutputLines('denture', { placement: {}, ran: { rimBandMm: 3, lowRimBandMm: 5 } });
-    expect(lines[1]).toBe('Rim belt - 2 mm each side of the rim line (the run on screen used 3 mm each side of the rim line); rim tips at 2 mm over the whole belt');
-    expect(lines[2]).toBe('Low rim belt - 5 mm each side of the rim line');
+    expect(lines[1]).toBe('Rim tips belt - 2 mm each side of the rim line (the run on screen used 3 mm each side of the rim line); rim tips at 2 mm over the whole belt');
+    expect(lines[2]).toBe('Low-point belt - 5 mm each side of the rim line; places no tips, lets a lowest point keep its tip');
   });
 
   // Owner 2026-11-23: "why strip width is locked?" - the hole strip's is not any more; a rim strip's stays the profile's.
@@ -453,10 +485,10 @@ describe('the rim tab', () => {
     expect(beltOf({ rimBandMm: 3, rimBandOuterMm: 0 }, 'RIMBAND')).toEqual({ inner: 3, outer: 0, both: 3 });
     const placement = { rimBandInnerMm: 3, rimBandOuterMm: 0 };
     const belt = rimTabView('denture', { placement }).find((n) => n.id === 'RIMBAND')!;
-    expect(belt.title).toBe('Rim belt');
+    expect(belt.title).toBe('Rim tips belt');
     expect(belt.fields.slice(0, 2).map((f) => [f.key, f.value])).toEqual([['rimBandInnerMm', 3], ['rimBandOuterMm', 0]]);
     expect(belt.problems).toEqual([]);
-    expect(rimOutputLines('denture', { placement })[1]).toContain('Rim belt - inner 3 mm, outer 0 mm from the rim line');
+    expect(rimOutputLines('denture', { placement })[1]).toContain('Rim tips belt - inner 3 mm, outer 0 mm from the rim line');
     expect(beltProblem({ lowRimBandInnerMm: 0, lowRimBandOuterMm: 0 }, 'LOWRIMBAND')).toContain('cover nothing');
     expect(placementProblem('rimBandInnerMm', 25)).toBe('rimBandInnerMm must be 0 to 20 mm, got 25');
   });

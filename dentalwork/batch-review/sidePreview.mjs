@@ -88,12 +88,50 @@ export function turnFor(sides, ran, now) {
   const rotation = [0, 1, 2].flatMap((i) => [0, 1, 2].map((j) => t[0][i] * f[0][j] + t[1][i] * f[1][j] + t[2][i] * f[2][j]));
   const identity = rotation.every((v, k) => Math.abs(v - (k % 4 === 0 ? 1 : 0)) < 1e-9);
   if (identity) return null;
-  const centre = [0, 1, 2].map((i) => (at.Front[i] + at.Back[i] + at['Teeth side'][i] + at['Tissue side'][i] + at.Left[i] + at.Right[i]) / 6);
-  return { rotation, centre };
+  return { rotation, centre: centreOf(at) };
 }
 
 /** True when the labels now say something the run did not: the canvas's side choices differ from the run's. */
 export function choicesChanged(ran, now) {
   if (!ran || !now) return false;
   return ran.front !== now.front || ran.teethSide !== now.teethSide || ran.plate !== now.plate || ran.leanToward !== now.leanToward;
+}
+
+/**
+ * THE REST POSE ON THE ORIENT TAB (owner 2026-11-24: "in orient tab, it should not tilt or rotate to print angle becuz i
+ * fail to know plate side preview in orient. print angle should base 0 degree on the orient rest position"). The run's
+ * file is in the PRINT pose: the part stands on its plate side, then leans by the print angle. The angle is already
+ * measured from the rest pose (case-001 of the 2026-11-23 bench run: Front 10.00 deg off vertical at a 10 deg print
+ * angle), so only the view needs undoing: the smallest turn taking the plate side's direction (`plateName`, one of
+ * SIDE_LABELS' values) to `down`, about the part's centre. Same shape as `turnFor`'s answer; null when there is nothing
+ * to undo - no lean, a missing label, or no plate side (the flat-base recipe).
+ */
+export function restTurn(sides, plateName, down = [0, -1, 0]) {
+  if (!plateName || !OPPOSITE[plateName] || !Array.isArray(sides)) return null;
+  const at = Object.fromEntries(sides.map((s) => [s.name, s.position]));
+  if (Object.keys(OPPOSITE).some((name) => !at[name])) return null;
+  const a = unit(sub(at[plateName], at[OPPOSITE[plateName]]));
+  const c = a[0] * down[0] + a[1] * down[1] + a[2] * down[2];
+  // Already down: nothing to undo. Straight up cannot happen (the print-angle search stops at 45 deg) and has no
+  // single smallest turn, so it is refused rather than guessed.
+  if (c > 1 - 1e-9 || c < -1 + 1e-6) return null;
+  // Rodrigues for unit a -> unit b: R = I + [v]x + [v]x^2 / (1 + c), v = a x b.
+  const v = cross(a, down);
+  const k = [[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]];
+  const rotation = [0, 1, 2].flatMap((i) => [0, 1, 2].map((j) =>
+    (i === j ? 1 : 0) + k[i][j] + (k[i][0] * k[0][j] + k[i][1] * k[1][j] + k[i][2] * k[2][j]) / (1 + c)));
+  return { rotation, centre: centreOf(at) };
+}
+
+/** `first` then `then` as one turn (row-major 3x3s about the same centre: both come from the same six labels); either may be null. */
+export function composeTurns(first, then) {
+  if (!first || !then) return first ?? then ?? null;
+  const [f, t] = [first.rotation, then.rotation];
+  const rotation = [0, 1, 2].flatMap((i) => [0, 1, 2].map((j) => t[i * 3] * f[j] + t[i * 3 + 1] * f[3 + j] + t[i * 3 + 2] * f[6 + j]));
+  return { rotation, centre: first.centre };
+}
+
+/** The point the part turns about: the middle of its six side labels. */
+function centreOf(at) {
+  return [0, 1, 2].map((i) => (at.Front[i] + at.Back[i] + at['Teeth side'][i] + at['Tissue side'][i] + at.Left[i] + at.Right[i]) / 6);
 }
