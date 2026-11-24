@@ -7,7 +7,8 @@
  * centring), because the viewer tints the review GLB's model by face index: one face more or less and every tint lands
  * on the wrong face. The viewer still checks the face count before drawing.
  *
- * Arguments: --source <stl> --out <dir> [--graph <json file>] [--steep <deg>]. Writes <out>/zone-preview.json
+ * Arguments: --source <stl> --out <dir> [--graph <json file>] [--steep <deg>]; with the Rim tab's belt widths, env
+ * MIXO_TYPE_ID + MIXO_PLACEMENT_FILE + MIXO_ZONE_GRAPH_FILE in place of --graph (typeInForce.ts). Writes <out>/zone-preview.json
  * ({ ids, faces, bin, seconds }) and <out>/zone-preview.bin (the values, node after node). Exit 2 when the engine
  * refuses the graph, with the reason on stderr.
  */
@@ -17,6 +18,7 @@ import { removeDegenerateTriangles } from '@mixo-geocore/host/core/removeDegener
 import { setZoneGraph, ZoneGraphRefused, zoneNodesOf } from '@mixo-geocore/host/dental/zoneGraph';
 import { nodeEngine, parseStl, useNodeEngine } from '../../scripts/node-engine';
 import { reviewProfileId } from './profileSelect';
+import { putInForce, typeOfRun } from './typeInForce';
 
 // The dental engine in this process is the node build, as the batch's own review uses (scripts/dental-region-review).
 useNodeEngine();
@@ -33,13 +35,16 @@ if (cleaned.removed > 0) mesh.indices = cleaned.indices;
 nodeEngine.center_positions_in_place(mesh.positions);
 const graphFile = arg('--graph');
 try {
-  setZoneGraph(graphFile ? JSON.parse(readFileSync(graphFile, 'utf8')) : null);
+  // THE RIM TAB'S BELT WIDTHS (owner 2026-11-24: the Rim tab needs a live 3D preview): sent as a draft type, registered
+  // and put in force exactly as batch.ts and tiltPreviewRun.ts do, so the belts grow at the page's widths and
+  // reviewProfileId below names that draft. Without a draft the graph is set as before, on the built-in profile.
+  const type = typeOfRun('denture', process.env);
+  if (type) putInForce(type, process.env);
+  else setZoneGraph(graphFile ? JSON.parse(readFileSync(graphFile, 'utf8')) : null);
 } catch (error) {
-  process.stderr.write(`The zone graph was refused: ${error instanceof ZoneGraphRefused ? error.detail : (error as Error).message}\n`);
+  process.stderr.write(`The zone graph was refused: ${error instanceof ZoneGraphRefused ? error.detail : (error as { detail?: string }).detail ?? (error as Error).message}\n`);
   process.exit(2);
 }
-// The built-in denture profile: a draft type's own numbers (the strip widths) are registered only inside a run, so the
-// preview says so on the page rather than pretending to use them.
 const nodes = zoneNodesOf(mesh, reviewProfileId('denture'), Number(arg('--steep') ?? 0));
 const faces = mesh.indices.length / 3;
 writeFileSync(join(out, 'zone-preview.bin'), Buffer.concat(nodes.map((n) => Buffer.from(n.values.buffer, n.values.byteOffset, n.values.byteLength))));

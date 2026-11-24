@@ -10,7 +10,7 @@
  * The aligner's tab has no fields: its graph is locked. Dragging a card only moves it (layout is not meaning).
  */
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { Background, Controls, Handle, Position, ReactFlow, applyNodeChanges, type Edge, type Node, type NodeChange, type NodeProps } from '@xyflow/react';
+import { Background, Controls, Handle, Position, ReactFlow, applyNodeChanges, useStore, type Edge, type Node, type NodeChange, type NodeProps } from '@xyflow/react';
 import { MeasureWhenReady, type Positions } from './ZoneEditor';
 
 /** One editable field on a rim-tab node (`nodeGraph.mjs` rimFields): where its edit goes is `target`. */
@@ -24,6 +24,8 @@ export interface RimCanvasProps {
   output?: string[];
   /** An edit to a field (C3); `value` null restores the standard. Absent: the tab is read-only, as the aligner's. */
   onField?(nodeId: string, field: RimField, value: string | number | null): void;
+  /** The one node selected (null for none or several), for the 3D preview of its line or belt - as ZoneEditor's. */
+  onSelect?(id: string | null): void;
 }
 
 /** The fields of one node: a dropdown for a choice, a number box otherwise, each with its restore mark when changed. */
@@ -104,16 +106,38 @@ function RimNode({ data }: NodeProps<Node<{ n: RimTabNode; onField?: RimCanvasPr
 const nodeTypes = { rim: RimNode, rimOutput: OutputCard };
 const OUTPUT = 'rim-output';
 
+/**
+ * Hands the cards' heights to the layout, measured in the page. React Flow's own `measured` stayed empty on this
+ * canvas - in its store and in the controlled nodes alike (checked in the page 2026-11-24) - so the layout reads each
+ * card's offsetHeight, which ignores the canvas zoom, and again whenever a card resizes (a field's problem appears).
+ */
+function ReportHeights({ ids, onHeights }: { ids: string; onHeights(heights: Record<string, number>): void }) {
+  const dom = useStore((s) => s.domNode);
+  useEffect(() => {
+    if (!dom) return undefined;
+    const cards = () => [...dom.querySelectorAll<HTMLElement>('.react-flow__node')];
+    const read = () => onHeights(Object.fromEntries(cards().map((el) => [el.dataset.id ?? '', el.offsetHeight] as const).filter(([id, h]) => id && h > 0)));
+    const watch = new ResizeObserver(read);
+    for (const el of cards()) watch.observe(el);
+    read();
+    return () => watch.disconnect();
+  }, [dom, ids, onHeights]);
+  return null;
+}
+
 const COL = 250;
-// 190 since C3 gave the strips a width field: at 150 the rim strip's card ran into the low rim strip's below it.
+// The row height before the cards are measured, and the gap kept between measured cards.
 const ROW = 190;
+const GAP = 24;
 
 /**
  * One column per depth, and each node on the row of its first input when that row is free in its column - so a chain
- * (rim plane -> rim crossing) runs straight across instead of climbing. Rows are 190 px, not the zone editor's 210:
- * the strip cards hold one field each, and the zone editor's spacing zoomed the fitted canvas out to unreadable text.
+ * (rim plane -> rim crossing) runs straight across instead of climbing. A node is placed at its row's height or just
+ * below the card above it in its column, whichever is lower, using `heights` (the cards' measured heights): a fixed
+ * row could not hold the rim tips belt, whose four fields made it 351 px tall and ran it into the low-point belt
+ * below (owner 2026-11-24, "the interface is bad"). Unmeasured cards count as ROW - GAP tall.
  */
-export function layoutRimTab(view: RimTabNode[]): Positions {
+export function layoutRimTab(view: RimTabNode[], heights: Record<string, number> = {}): Positions {
   const depth = new Map<string, number>();
   const depthOf = (id: string, seen = new Set<string>()): number => {
     if (depth.has(id)) return depth.get(id)!;
@@ -135,11 +159,25 @@ export function layoutRimTab(view: RimTabNode[]): Positions {
     taken.set(col, used);
     row.set(n.id, r);
   }
-  return Object.fromEntries(view.map((n) => [n.id, { x: depthOf(n.id) * COL, y: (row.get(n.id) ?? 0) * ROW }]));
+  // Column by column, down each in row order: a card starts level with its first input (already placed - it is in an
+  // earlier column), so a chain still runs straight across, but never above the bottom of the card before it.
+  const y = new Map<string, number>();
+  for (const col of [...new Set(view.map((n) => depthOf(n.id)))].sort((a, b) => a - b)) {
+    let bottom = -GAP;
+    for (const n of view.filter((m) => depthOf(m.id) === col).sort((a, b) => row.get(a.id)! - row.get(b.id)!)) {
+      const level = n.inputs.length > 0 ? y.get(n.inputs[0]![1]) : undefined;
+      const top = Math.max(level ?? row.get(n.id)! * ROW, bottom + GAP);
+      y.set(n.id, top);
+      bottom = top + (heights[n.id] ?? ROW - GAP);
+    }
+  }
+  return Object.fromEntries(view.map((n) => [n.id, { x: depthOf(n.id) * COL, y: y.get(n.id) ?? 0 }]));
 }
 
-export function RimCanvas({ view, output = [], onField }: RimCanvasProps) {
-  const positions = useMemo(() => layoutRimTab(view), [view]);
+export function RimCanvas({ view, output = [], onField, onSelect }: RimCanvasProps) {
+  // The cards' measured heights, once React Flow has measured them: the layout stacks by them (layoutRimTab).
+  const [heights, setHeights] = useState<Record<string, number>>({});
+  const positions = useMemo(() => layoutRimTab(view, heights), [view, heights]);
   // The output card sits one column right of the rightmost node, on the first row.
   const outputAt = useMemo(() => ({ x: Math.max(0, ...Object.values(positions).map((p) => p.x)) + COL, y: 0 }), [positions]);
   const derived = useMemo<Node[]>(() => [
@@ -150,9 +188,12 @@ export function RimCanvas({ view, output = [], onField }: RimCanvasProps) {
   // view without carrying it drops the size, and wires have no handle positions to draw from.
   const [nodes, setNodes] = useState<Node[]>(derived);
   useEffect(() => {
-    setNodes((prev) => derived.map((n) => ({ ...n, measured: prev.find((p) => p.id === n.id)?.measured })));
+    // The selection rides along too: a belt width edit redraws the view, and dropping `selected` there deselected the
+    // belt - and took its 3D preview away - at the very moment the edit should show on the model.
+    setNodes((prev) => derived.map((n) => { const was = prev.find((p) => p.id === n.id); return { ...n, measured: was?.measured, selected: was?.selected }; }));
   }, [derived]);
   const onNodesChange = useCallback((changes: NodeChange[]) => setNodes((ns) => applyNodeChanges(changes, ns)), []);
+  const onHeights = useCallback((next: Record<string, number>) => setHeights((was) => (JSON.stringify(was) === JSON.stringify(next) ? was : next)), []);
   const edges = useMemo<Edge[]>(() => [
     ...view.flatMap((n) => n.inputs.map(([name, from]) => ({
       id: `${from}->${n.id}.${name}`, source: from, sourceHandle: 'out', target: n.id, targetHandle: name,
@@ -171,12 +212,14 @@ export function RimCanvas({ view, output = [], onField }: RimCanvasProps) {
       onNodesChange={onNodesChange}
       nodesConnectable={false}
       deleteKeyCode={null}
+      onSelectionChange={({ nodes: picked }) => onSelect?.(picked.length === 1 && picked[0]!.id !== OUTPUT ? picked[0]!.id : null)}
       fitView
       fitViewOptions={fit}
       minZoom={0.2}
       proOptions={{ hideAttribution: false }}
     >
       <MeasureWhenReady ids={nodes.map((n) => n.id).join(',')} />
+      <ReportHeights ids={nodes.map((n) => n.id).join(',')} onHeights={onHeights} />
       <Background />
       <Controls showInteractive={false} fitViewOptions={fit} />
     </ReactFlow>

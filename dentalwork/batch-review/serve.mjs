@@ -240,11 +240,17 @@ function runPreview(kind, request, response, prepare) {
     });
   });
 }
-const zonePreview = (request, response) => runPreview('zone', request, response, (ask, out) => ({
-  script: 'zonePreviewRun.ts', meta: 'zone-preview.json',
-  args: [...(ask?.zoneGraph && typeof ask.zoneGraph === 'object' ? ['--graph', fileOf(out, 'zone-graph.json', ask.zoneGraph)] : []),
-    ...(Number.isFinite(ask?.steepDeg) ? ['--steep', String(ask.steepDeg)] : [])],
-}));
+const zonePreview = (request, response) => runPreview('zone', request, response, (ask, out) => {
+  const graph = ask?.zoneGraph && typeof ask.zoneGraph === 'object' ? fileOf(out, 'zone-graph.json', ask.zoneGraph) : null;
+  // The Rim tab's belt widths (RIM_PLACEMENT keys only, as /tilt-preview checks them) make the preview a draft type.
+  const placement = Object.fromEntries(Object.entries(ask?.placement && typeof ask.placement === 'object' ? ask.placement : {}).filter(([k, v]) => k in RIM_PLACEMENT && Number.isFinite(v)));
+  const draft = Object.keys(placement).length > 0;
+  return {
+    script: 'zonePreviewRun.ts', meta: 'zone-preview.json',
+    args: [...(graph && !draft ? ['--graph', graph] : []), ...(Number.isFinite(ask?.steepDeg) ? ['--steep', String(ask.steepDeg)] : [])],
+    env: draft ? { MIXO_TYPE_ID: 'preview', MIXO_PLACEMENT_FILE: fileOf(out, 'placement.json', placement), ...(graph ? { MIXO_ZONE_GRAPH_FILE: graph } : {}) } : {},
+  };
+});
 const tiltPreview = (request, response) => runPreview('tilt', request, response, (ask, out) => {
   // The same names and the same checks as /rerun: a rule name is a plain identifier (packRules refuses an unknown one
   // with its name), the search keys are tilt*Deg, the placement keys are the Rim tab's (RIM_PLACEMENT).

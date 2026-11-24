@@ -95,9 +95,11 @@ if (!type && process.env.MIXO_ORIENT_GRAPH_FILE) {
 // The rim strip widths this run used, from the type in force (a draft with the Rim tab's edits, or a saved type), so
 // the review page can say when its Rim tab shows other numbers than the run on screen (Fable's review). null = the
 // built-in profile's own.
-const placementOf = (profile: Record<string, unknown>) => profile.placement as { rimBandMm: number; lowRimBandMm: number } | undefined;
-const typePlacement = type?.category === 'denture' ? placementOf(type.profile) : undefined;
-const placementRan = typePlacement ? { rimBandMm: typePlacement.rimBandMm, lowRimBandMm: typePlacement.lowRimBandMm } : null;
+// The belts' inner and outer widths ride along when set (2026-11-24): without them a run with a one-sided belt read
+// as the standard on the page, and the Rim tab's live preview could not tell it from the edits.
+const BELT_KEYS = ['rimBandMm', 'lowRimBandMm', 'rimBandInnerMm', 'rimBandOuterMm', 'lowRimBandInnerMm', 'lowRimBandOuterMm'] as const;
+const typePlacement = type?.category === 'denture' ? type.profile.placement as Record<string, unknown> | undefined : undefined;
+const placementRan = typePlacement ? Object.fromEntries(BELT_KEYS.filter((k) => typeof typePlacement[k] === 'number').map((k) => [k, typePlacement[k]])) : null;
 
 const rows: CaseRow[] = [];
 for (const [k, file] of files.entries()) {

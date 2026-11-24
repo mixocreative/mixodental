@@ -195,6 +195,7 @@
 .deg-figure .up { stroke: var(--muted); stroke-dasharray: 3 2; }
 .deg-figure .lean, .deg-figure .arc { stroke: var(--red); fill: none; stroke-width: 1.5; }
 .deg-figure text { font-size: 11px; fill: var(--muted); }
+.deg-figure text.side { fill: var(--ink); font-weight: 600; }
 /* The zone editor. */
 .zone-status { font-size: 12px; padding: 5px 8px; border-radius: 4px; margin: 8px 0 6px; }
 .zone-status.default { background: var(--surface); border: 1px solid var(--line); }
@@ -656,6 +657,9 @@ pmrem.dispose();
 const SUPPORT_KEYS = ['GOLD', 'ORANGE', 'SUPPORT PILLARS', 'Tips: dental rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out', 'YOUR SUPPORTS'];
 // The pillar layers: they hide below the floor (under the raft); tips stay.
 const PILLAR_KEYS = ['GOLD', 'SUPPORT PILLARS', 'YOUR SUPPORTS'];
+/* What belongs to the LEANING print pose, hidden while the Orient tab shows the part at rest: the supports, and the
+   build plate drawn at the print angle (it would stand tilted under an upright part). */
+const LEANING_KEYS = [...SUPPORT_KEYS, 'Print tilt'];
 // The denture box centre's label, pinned to the sphere (set in show()).
 const boxLabel = document.getElementById('box-label');
 let boxAnchor = null;
@@ -724,8 +728,8 @@ document.querySelectorAll('[data-view]').forEach((button) => button.addEventList
 function applyVisibility() {
   model?.traverse((object) => {
     const key = object.name && keyOf(object.name);
-    if (key) object.visible = isShown(key) && !(underside && PILLAR_KEYS.includes(key)) && !(zoneOverlay && ZONE_LAYER_KEYS.includes(key)) && !(orientTurn && SUPPORT_KEYS.includes(key))
-      && !(tiltOverlay && OUR_SUPPORT_KEYS.includes(key));
+    if (key) object.visible = isShown(key) && !(underside && PILLAR_KEYS.includes(key)) && !(zoneOverlay && ZONE_LAYER_KEYS.includes(key)) && !(orientTurn && SUPPORT_KEYS.includes(key)) && !(orientRest && LEANING_KEYS.includes(key))
+      && !(tiltOverlay && OUR_SUPPORT_KEYS.includes(key)) && !(isolatedKeys && !isolatedKeys.includes(key));
   });
 }
 
@@ -942,6 +946,10 @@ let ranZoneGraphJson = null;
 let ranOrientGraphJson = null;
 /* The live turn on the Orient tab (sidePreview.mjs turnFor), or null: the model stands as the run put it. */
 let orientTurn = null;
+/* The Orient tab's rest pose (turnModel, sidePreview.mjs restTurn), or null; its supports hide while it is on. */
+let orientRest = null;
+const orientRestNote = Object.assign(document.createElement('div'), { className: 'chain-note orient-rest-note', hidden: true });
+orientRestNote.dataset.ui = 'orient-rest-note';
 /* The strip widths the run on screen used (summary `placementRan`, null = the profile's own). */
 let ranPlacement = null;
 let sidePreviewLib = null;
@@ -956,6 +964,15 @@ let livePreviewTimer = null;
 let livePreviewSeq = 0;
 let zoneSelected = null;
 let zoneOverlay = null;
+/* THE SELECTION, ISOLATED (owner 2026-11-24: "when a node is selected, only those selected nodes got shown on 3d space
+   ... only then i know what i m looking at"): while a selected node's overlay is drawn, only these layer keys show -
+   the model, plus the run's rim line when the selection is a line rather than faces (Fable: or the model goes blank).
+   Tips, pillars, the owner's supports, the run's strips and zone layers hide; the legend's boxes are left as they were,
+   so deselecting brings back exactly what was on. null = nothing isolated. One node at a time: several selected
+   masks would share one colour and fight for the same surface (Fable, 2026-11-24). */
+let isolatedKeys = null;
+/* The node selected on 2 Rim (RIM, RIMBAND, LOWRIMBAND, ...), shown on the model by showZonePreview, or null. */
+let rimSelected = null;
 let previewLib = null;
 const zonePreviewNote = Object.assign(document.createElement('div'), { className: 'chain-note zone-preview-note' });
 zonePreviewNote.dataset.ui = 'zone-preview-note';
@@ -1259,9 +1276,18 @@ function searchCard() {
   const [ax1, ay1] = ray(s.endDeg, 44);
   const picked = caseNow?.printAngleDeg;
   const [px, py] = ray(picked ?? 0, 92);
+  // Owner 2026-11-24: "print angle search node should also mark front and back just so we are clear". The side on the
+  // plate and the side on top, as the run's Orient named them (the standard: Back on the plate, Front on top); none for
+  // the flat-base recipe, which names no sides.
+  const sides = sidePreviewLib?.sideChoices(ranOrientGraphJson ?? orientLib?.defaultGraph());
+  const OTHER = { back: 'front', front: 'back', teeth: 'tissue', tissue: 'teeth', left: 'right', right: 'left' };
+  const sideMarks = sides
+    // The top name sits LEFT of the upright line, out of the way of the lean lines that fan out to its right.
+    ? `<text x="55" y="34" text-anchor="end" class="side">${sidePreviewLib.SIDE_LABELS[OTHER[sides.plate]]}</text><text x="8" y="125" class="side">${sidePreviewLib.SIDE_LABELS[sides.plate]} on the plate</text>`
+    : '';
   fig.innerHTML = `<svg viewBox="0 0 260 128" role="img" aria-label="Print angle: 0 degrees upright, search to ${s.endDeg} degrees${picked == null ? '' : `, picked ${picked} degrees`}">`
     + '<line x1="8" y1="112" x2="252" y2="112" class="plate"/><text x="160" y="125">build plate</text>'
-    + `<line x1="60" y1="112" x2="60" y2="16" class="up"/><text x="48" y="12">0°</text>`
+    + `<line x1="60" y1="112" x2="60" y2="16" class="up"/><text x="48" y="12">0°</text>${sideMarks}`
     + (s.startDeg > 0 ? (() => { const [sx, sy] = ray(s.startDeg, 92); return `<line x1="60" y1="112" x2="${sx}" y2="${sy}" class="up"/><text x="${Number(sx) + 4}" y="${sy}">${s.startDeg}°</text>`; })() : '')
     + `<line x1="60" y1="112" x2="${ex}" y2="${ey}" class="up"/><text x="${Number(ex) + 4}" y="${ey}">${s.endDeg}°</text>`
     + `<path d="M${ax0} ${ay0} A44 44 0 0 1 ${ax1} ${ay1}" class="arc"/>`
@@ -1339,6 +1365,8 @@ function searchCard() {
 /** The stage tabs and whichever stage is chosen. */
 function drawChain(present, names) {
   lastChain = [present, names];
+  // The model's pose depends on the stage (the Orient tab shows it at rest), and every stage change comes through here.
+  turnModel();
   const section = document.getElementById('chain');
   const tabs = document.getElementById('stage-tabs');
   const body = document.getElementById('stage-body');
@@ -1369,7 +1397,7 @@ function drawChain(present, names) {
       // Only what this tab and the earlier ones produce (the owner's preview rule): the step walk's cut-off.
       setStep(stage.cut);
       drawChain(present, names);
-      // The per-node overlay belongs to the Zones tab only.
+      // The per-node overlay belongs to the Zones and Rim tabs only.
       showZonePreview();
       // Tabs 4 and 5 preview the page's settings (plan D3); off them their tips come down.
       scheduleTiltPreview();
@@ -1472,7 +1500,7 @@ function drawOrientEditor(body, key = null) {
   };
   if (!orientPositions?.outputs) orientPositions = { ...editorLib.autoLayout(g, []), ...(orientPositions ?? {}) };
   props.positions = orientPositions;
-  body.append(status, bar, orientSideNote, orientCanvasHost);
+  body.append(status, bar, orientRestNote, orientSideNote, orientCanvasHost);
   relabelSides();
   if (orientHandle) orientHandle.update(props);
   else orientHandle = editorLib.mountZoneEditor(orientCanvasHost, props);
@@ -1502,7 +1530,10 @@ function drawRimCanvas(body, kind, key = null) {
   // standsOnFlatArea: the Orient canvas's pose is a Stand on the flat area, the only pose the flat edge can follow.
   const pose = orientGraph?.nodes?.find((n) => n.id === orientGraph.outputs?.pose);
   const ctx = { graph: zoneGraph, placement: placementEdits, ran: ranPlacement, standsOnFlatArea: pose?.kind === 'setBottom' };
-  const props = { kind, view: graphLib.rimTabView(kind, ctx), output: graphLib.rimOutputLines(kind, ctx), onField: kind === 'denture' ? onRimField : undefined };
+  // The denture's tab shows its selected node on the model (showZonePreview) with its note above the canvas.
+  if (kind === 'denture') rimCanvasHost.before(zonePreviewNote);
+  const onSelect = kind === 'denture' ? (id) => { if (id !== rimSelected) { rimSelected = id; showZonePreview(); } } : undefined;
+  const props = { kind, view: graphLib.rimTabView(kind, ctx), output: graphLib.rimOutputLines(kind, ctx), onField: kind === 'denture' ? onRimField : undefined, onSelect };
   if (rimHandle) rimHandle.update(props);
   else rimHandle = editorLib.mountRimCanvas(rimCanvasHost, props);
   return true;
@@ -1530,6 +1561,8 @@ function onRimField(nodeId, field, value) {
   }
   if (lastChain) drawChain(...lastChain);
   scheduleTiltPreview();
+  // The belts' faces change with their widths: preview them on the model (the zone preview, keyed on the widths).
+  scheduleZonePreview();
 }
 
 /**
@@ -1731,7 +1764,7 @@ function zoneCard(g, n, k, idle, save) {
   head.className = 'zone-head';
   const title = document.createElement('span');
   title.className = 'n';
-  const words = graphLib.KIND_WORDS[n.kind];
+  const words = graphLib.wordsOf(n, g);
   title.textContent = `${words.title} · ${n.id}`;
   title.dataset.tipTitle = words.title;
   title.dataset.tip = `${words.says}${n.note ? ` — ${n.note}` : ''}`;
@@ -2150,7 +2183,7 @@ async function show(row) {
     document.getElementById('note').textContent = '';
     // The zone overlay belongs to THIS model: the zone file can land before the GLB, and the overlay it built then was
     // hung on the previous case's model (Fable's review).
-    if (zoneSelected) showZonePreview();
+    if (zoneSelected || rimSelected) showZonePreview();
     // A new model stands as its run put it; the live turn (if the canvas still differs from that run) is re-applied.
     relabelSides();
   }
@@ -2430,16 +2463,20 @@ async function scheduleZonePreview() {
   previewLib ??= await import('./zonePreview.mjs');
   if (!reviewServed || kindNow !== 'denture' || !caseNow?.source || !graphLib) { showZonePreview(); return; }
   const ran = ranZoneGraphJson ? graphLib.upgradeGraph(ranZoneGraphJson) : graphLib.defaultGraph();
-  if (previewLib.sameGraph(ran, zoneGraph) || graphLib.validate(zoneGraph).problems.length > 0) { livePending = false; showZonePreview(); return; }
+  // A width-only edit on 2 Rim previews too (Fable: keyed on the graph AND the widths); a belt covering nothing is not sent.
+  const unchanged = previewLib.sameGraph(ran, zoneGraph) && graphLib.sameBelts(ranPlacement, placementEdits);
+  const refused = graphLib.validate(zoneGraph).problems.length > 0 || graphLib.RIM_STRIP_IDS.some((id) => graphLib.beltProblem(placementEdits, id));
+  if (unchanged || refused) { livePending = false; showZonePreview(); return; }
   livePending = true;
   showZonePreview();
   livePreviewTimer = setTimeout(async () => {
     const seq = ++livePreviewSeq;
     const graph = zoneGraph;
+    const belts = graphLib.beltEdits(placementEdits);
     const c = caseNow;
     const fail = (why) => { if (seq !== livePreviewSeq) return; livePending = false; zonePreviewNote.hidden = false; zonePreviewNote.textContent = `The live preview did not run: ${why}. Apply and run to see the edit.`; };
     try {
-      const reply = await fetch('/zone-preview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ source: c.source, zoneGraph: graph }) });
+      const reply = await fetch('/zone-preview', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ source: c.source, zoneGraph: graph, placement: belts }) });
       const answer = await reply.json().catch(() => ({}));
       if (seq !== livePreviewSeq || caseNow !== c) return;
       if (!reply.ok || !answer.ok) { if (reply.status !== 409) fail(refusalReason(answer.log) ?? answer.error ?? reply.status); return; }
@@ -2447,7 +2484,7 @@ async function scheduleZonePreview() {
       if (seq !== livePreviewSeq || caseNow !== c) return;
       if (!bin || bin.byteLength !== answer.ids.length * answer.faces) { fail('its values did not arrive whole'); return; }
       livePending = false;
-      livePreview = { graph, read: { ids: answer.ids, faces: answer.faces, values: new Uint8Array(bin) }, seconds: answer.seconds };
+      livePreview = { graph, belts, read: { ids: answer.ids, faces: answer.faces, values: new Uint8Array(bin) }, seconds: answer.seconds };
       showZonePreview();
     } catch (error) {
       fail(error.message);
@@ -2553,25 +2590,42 @@ async function showZonePreview() {
   // overlay, or one is orphaned on the model (Fable's review).
   const ticket = ++previewTicket;
   if (zoneOverlay) { zoneOverlay.parent?.remove(zoneOverlay); zoneOverlay.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); zoneOverlay = null; }
+  isolatedKeys = null;
   previewLib ??= await import('./zonePreview.mjs');
   if (ticket !== previewTicket) return;
   const ran = graphLib ? (ranZoneGraphJson ? graphLib.upgradeGraph(ranZoneGraphJson) : graphLib.defaultGraph()) : null;
-  const canvasChanged = Boolean(graphLib && !previewLib.sameGraph(ran, zoneGraph));
-  // THE LIVE PREVIEW (plan D3): when the canvas differs from the run and a preview of THIS canvas has come back, the
-  // values are the preview's; and with nothing selected the final Zone is shown, so an edit shows its effect at once.
-  const live = canvasChanged && livePreview && previewLib.sameGraph(livePreview.graph, zoneGraph) ? livePreview : null;
+  // Edited = the canvas OR the Rim tab's belt widths differ from the run on screen (the widths change the belts' faces).
+  const beltsNow = graphLib ? graphLib.beltEdits(placementEdits) : {};
+  const edited = Boolean(graphLib && (!previewLib.sameGraph(ran, zoneGraph) || !graphLib.sameBelts(ranPlacement, placementEdits)));
+  // THE LIVE PREVIEW (plan D3): when the page differs from the run and a preview of THIS graph and THESE widths has come
+  // back, the values are the preview's (keyed on both, or an old width's preview would pass for current - Fable); and
+  // with nothing selected on Zones the final Zone is shown, so an edit shows its effect at once.
+  const live = edited && livePreview && previewLib.sameGraph(livePreview.graph, zoneGraph) && JSON.stringify(livePreview.belts) === JSON.stringify(beltsNow) ? livePreview : null;
   const read = live ? live.read : zonesRead;
-  const shownId = zoneSelected ?? (live ? zoneGraph.outputs?.zone : null);
-  const active = shownId && stageNow === 'zones' && kindNow === 'denture' && graphLib;
-  zonePreviewNote.hidden = !active && !(canvasChanged && livePending && stageNow === 'zones');
+  // THE RIM TAB (owner 2026-11-24: "rim tab needed to have live preview in 3d"): its selected node is shown by the
+  // zone-graph node it stands for (rimTabTarget) - the same values, the same overlay.
+  const onRim = stageNow === 'rim';
+  const picked = onRim ? (rimSelected && graphLib ? graphLib.rimTabTarget(rimSelected, zoneGraph) : null) : zoneSelected;
+  const shownId = picked ?? (live && !onRim ? zoneGraph.outputs?.zone : null);
+  const active = shownId && (stageNow === 'zones' || onRim) && kindNow === 'denture' && graphLib;
+  zonePreviewNote.hidden = !active && !(edited && livePending && (stageNow === 'zones' || onRim));
   if (!active) {
-    if (!zonePreviewNote.hidden) zonePreviewNote.textContent = 'Previewing your edit on the model (zones only, nothing is built)…';
+    if (!zonePreviewNote.hidden) zonePreviewNote.textContent = onRim ? 'Previewing your edit on the model… select a node to see it.' : 'Previewing your edit on the model (zones only, nothing is built)…';
     applyVisibility();
     return;
   }
   const node = zoneGraph?.nodes.find((n) => n.id === shownId);
-  const title = node ? (graphLib.KIND_WORDS[node.kind]?.title ?? node.kind) : shownId;
+  const title = node ? (graphLib.wordsOf(node, zoneGraph)?.title ?? node.kind) : shownId;
   const gives = graphLib.KINDS[node?.kind]?.out;
+  if (gives === 'rim') {
+    // The Rim line gives a line, not faces: the run's own line layer is shown, alone on the model. A changed Rim setting
+    // is not previewed - the line is found in the run - and the note says so.
+    isolatedKeys = ['DENTURE', 'Dental rim (continuous'];
+    const rimEdited = !previewLib.sameGraph(ran, zoneGraph);
+    zonePreviewNote.textContent = `The rim line, as the run on screen found it (the thick line). Only it is shown on the model; click the empty canvas to see everything again.${rimEdited ? ' Your Rim setting changes show after Apply and run.' : ''}`;
+    applyVisibility();
+    return;
+  }
   const values = previewLib.nodeValues(read, shownId);
   const groups = values && (gives === 'mask' || gives === 'zone') ? previewLib.previewGroups(values, gives === 'zone') : null;
   // The model: the GLB's denture mesh, written with the engine's own face order (reviewCase.ts), so face k is face k.
@@ -2579,15 +2633,15 @@ async function showZonePreview() {
   model?.traverse((o) => { if (!base && o.isMesh && keyOf(o.name) === 'DENTURE') base = o; });
   const index = base?.geometry.index;
   const drawn = Boolean(groups && index && index.count / 3 === read.faces);
-  const note = previewLib.previewNote({ title, groups, hasRead: Boolean(read), canvasChanged: canvasChanged && !live, gives, drawn, final: !zoneSelected });
+  const note = previewLib.previewNote({ title, groups, hasRead: Boolean(read), canvasChanged: edited && !live, gives, drawn, final: !picked });
   zonePreviewNote.textContent = live
-    ? `Live preview of your edit (zones only - nothing is built until Apply; the standard profile's strip widths; ${live.seconds} s). ${note}`
-    : canvasChanged && livePending ? `${note} Previewing your edit…` : note;
+    ? `Live preview of your edit (zones only - nothing is built until Apply; the belt widths on 2 Rim; ${live.seconds} s). ${note}`
+    : edited && livePending ? `${note} Previewing your edit…` : note;
   if (!drawn) { applyVisibility(); return; }
   zoneOverlay = new THREE.Group();
   // A SELECTED face set (a strip, a ray, a combine) glows and has its outline drawn (owner 2026-11-23: "glow it so we
   // know which is the selected node's strip"); the final zone and a Mark keep their steady three colours.
-  const glows = Boolean(zoneSelected) && gives === 'mask';
+  const glows = Boolean(picked) && gives === 'mask';
   const glowing = [];
   for (const group of groups) {
     if (group.faces.length === 0) continue;
@@ -2597,7 +2651,9 @@ async function showZonePreview() {
     geometry.setAttribute('position', base.geometry.getAttribute('position'));
     geometry.setIndex(new THREE.BufferAttribute(ix, 1));
     // Drawn just in front of the model (polygon offset), so the tint sits on the surface it describes.
-    const material = new THREE.MeshBasicMaterial({ color: cssToken(group.token), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, transparent: glows });
+    // depthWrite off for the glowing tint: it sits in front of the surface (polygon offset), and writing its depth would
+    // hide the outline below, which is drawn at the surface's own depth.
+    const material = new THREE.MeshBasicMaterial({ color: cssToken(group.token), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, transparent: glows, depthWrite: !glows });
     zoneOverlay.add(new THREE.Mesh(geometry, material));
     if (glows) {
       glowing.push(material);
@@ -2605,11 +2661,15 @@ async function showZonePreview() {
       const outline = new THREE.BufferGeometry();
       outline.setAttribute('position', base.geometry.getAttribute('position'));
       outline.setIndex(new THREE.BufferAttribute(previewLib.boundaryEdges(index.array, group.faces), 1));
-      zoneOverlay.add(new THREE.LineSegments(outline, new THREE.LineBasicMaterial({ color: cssToken('--ink'), depthTest: false })));
+      // Depth-tested (owner 2026-11-24: "the preview should not see through the model"): it drew with depthTest off,
+      // so the belt's far side showed through the part. The outline lies on the model's own vertices, so it passes the
+      // depth test where its face is visible and is hidden where the part is in front of it.
+      zoneOverlay.add(new THREE.LineSegments(outline, new THREE.LineBasicMaterial({ color: cssToken('--ink') })));
     }
   }
   zoneOverlay.userData.glow = glowing;
   base.add(zoneOverlay);
+  if (picked) isolatedKeys = ['DENTURE'];
   applyVisibility();
 }
 
@@ -2664,9 +2724,19 @@ function relabelSides() {
 /** Puts the model in the live-turn pose (`orientTurn`), or back square; the side labels ride on the model's matrix. */
 function turnModel() {
   if (!model) return;
-  const m = orientTurn?.rotation;
+  // THE REST POSE (sidePreview.mjs restTurn): on 1 Orient the part stands on its plate side without the print angle's
+  // lean, after any live side turn. Worked out here, on every call, because every stage change comes through drawChain,
+  // which calls this - so the rest pose cannot leak onto tabs 2-5, where the supports belong to the leaning pose (Fable).
+  const ranSides = sidePreviewLib?.sideChoices(ranOrientGraphJson ?? orientLib?.defaultGraph());
+  orientRest = stageNow === 'orient' && kindNow === 'denture' && ranSides
+    ? sidePreviewLib.restTurn(orientRead?.sides, sidePreviewLib.SIDE_LABELS[ranSides.plate]) : null;
+  const turn = sidePreviewLib?.composeTurns(orientTurn, orientRest) ?? orientTurn;
+  const angle = caseNow?.printAngleDeg;
+  orientRestNote.hidden = !orientRest;
+  orientRestNote.textContent = `Shown at rest: standing on its plate side, print angle 0°. The print angle${angle == null ? '' : ` (${angle}° for this case)`} leans it from here, on 5 Print angle; its supports show on the other tabs.`;
+  const m = turn?.rotation;
   const q = m ? new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().set(m[0], m[1], m[2], 0, m[3], m[4], m[5], 0, m[6], m[7], m[8], 0, 0, 0, 0, 1)) : new THREE.Quaternion();
-  const centre = new THREE.Vector3(...(orientTurn?.centre ?? [0, 0, 0]));
+  const centre = new THREE.Vector3(...(turn?.centre ?? [0, 0, 0]));
   model.quaternion.copy(q);
   // Turn about the part's centre: p' = q (p - c) + c, so the model's position is c - q c.
   model.position.copy(centre.clone().sub(centre.clone().applyQuaternion(q)));

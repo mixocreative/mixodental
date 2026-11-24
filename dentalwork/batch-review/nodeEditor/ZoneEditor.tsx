@@ -57,6 +57,9 @@ export interface GraphLib {
   REQUIRED_OUTPUTS: Record<string, string>;
   /* The plain words, owned by the model and enforced by its tests: nothing on the canvas is a bare engine name. */
   KIND_WORDS: Record<string, Words>;
+  /* A node's own words where its kind's are not enough (a zone graph's rim belts are `band` nodes named by the output
+     they fill); absent - the Orient library - the kind's words are used. */
+  wordsOf?(node: GraphNode, graph: Graph): Words;
   PARAM_WORDS: Record<string, ParamWords>;
   OUTPUT_WORDS: Record<string, Words>;
   /* What each value type is called on a node's output ("gives faces"), and the output node's own words: the zone
@@ -166,7 +169,7 @@ export function autoLayout(g: Graph, fixedOutputs: string[] = []): Positions {
 }
 
 interface ZoneData extends Record<string, unknown> {
-  lib: GraphLib; node: GraphNode; idle: boolean; live: string[];
+  lib: GraphLib; node: GraphNode; words: Words; idle: boolean; live: string[];
   /* What this node measured on the case on screen (the Orient readouts); absent for none. */
   values?: string[];
   /* The model's problems that name THIS node ("R1: ..."), shown on it; the rest stay in the list above. */
@@ -193,9 +196,8 @@ function PlaceNew({ missing, onPlace }: { missing: string; onPlace(at: Positions
 
 
 function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
-  const { lib, node, idle, live, onParam, onRemove, issues } = data;
+  const { lib, node, words, idle, live, onParam, onRemove, issues } = data;
   const spec = lib.KINDS[node.kind];
-  const words = lib.KIND_WORDS[node.kind];
   const group = lib.NODE_GROUPS[lib.KIND_GROUP[node.kind]];
   // A type ending in `?` is an input that may stay empty (a Mark's `under`, plan D1).
   const typeText = (want: string) => {
@@ -354,7 +356,7 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
     ...graph.nodes.filter((n) => !fixed.has(n.id)).map((n) => ({
       id: n.id, type: 'zone', position: positions[n.id] ?? { x: 0, y: 0 },
       deletable: !lib.KINDS[n.kind].fixed,
-      data: { lib, node: n, idle: idle.has(n.id), live: liveParams, onParam, onRemove, issues: issues.get(n.id) ?? [], values: values?.[n.id] } satisfies ZoneData,
+      data: { lib, node: n, words: lib.wordsOf?.(n, graph) ?? lib.KIND_WORDS[n.kind], idle: idle.has(n.id), live: liveParams, onParam, onRemove, issues: issues.get(n.id) ?? [], values: values?.[n.id] } satisfies ZoneData,
     })),
     {
       id: OUTPUTS, type: 'zoneOutput', position: positions[OUTPUTS] ?? { x: 0, y: 0 }, deletable: false,
