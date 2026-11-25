@@ -134,8 +134,32 @@ export function recordType(out: string, type: TypeFile, files: string[]): void {
   writeFileSync(join(out, 'type-load.json'), JSON.stringify(appLoadVerdict(ran, TYPES_ROOT)));
 }
 
+/**
+ * Every type file under `typesRoot`, as `/types/<category>/<file>` -> text: every folder, as the app's glob
+ * (types/*\/*.type.json) reads it - a list of categories here would miss a category added later.
+ */
+export function typesFolderFiles(typesRoot: string): Record<string, string> {
+  const files: Record<string, string> = {};
+  if (!existsSync(typesRoot)) return files;
+  for (const entry of readdirSync(typesRoot, { withFileTypes: true }).filter((e) => e.isDirectory())) {
+    const dir = join(typesRoot, entry.name);
+    for (const name of readdirSync(dir).filter((n) => n.endsWith('.type.json'))) files[`/types/${entry.name}/${name}`] = readFileSync(join(dir, name), 'utf8');
+  }
+  return files;
+}
+
+/** The BUILT-IN profiles' ids and names - never this process's registered list, which can hold a draft. */
+export const builtInKnown = (): { id: string; name: Record<string, string> }[] =>
+  [...Object.values(DENTURE_PROFILE_FILES), ...Object.values(PROFILE_FILES)]
+    .map((p) => p as { id: string; name: Record<string, string> })
+    .map((p) => ({ id: p.id, name: p.name }));
+
+/** Every built-in profile of `kind`, as raw JSON. */
+export const builtInProfiles = (kind: DentalKind): Record<string, unknown>[] =>
+  Object.values(kind === 'denture' ? DENTURE_PROFILE_FILES : PROFILE_FILES) as Record<string, unknown>[];
+
 /** The repo's `types/` folder, where Save type writes. */
-const TYPES_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'types');
+export const TYPES_ROOT =join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'types');
 
 /**
  * Whether the APP will load `type` once it is saved, and if not, why - by the app's own rule (`discoverTypes`), run
@@ -147,18 +171,8 @@ const TYPES_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'ty
  */
 export function appLoadVerdict(type: TypeFile, typesRoot: string): { loads: true } | { loads: false; reason: string } {
   const path = `/types/${type.category}/${type.id}.type.json`;
-  // Every folder under types/, as the app's glob (types/*/*.type.json) reads it - a list of categories here would
-  // miss a category added later.
-  const files: Record<string, string> = {};
-  if (existsSync(typesRoot)) {
-    for (const entry of readdirSync(typesRoot, { withFileTypes: true }).filter((e) => e.isDirectory())) {
-      const dir = join(typesRoot, entry.name);
-      for (const name of readdirSync(dir).filter((n) => n.endsWith('.type.json'))) files[`/types/${entry.name}/${name}`] = readFileSync(join(dir, name), 'utf8');
-    }
-  }
-  const known = [...Object.values(DENTURE_PROFILE_FILES), ...Object.values(PROFILE_FILES)]
-    .map((p) => p as { id: string; name: Record<string, string> })
-    .map((p) => ({ id: p.id, name: p.name }));
+  const files = typesFolderFiles(typesRoot);
+  const known = builtInKnown();
   const before = new Set(discoverTypes(files, TYPE_DEPS, known).refused.map((r) => r.file));
   const after = discoverTypes({ ...files, [path]: typeFileText(type) }, TYPE_DEPS, known).refused;
   const own = after.find((r) => r.file === path);

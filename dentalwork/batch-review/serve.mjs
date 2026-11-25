@@ -276,11 +276,46 @@ const tiltPreview = (request, response) => runPreview('tilt', request, response,
   };
 });
 
+/*
+ * GET /types - every type the workbench can open (typeCatalog.ts): each category's built-in and the save in force of
+ * every saved type, each as its whole type file, plus every file that could not load and why. Read once at start and
+ * again after a Save (`catalog = null`), through typeCatalogRun.ts: the built-ins and the type file's checks are
+ * TypeScript this plain-Node server cannot import. A failure is answered as an error the page shows, never as an
+ * empty list - "no types" and "could not read the types" must not look the same.
+ */
+let catalog = null;
+function readCatalog() {
+  catalog ??= new Promise((done) => {
+    const file = join(previewDir, `catalog-${Date.now()}.json`);
+    const viteNode = join(here, '..', '..', 'node_modules', '.bin', process.platform === 'win32' ? 'vite-node.cmd' : 'vite-node');
+    const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('MIXO_')));
+    const child = spawn(viteNode, ['--script', join('dentalwork', 'batch-review', 'typeCatalogRun.ts'), '--out', file],
+      { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32', env });
+    let log = '';
+    child.stdout.on('data', (chunk) => { log += chunk; });
+    child.stderr.on('data', (chunk) => { log += chunk; });
+    const fail = (error) => { catalog = null; done({ error, log: log.slice(-2000) }); };
+    guardRun(child, 2 * 60 * 1000, {
+      timeout: () => { stopPreview(child); fail('reading the types took over 2 minutes and was stopped'); },
+      error: (error) => fail(`the type list could not start: ${error.message}`),
+      exit: (code) => {
+        if (code !== 0 || !existsSync(file)) { fail(refusalReason(log) ?? `the type list did not finish (exit ${code})`); return; }
+        done(JSON.parse(readFileSync(file, 'utf8')));
+      },
+    });
+  });
+  return catalog;
+}
+function typeList(response) {
+  readCatalog().then((read) => response.writeHead(read.error ? 500 : 200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(read)));
+}
+
 const server = createServer((request, response) => {
   const path = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
   if (request.method === 'POST' && path === '/rerun') { rerun(request, response); return; }
   if (request.method === 'POST' && path === '/zone-preview') { zonePreview(request, response); return; }
   if (request.method === 'POST' && path === '/tilt-preview') { tiltPreview(request, response); return; }
+  if (request.method === 'GET' && path === '/types') { typeList(response); return; }
   if (request.method === 'POST' && path === '/save-type') { saveType(response, new URL(request.url ?? '/', 'http://localhost').searchParams.get('replace') === '1'); return; }
   const [prefix, root] = Object.entries(roots).find(([prefix, root]) => root !== undefined && path.startsWith(prefix));
   const file = normalize(join(root, path === '/' ? 'viewer.html' : path.slice(prefix.length)));

@@ -43,7 +43,7 @@ export const APP_TYPE_DEPS: TypeFileDeps = {
 const knownProfiles = (): KnownProfile[] => [...allDentureProfiles(), ...allAlignerProfiles()]
   .map((p) => ({ id: p.id, name: p.name as unknown as Record<string, string> }));
 
-let found: DiscoveredTypes = { loaded: [], refused: [] };
+let found: DiscoveredTypes = { loaded: [], refused: [], inForce: {} };
 const badges = new Map<string, string>();
 
 /**
@@ -68,11 +68,13 @@ export function registerTypes(files: Readonly<Record<string, string>>): Discover
       if (type.badge) badges.set(type.id, type.badge);
       return true;
     } catch (error) {
-      refused.push({ file: `types/${type.category}/${type.id}.type.json`, id: type.id, reason: error instanceof Error ? error.message : String(error) });
+      // shortcut: a save the ENGINE refuses here does not fall back to the save before it (discoverTypes did the reader's
+      // fallback already); it is listed with its reason. Move registration into discoverTypes' loop if one ever does.
+      refused.push({ file: discovered.inForce[`${type.category}/${type.id}`]?.path ?? `types/${type.category}/${type.id}.type.json`, id: type.id, reason: error instanceof Error ? error.message : String(error) });
       return false;
     }
   });
-  found = { loaded, refused };
+  found = { loaded, refused, inForce: Object.fromEntries(Object.entries(discovered.inForce).filter(([key]) => loaded.some((t) => `${t.category}/${t.id}` === key))) };
   if (refused.length > 0) console.warn('mixoDental: saved types that could not load:', refused);
   return found;
 }

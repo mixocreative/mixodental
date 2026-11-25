@@ -42,7 +42,7 @@ describe('discoverTypes - the types the app can offer', () => {
   });
 
   it('loads nothing and refuses nothing when the folder is empty', () => {
-    expect(discoverTypes({}, deps, known)).toEqual({ loaded: [], refused: [] });
+    expect(discoverTypes({}, deps, known)).toEqual({ loaded: [], refused: [], inForce: {} });
   });
 
   it('refuses, by name, a file in the wrong place or one the reader refuses', () => {
@@ -80,5 +80,26 @@ describe('discoverTypes - the types the app can offer', () => {
     const found = discoverTypes({ ...at(b), ...at(a) }, deps, known);
     expect(found.loaded.map((t) => t.id)).toEqual(['a-type']);
     expect(found.refused.map((r) => r.id)).toEqual(['b-type']);
+  });
+
+  // Owner, 2026-11-25: saves are append-only and dated; the newest is in force, a broken newest falls back and says so.
+  it('offers the newest save of a type, and falls back to the one before when the newest cannot load', () => {
+    const dated = (type: TypeFile, stamp: string) => ({ [`/types/denture/${type.id}.${stamp}.type.json`]: typeFileText(type) });
+    const older = denture('soft', { badge: 'OLD' });
+    const newer = denture('soft', { badge: 'NEW' });
+    const both = discoverTypes({ ...dated(older, '20261120-090000'), ...dated(newer, '20261125-210430') }, deps, known);
+    expect(both.loaded.map((t) => t.badge)).toEqual(['NEW']);
+    expect(both.refused).toEqual([]);
+    expect(both.inForce['denture/soft']).toMatchObject({ stamp: '20261125-210430' });
+    expect(both.inForce['denture/soft']!.saves.map((s) => s.stamp)).toEqual(['20261125-210430', '20261120-090000']);
+    // A broken newest: the older loads, and the refusal names the newest AND the save used instead.
+    const broken = { ...dated(older, '20261120-090000'), '/types/denture/soft.20261125-210430.type.json': '{"typeFile":1}' };
+    const fell = discoverTypes(broken, deps, known);
+    expect(fell.loaded.map((t) => t.badge)).toEqual(['OLD']);
+    expect(fell.refused).toHaveLength(1);
+    expect(fell.refused[0]!.reason).toMatch(/missing key.*using the save of 20 Nov 2026 09:00 UTC instead/);
+    // Only ONE fallback: the app ships the newest and one more, so a third save down is never reached.
+    const twoBroken = { ...dated(older, '20261101-000000'), '/types/denture/soft.20261120-090000.type.json': '{}', '/types/denture/soft.20261125-210430.type.json': '{}' };
+    expect(discoverTypes(twoBroken, deps, known).loaded).toEqual([]);
   });
 });
