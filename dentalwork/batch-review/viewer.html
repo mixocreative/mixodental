@@ -335,6 +335,7 @@
     <button id="import-folder" data-ui="import-folder" title="Choose a folder of scans in the system's dialog (subfolders are included). Scans are read where they are, never copied.">Import scans</button>
     <input id="import-path" data-ui="import-path" placeholder="or paste a folder or STL path, Enter" spellcheck="false">
     <select id="type-pick" data-ui="type-pick" hidden title="The type the scans run with. Switch to compare: the same scans, another type."></select>
+    <button id="type-duplicate" data-ui="type-duplicate" hidden title="Start a new type from this one: the Type strip gets a new id and name; this type is not touched. Edit, Apply, Save. Renaming a type's id is this too - projects store the id, so the old one keeps loading.">Duplicate</button>
     <select id="compare-pick" data-ui="compare-pick" hidden title="Pin a second type to compare with: the scan on screen runs with it too, and the flip shows one then the other at the same camera."></select>
     <button id="compare-flip" data-ui="compare-flip" hidden title="Show the other type's result for this scan, at the same camera (key C).">Flip (C)</button>
     <button id="run-all" data-ui="run-all" hidden title="Run every scan with this type, two at a time. Each scan runs on its own when you open it.">Run all</button>
@@ -1241,7 +1242,8 @@ function drawTypeStrip() {
     field('name', 'type-full-name', fullName, 'The full name the app shows in its type list, one line, up to 60 characters.'),
     field('id', 'type-name', id, 'The file name: lower-case letters, digits, dots and dashes. Follows the name until you type it yourself. Save type writes types/<category>/<id>.type.json.'),
     field('badge', 'type-badge', badge, 'Up to 5 characters, no spaces: shown beside the name in the app\'s type list. Empty = the app\'s default badge.'),
-    Object.assign(document.createElement('span'), { className: 'type-based', textContent: 'based on the built-in' }),
+    // What the strip's type comes from: the opened type itself, or - with another id - a NEW type based on it.
+    Object.assign(document.createElement('span'), { className: 'type-based', textContent: basedOnWords() }),
     newType,
   );
   // The steps, in order, each marked from what happened.
@@ -1888,6 +1890,17 @@ function zoneCard(g, n, k, idle, save) {
     card.append(row);
   }
   return card;
+}
+
+/**
+ * The Type strip's "based on" words: in the scan session, the opened type - and, when the strip's id is another, that
+ * this is a NEW type based on it (duplicate, or an id rename: the old id keeps loading). Outside it, the built-in.
+ */
+function basedOnWords() {
+  let opened = null;
+  try { opened = session ? sessionType : null; } catch { opened = null; } // the session's names are declared further down
+  if (!opened) return 'based on the built-in';
+  return typeName.trim() === opened.id ? `opened: ${opened.name}${opened.builtIn ? ' (built-in, read-only)' : ''}` : `a new type, based on ${opened.name}`;
 }
 
 /** Load the graph library once; then restore the operator's graph, or start from today's. */
@@ -3033,18 +3046,9 @@ const builtInOf = (kind) => catalogNow?.types.find((t) => t.builtIn && t.categor
  * A type file's values in the editors' own form - the search and the Rim numbers as edits measured against the
  * built-in (how the editors have always held them), the rules, both graphs - plus its display name for restore marks.
  */
-function editsOf(type) {
-  const builtIn = builtInOf(type.category);
-  const diff = (keys, from, base) => Object.fromEntries(keys.filter((k) => from?.[k] !== undefined && from[k] !== base?.[k]).map((k) => [k, from[k]]));
-  return {
-    name: type.profile?.name?.en ?? type.id,
-    pose: diff(POSE_FIELDS.map(([key]) => key), type.profile?.pose, builtIn?.profile?.pose),
-    placement: diff(Object.keys(graphLib?.RIM_PLACEMENT ?? {}), type.profile?.placement, builtIn?.profile?.placement),
-    rules: { ...type.rules },
-    zoneGraph: type.zoneGraph ?? graphLib?.defaultGraph() ?? null,
-    orientGraph: type.orientGraph ?? orientLib?.defaultGraph() ?? null,
-  };
-}
+/** The keys the editors show: the search's and the Rim tab's (typeDraft.mjs measures them against the built-in). */
+const editorKeys = () => ({ poseKeys: POSE_FIELDS.map(([key]) => key), placementKeys: Object.keys(graphLib?.RIM_PLACEMENT ?? {}) });
+const editsOf = (type) => draftLib.editsOfType(type, builtInOf(type.category), editorKeys());
 /** The canvas library with its restore baseline set to the opened type's graph (nodeGraph.mjs defaultParam). */
 function canvasLib(lib, savedGraph) {
   if (!lib || !savedGraph) return lib;
@@ -3083,28 +3087,10 @@ function openTypeInEditors(type, entry) {
  * Keys no editor shows are kept from the opened type, so opening and applying with no edit gives the same type.
  */
 function draftFromEditors() {
-  const base = sessionType.type;
-  const builtIn = builtInOf(sessionType.category);
-  const denture = sessionType.category === 'denture';
-  const merged = (keys, edits, from, builtInPart) => {
-    const out = { ...from };
-    for (const key of keys) { const value = edits[key] ?? builtInPart?.[key]; if (value === undefined) delete out[key]; else out[key] = value; }
-    return out;
-  };
-  const id = typeName.trim();
-  const name = typeFullName.trim() || id;
-  const profileName = name === (base.profile?.name?.en ?? base.id) ? base.profile.name : { en: name, ja: name, 'zh-Hant': name };
-  const { proved: _proved, badge: _badge, orientGraph: _orient, ...rest } = base;
-  return {
-    ...rest, id, basedOn: sessionType.builtIn ? sessionType.id : base.basedOn, validation: null,
-    ...(typeBadge.trim() ? { badge: typeBadge.trim() } : {}),
-    profile: { ...base.profile, id, name: profileName,
-      ...(denture ? { pose: merged(POSE_FIELDS.map(([key]) => key), poseEdits, base.profile.pose, builtIn?.profile?.pose),
-        placement: merged(Object.keys(graphLib?.RIM_PLACEMENT ?? {}), placementEdits, base.profile.placement, builtIn?.profile?.placement) } : {}) },
-    rules: benchRulesNow(),
-    zoneGraph: denture && graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : (denture ? null : base.zoneGraph),
-    ...(denture && orientLib && orientGraph && !orientLib.isDefault(orientGraph) ? { orientGraph } : {}),
-  };
+  return draftLib.typeOfEdits({
+    opened: sessionType, builtIn: builtInOf(sessionType.category), id: typeName.trim(), name: typeFullName, badge: typeBadge, ...editorKeys(),
+    edits: { pose: poseEdits, placement: placementEdits, rules: benchRulesNow(), zoneGraph: zoneGraph ?? graphLib?.defaultGraph(), orientGraph: orientGraph ?? orientLib?.defaultGraph() },
+  });
 }
 /** Whether the editors hold something the picture on screen did not run with. */
 function editsNotRun() {
@@ -3150,8 +3136,28 @@ function drawTypePick() {
     ...types.filter((t) => t.id !== sessionType?.id).map((t) => Object.assign(document.createElement('option'), { value: t.id, textContent: t.name, selected: t.id === compareEntry?.id })));
   if (compareEntry?.id === sessionType?.id) { compareEntry = null; flipped = false; }
   comparePick.hidden = !session;
+  document.getElementById('type-duplicate').hidden = !session;
   document.getElementById('compare-flip').hidden = !compareEntry;
 }
+/*
+ * DUPLICATE (overhaul step 12): a new type from the opened one - the strip takes a fresh id and name, the editors keep
+ * the values, and Restore still goes to what the opened type saved. Nothing is written until Save, which refuses an id
+ * already saved. A built-in's "Duplicate to edit" is this.
+ */
+document.getElementById('type-duplicate').addEventListener('click', () => {
+  if (!session || !sessionType) return;
+  const taken = new Set((catalogNow?.types ?? []).map((t) => t.id));
+  let id = `${sessionType.id}-copy`;
+  for (let n = 2; taken.has(id); n += 1) id = `${sessionType.id}-copy-${n}`;
+  typeName = id;
+  typeFullName = `${sessionType.name} copy`;
+  typeIdTyped = true;
+  try { localStorage.setItem('review-type-id', typeName); localStorage.setItem('review-type-full-name', typeFullName); } catch { /* per-viewer only */ }
+  if (lastChain) drawChain(...lastChain);
+  const status = document.getElementById('bench-status');
+  if (status) status.textContent = `A new type "${typeFullName}" (${id}), based on ${sessionType.name}: rename it in the Type strip, edit, Apply, then Save. ${sessionType.name} is not touched.`;
+  drawBanner();
+});
 document.getElementById('compare-pick').addEventListener('change', (event) => {
   compareEntry = sessionTypes().find((t) => t.id === event.target.value) ?? null;
   flipped = false;
@@ -3427,7 +3433,9 @@ try {
       openTypeInEditors(sessionType.type, sessionType);
       drawSession();
       const load = answer.typeLoad?.loads === false ? ` The app will NOT load it yet: ${answer.typeLoad.reason}.` : ' The app will load it.';
-      status.textContent = `Saved ${answer.path} (run on ${answer.scans} scan(s)).${load} To share it, commit and push that one file: git add "${answer.path}", then git commit, then git push.`;
+      // A new id (a duplicate, an id rename) leaves the opened type as it was: projects store the id.
+      const kept = draft.id !== before.id && !before.builtIn ? ` ${before.name} (${before.id}) is untouched and keeps loading - projects that use it still open with it; to retire it, delete its files in types/${before.category}/.` : '';
+      status.textContent = `Saved ${answer.path} (run on ${answer.scans} scan(s)).${load}${kept} To share it, commit and push that one file: git add "${answer.path}", then git commit, then git push.`;
       return;
     }
     const save = async (replace) => {

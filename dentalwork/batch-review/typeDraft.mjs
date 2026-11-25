@@ -1,136 +1,81 @@
 // Copyright (c) Mixo Creative.
 
 /*
- * ONE JOB: a type being worked on in the review workbench - the type as it was OPENED (`base`, never changed) and as
- * edited (`draft`) - and what an edit, a restore and a duplicate do to it (docs/REVIEWER-OVERHAUL-PLAN.md section 3c-3e,
- * build step 3).
+ * ONE JOB: a type file <-> the review workbench's editors (docs/REVIEWER-OVERHAUL-PLAN.md section 3c-3e, build steps
+ * 3, 8 and 12). The page OPENS a type by putting its values into the editors (`editsOfType`), and makes the DRAFT -
+ * what Apply runs and Save writes - from the editors back (`typeOfEdits`). Both live here, pure, so the rules have
+ * tests; the page only reads and writes its fields.
  *
- * RESTORE GOES TO WHAT WAS SAVED (owner, 2026-11-25: "restore value goes to what saved previous setup were, but not the
- * node's default"). The baseline of every value is `base`: the opened type's own saved value, the built-in's when a
- * built-in was opened. A graph parameter's baseline is the opened type's GRAPH (`zoneStandard` / `orientStandard`, the
- * standard graph `defaultParam` in nodeGraph.mjs already takes), so its node's value comes first and the kind's default
- * only when that node is not in the saved graph.
+ * THE EDITORS' FORM: the print-angle search (`pose`) and the Rim tab's numbers (`placement`) are held as EDITS MEASURED
+ * AGAINST THE BUILT-IN - how the page has always held them - so the built-in is "no edit". The rules and both graphs are
+ * held whole.
  *
- * A BUILT-IN IS READ-ONLY (plan decision 9): it is code, not a file. Duplicating it gives an editable type whose
- * baseline is still the built-in's values.
+ * RESTORE GOES TO WHAT WAS SAVED (owner, 2026-11-25): the opened type's own values in this same form are the page's
+ * restore baseline (`savedBaseline`), and a graph parameter restores against the opened type's graph through
+ * nodeGraph.mjs `defaultParam` (the test below holds the R1b trap).
  *
- * Pure and plain JavaScript: the review page imports it as a browser module (the server maps `/src/dentalTypes/` so
- * `typeText.mjs` resolves), and its tests run under Node.
+ * A NEW ID IS A NEW TYPE (plan 3e): editing a built-in, a Duplicate, or renaming an id all give a type based on the
+ * opened one (`basedOn`); the opened one is never changed - projects store its id.
+ *
+ * Plain JavaScript: the page imports it as a browser module (the server maps `/src/dentalTypes/` so `typeText.mjs`
+ * resolves), and its tests run under Node.
  */
 import { canonical, typeDigest } from '../../src/dentalTypes/typeText.mjs';
 import { defaultGraph as zoneDefaultGraph } from './nodeGraph.mjs';
 import { defaultGraph as orientDefaultGraph } from './orientGraph.mjs';
 
-const clone = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)));
 const same = (a, b) => JSON.stringify(canonical(a ?? null)) === JSON.stringify(canonical(b ?? null));
+/** The keys in `keys` where `from` sets a value the built-in does not. */
+const diff = (keys, from, builtIn) => Object.fromEntries(keys.filter((k) => from?.[k] !== undefined && from[k] !== builtIn?.[k]).map((k) => [k, from[k]]));
 
-/** The type as an editable draft: no proof record and no hand override, as `typeFile.ts` draftOf does. */
-function withoutProof(type) {
-  const { proved: _proved, ...rest } = clone(type);
-  return { ...rest, validation: null };
+/**
+ * A type file's values in the editors' form. `poseKeys` / `placementKeys` are the keys the editors show.
+ * @returns {{ name: string, pose: object, placement: object, rules: object, zoneGraph: object, orientGraph: object }}
+ */
+export function editsOfType(type, builtIn, { poseKeys, placementKeys }) {
+  return {
+    name: type.profile?.name?.en ?? type.id,
+    pose: diff(poseKeys, type.profile?.pose, builtIn?.profile?.pose),
+    placement: diff(placementKeys, type.profile?.placement, builtIn?.profile?.placement),
+    rules: { ...type.rules },
+    zoneGraph: type.zoneGraph ?? zoneDefaultGraph(),
+    orientGraph: type.orientGraph ?? orientDefaultGraph(),
+  };
 }
 
 /**
- * Open a catalog entry (`typeCatalog.ts`) for work.
- * @param {{ category: string, id: string, builtIn: boolean, path: string | null, stamp: string, type: object }} entry
+ * The draft: the OPENED type with the editors' values, as one whole type file. Keys no editor shows are kept from the
+ * opened type, so opening and applying with no edit gives back the same type (and the same run print). A graph equal to
+ * the standard one is written as none, as the engine reads it.
+ * @param {{ opened: { id: string, builtIn: boolean, category: string, type: object }, builtIn: object,
+ *   edits: { pose: object, placement: object, rules: object, zoneGraph: object, orientGraph: object },
+ *   id: string, name: string, badge: string, poseKeys: string[], placementKeys: string[] }} input
  */
-export function openDraft(entry) {
-  return { category: entry.category, id: entry.id, builtIn: entry.builtIn, savedFrom: entry.path, stamp: entry.stamp, base: clone(entry.type), draft: withoutProof(entry.type) };
-}
-
-/** The value at a dotted path in an object ('pose.tiltRangeDeg'), or undefined. */
-const at = (object, path) => path.split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), object);
-/** A copy of `object` with `path` set to `value` (deleted when `value` is undefined). */
-function setAt(object, path, value) {
-  const [key, ...rest] = path.split('.');
-  const copy = { ...(object ?? {}) };
-  if (rest.length > 0) copy[key] = setAt(copy[key], rest.join('.'), value);
-  else if (value === undefined) delete copy[key];
-  else copy[key] = value;
-  return copy;
-}
-
-/** Profile keys that NAME the type rather than set how it prints: never an edit to restore, never part of a run's print. */
-const NAMING = ['id', 'name'];
-
-/**
- * The draft after one edit. A built-in refuses every edit, naming the way out.
- * `change` is one of: `{ rule, value }` (value undefined = back to the engine's default), `{ profile: 'pose.tiltRangeDeg',
- * value }`, `{ zoneGraph }`, `{ orientGraph }`, `{ name }`, `{ badge }` (badge '' = none).
- */
-export function editDraft(state, change) {
-  if (state.builtIn) throw new Error(`${state.id} is a built-in type and is read-only - Duplicate it to edit`);
-  const draft = { ...state.draft };
-  if ('rule' in change) {
-    const rules = { ...draft.rules };
-    if (change.value === undefined) delete rules[change.rule]; else rules[change.rule] = change.value;
-    draft.rules = rules;
-  } else if ('profile' in change) {
-    if (NAMING.includes(change.profile.split('.')[0])) throw new Error(`the profile's ${change.profile} is the type's name - rename the type instead`);
-    draft.profile = setAt(draft.profile, change.profile, change.value);
-  } else if ('zoneGraph' in change) draft.zoneGraph = clone(change.zoneGraph);
-  else if ('orientGraph' in change) {
-    if (change.orientGraph) draft.orientGraph = clone(change.orientGraph); else delete draft.orientGraph;
-  } else if ('name' in change) {
-    const name = String(change.name).trim();
-    if (name === '') throw new Error('a type needs a name');
-    draft.profile = { ...draft.profile, name: { en: name, ja: name, 'zh-Hant': name } };
-  } else if ('badge' in change) {
-    if (change.badge) draft.badge = change.badge; else delete draft.badge;
-  } else throw new Error(`unknown edit ${JSON.stringify(Object.keys(change))}`);
-  return { ...state, draft };
-}
-
-/** The value Restore puts back for a rule or a profile path: the opened type's own; undefined = the engine's default. */
-export const restoreRule = (state, rule) => state.base.rules?.[rule];
-export const restoreProfile = (state, path) => at(state.base.profile, path);
-/** The graph a zone / Orient parameter restores against (nodeGraph.mjs `defaultParam`'s `standard`): the opened type's. */
-export const zoneStandard = (state) => state.base.zoneGraph ?? zoneDefaultGraph();
-export const orientStandard = (state) => state.base.orientGraph ?? orientDefaultGraph();
-
-/** Every leaf path where two profiles differ, the naming keys left out. */
-function profileDiffs(a, b, prefix = '') {
-  const keys = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]);
-  return [...keys].sort().flatMap((key) => {
-    if (!prefix && NAMING.includes(key)) return [];
-    const path = prefix ? `${prefix}.${key}` : key;
-    const x = a?.[key];
-    const y = b?.[key];
-    const isObject = (v) => v && typeof v === 'object' && !Array.isArray(v);
-    if (isObject(x) || isObject(y)) return profileDiffs(isObject(x) ? x : {}, isObject(y) ? y : {}, path);
-    return same(x, y) ? [] : [path];
-  });
-}
-
-/**
- * What the draft changes from the opened type, one line each - the page's "edited" mark and "before your edits"
- * banner read it. Keys: `rule:<name>`, `profile:<path>`, `zoneGraph`, `orientGraph`, `name`, `badge`.
- */
-export function changes(state) {
-  const { base, draft } = state;
-  const rules = [...new Set([...Object.keys(base.rules ?? {}), ...Object.keys(draft.rules ?? {})])].sort()
-    .filter((rule) => !same(base.rules?.[rule], draft.rules?.[rule])).map((rule) => `rule:${rule}`);
-  return [
-    ...rules,
-    ...profileDiffs(base.profile, draft.profile).map((path) => `profile:${path}`),
-    ...(same(base.zoneGraph ?? zoneDefaultGraph(), draft.zoneGraph ?? zoneDefaultGraph()) ? [] : ['zoneGraph']),
-    ...(same(base.orientGraph ?? orientDefaultGraph(), draft.orientGraph ?? orientDefaultGraph()) ? [] : ['orientGraph']),
-    ...(same(base.profile?.name, draft.profile?.name) ? [] : ['name']),
-    ...(same(base.badge, draft.badge) ? [] : ['badge']),
-  ];
-}
-
-/**
- * Duplicate the type being worked on under a new id and name: its current draft (edits included) becomes a new,
- * editable, unsaved type. The baseline stays the source's saved values, so Restore still means "as it was saved".
- * `basedOn` names the source. Renaming an id is this, never an in-place change: projects store the id (plan 3e).
- */
-export function duplicateDraft(state, { id, name }) {
-  if (!/^[a-z0-9][a-z0-9.-]*$/.test(id ?? '')) throw new Error('a type id is lower-case letters, digits, dots and dashes');
-  if (id === state.id) throw new Error(`the copy needs an id other than ${state.id}`);
-  const label = String(name ?? '').trim() || id;
-  const rename = (type) => ({ ...clone(type), id, basedOn: state.id, profile: { ...clone(type.profile), id, name: { en: label, ja: label, 'zh-Hant': label } } });
-  return { category: state.category, id, builtIn: false, savedFrom: null, stamp: '', base: rename(state.base), draft: { ...rename(state.draft), validation: null } };
+export function typeOfEdits({ opened, builtIn, edits, id, name, badge, poseKeys, placementKeys }) {
+  const base = opened.type;
+  const denture = opened.category === 'denture';
+  const merged = (keys, editsPart, from, builtInPart) => {
+    const out = { ...from };
+    for (const key of keys) { const value = editsPart[key] ?? builtInPart?.[key]; if (value === undefined) delete out[key]; else out[key] = value; }
+    return out;
+  };
+  const shownName = name.trim() || id;
+  // The same name keeps the type's own three-language name; a new one is the typed text in every language.
+  const profileName = shownName === (base.profile?.name?.en ?? base.id) ? base.profile.name : { en: shownName, ja: shownName, 'zh-Hant': shownName };
+  const { proved: _proved, badge: _badge, orientGraph: _orient, ...rest } = base;
+  const zone = denture && !same(edits.zoneGraph, zoneDefaultGraph()) ? edits.zoneGraph : (denture ? null : base.zoneGraph);
+  const orient = denture && !same(edits.orientGraph, orientDefaultGraph()) ? edits.orientGraph : null;
+  return {
+    ...rest, id, validation: null,
+    basedOn: opened.builtIn || id !== opened.id ? opened.id : base.basedOn,
+    ...(badge.trim() ? { badge: badge.trim() } : {}),
+    profile: { ...base.profile, id, name: profileName,
+      ...(denture ? { pose: merged(poseKeys, edits.pose, base.profile?.pose, builtIn?.profile?.pose),
+        placement: merged(placementKeys, edits.placement, base.profile?.placement, builtIn?.profile?.placement) } : {}) },
+    rules: { ...edits.rules },
+    zoneGraph: zone,
+    ...(orient ? { orientGraph: orient } : {}),
+  };
 }
 
 /**

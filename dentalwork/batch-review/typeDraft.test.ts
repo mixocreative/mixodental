@@ -1,74 +1,67 @@
 import { describe, expect, it } from 'vitest';
 import { DENTURE_PROFILE_FILES } from '@mixo-geocore/host/dental/dentureProfileFiles';
 import { defaultGraph, defaultParam, KINDS, setParam } from './nodeGraph.mjs';
-import { changes, duplicateDraft, editDraft, openDraft, restoreProfile, restoreRule, runPrint, zoneStandard } from './typeDraft.mjs';
+import { editsOfType, runPrint, typeOfEdits } from './typeDraft.mjs';
 
 const generic = Object.values(DENTURE_PROFILE_FILES)[0] as Record<string, unknown>;
-const builtIn = { category: 'denture', id: String(generic.id), builtIn: true, path: null, stamp: '',
-  type: { typeFile: 1, category: 'denture', id: String(generic.id), basedOn: String(generic.id), profile: generic, rules: {}, zoneGraph: null, validation: null } };
-// A saved type whose zone graph turned the steep ray R1b on at 30 degrees, with a pinned rule and its own tilt limit.
-const savedGraph = setParam(defaultGraph(), 'R1b', 'deg', 30);
 const pose = generic.pose as Record<string, number>;
-const soft = { category: 'denture', id: 'soft', builtIn: false, path: 'types/denture/soft.20261125-210430.type.json', stamp: '20261125-210430',
-  type: { typeFile: 1, category: 'denture', id: 'soft', basedOn: String(generic.id), badge: 'SOFT', rules: { overhangAngleDeg: 50 }, zoneGraph: savedGraph,
-    profile: { ...generic, id: 'soft', name: { en: 'Soft', ja: 'Soft', 'zh-Hant': 'Soft' }, pose: { ...pose, tiltRangeDeg: 30 } },
-    validation: { engineVersion: 1, profileDigest: 'x', zoneGraphDigest: 'y', scans: ['a'], at: 'now' } } };
+const builtIn = { typeFile: 1, category: 'denture', id: String(generic.id), basedOn: String(generic.id), profile: generic, rules: {}, zoneGraph: null, validation: null };
+const opened = (type: Record<string, unknown>, isBuiltIn = false) => ({ id: String(type.id), builtIn: isBuiltIn, category: 'denture', type });
+// A saved type: its own search end, a pinned rule, the hole strip at 6 mm, its own names and badge, a proof.
+const savedGraph = setParam(defaultGraph(), 'BAND', 'mm', 6);
+const soft = { typeFile: 1, category: 'denture', id: 'soft', basedOn: String(generic.id), badge: 'SOFT', rules: { overhangAngleDeg: 50 }, zoneGraph: savedGraph,
+  profile: { ...generic, id: 'soft', name: { en: 'Soft', ja: 'ソフト', 'zh-Hant': '軟' }, pose: { ...pose, tiltRangeDeg: 30 } },
+  validation: { engineVersion: 1, profileDigest: 'x', zoneGraphDigest: 'y', scans: ['a'], at: 'now' } };
+const KEYS = { poseKeys: ['tiltStartDeg', 'tiltRangeDeg', 'tiltStepDeg', 'tiltMarginDeg'], placementKeys: ['rimBandMm', 'dentalRimPitchMm'] };
 
-describe('a type being worked on: opened, edited, restored, duplicated', () => {
-  it('opens as a draft without its proof, with nothing changed', () => {
-    const state = openDraft(soft);
-    expect(state.draft.validation).toBeNull();
-    expect(state.savedFrom).toBe(soft.path);
-    expect(changes(state)).toEqual([]);
+describe('a type file to the editors and back', () => {
+  it('opens a saved type in the editors\' form: edits against the built-in, rules and graphs whole', () => {
+    const edits = editsOfType(soft, builtIn, KEYS);
+    expect(edits).toMatchObject({ name: 'Soft', pose: { tiltRangeDeg: 30 }, placement: {}, rules: { overhangAngleDeg: 50 } });
+    expect(edits.zoneGraph).toEqual(savedGraph);
   });
 
-  it('RESTORE GOES TO THE SAVED VALUE, not the node default (owner, 2026-11-25)', () => {
-    const state = openDraft(soft);
-    expect(restoreRule(state, 'overhangAngleDeg')).toBe(50);
-    expect(restoreProfile(state, 'pose.tiltRangeDeg')).toBe(30);
-    // The graph parameter: the saved type's R1b is 30. The standard graph says 0 (off) and the kind's default 45; the
-    // restore must put back 30 - the type's own - and neither of the others.
-    const r1b = state.base.zoneGraph.nodes.find((n: { id: string }) => n.id === 'R1b');
-    expect(defaultParam(zoneStandard(state), KINDS, r1b, 'deg')).toBe(30);
-    expect(defaultParam(defaultGraph(), KINDS, r1b, 'deg')).toBe(0);
-    // A built-in's baseline is the built-in: no pinned rule, the standard graph.
-    const plain = openDraft(builtIn);
-    expect(restoreRule(plain, 'overhangAngleDeg')).toBeUndefined();
-    expect(defaultParam(zoneStandard(plain), KINDS, r1b, 'deg')).toBe(0);
+  it('opening and applying with no edit gives the same type back - same run, same names, no proof', () => {
+    const edits = editsOfType(soft, builtIn, KEYS);
+    const draft = typeOfEdits({ opened: opened(soft), builtIn, edits, id: 'soft', name: 'Soft', badge: 'SOFT', ...KEYS });
+    expect(runPrint(draft)).toBe(runPrint(soft));
+    expect(draft).toMatchObject({ id: 'soft', basedOn: String(generic.id), badge: 'SOFT', validation: null });
+    // The same name keeps the type's own translations.
+    expect(draft.profile.name).toEqual(soft.profile.name);
   });
 
-  it('lists each edit, and an edit back to the saved value is no edit', () => {
-    let state = openDraft(soft);
-    state = editDraft(state, { rule: 'overhangAngleDeg', value: 55 });
-    state = editDraft(state, { profile: 'pose.tiltRangeDeg', value: 40 });
-    state = editDraft(state, { zoneGraph: setParam(savedGraph, 'R1b', 'deg', 0) });
-    state = editDraft(state, { badge: 'S2' });
-    expect(changes(state)).toEqual(['rule:overhangAngleDeg', 'profile:pose.tiltRangeDeg', 'zoneGraph', 'badge']);
-    state = editDraft(state, { rule: 'overhangAngleDeg', value: 50 });
-    expect(changes(state)).not.toContain('rule:overhangAngleDeg');
-    expect(() => editDraft(state, { profile: 'name.en', value: 'x' })).toThrow(/rename the type/);
+  it('a new id is a NEW type based on the opened one - a built-in\'s edit, a duplicate, an id rename', () => {
+    const fromBuiltIn = typeOfEdits({ opened: opened(builtIn, true), builtIn, edits: editsOfType(builtIn, builtIn, KEYS), id: 'firm', name: 'Firm', badge: '', ...KEYS });
+    expect(fromBuiltIn).toMatchObject({ id: 'firm', basedOn: String(generic.id), profile: { id: 'firm', name: { en: 'Firm', ja: 'Firm' } } });
+    const copy = typeOfEdits({ opened: opened(soft), builtIn, edits: editsOfType(soft, builtIn, KEYS), id: 'soft-copy', name: 'Soft copy', badge: 'SOFT', ...KEYS });
+    expect(copy).toMatchObject({ id: 'soft-copy', basedOn: 'soft' });
+    expect(runPrint(copy)).toBe(runPrint(soft)); // a duplicate runs exactly as its source until edited
   });
 
-  it('refuses to edit a built-in, and a duplicate of it is editable with the built-in as its baseline', () => {
-    const plain = openDraft(builtIn);
-    expect(() => editDraft(plain, { rule: 'overhangAngleDeg', value: 50 })).toThrow(/read-only - Duplicate it/);
-    const copy = duplicateDraft(plain, { id: 'firm', name: 'Firm denture' });
-    expect(copy).toMatchObject({ id: 'firm', builtIn: false, savedFrom: null });
-    expect(copy.draft).toMatchObject({ id: 'firm', basedOn: String(generic.id), profile: { id: 'firm', name: { en: 'Firm denture' } } });
-    expect(changes(copy)).toEqual([]);
-    const edited = editDraft(copy, { rule: 'overhangAngleDeg', value: 50 });
-    expect(restoreRule(edited, 'overhangAngleDeg')).toBeUndefined();
-    expect(() => duplicateDraft(copy, { id: 'firm' })).toThrow(/id other than firm/);
-    expect(() => duplicateDraft(copy, { id: 'Bad Id' })).toThrow(/lower-case/);
+  it('an edit reaches the draft; a search value back at the built-in\'s is written as the built-in\'s', () => {
+    const edits = editsOfType(soft, builtIn, KEYS);
+    const moved = typeOfEdits({ opened: opened(soft), builtIn, edits: { ...edits, pose: { tiltRangeDeg: 35 }, rules: { overhangAngleDeg: 55 } }, id: 'soft', name: 'Soft', badge: 'SOFT', ...KEYS });
+    expect(moved.profile.pose.tiltRangeDeg).toBe(35);
+    expect(moved.rules).toEqual({ overhangAngleDeg: 55 });
+    expect(runPrint(moved)).not.toBe(runPrint(soft));
+    const back = typeOfEdits({ opened: opened(soft), builtIn, edits: { ...edits, pose: {} }, id: 'soft', name: 'Soft', badge: 'SOFT', ...KEYS });
+    expect(back.profile.pose.tiltRangeDeg).toBe(pose.tiltRangeDeg);
+    // The standard zone graph is written as none, as the engine reads it.
+    const standard = typeOfEdits({ opened: opened(soft), builtIn, edits: { ...edits, zoneGraph: defaultGraph() }, id: 'soft', name: 'Soft', badge: 'SOFT', ...KEYS });
+    expect(standard.zoneGraph).toBeNull();
+  });
+
+  it('RESTORE GOES TO THE SAVED VALUE, not the node default: a graph parameter against the opened type\'s graph', () => {
+    // The saved type's hole strip is 6 mm; the standard graph and the kind both say 5. Restoring through the opened
+    // type's graph (the page's canvasLib) must put back 6.
+    const band = savedGraph.nodes.find((n: { id: string }) => n.id === 'BAND');
+    expect(defaultParam(editsOfType(soft, builtIn, KEYS).zoneGraph, KINDS, band, 'mm')).toBe(6);
+    expect(defaultParam(defaultGraph(), KINDS, band, 'mm')).toBe(5);
   });
 
   it('a run print ignores the name and badge, and changes with any setting', () => {
-    const state = openDraft(soft);
-    const renamed = editDraft(editDraft(state, { name: 'Soft v2' }), { badge: 'S2' });
-    expect(runPrint(renamed.draft)).toBe(runPrint(state.draft));
-    expect(runPrint(duplicateDraft(state, { id: 'soft-copy' }).draft)).toBe(runPrint(state.draft));
-    expect(runPrint(editDraft(state, { rule: 'overhangAngleDeg', value: 51 }).draft)).not.toBe(runPrint(state.draft));
-    // The standard graph written out runs the same as no graph, so it prints the same.
-    expect(runPrint({ ...builtIn.type, zoneGraph: defaultGraph() })).toBe(runPrint(builtIn.type));
+    expect(runPrint({ ...soft, badge: 'S2', profile: { ...soft.profile, name: { en: 'x' } } })).toBe(runPrint(soft));
+    expect(runPrint({ ...soft, rules: { overhangAngleDeg: 51 } })).not.toBe(runPrint(soft));
+    expect(runPrint({ ...builtIn, zoneGraph: defaultGraph() })).toBe(runPrint(builtIn));
   });
 });
