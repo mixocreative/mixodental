@@ -390,6 +390,12 @@ the app because nothing calls it yet.
 **In plain words:** there is one folder. Put a type file in it and the app has the type. Nobody
 edits a list.
 
+**Since 2026-11-25 saves are append-only and dated** (owner; docs/REVIEWER-OVERHAUL-PLAN.md, `types/README.md`):
+`types/<category>/<id>.<YYYYMMDD-HHMMSS>.type.json`, the newest save of each type in force, a broken newest falling
+back to the save before it with a note, delete the newest to roll back. The workbench's Save writes a new file and
+refuses to hide a newer save; it never overwrites. `types/drafts/` below was never built - unsaved edits are kept by
+the workbench in `dentalwork/output/review-drafts/`, outside git.
+
 - **Where.** `types/<category>/<id>.type.json` for shipped types; `types/drafts/` for unproved ones
   (workbench only, never in a release list).
 - **How the app finds them.** A build-time glob (`import.meta.glob`, already used by this repo's

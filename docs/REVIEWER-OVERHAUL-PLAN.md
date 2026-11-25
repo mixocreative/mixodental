@@ -1,9 +1,27 @@
 # The reviewer overhaul: one place to test, compare and save pipelines
 
-**Status: PLAN, waiting for the owner's approval. Nothing on this page is built.** Written 2026-11-25 from the
-owner's request, Fable's design and the lead's check of its claims against the code (the hooks it builds on were
-opened: `nodeGraph.mjs` `defaultParam`, `typeInForce.ts` `MIXO_TYPE_FILE` and `scanPrint`, `serve.mjs` `/rerun`,
-`shippedTypes.ts`, `typesReady.ts`). Lines marked UNVERIFIED were read about, not measured.
+**Status: BUILT 2026-11-25** (owner: "Yes, build it", with Fable's ten picks). Steps 1-14 in 15 commits,
+`bcd7ebb8` to the docs commit; each checked in the running workbench on a local denture folder, then the full local
+gate. Written the same day from the owner's request, Fable's design and the lead's check of its claims against the
+code. Lines marked UNVERIFIED were read about, not measured.
+
+**Where the build differs from this plan, and why** (each also in the commit that made it):
+- **Step 10 - every save is bundled**, not only the newest and one fallback. A save is about 2.5 KB, and replacing the
+  eager glob touches every engine realm that registers types - this plan's own named risk. `discoverTypes` still
+  OFFERS only the newest with one fallback. `typesReady.test.ts` fails once the type files pass 1 MB: that is when to
+  build the newest-plus-one module.
+- **`typeDraft.mjs` is "a type file to the editors and back"** (`editsOfType`, `typeOfEdits`, `runPrint`), not a
+  base/draft state object: the page keeps its editors as they were (edits against the built-in), so the tested rules
+  are the ones it really uses. The step-3 state functions it never called were removed rather than kept dead.
+- **Copy and duplicate work on one selected node, or that node with its inputs** as a wired group. Selecting several
+  nodes at once stays the written-down debt (WORKBENCH-TABS-PLAN); the Orient canvas has no copy yet.
+- **The older paths stay for review folders**: a batch's output folder still opens, its Apply still sends the edits in
+  pieces to `/rerun` and its Save still copies the run's `type.json` (asking before replacing). The scan session uses
+  only the whole-file `/run` and the dated `/save-draft`. Retiring the older paths waits until review folders are not
+  used for type work.
+- **Measured**: one scan with one type is about 35 s and about 88 MB of kept run; switching back is instant.
+- **Restore marks** name the saved value ("Restore to 30° (saved in Parity denture)"); the node default is not also
+  printed on the mark - the canvas mark says where the value was saved.
 
 Companion pages: `docs/WORKBENCH-TABS-PLAN.md` (the five tabs), `docs/TYPE-PIPELINE.md` (the type file),
 `types/README.md`, `dentalwork/batch-review/README.md`.
