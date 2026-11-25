@@ -22,6 +22,13 @@ import { orientGraphProblems, rememberTypeGraphs, zoneGraphProblems } from './ty
 import { rememberTypeRules } from './typeRules';
 import { profileText, type TypeFileDeps } from './typeFile';
 
+/*
+ * EVERY SAVE IS BUNDLED, and `discoverTypes` offers the newest of each type with one fallback (typeSaves.mjs).
+ * shortcut: the overhaul plan (docs/REVIEWER-OVERHAUL-PLAN.md 3f) has the build ship only the newest and one fallback per
+ * type. A save is about 2.5 KB, so bundling all of them costs little, while swapping this glob for a build-time module
+ * touches every engine realm that registers types (the plan's named risk). typesReady.test.ts fails once the folder
+ * passes 1 MB (TYPES_BUNDLE_LIMIT_BYTES there) - that is when to build the newest-plus-one module.
+ */
 const FILES = import.meta.glob('/types/*/*.type.json', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 /**

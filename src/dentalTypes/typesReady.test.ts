@@ -22,6 +22,20 @@ const read = (path: string): string => {
 };
 
 /*
+ * EVERY SAVE IS BUNDLED (typesReady.ts shortcut): fine while saves are small and few. Past this many bytes of type files
+ * the app should ship only the newest save of each type and one fallback, as docs/REVIEWER-OVERHAUL-PLAN.md 3f planned -
+ * this test is the reminder, and it fails on the day that is worth building.
+ */
+const TYPES_BUNDLE_LIMIT_BYTES = 1_000_000;
+const SHIPPED = import.meta.glob('/types/*/*.type.json', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+describe('the saved types the app bundles', () => {
+  it(`stay under ${TYPES_BUNDLE_LIMIT_BYTES} bytes, or the build should ship only the newest save and one fallback`, () => {
+    const bytes = Object.values(SHIPPED).reduce((sum, text) => sum + new TextEncoder().encode(text).length, 0);
+    expect(bytes).toBeLessThan(TYPES_BUNDLE_LIMIT_BYTES);
+  });
+});
+
+/*
  * EVERY REALM REGISTERS THE TYPES. The app runs the engine in each worker as well as on the main thread, each with its
  * own profile list; an entry that still awaits `geometryReady()` would run without the shipped types, and a saved type
  * would be listed in the picker and unknown where it runs. The entries are read from `factories.ts`, so a new worker
@@ -71,6 +85,21 @@ describe('registerTypes - a saved type becomes a profile this realm knows', () =
     expect(kindOfProfile('test-soft')).toBe('denture');
     expect(shippedBadge('test-soft')).toBe('SOFT');
     expect(refusedTypes().map((r) => [r.id, r.reason.includes('missing key')])).toEqual([['test-broken', true]]);
+  });
+
+  // Owner, 2026-11-25: saves are append-only and dated. The app registers the NEWEST save of a type; a broken newest
+  // falls back to the save before it, and the refused list says so - the operator never gets older numbers silently.
+  it('registers the newest save of a type, and names the older save that stands in for a broken newest', () => {
+    const found = registerTypes({
+      '/types/denture/test-dated.20261120-090000.type.json': typeFileText(type('test-dated', 'OLD')),
+      '/types/denture/test-dated.20261125-210430.type.json': typeFileText(type('test-dated', 'NEW')),
+      '/types/denture/test-fall.20261120-090000.type.json': typeFileText(type('test-fall', 'OLD')),
+      '/types/denture/test-fall.20261125-210430.type.json': '{"typeFile":1}',
+    });
+    expect(found.loaded.map((t) => [t.id, t.badge])).toEqual([['test-dated', 'NEW'], ['test-fall', 'OLD']]);
+    expect(shippedBadge('test-dated')).toBe('NEW');
+    expect(found.inForce['denture/test-fall']!.stamp).toBe('20261120-090000');
+    expect(refusedTypes().map((r) => r.reason).join(' | ')).toMatch(/missing key.*using the save of 20 Nov 2026 09:00 UTC instead/);
   });
 
   // Plan E1. The app checks a type's graphs with the ENGINE (it imports no workbench validator), so a graph the engine
