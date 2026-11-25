@@ -286,6 +286,10 @@
 /* Two lines of explanation; the whole sentence on hover or when the node is selected. */
 .zone-canvas .zn-says { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .zone-canvas .react-flow__node:hover .zn-says, .zone-canvas .react-flow__node.selected .zn-says { display: block; overflow: visible; }
+/* THE SELECTED CARD (owner 2026-11-25: "the selected nodes also get a highlight on the node's border ... so i know what
+   node(s) is selected"): the chain card's red ring (.chain-node above), so the page has one sign for selected. A ring,
+   not border-color: border-color would repaint the left stripe, which is the node's GROUP, not its state. */
+.zone-canvas .react-flow__node.selected :is(.zn, .zo) { box-shadow: 0 0 0 2px var(--red); }
 .zone-canvas .zn-fixed { margin-left: auto; color: var(--muted); font-size: 10px; text-align: right; }
 .zone-canvas .zo-set { width: 14px; color: var(--success); font-size: 11px; text-align: center; }
 .zone-canvas .zo-from { color: var(--muted); font-size: 10px; }
