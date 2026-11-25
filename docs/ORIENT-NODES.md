@@ -689,9 +689,9 @@ ids where they exist (nothing rounded on the way, so bit-equality survives); a S
 drawn - a drawn or fallback rim never authorises automatic supports today, and must not start to). The aligner's
 visibility mask is a separate output of its finder, not part of `rim`.
 
-**Inner / outer:** decided by sign against the rim plane and the fitting direction, never by "inside the loop" (an
-open U encloses nothing). Inner = the side facing the fitting surface (aligner cavity, denture tissue), outer = the
-visible outside - one meaning for both kinds.
+**Inner / outer:** decided by which side of the rim LINE a face lies on, never by "inside the loop" (an open U
+encloses nothing) and, since 2026-11-25, never by which way a single face points (see step 9 below). Inner = the
+fitting side (aligner cavity, denture tissue), outer = the visible outside - one meaning for both kinds.
 
 ### Plane names - one name per plane, everywhere (code, docs, UI, three languages)
 
@@ -985,7 +985,7 @@ becomes available here - one rule, seen from both sides.
 
 **Step 9 BUILT 2026-11-23, off by default, waiting for the owner's look** (geocore 70ae5c7, engine 71):
 - **What it is:** zone kind `rimSide` - the faces within `mm` of the rim along the surface, on one side (`which` inner / outer; `mm` above 0 and at most 20). Its input is the RIM node. It is in no default graph, so no result changes until a graph wires it in.
-- **The rule:** each face's normal is tested against the outward direction at its nearest rim point, in the rim's plane - never against the fitting axis, which is noise on the flange wall (Fable). A face square to the rim plane counts as inner. This holds along the buccal flange, which is where the finder's rim runs.
+- **The rule, replaced 2026-11-25 (owner: "why there's gap between rim and area, and even when inner is 0, the outer width 3, why some places, both sides got highlighted"; Fable's design, geocore `rim_sides.rs`):** a face's side is where it LIES. The rim line is a chain of mesh edges; its faces are seeded left or right by winding, and a flood that never crosses a rim edge gives every face near the line its side (an open U's two sides meet round each end). One vote per line over 3 mm - area x normal against the outward direction in the rim's plane, the old test summed - names which side is outer; a near tie is refused by name. The line is walked without the finder's A-B-A spurs and small loops first. The rule it replaces tested each face's normal on its own: on the three local denture scans it put a third of the faces touching the line on the wrong side (the white gap between the line and an outer-only belt) and split a one-sided belt into 50 to 145 pieces; the new rule gives one piece per side, touching the line (case 1 also keeps about 23 single-face crumbs per side where its two rim lines meet).
 - **The host:** the palette offers it under Strips as "Rim side", with its words saying its width is its own, not the profile's.
 - **Proof:** a ring slab, wound as a real shell, puts its outer wall outer, its inner wall inner, and every strip face on exactly one side. Engine and host validation agree on three new parity cases.
 - **Not yet proven:** pictures on the real denture scans for the owner's review. No rule depends on it until then, which is why it stays off.
