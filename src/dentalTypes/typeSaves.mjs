@@ -92,6 +92,24 @@ export function saveRefusal({ id, newest, opened }) {
   return null;
 }
 
+/**
+ * Why a draft would clash with ANOTHER type the app loads, or null - asked BEFORE a save is written. The app refuses a
+ * type whose id is a built-in's, and a type whose name reads the same as one loaded earlier in any language
+ * (`shippedTypes.ts` refusalOf). Checked only after writing, a copy that kept the opened type's name was refused - or,
+ * sorting first, got the OTHER type refused - while the page said both load (Fable, 2026-11-26). `others` is every
+ * type the workbench lists ({ id, builtIn, names: { en, ja, ... } }); the draft's own id is the same type, not a clash.
+ * @param {{ id: string, names: Record<string, string>, others: readonly { id: string, builtIn: boolean, names: Record<string, string> }[] }} input
+ */
+export function clashRefusal({ id, names, others }) {
+  if (others.some((o) => o.builtIn && o.id === id)) return `"${id}" is a built-in type and is read-only - give the new type its own id`;
+  for (const other of others) {
+    if (other.id === id) continue;
+    const lang = Object.keys(names).find((l) => names[l] && other.names?.[l] === names[l]);
+    if (lang) return `its name "${names[lang]}" is already "${other.id}"'s in the type list - the app would refuse one of them. Give it its own name`;
+  }
+  return null;
+}
+
 /** How a save's stamp reads to a person: `25 Nov 2026 21:04 UTC`, or "an undated save". @param {string} stamp */
 export function stampWords(stamp) {
   if (!STAMP.test(stamp)) return 'an undated save';

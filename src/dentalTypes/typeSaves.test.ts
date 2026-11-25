@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { idLooksDated, saveName, saveOf, saveRefusal, savesByType, stampWords } from './typeSaves.mjs';
+import { clashRefusal, idLooksDated, saveName, saveOf, saveRefusal, savesByType, stampWords } from './typeSaves.mjs';
 
 describe('which save of a type is in force (append-only saves, newest by name)', () => {
   it('reads a dated save, an old undated one, and refuses what is not a type file', () => {
@@ -47,6 +47,20 @@ describe('which save of a type is in force (append-only saves, newest by name)',
     // Opened an older save, someone saved since: refused, naming both.
     expect(saveRefusal({ id: 'soft', newest: '20261125-210430', opened: '20261120-090000' }))
       .toMatch(/newer save \(25 Nov 2026 21:04 UTC\) than the one you opened \(20 Nov 2026 09:00 UTC\)/);
+  });
+
+  // Fable, 2026-11-26: a copy that kept the opened type's name saved, then the app refused one of the two.
+  it('refuses a save the app would refuse for its id or name, before it is written', () => {
+    const others: { id: string, builtIn: boolean, names: Record<string, string> }[] = [
+      { id: 'reference-denture', builtIn: true, names: { en: 'Generic denture', ja: '汎用義歯' } },
+      { id: 'soft', builtIn: false, names: { en: 'Soft denture' } },
+    ];
+    expect(clashRefusal({ id: 'reference-denture', names: { en: 'Mine' }, others })).toMatch(/built-in type and is read-only/);
+    expect(clashRefusal({ id: 'hard', names: { en: 'Soft denture' }, others })).toMatch(/"Soft denture" is already "soft"'s/);
+    expect(clashRefusal({ id: 'hard', names: { en: 'Hard', ja: '汎用義歯' }, others })).toMatch(/already "reference-denture"'s/);
+    // Its own id is the same type (a new save of it), and a name of its own is fine.
+    expect(clashRefusal({ id: 'soft', names: { en: 'Soft denture' }, others })).toBeNull();
+    expect(clashRefusal({ id: 'hard', names: { en: 'Hard denture' }, others })).toBeNull();
   });
 
   it('says a stamp in words a person reads', () => {
