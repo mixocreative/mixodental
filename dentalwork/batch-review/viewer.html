@@ -2971,7 +2971,7 @@ const sessionRunName = () => {
   return applied.has(sessionType.id) ? `${run.profile?.name?.en ?? run.id} (applied, not saved)` : sessionType.name;
 };
 const sessionPrint = () => draftLib.runPrint(sessionRunType());
-const sessionRows = () => sessionLib.rowsOf(session, sessionType.id, sessionPrint());
+const sessionRows = () => sessionLib.rowsOf(session, sessionPrint());
 
 /** The built-in of `kind` as a type file, from the catalog. */
 const builtInOf = (kind) => catalogNow?.types.find((t) => t.builtIn && t.category === kind)?.type;
@@ -3115,7 +3115,7 @@ function drawBanner() {
 /** Run scan `k` of the session with the session's type, unless it has a result or is under way (`force` re-runs a failed one). */
 async function runScan(k, force = false) {
   const source = session.scans[k];
-  const id = sessionLib.resultId(source, sessionType.id, sessionPrint());
+  const id = sessionLib.resultId(source, sessionPrint());
   const now = sessionLib.stateOf(session, id).state;
   if (now === 'done' || now === 'running' || now === 'queued' || (now === 'failed' && !force)) return;
   const asked = session;
@@ -3328,6 +3328,28 @@ try {
 
   // Save type: only what RAN is saved (the server copies the run's type.json), never unrun edits.
   document.getElementById('type-save').addEventListener('click', async () => {
+    // IN THE SCAN SESSION (reviewer overhaul step 9): the whole draft is saved as a NEW dated file, never over an
+    // older one; the server refuses a draft that never ran, or one that would hide a newer save.
+    if (session) {
+      const draft = draftFromEditors();
+      const sameType = draft.id === sessionType.id && !sessionType.builtIn;
+      const answer = await fetch('/save-draft', { method: 'POST', body: JSON.stringify({ draft, openedStamp: sameType ? sessionType.stamp : null }) })
+        .then((r) => r.json()).catch((error) => ({ error: `the server did not answer: ${error.message}` }));
+      if (!answer.ok) { status.textContent = `Not saved: ${answer.error ?? 'no answer'}`; return; }
+      if (answer.same) { status.textContent = `Nothing new to save: ${answer.path} already holds exactly this.`; return; }
+      const before = sessionType;
+      await loadCatalog();
+      applied.delete(before.id);
+      drafts.delete(draftKey(before));
+      fetch('/draft', { method: 'POST', body: JSON.stringify({ key: draftKey(before), draft: null }) }).catch(() => undefined);
+      sessionType = sessionTypes().find((t) => t.id === draft.id) ?? before;
+      drawTypePick();
+      openTypeInEditors(sessionType.type, sessionType);
+      drawSession();
+      const load = answer.typeLoad?.loads === false ? ` The app will NOT load it yet: ${answer.typeLoad.reason}.` : ' The app will load it.';
+      status.textContent = `Saved ${answer.path} (run on ${answer.scans} scan(s)).${load} To share it, commit and push that one file: git add "${answer.path}", then git commit, then git push.`;
+      return;
+    }
     const save = async (replace) => {
       const reply = await fetch(replace ? '/save-type?replace=1' : '/save-type', { method: 'POST' }).catch(() => null);
       return reply ? await reply.json().catch(() => ({})) : { error: 'the server did not answer' };

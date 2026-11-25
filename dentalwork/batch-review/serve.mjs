@@ -17,6 +17,8 @@ import { saveVerdict } from './saveType.mjs';
 import { scanSet, scanSetWords } from './scanSet.mjs';
 import { createQueue, resultKey } from './runQueue.mjs';
 import { runPrint } from './typeDraft.mjs';
+import { idLooksDated, saveName, saveRefusal, savesByType } from '../../src/dentalTypes/typeSaves.mjs';
+import { proofOf, typeFileText } from '../../src/dentalTypes/typeText.mjs';
 import { HOST_GEOMETRY_VERSION } from '../../vendor/mixo-geocore/host/geometryVersion.js';
 import { RIM_PLACEMENT } from './nodeGraph.mjs';
 
@@ -484,6 +486,60 @@ function clearCache(response) {
 }
 
 /*
+ * SAVE A TYPE (reviewer overhaul step 9; owner, 2026-11-25): APPEND-ONLY. Every save writes a NEW file,
+ * types/<category>/<id>.<YYYYMMDD-HHMMSS>.type.json (typeSaves.mjs), and never touches an older one: the newest is in
+ * force, deleting it is the rollback, older ones stay to reuse. What is saved is the page's whole draft with its proof
+ * record - the scans it ran on, by their bytes' fingerprint, from the kept runs.
+ *
+ * REFUSED, by name, when:
+ * - the draft never ran on a scan as it stands (Apply first): a saved type is always one that was looked at;
+ * - a NEWER save of that id exists than the one the page opened - saving would hide it (two people, or two tabs);
+ * - the id is new to the page (a built-in's edit, a duplicate) but a saved type already has it.
+ * The same contents as the newest save write nothing. Save does not commit or push: the answer names the file and the
+ * commands, and pushing stays a person's act.
+ */
+function saveDraft(request, response) {
+  readBody(request, async (ask) => {
+    const draft = ask?.draft;
+    if (!draft || typeof draft !== 'object' || !/^(denture|aligner)$/.test(draft.category ?? '') || !/^[a-z0-9][a-z0-9.-]*$/.test(draft.id ?? '') || idLooksDated(draft.id)) {
+      sendJson(response, 400, { error: 'the draft must be a whole type file with a category and an id (lower-case letters, digits, dots, dashes; not ending like a date stamp)' });
+      return;
+    }
+    const print = runPrint(draft);
+    const tail = `-${print}-e${HOST_GEOMETRY_VERSION}`;
+    const scans = (existsSync(CACHE) ? readdirSync(CACHE) : []).filter((name) => name.endsWith(tail) && existsSync(join(CACHE, name, FINISHED))).map((name) => name.slice(0, -tail.length));
+    if (scans.length === 0) { sendJson(response, 400, { error: 'it has not run on any scan as it stands - Apply first, so a saved type is always one that was looked at' }); return; }
+    const dir = join(here, '..', '..', 'types', draft.category);
+    const { types: saved } = savesByType(existsSync(dir) ? readdirSync(dir).map((name) => `types/${draft.category}/${name}`) : []);
+    const newest = saved.find((t) => t.id === draft.id)?.saves[0];
+    const opened = typeof ask?.openedStamp === 'string' ? ask.openedStamp : null;
+    const refusal = saveRefusal({ id: draft.id, newest: newest?.stamp ?? null, opened });
+    if (refusal) { sendJson(response, 409, { error: refusal }); return; }
+    const { proved: _proved, ...clean } = draft;
+    const type = { ...clean, validation: proofOf(clean, { engineVersion: HOST_GEOMETRY_VERSION, scans, at: new Date().toISOString() }) };
+    if (newest) {
+      const before = JSON.parse(readFileSync(join(here, '..', '..', newest.path), 'utf8'));
+      const same = (t) => typeFileText({ ...t, validation: null });
+      if (same(before) === same(type)) { sendJson(response, 200, { ok: true, same: true, path: newest.path, stamp: newest.stamp }); return; }
+    }
+    const stamp = stampNow();
+    const path = `types/${draft.category}/${saveName(draft.id, stamp)}`;
+    try {
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(here, '..', '..', path), typeFileText(type), { flag: 'wx' }); // never over an existing file
+    } catch (error) {
+      sendJson(response, 500, { error: `${path} could not be written: ${error.message}` });
+      return;
+    }
+    // Whether the APP will load it, by the app's own rule: the type list read again, its refusal for this file if any.
+    catalog = null;
+    const read = await readCatalog();
+    const refused = read.refused?.find((r) => r.file === path);
+    sendJson(response, 200, { ok: true, path, stamp, scans: scans.length, typeLoad: refused ? { loads: false, reason: refused.reason } : { loads: true } });
+  });
+}
+
+/*
  * DRAFTS KEPT (reviewer overhaul step 8, plan decision 5): a type's edits not saved yet, one file per type in
  * dentalwork/output/review-drafts (git-ignored), so a reload, a restart or a cleared browser keeps them. POST /draft
  * { key, draft } writes one (draft null removes it); GET /drafts answers them all. A key is `<category>-<id>`.
@@ -521,6 +577,7 @@ const server = createServer((request, response) => {
   if (request.method === 'POST' && path === '/import') { importScans(request, response); return; }
   if (request.method === 'POST' && path === '/pick-folder') { pickFolder(response); return; }
   if (request.method === 'POST' && path === '/run') { runScan(request, response); return; }
+  if (request.method === 'POST' && path === '/save-draft') { saveDraft(request, response); return; }
   if (request.method === 'POST' && path === '/draft') { keepDraft(request, response); return; }
   if (request.method === 'GET' && path === '/drafts') { listDrafts(response); return; }
   if (request.method === 'POST' && path === '/run-stop') { stopRun(request, response); return; }

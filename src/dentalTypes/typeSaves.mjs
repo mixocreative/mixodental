@@ -78,6 +78,20 @@ export function saveName(id, stamp) {
   return `${id}.${stamp}.type.json`;
 }
 
+/**
+ * Why a new save of a type must be refused, or null. `newest` is the type's newest save's stamp (null: none saved);
+ * `opened` is the stamp of the save the editor opened (null: the draft is new to the page - a built-in's edit or a
+ * duplicate). A save may only follow the newest: anything else would hide a save the person never saw (owner,
+ * 2026-11-25: "what if user forget to ask reviewer to read from it and just create new and save").
+ * @param {{ id: string, newest: string | null, opened: string | null }} input
+ */
+export function saveRefusal({ id, newest, opened }) {
+  if (newest === null) return null;
+  if (opened === null) return `a saved type "${id}" already exists (${stampWords(newest)}) - open it from the type list, or give this one another id`;
+  if (opened !== newest) return `"${id}" has a newer save (${stampWords(newest)}) than the one you opened (${stampWords(opened)}) - saving would hide it. Open the newest first, or save under another id`;
+  return null;
+}
+
 /** How a save's stamp reads to a person: `25 Nov 2026 21:04 UTC`, or "an undated save". @param {string} stamp */
 export function stampWords(stamp) {
   if (!STAMP.test(stamp)) return 'an undated save';

@@ -21,7 +21,7 @@
  */
 
 import { idLooksDated } from './typeSaves.mjs';
-import { canonical, typeDigest } from './typeText.mjs';
+import { graphText as graphTextJs, profileText as profileTextJs, proofOf as proofOfJs, typeDigest, typeFileText as typeFileTextJs } from './typeText.mjs';
 
 /** The type-file format this code reads. A file with any other number is refused, never guessed at. */
 export const TYPE_FILE_FORMAT = 1;
@@ -101,39 +101,29 @@ export interface ReadType {
 }
 
 
+/*
+ * THE ONE WRITERS of a type's texts and its proof record live in typeText.mjs (plain JavaScript), so the workbench's
+ * server writes a saved type exactly as this module reads it back. Typed here for the TypeScript callers.
+ */
+
 /** THE one writer of a profile's text. Every fingerprint of a type's profile is taken over this output. */
-export function profileText(profile: Record<string, unknown>): string {
-  return `${JSON.stringify(canonical(profile), null, 2)}\n`;
-}
+export const profileText = (profile: Record<string, unknown>): string => profileTextJs(profile);
 
 /**
  * THE one writer of a zone graph's text - and what the engine must be SENT when a type runs, so the
  * graph the run used is the graph the file names. Found by this module's own test, 2026-11-20: the
  * canvas's key order and a file's sorted order gave one graph two fingerprints.
  */
-export function graphText(graph: Record<string, unknown>): string {
-  return JSON.stringify(canonical(graph));
-}
+export const graphText = (graph: Record<string, unknown>): string => graphTextJs(graph);
 
 /** A type's own fingerprint of a text (FNV-1a, 64 bits) - written once in typeText.mjs, which the workbench page shares. */
 export { typeDigest };
 
 /** The whole type file as text, through the same writer, so a saved file reads back byte-identical. */
-export function typeFileText(type: TypeFile): string {
-  return `${JSON.stringify(canonical(type), null, 2)}\n`;
-}
+export const typeFileText = (type: TypeFile): string => typeFileTextJs(type);
 
 /** The proof record for `type` as it stands - what benchwork writes after it has run the scans. */
-export function proofOf(type: TypeFile, run: { engineVersion: number; scans: string[]; at: string }): TypeValidation {
-  return {
-    engineVersion: run.engineVersion,
-    profileDigest: typeDigest(profileText(type.profile)),
-    zoneGraphDigest: type.zoneGraph === null ? 'default' : typeDigest(graphText(type.zoneGraph)),
-    ...(type.orientGraph ? { orientGraphDigest: typeDigest(graphText(type.orientGraph)) } : {}),
-    scans: run.scans,
-    at: run.at,
-  };
-}
+export const proofOf = (type: TypeFile, run: { engineVersion: number; scans: string[]; at: string }): TypeValidation => proofOfJs(type, run) as TypeValidation;
 
 /**
  * The type as an editable DRAFT: the proof record and the hand override removed. Every edit (the

@@ -18,8 +18,11 @@ export function newSession({ kind, scans }) {
   return { kind, scans: [...scans], results: new Map() };
 }
 
-/** The id of one scan's run with one type as it stands. */
-export const resultId = (source, typeId, print) => `${source}|${typeId}|${print}`;
+/**
+ * The id of one scan's run with one type as it stands: the scan and the type's run fingerprint. Not the type's id: a
+ * draft saved under a new id, or a rename, runs exactly as before, so it keeps its results.
+ */
+export const resultId = (source, print) => `${source}|${print}`;
 
 /**
  * What one scan with the current type is: `done` with its run (url + the one-case summary), `running` / `queued`,
@@ -33,10 +36,10 @@ export const stateOf = (session, id) => session.results.get(id) ?? { state: 'not
  * read it unchanged), renamed to its place in this session; any other scan is a placeholder with its state as
  * `result`, which the list and the stage card say in words.
  */
-export function rowsOf(session, typeId, print) {
+export function rowsOf(session, print) {
   return session.scans.map((source, k) => {
     const name = `case-${String(k + 1).padStart(3, '0')}`;
-    const run = stateOf(session, resultId(source, typeId, print));
+    const run = stateOf(session, resultId(source, print));
     if (run.state === 'done') return { ...run.summary.cases[0], case: name, source, session: { ...run, at: k } };
     return { case: name, source, kind: session.kind, result: run.state, needsLook: false, ...(run.error ? { reason: run.error } : {}), session: { ...run, at: k } };
   });
