@@ -21,7 +21,8 @@ import { HOST_GEOMETRY_VERSION } from '../../vendor/mixo-geocore/host/geometryVe
 import { RIM_PLACEMENT } from './nodeGraph.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const [folder] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
+// The first argument that is not a --flag, nor the value of --port.
+const [folder] = process.argv.slice(2).filter((arg, k, all) => !arg.startsWith('--') && all[k - 1] !== '--port');
 const lan = process.argv.includes('--lan');
 if (folder && !existsSync(join(resolve(folder), 'summary.json'))) {
   console.error('Give an output folder that holds summary.json (made by run-batch-review.bat), or none to drop one in the viewer.');
@@ -482,6 +483,35 @@ function clearCache(response) {
   sendJson(response, 200, cacheSize());
 }
 
+/*
+ * DRAFTS KEPT (reviewer overhaul step 8, plan decision 5): a type's edits not saved yet, one file per type in
+ * dentalwork/output/review-drafts (git-ignored), so a reload, a restart or a cleared browser keeps them. POST /draft
+ * { key, draft } writes one (draft null removes it); GET /drafts answers them all. A key is `<category>-<id>`.
+ */
+const DRAFTS = join(here, '..', 'output', 'review-drafts');
+const DRAFT_KEY = /^(denture|aligner)-[a-z0-9][a-z0-9.-]*$/;
+function keepDraft(request, response) {
+  readBody(request, (ask) => {
+    const key = String(ask?.key ?? '');
+    if (!DRAFT_KEY.test(key)) { sendJson(response, 400, { error: 'a draft key is <category>-<type id>' }); return; }
+    const file = join(DRAFTS, `${key}.json`);
+    try {
+      if (ask.draft && typeof ask.draft === 'object') { mkdirSync(DRAFTS, { recursive: true }); writeFileSync(file, JSON.stringify(ask.draft)); }
+      else rmSync(file, { force: true });
+      sendJson(response, 200, { ok: true });
+    } catch (error) {
+      sendJson(response, 500, { error: `the draft could not be kept: ${error.message}` });
+    }
+  });
+}
+function listDrafts(response) {
+  const drafts = {};
+  for (const name of existsSync(DRAFTS) ? readdirSync(DRAFTS).filter((n) => n.endsWith('.json')) : []) {
+    try { drafts[name.slice(0, -'.json'.length)] = JSON.parse(readFileSync(join(DRAFTS, name), 'utf8')); } catch { /* a half-written draft is skipped */ }
+  }
+  sendJson(response, 200, { drafts });
+}
+
 const server = createServer((request, response) => {
   const path = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
   if (request.method === 'POST' && path === '/rerun') { rerun(request, response); return; }
@@ -491,6 +521,8 @@ const server = createServer((request, response) => {
   if (request.method === 'POST' && path === '/import') { importScans(request, response); return; }
   if (request.method === 'POST' && path === '/pick-folder') { pickFolder(response); return; }
   if (request.method === 'POST' && path === '/run') { runScan(request, response); return; }
+  if (request.method === 'POST' && path === '/draft') { keepDraft(request, response); return; }
+  if (request.method === 'GET' && path === '/drafts') { listDrafts(response); return; }
   if (request.method === 'POST' && path === '/run-stop') { stopRun(request, response); return; }
   if (request.method === 'GET' && path === '/jobs') { sendJson(response, 200, { jobs: queue.list() }); return; }
   if (request.method === 'GET' && path === '/cache-size') { sendJson(response, 200, cacheSize()); return; }
@@ -506,9 +538,23 @@ const server = createServer((request, response) => {
   createReadStream(file).pipe(response);
 });
 
-server.listen(0, lan ? '0.0.0.0' : '127.0.0.1', () => {
-  const url = `http://127.0.0.1:${server.address().port}/`;
-  console.log(`Review viewer: ${url}  (keep this window open while you look; Ctrl+C to stop)`);
-  const open = process.platform === 'win32' ? `start "" "${url}"` : process.platform === 'darwin' ? `open "${url}"` : `xdg-open "${url}"`;
-  if (!process.argv.includes('--no-open')) exec(open);
-});
+/*
+ * A FIXED PORT (reviewer overhaul step 8): the page keeps its per-viewer state (stage, layout, edits) in the browser
+ * by ORIGIN, and a random port made every start a new origin - the edits were gone. 6705 unless --port says otherwise;
+ * when it is taken (a second workbench), the next free port is used and the line below says which.
+ */
+const portArg = process.argv.indexOf('--port');
+const wanted = portArg >= 0 ? Number(process.argv[portArg + 1]) : 6705;
+function listen(port) {
+  server.once('error', (error) => {
+    if (error.code === 'EADDRINUSE' && port !== 0) { console.log(`Port ${port} is taken (another workbench?) - using a free one; edits kept in this browser start empty there.`); listen(0); return; }
+    throw error;
+  });
+  server.listen(port, lan ? '0.0.0.0' : '127.0.0.1', () => {
+    const url = `http://127.0.0.1:${server.address().port}/`;
+    console.log(`Review viewer: ${url}  (keep this window open while you look; Ctrl+C to stop)`);
+    const open = process.platform === 'win32' ? `start "" "${url}"` : process.platform === 'darwin' ? `open "${url}"` : `xdg-open "${url}"`;
+    if (!process.argv.includes('--no-open')) exec(open);
+  });
+}
+listen(Number.isInteger(wanted) && wanted >= 0 ? wanted : 6705);

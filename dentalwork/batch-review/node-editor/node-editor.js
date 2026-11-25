@@ -1,4 +1,4 @@
-/* node-editor sources 7039b733c78f1959 - rebuild with npm run review:editor */
+/* node-editor sources 0d48327a47cceb2d - rebuild with npm run review:editor */
 /*! Contains third-party code - React, React DOM, @xyflow/react and their dependencies, each MIT or ISC. Full licence texts: THIRD-PARTY-NOTICES.txt, written by npm run build. */
 function Rh(t) {
   return t && t.__esModule && Object.prototype.hasOwnProperty.call(t, "default") ? t.default : t;
@@ -12474,7 +12474,7 @@ function Vk({ data: t, selected: r }) {
         ),
         (() => {
           const T = i.defaultOf(l, w);
-          return T !== void 0 && String(T) !== String(k) ? /* @__PURE__ */ I.jsx("button", { type: "button", className: "zn-restore nodrag", "data-ui": "node-restore", title: `Restore to ${E.choices?.find(([S]) => String(S) === String(T))?.[1] ?? String(T)}`, "aria-label": `Restore ${E.label}`, onClick: (S) => {
+          return T !== void 0 && String(T) !== String(k) ? /* @__PURE__ */ I.jsx("button", { type: "button", className: "zn-restore nodrag", "data-ui": "node-restore", title: `Restore to ${E.choices?.find(([S]) => String(S) === String(T))?.[1] ?? String(T)}${i.savedIn ? ` (saved in ${i.savedIn})` : ""}`, "aria-label": `Restore ${E.label}`, onClick: (S) => {
             S.preventDefault(), p(l.id, w, T);
           }, children: "↺" }) : null;
         })()

@@ -532,6 +532,12 @@ let RULES = {};
 /* The benchwork panel's fields, once it has built them: the chain mirrors these rather than keeping a
    second copy of what is turned. Null until the panel loads, and the chain simply shows values then. */
 let benchFields = null;
+/* THE OPENED TYPE'S OWN VALUES, in the editors' form (reviewer overhaul step 8, `editsOf` below): what every restore
+   mark puts back (owner, 2026-11-25: "restore value goes to what saved previous setup were, but not the node's
+   default"). Null = a built-in (or a review folder) is open, and restore goes to the built-in as before. */
+let savedBaseline = null;
+/* Each benchwork rule field's restore-mark refresh, so opening another type re-reads its saved value. */
+const resyncBench = [];
 /* The zone graph the loaded run was made with ("default" or a digest), from its summary.json. */
 let ranZoneGraph = 'default';
 /*
@@ -1351,9 +1357,11 @@ function searchCard() {
       scheduleTiltPreview();
     });
     row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: `${label} (°)${poseEdits[key] !== undefined ? ' · edited' : ''}` }), input);
-    if (poseEdits[key] !== undefined) {
-      row.append(restoreMark(`the built-in ${defaults[field]}°`, () => {
-        delete poseEdits[key];
+    // Restore goes to what the opened type SAVED (owner, 2026-11-25), the built-in's when it saved none.
+    const savedPose = savedBaseline?.pose?.[key];
+    if (poseEdits[key] !== savedPose) {
+      row.append(restoreMark(savedPose === undefined ? `the built-in ${defaults[field]}°` : `${savedPose}° (saved in ${savedBaseline.name})`, () => {
+        if (savedPose === undefined) delete poseEdits[key]; else poseEdits[key] = savedPose;
         try { localStorage.setItem('review-pose', JSON.stringify(poseEdits)); } catch { /* per-viewer only */ }
         if (lastChain) drawChain(...lastChain);
         scheduleTiltPreview();
@@ -1522,7 +1530,7 @@ function drawOrientEditor(body, key = null) {
   tools.append(pick, add, flat, reset);
   bar.append(summary, ...(key ? [key] : []), tools);
   const props = {
-    lib: orientLib, graph: g, positions: orientPositions, liveParams: [], onGraph: save,
+    lib: canvasLib(orientLib, savedBaseline?.orientGraph), graph: g, positions: orientPositions, liveParams: [], onGraph: save,
     // What each step measured on the case on screen (B3): the readouts of the graph that RAN for it.
     values: orientRead?.lines ?? {},
     onPositions: (next) => {
@@ -1562,7 +1570,8 @@ function drawRimCanvas(body, kind, key = null) {
   }
   // standsOnFlatArea: the Orient canvas's pose is a Stand on the flat area, the only pose the flat edge can follow.
   const pose = orientGraph?.nodes?.find((n) => n.id === orientGraph.outputs?.pose);
-  const ctx = { graph: zoneGraph, placement: placementEdits, ran: ranPlacement, standsOnFlatArea: pose?.kind === 'setBottom' };
+  const ctx = { graph: zoneGraph, placement: placementEdits, ran: ranPlacement, standsOnFlatArea: pose?.kind === 'setBottom',
+    ...(savedBaseline ? { saved: { graph: savedBaseline.zoneGraph, placement: savedBaseline.placement } } : {}) };
   // The denture's tab shows its selected node on the model (showZonePreview) with its note above the canvas.
   if (kind === 'denture') rimCanvasHost.before(zonePreviewNote);
   const onSelect = kind === 'denture' ? (id) => { if (id !== rimSelected) { rimSelected = id; showZonePreview(); } } : undefined;
@@ -1742,7 +1751,7 @@ function drawZoneEditor(body, present, names) {
   // it, so the output row is only the fallback's.
   if (editorLib) {
     const props = {
-      lib: graphLib, graph: g, positions: zonePositions,
+      lib: canvasLib(graphLib, savedBaseline?.zoneGraph), graph: g, positions: zonePositions,
       liveParams: benchFields?.has('noSupportSteepDeg') ? ['R1b.deg'] : [],
       onGraph: save,
       // The selected node's values on the model (plan D2): the zone as it stands at that node.
@@ -2950,8 +2959,128 @@ async function loadCatalog() {
   return read;
 }
 const sessionTypes = () => (catalogNow?.types ?? []).filter((t) => t.category === session?.kind);
-const sessionPrint = () => draftLib.runPrint(sessionType.type);
+/*
+ * WHAT THE SESSION RUNS: the picked type as saved, or - once Apply was pressed - the draft made from the editors
+ * (`applied`, by type id). Editing alone runs nothing (a build is about 35 s); the banner says the picture is from
+ * before the edits until Apply.
+ */
+const applied = new Map();
+const sessionRunType = () => applied.get(sessionType.id) ?? sessionType.type;
+const sessionRunName = () => {
+  const run = sessionRunType();
+  return applied.has(sessionType.id) ? `${run.profile?.name?.en ?? run.id} (applied, not saved)` : sessionType.name;
+};
+const sessionPrint = () => draftLib.runPrint(sessionRunType());
 const sessionRows = () => sessionLib.rowsOf(session, sessionType.id, sessionPrint());
+
+/** The built-in of `kind` as a type file, from the catalog. */
+const builtInOf = (kind) => catalogNow?.types.find((t) => t.builtIn && t.category === kind)?.type;
+/**
+ * A type file's values in the editors' own form - the search and the Rim numbers as edits measured against the
+ * built-in (how the editors have always held them), the rules, both graphs - plus its display name for restore marks.
+ */
+function editsOf(type) {
+  const builtIn = builtInOf(type.category);
+  const diff = (keys, from, base) => Object.fromEntries(keys.filter((k) => from?.[k] !== undefined && from[k] !== base?.[k]).map((k) => [k, from[k]]));
+  return {
+    name: type.profile?.name?.en ?? type.id,
+    pose: diff(POSE_FIELDS.map(([key]) => key), type.profile?.pose, builtIn?.profile?.pose),
+    placement: diff(Object.keys(graphLib?.RIM_PLACEMENT ?? {}), type.profile?.placement, builtIn?.profile?.placement),
+    rules: { ...type.rules },
+    zoneGraph: type.zoneGraph ?? graphLib?.defaultGraph() ?? null,
+    orientGraph: type.orientGraph ?? orientLib?.defaultGraph() ?? null,
+  };
+}
+/** The canvas library with its restore baseline set to the opened type's graph (nodeGraph.mjs defaultParam). */
+function canvasLib(lib, savedGraph) {
+  if (!lib || !savedGraph) return lib;
+  return { ...lib, defaultOf: (node, key) => lib.defaultParam(savedGraph, lib.KINDS, node, key), savedIn: savedBaseline?.name };
+}
+/**
+ * OPEN A TYPE: put its whole setup into the editors - the Orient and zone graphs, the Rim numbers, the search, the
+ * rules, its name and badge - so what is edited is that type, and Restore goes back to what it saved.
+ */
+function openTypeInEditors(type, entry) {
+  const edits = editsOf(type);
+  poseEdits = edits.pose;
+  placementEdits = edits.placement;
+  if (graphLib) { zoneGraph = edits.zoneGraph; zonePositions = editorLib ? editorLib.autoLayout(zoneGraph, graphLib.FIXED.outputs) : zonePositions; }
+  if (orientLib) orientGraph = edits.orientGraph;
+  for (const [name, { input, rule }] of benchFields ?? []) {
+    const value = edits.rules[name];
+    if (rule.type === 'flag') input.checked = value === true; else input.value = value === undefined ? '' : String(value);
+  }
+  typeFullName = edits.name;
+  typeName = type.id;
+  typeBadge = type.badge ?? '';
+  typeIdTyped = true;
+  savedBaseline = entry.builtIn ? null : editsOf(entry.type);
+  for (const sync of resyncBench) sync();
+  try {
+    localStorage.setItem('review-pose', JSON.stringify(poseEdits));
+    localStorage.setItem('review-placement', JSON.stringify(placementEdits));
+    if (zoneGraph) localStorage.setItem('review-zone-graph', JSON.stringify(zoneGraph));
+    if (orientGraph) localStorage.setItem('review-orient-graph', JSON.stringify(orientGraph));
+  } catch { /* per-viewer only */ }
+  if (lastChain) drawChain(...lastChain);
+}
+/**
+ * THE DRAFT: the opened type with the editors' values, as one whole type file - what Apply runs and Save will write.
+ * Keys no editor shows are kept from the opened type, so opening and applying with no edit gives the same type.
+ */
+function draftFromEditors() {
+  const base = sessionType.type;
+  const builtIn = builtInOf(sessionType.category);
+  const denture = sessionType.category === 'denture';
+  const merged = (keys, edits, from, builtInPart) => {
+    const out = { ...from };
+    for (const key of keys) { const value = edits[key] ?? builtInPart?.[key]; if (value === undefined) delete out[key]; else out[key] = value; }
+    return out;
+  };
+  const id = typeName.trim();
+  const name = typeFullName.trim() || id;
+  const profileName = name === (base.profile?.name?.en ?? base.id) ? base.profile.name : { en: name, ja: name, 'zh-Hant': name };
+  const { proved: _proved, badge: _badge, orientGraph: _orient, ...rest } = base;
+  return {
+    ...rest, id, basedOn: sessionType.builtIn ? sessionType.id : base.basedOn, validation: null,
+    ...(typeBadge.trim() ? { badge: typeBadge.trim() } : {}),
+    profile: { ...base.profile, id, name: profileName,
+      ...(denture ? { pose: merged(POSE_FIELDS.map(([key]) => key), poseEdits, base.profile.pose, builtIn?.profile?.pose),
+        placement: merged(Object.keys(graphLib?.RIM_PLACEMENT ?? {}), placementEdits, base.profile.placement, builtIn?.profile?.placement) } : {}) },
+    rules: benchRulesNow(),
+    zoneGraph: denture && graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : (denture ? null : base.zoneGraph),
+    ...(denture && orientLib && orientGraph && !orientLib.isDefault(orientGraph) ? { orientGraph } : {}),
+  };
+}
+/** Whether the editors hold something the picture on screen did not run with. */
+function editsNotRun() {
+  try { return draftLib.runPrint(draftFromEditors()) !== sessionPrint(); } catch { return false; }
+}
+
+/*
+ * DRAFTS KEPT (plan decision 5): edits not applied stay with their type when another is picked, and on the server
+ * (dentalwork/output/review-drafts, git-ignored), so a reload or a restart keeps them. Keyed by category and id.
+ */
+const drafts = new Map();
+const draftKey = (entry) => `${entry.category}-${entry.id}`;
+function keepDraft() {
+  if (!session || !sessionType) return;
+  // Kept while it differs from what was SAVED (not from what ran): an applied draft is still unsaved work.
+  let draft = null;
+  try {
+    const now = draftFromEditors();
+    const saved = sessionType.type;
+    const differs = draftLib.runPrint(now) !== draftLib.runPrint(saved) || now.id !== saved.id
+      || (now.badge ?? '') !== (saved.badge ?? '') || now.profile?.name?.en !== saved.profile?.name?.en;
+    draft = differs ? now : null;
+  } catch { draft = null; }
+  if (draft) drafts.set(draftKey(sessionType), draft); else drafts.delete(draftKey(sessionType));
+  fetch('/draft', { method: 'POST', body: JSON.stringify({ key: draftKey(sessionType), draft }) }).catch(() => undefined);
+}
+async function loadDrafts() {
+  const read = await fetch('/drafts').then((r) => r.json()).catch(() => ({}));
+  for (const [key, draft] of Object.entries(read.drafts ?? {})) drafts.set(key, draft);
+}
 
 function drawTypePick() {
   const types = sessionTypes();
@@ -2978,7 +3107,8 @@ function drawBanner() {
   const row = shown()[current];
   banner.hidden = !session || !row?.session;
   if (banner.hidden) return;
-  banner.textContent = sessionLib.bannerOf({ at: row.session.at, count: session.scans.length, typeName: sessionType.name, run: row.session });
+  banner.textContent = sessionLib.bannerOf({ at: row.session.at, count: session.scans.length, typeName: sessionRunName(), run: row.session })
+    + (row.session.state === 'done' && editsNotRun() ? ' - before your edits: Apply runs them' : '');
   banner.className = `stage-state${row.session.state === 'running' || row.session.state === 'queued' ? ' busy' : row.session.state === 'failed' ? ' bad' : ''}`;
 }
 
@@ -2989,7 +3119,7 @@ async function runScan(k, force = false) {
   const now = sessionLib.stateOf(session, id).state;
   if (now === 'done' || now === 'running' || now === 'queued' || (now === 'failed' && !force)) return;
   const asked = session;
-  const type = sessionType;
+  const type = { ...sessionType, type: sessionRunType(), builtIn: sessionType.builtIn && !applied.has(sessionType.id) };
   session.results.set(id, { state: 'queued', since: Date.now() });
   drawSession();
   pollJobs();
@@ -3046,6 +3176,7 @@ async function importFrom(path) {
   // The type the session starts with: the one picked before for this category, else its built-in.
   const types = sessionTypes();
   sessionType = types.find((t) => t.id === sessionType?.id) ?? types.find((t) => t.builtIn) ?? types[0];
+  openTypeInEditors(drafts.get(draftKey(sessionType)) ?? applied.get(sessionType.id) ?? sessionType.type, sessionType);
   for (const id of ['type-pick', 'run-all']) document.getElementById(id).hidden = false;
   drawTypePick();
   document.getElementById('note').textContent = `${read.words}${read.truncated ? ' (stopped at 5000 files)' : ''}`;
@@ -3064,9 +3195,15 @@ document.getElementById('import-path').addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && event.target.value.trim()) importFrom(event.target.value.trim());
 });
 typePick.addEventListener('change', () => {
+  // Leaving a type with edits not applied keeps them as that type's draft (here and on the server), so switching
+  // away to compare never throws work away.
+  keepDraft();
   sessionType = sessionTypes().find((t) => t.id === typePick.value) ?? sessionType;
+  openTypeInEditors(drafts.get(draftKey(sessionType)) ?? applied.get(sessionType.id) ?? sessionType.type, sessionType);
   drawSession();
 });
+// Edits made in this session are kept for a reload too, not only for a switch of type.
+addEventListener('pagehide', () => keepDraft());
 document.getElementById('run-all').addEventListener('click', () => session?.scans.forEach((_, k) => runScan(k)));
 document.getElementById('run-stop').addEventListener('click', () => stopSession());
 document.getElementById('cache-clear').addEventListener('click', async () => {
@@ -3077,7 +3214,11 @@ document.getElementById('cache-clear').addEventListener('click', async () => {
   refreshCacheSize();
 });
 // The banner's seconds while a scan runs.
-setInterval(() => { if (session && shown()[current]?.session?.state === 'running') redrawSessionState(); }, 1000);
+// ... and "before your edits" as soon as an editor changes (every editor redraws differently; once a second is enough).
+setInterval(() => {
+  if (!session) return;
+  if (shown()[current]?.session?.state === 'running') redrawSessionState(); else drawBanner();
+}, 1000);
 /** The list, the banner and the case card from the session as it is now, without reloading the case on screen. */
 function redrawSessionState() {
   cases = sessionRows();
@@ -3092,7 +3233,9 @@ reviewServed = Boolean(served);
 if (served) openRun(served, (name) => `/out/${name}`, '/out/summary.csv');
 else empty('Import scans (top) to run them with any type, or drop a batch-... review folder from dentalwork/output here.');
 // The scan session needs the server's type list; without it the bar stays hidden and the note says why.
-if (await loadCatalog()) { sessionBar.hidden = false; refreshCacheSize(); }
+// A server is behind the page whenever its type list answers, with or without a review folder: the Type strip, Apply
+// and the live previews need only that.
+if (await loadCatalog()) { sessionBar.hidden = false; reviewServed = true; refreshCacheSize(); await loadDrafts(); }
 
 /*
  * BENCHWORK PANEL. The rule list comes from the SAME module the CLI uses (`benchwork/rules.mjs`,
@@ -3132,12 +3275,20 @@ try {
     unit.className = 'muted bench-unit';
     unit.textContent = rule.type === 'flag' ? '' : rule.type;
     // Restore = empty, which means "the engine's own value" - shown only while a value is set.
-    const back = restoreMark('the engine default', () => {
-      if (rule.type === 'flag') input.checked = false; else input.value = '';
+    // Restore goes to what the opened type SAVED (owner, 2026-11-25); with nothing saved, to the engine's own value (empty).
+    const savedRule = () => savedBaseline?.rules?.[rule.name];
+    const back = restoreMark('the saved value', () => {
+      const to = savedRule();
+      if (rule.type === 'flag') input.checked = to === true; else input.value = to === undefined ? '' : String(to);
       input.dispatchEvent(new Event('change', { bubbles: true }));
       sync();
     });
-    const sync = () => { back.hidden = rule.type === 'flag' ? !input.checked : input.value === ''; };
+    const sync = () => {
+      const to = savedRule();
+      back.title = to === undefined ? 'Restore to the engine default' : `Restore to ${to} (saved in ${savedBaseline.name})`;
+      back.hidden = rule.type === 'flag' ? input.checked === (to === true) : input.value === (to === undefined ? '' : String(to));
+    };
+    resyncBench.push(sync);
     input.addEventListener('input', sync);
     input.addEventListener('change', sync);
     sync();
@@ -3208,7 +3359,7 @@ try {
     // An edit undone before its run started: the review on screen already is that graph.
     if (auto && orientLib && ranThis(orientLib, orientGraph, ranOrientGraphJson)) return;
     const row = caseNow;
-    if (!row?.source) { status.textContent = 'Open a case first: the re-run needs the STL it came from.'; return; }
+    if (!session && !row?.source) { status.textContent = 'Open a case first: the re-run needs the STL it came from.'; return; }
     const rules = turned();
     // An edited zone graph is a reason to run on its own: refusing until a RULE was turned made the
     // node editor's own Apply do nothing for a graph-only edit - found by pressing it.
@@ -3228,7 +3379,7 @@ try {
     // A newly named type is a reason to run on its own: it is how a type that keeps the built-in's numbers but has
     // its own name and badge gets made (the New-type strip).
     const newType = typeName !== '' && ranTypeId !== typeName;
-    if (Object.keys(rules).length === 0 && !graphEdited && !orientEdited && !orientBack && !poseEdited && !placementEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the Orient graph (1 Orient), the rim (2 Rim), the zone graph (3 Zones), a setting (4) or the search (5 Print angle), then apply.'; return; }
+    if (!session && Object.keys(rules).length === 0 && !graphEdited && !orientEdited && !orientBack && !poseEdited && !placementEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the Orient graph (1 Orient), the rim (2 Rim), the zone graph (3 Zones), a setting (4) or the search (5 Print angle), then apply.'; return; }
     // Only a denture run carries the search (poseNow above): a denture session's bad leftovers refused an aligner run
     // with "Fix the search first", a tab the aligner strip does not link to (Fable, 2026-11-23).
     const poseProblem = kindNow === 'denture' ? searchProblem(searchNow()) : null;
@@ -3241,6 +3392,25 @@ try {
     if (graphProblems.length) { status.textContent = `Fix the zone graph first (3 Zones): ${graphProblems[0]}`; return; }
     const orientProblems = orientEdited ? orientLib.validate(orientGraph).problems : [];
     if (orientProblems.length) { status.textContent = `Fix the Orient graph first (1 Orient): ${orientProblems[0]}`; return; }
+    // IN THE SCAN SESSION (reviewer overhaul step 8) Apply runs the WHOLE draft - the opened type with the editors'
+    // values - on the scan on screen, through the session's own runs (kept, two at a time). A built-in is read-only:
+    // its edits become a new type, which needs its own id.
+    if (session) {
+      if (sessionType.builtIn && typeName.trim() === sessionType.id) {
+        status.textContent = `${sessionType.name} is built in and read-only: give the new type its own id in the Type strip above the stages, then Apply - it becomes a new type based on ${sessionType.name}.`;
+        return;
+      }
+      const draft = draftFromEditors();
+      if (draftLib.runPrint(draft) === sessionPrint()) {
+        status.textContent = 'Nothing to run: the scans already show these settings. A new name or badge alone needs no run - Save keeps it.';
+        return;
+      }
+      applied.set(sessionType.id, draft);
+      keepDraft();
+      status.textContent = `Applied to ${draft.profile?.name?.en ?? draft.id}: the scan on screen runs with your edits - the banner on the stage shows its progress. Other scans run when you open them, or with Run all. Not saved yet.`;
+      drawSession();
+      return;
+    }
     run.disabled = true;
     const sentTiltKey = tiltAsk().key;
     const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(orientEdited ? ['the edited Orient graph'] : []), ...(orientBack ? ['the standard Step 1'] : []), ...(poseEdited ? ['the edited search'] : []), ...(placementEdited ? ['the edited strip widths'] : []), ...(newType ? [`the new type ${typeName}`] : [])].join(', ');
@@ -3290,7 +3460,7 @@ try {
   // second copy of the same controls. The list stays in the DOM, hidden, because it is where the
   // values are HELD and Apply reads them - the nodes mirror it - and only the run button, the note and
   // the status move up beside the stage tabs.
-  if (served) {
+  if (reviewServed) {
     const slot = document.getElementById('stage-run');
     slot.append(document.getElementById('bench-note'), document.querySelector('.bench-actions'), status);
     slot.hidden = false;

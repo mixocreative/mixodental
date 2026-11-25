@@ -67,8 +67,11 @@ export interface GraphLib {
      "gives a rim line". */
   TYPE_WORDS: Record<string, string>;
   OUTPUT_NODE: Words;
-  /* A parameter's standard value: the default graph's node with the same id, else the kind's own default. */
+  /* A parameter's standard value - what its restore mark puts back: the OPENED type's node with the same id when the page
+     opened a saved type (owner, 2026-11-25: restore goes to what was saved), else the default graph's, else the kind's. */
   defaultOf(node: GraphNode, key: string): string | number | boolean | undefined;
+  /* Where the standard came from, for the restore mark's words ("saved in Soft denture"); absent = the built-in. */
+  savedIn?: string;
   /* The groups and each kind's group: a coloured stripe per group, so kinds are found at a glance. */
   NODE_GROUPS: Record<string, { title: string; says: string; token: string }>;
   KIND_GROUP: Record<string, string>;
@@ -277,7 +280,7 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
             {(() => {
               const back = lib.defaultOf(node, key);
               return back !== undefined && String(back) !== String(value)
-                ? <button type="button" className="zn-restore nodrag" data-ui="node-restore" title={`Restore to ${p.choices?.find(([v]) => String(v) === String(back))?.[1] ?? String(back)}`} aria-label={`Restore ${p.label}`} onClick={(e) => { e.preventDefault(); onParam(node.id, key, back); }}>↺</button>
+                ? <button type="button" className="zn-restore nodrag" data-ui="node-restore" title={`Restore to ${p.choices?.find(([v]) => String(v) === String(back))?.[1] ?? String(back)}${lib.savedIn ? ` (saved in ${lib.savedIn})` : ''}`} aria-label={`Restore ${p.label}`} onClick={(e) => { e.preventDefault(); onParam(node.id, key, back); }}>↺</button>
                 : null;
             })()}
           </label>

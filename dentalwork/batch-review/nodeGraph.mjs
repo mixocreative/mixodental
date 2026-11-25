@@ -834,35 +834,42 @@ export const widthProblem = placementProblem;
  * settings live on the zone graph's RIM node (`graph`), the strip widths on the type's profile (`placement`, the edits
  * not yet run). `value` is what the field shows, `standard` what its restore mark puts back; `target` says where an
  * edit goes. The aligner's tab stays locked.
+ *
+ * RESTORE GOES TO WHAT WAS SAVED (owner, 2026-11-25): `saved` is the opened type's own graph and placement (in the same
+ * form as `graph` / `placement`), and each field's standard is its saved value; absent, the built-in's.
  */
-function rimFields(kind, id, graph, placement) {
+function rimFields(kind, id, graph, placement, saved = {}) {
   if (kind !== 'denture') return [];
   if (id === 'RIM') {
     const rim = graph?.nodes?.find((n) => n.id === 'RIM')?.params ?? {};
-    return Object.entries(KINDS.rim.params).map(([key, standard]) => ({
-      key, ...PARAM_WORDS[key], value: key in rim ? rim[key] : standard, standard, target: 'graph',
-    }));
+    const savedRim = saved.graph?.nodes?.find((n) => n.id === 'RIM')?.params ?? {};
+    return Object.entries(KINDS.rim.params).map(([key, builtIn]) => {
+      const standard = key in savedRim ? savedRim[key] : builtIn;
+      return { key, ...PARAM_WORDS[key], value: key in rim ? rim[key] : standard, standard, target: 'graph' };
+    });
   }
   const width = RIM_STRIP_WIDTHS[id];
   if (!width) return [];
   // THE BELT (owner 2026-11-23): two widths from the rim line, one per side, where there was one width and a side
   // dropdown. Each side's standard is the symmetric width, so an untouched belt is today's strip; 0 = nothing that side.
   const belt = beltOf(placement, id);
+  const savedBelt = beltOf(saved.placement, id);
   const name = RIM_BELTS[id].short;
   const sideFields = [
     { key: width.inner, label: 'inner width (mm) - fitting surface', help: `How far the ${name} reaches from the rim line on the inner side, the fitting surface, along the surface. 0 = no belt on that side. Standard ${belt.both} mm, the same as the outer side. 0 to 20.`,
-      value: belt.inner, standard: belt.both, target: 'placement' },
+      value: belt.inner, standard: saved.placement ? savedBelt.inner : belt.both, target: 'placement' },
     { key: width.outer, label: 'outer width (mm) - visible outside', help: `How far the ${name} reaches from the rim line on the outer side, the visible outside. 0 = no belt on that side. Standard ${belt.both} mm. 0 to 20.`,
-      value: belt.outer, standard: belt.both, target: 'placement' },
+      value: belt.outer, standard: saved.placement ? savedBelt.outer : belt.both, target: 'placement' },
   ];
   if (id !== 'RIMBAND') return sideFields;
   // The rim belt's tips (owner 2026-11-23): one spacing along the rim LINE, and the belt's AREA either at the line's
   // spacing (as before), at its own, or left to the area pass like any supported area. Absent keys are the standard.
   return [...sideFields,
     { key: 'dentalRimPitchMm', label: 'tip spacing along the rim line (mm)', help: `The distance between tips placed along the rim line itself. Standard ${RIM_LINE_PITCH_MM} mm, the supported area's spacing. 0.2 to 10.`,
-      value: placement?.dentalRimPitchMm ?? RIM_LINE_PITCH_MM, standard: RIM_LINE_PITCH_MM, target: 'placement' },
+      value: placement?.dentalRimPitchMm ?? RIM_LINE_PITCH_MM, standard: saved.placement?.dentalRimPitchMm ?? RIM_LINE_PITCH_MM, target: 'placement' },
     { key: 'rimStripPitchMm', label: 'tips over the rest of the belt', help: 'The belt\'s faces off the rim line. "Same as the line": a grid of rim tips at the line\'s spacing, even outside the allowed area (as before). "Like the supported area": no grid of its own - the belt gets the normal area tips, only where support is allowed. Or a spacing of its own.',
-      value: placement?.rimStripPitchMm === undefined ? '' : String(placement.rimStripPitchMm), standard: '', target: 'placement',
+      value: placement?.rimStripPitchMm === undefined ? '' : String(placement.rimStripPitchMm),
+      standard: saved.placement?.rimStripPitchMm === undefined ? '' : String(saved.placement.rimStripPitchMm), target: 'placement',
       choices: [['', 'same as the line'], ['0', 'like the supported area'], ['1', '1 mm grid'], ['1.5', '1.5 mm grid'], ['3', '3 mm grid'], ['4', '4 mm grid']] },
   ];
 }
@@ -881,7 +888,7 @@ export function rimTabView(kind, ctx = {}) {
     // the source node's ID, which is what the wires need and not what a reader wants to see.
     const takes = n.kind === 'rimLowPoints' ? [RIM_TAKES]
       : Object.values(n.inputs).map((from) => RIM_TAB_KINDS[graph.nodes.find((m) => m.id === from)?.kind]?.out ?? 'unknown');
-    const fields = rimFields(kind, n.id, ctx.graph, ctx.placement);
+    const fields = rimFields(kind, n.id, ctx.graph, ctx.placement, ctx.saved);
     const problems = n.id === 'RIM' && kind === 'denture'
       ? [...rimProblems({ id: 'RIM', params: Object.fromEntries(fields.map((f) => [f.key, f.value])) }),
         // The flat area's edge needs a flat area to stand on: without one the engine falls back to the found rim (and

@@ -136,6 +136,21 @@ describe('the rim belts are named by their job', () => {
     expect(sameBelts({ rimBandMm: RIM_STRIP_MM.rim_band, lowRimBandMm: RIM_STRIP_MM.low_rim_band }, {})).toBe(true);
     expect(sameBelts(null, { rimBandOuterMm: 0 })).toBe(false);
   });
+  it('restores a Rim field to the OPENED type\'s saved value, not the built-in (owner, 2026-11-25)', () => {
+    const saved = { graph: setParam(defaultGraph(), 'RIM', 'shellMm', 3), placement: { rimBandMm: 4, dentalRimPitchMm: 2 } };
+    const field = (id: string, key: string, ctx: object) => rimTabView('denture', ctx).find((n) => n.id === id)!.fields.find((f) => f.key === key)!;
+    // Opened with its own values and not edited: each field shows the saved value, and that is its standard.
+    const opened = { graph: saved.graph, placement: saved.placement, saved };
+    expect(field('RIM', 'shellMm', opened)).toMatchObject({ value: 3, standard: 3 });
+    expect(field('RIMBAND', 'rimBandInnerMm', opened)).toMatchObject({ value: 4, standard: 4 });
+    expect(field('RIMBAND', 'dentalRimPitchMm', opened)).toMatchObject({ value: 2, standard: 2 });
+    // Edited: the restore mark puts back the saved value, not the built-in 2 mm.
+    const edited = { ...opened, placement: { ...saved.placement, rimBandInnerMm: 6 } };
+    expect(field('RIMBAND', 'rimBandInnerMm', edited)).toMatchObject({ value: 6, standard: 4 });
+    // With nothing saved (a built-in), the standard is the built-in's, as before.
+    expect(field('RIM', 'shellMm', {}).standard).toBe(KINDS.rim.params.shellMm);
+  });
+
   it('never offers a node that cannot run in the Add-node list', () => {
     // Every kind that says it is not runnable is held back, and every held-back kind is a real kind.
     for (const [kind, words] of Object.entries(KIND_WORDS)) if (/not runnable/i.test(words.says)) expect(NOT_IN_PALETTE, kind).toContain(kind);
