@@ -284,7 +284,7 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
         );
       })}
       {idle && <div className="zn-note">Not connected to the output - not run, costs nothing.</div>}
-      {spec.fixed && <div className="zn-note">Found in stage 1 (Orient); fixed here.</div>}
+      {spec.fixed && <div className="zn-note">Found on an earlier tab; fixed here.</div>}
       <div className="zn-row zn-out-row">
         <span className="zn-outtype">gives {lib.TYPE_WORDS[spec.out] ?? spec.out}</span>
         <Handle type="source" position={Position.Right} id="out" className={`h-${spec.out}`} />
@@ -293,8 +293,8 @@ function ZoneNode({ data, selected }: NodeProps<Node<ZoneData>>) {
   );
 }
 
-/** Outputs stage 1 (Orient) sets: the rim line and the strips grown from it. */
-const FROM_ORIENT = ['rim', 'rim_band', 'low_rim_band'];
+/** Fixed outputs an earlier tab sets (the rim line, on 2 Rim); the other fixed ones the engine sets itself. */
+const FROM_RIM_TAB = ['rim'];
 
 /** The single output: one socket per name the engine reads, each saying what the engine does with it. */
 function OutputNode({ data }: NodeProps<Node<OutputData>>) {
@@ -310,7 +310,7 @@ function OutputNode({ data }: NodeProps<Node<OutputData>>) {
             : <Handle type="target" position={Position.Left} id={name} className={`h-${want}`} />}
           <div>
             <b>{lib.OUTPUT_WORDS[name].title}</b>
-            {lib.FIXED.outputs.includes(name) && <span className="zo-from"> · already set {FROM_ORIENT.includes(name) ? 'in Orient' : 'by the engine'}</span>}
+            {lib.FIXED.outputs.includes(name) && <span className="zo-from"> · already set {FROM_RIM_TAB.includes(name) ? 'on 2 Rim' : 'by the engine'}</span>}
             <div className="zo-says">{lib.OUTPUT_WORDS[name].says}</div>
           </div>
         </div>

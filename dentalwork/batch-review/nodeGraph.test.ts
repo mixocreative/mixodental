@@ -4,7 +4,7 @@ import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
   ALIGNER_KINDS, OLD_KINDS, RIM_DERIVED_REASON, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, rimTabGraph, rimTabView,
   setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines, FLAT_EDGE_NEEDS_BASE, sameGraph, RIM_LINE_PITCH_MM, placementProblem, fixedParam, beltOf, beltProblem,
-  wordsOf, RIM_BELTS, RIM_TAB_KINDS, rimTabTarget, beltEdits, sameBelts,
+  wordsOf, RIM_BELTS, RIM_TAB_KINDS, rimTabTarget, beltEdits, sameBelts, RIM_TAB_LAYERS, NOT_IN_PALETTE,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -136,6 +136,21 @@ describe('the rim belts are named by their job', () => {
     expect(sameBelts({ rimBandMm: RIM_STRIP_MM.rim_band, lowRimBandMm: RIM_STRIP_MM.low_rim_band }, {})).toBe(true);
     expect(sameBelts(null, { rimBandOuterMm: 0 })).toBe(false);
   });
+  it('never offers a node that cannot run in the Add-node list', () => {
+    // Every kind that says it is not runnable is held back, and every held-back kind is a real kind.
+    for (const [kind, words] of Object.entries(KIND_WORDS)) if (/not runnable/i.test(words.says)) expect(NOT_IN_PALETTE, kind).toContain(kind);
+    for (const kind of NOT_IN_PALETTE) expect(KINDS[kind], kind).toBeDefined();
+  });
+  it('shows every denture Rim-tab node in 3D, by its zone-graph node or by the layers the run drew', () => {
+    // A selection that changes nothing on the model reads as a dead click (Fable, 2026-11-25).
+    const viewer = readFileSync(new URL('./viewer.html', import.meta.url), 'utf8');
+    for (const { id } of rimTabGraph('denture').nodes) {
+      const layers = RIM_TAB_LAYERS[id];
+      expect(rimTabTarget(id, g) !== null || Boolean(layers), id).toBe(true);
+      // Each layer key is one the viewer draws, or the isolation would hide everything.
+      for (const key of layers ?? []) expect(viewer.includes(`['${key}', `), key).toBe(true);
+    }
+  });
   it('gives a rim belt not wired to its output a neutral name, since that output may take other faces', () => {
     const rewired = { ...g, outputs: { ...g.outputs, rim_band: 'BAND' } };
     expect(wordsOf(of('RIMBAND'), rewired).title).toBe('Rim belt');
@@ -198,9 +213,9 @@ describe('free editing: add, remove, rewire', () => {
     expect(validate(removeNode(defaultGraph(), 'Z1')).problems).toEqual([]);
   });
 
-  it('refuses to add or remove what stage 1 finds', () => {
-    expect(() => addNode(defaultGraph(), 'rim')).toThrow(/stage 1/);
-    expect(() => removeNode(defaultGraph(), 'RIM')).toThrow(/stage 1/);
+  it('refuses to add or remove what an earlier tab finds', () => {
+    expect(() => addNode(defaultGraph(), 'rim')).toThrow(/earlier tab/);
+    expect(() => removeNode(defaultGraph(), 'RIM')).toThrow(/earlier tab/);
   });
 
   it('refuses a wire between the wrong types - a depth map is not a mask', () => {

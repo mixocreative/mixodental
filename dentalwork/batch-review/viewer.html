@@ -473,7 +473,7 @@ const LAYER_TABLE = [
   ['Dental rim (continuous', 'Dental rim', 'The dental rim as thick continuous line(s); the count and closed/open state are in the name.', true, 'reference'],
   ['Hole outlines', 'Hole outlines', 'A thick line round each hole.', true, 'reference'],
   ['RIM PLANE', 'Rim plane', 'Fitted through the final rim line, so it comes from the rim. The oral cavity ray sits on it.', true, 'reference'],
-  ['SYMMETRY PLANE', 'Symmetry plane', 'Splits the part into left and right, taken from the arch frame (not from the rim). The oral cavity ray sits on it.', true, 'reference'],
+  ['SYMMETRY PLANE', 'Symmetry plane', 'Splits the part into left and right, taken from the arch shape found on 1 Orient (not from the rim). The oral cavity ray sits on it.', true, 'reference'],
   ['UPRIGHT PLANE', 'Arch plane', 'Denture: the flattest plane of the whole part; it points to the teeth side. The frame the rim search starts from.', true, 'reference'],
   ['DOWN-FACING', 'Down-facing edges', 'Hard edges of the bottom chains.', false, 'reference'],
   ['ALL hard', 'All hard edges', 'Every hard edge the review found (thin).', false, 'reference'],
@@ -732,7 +732,9 @@ document.querySelectorAll('[data-view]').forEach((button) => button.addEventList
 function applyVisibility() {
   model?.traverse((object) => {
     const key = object.name && keyOf(object.name);
-    if (key) object.visible = isShown(key) && !(underside && PILLAR_KEYS.includes(key)) && !(zoneOverlay && ZONE_LAYER_KEYS.includes(key)) && !(orientTurn && SUPPORT_KEYS.includes(key)) && !(orientRest && LEANING_KEYS.includes(key))
+    // A layer the selected node is shown by (isolatedKeys) is drawn even if its checkbox or the tab's step would hide it:
+    // the rim crossing is step 4's layer, but it is selected on 2 Rim.
+    if (key) object.visible = (isShown(key) || Boolean(isolatedKeys?.includes(key))) && !(underside && PILLAR_KEYS.includes(key)) && !(zoneOverlay && ZONE_LAYER_KEYS.includes(key)) && !(orientTurn && SUPPORT_KEYS.includes(key)) && !(orientRest && LEANING_KEYS.includes(key))
       && !(tiltOverlay && OUR_SUPPORT_KEYS.includes(key)) && !(isolatedKeys && !isolatedKeys.includes(key));
   });
 }
@@ -1474,7 +1476,7 @@ function drawOrientEditor(body, key = null) {
   pick.dataset.ui = 'orient-add-kind';
   for (const [groupKey, group] of Object.entries(orientLib.NODE_GROUPS)) {
     const optgroup = Object.assign(document.createElement('optgroup'), { label: group.title });
-    for (const kind of Object.keys(orientLib.KINDS).filter((k) => orientLib.KIND_GROUP[k] === groupKey)) {
+    for (const kind of Object.keys(orientLib.KINDS).filter((k) => orientLib.KIND_GROUP[k] === groupKey && !orientLib.NOT_IN_PALETTE.includes(k))) {
       optgroup.append(Object.assign(document.createElement('option'), { value: kind, textContent: orientLib.KIND_WORDS[kind].title, title: orientLib.KIND_WORDS[kind].says }));
     }
     pick.append(optgroup);
@@ -1667,7 +1669,7 @@ function drawZoneEditor(body, present, names) {
   pick.dataset.ui = 'zone-add-kind';
   // Grouped like the canvas's coloured stripes, so the list reads in the same categories.
   for (const [groupKey, group] of Object.entries(graphLib.NODE_GROUPS)) {
-    const kinds = Object.entries(graphLib.KINDS).filter(([kind, spec]) => spec.stage === 'zones' && graphLib.KIND_GROUP[kind] === groupKey);
+    const kinds = Object.entries(graphLib.KINDS).filter(([kind, spec]) => spec.stage === 'zones' && graphLib.KIND_GROUP[kind] === groupKey && !graphLib.NOT_IN_PALETTE.includes(kind));
     if (kinds.length === 0) continue;
     const optgroup = Object.assign(document.createElement('optgroup'), { label: group.title });
     for (const [kind] of kinds) optgroup.append(Object.assign(document.createElement('option'), { value: kind, textContent: graphLib.KIND_WORDS[kind].title, title: graphLib.KIND_WORDS[kind].says }));
@@ -1792,7 +1794,7 @@ function zoneCard(g, n, k, idle, save) {
   tools.append(
     mk('◀', `zone-left-${n.id}`, 'Move left. This only changes where the card is drawn — what a zone means is set by its WIRES.', () => move(-1), k === 0),
     mk('▶', `zone-right-${n.id}`, 'Move right. Layout only; the wires decide the order of combination.', () => move(1), k === g.nodes.length - 1),
-    mk('×', `zone-remove-${n.id}`, spec.fixed ? 'Found by stage 1 — it cannot be removed here.' : 'Remove. Anything wired to it is left EMPTY and named in the report, never quietly re-routed.', () => save(graphLib.removeNode(g, n.id)), Boolean(spec.fixed)),
+    mk('×', `zone-remove-${n.id}`, spec.fixed ? 'Found on an earlier tab — it cannot be removed here.' : 'Remove. Anything wired to it is left EMPTY and named in the report, never quietly re-routed.', () => save(graphLib.removeNode(g, n.id)), Boolean(spec.fixed)),
   );
   head.append(tools);
   card.append(head);
@@ -2103,13 +2105,32 @@ const RESULT_WORDS = { inconclusive: 'Not built: the review could not decide', e
 
 const loader = new GLTFLoader();
 let showing = 0;
+function dropModel() {
+  if (model) { scene.remove(model); model.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); model = null; floorY = null; boxAnchor = null; }
+}
+/** No case to show (a filter that matched none): clear the stage and say so - the last case must not stay up as if picked. */
+function showNone() {
+  ++showing; // a load still in flight lands on a case nobody picked
+  caseNow = null;
+  dropModel();
+  document.getElementById('facts').replaceChildren();
+  document.getElementById('source').textContent = '';
+  document.getElementById('peel').hidden = true;
+  document.getElementById('tilt-chip').hidden = true;
+  document.getElementById('note').textContent = '';
+  document.getElementById('nocase-name').textContent = onlyLook ? 'Nothing needs a look' : 'No cases';
+  document.getElementById('nocase-result').textContent = '';
+  document.getElementById('nocase-text').textContent = onlyLook ? 'Every case in this run passed its checks. Press All to see them.' : 'This run has no cases to show.';
+  document.getElementById('nocase-code').textContent = '';
+  document.getElementById('nocase').hidden = false;
+}
 async function show(row) {
   const ticket = ++showing;
   kindNow = row.kind === 'denture' ? 'denture' : 'aligner';
   caseNow = row;
   // Step-by-step belongs to denture cases only; an aligner always shows its checkboxes.
   if (kindNow !== 'denture') stepAt = null;
-  if (model) { scene.remove(model); model.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); model = null; floorY = null; boxAnchor = null; }
+  dropModel();
   const url = row.glb ? urlOf(row.glb) : '';
   // The Step 1 evidence GLB (trim chains, U ends, plane, back arrow) loads into the same scene; a
   // case that was not built may still have one, so the owner sees what orientation detected.
@@ -2609,6 +2630,15 @@ async function showZonePreview() {
   // THE RIM TAB (owner 2026-11-24: "rim tab needed to have live preview in 3d"): its selected node is shown by the
   // zone-graph node it stands for (rimTabTarget) - the same values, the same overlay.
   const onRim = stageNow === 'rim';
+  // The rim plane and the crossing are drawn by the run, not by the zone graph: selecting one isolates its layers.
+  const rimLayers = onRim && kindNow === 'denture' && graphLib ? graphLib.RIM_TAB_LAYERS[rimSelected] : null;
+  if (rimLayers) {
+    isolatedKeys = rimLayers;
+    zonePreviewNote.hidden = false;
+    zonePreviewNote.textContent = `${rimSelected === 'CROSSING' ? 'The rim crossing (the oral cavity ray origin) on the rim and symmetry planes' : 'The rim plane'}, as the run on screen fitted it. It comes from the finished rim, so a Rim setting change shows after Apply and run. Click the empty canvas to see everything again.`;
+    applyVisibility();
+    return;
+  }
   const picked = onRim ? (rimSelected && graphLib ? graphLib.rimTabTarget(rimSelected, zoneGraph) : null) : zoneSelected;
   const shownId = picked ?? (live && !onRim ? zoneGraph.outputs?.zone : null);
   const active = shownId && (stageNow === 'zones' || onRim) && kindNow === 'denture' && graphLib;
@@ -2805,7 +2835,7 @@ function drawList() {
 
 function select(k) {
   const list = shown();
-  if (list.length === 0) { drawList(); document.getElementById('position').textContent = ''; document.getElementById('nocase').hidden = true; return; }
+  if (list.length === 0) { drawList(); document.getElementById('position').textContent = ''; showNone(); return; }
   current = Math.max(0, Math.min(list.length - 1, k));
   drawList();
   document.getElementById('position').textContent = `${current + 1} / ${list.length}`;
@@ -2817,6 +2847,8 @@ document.getElementById('show-all').addEventListener('click', () => { onlyLook =
 document.getElementById('prev').addEventListener('click', () => select(current - 1));
 document.getElementById('next').addEventListener('click', () => select(current + 1));
 addEventListener('keydown', (event) => {
+  // Arrows inside a field (a number, a select, the node canvas's own keys) belong to that field, not the case list.
+  if (event.target instanceof Element && event.target.closest('input, select, textarea, [contenteditable], .react-flow')) return;
   if (event.key === 'ArrowDown' || event.key === 'PageDown') select(current + 1);
   if (event.key === 'ArrowUp' || event.key === 'PageUp') select(current - 1);
 });

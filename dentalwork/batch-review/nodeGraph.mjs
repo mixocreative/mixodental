@@ -101,7 +101,7 @@ export const NODE_GROUPS = {
   strips: { title: 'Strips', says: 'Faces within a distance of something.', token: '--node-strips' },
   combine: { title: 'Combine', says: 'Join, remove, overlap or invert sets of faces.', token: '--node-combine' },
   marks: { title: 'Mark the zone', says: 'Stack layers into the Zone: each Mark sets its faces to Support or No-support, and a later Mark wins.', token: '--node-marks' },
-  orient: { title: 'From Orient', says: 'Found in stage 1; fixed here.', token: '--node-orient' },
+  orient: { title: 'From an earlier tab', says: 'Found on an earlier tab (the rim line on 2 Rim); fixed here.', token: '--node-orient' },
 };
 
 /** The group of each node kind. */
@@ -125,7 +125,7 @@ export const KIND_WORDS = {
   basinFill: { title: 'Find sockets', says: 'Hollows - like tooth sockets - that would hold resin like a cup, found from the depth map. Not runnable yet: the socket depth comes from the rule "socket depth".' },
   // Owner 2026-11-23: "i still dont get what strip around does" - the title says the action, the sentence the picture.
   band: { title: 'Grow a strip', says: 'Grows its input outward along the surface: every face within the set distance of it, like painting a border round each hole. The hole strip takes its width from here (standard 5 mm; it is where hole tips stand). The rim tips belt and the low-point belt are their own nodes: they grow from the rim line at the widths set on 2 Rim.' },
-  rim: { title: 'Rim line', says: 'The dental rim line found in stage 1 (Orient). Fixed here.' },
+  rim: { title: 'Rim line', says: 'The dental rim line found on 2 Rim, from the rest pose set on 1 Orient. Fixed here.' },
   rimSide: { title: 'Rim side', says: "Faces near the rim on ONE side of it: inner faces the fitting surface, outer is the visible outside. Its width is this node's own, not the rim tips belt's. Nothing uses it until you wire it in." },
   // Names from docs/WORKBENCH-TABS-PLAN.md section 2: "Either A or B" read like a switch that picks one. It is the
   // combine node; the four keep their engine kinds, so every saved graph still loads.
@@ -161,9 +161,9 @@ export const PARAM_WORDS = {
   deg: { label: 'tilt (deg)', help: 'How far the rays tilt from "start along" toward "tilting toward". 0 = off: no rays.' },
   pitchMm: { label: 'ray spacing (mm)', help: 'Distance between neighbouring rays. Smaller is finer and slower.' },
   planeA: { label: 'first plane', help: 'One of the two planes whose crossing gives the point.',
-    choices: [['rim', 'rim plane - fitted through the rim line (comes from the rim)'], ['symmetry', 'symmetry plane - splits left from right, from the arch frame']] },
+    choices: [['rim', 'rim plane - fitted through the rim line (comes from the rim)'], ['symmetry', 'symmetry plane - splits left from right, from the arch shape found on 1 Orient']] },
   planeB: { label: 'second plane', help: 'The other plane.',
-    choices: [['symmetry', 'symmetry plane - splits left from right, from the arch frame'], ['rim', 'rim plane - fitted through the rim line (comes from the rim)']] },
+    choices: [['symmetry', 'symmetry plane - splits left from right, from the arch shape found on 1 Orient'], ['rim', 'rim plane - fitted through the rim line (comes from the rim)']] },
   face: { label: 'on the side', help: 'Which side of the part the point sits on.', choices: DIRECTIONS },
   plane: { label: 'plane', help: 'The plane the point sits on.',
     choices: [['rim', 'rim plane'], ['symmetry', 'symmetry plane'], ['back', 'box face: back'], ['front', 'box face: front'], ['teeth', 'box face: teeth side'], ['tissue', 'box face: tissue side']] },
@@ -223,7 +223,7 @@ export const OUTPUT_WORDS = {
   // The one-zone form (plan D1): what the three old outputs said, now said by the Zone's three states.
   zone: { title: 'Zone', says: 'Every face ends up Support, No-support or Undefined (no Mark touched it). Area tips stand only on Support. With "low outside" at 1 (the default), lowest-point and island tips stay off No-support unless the face is in the low-point belt; on Undefined they still stand. A later Mark wins.' },
   hole_band: { title: 'Hole strip', says: 'The strip around holes where hole tips are placed - as wide as its Grow a strip node (standard 5 mm). The output itself stays wired to that node.' },
-  rim: { title: 'Rim line', says: 'The line rim tips are placed along. Found in Orient; fixed here.' },
+  rim: { title: 'Rim line', says: 'The line rim tips are placed along. Found on 2 Rim; fixed here.' },
   rim_band: { title: RIM_BELTS.RIMBAND.title, says: `The faces that get rim tips, even where support is not allowed. Standard: the rim tips belt, ${RIM_STRIP_MM.rim_band} mm each side of the rim line (widths set on 2 Rim). It may take any faces, e.g. a Rim side node for one side only.` },
   low_rim_band: { title: RIM_BELTS.LOWRIMBAND.title, says: `Places no tips. A lowest point or island on these faces still gets a tip, even where support is not allowed. Standard: the low-point belt, ${RIM_STRIP_MM.low_rim_band} mm each side of the rim line (widths set on 2 Rim). It may take any faces.` },
   sockets: { title: 'Sockets', says: 'Hollows that would trap resin. Rim, hole and area tips stay out of them when "sockets deny" is on. Fixed in this version.' },
@@ -258,6 +258,13 @@ export function wordsOf(node, graph) {
   }
   return { title: RIM_BELTS[node.id].title, says: `${RIM_BELTS[node.id].says} Its widths are set on 2 Rim.` };
 }
+
+/**
+ * Kinds the Add-node list does not offer: the engine cannot run them yet (zone_graph.rs refuses a planePoint origin and
+ * cannot evaluate a basinFill - the default graph's one BASINS node stands in for the sockets rule). They stay in KINDS so
+ * a saved graph that has one still loads and names it. Offering a node that says 'Not runnable yet' was a dead end (Fable, 2026-11-25).
+ */
+export const NOT_IN_PALETTE = ['planePoint', 'basinFill'];
 
 export const FIXED = {
   params: {
@@ -410,7 +417,7 @@ function freshId(graph, kind) {
 export function addNode(graph, kind) {
   const spec = KINDS[kind];
   if (!spec) throw new Error(`no node kind "${kind}"`);
-  if (spec.fixed) throw new Error(`${spec.label} is found by stage 1, not added here`);
+  if (spec.fixed) throw new Error(`${spec.label} is found on an earlier tab, not added here`);
   const id = freshId(graph, kind);
   const inputs = Object.fromEntries(Object.keys(spec.inputs).map((name) => [name, null]));
   return { ...graph, nodes: [...graph.nodes, { id, kind, params: { ...spec.params }, inputs }] };
@@ -423,7 +430,7 @@ export function addNode(graph, kind) {
  */
 export function removeNode(graph, id) {
   if (!byId(graph, id)) throw new Error(`no node ${id}`);
-  if (KINDS[byId(graph, id).kind].fixed) throw new Error(`${id} is found by stage 1 and cannot be removed here`);
+  if (KINDS[byId(graph, id).kind].fixed) throw new Error(`${id} is found on an earlier tab and cannot be removed here`);
   const nodes = graph.nodes.filter((n) => n.id !== id).map((n) => ({
     ...n, inputs: Object.fromEntries(Object.entries(n.inputs).map(([k, v]) => [k, v === id ? null : v])),
   }));
@@ -683,9 +690,9 @@ function validateAligner(graph) {
 }
 
 /*
- * THE RIM TAB (docs/ORIENT-NODES.md section 10): what stage 1 (Orient) finds, as nodes, for each kind - the frame the
- * search starts from, where it looks from, the rim, and what is grown from the rim. Shown read-only: every node stands
- * for today's code, and nothing here is wired by an operator yet.
+ * THE RIM TAB (docs/ORIENT-NODES.md section 10): what the rim search finds from Orient's rest pose, as nodes, for each
+ * kind - where it looks from, the rim, and what is grown from the rim. Its settings and the belts' widths are edited
+ * here (WORKBENCH-TABS-PLAN C3); every node stands for today's code.
  *
  * THE GREYING RULE, from both sides: a node computed FROM the finished rim (the rim plane, the rim crossing) is shown
  * greyed and disabled here with its reason, and is what the Support zones tab receives. Nothing on the rim tab may
@@ -764,6 +771,17 @@ export function rimTabTarget(id, graph) {
   const out = id === 'RIMBAND' || id === 'LOWRIMBAND' ? RIM_OUTPUT_KEY[id] : undefined;
   return out ? graph?.outputs?.[out] ?? null : null;
 }
+
+/**
+ * The run's own layers a denture Rim-tab node is shown by when it has no zone-graph node (rimTabTarget is null): the
+ * plane and the crossing are computed from the finished rim and drawn by the run, so selecting one isolates them on
+ * the model. Selecting a node that changes nothing in 3D read as a dead click (Fable's review, 2026-11-25).
+ * `nodeGraph.test.ts` checks every denture Rim-tab node is shown by one of the two.
+ */
+export const RIM_TAB_LAYERS = {
+  RIMPLANE: ['DENTURE', 'RIM PLANE'],
+  CROSSING: ['DENTURE', 'RIM PLANE', 'SYMMETRY PLANE', 'Oral cavity ray'],
+};
 
 /** The zone-graph output each Rim-tab node fills: one map for the 3D target above and the output card's wires. */
 const RIM_OUTPUT_KEY = { RIM: 'rim', RIMBAND: 'rim_band', LOWRIMBAND: 'low_rim_band' };

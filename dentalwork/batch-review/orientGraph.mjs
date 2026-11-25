@@ -39,6 +39,9 @@ export const NODE_GROUPS = {
   pose: { title: 'Pose', says: 'How the part sits on the plate before the print angle is searched.', token: '--node-points' },
 };
 
+/** Kinds the Add-node list does not offer: Stand on the back is Plate side at its defaults, under its old name. It stays in KINDS so an old saved graph still loads (Fable, 2026-11-25). */
+export const NOT_IN_PALETTE = ['uprightPose'];
+
 export const KIND_GROUP = { archFrame: 'frames', upDecision: 'frames', boxFrame: 'frames', flatRegion: 'find', uprightPose: 'pose', plateSide: 'pose', setBottom: 'pose' };
 
 /** The six named sides (docs/WORKBENCH-TABS-PLAN.md section 2), as the engine's `SIDES`. */
