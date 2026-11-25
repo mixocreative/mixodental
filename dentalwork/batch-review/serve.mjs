@@ -42,6 +42,9 @@ const roots = {
   '/benchwork/': join(here, '..', '..', 'benchwork'),
   '/out/': folder ? resolve(folder) : undefined,
   '/preview/': previewDir,
+  // typeDraft.mjs imports '../../src/dentalTypes/typeText.mjs'; from a page at '/' that resolves here. Only the plain
+  // JavaScript modules there are useful to the page; the folder holds no patient data.
+  '/src/dentalTypes/': join(here, '..', '..', 'src', 'dentalTypes'),
   '/': here,
 };
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',

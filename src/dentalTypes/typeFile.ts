@@ -21,6 +21,7 @@
  */
 
 import { idLooksDated } from './typeSaves.mjs';
+import { canonical, typeDigest } from './typeText.mjs';
 
 /** The type-file format this code reads. A file with any other number is refused, never guessed at. */
 export const TYPE_FILE_FORMAT = 1;
@@ -99,14 +100,6 @@ export interface ReadType {
   byHand: boolean;
 }
 
-/** Sorted keys at every level, so equal objects always give equal text. */
-function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical((value as Record<string, unknown>)[key])]));
-  }
-  return value;
-}
 
 /** THE one writer of a profile's text. Every fingerprint of a type's profile is taken over this output. */
 export function profileText(profile: Record<string, unknown>): string {
@@ -122,16 +115,8 @@ export function graphText(graph: Record<string, unknown>): string {
   return JSON.stringify(canonical(graph));
 }
 
-/**
- * A type's own fingerprint of a text: FNV-1a, 64 bits, hex. It only ever has to equal ITSELF - the
- * proof records it, the reader recomputes it - so it needs no engine call. (Fable's review, 2026-11-20:
- * the engine exports no text digest, and reading one from `set_zone_graph` would change the live graph.)
- */
-export function typeDigest(text: string): string {
-  let h = 0xcbf29ce484222325n;
-  for (const byte of new TextEncoder().encode(text)) h = BigInt.asUintN(64, (h ^ BigInt(byte)) * 0x100000001b3n);
-  return h.toString(16).padStart(16, '0');
-}
+/** A type's own fingerprint of a text (FNV-1a, 64 bits) - written once in typeText.mjs, which the workbench page shares. */
+export { typeDigest };
 
 /** The whole type file as text, through the same writer, so a saved file reads back byte-identical. */
 export function typeFileText(type: TypeFile): string {
