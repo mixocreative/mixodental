@@ -13,12 +13,15 @@ code. Lines marked UNVERIFIED were read about, not measured.
 - **`typeDraft.mjs` is "a type file to the editors and back"** (`editsOfType`, `typeOfEdits`, `runPrint`), not a
   base/draft state object: the page keeps its editors as they were (edits against the built-in), so the tested rules
   are the ones it really uses. The step-3 state functions it never called were removed rather than kept dead.
-- **Copy and duplicate work on one selected node, or that node with its inputs** as a wired group. Selecting several
-  nodes at once stays the written-down debt (WORKBENCH-TABS-PLAN); the Orient canvas has no copy yet.
-- **The older paths stay for review folders**: a batch's output folder still opens, its Apply still sends the edits in
-  pieces to `/rerun` and its Save still copies the run's `type.json` (asking before replacing). The scan session uses
-  only the whole-file `/run` and the dated `/save-draft`. Retiring the older paths waits until review folders are not
-  used for type work.
+- **Copy and duplicate work on every selected node** (Shift-click, Shift-drag), or with their inputs as a wired group,
+  on the Zones AND the Orient canvas - `nodeClip.mjs` is the one rule set (2026-11-26; on the 25th it was one node,
+  Zones only). A selected node that may not be copied is named and left out, not dropped silently.
+- **The older paths are retired** (2026-11-26; on the 25th they stayed for review folders): a batch's output folder
+  still opens to be LOOKED AT, but its Apply and Save now open its scans - the files the run read, where they still
+  are - as a scan session, with the editors' values carried over as a draft of the type the run used (or the
+  built-in). `/rerun`, `/save-type` and `saveType.mjs` are gone; every run is the whole-file `/run`, every save the
+  dated `/save-draft`. The check that a finished run applied its graphs moved with them (`rerunReport.mjs`
+  `notApplied`, now on the session's runs). The Type strip ticks Apply and Save from the session (`stripMarks`).
 - **Measured**: one scan with one type is about 35 s and about 88 MB of kept run; switching back is instant.
 - **Restore marks** name the saved value ("Restore to 30° (saved in Parity denture)"); the node default is not also
   printed on the mark - the canvas mark says where the value was saved.
@@ -150,7 +153,7 @@ canvases stay below the stage.
 | Apply, run all, stop | `run-apply`, `run-all`, `run-stop` |
 | A case's status | `case-chip-<n>` |
 | Restore one value, restore a tab | `restore-<key>`, `restore-tab` |
-| Duplicate, copy, paste nodes | `node-duplicate`, `node-copy`, `node-paste` |
+| Duplicate, copy, paste nodes | `node-duplicate`, `node-copy`, `node-copy-group`, `node-paste` (Zones); `orient-node-*` the same on 1 Orient (2026-11-26) |
 | Save, discard | `type-save`, `type-discard` |
 | Cache size, clear | `cache-size`, `cache-clear` |
 

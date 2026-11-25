@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
-import { guardRun, refusalReason, rerunOutcome } from './rerunReport.mjs';
+import { guardRun, notApplied, refusalReason } from './rerunReport.mjs';
 
 describe('the reason a refused run gives (cia F1)', () => {
   it('names the problem under benchwork\'s header, not just the header', () => {
@@ -23,27 +23,25 @@ describe('the reason a refused run gives (cia F1)', () => {
   });
 });
 
-describe('what "Done" may claim (cia F2)', () => {
-  it('says an edited graph was NOT applied when the run reports the default', () => {
-    const out = rerunOutcome({ graphEdited: true, summaryGraph: 'default', names: 'the edited zone graph' });
-    expect(out.applied).toBe(false);
-    expect(out.text).toMatch(/NOT applied/);
-  });
-
-  it('names the graph from the run\'s own summary', () => {
-    const out = rerunOutcome({ graphEdited: true, summaryGraph: 'd7dc809c75a39f5e', names: 'the edited zone graph' });
-    expect(out).toEqual({ applied: true, text: 'Done — showing the re-run with the edited zone graph (graph d7dc809c). The earlier review is still in its own folder.' });
+describe('whether a finished run applied what it was given (cia F2)', () => {
+  const graph = { nodes: [], outputs: {} };
+  const denture = (extra: object) => ({ category: 'denture', ...extra });
+  it('says a type\'s zone graph was NOT applied when the run reports the default', () => {
+    expect(notApplied(denture({ zoneGraph: graph }), { zoneGraph: 'default' })).toMatch(/zone graph was NOT applied/);
+    expect(notApplied(denture({ zoneGraph: graph }), {})).toMatch(/NOT applied/);
+    expect(notApplied(denture({ zoneGraph: graph }), { zoneGraph: 'd7dc809c75a39f5e' })).toBeNull();
   });
 
   // U6: the Orient canvas's graph is checked against the run's own `orientGraph` the same way.
-  it('says an edited Orient graph was NOT applied when the run reports the standard Step 1', () => {
-    expect(rerunOutcome({ graphEdited: false, summaryGraph: 'default', names: 'the edited Orient graph', orientEdited: true, summaryOrient: 'default' }).text).toMatch(/Orient graph was NOT applied/);
-    expect(rerunOutcome({ graphEdited: false, summaryGraph: 'default', names: 'the edited Orient graph', orientEdited: true, summaryOrient: 'a1b2c3d4e5' }).applied).toBe(true);
+  it('says a type\'s Orient graph was NOT applied when the run reports the standard Step 1', () => {
+    expect(notApplied(denture({ orientGraph: graph }), { orientGraph: 'default' })).toMatch(/Orient graph was NOT applied/);
+    expect(notApplied(denture({ orientGraph: graph }), { orientGraph: 'a1b2c3d4e5' })).toBeNull();
     expect(refusalReason('x\nThe Orient graph was refused: POSE: "angleDeg" must be between -90 and 90, got 200\nexit 2')).toMatch(/^The Orient graph was refused: POSE/);
   });
 
-  it('a rules-only run on the default graph is plainly done', () => {
-    expect(rerunOutcome({ graphEdited: false, summaryGraph: 'default', names: 'overhangAngleDeg=50' }).text).toBe('Done — showing the re-run with overhangAngleDeg=50. The earlier review is still in its own folder.');
+  it('a type with neither graph, or an aligner type (whose run always records "default"), is plainly applied', () => {
+    expect(notApplied(denture({ zoneGraph: null }), { zoneGraph: 'default' })).toBeNull();
+    expect(notApplied({ category: 'aligner', zoneGraph: graph }, { zoneGraph: 'default' })).toBeNull();
   });
 });
 

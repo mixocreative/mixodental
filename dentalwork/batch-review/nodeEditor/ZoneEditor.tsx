@@ -107,6 +107,11 @@ export interface ZoneEditorProps {
    * in 3D (plan D2, `zonePreview.mjs`). Absent: selection stays a canvas matter.
    */
   onSelect?(id: string | null): void;
+  /**
+   * EVERY selected node's id (the output card left out), for Duplicate / Copy on several nodes (`nodeClip.mjs`).
+   * Shift-click adds a node; Shift-drag draws a box. Kept apart from `onSelect`, whose one id drives the 3D preview.
+   */
+  onSelectMany?(ids: string[]): void;
 }
 
 /* ONE output node with a socket per output, like Blender's Material Output - eight separate output
@@ -332,7 +337,7 @@ function minimapColor(node: Node): string {
   return token ? getComputedStyle(document.documentElement).getPropertyValue(token).trim() || 'gray' : getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
 }
 
-export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, onPositions, values, onSelect }: ZoneEditorProps) {
+export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, onPositions, values, onSelect, onSelectMany }: ZoneEditorProps) {
   const idle = useMemo(() => new Set(lib.unreached(graph)), [lib, graph]);
   const fixed = useMemo(() => fixedOnly(graph, lib.FIXED.outputs), [graph, lib]);
   // Every model message that concerns one node starts with its id and a colon - the one convention
@@ -454,8 +459,14 @@ export function ZoneEditor({ lib, graph, positions, liveParams = [], onGraph, on
       onNodeDragStop={onNodeDragStop}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      onSelectionChange={({ nodes: picked }) => onSelect?.(picked.length === 1 && picked[0]!.id !== OUTPUTS ? picked[0]!.id : null)}
+      onSelectionChange={({ nodes: picked }) => {
+        onSelect?.(picked.length === 1 && picked[0]!.id !== OUTPUTS ? picked[0]!.id : null);
+        onSelectMany?.(picked.map((n) => n.id).filter((id) => id !== OUTPUTS));
+      }}
       deleteKeyCode={['Backspace', 'Delete']}
+      // Shift-click adds a node to the selection as well as Ctrl / Cmd-click: Shift is also the box-select key, and
+      // an operator who drew a box with Shift reaches for Shift again to add one more.
+      multiSelectionKeyCode={['Shift', 'Control', 'Meta']}
       fitView
       // Fit the part the operator EDITS - the free nodes and the output - not all of it: fitting every node
       // zoomed out until a sentence was 6 px tall. The fixed band is just below, a scroll away, and the

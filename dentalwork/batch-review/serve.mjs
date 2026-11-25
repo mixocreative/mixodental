@@ -13,7 +13,6 @@ import { fileURLToPath } from 'node:url';
 import { exec, spawn } from 'node:child_process';
 import { stampNow } from '../../benchwork/rules.mjs';
 import { guardRun, refusalReason } from './rerunReport.mjs';
-import { saveVerdict } from './saveType.mjs';
 import { scanSet, scanSetWords } from './scanSet.mjs';
 import { createQueue, resultKey } from './runQueue.mjs';
 import { runPrint } from './typeDraft.mjs';
@@ -31,16 +30,10 @@ if (folder && !existsSync(join(resolve(folder), 'summary.json'))) {
   process.exit(1);
 }
 /*
- * `/out/` IS REASSIGNABLE, so a benchwork re-run can be looked at without restarting the server: the
- * POST below runs the tool into a FRESH folder (never over the one being read - a review of patient
- * scans is not something to overwrite in place) and then points `/out/` at it. `/benchwork/` is
- * served so the page imports the rule shortlist from the same module the CLI uses, rather than
- * keeping a second copy of thirteen names that would drift.
- */
-/*
  * `/out/` ALWAYS HOLDS ITS SLOT, even with no folder yet, because these are matched by INSERTION
- * ORDER: `'/out/x'.startsWith('/')` is true, so an `/out/` added after `/` would never win and every
- * re-run would silently serve the viewer's own directory instead of the review.
+ * ORDER: `'/out/x'.startsWith('/')` is true, so an `/out/` added after `/` would never win and the
+ * review folder's files would silently be looked up in the viewer's own directory instead. `/out/` is the folder given
+ * on the command line and nothing else: Apply runs in the scan session (POST /run into the cache), never over it.
  */
 // The Zones tab's live previews (plan D3) land in one folder per server, outside every review folder, so a preview
 // never writes into the review on screen.
@@ -61,156 +54,13 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/ja
   '.json': 'application/json', '.glb': 'model/gltf-binary', '.csv': 'text/csv' };
 
 /*
- * POST /rerun - run benchwork with the panel's rules and show the result.
- *
- * It runs into a FRESH folder and then re-points `/out/` at it, so the review being read is never
- * overwritten: these are patient scans and a re-run is an experiment, not a correction.
- *
- * IT VALIDATES THE SOURCE rather than passing the page's string to a child process. The server is
- * bound to 127.0.0.1 and this is a local dev tool, but the page is the only thing that supplies this
- * path, and "a local tool so it does not matter" is how a shell injection ships.
- */
-/**
- * POST /save-type - copy the type the review on screen RAN (its out folder's type.json, with the proof
- * record the batch wrote) into `types/<category>/<id>.type.json` in this repo, to be committed
- * (owner ruling 2: types live in committed files). It saves only what ran - never a page's unrun edits -
- * so a saved type is always one that was proved on at least the scans of that run.
- */
-function saveType(response, replace) {
-  const send = (code, payload) => response.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(payload));
-  const from = roots['/out/'] ? join(roots['/out/'], 'type.json') : '';
-  if (!from || !existsSync(from)) { send(400, { error: 'the review on screen ran no type - Apply with a type name first' }); return; }
-  let type;
-  try { type = JSON.parse(readFileSync(from, 'utf8')); } catch { send(500, { error: 'type.json is not readable' }); return; }
-  if (!/^(denture|aligner)$/.test(type?.category) || !/^[a-z0-9][a-z0-9.-]*$/.test(type?.id ?? '')) { send(500, { error: 'type.json does not name a category and id' }); return; }
-  const dir = join(here, '..', '..', 'types', type.category);
-  mkdirSync(dir, { recursive: true });
-  const to = join(dir, `${type.id}.type.json`);
-  const text = readFileSync(from, 'utf8');
-  // A different file already at that path is REPLACED only when the page says so (`?replace=1`, after asking) - the
-  // rule and its test are saveType.mjs.
-  if (saveVerdict({ existing: existsSync(to) ? readFileSync(to, 'utf8') : null, text, replace }) === 'ask') {
-    send(409, { exists: true, path: `types/${type.category}/${type.id}.type.json` });
-    return;
-  }
-  writeFileSync(to, text);
-  // Whether the APP will load it (typeInForce.ts appLoadVerdict, written beside type.json by the run): returned here so
-  // the Save message says it even after a page reload, when the page no longer holds the run's answer.
-  const verdictFile = join(roots['/out/'], 'type-load.json');
-  let typeLoad = null;
-  try { typeLoad = existsSync(verdictFile) ? JSON.parse(readFileSync(verdictFile, 'utf8')) : null; } catch { typeLoad = null; }
-  send(200, { ok: true, path: `types/${type.category}/${type.id}.type.json`, typeLoad });
-}
-
-function rerun(request, response) {
-  let body = '';
-  request.on('data', (chunk) => { body += chunk; if (body.length > 64_000) request.destroy(); });
-  request.on('end', () => {
-    const send = (code, payload) => response.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(payload));
-    let ask;
-    try { ask = JSON.parse(body); } catch { send(400, { error: 'not JSON' }); return; }
-    const kind = ask?.kind === 'aligner' ? 'aligner' : 'denture';
-    const source = typeof ask?.source === 'string' ? resolve(ask.source) : '';
-    if (!source.toLowerCase().endsWith('.stl') || !existsSync(source) || !statSync(source).isFile()) {
-      send(400, { error: `not an STL on this machine: ${ask?.source ?? '(none)'}` });
-      return;
-    }
-    const rules = ask?.rules && typeof ask.rules === 'object' ? ask.rules : {};
-    const sets = Object.entries(rules).flatMap(([name, value]) => (/^[A-Za-z][A-Za-z0-9]*$/.test(name)
-      ? ['--set', `${name}=${typeof value === 'boolean' ? (value ? 1 : 0) : value}`] : []));
-    const out = join(here, '..', 'output', `bench-${stampNow()}`);
-    // The node editor's zone graph, when the page sent an edited one. Written into the run's own folder
-    // (so the run carries what it was asked to do) and handed over as a file; the engine validates it.
-    const graphArgs = [];
-    if (ask?.zoneGraph && typeof ask.zoneGraph === 'object') {
-      mkdirSync(out, { recursive: true });
-      const file = join(out, 'zone-graph.json');
-      writeFileSync(file, JSON.stringify(ask.zoneGraph, null, 2));
-      graphArgs.push('--zone-graph', file);
-    }
-    // The Orient canvas's graph (U6), the same way: only an EDITED Step 1 is sent; absent, the default runs.
-    if (ask?.orientGraph && typeof ask.orientGraph === 'object') {
-      mkdirSync(out, { recursive: true });
-      const file = join(out, 'orient-graph.json');
-      writeFileSync(file, JSON.stringify(ask.orientGraph, null, 2));
-      graphArgs.push('--orient-graph', file);
-    }
-    // THE WHOLE TYPE FILE (reviewer overhaul step 4): the page holds the type it works on as one file - opened from a
-    // save, duplicated, or edited - and the run reads it as it is (benchwork --type, the batch's MIXO_TYPE_FILE). The
-    // file's own reader refuses anything a saved type would be refused for, naming it. A built-in is never sent: it
-    // runs as the plain built-in run, which is what gate:real measures. typeInForce.test.ts holds that this path and the
-    // piecemeal one below give the same type; the piecemeal one retires when the page no longer sends pieces.
-    if (ask?.type !== undefined) {
-      if (!ask.type || typeof ask.type !== 'object' || Array.isArray(ask.type)) { send(400, { error: 'type must be a whole type file' }); return; }
-      if (ask.type.category !== kind) { send(400, { error: `type ${ask.type.id} is a ${ask.type.category} type - these scans are ${kind}` }); return; }
-      mkdirSync(out, { recursive: true });
-      const file = join(out, 'type-in.json');
-      writeFileSync(file, `${JSON.stringify(ask.type, null, 2)}\n`);
-      startRun(['--type', file]);
-      return;
-    }
-    // The type this run is (Orient's print-angle edits + a name): benchwork makes a draft from the
-    // built-in and the batch writes what ran to type.json, which Save type copies (TYPE-PIPELINE R1).
-    const typeArgs = [];
-    const typeId = typeof ask?.typeId === 'string' && /^[a-z0-9][a-z0-9.-]*$/.test(ask.typeId) ? ask.typeId : null;
-    if (ask?.typeId !== undefined && !typeId) { send(400, { error: 'a type name is lower-case letters, digits, dots and dashes' }); return; }
-    if (typeId) {
-      typeArgs.push('--type-id', typeId);
-      // The badge is checked by the type file reader the draft goes through (1-5 characters, no spaces).
-      if (typeof ask?.badge === 'string' && ask.badge.trim() !== '') typeArgs.push('--type-badge', ask.badge.trim());
-      // The full name is checked where the draft is made (typeInForce.ts typeNameOf: one line, at most 60 characters).
-      if (typeof ask?.name === 'string' && ask.name.trim() !== '') typeArgs.push('--type-name', ask.name.trim());
-      const pose = ask?.pose && typeof ask.pose === 'object' ? Object.fromEntries(Object.entries(ask.pose).filter(([k, v]) => /^tilt[A-Za-z]+Deg$/.test(k) && Number.isFinite(v))) : {};
-      if (Object.keys(pose).length > 0) {
-        mkdirSync(out, { recursive: true });
-        const file = join(out, 'pose.json');
-        writeFileSync(file, JSON.stringify(pose));
-        typeArgs.push('--pose', file);
-      }
-      // The Rim tab's profile numbers (WORKBENCH-TABS-PLAN C3; nodeGraph.mjs RIM_PLACEMENT is the one list): only those
-      // keys pass; their range is checked where the draft is made (typeInForce.ts) and again by the profile reader.
-      const placement = ask?.placement && typeof ask.placement === 'object' ? Object.fromEntries(Object.entries(ask.placement).filter(([k, v]) => k in RIM_PLACEMENT && Number.isFinite(v))) : {};
-      if (Object.keys(placement).length > 0) {
-        mkdirSync(out, { recursive: true });
-        const file = join(out, 'placement.json');
-        writeFileSync(file, JSON.stringify(placement));
-        typeArgs.push('--placement', file);
-      }
-    }
-    startRun([...sets, ...graphArgs, ...typeArgs]);
-
-    /** Runs benchwork on `source` into `out` with `args`, and answers the page once (exit, spawn error or time limit). */
-    function startRun(args) {
-      const child = spawn(process.execPath, [join(here, '..', '..', 'benchwork', 'cli.mjs'), '--kind', kind, '--out', out, ...args, source],
-        { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'] });
-      let log = '';
-      child.stdout.on('data', (chunk) => { log += chunk; process.stdout.write(chunk); });
-      child.stderr.on('data', (chunk) => { log += chunk; process.stderr.write(chunk); });
-      // ONE answer: the exit, a spawn error, or the 15-minute limit, whichever comes first (cia F3; the
-      // rule and its tests are rerunReport.mjs).
-      guardRun(child, 15 * 60 * 1000, {
-        timeout: () => send(500, { error: 'the re-run took over 15 minutes and was stopped', log: log.slice(-4000) }),
-        error: (error) => send(500, { error: `the re-run could not start: ${error.message}`, log: log.slice(-4000) }),
-        exit: (code) => {
-          if (code !== 0 || !existsSync(join(out, 'summary.json'))) { send(500, { error: `benchwork exited ${code}`, log: log.slice(-4000) }); return; }
-          // shortcut: one /out/ for the whole server, so two tabs re-running at once see whichever finished
-          // last (cia F6). One operator, one tab today; return `out` and fetch from it if that changes.
-          roots['/out/'] = out;
-          send(200, { ok: true, out, log: log.slice(-4000) });
-        },
-      });
-    }
-  });
-}
-
-/*
  * THE LIVE PREVIEWS (plan D3), each a short engine run with no build, in seconds:
  * - POST /zone-preview - the Zones tab: every zone node's value for the page's graph (zonePreviewRun.ts);
  * - POST /tilt-preview - tabs 4 and 5: the print-angle search with the page's settings and the tips at its pick
- *   (tiltPreviewRun.ts), given exactly the inputs /rerun gives benchwork.
+ *   (tiltPreviewRun.ts), given the page's edits as benchwork takes them (MIXO_RULES, a draft type's files).
  * ONE of each at a time: a newer request stops the one of its kind still running, because only the page as it is now
  * is worth showing. Each run writes to its own folder, so a stopped one that finishes late cannot overwrite a newer
- * result. Same source check as /rerun.
+ * result. Same source check as POST /run.
  */
 const previews = { zone: { child: null, seq: 0 }, tilt: { child: null, seq: 0 } };
 /** Stops a running preview - its whole tree on Windows, where the child is a shell and kill() would stop only that. */
@@ -284,7 +134,7 @@ const zonePreview = (request, response) => runPreview('zone', request, response,
   };
 });
 const tiltPreview = (request, response) => runPreview('tilt', request, response, (ask, out) => {
-  // The same names and the same checks as /rerun: a rule name is a plain identifier (packRules refuses an unknown one
+  // The checks benchwork makes: a rule name is a plain identifier (packRules refuses an unknown one
   // with its name), the search keys are tilt*Deg, the placement keys are the Rim tab's (RIM_PLACEMENT).
   const rules = Object.fromEntries(Object.entries(ask?.rules && typeof ask.rules === 'object' ? ask.rules : {})
     .filter(([name, value]) => /^[A-Za-z][A-Za-z0-9]*$/.test(name) && (typeof value === 'boolean' || Number.isFinite(value))));
@@ -367,11 +217,17 @@ const sendJson = (response, code, payload) => response.writeHead(code, { 'conten
 function importScans(request, response) {
   if (lan) { sendJson(response, 403, { error: 'importing is off while the workbench is open to the network (--lan)' }); return; }
   readBody(request, (ask) => {
-    const path = typeof ask?.path === 'string' ? resolve(ask.path.trim().replace(/^"|"$/g, '')) : '';
-    if (!path || !existsSync(path)) { sendJson(response, 400, { error: `nothing at ${ask?.path ?? '(no path)'}` }); return; }
-    const files = filesUnder(path);
+    // `path`: one folder or file. `paths`: the scans a review folder ran (its summary's sources), so a batch's cases
+    // open as a session - a scan no longer at its path is counted and said, never dropped silently.
+    const asked = (Array.isArray(ask?.paths) ? ask.paths : [ask?.path]).filter((p) => typeof p === 'string' && p.trim() !== '');
+    const paths = [...new Set(asked.map((p) => resolve(p.trim().replace(/^"|"$/g, ''))))];
+    const found = paths.filter((p) => existsSync(p));
+    if (found.length === 0) { sendJson(response, 400, { error: `nothing at ${asked.join(', ') || '(no path)'}` }); return; }
+    const files = found.reduce((all, p) => filesUnder(p, all), []);
     const set = scanSet(files);
-    sendJson(response, 200, { root: path, ...set, words: scanSetWords(set), truncated: files.length >= MAX_FILES });
+    const missing = paths.length - found.length;
+    const gone = missing ? ` ${missing} scan(s) are no longer at their path and are left out.` : '';
+    sendJson(response, 200, { root: found.length === 1 ? found[0] : null, ...set, missing, words: `${scanSetWords(set)}${gone}`, truncated: files.length >= MAX_FILES });
   });
 }
 /** The system's own folder dialog (Windows), as run-batch-review.bat opens it. Answers { path } or { cancelled }. */
@@ -570,7 +426,6 @@ function listDrafts(response) {
 
 const server = createServer((request, response) => {
   const path = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
-  if (request.method === 'POST' && path === '/rerun') { rerun(request, response); return; }
   if (request.method === 'POST' && path === '/zone-preview') { zonePreview(request, response); return; }
   if (request.method === 'POST' && path === '/tilt-preview') { tiltPreview(request, response); return; }
   if (request.method === 'GET' && path === '/types') { typeList(response); return; }
@@ -584,7 +439,6 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && path === '/jobs') { sendJson(response, 200, { jobs: queue.list() }); return; }
   if (request.method === 'GET' && path === '/cache-size') { sendJson(response, 200, cacheSize()); return; }
   if (request.method === 'POST' && path === '/cache-clear') { clearCache(response); return; }
-  if (request.method === 'POST' && path === '/save-type') { saveType(response, new URL(request.url ?? '/', 'http://localhost').searchParams.get('replace') === '1'); return; }
   const [prefix, root] = Object.entries(roots).find(([prefix, root]) => root !== undefined && path.startsWith(prefix));
   const file = normalize(join(root, path === '/' ? 'viewer.html' : path.slice(prefix.length)));
   if (!file.startsWith(normalize(root + sep)) || !existsSync(file) || !statSync(file).isFile()) {

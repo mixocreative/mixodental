@@ -410,7 +410,7 @@
       <div class="bench-actions">
         <button id="bench-run" data-ui="bench-run">Apply and run again</button>
         <button id="bench-reset" data-ui="bench-reset" title="Put the search, the zone setup and every setting back to the standard ones. The review on screen is not touched.">Discard my changes</button>
-        <button id="type-save" data-ui="type-save" title="Copy the type the review on screen RAN, with its proof, to types/&lt;category&gt;/&lt;id&gt;.type.json - commit it to ship it.">Save type</button>
+        <button id="type-save" data-ui="type-save" title="Save the draft the scans ran as a NEW dated file, types/&lt;category&gt;/&lt;id&gt;.&lt;date-time&gt;.type.json, with its proof - commit it to ship it. On a review folder, opens its scans as a session first.">Save type</button>
       </div>
       <p class="muted" id="bench-status" data-ui="bench-status"></p>
     </section>
@@ -434,7 +434,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { refusalReason, rerunOutcome } from './rerunReport.mjs';
+import { notApplied, refusalReason } from './rerunReport.mjs';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Every colour comes from a token in tokens.css; nothing in this file is a colour value.
@@ -542,10 +542,13 @@ let benchFields = null;
    mark puts back (owner, 2026-11-25: "restore value goes to what saved previous setup were, but not the node's
    default"). Null = a built-in (or a review folder) is open, and restore goes to the built-in as before. */
 let savedBaseline = null;
-/* The Zones canvas's copied nodes (nodeGraph.mjs copyNodes), kept across a switch of type so nodes copy between types. */
-let nodeClip = null;
-/* What the last Duplicate / Copy / Paste did, shown once in the Zones bar after the redraw its edit causes. */
-let zoneToolNote = '';
+/* Each canvas's copied nodes (nodeClip.mjs, through its own library), kept across a switch of type so nodes copy
+   between types. Two clips, never one: the Zones and Orient kinds are not the same, so a clip cannot cross canvases. */
+const nodeClips = { zones: null, orient: null };
+/* What the last Duplicate / Copy / Paste did on each canvas, shown once in its bar after the redraw its edit causes. */
+const toolNotes = { zones: '', orient: '' };
+/* Every node selected on each canvas (ZoneEditor onSelectMany): what Duplicate and Copy act on. */
+const canvasSelection = { zones: [], orient: [] };
 /* Each benchwork rule field's restore-mark refresh, so opening another type re-reads its saved value. */
 const resyncBench = [];
 /* The zone graph the loaded run was made with ("default" or a digest), from its summary.json. */
@@ -572,16 +575,11 @@ let typeName = 'workbench.denture';
 try { typeName = localStorage.getItem('review-type-id') || typeName; } catch { /* per-viewer only */ }
 let typeBadge = '';
 try { typeBadge = localStorage.getItem('review-type-badge') || ''; } catch { /* per-viewer only */ }
-/* The New-type strip's state (drawTypeStrip): the full name, whether the id was typed by hand (else it follows the
-   name), and which type the review on screen RAN and which was SAVED - the steps are marked from these, never guessed. */
+/* The New-type strip's state (drawTypeStrip): the full name, and whether the id was typed by hand (else it follows the
+   name). Its Apply and Save steps are marked from the session (stripMarks), never guessed. */
 let typeFullName = '';
 try { typeFullName = localStorage.getItem('review-type-full-name') || ''; } catch { /* per-viewer only */ }
 let typeIdTyped = false;
-let ranTypeId = null;
-let savedTypeId = null;
-/* Whether the APP will load the type that ran ({ loads, reason }), from the run's type-load.json - the app's own rule
-   (typeInForce.ts appLoadVerdict). The strip and Save say it, so the workbench never promises a type the app refuses. */
-let ranTypeLoad = null;
 /* The categories a type may belong to - the app's list (host `DENTAL_KINDS`), never typed. A new category is a code
    change (src/components/README.md, "Adding a category"); viewerScript.test.ts holds this list to the host's. */
 const TYPE_CATEGORIES = [['denture', 'Denture'], ['aligner', 'Aligner']];
@@ -610,17 +608,18 @@ function searchProblem(s) {
 const ranThis = (lib, graph, ranJson) => (ranJson ? lib.sameGraph(graph, ranJson) : lib.isDefault(graph));
 
 /*
- * ORIENT EDITS RUN ON THEIR OWN (owner 2026-11-23: "Yes, auto-run"). A run is about 27 s and writes a new folder, so
- * edits are gathered for a moment before one starts, and an edit made DURING a run waits for it and then runs once -
- * never two runs at once (the server has one /out/, serve.mjs F6). `applyRun` is set by the benchwork panel; it stays
- * null without a server, and then nothing runs.
+ * ORIENT EDITS RUN ON THEIR OWN (owner 2026-11-23: "Yes, auto-run"): edits are gathered for a moment, then applied to
+ * the session like a press of Apply (the session's queue keeps one run per scan and type, so a second edit during a
+ * run never starts two). On a review folder it does not open a session unasked - Apply does. `applyRun` is set by
+ * the benchwork panel; it stays null without a server, and then nothing runs.
  */
 const AUTO_RUN_MS = 1200;
 let autoRunTimer = null;
-let autoRunWaiting = false;
 let applyRun = null;
+/** Whether a scan session is open - guarded, as the session's names are declared further down the script. */
+const inSessionNow = () => { try { return Boolean(session); } catch { return false; } };
 function autoRunOrient() {
-  if (!applyRun || kindNow !== 'denture') return;
+  if (!applyRun || kindNow !== 'denture' || !inSessionNow()) return;
   clearTimeout(autoRunTimer);
   autoRunTimer = setTimeout(() => { autoRunTimer = null; applyRun({ auto: true }); }, AUTO_RUN_MS);
 }
@@ -1233,7 +1232,7 @@ function drawTypeStrip() {
   newType.dataset.ui = 'type-new';
   newType.title = 'Start a new type from the built-in one: clears the name, id and badge and puts the search, the zone setup and every setting back to the standard ones. The review on screen is not touched.';
   newType.addEventListener('click', () => {
-    typeFullName = ''; typeName = ''; typeBadge = ''; typeIdTyped = false; ranTypeId = null; savedTypeId = null;
+    typeFullName = ''; typeName = ''; typeBadge = ''; typeIdTyped = false;
     for (const key of ['review-type-full-name', 'review-type-id', 'review-type-badge']) save(key, '');
     document.getElementById('bench-reset')?.click();
     drawTypeStrip();
@@ -1244,7 +1243,7 @@ function drawTypeStrip() {
     Object.assign(document.createElement('b'), { className: 'type-title', textContent: 'Type' }),
     field('category', 'type-category', category, 'What the type is for - the app\'s list. The folder on screen decides which one runs.'),
     field('name', 'type-full-name', fullName, 'The full name the app shows in its type list, one line, up to 60 characters.'),
-    field('id', 'type-name', id, 'The file name: lower-case letters, digits, dots and dashes. Follows the name until you type it yourself. Save type writes types/<category>/<id>.type.json.'),
+    field('id', 'type-name', id, 'The file name: lower-case letters, digits, dots and dashes. Follows the name until you type it yourself. Save type writes a new dated file, types/<category>/<id>.<date-time>.type.json.'),
     field('badge', 'type-badge', badge, 'Up to 5 characters, no spaces: shown beside the name in the app\'s type list. Empty = the app\'s default badge.'),
     // What the strip's type comes from: the opened type itself, or - with another id - a NEW type based on it.
     Object.assign(document.createElement('span'), { className: 'type-based', textContent: basedOnWords() }),
@@ -1254,8 +1253,9 @@ function drawTypeStrip() {
   // A valid id is enough: with no full name the type is named after its id (typeInForce typeNameOf), and asking for one
   // here left Apply and Save working but never ticked (Fable, 2026-11-23).
   const named = /^[a-z0-9][a-z0-9.-]*$/.test(typeName);
-  const ran = named && ranTypeId === typeName;
-  const saved = ran && savedTypeId === typeName;
+  const marks = stripMarks();
+  const ran = named && marks.ran;
+  const saved = ran && marks.saved;
   const steps = Object.assign(document.createElement('ol'), { className: 'type-steps' });
   steps.dataset.ui = 'type-steps';
   const current = !named ? 'name' : !ran ? 'apply' : !saved ? 'save' : null;
@@ -1279,11 +1279,6 @@ function drawTypeStrip() {
     steps.append(step);
   }
   strip.append(fields, steps);
-  if (ran && ranTypeLoad && !ranTypeLoad.loads) {
-    const warn = Object.assign(document.createElement('p'), { className: 'type-note type-warn', textContent: `The app will not load this type yet: ${ranTypeLoad.reason}` });
-    warn.dataset.ui = 'type-load-warning';
-    strip.append(warn);
-  }
   if (kindNow === 'aligner') {
     // An aligner run has no editable stages yet: say what an aligner type can change today, so the missing links read as
     // a fact rather than a fault. (The app loads aligner types since 2026-11-23, docs/TYPE-PIPELINE.md section 8a.)
@@ -1491,6 +1486,66 @@ function drawChain(present, names) {
  * today's denture Step 1; "Flat-base recipe" is the owner's new kind's (ruling 1, 2026-11-23): the largest flat area
  * set on the plate. Every rule lives in `orientGraph.mjs`; this only draws it and keeps it.
  */
+/*
+ * DUPLICATE, COPY, PASTE on a node canvas (reviewer overhaul step 13; the rules are nodeClip.mjs, reached through the
+ * canvas's own library): the Zones and the Orient toolbars each get these four buttons from here. They act on EVERY
+ * selected node (Shift-click adds one, Shift-drag draws a box), or on the selection with its inputs as a wired group.
+ * The clip outlives a switch of type, so nodes copy ACROSS types; a wire to a node not copied arrives empty and is
+ * named, never re-routed; a selected node that may not be copied is named, not dropped silently.
+ * A copy lands BELOW where its originals stood, by the group's own height and one card more, so a group keeps its
+ * shape and stays clear of them - without positions every pasted node stacked in the middle of the view, and a 40 px
+ * shift left the copies covering their originals (the Orient cards are wider than that by far; seen 2026-11-26).
+ */
+const PASTE_GAP = 320; // about one card's height on either canvas, in canvas units
+function nodeTools({ canvas, ui, lib, graph, category, summary, save, positions, setPositions }) {
+  const tell = (text) => { toolNotes[canvas] = text; summary.textContent = text; };
+  const named = (ids) => ids.join(', ');
+  const leftOut = (left) => (left?.length ? ` Not copied: ${left.join('; ')}.` : '');
+  const selected = () => {
+    const ids = canvasSelection[canvas].filter((id) => graph.nodes.some((n) => n.id === id));
+    if (!ids.length) throw new Error('select a node on the canvas first (Shift-click or Shift-drag for several)');
+    return ids;
+  };
+  const placeBeside = (done, at) => {
+    const next = { ...(positions() ?? {}) };
+    const ys = Object.keys(done.ids).filter((old) => at?.[old]).map((old) => at[old].y);
+    const down = ys.length ? Math.max(...ys) - Math.min(...ys) + PASTE_GAP : 0;
+    for (const [old, fresh] of Object.entries(done.ids)) if (at?.[old]) next[fresh] = { x: at[old].x, y: at[old].y + down };
+    setPositions(next);
+  };
+  const button = (label, key, title, run) => {
+    const b = Object.assign(document.createElement('button'), { type: 'button', textContent: label, title });
+    b.dataset.ui = `${ui}-${key}`;
+    b.addEventListener('click', () => { try { run(); } catch (error) { tell(`Not done: ${error.message}`); } });
+    return b;
+  };
+  const copy = (withInputs) => () => {
+    const clip = lib.copyNodes(graph, selected(), { category, withInputs });
+    const at = Object.fromEntries(clip.nodes.filter((n) => positions()?.[n.id]).map((n) => [n.id, positions()[n.id]]));
+    nodeClips[canvas] = { ...clip, at };
+    tell(`Copied ${named(clip.nodes.map((n) => n.id))}${withInputs ? ' with their inputs' : ''}. Paste here, or after picking another type.${leftOut(clip.left)}`);
+    paste.disabled = false;
+  };
+  const duplicate = button('Duplicate', 'duplicate', 'A copy of every selected node beside it, reading what it reads.', () => {
+    const done = lib.duplicateNodes(graph, selected(), { category });
+    placeBeside(done, positions());
+    tell(`Duplicated ${named(Object.keys(done.ids))} as ${named(Object.values(done.ids))}.${leftOut(done.left)}`);
+    save(done.graph);
+  });
+  const copyOne = button('Copy', 'copy', 'Copy the selected nodes, to paste here or into another type.', copy(false));
+  const copyGroup = button('Copy with inputs', 'copy-group', 'Copy the selected nodes and every node feeding them, as one wired group.', copy(true));
+  const paste = button('Paste', 'paste', 'Add the copied nodes to this graph with fresh ids. A wire to a node that was not copied arrives empty.', () => {
+    const clip = nodeClips[canvas];
+    if (!clip) throw new Error('nothing is copied yet');
+    const done = lib.pasteNodes(graph, clip, { category });
+    placeBeside(done, clip.at);
+    tell(`Pasted as ${named(Object.values(done.ids))}.${done.cut.length ? ` Empty, wire them: ${done.cut.join(', ')}.` : ''}`);
+    save(done.graph);
+  });
+  paste.disabled = !nodeClips[canvas];
+  return [duplicate, copyOne, copyGroup, paste];
+}
+
 function drawOrientEditor(body, key = null) {
   if (!orientLib || !editorLib) return;
   const g = orientGraph;
@@ -1510,7 +1565,8 @@ function drawOrientEditor(body, key = null) {
   status.textContent = ranThis(orientLib, g, ranOrientGraphJson)
     ? `Orient graph: ${ran} - the review on screen ran this.`
     // Only while a run is really queued: a canvas edited before a reload starts nothing until it is edited again.
-    : autoRunTimer !== null || autoRunWaiting ? `Orient graph: changed - it runs on its own in a moment (about 27 s). The review on screen used ${ran}.`
+    : !inSessionNow() ? `Orient graph: changed - Apply opens this folder's scans as a session and runs it there. The review on screen used ${ran}.`
+    : autoRunTimer !== null ? `Orient graph: changed - it runs on its own in a moment (about 27 s). The review on screen used ${ran}.`
     : `Orient graph: changed - Apply and run again to use it. The review on screen used ${ran}.`;
   const bar = document.createElement('div');
   bar.className = 'zone-bar';
@@ -1518,6 +1574,7 @@ function drawOrientEditor(body, key = null) {
   summary.dataset.ui = 'orient-report';
   summary.className = problems.length ? 'zone-summary bad' : 'zone-summary ok';
   summary.textContent = problems.length === 0 ? 'All connections are complete.' : `${problems.length} to fix: ${problems[0]}`;
+  if (toolNotes.orient) { summary.textContent = `${toolNotes.orient} ${summary.textContent}`; toolNotes.orient = ''; }
   const pick = document.createElement('select');
   pick.dataset.ui = 'orient-add-kind';
   for (const [groupKey, group] of Object.entries(orientLib.NODE_GROUPS)) {
@@ -1537,11 +1594,17 @@ function drawOrientEditor(body, key = null) {
   reset.dataset.ui = 'orient-reset';
   reset.disabled = orientLib.isDefault(g);
   reset.addEventListener('click', () => { orientPositions = editorLib.autoLayout(orientLib.defaultGraph(), []); save(orientLib.defaultGraph()); });
+  const copyTools = nodeTools({
+    canvas: 'orient', ui: 'orient-node', lib: orientLib, graph: g, category: 'orient', summary, save,
+    positions: () => orientPositions,
+    setPositions: (next) => { orientPositions = next; try { localStorage.setItem('review-orient-layout', JSON.stringify(next)); } catch { /* per-viewer only */ } },
+  });
   const tools = Object.assign(document.createElement('span'), { className: 'zone-tools-row' });
-  tools.append(pick, add, flat, reset);
+  tools.append(pick, add, ...copyTools, flat, reset);
   bar.append(summary, ...(key ? [key] : []), tools);
   const props = {
     lib: canvasLib(orientLib, savedBaseline?.orientGraph), graph: g, positions: orientPositions, liveParams: [], onGraph: save,
+    onSelectMany: (ids) => { canvasSelection.orient = ids; },
     // What each step measured on the case on screen (B3): the readouts of the graph that RAN for it.
     values: orientRead?.lines ?? {},
     onPositions: (next) => {
@@ -1704,7 +1767,7 @@ function drawZoneEditor(body, present, names) {
   summary.textContent = problems.length === 0 ? 'All connections are complete.'
     : `${problems.length} to fix${problems.length > loose.length ? ' - shown in red on the nodes' : ''}${loose.length ? `: ${loose[0]}` : ''}.`;
   // What the last Duplicate / Copy / Paste did: an edit redraws this bar, so its words are carried over once.
-  if (zoneToolNote) { summary.textContent = `${zoneToolNote} ${summary.textContent}`; zoneToolNote = ''; }
+  if (toolNotes.zones) { summary.textContent = `${toolNotes.zones} ${summary.textContent}`; toolNotes.zones = ''; }
   const legend = document.createElement('span');
   legend.className = 'zone-legend';
   legend.dataset.ui = 'zone-legend';
@@ -1735,44 +1798,15 @@ function drawZoneEditor(body, present, names) {
     try { localStorage.removeItem('review-zone-layout-2'); } catch { /* per-viewer only */ }
     save(graphLib.defaultGraph());
   });
-  /*
-   * DUPLICATE, COPY, PASTE (reviewer overhaul step 13; nodeGraph.mjs copyNodes / pasteNodes): on the selected node, or
-   * with its inputs as a wired group. The clip outlives a switch of type, so nodes copy ACROSS types of one category; a
-   * wire to a node not copied arrives empty and is named here, never re-routed. One node at a time: selecting several
-   * at once is written down as debt (WORKBENCH-TABS-PLAN).
-   */
   // The session's category when one is open (its names are declared further down the script, hence the guard).
   const kindOfGraph = (() => { try { return session?.kind ?? kindNow; } catch { return kindNow; } })();
-  const tell = (text) => { zoneToolNote = text; summary.textContent = text; };
-  const nodeAction = (label, ui, title, run) => {
-    const button = Object.assign(document.createElement('button'), { type: 'button', textContent: label, title });
-    button.dataset.ui = ui;
-    button.addEventListener('click', () => { try { run(); } catch (error) { tell(`Not done: ${error.message}`); } });
-    return button;
-  };
-  const selectedOrSay = () => { if (!zoneSelected) throw new Error('select a node on the canvas first'); return zoneSelected; };
-  const duplicate = nodeAction('Duplicate', 'node-duplicate', 'A copy of the selected node beside it, reading what it reads.', () => {
-    const done = graphLib.duplicateNodes(g, selectedOrSay(), { category: kindOfGraph });
-    tell(`Duplicated ${zoneSelected} as ${Object.values(done.ids).join(', ')}.`);
-    save(done.graph);
+  const copyTools = nodeTools({
+    canvas: 'zones', ui: 'node', lib: graphLib, graph: g, category: kindOfGraph, summary, save,
+    positions: () => zonePositions,
+    setPositions: (next) => { zonePositions = next; try { localStorage.setItem('review-zone-layout-2', JSON.stringify(next)); } catch { /* per-viewer only */ } },
   });
-  const copy = nodeAction('Copy', 'node-copy', 'Copy the selected node, to paste here or into another type of this category.', () => {
-    nodeClip = graphLib.copyNodes(g, selectedOrSay(), { category: kindOfGraph });
-    tell(`Copied ${zoneSelected}. Paste it here or after picking another type.`);
-  });
-  const copyGroup = nodeAction('Copy with inputs', 'node-copy-group', 'Copy the selected node and every node feeding it, as one wired group.', () => {
-    nodeClip = graphLib.copyNodes(g, selectedOrSay(), { category: kindOfGraph, withInputs: true });
-    tell(`Copied ${nodeClip.nodes.map((n) => n.id).join(', ')} as a group.`);
-  });
-  const paste = nodeAction('Paste', 'node-paste', 'Add the copied nodes to this graph with fresh ids. A wire to a node that was not copied arrives empty.', () => {
-    if (!nodeClip) throw new Error('nothing is copied yet');
-    const done = graphLib.pasteNodes(g, nodeClip, { category: kindOfGraph });
-    tell(`Pasted as ${Object.values(done.ids).join(', ')}.${done.cut.length ? ` Empty, wire them: ${done.cut.join(', ')}.` : ''}`);
-    save(done.graph);
-  });
-  paste.disabled = !nodeClip;
   const tools = Object.assign(document.createElement('span'), { className: 'zone-tools-row' });
-  tools.append(pick, add, duplicate, copy, copyGroup, paste, reset);
+  tools.append(pick, add, ...copyTools, reset);
   bar.append(summary, legend, tools);
   // Kept for the card editor fallback, which still lists every problem in words.
   const report = document.createElement('div');
@@ -1805,6 +1839,7 @@ function drawZoneEditor(body, present, names) {
       onGraph: save,
       // The selected node's values on the model (plan D2): the zone as it stands at that node.
       onSelect: (id) => { if (id !== zoneSelected) { zoneSelected = id; showZonePreview(); } },
+      onSelectMany: (ids) => { canvasSelection.zones = ids; },
       onPositions: (next) => {
         zonePositions = next;
         try { localStorage.setItem('review-zone-layout-2', JSON.stringify(next)); } catch { /* per-viewer only */ }
@@ -2349,9 +2384,13 @@ let blobs = [];
 let onlyLook = false;
 let current = 0;
 
-function openRun(summary, glbUrl, csvUrl) {
+/* Where the open review folder's type.json is (the type its run used), or null: what its scans open with when they
+   become a session (sessionFromReview). Per folder - the served one and a dropped one are not the same run. */
+let reviewTypeUrl = null;
+function openRun(summary, glbUrl, csvUrl, typeUrl = null) {
   // A review folder, not the scan session: the session's bar and banner go, its runs stay in the cache.
   session = null;
+  reviewTypeUrl = typeUrl;
   document.getElementById('stage-state').hidden = true;
   cases = summary.cases;
   applyRunGlobals(summary, glbUrl);
@@ -2419,7 +2458,8 @@ async function openFiles(entries) {
   };
   const missing = summary.cases.filter((c) => c.glb && !byName.has(c.glb));
   const csv = run && entries.find(({ path }) => path === `${run.dir}summary.csv`);
-  openRun(summary, (name) => (byName.has(name) ? blob(byName.get(name)) : ''), csv ? blob(csv.file) : '');
+  const ranType = run && entries.find(({ path }) => path === `${run.dir}type.json`);
+  openRun(summary, (name) => (byName.has(name) ? blob(byName.get(name)) : ''), csv ? blob(csv.file) : '', ranType ? blob(ranType.file) : null);
   if (missing.length) document.getElementById('totals').textContent += `, ${missing.length} GLB(s) not in the drop`;
 }
 
@@ -2681,11 +2721,16 @@ async function scheduleTiltPreview() {
   tiltLib ??= await import('./tiltPreview.mjs');
   const { key, ask } = tiltAsk();
   ranTiltKey ??= JSON.stringify({ rules: {}, pose: {}, placement: {}, zone: null, orient: null });
-  const wanted = reviewServed && kindNow === 'denture' && caseNow?.source && (stageNow === 'support' || stageNow === 'angle') && key !== ranTiltKey;
+  // In a session the run on screen used the opened type (or the applied draft), not the standard: while the editors
+  // hold exactly that, there is nothing to preview - a saved type's own numbers are not an edit. (The session's names
+  // are declared further down the script, hence the guard.)
+  const inSession = inSessionNow();
+  const asRun = inSession && !editsNotRun();
+  const wanted = reviewServed && kindNow === 'denture' && caseNow?.source && (stageNow === 'support' || stageNow === 'angle') && (inSession ? !asRun : key !== ranTiltKey);
   // The search cannot run on numbers tab 5 already refuses; its own note says why.
   if (!wanted || searchProblem(searchNow())) {
     tiltPending = false;
-    if (key === ranTiltKey) { tiltLive = null; tiltError = null; }
+    if (key === ranTiltKey || asRun) { tiltLive = null; tiltError = null; }
     showTiltPreview();
     return;
   }
@@ -3145,17 +3190,30 @@ function editsNotRun() {
  */
 const drafts = new Map();
 const draftKey = (entry) => `${entry.category}-${entry.id}`;
-function keepDraft() {
-  if (!session || !sessionType) return;
-  // Kept while it differs from what was SAVED (not from what ran): an applied draft is still unsaved work.
-  let draft = null;
+/** The editors' draft when it differs from the opened type AS SAVED (its settings, id, name or badge), else null. */
+function unsavedDraft() {
   try {
     const now = draftFromEditors();
     const saved = sessionType.type;
     const differs = draftLib.runPrint(now) !== draftLib.runPrint(saved) || now.id !== saved.id
       || (now.badge ?? '') !== (saved.badge ?? '') || now.profile?.name?.en !== saved.profile?.name?.en;
-    draft = differs ? now : null;
-  } catch { draft = null; }
+    return differs ? now : null;
+  } catch { return null; }
+}
+/**
+ * The Type strip's two marks, from the session: "Apply and run" is done while the scans run what the editors hold, and
+ * "Save type" while the saved file holds it too (a built-in opened unchanged has nothing to save). No session (a
+ * review folder, or before the script below has run - hence the guard): neither.
+ */
+function stripMarks() {
+  try { if (!session || !sessionType) return { ran: false, saved: false }; } catch { return { ran: false, saved: false }; }
+  const ran = !editsNotRun();
+  return { ran, saved: ran && !unsavedDraft() };
+}
+function keepDraft() {
+  if (!session || !sessionType) return;
+  // Kept while it differs from what was SAVED (not from what ran): an applied draft is still unsaved work.
+  const draft = unsavedDraft();
   if (draft) drafts.set(draftKey(sessionType), draft); else drafts.delete(draftKey(sessionType));
   // keepalive: this also runs as the page goes away (pagehide), where a plain request is cancelled with it.
   fetch('/draft', { method: 'POST', keepalive: true, body: JSON.stringify({ key: draftKey(sessionType), draft }) }).catch(() => undefined);
@@ -3257,7 +3315,10 @@ async function runScan(k, force = false, use = null) {
   let result;
   if (reply.ok) {
     const summary = await fetch(`${reply.url}summary.json`).then((r) => r.json()).catch(() => null);
-    result = summary ? { state: 'done', url: reply.url, summary } : { state: 'failed', error: 'the run finished but its summary could not be read' };
+    // A run that finished without applying the graph it was given is NOT this type's result (cia F2; rerunReport.mjs).
+    const skipped = summary && notApplied(type.type, summary);
+    result = !summary ? { state: 'failed', error: 'the run finished but its summary could not be read' }
+      : skipped ? { state: 'failed', error: skipped } : { state: 'done', url: reply.url, summary };
   } else result = reply.stopped ? { state: 'not run' } : { state: 'failed', error: reply.error ?? 'no reason given', log: reply.log };
   if (asked !== session) return; // a new import replaced this session while it ran
   if (result.state === 'not run') session.results.delete(id); else session.results.set(id, result);
@@ -3300,19 +3361,56 @@ async function importFrom(path) {
   if (read.error) { stageCard({ name: 'Nothing imported', text: read.error }); return; }
   if (read.cases.length === 0) { stageCard({ name: 'Nothing to run', text: read.words }); return; }
   if (!catalogNow && !(await loadCatalog())) return;
+  startSession(kind, read);
+}
+/**
+ * A session of `kind` on the imported scans (`read`, the /import answer). The type it starts with: `typeId` when that
+ * is a saved type of the category, else the one picked before, else the built-in. `carry` puts the editors' values AS
+ * THEY STAND in as that type's draft, instead of opening the type as saved - how a review folder's edits survive the
+ * move into a session. `at` is the scan to show first.
+ */
+function startSession(kind, read, { carry = false, typeId = null, at = null } = {}) {
   session = sessionLib.newSession({ kind, scans: read.cases });
   kindNow = kind;
-  // The type the session starts with: the one picked before for this category, else its built-in.
   const types = sessionTypes();
-  sessionType = types.find((t) => t.id === sessionType?.id) ?? types.find((t) => t.builtIn) ?? types[0];
-  openTypeInEditors(drafts.get(draftKey(sessionType)) ?? applied.get(sessionType.id) ?? sessionType.type, sessionType);
+  sessionType = types.find((t) => !t.builtIn && t.id === typeId) ?? types.find((t) => t.id === sessionType?.id) ?? types.find((t) => t.builtIn) ?? types[0];
+  if (carry) {
+    // A draft needs an id; a review folder may have none typed. The type's own id makes a built-in's edits read-only
+    // until they get one, which Apply then says - the same as in any session.
+    if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) typeName = sessionType.id;
+    const carried = draftFromEditors();
+    openTypeInEditors(carried, sessionType);
+    keepDraft();
+  } else openTypeInEditors(drafts.get(draftKey(sessionType)) ?? applied.get(sessionType.id) ?? sessionType.type, sessionType);
   for (const id of ['type-pick', 'run-all']) document.getElementById(id).hidden = false;
   drawTypePick();
   document.getElementById('note').textContent = `${read.words}${read.truncated ? ' (stopped at 5000 files)' : ''}`;
   onlyLook = false;
-  current = 0;
+  current = Math.max(0, at ? read.cases.indexOf(at) : 0);
   cases = sessionRows();
   drawSession();
+}
+/*
+ * A REVIEW FOLDER'S SCANS AS A SESSION (2026-11-26, the owner's "complete still open": the review folder's older Apply
+ * and Save are retired). A batch folder is the RECORD of a run and still opens to be looked at. Trying an edit on it
+ * now opens its scans - the files the run read, where they still are, never copied - as a scan session, with the type
+ * the run used when that type is saved (else the built-in), and the editors' values carried over as that type's
+ * draft, so nothing edited on the folder is lost. From there Apply and Save go the one way every session goes (/run,
+ * /save-draft). Answers null, or why it could not.
+ */
+async function sessionFromReview() {
+  const sources = [...new Set(cases.map((c) => c.source).filter(Boolean))];
+  if (sources.length === 0) return 'this review folder does not say which scans it ran';
+  const read = await fetch('/import', { method: 'POST', body: JSON.stringify({ paths: sources }) }).then((r) => r.json()).catch((error) => ({ error: error.message }));
+  if (read.error) return `its scans could not be opened: ${read.error}`;
+  if (read.cases.length === 0) return `none of its scans can run: ${read.words}`;
+  if (!catalogNow && !(await loadCatalog())) return 'the type list could not be read';
+  const ran = reviewTypeUrl ? await fetch(reviewTypeUrl).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null;
+  // The scan that was on screen stays on screen (the server answers resolved Windows paths; the summary may not).
+  const plainPath = (p) => p.replace(/\\/g, '/').toLowerCase();
+  const at = caseNow?.source ? read.cases.find((c) => plainPath(c) === plainPath(caseNow.source)) ?? null : null;
+  startSession(kindNow, read, { carry: true, typeId: ran?.id ?? null, at });
+  return null;
 }
 
 document.getElementById('import-folder').addEventListener('click', async () => {
@@ -3359,7 +3457,7 @@ function redrawSessionState() {
 
 const served = await fetch('/out/summary.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
 reviewServed = Boolean(served);
-if (served) openRun(served, (name) => `/out/${name}`, '/out/summary.csv');
+if (served) openRun(served, (name) => `/out/${name}`, '/out/summary.csv', '/out/type.json');
 else empty('Import scans (top) to run them with any type, or drop a batch-... review folder from dentalwork/output here.');
 // The scan session needs the server's type list; without it the bar stays hidden and the note says why.
 // A server is behind the page whenever its type list answers, with or without a review folder: the Type strip, Apply
@@ -3371,7 +3469,7 @@ if (await loadCatalog()) { sessionBar.hidden = false; reviewServed = true; refre
  * served at /benchwork/), so the panel cannot offer a name the tool would refuse or miss one it
  * gained. A second copy of thirteen names in this file is exactly the drift this avoids.
  *
- * It needs the server's POST /rerun, so it stays hidden when the page was opened from a dropped
+ * It needs the server (POST /run for Apply), so it stays hidden when the page was opened from a dropped
  * folder with no server behind it - an Apply button that cannot apply is worse than none.
  */
 try {
@@ -3491,58 +3589,33 @@ try {
       status.textContent = `Saved ${answer.path} (run on ${answer.scans} scan(s)).${load}${kept} To share it, commit and push that one file: git add "${answer.path}", then git commit, then git push.`;
       return;
     }
-    const save = async (replace) => {
-      const reply = await fetch(replace ? '/save-type?replace=1' : '/save-type', { method: 'POST' }).catch(() => null);
-      return reply ? await reply.json().catch(() => ({})) : { error: 'the server did not answer' };
-    };
-    let answer = await save(false);
-    // Another type is already saved at that path: replacing it is the operator's call, asked here, never silent.
-    if (answer.exists) {
-      // "a saved type", not "a different type": a re-save of the same type differs too (the proof record's time). And it
-      // says what replacing does to projects - they store only the id, so they reopen with the new numbers (A2 unbuilt).
-      if (!window.confirm(`${answer.path} already holds a saved type. Replace it with the one this review ran? Projects that use it will open with the new numbers.`)) {
-        status.textContent = `Not saved: ${answer.path} was kept. Give the new type another name to keep both.`;
-        return;
-      }
-      answer = await save(true);
-    }
-    // The server's verdict first (it survives a page reload), else the one this page fetched after Apply.
-    const load = answer.typeLoad ?? ranTypeLoad;
-    const refusedByApp = answer.ok && load && !load.loads;
-    status.textContent = !answer.ok ? `Not saved: ${answer.error ?? 'no answer'}`
-      : refusedByApp ? `Saved ${answer.path}, but the app will not load it yet: ${load.reason}`
-      : `Saved ${answer.path} - commit it to ship it. It holds what this review ran, with its proof.`;
-    // The strip marks Save done only for the type that ran (`ranTypeId`) - that is what the server copied.
-    if (answer.ok) { savedTypeId = ranTypeId; if (lastChain) drawChain(...lastChain); }
+    // A REVIEW FOLDER saves nothing itself (its overwrite Save is retired): its scans open as a session with the
+    // editors' values as a draft (sessionFromReview), where Save writes a dated file once the draft has run.
+    status.textContent = 'Opening this folder\'s scans as a session with your edits…';
+    const why = await sessionFromReview();
+    status.textContent = why ? `Not saved: ${why}.`
+      : `This folder's scans are open as a session, with your edits as a draft of ${sessionType.name}. Apply runs them; Save once they have run.`;
   });
   const run = document.getElementById('bench-run');
   const applyNow = async ({ auto = false } = {}) => {
     // A run is going: an Orient edit waits for it (the finally below), a second press does nothing.
-    if (run.disabled) { autoRunWaiting ||= auto; return; }
     // An edit undone before its run started: the review on screen already is that graph.
     if (auto && orientLib && ranThis(orientLib, orientGraph, ranOrientGraphJson)) return;
-    const row = caseNow;
-    if (!session && !row?.source) { status.textContent = 'Open a case first: the re-run needs the STL it came from.'; return; }
-    const rules = turned();
-    // An edited zone graph is a reason to run on its own: refusing until a RULE was turned made the
-    // node editor's own Apply do nothing for a graph-only edit - found by pressing it.
+    // A REVIEW FOLDER runs nothing itself (its piecemeal re-run is retired): its scans open as a session with the
+    // editors' values as a draft (sessionFromReview), and the Apply below runs that draft like any session's. An
+    // Orient edit's own auto-run never makes that move unasked: its status line says Apply does.
+    if (!session) {
+      if (auto) return; // autoRunOrient waits for a session; a timer left from one that closed does nothing
+      status.textContent = 'Opening this folder\'s scans as a session with your edits…';
+      const why = await sessionFromReview();
+      if (why) { status.textContent = `Not applied: ${why}.`; return; }
+    }
     const graphEdited = Boolean(graphLib && zoneGraph && !graphLib.isDefault(zoneGraph));
     // The Orient canvas (U6): a denture's only, like the search - an aligner reads no Orient graph in this version.
     const orientEdited = Boolean(kindNow === 'denture' && orientLib && orientGraph && !orientLib.isDefault(orientGraph));
-    // Back to the standard Step 1 after an edited run is a change too: refusing it as "nothing changed" left the edited
-    // run on screen with no way back but a reload, and an auto-run of a choice set back to "auto" never ran.
-    const orientBack = Boolean(kindNow === 'denture' && orientLib && !orientEdited && !ranThis(orientLib, orientGraph, ranOrientGraphJson));
-    // The search edits are a DENTURE type's (the strip says an aligner type keeps the built-in aligner's numbers), and
-    // they persist in localStorage - so a denture session's leftovers rode along with an aligner draft (Fable, 2026-11-23).
-    const poseNow = kindNow === 'denture' ? poseEdits : {};
-    const poseEdited = Object.keys(poseNow).length > 0;
-    // The Rim tab's strip widths, a denture type's like the search.
+    // The Rim tab's strip widths are a DENTURE type's (the strip says an aligner type keeps the built-in aligner's
+    // numbers), and they persist in localStorage - so a denture session's leftovers must not refuse an aligner run.
     const placementNow = kindNow === 'denture' ? placementEdits : {};
-    const placementEdited = Object.keys(placementNow).length > 0;
-    // A newly named type is a reason to run on its own: it is how a type that keeps the built-in's numbers but has
-    // its own name and badge gets made (the New-type strip).
-    const newType = typeName !== '' && ranTypeId !== typeName;
-    if (!session && Object.keys(rules).length === 0 && !graphEdited && !orientEdited && !orientBack && !poseEdited && !placementEdited && !newType) { status.textContent = 'Nothing is changed yet. Name a new type, or edit the Orient graph (1 Orient), the rim (2 Rim), the zone graph (3 Zones), a setting (4) or the search (5 Print angle), then apply.'; return; }
     // Only a denture run carries the search (poseNow above): a denture session's bad leftovers refused an aligner run
     // with "Fix the search first", a tab the aligner strip does not link to (Fable, 2026-11-23).
     const poseProblem = kindNow === 'denture' ? searchProblem(searchNow()) : null;
@@ -3555,66 +3628,24 @@ try {
     if (graphProblems.length) { status.textContent = `Fix the zone graph first (3 Zones): ${graphProblems[0]}`; return; }
     const orientProblems = orientEdited ? orientLib.validate(orientGraph).problems : [];
     if (orientProblems.length) { status.textContent = `Fix the Orient graph first (1 Orient): ${orientProblems[0]}`; return; }
-    // IN THE SCAN SESSION (reviewer overhaul step 8) Apply runs the WHOLE draft - the opened type with the editors'
-    // values - on the scan on screen, through the session's own runs (kept, two at a time). A built-in is read-only:
-    // its edits become a new type, which needs its own id.
-    if (session) {
-      if (sessionType.builtIn && typeName.trim() === sessionType.id) {
-        status.textContent = `${sessionType.name} is built in and read-only: give the new type its own id in the Type strip above the stages, then Apply - it becomes a new type based on ${sessionType.name}.`;
-        return;
-      }
-      const draft = draftFromEditors();
-      if (draftLib.runPrint(draft) === draftLib.runPrint(sessionRunType())) {
-        status.textContent = 'Nothing to run: the scans already show these settings. A new name or badge alone needs no run - Save keeps it.';
-        return;
-      }
-      applied.set(sessionType.id, draft);
-      flipped = false; // show what was just applied, not the compared type
-      keepDraft();
-      status.textContent = `Applied to ${draft.profile?.name?.en ?? draft.id}: the scan on screen runs with your edits - the banner on the stage shows its progress. Other scans run when you open them, or with Run all. Not saved yet.`;
-      drawSession();
+    // Apply runs the WHOLE draft - the opened type with the editors' values - on the scan on screen, through the
+    // session's own runs (kept, two at a time; reviewer overhaul step 8). A built-in is read-only: its edits become a
+    // new type, which needs its own id.
+    if (sessionType.builtIn && typeName.trim() === sessionType.id) {
+      status.textContent = `${sessionType.name} is built in and read-only: give the new type its own id in the Type strip above the stages, then Apply - it becomes a new type based on ${sessionType.name}.`;
       return;
     }
-    run.disabled = true;
-    const sentTiltKey = tiltAsk().key;
-    const names = [...Object.entries(rules).map(([name, value]) => `${name}=${value}`), ...(graphEdited ? ['the edited zone graph'] : []), ...(orientEdited ? ['the edited Orient graph'] : []), ...(orientBack ? ['the standard Step 1'] : []), ...(poseEdited ? ['the edited search'] : []), ...(placementEdited ? ['the edited strip widths'] : []), ...(newType ? [`the new type ${typeName}`] : [])].join(', ');
-    status.textContent = `Running ${row.case ?? 'this case'} with ${names}… about 23 s.`;
-    try {
-      const reply = await fetch('/rerun', { method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind: kindNow, rules, source: row.source, typeId: typeName, name: typeFullName, badge: typeBadge, pose: poseNow, placement: placementNow,
-          // The node editor's graph, only when it has been edited: the default is sent as nothing, so a
-          // run with no edit is exactly the run it always was.
-          zoneGraph: graphLib && zoneGraph && !graphLib.isDefault(zoneGraph) ? zoneGraph : null,
-          orientGraph: orientEdited ? orientGraph : null }) });
-      const answer = await reply.json().catch(() => ({}));
-      if (!reply.ok || !answer.ok) {
-        // The reason is in the run's log; an exit code alone names nothing (cia F1; rerunReport.mjs).
-        status.textContent = `It did not run: ${refusalReason(answer.log) ?? answer.error ?? reply.status}`;
-        return;
-      }
-      /*
-       * The server has re-pointed /out/ at the new folder, so re-fetching the summary shows the
-       * re-run. A reload would lose which case was open, and the whole point is comparing one case
-       * before and after.
-       */
-      const fresh = await fetch(`/out/summary.json?t=${Date.now()}`).then((response) => response.json());
-      // What may be claimed comes from the run's OWN summary, never the request (cia F2; rerunReport.mjs).
-      const outcome = rerunOutcome({ graphEdited, summaryGraph: fresh.zoneGraph, names, orientEdited, summaryOrient: fresh.orientGraph });
-      // The run on screen is now this type: the strip marks Apply done, and Save becomes the next step.
-      ranTypeId = typeName;
-      savedTypeId = null;
-      // The run on screen now used the page's settings as they were sent, so tabs 4 and 5 stop previewing them.
-      ranTiltKey = sentTiltKey;
-      tiltLive = null;
-      ranTypeLoad = await fetch(`/out/type-load.json?t=${Date.now()}`).then((response) => (response.ok ? response.json() : null)).catch(() => null);
-      openRun(fresh, (name) => `/out/${name}?t=${Date.now()}`, '/out/summary.csv');
-      status.textContent = outcome.text;
-    } catch (error) {
-      status.textContent = `It did not run: ${error.message}`;
-    } finally {
-      run.disabled = false;
-      if (autoRunWaiting) { autoRunWaiting = false; autoRunOrient(); }
+    const draft = draftFromEditors();
+    if (draftLib.runPrint(draft) === draftLib.runPrint(sessionRunType())) {
+      status.textContent = 'Nothing to run: the scans already show these settings. A new name or badge alone needs no run - Save keeps it.';
+      return;
     }
+    applied.set(sessionType.id, draft);
+    flipped = false; // show what was just applied, not the compared type
+    keepDraft();
+    status.textContent = `Applied to ${draft.profile?.name?.en ?? draft.id}: the scan on screen runs with your edits - the banner on the stage shows its progress. Other scans run when you open them, or with Run all. Not saved yet.`;
+    drawSession();
+    if (lastChain) drawChain(...lastChain); // the Type strip ticks Apply
   };
   run.addEventListener('click', () => applyNow());
   applyRun = applyNow;

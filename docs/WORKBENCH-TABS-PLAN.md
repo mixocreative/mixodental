@@ -67,7 +67,12 @@
     differences from the plan are listed): the workbench imports scans itself, opens any type's whole setup in these
     tabs (restore marks go to what that type saved), applies the whole draft, compares two types on the same scans,
     saves dated files, and duplicates or copies nodes between types.
-  - **Not done, written down:** several nodes selected at once (needs one colour per node and a change to how the canvases report selection - Copy and Duplicate work on one node, or one node with its inputs, until then); the part rotates about its centre at rest, so its lowest point may dip below the plate drawn in 3D.
+  - **Several nodes at once, and copy on 1 Orient** (owner 2026-11-26, "complete still open"): Shift-click or
+    Shift-drag selects several nodes on the Zones and Orient canvases, and Duplicate, Copy, Copy with inputs and Paste
+    act on all of them (`nodeClip.mjs`, the one rule set both libraries use). A selected node that may not be copied
+    is named and left out; a copy lands below its originals, keeping the group's shape. The 3D view still shows one
+    selected node (the selection-alone rule above): several masks would share one colour.
+  - **Not done, written down:** the part rotates about its centre at rest, so its lowest point may dip below the plate drawn in 3D.
 - **Debt, written down (Fable's minor items):** the review copies every zone node's values across the wasm boundary on each review, including the app's detected-rim job, though only the workbench reads them - make the getter lazy before a large scan shows it; `useDentureRim` stringifies the whole drawn rim each render to key its re-scan - a reference compare would do; the case flip acts inside `upDecision` - since E1 a flat-base type greys the Flip buttons with the reason, but a type-wide side override still has to go on the Orient graph's own node; a type file whose zone graph still uses the old kind name `rimCurve` (now `rim`, `OLD_KINDS` in nodeGraph.mjs) is renamed by the workbench before it runs but checked as written by the app's engine check, which does not know the old name and refuses it with the node named - no such file exists, the workbench saves the upgraded canvas (the three old outputs are fine: the engine reads that form itself); the walk has no denture fixture, so the flip, the drawn rim, the Step 1 side labels and the aligner-preview guard are proved by headless runs on the local scan, not by the walk.
 
 **Original status: PLANNED. Nothing on this page was built when it was written.** Engine and host facts were opened in source on

@@ -521,6 +521,8 @@ With one type per category a row could never hold work built with another type; 
   `onCategory`, `setAllPurposes(profile, pick)`). Mixed rows show the category alone: no one type is true there.
 - **The type-change toast has its own kind**, `changeType` in geocore's `editing/toast.ts` (geocore `5ad4c23`).
 - **Save's replace rule is a tested module**, `dentalwork/batch-review/saveType.mjs` (`saveVerdict`).
+  *(Corrected 2026-11-26: retired with the review folder's overwrite Save. Every save is now a new dated file through
+  `/save-draft`, which never replaces one - section 8 and docs/REVIEWER-OVERHAUL-PLAN.md.)*
 
 **Left, by decision:** moving MIXED rows of one category onto one saved type is still a pick per row (or Set all to a
 category first, which leaves them, then per row). Offering a type over rows that disagree would show a value that is
