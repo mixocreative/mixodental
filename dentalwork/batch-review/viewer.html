@@ -37,6 +37,15 @@
   .views { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
   .steps { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; }
   .note { position: absolute; top: 44px; left: 8px; max-width: 60%; color: var(--muted); font-size: var(--fs-sm); }
+  /* The scan session's bar and the stage banner (reviewer overhaul step 7): which scan, which type, current or not. */
+  header .session { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  header .session[hidden] { display: none; }
+  header .session input { width: 16em; }
+  header .session [hidden] { display: none; }
+  .stage-state { position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%); max-width: 70%; padding: 3px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); font-size: var(--fs-sm); text-align: left; z-index: 2; }
+  .stage-state[hidden] { display: none; }
+  .stage-state.busy { border-color: var(--ink); }
+  .stage-state.bad { border-color: var(--danger); color: var(--danger); }
   .list li { cursor: pointer; }
   .list li .badge { font-size: var(--fs-xs); }
   .list li.look .badge { border-color: var(--danger); color: var(--danger); }
@@ -312,9 +321,25 @@
   <h1>Folder review</h1>
   <span class="muted" id="totals"></span>
   <a href="/out/summary.csv" download id="csv">summary.csv</a>
+  <!--
+    THE SCAN SESSION (docs/REVIEWER-OVERHAUL-PLAN.md, build step 7): import scans here and run them with any type -
+    no batch run first. Shown only when the review server answers (it reads the folders and runs the builds).
+  -->
+  <span class="session" id="session-bar" data-ui="session-bar" hidden>
+    <select id="category-pick" data-ui="category-pick" title="What the scans are. Asked once per import, never guessed from a scan.">
+      <option value="denture">Denture</option><option value="aligner">Aligner</option>
+    </select>
+    <button id="import-folder" data-ui="import-folder" title="Choose a folder of scans in the system's dialog (subfolders are included). Scans are read where they are, never copied.">Import scans</button>
+    <input id="import-path" data-ui="import-path" placeholder="or paste a folder or STL path, Enter" spellcheck="false">
+    <select id="type-pick" data-ui="type-pick" hidden title="The type the scans run with. Switch to compare: the same scans, another type."></select>
+    <button id="run-all" data-ui="run-all" hidden title="Run every scan with this type, two at a time. Each scan runs on its own when you open it.">Run all</button>
+    <button id="run-stop" data-ui="run-stop" hidden title="Stop every run of this session that is waiting or going.">Stop</button>
+    <span class="muted" id="cache-size" data-ui="cache-size" title="Every scan run with every type is kept, so switching back is instant. About 90 MB each."></span>
+    <button id="cache-clear" data-ui="cache-clear" hidden title="Delete every kept run. Scans and types are not touched.">Clear</button>
+  </span>
   <span class="open">
-    <input type="file" id="pick-folder" webkitdirectory><button data-pick="pick-folder">Open folder</button>
-    <input type="file" id="pick-files" multiple accept=".json,.glb,.csv"><button data-pick="pick-files">Open files</button>
+    <input type="file" id="pick-folder" webkitdirectory><button data-pick="pick-folder" title="Open a review folder an earlier batch run made (summary.json and its GLBs).">Open review folder</button>
+    <input type="file" id="pick-files" multiple accept=".json,.glb,.csv"><button data-pick="pick-files" title="Open a review's summary.json and GLB files.">Open review files</button>
   </span>
 </header>
 <main>
@@ -326,6 +351,7 @@
     <ul class="list" id="cases"></ul>
   </div>
   <div class="stage" id="stage">
+    <div class="stage-state" id="stage-state" data-ui="stage-state" hidden></div>
     <div class="note" id="note" data-ui="review-note"></div>
     <div class="tilt-chip" id="tilt-chip" data-ui="review-tilt-chip" hidden>
       <span class="tilt-angle" data-ui="review-tilt-angle"></span>
@@ -337,6 +363,7 @@
       <p class="result" id="nocase-result"></p>
       <p id="nocase-text"></p>
       <code id="nocase-code"></code>
+      <button type="button" id="nocase-action" data-ui="nocase-action" hidden></button>
     </div></div>
     <div class="views">
       <button data-view="fit">Fit view</button>
@@ -2110,6 +2137,10 @@ function dropModel() {
 }
 /** No case to show (a filter that matched none): clear the stage and say so - the last case must not stay up as if picked. */
 function showNone() {
+  stageCard({ name: onlyLook ? 'Nothing needs a look' : 'No cases', text: onlyLook ? 'Every case in this run passed its checks. Press All to see them.' : 'This run has no cases to show.' });
+}
+/** Clear the stage (no model, no facts) and put up the card with its words and, when given, one action button. */
+function stageCard({ name, result = '', text = '', code = '', action = null }) {
   ++showing; // a load still in flight lands on a case nobody picked
   caseNow = null;
   dropModel();
@@ -2118,13 +2149,36 @@ function showNone() {
   document.getElementById('peel').hidden = true;
   document.getElementById('tilt-chip').hidden = true;
   document.getElementById('note').textContent = '';
-  document.getElementById('nocase-name').textContent = onlyLook ? 'Nothing needs a look' : 'No cases';
-  document.getElementById('nocase-result').textContent = '';
-  document.getElementById('nocase-text').textContent = onlyLook ? 'Every case in this run passed its checks. Press All to see them.' : 'This run has no cases to show.';
-  document.getElementById('nocase-code').textContent = '';
+  document.getElementById('nocase-name').textContent = name;
+  document.getElementById('nocase-result').textContent = result;
+  document.getElementById('nocase-text').textContent = text;
+  document.getElementById('nocase-code').textContent = code;
+  const button = document.getElementById('nocase-action');
+  button.hidden = !action;
+  if (action) { button.textContent = action.label; button.onclick = action.run; }
   document.getElementById('nocase').hidden = false;
 }
+/* THE SCAN SESSION'S WORDS for a scan with no run to show yet, in the list and on the stage card. */
+const SESSION_WORDS = {
+  'not run': () => 'Not run with this type yet',
+  running: (c) => `Running, ${Math.round((Date.now() - (c.session.since ?? Date.now())) / 1000)} s`,
+  queued: () => 'Waiting for a free run slot',
+  failed: (c) => `The run failed: ${c.session.error ?? 'no reason given'}`,
+};
+/** The stage card for a scan of the session with no run to show: its state, and Run, Stop or Retry. */
+function showSessionCard(row) {
+  const state = row.session.state;
+  const busy = state === 'running' || state === 'queued';
+  stageCard({
+    name: caseLabel(row),
+    result: SESSION_WORDS[state](row),
+    text: state === 'failed' ? 'Nothing was built. The last lines of the run are below.' : busy ? 'The result shows here when it is done. Other scans run when you open them, or with Run all.' : '',
+    code: state === 'failed' ? (row.session.log ?? '').slice(-600) : '',
+    action: busy ? { label: 'Stop', run: () => stopSession() } : { label: state === 'failed' ? 'Retry' : 'Run', run: () => runScan(row.session.at, true) },
+  });
+}
 async function show(row) {
+  document.getElementById('nocase-action').hidden = true;
   const ticket = ++showing;
   kindNow = row.kind === 'denture' ? 'denture' : 'aligner';
   caseNow = row;
@@ -2223,7 +2277,30 @@ let onlyLook = false;
 let current = 0;
 
 function openRun(summary, glbUrl, csvUrl) {
+  // A review folder, not the scan session: the session's bar and banner go, its runs stay in the cache.
+  session = null;
+  document.getElementById('stage-state').hidden = true;
   cases = summary.cases;
+  applyRunGlobals(summary, glbUrl);
+  const needing = cases.filter((c) => c.needsLook);
+  const built = cases.filter((c) => c.result === 'built').length;
+  const made = summary.created ? `, made ${new Date(summary.created).toLocaleString()}` : '';
+  document.getElementById('totals').textContent = `${built} built, ${needing.length} need a look (${cases.length} file(s))${made}`;
+  const csv = document.getElementById('csv');
+  csv.hidden = !csvUrl;
+  if (csvUrl) csv.href = csvUrl;
+  // Open on All with the first BUILT case shown in 3D: starting on "Needs a look" showed only the
+  // unbuilt cases (no model), which read as an empty review.
+  onlyLook = false;
+  select(Math.max(0, cases.findIndex((c) => c.result === 'built')));
+}
+
+/**
+ * What ONE run made the review on screen with - its rules, both graphs, the strip widths - and where its files are.
+ * A review folder is one run for every case; in the scan session each scan's run is its own, so this is applied for
+ * the case being shown (`select`).
+ */
+function applyRunGlobals(summary, glbUrl) {
   RULES = summary.ruleDefaults ?? {};
   // Which zone graph produced THIS run: "default", or the digest of the edited graph the node editor
   // sent. Without it an edited run and a default run look identical on screen.
@@ -2237,17 +2314,6 @@ function openRun(summary, glbUrl, csvUrl) {
   ranOrientGraphJson = summary.orientGraphRan ?? null;
   ranPlacement = summary.placementRan ?? null;
   urlOf = glbUrl;
-  const needing = cases.filter((c) => c.needsLook);
-  const built = cases.filter((c) => c.result === 'built').length;
-  const made = summary.created ? `, made ${new Date(summary.created).toLocaleString()}` : '';
-  document.getElementById('totals').textContent = `${built} built, ${needing.length} need a look (${cases.length} file(s))${made}`;
-  const csv = document.getElementById('csv');
-  csv.hidden = !csvUrl;
-  if (csvUrl) csv.href = csvUrl;
-  // Open on All with the first BUILT case shown in 3D: starting on "Needs a look" showed only the
-  // unbuilt cases (no model), which read as an empty review.
-  onlyLook = false;
-  select(Math.max(0, cases.findIndex((c) => c.result === 'built')));
 }
 
 function empty(message) {
@@ -2822,7 +2888,8 @@ function drawList() {
     const name = document.createElement('span'); name.textContent = caseLabel(c); name.title = c.source ?? '';
     // A case that was not built says why, in plain words (full text on hover); a built one says its safety verdict.
     const small = document.createElement('small');
-    small.textContent = c.result !== 'built' ? `Not built: ${explain(c)}` : status(c);
+    small.textContent = c.session && c.session.state !== 'done' ? SESSION_WORDS[c.session.state](c)
+      : c.result !== 'built' ? `Not built: ${explain(c)}` : status(c);
     if (c.result !== 'built') { small.title = explain(c); small.className = 'why'; }
     const kindLabel = document.createElement('small'); kindLabel.className = 'kind'; kindLabel.textContent = c.kind || 'aligner';
     li.append(badge, name, kindLabel, small);
@@ -2839,8 +2906,16 @@ function select(k) {
   current = Math.max(0, Math.min(list.length - 1, k));
   drawList();
   document.getElementById('position').textContent = `${current + 1} / ${list.length}`;
-  facts(list[current]);
-  show(list[current]);
+  const row = list[current];
+  // THE SCAN SESSION: a scan with a run for this type shows that run (its own rules, graphs and files); any other
+  // scan shows its state and starts its run - the scan on screen always runs first (plan section 2 step 3).
+  if (row.session) {
+    drawBanner();
+    if (row.session.state !== 'done') { showSessionCard(row); if (row.session.state === 'not run') runScan(row.session.at); return; }
+    applyRunGlobals(row.session.summary, (name) => `${row.session.url}${name}`);
+  }
+  facts(row);
+  show(row);
 }
 document.getElementById('show-look').addEventListener('click', () => { onlyLook = true; select(0); });
 document.getElementById('show-all').addEventListener('click', () => { onlyLook = false; select(0); });
@@ -2852,10 +2927,172 @@ addEventListener('keydown', (event) => {
   if (event.key === 'ArrowDown' || event.key === 'PageDown') select(current + 1);
   if (event.key === 'ArrowUp' || event.key === 'PageUp') select(current - 1);
 });
+/*
+ * THE SCAN SESSION (docs/REVIEWER-OVERHAUL-PLAN.md section 2, build step 7 - the owner's core loop): import scans, pick
+ * a type, see each scan run with it; switch type and the same scans show the other type's results. Each scan's run is
+ * one POST /run (the server queues two at a time and keeps every result, so switching back is instant). The rules are
+ * reviewSession.mjs; this draws them. `session` is null while a review folder is open instead.
+ */
+const sessionLib = await import('./reviewSession.mjs');
+const draftLib = await import('./typeDraft.mjs');
+let session = null;
+let catalogNow = null;
+/** The type the session runs with: a catalog entry (built-in or saved). */
+let sessionType = null;
+const sessionBar = document.getElementById('session-bar');
+const typePick = document.getElementById('type-pick');
+
+/** Every type the workbench can open (GET /types), or null with the reason on screen - never an empty list instead. */
+async function loadCatalog() {
+  const read = await fetch('/types').then((r) => r.json()).catch((error) => ({ error: error.message }));
+  if (read.error) { document.getElementById('note').textContent = `The type list could not be read: ${read.error}`; return null; }
+  catalogNow = read;
+  return read;
+}
+const sessionTypes = () => (catalogNow?.types ?? []).filter((t) => t.category === session?.kind);
+const sessionPrint = () => draftLib.runPrint(sessionType.type);
+const sessionRows = () => sessionLib.rowsOf(session, sessionType.id, sessionPrint());
+
+function drawTypePick() {
+  const types = sessionTypes();
+  typePick.replaceChildren(...types.map((t) => Object.assign(document.createElement('option'), {
+    value: t.id, selected: t.id === sessionType?.id,
+    textContent: `${t.name} · ${t.badge}${t.builtIn ? ' (built-in)' : ` · saved ${sessionStamp(t)}`}`,
+  })));
+  const refused = (catalogNow?.refused ?? []).filter((r) => r.file.includes(`/${session?.kind}/`));
+  typePick.title = `The type the scans run with. Switch to compare: the same scans, another type.${refused.length ? ` ${refused.length} saved type file(s) could not load: ${refused.map((r) => `${r.file} - ${r.reason}`).join('; ')}` : ''}`;
+}
+const sessionStamp = (t) => (t.stamp ? `${Number(t.stamp.slice(6, 8))}/${Number(t.stamp.slice(4, 6))} ${t.stamp.slice(9, 11)}:${t.stamp.slice(11, 13)}` : 'undated');
+
+/** Redraw the case list from the session, keeping the case on screen. */
+function drawSession() {
+  const at = shown()[current]?.session?.at ?? 0;
+  cases = sessionRows();
+  document.getElementById('totals').textContent = sessionLib.totalsOf(cases);
+  const busy = cases.some((c) => c.session.state === 'running' || c.session.state === 'queued');
+  document.getElementById('run-stop').hidden = !busy;
+  select(Math.max(0, shown().findIndex((c) => c.session.at === at)));
+}
+function drawBanner() {
+  const banner = document.getElementById('stage-state');
+  const row = shown()[current];
+  banner.hidden = !session || !row?.session;
+  if (banner.hidden) return;
+  banner.textContent = sessionLib.bannerOf({ at: row.session.at, count: session.scans.length, typeName: sessionType.name, run: row.session });
+  banner.className = `stage-state${row.session.state === 'running' || row.session.state === 'queued' ? ' busy' : row.session.state === 'failed' ? ' bad' : ''}`;
+}
+
+/** Run scan `k` of the session with the session's type, unless it has a result or is under way (`force` re-runs a failed one). */
+async function runScan(k, force = false) {
+  const source = session.scans[k];
+  const id = sessionLib.resultId(source, sessionType.id, sessionPrint());
+  const now = sessionLib.stateOf(session, id).state;
+  if (now === 'done' || now === 'running' || now === 'queued' || (now === 'failed' && !force)) return;
+  const asked = session;
+  const type = sessionType;
+  session.results.set(id, { state: 'queued', since: Date.now() });
+  drawSession();
+  pollJobs();
+  const reply = await fetch('/run', { method: 'POST', body: JSON.stringify({ kind: session.kind, source, type: type.type, builtIn: type.builtIn, label: id }) })
+    .then((r) => r.json()).catch((error) => ({ error: `the server did not answer: ${error.message}` }));
+  let result;
+  if (reply.ok) {
+    const summary = await fetch(`${reply.url}summary.json`).then((r) => r.json()).catch(() => null);
+    result = summary ? { state: 'done', url: reply.url, summary } : { state: 'failed', error: 'the run finished but its summary could not be read' };
+  } else result = reply.stopped ? { state: 'not run' } : { state: 'failed', error: reply.error ?? 'no reason given', log: reply.log };
+  if (asked !== session) return; // a new import replaced this session while it ran
+  if (result.state === 'not run') session.results.delete(id); else session.results.set(id, result);
+  drawSession();
+  refreshCacheSize();
+}
+/** Which of this session's runs the server is running and which wait (GET /jobs), while any is under way. */
+let jobsTimer = 0;
+async function pollJobs() {
+  clearTimeout(jobsTimer);
+  if (!session) return;
+  const pending = [...session.results.entries()].filter(([, r]) => r.state === 'queued' || r.state === 'running');
+  if (pending.length === 0) return;
+  const { jobs = [] } = await fetch('/jobs').then((r) => r.json()).catch(() => ({}));
+  for (const [id, run] of pending) {
+    const job = jobs.find((j) => j.label === id);
+    if (job?.state === 'running' && run.state !== 'running') session.results.set(id, { state: 'running', since: job.startedAt ?? Date.now(), key: job.key });
+    else if (job) session.results.set(id, { ...run, key: job.key });
+  }
+  redrawSessionState();
+  jobsTimer = setTimeout(pollJobs, 1000);
+}
+/** Stop every run of this session that waits or goes. */
+async function stopSession() {
+  const { jobs = [] } = await fetch('/jobs').then((r) => r.json()).catch(() => ({}));
+  const mine = jobs.filter((j) => session?.results.has(j.label));
+  await Promise.all(mine.map((j) => fetch('/run-stop', { method: 'POST', body: JSON.stringify({ key: j.key }) })));
+}
+async function refreshCacheSize() {
+  const size = await fetch('/cache-size').then((r) => r.json()).catch(() => null);
+  const label = document.getElementById('cache-size');
+  label.textContent = size ? `Kept runs: ${size.runs}, ${(size.bytes / 1e9).toFixed(2)} GB` : '';
+  document.getElementById('cache-clear').hidden = !size || size.runs === 0;
+}
+
+/** Import the scans at `path` (a folder or one STL) as a new session of the chosen category. */
+async function importFrom(path) {
+  const kind = document.getElementById('category-pick').value;
+  const read = await fetch('/import', { method: 'POST', body: JSON.stringify({ path }) }).then((r) => r.json()).catch((error) => ({ error: error.message }));
+  if (read.error) { stageCard({ name: 'Nothing imported', text: read.error }); return; }
+  if (read.cases.length === 0) { stageCard({ name: 'Nothing to run', text: read.words }); return; }
+  if (!catalogNow && !(await loadCatalog())) return;
+  session = sessionLib.newSession({ kind, scans: read.cases });
+  kindNow = kind;
+  // The type the session starts with: the one picked before for this category, else its built-in.
+  const types = sessionTypes();
+  sessionType = types.find((t) => t.id === sessionType?.id) ?? types.find((t) => t.builtIn) ?? types[0];
+  for (const id of ['type-pick', 'run-all']) document.getElementById(id).hidden = false;
+  drawTypePick();
+  document.getElementById('note').textContent = `${read.words}${read.truncated ? ' (stopped at 5000 files)' : ''}`;
+  onlyLook = false;
+  current = 0;
+  cases = sessionRows();
+  drawSession();
+}
+
+document.getElementById('import-folder').addEventListener('click', async () => {
+  const picked = await fetch('/pick-folder', { method: 'POST' }).then((r) => r.json()).catch((error) => ({ error: error.message }));
+  if (picked.error) { document.getElementById('note').textContent = picked.error; return; }
+  if (picked.path) importFrom(picked.path);
+});
+document.getElementById('import-path').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && event.target.value.trim()) importFrom(event.target.value.trim());
+});
+typePick.addEventListener('change', () => {
+  sessionType = sessionTypes().find((t) => t.id === typePick.value) ?? sessionType;
+  drawSession();
+});
+document.getElementById('run-all').addEventListener('click', () => session?.scans.forEach((_, k) => runScan(k)));
+document.getElementById('run-stop').addEventListener('click', () => stopSession());
+document.getElementById('cache-clear').addEventListener('click', async () => {
+  if (!window.confirm('Delete every kept run? The scans and the types are not touched; a scan runs again when you open it.')) return;
+  const read = await fetch('/cache-clear', { method: 'POST' }).then((r) => r.json()).catch((error) => ({ error: error.message }));
+  if (read.error) document.getElementById('note').textContent = read.error;
+  if (session) { session.results.clear(); drawSession(); }
+  refreshCacheSize();
+});
+// The banner's seconds while a scan runs.
+setInterval(() => { if (session && shown()[current]?.session?.state === 'running') redrawSessionState(); }, 1000);
+/** The list, the banner and the case card from the session as it is now, without reloading the case on screen. */
+function redrawSessionState() {
+  cases = sessionRows();
+  drawList();
+  drawBanner();
+  const row = shown()[current];
+  if (row?.session && row.session.state !== 'done') showSessionCard(row);
+}
+
 const served = await fetch('/out/summary.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
 reviewServed = Boolean(served);
 if (served) openRun(served, (name) => `/out/${name}`, '/out/summary.csv');
-else empty('Drop a batch-... folder from dentalwork/output here, or its summary.json with the case GLBs. Open folder and Open files do the same.');
+else empty('Import scans (top) to run them with any type, or drop a batch-... review folder from dentalwork/output here.');
+// The scan session needs the server's type list; without it the bar stays hidden and the note says why.
+if (await loadCatalog()) { sessionBar.hidden = false; refreshCacheSize(); }
 
 /*
  * BENCHWORK PANEL. The rule list comes from the SAME module the CLI uses (`benchwork/rules.mjs`,
