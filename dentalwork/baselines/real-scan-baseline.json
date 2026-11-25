@@ -5,19 +5,19 @@
     "denture-1b6a4e0c5656": {
       "kind": "denture",
       "record": {
-        "tipsPlaced": 168,
+        "tipsPlaced": 180,
         "tipsLeftOut": 0,
         "islandsUnresolved": 0,
         "printAngleDeg": 8,
-        "tipsBySource": "dental rim 102 / hole 36 / area 12 / low 2 / island 16",
+        "tipsBySource": "dental rim 116 / hole 36 / area 10 / low 2 / island 16",
         "unresolvedIslands": "none",
         "verdict": "clear",
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-peel.json": "6534fd8ea6fb5567500e4722202a43759c864c029f0c01aed3d708046bfa61e5",
-          "case-001.glb": "c828f6df3fecd3fae5ac263d9a7d15c2512e9d7e1499b91f539f7ff55be2ff76",
-          "client/case-001.glb": "a3996fd5fa67adb010e43c78163afa78975a5c49fdb701a0820ca1589a371077"
+          "case-001-peel.json": "2320845d8e2f00b2f40901b4bed96e3284b266fe9a8d59a69debcdc763a73505",
+          "case-001.glb": "d43306ce78714186c8a4295bf0702a9b116e7470f3fbcb6b6feea3d8ad1b4834",
+          "client/case-001.glb": "e9ddfbf2c023b55f4bb418fad257e49805834628622746ac49be258f095c2923"
         }
       }
     },
