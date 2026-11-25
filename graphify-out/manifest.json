@@ -2815,9 +2815,9 @@
     "semantic_hash": ""
   },
   "dentalwork/batch-review/viewer.html": {
-    "mtime": 1795504755.7279625,
-    "seen": 1795507180.6533287,
-    "ast_hash": "d8d7d235037d099069b7e4434d7d616c",
+    "mtime": 1795574187.0032268,
+    "seen": 1795576661.6272118,
+    "ast_hash": "723852f85dfe393af2a6f96ffe17dac0",
     "semantic_hash": ""
   },
   ".github/dependabot.yml": {
@@ -6991,9 +6991,9 @@
     "semantic_hash": ""
   },
   "docs/WORKBENCH-TABS-PLAN.md": {
-    "mtime": 1795504015.5191038,
-    "seen": 1795507180.6533287,
-    "ast_hash": "e9bac1f7c55855f0a7a35042c11fd98b",
+    "mtime": 1795574239.8306258,
+    "seen": 1795576661.6272118,
+    "ast_hash": "7f2e821643a53090bfd7b91bcee7d1f7",
     "semantic_hash": ""
   },
   "dentalwork/batch-review/tiltPreview.mjs": {

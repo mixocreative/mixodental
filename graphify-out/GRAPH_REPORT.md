@@ -1,7 +1,7 @@
-# Graph Report - mixodental  (2026-11-24)
+# Graph Report - mixodental  (2026-11-25)
 
 ## Corpus Check
-- 1115 files · ~1,496,805 words
+- 1115 files · ~1,496,962 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 55 file(s) not represented in the graph (top: .stl 26, (none) 8, .css 6)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `09503cd7`
+- Built from commit: `cc14d1ef`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1888,7 +1888,7 @@ Nodes (3): In the debt band (~600–1000), named, no cut owed, Not counted, and 
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `vitest` connect `vitest` to `dentureReviewLayers.ts`, `i18n.ts`, `DentalKind`, `Vector`, `editingMode.ts`, `dentalKind.ts`, `session.ts`, `typeInForce.ts`, `supportParityHarness.ts`, `sidePreview.mjs`, `cli.mjs`, `resolveSettings`, `TriangleMesh`, `ModelTransform`, `probe-nogl.mjs`, `useSupportBuilds.ts`, `dentureClient.ts`, `referenceStep3.ts`, `real-scan-gate.mjs`, `useProjectFile.ts`, `check-no-duplicates.mjs`, `Blockers`, `supportLayers.tsx`, `typesReady.test.ts`, `8. Sequence`, `brushBodies.ts`, `unitSupports.ts`, `linearColour.ts`, `probe-dental-orientation.ts`, `useDentureOrient.ts`, `SurfacePath`, `dentalEngine.ts`, `state/transform.ts`, `third-party-notices.mjs`, `seedFromDetected.ts`, `serve.mjs`, `stageModel.ts`, `reviewCase.ts`, `AppBoundary.test.tsx`, `useExport.ts`, `gizmoStyle.ts`, `goldens/pipeline.ts`, `alignerProfiles.ts`, `islandReport.ts`, `TiltDial.tsx`, `useDebugLayers.ts`, `Catalogue.tsx`, `typeInForce.ts`, `stages.ts`, `exportBytes.test.ts`, `geometry-guard.mjs`, `plateLayout.test.ts`, `ref_node_fs`, `tiltPreview.test.ts`, `t`, `revisions.ts`, `thumbnail.test.ts`, `vec3.ts`, `imports.test.ts`, `sceneColours.ts`, `package.json`, `state/project.ts`, `SettingsPanel.tsx`, `stepKind.test.ts`, `dentureClient.test.ts`, `pipeline.test.ts`, `react-dom`, `liveCardView.ts`, `App.tsx`, `uiStylingDoc.test.ts`, `useImportFiles.ts`, `rigidMove.ts`, `pipeline.real.test.ts`, `sceneMap.ts`, `orientLayers.ts`, `renderer.ts`, `UnitObject.tsx`, `noColourLiterals.test.ts`, `shell-guard.mjs`, `printerProfiles.ts`, `nodeGraph.mjs`, `ref_node_path`, `ObjectViewport.tsx`, `TermsDialog.tsx`, `unitContacts`, `addOnTint.ts`, `glossary.test.ts`, `useDentureSupports.ts`, `pkg-node/mixo_geometry_wasm.js`, `dentureCore.ts`?**
-  _High betweenness centrality (0.128) - this node is a cross-community bridge._
+  _High betweenness centrality (0.129) - this node is a cross-community bridge._
 - **Are the 73 inferred relationships involving `$_` (e.g. with `al()` and `av()`) actually correct?**
   _`$_` has 73 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `memory`, `__wbg_asciistlsession_free`, `__wbg_binarystlsession_free` to the rest of the system?**
