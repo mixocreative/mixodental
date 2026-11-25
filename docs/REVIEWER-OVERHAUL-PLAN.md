@@ -44,6 +44,12 @@ code. Lines marked UNVERIFIED were read about, not measured.
   badge-only second save, rollback by deleting the newest file by hand, and the list following the folder. One gap
   found and fixed: Save showed nothing while it worked (half a minute on a freshly started server) - it now says
   "Saving..." at once and is greyed until the answer.
+- **The review-folder bridge on every folder in dentalwork/output, in a real browser** (2026-11-26, 42 folders, a
+  Playwright probe: start the workbench on the folder, press Apply, record the page, stop the run): 36 open as
+  sessions on their category's built-in, 6 that only ever ran a `-sup` reference are refused in words. It found two
+  gaps, fixed: the page's default type id `workbench.denture` (left from the retired folder Apply) made an untouched
+  folder keep a renamed draft, an aligner's too - there is no default id now and a carry with none takes the
+  built-in's id, name and badge; and Apply on an untouched built-in said "read-only" before "nothing changed".
 - **Measured**: one scan with one type is about 35 s and about 88 MB of kept run; switching back is instant.
 - **Restore marks** name the saved value ("Restore to 30° (saved in Parity denture)"); the node default is not also
   printed on the mark - the canvas mark says where the value was saved.

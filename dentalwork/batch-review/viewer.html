@@ -571,7 +571,9 @@ try { poseEdits = JSON.parse(localStorage.getItem('review-pose') || '{}') ?? {};
    the search's numbers and made into the draft type's profile (typeInForce.ts). Only keys that differ are kept. */
 let placementEdits = {};
 try { placementEdits = JSON.parse(localStorage.getItem('review-placement') || '{}') ?? {}; } catch { placementEdits = {}; }
-let typeName = 'workbench.denture';
+// No default id: the retired review-folder Apply needed one to run, and once that path moved into the session the
+// default made every untouched folder's Apply keep a phantom new type "workbench.denture" - an aligner's too (2026-11-26).
+let typeName = '';
 try { typeName = localStorage.getItem('review-type-id') || typeName; } catch { /* per-viewer only */ }
 let typeBadge = '';
 try { typeBadge = localStorage.getItem('review-type-badge') || ''; } catch { /* per-viewer only */ }
@@ -3441,9 +3443,14 @@ function startSession(kind, read, { carry = false, onBuiltIn = false, at = null 
   // edits are chosen instead - the dialog named the built-in, so another type must not open.
   sessionType = carry || onBuiltIn ? builtIn : types.find((t) => t.id === sessionType?.id) ?? builtIn;
   if (carry) {
-    // A draft needs an id; a review folder may have none typed. The built-in's own id keeps its edits read-only until
-    // they get one, which Apply and Save then say - the same as in any session.
-    if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) typeName = sessionType.id;
+    // A draft needs an id; a review folder may have none typed. Then the built-in's own id, name and badge: nothing was
+    // named, so nothing is renamed (a blank name became the id, and an untouched folder kept a renamed "draft"). Its
+    // edits stay read-only until they get their own id, which Apply and Save then say - the same as in any session.
+    if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) {
+      typeName = sessionType.id;
+      typeFullName = sessionType.name;
+      typeBadge = sessionType.type.badge ?? '';
+    }
     const carried = draftFromEditors();
     openTypeInEditors(carried, sessionType, sessionType.stamp);
     keepDraft();
@@ -3742,17 +3749,18 @@ try {
     const orientProblems = orientEdited ? orientLib.validate(orientGraph).problems : [];
     if (orientProblems.length) { status.textContent = `Fix the Orient graph first (1 Orient): ${orientProblems[0]}`; return; }
     // Apply runs the WHOLE draft - the opened type with the editors' values - on the scan on screen, through the
-    // session's own runs (kept, two at a time; reviewer overhaul step 8). A built-in is read-only: its edits become a
-    // new type, which needs its own id.
-    if (sessionType.builtIn && typeName.trim() === sessionType.id) {
-      status.textContent = `${sessionType.name} is built in and read-only: give the new type its own id and name in the Type strip above the stages (or press Duplicate), then Apply - it becomes a new type based on ${sessionType.name}.`;
-      return;
-    }
+    // session's own runs (kept, two at a time; reviewer overhaul step 8). Nothing changed is said first: refusing an
+    // untouched built-in as "read-only" answered an edit nobody made. A built-in is read-only: its edits become a new
+    // type, which needs its own id.
     const draft = draftFromEditors();
     if (draftLib.runPrint(draft) === draftLib.runPrint(sessionRunType())) {
       // Just moved from a review folder with nothing edited: the scans run with the type as it is (they are running).
       status.textContent = fromFolder ? `This folder's scans are open as a session with ${sessionType.name}, and run as you open them (or Run all). Edit, then Apply to try your changes.`
         : 'Nothing to run: the scans already show these settings. A new name or badge alone needs no run - Save keeps it.';
+      return;
+    }
+    if (sessionType.builtIn && typeName.trim() === sessionType.id) {
+      status.textContent = `${sessionType.name} is built in and read-only: give the new type its own id and name in the Type strip above the stages (or press Duplicate), then Apply - it becomes a new type based on ${sessionType.name}.`;
       return;
     }
     applied.set(sessionType.id, draft);
