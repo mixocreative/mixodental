@@ -38,7 +38,7 @@ export function openDraft(entry) {
   return { category: entry.category, id: entry.id, builtIn: entry.builtIn, savedFrom: entry.path, stamp: entry.stamp, base: clone(entry.type), draft: withoutProof(entry.type) };
 }
 
-/** The value at a dotted path in an object ('pose.tiltMaxDeg'), or undefined. */
+/** The value at a dotted path in an object ('pose.tiltRangeDeg'), or undefined. */
 const at = (object, path) => path.split('.').reduce((value, key) => (value && typeof value === 'object' ? value[key] : undefined), object);
 /** A copy of `object` with `path` set to `value` (deleted when `value` is undefined). */
 function setAt(object, path, value) {
@@ -55,7 +55,7 @@ const NAMING = ['id', 'name'];
 
 /**
  * The draft after one edit. A built-in refuses every edit, naming the way out.
- * `change` is one of: `{ rule, value }` (value undefined = back to the engine's default), `{ profile: 'pose.tiltMaxDeg',
+ * `change` is one of: `{ rule, value }` (value undefined = back to the engine's default), `{ profile: 'pose.tiltRangeDeg',
  * value }`, `{ zoneGraph }`, `{ orientGraph }`, `{ name }`, `{ badge }` (badge '' = none).
  */
 export function editDraft(state, change) {

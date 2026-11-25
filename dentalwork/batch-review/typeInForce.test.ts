@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { setZoneGraph, zoneGraphDigest } from '@mixo-geocore/host/dental/zoneGraph';
-import { defaultGraph } from './nodeGraph.mjs';
+import { defaultGraph, setParam } from './nodeGraph.mjs';
+import { flatBaseGraph } from './orientGraph.mjs';
+import { typeFileText } from '../../src/dentalTypes/typeFile';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -70,6 +72,39 @@ describe('a drafted type', () => {
     expect(placement.tipPitchMm).toBeGreaterThan(0);
     expect(() => typeOfRun('denture', { MIXO_TYPE_ID: 'x', MIXO_PLACEMENT_FILE: file({ rimBandMm: 0 }) })).toThrow(/rimBandMm must be above 0 and at most 20 mm/);
     expect(() => typeOfRun('denture', { MIXO_TYPE_ID: 'x', MIXO_PLACEMENT_FILE: file({ tipPitchMm: 1 }) })).toThrow(/the Rim tab sets only rimBandMm, .*rimBandInnerMm.*, not tipPitchMm/);
+  });
+});
+
+/*
+ * THE HINGE OF THE REVIEWER OVERHAUL (docs/REVIEWER-OVERHAUL-PLAN.md section 5, step 4). The page used to send a run its
+ * edits in pieces (rules, pose, placement, both graphs, name, badge) and the run built the draft from the built-in;
+ * now the page holds the whole type file and the run reads it as it is (MIXO_TYPE_FILE). If the two ever give a
+ * different type, every result from then on would differ from what the old Apply ran - so this must stay equal.
+ */
+describe('a run given the whole type file runs the same type as one given its edits in pieces', () => {
+  it('reads back to the same type text, every edit kind at once', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'parity-'));
+    const file = (name: string, body: unknown) => { const at = join(dir, name); writeFileSync(at, typeof body === 'string' ? body : JSON.stringify(body)); return at; };
+    const zone = setParam(defaultGraph(), 'BAND', 'mm', 6);
+    const pieces = typeOfRun('denture', {
+      MIXO_TYPE_ID: 'parity', MIXO_TYPE_NAME: 'Parity denture', MIXO_TYPE_BADGE: 'PAR',
+      MIXO_RULES: JSON.stringify({ overhangAngleDeg: 50 }),
+      MIXO_POSE_FILE: file('pose.json', { tiltRangeDeg: 30 }),
+      MIXO_PLACEMENT_FILE: file('placement.json', { rimBandMm: 3 }),
+      MIXO_ZONE_GRAPH_FILE: file('zone.json', zone),
+      MIXO_ORIENT_GRAPH_FILE: file('orient.json', flatBaseGraph()),
+    })!;
+    const whole = typeOfRun('denture', { MIXO_TYPE_FILE: file('type.json', typeFileText(pieces)) })!;
+    expect(typeFileText(whole)).toBe(typeFileText(pieces));
+    // And what each puts in force is the same: the rules the batch runs with and the zone graph the engine holds.
+    const envA: Record<string, string> = {};
+    const envB: Record<string, string> = {};
+    try {
+      expect(putInForce(whole, envB)).toBe(putInForce(pieces, envA));
+      expect(envB.MIXO_RULES).toBe(envA.MIXO_RULES);
+    } finally {
+      setZoneGraph(null);
+    }
   });
 });
 

@@ -11,7 +11,7 @@ const savedGraph = setParam(defaultGraph(), 'R1b', 'deg', 30);
 const pose = generic.pose as Record<string, number>;
 const soft = { category: 'denture', id: 'soft', builtIn: false, path: 'types/denture/soft.20261125-210430.type.json', stamp: '20261125-210430',
   type: { typeFile: 1, category: 'denture', id: 'soft', basedOn: String(generic.id), badge: 'SOFT', rules: { overhangAngleDeg: 50 }, zoneGraph: savedGraph,
-    profile: { ...generic, id: 'soft', name: { en: 'Soft', ja: 'Soft', 'zh-Hant': 'Soft' }, pose: { ...pose, tiltMaxDeg: 30 } },
+    profile: { ...generic, id: 'soft', name: { en: 'Soft', ja: 'Soft', 'zh-Hant': 'Soft' }, pose: { ...pose, tiltRangeDeg: 30 } },
     validation: { engineVersion: 1, profileDigest: 'x', zoneGraphDigest: 'y', scans: ['a'], at: 'now' } } };
 
 describe('a type being worked on: opened, edited, restored, duplicated', () => {
@@ -25,7 +25,7 @@ describe('a type being worked on: opened, edited, restored, duplicated', () => {
   it('RESTORE GOES TO THE SAVED VALUE, not the node default (owner, 2026-11-25)', () => {
     const state = openDraft(soft);
     expect(restoreRule(state, 'overhangAngleDeg')).toBe(50);
-    expect(restoreProfile(state, 'pose.tiltMaxDeg')).toBe(30);
+    expect(restoreProfile(state, 'pose.tiltRangeDeg')).toBe(30);
     // The graph parameter: the saved type's R1b is 30. The standard graph says 0 (off) and the kind's default 45; the
     // restore must put back 30 - the type's own - and neither of the others.
     const r1b = state.base.zoneGraph.nodes.find((n: { id: string }) => n.id === 'R1b');
@@ -40,10 +40,10 @@ describe('a type being worked on: opened, edited, restored, duplicated', () => {
   it('lists each edit, and an edit back to the saved value is no edit', () => {
     let state = openDraft(soft);
     state = editDraft(state, { rule: 'overhangAngleDeg', value: 55 });
-    state = editDraft(state, { profile: 'pose.tiltMaxDeg', value: 40 });
+    state = editDraft(state, { profile: 'pose.tiltRangeDeg', value: 40 });
     state = editDraft(state, { zoneGraph: setParam(savedGraph, 'R1b', 'deg', 0) });
     state = editDraft(state, { badge: 'S2' });
-    expect(changes(state)).toEqual(['rule:overhangAngleDeg', 'profile:pose.tiltMaxDeg', 'zoneGraph', 'badge']);
+    expect(changes(state)).toEqual(['rule:overhangAngleDeg', 'profile:pose.tiltRangeDeg', 'zoneGraph', 'badge']);
     state = editDraft(state, { rule: 'overhangAngleDeg', value: 50 });
     expect(changes(state)).not.toContain('rule:overhangAngleDeg');
     expect(() => editDraft(state, { profile: 'name.en', value: 'x' })).toThrow(/rename the type/);
