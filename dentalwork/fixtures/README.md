@@ -1,5 +1,33 @@
 # Dental comparison fixtures
 
+**These are the test scans. Keep them.** Everything else under `dentalwork/output/` is a result made FROM them
+and can be made again; these cannot. Nothing in the tooling copies, moves or changes them: the reviewer, the
+batch and the gates all read them where they are.
+
+| folder | what it holds | used by |
+|---|---|---|
+| `case-denture/` | 3 denture scans; each has an owner `-sup.stl` and its `-sup.contacts.json` beside it - a reference, never run as a case | `gate:real` (denture), benchwork, the reviewer |
+| `case-aligner/` | 8 aligner and retainer scans | `gate:real` (aligner) |
+| `case-emaaligner/` | 2 multi-part aligner scans | `gate:real` (multipart) |
+| `case-001/` | the public reference aligner and its supported example | `compare_supported.py` below |
+
+## Testing with them
+
+- **The reviewer (try a type or an edit):** `npm run review`, open http://127.0.0.1:6705/, **Import folder** and
+  pick `dentalwork/fixtures/case-denture` (or paste the path), pick a type, **Run all**. `-sup.stl` files are
+  skipped as references. Results go to `dentalwork/output/review-cache/`; **Clear** empties only that folder.
+- **The real-scan gate (after any engine change):** `npm run gate:real` - every case folder above against
+  `dentalwork/baselines/real-scan-baseline.json`.
+- **A rule override:** `npm run benchwork -- --kind denture --set overhangAngleDeg=55 dentalwork/fixtures/case-denture --open`
+  writes a `bench-<date>` folder.
+- **A plain batch:** `run-batch-review.bat` with one of these folders, or
+  `npx vite-node --script dentalwork/batch-review/batch.ts --out dentalwork/output/batch-test dentalwork/fixtures/case-denture`
+  writes a `batch-<date>` folder.
+
+The `batch-*`, `bench-*`, `jig-*` and other folders in `dentalwork/output/` are those earlier results: the
+supported GLBs, `summary.json` and the peel files, no scans. The viewer still opens one (drop it on the page,
+or `view-batch-review.bat`), with the older Apply and Save. Deleting them loses only the record of that run.
+
 Keep each unsupported aligner and its operator-approved supported example together under a neutral `case-###/` directory:
 
 ```text
