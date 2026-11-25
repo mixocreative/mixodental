@@ -5,7 +5,8 @@
 // --lan also listens on the local network (e.g. to look from a phone); review files hold patient scans,
 // so use it only on a trusted home/office network.
 import { createServer } from 'node:http';
-import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { createReadStream, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +14,10 @@ import { exec, spawn } from 'node:child_process';
 import { stampNow } from '../../benchwork/rules.mjs';
 import { guardRun, refusalReason } from './rerunReport.mjs';
 import { saveVerdict } from './saveType.mjs';
+import { scanSet, scanSetWords } from './scanSet.mjs';
+import { createQueue, resultKey } from './runQueue.mjs';
+import { runPrint } from './typeDraft.mjs';
+import { HOST_GEOMETRY_VERSION } from '../../vendor/mixo-geocore/host/geometryVersion.js';
 import { RIM_PLACEMENT } from './nodeGraph.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -45,6 +50,8 @@ const roots = {
   // typeDraft.mjs imports '../../src/dentalTypes/typeText.mjs'; from a page at '/' that resolves here. Only the plain
   // JavaScript modules there are useful to the page; the folder holds no patient data.
   '/src/dentalTypes/': join(here, '..', '..', 'src', 'dentalTypes'),
+  // Every run the workbench made, by its key (POST /run): before '/', which would otherwise match first.
+  '/cache/': join(here, '..', 'output', 'review-cache'),
   '/': here,
 };
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
@@ -125,6 +132,20 @@ function rerun(request, response) {
       writeFileSync(file, JSON.stringify(ask.orientGraph, null, 2));
       graphArgs.push('--orient-graph', file);
     }
+    // THE WHOLE TYPE FILE (reviewer overhaul step 4): the page holds the type it works on as one file - opened from a
+    // save, duplicated, or edited - and the run reads it as it is (benchwork --type, the batch's MIXO_TYPE_FILE). The
+    // file's own reader refuses anything a saved type would be refused for, naming it. A built-in is never sent: it
+    // runs as the plain built-in run, which is what gate:real measures. typeInForce.test.ts holds that this path and the
+    // piecemeal one below give the same type; the piecemeal one retires when the page no longer sends pieces.
+    if (ask?.type !== undefined) {
+      if (!ask.type || typeof ask.type !== 'object' || Array.isArray(ask.type)) { send(400, { error: 'type must be a whole type file' }); return; }
+      if (ask.type.category !== kind) { send(400, { error: `type ${ask.type.id} is a ${ask.type.category} type - these scans are ${kind}` }); return; }
+      mkdirSync(out, { recursive: true });
+      const file = join(out, 'type-in.json');
+      writeFileSync(file, `${JSON.stringify(ask.type, null, 2)}\n`);
+      startRun(['--type', file]);
+      return;
+    }
     // The type this run is (Orient's print-angle edits + a name): benchwork makes a draft from the
     // built-in and the batch writes what ran to type.json, which Save type copies (TYPE-PIPELINE R1).
     const typeArgs = [];
@@ -153,24 +174,29 @@ function rerun(request, response) {
         typeArgs.push('--placement', file);
       }
     }
-    const child = spawn(process.execPath, [join(here, '..', '..', 'benchwork', 'cli.mjs'), '--kind', kind, '--out', out, ...sets, ...graphArgs, ...typeArgs, source],
-      { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'] });
-    let log = '';
-    child.stdout.on('data', (chunk) => { log += chunk; process.stdout.write(chunk); });
-    child.stderr.on('data', (chunk) => { log += chunk; process.stderr.write(chunk); });
-    // ONE answer: the exit, a spawn error, or the 15-minute limit, whichever comes first (cia F3; the
-    // rule and its tests are rerunReport.mjs).
-    guardRun(child, 15 * 60 * 1000, {
-      timeout: () => send(500, { error: 'the re-run took over 15 minutes and was stopped', log: log.slice(-4000) }),
-      error: (error) => send(500, { error: `the re-run could not start: ${error.message}`, log: log.slice(-4000) }),
-      exit: (code) => {
-        if (code !== 0 || !existsSync(join(out, 'summary.json'))) { send(500, { error: `benchwork exited ${code}`, log: log.slice(-4000) }); return; }
-        // shortcut: one /out/ for the whole server, so two tabs re-running at once see whichever finished
-        // last (cia F6). One operator, one tab today; return `out` and fetch from it if that changes.
-        roots['/out/'] = out;
-        send(200, { ok: true, out, log: log.slice(-4000) });
-      },
-    });
+    startRun([...sets, ...graphArgs, ...typeArgs]);
+
+    /** Runs benchwork on `source` into `out` with `args`, and answers the page once (exit, spawn error or time limit). */
+    function startRun(args) {
+      const child = spawn(process.execPath, [join(here, '..', '..', 'benchwork', 'cli.mjs'), '--kind', kind, '--out', out, ...args, source],
+        { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'] });
+      let log = '';
+      child.stdout.on('data', (chunk) => { log += chunk; process.stdout.write(chunk); });
+      child.stderr.on('data', (chunk) => { log += chunk; process.stderr.write(chunk); });
+      // ONE answer: the exit, a spawn error, or the 15-minute limit, whichever comes first (cia F3; the
+      // rule and its tests are rerunReport.mjs).
+      guardRun(child, 15 * 60 * 1000, {
+        timeout: () => send(500, { error: 'the re-run took over 15 minutes and was stopped', log: log.slice(-4000) }),
+        error: (error) => send(500, { error: `the re-run could not start: ${error.message}`, log: log.slice(-4000) }),
+        exit: (code) => {
+          if (code !== 0 || !existsSync(join(out, 'summary.json'))) { send(500, { error: `benchwork exited ${code}`, log: log.slice(-4000) }); return; }
+          // shortcut: one /out/ for the whole server, so two tabs re-running at once see whichever finished
+          // last (cia F6). One operator, one tab today; return `out` and fetch from it if that changes.
+          roots['/out/'] = out;
+          send(200, { ok: true, out, log: log.slice(-4000) });
+        },
+      });
+    }
   });
 }
 
@@ -313,12 +339,162 @@ function typeList(response) {
   readCatalog().then((read) => response.writeHead(read.error ? 500 : 200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(read)));
 }
 
+/*
+ * IMPORT (reviewer overhaul step 5): the workbench takes scans itself - a folder chosen in the system's own dialog, or a
+ * pasted path - instead of needing a batch run first. Scans are READ WHERE THEY ARE, never copied (patient data), and
+ * `scanSet.mjs` decides which are cases (an owner's -sup.stl is a reference, never a case). Both routes are refused when
+ * the server listens on the network (--lan): they list and open folders on this machine (plan decision 10).
+ */
+const MAX_FILES = 5000;
+/** Every file under `path` (a file, or a folder walked recursively), at most MAX_FILES. */
+function filesUnder(path, found = []) {
+  if (found.length >= MAX_FILES) return found;
+  const stat = statSync(path, { throwIfNoEntry: false });
+  if (!stat) return found;
+  if (stat.isFile()) { found.push(path); return found; }
+  if (stat.isDirectory()) for (const name of readdirSync(path).sort()) filesUnder(join(path, name), found);
+  return found;
+}
+function readBody(request, done) {
+  let body = '';
+  request.on('data', (chunk) => { body += chunk; if (body.length > 64_000) request.destroy(); });
+  request.on('end', () => { try { done(JSON.parse(body || '{}')); } catch { done(null); } });
+}
+const sendJson = (response, code, payload) => response.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(payload));
+function importScans(request, response) {
+  if (lan) { sendJson(response, 403, { error: 'importing is off while the workbench is open to the network (--lan)' }); return; }
+  readBody(request, (ask) => {
+    const path = typeof ask?.path === 'string' ? resolve(ask.path.trim().replace(/^"|"$/g, '')) : '';
+    if (!path || !existsSync(path)) { sendJson(response, 400, { error: `nothing at ${ask?.path ?? '(no path)'}` }); return; }
+    const files = filesUnder(path);
+    const set = scanSet(files);
+    sendJson(response, 200, { root: path, ...set, words: scanSetWords(set), truncated: files.length >= MAX_FILES });
+  });
+}
+/** The system's own folder dialog (Windows), as run-batch-review.bat opens it. Answers { path } or { cancelled }. */
+function pickFolder(response) {
+  if (lan) { sendJson(response, 403, { error: 'choosing a folder is off while the workbench is open to the network (--lan)' }); return; }
+  if (process.platform !== 'win32') { sendJson(response, 501, { error: 'the folder dialog is Windows only here - paste the folder path instead' }); return; }
+  const script = "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true }; $d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Folder with the scans to review (subfolders are included)'; $d.ShowNewFolderButton = $false; if ($d.ShowDialog($f) -eq [System.Windows.Forms.DialogResult]::OK) { $d.SelectedPath }";
+  const child = spawn('powershell', ['-NoProfile', '-STA', '-Command', script], { stdio: ['ignore', 'pipe', 'pipe'] });
+  let out = '';
+  child.stdout.on('data', (chunk) => { out += chunk; });
+  child.on('error', (error) => sendJson(response, 500, { error: `the folder dialog could not open: ${error.message}` }));
+  child.on('exit', () => { const path = out.trim(); sendJson(response, 200, path ? { path } : { cancelled: true }); });
+}
+
+/*
+ * RUNS AND THEIR CACHE (reviewer overhaul step 6). POST /run runs ONE scan with ONE type and answers with the folder
+ * that holds the result, at most 2 builds at once (runQueue.mjs). A result is kept under its key - the scan's bytes,
+ * the type's run fingerprint and the engine version (resultKey) - in dentalwork/output/review-cache (git-ignored), so
+ * switching back to a type already run on a scan is instant, and undoing an edit finds the earlier result. A run is a
+ * RESULT only once `finished.json` is written beside it, last: a stopped or failed run never looks like one. (Not a
+ * rename of a finished folder: on Windows a just-exited build can still hold its files, and the rename fails EPERM.)
+ *
+ * A BUILT-IN runs as the plain built-in run (no type file - what gate:real measures), and only when the page's copy
+ * of it is unchanged: a built-in is read-only, so a built-in that differs is refused rather than run as something else.
+ */
+const CACHE = roots['/cache/'];
+const FINISHED = 'finished.json';
+mkdirSync(CACHE, { recursive: true });
+const scanPrints = new Map();
+/** A scan's fingerprint (its bytes, never its name: patient data), remembered by path, size and time. */
+function scanPrintOf(path) {
+  const stat = statSync(path);
+  const memo = `${path}|${stat.size}|${stat.mtimeMs}`;
+  if (!scanPrints.has(memo)) scanPrints.set(memo, createHash('sha256').update(readFileSync(path)).digest('hex').slice(0, 16));
+  return scanPrints.get(memo);
+}
+const queue = createQueue({
+  limit: 2,
+  start: (job, finish) => {
+    const part = join(CACHE, job.key);
+    try {
+      rmSync(part, { recursive: true, force: true });
+      mkdirSync(part, { recursive: true });
+    } catch (error) {
+      finish({ error: `the run's folder could not be cleared: ${error.message}` });
+      return () => undefined;
+    }
+    const args = [];
+    if (job.type) { writeFileSync(join(part, 'type-in.json'), `${JSON.stringify(job.type, null, 2)}\n`); args.push('--type', join(part, 'type-in.json')); }
+    const child = spawn(process.execPath, [join(here, '..', '..', 'benchwork', 'cli.mjs'), '--kind', job.kind, '--out', part, ...args, job.source],
+      { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'] });
+    let log = '';
+    child.stdout.on('data', (chunk) => { log += chunk; });
+    child.stderr.on('data', (chunk) => { log += chunk; });
+    guardRun(child, 15 * 60 * 1000, {
+      timeout: () => { stopPreview(child); finish({ error: 'the run took over 15 minutes and was stopped', log: log.slice(-4000) }); },
+      error: (error) => finish({ error: `the run could not start: ${error.message}`, log: log.slice(-4000) }),
+      exit: (code) => {
+        if (code !== 0 || !existsSync(join(part, 'summary.json'))) { finish({ error: refusalReason(log) ?? `the run stopped with exit ${code}`, log: log.slice(-4000) }); return; }
+        writeFileSync(join(part, FINISHED), JSON.stringify({ at: new Date().toISOString() }));
+        finish({ ok: true, key: job.key, url: `/cache/${job.key}/` });
+      },
+    });
+    return () => stopPreview(child);
+  },
+});
+function runScan(request, response) {
+  readBody(request, async (ask) => {
+    const kind = ask?.kind === 'aligner' ? 'aligner' : 'denture';
+    const source = typeof ask?.source === 'string' ? resolve(ask.source) : '';
+    if (!source.toLowerCase().endsWith('.stl') || !existsSync(source) || !statSync(source).isFile()) { sendJson(response, 400, { error: `not an STL on this machine: ${ask?.source ?? '(none)'}` }); return; }
+    const type = ask?.type;
+    if (!type || typeof type !== 'object' || type.category !== kind) { sendJson(response, 400, { error: `send the whole ${kind} type file to run` }); return; }
+    let runType = type;
+    if (ask.builtIn) {
+      const read = await readCatalog();
+      const builtIn = read.types?.find((t) => t.builtIn && t.id === type.id && t.category === kind);
+      if (!builtIn || runPrint(builtIn.type) !== runPrint(type)) { sendJson(response, 400, { error: `${type.id} is a built-in type and is read-only - Duplicate it to edit` }); return; }
+      runType = null;
+    }
+    const key = resultKey({ scan: scanPrintOf(source), type: runPrint(type), engine: HOST_GEOMETRY_VERSION });
+    if (existsSync(join(CACHE, key, FINISHED))) { sendJson(response, 200, { ok: true, key, url: `/cache/${key}/`, cached: true }); return; }
+    const result = await queue.submit(key, { key, kind, source, type: runType, label: ask?.label });
+    sendJson(response, result.ok ? 200 : result.stopped ? 409 : 500, result);
+  });
+}
+function stopRun(request, response) {
+  readBody(request, (ask) => sendJson(response, 200, { stopped: queue.stop(String(ask?.key ?? '')) }));
+}
+/** The cache's size on disk, so it never grows unseen (plan risk: dentalwork/output already holds gigabytes). */
+function cacheSize() {
+  let bytes = 0;
+  let runs = 0;
+  for (const name of existsSync(CACHE) ? readdirSync(CACHE) : []) {
+    runs += 1;
+    for (const file of filesUnder(join(CACHE, name))) bytes += statSync(file).size;
+  }
+  return { bytes, runs };
+}
+function clearCache(response) {
+  if (queue.busy()) { sendJson(response, 409, { error: 'a run is going - stop it or let it finish, then clear' }); return; }
+  try {
+    rmSync(CACHE, { recursive: true, force: true });
+  } catch (error) {
+    // Windows can hold a file a moment after a build: say so rather than claim it is cleared.
+    sendJson(response, 500, { error: `some of the cache could not be removed yet (${error.code ?? error.message}) - try again`, ...cacheSize() });
+    return;
+  } finally {
+    mkdirSync(CACHE, { recursive: true });
+  }
+  sendJson(response, 200, cacheSize());
+}
+
 const server = createServer((request, response) => {
   const path = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
   if (request.method === 'POST' && path === '/rerun') { rerun(request, response); return; }
   if (request.method === 'POST' && path === '/zone-preview') { zonePreview(request, response); return; }
   if (request.method === 'POST' && path === '/tilt-preview') { tiltPreview(request, response); return; }
   if (request.method === 'GET' && path === '/types') { typeList(response); return; }
+  if (request.method === 'POST' && path === '/import') { importScans(request, response); return; }
+  if (request.method === 'POST' && path === '/pick-folder') { pickFolder(response); return; }
+  if (request.method === 'POST' && path === '/run') { runScan(request, response); return; }
+  if (request.method === 'POST' && path === '/run-stop') { stopRun(request, response); return; }
+  if (request.method === 'GET' && path === '/jobs') { sendJson(response, 200, { jobs: queue.list() }); return; }
+  if (request.method === 'GET' && path === '/cache-size') { sendJson(response, 200, cacheSize()); return; }
+  if (request.method === 'POST' && path === '/cache-clear') { clearCache(response); return; }
   if (request.method === 'POST' && path === '/save-type') { saveType(response, new URL(request.url ?? '/', 'http://localhost').searchParams.get('replace') === '1'); return; }
   const [prefix, root] = Object.entries(roots).find(([prefix, root]) => root !== undefined && path.startsWith(prefix));
   const file = normalize(join(root, path === '/' ? 'viewer.html' : path.slice(prefix.length)));
