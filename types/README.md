@@ -21,8 +21,8 @@ numbers, the search, the rules, name, badge), and every restore mark puts back w
 (the whole draft runs on the scan on screen; Run all runs the rest), compare with another type on the same scans
 (**Compare with**, **Flip** / C), then **Save type**: a NEW dated file, with the proof of the scans it ran on. Save
 refuses a draft that never ran, a new draft under an id already saved, a save that would hide a newer one than
-you opened, and - before anything is written - a built-in's id or a name another listed type already has (the app
-would refuse one of the two). A built-in is read-only: **Duplicate** it (a new id and name, based on it), or give it a
+you opened (a newer save the app refuses does not count), and - before anything is written - a built-in's id, an id
+already used in the other category, or a name another listed type already has (the app would refuse one of the two). A built-in is read-only: **Duplicate** it (a new id and name, based on it), or give it a
 new id AND name in the Type strip. A file deleted or added here by hand shows in the workbench at the next import or
 page load (the server watches this folder).
 Renaming the name or badge is a new save of the same id; renaming the id is a new type (projects store the id, so

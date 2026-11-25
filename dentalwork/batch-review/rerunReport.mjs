@@ -46,7 +46,9 @@ export function notApplied(type, summary) {
  * "Running..." with Apply disabled, and a spawn error crashed the server (F3).
  * `child` is anything with on() and kill() - a real ChildProcess, or a test's stand-in.
  */
-export function guardRun(child, limitMs, { exit, error, timeout }) {
+export function guardRun(child, limitMs, { exit, error, timeout, kill = () => child.kill() }) {
+  // `kill`: how a run past its limit is stopped. On Windows the server passes a TREE kill: killing the parent first left
+  // the build it started running with no one to stop it (Fable's sign-off review, 2026-11-26).
   let done = false;
   const once = (handler) => (...args) => {
     if (done) return;
@@ -54,7 +56,7 @@ export function guardRun(child, limitMs, { exit, error, timeout }) {
     clearTimeout(timer);
     handler(...args);
   };
-  const timer = setTimeout(once(() => { child.kill(); timeout(); }), limitMs);
+  const timer = setTimeout(once(() => { kill(); timeout(); }), limitMs);
   child.on('error', once(error));
   child.on('exit', once(exit));
 }

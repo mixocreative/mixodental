@@ -97,11 +97,15 @@ export function saveRefusal({ id, newest, opened }) {
  * type whose id is a built-in's, and a type whose name reads the same as one loaded earlier in any language
  * (`shippedTypes.ts` refusalOf). Checked only after writing, a copy that kept the opened type's name was refused - or,
  * sorting first, got the OTHER type refused - while the page said both load (Fable, 2026-11-26). `others` is every
- * type the workbench lists ({ id, builtIn, names: { en, ja, ... } }); the draft's own id is the same type, not a clash.
- * @param {{ id: string, names: Record<string, string>, others: readonly { id: string, builtIn: boolean, names: Record<string, string> }[] }} input
+ * type the workbench lists ({ category, id, builtIn, names: { en, ja, ... } }). The same id IN THE SAME CATEGORY is the
+ * same type (a new save of it), not a clash; the same id in the OTHER category is one - the app keeps one id per type
+ * across both, so the second would get one of them refused (Fable's sign-off review, 2026-11-26).
+ * @param {{ category: string, id: string, names: Record<string, string>, others: readonly { category: string, id: string, builtIn: boolean, names: Record<string, string> }[] }} input
  */
-export function clashRefusal({ id, names, others }) {
+export function clashRefusal({ category, id, names, others }) {
   if (others.some((o) => o.builtIn && o.id === id)) return `"${id}" is a built-in type and is read-only - give the new type its own id`;
+  const elsewhere = others.find((o) => o.id === id && o.category !== category);
+  if (elsewhere) return `"${id}" is already a ${elsewhere.category} type - an id is one type across every category. Give it its own id`;
   for (const other of others) {
     if (other.id === id) continue;
     const lang = Object.keys(names).find((l) => names[l] && other.names?.[l] === names[l]);

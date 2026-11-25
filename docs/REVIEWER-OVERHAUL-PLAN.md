@@ -34,6 +34,11 @@ code. Lines marked UNVERIFIED were read about, not measured.
   never cached or counted as proof. Found while testing them: a scan whose file name had a space never ran (benchwork
   and the server spawned vite-node through a shell, which split the path) - all three now start vite-node's own entry
   with no shell; the type list was read once, so a save deleted by hand stayed listed - the server watches types/.
+- **Fable's sign-off round** (same night, on the fixed code): an id already used in the OTHER category is refused too
+  (the app keeps one id per type across both); "would hide a newer save" counts only saves the app loads, so a save it
+  refused can be fixed and saved again; the carry dialog's Cancel opens the built-in's kept edits and runs nothing; a
+  blank New type keeps no draft; a page removes only the drafts it knows (another tab's survive); a cache clear that
+  failed part-way forgets the results; a run past its time limit is stopped as a whole tree on Windows.
 - **Measured**: one scan with one type is about 35 s and about 88 MB of kept run; switching back is instant.
 - **Restore marks** name the saved value ("Restore to 30° (saved in Parity denture)"); the node default is not also
   printed on the mark - the canvas mark says where the value was saved.

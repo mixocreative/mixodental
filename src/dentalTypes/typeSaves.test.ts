@@ -51,16 +51,19 @@ describe('which save of a type is in force (append-only saves, newest by name)',
 
   // Fable, 2026-11-26: a copy that kept the opened type's name saved, then the app refused one of the two.
   it('refuses a save the app would refuse for its id or name, before it is written', () => {
-    const others: { id: string, builtIn: boolean, names: Record<string, string> }[] = [
-      { id: 'reference-denture', builtIn: true, names: { en: 'Generic denture', ja: '汎用義歯' } },
-      { id: 'soft', builtIn: false, names: { en: 'Soft denture' } },
+    const others: { category: string, id: string, builtIn: boolean, names: Record<string, string> }[] = [
+      { category: 'denture', id: 'reference-denture', builtIn: true, names: { en: 'Generic denture', ja: '汎用義歯' } },
+      { category: 'denture', id: 'soft', builtIn: false, names: { en: 'Soft denture' } },
     ];
-    expect(clashRefusal({ id: 'reference-denture', names: { en: 'Mine' }, others })).toMatch(/built-in type and is read-only/);
-    expect(clashRefusal({ id: 'hard', names: { en: 'Soft denture' }, others })).toMatch(/"Soft denture" is already "soft"'s/);
-    expect(clashRefusal({ id: 'hard', names: { en: 'Hard', ja: '汎用義歯' }, others })).toMatch(/already "reference-denture"'s/);
-    // Its own id is the same type (a new save of it), and a name of its own is fine.
-    expect(clashRefusal({ id: 'soft', names: { en: 'Soft denture' }, others })).toBeNull();
-    expect(clashRefusal({ id: 'hard', names: { en: 'Hard denture' }, others })).toBeNull();
+    const denture = 'denture';
+    expect(clashRefusal({ category: denture, id: 'reference-denture', names: { en: 'Mine' }, others })).toMatch(/built-in type and is read-only/);
+    expect(clashRefusal({ category: denture, id: 'hard', names: { en: 'Soft denture' }, others })).toMatch(/"Soft denture" is already "soft"'s/);
+    expect(clashRefusal({ category: denture, id: 'hard', names: { en: 'Hard', ja: '汎用義歯' }, others })).toMatch(/already "reference-denture"'s/);
+    // The same id in the OTHER category is a clash too: the app keeps one id per type across both (Fable's sign-off).
+    expect(clashRefusal({ category: 'aligner', id: 'soft', names: { en: 'Soft aligner' }, others })).toMatch(/already a denture type/);
+    // Its own id in its own category is the same type (a new save of it), and a name of its own is fine.
+    expect(clashRefusal({ category: denture, id: 'soft', names: { en: 'Soft denture' }, others })).toBeNull();
+    expect(clashRefusal({ category: denture, id: 'hard', names: { en: 'Hard denture' }, others })).toBeNull();
   });
 
   it('says a stamp in words a person reads', () => {

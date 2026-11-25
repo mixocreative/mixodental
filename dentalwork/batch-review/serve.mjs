@@ -16,7 +16,7 @@ import { guardRun, notApplied, refusalReason } from './rerunReport.mjs';
 import { scanSet, scanSetWords } from './scanSet.mjs';
 import { createQueue, resultKey } from './runQueue.mjs';
 import { runPrint } from './typeDraft.mjs';
-import { clashRefusal, idLooksDated, saveName, saveRefusal, savesByType } from '../../src/dentalTypes/typeSaves.mjs';
+import { clashRefusal, idLooksDated, saveName, saveRefusal } from '../../src/dentalTypes/typeSaves.mjs';
 import { proofOf, typeFileText } from '../../src/dentalTypes/typeText.mjs';
 import { HOST_GEOMETRY_VERSION } from '../../vendor/mixo-geocore/host/geometryVersion.js';
 import { RIM_PLACEMENT } from './nodeGraph.mjs';
@@ -111,7 +111,8 @@ function runPreview(kind, request, response, prepare) {
     child.stdout.on('data', (chunk) => { log += chunk; });
     child.stderr.on('data', (chunk) => { log += chunk; });
     guardRun(child, 5 * 60 * 1000, {
-      timeout: () => { stopPreview(child); send(500, { error: 'the preview took over 5 minutes and was stopped', log: log.slice(-2000) }); },
+      kill: () => stopPreview(child),
+      timeout: () => send(500, { error: 'the preview took over 5 minutes and was stopped', log: log.slice(-2000) }),
       error: (error) => send(500, { error: `the preview could not start: ${error.message}`, log: log.slice(-2000) }),
       exit: (code) => {
         if (slot.child === child) slot.child = null;
@@ -179,7 +180,8 @@ function readCatalog() {
     child.stderr.on('data', (chunk) => { log += chunk; });
     const fail = (error) => { catalog = null; done({ error, log: log.slice(-2000) }); };
     guardRun(child, 2 * 60 * 1000, {
-      timeout: () => { stopPreview(child); fail('reading the types took over 2 minutes and was stopped'); },
+      kill: () => stopPreview(child),
+      timeout: () => fail('reading the types took over 2 minutes and was stopped'),
       error: (error) => fail(`the type list could not start: ${error.message}`),
       exit: (code) => {
         if (code !== 0 || !existsSync(file)) { fail(refusalReason(log) ?? `the type list did not finish (exit ${code})`); return; }
@@ -192,7 +194,9 @@ function readCatalog() {
 // Read again after ANY change in types/ - a file deleted by hand is how a save is rolled back (owner, 2026-11-25),
 // and a list read once kept offering the deleted save until the server restarted (seen 2026-11-26).
 try {
-  watch(join(here, '..', '..', 'types'), { recursive: true }, () => { catalog = null; });
+  watch(join(here, '..', '..', 'types'), { recursive: true }, () => { catalog = null; })
+    // A watcher that fails later (the folder removed while the server runs) must not take the server down with it.
+    .on('error', (error) => { catalog = null; console.warn(`types/ is no longer watched (${error.message}): restart the workbench to see type files changed by hand.`); });
 } catch (error) {
   console.warn(`types/ is not watched (${error.message}): a type file changed by hand shows after a restart or a Save.`);
 }
@@ -293,7 +297,8 @@ const queue = createQueue({
     child.stdout.on('data', (chunk) => { log += chunk; });
     child.stderr.on('data', (chunk) => { log += chunk; });
     guardRun(child, 15 * 60 * 1000, {
-      timeout: () => { stopPreview(child); finish({ error: 'the run took over 15 minutes and was stopped', log: log.slice(-4000) }); },
+      kill: () => stopPreview(child),
+      timeout: () => finish({ error: 'the run took over 15 minutes and was stopped', log: log.slice(-4000) }),
       error: (error) => finish({ error: `the run could not start: ${error.message}`, log: log.slice(-4000) }),
       exit: (code) => {
         if (code !== 0 || !existsSync(join(part, 'summary.json'))) { finish({ error: refusalReason(log) ?? `the run stopped with exit ${code}`, log: log.slice(-4000) }); return; }
@@ -383,21 +388,28 @@ function saveDraft(request, response) {
     const scans = (existsSync(CACHE) ? readdirSync(CACHE) : []).filter((name) => name.endsWith(tail) && existsSync(join(CACHE, name, FINISHED))).map((name) => name.slice(0, -tail.length));
     if (scans.length === 0) { sendJson(response, 400, { error: 'it has not run on any scan as it stands - Apply first, so a saved type is always one that was looked at' }); return; }
     const dir = join(here, '..', '..', 'types', draft.category);
-    const { types: saved } = savesByType(existsSync(dir) ? readdirSync(dir).map((name) => `types/${draft.category}/${name}`) : []);
-    const newest = saved.find((t) => t.id === draft.id)?.saves[0];
     const opened = typeof ask?.openedStamp === 'string' ? ask.openedStamp : null;
+    // Read fresh for every Save (one short run): "would hide a newer save" must see a save that arrived by hand or by
+    // git pull even if the types/ watcher has failed (Fable's sign-off note, 2026-11-26).
+    catalog = null;
     const listed = await readCatalog();
     if (listed.error) { sendJson(response, 500, { error: `the type list could not be read to check the name: ${listed.error}` }); return; }
-    const others = (listed.types ?? []).map((t) => ({ id: t.id, builtIn: t.builtIn, names: t.type?.profile?.name ?? { en: t.name } }));
-    const refusal = clashRefusal({ id: draft.id, names: draft.profile?.name ?? {}, others })
-      ?? saveRefusal({ id: draft.id, newest: newest?.stamp ?? null, opened });
+    const others = (listed.types ?? []).map((t) => ({ category: t.category, id: t.id, builtIn: t.builtIn, names: t.type?.profile?.name ?? { en: t.name } }));
+    // "Would hide a newer save" counts only the save the app has IN FORCE (the type list's own entry): a newer file it
+    // refuses is not in force and cannot be opened from the list, so counting it made "fix it and Save again"
+    // impossible after a refused save - and reading the refused list instead missed a third refused file, which the
+    // loader never tries (FALLBACKS = 1, shippedTypes.ts).
+    const inForce = (listed.types ?? []).find((t) => !t.builtIn && t.category === draft.category && t.id === draft.id);
+    const refusal = clashRefusal({ category: draft.category, id: draft.id, names: draft.profile?.name ?? {}, others })
+      ?? saveRefusal({ id: draft.id, newest: inForce ? inForce.stamp : null, opened });
     if (refusal) { sendJson(response, 409, { error: refusal }); return; }
     const { proved: _proved, ...clean } = draft;
     const type = { ...clean, validation: proofOf(clean, { engineVersion: HOST_GEOMETRY_VERSION, scans, at: new Date().toISOString() }) };
-    if (newest) {
-      const before = JSON.parse(readFileSync(join(here, '..', '..', newest.path), 'utf8'));
+    // The same contents as the save in force write nothing. Compared with the type list's copy, never a file read here:
+    // a newer file the app refuses may not even be JSON, and reading it threw inside this callback.
+    if (inForce) {
       const same = (t) => typeFileText({ ...t, validation: null });
-      if (same(before) === same(type)) { sendJson(response, 200, { ok: true, same: true, path: newest.path, stamp: newest.stamp }); return; }
+      if (same(inForce.type) === same(type)) { sendJson(response, 200, { ok: true, same: true, path: inForce.path, stamp: inForce.stamp }); return; }
     }
     const stamp = stampNow();
     const path = `types/${draft.category}/${saveName(draft.id, stamp)}`;

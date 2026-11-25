@@ -3237,9 +3237,10 @@ function unsavedDraft() {
   try {
     const now = draftFromEditors();
     const saved = sessionType.type;
-    const differs = draftLib.runPrint(now) !== draftLib.runPrint(saved) || now.id !== saved.id
-      || (now.badge ?? '') !== (saved.badge ?? '') || now.profile?.name?.en !== saved.profile?.name?.en;
-    return differs ? now : null;
+    // A blank id is a new type not named yet (New type): its blank name and id are no work to keep, only its settings
+    // are - else every New type left a "draft" of nothing behind (Fable's sign-off review, 2026-11-26).
+    const renamed = now.id !== '' && (now.id !== saved.id || (now.badge ?? '') !== (saved.badge ?? '') || now.profile?.name?.en !== saved.profile?.name?.en);
+    return draftLib.runPrint(now) !== draftLib.runPrint(saved) || renamed ? now : null;
   } catch { return null; }
 }
 /**
@@ -3259,9 +3260,15 @@ function keepDraft() {
   const unsaved = unsavedDraft();
   const draft = unsaved ? { ...unsaved, openedStamp } : null;
   const key = draftKey(sessionType);
+  const had = drafts.has(key);
   if (draft) drafts.set(key, draft); else drafts.delete(key);
+  // The type list marks a type with unsaved edits: redrawn when that changes, not only on the next switch.
+  if (had !== Boolean(draft)) drawTypePick();
   const text = JSON.stringify(draft);
   if (keptText.get(key) === text) return;
+  // Remove only a draft THIS page kept: a type opened as saved must not delete a draft another tab kept since
+  // (Discard and Save remove theirs on purpose, with their own request).
+  if (!draft && !keptText.has(key)) return;
   keptText.set(key, text);
   // keepalive: this also runs as the page goes away (pagehide), where a plain request is cancelled with it.
   fetch('/draft', { method: 'POST', keepalive: true, body: JSON.stringify({ key, draft }) })
@@ -3269,7 +3276,8 @@ function keepDraft() {
 }
 async function loadDrafts() {
   const read = await fetch('/drafts').then((r) => r.json()).catch(() => ({}));
-  for (const [key, draft] of Object.entries(read.drafts ?? {})) drafts.set(key, draft);
+  // Known to this page, so editing one back to its saved values removes it (keepDraft removes only drafts it knows).
+  for (const [key, draft] of Object.entries(read.drafts ?? {})) { drafts.set(key, draft); keptText.set(key, JSON.stringify(draft)); }
 }
 
 function drawTypePick() {
@@ -3423,13 +3431,15 @@ async function importFrom(path) {
  * is never loaded into them - so carrying them onto a saved type would wipe what that type pinned (Fable,
  * 2026-11-26). `at` is the scan to show first.
  */
-function startSession(kind, read, { carry = false, at = null } = {}) {
+function startSession(kind, read, { carry = false, onBuiltIn = false, at = null } = {}) {
   keepDraft(); // the session being left keeps its unsaved edits
   session = sessionLib.newSession({ kind, scans: read.cases });
   kindNow = kind;
   const types = sessionTypes();
   const builtIn = types.find((t) => t.builtIn) ?? types[0];
-  sessionType = carry ? builtIn : types.find((t) => t.id === sessionType?.id) ?? builtIn;
+  // `onBuiltIn`: a review folder's session opens on the built-in whether its edits are carried or the built-in's kept
+  // edits are chosen instead - the dialog named the built-in, so another type must not open.
+  sessionType = carry || onBuiltIn ? builtIn : types.find((t) => t.id === sessionType?.id) ?? builtIn;
   if (carry) {
     // A draft needs an id; a review folder may have none typed. The built-in's own id keeps its edits read-only until
     // they get one, which Apply and Save then say - the same as in any session.
@@ -3454,24 +3464,25 @@ function startSession(kind, read, { carry = false, at = null } = {}) {
  * now opens its scans - the files the run read, where they still are, never copied - as a scan session, with the type
  * the run used when that type is saved (else the built-in), and the editors' values carried over as that type's
  * draft, so nothing edited on the folder is lost. From there Apply and Save go the one way every session goes (/run,
- * /save-draft). Answers null, or why it could not.
+ * /save-draft). Answers { error } when it could not, else { carried }: false when the person chose the built-in's kept
+ * edits over the folder's, so the caller stops rather than run what they did not ask for.
  */
 async function sessionFromReview() {
   const sources = [...new Set(cases.map((c) => c.source).filter(Boolean))];
-  if (sources.length === 0) return 'this review folder does not say which scans it ran';
+  if (sources.length === 0) return { error: 'this review folder does not say which scans it ran' };
   const read = await fetch('/import', { method: 'POST', body: JSON.stringify({ paths: sources }) }).then((r) => r.json()).catch((error) => ({ error: error.message }));
-  if (read.error) return `its scans could not be opened: ${read.error}`;
-  if (read.cases.length === 0) return `none of its scans can run: ${read.words}`;
-  if (!(await loadCatalog())) return 'the type list could not be read';
+  if (read.error) return { error: `its scans could not be opened: ${read.error}` };
+  if (read.cases.length === 0) return { error: `none of its scans can run: ${read.words}` };
+  if (!(await loadCatalog())) return { error: 'the type list could not be read' };
   // The scan that was on screen stays on screen (the server answers resolved Windows paths; the summary may not).
   const plainPath = (p) => p.replace(/\\/g, '/').toLowerCase();
   const at = caseNow?.source ? read.cases.find((c) => plainPath(c) === plainPath(caseNow.source)) ?? null : null;
   // An unsaved draft already kept for the built-in would be replaced by this carry: the person decides, never silently.
   const builtIn = (catalogNow?.types ?? []).find((t) => t.builtIn && t.category === kindNow);
   const kept = builtIn && drafts.get(draftKey(builtIn));
-  const carry = !kept || window.confirm(`There are unsaved edits kept for a new type based on ${builtIn.name} ("${kept.profile?.name?.en ?? kept.id}"). Replace them with this folder's edits? Cancel opens the kept edits instead.`);
-  startSession(kindNow, read, { carry, at });
-  return null;
+  const carry = !kept || window.confirm(`There are unsaved edits kept for a new type based on ${builtIn.name} ("${kept.profile?.name?.en ?? kept.id}"). Replace them with this folder's edits? Cancel opens the kept edits instead, and this folder's edits are dropped.`);
+  startSession(kindNow, read, { carry, onBuiltIn: true, at });
+  return { carried: carry };
 }
 
 document.getElementById('import-folder').addEventListener('click', async () => {
@@ -3485,8 +3496,11 @@ document.getElementById('import-path').addEventListener('keydown', (event) => {
 typePick.addEventListener('change', () => {
   // Leaving a type with edits not applied keeps them as that type's draft (here and on the server), so switching
   // away to compare never throws work away.
+  // Read the pick FIRST: keepDraft may redraw the list (a draft mark appearing), which reselects the type being left
+  // - read after it, the switch silently did not happen (Fable's sign-off review, 2026-11-26).
+  const picked = typePick.value;
   keepDraft();
-  sessionType = sessionTypes().find((t) => t.id === typePick.value) ?? sessionType;
+  sessionType = sessionTypes().find((t) => t.id === picked) ?? sessionType;
   openForEditing(sessionType);
   // Show the new type, not a compare flipped to the old one; the compare list drops the type now open; the last
   // Apply / Save words were about the type left.
@@ -3502,10 +3516,11 @@ document.getElementById('run-all').addEventListener('click', () => session?.scan
 document.getElementById('run-stop').addEventListener('click', () => stopSession());
 document.getElementById('cache-clear').addEventListener('click', async () => {
   if (!window.confirm('Delete every kept run? The scans and the types are not touched; a scan runs again when you open it.')) return;
-  const read = await fetch('/cache-clear', { method: 'POST' }).then((r) => r.json()).catch((error) => ({ error: error.message }));
+  const read = await fetch('/cache-clear', { method: 'POST' }).then(async (r) => ({ ...(await r.json()), refused: r.status === 409 })).catch((error) => ({ error: error.message, refused: true }));
   if (read.error) document.getElementById('note').textContent = read.error;
-  // Forget the results only when they are gone: a refused clear (a run is going) deletes nothing.
-  else if (session) { session.results.clear(); drawSession(); }
+  // Forget the results unless NOTHING was deleted: a refused clear (a run is going) touched nothing, but a clear that
+  // failed part-way (Windows still holding a file) removed some - a result still shown would point at a gone folder.
+  if (!read.refused && session) { session.results.clear(); drawSession(); }
   refreshCacheSize();
 });
 // The banner's seconds while a scan runs.
@@ -3620,6 +3635,7 @@ try {
       fetch('/draft', { method: 'POST', body: JSON.stringify({ key: draftKey(sessionType), draft: null }) }).catch(() => undefined);
       openTypeInEditors(sessionType.type, sessionType);
       scheduleTiltPreview();
+      drawTypePick(); // its "unsaved edits" mark goes
       drawSession();
       status.textContent = `Changes discarded: ${sessionType.name} as it was saved.`;
       return;
@@ -3680,9 +3696,10 @@ try {
     // A REVIEW FOLDER saves nothing itself (its overwrite Save is retired): its scans open as a session with the
     // editors' values as a draft (sessionFromReview), where Save writes a dated file once the draft has run.
     status.textContent = 'Opening this folder\'s scans as a session with your edits…';
-    const why = await sessionFromReview();
-    status.textContent = why ? `Not saved: ${why}.`
-      : `This folder's scans are open as a session, with your edits as a draft of ${sessionType.name}. Apply runs them; Save once they have run.`;
+    const moved = await sessionFromReview();
+    status.textContent = moved.error ? `Not saved: ${moved.error}.`
+      : moved.carried ? `This folder's scans are open as a session, with your edits as a draft of ${sessionType.name}. Apply runs them; Save once they have run.`
+      : `This folder's scans are open as a session with the kept edits of ${sessionType.name}; this folder's edits were dropped. Apply runs them; Save once they have run.`;
   });
   const run = document.getElementById('bench-run');
   const applyNow = async ({ auto = false } = {}) => {
@@ -3695,8 +3712,10 @@ try {
     if (fromFolder) {
       if (auto) return; // autoRunOrient waits for a session; a timer left from one that closed does nothing
       status.textContent = 'Opening this folder\'s scans as a session with your edits…';
-      const why = await sessionFromReview();
-      if (why) { status.textContent = `Not applied: ${why}.`; return; }
+      const moved = await sessionFromReview();
+      if (moved.error) { status.textContent = `Not applied: ${moved.error}.`; return; }
+      // The person chose the kept edits over the folder's: open them, run nothing they did not ask for.
+      if (!moved.carried) { status.textContent = `This folder's scans are open as a session with the kept edits of ${sessionType.name}; this folder's edits were dropped. Apply runs them.`; return; }
     }
     const graphEdited = Boolean(graphLib && zoneGraph && !graphLib.isDefault(zoneGraph));
     // The Orient canvas (U6): a denture's only, like the search - an aligner reads no Orient graph in this version.

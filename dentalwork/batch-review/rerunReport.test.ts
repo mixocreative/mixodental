@@ -61,6 +61,15 @@ describe('one answer per run (cia F3)', () => {
     expect(child.kill).toHaveBeenCalledOnce();
   });
 
+  it('stops a run past its limit the way the caller says (a tree kill on Windows), not by killing the parent alone', async () => {
+    const child = fakeChild();
+    const kill = vi.fn();
+    guardRun(child, 20, { exit: () => undefined, error: () => undefined, timeout: () => undefined, kill });
+    await new Promise((r) => setTimeout(r, 60));
+    expect(kill).toHaveBeenCalledOnce();
+    expect(child.kill).not.toHaveBeenCalled();
+  });
+
   it('answers a spawn error, then ignores the exit that follows', async () => {
     const child = fakeChild();
     const calls: string[] = [];
