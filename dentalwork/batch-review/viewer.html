@@ -60,6 +60,9 @@
   .fact-list dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: break-word; min-width: 0; }
   .fact-list dd.bad { color: var(--danger); }
   .fact-group { margin-top: var(--gap); }
+  .compare-facts { padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius); }
+  .compare-facts ul { margin: 4px 0 0; padding-left: 16px; }
+  .compare-facts p { margin: 4px 0 0; color: var(--muted); }
   .peel-report { margin-top: var(--gap); }
   .peel-chart svg { width: 100%; height: auto; display: block; }
   .peel-legend { margin: 2px 0 0; font-size: var(--fs-sm); }
@@ -332,6 +335,8 @@
     <button id="import-folder" data-ui="import-folder" title="Choose a folder of scans in the system's dialog (subfolders are included). Scans are read where they are, never copied.">Import scans</button>
     <input id="import-path" data-ui="import-path" placeholder="or paste a folder or STL path, Enter" spellcheck="false">
     <select id="type-pick" data-ui="type-pick" hidden title="The type the scans run with. Switch to compare: the same scans, another type."></select>
+    <select id="compare-pick" data-ui="compare-pick" hidden title="Pin a second type to compare with: the scan on screen runs with it too, and the flip shows one then the other at the same camera."></select>
+    <button id="compare-flip" data-ui="compare-flip" hidden title="Show the other type's result for this scan, at the same camera (key C).">Flip (C)</button>
     <button id="run-all" data-ui="run-all" hidden title="Run every scan with this type, two at a time. Each scan runs on its own when you open it.">Run all</button>
     <button id="run-stop" data-ui="run-stop" hidden title="Stop every run of this session that is waiting or going.">Stop</button>
     <span class="muted" id="cache-size" data-ui="cache-size" title="Every scan run with every type is kept, so switching back is instant. About 90 MB each."></span>
@@ -2141,6 +2146,8 @@ const RESULT_WORDS = { inconclusive: 'Not built: the review could not decide', e
 
 const loader = new GLTFLoader();
 let showing = 0;
+/* The scan the 3D view last framed: another run of the same scan keeps the camera (show). */
+let lastShownSource = null;
 function dropModel() {
   if (model) { scene.remove(model); model.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); model = null; floorY = null; boxAnchor = null; }
 }
@@ -2267,7 +2274,9 @@ async function show(row) {
     // supports included, until a tab was pressed (Fable's review).
     if (kindNow === 'denture' && stepAt === null) stepAt = STAGES.find((s) => s.id === stageNow)?.cut ?? null;
     applyVisibility();
-    look(VIEWS.fit());
+    // The same scan again (another type, the compare's flip): keep the camera, so the two pictures line up.
+    if (row.source !== lastShownSource) look(VIEWS.fit());
+    lastShownSource = row.source;
     document.getElementById('note').textContent = '';
     // The zone overlay belongs to THIS model: the zone file can land before the GLB, and the overlay it built then was
     // hung on the previous case's model (Fable's review).
@@ -2901,6 +2910,10 @@ function drawList() {
       : c.result !== 'built' ? `Not built: ${explain(c)}` : status(c);
     if (c.result !== 'built') { small.title = explain(c); small.className = 'why'; }
     const kindLabel = document.createElement('small'); kindLabel.className = 'kind'; kindLabel.textContent = c.kind || 'aligner';
+    // COMPARE (overhaul step 11): a scan whose two types' runs differ is marked, so differences are found without
+    // flipping every scan.
+    const differs = c.session ? compareDiffs(c)?.length : 0;
+    if (differs) kindLabel.textContent += ` · ${differs} differ`;
     li.append(badge, name, kindLabel, small);
     li.addEventListener('click', () => select(k));
     return li;
@@ -2924,6 +2937,7 @@ function select(k) {
     applyRunGlobals(row.session.summary, (name) => `${row.session.url}${name}`);
   }
   facts(row);
+  if (row.session) drawCompare(row);
   show(row);
 }
 document.getElementById('show-look').addEventListener('click', () => { onlyLook = true; select(0); });
@@ -2944,6 +2958,7 @@ addEventListener('keydown', (event) => {
  */
 const sessionLib = await import('./reviewSession.mjs');
 const draftLib = await import('./typeDraft.mjs');
+const compareLib = await import('./compareRuns.mjs');
 let session = null;
 let catalogNow = null;
 /** The type the session runs with: a catalog entry (built-in or saved). */
@@ -2970,7 +2985,46 @@ const sessionRunName = () => {
   const run = sessionRunType();
   return applied.has(sessionType.id) ? `${run.profile?.name?.en ?? run.id} (applied, not saved)` : sessionType.name;
 };
-const sessionPrint = () => draftLib.runPrint(sessionRunType());
+/*
+ * COMPARE (overhaul step 11, plan decision 6): a second type pinned beside the session's. The flip shows the scan with
+ * the other one at the same camera; the facts list what moved (compareRuns.mjs). Only the session's own type is ever
+ * edited - the flip changes what is SHOWN, never what the editors hold.
+ */
+let compareEntry = null;
+let flipped = false;
+const viewRunType = () => (flipped && compareEntry ? compareEntry.type : sessionRunType());
+const viewName = () => (flipped && compareEntry ? `${compareEntry.name} (compared)` : sessionRunName());
+const sessionPrint = () => draftLib.runPrint(viewRunType());
+/** The other side of the compare for what is shown: the pinned type when the session's is shown, and back. */
+const otherType = () => (flipped ? sessionRunType() : compareEntry?.type);
+const otherName = () => (flipped ? sessionRunName() : compareEntry?.name);
+/** The fields that differ between this scan's run and its run with the other type, or null when that one is not done. */
+function compareDiffs(row) {
+  if (!session || !compareEntry || row.session?.state !== 'done') return null;
+  const other = sessionLib.stateOf(session, sessionLib.resultId(row.source, draftLib.runPrint(otherType())));
+  return other.state === 'done' ? compareLib.runDiffs(row, other.summary.cases[0]) : null;
+}
+/** The compare at the top of the facts: what moved, or that the other type has not run on this scan yet (it starts). */
+function drawCompare(row) {
+  if (!compareEntry) return;
+  const box = document.createElement('div');
+  box.className = 'fact-group compare-facts';
+  box.dataset.ui = 'compare-facts';
+  const diffs = compareDiffs(row);
+  const title = Object.assign(document.createElement('b'), { textContent: `Compared with ${otherName()}` });
+  box.append(title);
+  if (diffs === null) {
+    box.append(Object.assign(document.createElement('p'), { textContent: 'Not run with it on this scan yet - it runs now.' }));
+    runScan(row.session.at, false, { type: otherType(), builtIn: flipped ? sessionType.builtIn && !applied.has(sessionType.id) : compareEntry.builtIn });
+  } else if (diffs.length === 0) {
+    box.append(Object.assign(document.createElement('p'), { textContent: 'No result differs on this scan.' }));
+  } else {
+    const list = document.createElement('ul');
+    for (const d of diffs) list.append(Object.assign(document.createElement('li'), { textContent: `${d.key}: ${compareLib.diffText(d.a)} here, ${compareLib.diffText(d.b)} there` }));
+    box.append(list);
+  }
+  document.getElementById('facts').prepend(box);
+}
 const sessionRows = () => sessionLib.rowsOf(session, sessionPrint());
 
 /** The built-in of `kind` as a type file, from the catalog. */
@@ -3054,7 +3108,7 @@ function draftFromEditors() {
 }
 /** Whether the editors hold something the picture on screen did not run with. */
 function editsNotRun() {
-  try { return draftLib.runPrint(draftFromEditors()) !== sessionPrint(); } catch { return false; }
+  try { return draftLib.runPrint(draftFromEditors()) !== draftLib.runPrint(sessionRunType()); } catch { return false; }
 }
 
 /*
@@ -3090,7 +3144,32 @@ function drawTypePick() {
   })));
   const refused = (catalogNow?.refused ?? []).filter((r) => r.file.includes(`/${session?.kind}/`));
   typePick.title = `The type the scans run with. Switch to compare: the same scans, another type.${refused.length ? ` ${refused.length} saved type file(s) could not load: ${refused.map((r) => `${r.file} - ${r.reason}`).join('; ')}` : ''}`;
+  // The compare list: every other type of the category, or none.
+  const comparePick = document.getElementById('compare-pick');
+  comparePick.replaceChildren(Object.assign(document.createElement('option'), { value: '', textContent: 'Compare with…', selected: !compareEntry }),
+    ...types.filter((t) => t.id !== sessionType?.id).map((t) => Object.assign(document.createElement('option'), { value: t.id, textContent: t.name, selected: t.id === compareEntry?.id })));
+  if (compareEntry?.id === sessionType?.id) { compareEntry = null; flipped = false; }
+  comparePick.hidden = !session;
+  document.getElementById('compare-flip').hidden = !compareEntry;
 }
+document.getElementById('compare-pick').addEventListener('change', (event) => {
+  compareEntry = sessionTypes().find((t) => t.id === event.target.value) ?? null;
+  flipped = false;
+  drawTypePick();
+  drawSession();
+});
+function flipCompare() {
+  if (!session || !compareEntry) return;
+  flipped = !flipped;
+  drawSession();
+}
+document.getElementById('compare-flip').addEventListener('click', flipCompare);
+addEventListener('keydown', (event) => {
+  if (event.key !== 'c' && event.key !== 'C') return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.target instanceof Element && event.target.closest('input, select, textarea, [contenteditable], .react-flow')) return;
+  flipCompare();
+});
 const sessionStamp = (t) => (t.stamp ? `${Number(t.stamp.slice(6, 8))}/${Number(t.stamp.slice(4, 6))} ${t.stamp.slice(9, 11)}:${t.stamp.slice(11, 13)}` : 'undated');
 
 /** Redraw the case list from the session, keeping the case on screen. */
@@ -3107,19 +3186,20 @@ function drawBanner() {
   const row = shown()[current];
   banner.hidden = !session || !row?.session;
   if (banner.hidden) return;
-  banner.textContent = sessionLib.bannerOf({ at: row.session.at, count: session.scans.length, typeName: sessionRunName(), run: row.session })
+  banner.textContent = sessionLib.bannerOf({ at: row.session.at, count: session.scans.length, typeName: viewName(), run: row.session })
     + (row.session.state === 'done' && editsNotRun() ? ' - before your edits: Apply runs them' : '');
   banner.className = `stage-state${row.session.state === 'running' || row.session.state === 'queued' ? ' busy' : row.session.state === 'failed' ? ' bad' : ''}`;
 }
 
 /** Run scan `k` of the session with the session's type, unless it has a result or is under way (`force` re-runs a failed one). */
-async function runScan(k, force = false) {
+async function runScan(k, force = false, use = null) {
   const source = session.scans[k];
-  const id = sessionLib.resultId(source, sessionPrint());
+  // `use`: another type to run this scan with (the compare's); by default what is shown.
+  const id = sessionLib.resultId(source, use ? draftLib.runPrint(use.type) : sessionPrint());
   const now = sessionLib.stateOf(session, id).state;
   if (now === 'done' || now === 'running' || now === 'queued' || (now === 'failed' && !force)) return;
   const asked = session;
-  const type = { ...sessionType, type: sessionRunType(), builtIn: sessionType.builtIn && !applied.has(sessionType.id) };
+  const type = use ?? (flipped && compareEntry ? compareEntry : { type: sessionRunType(), builtIn: sessionType.builtIn && !applied.has(sessionType.id) });
   session.results.set(id, { state: 'queued', since: Date.now() });
   drawSession();
   pollJobs();
@@ -3423,11 +3503,12 @@ try {
         return;
       }
       const draft = draftFromEditors();
-      if (draftLib.runPrint(draft) === sessionPrint()) {
+      if (draftLib.runPrint(draft) === draftLib.runPrint(sessionRunType())) {
         status.textContent = 'Nothing to run: the scans already show these settings. A new name or badge alone needs no run - Save keeps it.';
         return;
       }
       applied.set(sessionType.id, draft);
+      flipped = false; // show what was just applied, not the compared type
       keepDraft();
       status.textContent = `Applied to ${draft.profile?.name?.en ?? draft.id}: the scan on screen runs with your edits - the banner on the stage shows its progress. Other scans run when you open them, or with Run all. Not saved yet.`;
       drawSession();
