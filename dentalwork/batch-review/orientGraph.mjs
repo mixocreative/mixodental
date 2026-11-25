@@ -10,6 +10,7 @@
 // Step 1 IS this graph: the default reproduces today exactly (arch shape -> front/back and top -> upright pose), and
 // `orientGraph.test.ts` holds the canvas's verdict to the engine's on a corpus of graphs.
 import { defaultParam, rewire, sameGraph, setParam, unreached } from './nodeGraph.mjs';
+import { clipTools } from './nodeClip.mjs';
 
 export { rewire, sameGraph, setParam, unreached };
 
@@ -145,6 +146,18 @@ export function addNode(graph, kind) {
   const inputs = Object.fromEntries(Object.keys(spec.inputs).map((name) => [name, null]));
   return { ...graph, nodes: [...graph.nodes, { id: freshId(graph, kind), kind, params: { ...spec.params }, inputs }] };
 }
+
+/*
+ * COPY, PASTE, DUPLICATE on the Orient canvas (2026-11-26; the rules are `nodeClip.mjs`, the zone graph's too). Every
+ * Orient kind may be copied except one the Add-node list does not offer. The clip's category is 'orient', not the
+ * type's: the owner's ruling of 2026-11-23 is that these nodes are usable by every kind, so an Orient clip pastes into
+ * the Orient graph of any type - and never into a zone graph, whose kinds are not these.
+ */
+export const { copyNodes, pasteNodes, duplicateNodes } = clipTools({
+  refusal: (kind) => (!KINDS[kind] ? `no Orient node kind "${kind}"`
+    : NOT_IN_PALETTE.includes(kind) ? `${KIND_WORDS[kind].title} is the old name of Plate side - add Plate side instead` : null),
+  freshId,
+});
 
 /**
  * A new graph without `id`; wires and outputs that pointed at it become empty, so `validate` names what broke.

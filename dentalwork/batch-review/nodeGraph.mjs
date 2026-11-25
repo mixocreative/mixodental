@@ -22,6 +22,7 @@
  * derives the three masks placement reads from it, so no reader changed. A graph saved with the three old
  * outputs (`OLD_ZONE_OUTPUTS`) is turned into a stack by `upgradeGraph`, which every loader calls first.
  */
+import { clipTools } from './nodeClip.mjs';
 
 /** Socket types. A wire is only legal between matching types: the connection you cannot make beats the error you would read later. */
 export const TYPES = ['mask', 'depthMap', 'position', 'rim', 'zone'];
@@ -424,82 +425,18 @@ export function addNode(graph, kind) {
 }
 
 /*
- * DUPLICATE AND COPY NODES (reviewer overhaul step 13, plan 3e). A copy is the node `id` - and, with `withInputs`, every
- * node feeding it that may be copied - as a CLIP: `{ category, nodes }`. Pasting gives every copied node a fresh id,
- * keeps the wires INSIDE the clip, and leaves a wire to a node NOT in the clip EMPTY and named in `cut` - never quietly
- * re-routed to some node that happens to share an id in the other graph (the removeNode rule). Duplicating is copying
- * into the same graph, where those outside wires still point at real nodes, so they are kept.
- *
- * REFUSED, by name: a fixed kind (found on an earlier tab), a kind the Add-node list does not offer (NOT_IN_PALETTE),
- * the aligner's locked graph, and a clip from another category. A copy cannot cross tabs: the clip is a zone-graph
- * clip, and the Orient canvas has its own kinds.
+ * DUPLICATE AND COPY NODES (reviewer overhaul step 13, plan 3e; the rules themselves are `nodeClip.mjs`, shared with
+ * the Orient canvas). One node or several; REFUSED, by name: a fixed kind (found on an earlier tab), a kind the
+ * Add-node list does not offer (NOT_IN_PALETTE), the aligner's locked graph, and a clip from another category. A copy
+ * cannot cross tabs: the page keeps a zone clip and an Orient clip apart, as the kinds are not the same.
  */
-
-/** Every node id `id` reads from, transitively, that may be copied (fixed or unoffered kinds stop the walk). */
-function upstream(graph, id, seen = new Set()) {
-  const node = byId(graph, id);
-  if (!node || seen.has(id)) return seen;
-  seen.add(id);
-  for (const from of Object.values(node.inputs)) {
-    const source = from && byId(graph, from);
-    if (source && !KINDS[source.kind]?.fixed && !NOT_IN_PALETTE.includes(source.kind)) upstream(graph, from, seen);
-  }
-  return seen;
-}
-/** Why `kind` cannot be copied, or null. */
-const copyRefusal = (kind) => (KINDS[kind]?.fixed ? `${KINDS[kind].label} is found on an earlier tab and cannot be copied`
-  : NOT_IN_PALETTE.includes(kind) ? `${KIND_WORDS[kind]?.title ?? kind} cannot run yet, so it is not copied` : !KINDS[kind] ? `no node kind "${kind}"` : null);
-
-/**
- * The clip for node `id` (and, with `withInputs`, the nodes feeding it), from a graph of `category`.
- * @returns {{ category: string, nodes: object[] }}
- */
-export function copyNodes(graph, id, { category, withInputs = false }) {
-  if (graph.kind === 'aligner') throw new Error('the aligner graph is locked in this version - nothing on it is copied');
-  const node = byId(graph, id);
-  if (!node) throw new Error(`no node ${id}`);
-  const refusal = copyRefusal(node.kind);
-  if (refusal) throw new Error(refusal);
-  const ids = withInputs ? upstream(graph, id) : new Set([id]);
-  return { category, nodes: graph.nodes.filter((n) => ids.has(n.id)).map((n) => JSON.parse(JSON.stringify(n))) };
-}
-
-/**
- * `clip` pasted into `graph` (of `category`): `{ graph, ids, cut }` - the new ids by old id, and every wire left empty
- * because its source was not in the clip, as "NODE.input (was SOURCE)". `keepOutside` keeps such wires instead (a
- * duplicate in the same graph, where those sources exist).
- */
-export function pasteNodes(graph, clip, { category, keepOutside = false }) {
-  if (graph.kind === 'aligner') throw new Error('the aligner graph is locked in this version - nothing is pasted into it');
-  if (clip.category !== category) throw new Error(`these nodes were copied from a ${clip.category} type - a ${category} graph cannot take them`);
-  for (const n of clip.nodes) { const refusal = copyRefusal(n.kind); if (refusal) throw new Error(refusal); }
-  let next = graph;
-  const ids = {};
-  for (const n of clip.nodes) {
-    const fresh = freshId(next, n.kind);
-    ids[n.id] = fresh;
-    next = { ...next, nodes: [...next.nodes, { ...n, id: fresh, inputs: {} }] };
-  }
-  const cut = [];
-  const nodes = next.nodes.map((n) => {
-    const from = clip.nodes.find((c) => ids[c.id] === n.id);
-    if (!from) return n;
-    const inputs = Object.fromEntries(Object.entries(from.inputs).map(([input, source]) => {
-      if (source === null) return [input, null];
-      if (source in ids) return [input, ids[source]];
-      if (keepOutside && byId(graph, source)) return [input, source];
-      cut.push(`${n.id}.${input} (was ${source})`);
-      return [input, null];
-    }));
-    return { ...n, inputs };
-  });
-  return { graph: { ...next, nodes }, ids, cut };
-}
-
-/** Duplicate node `id` (with `withInputs`, its feeding nodes too) in its own graph: the copies read what it reads. */
-export function duplicateNodes(graph, id, { category, withInputs = false }) {
-  return pasteNodes(graph, copyNodes(graph, id, { category, withInputs }), { category, keepOutside: true });
-}
+export const { copyNodes, pasteNodes, duplicateNodes } = clipTools({
+  refusal: (kind) => (KINDS[kind]?.fixed ? `${KINDS[kind].label} is found on an earlier tab and cannot be copied`
+    : NOT_IN_PALETTE.includes(kind) ? `${KIND_WORDS[kind]?.title ?? kind} cannot run yet, so it is not copied` : !KINDS[kind] ? `no node kind "${kind}"` : null),
+  freshId,
+  locked: (graph, verb) => (graph.kind === 'aligner'
+    ? `the aligner graph is locked in this version - ${verb === 'copy' ? 'nothing on it is copied' : 'nothing is pasted into it'}` : null),
+});
 
 /**
  * A new graph without `id`. Wires that pointed at it become EMPTY rather than vanishing, and output
