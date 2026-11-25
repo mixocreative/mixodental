@@ -4,7 +4,7 @@ import {
   DIRECTIONS, FIXED, KINDS, KIND_GROUP, KIND_WORDS, NODE_GROUPS, OUTPUT_WORDS, PARAM_WORDS, PRINT_ANGLE_SEARCH, REQUIRED_OUTPUTS, RIM_STRIP_MM,
   ALIGNER_KINDS, OLD_KINDS, RIM_DERIVED_REASON, addNode, alignerGraph, bindOutput, defaultGraph, isDefault, removeNode, rewire, rimTabGraph, rimTabView,
   setParam, unreached, upgradeGraph, validate, defaultOf, RIM_TAKES, rimOutputLines, FLAT_EDGE_NEEDS_BASE, sameGraph, RIM_LINE_PITCH_MM, placementProblem, fixedParam, beltOf, beltProblem,
-  wordsOf, RIM_BELTS, RIM_TAB_KINDS, rimTabTarget, beltEdits, sameBelts, RIM_TAB_LAYERS, NOT_IN_PALETTE,
+  wordsOf, RIM_BELTS, RIM_TAB_KINDS, rimTabTarget, beltEdits, sameBelts, RIM_TAB_LAYERS, NOT_IN_PALETTE, copyNodes, pasteNodes, duplicateNodes,
 } from './nodeGraph.mjs';
 
 describe('every node, parameter and output says what it is, in plain words', () => {
@@ -149,6 +149,39 @@ describe('the rim belts are named by their job', () => {
     expect(field('RIMBAND', 'rimBandInnerMm', edited)).toMatchObject({ value: 6, standard: 4 });
     // With nothing saved (a built-in), the standard is the built-in's, as before.
     expect(field('RIM', 'shellMm', {}).standard).toBe(KINDS.rim.params.shellMm);
+  });
+
+  // Reviewer overhaul step 13 (owner, 2026-11-25: "nodes and types can be duplicated, renamed, or copied across").
+  it('duplicates a node with fresh ids; the copy reads what the original reads', () => {
+    const { graph, ids, cut } = duplicateNodes(defaultGraph(), 'R1', { category: 'denture' });
+    expect(cut).toEqual([]);
+    const copy = graph.nodes.find((n) => n.id === ids.R1)!;
+    expect(copy.id).not.toBe('R1');
+    expect(copy).toMatchObject({ kind: 'parallelCast', params: defaultGraph().nodes.find((n) => n.id === 'R1')!.params });
+    expect(validate(graph).problems.filter((p: string) => p.startsWith(copy.id))).toEqual([]);
+  });
+
+  it('copies a wired group across types: inner wires kept, a wire to a node not copied arrives EMPTY and is named', () => {
+    const g = defaultGraph();
+    const clip = copyNodes(g, 'NS', { category: 'denture', withInputs: true });
+    expect(clip.nodes.map((n) => n.id).sort()).toEqual(['NS', 'R1', 'R1b']);
+    const alone = copyNodes(g, 'AL', { category: 'denture' });
+    const pasted = pasteNodes(g, alone, { category: 'denture' });
+    const al = pasted.graph.nodes.find((n) => n.id === pasted.ids.AL)!;
+    expect(Object.values(al.inputs)).toEqual([null, null]);
+    expect(pasted.cut).toEqual([`${pasted.ids.AL}.a (was SIGHT)`, `${pasted.ids.AL}.b (was BAND)`]);
+    const group = pasteNodes(g, clip, { category: 'denture' });
+    const ns = group.graph.nodes.find((n) => n.id === group.ids.NS)!;
+    expect(ns.inputs).toEqual({ a: group.ids.R1, b: group.ids.R1b });
+    expect(group.cut).toEqual([]);
+  });
+
+  it('refuses what cannot be copied, by name: a fixed node, another category, the locked aligner graph', () => {
+    expect(() => copyNodes(defaultGraph(), 'RIM', { category: 'denture' })).toThrow(/found on an earlier tab/);
+    expect(() => copyNodes(defaultGraph(), 'BASINS', { category: 'denture' })).toThrow(/cannot run yet/);
+    const clip = copyNodes(defaultGraph(), 'R1', { category: 'denture' });
+    expect(() => pasteNodes(defaultGraph(), clip, { category: 'aligner' })).toThrow(/copied from a denture type/);
+    expect(() => copyNodes(alignerGraph(), 'TRIM', { category: 'aligner' })).toThrow(/aligner graph is locked/);
   });
 
   it('never offers a node that cannot run in the Add-node list', () => {

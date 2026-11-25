@@ -542,6 +542,10 @@ let benchFields = null;
    mark puts back (owner, 2026-11-25: "restore value goes to what saved previous setup were, but not the node's
    default"). Null = a built-in (or a review folder) is open, and restore goes to the built-in as before. */
 let savedBaseline = null;
+/* The Zones canvas's copied nodes (nodeGraph.mjs copyNodes), kept across a switch of type so nodes copy between types. */
+let nodeClip = null;
+/* What the last Duplicate / Copy / Paste did, shown once in the Zones bar after the redraw its edit causes. */
+let zoneToolNote = '';
 /* Each benchwork rule field's restore-mark refresh, so opening another type re-reads its saved value. */
 const resyncBench = [];
 /* The zone graph the loaded run was made with ("default" or a digest), from its summary.json. */
@@ -1699,6 +1703,8 @@ function drawZoneEditor(body, present, names) {
   summary.className = problems.length ? 'zone-summary bad' : 'zone-summary ok';
   summary.textContent = problems.length === 0 ? 'All connections are complete.'
     : `${problems.length} to fix${problems.length > loose.length ? ' - shown in red on the nodes' : ''}${loose.length ? `: ${loose[0]}` : ''}.`;
+  // What the last Duplicate / Copy / Paste did: an edit redraws this bar, so its words are carried over once.
+  if (zoneToolNote) { summary.textContent = `${zoneToolNote} ${summary.textContent}`; zoneToolNote = ''; }
   const legend = document.createElement('span');
   legend.className = 'zone-legend';
   legend.dataset.ui = 'zone-legend';
@@ -1729,8 +1735,44 @@ function drawZoneEditor(body, present, names) {
     try { localStorage.removeItem('review-zone-layout-2'); } catch { /* per-viewer only */ }
     save(graphLib.defaultGraph());
   });
+  /*
+   * DUPLICATE, COPY, PASTE (reviewer overhaul step 13; nodeGraph.mjs copyNodes / pasteNodes): on the selected node, or
+   * with its inputs as a wired group. The clip outlives a switch of type, so nodes copy ACROSS types of one category; a
+   * wire to a node not copied arrives empty and is named here, never re-routed. One node at a time: selecting several
+   * at once is written down as debt (WORKBENCH-TABS-PLAN).
+   */
+  // The session's category when one is open (its names are declared further down the script, hence the guard).
+  const kindOfGraph = (() => { try { return session?.kind ?? kindNow; } catch { return kindNow; } })();
+  const tell = (text) => { zoneToolNote = text; summary.textContent = text; };
+  const nodeAction = (label, ui, title, run) => {
+    const button = Object.assign(document.createElement('button'), { type: 'button', textContent: label, title });
+    button.dataset.ui = ui;
+    button.addEventListener('click', () => { try { run(); } catch (error) { tell(`Not done: ${error.message}`); } });
+    return button;
+  };
+  const selectedOrSay = () => { if (!zoneSelected) throw new Error('select a node on the canvas first'); return zoneSelected; };
+  const duplicate = nodeAction('Duplicate', 'node-duplicate', 'A copy of the selected node beside it, reading what it reads.', () => {
+    const done = graphLib.duplicateNodes(g, selectedOrSay(), { category: kindOfGraph });
+    tell(`Duplicated ${zoneSelected} as ${Object.values(done.ids).join(', ')}.`);
+    save(done.graph);
+  });
+  const copy = nodeAction('Copy', 'node-copy', 'Copy the selected node, to paste here or into another type of this category.', () => {
+    nodeClip = graphLib.copyNodes(g, selectedOrSay(), { category: kindOfGraph });
+    tell(`Copied ${zoneSelected}. Paste it here or after picking another type.`);
+  });
+  const copyGroup = nodeAction('Copy with inputs', 'node-copy-group', 'Copy the selected node and every node feeding it, as one wired group.', () => {
+    nodeClip = graphLib.copyNodes(g, selectedOrSay(), { category: kindOfGraph, withInputs: true });
+    tell(`Copied ${nodeClip.nodes.map((n) => n.id).join(', ')} as a group.`);
+  });
+  const paste = nodeAction('Paste', 'node-paste', 'Add the copied nodes to this graph with fresh ids. A wire to a node that was not copied arrives empty.', () => {
+    if (!nodeClip) throw new Error('nothing is copied yet');
+    const done = graphLib.pasteNodes(g, nodeClip, { category: kindOfGraph });
+    tell(`Pasted as ${Object.values(done.ids).join(', ')}.${done.cut.length ? ` Empty, wire them: ${done.cut.join(', ')}.` : ''}`);
+    save(done.graph);
+  });
+  paste.disabled = !nodeClip;
   const tools = Object.assign(document.createElement('span'), { className: 'zone-tools-row' });
-  tools.append(pick, add, reset);
+  tools.append(pick, add, duplicate, copy, copyGroup, paste, reset);
   bar.append(summary, legend, tools);
   // Kept for the card editor fallback, which still lists every problem in words.
   const report = document.createElement('div');
@@ -3115,7 +3157,8 @@ function keepDraft() {
     draft = differs ? now : null;
   } catch { draft = null; }
   if (draft) drafts.set(draftKey(sessionType), draft); else drafts.delete(draftKey(sessionType));
-  fetch('/draft', { method: 'POST', body: JSON.stringify({ key: draftKey(sessionType), draft }) }).catch(() => undefined);
+  // keepalive: this also runs as the page goes away (pagehide), where a plain request is cancelled with it.
+  fetch('/draft', { method: 'POST', keepalive: true, body: JSON.stringify({ key: draftKey(sessionType), draft }) }).catch(() => undefined);
 }
 async function loadDrafts() {
   const read = await fetch('/drafts').then((r) => r.json()).catch(() => ({}));
@@ -3398,6 +3441,16 @@ try {
   // Discard my changes: every edit on the page, in every stage - the settings, the Orient search and the
   // zone setup - back to standard. The review on screen is not touched; it is in its own folder.
   document.getElementById('bench-reset').addEventListener('click', () => {
+    // In the scan session, discarding goes back to the OPENED type as it was saved (owner: restore goes to what was
+    // saved), and its kept draft is dropped; a run already applied stays on screen until another Apply.
+    if (session) {
+      drafts.delete(draftKey(sessionType));
+      fetch('/draft', { method: 'POST', body: JSON.stringify({ key: draftKey(sessionType), draft: null }) }).catch(() => undefined);
+      openTypeInEditors(sessionType.type, sessionType);
+      scheduleTiltPreview();
+      status.textContent = `Changes discarded: ${sessionType.name} as it was saved.`;
+      return;
+    }
     for (const { input, rule } of fields.values()) { if (rule.type === 'flag') input.checked = false; else input.value = ''; }
     poseEdits = {};
     placementEdits = {};
