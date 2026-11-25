@@ -99,7 +99,7 @@ For each file, write down whether the edges and the support area are right, wron
 | `run-batch-review.bat` | Runs a folder, then opens the viewer |
 | `view-batch-review.bat` | Reopens a finished run, or opens an empty viewer to drop one into |
 | `batch.ts` | Walks the folders, runs each STL through `reviewCase.ts`, writes the summary, and exits non-zero on any error |
-| `reviewCase.ts` | One STL through `scripts/dental-region-review/build.ts` (the app's detector, placement and Rust `generate`) into a GLB and a summary row |
+| `reviewCase.ts` | One STL through `scripts/dental-region-review/build.ts` (the app's detector, placement and Rust `generate`) into a GLB and a summary row. Benchwork only, opt-in: `MIXO_DRAWN_RIM_DIR` gives a denture case the candidate rim in `<scan stem>.rim.json` (`{ closed, points }`, raw STL frame, made by geocore's `tests/rim_fitting_real.rs` with `MIXO_RIM_OUT`) as its drawn rim, so the review shows what the engine does with a rim a rule proposes |
 | `src/dental/orientationEvidence.ts` (shared with the app, renderer-free) | Step 1 for the row (arch kind, up/down cross-check, floor offset ratio, note) and the evidence layers (Rust `diagnose_orientation`) |
 | `orientationEvidenceGlb.ts` | Three.js builder that turns the evidence layers into the companion GLB |
 | `reviewCase.test.ts` | Runs the reference aligner through the whole pipeline (about 20 s, part of `npm test`) so a broken import cannot go unnoticed |

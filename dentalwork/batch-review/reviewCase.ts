@@ -12,8 +12,8 @@
  */
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, extname, join } from 'node:path';
 import { nodeEngine, parseStl } from '../../scripts/node-engine';
 import { buildDentalReview, pickPrintAngle } from '../../scripts/dental-region-review/build';
 import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
@@ -29,6 +29,15 @@ import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureR
 import { orientNodes } from '@mixo-geocore/host/dental/orientGraph';
 import { transformPoint } from '@mixo-geocore/host/state/transform';
 import { readoutLines, sideAnchors } from './orientReadout';
+import { setDentureDrawnRim, type DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
+
+/** The benchwork candidate rim for `file` (see reviewDenture), moved into the centred frame; null when there is none. */
+function candidateRim(dir: string, file: string, centre: Vector): DrawnDentureRim | null {
+  const at = join(dir, `${basename(file, extname(file))}.rim.json`);
+  if (!existsSync(at)) return null;
+  const rim = JSON.parse(readFileSync(at, 'utf8')) as { closed: boolean; points: Vector[] };
+  return { closed: rim.closed, points: rim.points.map(([x, y, z]) => [x - centre[0], y - centre[1], z - centre[2]] as Vector) };
+}
 
 export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   /** The Step 1 evidence GLB (trim chains, U ends, trim plane, back arrow) beside `glb`, or ''. */
@@ -181,6 +190,11 @@ const CLIENT_LAYERS = ['TEAL denture model', 'SUPPORT PILLARS (ours)', 'Allowed 
 
 /** The denture path (profileSelect.ts): upright, print angle, tips, supports; the GLB holds the model, supports and the arch plane. */
 async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out: string, row: CaseRow, centre: Vector): Promise<void> {
+  // BENCHWORK ONLY, opt-in (`MIXO_DRAWN_RIM_DIR`): a candidate rim per case, `<scan stem>.rim.json` = { closed, points } in
+  // the raw STL frame, made by an engine probe (geocore tests/rim_fitting_real.rs, MIXO_RIM_OUT). It goes in as this
+  // case's DRAWN rim - the engine's own slot, so the review draws and supports exactly what the engine did with it -
+  // shifted by the centring above. Set (or cleared) for every case, so one case's candidate never leaks into the next.
+  if (process.env.MIXO_DRAWN_RIM_DIR) setDentureDrawnRim(candidateRim(process.env.MIXO_DRAWN_RIM_DIR, file, centre));
   const review = buildDentureReview(mesh);
   if (review.kind === 'inconclusive') {
     Object.assign(row, { result: 'inconclusive', reason: review.reason });
