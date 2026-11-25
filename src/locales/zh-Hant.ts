@@ -1155,7 +1155,7 @@ export const zhHant: Dictionary = {
   // 2026-11-19: the deck's auto-gen wording, the support recipes, and the tip move (item 7)
   'Rotated, and its supports were removed: supports belong to one orientation. Undo brings them back, or Generate to re-plant them.': '已旋轉且其支撐已移除：支撐僅適用於單一方向。「復原」可找回支撐，或點擊「產生」重新放置。',
   'Object moved with its supports.': '物件已連同其支撐一起移動。',
-  'Open Step 3 to add, move or remove its supports.': '開啟步驟 3 以新增、移動或移除其支撐。',
+  'Open the Supports step to add, move or remove its supports.': '開啟「支撐」步驟以新增、移動或移除其支撐。',
   'Orient it, find its support area and place its supports, without opening it.': '無需開啟即可調整方向、尋找支撐區域並放置支撐。',
   'Auto-gen': '自動產生',
   'Look at this model on its own, full size.': '單獨以全尺寸檢視此模型。',

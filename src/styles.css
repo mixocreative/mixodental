@@ -750,7 +750,9 @@ footer.on-scene {
 /* ONE line, always. The narrow-window rule gives the status a line of its own, which is right for a band and
    wrong for an overlay: a two-line overlay reaches up into the scene and collides with whatever sits in the
    corner. The status takes the room the counts leave and shortens with an ellipsis rather than wrapping. */
-footer.on-scene strong { margin-left: 0; flex-basis: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* It is the one other part that takes the pointer: its hover text is the whole message when the ellipsis cut it
+   (App.tsx). It is only as wide as its words, so the scene still turns under the rest of the overlay. */
+footer.on-scene strong { margin-left: 0; flex-basis: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: auto; }
 /* The counts keep their own width; only the status gives room up. Left to shrink, each count wrapped inside
    itself and the row turned into three narrow columns of broken words. */
 footer.on-scene > span { flex: none; white-space: nowrap; }

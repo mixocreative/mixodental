@@ -1150,7 +1150,7 @@ export const ja: Dictionary = {
   // 2026-11-19: the deck's auto-gen wording, the support recipes, and the tip move (item 7)
   'Rotated, and its supports were removed: supports belong to one orientation. Undo brings them back, or Generate to re-plant them.': '回転したためサポートが削除されました。サポートは1つの向きにのみ対応します。「元に戻す」で復元するか、「生成」で再配置してください。',
   'Object moved with its supports.': 'オブジェクトがサポートとともに移動しました。',
-  'Open Step 3 to add, move or remove its supports.': 'サポートを追加、移動、削除するにはステップ3を開いてください。',
+  'Open the Supports step to add, move or remove its supports.': 'サポートを追加、移動、削除するには「サポート」ステップを開いてください。',
   'Orient it, find its support area and place its supports, without opening it.': '開かずに向きを調整し、サポート領域を検出してサポートを配置します。',
   'Auto-gen': '自動生成',
   'Look at this model on its own, full size.': 'このモデルを単体かつフルサイズで表示します。',

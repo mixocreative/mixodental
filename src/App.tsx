@@ -1682,6 +1682,7 @@ export default function App() {
     const note = lockNote(panel, editMode);
     return note && <p key={pulse.panel === panel ? pulse.seq : 0} className="lock-note" role="note">{translateMessage(note)}</p>;
   };
+  const statusText = translateMessage(kindMessage(status, jobKindOf(session.dentalProfile)));
 
   return <main>
     <header>
@@ -1906,7 +1907,8 @@ export default function App() {
         offerUndo({ kind: 'deleteObjects', count: 1 });
       }}
       onBack={() => setStartScreen('drop')}
-      onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })} /></PanelBoundary>
+      onFiles={(files) => void importFiles(files, { takesOne: false, onRefused: setRefusedFiles })}
+      onUnsupported={() => setStatusMessage(errorStatus('import', new CodedError('file-type', 'file-type')))} /></PanelBoundary>
       {/*
         THE DECK'S UNDO. The undo toast lives in the viewport, which is not on screen here, and the keyboard handler
         stands down on a start screen - so Remove and a confirmed type change offered an undo nobody could see, and
@@ -2141,7 +2143,9 @@ export default function App() {
       {activeUnit && <span>{t('{n} triangles', { n: (activeUnit.source.indices.length / 3).toLocaleString() })}</span>}
       {contactCounts && <span className={building(activeUnit!) ? 'building' : undefined} aria-busy={building(activeUnit!) || undefined} {...hint('Automatic supports you removed by hand. Clear manual edits brings them back')}>{t('{auto} automatic, {manual} manual, {removed} removed', contactCounts)}</span>}
       {/* Announced to screen readers, so errors and step results are heard too. */}
-      <strong role="status" aria-live="polite">{translateMessage(kindMessage(status, jobKindOf(session.dentalProfile)))}</strong>
+      {/* The overlay cuts the status to one line (src/styles.css), so the whole message is its hover text: a refusal
+          longer than the room left must still be readable in full. */}
+      <strong role="status" aria-live="polite" title={statusText}>{statusText}</strong>
       <button type="button" className="link-button" onClick={() => setTermsOpen(true)} {...hint('Read the terms of use')}>{t('Terms')}</button>
     </footer>
     {termsOpen && <TermsDialog lang={lang} onClose={() => setTermsOpen(false)} />}

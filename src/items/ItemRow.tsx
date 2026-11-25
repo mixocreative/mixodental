@@ -351,7 +351,7 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
       card, which is why `startItem` cancels as well: this is the half that stops it being offered.
     */}
     {purpose !== undefined && !generating ? <button type="button" className="row-open" data-ui={`items-open-${unit.id}`}
-      title={built ? t('Open Step 3 to add, move or remove its supports.') : t('Orient it and place its supports by hand.')}
+      title={built ? t('Open the Supports step to add, move or remove its supports.') : t('Orient it and place its supports by hand.')}
       onClick={(event) => { event.stopPropagation(); onOpen(); }}>{built ? t('Edit supports') : t('Open this model')}</button> : null}
     {detected?.kind === 'failed' ? <button type="button" className="retry" data-ui={`items-retry-${unit.id}`}
       title={t('Check this file again.')}

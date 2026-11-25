@@ -81,7 +81,7 @@ export function CardEnlarge({ unit, shot, onClose, onOpen }: {
           has looked and is satisfied wants the editor; one who is not just presses Escape.
         */}
         <button type="button" className="primary card-enlarge-open" data-ui="card-enlarge-open"
-          title={built ? t('Open Step 3 to add, move or remove its supports.') : t('Orient it and place its supports by hand.')}
+          title={built ? t('Open the Supports step to add, move or remove its supports.') : t('Orient it and place its supports by hand.')}
           onClick={onOpen}>{built ? t('Edit supports') : t('Open this model')}</button>
         <button type="button" className="card-enlarge-close" data-ui="card-enlarge-close"
           onClick={onClose}>{t('Close')}</button>

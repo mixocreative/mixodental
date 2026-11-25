@@ -37,7 +37,7 @@ import { deckUsage, formatBytes } from './deckBudget';
  * looked at the first of a set of identically-named elements and reported the rest as missing — a
  * false gap that cost a round of investigation.
  */
-export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, purposes, onPurpose, onPurposeAll, onAnyModel, activity, onSelect, onStart, onRemove, onFiles, onBack, onArrange, onExport, onRetry, autoGen, autoGenReady, onAutoGen, onAutoGenAll, autoGenBusy, onAutoGenStop, recipes }: {
+export function ItemsPage({ units, refused, detected, thumbnails, finished, lang, selectedUnitId, purposes, onPurpose, onPurposeAll, onAnyModel, activity, onSelect, onStart, onRemove, onFiles, onUnsupported, onBack, onArrange, onExport, onRetry, autoGen, autoGenReady, onAutoGen, onAutoGenAll, autoGenBusy, onAutoGenStop, recipes }: {
   units: readonly PrintUnit[];
   /**
    * Files that never became units. They are rows too (§3's first table): drop eight, one is broken,
@@ -97,6 +97,8 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
   onRemove: (unit: PrintUnit) => void;
   /** Files dropped onto the list. They ADD to it — the caller must not apply Step 1's one-file rule. */
   onFiles: (files: readonly File[]) => void;
+  /** Some dropped files were not a model the deck takes: say so, never drop them in silence (the start screens do the same). */
+  onUnsupported?: () => void;
   /** Back to the Drop page. Every other start screen has this; without it the page is a dead end. */
   onBack: () => void;
   /**
@@ -258,8 +260,10 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
     onDragOver={(event) => event.preventDefault()}
     onDrop={(event) => {
       event.preventDefault();
-      const models = [...event.dataTransfer.files].filter(isModelFile);
+      const files = [...event.dataTransfer.files];
+      const models = files.filter(isModelFile);
       if (models.length > 0) onFiles(models);
+      if (models.length < files.length) onUnsupported?.();
     }}>
     {/*
       HEADER, BODY, FOOTER - three blocks, and the page is a grid of those three rows.
