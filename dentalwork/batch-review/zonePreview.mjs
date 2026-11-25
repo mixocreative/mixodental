@@ -48,7 +48,7 @@ export function previewGroups(values, isZone) {
  * `previewGroups` gave, or null when there is nothing to show; `hasRead` says whether this case has per-node values at
  * all; `canvasChanged` says the canvas differs from the graph that ran.
  */
-export function previewNote({ title, groups, hasRead, canvasChanged, gives, drawn = true, final = false }) {
+export function previewNote({ title, groups, hasRead, canvasChanged, gives, drawn = true, final = false, rimLine = false }) {
   // A node that gives a point, a depth map or a rim line ran, but has no faces to tint: re-running would not help, so
   // the note must not say it would (Fable's review, 2026-11-23).
   if (gives && gives !== 'mask' && gives !== 'zone') return `${title} gives ${gives === 'position' ? 'a point' : gives === 'depthMap' ? 'a depth map' : 'a rim line'}, not faces - nothing to show on the model. Select a ray, strip, combine or Mark node.`;
@@ -63,7 +63,11 @@ export function previewNote({ title, groups, hasRead, canvasChanged, gives, draw
   // other way.
   // A selected node is shown alone on the model (the viewer's isolatedKeys, owner 2026-11-24), so the hint says how
   // to get everything back.
-  const hint = final ? 'This is the final zone; select a node to see the zone at that point.' : 'Only this node is shown on the model; click the empty canvas to see everything again.';
+  // `rimLine`: a rim belt is shown WITH the rim line it grows from (owner 2026-11-25: "show the rim line and the rim area
+  // in slightly different color so i know which side it is leaning to"), so the note names the line and the sides.
+  const hint = final ? 'This is the final zone; select a node to see the zone at that point.'
+    : rimLine ? 'Only this belt and the rim line it grows from (the brighter thick line) are shown on the model: the inner width of the belt lies on the fitting-surface side of the line, the outer width on the visible outside. Click the empty canvas to see everything again.'
+    : 'Only this node is shown on the model; click the empty canvas to see everything again.';
   return `Showing ${shown}. ${hint}${stale}`;
 }
 

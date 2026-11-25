@@ -20,8 +20,8 @@ export interface RimTabNode { id: string; title: string; says: string; out: stri
 export interface RimCanvasProps {
   kind: string;
   view: RimTabNode[];
-  /** The Rim output card's lines (`rimOutputLines`): what tab 3 receives. Absent or empty: no card. */
-  output?: string[];
+  /** The Rim output card's lines (`rimOutputLines`): what tab 3 receives, each with the node that feeds it. Absent or empty: no card. */
+  output?: RimOutputLine[];
   /** An edit to a field (C3); `value` null restores the standard. Absent: the tab is read-only, as the aligner's. */
   onField?(nodeId: string, field: RimField, value: string | number | null): void;
   /** The one node selected (null for none or several), for the 3D preview of its line or belt - as ZoneEditor's. */
@@ -55,14 +55,24 @@ function Fields({ n, onField }: { n: RimTabNode; onField?: RimCanvasProps['onFie
   );
 }
 
-/** The Rim output card: what the Zones tab receives from this tab (C3), one line each, with one socket in. */
-function OutputCard({ data }: NodeProps<Node<{ lines: string[] }>>) {
+/** One line of the Rim output card and the Rim-tab node wired into it (null: the zone graph takes it from elsewhere). */
+export interface RimOutputLine { from: string | null; text: string }
+
+/**
+ * The Rim output card: what the Zones tab receives from this tab (C3), one line each, each line its own socket - the
+ * zone editor's output card pattern - so every node that gives tab 3 something is wired to the line it gives.
+ */
+function OutputCard({ data }: NodeProps<Node<{ lines: RimOutputLine[] }>>) {
   return (
     <div className="zn rim-node rim-output" data-ui="rim-output" style={{ '--zn-group': 'var(--node-orient)' } as CSSProperties}>
-      <Handle type="target" position={Position.Left} id="in" isConnectable={false} />
       <div className="zn-group">Rim output</div>
       <div className="zn-head"><b>Gives to 3 Zones</b></div>
-      {data.lines.map((line) => <div className="zn-says" key={line}>{line}</div>)}
+      {data.lines.map((line) => (
+        <div className="zn-row zn-socket zo-row" key={line.text} data-ui={`rim-output-${line.from ?? 'unwired'}`}>
+          {line.from && <Handle type="target" position={Position.Left} id={line.from} isConnectable={false} />}
+          <div className="zn-says">{line.text}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -199,8 +209,12 @@ export function RimCanvas({ view, output = [], onField, onSelect }: RimCanvasPro
       id: `${from}->${n.id}.${name}`, source: from, sourceHandle: 'out', target: n.id, targetHandle: name,
       className: n.derived ? 'to-derived' : undefined,
     }))),
-    // One wire from the rim line to the output card: the card lists the strips and planes the rim gives too.
-    ...(output.length > 0 && view.some((n) => n.id === 'RIM') ? [{ id: `RIM->${OUTPUT}`, source: 'RIM', sourceHandle: 'out', target: OUTPUT, targetHandle: 'in' }] : []),
+    // One wire per output line, from the node that gives it into that line's socket (owner 2026-11-25: one wire from
+    // the rim line alone ran behind the rim tips belt and read as "only the rim tips belt is wired").
+    ...output.filter((l) => l.from && view.some((n) => n.id === l.from)).map((l) => ({
+      id: `${l.from}->${OUTPUT}`, source: l.from!, sourceHandle: 'out', target: OUTPUT, targetHandle: l.from!,
+      className: view.find((n) => n.id === l.from)?.derived ? 'to-derived' : undefined,
+    })),
   ], [view, output]);
   // A floor on the fitted zoom, so a sentence stays readable; a wide aligner tab scrolls a little rather than shrinking.
   const fit = useMemo(() => ({ padding: 0.06, minZoom: 0.8, maxZoom: 1 }), []);

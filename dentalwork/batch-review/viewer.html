@@ -2637,7 +2637,10 @@ async function showZonePreview() {
   model?.traverse((o) => { if (!base && o.isMesh && keyOf(o.name) === 'DENTURE') base = o; });
   const index = base?.geometry.index;
   const drawn = Boolean(groups && index && index.count / 3 === read.faces);
-  const note = previewLib.previewNote({ title, groups, hasRead: Boolean(read), canvasChanged: edited && !live, gives, drawn, final: !picked });
+  // A rim belt (on 2 Rim, or its node on Zones) is shown with the rim line it grows from, in the line's own colour, so
+  // which side the belt leans to can be seen (owner 2026-11-25). Its faces glow in --node-marks, the line is --layer-rim-edge.
+  const beltPicked = Boolean(picked) && graphLib.RIM_STRIP_IDS.includes(onRim ? rimSelected : picked);
+  const note = previewLib.previewNote({ title, groups, hasRead: Boolean(read), canvasChanged: edited && !live, gives, drawn, final: !picked, rimLine: beltPicked });
   zonePreviewNote.textContent = live
     ? `Live preview of your edit (zones only - nothing is built until Apply; the belt widths on 2 Rim; ${live.seconds} s). ${note}`
     : edited && livePending ? `${note} Previewing your edit…` : note;
@@ -2673,7 +2676,7 @@ async function showZonePreview() {
   }
   zoneOverlay.userData.glow = glowing;
   base.add(zoneOverlay);
-  if (picked) isolatedKeys = ['DENTURE'];
+  if (picked) isolatedKeys = beltPicked ? ['DENTURE', 'Dental rim (continuous'] : ['DENTURE'];
   applyVisibility();
 }
 

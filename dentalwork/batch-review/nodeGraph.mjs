@@ -761,9 +761,12 @@ export function sameBelts(a, b) {
  */
 export function rimTabTarget(id, graph) {
   if (id === 'RIM') return 'RIM';
-  const out = { RIMBAND: 'rim_band', LOWRIMBAND: 'low_rim_band' }[id];
+  const out = id === 'RIMBAND' || id === 'LOWRIMBAND' ? RIM_OUTPUT_KEY[id] : undefined;
   return out ? graph?.outputs?.[out] ?? null : null;
 }
+
+/** The zone-graph output each Rim-tab node fills: one map for the 3D target above and the output card's wires. */
+const RIM_OUTPUT_KEY = { RIM: 'rim', RIMBAND: 'rim_band', LOWRIMBAND: 'low_rim_band' };
 
 /**
  * The standard spacing of the tips along the rim line: the shipped denture's `downPitchMm`, which an unset
@@ -876,9 +879,16 @@ export function rimTabView(kind, ctx = {}) {
   });
 }
 
-/** The Rim output card: what tab 3 receives from this tab, one line each (C3). */
+/**
+ * The Rim output card: what tab 3 receives from this tab, one line each (C3), each with the Rim-tab node whose wire
+ * feeds it (`from`). A line the zone graph does not take from that node (a belt's output rewired on Zones) has
+ * `from: null` and no wire: the card drew ONE wire from the rim line, which ran behind the rim tips belt and read as
+ * "only the rim tips belt is wired" (owner, 2026-11-25).
+ */
 export function rimOutputLines(kind, ctx = {}) {
   if (kind !== 'denture') return [];
+  const outputs = (ctx.graph ?? defaultGraph()).outputs ?? {};
+  const wired = (id) => (outputs[RIM_OUTPUT_KEY[id]] === id ? id : null);
   const rim = ctx.graph?.nodes?.find((n) => n.id === 'RIM')?.params ?? {};
   const beltText = ({ inner, outer }) => (inner === outer ? `${inner} mm each side of the rim line` : `inner ${inner} mm, outer ${outer} mm from the rim line`);
   const width = (id) => beltText(beltOf(ctx.placement, id));
@@ -890,11 +900,11 @@ export function rimOutputLines(kind, ctx = {}) {
   const strip = ctx.placement?.rimStripPitchMm;
   const stripTips = strip === undefined ? `rim tips at ${linePitch} mm over the whole belt` : strip === 0 ? 'the rest of the belt gets the supported area\'s tips' : `the rest of the belt a ${strip} mm grid`;
   return [
-    `Rim line - ${rim.source === 'flatEdge' ? 'the edge of the flat area the part stands on' : 'the lowest edge, found'} (a rim drawn for one case in the app replaces it); tips every ${linePitch} mm along it`,
-    `${RIM_BELTS.RIMBAND.title} - ${width('RIMBAND')}${ranNote('RIMBAND')}; ${stripTips}`,
-    `${RIM_BELTS.LOWRIMBAND.title} - ${width('LOWRIMBAND')}${ranNote('LOWRIMBAND')}; places no tips, lets a lowest point keep its tip`,
-    'Rim plane - fitted through the rim line',
-    'Rim crossing - where the rim plane meets the symmetry plane: the cavity rays start here',
+    { from: wired('RIM'), text: `Rim line - ${rim.source === 'flatEdge' ? 'the edge of the flat area the part stands on' : 'the lowest edge, found'} (a rim drawn for one case in the app replaces it); tips every ${linePitch} mm along it` },
+    { from: wired('RIMBAND'), text: `${RIM_BELTS.RIMBAND.title} - ${width('RIMBAND')}${ranNote('RIMBAND')}; ${stripTips}` },
+    { from: wired('LOWRIMBAND'), text: `${RIM_BELTS.LOWRIMBAND.title} - ${width('LOWRIMBAND')}${ranNote('LOWRIMBAND')}; places no tips, lets a lowest point keep its tip` },
+    { from: 'RIMPLANE', text: 'Rim plane - fitted through the rim line' },
+    { from: 'CROSSING', text: 'Rim crossing - where the rim plane meets the symmetry plane: the cavity rays start here' },
   ];
 }
 

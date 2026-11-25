@@ -29,6 +29,10 @@ describe('the per-node preview (plan D2)', () => {
     expect(previewNote({ title: 'Mark support', groups, hasRead: true, canvasChanged: true })).toContain('this is what RAN, not your edit');
     expect(previewNote({ title: 'Mark support', groups: null, hasRead: true, canvasChanged: false })).toContain('has not run on this case');
     expect(previewNote({ title: 'Mark support', groups: null, hasRead: false, canvasChanged: false })).toContain('no per-node values');
+    // A rim belt is shown with its rim line (owner 2026-11-25), and the note says which side is which.
+    const belt = previewNote({ title: 'Rim tips belt', groups: [{ label: 'In this set', faces: [1, 2] }], hasRead: true, canvasChanged: false, gives: 'mask', rimLine: true });
+    expect(belt).toContain('the rim line it grows from');
+    expect(belt).toContain('fitting-surface side of the line');
   });
 
   // Fable's review: a node with no faces ran (re-running cannot help), and values that do not fit draw nothing.
