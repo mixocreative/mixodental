@@ -39,6 +39,11 @@ code. Lines marked UNVERIFIED were read about, not measured.
   refused can be fixed and saved again; the carry dialog's Cancel opens the built-in's kept edits and runs nothing; a
   blank New type keeps no draft; a page removes only the drafts it knows (another tab's survive); a cache clear that
   failed part-way forgets the results; a run past its time limit is stopped as a whole tree on Windows.
+- **The whole journey, walked once in the browser after the sign-off** (2026-11-26, the denture test scans): import,
+  Duplicate, rename, an edit, Apply and its run, a dated Save, reload, Restore naming the saved value, compare, a
+  badge-only second save, rollback by deleting the newest file by hand, and the list following the folder. One gap
+  found and fixed: Save showed nothing while it worked (half a minute on a freshly started server) - it now says
+  "Saving..." at once and is greyed until the answer.
 - **Measured**: one scan with one type is about 35 s and about 88 MB of kept run; switching back is instant.
 - **Restore marks** name the saved value ("Restore to 30° (saved in Parity denture)"); the node default is not also
   printed on the mark - the canvas mark says where the value was saved.

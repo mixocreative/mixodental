@@ -3666,8 +3666,14 @@ try {
         return;
       }
       const sameType = draft.id === sessionType.id && !sessionType.builtIn;
+      // Said at once, and Save greyed until the answer: the server re-reads the type list before and after writing,
+      // and on a freshly started server the first Save sat for half a minute with nothing on screen (seen 2026-11-26).
+      const saveButton = document.getElementById('type-save');
+      saveButton.disabled = true;
+      status.textContent = `Saving ${draft.profile?.name?.en ?? draft.id}… checking it against every type, then writing a new dated file.`;
       const answer = await fetch('/save-draft', { method: 'POST', body: JSON.stringify({ draft, openedStamp: sameType ? openedStamp : null }) })
-        .then((r) => r.json()).catch((error) => ({ error: `the server did not answer: ${error.message}` }));
+        .then((r) => r.json()).catch((error) => ({ error: `the server did not answer: ${error.message}` }))
+        .finally(() => { saveButton.disabled = false; });
       if (!answer.ok) { status.textContent = `Not saved: ${answer.error ?? 'no answer'}`; return; }
       if (answer.same) { status.textContent = `Nothing new to save: ${answer.path} already holds exactly this.`; return; }
       // Written, but the app refuses it (a pinned rule it cannot start from, say): the editors and the draft stay as
