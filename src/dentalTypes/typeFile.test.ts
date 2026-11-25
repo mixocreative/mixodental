@@ -98,6 +98,8 @@ describe('a file that cannot be a type is refused by name', () => {
   it('another format or category', () => {
     expect(refused({ ...dentureType(), typeFile: 2 })).toThrow(/format 2/);
     expect(refused({ ...dentureType(), category: 'crown' })).toThrow(/category "crown"/);
+    // A save is named <id>.<stamp>.type.json: an id that ends like a stamp would make that name mean two things.
+    expect(refused({ ...dentureType(), id: 'soft.20261125-210430' })).toThrow(/ends like a save stamp/);
   });
 
   it('a profile of differences, through the same strict parser as a built-in', () => {

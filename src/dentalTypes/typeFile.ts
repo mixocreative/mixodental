@@ -20,6 +20,8 @@
  *   required and an unknown one is refused, exactly as the profile parser does.
  */
 
+import { idLooksDated } from './typeSaves.mjs';
+
 /** The type-file format this code reads. A file with any other number is refused, never guessed at. */
 export const TYPE_FILE_FORMAT = 1;
 
@@ -181,6 +183,8 @@ export function readTypeFile(text: string, deps: TypeFileDeps): ReadType {
   if (category !== 'denture' && category !== 'aligner') throw new TypeError(`type file: category "${String(category)}" - must be denture or aligner`);
   const id = raw.id;
   if (typeof id !== 'string' || !/^[a-z0-9][a-z0-9.-]*$/.test(id)) throw new TypeError('type file: id must be lower-case letters, digits, dots and dashes');
+  // A save is named <id>.<stamp>.type.json (typeSaves.mjs), so an id ending like a stamp would make a name mean two things.
+  if (idLooksDated(id)) throw new TypeError(`type file: id "${id}" ends like a save stamp (YYYYMMDD-HHMMSS) - choose another`);
   if (typeof raw.basedOn !== 'string') throw new TypeError(`type file ${id}: basedOn must name the profile it was copied from`);
   if (!isRecord(raw.profile)) throw new TypeError(`type file ${id}: profile must be the whole profile`);
   deps.parseProfile(category, raw.profile); // throws, naming the key, exactly as for a built-in
