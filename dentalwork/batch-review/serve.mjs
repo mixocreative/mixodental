@@ -6,20 +6,21 @@
 // so use it only on a trusted home/office network.
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
-import { createReadStream, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, watch, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec, spawn } from 'node:child_process';
 import { stampNow } from '../../benchwork/rules.mjs';
-import { guardRun, refusalReason } from './rerunReport.mjs';
+import { guardRun, notApplied, refusalReason } from './rerunReport.mjs';
 import { scanSet, scanSetWords } from './scanSet.mjs';
 import { createQueue, resultKey } from './runQueue.mjs';
 import { runPrint } from './typeDraft.mjs';
-import { idLooksDated, saveName, saveRefusal, savesByType } from '../../src/dentalTypes/typeSaves.mjs';
+import { clashRefusal, idLooksDated, saveName, saveRefusal, savesByType } from '../../src/dentalTypes/typeSaves.mjs';
 import { proofOf, typeFileText } from '../../src/dentalTypes/typeText.mjs';
 import { HOST_GEOMETRY_VERSION } from '../../vendor/mixo-geocore/host/geometryVersion.js';
 import { RIM_PLACEMENT } from './nodeGraph.mjs';
+import { viteNodeCli } from '../../scripts/viteNodeCli.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 // The first argument that is not a --flag, nor the value of --port.
@@ -63,7 +64,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/ja
  * result. Same source check as POST /run.
  */
 const previews = { zone: { child: null, seq: 0 }, tilt: { child: null, seq: 0 } };
-/** Stops a running preview - its whole tree on Windows, where the child is a shell and kill() would stop only that. */
+/** Stops a running preview or run - its whole tree on Windows, where a run starts processes of its own (benchwork starts vite-node) and kill() would stop only the first. */
 function stopPreview(child) {
   if (!child || child.exitCode !== null) return;
   if (process.platform === 'win32' && child.pid) exec(`taskkill /pid ${child.pid} /T /F`, () => undefined);
@@ -100,10 +101,11 @@ function runPreview(kind, request, response, prepare) {
     try { plan = prepare(ask, out); } catch (error) { send(400, { error: error.message }); return; }
     const args = ['--script', join('dentalwork', 'batch-review', plan.script), '--source', source, '--out', out, ...(plan.args ?? [])];
     stopPreview(slot.child);
-    const viteNode = join(here, '..', '..', 'node_modules', '.bin', process.platform === 'win32' ? 'vite-node.cmd' : 'vite-node');
     // Only the variables this preview sets: a MIXO_* left in the server's own environment must not ride along.
     const env = { ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('MIXO_'))), ...(plan.env ?? {}) };
-    const child = spawn(viteNode, args, { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32', env });
+    // vite-node's entry under this node, no shell: a shell joined the arguments unquoted on Windows, so a scan path
+    // with a space split in two (benchwork/cli.mjs has the same note).
+    const child = spawn(process.execPath, [viteNodeCli, ...args], { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'], env });
     slot.child = child;
     let log = '';
     child.stdout.on('data', (chunk) => { log += chunk; });
@@ -169,10 +171,9 @@ let catalog = null;
 function readCatalog() {
   catalog ??= new Promise((done) => {
     const file = join(previewDir, `catalog-${Date.now()}.json`);
-    const viteNode = join(here, '..', '..', 'node_modules', '.bin', process.platform === 'win32' ? 'vite-node.cmd' : 'vite-node');
     const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('MIXO_')));
-    const child = spawn(viteNode, ['--script', join('dentalwork', 'batch-review', 'typeCatalogRun.ts'), '--out', file],
-      { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32', env });
+    const child = spawn(process.execPath, [viteNodeCli, '--script', join('dentalwork', 'batch-review', 'typeCatalogRun.ts'), '--out', file],
+      { cwd: join(here, '..', '..'), stdio: ['ignore', 'pipe', 'pipe'], env });
     let log = '';
     child.stdout.on('data', (chunk) => { log += chunk; });
     child.stderr.on('data', (chunk) => { log += chunk; });
@@ -187,6 +188,13 @@ function readCatalog() {
     });
   });
   return catalog;
+}
+// Read again after ANY change in types/ - a file deleted by hand is how a save is rolled back (owner, 2026-11-25),
+// and a list read once kept offering the deleted save until the server restarted (seen 2026-11-26).
+try {
+  watch(join(here, '..', '..', 'types'), { recursive: true }, () => { catalog = null; });
+} catch (error) {
+  console.warn(`types/ is not watched (${error.message}): a type file changed by hand shows after a restart or a Save.`);
 }
 function typeList(response) {
   readCatalog().then((read) => response.writeHead(read.error ? 500 : 200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(read)));
@@ -208,9 +216,11 @@ function filesUnder(path, found = []) {
   if (stat.isDirectory()) for (const name of readdirSync(path).sort()) filesUnder(join(path, name), found);
   return found;
 }
+// 2 MB: a review folder of a few hundred scans sends every path to /import; 64 KB cut that off (Fable, 2026-11-26).
+const BODY_LIMIT = 2_000_000;
 function readBody(request, done) {
   let body = '';
-  request.on('data', (chunk) => { body += chunk; if (body.length > 64_000) request.destroy(); });
+  request.on('data', (chunk) => { body += chunk; if (body.length > BODY_LIMIT) request.destroy(); });
   request.on('end', () => { try { done(JSON.parse(body || '{}')); } catch { done(null); } });
 }
 const sendJson = (response, code, payload) => response.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(payload));
@@ -287,6 +297,11 @@ const queue = createQueue({
       error: (error) => finish({ error: `the run could not start: ${error.message}`, log: log.slice(-4000) }),
       exit: (code) => {
         if (code !== 0 || !existsSync(join(part, 'summary.json'))) { finish({ error: refusalReason(log) ?? `the run stopped with exit ${code}`, log: log.slice(-4000) }); return; }
+        // A run that finished without applying the graph its type carried is NOT that type's result (cia F2): no
+        // finished.json, so it is never served, cached or counted as Save's proof.
+        let skipped = null;
+        try { skipped = job.type ? notApplied(job.type, JSON.parse(readFileSync(join(part, 'summary.json'), 'utf8'))) : null; } catch (error) { skipped = `its summary could not be read: ${error.message}`; }
+        if (skipped) { finish({ error: skipped, log: log.slice(-4000) }); return; }
         writeFileSync(join(part, FINISHED), JSON.stringify({ at: new Date().toISOString() }));
         finish({ ok: true, key: job.key, url: `/cache/${job.key}/` });
       },
@@ -350,7 +365,9 @@ function clearCache(response) {
  * REFUSED, by name, when:
  * - the draft never ran on a scan as it stands (Apply first): a saved type is always one that was looked at;
  * - a NEWER save of that id exists than the one the page opened - saving would hide it (two people, or two tabs);
- * - the id is new to the page (a built-in's edit, a duplicate) but a saved type already has it.
+ * - the id is new to the page (a built-in's edit, a duplicate) but a saved type already has it;
+ * - the id is a built-in's, or the name reads the same as another listed type's (typeSaves.mjs clashRefusal) - the app
+ *   would refuse one of the two, so it is caught BEFORE anything is written.
  * The same contents as the newest save write nothing. Save does not commit or push: the answer names the file and the
  * commands, and pushing stays a person's act.
  */
@@ -369,7 +386,11 @@ function saveDraft(request, response) {
     const { types: saved } = savesByType(existsSync(dir) ? readdirSync(dir).map((name) => `types/${draft.category}/${name}`) : []);
     const newest = saved.find((t) => t.id === draft.id)?.saves[0];
     const opened = typeof ask?.openedStamp === 'string' ? ask.openedStamp : null;
-    const refusal = saveRefusal({ id: draft.id, newest: newest?.stamp ?? null, opened });
+    const listed = await readCatalog();
+    if (listed.error) { sendJson(response, 500, { error: `the type list could not be read to check the name: ${listed.error}` }); return; }
+    const others = (listed.types ?? []).map((t) => ({ id: t.id, builtIn: t.builtIn, names: t.type?.profile?.name ?? { en: t.name } }));
+    const refusal = clashRefusal({ id: draft.id, names: draft.profile?.name ?? {}, others })
+      ?? saveRefusal({ id: draft.id, newest: newest?.stamp ?? null, opened });
     if (refusal) { sendJson(response, 409, { error: refusal }); return; }
     const { proved: _proved, ...clean } = draft;
     const type = { ...clean, validation: proofOf(clean, { engineVersion: HOST_GEOMETRY_VERSION, scans, at: new Date().toISOString() }) };

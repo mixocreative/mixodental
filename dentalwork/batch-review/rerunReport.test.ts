@@ -1,6 +1,8 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 import { guardRun, notApplied, refusalReason } from './rerunReport.mjs';
+import { defaultGraph } from './nodeGraph.mjs';
+import { defaultGraph as orientDefault } from './orientGraph.mjs';
 
 describe('the reason a refused run gives (cia F1)', () => {
   it('names the problem under benchwork\'s header, not just the header', () => {
@@ -39,9 +41,10 @@ describe('whether a finished run applied what it was given (cia F2)', () => {
     expect(refusalReason('x\nThe Orient graph was refused: POSE: "angleDeg" must be between -90 and 90, got 200\nexit 2')).toMatch(/^The Orient graph was refused: POSE/);
   });
 
-  it('a type with neither graph, or an aligner type (whose run always records "default"), is plainly applied', () => {
+  it('a type with neither graph, an aligner type (whose run always records "default"), or one that writes the standard graphs out, is plainly applied', () => {
     expect(notApplied(denture({ zoneGraph: null }), { zoneGraph: 'default' })).toBeNull();
     expect(notApplied({ category: 'aligner', zoneGraph: graph }, { zoneGraph: 'default' })).toBeNull();
+    expect(notApplied(denture({ zoneGraph: defaultGraph(), orientGraph: orientDefault() }), { zoneGraph: 'default', orientGraph: 'default' })).toBeNull();
   });
 });
 

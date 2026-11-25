@@ -22,6 +22,18 @@ code. Lines marked UNVERIFIED were read about, not measured.
   built-in). `/rerun`, `/save-type` and `saveType.mjs` are gone; every run is the whole-file `/run`, every save the
   dated `/save-draft`. The check that a finished run applied its graphs moved with them (`rerunReport.mjs`
   `notApplied`, now on the session's runs). The Type strip ticks Apply and Save from the session (`stripMarks`).
+- **Fable's end-to-end review of the built state** (2026-11-26, 15 findings, each checked against the code before it
+  was fixed): Save refuses a built-in's id or a name another type has BEFORE writing (`typeSaves.mjs` clashRefusal -
+  the app would have refused one of the two, and the page said both load), and a written save the app refuses keeps
+  the edits; Stop is its own state (`stopped`) and no longer restarts on opening the scan; a review folder's edits
+  move onto the BUILT-IN (they are edits against it; carried onto a saved type they wiped its pinned rules) and an
+  existing kept draft is asked about, never replaced; a kept draft records the save it was made from, so Save refuses
+  it once a newer save exists; drafts are kept as edits are made, and before an import or a review folder replaces
+  the session; Discard also drops the applied draft; New type opens the built-in; the compare says when the other run
+  failed; a refused cache clear forgets nothing; the run check moved to the server, so a run that ignored its graph is
+  never cached or counted as proof. Found while testing them: a scan whose file name had a space never ran (benchwork
+  and the server spawned vite-node through a shell, which split the path) - all three now start vite-node's own entry
+  with no shell; the type list was read once, so a save deleted by hand stayed listed - the server watches types/.
 - **Measured**: one scan with one type is about 35 s and about 88 MB of kept run; switching back is instant.
 - **Restore marks** name the saved value ("Restore to 30° (saved in Parity denture)"); the node default is not also
   printed on the mark - the canvas mark says where the value was saved.

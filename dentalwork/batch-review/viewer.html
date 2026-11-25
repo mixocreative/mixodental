@@ -434,7 +434,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { notApplied, refusalReason } from './rerunReport.mjs';
+import { refusalReason } from './rerunReport.mjs';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Every colour comes from a token in tokens.css; nothing in this file is a colour value.
@@ -1230,11 +1230,14 @@ function drawTypeStrip() {
   badge.addEventListener('change', () => { typeBadge = badge.value.trim(); save('review-type-badge', typeBadge); drawTypeStrip(); });
   const newType = Object.assign(document.createElement('button'), { type: 'button', textContent: 'New type', className: 'type-new' });
   newType.dataset.ui = 'type-new';
-  newType.title = 'Start a new type from the built-in one: clears the name, id and badge and puts the search, the zone setup and every setting back to the standard ones. The review on screen is not touched.';
+  newType.title = 'Start a new type from the built-in one: opens the built-in as it is and clears the name, id and badge. The type you were editing keeps its unsaved edits.';
   newType.addEventListener('click', () => {
+    // In a session: the built-in opens as it is (the type left keeps its unsaved edits as its draft). On a review
+    // folder: Discard, as before. Either way the name, id and badge are then cleared for the new type.
+    if (inSessionNow()) { if (!openBuiltInFresh()) return; } else document.getElementById('bench-reset')?.click();
     typeFullName = ''; typeName = ''; typeBadge = ''; typeIdTyped = false;
     for (const key of ['review-type-full-name', 'review-type-id', 'review-type-badge']) save(key, '');
-    document.getElementById('bench-reset')?.click();
+    if (lastChain) drawChain(...lastChain);
     drawTypeStrip();
     document.querySelector('[data-ui="type-full-name"]')?.focus();
   });
@@ -2270,6 +2273,7 @@ const SESSION_WORDS = {
   running: (c) => `Running, ${Math.round((Date.now() - (c.session.since ?? Date.now())) / 1000)} s`,
   queued: () => 'Waiting for a free run slot',
   failed: (c) => `The run failed: ${c.session.error ?? 'no reason given'}`,
+  stopped: () => 'Stopped - Run starts it again',
 };
 /** The stage card for a scan of the session with no run to show: its state, and Run, Stop or Retry. */
 function showSessionCard(row) {
@@ -2384,13 +2388,11 @@ let blobs = [];
 let onlyLook = false;
 let current = 0;
 
-/* Where the open review folder's type.json is (the type its run used), or null: what its scans open with when they
-   become a session (sessionFromReview). Per folder - the served one and a dropped one are not the same run. */
-let reviewTypeUrl = null;
-function openRun(summary, glbUrl, csvUrl, typeUrl = null) {
-  // A review folder, not the scan session: the session's bar and banner go, its runs stay in the cache.
+function openRun(summary, glbUrl, csvUrl) {
+  // A review folder, not the scan session: the session's bar and banner go, its runs stay in the cache, and its
+  // unsaved edits are kept first (they were lost here, Fable 2026-11-26).
+  keepDraft();
   session = null;
-  reviewTypeUrl = typeUrl;
   document.getElementById('stage-state').hidden = true;
   cases = summary.cases;
   applyRunGlobals(summary, glbUrl);
@@ -2458,8 +2460,7 @@ async function openFiles(entries) {
   };
   const missing = summary.cases.filter((c) => c.glb && !byName.has(c.glb));
   const csv = run && entries.find(({ path }) => path === `${run.dir}summary.csv`);
-  const ranType = run && entries.find(({ path }) => path === `${run.dir}type.json`);
-  openRun(summary, (name) => (byName.has(name) ? blob(byName.get(name)) : ''), csv ? blob(csv.file) : '', ranType ? blob(ranType.file) : null);
+  openRun(summary, (name) => (byName.has(name) ? blob(byName.get(name)) : ''), csv ? blob(csv.file) : '');
   if (missing.length) document.getElementById('totals').textContent += `, ${missing.length} GLB(s) not in the drop`;
 }
 
@@ -3114,7 +3115,12 @@ function drawCompare(row) {
   const title = Object.assign(document.createElement('b'), { textContent: `Compared with ${otherName()}` });
   box.append(title);
   if (diffs === null) {
-    box.append(Object.assign(document.createElement('p'), { textContent: 'Not run with it on this scan yet - it runs now.' }));
+    // Say what the other run IS: a failed or stopped one does not start again on its own, so "it runs now" was untrue.
+    const other = sessionLib.stateOf(session, sessionLib.resultId(row.source, draftLib.runPrint(otherType())));
+    const words = other.state === 'failed' ? `Its run on this scan failed: ${other.error ?? 'no reason given'}.`
+      : other.state === 'stopped' ? 'Its run on this scan was stopped - flip to it and press Run.'
+      : 'Not run with it on this scan yet - it runs now.';
+    box.append(Object.assign(document.createElement('p'), { textContent: words }));
     runScan(row.session.at, false, { type: otherType(), builtIn: flipped ? sessionType.builtIn && !applied.has(sessionType.id) : compareEntry.builtIn });
   } else if (diffs.length === 0) {
     box.append(Object.assign(document.createElement('p'), { textContent: 'No result differs on this scan.' }));
@@ -3145,12 +3151,18 @@ function canvasLib(lib, savedGraph) {
  * OPEN A TYPE: put its whole setup into the editors - the Orient and zone graphs, the Rim numbers, the search, the
  * rules, its name and badge - so what is edited is that type, and Restore goes back to what it saved.
  */
-function openTypeInEditors(type, entry) {
+function openTypeInEditors(type, entry, baseStamp = entry.stamp) {
+  // An Orient edit's auto-run still waiting belongs to the type being left: it must not fire on this one.
+  clearTimeout(autoRunTimer);
+  autoRunTimer = null;
+  // Which save of the entry these values were made from (a kept draft remembers its own): Save sends it, so a draft
+  // made before a newer save is refused rather than hiding that save (typeSaves.mjs saveRefusal).
+  openedStamp = baseStamp ?? '';
   const edits = editsOf(type);
   poseEdits = edits.pose;
   placementEdits = edits.placement;
   if (graphLib) { zoneGraph = edits.zoneGraph; zonePositions = editorLib ? editorLib.autoLayout(zoneGraph, graphLib.FIXED.outputs) : zonePositions; }
-  if (orientLib) orientGraph = edits.orientGraph;
+  if (orientLib) { orientGraph = edits.orientGraph; orientPositions = editorLib ? editorLib.autoLayout(orientGraph, []) : orientPositions; }
   for (const [name, { input, rule }] of benchFields ?? []) {
     const value = edits.rules[name];
     if (rule.type === 'flag') input.checked = value === true; else input.value = value === undefined ? '' : String(value);
@@ -3190,6 +3202,36 @@ function editsNotRun() {
  */
 const drafts = new Map();
 const draftKey = (entry) => `${entry.category}-${entry.id}`;
+/* The save of the open type the editors' values were made from (its stamp; '' for a built-in or an undated save). */
+let openedStamp = '';
+/* What was last sent for each draft key, so the once-a-second keep (below) posts only a change. */
+const keptText = new Map();
+/**
+ * "New type" in a session: keep the open type's edits, then open the category's built-in exactly as it is. Drafts are
+ * kept per opened type, so unsaved edits ON the built-in (a new type not saved yet) would be replaced: asked first.
+ * Answers false when the person keeps them.
+ */
+function openBuiltInFresh() {
+  const unsaved = sessionType?.builtIn && unsavedDraft();
+  if (unsaved && !window.confirm(`Drop the unsaved new type "${unsaved.profile?.name?.en ?? unsaved.id}" and start another from ${sessionType.name}?`)) return false;
+  if (!unsaved) keepDraft();
+  sessionType = sessionTypes().find((t) => t.builtIn) ?? sessionType;
+  applied.delete(sessionType.id);
+  openTypeInEditors(sessionType.type, sessionType);
+  flipped = false;
+  drawTypePick();
+  drawSession();
+  return true;
+}
+/**
+ * OPEN A TYPE FOR EDITING: its kept draft if there is one (with the stamp of the save that draft was made from), else
+ * the applied draft, else the type as saved.
+ */
+function openForEditing(entry) {
+  const kept = drafts.get(draftKey(entry));
+  if (kept) openTypeInEditors(kept, entry, kept.openedStamp ?? entry.stamp);
+  else openTypeInEditors(applied.get(entry.id) ?? entry.type, entry);
+}
 /** The editors' draft when it differs from the opened type AS SAVED (its settings, id, name or badge), else null. */
 function unsavedDraft() {
   try {
@@ -3212,11 +3254,18 @@ function stripMarks() {
 }
 function keepDraft() {
   if (!session || !sessionType) return;
-  // Kept while it differs from what was SAVED (not from what ran): an applied draft is still unsaved work.
-  const draft = unsavedDraft();
-  if (draft) drafts.set(draftKey(sessionType), draft); else drafts.delete(draftKey(sessionType));
+  // Kept while it differs from what was SAVED (not from what ran): an applied draft is still unsaved work. It carries
+  // the stamp of the save it was made from (`openedStamp`), read back by openForEditing; Save never sends the kept copy.
+  const unsaved = unsavedDraft();
+  const draft = unsaved ? { ...unsaved, openedStamp } : null;
+  const key = draftKey(sessionType);
+  if (draft) drafts.set(key, draft); else drafts.delete(key);
+  const text = JSON.stringify(draft);
+  if (keptText.get(key) === text) return;
+  keptText.set(key, text);
   // keepalive: this also runs as the page goes away (pagehide), where a plain request is cancelled with it.
-  fetch('/draft', { method: 'POST', keepalive: true, body: JSON.stringify({ key: draftKey(sessionType), draft }) }).catch(() => undefined);
+  fetch('/draft', { method: 'POST', keepalive: true, body: JSON.stringify({ key, draft }) })
+    .then((r) => { if (!r.ok) keptText.delete(key); }).catch(() => keptText.delete(key));
 }
 async function loadDrafts() {
   const read = await fetch('/drafts').then((r) => r.json()).catch(() => ({}));
@@ -3227,7 +3276,8 @@ function drawTypePick() {
   const types = sessionTypes();
   typePick.replaceChildren(...types.map((t) => Object.assign(document.createElement('option'), {
     value: t.id, selected: t.id === sessionType?.id,
-    textContent: `${t.name} · ${t.badge}${t.builtIn ? ' (built-in)' : ` · saved ${sessionStamp(t)}`}`,
+    // "· unsaved edits": a kept draft waits on this type (it opens with it), so it is never a surprise after a reload.
+    textContent: `${t.name} · ${t.badge}${t.builtIn ? ' (built-in)' : ` · saved ${sessionStamp(t)}`}${drafts.has(draftKey(t)) ? ' · unsaved edits' : ''}`,
   })));
   const refused = (catalogNow?.refused ?? []).filter((r) => r.file.includes(`/${session?.kind}/`));
   typePick.title = `The type the scans run with. Switch to compare: the same scans, another type.${refused.length ? ` ${refused.length} saved type file(s) could not load: ${refused.map((r) => `${r.file} - ${r.reason}`).join('; ')}` : ''}`;
@@ -3283,7 +3333,7 @@ const sessionStamp = (t) => (t.stamp ? `${Number(t.stamp.slice(6, 8))}/${Number(
 function drawSession() {
   const at = shown()[current]?.session?.at ?? 0;
   cases = sessionRows();
-  document.getElementById('totals').textContent = sessionLib.totalsOf(cases);
+  document.getElementById('totals').textContent = `${sessionLib.totalsOf(cases)}${session.words ? ` · ${session.words}` : ''}`;
   const busy = cases.some((c) => c.session.state === 'running' || c.session.state === 'queued');
   document.getElementById('run-stop').hidden = !busy;
   select(Math.max(0, shown().findIndex((c) => c.session.at === at)));
@@ -3298,13 +3348,17 @@ function drawBanner() {
   banner.className = `stage-state${row.session.state === 'running' || row.session.state === 'queued' ? ' busy' : row.session.state === 'failed' ? ' bad' : ''}`;
 }
 
-/** Run scan `k` of the session with the session's type, unless it has a result or is under way (`force` re-runs a failed one). */
+/**
+ * Run scan `k` of the session with the session's type, unless it has a result or is under way. A STOPPED or FAILED
+ * scan stays so until asked: `force` true (its card's Run / Retry) re-runs either, 'stopped' (Run all) only a stopped
+ * one. Without that, opening a stopped scan started it again at once - Stop undid itself (Fable, 2026-11-26).
+ */
 async function runScan(k, force = false, use = null) {
   const source = session.scans[k];
   // `use`: another type to run this scan with (the compare's); by default what is shown.
   const id = sessionLib.resultId(source, use ? draftLib.runPrint(use.type) : sessionPrint());
   const now = sessionLib.stateOf(session, id).state;
-  if (now === 'done' || now === 'running' || now === 'queued' || (now === 'failed' && !force)) return;
+  if (now === 'done' || now === 'running' || now === 'queued' || (now === 'failed' && force !== true) || (now === 'stopped' && !force)) return;
   const asked = session;
   const type = use ?? (flipped && compareEntry ? compareEntry : { type: sessionRunType(), builtIn: sessionType.builtIn && !applied.has(sessionType.id) });
   session.results.set(id, { state: 'queued', since: Date.now() });
@@ -3315,13 +3369,11 @@ async function runScan(k, force = false, use = null) {
   let result;
   if (reply.ok) {
     const summary = await fetch(`${reply.url}summary.json`).then((r) => r.json()).catch(() => null);
-    // A run that finished without applying the graph it was given is NOT this type's result (cia F2; rerunReport.mjs).
-    const skipped = summary && notApplied(type.type, summary);
-    result = !summary ? { state: 'failed', error: 'the run finished but its summary could not be read' }
-      : skipped ? { state: 'failed', error: skipped } : { state: 'done', url: reply.url, summary };
-  } else result = reply.stopped ? { state: 'not run' } : { state: 'failed', error: reply.error ?? 'no reason given', log: reply.log };
+    // (A run that did not apply its type's graph never gets here: the server answers it as failed - serve.mjs, notApplied.)
+    result = summary ? { state: 'done', url: reply.url, summary } : { state: 'failed', error: 'the run finished but its summary could not be read' };
+  } else result = reply.stopped ? { state: 'stopped' } : { state: 'failed', error: reply.error ?? 'no reason given', log: reply.log };
   if (asked !== session) return; // a new import replaced this session while it ran
-  if (result.state === 'not run') session.results.delete(id); else session.results.set(id, result);
+  session.results.set(id, result);
   drawSession();
   refreshCacheSize();
 }
@@ -3360,31 +3412,37 @@ async function importFrom(path) {
   const read = await fetch('/import', { method: 'POST', body: JSON.stringify({ path }) }).then((r) => r.json()).catch((error) => ({ error: error.message }));
   if (read.error) { stageCard({ name: 'Nothing imported', text: read.error }); return; }
   if (read.cases.length === 0) { stageCard({ name: 'Nothing to run', text: read.words }); return; }
-  if (!catalogNow && !(await loadCatalog())) return;
+  // The type list as it is on disk now: a save made or deleted since the page opened shows (serve.mjs watches types/).
+  if (!(await loadCatalog())) return;
   startSession(kind, read);
 }
 /**
- * A session of `kind` on the imported scans (`read`, the /import answer). The type it starts with: `typeId` when that
- * is a saved type of the category, else the one picked before, else the built-in. `carry` puts the editors' values AS
- * THEY STAND in as that type's draft, instead of opening the type as saved - how a review folder's edits survive the
- * move into a session. `at` is the scan to show first.
+ * A session of `kind` on the imported scans (`read`, the /import answer), on the type picked before for this category,
+ * else its built-in. `carry` (a review folder becoming a session) opens THE BUILT-IN with the editors' values as they
+ * stand as its draft: on a review folder the editors hold edits measured against the built-in - the folder's own type
+ * is never loaded into them - so carrying them onto a saved type would wipe what that type pinned (Fable,
+ * 2026-11-26). `at` is the scan to show first.
  */
-function startSession(kind, read, { carry = false, typeId = null, at = null } = {}) {
+function startSession(kind, read, { carry = false, at = null } = {}) {
+  keepDraft(); // the session being left keeps its unsaved edits
   session = sessionLib.newSession({ kind, scans: read.cases });
   kindNow = kind;
   const types = sessionTypes();
-  sessionType = types.find((t) => !t.builtIn && t.id === typeId) ?? types.find((t) => t.id === sessionType?.id) ?? types.find((t) => t.builtIn) ?? types[0];
+  const builtIn = types.find((t) => t.builtIn) ?? types[0];
+  sessionType = carry ? builtIn : types.find((t) => t.id === sessionType?.id) ?? builtIn;
   if (carry) {
-    // A draft needs an id; a review folder may have none typed. The type's own id makes a built-in's edits read-only
-    // until they get one, which Apply then says - the same as in any session.
+    // A draft needs an id; a review folder may have none typed. The built-in's own id keeps its edits read-only until
+    // they get one, which Apply and Save then say - the same as in any session.
     if (!/^[a-z0-9][a-z0-9.-]*$/.test(typeName)) typeName = sessionType.id;
     const carried = draftFromEditors();
-    openTypeInEditors(carried, sessionType);
+    openTypeInEditors(carried, sessionType, sessionType.stamp);
     keepDraft();
-  } else openTypeInEditors(drafts.get(draftKey(sessionType)) ?? applied.get(sessionType.id) ?? sessionType.type, sessionType);
+  } else openForEditing(sessionType);
   for (const id of ['type-pick', 'run-all']) document.getElementById(id).hidden = false;
   drawTypePick();
-  document.getElementById('note').textContent = `${read.words}${read.truncated ? ' (stopped at 5000 files)' : ''}`;
+  // What was imported and what was skipped (an owner's -sup.stl, a scan no longer there) stays on the totals line:
+  // in the stage's note it was wiped by the first model to load, so the skipped files were never seen.
+  session.words = `${read.words}${read.truncated ? ' (stopped at 5000 files)' : ''}`;
   onlyLook = false;
   current = Math.max(0, at ? read.cases.indexOf(at) : 0);
   cases = sessionRows();
@@ -3404,12 +3462,15 @@ async function sessionFromReview() {
   const read = await fetch('/import', { method: 'POST', body: JSON.stringify({ paths: sources }) }).then((r) => r.json()).catch((error) => ({ error: error.message }));
   if (read.error) return `its scans could not be opened: ${read.error}`;
   if (read.cases.length === 0) return `none of its scans can run: ${read.words}`;
-  if (!catalogNow && !(await loadCatalog())) return 'the type list could not be read';
-  const ran = reviewTypeUrl ? await fetch(reviewTypeUrl).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null;
+  if (!(await loadCatalog())) return 'the type list could not be read';
   // The scan that was on screen stays on screen (the server answers resolved Windows paths; the summary may not).
   const plainPath = (p) => p.replace(/\\/g, '/').toLowerCase();
   const at = caseNow?.source ? read.cases.find((c) => plainPath(c) === plainPath(caseNow.source)) ?? null : null;
-  startSession(kindNow, read, { carry: true, typeId: ran?.id ?? null, at });
+  // An unsaved draft already kept for the built-in would be replaced by this carry: the person decides, never silently.
+  const builtIn = (catalogNow?.types ?? []).find((t) => t.builtIn && t.category === kindNow);
+  const kept = builtIn && drafts.get(draftKey(builtIn));
+  const carry = !kept || window.confirm(`There are unsaved edits kept for a new type based on ${builtIn.name} ("${kept.profile?.name?.en ?? kept.id}"). Replace them with this folder's edits? Cancel opens the kept edits instead.`);
+  startSession(kindNow, read, { carry, at });
   return null;
 }
 
@@ -3426,25 +3487,35 @@ typePick.addEventListener('change', () => {
   // away to compare never throws work away.
   keepDraft();
   sessionType = sessionTypes().find((t) => t.id === typePick.value) ?? sessionType;
-  openTypeInEditors(drafts.get(draftKey(sessionType)) ?? applied.get(sessionType.id) ?? sessionType.type, sessionType);
+  openForEditing(sessionType);
+  // Show the new type, not a compare flipped to the old one; the compare list drops the type now open; the last
+  // Apply / Save words were about the type left.
+  flipped = false;
+  drawTypePick();
+  const status = document.getElementById('bench-status');
+  if (status) status.textContent = '';
   drawSession();
 });
 // Edits made in this session are kept for a reload too, not only for a switch of type.
 addEventListener('pagehide', () => keepDraft());
-document.getElementById('run-all').addEventListener('click', () => session?.scans.forEach((_, k) => runScan(k)));
+document.getElementById('run-all').addEventListener('click', () => session?.scans.forEach((_, k) => runScan(k, 'stopped')));
 document.getElementById('run-stop').addEventListener('click', () => stopSession());
 document.getElementById('cache-clear').addEventListener('click', async () => {
   if (!window.confirm('Delete every kept run? The scans and the types are not touched; a scan runs again when you open it.')) return;
   const read = await fetch('/cache-clear', { method: 'POST' }).then((r) => r.json()).catch((error) => ({ error: error.message }));
   if (read.error) document.getElementById('note').textContent = read.error;
-  if (session) { session.results.clear(); drawSession(); }
+  // Forget the results only when they are gone: a refused clear (a run is going) deletes nothing.
+  else if (session) { session.results.clear(); drawSession(); }
   refreshCacheSize();
 });
 // The banner's seconds while a scan runs.
 // ... and "before your edits" as soon as an editor changes (every editor redraws differently; once a second is enough).
+// ... and the unsaved edits are kept as they are made (plan section 2 step 5), not only on a switch or as the page goes:
+// keepDraft posts only a change, so a quiet page sends nothing.
 setInterval(() => {
   if (!session) return;
   if (shown()[current]?.session?.state === 'running') redrawSessionState(); else drawBanner();
+  keepDraft();
 }, 1000);
 /** The list, the banner and the case card from the session as it is now, without reloading the case on screen. */
 function redrawSessionState() {
@@ -3457,7 +3528,7 @@ function redrawSessionState() {
 
 const served = await fetch('/out/summary.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
 reviewServed = Boolean(served);
-if (served) openRun(served, (name) => `/out/${name}`, '/out/summary.csv', '/out/type.json');
+if (served) openRun(served, (name) => `/out/${name}`, '/out/summary.csv');
 else empty('Import scans (top) to run them with any type, or drop a batch-... review folder from dentalwork/output here.');
 // The scan session needs the server's type list; without it the bar stays hidden and the note says why.
 // A server is behind the page whenever its type list answers, with or without a review folder: the Type strip, Apply
@@ -3543,9 +3614,13 @@ try {
     // saved), and its kept draft is dropped; a run already applied stays on screen until another Apply.
     if (session) {
       drafts.delete(draftKey(sessionType));
+      // The applied draft too: kept, it came back on the next switch of type, and on a built-in the saved picture
+      // could not be reached again (Apply refuses a built-in's own id) - Fable, 2026-11-26.
+      applied.delete(sessionType.id);
       fetch('/draft', { method: 'POST', body: JSON.stringify({ key: draftKey(sessionType), draft: null }) }).catch(() => undefined);
       openTypeInEditors(sessionType.type, sessionType);
       scheduleTiltPreview();
+      drawSession();
       status.textContent = `Changes discarded: ${sessionType.name} as it was saved.`;
       return;
     }
@@ -3569,11 +3644,24 @@ try {
     // older one; the server refuses a draft that never ran, or one that would hide a newer save.
     if (session) {
       const draft = draftFromEditors();
+      // A built-in is read-only: saving it under its own id would write a file the app always refuses.
+      if (sessionType.builtIn && draft.id === sessionType.id) {
+        status.textContent = `Not saved: ${sessionType.name} is built in and read-only. Give the new type its own id and name in the Type strip (or Duplicate), Apply, then Save.`;
+        return;
+      }
       const sameType = draft.id === sessionType.id && !sessionType.builtIn;
-      const answer = await fetch('/save-draft', { method: 'POST', body: JSON.stringify({ draft, openedStamp: sameType ? sessionType.stamp : null }) })
+      const answer = await fetch('/save-draft', { method: 'POST', body: JSON.stringify({ draft, openedStamp: sameType ? openedStamp : null }) })
         .then((r) => r.json()).catch((error) => ({ error: `the server did not answer: ${error.message}` }));
       if (!answer.ok) { status.textContent = `Not saved: ${answer.error ?? 'no answer'}`; return; }
       if (answer.same) { status.textContent = `Nothing new to save: ${answer.path} already holds exactly this.`; return; }
+      // Written, but the app refuses it (a pinned rule it cannot start from, say): the editors and the draft stay as
+      // they are, so the work is not left only in a file the workbench cannot open.
+      if (answer.typeLoad?.loads === false) {
+        await loadCatalog();
+        drawTypePick();
+        status.textContent = `Saved ${answer.path}, but the app will NOT load it: ${answer.typeLoad.reason}. Your edits are kept here - fix them and Save again (a newer save replaces it), or delete that file.`;
+        return;
+      }
       const before = sessionType;
       await loadCatalog();
       applied.delete(before.id);
@@ -3583,10 +3671,10 @@ try {
       drawTypePick();
       openTypeInEditors(sessionType.type, sessionType);
       drawSession();
-      const load = answer.typeLoad?.loads === false ? ` The app will NOT load it yet: ${answer.typeLoad.reason}.` : ' The app will load it.';
-      // A new id (a duplicate, an id rename) leaves the opened type as it was: projects store the id.
+      // A new id (a duplicate, an id rename) leaves the opened type as it was: projects store the id. (Its name cannot
+      // clash with the new one: the server refused that before writing, typeSaves.mjs clashRefusal.)
       const kept = draft.id !== before.id && !before.builtIn ? ` ${before.name} (${before.id}) is untouched and keeps loading - projects that use it still open with it; to retire it, delete its files in types/${before.category}/.` : '';
-      status.textContent = `Saved ${answer.path} (run on ${answer.scans} scan(s)).${load}${kept} To share it, commit and push that one file: git add "${answer.path}", then git commit, then git push.`;
+      status.textContent = `Saved ${answer.path} (run on ${answer.scans} scan(s)). The app will load it.${kept} To share it, commit and push that one file: git add "${answer.path}", then git commit, then git push.`;
       return;
     }
     // A REVIEW FOLDER saves nothing itself (its overwrite Save is retired): its scans open as a session with the
@@ -3598,13 +3686,13 @@ try {
   });
   const run = document.getElementById('bench-run');
   const applyNow = async ({ auto = false } = {}) => {
-    // A run is going: an Orient edit waits for it (the finally below), a second press does nothing.
     // An edit undone before its run started: the review on screen already is that graph.
     if (auto && orientLib && ranThis(orientLib, orientGraph, ranOrientGraphJson)) return;
     // A REVIEW FOLDER runs nothing itself (its piecemeal re-run is retired): its scans open as a session with the
     // editors' values as a draft (sessionFromReview), and the Apply below runs that draft like any session's. An
     // Orient edit's own auto-run never makes that move unasked: its status line says Apply does.
-    if (!session) {
+    const fromFolder = !session;
+    if (fromFolder) {
       if (auto) return; // autoRunOrient waits for a session; a timer left from one that closed does nothing
       status.textContent = 'Opening this folder\'s scans as a session with your edits…';
       const why = await sessionFromReview();
@@ -3632,12 +3720,14 @@ try {
     // session's own runs (kept, two at a time; reviewer overhaul step 8). A built-in is read-only: its edits become a
     // new type, which needs its own id.
     if (sessionType.builtIn && typeName.trim() === sessionType.id) {
-      status.textContent = `${sessionType.name} is built in and read-only: give the new type its own id in the Type strip above the stages, then Apply - it becomes a new type based on ${sessionType.name}.`;
+      status.textContent = `${sessionType.name} is built in and read-only: give the new type its own id and name in the Type strip above the stages (or press Duplicate), then Apply - it becomes a new type based on ${sessionType.name}.`;
       return;
     }
     const draft = draftFromEditors();
     if (draftLib.runPrint(draft) === draftLib.runPrint(sessionRunType())) {
-      status.textContent = 'Nothing to run: the scans already show these settings. A new name or badge alone needs no run - Save keeps it.';
+      // Just moved from a review folder with nothing edited: the scans run with the type as it is (they are running).
+      status.textContent = fromFolder ? `This folder's scans are open as a session with ${sessionType.name}, and run as you open them (or Run all). Edit, then Apply to try your changes.`
+        : 'Nothing to run: the scans already show these settings. A new name or badge alone needs no run - Save keeps it.';
       return;
     }
     applied.set(sessionType.id, draft);

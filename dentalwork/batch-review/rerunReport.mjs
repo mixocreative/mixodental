@@ -4,6 +4,9 @@
 // each of these let a failure read as a success. No DOM, no node:* - the page and serve.mjs both import it. (The
 // name is older than the scan session: the review folder's re-run it was written for is retired, 2026-11-26.)
 
+import { isDefault as isStandardZone } from './nodeGraph.mjs';
+import { isDefault as isStandardOrient } from './orientGraph.mjs';
+
 /**
  * The line of a run's log that says why it did not run, or undefined. The engine's own refusal first,
  * then benchwork's; "Nothing ran. 1 problem(s):" is a header, so the problem under it is joined on.
@@ -27,10 +30,11 @@ export function notApplied(type, summary) {
   // An aligner run always records "default" (typeInForce.ts putInForce leaves the zone graph alone: the aligner chain
   // reads none), while its type may carry the locked aligner graph - checking it would cry wolf on every aligner run.
   if (type?.category !== 'denture') return null;
-  if (type?.zoneGraph && (summary?.zoneGraph ?? 'default') === 'default') {
+  // A type that writes the STANDARD graph out in full asked for the default, so "default" is the right answer for it.
+  if (type?.zoneGraph && !isStandardZone(type.zoneGraph) && (summary?.zoneGraph ?? 'default') === 'default') {
     return 'the run finished, but its zone graph was NOT applied: its summary says the default graph ran';
   }
-  if (type?.orientGraph && (summary?.orientGraph ?? 'default') === 'default') {
+  if (type?.orientGraph && !isStandardOrient(type.orientGraph) && (summary?.orientGraph ?? 'default') === 'default') {
     return 'the run finished, but its Orient graph was NOT applied: its summary says the standard Step 1 ran';
   }
   return null;

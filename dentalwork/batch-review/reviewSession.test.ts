@@ -29,5 +29,7 @@ describe('the scan session: imported scans, the type they run with, and what eac
     expect(bannerOf({ ...base, run: { state: 'queued' } })).toMatch(/waiting for a free run slot/);
     expect(bannerOf({ ...base, run: { state: 'failed', error: 'no rim found' } })).toMatch(/the run failed: no rim found/);
     expect(bannerOf({ ...base, run: { state: 'not run' } })).toMatch(/not run yet/);
+    // Stop is kept as its own state (Fable, 2026-11-26): "not run" made the page start the scan again on opening it.
+    expect(bannerOf({ ...base, run: { state: 'stopped' } })).toMatch(/stopped, press Run/);
   });
 });

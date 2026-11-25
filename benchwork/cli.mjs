@@ -36,6 +36,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BENCH_RULES, parseSets, stampNow, unreadBy } from './rules.mjs';
 import { steepAngleProblem } from '../dentalwork/batch-review/nodeGraph.mjs';
+import { viteNodeCli } from '../scripts/viteNodeCli.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
@@ -197,15 +198,16 @@ if (missing.length > 0) {
 }
 
 const out = resolve(valueOf('--out') ?? join(outputRoot, `bench-${stampNow()}`));
-const vite = join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'vite-node.cmd' : 'vite-node');
 
 console.log(`\nbenchwork - ${kind}, ${Object.keys(rules).length} rule(s) turned`);
 for (const [name, value] of Object.entries(rules)) console.log(`  ${name} = ${value}`);
 if (Object.keys(rules).length === 0) console.log('  (none - the profile as it ships, which is the baseline worth looking at first)');
 console.log(`  out: ${out}\n`);
 
-const child = spawn(vite, ['--script', join('dentalwork', 'batch-review', 'batch.ts'), '--kind', kind, '--out', out, ...folders], {
-  cwd: root, stdio: 'inherit', shell: process.platform === 'win32',
+// vite-node's own entry under this node, NO shell: through `vite-node.cmd` with `shell: true`, Windows got the
+// arguments joined unquoted, so a scan whose file name has a space ran as two paths and "found no .stl" (2026-11-26).
+const child = spawn(process.execPath, [viteNodeCli, '--script', join('dentalwork', 'batch-review', 'batch.ts'), '--kind', kind, '--out', out, ...folders], {
+  cwd: root, stdio: 'inherit',
   // MIXO_TIMERS makes every row report its stage seconds, which is the measurement the interaction design waits on.
   // MIXO_ZONE_GRAPH_FILE only from --zone-graph: one left in the shell would run a graph nobody asked for (cia F8).
   // The type and graph variables reach batch.ts ONLY from these flags: one left in the shell would run a

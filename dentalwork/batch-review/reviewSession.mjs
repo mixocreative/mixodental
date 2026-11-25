@@ -26,7 +26,7 @@ export const resultId = (source, print) => `${source}|${print}`;
 
 /**
  * What one scan with the current type is: `done` with its run (url + the one-case summary), `running` / `queued`,
- * `failed` with the reason, or `not run`.
+ * `failed` with the reason, `stopped` (by Stop: it stays so until Run), or `not run`.
  * @param {ReturnType<typeof newSession>} session
  */
 export const stateOf = (session, id) => session.results.get(id) ?? { state: 'not run' };
@@ -60,6 +60,8 @@ export function bannerOf({ at, count, typeName, run, now = Date.now() }) {
     case 'running': return `${where} - running, ${secondsSince(run.since ?? now, now)} s`;
     case 'queued': return `${where} - waiting for a free run slot`;
     case 'failed': return `${where} - the run failed: ${run.error ?? 'no reason given'}`;
+    // Kept until Run is pressed: a stopped scan that started again on being opened made Stop undo itself.
+    case 'stopped': return `${where} - stopped, press Run to start it`;
     default: return `${where} - not run yet`;
   }
 }
@@ -70,6 +72,6 @@ export function totalsOf(rows) {
   const look = rows.filter((r) => r.needsLook).length;
   const parts = [`${count('done')} of ${rows.length} run`, ...(look ? [`${look} need a look`] : []),
     ...(count('running') ? [`${count('running')} running`] : []), ...(count('queued') ? [`${count('queued')} waiting`] : []),
-    ...(count('failed') ? [`${count('failed')} failed`] : [])];
+    ...(count('failed') ? [`${count('failed')} failed`] : []), ...(count('stopped') ? [`${count('stopped')} stopped`] : [])];
   return parts.join(', ');
 }
