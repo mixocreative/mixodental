@@ -1,0 +1,68 @@
+# Rust/WASM geometry core: architecture as shipped
+
+Status: implemented on branch `codex/dental-rework` (units U0 to U10 of [the ship plan](../SHIP-PLAN.md) and the review fixes after them; this text matches the code at the commit that last changed this file). The ship plan holds the unit-by-unit record. This document describes the boundary and the contract that exist now. It does not claim clinical validation; see [technical-algorithm.md](technical-algorithm.md#what-is-validated-and-what-is-not).
+
+## Purpose and boundary
+
+One Rust geometry engine serves the Three.js editor, the Node review scripts and the tests. A future host (for example Babylon.js) can call the same core. The engine owns every product-controlled 3D calculation: mesh import, weld, centering and display decimation; transforms and handedness; normals, spatial index, raycast and brush projection; dental orientation, trim rims, region and contact strips; the policy results of both modes; generic placement; all support parts (tip, neck, foot, pillar, Tree, Brace, roof, cage, raft, label); the no-support-zone stamp rule; collision, island analysis, bounded repair and the final clearance check. No parallel TypeScript detector or builder remains in production.
+
+TypeScript owns the UI and React state, the camera and gizmo, file selection, the worker lifecycle, settings and project serialization (presets stay TypeScript and reach Rust as validated numbers), and translations. Three.js necessarily creates GPU buffers and draws; the thin adapters may copy returned arrays and pass camera matrices into WASM. They must not decide placement, test collisions or compute the dental mask. `scripts/geometry-guard.mjs` enforces this (see [the inventory](wasm-geometry-inventory.md) and [support-module-boundaries.md](support-module-boundaries.md)).
+
+The core imports no React, Three.js, DOM, Vite or browser service.
+
+## Crates and layers
+
+- `crates/geometry-core`: pure Rust library. Folders `core/`, `supports/`, `generic/`, `dental/`. Layers are one-way: `core -> supports -> generic, dental`; `crates/geometry-core/tests/layers.rs` fails on an upward import. Native `cargo test` runs the same code that ships.
+- `crates/geometry-wasm`: the `wasm-bindgen` wrapper. Production files: `lib.rs` (session, version), `import.rs`, `transform.rs`, `spatial.rs`, `overlay_calls.rs`, `dental.rs` + `dental_area.rs` + `dental_review.rs`, `generic.rs`, `safety.rs` (`generate`, `PolicyHandle`, check). Test-only calls live in `dental_test_abi.rs` and `generic_test_abi.rs`, compiled only with the `test-abi` feature. Built for the browser bundler and for Node by `npm run wasm:build` (`scripts/build-geometry-wasm.mjs`, `wasm-pack` 0.15.0 pinned in `package-lock.json`).
+
+Rust was chosen for a separately testable, host-independent numerical engine with explicit array ownership. It was not chosen because WASM is automatically faster; the performance numbers are in [technical-algorithm.md](technical-algorithm.md#performance).
+
+## Runtime contract
+
+- A worker owns one WASM instance and its mesh sessions. A mesh is copied into WASM once, gets an opaque handle and is released explicitly (`release_mesh`). Calls are coarse and take typed arrays. No call is made per face, brush pixel or support triangle.
+- The preview mesh worker keeps one build session per unit (`src/workers/buildSessions.ts`): the unit's model handle, its plate-space copy for the current frame (with that copy's pick index) and the dental `PolicyHandle` made for that frame stay loaded across builds, so a settings change (tip, pillar, raft, label) rebuilds without loading the model, re-indexing it or remaking the policy. A new source token replaces the session, a new frame (a new generate after a move or a turn) replaces the placed copy and the policy, a new policy object (host token) replaces the policy. A lift change keeps the frame (unit L, below), so it reuses the placed copy, its pick index, the policy and the remesh. `forget` (unit removed) and source-cache eviction free the session; a cancel still terminates the worker, which frees every session with its instance. Export runs in a per-job worker with one-shot sessions (`withOneShotSite`). A persistent build is byte-identical to a one-shot build (`scripts/perf/live-engine.ts` asserts it; `src/workers/resultPath.test.ts` checks reuse and that the live handle count returns to 0 after `forget` and after a cancel).
+- **Lift as a plate offset (unit L).** The build frame is the transform the supports were generated at (`supports.data.transform`); the plate is the plane `y = plate_y` in it (`SupportSettings::plate_y`, not in the settings layout; `generate` takes it, engine_version 5). A generate stores no plate (0), so a fresh build is bit-identical to before (goldens unchanged). A lift change (`liftCommands`, `src/supports/unitSupports.ts`) moves the unit but keeps the frame and stores `supports.data.plate` = frame y minus the unit's new y (`generationPlate`); a unit turned since its generate takes the new frame instead. `supportJobOf` passes it as `SupportJob.plate`, preview and export alike, so both build the same supports and a reload rebuilds them. In `supports/` every plate-relative part is built as at 0 and raised by `plate_y` (`MeshBuilder::raise_from`: raft, label, Roof / Cage, braces); feet and tree trunks start at it; brace columns and the roof height are measured from it; `raft_top`, the Auto Tree blocker depth and junction floor and the island plate link use it; nothing moves at 0. Island heights come back above the plate. With the exact surface (Low Poly preview) the result equals a fresh generate at the new lift within 1e-5 mm, with the same topology, contacts and verdicts (`src/supports/liftPlate.test.ts`, `generate/tests/plate.rs`). With the voxel remesh (export, full preview) neck normals and model landings come from a grid aligned to the build frame, which no translation reproduces: a fresh generate at another lift is not a translated copy of the first (reference aligner: tips move by up to 2.1 mm between lift 3.5 and 14.7 mm, and at lift 4.5 one tip is left out that lift 3.5 keeps). A lift change keeps the generated tips, necks and landings exactly and changes only what reaches the plate. Reference aligner, Node engine, per-unit session (`scripts/perf/live-engine.ts`): lift change 1455 ms (new frame) -> 603 ms (plate offset), the same as a rebuild with unchanged settings (605 ms).
+- Caches keyed on a mesh's bits (the voxel remesh, `supports/remesh/cache.rs`; the dental detection and distance field, `dental/cache.rs`) use `core::digest::mesh_digest`. A mesh loaded in a `MeshStore` is registered there while loaded, so its digest is computed once per handle instead of on every lookup (about 9 ms per lookup on the 374k-triangle aligner before). `release_mesh` frees only the cache entries of the released mesh (`forget(digest)`), unless another live handle holds the same bits; the other meshes' entries stay warm (a new frame releases the old placed copy, never the model's dental detection). Before E1 every `release_mesh` cleared both caches wholesale.
+- `engine_version` returns the schema number (4 at this revision). The host checks it against `HOST_GEOMETRY_VERSION` (`src/workers/geometryVersion.ts`) on start (`geometryReady`). Rule (in `crates/geometry-core/src/lib.rs`): any changed, added or removed call, argument layout or result shape bumps it together with the host constant and the smoke test.
+- Units are millimetres. Right-handed, +Y up, outward counter-clockwise faces, Euler XYZ radians (`src/core/conventions.ts`). A left-handed host converts at the boundary using the Rust transform. `src/workers/babylonContract.test.ts` checks this contract without loading Babylon.
+- Typed errors with a stable `code` (`INVALID_LENGTH`, `NON_FINITE`, `INVALID_INDEX`, `INVALID_HANDLE`, `BAD_STL`, `NO_MESH` and `CAPACITY` for a mesh over budget; the host maps `CAPACITY` to `over-capacity` with a message per job). A failed or cancelled operation never returns a partial result.
+- One `generate` call runs the whole support pipeline. TypeScript never runs a retry loop.
+- Every `generate` request carries a `revision` (u32), which the call echoes. The host drops a result that does not answer the newest request of its unit and mode. Cancel means terminate and recreate the worker, because a synchronous WASM call cannot be interrupted. Tests check that after a cancel only the newest revision reaches the viewport or export, and that the live handle count returns to 0.
+- Preview, STL export, saved-project reload and the review GLB all take their geometry from the same `generate` and `diagnose` calls. Export refuses stale, failed or inconclusive results (`src/supports/exportGate.ts`).
+
+## ABI
+
+The one authoritative ABI table is in [the ship plan](../SHIP-PLAN.md#contracts) (`ABI` under Contracts): every export of the browser package, with its arguments, free functions apart from `GeometrySession` methods, and the calls that exist only in the Node test package (`--features test-abi`). It is not repeated here, so it cannot drift. The earlier planning names (`import_mesh`, `place_supports`, `diagnose_supports` and so on) were never the exported names.
+
+Two things about the shape are worth knowing without the table:
+- A mesh lives in a `GeometrySession` and is addressed by an opaque handle. The policy is made in the same session (`dental_policy`, `generic_policy`) and handed to `generate` as a `PolicyHandle`; the host never assembles one.
+- Results that carry arrays (`Generation`, `DentalRegionResult`, `Diagnosis`, ...) are objects with `take_*` accessors that hand the typed arrays over once; free them afterwards.
+
+## Behavioral invariants
+
+1. Generic mode keeps its presets, contact edits, no-support zones, structures and raft behavior. Manual supports are never silently removed.
+2. Dental orientation reports confidence and abstains when unsure. It keeps the Step 1 manual gizmo correction.
+3. The dental contact area is the narrow non-cavity-facing strip beside the outer trim rim and, when present, the central-opening rim. Paint can change permission only inside it.
+4. Reachable rim segments get baseline spaced contacts. Every omitted contact, rim gap or unsupported island is reported.
+5. Tips, pillars, Tree and Brace are checked on the finished exact mesh. Roof and cage are off for dental. Intentional bounded contact reach is distinguished from a crossing. Ambiguous cases fail closed (`inconclusive`): a contact end with no face identity, an invalid model triangle, a ring that cannot be measured, and a timeout, which is always `inconclusive` and never `clear` (and never `blocked`, because a partial scan proves nothing).
+6. Preview and export use one accepted result and revision with component and contact attribution kept.
+
+## Testing and golden files
+
+- Native Rust tests: `cargo test --workspace`.
+- WASM and Node: `npm run wasm:build && npm run wasm:test`; browser smoke `python scripts/geometry_wasm_browser_smoke.py` against a running Vite server.
+- TypeScript parity and behavior: `npx vitest run --maxWorkers=1 --testTimeout=60000`.
+- The earlier TypeScript implementations were the test oracle during the port. Every comparison is now a recorded golden file under `scripts/fixtures/golden/`, and the oracle folder is deleted. One shared `core/vec.rs` plus `core/jsnum.rs` (JavaScript-exact `hypot` and rounding) replaced nine copies of the vector math; the golden `thin-slab.tree` is back at its original TypeScript hash since then (the old copy used `sqrt(dot)` where TypeScript used `Math.hypot`). Rule: IDs, tags, triangle indices, omitted counts and verdicts identical; vertex positions within 1e-5 mm. Re-record with `UPDATE_GOLDENS=1 npx vitest run <test file>` after an intended change, and review the diff.
+- Browser walk: `npm run walk`, and `WALK_LOCALES=en,ja,zh-Hant node scripts/walk.mjs` for the locale walk.
+
+## Licence notices
+
+`scripts/third-party-notices.mjs` appends the Rust crates (the normal dependency closure of `mixo-geometry-wasm` for wasm32, from `cargo metadata --locked`) to `dist/THIRD-PARTY-NOTICES.txt`, with licence texts from the registry sources, sorted and reproducible. A copyleft or missing licence text fails the build. `public/THIRD-PARTY-NOTICES.txt` also names the OpenVDB VolumeToMesh port (Apache-2.0: licence text and copyright kept, change stated). The build prints the count; at this revision the notice file holds 83 npm packages and 24 Rust crates.
+
+## Driving the engine without the app
+
+`scripts/host-example.mjs` (`npm run host-example -- <aligner.stl> <out-dir>`) is the example of a host with no React and no import from `src/`: it loads the Node build of the package and calls, in order, the STL sessions, `center_positions_in_place`, `orient_dental`, `propose_dental_region`, `dental_tilt_scan`, `dental_policy`, `generic_policy_contacts` and `generate`, then writes `supported.stl` (the aligner in its print pose plus the supports) and `summary.json` (angle, band, tips placed and left out, crossings, rim gaps, seconds per step, engine version). Each step carries a one-line comment naming its call. On `samples/case-001/aligner.stl` it gives 44.5 degrees, clear, 94 tips, 0 left out, 0 crossings, as the folder review does (Tree off, Brace on: D21).
+
+## Handoff discipline
+
+After each unit, update [the ship plan](../SHIP-PLAN.md) progress table and append evidence to `docs/dental-rework-handoff.md`. When behavior or ownership changes, update `technical-algorithm.md`, `support-module-boundaries.md` and `plain-language.md` in the same change. Never claim clinical validation from one STL.

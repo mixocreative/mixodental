@@ -16,7 +16,7 @@
  * server (`serve.mjs`, plain Node) both read this one rule, so the two can never disagree on which save is in force.
  */
 
-/** The stamp a save carries: UTC date and time, `YYYYMMDD-HHMMSS` (benchwork `stampNow` writes the same). */
+/** The stamp a save carries: UTC date and time, `YYYYMMDD-HHMMSS` (typelab `stampNow` writes the same). */
 export const STAMP = /^\d{8}-\d{6}$/;
 
 /** `<category>/<id>[.<stamp>].type.json` at the end of a path, wherever the glob or the folder roots it. */

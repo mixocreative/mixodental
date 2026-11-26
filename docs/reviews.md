@@ -1793,8 +1793,8 @@ No page layout, no operator sentence in any of the three languages, no preview d
 * **Quote:** line 531, "**declare the row height as an app token in `src/styles.css` and add it to the
   app token table**" — then line 563, "Rows are dense (22px, body 11.5px), radius 2px".
 * **Discrepancy:** the `--row` diagnosis is right and verified (declared only at
-  `dentalwork/batch-review/tokens.css:44`, tabled at `docs/ui-styling.md:478` under the line 466
-  heading "The tokens of `dentalwork/batch-review/tokens.css` **that the app does not have**"). But the
+  `typelab/tokens.css:44`, tabled at `docs/ui-styling.md:478` under the line 466
+  heading "The tokens of `typelab/tokens.css` **that the app does not have**"). But the
   fix is stated as a job, not a spec: no token name, no value, no table row. Then line 563 specifies
   the row with the two numbers from that same forbidden table (`--row` 22px, `--fs-md` 11.5px). Worse,
   "body 11.5px" names the wrong app token class: in this app 11.5px is `--small-size`
@@ -2210,7 +2210,7 @@ range at §8 line 816.
 `scope: 'object'` claim being in exactly the two named places (`src/scenes/README.md:78`,
 `sceneMap.ts:33-37`); the `dentalFinished: []` reset trap (`editingMode.ts:215,219,387`) and
 "Drop an aligner STL…" (`:400`); `DentalKind = 'aligner' | 'denture'` and `isDentalKind`'s only call
-site being CLI parsing in `dentalwork/batch-review/profileSelect.ts:64`; walk `s2` asserting one card;
+site being CLI parsing in `typelab/profileSelect.ts:64`; walk `s2` asserting one card;
 the weld-path correction (glTF via `prepareImport.ts:15`'s `weld_positions_in_place`, STL inside the
 Rust session, `'Welding vertices'` posted by `importWorker.ts:21,49`); diagnose-in-the-worker with only
 the verdict crossing (`importWorker.ts:65`, `prepareImport.ts:63-66,78`); the nine `FillReason` codes
@@ -2220,7 +2220,7 @@ including `''` (`repairMesh.ts:63-73`) and the required third argument with no e
 hanging off `blocking` (`JobActivity.tsx:79`); `ledger`'s shape and `--red` tone
 (`progressTypes.ts:84`); `Progress` carrying `data-ui={progress-${type}}` per type
 (`Progress.tsx:61`) and the first-of-many false gap (`src/progress/README.md:109`); `PROGRESS_TYPES`
-driving the catalogue; `--row` existing only in `dentalwork/batch-review/tokens.css:44` and tabled
+driving the catalogue; `--row` existing only in `typelab/tokens.css:44` and tabled
 under "the tokens the app does not have" (`docs/ui-styling.md:466,478`); `--radius: 2px`
 (`src/styles.css:31`); `CARD_ICON` one entry with a `generic` fallback (`DentalSteps.tsx:46,73`);
 `ALIGNER_PROFILES` carrying `description[lang]`; the five guard tests named in §7 all existing;
@@ -3463,8 +3463,8 @@ These were checked by two or more lenses and found correct:
 
 Surfaced because the constraints are repo-wide; this change does not touch these files.
 
-* **Third-party slicer product names:** `dentalwork/batch-review/viewer.html:149` — `<span class="peel-key owner">owner (Chitubox)</span>`; `PrusaSlicer` at `docs/superpowers/specs/2026-10-21-support-selection-design.md:42` and `docs/superpowers/plans/2026-10-21-support-selection.md:96`.
-* **A named scan file**, against "content hashes only": `dentalwork/batch-review/reviewCase.test.ts:117` — `resolve('dentalwork/fixtures/case-002/aligner002.stl')`.
+* **Third-party slicer product names:** `typelab/viewer.html:149` — `<span class="peel-key owner">owner (Chitubox)</span>`; `PrusaSlicer` at `docs/superpowers/specs/2026-10-21-support-selection-design.md:42` and `docs/superpowers/plans/2026-10-21-support-selection.md:96`.
+* **A named scan file**, against "content hashes only": `typelab/reviewCase.test.ts:117` — `resolve('samples/case-002/aligner002.stl')`.
 
 ---
 
@@ -3929,22 +3929,22 @@ What the earlier runs closed is re-read and reported as covered, not re-derived.
 
 ```
 ROUTE tools/route.py 1 · root S:/ai/mixodental · 592 source files / 56447 lines · 9.1 s · skipped dirs: .git, __pycache__, dist, graphify-out, node_modules, vendor
-SURFACE page=26 (index.html:1 `template file` , kit.html:1 `template file`) · cli=2 (scripts/extract-sup-contacts.py:316 `sys.argv` , scripts/dental-reference/compare_supported.py:7 `import argparse`) · http routes=0, form targets=5 (dentalwork/batch-review/viewer.html:663 `fetch('/reasons.json'` — no handler in tree) · server=package.json:8 `scripts.dev`
+SURFACE page=26 (index.html:1 `template file` , kit.html:1 `template file`) · cli=2 (scripts/extract-sup-contacts.py:316 `sys.argv` , scripts/dental-reference/compare_supported.py:7 `import argparse`) · http routes=0, form targets=5 (typelab/viewer.html:663 `fetch('/reasons.json'` — no handler in tree) · server=package.json:8 `scripts.dev`
   → load surface-map.md §3, journey-map.md §2; browser-walks.md §12 by CLI/API observers (rendering walk possible)
 STATE enums=24 (scripts/check-no-duplicates.mjs:66 supports|workers|state|dental) · renderers for 0 of 4 (none found)  → design-tools.md §4; S16/S22 lead, not a finding
 GRAPH files=592 lines=56447 packages=4 cross-imports=1 (scripts<->src scripts/export-hashes.ts:11) · signals held 2 of 2 scanned, 4 judged by hand (code-graph-tools.md §1: any 2 of 6) → code graph · if a graph (§2, one graph per question): code relationships → graphify explain/path (cgc not on PATH; §3.1: probe it by full path or its MCP tools first, and it comes first if it answers); architecture → graphify · graphify-out/: fresh · graphify: PATH · cgc: not on PATH
 DESIGN top-level modules=4 · ui framework=package-lock.json:11 `react`  → design-tools.md §1–§3
 COMMERCE none (criteria 1–4 of SKILL §0.3: payment dep no · orders/cart/products schema no · /checkout|/cart route no · commerce framework no)
 MEDICAL DESIGN.md:1 `# Design System: mixoDental`  → companion-skills.md meddev row · AI none (§0.10 off: no LLM dep, no prompt dir)
-BINDINGS tests=216 files (dentalwork/batch-review/islandReport.test.ts, unittest, vitest) · runner config=none · ci=.github/workflows/ci.yml · lockfile=package-lock.json · linter config=none · .env=none .env.example=none · docs: none · handoff=docs/handoff/ · gap-register=none · contract files=AGENTS.md, CLAUDE.md, README.md  → §0.5 resolves the commands from these
+BINDINGS tests=216 files (typelab/islandReport.test.ts, unittest, vitest) · runner config=none · ci=.github/workflows/ci.yml · lockfile=package-lock.json · linter config=none · .env=none .env.example=none · docs: none · handoff=docs/handoff/ · gap-register=none · contract files=AGENTS.md, CLAUDE.md, README.md  → §0.5 resolves the commands from these
 COMPANIONS installed: impeccable, mixo-app-style, kubai-icons, stitch, meddev-iec-62366-usability, meddev-iso-14971, meddev-state-machines, meddev-traceability, fmea-analysis, rcca-master, five-whys-analysis, fishbone-diagram, fault-tree-analysis, trade-study-analysis, kepner-tregoe-analysis, egm:egm-draft, egm:egm-review, token-economy-delegation, pstack:thermo-nuclear-code-quality-review, security-review, gemini, skills-hub · other skills 166 · CLIs: graphify, gh, docker, npx, playwright, stitch, codex, claude · missing: design:accessibility-review, design:ux-copy  → companion-skills.md §3
 UNKNOWN not scanned: callers outside the tree (cron, systemd, CI of another repo), dynamic route registration, templates outside *.html/*.jinja/*.twig/*.tpl/*.vue/*.svelte  (evidence.md §E5 boundary)
 ```
 
 Overrides taken against the block, each with the evidence that outweighs it:
 
-- **`dentalwork/batch-review/viewer.html:663`'s `fetch('/reasons.json')` is not a handler-less form
-  target**: it is a local review viewer served by `dentalwork/batch-review/serve.mjs`, which serves
+- **`typelab/viewer.html:663`'s `fetch('/reasons.json')` is not a handler-less form
+  target**: it is a local review viewer served by `typelab/serve.mjs`, which serves
   that file. Checked, not a finding.
 - **MEDICAL** fires on `DESIGN.md`'s title, which is a design-system document. The product's own
   words are *"Not clinically validated: check every result before printing"* (`README.md`). No
@@ -4003,7 +4003,7 @@ its own `document` and `localStorage` and is the only one that comes close.
 | `components/JobActivity.tsx` + `host/workers/jobActivity` | **1→operator** | every background job → the one list that remembers failures |
 | the vitest suite (217 files), the 58 source-reading guards | **3\*** | the code → its own rules |
 | `scripts/walk.mjs` (186 checks) | **3\*** | the built app in a real browser |
-| `scripts/real-scan-gate.mjs` + `dentalwork/baselines/` | **3\*** | 13 real scans → a committed baseline |
+| `scripts/real-scan-gate.mjs` + `scripts/baselines/` | **3\*** | 13 real scans → a committed baseline |
 | `scripts/geometry-wasm-smoke.mjs`, `vendor-geometry.mjs --check`, `check-no-duplicates.mjs`, `geometry-guard.mjs` | **3\*** | the vendored engine and the TS/Rust boundary |
 | `.github/workflows/ci.yml` | **3\*** | a `milestone-*` tag or a dispatch → tests, screens, build, two walk shards, the Pages deploy |
 | `vendor/mixo-geocore` (engine 63, `b5a71ab`) | **4** | consumed as built; never edited here |
@@ -4070,7 +4070,7 @@ export kinds, Cancel/Dismiss on `JobActivity`.
 Quoted: `onClick={() => onPick(tool)}` — `deck/ToolRail.tsx:75`, the press the component used to
 destructure and never call.
 **S5.1:** 40 scripts under `scripts/`; nine have a `package.json` caller, the rest are operator
-tools whose exact commands are printed where they are used (`dentalwork/fixtures/README.md`). None
+tools whose exact commands are printed where they are used (`samples/README.md`). None
 writes state the product reads at runtime. No dead maintenance control.
 
 **S6 — deferred-work residue.** Swept, 0 findings. `TODO|FIXME|XXX|HACK` over `src/`, `scripts/`,
@@ -4079,12 +4079,12 @@ cosmetic and named. Every "for now" / "until then" hit was read: all are explana
 already taken.
 
 **S7 — skipped tests are unverified.** **1 finding (MIXO-08).** On this machine: `1588 passed |
-1 skipped`; the skip is `dentalwork/batch-review/reviewCase.test.ts:118` (`CASE_002`, a fixture this
+1 skipped`; the skip is `typelab/reviewCase.test.ts:118` (`CASE_002`, a fixture this
 machine does not hold). The sweep's real result is the other six `describe.skipIf` gates:
 `src/denture/check/ruleSpots.real.test.ts:22`, `src/denture/engine/dentureCore.test.ts:31`,
 `src/denture/steps/supports/rigidMove.real.test.ts:39`,
 `scripts/dental-region-review/openArch.test.ts:14`,
-`dentalwork/batch-review/profileSelect.test.ts:52`, `reviewCase.test.ts:144`.
+`typelab/profileSelect.test.ts:52`, `reviewCase.test.ts:144`.
 
 **S8 — a written test is not a run test.** One test was added this run
 (`src/items/thumbnail.test.ts`, "is a row the flow has TURNED"). It was **watched to fail first** —
@@ -4123,14 +4123,14 @@ recorded orphans re-read and still recorded, so not re-filed: `items/rowState.ts
 `verdictOfRepair` / `offersRepair` and the repair rail (named in `src/items/README.md` and the
 2026-11-09 review), and the printer-profile seam.
 **S13.1:** `scripts/real-scan-gate.mjs:21` `SETS` is a hand-written map of three fixture folders
-beside a `dentalwork/fixtures/` that holds four. The fourth, `case-001`, is a copy of the public
-reference aligner already covered by the suite (`dentalwork/fixtures/README.md` says so) —
+beside a `samples/` that holds four. The fourth, `case-001`, is a copy of the public
+reference aligner already covered by the suite (`samples/README.md` says so) —
 **checked, not a finding**, and named as LOW debt because nothing would notice a fifth.
 
 **S14 — scope shadow.** This run is whole-repository at Screen depth. **Not walked this run**, named
 rather than omitted: the denture flow's own screens (last walked 2026-11-02), the three locales at
 narrow widths, the Blender-parity corpus (`tools/blender-parity/`, left as prior runs proved it),
-`dentalwork/batch-review/` beyond the real-scan gate, and `vendor/mixo-geocore`'s internals, which
+`typelab/` beyond the real-scan gate, and `vendor/mixo-geocore`'s internals, which
 this repo consumes as built.
 
 **S15 — the four-corner end-to-end walk.** Covered for the dental flow by the 2026-11-09 walk §4–§6b
@@ -4530,7 +4530,7 @@ claim the batch and import it as plain models (it is the one purpose that needs 
 **Invariant.** A check that examined nothing does not report like a check that examined everything.
 
 **Evidence.** `scripts/real-scan-gate.mjs:44`:
-`if (scans.length === 0) { console.log('real-scan gate: skipped, no local scans (dentalwork/fixtures/case-*).'); process.exit(0); }` —
+`if (scans.length === 0) { console.log('real-scan gate: skipped, no local scans (samples/case-*).'); process.exit(0); }` —
 before the baseline is read. The committed baseline names **13 cases**, and `compareRuns` treats a
 baseline case that did not run as a difference (line 46) — but that code is never reached on the
 blind path. So on CI, on a fresh clone, or on a machine whose git-ignored patient fixtures are
@@ -4547,7 +4547,7 @@ ran`) when a baseline with cases in scope exists and no scan was found.
 **Severity: MEDIUM · Confidence: CONFIRMED · VSM 3\* · Class: vacuous pass (S7)**
 
 **Evidence.** Seven `describe.skipIf` gates (sites on the S7 line) plus `gate:real` all stand on
-`dentalwork/fixtures/`, which is git-ignored patient data. On CI they all skip and `npm test` prints
+`samples/`, which is git-ignored patient data. On CI they all skip and `npm test` prints
 a green line; nothing compares the skip count against an expected number, which is this sweep's
 whole rule (`Skipped: N` is reported as *N unverified*).
 
@@ -4649,7 +4649,7 @@ the owner's call the night before a human test; with the standing goal in force 
 measurement said it was cheap: **2 failures out of 1627**, one cause. vite-node's CLI moved from the
 package root to `dist/cli.mjs` between majors and two tests held the old literal path. vite-node is
 now a direct devDependency (vitest 5 stopped pulling it in, and `npm run screens` needs it) and
-`dentalwork/batch-review/viteNodeCli.ts` resolves it through the package's own `exports`, so the next
+`typelab/viteNodeCli.ts` resolves it through the package's own `exports`, so the next
 major cannot move it again. One test also now checks `run.error` before its stderr regex: the real
 fault was "cannot find module" and it surfaced as a regex mismatch.
 
@@ -4865,7 +4865,7 @@ is a stale copy. It blocks no obligation, and it is the public document a contri
    that failure written down. A forgery planted in `src/ui/theme.ts` was caught instantly and by
    name. Finding withdrawn; the probe is why it never reached the list.
 2. **I expected `case-001` to be a real-scan the gate silently omits.** It is a copy of the public
-   reference aligner that the suite already covers, and `dentalwork/fixtures/README.md` says so.
+   reference aligner that the suite already covers, and `samples/README.md` says so.
    Checked before filing; not a finding.
 
 **And one thing I changed by accident, reported because it is a change.** The forgery probe required

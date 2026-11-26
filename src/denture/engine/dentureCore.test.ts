@@ -23,10 +23,10 @@ describe('withUnitIds', () => {
 });
 
 /*
- * The smallest local denture scan (dentalwork/fixtures/case-denture, git-ignored customer data), read in place.
+ * The smallest local denture scan (samples/case-denture, git-ignored customer data), read in place.
  * Local only: skipped when absent, so CI never needs it.
  */
-const DIR = resolve('dentalwork/fixtures/case-denture');
+const DIR = resolve('samples/case-denture');
 const SMALLEST = existsSync(DIR) ? readdirSync(DIR).filter((name) => name.toLowerCase().endsWith('.stl') && !name.includes('-sup')).map((name) => join(DIR, name)).sort((a, b) => statSync(a).size - statSync(b).size)[0] : undefined;
 
 describe.skipIf(!SMALLEST)('denture pipeline (local real scan)', () => {

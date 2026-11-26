@@ -4,9 +4,9 @@ import { parseDentureProfile } from '@mixo-geocore/host/dental/dentureProfiles';
 import { DENTURE_PROFILE_FILES } from '@mixo-geocore/host/dental/dentureProfileFiles';
 import { PROFILE_FILES } from '@mixo-geocore/host/dental/profileFiles';
 import { RULE_NAMES } from '@mixo-geocore/host/supports/generateRules';
-import { unreadBy } from '../../benchwork/rules.mjs';
-import { alignerGraph, defaultGraph, setParam, steepAngleProblem, validate } from '../../dentalwork/batch-review/nodeGraph.mjs';
-import { defaultGraph as orientDefault, flatBaseGraph, validate as validateOrient } from '../../dentalwork/batch-review/orientGraph.mjs';
+import { unreadBy } from '../../typelab/rules.mjs';
+import { alignerGraph, defaultGraph, setParam, steepAngleProblem, validate } from '../../typelab/nodeGraph.mjs';
+import { defaultGraph as orientDefault, flatBaseGraph, validate as validateOrient } from '../../typelab/orientGraph.mjs';
 import {
   TYPE_FILE_FORMAT, badgeProblem, draftOf, graphText, proofOf, readTypeFile, typeDigest, typeFileText, type TypeFile, type TypeFileDeps,
 } from './typeFile';

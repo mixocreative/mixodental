@@ -31,7 +31,7 @@ code. Lines marked UNVERIFIED were read about, not measured.
   it once a newer save exists; drafts are kept as edits are made, and before an import or a review folder replaces
   the session; Discard also drops the applied draft; New type opens the built-in; the compare says when the other run
   failed; a refused cache clear forgets nothing; the run check moved to the server, so a run that ignored its graph is
-  never cached or counted as proof. Found while testing them: a scan whose file name had a space never ran (benchwork
+  never cached or counted as proof. Found while testing them: a scan whose file name had a space never ran (typelab
   and the server spawned vite-node through a shell, which split the path) - all three now start vite-node's own entry
   with no shell; the type list was read once, so a save deleted by hand stayed listed - the server watches types/.
 - **Fable's sign-off round** (same night, on the fixed code): an id already used in the OTHER category is refused too
@@ -44,7 +44,7 @@ code. Lines marked UNVERIFIED were read about, not measured.
   badge-only second save, rollback by deleting the newest file by hand, and the list following the folder. One gap
   found and fixed: Save showed nothing while it worked (half a minute on a freshly started server) - it now says
   "Saving..." at once and is greyed until the answer.
-- **The review-folder bridge on every folder in dentalwork/output, in a real browser** (2026-11-26, 42 folders, a
+- **The review-folder bridge on every folder in typelab/output, in a real browser** (2026-11-26, 42 folders, a
   Playwright probe: start the workbench on the folder, press Apply, record the page, stop the run): 36 open as
   sessions on their category's built-in, 6 that only ever ran a `-sup` reference are refused in words. It found two
   gaps, fixed: the page's default type id `workbench.denture` (left from the retired folder Apply) made an untouched
@@ -55,7 +55,7 @@ code. Lines marked UNVERIFIED were read about, not measured.
   printed on the mark - the canvas mark says where the value was saved.
 
 Companion pages: `docs/WORKBENCH-TABS-PLAN.md` (the five tabs), `docs/TYPE-PIPELINE.md` (the type file),
-`types/README.md`, `dentalwork/batch-review/README.md`.
+`types/README.md`, `typelab/README.md`.
 
 ---
 
@@ -127,7 +127,7 @@ it. Git keeps the history.
 
 **b. One way to run a type.** Today the page sends pieces (pose, placement, graphs, rules) and the server rebuilds a
 draft from the built-in (`typeInForce.ts:67-96`), which is why a saved type cannot be opened. New: the page holds the
-whole type file as the draft and sends it whole; the server runs benchwork with `--type` on it - a path that already
+whole type file as the draft and sends it whole; the server runs typelab with `--type` on it - a path that already
 exists (`MIXO_TYPE_FILE`, `typeInForce.ts:61`). Previews use the same file.
 
 **c. What the page keeps**
@@ -137,7 +137,7 @@ exists (`MIXO_TYPE_FILE`, `typeInForce.ts:61`). Previews use the same file.
 - **Results:** by scan fingerprint + type fingerprint + engine version, each pointing at a one-case run folder. The
   type fingerprint leaves out name, badge and proof, so a rename keeps its results. Undoing an edit finds the old
   result again at once.
-- **Cache size** is shown with a Clear button: `dentalwork/output/` already holds about 3.3 GB.
+- **Cache size** is shown with a Clear button: `typelab/output/` already holds about 3.3 GB.
 
 **d. Restore.** `defaultParam` (`nodeGraph.mjs:448`) already takes a standard graph as an argument. Passing the
 opened type's saved graph gives the owner's rule: the same node (id and kind) in the saved type, else the kind's
@@ -200,7 +200,7 @@ canvases stay below the stage.
 
 ## 5. Build order
 
-Each row is one reviewable commit with the test that proves it. No row changes how the app decides, so no benchwork
+Each row is one reviewable commit with the test that proves it. No row changes how the app decides, so no typelab
 round is needed. Row 4 is the hinge: if a whole-file run is not bit-equal to today's piecemeal run, everything after
 it waits. Row 10 changes which file the app loads and gets the full gate with the walk.
 

@@ -33,5 +33,5 @@
   // nothing typechecked it - its unused parameters passed the gate silently until 2026-11-20.
   // scripts/dental-region-review is the batch's aligner review; tsc never read it, and a call left
   // without its new argument (appSettings(), 2026-11-20) reached a real run before anything noticed.
-  "include": ["src", "vendor/mixo-geocore/host", "vendor/mixo-geocore/editing", "vite.config.ts", "dentalwork/batch-review/nodeEditor/*.tsx", "scripts/dental-region-review/*.ts"]
+  "include": ["src", "vendor/mixo-geocore/host", "vendor/mixo-geocore/editing", "vite.config.ts", "typelab/nodeEditor/*.tsx", "scripts/dental-region-review/*.ts"]
 }

@@ -21,12 +21,12 @@
     "walk": "node scripts/walk.mjs",
     "walk:locales": "node scripts/walk.mjs --locales=en,ja,zh-Hant",
     "check:duplicates": "node scripts/check-no-duplicates.mjs",
-    "benchwork": "node benchwork/cli.mjs",
+    "typelab": "node typelab/cli.mjs",
     "gate": "node scripts/gate.mjs",
     "gate:nogl": "node scripts/no-webgl-gate.mjs",
     "gate:real": "node scripts/real-scan-gate.mjs",
     "gate:tier": "node scripts/real-scan-tier.mjs",
-    "review": "node dentalwork/batch-review/serve.mjs",
+    "review": "node typelab/serve.mjs",
     "review:editor": "vite build --config vite.editor.config.ts"
   },
   "browserslist": [

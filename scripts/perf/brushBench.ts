@@ -7,7 +7,7 @@ import { parseStlBytes } from '../../src/workers/stlSession';
 /*
  * Brush step timing in a real browser: one pointer step (stroke point -> hit ids) on the recorded
  * aligner camera and strokes through the Rust path (one project_brush call per step, nothing cached).
- * (The TS oracle comparison was retired in U9; its recorded timings are in dentalwork/perf-baseline.json.)
+ * (The TS oracle comparison was retired in U9; its recorded timings are in scripts/perf/perf-baseline.json.)
  * Run by scripts/brush_perf.py, which serves the app with vite.
  */
 

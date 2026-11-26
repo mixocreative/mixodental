@@ -15,12 +15,12 @@ import { dentureJobOf } from './dentureBuildJob';
 import { isRigidPlateMove, keepsBuild } from './rigidMove';
 
 /*
- * The proof behind keep-and-move (P7b item 2). On the real denture scan #1 (dentalwork/fixtures/case-denture, read
+ * The proof behind keep-and-move (P7b item 2). On the real denture scan #1 (samples/case-denture, read
  * in place, git-ignored customer data; skipped when absent) the two ways of arriving at the supports after OK's
  * move are compared: the rebuild the app used to run, and the build it keeps and moves with the denture.
  * They must match to 1e-5 mm in positions and exactly in counts, and so must the exported file.
  */
-const DIR = resolve('dentalwork/fixtures/case-denture');
+const DIR = resolve('samples/case-denture');
 const SCAN = existsSync(DIR) ? readdirSync(DIR).filter((name) => name.toLowerCase().endsWith('.stl') && !name.includes('-sup')).sort()[1] : undefined;
 
 /** XYZ Euler of Ry(turn) * R(rotation), so the turn is about the plate's vertical in the world. */

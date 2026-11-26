@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest';
  */
 const STYLESHEETS = [
   'src/styles.css', 'src/styles/layout.css', 'src/styles/theme.css', 'src/fonts.css', 'src/kit/kit.css',
-  'dentalwork/batch-review/tokens.css', 'dentalwork/batch-review/base.css',
+  'typelab/tokens.css', 'typelab/base.css',
 ];
 // Comments stripped first: this very file's explanation of the fault names the deleted token, and a
 // guard that cannot tell code from a note about code reports the note.
@@ -69,10 +69,10 @@ describe('the CSS custom properties', () => {
  * all; `--accent` is declared by the app, so the pooled check passed.
  */
 describe('the folder review page', () => {
-  const page = new TextDecoder().decode(readFileSync('dentalwork/batch-review/viewer.html'));
+  const page = new TextDecoder().decode(readFileSync('typelab/viewer.html'));
   const style = [...page.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(([, css]) => css).join('\n').replace(/\/\*[\s\S]*?\*\//g, ' ');
   const own = new Set<string>();
-  for (const text of [CSS['dentalwork/batch-review/tokens.css'], CSS['dentalwork/batch-review/base.css'], style]) {
+  for (const text of [CSS['typelab/tokens.css'], CSS['typelab/base.css'], style]) {
     for (const [, name] of text.matchAll(/^\s*(--[a-z][a-z0-9-]*)\s*:/gm)) own.add(name);
   }
   // Set from the page's script (`setProperty('--chain-h', ...)`), which is how the divider works.

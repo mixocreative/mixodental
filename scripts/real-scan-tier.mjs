@@ -22,13 +22,13 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Every real-scan block, and the fixture whose absence skips it. Keep in step with the files. */
 const TIER = [
-  { file: 'src/denture/check/ruleSpots.real.test.ts', needs: 'dentalwork/fixtures/case-denture', proves: 'the check follows the denture rules' },
-  { file: 'src/denture/engine/dentureCore.test.ts', needs: 'dentalwork/fixtures/case-denture', proves: 'the denture pipeline end to end' },
-  { file: 'src/denture/steps/supports/rigidMove.real.test.ts', needs: 'dentalwork/fixtures/case-denture', proves: 'keep-and-move equals rebuild-after-move' },
-  { file: 'dentalwork/batch-review/profileSelect.test.ts', needs: 'dentalwork/fixtures/case-denture', proves: 'the denture review profile' },
-  { file: 'scripts/dental-region-review/openArch.test.ts', needs: 'dentalwork/fixtures/case-aligner', proves: 'aligners with no opening contour' },
-  { file: 'dentalwork/batch-review/reviewCase.test.ts', needs: 'dentalwork/fixtures/case-aligner', proves: 'Step 1 evidence after a large print-angle rotation' },
-  { file: 'dentalwork/batch-review/reviewCase.test.ts', needs: 'dentalwork/fixtures/case-002/aligner002.stl', proves: 'case-002 review row and export' },
+  { file: 'src/denture/check/ruleSpots.real.test.ts', needs: 'samples/case-denture', proves: 'the check follows the denture rules' },
+  { file: 'src/denture/engine/dentureCore.test.ts', needs: 'samples/case-denture', proves: 'the denture pipeline end to end' },
+  { file: 'src/denture/steps/supports/rigidMove.real.test.ts', needs: 'samples/case-denture', proves: 'keep-and-move equals rebuild-after-move' },
+  { file: 'typelab/profileSelect.test.ts', needs: 'samples/case-denture', proves: 'the denture review profile' },
+  { file: 'scripts/dental-region-review/openArch.test.ts', needs: 'samples/case-aligner', proves: 'aligners with no opening contour' },
+  { file: 'typelab/reviewCase.test.ts', needs: 'samples/case-aligner', proves: 'Step 1 evidence after a large print-angle rotation' },
+  { file: 'typelab/reviewCase.test.ts', needs: 'samples/case-002/aligner002.stl', proves: 'case-002 review row and export' },
 ];
 
 /*
@@ -37,7 +37,7 @@ const TIER = [
  * which cost one debugging round. `:(exclude)` keeps this file's own prose out of its own count.
  */
 function blocksInTree() {
-  const args = ['grep', '-cF', '.skipIf(', '--', 'src', 'scripts', 'dentalwork', ':(exclude)scripts/real-scan-tier.mjs'];
+  const args = ['grep', '-cF', '.skipIf(', '--', 'src', 'scripts', 'typelab', ':(exclude)scripts/real-scan-tier.mjs'];
   const out = execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' });
   return out.trim().split('\n').filter(Boolean)
     .reduce((total, line) => total + Number(line.slice(line.lastIndexOf(':') + 1)), 0);

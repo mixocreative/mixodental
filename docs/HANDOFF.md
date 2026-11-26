@@ -371,7 +371,7 @@ found on the way. The detail lives in `docs/reviews.md#2026-11-11-cia-audit` und
   the argument for running the gate rather than trusting a green suite** - 1628 tests passed while
   the real-scan gate was dead. The resolver is now ONE module, `scripts/viteNodeCli.mjs`, plain
   `.mjs` so the bare-node gate and the TS tests can both use it (`allowJs`, Bundler resolution),
-  and the duplicate under `dentalwork/batch-review/` is gone.
+  and the duplicate under `typelab/` is gone.
 - **`1f11fb3` MIXO-08** - `npm run gate:tier` is a new gate step. **Seven** `describe.skipIf`
   blocks (not eight) hold the only proofs that run on real patient scans, and they vanish silently
   on a machine without the fixtures. The count now reaches the receipt and the handoff line: **6 of

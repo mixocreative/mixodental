@@ -19,7 +19,7 @@ asking you to remember it.
 | `check-no-duplicates.mjs` | one copy of every shared module (`npm run check:duplicates`) |
 | `geometry-guard.mjs` + `geometry-allowlist.json` | geometry calls go through the allowed surface; the JSON is the reviewed list of exceptions |
 | `no-webgl-gate.mjs` | the app's rules work with no GPU (`npm run gate:nogl`) |
-| `real-scan-gate.mjs` + `real-scan-gate-lib.mjs` + `real-scan-gate.test.mjs` | **every engine change runs against all local real patient scans** (`npm run gate:real`). The scans themselves are git-ignored under `dentalwork/fixtures/case-*` and are never committed |
+| `real-scan-gate.mjs` + `real-scan-gate-lib.mjs` + `real-scan-gate.test.mjs` | **every engine change runs against all local real patient scans** (`npm run gate:real`). The scans themselves are git-ignored under `samples/case-*` and are never committed |
 | `real-scan-tier.mjs` | the tier check over those scans (`npm run gate:tier`) |
 | `step-screens.mjs` | captures a screen per step (`npm run screens`) |
 | `third-party-notices.mjs` + `.test.mjs` + `rust-notices.json` | the notices file, generated after every build; the test keeps it honest |

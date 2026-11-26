@@ -1,6 +1,6 @@
-// Shared by the batch review (dentalwork/batch-review/reviewCase.ts) and the app's Debug layers.
+// Shared by the batch review (typelab/reviewCase.ts) and the app's Debug layers.
 // Renderer-free DATA only: the Step 1 columns and the engine's evidence layers (plain typed arrays).
-// The three.js GLB builder lives in dentalwork/batch-review/orientationEvidenceGlb.ts. Review only.
+// The three.js GLB builder lives in typelab/orientationEvidenceGlb.ts. Review only.
 /*
  * Step 1 evidence for the folder review: what the engine's orientation decided on one scan (the
  * owner's trim method, Rust `dental::trim`) and the layers that show it (`diagnose_orientation`:

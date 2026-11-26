@@ -46,7 +46,7 @@ outer surfaces, not the tissue side under a saddle - but *the proportion is itse
 see before*, and it is the kind of number that decides whether a pose or a ray grid is doing its job.
 
 **The implementation is app-side.** Both masks arrive in
-`dentalwork/batch-review/dentureReviewLayers.ts` (`review.allowedMask`, `review.noSupportMask`, around
+`typelab/dentureReviewLayers.ts` (`review.allowedMask`, `review.noSupportMask`, around
 `:381-384`), so the third layer is `allowed === 0 && noSupport === 0` per face. **No Rust, no wasm
 rebuild, no vendor bump.**
 
@@ -92,7 +92,7 @@ reviewer reads numbers, and a name is a label. Not done.
 
 ## 2. THE LAYOUT, with the node editor in it
 
-Today's reviewer is three regions (`dentalwork/batch-review/viewer.html`): the 3D view, the case list,
+Today's reviewer is three regions (`typelab/viewer.html`): the 3D view, the case list,
 and the facts-plus-layers column, collapsing to one column on a narrow window. The node editor is a
 **fourth region, not a replacement for any of them**, and it goes below the 3D view, full width.
 

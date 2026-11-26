@@ -1,0 +1,265 @@
+/*
+ * One case of the folder review: every scan (STL, GLB or glTF, via scripts/meshFile.ts) under the given folders goes through the app's own dental pipeline
+ * (import, orientation, print-angle search and its confirm, region, placement, Rust `generate` with
+ * its safety and island checks), and
+ * each result is written as a review GLB plus one summary for the viewer (`serve.mjs`). Step 1's
+ * evidence (what the trim decided: `orientationEvidence.ts`) goes into the row and a companion GLB.
+ *
+ *   (driven by batch.ts; tested by reviewCase.test.ts)
+ *
+ * Output names are case-001.glb, case-002.glb...; the original file paths appear only in
+ * summary.json / summary.csv inside the output folder, which Git ignores (patient data).
+ */
+import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
+import type { Vector } from '@mixo-geocore/host/core/vec3';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, extname, join } from 'node:path';
+import { nodeEngine } from '../scripts/node-engine';
+import { readMeshFile } from '../scripts/meshFile';
+import { buildDentalReview, pickPrintAngle } from '../scripts/dental-region-review/build';
+import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
+import { dentalModelRotation, exportDentalRegionReview } from '../scripts/dental-region-review/review';
+import { removeDegenerateTriangles } from '@mixo-geocore/host/core/removeDegenerate';
+import { explainReason } from './reasons';
+import { NO_EVIDENCE, orientationEvidence, orientationLayers, type OrientationEvidence } from '../src/dental/orientationEvidence';
+import { orientationGlb } from './orientationEvidenceGlb';
+import { LAYER_COLOURS } from './layerColours';
+import { alignerRules, buildDentureReview, dentureLayers, reviewProfileId, shapeNote, type DentalKind } from './profileSelect';
+import { peelReport } from './peelReport';
+import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureReviewDetail } from './dentureReviewLayers';
+import { orientNodes } from '@mixo-geocore/host/dental/orientGraph';
+import { transformPoint } from '@mixo-geocore/host/state/transform';
+import { readoutLines, sideAnchors } from './orientReadout';
+import { setDentureDrawnRim, type DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
+
+/** The typelab candidate rim for `file` (see reviewDenture), moved into the centred frame; null when there is none. */
+function candidateRim(dir: string, file: string, centre: Vector): DrawnDentureRim | null {
+  const at = join(dir, `${basename(file, extname(file))}.rim.json`);
+  if (!existsSync(at)) return null;
+  const rim = JSON.parse(readFileSync(at, 'utf8')) as { closed: boolean; points: Vector[] };
+  return { closed: rim.closed, points: rim.points.map(([x, y, z]) => [x - centre[0], y - centre[1], z - centre[2]] as Vector) };
+}
+
+export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
+  /** The Step 1 evidence GLB (trim chains, U ends, trim plane, back arrow) beside `glb`, or ''. */
+  orientationGlb: string;
+  /** What the operator chose for this run (the shape check only verifies it). */
+  kind: DentalKind;
+  /** The shape check's note ('looks like a denture' / 'looks like an aligner') when the file does not look like `kind`; '' otherwise. */
+  shapeNote: string;
+  case: string; source: string; result: 'built' | 'inconclusive' | 'error'; reason: string;
+  /** `reason` in plain words with what to do next (empty when there is no reason). */
+  explanation: string; seconds: number;
+  verdict: string; crossings: number; uncertain: number; islandsUnresolved: number; islandsOutsideArea: number; islandsResolved: number;
+  tipsPlaced: number; tipsLeftOut: number; outerGapMm: number | null; openingGapMm: number | null;
+  rimNeedsReview: boolean; needsLook: boolean; glb: string;
+  /** The print angle the app's Step 1 chose (degrees), its stable band, and whether the confirm held. */
+  printAngleDeg: number | null; stableBand: string; angleReason: string; angleConfirmed: boolean;
+  /** Structures the repair switched off because they crossed the aligner (tree, brace), joined by '+'. */
+  structuresLeftOut: string;
+  /** Collapsed triangles (repeated corner or zero area) the batch removed before processing; 0 = scan untouched. */
+  cleanedDegenerateTriangles: number;
+  /** Denture only: the owner's contacts beside the bare scan (count, median distance to the scan in mm, share of the owner area we cover, share of ours outside it); null when absent. */
+  ownerContacts: number | null; ownerContactsMedianMm: number | null; ownerAreaCoveredPct: number | null; outsideOwnerAreaPct: number | null;
+  /** Denture only: the rim plane's state (fitted, or none); '' for an aligner. Was `middlePlane`, a retired name. */
+  rimPlane: string;
+  /** Denture only: why the rim asked for (a drawn one, or the flat area's edge) could not be used and the found rim was ('' when it was used, or for an aligner). */
+  rimNote: string;
+  /** Denture only: the up decision from the rim, in words ('' for an aligner or no review). */
+  upDecision: string;
+  /** Denture only: the review's tips per source, e.g. 'rim 12 / hole 3 / area 40 / low 2' ('' for an aligner). */
+  tipsBySource: string;
+  /** Denture only: the self-supporting overhang rule's counts ('' with the rule off). */
+  selfSupport: string;
+  traps: string;
+  /** Denture only: tips on an overhang with no free path to the plate (not built). */
+  unsupportableTips: number;
+  /** Left-out tips per engine reason, e.g. 'leave-out:pillar 3' ('' when none). */
+  tipsLeftOutReasons: string;
+  /** Denture: the engine's island report after the build. Resolved = a built tip serves the lowest point; the facts row lists the unresolved ones (height, size, reason). */
+  unresolvedIslands: string;
+  /** Denture only: peel report (peelReport.ts). Largest layer area (mm²) above the raft, ours / the owner print, our max's height, layers where ours is >10% above the owner, most tips on one support tree, trunk/neck area ratio; null when not computed. */
+  peelMaxOurs: number | null; peelMaxOursAtMm: number | null; peelMaxOwner: number | null; peelMaxOwnerAtMm: number | null; peelRaftTopMm: number | null; peelModelOnlyRatio: number | null; peelLayersOver: number | null; maxTipsPerTrunk: number | null; trunkToNeckArea: number | null;
+  /** The per-layer chart data file (`case-001-peel.json`) beside the GLB, or ''; and why the report is missing, if it is. */
+  peelFile: string; peelNote: string;
+  /** The Orient tab's file for this case (`<case>-orient.json`): each node's readout lines and the six named sides, in display space. */
+  orientFile: string;
+  /** The Zones tab's file for this case (`<case>-zones.json` + `.bin`): every zone-graph node's value per face (plan D2). */
+  zonesFile: string;
+  /** Denture only, when MIXO_TIMERS is set: seconds per stage of the flow ('scan 3.1 / policy 0.4 / generate 20 / flow 24'); '' otherwise. */
+  stageTimes: string;
+};
+
+/** Runs one STL through the pipeline; writes `<name>.glb` into `out` when it builds. Never throws: errors land in `row.reason`. */
+export async function reviewCase(file: string, name: string, out: string, kind: DentalKind = 'aligner'): Promise<CaseRow> {
+  const started = performance.now();
+  const { rotation: _unused, ...noEvidence } = NO_EVIDENCE;
+  const row: CaseRow = { kind, shapeNote: '', case: name, source: file, result: 'error', reason: '', explanation: '', seconds: 0, verdict: '', crossings: 0, uncertain: 0,
+    islandsUnresolved: 0, islandsOutsideArea: 0, islandsResolved: 0, unresolvedIslands: '', tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
+    rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
+    ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, rimPlane: '', rimNote: '',
+    upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
+    peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', zonesFile: '', stageTimes: '',
+    ...noEvidence, orientationGlb: '' };
+  let shapeMesh: TriangleMesh | undefined;
+  try {
+    const bytes = readFileSync(file);
+    const mesh = await readMeshFile(bytes, file);
+    // Explicit, reported clean-up (batch only; the interactive import is unchanged).
+    const cleaned = removeDegenerateTriangles(nodeEngine, mesh.positions, mesh.indices);
+    if (cleaned.removed > 0) {
+      mesh.indices = cleaned.indices;
+      row.cleanedDegenerateTriangles = cleaned.removed;
+    }
+    // Centred as the app's import does, so the review sees the same coordinates as the app. The centre
+    // taken here maps the owner's contacts (bare STL frame) to the same frame (denture review).
+    const centre = boundsCentre(mesh.positions);
+    nodeEngine.center_positions_in_place(mesh.positions);
+    shapeMesh = mesh;
+    if (kind === 'denture') {
+      await reviewDenture(file, mesh, name, out, row, centre);
+      return finish(row, started, shapeMesh);
+    }
+    // Step 1 as the app runs it: arch kind and the up/down cross-check go into the row; the evidence
+    // GLB is written below in the review's frame (or Step 1's own pose when nothing was built).
+    const { rotation: step1Rotation, ...evidence } = orientationEvidence(mesh, reviewProfileId('aligner'));
+    Object.assign(row, evidence);
+    const angle = pickPrintAngle(mesh, reviewProfileId('aligner'));
+    if (angle.kind === 'angle') {
+      const { scan } = angle;
+      Object.assign(row, { printAngleDeg: Number(tiltLabel(scan.rows[angle.index]!.tiltDeg)), angleReason: scan.reason, angleConfirmed: angle.confirmed,
+        stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none' });
+    }
+    const review = buildDentalReview(mesh, angle.kind === 'angle' ? angle.rotation : undefined, alignerRules(), reviewProfileId('aligner'));
+    // The evidence takes the model's own transform (lift from the review frame, pose from review.ts), so the overlays sit on the model.
+    const evidenceFrame = review.kind === 'proposal' ? { position: review.frame.position, rotation: dentalModelRotation(mesh) }
+      : step1Rotation ? { position: [0, 0, 0] as [number, number, number], rotation: step1Rotation } : undefined;
+    if (evidenceFrame) {
+      const layers = orientationLayers(mesh, reviewProfileId('aligner'));
+      if (layers.length > 0) {
+        writeFileSync(join(out, `${name}-orientation.glb`), Buffer.from(await orientationGlb(layers, evidenceFrame)));
+        row.orientationGlb = `${name}-orientation.glb`;
+      }
+    }
+    if (review.kind === 'inconclusive') {
+      Object.assign(row, { result: 'inconclusive', reason: review.reason });
+    } else {
+      const { supports } = review;
+      const issues = supports.verdict?.issues ?? [];
+      const islands = supports.islands?.status === 'ok' ? supports.islands.islands : [];
+      // Markers sit on a vertex of the crossed face (or the island's vertex): a lookup, no geometry here.
+      const vertex = (v: number) => [0, 1, 2].map((axis) => mesh.positions[v * 3 + axis]!);
+      const faceVertex = (face: number) => vertex(mesh.indices[face * 3]!);
+      const glb = await exportDentalRegionReview(mesh, review.region,
+        { supports, frame: review.frame, bands: review.bands, diagnosticContacts: review.diagnosticContacts,
+          proposedTips: review.placement.points.length, droppedTips: supports.dropped.length },
+        [
+          { name: 'MARK support crosses the model', color: LAYER_COLOURS.crossingBlocked, points: issues.filter((i) => i.blocked).flatMap((i) => faceVertex(i.modelFace)) },
+          { name: 'MARK crossing that could not be judged', color: LAYER_COLOURS.crossingUnjudged, points: issues.filter((i) => !i.blocked).flatMap((i) => faceVertex(i.modelFace)) },
+          { name: 'MARK low point with no support', color: LAYER_COLOURS.lowUnsupported, points: islands.filter((i) => i.status === 'unresolved').flatMap((i) => vertex(i.vertex)) },
+          { name: 'MARK low point outside the area', color: LAYER_COLOURS.lowOutside, points: islands.filter((i) => i.status === 'outside-policy').flatMap((i) => vertex(i.vertex)) },
+        ]);
+      writeFileSync(join(out, `${name}.glb`), Buffer.from(glb));
+      const rim = supports.dentalRimCoverage;
+      Object.assign(row, {
+        result: 'built', reason: supports.verdict?.reason ?? (supports.islands?.status === 'inconclusive' ? `islands: ${supports.islands.reason}` : ''),
+        verdict: supports.verdict?.status ?? 'none', crossings: issues.filter((i) => i.blocked).length, uncertain: issues.filter((i) => !i.blocked).length,
+        islandsUnresolved: islands.filter((i) => i.status === 'unresolved').length,
+        islandsOutsideArea: islands.filter((i) => i.status === 'outside-policy').length,
+        tipsPlaced: review.placement.points.length - supports.dropped.length, tipsLeftOut: supports.dropped.length,
+        outerGapMm: rim ? +rim.outer.maxGapMm.toFixed(2) : null, openingGapMm: rim ? +rim.opening.maxGapMm.toFixed(2) : null,
+        rimNeedsReview: rim?.needsReview ?? false, glb: `${name}.glb`,
+        structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
+      });
+    }
+  } catch (error) {
+    row.reason = error instanceof Error ? error.message : String(error);
+  }
+  return finish(row, started, shapeMesh);
+}
+
+function finish(row: CaseRow, started: number, mesh: TriangleMesh | undefined): CaseRow {
+  if (row.result !== 'built' && mesh) row.shapeNote = shapeNote(row.kind, mesh);
+  row.explanation = [row.reason ? explainReason(row.reason) : '', row.shapeNote ? `This file ${row.shapeNote}; check the type chosen for the run.` : ''].filter(Boolean).join(' ');
+  row.seconds = +((performance.now() - started) / 1000).toFixed(1);
+  row.needsLook = row.result !== 'built' || row.verdict !== 'clear' || row.islandsUnresolved > 0 || row.rimNeedsReview || row.upCrossCheck === 'disagrees' || row.shapeNote !== '';
+  return row;
+}
+
+/** Layer-name prefixes of the client GLB (`client/<case>.glb`): the result without the debug layers. */
+const CLIENT_LAYERS = ['TEAL denture model', 'SUPPORT PILLARS (ours)', 'Allowed area', 'Dental rim', 'ISLAND NOT resolved', 'ISLAND resolved'];
+
+/** The denture path (profileSelect.ts): upright, print angle, tips, supports; the GLB holds the model, supports and the arch plane. */
+async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out: string, row: CaseRow, centre: Vector): Promise<void> {
+  // TYPE LAB ONLY, opt-in (`MIXO_DRAWN_RIM_DIR`): a candidate rim per case, `<scan stem>.rim.json` = { closed, points } in
+  // the raw STL frame, made by an engine probe (geocore tests/rim_fitting_real.rs, MIXO_RIM_OUT). It goes in as this
+  // case's DRAWN rim - the engine's own slot, so the review draws and supports exactly what the engine did with it -
+  // shifted by the centring above. Set (or cleared) for every case, so one case's candidate never leaks into the next.
+  if (process.env.MIXO_DRAWN_RIM_DIR) setDentureDrawnRim(candidateRim(process.env.MIXO_DRAWN_RIM_DIR, file, centre));
+  const review = buildDentureReview(mesh);
+  if (review.kind === 'inconclusive') {
+    Object.assign(row, { result: 'inconclusive', reason: review.reason });
+    return;
+  }
+  const { supports, scan, index } = review;
+  const issues = supports.verdict?.issues ?? [];
+  // The host's denture review layers (faces, edges, box, rim plane, symmetry plane), our placed tips and pillars, and the owner's
+  // contacts, -sup supports and area comparison: all one GLB under the review frame.
+  const detail = dentureReviewDetail(file, mesh, centre, review.frame, review.placed, reviewProfileId('denture'), scan.rows[index]!.tiltDeg, review.leftOutTips, { candidateIds: review.candidateIds, leftOut: review.leftOut });
+  const allLayers = [...dentureLayers(mesh, review), ...detail.layers];
+  const glb = Buffer.from(await orientationGlb(allLayers, review.frame));
+  writeFileSync(join(out, `${name}.glb`), glb);
+  // The Orient tab's readouts and the six named sides of the FINAL orientation (WORKBENCH-TABS-PLAN B3), in the
+  // GLB's display space (the frame applied, as orientationGlb applies it). A JSON beside the GLB, never a layer in it,
+  // so the review files the real-scan gate compares are unchanged.
+  const read = orientNodes(mesh, reviewProfileId('denture'));
+  if ('nodes' in read) {
+    const final = read.nodes[read.outputs.frame];
+    const sides = final?.type === 'frame' ? sideAnchors(mesh.positions, final).map((a) => ({ ...a, position: transformPoint(review.frame, a.position) })) : [];
+    const lines = Object.fromEntries(Object.entries(read.nodes).map(([id, value]) => [id, readoutLines(value)]));
+    // `frame` is the GLB's own (scan frame -> display space): the tabs 4 and 5 live preview (tiltPreviewRun.ts, D3)
+    // puts the engine's tips through it so they sit on the model on screen.
+    writeFileSync(join(out, `${name}-orient.json`), JSON.stringify({ lines, sides, outputs: read.outputs, frame: review.frame }));
+    row.orientFile = `${name}-orient.json`;
+  }
+  // The Zones tab's per-node values (plan D2): ids in a small JSON, the values raw beside it - node after node, one
+  // byte per face of the GLB's model (`TEAL denture model` is this mesh with these indices, so face k is face k).
+  // Written only when they fit that model: a preview on the wrong faces would be worse than none.
+  const faces = mesh.indices.length / 3;
+  if (detail.zoneNodes.length > 0 && detail.zoneNodes.every((n) => n.values.length === faces)) {
+    writeFileSync(join(out, `${name}-zones.bin`), Buffer.concat(detail.zoneNodes.map((n) => Buffer.from(n.values.buffer, n.values.byteOffset, n.values.byteLength))));
+    writeFileSync(join(out, `${name}-zones.json`), JSON.stringify({ ids: detail.zoneNodes.map((n) => n.id), faces, bin: `${name}-zones.bin` }));
+    row.zonesFile = `${name}-zones.json`;
+  }
+  // Peel and strength report: layer areas of our print against the owner print, from the GLB just written. Never stops the case.
+  try {
+    const peel = peelReport(glb, review.supports);
+    writeFileSync(join(out, `${name}-peel.json`), JSON.stringify(peel));
+    Object.assign(row, { peelMaxOurs: peel.peelMaxOurs, peelMaxOursAtMm: peel.peelMaxOursAtMm, peelMaxOwner: peel.peelMaxOwner, peelMaxOwnerAtMm: peel.peelMaxOwnerAtMm, peelRaftTopMm: peel.raftTopMm, peelModelOnlyRatio: peel.modelOnlyRatio, peelLayersOver: peel.peelLayersOver,
+      maxTipsPerTrunk: peel.maxTipsPerTrunk, trunkToNeckArea: peel.trunkToNeckArea, peelFile: `${name}-peel.json` });
+  } catch (error) {
+    row.peelNote = error instanceof Error ? error.message : String(error);
+  }
+  // The client copy: only the model, the allowed area, the dental rim, the low-point marks and our supports.
+  mkdirSync(join(out, 'client'), { recursive: true });
+  writeFileSync(join(out, 'client', `${name}.glb`), Buffer.from(await orientationGlb(allLayers.filter((layer) => CLIENT_LAYERS.some((prefix) => layer.name.startsWith(prefix))), review.frame)));
+  // The mapping as the viewer will show it: the contacts' median distance to the displayed scan, read back from the GLB.
+  const check = displayedContactCheck(glb);
+  if (check) row.ownerContactsMedianMm = check.medianMm;
+  if (check && check.medianMm > CONTACT_MAPPING_LIMIT_MM) throw new Error(`owner contacts do not sit on the displayed scan (median ${check.medianMm} mm)`);
+  Object.assign(row, {
+    result: 'built', reason: supports.verdict?.reason ?? (supports.islands?.status === 'inconclusive' ? `islands: ${supports.islands.reason}` : ''),
+    verdict: supports.verdict?.status ?? 'none', crossings: issues.filter((i) => i.blocked).length, uncertain: issues.filter((i) => !i.blocked).length,
+    // Denture: the engine's island report (settled with the build) is the one source of the count, the marks and the facts row.
+    islandsUnresolved: detail.islands?.unresolved.length ?? 0, islandsOutsideArea: detail.islands?.outsideAllowed ?? 0, islandsResolved: detail.islands?.resolved.length ?? 0,
+    unresolvedIslands: detail.unresolvedIslands,
+    tipsPlaced: review.placement.points.length - supports.dropped.length, tipsLeftOut: supports.dropped.length, glb: `${name}.glb`,
+    printAngleDeg: Number(tiltLabel(scan.rows[index]!.tiltDeg)), angleReason: scan.reason, angleConfirmed: false,
+    stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none',
+    structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
+    ownerContacts: detail.ownerContacts, ownerContactsMedianMm: row.ownerContactsMedianMm ?? detail.ownerContactsMedianMm,
+    ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, rimPlane: detail.rimPlane, rimNote: detail.rimNote,
+    stageTimes: process.env.MIXO_TIMERS ? `scan ${review.stageSeconds.scan} / policy ${review.stageSeconds.policy} / generate ${review.stageSeconds.generate} / flow ${review.stageSeconds.total}` : '',
+    upDecision: detail.upDecision, tipsBySource: detail.tipsBySource, selfSupport: detail.selfSupport, traps: detail.traps, unsupportableTips: detail.unsupportableTips, tipsLeftOutReasons: detail.tipsLeftOutReasons,
+  });
+}

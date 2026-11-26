@@ -162,7 +162,7 @@ by `gate:real` PASS over all 13 scans with "No differences". What remains is in 
   `denture_tilt_scan`, rename the three `_ruled` variants to those names, so every entry takes
   `rules`. Mechanical: the three being removed have **no JS caller in either repo**; the only
   references are their declarations in `host/dental/dentalEngine.ts`, plus two type-key strings in
-  this repo (`src/denture/engine/dentureCore.ts`, `dentalwork/batch-review/profileSelect.ts`).
+  this repo (`src/denture/engine/dentureCore.ts`, `typelab/profileSelect.ts`).
 - **C — give `dental_policy` a `rules` parameter.** It has exactly two attachment points: the add-on
   placement closure (`crates/geometry-wasm/src/dental_area.rs:101-106`) and the debris size
   (`crates/geometry-core/src/dental/aligner_parts.rs:53`). **Both run only for MULTI-PART aligner

@@ -1,7 +1,7 @@
 // Print-angle search time (docs/ROADMAP.md F) on the reference aligner in Node (pkg-node build),
 // with the profile's Step 3 settings (neck 2 mm, pillar 1.4 mm, lift 3.5 mm), braced and unbraced.
 // Run: npx vite-node --script scripts/perf/tilt-scan.ts. The browser time is `tiltScanMs` in
-// dentalwork/perf-current.json (scripts/perf/live-bench.mjs).
+// scripts/perf/perf-current.json (scripts/perf/live-bench.mjs).
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseStl, useNodeEngine } from '../node-engine';

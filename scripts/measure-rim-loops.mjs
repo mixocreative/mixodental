@@ -9,7 +9,7 @@
 // It runs `diagnose_mesh` over every STL in the local real scans and prints the distribution of open
 // boundary-rim lengths, plus the per-model retained size the row cap needs.
 //
-// PATIENT DATA. `dentalwork/fixtures/case-*` is git-ignored clinical data. This script prints a short
+// PATIENT DATA. `samples/case-*` is git-ignored clinical data. This script prints a short
 // content hash per file and never a filename, matching how `real-scan-gate.mjs` reports, and it writes
 // nothing except its own summary to stdout. Do not change that.
 //
@@ -38,7 +38,7 @@ const CHUNK = 1 << 22;
 function scans() {
   const found = [];
   for (const dir of CASES) {
-    const full = path.join(ROOT, 'dentalwork', 'fixtures', dir);
+    const full = path.join(ROOT, 'samples', dir);
     if (!existsSync(full)) continue;
     for (const name of readdirSync(full).filter((file) => file.toLowerCase().endsWith('.stl')).sort()) {
       const bytes = readFileSync(path.join(full, name));
@@ -75,7 +75,7 @@ const mm = (value) => value.toFixed(2);
 
 const files = scans();
 if (files.length === 0) {
-  console.log('rim-loop measurement: skipped, no local scans (dentalwork/fixtures/case-*).');
+  console.log('rim-loop measurement: skipped, no local scans (samples/case-*).');
   process.exit(0);
 }
 

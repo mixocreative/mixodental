@@ -5,7 +5,7 @@ Every "as read" fact below was opened in source on that day (engine 69, geocore 
 `vendor/mixo-geocore/SOURCE.json` pins). **Anything marked PLANNED does not exist yet.** Paths that
 start `crates/` or `host/` are in the `mixo-geocore` repo; everything else is this repo.
 
-Companion pages: `docs/NODE-PLAN.md` (the nodes), `benchwork/README.md` (the proving loop),
+Companion pages: `docs/NODE-PLAN.md` (the nodes), `typelab/CLI.md` (the proving loop),
 `docs/design.md` *WHO OWNS A NUMBER* (the ruling this page builds on), `docs/dental-kinds-and-types.md`.
 
 ---
@@ -21,11 +21,11 @@ Companion pages: `docs/NODE-PLAN.md` (the nodes), `benchwork/README.md` (the pro
 >   own `typeDigest` over the one writers' text, so it never needs the engine.
 > - **Parity:** both halves RUN - section 6's P1 row has the numbers.
 > - **Aligner rules:** an aligner reads `overhangAngleDeg` (the shared supports layer); a type file may
->   pin exactly the rules `benchwork/rules.mjs` says its category reads, and no zone graph.
+>   pin exactly the rules `typelab/rules.mjs` says its category reads, and no zone graph.
 > - **The loop runs (2026-11-20, proved on the page):** the Orient node's start / end / step / margin and
->   a type name are fields; Apply drafts the type from the built-in (`dentalwork/batch-review/typeInForce.ts`),
+>   a type name are fields; Apply drafts the type from the built-in (`typelab/typeInForce.ts`),
 >   registers it, runs it and writes `type.json` with its proof; **Save type** copies that into
->   `types/<category>/<id>.type.json` (`types/README.md`); `benchwork --type <file>` runs a saved one.
+>   `types/<category>/<id>.type.json` (`types/README.md`); `typelab --type <file>` runs a saved one.
 >   Proof: start 10 / end 20 gave a search of 10-20 (picked 10, where the built-in picked 8); the saved
 >   file read back VALIDATED; `--type` on it reproduced 10 deg with the identical profile fingerprint.
 > - **The zone graph is still ONE global engine slot, and the app now sets it per job (A3, built
@@ -41,7 +41,7 @@ output walks through.** Think of it as three things:
 
 - **The type file** is the *thing you make*: one saved file per type, holding every number, every
   turned rule and the zone wiring. The workbench (the review page with the node editor, plus
-  benchwork) is where you create it, edit it and prove it. This file is what you "set, save and export".
+  typelab) is where you create it, edit it and prove it. This file is what you "set, save and export".
 - **`register_profile`** is the *door*: the one engine call that lets the app hand the engine a
   type's numbers at run time. Today that door does not exist - the numbers are baked into the engine
   when it is compiled, which is exactly why the Orient node's start / end / step are greyed out.
@@ -63,17 +63,17 @@ anywhere on that path, and a file the engine cannot honour is refused by name, n
 | **Category** | The kind of printed item: `denture` or `aligner`. A category is **code** - its own detection and placement chain. | All of it. `DentalKind` (`host/dental/dentalKind.ts`). | none - a category cannot be supplied as data (`NODE-PLAN.md` section 5) | engine source |
 | **Type** | One named recipe inside a category ("Generic denture"). A type is **data**. | reads it | all of it | today: one profile JSON per type, inside the engine |
 | **Profile** | The type's *numbers*: upright rule, print-angle search, tip spacing, support sizes. | the field names, units, strict parse, legal ranges | the numbers | `crates/geometry-core/src/dental/denture/profiles/reference-denture.json`; a generated copy for the host in `vendor/mixo-geocore/host/dental/dentureProfileFiles.ts` |
-| **Rules** | ~130 named planner dials. A type may pin some; the operator may turn some per job. | names, defaults, what each does (`crates/geometry-core/src/supports/rules.rs`) | the pinned values | passed as an array with each run; benchwork turns 13 (`benchwork/rules.mjs`) |
+| **Rules** | ~130 named planner dials. A type may pin some; the operator may turn some per job. | names, defaults, what each does (`crates/geometry-core/src/supports/rules.rs`) | the pinned values | passed as an array with each run; typelab turns 13 (`typelab/rules.mjs`) |
 | **Zone graph** | The wiring that decides which faces may carry tips (stage 2). | node kinds, the evaluator, what is refused (`crates/geometry-core/src/dental/denture/zone_graph.rs`) | the wiring | not saved as part of a type; `zone-graph.json` beside a review run |
 | **Type file** | **PLANNED.** One file = one type: category + id + profile + pinned rules + zone graph + what proved it. | validates every part | the whole file | **PLANNED:** `types/<category>/<id>.type.json` in this repo |
 
 Two things that are true today and that the type file exists to fix:
 
 - **A type's three parts live in three places.** The numbers are compiled into the engine; the rules
-  are in `benchwork.json` beside a run (`benchwork/cli.mjs:158-164`); the graph is in `zone-graph.json`
+  are in `typelab.json` beside a run (`typelab/cli.mjs:158-164`); the graph is in `zone-graph.json`
   beside a run. Nothing ties them together as "this is the type".
 - **The app cannot run an edited graph at all.** Nothing under `src/` calls `setZoneGraph` (searched
-  2026-11-20) - only the review batch does (`dentalwork/batch-review/batch.ts:41-48`). So today the
+  2026-11-20) - only the review batch does (`typelab/batch.ts:41-48`). So today the
   app always runs the default wiring.
 
 ---
@@ -82,7 +82,7 @@ Two things that are true today and that the type file exists to fix:
 
 ```
  CREATE / EDIT            PROVE                 SAVE              SHIP               RUN
- workbench, 3 stages  ->  benchwork on     ->   type file    ->   commit + app  ->   app registers it,
+ workbench, 3 stages  ->  typelab on     ->   type file    ->   commit + app  ->   app registers it,
  (review page)            real scans, gate      written           build              operator picks it
 ```
 
@@ -173,7 +173,7 @@ Rules of the format:
 - **`zoneGraph` is `null` for "the default wiring"**, or the graph exactly as the canvas exports it.
 - **`orientGraph` (optional, denture only, added 2026-11-23 with ORIENT-NODES U6)** is the type's own Step 1 as the Orient canvas exports it. Absent means today's Step 1, so every file written before it is still valid under the same format. When present it must run (`orientGraph.mjs` `validate`, the engine's refusals). Its digest joins the proof (`validation.orientGraphDigest`), so editing it after the proof makes the type UNVALIDATED. Since 2026-11-23 (WORKBENCH-TABS-PLAN E1) the app loads a type that carries one: the engine checks it when the type loads, and every denture job on the type sets it first. A type whose Orient graph has no `upDecision` (the flat-base recipe) has no front or teeth side, so the app greys the Flip buttons with that reason.
 - **An aligner type has only the rules an aligner reads (`overhangAngleDeg` today) and `zoneGraph: null`** - corrected 2026-11-20; the line it replaces said `rules: {}`, and anything else is refused, because
-  the aligner chain reads neither (`benchwork/README.md`, "only a denture responds").
+  the aligner chain reads neither (`typelab/CLI.md`, "only a denture responds").
 - **`validation` is never trusted by itself.** The loader recomputes both digests; a mismatch means
   the contents were edited after the proof, and the label becomes UNVALIDATED automatically.
 - **One writer.** The digest is taken over the profile's JSON *text* (`profile.rs:225`), so two
@@ -184,7 +184,7 @@ Rules of the format:
   The engine digests the graph TEXT it is sent (`setZoneGraph` sends `JSON.stringify`, key order as
   built), so the canvas's order and a file's sorted order give ONE graph TWO digests, and a proved
   type would read back as edited. `graphText` is that writer; whatever proves or runs a type (P1,
-  A3, benchwork `--type`) must send the engine `graphText(graph)`, never its own stringify.
+  A3, typelab `--type`) must send the engine `graphText(graph)`, never its own stringify.
 
 ### 4b. The engine calls
 
@@ -246,7 +246,7 @@ call, both halves, or neither - a type known to one half only is a split brain.
 | Reader | Today | PLANNED |
 |---|---|---|
 | **The app** (`src/`) | built-in ids only | bundles `types/**/*.type.json`, registers each at engine start (main thread and each worker that owns an engine), lists them in the picker with their validation label |
-| **benchwork** (`benchwork/cli.mjs`) | `--kind`, `--set name=value`, `--zone-graph file`; writes `benchwork.json` | `--type <file>` runs a whole type; `--set` and `--zone-graph` remain as overrides on top; writes a *candidate* type file beside the run with `validation` filled in |
+| **typelab** (`typelab/cli.mjs`) | `--kind`, `--set name=value`, `--zone-graph file`; writes `typelab.json` | `--type <file>` runs a whole type; `--set` and `--zone-graph` remain as overrides on top; writes a *candidate* type file beside the run with `validation` filled in |
 | **The review page** | reads the run folder; Apply sends rules + graph to `serve.mjs` | opens a type, edits all three stages, Apply runs it, **Save type** writes it to `types/` |
 | **`gate:real`** | the two built-ins | also runs every shipped type file, each with its own baseline |
 
@@ -259,7 +259,7 @@ up: `0, step, 2*step ... range` (`crates/geometry-core/src/dental/denture/tilt.r
 **three** numbers for it (`profile.rs:36-55`): `tiltRangeDeg` (the end, 45), `tiltStepDeg` (2),
 `tiltMarginDeg` (2). **"Start" is not a number anywhere - it is the literal 0 in the code.** The
 node shows "start 0" as a fact, guarded by a test against the shipped profile
-(`dentalwork/batch-review/nodeGraph.mjs:171-179`).
+(`typelab/nodeGraph.mjs:171-179`).
 
 So the four fields are not equally far away:
 
@@ -317,7 +317,7 @@ repo's full local gate (`CLAUDE.md`: `vendor:check`, `test`, `screens`, `build`,
 | | **Progress 2026-11-20:** the DENTURE half of E1 and E1h is built in geocore, committed and NOT pushed: `4edd262` core (`profile::register(text)`, strict parse, pose checks - step above 0, range 0-90 - built-in ids refused, digest from the text) and the engine-70 commit after it (`register_denture_profile` in wasm with `PROFILE_INVALID` + `detail`; `host/dental/registerProfile.ts` registering with the engine FIRST and only then with the host list, which `kindOfProfile`, `profileIdsOf` and `dentureProfileData` all read - so a registered denture is never routed as an aligner). Tests: Rust, range 10 stops the scan at 10 and five refusals by name; host, a registered id is a denture everywhere, a refused one is nowhere. The ALIGNER half followed in geocore `6a40a66` (still engine 70, never shipped): `profiles::register`, `register_aligner_profile`, `registerAlignerProfile`; the Step 0 cards stay built-in only until A1. Still open in E1: lookup by digest. "Identical results to the id path" is P1, proven at the engine level for both kinds - see P1. Not vendored: mixodental stays on engine 69 until the owner approves the push. | | |
 | **E1h** | `registerDentalProfile` in `host/`: host parse + engine call + host lists updated together | geocore, TS | an id registered this way answers `kindOfProfile` = denture and `dentureProfileData`; a registration the engine refuses leaves the host list unchanged |
 | **V1** | vendor E1 + E1h (`npm run vendor:geometry`) | mixodental | full local gate + `gate:real` "No differences" |
-| **B1** | Type file: the format, one pure loader/validator (`src/dentalTypes/typeFile.ts`, BUILT) with tests, the single profile-to-text writer; `benchwork --type` | mixodental | a type file equal to the built-in gives a byte-identical review; a file with an unknown rule name, a bad graph or a stale digest is refused or relabelled, each by name |
+| **B1** | Type file: the format, one pure loader/validator (`src/dentalTypes/typeFile.ts`, BUILT) with tests, the single profile-to-text writer; `typelab --type` | mixodental | a type file equal to the built-in gives a byte-identical review; a file with an unknown rule name, a bad graph or a stale digest is refused or relabelled, each by name |
 | **R1** | Review page: Orient node's end / step / margin become fields; start drawn as fixed; **Save type** | mixodental | edit end to 20, Apply -> the facts show a search of 0-20 and the saved file carries 20; walk + screenshot |
 | **A1** | App loads bundled type files at engine start and lists them, with the validation label | mixodental | a second denture type appears in the picker and runs its own numbers; guard test: **a registered denture type never runs the aligner flow** (the `jobKind.ts` trap) |
 | **A2** | Project file embeds the snapshot of a non-built-in type | mixodental | save with type X, open in a build without X -> runs, or is refused by name; never Generic silently |
@@ -326,11 +326,11 @@ repo's full local gate (`CLAUDE.md`: `vendor:check`, `test`, `screens`, `build`,
 | **R2** | Orient node's start becomes a field; the editor's "update an old type" path (schema 1 -> 2) | mixodental | open a schema-1 type file -> shown as needs update -> updated, labelled UNVALIDATED |
 | **E3** | Zone graph registered with the type; global slot removed | geocore, then vendor | A3's proof still passes with the per-job set deleted |
 | **P1** | Parity round-trip (section 10): a script writes each built-in out as a type file; the gate runs both through the type-file path | mixodental, after B1 (denture) and the aligner half of E1 | `gate:real` "No differences" for denture, aligner and multipart, through the type file - then kept in the gate for good |
-| | **Progress 2026-11-20 (denture, engine level):** with engine 70 vendored TEMPORARILY (not committed; restored to 69 after), every local denture scan was reviewed through `reference-denture` and through the same profile registered as `p1.reference` via `registerDentureProfile`: **6 of 6 IDENTICAL**, 1.2 to 5.6 million characters of review each, excluding only the profile id, the digest and the wall-clock `stageSeconds` (the first run showed timing was the only first difference). **Aligner and multipart, same night, engine 70 at `6a40a66` vendored temporarily again:** the three engine paths an aligner review reads its profile through (tilt scan, region proposal, orientation), with `reference-aligner` and with the same profile registered as `p1.aligner`: **10 of 10 IDENTICAL** (8 aligner, 2 multipart; two aligner scans are inconclusive results of ~370 characters, identical too but proving less). **Through a TYPE FILE, whole reviews, same night:** each built-in written by `typeFileText`, read back by `readTypeFile`, registered from `profileText` of the FILE's profile, then every scan's whole review compared - dentures through `buildDentureReview`, aligners through `pickPrintAngle` + `buildDentalReview`, which now take a `profileId` (default `REFERENCE_PROFILE`, so every existing caller is unchanged). **Dentures 6 of 6, aligners and multipart 10 of 10 IDENTICAL.** Six aligner reviews are full builds of 5.4-7.1 million characters; two aligner scans are inconclusive (186 characters) and the two multipart reviews are ~14 thousand characters, short of a full build, so those four prove less. The run also found a call left without the new argument (`appSettings()`) in `build.ts`, which tsc never read - the folder is now in `tsconfig.json`, proved by putting the bug back and watching tsc fail. **Still owed for P1:** `benchwork --type`, and the standing `gate:real` check, both after engine 70 is vendored for real. | | |
+| | **Progress 2026-11-20 (denture, engine level):** with engine 70 vendored TEMPORARILY (not committed; restored to 69 after), every local denture scan was reviewed through `reference-denture` and through the same profile registered as `p1.reference` via `registerDentureProfile`: **6 of 6 IDENTICAL**, 1.2 to 5.6 million characters of review each, excluding only the profile id, the digest and the wall-clock `stageSeconds` (the first run showed timing was the only first difference). **Aligner and multipart, same night, engine 70 at `6a40a66` vendored temporarily again:** the three engine paths an aligner review reads its profile through (tilt scan, region proposal, orientation), with `reference-aligner` and with the same profile registered as `p1.aligner`: **10 of 10 IDENTICAL** (8 aligner, 2 multipart; two aligner scans are inconclusive results of ~370 characters, identical too but proving less). **Through a TYPE FILE, whole reviews, same night:** each built-in written by `typeFileText`, read back by `readTypeFile`, registered from `profileText` of the FILE's profile, then every scan's whole review compared - dentures through `buildDentureReview`, aligners through `pickPrintAngle` + `buildDentalReview`, which now take a `profileId` (default `REFERENCE_PROFILE`, so every existing caller is unchanged). **Dentures 6 of 6, aligners and multipart 10 of 10 IDENTICAL.** Six aligner reviews are full builds of 5.4-7.1 million characters; two aligner scans are inconclusive (186 characters) and the two multipart reviews are ~14 thousand characters, short of a full build, so those four prove less. The run also found a call left without the new argument (`appSettings()`) in `build.ts`, which tsc never read - the folder is now in `tsconfig.json`, proved by putting the bug back and watching tsc fail. **Still owed for P1:** `typelab --type`, and the standing `gate:real` check, both after engine 70 is vendored for real. | | |
 | **D1** | Discovery (section 8): one pure `types/index.ts` that globs `types/**/*.type.json`, validates each and returns loaded / refused lists | mixodental, with A1 | drop a new file in the folder -> it is in the picker after a reload with no other edit; a broken file is listed as refused with its reason; guard test: two files with one id fail the build |
 | **D2** | Changed-type notice on an open project (needs A2) | mixodental | a project saved with type X v1, opened in a build carrying X v2 -> runs v1, shows "newer version available"; Update is an explicit action and marks the job for re-run |
-| **M1** | MCP server, read-only tools (section 9): list nodes, list rules, read type, validate draft | mixodental `benchwork/mcp/` | each tool's answer equals what `nodeGraph.mjs` / `rules.mjs` / the engine return; a graph the engine refuses comes back with the engine's own sentence |
-| **M2** | MCP `run_draft` and `write_draft` | mixodental | a draft runs on the local fixtures and returns benchwork's numbers; the written file lands in `types/drafts/`, is UNVALIDATED, and the app's release list does not include it; test: the server has no git, network or delete tool |
+| **M1** | MCP server, read-only tools (section 9): list nodes, list rules, read type, validate draft | mixodental `typelab/mcp/` | each tool's answer equals what `nodeGraph.mjs` / `rules.mjs` / the engine return; a graph the engine refuses comes back with the engine's own sentence |
+| **M2** | MCP `run_draft` and `write_draft` | mixodental | a draft runs on the local fixtures and returns typelab's numbers; the written file lands in `types/drafts/`, is UNVALIDATED, and the app's release list does not include it; test: the server has no git, network or delete tool |
 | later | Promote the ~38 policy constants to profile fields, one at a time (`NODE-PLAN.md` section 6 item 5) | geocore | "No differences" each. **Every promotion is a schema bump** - which is why shipping many customer types before this is mostly done makes each one a migration |
 
 **FIRST, tomorrow:** commit the review-page work now sitting uncommitted in the tree, then start
@@ -394,7 +394,7 @@ edits a list.
 `types/<category>/<id>.<YYYYMMDD-HHMMSS>.type.json`, the newest save of each type in force, a broken newest falling
 back to the save before it with a note, delete the newest to roll back. The workbench's Save writes a new file and
 refuses to hide a newer save; it never overwrites. `types/drafts/` below was never built - unsaved edits are kept by
-the workbench in `dentalwork/output/review-drafts/`, outside git.
+the workbench in `typelab/output/review-drafts/`, outside git.
 
 - **Where.** `types/<category>/<id>.type.json` for shipped types; `types/drafts/` for unproved ones
   (workbench only, never in a release list).
@@ -469,7 +469,7 @@ with Fable, who agreed.)
     a choice and not a field.
 - **No proof gate (owner, 2026-11-22: "Do not need prove, make it easier").** This REPLACES ruling 4 and
   recommendation 4 for the app: every type that reads cleanly loads, proved or not, and the picker
-  shows no proof status. The `validation` record stays in the file as information (benchwork and the
+  shows no proof status. The `validation` record stays in the file as information (typelab and the
   workbench still write it), but nothing in the app reads it to allow or refuse a type.
 - **Projects:** a project whose saved type was removed is still refused at load (unit A2 is the fix);
   v1 makes the denture message name the missing type file.
@@ -520,7 +520,7 @@ With one type per category a row could never hold work built with another type; 
   puts every row on it, picking a category still leaves rows already on a type of it alone (`PurposeSelect`
   `onCategory`, `setAllPurposes(profile, pick)`). Mixed rows show the category alone: no one type is true there.
 - **The type-change toast has its own kind**, `changeType` in geocore's `editing/toast.ts` (geocore `5ad4c23`).
-- **Save's replace rule is a tested module**, `dentalwork/batch-review/saveType.mjs` (`saveVerdict`).
+- **Save's replace rule is a tested module**, `typelab/saveType.mjs` (`saveVerdict`).
   *(Corrected 2026-11-26: retired with the review folder's overwrite Save. Every save is now a new dated file through
   `/save-draft`, which never replaces one - section 8 and docs/REVIEWER-OVERHAUL-PLAN.md.)*
 
@@ -538,17 +538,17 @@ local scans, and shows you the numbers. **It can only press the buttons below, a
 
 | Tool | What it does | Reuses - no second copy |
 |---|---|---|
-| `list_nodes` | every node kind with its plain title, sentence, settings, dropdown values, and which parts are **fixed in this version** | `KINDS`, `KIND_WORDS`, `PARAM_WORDS`, `OUTPUT_WORDS`, `FIXED` in `dentalwork/batch-review/nodeGraph.mjs` (`:29-146`) |
-| `list_rules` | the turnable rules with meaning and limits | `benchwork/rules.mjs` |
+| `list_nodes` | every node kind with its plain title, sentence, settings, dropdown values, and which parts are **fixed in this version** | `KINDS`, `KIND_WORDS`, `PARAM_WORDS`, `OUTPUT_WORDS`, `FIXED` in `typelab/nodeGraph.mjs` (`:29-146`) |
+| `list_rules` | the turnable rules with meaning and limits | `typelab/rules.mjs` |
 | `list_types` / `read_type` | what exists, and one type in full | `types/index.ts` (D1) |
 | `validate_draft` | checks a draft type: model check, then the **engine's own** validation (`register_profile`, `set_zone_graph`) | the vendored engine; the answer is the engine's sentence, word for word |
-| `run_draft` | runs the draft on a local fixture folder, returns tips placed / left out, islands, verdicts, print angle, seconds | `benchwork --type` (B1) |
+| `run_draft` | runs the draft on a local fixture folder, returns tips placed / left out, islands, verdicts, print angle, seconds | `typelab --type` (B1) |
 | `diff_types` | what differs between two types, in plain words | the single writer from B1 |
 | `write_draft` | saves to `types/drafts/` only | the single writer |
 
-**Where it lives:** `benchwork/mcp/` in this repo (values and workbench are mixodental's; the
+**Where it lives:** `typelab/mcp/` in this repo (values and workbench are mixodental's; the
 engine stays geocore's and is reached only through the vendored build). It is a thin shell: every
-tool calls a function that already exists for the review page or benchwork. If a tool needs logic
+tool calls a function that already exists for the review page or typelab. If a tool needs logic
 the page does not have, that logic goes in the shared module and the page uses it too.
 
 **Guardrails, each one a test, not a promise:**
@@ -567,7 +567,7 @@ the page does not have, that logic goes in the shared module and the page uses i
 - **Same engine, same answer.** The AI's draft and a hand-made one go through one validation; there
   is no "AI mode".
 
-Order: M1 (read-only) is useful alone and needs only B1 and D1; M2 needs `benchwork --type`.
+Order: M1 (read-only) is useful alone and needs only B1 and D1; M2 needs `typelab --type`.
 
 ## 10. Parity — can today's workflow and nodes recreate what already ships?
 
@@ -582,7 +582,7 @@ must come back identical. But most of what makes each built-in behave as it does
 |---|---|---|---|
 | **Orient** | all 5 upright numbers and end / step / margin are profile fields (`profile.rs:19-55`), so a type file carries them | nothing is editable (no door); start is a literal 0 | E1, R1; start: E2 |
 | **Zones** | the default wiring is the canvas's default graph, node for node (`nodeGraph.test.ts:84-92`); casts and Either / Remove / Both / Invert into 3 outputs are free | 5 outputs fixed (`zone_graph.rs:82`), plus ray spacing, depth-map settings, band widths, smallest hole | later zone-graph versions (`NODE-PLAN.md` section 5b) |
-| **Support settings** | 13 rules turnable; the 17 placement and the support numbers are profile fields | ~117 rules not offered by benchwork; ~38 policy numbers are constants in code - identical for every type | widen `rules.mjs` as needed; the "later" promotion row |
+| **Support settings** | 13 rules turnable; the 17 placement and the support numbers are profile fields | ~117 rules not offered by typelab; ~38 policy numbers are constants in code - identical for every type | widen `rules.mjs` as needed; the "later" promotion row |
 
 **Generic aligner** - checked against `NODE-PLAN.md` section 4, which holds up:
 
@@ -590,7 +590,7 @@ must come back identical. But most of what makes each built-in behave as it does
 |---|---|---|---|
 | **Orient** | its thresholds are profile fields; its search is centre ± range (`dental/profiles/mod.rs:110-127`) | no door; no Orient node for it in the editor | E1 aligner half; an aligner Orient node (not yet a unit) |
 | **Zones** | nothing - it has no zone graph. Its chain (trim frame, opening, face cut, strip, contour sampler) is code | everything; five node kinds do not exist | `NODE-PLAN.md` section 6 item 6 |
-| **Support settings** | the profile's support numbers; position / width / density defaults come from the profile | no rules channel - "only a denture responds" (`benchwork/README.md`) | an engine entry point that takes rules (not yet a unit) |
+| **Support settings** | the profile's support numbers; position / width / density defaults come from the profile | no rules channel - "only a denture responds" (`typelab/CLI.md`) | an engine entry point that takes rules (not yet a unit) |
 
 So an aligner type file is `profile` only (`rules: {}`, `zoneGraph: null`). Its parity claim is the
 weaker one `NODE-PLAN.md` states: it passes because the same code runs, not because nodes rebuilt it.
@@ -605,7 +605,7 @@ weaker one `NODE-PLAN.md` states: it passes because the same code runs, not beca
    (`zone_graph.rs:342-343`: `current()` returns the override and only falls back to
    `default_graph(steep_deg)` when none is set). The rule still reaches its other readers (the policy
    and the review layer), so the two can disagree. The review page cannot do that - saving mirrors
-   R1b's angle into the rule - and since 2026-11-20 `benchwork` refuses a `--zone-graph` whose R1b
+   R1b's angle into the rule - and since 2026-11-20 `typelab` refuses a `--zone-graph` whose R1b
    angle differs from `--set noSupportSteepDeg` (and notes it when the rule is left unset).
    The type file must hold ONE number: P1 makes the rule follow the graph (or refuses a mismatch by
    name), never two sources left to chance.
@@ -635,7 +635,7 @@ engine does not support.
 
 - Sections 8-10: that Vite's dev server reloads on a NEW file matching a glob outside `src/` (it
   does for existing files; a new file is assumed, not tried); the aligner's `dental_policy`
-  signature (taken from `benchwork/README.md`); the steep-ray precedence in section 10.
+  signature (taken from `typelab/CLI.md`); the steep-ray precedence in section 10.
 
 - That every denture entry point resolves its profile through `denture_profile_of` - 6 call sites
   counted, not traced.

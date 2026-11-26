@@ -21,7 +21,7 @@ them shape every file here:
 |---|---|
 | `eligibility.ts` | **May** this card be generated unattended, and if not, why. Five facts in, one verdict out. |
 | `pipeline.ts` | One aligner through Steps 1–3: five engine calls, every decision taken by `src/dental/stages.ts`. No React. |
-| `pipeline.real.test.ts` | The pipeline on a real scan under Node: it finishes, it lands Step 3's state, it is deterministic. Skipped when `dentalwork/fixtures` is absent. |
+| `pipeline.real.test.ts` | The pipeline on a real scan under Node: it finishes, it lands Step 3's state, it is deterministic. Skipped when `samples` is absent. |
 | `useAutoGen.ts` | The queue: one job at a time, per-card state, Auto-gen all, Stop. React. |
 | `autoGenText.ts` | What a card says about its own run. Pure: a state in, a message out. |
 

@@ -26,7 +26,7 @@ import { inverseTransformDirection, inverseTransformPoint, transformDirection, t
 /*
  * The denture pipeline on one thread (the denture worker runs it; tests run it under Node): Step 1's
  * upright and print-angle search, the accepted pose's tips, the support build and the one-tip
- * model-surface check. It is the batch review's flow (dentalwork/batch-review/profileSelect.ts) with
+ * model-surface check. It is the batch review's flow (typelab/profileSelect.ts) with
  * the unit's hand work added: automatic tips are the denture policy's candidates, re-made in every
  * build from the same pose, so a deleted tip (by its unit-local position id), a manual tip and a
  * no-support zone apply as in the aligner flow. Nothing about placement or routes is decided here.

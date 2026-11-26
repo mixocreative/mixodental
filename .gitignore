@@ -2,7 +2,7 @@ node_modules/
 dist/
 .playwright-mcp/
 walk-out/
-dentalwork/fixtures/case-*/
+samples/case-*/
 __pycache__/
 
 # Agent and tool scratch, never part of the app.

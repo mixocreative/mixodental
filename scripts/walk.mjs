@@ -24,12 +24,12 @@ const FIXTURE = path.join(ROOT, 'scripts', 'fixtures', 'knot.stl');
 /**
  * The aligner the dental sections walk, in order of preference:
  *   1. DENTAL_WALK_FIXTURE, when the caller names one;
- *   2. case 01 of dentalwork/fixtures, when it is on this machine - the owner's local comparison case. The
+ *   2. case 01 of samples, when it is on this machine - the owner's local comparison case. The
  *      case directories are git-ignored and READ IN PLACE: no scan is ever copied into this repository;
  *   3. the already-approved public reference that ships with the repo, so a fresh clone still walks.
  */
 const PUBLIC_ALIGNER = path.join(ROOT, 'docs', 'dental-reference', 'reference-aligner.stl');
-const CASE_01_ALIGNER = path.join(ROOT, 'dentalwork', 'fixtures', 'case-001', 'aligner.stl');
+const CASE_01_ALIGNER = path.join(ROOT, 'samples', 'case-001', 'aligner.stl');
 const VIEWPORT = { width: 1440, height: 900 };
 
 /**

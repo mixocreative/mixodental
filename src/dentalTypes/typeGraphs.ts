@@ -6,7 +6,7 @@
  * A job that did not set them would run on whatever the previous job's type left in force - so the denture core sets
  * all four slots together (`setCaseSlots` in dentureCore.ts), and a type without a graph sets the default back.
  *
- * WHY THE ENGINE CHECKS. `src/` imports nothing from `dentalwork/`, so the workbench's validators are not here. The
+ * WHY THE ENGINE CHECKS. `src/` imports nothing from `typelab/`, so the Type Lab's validators are not here. The
  * engine validates a graph when it is SET and refuses with the node named, leaving the previous graph in force; the
  * check sets, catches that reason, and clears the slot again. Both digests are in the engine's cache keys, so setting
  * the same graph again before a job costs a parse, not a rerun.

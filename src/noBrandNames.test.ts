@@ -47,7 +47,7 @@ describe('third-party slicer brand names', () => {
   });
 
   /*
-   * `dentalwork/fixtures/case-*` is git-ignored clinical data. A LOCAL TEST may resolve one by path -
+   * `samples/case-*` is git-ignored clinical data. A LOCAL TEST may resolve one by path -
    * it is skipped when absent and never bundled - but nothing the app ships from may mention one.
    */
   it('and no patient scan file is named in anything that ships', () => {

@@ -1165,7 +1165,7 @@ detection; per-row support settings; reordering rows; anything that slices or pl
 
 **Revision 6 replaces the per-item wizard with a job deck.** Everything below §1 was written around
 one model walking Orient → Area → Supports → Export, repeated N times. That is the wrong shape, and
-the measurement in this very document says why: `dentalwork/fixtures/case-aligner` holds **8 models**,
+the measurement in this very document says why: `samples/case-aligner` holds **8 models**,
 and a real clear-aligner case is a series of stages per arch. Eight passes through a three-step wizard
 for one patient is not a workflow.
 
@@ -1968,7 +1968,7 @@ pretence that eviction is free.
 and omitted Denture. It failed for every language including English and killed the locale pass at its
 second step — invisibly, because `walkLocale` is outside the gate. **Fixed**, with the account left in
 place. The stale label still appears in **five** files: `docs/ROADMAP.md`, `README.md`,
-`docs/designer-guide.md`, `dentalwork/plain-language.md` and `docs/SHIP-PLAN.md`.
+`docs/designer-guide.md`, `docs/dental/plain-language.md` and `docs/SHIP-PLAN.md`.
 
 #### The alternative weighed
 
@@ -1988,8 +1988,8 @@ each has caught something in this session already.
 #### Tokens — and the one this plan got wrong
 
 **There is no app row-height token.** Earlier revisions said "use the documented `--row` token
-(22px)". `--row` is declared only in `dentalwork/batch-review/tokens.css`, under a heading in
-`docs/ui-styling.md` whose own first line reads *"The tokens of `dentalwork/batch-review/tokens.css`
+(22px)". `--row` is declared only in `typelab/tokens.css`, under a heading in
+`docs/ui-styling.md` whose own first line reads *"The tokens of `typelab/tokens.css`
 **that the app does not have**."* So `var(--row)` in `src/styles.css` resolves to nothing and the
 declaration is dropped **silently** — and `uiStylingDoc.test.ts` would not catch it, because the name
 *is* documented, just in the wrong table.
@@ -1997,7 +1997,7 @@ declaration is dropped **silently** — and `uiStylingDoc.test.ts` would not cat
 **DONE.** `--row-height: 24px` is declared in `src/styles.css` and documented in the app's UI table.
 **24px, not 22px:** that is what the app already uses — `.panel .unit` carried it as a literal, and the
 token now replaces that literal rather than sitting unused beside it. The 22px of
-`dentalwork/batch-review/tokens.css` is a denser viewer's figure.
+`typelab/tokens.css` is a denser viewer's figure.
 
 The names are kept **apart on purpose**. `uiStylingDoc.test.ts` asks only whether a token's name
 appears *somewhere* in the page, so a second `--row` would have passed the guard while meaning a
@@ -2045,7 +2045,7 @@ on an inline `style={`.
 **The sizes: 22px and 11.5px are the house-skill numbers, not this app's.** This app's body size is
 `--body-size`, **12.5px** (`theme.css:102`, and `styles.css:1295` uses it with that literal as its
 fallback); 11.5px is `--small-size`. And `--row: 22px` is declared **only** in
-`dentalwork/batch-review/tokens.css:44`, documented in that file's table at `docs/ui-styling.md:478`.
+`typelab/tokens.css:44`, documented in that file's table at `docs/ui-styling.md:478`.
 So the row must either size from an app token that exists or declare one — the remaining real task,
 and the only one of the three token questions that survived checking.
 
@@ -2245,7 +2245,7 @@ engine checkout's HEAD is — so the checkout is the step.
 
 **5. Measure, and set the fill limit. — DONE, and it changed the scope.** `scripts/measure-rim-loops.mjs`
 runs `diagnose_mesh` over all 18 local real scans. It prints a content hash per file, never a
-filename, because `dentalwork/fixtures/case-*` is clinical data.
+filename, because `samples/case-*` is clinical data.
 
 **The result:**
 
@@ -2636,7 +2636,7 @@ that introduces the feature.
   `#7f0019` (`styles.css:15`), the house primary and progress colour, not an alert; the failure colour
   is `--danger`, used as an outline only. The item existed because this document read a token's *name*
   instead of its value. What survives is the **row-height token**: `--row: 22px` exists only in
-  `dentalwork/batch-review/tokens.css`, so the app has none.
+  `typelab/tokens.css`, so the app has none.
 - **Whether the host should ever offer to drop a noise shell.** **Recommendation: no.** A shell under
   0.001 mm³ is reported and left; dropping geometry the operator did not ask to lose is the same class
   of act as silent repair, and §3 decided against that.
@@ -3092,7 +3092,7 @@ custom characteristic.
 #### Do not move any top-level folder
 
 **212 files pin a literal path.** `docs/dental-reference/reference-aligner.stl` appears at 33 sites,
-`../../scripts/test-support/*` at 50-odd, and `src/styles.css`, `dentalwork/fixtures/case-denture`
+`../../scripts/test-support/*` at 50-odd, and `src/styles.css`, `samples/case-denture`
 and `vendor/mixo-geocore/pkg-node/…` all appear in path literals and glob strings. Around 58 guard
 tests read source text or enumerate files by path. Moving a top-level folder is a wide refactor that
 would redden that suite in ways nobody can read, for no behaviour gained.
@@ -4047,7 +4047,7 @@ solid/ghost split needs the selection plumbed.
 
 **None of the dental set is verified by eye.** They need a TWO-CONTOUR policy, which the knot
 fixture does not produce — load `docs/dental-reference/reference-aligner.stl` or a case under
-`dentalwork/fixtures/` and run the dental flow to Step 2.
+`samples/` and run the dental flow to Step 2.
 
 #### The original reading, kept for the detail
 
@@ -5250,7 +5250,7 @@ now reachable only for an identity pose, which is what the words mean.
 Five engine calls in the flow's own order, no React, every decision from `stages.ts`. The turns all
 happen before the supports, which under B is load-bearing rather than tidy.
 
-`pipeline.real.test.ts` runs it under Node on `dentalwork/fixtures/case-001/aligner.stl` and asserts
+`pipeline.real.test.ts` runs it under Node on `samples/case-001/aligner.stl` and asserts
 the end state is Step 3's own - policy, placement, supports, label `X` - and that two runs agree to
 the exact contact positions. **What it does not prove is parity with the editor**, and no node test
 can: the editor's path is a hook driving screens.
@@ -7355,8 +7355,8 @@ right is kept below, and the error is named at the end, because the mistake is t
 > *"that part should be separate until it is mature enough to become part of the app."*
 
 **Its name is `benchwork`**, the owner's choice on 2026-11-20: the tool that decides what a type's
-rules are for orient, rim and the support zones. That makes `benchwork/README.md` the written form
-and `benchwork/cli.mjs` the executable form of one thing, and it means that file's own line *"No new
+rules are for orient, rim and the support zones. That makes `typelab/CLI.md` the written form
+and `typelab/cli.mjs` the executable form of one thing, and it means that file's own line *"No new
 tooling here"* had to be amended rather than quietly contradicted. (It was first named "benchwork",
 after the workshop fixture that guides a repeated cut; the owner renamed it the same day.)
 
@@ -7386,7 +7386,7 @@ either, so "the only one" was false twice over. Checked in the source after an e
 generation already takes rules for every kind — `host/supports/jobRunner.ts:46` passes
 `rules: job.rules ?? GENERATE_RULES`. What drops them is the app's own review path:
 `scripts/dental-region-review/build.ts:107` calls `runSupportJob` with no `rules`, and
-`dentalwork/batch-review/reviewCase.ts:18` goes through exactly that function. **So the first and
+`typelab/reviewCase.ts:18` goes through exactly that function. **So the first and
 largest win is a one-line app change, not an engine change.**
 
 What the engine change is still worth, honestly: `dental_policy` has exactly two rule-shaped
@@ -7400,7 +7400,7 @@ exists to prevent.
 
 **The one-line fix, done 2026-11-20 — and its honest negative result.**
 `scripts/dental-region-review/build.ts` now threads named rules into `runSupportJob`, and
-`dentalwork/batch-review/reviewCase.ts` passes the aligner-readable subset. The plumbing is proved:
+`typelab/reviewCase.ts` passes the aligner-readable subset. The plumbing is proved:
 with `MIXO_RULES` set, the filter returns `{"overhangAngleDeg":10}` and drops the denture-only rule
 beside it. **But nothing moved.** On the reference aligner, 94 tips with 0 left out at the engine
 default, at 55°, and at an extreme 10°.
@@ -7455,7 +7455,7 @@ There is no single pipeline and no shared stage vocabulary. Each kind has its ow
 2. **The live channel is named rule overrides, and it is already wired in this repo.**
    `RULE_NAMES` / `packRules` in `vendor/mixo-geocore/host/supports/generateRules.ts` feed the
    purpose-built `denture_policy_ruled`, `denture_review_ruled` and `denture_tilt_scan_ruled`, and
-   `dentalwork/batch-review/profileSelect.ts` already passes them through `MIXO_RULES` today.
+   `typelab/profileSelect.ts` already passes them through `MIXO_RULES` today.
    **The aligner has no `_ruled` variant**, so for aligners there is no live channel at all — which
    means benchwork begins as a denture tool, whatever the owner's ask says about all three.
 3. **Most numbers benchwork would want are compile-time `const`s, not profile fields** —
@@ -7481,7 +7481,7 @@ actually wanted, so it is worth asking for.
 ### What benchwork mechanically is
 
 **A rules panel and a re-run route on the viewer that already exists**:
-`dentalwork/batch-review/viewer.html` + `serve.mjs`. That surface is already the owner's layout — live
+`typelab/viewer.html` + `serve.mjs`. That surface is already the owner's layout — live
 detection above, numbers and toggleable layers below — with `dentureReviewLayers.ts`,
 `layerColours.ts`, `rayLayers.ts` and `orientationEvidenceGlb.ts` drawing exactly the masks this
 record calls node outputs, a per-case numbers panel, the real engine through `pkg-node`, and rule
@@ -7490,7 +7490,7 @@ override by name. Static, no build step, its own `tokens.css`.
 So benchwork is one form plus one route in two existing files, not a new application. No graph library
 is added; the surface is plain DOM rows in that viewer.
 
-**Its home is `dentalwork/batch-review/`, not `benchwork/`.** Benchwork's own first rule is *"No new
+**Its home is `typelab/`, not `benchwork/`.** Benchwork's own first rule is *"No new
 tooling here. Every stage below runs an existing script"* — an interactive tool breaks that on its
 first commit. It is the same name as the folder on purpose. *(My call, not the owner's; say so if you
 would rather it sat elsewhere.)*
@@ -7563,10 +7563,10 @@ how the engine works cites the file that says so, per claim, or does not assert 
 ### Status
 
 **BUILT, 2026-11-20, `86c5e47`** — as a CLI rather than a panel, which is what the measurement above
-made of it: `npm run benchwork -- --list`, `benchwork/cli.mjs` with its rules and parsing in
-`benchwork/rules.mjs` and 13 tests. It turns the thirteen shortlisted rules, refuses before it spends
+made of it: `npm run benchwork -- --list`, `typelab/cli.mjs` with its rules and parsing in
+`typelab/rules.mjs` and 13 tests. It turns the thirteen shortlisted rules, refuses before it spends
 a run, writes `benchwork.json` beside the review, and prints the numbers a rule change moves. Output
-goes to `dentalwork/output/`, which is git-ignored, so a review of patient scans cannot be staged by
+goes to `typelab/output/`, which is git-ignored, so a review of patient scans cannot be staged by
 accident. Proved end to end
 on the reference denture: baseline 168 tips, `overhangAngleDeg=55` → 185 tips.
 
@@ -7613,7 +7613,7 @@ planner defaults stay in Rust; dental type values become the app's.**
 |---|---|---|
 | The detection cache is keyed by profile **id**, not content | `dental/cache.rs:33-38` (`profile: String`) | Correct only while numbers cannot be edited. The moment a type's values are editable under a fixed id, a retune reuses the old verdict - which is house rule 6 of `ADDING-A-KIND-OR-TYPE.md` broken by its own cache. **This is why the digest key is step 1 and not step 4.** |
 | A missing, NaN or infinite rule entry keeps the Rust default | `supports/rules.rs:179` (its own doc comment) | Lenient by design, and documented. Fine for an override channel, wrong for a type's own values: silence must not be a value. |
-| `packRules` iterates `RULE_NAMES`, not the given keys | `vendor/mixo-geocore/host/supports/generateRules.ts:317-327` | **A rule passed under a name the engine does not know is silently ignored** - no throw, no warning, and the run looks successful. First law broken in live code. It has bitten once (`benchwork/rules.mjs:14-18`). |
+| `packRules` iterates `RULE_NAMES`, not the given keys | `vendor/mixo-geocore/host/supports/generateRules.ts:317-327` | **A rule passed under a name the engine does not know is silently ignored** - no throw, no warning, and the run looks successful. First law broken in live code. It has bitten once (`typelab/rules.mjs:14-18`). |
 | `build.rs` embeds the aligner folder only; dentures use a hand-kept `ALL` | `build.rs:1-2`, `denture/profile.rs:15` | Doc said otherwise for both kinds; corrected in geocore `7e80728`. |
 | The denture profile has no `fixture` field | `denture/profile.rs` | The shipped denture fails the doc's own re-validation test. Blocks authored types, which must be able to say they are UNVALIDATED. |
 

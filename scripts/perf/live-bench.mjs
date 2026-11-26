@@ -2,7 +2,7 @@
 // reference aligner, in headless Chromium against the dev server, and which worker jobs it ran.
 // Run: node scripts/perf/live-bench.mjs [runs]
 // It also times Step 1's print-angle search in the browser (the worker's dental-tilt-scan job, F) and
-// records it as `tiltScanMs` in dentalwork/perf-current.json (the other keys are kept).
+// records it as `tiltScanMs` in scripts/perf/perf-current.json (the other keys are kept).
 //
 // Method: every worker `run` message the page posts and every `done`/`error` reply is timestamped
 // by a Worker wrapper (init script). A change starts the clock at the key press or click; it ends
@@ -135,7 +135,7 @@ async function main() {
     const tiltScanMs = scanJob ? Math.round(scanJob.end - scanJob.start) : undefined;
     console.log(JSON.stringify({ change: 'step1 print-angle scan (worker job)', tiltScanMs }));
     if (tiltScanMs !== undefined) {
-      const file = path.join(ROOT, 'dentalwork', 'perf-current.json');
+      const file = path.join(ROOT, 'scripts', 'perf', 'perf-current.json');
       const current = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
       writeFileSync(file, JSON.stringify({ ...current, tiltScanMs, tiltScanMethod: 'headless Chromium (swiftshader), vite dev server, reference aligner: the analysis worker\'s dental-tilt-scan job, post to reply (scripts/perf/live-bench.mjs)' }, null, 2) + '\n');
     }

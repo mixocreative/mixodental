@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 /*
- * Colours live in CSS tokens only (src/styles.css and, for the batch viewer, dentalwork/batch-review/tokens.css).
+ * Colours live in CSS tokens only (src/styles.css and, for the batch viewer, typelab/tokens.css).
  * This test fails when a hex colour or an rgb()/rgba() literal appears in a TSX file or in a viewport / 3D source
  * file, or when a TSX file sets an inline `style=`. See docs/ui-styling.md.
  */
@@ -19,8 +19,8 @@ const TSX = Object.keys(FILES).filter((path) => path.endsWith('.tsx'));
 const VIEWPORT_DIRS = ['src/components/viewport', 'src/denture/steps/orient', 'src/denture/parts', 'src/ui'];
 const VIEWPORT_FILES = ['src/components/ObjectViewport.tsx'];
 const VIEWPORT = Object.keys(FILES).filter((name) => VIEWPORT_DIRS.some((dir) => name.startsWith(`${dir}/`)) || VIEWPORT_FILES.includes(name));
-/** The batch-review viewer and its GLB writers: colours come from dentalwork/batch-review/tokens.css only. */
-const BATCH = Object.entries(import.meta.glob<string>('../../dentalwork/batch-review/*.{ts,html}', { query: '?raw', import: 'default', eager: true }))
+/** The batch-review viewer and its GLB writers: colours come from typelab/tokens.css only. */
+const BATCH = Object.entries(import.meta.glob<string>('../../typelab/*.{ts,html}', { query: '?raw', import: 'default', eager: true }))
   .map(([path, text]) => [path.replace(/^\.\.\/\.\.\//, ''), text] as const)
   .filter(([path]) => !/\.test\.ts$/.test(path));
 /** Tests may name a colour they assert on; the ban is about source. */
@@ -70,7 +70,7 @@ describe('no colour literals outside the token files', () => {
   });
 
   it('has no colour literal in the batch-review viewer or its GLB writers', () => {
-    expect(BATCH.map(([path]) => path)).toEqual(expect.arrayContaining(['dentalwork/batch-review/viewer.html', 'dentalwork/batch-review/layerColours.ts']));
+    expect(BATCH.map(([path]) => path)).toEqual(expect.arrayContaining(['typelab/viewer.html', 'typelab/layerColours.ts']));
     for (const [path, text] of BATCH) {
       const lines = text.split(String.fromCharCode(10));
       for (const pattern of [HEX, RGB, NUMBER_COLOUR]) expect(lines.filter((line) => pattern.test(line)).map((line) => `${path}: ${line.trim().slice(0, 80)}`)).toEqual([]);

@@ -5,7 +5,7 @@
  * B1): one JSON per type bundling its WHOLE profile, the rules it pins and its zone graph, plus a
  * record of the proof. This module is pure - no engine, no file system. What it needs from either is
  * handed in (`TypeFileDeps`), so the rules below are tested without a wasm build, and the same code
- * runs in the app, in benchwork and behind the planned MCP server.
+ * runs in the app, in typelab and behind the planned MCP server.
  *
  * The traps it exists to close:
  * - A profile of DIFFERENCES would make every future retune of Generic silently change every type
@@ -80,7 +80,7 @@ export interface TypeFileDeps {
   parseProfile(category: TypeCategory, value: unknown): unknown;
   /** Every rule name the engine reads (`RULE_NAMES`). */
   ruleNames: readonly string[];
-  /** The names in `rules` this category does NOT read (benchwork `unreadBy`): pinning one would look like a setting and change nothing. */
+  /** The names in `rules` this category does NOT read (typelab `unreadBy`): pinning one would look like a setting and change nothing. */
   unreadBy(category: TypeCategory, rules: Record<string, unknown>): string[];
   /** Problems with a zone graph together with the rules it runs beside (nodeGraph `validate` + `steepAngleProblem`); empty when runnable. */
   graphProblems(graph: Record<string, unknown>, rules: Record<string, unknown>): string[];
@@ -122,7 +122,7 @@ export { typeDigest };
 /** The whole type file as text, through the same writer, so a saved file reads back byte-identical. */
 export const typeFileText = (type: TypeFile): string => typeFileTextJs(type);
 
-/** The proof record for `type` as it stands - what benchwork writes after it has run the scans. */
+/** The proof record for `type` as it stands - what typelab writes after it has run the scans. */
 export const proofOf = (type: TypeFile, run: { engineVersion: number; scans: string[]; at: string }): TypeValidation => proofOfJs(type, run) as TypeValidation;
 
 /**

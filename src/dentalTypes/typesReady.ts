@@ -32,7 +32,7 @@ import { profileText, type TypeFileDeps } from './typeFile';
 const FILES = import.meta.glob('/types/*/*.type.json', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 /**
- * The reader's checks as the app runs them. `src/` imports nothing from `benchwork/` or `dentalwork/`: a graph is
+ * The reader's checks as the app runs them. `src/` imports nothing from `typelab/`: a graph is
  * checked by the engine itself (`typeGraphs.ts`, plan E1) and pinned rules are refused by `discoverTypes`, so neither
  * the workbench's graph validator nor its per-category rule table is needed here. Needs the engine: `registerTypes`
  * runs after geometryReady.

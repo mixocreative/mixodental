@@ -34,7 +34,7 @@ import { runAutoGen, type AutoGenEngine, type AutoGenHost } from './pipeline';
  * twice, walks one through the steps and auto-gens the other. That check lives in `scripts/walk.mjs`
  * where a browser is; this file is the half that can run in milliseconds on every commit.
  *
- * SKIPPED WHEN THE SCAN IS ABSENT. `dentalwork/fixtures` is git-ignored customer data.
+ * SKIPPED WHEN THE SCAN IS ABSENT. `samples` is git-ignored customer data.
  */
 
 /*
@@ -44,7 +44,7 @@ import { runAutoGen, type AutoGenEngine, type AutoGenHost } from './pipeline';
  * were both fine - which left the React host, where the bug was. One line, and it turned a guess
  * into a fork.
  */
-const SCAN = resolve(process.env.AUTOGEN_SCAN ?? 'dentalwork/fixtures/case-001/aligner.stl');
+const SCAN = resolve(process.env.AUTOGEN_SCAN ?? 'samples/case-001/aligner.stl');
 const PROFILE = DEFAULT_PROFILE_ID;
 
 /**

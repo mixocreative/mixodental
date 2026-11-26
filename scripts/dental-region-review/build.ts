@@ -67,13 +67,13 @@ export function pickPrintAngle(mesh: TriangleMesh, profileId: string = REFERENCE
  */
 /*
  * `rules` ARE THE ENGINE'S NAMED OVERRIDES, and they were missing here, which is the only reason
- * benchwork could not turn a rule on an aligner. The engine has taken rules for every kind all
+ * typelab could not turn a rule on an aligner. The engine has taken rules for every kind all
  * along - `host/supports/jobRunner.ts` passes `rules: job.rules ?? GENERATE_RULES` whatever the
  * dental kind - and this review simply never handed any over, so every aligner run used the
  * defaults and looked as though the aligner had no channel at all.
  *
  * The caller decides WHICH rules: only the ones an aligner actually reads should arrive here
- * (`readBy('aligner', …)` in `benchwork/rules.mjs`). Passing a denture-only rule would change
+ * (`readBy('aligner', …)` in `typelab/rules.mjs`). Passing a denture-only rule would change
  * nothing and read as "this rule does nothing", which is the opposite of the truth.
  */
 export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector, rules?: GenerateRules, profileId: string = REFERENCE_PROFILE): DentalReviewBuild {

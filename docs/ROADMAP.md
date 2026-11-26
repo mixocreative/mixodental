@@ -21,7 +21,7 @@ Reviewed 2026-10-28 by three EGM reviewers (implementation readiness, scope, cod
 2. Every decision about size or spacing is in millimetres, never in counts of faces, edges or pixels.
 3. Everything the user changes shows live.
 4. A stable print comes first; keeping tips off the fitting (tooth-facing) surface comes second.
-5. The owner's example (`dentalwork/fixtures/case-001/ideal-supported.stl`) guides only where tips go, the support and contact sizes and the print angle. The structure (Tree, Brace) is ours and is meant to be better than the example, so it differs (owner, 2026-10-28).
+5. The owner's example (`samples/case-001/aligner-sup.stl`) guides only where tips go, the support and contact sizes and the print angle. The structure (Tree, Brace) is ours and is meant to be better than the example, so it differs (owner, 2026-10-28).
 6. Evidence before optimisation: a performance or accuracy step starts only when a measurement shows the problem.
 
 ## Decision log
@@ -63,18 +63,18 @@ Open (owner; Q1, release timing, was answered: pull request #2 merged to `main` 
 | Q3 | Dental landings without the remesh (P3b): only if a measurement shows the remesh is a problem. | P3b |
 | Q4 | Switch the reference type to a curvature contour detector: only if a real file defeats the current one. | P2 |
 
-`dentalwork/open-decisions.md` explains D7–D10 in plain language for the owner.
+`docs/dental/open-decisions.md` explains D7–D10 in plain language for the owner.
 
 ## State at d28ffd3 (sources)
 
-- Reference aligner at default settings, folder review (`dentalwork/batch-review`, run 2026-10-28 by the unit D agent): 94 tips built, 0 left out, 0 crossings, opening gap 4 mm, outer gap 6 mm.
+- Reference aligner at default settings, folder review (`typelab`, run 2026-10-28 by the unit D agent): 94 tips built, 0 left out, 0 crossings, opening gap 4 mm, outer gap 6 mm.
 - Step 2 slider to tip preview 330–339 ms; Step 3 change to preview 1.6–3.0 s, lift 1.25 s after L (E1 bench `scripts/perf/live-bench.mjs`, headless Chromium, median of 3, machine shared with another job). Most of a rebuild is the repair loop: about 5 trials of 0.19 s build + 0.07 s check.
-- `dentalwork/perf-baseline.json` is the **pre-port** comparison (dental Generate 12.2 s, 117 contacts) and stays as history; current numbers go to a new file (step R).
+- `scripts/perf/perf-baseline.json` is the **pre-port** comparison (dental Generate 12.2 s, 117 contacts) and stays as history; current numbers go to a new file (step R).
 - Pull request #2 merged to `main` (fbac47f, deployed 2026-10-28). **Merges to `main` no longer deploy** — from 2026-11-02 CI is milestones-only by the owner's decision, so a deploy follows a `milestone-*` tag or a hand-dispatched run, never a push. `README.md` and `docs/designer-guide.md` carry the live rule.
 
 ## Verification tiers
 
-- **Engine or ABI step**: `~/.cargo/bin/cargo test --workspace`, `npx tsc --noEmit`, `npx vitest run`, `npm run build`, `npm run walk`, the locale walk, a folder review of `dentalwork/fixtures/case-001`.
+- **Engine or ABI step**: `~/.cargo/bin/cargo test --workspace`, `npx tsc --noEmit`, `npx vitest run`, `npm run build`, `npm run walk`, the locale walk, a folder review of `samples/case-001`.
 - **UI-only step**: `npx tsc --noEmit`, `npx vitest run`, `npm run walk`, the locale walk when strings change.
 - **Docs-only step**: none.
 - Every step: docs updated, one line in the SHIP-PLAN progress table (unit, status, commit, one-sentence summary; details in the commit message), commit and push to `codex/dental-rework`.
@@ -83,7 +83,7 @@ Open (owner; Q1, release timing, was answered: pull request #2 merged to `main` 
 ## Steps in order
 
 ### V. Validation on real aligners (owner, in parallel, starts now)
-Owner runs `dentalwork/batch-review/run-batch-review.bat` on 10–20 real aligners (upper and lower, with and without a central opening, attachments, different trim styles, files from more than one design program) and prints 3–5 at the default settings on the owner's printer and resin, checking that supports hold and the parts fit. Sends case numbers and notes. Outcome decides whether O, P2 and the F thresholds need work. 
+Owner runs `typelab/run-batch-review.bat` on 10–20 real aligners (upper and lower, with and without a central opening, attachments, different trim styles, files from more than one design program) and prints 3–5 at the default settings on the owner's printer and resin, checking that supports hold and the parts fit. Sends case numbers and notes. Outcome decides whether O, P2 and the F thresholds need work. 
 
 ### L. Lift as a plate offset (done)
 Lift moves the plate, not the model, so a lift change keeps the model-space caches. Goldens must not change. Done when: a lift change through the offset equals a fresh generate at that lift (within 1e-5 mm; same components, contact ids and verdicts); the session keeps the same mesh handles across the change (handle count asserted); lift-change time before and after with `scripts/perf/live-bench.mjs`. Time-box: if not done within the unit, stop and report.
@@ -92,7 +92,7 @@ Lift moves the plate, not the model, so a lift change keeps the model-space cach
 Result: the reference spends 1 trial at the Step 3 defaults and 3 at the default settings (the earlier "about 5" came from another pose and rim); no no-op trial found; dental generate about 1200 -> 1060 ms; goldens unchanged. `step2SliderMs` is one Area width step (region proposal + placement, no build); the Step 3 keys are `step3PillarDiameterMs`, `step3TipSizeMs`, `step3LiftHeightMs`, `step3RaftToggleMs`. Not covered by the new test: the Tree, Brace and structure fallbacks (no fixture).
 
 Specification as built:
-The repair loop (`supports/generate/repair.rs`) spends a trial only after a check finds a crossing (`spend` follows a positive check), so a clean first build costs no trials; the about 5 trials on the reference mean its first build has crossings that the repair then resolves. (1) **Measure**: on the reference at the Step 3 defaults, log per trial which step spent it (Tree fallback, Brace fallback, re-aim normal, re-aim down, alternates round, leave-out, all-manual, structure fallback), how many contacts it touched and its build and check time; record `Outcome.trials`. (2) **Remove repeated work with identical inputs, nothing else**: `review_components` and the collision views are rebuilt for every crossing query on the same `built` (`crossing_necks`, `crossing_structures`), and `crossing_auto` re-runs the neck query that `crossing_necks` already ran on the same `built`; compute each once per `built` (a small per-build memo inside `run`). No change to which trials run, their order or their inputs. (3) **Timings**: `scripts/perf-baseline.mjs` gains `--out <file>` (default unchanged, so `perf-baseline.json` stays as history) and `--check <file>`; `--out dentalwork/perf-current.json` records dental generate, Step 2 slider and Step 3 change times (median of 3, keys `dentalGenerateMs`, `step2SliderMs`, `step3<Control>Ms`); `--check` exits non-zero when any median is over 2x the file's value. Run locally only (not in CI: the machine is shared). Done when: goldens byte-identical; a test asserts the repaired result on the reference and on a blocked fixture is identical before and after; the trial log and generate time before and after are in the commit message. If the log shows a trial whose input is a no-op (for example a re-aim that changes nothing still rebuilding), report it to the lead rather than changing the order.
+The repair loop (`supports/generate/repair.rs`) spends a trial only after a check finds a crossing (`spend` follows a positive check), so a clean first build costs no trials; the about 5 trials on the reference mean its first build has crossings that the repair then resolves. (1) **Measure**: on the reference at the Step 3 defaults, log per trial which step spent it (Tree fallback, Brace fallback, re-aim normal, re-aim down, alternates round, leave-out, all-manual, structure fallback), how many contacts it touched and its build and check time; record `Outcome.trials`. (2) **Remove repeated work with identical inputs, nothing else**: `review_components` and the collision views are rebuilt for every crossing query on the same `built` (`crossing_necks`, `crossing_structures`), and `crossing_auto` re-runs the neck query that `crossing_necks` already ran on the same `built`; compute each once per `built` (a small per-build memo inside `run`). No change to which trials run, their order or their inputs. (3) **Timings**: `scripts/perf-baseline.mjs` gains `--out <file>` (default unchanged, so `perf-baseline.json` stays as history) and `--check <file>`; `--out scripts/perf/perf-current.json` records dental generate, Step 2 slider and Step 3 change times (median of 3, keys `dentalGenerateMs`, `step2SliderMs`, `step3<Control>Ms`); `--check` exits non-zero when any median is over 2x the file's value. Run locally only (not in CI: the machine is shared). Done when: goldens byte-identical; a test asserts the repaired result on the reference and on a blocked fixture is identical before and after; the trial log and generate time before and after are in the commit message. If the log shows a trial whose input is a no-op (for example a re-aim that changes nothing still rebuilding), report it to the lead rather than changing the order.
 
 ### F. Print-angle search (done)
 Result on the reference (neck 2, pillar 1.4, lift 3.5): braced band 26.46–44.46°, pick 44.46°; unbraced band 26.46–36.46°, pick 36.46° (today's preset, until S3); first crossing 47.46°, first resin trap 48.46°. Browser scan 4.4 s (`tiltScanMs`), Node 3.0–3.5 s. Implementer choices: the WASM call takes an optional progress callback; the scan uses the settings the aligner will be built with; a hand-chosen tilt's one generate is the normal Step 3 generate; if all three confirm builds fail the angle stays at the pick; Next is disabled while scanning or confirming.
@@ -216,7 +216,7 @@ Pinned (lead, 2026-10-29):
 - **Steps**, each through the engine's ABI: read the STL and weld; centre as the import does (`center_positions_in_place`); orient (dental profile `reference-aligner`); propose the region; tilt scan and pick (the profile's Step 3 support settings: Tree and Brace on, lift, pillar, tip); policy; generate; check (verdict, crossings, left-out, gaps).
 - **Output**: `<out-dir>/supported.stl` (the aligner in its print pose plus all supports, one binary STL) and `<out-dir>/summary.json` (angle, band, tips placed, left out, crossings, gaps, seconds per step, engine_version).
 - **Comments**: each step has a one-line comment saying which ABI call it is and what it returns, so the file serves as the host example (D16, A1).
-- **Done when**: on `dentalwork/fixtures/case-001/aligner.stl` the summary matches the folder review (44.5°, clear, 93 tips, 1 left out, 0 crossings); runs in under 30 s; `npm run host-example` script added; a section "Driving the engine without the app" in `dentalwork/wasm-geometry-design.md` points to it. Tier: `node scripts/host-example.mjs` on the reference, `npx tsc --noEmit`, `npx vitest run`.
+- **Done when**: on `samples/case-001/aligner.stl` the summary matches the folder review (44.5°, clear, 93 tips, 1 left out, 0 crossings); runs in under 30 s; `npm run host-example` script added; a section "Driving the engine without the app" in `docs/dental/wasm-geometry-design.md` points to it. Tier: `node scripts/host-example.mjs` on the reference, `npx tsc --noEmit`, `npx vitest run`.
 
 ## After H: dental-only mixoDental, generic supports in mixomesh (D16)
 

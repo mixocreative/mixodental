@@ -4,8 +4,8 @@ import { kindOfProfile, profileIdsOf } from '@mixo-geocore/host/dental/dentalKin
 import { DENTURE_PROFILE_FILES } from '@mixo-geocore/host/dental/dentureProfileFiles';
 import { zoneGraphDigest } from '@mixo-geocore/host/dental/zoneGraph';
 import { orientGraphDigest } from '@mixo-geocore/host/dental/orientGraph';
-import { defaultGraph, upgradeGraph } from '../../dentalwork/batch-review/nodeGraph.mjs';
-import { flatBaseGraph } from '../../dentalwork/batch-review/orientGraph.mjs';
+import { defaultGraph, upgradeGraph } from '../../typelab/nodeGraph.mjs';
+import { flatBaseGraph } from '../../typelab/orientGraph.mjs';
 import { applyTypeGraphs } from './typeGraphs';
 import { typeRulesOf } from './typeRules';
 import { dentureRulesOf, startingOptionsOf } from '../denture/settings/dentureRules';

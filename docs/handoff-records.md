@@ -1028,7 +1028,7 @@ bullet: a TUNING change does not survive leaving and returning to Step 2.
 - **Redraw a rim you have already confirmed**, then press Next. The redraw used to be discarded.
 - **Paint an area, leave the step, come back.** The paint used to be lost on re-accept.
   **ANSWERED BY MACHINE, 2026-11-17, and it needs no human after all: the paint survives.** Driven
-  on `dentalwork/fixtures/case-001/aligner.stl` with nothing else touched — paint one stroke, press
+  on `samples/case-001/aligner.stl` with nothing else touched — paint one stroke, press
   Back, press Next:
 
   | | before | after Back + Next |

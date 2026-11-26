@@ -16,7 +16,7 @@ section 7).
 
 **How a file gets here - the review workbench** (`npm run review`, or `view-batch-review.bat`;
 `docs/REVIEWER-OVERHAUL-PLAN.md`). **Import scans** (a folder or a path - read in place, never copied; an owner's
-`-sup.stl` is a reference, never run), pick a **type**: its whole setup opens in the editors (both graphs, the Rim
+`-sup.stl` is the supported target, never run), pick a **type**: its whole setup opens in the editors (both graphs, the Rim
 numbers, the search, the rules, name, badge), and every restore mark puts back what THAT type saved. Edit, **Apply**
 (the whole draft runs on the scan on screen; Run all runs the rest), compare with another type on the same scans
 (**Compare with**, **Flip** / C), then **Save type**: a NEW dated file, with the proof of the scans it ran on. Save
@@ -35,7 +35,7 @@ the profile and graph, and fingerprints of the scans it ran on - fingerprints of
 names, because those are patient scans. `"proved": true` is the owner's hand override: it counts as
 proved, and is shown as "proved by hand".
 
-**Who reads them.** `npm run benchwork -- --kind denture --type types/denture/<id>.type.json <folder>`
+**Who reads them.** `npm run typelab -- --kind denture --type types/denture/<id>.type.json <folder>`
 runs one on real scans. The one reader is `src/dentalTypes/typeFile.ts`: a missing or unknown key, a
 rule the category does not read, or a graph that cannot run is refused by name.
 

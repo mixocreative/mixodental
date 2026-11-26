@@ -8,7 +8,7 @@
  * `--pick` builds the quick pick only - for comparing RULES at the angle the app would use: set
  * MIXO_RULES='{"branchRodMaxMm":15}' and the row records it under `rules`.
  *
- * Scans are named by their index in dentalwork/fixtures/case-denture (sorted), NEVER by file name:
+ * Scans are named by their index in samples/case-denture (sorted), NEVER by file name:
  * these are patient scans, and the output may be shared. Results are written after every angle, so a
  * run stopped part way still leaves everything it measured.
  *
@@ -22,7 +22,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseStl, useNodeEngine } from './node-engine';
-import { buildDentureReview } from '../dentalwork/batch-review/profileSelect';
+import { buildDentureReview } from '../typelab/profileSelect';
 
 useNodeEngine();
 const args = process.argv.slice(2);
@@ -30,9 +30,9 @@ const valueOf = (flag: string) => { const at = args.indexOf(flag); return at < 0
 const only = valueOf('--only')?.split(',').map(Number);
 const pickOnly = args.includes('--pick');
 const outFile = valueOf('--out') ?? 'tilt-measure.json';
-const dir = 'dentalwork/fixtures/case-denture';
+const dir = 'samples/case-denture';
 // NOT the `-sup` files: those are the same scans already supported by another dental program, kept as REFERENCE
-// ONLY (dentalwork/fixtures/README.md). On 2026-11-21 this sweep took them too, their supports were read as small
+// ONLY (samples/README.md). On 2026-11-21 this sweep took them too, their supports were read as small
 // parts of the denture, and an afternoon of rule work was built on files that were never cases. Scan numbers count
 // the bare files only.
 const files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.stl') && !/-sup[.]stl$/i.test(f)).sort();

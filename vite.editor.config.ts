@@ -1,20 +1,20 @@
 /*
  * The review page's node editor, built on its own.
  *
- * The folder review (`dentalwork/batch-review/viewer.html`) is plain HTML served by `serve.mjs`, not
+ * The folder review (`typelab/viewer.html`) is plain HTML served by `serve.mjs`, not
  * by Vite, so it cannot import TSX or a bare `react`. This builds `nodeEditor/main.tsx` into ONE ES
  * module with React and React Flow bundled and the stylesheet inlined, which the page loads with a
  * dynamic `import()`. Run with `npm run review:editor`.
  *
  * The output is committed beside the page, like the vendored wasm, and
- * `dentalwork/batch-review/nodeEditor/bundle.test.ts` fails when the sources have changed since it was
+ * `typelab/nodeEditor/bundle.test.ts` fails when the sources have changed since it was
  * built - the same rule `vendor-geometry` enforces, so a stale editor cannot pass quietly.
  */
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
-import { banner } from './dentalwork/batch-review/nodeEditor/sourcesHash.mjs';
+import { banner } from './typelab/nodeEditor/sourcesHash.mjs';
 
-const here = resolve(import.meta.dirname, 'dentalwork/batch-review');
+const here = resolve(import.meta.dirname, 'typelab');
 
 export default defineConfig({
   define: { 'process.env.NODE_ENV': '"production"' },

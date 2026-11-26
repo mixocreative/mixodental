@@ -314,7 +314,7 @@ Sight cast takes a Position, not a Plane. Blender's lesson is that the connectio
 worth more than the error you would have read afterwards.
 
 **3. Every graph is validated before a run, never during one.** A cycle, a dangling input, an unbound
-a required output with nothing feeding it: refused with the node named, before any engine time is spent. This is the rule benchwork
+a required output with nothing feeding it: refused with the node named, before any engine time is spent. This is the rule typelab
 already follows — refuse before the minutes, not after them.
 
 **4. Cost is visible and capped, because adding a node is not free in rays.** Each Parallel cast is up
@@ -417,7 +417,7 @@ a signed field), Contour sampler**. Five, not four. Anyone who says otherwise ha
 
 ## 5b. WHAT EXISTS NOW (2026-11-20)
 
-The editor is built and in the folder review (`dentalwork/batch-review/viewer.html`), under the 3D
+The editor is built and in the folder review (`typelab/viewer.html`), under the 3D
 view, as **three stage tabs**:
 
 - **1 Orient** - the orientation steps and the **print-angle search** node: start 0° (upright, teeth
@@ -437,9 +437,9 @@ view, as **three stage tabs**:
   (`OUTPUT_WORDS`: "Allowed area - the ONLY faces where area tips may stand"). The engine keys stay
   as the stored values, so nobody has to know them. `nodeGraph.test.ts` fails if a node, setting or
   output ships without its words, or a text setting ships without a dropdown.
-- **3 Support settings** - the thirteen benchwork rules (`benchwork/rules.mjs`), each on the node that reads it, with a plain label and unit.
+- **3 Support settings** - the thirteen typelab rules (`typelab/rules.mjs`), each on the node that reads it, with a plain label and unit.
 
-The old benchwork panel is folded in: its rule list is hidden (it still holds the values), and
+The old typelab panel is folded in: its rule list is hidden (it still holds the values), and
 **Apply and run again** sits beside the stage tabs.
 
 **An edited graph RUNS (engine 69).** Apply sends the canvas to `serve.mjs`, which writes

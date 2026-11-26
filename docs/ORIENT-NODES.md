@@ -611,9 +611,9 @@ do not buy builds; add the number from answer 4 to the quick score, which is che
 ### M1, results - the three bare denture scans (run of 2026-11-21)
 
 `scripts/tilt-measure.ts`: every angle 0-44 by 2 fully built (named by index, never by file). Of the six
-STL files in `dentalwork/fixtures/case-denture`, **three are bare scans and three are `-sup` files** - the
+STL files in `samples/case-denture`, **three are bare scans and three are `-sup` files** - the
 same scans supported by another dental program, which this repo keeps as REFERENCE ONLY
-(`dentalwork/fixtures/README.md`, "Support contact files"). Only the bare scans are cases. Numbered 1-3 as the
+(`samples/README.md`, "Support contact files"). Only the bare scans are cases. Numbered 1-3 as the
 script now counts them (they were 2, 4, 6 when the `-sup` files were still swept). Every column comes from the
 every-angle run of 2026-11-21; the pick column was re-run the same day with the shipped engine (geocore
 5319c86, `--pick`) and matched to the tip. The raw per-angle rows were session-local and are not kept: this
@@ -762,7 +762,7 @@ becomes available here - one rule, seen from both sides.
    `nodeGraph.mjs` refuses unknown kinds). Proof: the default graphs evaluate identically; `gate:real` no change.
    **DONE 2026-11-22** (mixodental 6596e66, geocore ac4029b): the parity list is down to its one by-design entry,
    the socket is `rim`, and `gate:real` showed no differences. The rim-area producer was always step 7's (below).
-   **Started 2026-11-22:** `dentalwork/batch-review/zoneGraphParity.test.ts` sends one corpus of graphs through both
+   **Started 2026-11-22:** `typelab/zoneGraphParity.test.ts` sends one corpus of graphs through both
    validators (host `validate`, engine `setZoneGraph`). They agree except two listed disagreements - the engine
    does not type-check inputs (the typed evaluator's first job); and, BY DESIGN, the host lets a graph be authored
    ahead of the engine (the rim strip on a free output), which the engine refuses with its reason. The host's missing
@@ -965,7 +965,7 @@ becomes available here - one rule, seen from both sides.
   - Rust 653 library tests;
   - the wasm host test (the flat-base recipe orients a slab the default graph refuses);
   - the canvas/engine parity on an Orient corpus;
-  - a benchwork run on a real denture scan with the flat-base graph, which built, recorded the digest and wrote the Orient layers. Its largest flat area there is 57 mm2 poking out 11 mm, so the default 0.5 mm limit would refuse it, as it should;
+  - a typelab run on a real denture scan with the flat-base graph, which built, recorded the digest and wrote the Orient layers. Its largest flat area there is 57 mm2 poking out 11 mm, so the default 0.5 mm limit would refuse it, as it should;
   - a headless check of the canvas: standard Step 1 with 4 wires, flat base with 5, reset back to standard, and the zone canvas keeps its own words;
   - `gate:real` for the default (see the handoff).
 - **Not built, written down:**

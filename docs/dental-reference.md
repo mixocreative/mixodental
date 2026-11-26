@@ -34,7 +34,7 @@ The owner explicitly approved publishing this patient-specific reference mesh an
 | `06-nonplanar-trim-contours.png` | Hand-traced inner and outer trim edges rise near the posterior ends. |
 | `07-outer-ridge-and-inner-opening-annotation.png` | Operator's later clarification: blue/orange sections and green sharp-ridge joins form the candidate outer contour; red marks the central opening. |
 
-Diagnostic derived assets: [edge chains](#detected-edge-candidates), [green connector paths](#connector-path-candidates), the [two-contour face partition](#two-contour-face-regions), and the [simplified operator review model](#support-area-review). The [dentalwork folder](../dentalwork/README.md) has separate plain-language and technical explanations plus a Windows STL-to-GLB review script. These reference visuals do not certify other patients.
+Diagnostic derived assets: [edge chains](#detected-edge-candidates), [green connector paths](#connector-path-candidates), the [two-contour face partition](#two-contour-face-regions), and the [simplified operator review model](#support-area-review). The [dentalwork folder](../docs/dental/README.md) has separate plain-language and technical explanations plus a Windows STL-to-GLB review script. These reference visuals do not certify other patients.
 
 Use the mesh through the app's STL importer, as `scripts/probe-dental-orientation.ts` does. The active plan is [the Dental rework plan](superpowers.md#2026-10-24-dental-rework). These images are qualitative references; geometry and contact assertions should be measured on the mesh itself, and the operator should visually review the result.
 

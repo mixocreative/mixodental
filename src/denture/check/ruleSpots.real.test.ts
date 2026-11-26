@@ -12,11 +12,11 @@ import { splitByRule } from './acceptedSpots';
 import { ruleReasons } from './ruleSpots';
 
 /*
- * P7b item 3 on the real denture scan #1 (dentalwork/fixtures/case-denture, read in place, local only): the shared
+ * P7b item 3 on the real denture scan #1 (samples/case-denture, read in place, local only): the shared
  * overhang check lists 5 spots the denture build never reports; the denture rules explain every one of them, so the
  * check agrees with the build report (nothing unresolved, no real problem left).
  */
-const DIR = resolve('dentalwork/fixtures/case-denture');
+const DIR = resolve('samples/case-denture');
 const SCAN = existsSync(DIR) ? readdirSync(DIR).filter((name) => name.toLowerCase().endsWith('.stl') && !name.includes('-sup')).sort()[1] : undefined;
 
 describe.skipIf(!SCAN)('the check follows the denture rules (real denture scan #1)', () => {

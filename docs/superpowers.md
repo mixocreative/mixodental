@@ -1992,7 +1992,7 @@ Successor: read this plan, `docs/dental-reference/README.md`, `docs/dental-rewor
 
 **Stack:** TypeScript, Vitest, Vite, React, Three.js, existing indexed STL pipeline.
 
-Documentation checkpoint 2026-10-25: `dentalwork/plain-language.md` and `dentalwork/technical-algorithm.md` explain that the broad between-loop face cut labels contour sides but does not grant contacts. The current candidate strip starts at exact mesh-edge loops and follows adjacent faces on the `otherSide`. Both documents preserve the earlier ray, smooth-patch, and broad-area approaches with failure evidence, so future work can reassess them without confusing them with the live mask.
+Documentation checkpoint 2026-10-25: `docs/dental/plain-language.md` and `docs/dental/technical-algorithm.md` explain that the broad between-loop face cut labels contour sides but does not grant contacts. The current candidate strip starts at exact mesh-edge loops and follows adjacent faces on the `otherSide`. Both documents preserve the earlier ray, smooth-patch, and broad-area approaches with failure evidence, so future work can reassess them without confusing them with the live mask.
 
 ### Task 0: establish exact contour-face incidence (completed checkpoint)
 
@@ -2002,7 +2002,7 @@ The tests were red while the module was absent, then green. This pure topology h
 
 ### Task 1: freeze current behavior and isolate detection (completed checkpoint)
 
-Files: `src/core/analysis/dentalRegion.ts`, new `src/core/analysis/dentalContours.ts`, their tests, `dentalwork/technical-algorithm.md`.
+Files: `src/core/analysis/dentalRegion.ts`, new `src/core/analysis/dentalContours.ts`, their tests, `docs/dental/technical-algorithm.md`.
 
 1. Added a test for exact existing outer/opening edge identities, rotation invariance, and non-aligner abstention. It failed with the missing module before implementation.
 2. Moved graph/context/contour extraction into `dentalContours.ts`; left `classifyFaces` diagnostic in `dentalRegion.ts`. Preserved current public behavior. Focused tests, full `npm test` (106 files / 1,191 tests), and `npm run build` passed.
@@ -2022,7 +2022,7 @@ Owner clarified the shape requirement: a simple U-shaped aligner with no enclose
 
 ### Task 3: certify exterior-side strips
 
-Files: new `src/core/analysis/dentalContactBand.ts` and `.test.ts`; `dentalwork/technical-algorithm.md`, `dentalwork/plain-language.md`.
+Files: new `src/core/analysis/dentalContactBand.ts` and `.test.ts`; `docs/dental/technical-algorithm.md`, `docs/dental/plain-language.md`.
 
 1. Add labeled reference faces: forbidden tooth/cavity and permitted exterior-adjacent examples. Add rotated-pose and pathological winding/branch cases. Test that all forbidden labels fail, crest is excluded, and uncertain side abstains.
 2. Implement bounded mesh-geodesic distance from contour edges on each side, explicit cavity/exterior side choice, local setback/width parameters, and exact per-face permission. Validate 3D side continuity; never expand by 2D distance alone.
@@ -2040,7 +2040,7 @@ Checkpoint 2026-10-25: the two-contour placement path uses recomputed exact sour
 
 Collision diagnostic update: exact triangle-triangle BVH comparison of the current final support mesh against the one saved reference found **107 pillar/model intersection pairs from two automatic supports, 78 pairs outside the narrow contact band**, in addition to 3,579 neck/model pairs. This falsifies the assumption that primary-tip and secondary-landing checks alone ensure body clearance. The probe is in `scripts/dental-region-review/crossings-probe.ts`; it does not change production output. Before release, add a source-space body-path gate and re-run the collision probe, distinguishing intentional neck penetration from forbidden shafts. Do not silently drop manual supports.
 
-Subsequent narrow body-clearance checkpoint: `dentalBodyClearance.ts` now tests built automatic pillar triangles against source-model triangles, including coplanar overlap; `jobRunner.ts` omits crossing automatic IDs, rebuilds, and fails closed to manual-only if the rebuilt layout still crosses. Synthetic and one-reference tests pass; independent BVH comparison finds zero forbidden automatic-pillar intersections on the filtered reference. Browser walk passes **34 checks** with **83 final automatic supports and seven omissions** on this fixture. This does not yet check brace/tree/roof paths or early-layer islands. The broader modular architecture and typed, overridable defaults are documented in [`dentalwork/support-module-boundaries.md`](../dentalwork/support-module-boundaries.md); extraction should be incremental and parity-tested, not a rewrite of the working generator.
+Subsequent narrow body-clearance checkpoint: `dentalBodyClearance.ts` now tests built automatic pillar triangles against source-model triangles, including coplanar overlap; `jobRunner.ts` omits crossing automatic IDs, rebuilds, and fails closed to manual-only if the rebuilt layout still crosses. Synthetic and one-reference tests pass; independent BVH comparison finds zero forbidden automatic-pillar intersections on the filtered reference. Browser walk passes **34 checks** with **83 final automatic supports and seven omissions** on this fixture. This does not yet check brace/tree/roof paths or early-layer islands. The broader modular architecture and typed, overridable defaults are documented in [`docs/dental/support-module-boundaries.md`](../docs/dental/support-module-boundaries.md); extraction should be incremental and parity-tested, not a rewrite of the working generator.
 
 Rim-coverage follow-up: the owner requires baseline spaced support along both detected trim rims even without an island signal, except where no safe/reachable contact exists. A new final-mesh arclength test exposed a 25 mm unsupported central-opening arc at the prior 5 mm sampling. The current 2 mm inner default yields an 8 mm maximum on the one reference, with 30/45 inner candidates retained and zero pillar crossings; outer 3 mm sampling retains all 72. This is a one-fixture improvement, not a global coverage proof. The next policy gate must measure retained circular gaps on every model, seek safe local alternatives without widening the cavity-facing mask, and report unresolved gaps for manual review rather than silently generating an apparently complete result. `dentalwork` docs call the detected curves **trim rims** and the narrow permitted band **aligner contact strip**.
 
@@ -2056,7 +2056,7 @@ Files: `src/core/analysis/dentalPolicy.ts`, `src/supports/jobRunner.ts`, `src/wo
 
 Checkpoint 2026-10-25: the standalone GLB now colors the live narrow mask teal, keeps four diagnostic side strips and separate old 2 mm markers, and includes gold supports generated by the app. The CLI reports the narrow count separately from the broad diagnostic face counts. Browser walk passed 32 checks; tests passed 110 files / 1,201 tests and build passed. Still need anatomical/operator review of the new GLB, independent with-hole and no-hole meshes, body-clearance and island tests, and diameter calibration; do not merge/release on this checkpoint.
 
-Files: `src/App.tsx`, `src/components/DentalBar.tsx`, viewport overlay and tests; `scripts/dental-region-review/cli.ts`, `dentalwork/run-review.bat`.
+Files: `src/App.tsx`, `src/components/DentalBar.tsx`, viewport overlay and tests; `scripts/dental-region-review/cli.ts`, `typelab/run-region-review.bat`.
 
 1. Write UI tests for contour-band wording and visualization; no broad green cavity paint. Keep Step 1 Auto orientation/Next, Step 2 tips with Add/Remove and viewport-rotation hint, Step 3 final generation.
 2. Extend the standalone GLB command to show the distinct detector methods and proposed strips. Run it on reference and scrambled reference.
@@ -2133,7 +2133,7 @@ Keep this work on `codex/dental-rework`. A failed detector gives no automatic de
 
 ### Task 1 — Exact topology-birth primitive
 
-**Files:** create `src/core/analysis/topologyBirths.ts` and `.test.ts`; update `dentalwork/technical-algorithm.md` and `plain-language.md`.
+**Files:** create `src/core/analysis/topologyBirths.ts` and `.test.ts`; update `docs/dental/technical-algorithm.md` and `plain-language.md`.
 
 - [x] Write a failing test for one detached raised tetrahedron, an equal-height bottom plateau, a lower-connected slope, and two minima joining only at a higher saddle. Assert birth height and source vertex/plateau identity, not a particular union-find parent.
 - [x] Run `npx vitest run src/core/analysis/topologyBirths.test.ts`; verify assertion failures from the initial stub.
@@ -2208,7 +2208,7 @@ Keep this work on `codex/dental-rework`. A failed detector gives no automatic de
 
 ### Resume rule
 
-Read `docs/superpowers/specs/2026-10-26-support-ship-gates-design.md`, this plan, `dentalwork/support-module-boundaries.md`, current `git status`, and the last entry in `docs/dental-rework-handoff.md`. Resume the first unchecked checkbox. Record exact test command, result, changed files, commit SHA, known risk, and one next action after each task. Existing files or branch status, not narrative memory, are authoritative.
+Read `docs/superpowers/specs/2026-10-26-support-ship-gates-design.md`, this plan, `docs/dental/support-module-boundaries.md`, current `git status`, and the last entry in `docs/dental-rework-handoff.md`. Resume the first unchecked checkbox. Record exact test command, result, changed files, commit SHA, known risk, and one next action after each task. Existing files or branch status, not narrative memory, are authoritative.
 
 ---
 
@@ -2264,7 +2264,7 @@ Owner scope confirmation, 2026-10-27: both automatic contact placement and final
 
 **Tech Stack:** Rust 1.99.1 with `wasm32-unknown-unknown`, Cargo, wasm-bindgen/wasm-pack, TypeScript 5.7, Vite 6, Vitest 3, Playwright browser walk. Rust version is pinned after [official 1.99.1 release](https://blog.rust-lang.org/releases/); verify wasm-bindgen/wasm-pack versions and hashes at installation.
 
-**Design:** [`dentalwork/wasm-geometry-design.md`](../dentalwork/wasm-geometry-design.md). **Existing safety plan:** [`2026-10-26-support-ship-gates.md`](#2026-10-26-support-ship-gates). Both apply; this plan does not waive any generic/dental safety gate.
+**Design:** [`docs/dental/wasm-geometry-design.md`](../docs/dental/wasm-geometry-design.md). **Existing safety plan:** [`2026-10-26-support-ship-gates.md`](#2026-10-26-support-ship-gates). Both apply; this plan does not waive any generic/dental safety gate.
 
 ---
 
@@ -2294,7 +2294,7 @@ The Rust source must be split further by responsibility as each phase lands; thi
 
 #### Task 0.1: Produce complete geometry-call inventory
 
-**Files:** Create `dentalwork/wasm-geometry-inventory.md`; inspect all non-test `src/core`, `src/supports`, `src/editing`, `src/state`, `src/components/viewport`, workers and `scripts/dental-region-review`.
+**Files:** Create `docs/dental/wasm-geometry-inventory.md`; inspect all non-test `src/core`, `src/supports`, `src/editing`, `src/state`, `src/components/viewport`, workers and `scripts/dental-region-review`.
 
 - [ ] Enumerate each exported 3D calculation, production caller, Node caller and intended Rust operation. Classify render-only host API calls separately; record why each retained JS call is not geometry policy.
 - [ ] Add a checkable import/AST rule that fails when a new production TS geometric algorithm appears outside the explicit adapter list. Initially report-only; enforce after cutover.
@@ -2374,7 +2374,7 @@ Progress: the import worker's bounding-box centering, glTF raw-mesh transform/we
 
 #### Task 4.1: Workers, export, diagnostics and Babylon contract
 
-**Files:** Narrow all four workers, `src/supports/export.ts`, `scripts/dental-region-review/*`, `dentalwork/run-review.bat`; add a small host-neutral package/contract for Babylon.
+**Files:** Narrow all four workers, `src/supports/export.ts`, `scripts/dental-region-review/*`, `typelab/run-region-review.bat`; add a small host-neutral package/contract for Babylon.
 
 - [ ] Make browser preview, full Generate and STL export use the same accepted WASM result/revision. Node GLB diagnostic must call the same Rust algorithms and still color distinct rim methods, mask and actual contacts.
 - [ ] Build a minimal Babylon adapter smoke test that loads the Node/browser package, hands in a left-handed mesh, requests a transform and support result, and confirms the returned right-handed core result transforms back correctly. No Babylon UI is needed for this contract proof.

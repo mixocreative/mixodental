@@ -6,7 +6,7 @@ import { buildDentalReview } from './build';
 import { parseStl } from '../test-support/rustImport';
 
 // Local-only: customer scans are never committed, so this skips when the folder is absent.
-const dir = 'dentalwork/fixtures/case-aligner';
+const dir = 'samples/case-aligner';
 const has = existsSync(dir);
 // Sorted indices of the scans with no central opening (open arch) or one closed sharp loop.
 const SCANS = [0, 2, 5, 7];

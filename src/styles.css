@@ -31,7 +31,7 @@
   --radius: 2px;
   --dur: .15s;
   /* One list row. 24px is what the app already uses - `.panel .unit` had it as a literal - not the
-     22px of dentalwork/batch-review/tokens.css, whose `--row` belongs to a denser viewer. The names
+     22px of typelab/tokens.css, whose `--row` belongs to a denser viewer. The names
      stay different on purpose: two tokens called `--row` meaning two heights would be worse than
      neither, and docs/ui-styling.md's guard only checks that a name appears SOMEWHERE in the page. */
   --row-height: 24px;

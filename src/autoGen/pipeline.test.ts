@@ -10,7 +10,7 @@ import type { DentalOrientation } from '@mixo-geocore/host/dental/dentalOrient';
  * EVERY WAY THE PIPELINE CAN STOP, WITHOUT A SCAN AND WITHOUT AN ENGINE.
  *
  * WHY THIS FILE EXISTS BESIDE `pipeline.real.test.ts`: that one is `describe.skip` when
- * `dentalwork/fixtures` is absent, which it is on a fresh clone and on CI - so the pipeline's ONLY
+ * `samples` is absent, which it is on a fresh clone and on CI - so the pipeline's ONLY
  * tests were skipped and the suite stayed green. A detector that examined nothing and printed the
  * same clean line either way is this project's own definition of a silent death, and the pipeline
  * is the piece that generates supports with nobody watching.

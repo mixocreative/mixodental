@@ -1,8 +1,8 @@
 # Review UX refinement — 2026-11-20
 
-The folder review (`dentalwork/batch-review/viewer.html`) with its three stage tabs (**1 Orient**,
+The folder review (`typelab/viewer.html`) with its three stage tabs (**1 Orient**,
 **2 Zones**, **3 Support settings**) and the zone node canvas (`nodeEditor/ZoneEditor.tsx`, built with
-React Flow), looked at whole at 1440x900. The owner asked for the benchwork node UI to be refined and
+React Flow), looked at whole at 1440x900. The owner asked for the typelab node UI to be refined and
 the whole UX reassessed. Two EGM reviews (a naive reader, a scope reviewer) read the plan; **Fable**
 (the senior reviewing model this project consults on design decisions) decided the open questions.
 The owner added four requests while it was being built; they are marked **owner**.
@@ -16,7 +16,7 @@ The owner added four requests while it was being built; they are marked **owner*
 | 3 | **owner:** the outputs Orient sets were drawn as nodes | Nodes only fixed outputs need (rim line, both rim strips, sockets) are not drawn; their sockets show ✓ "already set in Orient" / "already set by the engine". They stay in the graph, because the engine checks those outputs by name. | Screenshot. |
 | 4 | Text unreadable at fit-to-view | Fit (on load and the fit button) covers only what is drawn; each explanation is two lines, whole on hover or when selected; a dropdown gets its own line so its words are not cut. | Screenshot: sentences legible at 1440 px. |
 | 5 | Problems listed by engine id, node not marked | A message naming a node (`R1: ...`) shows on that node; a problem turns its border red, a warning is amber text. | Screenshot (R1b's "tilt is 0° - this ray is off"). |
-| 6 | Stage 3 shorthand ("low outside"), a 0/1/2 mode as a text box, "engir" | Every benchwork rule has a plain `label` with its unit; a mode is a dropdown of described choices (checked against `ruled_tips.rs` `low_reason`). | `rules.test.ts`: a rule without a label or unit, or a mode without choices, fails. |
+| 6 | Stage 3 shorthand ("low outside"), a 0/1/2 mode as a text box, "engir" | Every typelab rule has a plain `label` with its unit; a mode is a dropdown of described choices (checked against `ruled_tips.rs` `low_reason`). | `rules.test.ts`: a rule without a label or unit, or a mode without choices, fails. |
 | 7 | Print-angle figure about 6 px text, no picked angle, and a WRONG help text ("teeth end DOWN") | Drawn from the numbers: plate, upright 0°, arc to the search end, the picked angle in red, and one sentence. | Engine read by Fable and re-read here: `denture/upright.rs:25` (plate normal from the legs end to the apex), `pose.rs:13-17` (a positive degree turns the teeth side up). |
 | 8 | **owner:** a selected card's title went unreadable | `base.css` paints a pressed button's text in `--paper` for its dark fill; the card drops the fill. The card title now keeps `--ink`. | Measured: pressed button text rgb(244,242,237) before, card title rgb(59,54,49) after. |
 | 9 | Colours that were never drawn | Fourteen reads of `--accent` and `--panel`, which this page does not load, drew the canvas, the figure and the divider with no colour. Replaced with `--red`, `--surface`, `--sunken`. | `src/ui/cssTokens.test.ts` now checks the review page against the stylesheets IT loads; it failed on both tokens before the fix. |
@@ -40,20 +40,20 @@ The owner added four requests while it was being built; they are marked **owner*
 
 ## The `/cia` audit of the edited-graph channel (same night)
 
-A cold auditor (`cia`, Screen tier, read-only) walked Apply → `serve.mjs` → `benchwork` → `batch.ts` →
+A cold auditor (`cia`, Screen tier, read-only) walked Apply → `serve.mjs` → `typelab` → `batch.ts` →
 the engine → `summary.json` → the status line, asking where an edited graph could fail while the
 operator saw success. Each finding was opened in source before it was fixed.
 
 | # | Finding | Fixed by | Proved |
 |---|---|---|---|
-| F1 | A refused run showed "benchwork exited 2"; the reason sat in a log the page never read. Apply did not check the graph first. | The page shows the refusal line from the run's log (the header and the problem under it), and Apply refuses a graph with problems before any run. | On the page: a 30° steep ray now reads "...outside 45-90 (exclusive) as OFF..."; a loose input reads `Fix the zone graph first (2 Zones): NS: input "b" is not connected`, with no run started. |
+| F1 | A refused run showed "typelab exited 2"; the reason sat in a log the page never read. Apply did not check the graph first. | The page shows the refusal line from the run's log (the header and the problem under it), and Apply refuses a graph with problems before any run. | On the page: a 30° steep ray now reads "...outside 45-90 (exclusive) as OFF..."; a loose input reads `Fix the zone graph first (2 Zones): NS: input "b" is not connected`, with no run started. |
 | F2 | "Done" was built from the request, so it could claim an edited graph ran when the summary said default. | "Done" reads the summary; an edited request answered with `default` says the graph was NOT applied. | A real 2-minute run on case-001 (R1b 60°): "Done ... (graph d7dc809c)", the digest from the run's own summary. The NOT-applied branch: `rerunReport.test.ts`. |
 | F3 | No handler for a spawn error or a hung run: "Running..." forever, or a crashed server. | One answer per request: exit, spawn error, or a 15-minute limit. | `rerunReport.test.ts` with a stand-in process: a run past its limit is killed and answered once; a spawn error then an exit is answered once; an exit in time never fires the limit. |
 | F4 | The steep angle in a restored graph did not reach the rule field; the CLI only printed a note. | Mirrored at load; the CLI refuses a graph R1b angle with no rule. | On the page: the restored 30° appeared in the rule field. |
 | F5 | The status never said whether the canvas still was the graph that ran. | After an Apply on this page: "The canvas matches that run" / "has changed since that run". | After that run: "matches"; one dropdown changed: "has changed since that run"; changed back: "matches". |
 | F6 | One `/out/` for the whole server: two tabs re-running at once see whichever finished last. | **Not fixed**, marked `shortcut:` in `serve.mjs`: one operator, one tab today. | - |
 | F7 | A summary without `zoneGraph` read as "the default graph". | Reads as "a graph this folder does not record". | Code path. |
-| F8 | A `MIXO_ZONE_GRAPH_FILE` left in the shell would run a graph nobody asked for. | `benchwork` passes it on only from `--zone-graph`. | Code path. |
+| F8 | A `MIXO_ZONE_GRAPH_FILE` left in the shell would run a graph nobody asked for. | `typelab` passes it on only from `--zone-graph`. | Code path. |
 
 Also named by the audit and left as debt: `isDefault` compares JSON text, so it depends on key order.
 Every graph here is written by the same code, so the order is stable; a graph from elsewhere (the
@@ -134,6 +134,6 @@ Then, owner: "Yes, auto-run". **An Orient edit now runs on its own** (`viewer.ht
 for 1.2 s, an edit undone before its run starts runs nothing, and an edit made during a run waits and runs once after it
 - never two runs at once (the server has one `/out/`). The status line says "it runs on its own in a moment" only while
 a run is really queued; a canvas edited before a reload starts nothing until it is edited again. Each run is about 27 s
-and a new folder of about 70 MB in `dentalwork/output/`, so a long session of edits leaves folders to clear. Going back
+and a new folder of about 70 MB in `typelab/output/`, so a long session of edits leaves folders to clear. Going back
 to the standard Step 1 after an edited run is now a change Apply runs (it said "Nothing is changed yet" and left the
 edited run on screen). Proved in the browser: an edit ran (8°, 106 tips); a second edit during it waited and ran once.

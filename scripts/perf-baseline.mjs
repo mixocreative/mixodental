@@ -1,7 +1,7 @@
 // U0 performance baseline (SHIP-PLAN: no hard target; act only on an obvious regression).
 // Run: npx vite-node scripts/perf-baseline.mjs [--save]
-//      npx vite-node scripts/perf-baseline.mjs --out dentalwork/perf-current.json   (also Step 2 / Step 3 change times)
-//      npx vite-node scripts/perf-baseline.mjs --check dentalwork/perf-current.json (exit 1 when a median is over 2x the file's)
+//      npx vite-node scripts/perf-baseline.mjs --out scripts/perf/perf-current.json   (also Step 2 / Step 3 change times)
+//      npx vite-node scripts/perf-baseline.mjs --check scripts/perf/perf-current.json (exit 1 when a median is over 2x the file's)
 // perf-baseline.json is history (--save); perf-current.json is the file --check compares to. Local only (the machine is shared).
 // Times, median of 3 (run 1 is also reported because it includes JIT warm-up):
 //   import   - reference aligner through the import worker's code path (WASM BinaryStlSession + prepare())
@@ -157,6 +157,6 @@ const report = {
 };
 console.log(JSON.stringify(report, null, 2));
 if (process.argv.includes('--save')) {
-  mkdirSync(resolve(root, 'dentalwork'), { recursive: true });
-  writeFileSync(resolve(root, 'dentalwork/perf-baseline.json'), JSON.stringify(report, null, 2) + '\n');
+  mkdirSync(resolve(root, 'scripts/perf'), { recursive: true });
+  writeFileSync(resolve(root, 'scripts/perf/perf-baseline.json'), JSON.stringify(report, null, 2) + '\n');
 }

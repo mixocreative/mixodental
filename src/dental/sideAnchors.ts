@@ -2,7 +2,7 @@ import type { Vector } from '@mixo-geocore/host/core/vec3';
 
 /*
  * ONE JOB: where the six named sides of an oriented part sit, for a label beside each (docs/WORKBENCH-TABS-PLAN.md
- * B3). Two users, so it lives here: the workbench's Orient tab (dentalwork/batch-review/orientReadout.ts) and the
+ * B3). Two users, so it lives here: the workbench's Orient tab (typelab/orientReadout.ts) and the
  * app's denture Step 1, where the labels show what Flip front / Flip teeth side turned.
  *
  * LEFT AND RIGHT are a viewer's convention, not anatomy (a denture's anatomical left depends on the jaw): seen from the

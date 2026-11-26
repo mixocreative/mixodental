@@ -5,7 +5,7 @@
 //   npm run gate:real -- --update           write a new baseline (only when explicitly wanted)
 //   npm run gate:real -- --allow-no-scans   a machine with no scans may pass - as NOT RUN, not PASS
 //
-// Local only, never CI: the scans are patient data and live in git-ignored dentalwork/fixtures. One scan
+// Local only, never CI: the scans are patient data and live in git-ignored samples. One scan
 // at a time (peak memory). Scans are read in place. The baseline holds numbers and hashes only, keyed by
 // kind + a truncated SHA-256 of the scan's bytes, so no file name appears in it.
 import { spawnSync } from 'node:child_process';
@@ -18,12 +18,12 @@ import { compareRuns, formatDifferences, recordOf, scanCoverage } from './real-s
 import { viteNodeCli } from './viteNodeCli.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const BASELINE = join(root, 'dentalwork', 'baselines', 'real-scan-baseline.json');
+const BASELINE = join(root, 'scripts', 'baselines', 'real-scan-baseline.json');
 /** kind label -> fixture folder and the pipeline kind the batch is told. */
 const SETS = {
-  denture: { dir: 'dentalwork/fixtures/case-denture', batchKind: 'denture' },
-  aligner: { dir: 'dentalwork/fixtures/case-aligner', batchKind: 'aligner' },
-  multipart: { dir: 'dentalwork/fixtures/case-emaaligner', batchKind: 'aligner' },
+  denture: { dir: 'samples/case-denture', batchKind: 'denture' },
+  aligner: { dir: 'samples/case-aligner', batchKind: 'aligner' },
+  multipart: { dir: 'samples/case-emaaligner', batchKind: 'aligner' },
 };
 
 const args = process.argv.slice(2);
@@ -65,7 +65,7 @@ const coverage = scanCoverage(scans.length, args.includes('--allow-no-scans'));
 if (coverage === 'blind') {
   console.error(`real-scan gate: FAIL - found no scans at all (${scope}), so it verified NOTHING.`);
   console.error(`  looked in: ${kinds.map((kind) => SETS[kind].dir).join(', ')}`);
-  console.error('  The scans are patient data and are not in git. Put them back under dentalwork/fixtures/case-*,');
+  console.error('  The scans are patient data and are not in git. Put them back under samples/case-*,');
   console.error('  or pass --allow-no-scans on a machine that is meant not to have them.');
   process.exit(1);
 }
@@ -95,7 +95,7 @@ try {
     rmSync(out, { recursive: true, force: true });
     mkdirSync(out, { recursive: true });
     process.stdout.write(`[${k + 1}/${scans.length}] ${scan.id} ... `);
-    const run = spawnSync(process.execPath, [viteNodeCli, '--script', join(root, 'dentalwork', 'batch-review', 'batch.ts'),
+    const run = spawnSync(process.execPath, [viteNodeCli, '--script', join(root, 'typelab', 'batch.ts'),
       '--kind', SETS[scan.kind].batchKind, '--out', out, scan.file], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     const summaryFile = join(out, 'summary.json');
     if (!existsSync(summaryFile)) { console.log('FAILED (no summary)'); console.error((run.stderr || '').slice(-600)); process.exit(1); }
