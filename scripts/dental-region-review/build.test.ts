@@ -7,6 +7,8 @@ import { placementMatrix, transformPositions } from '../test-support/matrix';
 import { buildDentalReview } from './build';
 import { exportDentalRegionReview } from './review';
 import { parseStl } from '../test-support/rustImport';
+import { PROFILE_FILES } from '@mixo-geocore/host/dental/profileFiles';
+import { registerAlignerProfile } from '@mixo-geocore/host/dental/registerProfile';
 
 /** Automatic contacts whose pillar crosses the model, as the Rust verdict lists them. */
 const crossingAutomaticPillars = (supports: { verdict?: { issues: { contactId?: string; part: string; blocked: boolean; origin: string }[] } }) =>
@@ -93,5 +95,17 @@ describe('complete dental GLB review', () => {
     expect(review.supports.components.some((part) => part.part === 'neck')).toBe(true);
     expect(review.supports.dropped.length).toBeLessThan(review.placement.points.length);
     expect(crossingAutomaticPillars(review.supports)).toEqual([]);
+  }, 180000);
+});
+
+describe('a registered aligner type with its own strip', () => {
+  // TRAP guarded (2026-11-27): the review proposed the region from the REFERENCE strip while placement read the type's
+  // own, so a type with any other strip position placed no tips at all ("no-proposed-dental-tips").
+  it('places tips with its own strip position, not the reference aligner\'s', () => {
+    const base = PROFILE_FILES['./profiles/reference-aligner.json'] as { defaults: Record<string, number> };
+    const id = 'strip-guard-aligner';
+    registerAlignerProfile(JSON.stringify({ ...base, id, defaults: { ...base.defaults, positionMm: 0.6 } }));
+    const review = buildDentalReview(reference(), undefined, undefined, id);
+    expect(review.kind === 'proposal' ? review.placement.points.length : review.reason).toBeGreaterThan(0);
   }, 180000);
 });

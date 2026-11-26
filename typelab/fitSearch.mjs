@@ -89,10 +89,12 @@ export const EDITS = {
   ],
   // The aligner reads no rules that were seen to move it and no graph; its strip numbers are profile fields
   // (profile.defaults), which a type carries to the engine (probe 2026-11-27, typelab/CLI.md).
-  // TRAP, left out on purpose: positionMm and stripWidthMm. Any change to either - even inside their legal range - made
-  // EVERY aligner build no tips ("no-proposed-dental-tips", fit of 2026-11-27), while density moved results normally.
-  // That is a wiring gap in how a type's strip reaches the run, not a fit result: it needs a reason before it is tuned.
+  // positionMm and stripWidthMm were left out for one night: any change made every aligner build no tips. The reason was
+  // ours - the review proposed the region from the REFERENCE strip while placement read the type's
+  // (scripts/dental-region-review/build.ts, fixed 2026-11-27) - and a probe then moved both normally.
   aligner: [
+    alignerDefault('positionMm', [0, 0.5, 0.9]),
+    alignerDefault('stripWidthMm', [0.3, 0.8, 1.2]),
     alignerDefault('density', [0.7, 1.25, 1.5, 2]),
     alignerDefault('outerSpacingMm', [2, 4]),
     alignerDefault('innerSpacingMm', [3, 5]),

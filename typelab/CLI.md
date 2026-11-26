@@ -121,9 +121,9 @@ kept with its reason (never lines up; supports or a platform joined to the model
 and the fit both say it. GLB/glTF pairs are named as not matchable (the matcher reads STL).
 
 **What it tries** (`fitSearch.mjs`, the grammar Fable and Codex agreed): named rules, profile numbers (a denture's Rim
-strip widths; an aligner's density and spacing, which reach the engine through a type file - but NOT its strip position
-or width: any change to either made every aligner build no tips on 2026-11-27, a wiring gap still to explain, so they
-are left out), and for a denture the **zone graph's structure** - a ray's angle, the hole strip's width, and
+strip widths; an aligner's strip position, width, density and spacing, which reach the engine through a type file -
+position and width only since 2026-11-27, when the review stopped proposing the region from the REFERENCE strip while
+placement read the type's, which had left any other strip with no tips at all), and for a denture the **zone graph's structure** - a ray's angle, the hole strip's width, and
 Marks added to or taken out of the zone stack (rays win over every support; no strip round the holes; no support on the
 rim's inner side; support on its outer side; no support on the low rim belt). Every graph is validated before it runs.
 

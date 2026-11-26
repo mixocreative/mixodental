@@ -13,7 +13,8 @@ import type { GenerateRules } from '@mixo-geocore/host/supports/generateRules';
 import { filterDentalPlacement } from '@mixo-geocore/host/dental/placement';
 import { dentalStructureOf, dentalSupportSettings } from '../../src/dental/supportPreset';
 import { applyTransform, inverseTransformDirection, inverseTransformPoint } from '@mixo-geocore/host/state/transform';
-import { REFERENCE_PROFILE, referenceTuning } from './profile';
+import { defaultDentalTuning } from '@mixo-geocore/host/dental/tuning';
+import { REFERENCE_PROFILE } from './profile';
 import { scanDentalTilts, type TiltScan } from '@mixo-geocore/host/dental/dentalTilt';
 import { confirmPick } from '../../src/dental/confirmTilt';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
@@ -55,7 +56,7 @@ export function pickPrintAngle(mesh: TriangleMesh, profileId: string = REFERENCE
   const scan = scanDentalTilts(mesh, profileId, { neckLengthMm: settings.neckLength, pillarDiameterMm: settings.pillarDiameter,
     liftMm: settings.liftHeight, braced: structure.treeEnabled || structure.bracesEnabled });
   if (scan.kind !== 'scan') return { kind: 'inconclusive', reason: `tilt-scan-${scan.reason}` };
-  const region = proposeDentalSupportRegion(mesh, referenceTuning, profileId);
+  const region = proposeDentalSupportRegion(mesh, defaultDentalTuning(profileId), profileId);
   const orientation = proposeDentalOrientation(mesh, profileId);
   const pick = scan.order[0]!;
   if (region.kind !== 'proposal' || orientation.kind !== 'proposal') return { kind: 'angle', scan, index: pick, rotation: scan.rows[pick]!.rotation, confirmed: false, tried: 0 };
@@ -81,11 +82,15 @@ export function pickPrintAngle(mesh: TriangleMesh, profileId: string = REFERENCE
  * nothing and read as "this rule does nothing", which is the opposite of the truth.
  */
 export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector, rules?: GenerateRules, profileId: string = REFERENCE_PROFILE): DentalReviewBuild {
-  const region = proposeDentalSupportRegion(mesh, referenceTuning, profileId);
+  // TRAP (2026-11-27): the strip is the PROFILE's own, never the reference aligner's. The region was proposed from the
+  // reference strip while placement read the type's, so any type with another strip position or width placed no tips
+  // at all ("no-proposed-dental-tips" on every scan) - found by the fit, which saw only density move.
+  const tuning = defaultDentalTuning(profileId);
+  const region = proposeDentalSupportRegion(mesh, tuning, profileId);
   if (region.kind !== 'proposal') return region;
   // The diagnostic strips and samples use the profile's own area and spacing (the app's defaults).
   const { defaults } = profileData(profileId);
-  const [low, high] = dentalAreaBand(referenceTuning, profileId);
+  const [low, high] = dentalAreaBand(tuning, profileId);
   /*
    * TRAP (2026-11-27, docs/GEOCORE-BOUNDARY.md section 3): the band is a diagnostic drawing over the WHOLE file and needs a
    * two-manifold face graph (geocore surface/side_bands.rs). An aligner with attached hooks has non-manifold edges where
@@ -97,13 +102,13 @@ export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector, rul
   if (bands.kind !== 'proposal') diagnostic = { diagnosticNote: `diagnostic band not drawn: ${bands.reason}` };
   else {
     const outer = sampleDiagnosticContourContacts(mesh, region.outerEdges, bands.outerOtherSide,
-      { spacing: defaults.outerSpacingMm / referenceTuning.density, maxSearchDistance: defaults.maxSearchMm });
+      { spacing: defaults.outerSpacingMm / tuning.density, maxSearchDistance: defaults.maxSearchMm });
     // An open arch has no central opening (empty opening contour): there is no inner rim to sample, so
     // it has no inner contacts. Any other opening contour still has to be one valid closed loop.
     const inner = region.openingEdges.length === 0
       ? { kind: 'proposal' as const, contacts: [], skippedSamples: 0, perimeter: 0 }
       : sampleDiagnosticContourContacts(mesh, region.openingEdges, bands.innerOtherSide,
-        { spacing: defaults.innerSpacingMm / referenceTuning.density, maxSearchDistance: defaults.maxSearchMm });
+        { spacing: defaults.innerSpacingMm / tuning.density, maxSearchDistance: defaults.maxSearchMm });
     // Kept fatal on purpose: it also checks the opening contour is one valid closed loop (openArch.test.ts guards it).
     if (outer.kind !== 'proposal' || inner.kind !== 'proposal') {
       return { kind: 'inconclusive', reason: `diagnostic-contact-${outer.kind !== 'proposal' ? outer.reason : inner.kind !== 'proposal' ? inner.reason : 'unknown'}` };
