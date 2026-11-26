@@ -1,8 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
+import { sampleByContent } from '../scripts/samples.mjs';
+import { LARGE_PRINT_ANGLE } from '../scripts/test-support/samplePins.mjs';
 import { viteNodeCli } from '../scripts/viteNodeCli.mjs';
 import { orientDentalAligner } from '@mixo-geocore/host/dental/dentalOrient';
 import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';
@@ -137,13 +139,13 @@ describe.skipIf(!existsSync(CASE_002))('case-002 (local real scan)', () => {
 });
 
 /*
- * The first scan of samples/case-aligner (sorted), read in place: a real scan with a large
- * print angle (about 36.5 deg), so the overlays must follow the rotation. Local only; skipped when absent.
+ * A real scan with a large print angle (about 36.5 deg), pinned by content and read in place, so the
+ * overlays must follow the rotation. It was "the first scan of the aligner folder" until the owner sorted
+ * the retainers out of it - the property needs THIS angle, not whatever sorts first. Local only.
  */
-const CASE_ALIGNER_DIR = resolve('samples/case-aligner');
-const CASE_ALIGNER_FIRST = existsSync(CASE_ALIGNER_DIR) ? readdirSync(CASE_ALIGNER_DIR).filter((n) => n.toLowerCase().endsWith('.stl')).sort()[0] : undefined;
-describe.skipIf(!CASE_ALIGNER_FIRST)('case-aligner first scan (local real scan)', () => {
+const LARGE_ANGLE_SCAN = sampleByContent(LARGE_PRINT_ANGLE);
+describe.skipIf(!LARGE_ANGLE_SCAN)('a large print-angle scan (local real scan)', () => {
   it('puts the Step 1 evidence on the model after a large print-angle rotation', async () => {
-    await expectEvidenceOnModel(join(CASE_ALIGNER_DIR, CASE_ALIGNER_FIRST!), 'case-005', join(scratch, 'frame-real'));
+    await expectEvidenceOnModel(LARGE_ANGLE_SCAN!, 'case-005', join(scratch, 'frame-real'));
   }, 300_000);
 });

@@ -9,7 +9,7 @@
 // It runs `diagnose_mesh` over every STL in the local real scans and prints the distribution of open
 // boundary-rim lengths, plus the per-model retained size the row cap needs.
 //
-// PATIENT DATA. `samples/case-*` is git-ignored clinical data. This script prints a short
+// PATIENT DATA. Everything under `samples/` is git-ignored clinical data. This script prints a short
 // content hash per file and never a filename, matching how `real-scan-gate.mjs` reports, and it writes
 // nothing except its own summary to stdout. Do not change that.
 //
@@ -17,11 +17,9 @@
 
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import path from 'node:path';
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+import { sampleCategories, sampleFiles } from './samples.mjs';
 const packagePath = new URL('../vendor/mixo-geocore/pkg-node/mixo_geometry_wasm.js', import.meta.url);
 if (!existsSync(fileURLToPath(packagePath))) {
   console.error('vendor/mixo-geocore/pkg-node is missing. Run npm run vendor:geometry first.');
@@ -31,18 +29,15 @@ const require = createRequire(import.meta.url);
 // `diagnose_mesh` is a FREE function in the ABI, not a `GeometrySession` method.
 const { engine_version: engineVersion, BinaryStlSession, diagnose_mesh: diagnoseMesh } = require(fileURLToPath(packagePath));
 
-const CASES = ['case-aligner', 'case-denture', 'case-emaaligner', 'case-001'];
 const CHUNK = 1 << 22;
 
-/** Every STL in the local scan folders, with a short content hash instead of its name. */
+/** Every STL of every sample category, `-sup` targets included, with a short content hash instead of its name. */
 function scans() {
   const found = [];
-  for (const dir of CASES) {
-    const full = path.join(ROOT, 'samples', dir);
-    if (!existsSync(full)) continue;
-    for (const name of readdirSync(full).filter((file) => file.toLowerCase().endsWith('.stl')).sort()) {
-      const bytes = readFileSync(path.join(full, name));
-      found.push({ kind: dir.replace(/^case-/, ''), bytes, id: createHash('sha256').update(bytes).digest('hex').slice(0, 12) });
+  for (const kind of sampleCategories()) {
+    for (const file of sampleFiles(kind).filter((name) => name.toLowerCase().endsWith('.stl'))) {
+      const bytes = readFileSync(file);
+      found.push({ kind, bytes, id: createHash('sha256').update(bytes).digest('hex').slice(0, 12) });
     }
   }
   return found;
@@ -75,7 +70,7 @@ const mm = (value) => value.toFixed(2);
 
 const files = scans();
 if (files.length === 0) {
-  console.log('rim-loop measurement: skipped, no local scans (samples/case-*).');
+  console.log('rim-loop measurement: skipped, no local scans under samples/.');
   process.exit(0);
 }
 

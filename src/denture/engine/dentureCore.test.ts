@@ -1,5 +1,4 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { GeneratedSupportMesh } from '@mixo-geocore/host/core/supports/mesh';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
@@ -7,6 +6,8 @@ import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { transformedMinY } from '@mixo-geocore/host/state/transform';
 import { reviewDenture } from '@mixo-geocore/host/dental/dentureReview';
 import { nodeEngine, parseStl } from '../../../scripts/node-engine';
+import { sampleByContent } from '../../../scripts/samples.mjs';
+import { DENTURE_PIPELINE } from '../../../scripts/test-support/samplePins.mjs';
 import { dentureSupportSettings } from '../settings/dentureSupportSettings';
 import { buildDenture, checkModelLanding, liftedFrame, orientAndScan, placeDenture, scanSettingsOf, withUnitIds, type DentureJob } from './dentureCore';
 
@@ -23,11 +24,11 @@ describe('withUnitIds', () => {
 });
 
 /*
- * The smallest local denture scan (samples/case-denture, git-ignored customer data), read in place.
- * Local only: skipped when absent, so CI never needs it.
+ * A real local denture scan (pinned by content, git-ignored customer data), read in place. Local only:
+ * skipped when absent, so CI never needs it. Pinned, not "the smallest in the folder": the samples grow,
+ * and the smallest became a scan the orientation step refuses (see DENTURE_PIPELINE).
  */
-const DIR = resolve('samples/case-denture');
-const SMALLEST = existsSync(DIR) ? readdirSync(DIR).filter((name) => name.toLowerCase().endsWith('.stl') && !name.includes('-sup')).map((name) => join(DIR, name)).sort((a, b) => statSync(a).size - statSync(b).size)[0] : undefined;
+const SMALLEST = sampleByContent(DENTURE_PIPELINE);
 
 describe.skipIf(!SMALLEST)('denture pipeline (local real scan)', () => {
   it('orients, places, builds with hand work and checks a model landing', () => {

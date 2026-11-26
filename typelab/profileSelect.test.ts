@@ -1,8 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
+import { sampleByContent } from '../scripts/samples.mjs';
+import { DENTURE_PROFILE } from '../scripts/test-support/samplePins.mjs';
 import { viteNodeCli } from '../scripts/viteNodeCli.mjs';
 import { currentRuleNames, parseKind, reviewProfileId } from './profileSelect';
 import { reviewCase } from './reviewCase';
@@ -49,10 +51,10 @@ describe('kind in the review row', () => {
 });
 
 // Customer scan: local only, skipped when the fixture is absent (never copied or committed).
-const dentureDir = resolve('samples/case-denture');
-// The first scan by name (case #1); file names are customer data and never written in code.
-const dentureScan = existsSync(dentureDir) ? (readdirSync(dentureDir).filter((f) => f.toLowerCase().endsWith('.stl') && !f.includes('-sup')).sort().map((f) => join(dentureDir, f))[0] ?? '') : '';
-describe.skipIf(!existsSync(dentureScan))('denture path (local fixture)', () => {
+// Pinned by content: file names are customer data and never written in code, and a position in the
+// folder changes as the owner adds samples.
+const dentureScan = sampleByContent(DENTURE_PROFILE) ?? '';
+describe.skipIf(!dentureScan)('denture path (local fixture)', () => {
   it('builds with tips and a review GLB', async () => {
     const row = await reviewCase(dentureScan, 'case-001', scratch, 'denture');
     expect(row.reason).not.toMatch(/^denture-/);

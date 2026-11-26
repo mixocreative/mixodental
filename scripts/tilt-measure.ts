@@ -8,7 +8,7 @@
  * `--pick` builds the quick pick only - for comparing RULES at the angle the app would use: set
  * MIXO_RULES='{"branchRodMaxMm":15}' and the row records it under `rules`.
  *
- * Scans are named by their index in samples/case-denture (sorted), NEVER by file name:
+ * Scans are named by their index among the denture samples (sorted by path), NEVER by file name:
  * these are patient scans, and the output may be shared. Results are written after every angle, so a
  * run stopped part way still leaves everything it measured.
  *
@@ -19,9 +19,9 @@
  * "model in the way" and "pillars full" need different fixes. `maxSnapMm` is the check on the piece
  * lookup itself: a tip should sit ON the mesh, so a large value means the split is wrong, not the build.
  */
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { parseStl, useNodeEngine } from './node-engine';
+import { sampleScans } from './samples.mjs';
 import { buildDentureReview } from '../typelab/profileSelect';
 
 useNodeEngine();
@@ -30,12 +30,12 @@ const valueOf = (flag: string) => { const at = args.indexOf(flag); return at < 0
 const only = valueOf('--only')?.split(',').map(Number);
 const pickOnly = args.includes('--pick');
 const outFile = valueOf('--out') ?? 'tilt-measure.json';
-const dir = 'samples/case-denture';
-// NOT the `-sup` files: those are the same scans already supported by another dental program, kept as REFERENCE
-// ONLY (samples/README.md). On 2026-11-21 this sweep took them too, their supports were read as small
-// parts of the denture, and an afternoon of rule work was built on files that were never cases. Scan numbers count
-// the bare files only.
-const files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.stl') && !/-sup[.]stl$/i.test(f)).sort();
+// NOT the `-sup` files (`sampleScans` leaves them out): those are the same scans already supported by another
+// dental program, kept as targets (samples/README.md). On 2026-11-21 this sweep took them too, their supports
+// were read as small parts of the denture, and an afternoon of rule work was built on files that were never
+// cases. Scan numbers count the bare files only, and they shift as the owner adds samples: a number means
+// something inside ONE run's output, never across two runs made on different days.
+const files = sampleScans('denture').filter((path) => path.toLowerCase().endsWith('.stl'));
 
 /** Signed volume of a closed triangle mesh, mm3 (the supports' resin). */
 function volume(positions: ArrayLike<number>, indices: ArrayLike<number>): number {
@@ -85,7 +85,7 @@ const save = () => writeFileSync(outFile, JSON.stringify({ created: new Date().t
 
 for (const [k, file] of files.entries()) {
   if (only && !only.includes(k + 1)) continue;
-  const mesh = parseStl(readFileSync(join(dir, file)));
+  const mesh = parseStl(readFileSync(file));
   const pieces = piecesOf(mesh.positions, mesh.indices);
   // The quick pick and the angle list, from one ordinary review.
   const first = buildDentureReview(mesh);

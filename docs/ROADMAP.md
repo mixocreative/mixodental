@@ -21,7 +21,7 @@ Reviewed 2026-10-28 by three EGM reviewers (implementation readiness, scope, cod
 2. Every decision about size or spacing is in millimetres, never in counts of faces, edges or pixels.
 3. Everything the user changes shows live.
 4. A stable print comes first; keeping tips off the fitting (tooth-facing) surface comes second.
-5. The owner's example (`samples/case-001/aligner-sup.stl`) guides only where tips go, the support and contact sizes and the print angle. The structure (Tree, Brace) is ours and is meant to be better than the example, so it differs (owner, 2026-10-28).
+5. The owner's example (`samples/aligner/g/aligner-sup.stl`, the reference's target) guides only where tips go, the support and contact sizes and the print angle. The structure (Tree, Brace) is ours and is meant to be better than the example, so it differs (owner, 2026-10-28).
 6. Evidence before optimisation: a performance or accuracy step starts only when a measurement shows the problem.
 
 ## Decision log
@@ -74,7 +74,7 @@ Open (owner; Q1, release timing, was answered: pull request #2 merged to `main` 
 
 ## Verification tiers
 
-- **Engine or ABI step**: `~/.cargo/bin/cargo test --workspace`, `npx tsc --noEmit`, `npx vitest run`, `npm run build`, `npm run walk`, the locale walk, a folder review of `samples/case-001`.
+- **Engine or ABI step**: `~/.cargo/bin/cargo test --workspace`, `npx tsc --noEmit`, `npx vitest run`, `npm run build`, `npm run walk`, the locale walk, a folder review of `docs/dental-reference/reference-aligner.stl`.
 - **UI-only step**: `npx tsc --noEmit`, `npx vitest run`, `npm run walk`, the locale walk when strings change.
 - **Docs-only step**: none.
 - Every step: docs updated, one line in the SHIP-PLAN progress table (unit, status, commit, one-sentence summary; details in the commit message), commit and push to `codex/dental-rework`.
@@ -216,7 +216,7 @@ Pinned (lead, 2026-10-29):
 - **Steps**, each through the engine's ABI: read the STL and weld; centre as the import does (`center_positions_in_place`); orient (dental profile `reference-aligner`); propose the region; tilt scan and pick (the profile's Step 3 support settings: Tree and Brace on, lift, pillar, tip); policy; generate; check (verdict, crossings, left-out, gaps).
 - **Output**: `<out-dir>/supported.stl` (the aligner in its print pose plus all supports, one binary STL) and `<out-dir>/summary.json` (angle, band, tips placed, left out, crossings, gaps, seconds per step, engine_version).
 - **Comments**: each step has a one-line comment saying which ABI call it is and what it returns, so the file serves as the host example (D16, A1).
-- **Done when**: on `samples/case-001/aligner.stl` the summary matches the folder review (44.5°, clear, 93 tips, 1 left out, 0 crossings); runs in under 30 s; `npm run host-example` script added; a section "Driving the engine without the app" in `docs/dental/wasm-geometry-design.md` points to it. Tier: `node scripts/host-example.mjs` on the reference, `npx tsc --noEmit`, `npx vitest run`.
+- **Done when**: on `docs/dental-reference/reference-aligner.stl` the summary matches the folder review (44.5°, clear, 93 tips, 1 left out, 0 crossings); runs in under 30 s; `npm run host-example` script added; a section "Driving the engine without the app" in `docs/dental/wasm-geometry-design.md` points to it. Tier: `node scripts/host-example.mjs` on the reference, `npx tsc --noEmit`, `npx vitest run`.
 
 ## After H: dental-only mixoDental, generic supports in mixomesh (D16)
 

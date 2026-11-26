@@ -1,11 +1,12 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { arrangeCommands } from '@mixo-geocore/editing/arrange';
 import { nodeEngine, parseStl } from '../../../../scripts/node-engine';
+import { sampleByContent } from '../../../../scripts/samples.mjs';
+import { DENTURE_RULE_SPOTS } from '../../../../scripts/test-support/samplePins.mjs';
 import { identityTransform, reduceScene, emptyScene, type PrintScene, type PrintUnit } from '../../../state/project';
 import { buildDenture, liftedFrame, orientAndScan, scanSettingsOf } from '../../engine/dentureCore';
 import { exportFiles } from '../../engine/dentureExport';
@@ -15,13 +16,12 @@ import { dentureJobOf } from './dentureBuildJob';
 import { isRigidPlateMove, keepsBuild } from './rigidMove';
 
 /*
- * The proof behind keep-and-move (P7b item 2). On the real denture scan #1 (samples/case-denture, read
+ * The proof behind keep-and-move (P7b item 2). On the real denture scan #1 (pinned by content, read
  * in place, git-ignored customer data; skipped when absent) the two ways of arriving at the supports after OK's
  * move are compared: the rebuild the app used to run, and the build it keeps and moves with the denture.
  * They must match to 1e-5 mm in positions and exactly in counts, and so must the exported file.
  */
-const DIR = resolve('samples/case-denture');
-const SCAN = existsSync(DIR) ? readdirSync(DIR).filter((name) => name.toLowerCase().endsWith('.stl') && !name.includes('-sup')).sort()[1] : undefined;
+const SCAN = sampleByContent(DENTURE_RULE_SPOTS);
 
 /** XYZ Euler of Ry(turn) * R(rotation), so the turn is about the plate's vertical in the world. */
 function turnedAboutVertical(rotation: readonly number[], turn: number): [number, number, number] {
@@ -38,7 +38,7 @@ function turnedAboutVertical(rotation: readonly number[], turn: number): [number
 
 describe.skipIf(!SCAN)('keep-and-move equals rebuild-after-move (real denture scan #1)', () => {
   it('supports, raft and the exported file are the same either way', () => {
-    const bytes = readFileSync(join(DIR, SCAN!));
+    const bytes = readFileSync(SCAN!);
     const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
     nodeEngine.center_positions_in_place(mesh.positions);
     const settings = dentureSupportSettings('reference-denture');

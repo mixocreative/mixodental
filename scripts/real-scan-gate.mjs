@@ -1,7 +1,7 @@
 // Real-scan gate: every local real scan through the batch review, diffed against a saved baseline.
 //
 //   npm run gate:real                       compare; exit 1 on any difference
-//   npm run gate:real -- --kinds denture    subset (denture, aligner, multipart)
+//   npm run gate:real -- --kinds denture    subset: any samples/ category (aligner, denture, retainer, ...)
 //   npm run gate:real -- --update           write a new baseline (only when explicitly wanted)
 //   npm run gate:real -- --allow-no-scans   a machine with no scans may pass - as NOT RUN, not PASS
 //
@@ -15,16 +15,21 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compareRuns, formatDifferences, recordOf, scanCoverage } from './real-scan-gate-lib.mjs';
+import { sampleCategories, sampleScans } from './samples.mjs';
 import { viteNodeCli } from './viteNodeCli.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(root, 'scripts', 'baselines', 'real-scan-baseline.json');
-/** kind label -> fixture folder and the pipeline kind the batch is told. */
-const SETS = {
-  denture: { dir: 'samples/case-denture', batchKind: 'denture' },
-  aligner: { dir: 'samples/case-aligner', batchKind: 'aligner' },
-  multipart: { dir: 'samples/case-emaaligner', batchKind: 'aligner' },
-};
+/*
+ * kind label -> the pipeline kind the batch is told. A kind IS a samples/ category folder, read at any depth
+ * (scripts/samples.mjs), so a new type folder needs no change here. A category the pipeline has no profile
+ * for runs as an aligner: a retainer is printed the same way. Until 2026-11-26 the kinds were fixed folder
+ * names (case-denture, case-aligner, case-emaaligner), and the owner's re-sort left two of them pointing
+ * at nothing. The baseline is keyed by kind + the scan's hash, so moving a scan between categories
+ * changes its key: rerun with --update for that kind after a deliberate move.
+ */
+const batchKindOf = (category) => (category === 'denture' ? 'denture' : 'aligner');
+const SETS = Object.fromEntries(sampleCategories().map((category) => [category, { dir: `samples/${category}`, batchKind: batchKindOf(category) }]));
 
 const args = process.argv.slice(2);
 const update = args.includes('--update');
@@ -37,13 +42,9 @@ const scans = [];
 /** Fixture folders this machine does not have, so the run can say what it could not look at. */
 const absent = [];
 for (const kind of kinds) {
-  const dir = join(root, SETS[kind].dir);
-  if (!existsSync(dir)) { absent.push(SETS[kind].dir); continue; }
-  for (const name of readdirSync(dir).sort()) {
-    if (!name.toLowerCase().endsWith('.stl') || name.toLowerCase().includes('-sup')) continue;
-    const file = join(dir, name);
-    scans.push({ kind, file, id: `${kind}-${sha(readFileSync(file)).slice(0, 12)}` });
-  }
+  const found = sampleScans(kind).filter((file) => file.toLowerCase().endsWith('.stl'));
+  if (found.length === 0) { absent.push(SETS[kind].dir); continue; }
+  for (const file of found) scans.push({ kind, file, id: `${kind}-${sha(readFileSync(file)).slice(0, 12)}` });
 }
 /** What this run covered, printed on every verdict so a reduced run cannot read like a full one. */
 const scope = kindsAt < 0 ? 'all kinds' : `kinds ${kinds.join(',')}`;
@@ -64,8 +65,8 @@ if (absent.length) console.error(`real-scan gate: no fixture folder for ${absent
 const coverage = scanCoverage(scans.length, args.includes('--allow-no-scans'));
 if (coverage === 'blind') {
   console.error(`real-scan gate: FAIL - found no scans at all (${scope}), so it verified NOTHING.`);
-  console.error(`  looked in: ${kinds.map((kind) => SETS[kind].dir).join(', ')}`);
-  console.error('  The scans are patient data and are not in git. Put them back under samples/case-*,');
+  console.error(`  looked in: ${kinds.map((kind) => SETS[kind].dir).join(', ') || 'samples/ (no category folders)'}`);
+  console.error('  The scans are patient data and are not in git. Put them back under samples/<category>/,');
   console.error('  or pass --allow-no-scans on a machine that is meant not to have them.');
   process.exit(1);
 }

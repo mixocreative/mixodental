@@ -47,7 +47,7 @@ describe('third-party slicer brand names', () => {
   });
 
   /*
-   * `samples/case-*` is git-ignored clinical data. A LOCAL TEST may resolve one by path -
+   * `samples/` is git-ignored clinical data. A LOCAL TEST may resolve one (by content, scripts/samples.mjs) -
    * it is skipped when absent and never bundled - but nothing the app ships from may mention one.
    */
   it('and no patient scan file is named in anything that ships', () => {

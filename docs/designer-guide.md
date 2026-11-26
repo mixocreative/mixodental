@@ -30,7 +30,7 @@ npm run dev
 
 ## 3. Getting models to load
 
-Customer scans are private. They are not in the repo and must never be: `samples/case-*/` is git-ignored on purpose, because an STL can identify a patient even without a name. The repo is public.
+Customer scans are private. They are not in the repo and must never be: everything under `samples/` but its README is git-ignored on purpose, because an STL can identify a patient even without a name. The repo is public.
 
 What you can load without the owner:
 
@@ -42,7 +42,7 @@ What you can load without the owner:
 
 There is no public denture file in the repo. To work on the denture steps, ask the owner to hand you a scan privately. Rules for any private scan:
 
-- Keep it outside the repo folder, or in a git-ignored place (`samples/case-*/` and `typelab/output/` are ignored).
+- Keep it outside the repo folder, or in a git-ignored place (`samples/` and `typelab/output/` are ignored).
 - Never commit it. Never put its file name or a patient name in a commit message, an issue or a screenshot. The browser tab, the object list and the header can show the file name; crop or rename first.
 - A screenshot of a private scan is private too.
 

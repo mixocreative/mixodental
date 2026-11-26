@@ -1,27 +1,28 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { defaultDenturePolicy } from '@mixo-geocore/host/dental/denturePolicy';
 import { runCheckJob } from '@mixo-geocore/host/supports/jobRunner';
 import { inverseTransformPoint } from '@mixo-geocore/host/state/transform';
 import { nodeEngine, parseStl } from '../../../scripts/node-engine';
+import { sampleByContent } from '../../../scripts/samples.mjs';
+import { DENTURE_RULE_SPOTS } from '../../../scripts/test-support/samplePins.mjs';
 import { buildDenture, liftedFrame, orientAndScan, placeDenture, scanSettingsOf, type DentureJob } from '../engine/dentureCore';
 import { dentureSupportSettings } from '../settings/dentureSupportSettings';
 import { splitByRule } from './acceptedSpots';
 import { ruleReasons } from './ruleSpots';
 
 /*
- * P7b item 3 on the real denture scan #1 (samples/case-denture, read in place, local only): the shared
+ * P7b item 3 on the real denture scan #1 (pinned by content, read in place, local only): the shared
  * overhang check lists 5 spots the denture build never reports; the denture rules explain every one of them, so the
- * check agrees with the build report (nothing unresolved, no real problem left).
+ * check agrees with the build report (nothing unresolved, no real problem left). The 5 belongs to THIS scan,
+ * which is why it is pinned rather than "the second file in the folder" - that file changes as samples grow.
  */
-const DIR = resolve('samples/case-denture');
-const SCAN = existsSync(DIR) ? readdirSync(DIR).filter((name) => name.toLowerCase().endsWith('.stl') && !name.includes('-sup')).sort()[1] : undefined;
+const SCAN = sampleByContent(DENTURE_RULE_SPOTS);
 
 describe.skipIf(!SCAN)('the check follows the denture rules (real denture scan #1)', () => {
   it('every spot the shared check lists beyond the build report is accepted by rule', () => {
-    const bytes = readFileSync(join(DIR, SCAN!));
+    const bytes = readFileSync(SCAN!);
     const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
     nodeEngine.center_positions_in_place(mesh.positions);
     const settings = dentureSupportSettings('reference-denture');
