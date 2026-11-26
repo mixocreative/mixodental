@@ -9,9 +9,12 @@ modified. The outputs sit in git-ignored customer-data folders; do not add them 
 Method:
   1. Denture/part component inside the -sup = largest face-connected component of the -sup.
   2. Support geometry = -sup vertices outside that component.
-  3. Bare-to-sup transform: "exact" = least-squares fit on one-to-one vertex correspondences when
-     the denture is the same mesh (RMS ~0); otherwise "icp" = point-to-plane ICP, then point-to-point.
-     rms_mm is reported; rms_flag_over_0.02_mm is set when it exceeds 0.02 mm.
+  3. Bare-to-sup transform, at ANY origin and orientation (a target is usually printed turned and moved
+     relative to its scan): first a pose from the shapes alone (global_align: the principal axes matched
+     all 24 proper ways, each refined by a short ICP, best trimmed RMS kept); then "exact" = least-squares
+     fit on one-to-one vertex correspondences when the denture is the same mesh (RMS ~0); otherwise
+     "icp" = point-to-plane ICP, then point-to-point. Above REJECT_RMS_MM the result is "failed" and NO
+     contacts are written. rms_mm is reported; rms_flag_over_0.02_mm is set when it exceeds 0.02 mm.
   4. Contacts = support vertices within TOUCH_MM of the transformed bare surface, clustered
      with CLUSTER_MM (connected components); each cluster centroid is mapped to the bare frame
      and snapped to the nearest bare-surface point, normal = that face's normal.
@@ -130,10 +133,12 @@ def load(path):
 EXACT_RMS_MM = 0.02
 
 
-def exact_fit(bare_v, den_v, iters=30):
-    """Least-squares fit on one-to-one vertex correspondences (identical meshes). None if not 1:1."""
-    T = np.eye(4)
-    T[:3, 3] = den_v.mean(0) - bare_v.mean(0)
+def exact_fit(bare_v, den_v, T0=None, iters=30):
+    """Least-squares fit on one-to-one vertex correspondences (identical meshes), from the pose T0. None if not 1:1."""
+    if T0 is None:
+        T0 = np.eye(4)
+        T0[:3, 3] = den_v.mean(0) - bare_v.mean(0)
+    T = T0.copy()
     tree = cKDTree(den_v)
     rms = np.inf
     for _ in range(iters):
@@ -169,22 +174,95 @@ def icp_point_to_plane(A, B, Bn, T0, iters=30):
     return T
 
 
+def principal_frame(pts):
+    """Centre and right-handed principal axes (columns, largest spread first) of a point set."""
+    c = pts.mean(0)
+    w, E = np.linalg.eigh(np.cov((pts - c).T))
+    E = E[:, np.argsort(w)[::-1]]
+    if np.linalg.det(E) < 0:
+        E[:, 2] = -E[:, 2]
+    return c, E
+
+
+def proper_axis_flips():
+    """The 24 rotations that map the coordinate axes onto themselves (signed permutations, det +1)."""
+    out = []
+    for perm in ((0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0)):
+        for signs in np.array(np.meshgrid([1, -1], [1, -1], [1, -1])).T.reshape(-1, 3):
+            S = np.zeros((3, 3))
+            S[np.arange(3), perm] = signs
+            if np.linalg.det(S) > 0:
+                out.append(S)
+    return out
+
+
+def trimmed_rms(d, keep=0.9):
+    """RMS of the closest `keep` share: a part the other mesh lacks (a cut base, a platform) does not drown a right pose."""
+    d = np.sort(d)[: max(1, int(len(d) * keep))]
+    return float(np.sqrt(np.mean(d ** 2)))
+
+
+def global_align(bare_pts, den_pts, probe=3000, iters=15):
+    """A pose of the bare scan onto the -sup's model from the shapes alone, at ANY origin and orientation.
+
+    The owner's targets are routinely printed at another angle, and moved, relative to their scan (2026-11-27: "the
+    scanned and supported models won't match origin and orientation, and that's normal"). The old start was the
+    centroid shift with NO rotation, so every turned target fell into a wrong ICP minimum (rms 1.4-7.8 mm on 4 of 5
+    turned pairs) and its contacts were written anyway. Here: match the principal axes in all 24 proper ways (an axis's
+    sign and the order of two similar spreads are ambiguous), give each a short ICP, keep the lowest trimmed rms.
+    """
+    rng = np.random.default_rng(0)
+    a = bare_pts[rng.choice(len(bare_pts), min(probe, len(bare_pts)), replace=False)]
+    cb, Eb = principal_frame(bare_pts)
+    cd, Ed = principal_frame(den_pts)
+    tree = cKDTree(den_pts)
+    best, best_rms = None, np.inf
+    for S in proper_axis_flips():
+        R = Ed @ S @ Eb.T
+        T = np.eye(4)
+        T[:3, :3] = R
+        T[:3, 3] = cd - R @ cb
+        for _ in range(iters):
+            d, idx = tree.query(apply(T, a))
+            T = kabsch(apply(T, a), den_pts[idx]) @ T
+        d, _ = tree.query(apply(T, a))
+        rms = trimmed_rms(d)
+        if rms < best_rms:
+            best, best_rms = T, rms
+    return best
+
+
+REJECT_RMS_MM = 0.5
+
+
 def register(bare, sup, den, den_vert_set):
-    """Return (T bare->sup, rms_mm, method). Exact vertex fit when the denture matches the bare
-    mesh; otherwise point-to-plane ICP refined by point-to-point ICP."""
+    """Return (T bare->sup, rms_mm, method). The pose is found first from the shapes (global_align), so origin and
+    orientation may differ freely; then an exact vertex fit when the model is the same mesh, otherwise point-to-plane
+    ICP refined by point-to-point ICP. method "failed" when even the best fit stays above REJECT_RMS_MM."""
     den_v = sup.vertices[den_vert_set]
-    if len(den.faces) == len(bare.faces) and len(den_v) == len(bare.vertices):
+    den_pts, den_fi = trimesh.sample.sample_surface(den, 60000, seed=1)
+    den_n = den.face_normals[den_fi]
+    bare_samp, _ = trimesh.sample.sample_surface(bare, 20000, seed=2)
+    same_mesh = len(den.faces) == len(bare.faces) and len(den_v) == len(bare.vertices)
+    # A target only LIFTED from its scan fits exactly from the centroid shift: keep that path first, so the global search
+    # cannot trade an exact fit (rms ~0) for an ICP one with a residual turn - which moved the contacts of the shifted
+    # pairs by a few on the first run of global_align.
+    if same_mesh:
         T, rms = exact_fit(bare.vertices, den_v)
         if T is not None and rms <= EXACT_RMS_MM:
             return T, rms, "exact"
-    den_pts, den_fi = trimesh.sample.sample_surface(den, 60000)
-    den_n = den.face_normals[den_fi]
-    bare_samp = bare.sample(20000)
-    T0 = np.eye(4)
-    T0[:3, 3] = den_pts.mean(0) - bare_samp.mean(0)
+    T0 = global_align(bare_samp, den_pts)
+    if same_mesh:
+        T, rms = exact_fit(bare.vertices, den_v, T0)
+        if T is not None and rms <= EXACT_RMS_MM:
+            return T, rms, "exact"
     T = icp_point_to_plane(bare_samp, den_pts, den_n, T0)
-    T, rms = icp_point_to_point(bare_samp, den_pts, T)
-    return T, rms, "icp"
+    T, _ = icp_point_to_point(bare_samp, den_pts, T)
+    # The gap to the target's SURFACE (along its normal), not to its nearest sample point: point-to-point between two
+    # random samplings never drops below the sample spacing (~0.1 mm here), which reads as a pose error on a right fit.
+    _, idx = cKDTree(den_pts).query(apply(T, bare_samp))
+    rms = trimmed_rms(np.abs(np.einsum("ij,ij->i", den_n[idx], apply(T, bare_samp) - den_pts[idx])))
+    return T, rms, ("icp" if rms <= REJECT_RMS_MM else "failed")
 
 
 def cluster_points(pts, r):
@@ -259,7 +337,9 @@ def process_pair(bare_path, sup_path):
         proj_bare = apply(Tinv, proj)
     else:
         proj_bare, tri = np.zeros((0, 3)), np.zeros(0, dtype=int)
-    clusters = cluster_points(proj_bare, CLUSTER_MM)
+    # A pose that never fitted gives contacts in the wrong place, which reads as a real comparison: write none, and let
+    # `registration: "failed"` say why (the review shows the target as not lined up).
+    clusters = [] if method == "failed" else cluster_points(proj_bare, CLUSTER_MM)
     snapped, normals = [], []
     for c in clusters:
         p = proj_bare[c].mean(0)
