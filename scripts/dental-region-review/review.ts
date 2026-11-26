@@ -31,7 +31,13 @@ export function dentalModelRotation(mesh: TriangleMesh): [number, number, number
 }
 
 /** Diagnostic GLB only. Names and metadata never include the input STL filename or patient fields. */
-export async function exportDentalRegionReview(mesh: TriangleMesh, region: Region, layers?: ReviewLayers, markers: ReviewMarkers = []): Promise<ArrayBuffer> {
+/**
+ * Extra surface layers in the model's own frame (triangle soup when `indices` is empty), drawn with the model: the
+ * -sup target's compare areas, contacts and supports (typelab targetComparison).
+ */
+export type ReviewSurfaces = Array<{ name: string; color: number; positions: Float32Array; indices: Uint32Array }>;
+
+export async function exportDentalRegionReview(mesh: TriangleMesh, region: Region, layers?: ReviewLayers, markers: ReviewMarkers = [], surfaces: ReviewSurfaces = []): Promise<ArrayBuffer> {
   if (region.contactFaces?.length !== mesh.indices.length / 3) throw new Error('Contact mask does not match mesh triangles');
   if (layers && layers.supports.indices.length === 0) throw new Error('Support build returned no geometry');
   const scene = new THREE.Group();
@@ -62,6 +68,15 @@ export async function exportDentalRegionReview(mesh: TriangleMesh, region: Regio
       group.add(dot);
     }
     scene.add(group);
+  }
+  for (const surface of surfaces) {
+    if (surface.positions.length === 0) continue;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(surface.positions, 3));
+    if (surface.indices.length > 0) geometry.setIndex(new THREE.BufferAttribute(surface.indices, 1));
+    const visual = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: surface.color, side: THREE.DoubleSide }));
+    visual.name = surface.name;
+    scene.add(visual);
   }
   if (layers) {
     scene.position.set(...layers.frame.position);

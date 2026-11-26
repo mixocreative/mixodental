@@ -5,8 +5,8 @@
  * every layer into one GLB under the review frame, so what the viewer shows is the same transform for all of them.
  *
  * Owner files are in the bare scan's own Z-up STL coordinates. Their Y-up mapping is (x, y, z) -> (x, z, -y),
- * then the import's centring subtracts the bounding-box centre. The -sup STL sits in its own frame, shifted by
- * transform_bare_to_sup (a pure translation, checked); its vertices go back to the bare frame first.
+ * then the import's centring subtracts the bounding-box centre. The -sup STL sits in its own frame, turned and moved by
+ * transform_bare_to_sup; its vertices go back to the bare frame first (supToBare).
  *
  * The mapping is checked on the displayed model: the displayed transform is the GLB scene transform (position,
  * then Euler XYZ rotation, as orientationGlb sets it), applied to the scan and to each owner contact. Each
@@ -120,7 +120,7 @@ export function ownerContactsPath(bare: string): string {
  * WHY A CASE CAN OR CANNOT BE COMPARED WITH ITS TARGET (2026-11-27). The page showed "-" in every case below, so a
  * target sitting beside the scan looked exactly like no target at all. Each state has its own words on the page.
  *   none          no `-sup` file beside the scan
- *   not-compared  a `-sup` file is there, but this run compares nothing (an aligner, or a scan that did not build)
+ *   not-compared  a `-sup` file is there, but this run compares nothing (the scan did not build)
  *   no-contacts   a `-sup` file is there, its contacts were never extracted (scripts/extract-sup-contacts.py)
  *   not-lined-up  contacts exist but none, or they do not sit on the scan: the target could not be registered
  *   ok            compared
@@ -186,6 +186,69 @@ export function supToBare(transform: number[][]): (p: ArrayLike<number>, at: num
   };
 }
 
+/** What comparing a scan with its -sup target gives a review: the layers to draw and the row's numbers. */
+export interface TargetComparison {
+  layers: ReviewLayer[];
+  ownerContacts: number | null;
+  ownerContactsMedianMm: number | null;
+  ownerAreaCoveredPct: number | null;
+  outsideOwnerAreaPct: number | null;
+  targetState: TargetState;
+}
+
+/**
+ * ONE JOB: compare a built scan with its -sup target, for ANY kind (the denture and the aligner reviews both call it).
+ * Everything is in the unit-local frame (the centred scan), so the layers ride on the model in whatever pose the review
+ * draws it. The lined-up check runs here too: a print pose is a rigid move, so a contact's distance to the scan is the
+ * same before and after it - the denture used to measure it posed, which an aligner review has no matrix for.
+ * `tips` = our placed tips (unit-local). Layers: the target's supports (off by default in the page), the three areas
+ * (both / target only / ours only, 2 mm round each contact and tip) and the target's contact dots.
+ */
+export function targetComparison(bare: string, mesh: TriangleMesh, centre: Vector, tips: Vector[]): TargetComparison {
+  const layers: ReviewLayer[] = [];
+  const ownerFile = readOwnerFile(ownerContactsPath(bare));
+  const points = ownerFile?.contacts.map((c) => toMeshFrame(c, centre));
+  const medianMm = points && points.length > 0
+    ? median(distancesToSurface(Float64Array.from(points.flat()), [{ name: 'scan', positions: mesh.positions, indices: mesh.indices }]))
+    : undefined;
+  const linedUp = points !== undefined && points.length > 0 && medianMm! <= CONTACT_MAPPING_LIMIT_MM;
+  const pct = (share: number) => Math.round(share * 1000) / 10;
+  let comparison: DentureAreaComparison | undefined;
+  if (linedUp && ownerFile) {
+    const supsPath = ownerSupportsPath(bare);
+    if (existsSync(supsPath)) {
+      const sups = parseStl(readFileSync(supsPath));
+      const toBare = supToBare(ownerFile.transform);
+      const positions = new Float32Array(sups.positions.length);
+      for (let at = 0; at < sups.positions.length; at += 3) {
+        const onBare = toBare(sups.positions, at);
+        for (let axis = 0; axis < 3; axis++) positions[at + axis] = onBare[axis]! - centre[axis]!;
+      }
+      layers.push({ name: 'YOUR SUPPORTS (from -sup file)', color: C.owner, positions, indices: Uint32Array.from(sups.indices) });
+    }
+    comparison = compareDentureAreas(mesh, points!, tips);
+    const sign = outwardSign(mesh);
+    const areas: Array<[number, string, number]> = [
+      [AREA_CLASS.both, 'AREA both (owner and ours)', C.compareBoth],
+      [AREA_CLASS.ownerOnly, 'AREA owner only (yours)', C.compareOwnerOnly],
+      [AREA_CLASS.generatedOnly, 'AREA ours only', C.compareOursOnly],
+    ];
+    for (const [code, name, color] of areas) {
+      const faces = facesWhere(comparison.mask, (value) => value === code);
+      if (faces.length > 0) layers.push({ name, color, positions: patchPositions(mesh, faces, AREA_LIFT_MM, sign), indices: new Uint32Array(0) });
+    }
+    layers.push({ name: 'YOUR CONTACTS (dots)', color: C.owner, positions: markerPositions(points!, 0.35), indices: new Uint32Array(0) });
+  }
+  return {
+    layers,
+    ownerContacts: points ? points.length : null,
+    ownerContactsMedianMm: medianMm === undefined ? null : Math.round(medianMm * 100) / 100,
+    ownerAreaCoveredPct: comparison ? pct(comparison.coverage) : null,
+    outsideOwnerAreaPct: comparison ? pct(comparison.extra) : null,
+    targetState: targetStateOf(ownerSupportsPath(bare) !== '' && existsSync(ownerSupportsPath(bare)), ownerFile ? ownerFile.contacts.length : null, linedUp),
+  };
+}
+
 /** The displayed transform: the GLB scene node (translation, then Euler XYZ rotation), as orientationGlb sets it. */
 export function displayedMatrix(frame: JobTransform): THREE.Matrix4 {
   return new THREE.Matrix4().compose(
@@ -195,16 +258,6 @@ export function displayedMatrix(frame: JobTransform): THREE.Matrix4 {
   );
 }
 
-/** Flat Float64 positions of `mesh` after `matrix` (the displayed scan). */
-function displayedPositions(mesh: TriangleMesh, matrix: THREE.Matrix4): Float64Array {
-  const out = new Float64Array(mesh.positions.length);
-  const v = new THREE.Vector3();
-  for (let at = 0; at < mesh.positions.length; at += 3) {
-    v.set(mesh.positions[at]!, mesh.positions[at + 1]!, mesh.positions[at + 2]!).applyMatrix4(matrix);
-    out.set([v.x, v.y, v.z], at);
-  }
-  return out;
-}
 
 /** Outward-facing sign: +1 when the triangles wind outward (positive signed volume), else -1. Patches lift along it. */
 function outwardSign(mesh: TriangleMesh): number {
@@ -389,11 +442,11 @@ function steepStats(mesh: TriangleMesh, profile: string, tiltDeg: number, run: D
 }
 
 /**
- * The denture review layers and facts. `frame` is the review frame the GLB is written with; `leftOutTips` the tips with no support built; `placed` are
+ * The denture review layers and facts (all unit-local; reviewCase.ts writes them under the review frame). `leftOutTips` the tips with no support built; `placed` are
  * our placed tips in unit-local coordinates (the contacts the supports were built from). `tiltDeg` is the
  * print angle the case chose: the review is run at that tilt.
  */
-export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Vector, frame: JobTransform, placed: PlacedTip[], profile: string, tiltDeg: number, leftOutTips: LeftOutTip[] = [], settle?: IslandSettle): DentureDetail {
+export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Vector, placed: PlacedTip[], profile: string, tiltDeg: number, leftOutTips: LeftOutTip[] = [], settle?: IslandSettle): DentureDetail {
   const review = reviewDenture(mesh, profile, tiltDeg, { ...steepRule(), ...selfSupportRule() });
   steepStats(mesh, profile, tiltDeg, review);
   const islands = review && !review.islandsNote ? summariseIslands(review.islands, settle) : undefined;
@@ -527,46 +580,9 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     }
   }
 
-  // Owner files: contacts, then the -sup supports, both mapped to the unit-local frame and checked on the displayed scan.
-  const ownerFile = readOwnerFile(ownerContactsPath(bare));
-  const matrix = displayedMatrix(frame);
-  let points: Vector[] | undefined;
-  let medianMm: number | undefined;
-  if (ownerFile) {
-    points = ownerFile.contacts.map((c) => toMeshFrame(c, centre));
-    const shown = points.map((p) => new THREE.Vector3(...p).applyMatrix4(matrix));
-    const distances = distancesToSurface(Float64Array.from(shown.flatMap((v) => [v.x, v.y, v.z])),
-      [{ name: 'displayed scan', positions: displayedPositions(mesh, matrix), indices: mesh.indices }]);
-    medianMm = median(distances);
-  }
-  const ownerOk = points !== undefined && points.length > 0 && medianMm! <= CONTACT_MAPPING_LIMIT_MM;
-  if (ownerOk) {
-    const supsPath = ownerSupportsPath(bare);
-    if (existsSync(supsPath) && ownerFile) {
-      const sups = parseStl(readFileSync(supsPath));
-      const toBare = supToBare(ownerFile.transform);
-      const positions = new Float32Array(sups.positions.length);
-      for (let at = 0; at < sups.positions.length; at += 3) {
-        const bare = toBare(sups.positions, at);
-        for (let axis = 0; axis < 3; axis++) positions[at + axis] = bare[axis]! - centre[axis]!;
-      }
-      layers.push({ name: 'YOUR SUPPORTS (from -sup file)', color: C.owner, positions, indices: Uint32Array.from(sups.indices) });
-    }
-  }
-  const pct = (share: number) => Math.round(share * 1000) / 10;
-  let comparison: DentureAreaComparison | undefined;
-  if (ownerOk) {
-    comparison = compareDentureAreas(mesh, points!, placed.map((tip) => tip.position));
-    const areas: Array<[number, string, number]> = [
-      [AREA_CLASS.both, 'AREA both (owner and ours)', C.compareBoth],
-      [AREA_CLASS.ownerOnly, 'AREA owner only (yours)', C.compareOwnerOnly],
-      [AREA_CLASS.generatedOnly, 'AREA ours only', C.compareOursOnly],
-    ];
-    for (const [code, name, color] of areas) {
-      const faces = facesWhere(comparison.mask, (value) => value === code);
-      if (faces.length > 0) layers.push({ name, color, positions: patchPositions(mesh, faces, AREA_LIFT_MM, sign), indices: new Uint32Array(0) });
-    }
-  }
+  // The -sup target: its supports, the three compare areas and its contact dots (targetComparison, shared with the aligner).
+  const target = targetComparison(bare, mesh, centre, placed.map((tip) => tip.position));
+  layers.push(...target.layers);
 
   // Tips by source (the review's tips, each tagged rim (the dental rim) / hole / area / low): a cone each in that source's colour.
   const tipsByStream = new Map<string, Array<{ position: Vector; normal: Vector }>>();
@@ -589,18 +605,15 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
   }
   const byReason = new Map<string, number>();
   for (const tip of leftOutTips) byReason.set(tip.reason, (byReason.get(tip.reason) ?? 0) + 1);
-  if (ownerOk) {
-    layers.push({ name: 'YOUR CONTACTS (dots)', color: C.owner, positions: markerPositions(points!, 0.35), indices: new Uint32Array(0) });
-  }
   return {
     layers,
     zoneNodes: review?.zoneNodes ?? [],
     rimNote: review?.drawnRimProblem ?? '',
-    ownerContacts: points ? points.length : null,
-    ownerContactsMedianMm: medianMm === undefined ? null : Math.round(medianMm * 100) / 100,
-    ownerAreaCoveredPct: comparison ? pct(comparison.coverage) : null,
-    outsideOwnerAreaPct: comparison ? pct(comparison.extra) : null,
-    targetState: targetStateOf(ownerSupportsPath(bare) !== '' && existsSync(ownerSupportsPath(bare)), ownerFile ? ownerFile.contacts.length : null, ownerOk),
+    ownerContacts: target.ownerContacts,
+    ownerContactsMedianMm: target.ownerContactsMedianMm,
+    ownerAreaCoveredPct: target.ownerAreaCoveredPct,
+    outsideOwnerAreaPct: target.outsideOwnerAreaPct,
+    targetState: target.targetState,
     rimPlane: review ? (review.rimPlane ? 'Rim plane fitted' : 'none (no rim)') : 'not computed',
     upDecision: review ? (review.upDecision ? describeUp(review.upDecision) : 'no box, so no up decision') : '',
     tipsBySource,

@@ -26,9 +26,9 @@ import { orientationGlb } from './orientationEvidenceGlb';
 import { LAYER_COLOURS } from './layerColours';
 import { alignerRules, buildDentureReview, dentureLayers, reviewProfileId, shapeNote, type DentalKind } from './profileSelect';
 import { peelReport } from './peelReport';
-import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureReviewDetail, ownerSupportsPath, type TargetState } from './dentureReviewLayers';
+import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureReviewDetail, ownerSupportsPath, targetComparison, type TargetState } from './dentureReviewLayers';
 import { orientNodes } from '@mixo-geocore/host/dental/orientGraph';
-import { transformPoint } from '@mixo-geocore/host/state/transform';
+import { inverseTransformPoint, transformPoint } from '@mixo-geocore/host/state/transform';
 import { readoutLines, sideAnchors } from './orientReadout';
 import { setDentureDrawnRim, type DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
 
@@ -100,8 +100,8 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
     islandsUnresolved: 0, islandsOutsideArea: 0, islandsResolved: 0, unresolvedIslands: '', tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
     ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, rimPlane: '', rimNote: '',
-    // A target beside the scan stays 'not-compared' unless the denture review below compares it (an aligner, or a
-    // scan that does not build, compares nothing - and must not look like a scan with no target).
+    // A target beside the scan stays 'not-compared' unless the review below builds and compares it (a scan that does
+    // not build compares nothing - and must not look like a scan with no target).
     targetState: ownerSupportsPath(file) !== '' && existsSync(ownerSupportsPath(file)) ? 'not-compared' : 'none',
     upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
     peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', zonesFile: '', stageTimes: '',
@@ -155,6 +155,12 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
       // Markers sit on a vertex of the crossed face (or the island's vertex): a lookup, no geometry here.
       const vertex = (v: number) => [0, 1, 2].map((axis) => mesh.positions[v * 3 + axis]!);
       const faceVertex = (face: number) => vertex(mesh.indices[face * 3]!);
+      // The -sup target, the same comparison as a denture's (targetComparison). Placement points are in the pose's
+      // frame (rotation, no lift); the comparison wants them unit-local, as the model is. Left-out tips do not count.
+      const dropped = new Set(supports.dropped);
+      const pose = { position: [0, 0, 0] as [number, number, number], rotation: review.frame.rotation };
+      const tips = review.placement.points.filter((point) => !dropped.has(point.id)).map((point) => inverseTransformPoint(pose, point.position) as Vector);
+      const target = targetComparison(file, mesh, centre, tips);
       const glb = await exportDentalRegionReview(mesh, review.region,
         { supports, frame: review.frame, bands: review.bands, diagnosticContacts: review.diagnosticContacts,
           proposedTips: review.placement.points.length, droppedTips: supports.dropped.length },
@@ -163,7 +169,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
           { name: 'MARK crossing that could not be judged', color: LAYER_COLOURS.crossingUnjudged, points: issues.filter((i) => !i.blocked).flatMap((i) => faceVertex(i.modelFace)) },
           { name: 'MARK low point with no support', color: LAYER_COLOURS.lowUnsupported, points: islands.filter((i) => i.status === 'unresolved').flatMap((i) => vertex(i.vertex)) },
           { name: 'MARK low point outside the area', color: LAYER_COLOURS.lowOutside, points: islands.filter((i) => i.status === 'outside-policy').flatMap((i) => vertex(i.vertex)) },
-        ]);
+        ], target.layers);
       writeFileSync(join(out, `${name}.glb`), Buffer.from(glb));
       const rim = supports.dentalRimCoverage;
       Object.assign(row, {
@@ -175,6 +181,8 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
         outerGapMm: rim ? +rim.outer.maxGapMm.toFixed(2) : null, openingGapMm: rim ? +rim.opening.maxGapMm.toFixed(2) : null,
         rimNeedsReview: rim?.needsReview ?? false, glb: `${name}.glb`,
         structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
+        ownerContacts: target.ownerContacts, ownerContactsMedianMm: target.ownerContactsMedianMm, ownerAreaCoveredPct: target.ownerAreaCoveredPct,
+        outsideOwnerAreaPct: target.outsideOwnerAreaPct, targetState: target.targetState,
       });
     }
   } catch (error) {
@@ -210,7 +218,7 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
   const issues = supports.verdict?.issues ?? [];
   // The host's denture review layers (faces, edges, box, rim plane, symmetry plane), our placed tips and pillars, and the owner's
   // contacts, -sup supports and area comparison: all one GLB under the review frame.
-  const detail = dentureReviewDetail(file, mesh, centre, review.frame, review.placed, reviewProfileId('denture'), scan.rows[index]!.tiltDeg, review.leftOutTips, { candidateIds: review.candidateIds, leftOut: review.leftOut });
+  const detail = dentureReviewDetail(file, mesh, centre, review.placed, reviewProfileId('denture'), scan.rows[index]!.tiltDeg, review.leftOutTips, { candidateIds: review.candidateIds, leftOut: review.leftOut });
   const allLayers = [...dentureLayers(mesh, review), ...detail.layers];
   const glb = Buffer.from(await orientationGlb(allLayers, review.frame));
   writeFileSync(join(out, `${name}.glb`), glb);
