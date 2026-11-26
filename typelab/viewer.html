@@ -725,6 +725,21 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 stage.prepend(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(cssToken('--scene-bg'));
+/*
+ * THE FLOOR, as the app draws it (owner, 2026-11-27: "the type lab should also show the floor like the app"): the build
+ * plate is a grid on the scene background, a line every 5 mm and a heavier one every 25 mm, in the app's own two tokens
+ * (src/components/ObjectViewport.tsx). It lies at the plate - height 0 in every review file, or the bottom of the built
+ * supports when there are some (show) - and belongs to the scene, not the model: no layer list, no hover, no framing.
+ * shortcut: 300 mm square, no fade, where the app's grid is infinite and fades at 400 mm; no scan comes near the edge.
+ */
+const floorGrid = new THREE.Group();
+for (const [step, token] of [[5, '--scene-grid-cell'], [25, '--scene-grid-section']]) {
+  const colour = new THREE.Color(cssToken(token));
+  const lines = new THREE.GridHelper(300, 300 / step, colour, colour);
+  lines.material.depthWrite = false; // under the model and its supports, never on top of them
+  floorGrid.add(lines);
+}
+scene.add(floorGrid);
 // A soft room environment gives the PBR materials something to reflect; the lights below stay as they were.
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -2467,6 +2482,7 @@ async function show(row) {
       if (object.isMesh && keyOf(object.name) === 'Oral cavity ray') boxAnchor = new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3());
     });
     floorY = supports.isEmpty() ? null : supports.min.y;
+    floorGrid.position.y = floorY ?? 0;
     underside = false;
     // The open tab's 3D cut, also on load: it was set only by a tab CLICK, so a reload on 1 Orient showed every layer,
     // supports included, until a tab was pressed (Fable's review).

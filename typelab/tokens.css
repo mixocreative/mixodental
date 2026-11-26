@@ -8,6 +8,8 @@
   --surface: #fbfaf7;   /* raised: buttons, segmented trough, popovers */
   --sunken:  #ebe8e1;   /* hover, selected row */
   --scene-bg: #e9e6df;                  /* same name and value as the app (src/styles.css) */
+  --scene-grid-cell: #d3cdc2;           /* the floor grid, as the app draws it: a line every 5 mm ... */
+  --scene-grid-section: #b9b1a3;        /* ... and a heavier one every 25 mm (same names and values as src/styles.css) */
   --scene-light-sky: #ffffff;           /* hemisphere light of the viewer: sky and ground */
   --scene-light-ground: var(--muted);
 
