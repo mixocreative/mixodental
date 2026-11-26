@@ -26,7 +26,7 @@ import { orientationGlb } from './orientationEvidenceGlb';
 import { LAYER_COLOURS } from './layerColours';
 import { alignerRules, buildDentureReview, dentureLayers, reviewProfileId, shapeNote, type DentalKind } from './profileSelect';
 import { peelReport } from './peelReport';
-import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureReviewDetail } from './dentureReviewLayers';
+import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureReviewDetail, ownerSupportsPath, type TargetState } from './dentureReviewLayers';
 import { orientNodes } from '@mixo-geocore/host/dental/orientGraph';
 import { transformPoint } from '@mixo-geocore/host/state/transform';
 import { readoutLines, sideAnchors } from './orientReadout';
@@ -61,6 +61,8 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   cleanedDegenerateTriangles: number;
   /** Denture only: the owner's contacts beside the bare scan (count, median distance to the scan in mm, share of the owner area we cover, share of ours outside it); null when absent. */
   ownerContacts: number | null; ownerContactsMedianMm: number | null; ownerAreaCoveredPct: number | null; outsideOwnerAreaPct: number | null;
+  /** Whether the case was compared with its -sup target, and if not why (dentureReviewLayers.ts targetStateOf); the page words each. */
+  targetState: TargetState;
   /** Denture only: the rim plane's state (fitted, or none); '' for an aligner. Was `middlePlane`, a retired name. */
   rimPlane: string;
   /** Denture only: why the rim asked for (a drawn one, or the flat area's edge) could not be used and the found rim was ('' when it was used, or for an aligner). */
@@ -98,6 +100,9 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
     islandsUnresolved: 0, islandsOutsideArea: 0, islandsResolved: 0, unresolvedIslands: '', tipsPlaced: 0, tipsLeftOut: 0, outerGapMm: null, openingGapMm: null,
     rimNeedsReview: false, needsLook: true, glb: '', printAngleDeg: null, stableBand: '', angleReason: '', angleConfirmed: false, structuresLeftOut: '', cleanedDegenerateTriangles: 0,
     ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, rimPlane: '', rimNote: '',
+    // A target beside the scan stays 'not-compared' unless the denture review below compares it (an aligner, or a
+    // scan that does not build, compares nothing - and must not look like a scan with no target).
+    targetState: ownerSupportsPath(file) !== '' && existsSync(ownerSupportsPath(file)) ? 'not-compared' : 'none',
     upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
     peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', zonesFile: '', stageTimes: '',
     ...noEvidence, orientationGlb: '' };
@@ -258,7 +263,7 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
     stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none',
     structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
     ownerContacts: detail.ownerContacts, ownerContactsMedianMm: row.ownerContactsMedianMm ?? detail.ownerContactsMedianMm,
-    ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, rimPlane: detail.rimPlane, rimNote: detail.rimNote,
+    ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, targetState: detail.targetState, rimPlane: detail.rimPlane, rimNote: detail.rimNote,
     stageTimes: process.env.MIXO_TIMERS ? `scan ${review.stageSeconds.scan} / policy ${review.stageSeconds.policy} / generate ${review.stageSeconds.generate} / flow ${review.stageSeconds.total}` : '',
     upDecision: detail.upDecision, tipsBySource: detail.tipsBySource, selfSupport: detail.selfSupport, traps: detail.traps, unsupportableTips: detail.unsupportableTips, tipsLeftOutReasons: detail.tipsLeftOutReasons,
   });

@@ -72,6 +72,8 @@ export interface DentureDetail {
   ownerContactsMedianMm: number | null;
   ownerAreaCoveredPct: number | null;
   outsideOwnerAreaPct: number | null;
+  /** Whether this case was compared with its -sup target, and if not why (targetStateOf). */
+  targetState: TargetState;
   /** The rim plane's state for the facts rows (was `middlePlane`, the retired name of the same plane). */
   rimPlane: string;
   /** Step 1 text: the up decision from the dental rim ('' when there is no review or no dental rim). */
@@ -114,6 +116,23 @@ export function ownerContactsPath(bare: string): string {
   return /\.stl$/i.test(bare) ? bare.replace(/\.stl$/i, '-sup.contacts.json') : '';
 }
 
+/*
+ * WHY A CASE CAN OR CANNOT BE COMPARED WITH ITS TARGET (2026-11-27). The page showed "-" in every case below, so a
+ * target sitting beside the scan looked exactly like no target at all. Each state has its own words on the page.
+ *   none          no `-sup` file beside the scan
+ *   not-compared  a `-sup` file is there, but this run compares nothing (an aligner, or a scan that did not build)
+ *   no-contacts   a `-sup` file is there, its contacts were never extracted (scripts/extract-sup-contacts.py)
+ *   not-lined-up  contacts exist but none, or they do not sit on the scan: the target could not be registered
+ *   ok            compared
+ */
+export type TargetState = 'none' | 'not-compared' | 'no-contacts' | 'not-lined-up' | 'ok';
+
+/** The compare state of a denture that built. `contacts` = null when there is no contacts file. */
+export function targetStateOf(supExists: boolean, contacts: number | null, linedUp: boolean): TargetState {
+  if (contacts === null) return supExists ? 'no-contacts' : 'none';
+  return contacts > 0 && linedUp ? 'ok' : 'not-lined-up';
+}
+
 /** The owner's -sup.stl beside a bare STL path; '' for any other scan. */
 export function ownerSupportsPath(bare: string): string {
   return /\.stl$/i.test(bare) ? bare.replace(/\.stl$/i, '-sup.stl') : '';
@@ -151,15 +170,20 @@ function readOwnerFile(path: string): OwnerFile | undefined {
 const toMeshFrame = ([x, y, z]: number[], centre: Vector): Vector => [x!, z!, -y!].map((v, axis) => v - centre[axis]!) as Vector;
 
 /**
- * The -sup-to-bare shift in the Y-up frame. transform_bare_to_sup must be a pure translation (identity
- * linear part), otherwise the owner supports cannot be mapped and this throws.
+ * A -sup point (Y-up, as parseStl gives it) back in the bare scan's Y-up frame: undo transform_bare_to_sup (Z-up,
+ * p_sup = R p_bare + t) as p_bare = R^T (p_sup - t). R is a rotation (exact or ICP fit), so its inverse is its transpose.
+ * TRAP: this used to accept only a pure translation and THREW otherwise, so a target printed at another angle than its
+ * bare scan - the owner's normal case - crashed the whole review of that scan instead of drawing its supports.
  */
-function supToBareShift(transform: number[][]): Vector {
-  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
-    if (Math.abs(transform[r]![c]! - (r === c ? 1 : 0)) > 1e-9) throw new Error('owner -sup transform is not a pure translation');
-  }
-  // Z-up (x, y, z) -> Y-up (x, z, -y) applied to the translation column.
-  return [transform[0]![3]!, transform[2]![3]!, -transform[1]![3]!];
+export function supToBare(transform: number[][]): (p: ArrayLike<number>, at: number) => Vector {
+  const R = [0, 1, 2].map((r) => [0, 1, 2].map((c) => transform[r]![c]!));
+  const t = [transform[0]![3]!, transform[1]![3]!, transform[2]![3]!];
+  return (p, at) => {
+    // Y-up (x, y, z) -> Z-up (x, -z, y), minus t, times R^T, back to Y-up (x, z, -y).
+    const s = [p[at]! - t[0]!, -p[at + 2]! - t[1]!, p[at + 1]! - t[2]!];
+    const b = [0, 1, 2].map((c) => R[0]![c]! * s[0]! + R[1]![c]! * s[1]! + R[2]![c]! * s[2]!);
+    return [b[0]!, b[2]!, -b[1]!];
+  };
 }
 
 /** The displayed transform: the GLB scene node (translation, then Euler XYZ rotation), as orientationGlb sets it. */
@@ -520,10 +544,11 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     const supsPath = ownerSupportsPath(bare);
     if (existsSync(supsPath) && ownerFile) {
       const sups = parseStl(readFileSync(supsPath));
-      const shift = supToBareShift(ownerFile.transform);
+      const toBare = supToBare(ownerFile.transform);
       const positions = new Float32Array(sups.positions.length);
       for (let at = 0; at < sups.positions.length; at += 3) {
-        for (let axis = 0; axis < 3; axis++) positions[at + axis] = sups.positions[at + axis]! - shift[axis]! - centre[axis]!;
+        const bare = toBare(sups.positions, at);
+        for (let axis = 0; axis < 3; axis++) positions[at + axis] = bare[axis]! - centre[axis]!;
       }
       layers.push({ name: 'YOUR SUPPORTS (from -sup file)', color: C.owner, positions, indices: Uint32Array.from(sups.indices) });
     }
@@ -575,6 +600,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     ownerContactsMedianMm: medianMm === undefined ? null : Math.round(medianMm * 100) / 100,
     ownerAreaCoveredPct: comparison ? pct(comparison.coverage) : null,
     outsideOwnerAreaPct: comparison ? pct(comparison.extra) : null,
+    targetState: targetStateOf(ownerSupportsPath(bare) !== '' && existsSync(ownerSupportsPath(bare)), ownerFile ? ownerFile.contacts.length : null, ownerOk),
     rimPlane: review ? (review.rimPlane ? 'Rim plane fitted' : 'none (no rim)') : 'not computed',
     upDecision: review ? (review.upDecision ? describeUp(review.upDecision) : 'no box, so no up decision') : '',
     tipsBySource,
