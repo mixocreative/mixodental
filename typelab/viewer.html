@@ -9,7 +9,10 @@
 <style>
   /* The page never grows: body is exactly the window, and only the side panels scroll. */
   html, body { height: 100%; }
-  body { height: 100vh; overflow: hidden; display: grid; grid-template-rows: var(--header-h) minmax(0, 1fr) var(--chain-h, auto); color: var(--ink); font-size: var(--fs-md); }
+  body { height: 100vh; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr) var(--chain-h, auto); color: var(--ink); font-size: var(--fs-md); }
+  /* The header wraps to a second line when its controls do not fit, instead of cutting them off at a fixed 32 px (owner,
+     2026-11-27: "the ui is still messy" - the session bar's buttons were half off the top of the window at 1440 px). */
+  body > header { height: auto; min-height: var(--header-h); flex-wrap: wrap; row-gap: 4px; padding-top: 4px; padding-bottom: 4px; }
   header { display: flex; align-items: center; gap: 12px; padding: 0 var(--pad); border-bottom: 1px solid var(--line); background: var(--surface); }
   header h1 { margin: 0; font-size: var(--fs-lg); font-weight: 500; }
   header .muted, .muted { color: var(--muted); }
@@ -35,6 +38,19 @@
   .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--scene-bg); }
   .stage canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
   .views { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+  /* Compare with target (2026-11-27): the legend floats bottom-left of the 3D view, clear of the view buttons (top right)
+     and Previous / Next (bottom centre). Its numbers are the case's, its swatches the layers' own tokens. */
+  .compare-legend { position: absolute; left: 8px; bottom: 8px; max-width: min(360px, 45%); background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 6px 8px; display: grid; gap: 3px; font-size: var(--fs-sm); }
+  .compare-legend[hidden] { display: none; } /* display: grid above would otherwise beat the hidden attribute */
+  /* While comparing, the side names and the ray-origin label cover the areas being compared and say nothing about them. */
+  .stage.comparing .side-label, .stage.comparing #box-label { display: none; }
+  .compare-legend .sum { color: var(--ink); font-weight: 500; }
+  .compare-legend .row { display: flex; align-items: center; gap: 6px; }
+  .compare-legend .sw { flex: none; width: 12px; height: 12px; border-radius: var(--radius); }
+  .compare-legend .sw.dot { width: 8px; height: 8px; border-radius: 50%; margin: 0 2px; }
+  .compare-legend .sw.both { background: var(--layer-compare-both); } .compare-legend .sw.target { background: var(--layer-compare-owner-only); }
+  .compare-legend .sw.ours { background: var(--layer-compare-ours-only); } .compare-legend .sw.contacts { background: var(--layer-owner); }
   .steps { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; }
   .note { position: absolute; top: 44px; left: 8px; max-width: 60%; color: var(--muted); font-size: var(--fs-sm); }
   /* The scan session's bar and the stage banner (reviewer overhaul step 7): which scan, which type, current or not. */
@@ -193,6 +209,10 @@
    (`button:hover`) while the pressed state paints its text paper-white, so the tab just clicked went
    blank exactly while the pointer was on it (UX check, 2026-11-20). Same trap in the segmented switch. */
 .stage-tab[aria-pressed="true"]:hover:not(:disabled), .segmented button[aria-pressed='true']:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+/* Every pressed toggle, not only the two above: base.css's `button:hover` (white) outranks its `[aria-pressed]` ink, so a
+   pressed button under the pointer showed paper text on white - "Compare with target" went blank the moment it was
+   clicked (2026-11-27). */
+button[aria-pressed="true"]:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
 .chain-node .n[aria-pressed="true"]:hover:not(:disabled) { background: none; color: var(--ink); }
 .stage-arrow { color: var(--muted); }
 .stage-body { min-width: 0; }
@@ -372,7 +392,16 @@
       <code id="nocase-code"></code>
       <button type="button" id="nocase-action" data-ui="nocase-action" hidden></button>
     </div></div>
+    <div class="compare-legend" id="compare-legend" data-ui="compare-legend" hidden>
+      <div class="sum" id="compare-sum"></div>
+      <div class="row"><span class="sw both"></span>Both support it</div>
+      <div class="row"><span class="sw target"></span>Only the target supports it: we miss it</div>
+      <div class="row"><span class="sw ours"></span>Only we support it: the target leaves it bare</div>
+      <div class="row"><span class="sw dot contacts"></span>The target's contact points</div>
+      <label class="check"><input type="checkbox" id="compare-supports" data-ui="compare-supports"> Show both supports (ours yellow, the target's navy)</label>
+    </div>
     <div class="views">
+      <button id="compare-target" data-ui="compare-target" aria-pressed="false" disabled>Compare with target</button>
       <button data-view="fit">Fit view</button>
       <button data-view="top">Top view</button>
       <button data-view="bottom">Bottom view</button>
@@ -452,7 +481,7 @@ const GROUP_DEFS = [
   ['problems', 'Tips & problems', true],
   ['rays', 'Rays', false],
   ['reference', 'Reference', false],
-  ['owner', 'Owner file (-sup)', false],
+  ['owner', 'Target (-sup)', false],
   ['diagnostic', 'Diagnostic', false],
 ];
 const LAYER_TABLE = [
@@ -519,11 +548,11 @@ const LAYER_TABLE = [
   ['GREEN', 'Joining paths', 'Aligner: the paths that join the outer rim.', true, 'reference'],
   ['RED', 'Opening edge', 'Aligner: the detected opening edge.', true, 'reference'],
 
-  ['YOUR SUPPORTS', 'Supports', 'The -sup STL you sent, placed on this scan.', false, 'owner'],
-  ['YOUR CONTACTS', 'Contacts', 'Contact points from the -sup file, on the displayed scan.', true, 'owner'],
-  ['AREA both', 'Area: both', 'Faces near both your contacts and our tips (within 2 mm).', true, 'owner'],
-  ['AREA owner only', 'Area: yours only', 'Faces near your contacts but not our tips: we do not cover them.', true, 'owner'],
-  ['AREA ours only', 'Area: ours only', 'Faces near our tips but not your contacts.', true, 'owner'],
+  ['YOUR SUPPORTS', 'Target supports', 'The supports in the -sup target file, placed on this scan.', false, 'owner'],
+  ['YOUR CONTACTS', 'Target contacts', 'Where the supports of the target touch the scan (from the -sup file).', true, 'owner'],
+  ['AREA both', 'Both support it', 'Faces within 2 mm of both a target contact and one of our tips.', true, 'owner'],
+  ['AREA owner only', 'Only the target supports it', 'Faces within 2 mm of a target contact but of none of our tips: we miss them.', true, 'owner'],
+  ['AREA ours only', 'Only we support it', 'Faces within 2 mm of our tips but of no target contact: the target leaves them bare.', true, 'owner'],
 
   ['VIOLET', 'Outer strip, opening side', 'Aligner: sample strip beside the outer edge.', false, 'diagnostic'],
   ['AMBER', 'Outer strip, other side', 'Aligner: sample strip beside the outer edge.', false, 'diagnostic'],
@@ -671,7 +700,7 @@ const DENTURE_STEPS = [
   ['7. Overhangs and low points', 'Faces whose slope from horizontal is under the overhang angle (global {globalOverhang}, rim {rimOverhang}; 0 = flat ceiling, 90 = vertical wall), the self-supporting patches that need no tips (rule on), the down-facing edges, and the engine island report: amber marks an island no built tip serves (the list with height, size and reason is in the facts), green one that is served. Orange and purple are the older rule checks.', ['Down-facing area', 'Self-supporting overhangs', 'Sockets (no support)', 'Fitting (basin)', 'Suction cups', 'Drain / clean', 'DOWN-FACING', 'ISLAND NOT resolved', 'ISLAND resolved', 'MARK low point outside', 'MARK low point with']],
   ['8. Tips', 'Tips by source: dental rim, hole, area, low. Black cones: overhang tips with no free path to the plate - BUT THAT CHECK IS NOT WIRED (2026-11-20): `Placed::unsupportable` is created empty in ruled_tips.rs and nothing ever pushes to it, and reach.rs::plate_reachable has no caller, so this layer is ALWAYS empty and its emptiness means the check did not run, not that none were found. Red cones: tips left out, any source; if that layer is empty and there are no purple marks, every tip is supported.', ['Tips: rim', 'Tips: hole', 'Tips: area', 'Tips: low', 'Tips that cannot reach', 'Tips left out']],
   ['9. Supports', 'Our pillars (plastic), the braces and the base.', ['SUPPORT PILLARS']],
-  ['10. Compare with your own supports file', 'Your -sup supports (off by default) and contacts, and the area each covers against ours.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
+  ['10. Compare with the target', 'The -sup target: its supports (off by default), its contact points, and the area it supports against ours. The Compare with target button shows only this.', ['YOUR SUPPORTS', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only']],
 ];
 const MODEL_KEYS = ['DENTURE', 'NEUTRAL'];
 // Step-by-step (denture): the last step shown (0 = model only), null = off. caseNow is the case on screen.
@@ -762,7 +791,12 @@ function placeBoxLabel() {
 
 function look(direction) {
   if (!model) return;
-  const sphere = new THREE.Box3().setFromObject(model).getBoundingSphere(new THREE.Sphere());
+  // Frame what is SHOWN: hidden layers (the box, the plate, the rays) used to set the frame, so Compare with target,
+  // which hides them, left the model small in the middle of empty space.
+  const shown = new THREE.Box3();
+  model.updateMatrixWorld(true);
+  model.traverse((object) => { if ((object.isMesh || object.isLine) && visibleDeep(object)) shown.expandByObject(object); });
+  const sphere = (shown.isEmpty() ? new THREE.Box3().setFromObject(model) : shown).getBoundingSphere(new THREE.Sphere());
   const fov = THREE.MathUtils.degToRad(camera.fov) / 2;
   const distance = sphere.radius / Math.sin(Math.min(fov, Math.atan(Math.tan(fov) * camera.aspect))) * 1.05;
   controls.target.copy(sphere.center);
@@ -774,7 +808,55 @@ function look(direction) {
 const VIEWS = { fit: () => new THREE.Vector3(0.6, 0.7, 1), top: () => new THREE.Vector3(0.001, 1, 0.001), bottom: () => new THREE.Vector3(0.001, -1, 0.001), side: () => new THREE.Vector3(0, 0.15, 1) };
 document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => look(VIEWS[button.dataset.view]())));
 
+/*
+ * COMPARE WITH TARGET (owner, 2026-11-27: "how do I compare supported vs generated?"). One button that shows the model,
+ * the three areas and the target's contact dots, nothing else - the comparison was ten layers deep in a closed group
+ * among ~40. Its own flag, not `isolatedKeys`: selecting a node sets that one, and the two would fight. Every layer's
+ * checkbox is left as it was, so turning compare off restores the view exactly.
+ */
+let compareOn = false;
+const COMPARE_KEYS = ['DENTURE', 'NEUTRAL', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only'];
+const COMPARE_SUPPORT_KEYS = ['SUPPORT PILLARS', 'YOUR SUPPORTS'];
+/* Why a case cannot be compared (reviewCase.ts targetState), in words. A run made before the field existed has none. */
+const TARGET_WORDS = {
+  none: () => 'No target: there is no -sup file beside this scan.',
+  'not-compared': (row) => (row.kind !== 'denture' ? 'A -sup target is beside this scan, but the comparison works for dentures only so far.'
+    : 'A -sup target is beside this scan, but the scan did not build, so there is nothing of ours to compare.'),
+  'no-contacts': () => 'A -sup target is beside this scan, but its contact points were never extracted. Run: python -I scripts/extract-sup-contacts.py samples - then run this scan again.',
+  'not-lined-up': () => 'The -sup target could not be lined up with this scan (it is turned, or gave no contact points), so it cannot be compared.',
+};
+const targetStateOfRow = (row) => row?.targetState ?? (row?.ownerAreaCoveredPct != null ? 'ok' : 'unknown');
+function refreshCompare() {
+  const button = document.getElementById('compare-target');
+  const state = targetStateOfRow(caseNow);
+  const ok = state === 'ok' && Boolean(model);
+  if (!ok) compareOn = false;
+  button.disabled = !ok;
+  button.setAttribute('aria-pressed', String(compareOn));
+  button.dataset.tipTitle = 'Compare with target';
+  button.dataset.tip = ok ? 'Show only the model and where the target and we support it; press again for every layer.'
+    : !caseNow ? 'Open a case first.' : (TARGET_WORDS[state]?.(caseNow) ?? 'This run was made before the page could tell; run the scan again to compare it.');
+  const legend = document.getElementById('compare-legend');
+  legend.hidden = !compareOn;
+  stage.classList.toggle('comparing', compareOn);
+  if (compareOn) {
+    document.getElementById('compare-sum').textContent =
+      `We cover ${caseNow.ownerAreaCoveredPct}% of the target's supported area; ${caseNow.outsideOwnerAreaPct}% of ours is where the target has none.`;
+  }
+  applyVisibility();
+}
+document.getElementById('compare-target').addEventListener('click', () => { compareOn = !compareOn; refreshCompare(); look(VIEWS.fit()); });
+document.getElementById('compare-supports').addEventListener('change', () => applyVisibility());
+
 function applyVisibility() {
+  if (compareOn) {
+    const withSupports = document.getElementById('compare-supports').checked;
+    model?.traverse((object) => {
+      const key = object.name && keyOf(object.name);
+      if (key) object.visible = COMPARE_KEYS.includes(key) || (withSupports && COMPARE_SUPPORT_KEYS.includes(key));
+    });
+    return;
+  }
   model?.traverse((object) => {
     const key = object.name && keyOf(object.name);
     // A layer the selected node is shown by (isolatedKeys) is drawn even if its checkbox or the tab's step would hide it:
@@ -2026,14 +2108,21 @@ await loadGraphLib();
   // Both ends keep something usable: at least 120 px of stages, and at least 160 px of 3D view.
   const clamp = (h) => Math.round(Math.min(Math.max(h, 120), window.innerHeight - headerH() - 160));
   const set = (h) => {
-    if (h === null) { root.style.removeProperty('--chain-h'); try { localStorage.removeItem(KEY); } catch { /* per-viewer only */ } return; }
+    // Reset (double-click): forget the dragged height and go back to the 40% default below, never to `auto`.
+    if (h === null) { root.style.setProperty('--chain-h', `${clamp(window.innerHeight * 0.4)}px`); try { localStorage.removeItem(KEY); } catch { /* per-viewer only */ } return; }
     const px = clamp(h);
     root.style.setProperty('--chain-h', `${px}px`);
     try { localStorage.setItem(KEY, String(px)); } catch { /* per-viewer only */ }
   };
   let saved = null;
   try { saved = Number(localStorage.getItem(KEY)) || null; } catch { saved = null; }
+  /*
+   * TRAP: unset, the panel was sized by its content (`--chain-h: auto`) and the node canvas is tall, so opening a case
+   * squeezed the 3D view to a strip a few rows high (owner, 2026-11-27: "the ui is still messy"). Unset now means 40%
+   * of the window, applied without saving, so a drag is still the only thing that remembers a height.
+   */
   if (saved) set(saved);
+  else root.style.setProperty('--chain-h', `${clamp(window.innerHeight * 0.4)}px`);
   const current = () => document.getElementById('chain').getBoundingClientRect().height;
   bar.addEventListener('pointerdown', (e) => {
     bar.setPointerCapture(e.pointerId);
@@ -2117,6 +2206,7 @@ function drawLayers() {
 // lies on) is described by describeHit(): the layer's plain name, key facts that are cheap to read from the picked
 // geometry (ray length, tip reason, pillar height, face count) and the layer's explanation.
 const raycaster = new THREE.Raycaster();
+const PASS_THROUGH_KEYS = ['RIM PLANE', 'SYMMETRY PLANE', 'UPRIGHT PLANE', 'TIGHT BOX', 'Print tilt', 'PLANE'];
 const ndc = new THREE.Vector2();
 const worldPoint = (position, index, object) => new THREE.Vector3().fromBufferAttribute(position, index).applyMatrix4(object.matrixWorld);
 const mm = (value) => `${value.toFixed(value < 10 ? 2 : 1)} mm`;
@@ -2207,10 +2297,14 @@ function pick(clientX, clientY) {
   const threshold = Math.max(0.15, camera.position.distanceTo(controls.target) * 0.004);
   raycaster.params.Line.threshold = threshold;
   const hits = raycaster.intersectObject(model, true).filter((h) => (h.object.isMesh || h.object.isLine) && visibleDeep(h.object));
-  const first = hits[0];
+  // TRAP (owner, 2026-11-27: "when mouse over, show what zone"): the see-through planes and the box are the nearest
+  // surface over most of the model, so hovering named a plane instead of the zone under the pointer. They let the
+  // pointer through to whatever lies behind them, and are named only where nothing does.
+  const seeThrough = (h) => PASS_THROUGH_KEYS.includes(keyOf(h.object.name) ?? keyOf(h.object.parent?.name));
+  const first = hits.find((h) => !seeThrough(h)) ?? hits[0];
   if (!first) { hideTip(); return; }
   // A thin line lying on a surface would always lose to it: a line hit close behind the first hit wins.
-  const line = first.object.isLine ? first : hits.find((h) => h.object.isLine && h.distance <= first.distance + threshold * 4);
+  const line = first.object.isLine ? first : hits.find((h) => h.object.isLine && !seeThrough(h) && h.distance <= first.distance + threshold * 4);
   showTip(describeHit(line ?? first), clientX, clientY);
 }
 
@@ -2256,6 +2350,7 @@ function stageCard({ name, result = '', text = '', code = '', action = null }) {
   ++showing; // a load still in flight lands on a case nobody picked
   caseNow = null;
   dropModel();
+  refreshCompare();
   document.getElementById('facts').replaceChildren();
   document.getElementById('source').textContent = '';
   document.getElementById('peel').hidden = true;
@@ -2298,6 +2393,7 @@ async function show(row) {
   // Step-by-step belongs to denture cases only; an aligner always shows its checkboxes.
   if (kindNow !== 'denture') stepAt = null;
   dropModel();
+  refreshCompare();
   const url = row.glb ? urlOf(row.glb) : '';
   // The Step 1 evidence GLB (trim chains, U ends, plane, back arrow) loads into the same scene; a
   // case that was not built may still have one, so the owner sees what orientation detected.
@@ -2370,7 +2466,8 @@ async function show(row) {
     // The open tab's 3D cut, also on load: it was set only by a tab CLICK, so a reload on 1 Orient showed every layer,
     // supports included, until a tab was pressed (Fable's review).
     if (kindNow === 'denture' && stepAt === null) stepAt = STAGES.find((s) => s.id === stageNow)?.cut ?? null;
-    applyVisibility();
+    // Also applies visibility; keeps "Compare with target" on across cases that can be compared, off for one that cannot.
+    refreshCompare();
     // The same scan again (another type, the compare's flip): keep the camera, so the two pictures line up.
     if (row.source !== lastShownSource) look(VIEWS.fit());
     lastShownSource = row.source;
@@ -2529,7 +2626,7 @@ const FACT_GROUPS = [
   ['islands', 'Islands', true, ['Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Low points with no support', 'Low points outside the area']],
   ['tips', 'Tips', true, ['Tips by source', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Unsupportable tips', 'Structures left out', 'Largest gap, outer edge (mm)', 'Largest gap, opening (mm)', 'Edge coverage needs review']],
   ['peelfacts', 'Peel and supports', false, ['Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area']],
-  ['ownerfacts', 'Owner file', false, ['Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %']],
+  ['ownerfacts', 'Target (-sup)', true, ['Target', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %']],
   ['timing', 'Timing and clean-up', false, ['Time (s)', 'Scan clean-up']],
 ];
 const factOpen = new Map(FACT_GROUPS.map(([id, , open]) => [id, open]).concat([['more', false]]));
@@ -2546,7 +2643,7 @@ function facts(c) {
   // A denture reads only the rows that apply to it; the aligner-only rows (arch, cross-checks, gaps, edge
   // coverage, support crossings) would show "not oriented" and similar in red for a case that has none.
   const DENTURE_ROWS = ['Kind', 'Shape check', 'Result', 'Safety check', 'Islands not resolved', 'Unresolved islands', 'Islands resolved', 'Islands outside the allowed area', 'Print angle', 'Up decision', 'Tips by source', 'Unsupportable tips', 'Tips placed', 'Tips left out', 'Left-out reasons', 'Scan clean-up', 'Time (s)',
-    'Rim plane', 'Rim note', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
+    'Rim plane', 'Rim note', 'Peel: largest layer, ours (mm²)', 'Peel: largest layer, owner (mm²)', 'Peel: layers where ours is >10% above owner', 'Most tips on one support tree', 'Trunk area / neck area', 'Target', 'Owner contacts', 'Owner contacts, median distance to displayed model (mm)', 'Owner area covered %', 'Our area outside owner %'];
   const verdict = c.result !== 'built' ? `Not built${c.reason ? ` - ${c.reason}` : ''}`
     : c.needsLook ? `Built - needs a look${c.reason ? `: ${c.reason}` : ''}` : 'Built - nothing flagged';
   const rows = [
@@ -2593,6 +2690,8 @@ function facts(c) {
     ['Peel: layers where ours is >10% above owner', c.peelLayersOver ?? '-', c.peelLayersOver > 0],
     ['Most tips on one support tree', c.maxTipsPerTrunk ?? 'n/a', false],
     ['Trunk area / neck area', c.trunkToNeckArea ?? 'n/a', false],
+    // Why there are numbers below, or why not: "-" alone looked the same for "no target" and "target never extracted".
+    ['Target', targetStateOfRow(c) === 'ok' ? 'compared - press Compare with target on the 3D view' : (TARGET_WORDS[targetStateOfRow(c)]?.(c) ?? 'run before the page could tell; run it again'), ['no-contacts', 'not-lined-up'].includes(targetStateOfRow(c))],
     ['Owner contacts', c.ownerContacts ?? '-', false],
     ['Rim plane', (c.rimPlane ?? c.middlePlane) || '-', false],
     // The rim asked for and not used (a drawn rim, or the flat area's edge): red, because the run fell back silently otherwise.

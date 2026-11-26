@@ -15,6 +15,15 @@ type the app then loads. One folder, one name - it was `dentalwork/batch-review/
 The scans it runs on are in [`samples/`](../samples/README.md) at the root. A `<scan>-sup` file there is that scan's
 supported **target**, never run as a case.
 
+**Comparing with a target (dentures).** Open the scan and press **Compare with target** on the 3D view: only the model
+stays, painted teal where both support it, blue where only the target does (we miss it) and orange where only we do (the
+target leaves it bare), with the target's contact dots and the two numbers in a legend; a tick adds both sets of
+supports. When the button is greyed, its hover text and the Case panel's **Target** row say why (`targetStateOf` in
+`dentureReviewLayers.ts`): no `-sup` file, its contacts never extracted (`python -I scripts/extract-sup-contacts.py
+samples`), a target that could not be lined up, an aligner, or a scan that did not build. A target turned relative to
+its scan is mapped by its full transform. Hovering the model names the zone under the pointer; the see-through planes
+and the box let the pointer through.
+
 **Review only.** Dental mode is not clinically validated. A result that looks right still needs a person to check it before printing.
 
 ## Run it

@@ -555,7 +555,7 @@ The tokens of `typelab/tokens.css` that the app does not have. The ones with an 
 | `--layer-unsupportable-tips` | `#1f1f1f` | Layer: unsupportable tips |
 | `--layer-tips-left-out` | `#ff1744` | Layer: tips left out |
 | `--layer-pillars` | `#d2bb70` | Layer: pillars |
-| `--layer-owner` | `#7fd3f7` | Layer: owner |
+| `--layer-owner` | `#14305c` | Layer: the target's contact dots and supports (deep navy, visible on every compare colour) |
 | `--layer-down-facing` | `#6d8fb0` | Layer: down facing |
 | `--layer-down-edges` | `#1f3f66` | Layer: down edges |
 | `--layer-self-supporting` | `#8fb8a0` | Layer: self supporting |
@@ -580,9 +580,9 @@ The tokens of `typelab/tokens.css` that the app does not have. The ones with an 
 | `--layer-ray-r6` | `var(--layer-tips-left-out)` | Ray arrow R6 |
 | `--layer-ray-r7` | `var(--layer-tight-box)` | Ray arrow R7 |
 | `--layer-ray-r8` | `var(--layer-pillars)` | Ray arrow R8 |
-| `--layer-compare-both` | `#1f7a6d` | Area compare: both |
-| `--layer-compare-owner-only` | `#3b6fd0` | Area compare: owner only |
-| `--layer-compare-ours-only` | `#a0522d` | Area compare: ours only |
+| `--layer-compare-both` | `#0b7a75` | Target compare: both support it |
+| `--layer-compare-owner-only` | `#1c64f2` | Target compare: only the target supports it (we miss it) |
+| `--layer-compare-ours-only` | `#f06a0f` | Target compare: only we support it (the target leaves it bare) |
 | `--layer-rim-edge` | `#d81b60` | Layer: rim edge |
 | `--layer-rim-bridged` | `#f48fb1` | Layer: rim bridged |
 | `--layer-hole-edge` | `#00acc1` | Layer: hole edge |

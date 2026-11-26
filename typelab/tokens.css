@@ -95,7 +95,8 @@
   --layer-unsupportable-tips: #1f1f1f;
   --layer-tips-left-out: #ff1744;
   --layer-pillars: #d2bb70;
-  --layer-owner: #7fd3f7;
+  /* The target's contact dots and supports: deep navy, so the dots stay visible on every compare colour above. */
+  --layer-owner: #14305c;
   --layer-down-facing: #6d8fb0;
   --layer-down-edges: #1f3f66;
   --layer-self-supporting: #8fb8a0;
@@ -120,9 +121,12 @@
   --layer-ray-r6: var(--layer-tips-left-out);
   --layer-ray-r7: var(--layer-tight-box);
   --layer-ray-r8: var(--layer-pillars);
-  --layer-compare-both: #1f7a6d;
-  --layer-compare-owner-only: #3b6fd0;
-  --layer-compare-ours-only: #a0522d;
+  /* Target compare (owner, 2026-11-27: "a more obvious colour code"). Three hues that read on the beige denture and
+     never borrow a zone's: teal = both agree, strong blue = only the target supports it (we miss it), orange = only
+     we support it (the target leaves it bare). The old brown for "ours only" nearly vanished on the model. */
+  --layer-compare-both: #0b7a75;
+  --layer-compare-owner-only: #1c64f2;
+  --layer-compare-ours-only: #f06a0f;
   --layer-rim-edge: #d81b60;
   --layer-rim-bridged: #f48fb1;
   --layer-hole-edge: #00acc1;
