@@ -63,6 +63,8 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   ownerContacts: number | null; ownerContactsMedianMm: number | null; ownerAreaCoveredPct: number | null; outsideOwnerAreaPct: number | null;
   /** Whether the case was compared with its -sup target, and if not why (dentureReviewLayers.ts targetStateOf); the page words each. */
   targetState: TargetState;
+  /** Aligner: why the review's diagnostic band and contour samples are not drawn ('' when they are). The case still builds. */
+  diagnosticNote: string;
   /** Denture only: the rim plane's state (fitted, or none); '' for an aligner. Was `middlePlane`, a retired name. */
   rimPlane: string;
   /** Denture only: why the rim asked for (a drawn one, or the flat area's edge) could not be used and the found rim was ('' when it was used, or for an aligner). */
@@ -103,6 +105,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
     // A target beside the scan stays 'not-compared' unless the review below builds and compares it (a scan that does
     // not build compares nothing - and must not look like a scan with no target).
     targetState: ownerSupportsPath(file) !== '' && existsSync(ownerSupportsPath(file)) ? 'not-compared' : 'none',
+    diagnosticNote: '',
     upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
     peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', zonesFile: '', stageTimes: '',
     ...noEvidence, orientationGlb: '' };
@@ -182,7 +185,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
         rimNeedsReview: rim?.needsReview ?? false, glb: `${name}.glb`,
         structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
         ownerContacts: target.ownerContacts, ownerContactsMedianMm: target.ownerContactsMedianMm, ownerAreaCoveredPct: target.ownerAreaCoveredPct,
-        outsideOwnerAreaPct: target.outsideOwnerAreaPct, targetState: target.targetState,
+        outsideOwnerAreaPct: target.outsideOwnerAreaPct, targetState: target.targetState, diagnosticNote: review.diagnosticNote,
       });
     }
   } catch (error) {

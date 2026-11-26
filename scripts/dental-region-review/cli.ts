@@ -33,15 +33,17 @@ if (result.kind === 'inconclusive') {
     outerEdges: region.outerEdges.length / 2, openingEdges: region.openingEdges.length / 2,
     ...(review?.kind === 'proposal' ? { proposedTips: review.placement.points.length,
       omittedTips: review.supports.dropped.length,
-      diagnosticContourContacts: {
+      // Absent when the diagnostic band could not be drawn; diagnosticNote then says why.
+      diagnosticContourContacts: review.diagnosticContacts ? {
         outer: review.diagnosticContacts.outer.contacts.length,
         inner: review.diagnosticContacts.inner.contacts.length,
         skippedOuter: review.diagnosticContacts.outer.skippedSamples,
         skippedInner: review.diagnosticContacts.inner.skippedSamples,
-      },
-      diagnosticBandFaces: Object.fromEntries(Object.entries(review.bands)
+      } : null,
+      diagnosticBandFaces: review.bands ? Object.fromEntries(Object.entries(review.bands)
         .filter(([name]) => name !== 'kind')
-        .map(([name, mask]) => [name, (mask as Uint8Array).reduce((sum, face) => sum + face, 0)])),
+        .map(([name, mask]) => [name, (mask as Uint8Array).reduce((sum, face) => sum + face, 0)])) : null,
+      diagnosticNote: review.diagnosticNote,
       supportTriangles: review.supports.indices.length / 3 } : {}),
     glbBytes: glb.byteLength }) + '\n');
 }

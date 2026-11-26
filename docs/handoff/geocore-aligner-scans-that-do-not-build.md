@@ -16,7 +16,7 @@ builds in the Type Lab, so it cannot be compared. The other 11 build clear.
 | `4d3c901b` | Step 1 | `non-manifold-or-degenerate-mesh` | geocore core (generic repair) |
 | `b65c27bb` | Step 1 | `no-trim` | geocore: evidence first |
 | `c4169915` | Step 1 | `no-trim` | geocore: evidence first |
-| `10f40a06` | the Type Lab's review | `diagnostic-band-invalid-face-graph` | **mixodental** (our review script) |
+| `10f40a06` | the Type Lab's review | `diagnostic-band-invalid-face-graph` | **mixodental** - FIXED, now builds |
 | `dae3a95d` | after Step 1 | `surface-region-not-isolated` | geocore: evidence first |
 
 ## What is asked of geocore (and only this)
@@ -42,8 +42,10 @@ builds in the Type Lab, so it cannot be compared. The other 11 build clear.
 triangles. The engine already takes the largest part as the aligner and fuses touching attachments
 (`dental/aligner_parts.rs:1-12`), and the region IS found: the failure is raised by our own review script, which then
 draws a diagnostic band over the whole file (`scripts/dental-region-review/build.ts:79-86`) and that band needs a
-two-manifold face graph (`surface/side_bands.rs:70-79`). **Fix in mixodental:** run that diagnostic on the target part
-or let it fail without failing the review; then check the scan on the app's own path before asking the engine anything.
+two-manifold face graph (`surface/side_bands.rs:70-79`). **Fixed in mixodental, 2026-11-27:** a band that cannot be drawn
+no longer fails the review; the case records `diagnosticNote` ("diagnostic band not drawn: invalid-face-graph") and
+builds - clear, 124 tips, target compared at 70.6% covered / 40.4% outside. Nothing is asked of the engine for it. Not
+yet checked: the same scan through the app's own Step 1-3 in the browser.
 
 ## How to reproduce
 

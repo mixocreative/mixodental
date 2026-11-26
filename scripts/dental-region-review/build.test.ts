@@ -33,18 +33,22 @@ describe('complete dental GLB review', () => {
     // Faces per band that also face down at 50 degrees in the plate frame, recorded from the TS classifier.
     const counts = readGolden<{ counts: Record<string, number> }>('review-reference').counts;
     const downwardBand = (mask: Uint8Array) => mask.reduce((sum, enabled) => sum + enabled, 0);
-    for (const key of Object.keys(counts)) expect(downwardBand((review.bands as unknown as Record<string, Uint8Array>)[key]!)).toBeGreaterThanOrEqual(counts[key]!);
+    // The reference is two-manifold, so its diagnostic band IS drawn: no note, bands and contacts present.
+    expect(review.diagnosticNote).toBe('');
+    const bands = review.bands!;
+    const contacts = review.diagnosticContacts!;
+    for (const key of Object.keys(counts)) expect(downwardBand((bands as unknown as Record<string, Uint8Array>)[key]!)).toBeGreaterThanOrEqual(counts[key]!);
     expect(counts.outerOtherSide).toBeGreaterThan(100);
     expect(counts.innerOtherSide).toBeLessThan(10);
-    expect(review.diagnosticContacts.outer.contacts.length).toBeGreaterThan(20);
-    expect(review.diagnosticContacts.inner.contacts.length).toBeGreaterThan(5);
-    expect(review.diagnosticContacts.outer.contacts.every((contact) => review.bands.outerOtherSide[contact.face] === 1)).toBe(true);
-    expect(review.diagnosticContacts.inner.contacts.every((contact) => review.bands.innerOtherSide[contact.face] === 1)).toBe(true);
+    expect(contacts.outer.contacts.length).toBeGreaterThan(20);
+    expect(contacts.inner.contacts.length).toBeGreaterThan(5);
+    expect(contacts.outer.contacts.every((contact) => bands.outerOtherSide[contact.face] === 1)).toBe(true);
+    expect(contacts.inner.contacts.every((contact) => bands.innerOtherSide[contact.face] === 1)).toBe(true);
 
     const glb = await exportDentalRegionReview(mesh, review.region, {
       supports: review.supports, frame: review.frame,
       proposedTips: review.placement.points.length, droppedTips: review.supports.dropped.length,
-      bands: review.bands, diagnosticContacts: review.diagnosticContacts,
+      bands, diagnosticContacts: contacts,
     });
     const view = new DataView(glb);
     expect(view.getUint32(0, true)).toBe(0x46546c67);

@@ -2697,6 +2697,8 @@ function facts(c) {
     ['Largest gap, outer edge (mm)', c.outerGapMm ?? '-', false],
     ['Largest gap, opening (mm)', c.openingGapMm ?? '-', false],
     ['Edge coverage needs review', c.rimNeedsReview ? 'yes' : 'no', c.rimNeedsReview],
+    // Aligner: the review's diagnostic band could not be drawn (e.g. attached hooks); the case itself still built.
+    ...(c.diagnosticNote ? [['Diagnostic overlay', `${c.diagnosticNote} - the supports are unaffected`, false]] : []),
     ['Time (s)', c.seconds, false],
   ];
   // Denture only: the owner's contacts (with the mapping check) and the area comparison; '-' when the scan has no contacts file.

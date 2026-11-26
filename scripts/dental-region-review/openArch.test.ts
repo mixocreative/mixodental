@@ -17,8 +17,10 @@ describe('real aligner scans without an opening contour', () => {
       const review = buildDentalReview(mesh);
       if (review.kind !== 'proposal') expect(review.reason).not.toBe('diagnostic-contact-invalid-contour');
       else {
-        expect(review.diagnosticContacts.outer.contacts.length).toBeGreaterThan(0);
-        if (review.region.openingEdges.length === 0) expect(review.diagnosticContacts.inner.contacts).toEqual([]);
+        // These open-arch scans are two-manifold, so their diagnostic band is drawn (a missing one would say why here).
+        expect(review.diagnosticNote).toBe('');
+        expect(review.diagnosticContacts!.outer.contacts.length).toBeGreaterThan(0);
+        if (review.region.openingEdges.length === 0) expect(review.diagnosticContacts!.inner.contacts).toEqual([]);
       }
     }, 120_000);
   }

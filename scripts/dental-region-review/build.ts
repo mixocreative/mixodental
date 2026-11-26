@@ -25,9 +25,13 @@ export type DiagnosticReviewContacts = {
   outer: { contacts: DiagnosticContourContact[]; skippedSamples: number };
   inner: { contacts: DiagnosticContourContact[]; skippedSamples: number };
 };
+/*
+ * `bands` and `diagnosticContacts` are DIAGNOSTIC drawings for the review file; placement never reads them. Absent when
+ * the band could not be built, and `diagnosticNote` then says why - the review goes on (see buildDentalReview).
+ */
 export type DentalReviewBuild =
-  | { kind: 'proposal'; region: Region; bands: DentalDiagnosticBands; diagnosticContacts: DiagnosticReviewContacts; frame: JobTransform;
-    placement: PlacementResult; supports: GeneratedSupportMesh }
+  | { kind: 'proposal'; region: Region; bands?: DentalDiagnosticBands; diagnosticContacts?: DiagnosticReviewContacts; diagnosticNote: string;
+    frame: JobTransform; placement: PlacementResult; supports: GeneratedSupportMesh }
   | { kind: 'inconclusive'; reason: string };
 
 /** The aligner type's Step 3 settings and switches, as the app gives a new aligner. */
@@ -82,18 +86,29 @@ export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector, rul
   // The diagnostic strips and samples use the profile's own area and spacing (the app's defaults).
   const { defaults } = profileData(profileId);
   const [low, high] = dentalAreaBand(referenceTuning, profileId);
+  /*
+   * TRAP (2026-11-27, docs/GEOCORE-BOUNDARY.md section 3): the band is a diagnostic drawing over the WHOLE file and needs a
+   * two-manifold face graph (geocore surface/side_bands.rs). An aligner with attached hooks has non-manifold edges where
+   * they meet it, so the band failed - and this returned "inconclusive" for a scan whose region the engine HAD found and
+   * which the app builds from that region alone. A missing drawing now costs the drawing, not the review.
+   */
   const bands = diagnosticDentalSideBands(mesh, region, { setback: Math.max(0, low), width: high });
-  if (bands.kind !== 'proposal') return { kind: 'inconclusive', reason: `diagnostic-band-${bands.reason}` };
-  const outer = sampleDiagnosticContourContacts(mesh, region.outerEdges, bands.outerOtherSide,
-    { spacing: defaults.outerSpacingMm / referenceTuning.density, maxSearchDistance: defaults.maxSearchMm });
-  // An open arch has no central opening (empty opening contour): there is no inner rim to sample, so
-  // it has no inner contacts. Any other opening contour still has to be one valid closed loop.
-  const inner = region.openingEdges.length === 0
-    ? { kind: 'proposal' as const, contacts: [], skippedSamples: 0, perimeter: 0 }
-    : sampleDiagnosticContourContacts(mesh, region.openingEdges, bands.innerOtherSide,
-      { spacing: defaults.innerSpacingMm / referenceTuning.density, maxSearchDistance: defaults.maxSearchMm });
-  if (outer.kind !== 'proposal' || inner.kind !== 'proposal') {
-    return { kind: 'inconclusive', reason: `diagnostic-contact-${outer.kind !== 'proposal' ? outer.reason : inner.kind !== 'proposal' ? inner.reason : 'unknown'}` };
+  let diagnostic: { bands?: DentalDiagnosticBands; diagnosticContacts?: DiagnosticReviewContacts; diagnosticNote: string };
+  if (bands.kind !== 'proposal') diagnostic = { diagnosticNote: `diagnostic band not drawn: ${bands.reason}` };
+  else {
+    const outer = sampleDiagnosticContourContacts(mesh, region.outerEdges, bands.outerOtherSide,
+      { spacing: defaults.outerSpacingMm / referenceTuning.density, maxSearchDistance: defaults.maxSearchMm });
+    // An open arch has no central opening (empty opening contour): there is no inner rim to sample, so
+    // it has no inner contacts. Any other opening contour still has to be one valid closed loop.
+    const inner = region.openingEdges.length === 0
+      ? { kind: 'proposal' as const, contacts: [], skippedSamples: 0, perimeter: 0 }
+      : sampleDiagnosticContourContacts(mesh, region.openingEdges, bands.innerOtherSide,
+        { spacing: defaults.innerSpacingMm / referenceTuning.density, maxSearchDistance: defaults.maxSearchMm });
+    // Kept fatal on purpose: it also checks the opening contour is one valid closed loop (openArch.test.ts guards it).
+    if (outer.kind !== 'proposal' || inner.kind !== 'proposal') {
+      return { kind: 'inconclusive', reason: `diagnostic-contact-${outer.kind !== 'proposal' ? outer.reason : inner.kind !== 'proposal' ? inner.reason : 'unknown'}` };
+    }
+    diagnostic = { bands, diagnosticContacts: { outer, inner }, diagnosticNote: '' };
   }
   const orientation = proposeDentalOrientation(mesh, profileId);
   if (orientation.kind !== 'proposal') return { kind: 'inconclusive', reason: `orientation-${orientation.reason}` };
@@ -126,5 +141,5 @@ export function buildDentalReview(mesh: TriangleMesh, poseRotation?: Vector, rul
      * and quietly change every aligner review. So the guard is on CONTENT, not on existence.
      */
     labelText: 'A', mode: 'export', ...(rules && Object.keys(rules).length > 0 ? { rules } : {}) });
-  return { kind: 'proposal', region, bands, diagnosticContacts: { outer, inner }, frame, placement, supports };
+  return { kind: 'proposal', region, ...diagnostic, frame, placement, supports };
 }
