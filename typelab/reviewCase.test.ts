@@ -106,7 +106,7 @@ describe('folder review', () => {
       { encoding: 'utf8', timeout: 60_000 });
     expect(run.error).toBeUndefined();
     expect(run.status).toBe(1);
-    expect(run.stderr).toContain('No .stl files');
+    expect(run.stderr).toContain('No scan files there (STL, GLB or glTF)');
   }, 90_000);
 });
 

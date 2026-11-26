@@ -18,7 +18,7 @@ describe('batch.ts on a folder', () => {
     const run = spawnSync(process.execPath, [viteNodeCli, '--script', 'typelab/batch.ts', '--out', join(scratch, 'out'), folder],
       { encoding: 'utf8', timeout: 100_000 });
     expect(run.error).toBeUndefined();
-    expect(run.stdout).toMatch(/only 1 supported target file\(s\) \(-sup\), which are never run/);
+    expect(run.stderr).toMatch(/only 1 supported target file\(s\) \(-sup\), which are never run/);
     expect(run.status).toBe(1);
   }, 120_000);
 });

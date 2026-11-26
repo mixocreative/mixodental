@@ -42,7 +42,8 @@ function scansUnder(path: string): string[] {
  */
 const found = scanSet(roots.flatMap(scansUnder));
 const files = found.cases;
-process.stdout.write(`${scanSetWords(found)}\n`);
+// Nothing to run is an error (stderr, exit 1); otherwise the line says what was kept aside.
+(files.length === 0 ? process.stderr : process.stdout).write(`${scanSetWords(found)}\n`);
 if (files.length === 0) process.exit(1);
 mkdirSync(out, { recursive: true });
 
