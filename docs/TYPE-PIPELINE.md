@@ -64,8 +64,8 @@ anywhere on that path, and a file the engine cannot honour is refused by name, n
 | **Type** | One named recipe inside a category ("Generic denture"). A type is **data**. | reads it | all of it | today: one profile JSON per type, inside the engine |
 | **Profile** | The type's *numbers*: upright rule, print-angle search, tip spacing, support sizes. | the field names, units, strict parse, legal ranges | the numbers | `crates/geometry-core/src/dental/denture/profiles/reference-denture.json`; a generated copy for the host in `vendor/mixo-geocore/host/dental/dentureProfileFiles.ts` |
 | **Rules** | ~130 named planner dials. A type may pin some; the operator may turn some per job. | names, defaults, what each does (`crates/geometry-core/src/supports/rules.rs`) | the pinned values | passed as an array with each run; typelab turns 13 (`typelab/rules.mjs`) |
-| **Zone graph** | The wiring that decides which faces may carry tips (stage 2). | node kinds, the evaluator, what is refused (`crates/geometry-core/src/dental/denture/zone_graph.rs`) | the wiring | not saved as part of a type; `zone-graph.json` beside a review run |
-| **Type file** | **PLANNED.** One file = one type: category + id + profile + pinned rules + zone graph + what proved it. | validates every part | the whole file | **PLANNED:** `types/<category>/<id>.type.json` in this repo |
+| **Zone graph** | The wiring that decides which faces may carry tips (stage 2). | node kinds, the evaluator, what is refused (`crates/geometry-core/src/dental/denture/zone_graph.rs`) | the wiring | as built: the type file's `zoneGraph` (and `orientGraph`), checked when the type loads; `zone-graph.json` beside a review run for a draft |
+| **Type file** | **BUILT** (see the box above). One file = one type: category + id + profile + pinned rules + zone graph + what proved it. | validates every part | the whole file | `types/<category>/<id>.<stamp>.type.json` in this repo, one file per save (`types/README.md`) |
 
 Two things that are true today and that the type file exists to fix:
 
