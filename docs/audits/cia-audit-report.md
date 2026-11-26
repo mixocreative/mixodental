@@ -32,14 +32,14 @@ nobody, until the next session opens an empty plate (MD-01).
 
 ```
 ROUTE tools/route.py 1 · root S:/ai/mixodental · 722 source files / 88862 lines · 8.5 s · skipped dirs: .git, __pycache__, dist, graphify-out, node_modules, vendor
-SURFACE page=26 (index.html:1 `template file` , kit.html:1 `template file`) · cli=4 (artefacts/2026-11-11-screen/verify-exported-stl.py:52 `sys.argv` , scripts/extract-sup-contacts.py:316 `sys.argv`) · http routes=0, form targets=8 (dentalwork/batch-review/viewer.html:1534 `fetch('/reasons.json'` — no handler in tree) · server=package.json:10 `scripts.dev`
+SURFACE page=26 (index.html:1 `template file` , kit.html:1 `template file`) · cli=4 (artefacts/2026-11-11-screen/verify-exported-stl.py:52 `sys.argv` , scripts/extract-sup-contacts.py:316 `sys.argv`) · http routes=0, form targets=8 (typelab/viewer.html:1534 `fetch('/reasons.json'` — no handler in tree) · server=package.json:10 `scripts.dev`
   → load surface-map.md §3, journey-map.md §2; browser-walks.md §12 by CLI/API observers (rendering walk possible)
-STATE enums=28 (benchwork/rules.test.ts:41 deg|mm|mm2|flag|mode) · renderers for 0 of 5 (none found)  → design-tools.md §4; S16/S22 lead, not a finding
-GRAPH files=722 lines=88862 packages=6 cross-imports=4 (benchwork<->dentalwork benchwork/cli.mjs:38) · signals held 2 of 2 scanned, 4 judged by hand (code-graph-tools.md §1: any 2 of 6) → code graph · if a graph (§2, one graph per question): code relationships → graphify explain/path (cgc not on PATH; §3.1: probe it by full path or its MCP tools first, and it comes first if it answers); architecture → graphify · graphify-out/: fresh · graphify: PATH · cgc: not on PATH
+STATE enums=28 (typelab/rules.test.ts:41 deg|mm|mm2|flag|mode) · renderers for 0 of 5 (none found)  → design-tools.md §4; S16/S22 lead, not a finding
+GRAPH files=722 lines=88862 packages=6 cross-imports=4 (benchwork<->dentalwork typelab/cli.mjs:38) · signals held 2 of 2 scanned, 4 judged by hand (code-graph-tools.md §1: any 2 of 6) → code graph · if a graph (§2, one graph per question): code relationships → graphify explain/path (cgc not on PATH; §3.1: probe it by full path or its MCP tools first, and it comes first if it answers); architecture → graphify · graphify-out/: fresh · graphify: PATH · cgc: not on PATH
 DESIGN top-level modules=6 · ui framework=package-lock.json:13 `react`  → design-tools.md §1–§3
 COMMERCE none (criteria 1–4 of SKILL §0.3: payment dep no · orders/cart/products schema no · /checkout|/cart route no · commerce framework no)
 MEDICAL DESIGN.md:1 `# Design System: mixoDental`  → companion-skills.md meddev row · AI none (§0.10 off: no LLM dep, no prompt dir)
-BINDINGS tests=256 files (benchwork/rules.test.ts, unittest, vitest) · runner config=none · ci=.github/workflows/ci.yml · lockfile=package-lock.json · linter config=none · .env=none .env.example=none · docs: none · handoff=none · gap-register=none · contract files=AGENTS.md, CLAUDE.md, README.md  → §0.5 resolves the commands from these
+BINDINGS tests=256 files (typelab/rules.test.ts, unittest, vitest) · runner config=none · ci=.github/workflows/ci.yml · lockfile=package-lock.json · linter config=none · .env=none .env.example=none · docs: none · handoff=none · gap-register=none · contract files=AGENTS.md, CLAUDE.md, README.md  → §0.5 resolves the commands from these
 COMPANIONS installed: impeccable, mixo-app-style, kubai-icons, stitch, meddev-iec-62366-usability, meddev-iso-14971, meddev-state-machines, meddev-traceability, fmea-analysis, rcca-master, five-whys-analysis, fishbone-diagram, fault-tree-analysis, trade-study-analysis, kepner-tregoe-analysis, egm:egm-draft, egm:egm-review, token-economy-delegation, pstack:thermo-nuclear-code-quality-review, security-review, gemini, skills-hub · other skills 166 · CLIs: graphify, gh, docker, npx, playwright, stitch, codex, claude · missing: design:accessibility-review, design:ux-copy  → companion-skills.md §3
 UNKNOWN not scanned: callers outside the tree (cron, systemd, CI of another repo), dynamic route registration, templates outside *.html/*.jinja/*.twig/*.tpl/*.vue/*.svelte  (evidence.md §E5 boundary)
 ```
@@ -89,7 +89,7 @@ Commerce evidence: none. Known open gaps loaded: MIXO-02/04/06 (handoff), the Ex
 | `src/config/printers.json`, `src/plate/printerProfiles.ts` | 3 | declared, unwired seam (prior run) |
 | `vendor/mixo-geocore` (engine 70, `5319c86`) | 4 | consumed as built, hash-checked |
 | the browser (downloads, File System Access, WebGL2, workers) | 4 | the target environment |
-| `benchwork/`, `dentalwork/batch-review/` | 1 (offline tools) | engine bench and review viewer, not shipped |
+| `benchwork/`, `typelab/` | 1 (offline tools) | engine bench and review viewer, not shipped |
 | unit suite (259 files), source-reading guards | 3* | code → its rules |
 | `scripts/walk.mjs` (EXPECTED_CHECKS 200) | 3* | built app in Chromium |
 | `scripts/step-screens.mjs` (18 screens) | 3* | components on fake data |
@@ -134,7 +134,7 @@ semantics unverified.
 !s.generating && !s.exporting,` (`editingMode.ts:658`). S5.1: the package scripts CLAUDE.md names all have a caller (the gate).
 
 **S6** — swept, 0 findings; TODO/FIXME/XXX/HACK over `src/` and `scripts/`: 1 hit, `src/components/BrandLogo.tsx:5`
-(cosmetic, named). The `shortcut:` F6 in `dentalwork/batch-review/serve.mjs` is recorded debt (REVIEW-UX-REFINE F6), not re-flagged.
+(cosmetic, named). The `shortcut:` F6 in `typelab/serve.mjs` is recorded debt (REVIEW-UX-REFINE F6), not re-flagged.
 
 **S7** — swept, 0 findings; unit: 1 skipped (gate26.log:15, the known fixture skip). Walk: 2 skipped by design, `u8`/`u8b`, which
 never run on this machine's fixture — `skippedByDesign += 2;` (`scripts/walk.mjs:3564`). Reported as 2 unverified; the
@@ -164,7 +164,7 @@ Quoted: `if (!mesh || !(mesh.positions instanceof Float32Array) || !(mesh.indice
 `parsePrinterProfiles` only (declared owner).
 
 **S14** — whole repository, Screen depth. Not walked by me: the denture screens, the Babylon renderer at HEAD (the gate drove three
-only), `benchwork/`, `dentalwork/batch-review/` beyond reading, vendor internals.
+only), `benchwork/`, `typelab/` beyond reading, vendor internals.
 
 **S15** — four-corner table below. 2 flows × 8 states; 1 disagreement (MD-01), 0 unanswerable, 0 reachability findings.
 
