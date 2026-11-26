@@ -103,6 +103,23 @@ tested, it has been demonstrated.
 **Fixtures:** keep candidates in `samples/`. `typelab/output/` is git-ignored because a
 GLB made from a patient STL is patient geometry — never commit one without the owner's say-so.
 
+## Fitting a setup to the owner's targets
+
+When `samples/` holds `-sup` targets, let the fit mode find the setup closest to them instead of turning rules by hand:
+
+```bash
+python -I scripts/extract-sup-contacts.py samples          # once, after targets are added or renamed
+node typelab/fit.mjs --kind denture                         # or --kind aligner [--category retainer]
+node typelab/fit.mjs --kind denture --zone-graph g.json     # the same search on top of an edited node graph
+```
+
+It runs the starting setup on every pair whose target lined up, then tries one setting at a time (the per-kind
+`FIT_SPACE` in `fit.mjs`) and keeps a change only if the **area match** improves - mean target area covered minus mean
+of ours outside it - **and** nothing our rules guard got worse: every pair still builds and stays "clear", no more tips
+left out, no more islands unserved (`fitScore.mjs`, tested). Tilt and height are not match terms (owner, 2026-11-27).
+It prints a ranked table, the winner's folder (`node typelab/serve.mjs <folder>`, then **Compare with target**) and the
+command that reproduces it. **It never saves a type**: look at the winner, then save it yourself.
+
 ## Stage 2 — pin it before you tune it
 
 ```bash
