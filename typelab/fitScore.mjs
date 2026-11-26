@@ -1,0 +1,46 @@
+// ONE JOB: score one run of a setup against the -sup targets, and say whether our own rules disqualify it.
+//
+// The fit mode (typelab/fit.mjs) tries setups and keeps the one whose supported AREA is closest to the owner's targets
+// (owner, 2026-11-26/27: match where supports land and where they are not let land; tilt and height are not match
+// terms). Pure: rows in, numbers out, so the rule is tested without running the engine (fitScore.test.ts).
+//
+// THE SCORE: mean "target area we cover" minus mean "our area outside the target" over the pairs, both in percent.
+// Equal weight on purpose - missing the target's area and supporting where it has none are the same size of miss.
+//
+// OUR RULES ARE A FILTER, NEVER A TERM (docs/GEOCORE-BOUNDARY.md, the -sup "target, not gospel" rule): a setup that
+// matches better by building fewer cases, losing the "clear" verdict, leaving more tips unsupported or more islands
+// unserved than the starting setup is disqualified, whatever its score.
+
+/** The rows of a run that can be scored: built and compared with a target. */
+export const comparedRows = (rows) => rows.filter((row) => row.targetState === 'ok' && row.ownerAreaCoveredPct != null && row.outsideOwnerAreaPct != null);
+
+const mean = (values) => (values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : 0);
+const round1 = (value) => Math.round(value * 10) / 10;
+
+/**
+ * Score `rows` (a run's summary.json cases) against `baseline` (the starting setup's rows), matched by source file.
+ * @returns {{ score: number, covered: number, outside: number, pairs: number, disqualified: string[] }}
+ */
+export function scoreRun(rows, baseline = rows) {
+  const compared = comparedRows(rows);
+  const before = new Map(baseline.map((row) => [row.source, row]));
+  const disqualified = [];
+  for (const row of rows) {
+    const base = before.get(row.source);
+    if (!base) continue;
+    const name = row.case;
+    if (base.result === 'built' && row.result !== 'built') disqualified.push(`${name}: no longer builds (${row.reason || row.result})`);
+    else if (row.result === 'built') {
+      if (base.verdict === 'clear' && row.verdict !== 'clear') disqualified.push(`${name}: verdict ${row.verdict}, was clear`);
+      if ((row.tipsLeftOut ?? 0) > (base.tipsLeftOut ?? 0)) disqualified.push(`${name}: ${row.tipsLeftOut} tips left out, was ${base.tipsLeftOut ?? 0}`);
+      if ((row.islandsUnresolved ?? 0) > (base.islandsUnresolved ?? 0)) disqualified.push(`${name}: ${row.islandsUnresolved} islands unserved, was ${base.islandsUnresolved ?? 0}`);
+    }
+    if (comparedRows([base]).length && !comparedRows([row]).length) disqualified.push(`${name}: no longer compared with its target`);
+  }
+  const covered = mean(compared.map((row) => row.ownerAreaCoveredPct));
+  const outside = mean(compared.map((row) => row.outsideOwnerAreaPct));
+  return { score: round1(covered - outside), covered: round1(covered), outside: round1(outside), pairs: compared.length, disqualified };
+}
+
+/** True when `candidate` should replace `best`: not disqualified, and a strictly higher score (ties keep the simpler, earlier one). */
+export const beats = (candidate, best) => candidate.disqualified.length === 0 && candidate.score > best.score;
