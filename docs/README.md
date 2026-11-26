@@ -30,6 +30,7 @@ what was believed when. What changed is only where those records live.
 | `dental-rework-handoff.md` | the dental rework's own handoff | working the dental steps |
 | `dental/` | how dental support works, for a technician (`plain-language.md`) and an engineer (`technical-algorithm.md`, the wasm geometry notes); was `dentalwork/` until 2026-11-26 | explaining or rebuilding the dental pipeline |
 | `audits/` | the full `cia` audit report (2026-11), moved from the root; its evidence is in `artefacts/` | checking what the audit found |
+| `handoff/` | open requests to `mixo-geocore` (`geocore-<thing>.md`, typelab/CLI.md Stage 3): today the five aligner scans that do not build | asking the engine for something the host may not do |
 | `translation/` | how the Japanese and Taiwan Chinese strings get written, and the two traps that cost a day | the i18n guards are red |
 | `migration/glossary.md` | one term per concept per language, **checked by `src/glossary.test.ts`** | translating anything |
 | `migration/ui-spec.md` · `migration/release-*-backlog.md` | the UI specification and what is still owed | planning a release |
