@@ -105,20 +105,35 @@ GLB made from a patient STL is patient geometry — never commit one without the
 
 ## Fitting a setup to the owner's targets
 
-When `samples/` holds `-sup` targets, let the fit mode find the setup closest to them instead of turning rules by hand:
+When `samples/` holds `-sup` targets, let the fit find the setup closest to them instead of turning rules by hand:
 
 ```bash
-python -I scripts/extract-sup-contacts.py samples          # once, after targets are added or renamed
-node typelab/fit.mjs --kind denture                         # or --kind aligner [--category retainer]
-node typelab/fit.mjs --kind denture --zone-graph g.json     # the same search on top of an edited node graph
+node typelab/targetMatch.mjs samples                        # the pair ledger: every pair, its line-up, or why not
+node typelab/fit.mjs --kind denture                         # from the built-in; or --type <file>, --passes 1
+node typelab/fit.mjs --kind aligner [--category retainer]
 ```
 
-It runs the starting setup on every pair whose target lined up, then tries one setting at a time (the per-kind
-`FIT_SPACE` in `fit.mjs`) and keeps a change only if the **area match** improves - mean target area covered minus mean
-of ours outside it - **and** nothing our rules guard got worse: every pair still builds and stays "clear", no more tips
-left out, no more islands unserved (`fitScore.mjs`, tested). Tilt and height are not match terms (owner, 2026-11-27).
-It prints a ranked table, the winner's folder (`node typelab/serve.mjs <folder>`, then **Compare with target**) and the
-command that reproduces it. **It never saves a type**: look at the winner, then save it yourself.
+**Pairing and line-up are automatic** (2026-11-27). A scan's target is `<name>-sup` beside it (`targetPairs.mjs`, the
+only name rule). The first review or fit that needs it lines the pair up (`targetMatch.mjs` runs
+`scripts/extract-sup-contacts.py` once) and keeps the result in `typelab/output/targets`, keyed by the CONTENT of both
+files and of the matcher - a renamed file finds it, a changed one is matched again. A pair that will not line up is
+kept with its reason (never lines up; supports or a platform joined to the model; no support touches it), and the page
+and the fit both say it. GLB/glTF pairs are named as not matchable (the matcher reads STL).
+
+**What it tries** (`fitSearch.mjs`, the grammar Fable and Codex agreed): named rules, profile numbers (a denture's Rim
+strip widths; an aligner's strip position, width, density and spacing - these DO reach the engine through a type file,
+probed 2026-11-27), and for a denture the **zone graph's structure** - a ray's angle, the hole strip's width, and
+Marks added to or taken out of the zone stack (rays win over every support; no strip round the holes; no support on the
+rim's inner side; support on its outer side; no support on the low rim belt). Every graph is validated before it runs.
+
+**What it keeps** (`fitScore.mjs`): a change only when the area match - mean target area covered minus mean of ours
+outside it - goes up, nothing our rules guard got worse on ANY scan of the category (paired or not: builds, "clear",
+tips left out, islands), no pair drops by more than a point, and the gain survives **leave-one-out** (with any one pair
+left out, the rest still gain - so a gain carried by one scan is refused). Under 5 pairs the result is PROVISIONAL.
+Tilt and height are not match terms (owner, 2026-11-27). An edit that changed nothing is listed as unproven.
+
+Every run is kept in the review page's own cache (`runCache.mjs`), so any setup it tried opens instantly there. It
+writes `fit.json` and `winner.type.json`. **It never saves a type**: look at the winner, then save it yourself.
 
 ## Stage 2 — pin it before you tune it
 

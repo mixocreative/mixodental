@@ -200,6 +200,7 @@
 .type-step-link { height: auto; padding: 0; border: 0; background: none; color: inherit; font-size: 11px; cursor: pointer; text-decoration: underline; }
 .type-note { margin: 0; font-size: 11px; color: var(--muted); }
 .type-note.type-warn { color: var(--warning); }
+.type-tune { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
 
 /* The three stages: one tab per stage, one stage on screen, so the 3D view keeps its height. */
 .stage-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -838,8 +839,9 @@ const COMPARE_SUPPORT_KEYS = ['SUPPORT PILLARS', 'YOUR SUPPORTS'];
 const TARGET_WORDS = {
   none: () => 'No target: there is no -sup file beside this scan.',
   'not-compared': () => 'A -sup target is beside this scan, but the scan did not build, so there is nothing of ours to compare.',
-  'no-contacts': () => 'A -sup target is beside this scan, but its contact points were never extracted. Run: python -I scripts/extract-sup-contacts.py samples - then run this scan again.',
-  'not-lined-up': () => 'The -sup target could not be lined up with this scan (it is turned, or gave no contact points), so it cannot be compared.',
+  unsupported: (row) => `A -sup target is beside this scan, but the pair cannot be matched: ${row.targetReason ?? 'the target matcher reads STL files only'}.`,
+  'no-contacts': (row) => `A -sup target is beside this scan, but the target matcher could not run${row.targetReason ? `: ${row.targetReason}` : ''}. Fix that, then run this scan again.`,
+  'not-lined-up': (row) => `The -sup target could not be lined up with this scan${row.targetReason ? `: ${row.targetReason}` : ''}, so it cannot be compared.`,
 };
 const targetStateOfRow = (row) => row?.targetState ?? (row?.ownerAreaCoveredPct != null ? 'ok' : 'unknown');
 function refreshCompare() {
@@ -1386,13 +1388,72 @@ function drawTypeStrip() {
     }
     steps.append(step);
   }
-  strip.append(fields, steps);
+  strip.append(fields, steps, tuneRow());
   if (kindNow === 'aligner') {
     // An aligner run has no editable stages yet: say what an aligner type can change today, so the missing links read as
     // a fact rather than a fault. (The app loads aligner types since 2026-11-23, docs/TYPE-PIPELINE.md section 8a.)
     strip.append(Object.assign(document.createElement('p'), { className: 'type-note',
       textContent: 'An aligner type carries its own name and badge; its numbers are the built-in aligner\'s until the aligner stages become editable.' }));
   }
+}
+
+/*
+ * TUNE TO TARGETS (2026-11-27): the fit (typelab/fit.mjs) from the page. It tries setups on THIS session's scans,
+ * starting from the draft in the editors, and ranks them by how close their supported area comes to the -sup targets
+ * (serve.mjs POST /fit). It never saves: a denture winner opens in the editors as unsaved edits - look, Compare, then
+ * Save type - and an aligner winner is a type file (the page edits no aligner numbers yet), named with its path.
+ */
+let tunePoll = null;
+let tuneState = null;
+function tuneRow() {
+  const row = Object.assign(document.createElement('div'), { className: 'type-tune' });
+  row.dataset.ui = 'type-tune';
+  const go = Object.assign(document.createElement('button'), { type: 'button', textContent: tuneState?.running ? 'Stop tuning' : 'Tune to targets' });
+  go.dataset.ui = 'type-tune-go';
+  go.disabled = !inSessionNow();
+  go.title = inSessionNow()
+    ? 'Try setups on these scans, from the draft in the editors, and rank them by how close their supported area comes to the -sup targets. Takes minutes to hours; nothing is saved.'
+    : 'Import scans first: the fit runs on the session\'s scans.';
+  go.addEventListener('click', () => (tuneState?.running ? stopTune() : startTune()));
+  const words = Object.assign(document.createElement('p'), { className: `type-note${tuneState?.error ? ' type-warn' : ''}`, textContent: tuneWords() });
+  words.dataset.ui = 'type-tune-words';
+  row.append(go, words);
+  if (!tuneState?.running && tuneState?.winner && tuneState.result?.best?.steps?.length) {
+    const open = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Open the winner in the editors' });
+    open.dataset.ui = 'type-tune-open';
+    open.disabled = kindNow !== 'denture';
+    open.title = kindNow === 'denture' ? 'Opens it as unsaved edits on this type: Apply (its runs are kept), compare, then Save type if it is right.'
+      : 'The page edits no aligner numbers yet: run the winner type file with typelab/cli.mjs --type.';
+    open.addEventListener('click', () => { openTypeInEditors(tuneState.winner, sessionType, openedStamp); keepDraft(); drawTypeStrip(); });
+    row.append(open);
+  }
+  return row;
+}
+function tuneWords() {
+  if (!tuneState) return '';
+  if (tuneState.error) return `Tuning: ${tuneState.error}`;
+  if (tuneState.running) return `Tuning... ${tuneState.lines?.at(-1) ?? 'starting'}`;
+  const best = tuneState.result?.best;
+  if (!best) return tuneState.lines?.at(-1) ?? '';
+  const start = tuneState.result.tried?.[0]?.result;
+  return best.steps.length
+    ? `Best: ${best.setup} - score ${best.result.score} (from ${start?.score}), target area covered ${best.result.covered}%, ours outside it ${best.result.outside}%, on ${tuneState.result.paired} scan(s) with a target.`
+    : `No setup tried beat the draft on these scans (${tuneState.result.tried.length - 1} tried). Nothing to open.`;
+}
+async function startTune() {
+  const asked = await fetch('/fit', { method: 'POST', body: JSON.stringify({ kind: kindNow, type: draftFromEditors(), scans: session.scans }) }).then((r) => r.json()).catch((e) => ({ error: e.message }));
+  tuneState = asked.error ? { error: asked.error } : { running: true, lines: [] };
+  drawTypeStrip();
+  if (!asked.error) pollTune();
+}
+async function stopTune() { await fetch('/fit-stop', { method: 'POST', body: '{}' }).catch(() => undefined); pollTune(); }
+function pollTune() {
+  clearTimeout(tunePoll);
+  fetch('/fit').then((r) => r.json()).then((state) => {
+    tuneState = state.none ? null : state;
+    drawTypeStrip();
+    if (state.running) tunePoll = setTimeout(pollTune, 3000);
+  }).catch(() => { tunePoll = setTimeout(pollTune, 6000); });
 }
 
 /**
@@ -2714,7 +2775,7 @@ function facts(c) {
     ['Most tips on one support tree', c.maxTipsPerTrunk ?? 'n/a', false],
     ['Trunk area / neck area', c.trunkToNeckArea ?? 'n/a', false],
     // Why there are numbers below, or why not: "-" alone looked the same for "no target" and "target never extracted".
-    ['Target', targetStateOfRow(c) === 'ok' ? 'compared - press Compare with target on the 3D view' : (TARGET_WORDS[targetStateOfRow(c)]?.(c) ?? 'run before the page could tell; run it again'), ['no-contacts', 'not-lined-up'].includes(targetStateOfRow(c))],
+    ['Target', targetStateOfRow(c) === 'ok' ? 'compared - press Compare with target on the 3D view' : (TARGET_WORDS[targetStateOfRow(c)]?.(c) ?? 'run before the page could tell; run it again'), ['no-contacts', 'not-lined-up', 'unsupported'].includes(targetStateOfRow(c))],
     ['Owner contacts', c.ownerContacts ?? '-', false],
     ['Rim plane', (c.rimPlane ?? c.middlePlane) || '-', false],
     // The rim asked for and not used (a drawn rim, or the flat area's edge): red, because the run fell back silently otherwise.
@@ -3597,6 +3658,7 @@ function startSession(kind, read, { carry = false, onBuiltIn = false, at = null 
     openTypeInEditors(carried, sessionType, sessionType.stamp);
     keepDraft();
   } else openForEditing(sessionType);
+  drawTypeStrip(); // the strip's session-bound controls (Tune to targets) were drawn before there was a session
   for (const id of ['type-pick', 'run-all']) document.getElementById(id).hidden = false;
   drawTypePick();
   // What was imported and what was skipped (an owner's -sup.stl, a scan no longer there) stays on the totals line:
@@ -3700,7 +3762,7 @@ else empty('Import files or Import folder (top) to run scans (STL, GLB or glTF) 
 // The scan session needs the server's type list; without it the bar stays hidden and the note says why.
 // A server is behind the page whenever its type list answers, with or without a review folder: the Type strip, Apply
 // and the live previews need only that.
-if (await loadCatalog()) { sessionBar.hidden = false; reviewServed = true; refreshCacheSize(); await loadDrafts(); }
+if (await loadCatalog()) { sessionBar.hidden = false; reviewServed = true; refreshCacheSize(); await loadDrafts(); pollTune(); }
 
 /*
  * THE RULES PANEL. The rule list comes from the SAME module the CLI uses (`rules.mjs`, beside this page,

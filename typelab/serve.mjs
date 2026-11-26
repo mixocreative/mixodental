@@ -5,16 +5,16 @@
 // --lan also listens on the local network (e.g. to look from a phone); review files hold patient scans,
 // so use it only on a trusted home/office network.
 import { createServer } from 'node:http';
-import { createHash } from 'node:crypto';
 import { createReadStream, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, watch, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { exec, spawn } from 'node:child_process';
 import { stampNow } from './rules.mjs';
-import { guardRun, notApplied, refusalReason } from './rerunReport.mjs';
+import { guardRun, refusalReason } from './rerunReport.mjs';
+import { CACHE, FINISHED, finishRun, isKept, runKey } from './runCache.mjs';
 import { SCAN_FILE, scanSet, scanSetWords } from './scanSet.mjs';
-import { createQueue, resultKey } from './runQueue.mjs';
+import { createQueue } from './runQueue.mjs';
 import { runPrint } from './typeDraft.mjs';
 import { clashRefusal, idLooksDated, saveName, saveRefusal } from '../src/dentalTypes/typeSaves.mjs';
 import { proofOf, typeFileText } from '../src/dentalTypes/typeText.mjs';
@@ -277,17 +277,8 @@ function pickPaths(response, what) {
  * A BUILT-IN runs as the plain built-in run (no type file - what gate:real measures), and only when the page's copy
  * of it is unchanged: a built-in is read-only, so a built-in that differs is refused rather than run as something else.
  */
-const CACHE = roots['/cache/'];
-const FINISHED = 'finished.json';
+// The cache's rules - its key, when a kept run may be served, how a run is closed - are runCache.mjs, shared with the fit.
 mkdirSync(CACHE, { recursive: true });
-const scanPrints = new Map();
-/** A scan's fingerprint (its bytes, never its name: patient data), remembered by path, size and time. */
-function scanPrintOf(path) {
-  const stat = statSync(path);
-  const memo = `${path}|${stat.size}|${stat.mtimeMs}`;
-  if (!scanPrints.has(memo)) scanPrints.set(memo, createHash('sha256').update(readFileSync(path)).digest('hex').slice(0, 16));
-  return scanPrints.get(memo);
-}
 const queue = createQueue({
   limit: 2,
   start: (job, finish) => {
@@ -313,11 +304,9 @@ const queue = createQueue({
       exit: (code) => {
         if (code !== 0 || !existsSync(join(part, 'summary.json'))) { finish({ error: refusalReason(log) ?? `the run stopped with exit ${code}`, log: log.slice(-4000) }); return; }
         // A run that finished without applying the graph its type carried is NOT that type's result (cia F2): no
-        // finished.json, so it is never served, cached or counted as Save's proof.
-        let skipped = null;
-        try { skipped = job.type ? notApplied(job.type, JSON.parse(readFileSync(join(part, 'summary.json'), 'utf8'))) : null; } catch (error) { skipped = `its summary could not be read: ${error.message}`; }
+        // finished.json, so it is never served, cached or counted as Save's proof (runCache.mjs finishRun).
+        const skipped = finishRun(part, job.source, job.type);
         if (skipped) { finish({ error: skipped, log: log.slice(-4000) }); return; }
-        writeFileSync(join(part, FINISHED), JSON.stringify({ at: new Date().toISOString() }));
         finish({ ok: true, key: job.key, url: `/cache/${job.key}/` });
       },
     });
@@ -338,8 +327,8 @@ function runScan(request, response) {
       if (!builtIn || runPrint(builtIn.type) !== runPrint(type)) { sendJson(response, 400, { error: `${type.id} is a built-in type and is read-only - Duplicate it to edit` }); return; }
       runType = null;
     }
-    const key = resultKey({ scan: scanPrintOf(source), type: runPrint(type), engine: HOST_GEOMETRY_VERSION });
-    if (existsSync(join(CACHE, key, FINISHED))) { sendJson(response, 200, { ok: true, key, url: `/cache/${key}/`, cached: true }); return; }
+    const key = runKey(source, type);
+    if (isKept(key, source)) { sendJson(response, 200, { ok: true, key, url: `/cache/${key}/`, cached: true }); return; }
     const result = await queue.submit(key, { key, kind, source, type: runType, label: ask?.label });
     sendJson(response, result.ok ? 200 : result.stopped ? 409 : 500, result);
   });
@@ -439,6 +428,47 @@ function saveDraft(request, response) {
 }
 
 /*
+ * TUNE TO TARGETS (2026-11-27): POST /fit { kind, type, scans } runs the fit (fit.mjs) on the session's scans from the
+ * draft on the page; GET /fit answers its progress lines and, when done, its result and winner type. ONE fit at a
+ * time: it runs two builds at once itself, beside the page's own queue. The fit never saves - the page opens the winner
+ * in the editors as unsaved edits, and Save stays the owner's act. Its runs land in the shared cache (runCache.mjs), so
+ * opening the winner and pressing Apply is instant.
+ */
+let fitJob = null;
+function startFit(request, response) {
+  readBody(request, (ask) => {
+    if (fitJob?.running) { sendJson(response, 409, { error: 'a fit is already running - wait for it, or stop it' }); return; }
+    const kind = ask?.kind === 'aligner' ? 'aligner' : 'denture';
+    const scans = Array.isArray(ask?.scans) ? ask.scans.filter((s) => typeof s === 'string' && SCAN_FILE.test(s) && existsSync(s)) : [];
+    if (!ask?.type || ask.type.category !== kind || scans.length === 0) { sendJson(response, 400, { error: `send the ${kind} draft and the session's scan paths` }); return; }
+    const out = join(here, 'output', `fit-page-${stampNow()}`);
+    mkdirSync(out, { recursive: true });
+    writeFileSync(join(out, 'start.type.json'), JSON.stringify(ask.type));
+    const child = spawn(process.execPath, [join(here, 'fit.mjs'), '--kind', kind, '--type', join(out, 'start.type.json'), '--out', out, ...scans],
+      { cwd: join(here, '..'), stdio: ['ignore', 'pipe', 'pipe'] });
+    const job = { running: true, lines: [], out, child, error: null };
+    fitJob = job;
+    const take = (chunk) => { job.lines.push(...String(chunk).split(/\r?\n/).filter(Boolean)); job.lines = job.lines.slice(-400); };
+    child.stdout.on('data', take);
+    child.stderr.on('data', take);
+    child.on('error', (error) => { job.running = false; job.error = `the fit could not start: ${error.message}`; });
+    // The fit's own last line is the reason (e.g. "No aligner scan has a target that lines up"): never just an exit code.
+    child.on('exit', (code) => { job.running = false; if (code !== 0 && !job.error) job.error = job.stopped ? 'stopped' : (job.lines.at(-1) ?? `the fit stopped with exit ${code}`); });
+    sendJson(response, 200, { ok: true });
+  });
+}
+function fitStatus(response) {
+  if (!fitJob) { sendJson(response, 200, { none: true }); return; }
+  const { running, lines, out, error } = fitJob;
+  const read = (name) => { try { return JSON.parse(readFileSync(join(out, name), 'utf8')); } catch { return null; } };
+  sendJson(response, 200, { running, lines, error, result: running ? null : read('fit.json'), winner: running ? null : read('winner.type.json') });
+}
+function stopFit(response) {
+  if (fitJob?.running) { fitJob.stopped = true; stopPreview(fitJob.child); }
+  sendJson(response, 200, { stopped: Boolean(fitJob?.stopped) });
+}
+
+/*
  * DRAFTS KEPT (reviewer overhaul step 8, plan decision 5): a type's edits not saved yet, one file per type in
  * typelab/output/review-drafts (git-ignored), so a reload, a restart or a cleared browser keeps them. POST /draft
  * { key, draft } writes one (draft null removes it); GET /drafts answers them all. A key is `<category>-<id>`.
@@ -476,6 +506,9 @@ const server = createServer((request, response) => {
   if (request.method === 'POST' && path === '/pick-folder') { pickPaths(response, 'folder'); return; }
   if (request.method === 'POST' && path === '/pick-files') { pickPaths(response, 'files'); return; }
   if (request.method === 'POST' && path === '/run') { runScan(request, response); return; }
+  if (request.method === 'POST' && path === '/fit') { startFit(request, response); return; }
+  if (request.method === 'GET' && path === '/fit') { fitStatus(response); return; }
+  if (request.method === 'POST' && path === '/fit-stop') { stopFit(response); return; }
   if (request.method === 'POST' && path === '/save-draft') { saveDraft(request, response); return; }
   if (request.method === 'POST' && path === '/draft') { keepDraft(request, response); return; }
   if (request.method === 'GET' && path === '/drafts') { listDrafts(response); return; }
