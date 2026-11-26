@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { sampleByContent } from '../scripts/samples.mjs';
-import { LARGE_PRINT_ANGLE } from '../scripts/test-support/samplePins.mjs';
+import { LARGE_PRINT_ANGLE } from '../scripts/samplePins.mjs';
 import { viteNodeCli } from '../scripts/viteNodeCli.mjs';
 import { orientDentalAligner } from '@mixo-geocore/host/dental/dentalOrient';
 import { proposeDentalSupportRegion } from '@mixo-geocore/host/dental/dentalRegion';

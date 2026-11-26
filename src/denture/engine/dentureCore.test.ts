@@ -7,7 +7,7 @@ import { transformedMinY } from '@mixo-geocore/host/state/transform';
 import { reviewDenture } from '@mixo-geocore/host/dental/dentureReview';
 import { nodeEngine, parseStl } from '../../../scripts/node-engine';
 import { sampleByContent } from '../../../scripts/samples.mjs';
-import { DENTURE_PIPELINE } from '../../../scripts/test-support/samplePins.mjs';
+import { DENTURE_PIPELINE } from '../../../scripts/samplePins.mjs';
 import { dentureSupportSettings } from '../settings/dentureSupportSettings';
 import { buildDenture, checkModelLanding, liftedFrame, orientAndScan, placeDenture, scanSettingsOf, withUnitIds, type DentureJob } from './dentureCore';
 

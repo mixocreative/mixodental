@@ -18,12 +18,12 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sampleByContent, sampleScans } from './samples.mjs';
-import { DENTURE_PIPELINE, DENTURE_PROFILE, DENTURE_RULE_SPOTS, LARGE_PRINT_ANGLE, OPEN_ARCH } from './test-support/samplePins.mjs';
+import { DENTURE_PIPELINE, DENTURE_PROFILE, DENTURE_RULE_SPOTS, LARGE_PRINT_ANGLE, OPEN_ARCH } from './samplePins.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /*
- * What a block needs: `pins` (scans pinned by content, scripts/test-support/samplePins.mjs - ALL of them
+ * What a block needs: `pins` (scans pinned by content, scripts/samplePins.mjs - ALL of them
  * for the block to run in full), `category` (any scan of that samples/ category), or `path` (one file).
  */
 const TIER = [

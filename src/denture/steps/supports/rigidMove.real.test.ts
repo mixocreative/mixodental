@@ -6,7 +6,7 @@ import { resolveSettings } from '@mixo-geocore/host/supports/unitSupports';
 import { arrangeCommands } from '@mixo-geocore/editing/arrange';
 import { nodeEngine, parseStl } from '../../../../scripts/node-engine';
 import { sampleByContent } from '../../../../scripts/samples.mjs';
-import { DENTURE_RULE_SPOTS } from '../../../../scripts/test-support/samplePins.mjs';
+import { DENTURE_RULE_SPOTS } from '../../../../scripts/samplePins.mjs';
 import { identityTransform, reduceScene, emptyScene, type PrintScene, type PrintUnit } from '../../../state/project';
 import { buildDenture, liftedFrame, orientAndScan, scanSettingsOf } from '../../engine/dentureCore';
 import { exportFiles } from '../../engine/dentureExport';

@@ -6,7 +6,7 @@ import { runCheckJob } from '@mixo-geocore/host/supports/jobRunner';
 import { inverseTransformPoint } from '@mixo-geocore/host/state/transform';
 import { nodeEngine, parseStl } from '../../../scripts/node-engine';
 import { sampleByContent } from '../../../scripts/samples.mjs';
-import { DENTURE_RULE_SPOTS } from '../../../scripts/test-support/samplePins.mjs';
+import { DENTURE_RULE_SPOTS } from '../../../scripts/samplePins.mjs';
 import { buildDenture, liftedFrame, orientAndScan, placeDenture, scanSettingsOf, type DentureJob } from '../engine/dentureCore';
 import { dentureSupportSettings } from '../settings/dentureSupportSettings';
 import { splitByRule } from './acceptedSpots';

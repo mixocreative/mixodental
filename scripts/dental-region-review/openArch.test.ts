@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { nodeEngine } from '../node-engine';
 import { sampleByContent } from '../samples.mjs';
-import { OPEN_ARCH } from '../test-support/samplePins.mjs';
+import { OPEN_ARCH } from '../samplePins.mjs';
 import { buildDentalReview } from './build';
 import { parseStl } from '../test-support/rustImport';
 

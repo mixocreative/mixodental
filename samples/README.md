@@ -13,7 +13,7 @@ moving and renaming samples**, so the code never relies on a folder's contents o
 
 - `scripts/samples.mjs` is the one place that knows this layout. It lists a category's scans at any depth, so a
   new type folder needs no code change, and a new category folder is a new `gate:real` kind on its own.
-- A test that needs ONE particular scan pins it by its bytes (`scripts/test-support/samplePins.mjs`), so moving or
+- A test that needs ONE particular scan pins it by its bytes (`scripts/samplePins.mjs`), so moving or
   renaming it breaks nothing; `node scripts/real-scan-tier.mjs` says which pinned scans this machine lacks.
   Removing a pinned scan from here means retiring or re-pinning its test in the same change.
 
