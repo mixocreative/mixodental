@@ -64,5 +64,68 @@ class Register(unittest.TestCase):
         self.assertGreater(rms, extract.REJECT_RMS_MM)
 
 
+def with_supports(part):
+    """The part with three separate post-shaped supports ending just under its lowest face."""
+    posts = []
+    lo = part.bounds[0]
+    for x, y in ((-10, -5), (0, 5), (10, -5)):
+        post = trimesh.creation.cylinder(radius=0.4, height=6, sections=12)
+        post.apply_translation((x, y, lo[2] - 3.05))
+        posts.append(post)
+    return posts
+
+
+def pair_files(tmp, bare, target):
+    scan, sup = Path(tmp) / "a.stl", Path(tmp) / "a-sup.stl"
+    bare.export(scan)
+    target.export(sup)
+    return scan, sup
+
+
+class Pair(unittest.TestCase):
+    def test_how_moved_names_the_pose(self):
+        T = np.eye(4)
+        self.assertEqual(extract.how_moved(T), "none")
+        T[:3, 3] = (5, 0, 0)
+        self.assertEqual(extract.how_moved(T), "shifted")
+        _, turned = moved(lumpy_part(), 30, (0, 0, 1), (0, 0, 0))
+        self.assertEqual(extract.how_moved(turned), "turned")
+
+    def test_a_raft_bigger_than_the_model_is_not_taken_for_it(self):
+        import tempfile
+        bare = lumpy_part()
+        raft = trimesh.creation.box(extents=(70, 50, 2)).subdivide().subdivide()
+        raft.apply_translation((0, 0, bare.bounds[0][2] - 7))
+        target, _ = moved(trimesh.util.concatenate([bare] + with_supports(bare) + [raft]), 90, (0, 0, 1), (5, 5, 5))
+        with tempfile.TemporaryDirectory() as tmp:
+            out = extract.process_pair(*pair_files(tmp, bare, target))[0]
+        self.assertEqual(out["status"], "ok", out["reason"])
+        # the scan is three pieces (lumpy_part), so the model is the SET of target pieces matching them, not the raft
+        self.assertEqual(out["model_found_by"], "matched the scan's parts")
+        self.assertEqual(out["model_pieces"], 3)
+        self.assertEqual(out["moved"], "turned")
+        self.assertEqual(len(out["contacts"]), 3)
+
+    def test_supports_joined_to_the_model_are_refused_with_the_reason(self):
+        import tempfile
+        bare = trimesh.creation.box(extents=(40, 24, 8)).subdivide().subdivide()
+        bare.vertices[(bare.vertices[:, 0] > 15) & (bare.vertices[:, 1] > 8), 2] += 3  # one piece, no symmetry
+        bottom = int(np.argmin(bare.triangles_center[:, 2]))
+        a, b, c = bare.faces[bottom]
+        far = bare.triangles_center[bottom] + (0, 0, -400)
+        f = len(bare.vertices)
+        # a long spike welded onto the model (one face replaced by a closed tent), so the result is ONE manifold
+        # piece - as supports joined to the model by a boolean union would be
+        fused = trimesh.Trimesh(vertices=np.vstack([bare.vertices, far[None]]),
+                                faces=np.vstack([np.delete(bare.faces, bottom, axis=0), [[a, b, f], [b, c, f], [c, a, f]]]),
+                                process=False)
+        self.assertGreater(fused.area / bare.area, extract.FUSED_AREA_RATIO, "the test fin must be big enough")
+        with tempfile.TemporaryDirectory() as tmp:
+            out = extract.process_pair(*pair_files(tmp, bare, fused))[0]
+        self.assertEqual(out["status"], "failed")
+        self.assertIn("joined", out["reason"])
+        self.assertEqual(out["contacts"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

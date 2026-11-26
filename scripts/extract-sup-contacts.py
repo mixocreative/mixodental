@@ -1,23 +1,27 @@
-"""Extract support-contact points for every <name>-sup.stl that has a bare partner <name>.stl.
+"""Line ONE scan up with its supported target (-sup) and find where the target's supports touch it.
 
-Usage: python -I extract-sup-contacts.py <fixtures_root>
+Usage: python -I extract-sup-contacts.py <scan.stl> <target-sup.stl> <out.json> [picture.png]
 
-For each <dir>/<name>-sup.stl with <dir>/<name>.stl beside it, writes
-<dir>/<name>-sup.contacts.json (format "mixo-sup-contacts/1"). Scans are read in place and never
-modified. The outputs sit in git-ignored customer-data folders; do not add them to git.
+Normally run by typelab/targetMatch.mjs, which finds the pairs (targetPairs.mjs), keys the result by the CONTENT of
+both files and keeps it under the git-ignored typelab/output/targets. Scans are read in place and never modified.
+Output format "mixo-sup-contacts/2": status ok|failed with a reason, the transform, how the target was moved
+(none / shifted / turned), the contacts and their normals. No file names are written into it.
 
 Method:
-  1. Denture/part component inside the -sup = largest face-connected component of the -sup.
-  2. Support geometry = -sup vertices outside that component.
+  1. The model inside the -sup = the best-fitting of its biggest face-connected pieces (choose_model_piece: usually
+     the largest; a raft or platform can be bigger). A model piece far bigger than the scan's surface has supports or
+     a platform joined to it and is refused (FUSED_AREA_RATIO).
+  2. Support geometry = -sup vertices outside that piece.
   3. Bare-to-sup transform, at ANY origin and orientation (a target is usually printed turned and moved
      relative to its scan): first a pose from the shapes alone (global_align: the principal axes matched
      all 24 proper ways, each refined by a short ICP, best trimmed RMS kept); then "exact" = least-squares
      fit on one-to-one vertex correspondences when the denture is the same mesh (RMS ~0); otherwise
      "icp" = point-to-plane ICP, then point-to-point. Above REJECT_RMS_MM the result is "failed" and NO
      contacts are written. rms_mm is reported; rms_flag_over_0.02_mm is set when it exceeds 0.02 mm.
-  4. Contacts = support vertices within TOUCH_MM of the transformed bare surface, clustered
-     with CLUSTER_MM (connected components); each cluster centroid is mapped to the bare frame
-     and snapped to the nearest bare-surface point, normal = that face's normal.
+  4. Contacts = for each support piece, its vertex nearest the lined-up scan surface, kept when within TIP_MM;
+     those tips are projected onto the scan, mapped to the bare frame, clustered with CLUSTER_MM, and each
+     cluster's centre snapped to the scan surface (normal = that face's normal). The older rule (every vertex
+     within TOUCH_MM) is still counted in `stats` for comparison only.
 """
 import json
 import sys
@@ -27,7 +31,7 @@ import numpy as np
 import trimesh
 from scipy.spatial import cKDTree
 
-FORMAT = "mixo-sup-contacts/1"
+FORMAT = "mixo-sup-contacts/2"
 TOUCH_MM = 0.3
 TIP_MM = 1.0
 CLUSTER_MM = 1.0
@@ -131,6 +135,19 @@ def load(path):
 
 
 EXACT_RMS_MM = 0.02
+# How many of the target's biggest pieces are tried as "the model" (choose_model_piece), and the surface ratio over
+# which the model piece is taken to have supports or a platform joined to it.
+MODEL_PIECES_TRIED = 3
+FUSED_AREA_RATIO = 1.25
+# A scan part and a target piece are the same part when their surface areas agree within AREA_MATCH; a scan piece
+# under PART_MIN_SHARE of the scan's surface is debris, not a part; a target piece wholly within DEBRIS_MM of the scan
+# is scan debris, not a support.
+AREA_MATCH = 0.05
+PART_MIN_SHARE = 0.01
+DEBRIS_MM = 0.05
+# Below these the target sits where the scan does (how_moved).
+MOVED_DEG = 0.01
+MOVED_MM = 0.01
 
 
 def exact_fit(bare_v, den_v, T0=None, iters=30):
@@ -286,32 +303,104 @@ def cluster_points(pts, r):
     return [np.where(roots == r_)[0] for r_ in np.unique(roots)]
 
 
+def how_moved(T):
+    """What the target's pose is relative to its scan: "none", "shifted" (moved only) or "turned" (and maybe moved).
+    The scan is never changed: this only says the review must use the transform (a new origin) to draw the target."""
+    turn_deg = float(np.degrees(np.arccos(np.clip((np.trace(T[:3, :3]) - 1) / 2, -1, 1))))
+    shift_mm = float(np.linalg.norm(T[:3, 3]))
+    if turn_deg < MOVED_DEG:
+        return "none" if shift_mm < MOVED_MM else "shifted"
+    return "turned"
+
+
+def piece_areas(mesh, groups):
+    return [float(mesh.area_faces[np.asarray(g)].sum()) for g in groups]
+
+
+def pieces_like_the_scan(bare, sup, groups):
+    """The target's pieces that match the scan's own parts by surface area (within AREA_MATCH), or None when a part of
+    the scan has no partner. TRAP: a scan is not always one piece - an aligner with two hooks is three, and a target
+    keeps them apart - so "the model" is a SET of pieces. Parts under PART_MIN_SHARE of the scan are debris, not parts."""
+    scan_groups = trimesh.graph.connected_components(bare.face_adjacency, min_len=1)
+    scan_areas = piece_areas(bare, scan_groups)
+    parts = sorted((a for a in scan_areas if a >= PART_MIN_SHARE * sum(scan_areas)), reverse=True)
+    target_areas = piece_areas(sup, groups)
+    chosen = []
+    for area in parts:
+        fits = [j for j in range(len(groups)) if j not in chosen and abs(target_areas[j] - area) <= AREA_MATCH * area]
+        if not fits:
+            return None
+        chosen.append(min(fits, key=lambda j: abs(target_areas[j] - area)))
+    return chosen
+
+
+def choose_model(bare, sup, groups):
+    """Which pieces of the target ARE the scanned part, and the line-up. First the pieces that match the scan's parts
+    by area; failing that (supports or a platform joined to the model change its area) each of the
+    MODEL_PIECES_TRIED biggest pieces alone - TRAP: a raft can be bigger than the model. The best fit is kept.
+    Returns (pieces, how, den, den_vert_set, T, rms, method)."""
+    matched = pieces_like_the_scan(bare, sup, groups)
+    tries = ([(matched, "matched the scan's parts")] if matched else []) + \
+        [([j], f"piece {j + 1} by size") for j in range(min(MODEL_PIECES_TRIED, len(groups)))]
+    best = None
+    for pieces, how in tries:
+        faces = np.concatenate([np.asarray(groups[j]) for j in pieces])
+        den = trimesh.Trimesh(vertices=sup.vertices, faces=sup.faces[faces], process=False)
+        den_vert_set = np.unique(sup.faces[faces])
+        T, rms, method = register(bare, sup, den, den_vert_set)
+        if best is None or rms < best[5]:
+            best = (pieces, how, den, den_vert_set, T, rms, method)
+        if method != "failed":
+            break  # the first try that lines up is kept: the next ones are slower guesses
+    return best
+
+
 def process_pair(bare_path, sup_path):
     bare = load(bare_path)
     sup = load(sup_path)
 
     groups = sorted(trimesh.graph.connected_components(sup.face_adjacency, min_len=1),
                     key=len, reverse=True)
-    denture_faces = np.asarray(groups[0])
-    den = trimesh.Trimesh(vertices=sup.vertices, faces=sup.faces[denture_faces], process=False)
-    den_vert_set = np.unique(sup.faces[denture_faces])
-    T, rms, method = register(bare, sup, den, den_vert_set)
+    model_pieces, model_how, den, den_vert_set, T, rms, method = choose_model(bare, sup, groups)
+    # A model much bigger than the scan has supports or a platform JOINED to it: its contacts would be missing (they are
+    # inside the model piece) and the comparison would look like a real one. Refuse it with that reason.
+    area_ratio = float(den.area / bare.area) if bare.area > 0 else float("inf")
+    reason = None
+    fused = (f"the model in the target is {area_ratio:.2f} times the scan's surface, so supports or a platform look "
+             "joined to it and its support spots cannot be told apart")
+    if method == "failed":
+        reason = f"the target never lines up with the scan: best gap {rms:.3f} mm, the limit is {REJECT_RMS_MM} mm"
+        if area_ratio > FUSED_AREA_RATIO:
+            reason += f"; {fused}"
+    elif area_ratio > FUSED_AREA_RATIO:
+        method = "failed"
+        reason = fused
 
-    # support pieces = every non-denture face-connected component
+    bare_in_sup = bare.copy()
+    bare_in_sup.apply_transform(T)
+    Tinv = np.linalg.inv(T)
+    scan_tree = cKDTree(bare_in_sup.vertices)
+
+    # support pieces = every piece but the model's, minus scan DEBRIS: a piece lying wholly on the scan's surface is a
+    # loose bit of the scan copied into the target (a scan can carry hundreds of stray triangles), and its "nearest
+    # point" would read as a support tip at distance 0. A real support reaches away from the model.
     comp_of_v = np.full(len(sup.vertices), -1, dtype=int)
-    for k, g in enumerate(groups[1:], start=1):
-        comp_of_v[np.unique(sup.faces[np.asarray(g)])] = k
+    debris = 0
+    for k, g in enumerate(groups, start=1):
+        if k - 1 in model_pieces:
+            continue
+        verts = np.unique(sup.faces[np.asarray(g)])
+        if np.all(scan_tree.query(sup.vertices[verts])[0] <= DEBRIS_MM):
+            debris += 1
+            continue
+        comp_of_v[verts] = k
     sup_mask = comp_of_v >= 0
     sup_mask[den_vert_set] = False
     sup_idx = np.where(sup_mask)[0]
     support_pts = sup.vertices[sup_idx]
 
-    bare_in_sup = bare.copy()
-    bare_in_sup.apply_transform(T)
-    Tinv = np.linalg.inv(T)
-
     # exact distance of every support vertex to the bare surface (prefiltered)
-    d0, _ = cKDTree(bare_in_sup.vertices).query(support_pts, distance_upper_bound=TOUCH_MM * 4)
+    d0, _ = scan_tree.query(support_pts, distance_upper_bound=TOUCH_MM * 4)
     near = d0 <= TOUCH_MM * 4
     near_idx = sup_idx[near]
     _, dist_near, _ = closest_on_mesh(bare_in_sup, support_pts[near], radius=1.0)
@@ -347,6 +436,8 @@ def process_pair(bare_path, sup_path):
         snapped.append(closest[0])
         normals.append(bare.face_normals[ftri[0]])
 
+    if reason is None and len(snapped) == 0:
+        reason = "no support of the target touches the model"
     stats = {
         "pieces": int(len(best)),
         "piece_nearest_mm_min": round(float(piece_d.min()), 4) if len(piece_d) else None,
@@ -356,12 +447,19 @@ def process_pair(bare_path, sup_path):
         "old_count_touch_0.3mm": old_count,
         "new_count": len(snapped),
     }
+    # No file names inside: the result is found by the CONTENT of both files (typelab/targetMatch.mjs), and a name
+    # means nothing (owner, 2026-11-27).
     out = {
         "format": FORMAT,
-        "bare": bare_path.name,
-        "sup": sup_path.name,
+        "status": "ok" if reason is None else "failed",
+        "reason": reason,
         "frame": "bare scan coordinates, mm",
         "transform_bare_to_sup": np.round(T, 6).tolist(),
+        "moved": how_moved(T),
+        "model_pieces": len(model_pieces),
+        "model_found_by": model_how,
+        "model_area_ratio": round(area_ratio, 4),
+        "scan_debris_pieces": debris,
         "registration": method,
         "rms_mm": round(rms, 6),
         "rms_flag_over_0.02_mm": bool(rms > EXACT_RMS_MM),
@@ -392,22 +490,21 @@ def save_png(bare, snapped, png_path, title):
 
 
 def main():
+    """ONE pair per call. Which files ARE a pair, and where the result is kept, is typelab/targetMatch.mjs's job
+    (targetPairs.mjs is the pairing rule): this script only lines one pair up and finds its support spots."""
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    root = Path(sys.argv[1])
-    png_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else None
-    pairs = sorted(root.rglob("*-sup.stl"))
-    for idx, sup_path in enumerate(pairs, 1):
-        bare_path = sup_path.with_name(sup_path.name[: -len("-sup.stl")] + ".stl")
-        if not bare_path.exists():
-            print(f"skip (no bare partner): {sup_path.name}")
-            continue
-        out, stats, bare, _, snapped = process_pair(bare_path, sup_path)
-        out_path = sup_path.with_name(sup_path.name[: -len(".stl")] + ".contacts.json")
-        out_path.write_text(json.dumps(out), encoding="utf-8")
-        print(f"wrote {out_path.name}: {json.dumps(stats)}")
-        if png_dir is not None:
-            png_dir.mkdir(parents=True, exist_ok=True)
-            save_png(bare, np.array(snapped).reshape(-1, 3), png_dir / f"pair_{idx}.png", f"pair {idx}")
+    args = sys.argv[1:]
+    if len(args) not in (3, 4) or args[0] in ("-h", "--help"):
+        print("usage: python -I extract-sup-contacts.py <scan.stl> <target-sup.stl> <out.json> [picture.png]")
+        sys.exit(2)
+    bare_path, sup_path, out_path = Path(args[0]), Path(args[1]), Path(args[2])
+    out, stats, bare, _, snapped = process_pair(bare_path, sup_path)
+    out["stats"] = stats
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(out), encoding="utf-8")
+    print(json.dumps({"status": out["status"], "reason": out["reason"], "moved": out["moved"], **stats}))
+    if len(args) == 4:
+        save_png(bare, np.array(snapped).reshape(-1, 3), Path(args[3]), "pair")
 
 
 if __name__ == "__main__":

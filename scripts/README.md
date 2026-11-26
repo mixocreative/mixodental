@@ -70,7 +70,7 @@ ones.
 | `prepare-dental-reference.mjs` | builds `../docs/dental-reference/` from the source material |
 | `dental-face-labels.ts` · `probe-dental-edges.ts` · `probe-dental-orientation.ts` · `measure-rim-loops.mjs` | the one-off measurements the dental rules cite. Kept because each cost a day to derive |
 | `dental-region-review/` · `dental-reference/` | the region-review tool (own README) and its comparison scripts |
-| `extract-sup-contacts.py` | reads contacts out of reference slicer files. **Those files are reference only, never targets** |
+| `extract-sup-contacts.py` | lines ONE scan up with its `-sup` target and finds where its supports touch it; run by `typelab/targetMatch.mjs`, which pairs, keeps and reports (a target is never run as a case) |
 | `render-dental-diagnostic.py` · `brush_perf.py` · `trace-art.py` · `art-block.mjs` · `flatten-art.py` | diagnostics and the art pipeline |
 | `export-hashes.ts` | hashes of exported output, for comparing runs |
 

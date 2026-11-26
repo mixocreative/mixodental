@@ -23,7 +23,6 @@ moving and renaming samples**, so the code never relies on a folder's contents o
 |---|---|---|
 | `<name>.stl` (or `.glb`, `.gltf`) | a bare scan | **yes** |
 | `<name>-sup.stl` | the SAME scan with supports made by the owner's professional dental software: **the target** | **never** |
-| `<name>-sup.contacts.json` | where those supports touch the bare scan, in the bare scan's frame (format below) | no - data |
 
 **A `-sup` file is the target to work toward** (owner's rule, 2026-11-26). When asked to rebuild a result with our
 nodes, to make a new type or to revise a setup, compare what we build on `<name>` with what `<name>-sup` shows -
@@ -89,14 +88,19 @@ An additional local 3D triangle-distance check found 89/90 column tops within 0.
 
 For another case, put it under its `<category>/<type>/` folder, keep the source outside Git, and neutralize the first 80 bytes of each binary STL header with `scripts/prepare-dental-reference.mjs`. Record comparison measurements in the tracked handoff without names or original source paths.
 
-## Support contact files (`*-sup.contacts.json`)
+## Where the supports touch (automatic since 2026-11-27)
 
-For every `<name>-sup.stl` that has a bare partner `<name>.stl` beside it, `scripts/extract-sup-contacts.py` writes `<name>-sup.contacts.json` in the same (git-ignored) folder. Format `mixo-sup-contacts/1`: `bare` and `sup` file names, `frame` ("bare scan coordinates, mm"), `transform_bare_to_sup` (4x4), `registration` ("exact" or "icp"), `rms_mm` (plus `rms_flag_over_0.02_mm` when above 0.02 mm), `contacts` (`[x,y,z]` points where supports touch the bare surface), `normals` (bare surface normal at each contact), `touch_rule` ("tip-piece nearest point <= 1.0 mm": each non-denture support piece contributes its nearest point to the bare surface, accepted at 1.0 mm or less and projected onto the surface), `cluster_mm` (1.0) and `touch_mm` (1.0). Run it as `python -I scripts/extract-sup-contacts.py samples`.
+Nothing is written into this folder any more. The first review or fit that needs a pair lines it up
+(`typelab/targetMatch.mjs`, which runs `scripts/extract-sup-contacts.py` once per pair) and keeps the result in the
+git-ignored `typelab/output/targets`, keyed by the CONTENT of the scan, the target and the matcher: a renamed file
+finds its result, a replaced one is matched again. `node typelab/targetMatch.mjs samples` prints the ledger (every pair,
+its line-up, or why not). Old `*-sup.contacts.json` files beside the scans are no longer read. Format
+`mixo-sup-contacts/2`: `status` and `reason`, `transform_bare_to_sup`, `moved` (none / shifted / turned),
+`registration`, `rms_mm`, `contacts` and `normals` in the bare scan's frame - no file names.
 
-**A target may sit at any origin and orientation** relative to its scan - that is normal. The line-up first tries the
-exact fit (a target only lifted), then finds the pose from the shapes alone (`global_align`: the principal axes matched
-all 24 ways, each refined, the best kept) and refines it. A fit whose error stays above 0.5 mm is written as
-`registration: "failed"` with **no** contacts, so a wrong line-up never reaches a review (the page then says the target
-could not be lined up). On 2026-11-27 this lined up 13 of the 14 pairs, every turned aligner target included (3 of 5
-had failed before); the one refused is a denture whose supports are fused to the model, so its support pieces cannot be
-told apart. Tests: `python -I -m unittest discover -s scripts -p "test_extract_sup_contacts.py"` (not part of `npm test`). The scans are read in place and never modified; the JSON files stay local like the scans.
+**A target may sit at any origin and orientation** relative to its scan - that is normal. **Its model may be several
+pieces** (an aligner with hooks): they are found by matching the scan's own parts by surface area, else each of the three
+biggest pieces is tried (a raft can be bigger than the model). The line-up tries the exact fit, then a pose from the
+shapes alone, refined. It is refused WITH the reason when the gap stays above 0.5 mm, when the model is far bigger than
+the scan (supports or a platform joined to it), or when no support touches it; a loose bit of the scan copied into the
+target is debris, not a support. On 2026-11-27 all 14 pairs lined up. Tests: `python -I -m unittest discover -s scripts -p "test_extract_sup_contacts.py"` (not part of `npm test`). The scans are read in place and never modified; the JSON files stay local like the scans.
