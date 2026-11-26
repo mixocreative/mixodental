@@ -1,0 +1,129 @@
+{
+  "badge": "R",
+  "basedOn": "reference-aligner",
+  "category": "aligner",
+  "id": "retainer",
+  "profile": {
+    "card": [
+      "M18 14 C18 14 14 50 24 68 C34 82 86 82 96 68 C106 50 102 14 102 14",
+      "M18 14 L34 14 M86 14 L102 14",
+      "M34 14 C34 14 32 46 40 58 C47 67 73 67 80 58 C88 46 86 14 86 14",
+      "M50 36 C50 31 70 31 70 36 C70 44 66 50 60 50 C54 50 50 44 50 36 Z"
+    ],
+    "defaults": {
+      "density": 1,
+      "densityMax": 2,
+      "densityMin": 0.5,
+      "innerSpacingMm": 4,
+      "matchMinDot": 0.95,
+      "matchToleranceMm": 0.03,
+      "maxSearchMm": 1.5,
+      "minTipSeparationMm": 0.6,
+      "outerSpacingMm": 3,
+      "overhangAngleDeg": 70,
+      "positionMaxMm": 2.5,
+      "positionMinMm": -0.4,
+      "positionMm": 0.25,
+      "repairBudget": 8,
+      "stripWidthMaxMm": 2.4,
+      "stripWidthMinMm": 0.2,
+      "stripWidthMm": 0.5,
+      "tipMoveMaxMm": 1
+    },
+    "description": {
+      "en": "U-shaped aligner with a central opening, supported along its lower rim.",
+      "ja": "中央に開口のあるU字型アライナー。下縁にサポートを付けます。",
+      "zh-Hant": "中央有開口的 U 形牙套，支撐加在下緣。"
+    },
+    "fixture": "docs/dental-reference/reference-aligner.stl",
+    "id": "retainer",
+    "name": {
+      "en": "Retainer",
+      "ja": "リテーナー",
+      "zh-Hant": "維持器"
+    },
+    "opening": "yes",
+    "pose": {
+      "headingDeg": 2.9376675175,
+      "rollDeg": 2.7827557871,
+      "tiltDeg": 46.4577512332,
+      "tiltMarginDeg": 2,
+      "tiltRangeDeg": 22,
+      "tiltStepDeg": 1
+    },
+    "schema": 1,
+    "stability": {
+      "cupProminenceMm": 1.5,
+      "maxSlendernessBraced": 35,
+      "maxSlendernessUnbraced": 20
+    },
+    "supports": {
+      "brace": true,
+      "liftHeightMm": 3.5,
+      "pillarDiameterMm": 1.4,
+      "raft": true,
+      "tipDiameterMm": 0.45,
+      "tree": false
+    },
+    "thresholds": {
+      "archFrontEndBandFraction": 0.22,
+      "archFrontEndRatioMin": 2,
+      "archFrontGridCells": 40,
+      "archFrontMinAnisotropy": 0.05,
+      "archFrontMinAreaFraction": 0.0125,
+      "archFrontSideFraction": 0.3,
+      "axialVarianceMax": 0.6,
+      "confidenceMin": 0.12,
+      "connectorAngleDeg": 20,
+      "loopBandFraction": 0.025,
+      "loopBandMinMm": 0.25,
+      "loopExtentMin": 0.6,
+      "loopMinPerimeterMm": 1,
+      "loopRadiusRatioMin": 0.7,
+      "openingHoleMinFraction": 0.01,
+      "openingLoopMinMm": 15,
+      "openingNearHoleMm": 0.5,
+      "openingResolutionHigh": 512,
+      "openingResolutionLow": 256,
+      "openingSideLoopMaxMm": 2.5,
+      "regionAllowedFractionMax": 0.85,
+      "regionAllowedFractionMin": 0.2,
+      "regionAllowedMeanMin": 0.2,
+      "regionForbiddenMeanMax": -0.15,
+      "ridgeExtentMin": 0.6,
+      "ridgeFirstMinMm": 35,
+      "ridgeSecondMinMm": 20,
+      "sharpAngleDeg": 60,
+      "terminalAreaRatioMin": 0.18,
+      "terminalBandFraction": 0.14
+    }
+  },
+  "rules": {},
+  "typeFile": 1,
+  "validation": {
+    "at": "2026-11-26T23:55:33.577Z",
+    "engineVersion": 71,
+    "profileDigest": "be0f95f83a2ccb96",
+    "scans": [
+      "006a279ebb7db92e",
+      "0fd9b474e74e889e",
+      "10f40a069c2fd8aa",
+      "37978abed8a1a404",
+      "479d20d1a73d15be",
+      "4d3c901b6ff11b3d",
+      "538308737e233e56",
+      "6969105a32eae967",
+      "76ec63fbbedb47e7",
+      "78dabb0775e24f11",
+      "92442c71053ed0a1",
+      "b65c27bb2572c245",
+      "c41699153ab81d80",
+      "c69dfade9be3119f",
+      "dae3a95d5698b77f",
+      "e73af178b9b0ebeb",
+      "ff7c3fb64a9b59c7"
+    ],
+    "zoneGraphDigest": "default"
+  },
+  "zoneGraph": null
+}
