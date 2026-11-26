@@ -32,8 +32,9 @@ import { LAYER_COLOURS as C, tokenNumber } from './layerColours';
 import { facesInNone, maskLayers, maskOfNone } from './maskLayers';
 import { rayLayers } from './rayLayers';
 import { describeUnresolved, islandPoints, summariseIslands, type IslandSettle, type IslandSummary } from './islandReport';
+import { MATCH_FORMAT, targetFor } from './targetMatch.mjs';
 
-export const CONTACTS_FORMAT = 'mixo-sup-contacts/1';
+export const CONTACTS_FORMAT = MATCH_FORMAT;
 /** The largest median distance (mm) from an owner contact to the displayed scan that the mapping may have. */
 export const CONTACT_MAPPING_LIMIT_MM = 1;
 /** Lift (mm) of the face-class and area patches off the model, so they do not z-fight with it. The allowed area sits above the no-support zone, so it paints over it. */
@@ -72,8 +73,9 @@ export interface DentureDetail {
   ownerContactsMedianMm: number | null;
   ownerAreaCoveredPct: number | null;
   outsideOwnerAreaPct: number | null;
-  /** Whether this case was compared with its -sup target, and if not why (targetStateOf). */
+  /** Whether this case was compared with its -sup target, and if not why (targetStateOf) in words. */
   targetState: TargetState;
+  targetReason: string | null;
   /** The rim plane's state for the facts rows (was `middlePlane`, the retired name of the same plane). */
   rimPlane: string;
   /** Step 1 text: the up decision from the dental rim ('' when there is no review or no dental rim). */
@@ -107,30 +109,32 @@ function describeUp(decision: NonNullable<DentureReview['upDecision']>): string 
 const decided = (ok: boolean) => (ok ? 'decided' : 'not decided');
 
 /*
- * TRAP: both are '' for a scan that is not an STL (a GLB or glTF scan). The owner's files are in the bare STL's own
- * Z-up frame, and a plain replace that matched nothing would hand back the scan's OWN path - read as contacts JSON or
- * as a -sup STL, it crashed the review.
+ * TRAP: '' for a scan that is not an STL (a GLB or glTF scan). The owner's files are in the bare STL's own Z-up frame,
+ * and a plain replace that matched nothing would hand back the scan's OWN path - read as a -sup STL, it crashed the
+ * review. (The contact points no longer sit beside the scan: targetMatch.mjs keeps them by content.)
  */
-/** The owner's -sup.contacts.json beside a bare STL path; '' for any other scan. */
-export function ownerContactsPath(bare: string): string {
-  return /\.stl$/i.test(bare) ? bare.replace(/\.stl$/i, '-sup.contacts.json') : '';
-}
-
 /*
  * WHY A CASE CAN OR CANNOT BE COMPARED WITH ITS TARGET (2026-11-27). The page showed "-" in every case below, so a
  * target sitting beside the scan looked exactly like no target at all. Each state has its own words on the page.
  *   none          no `-sup` file beside the scan
+ *   unsupported   a `-sup` file is there, but the pair cannot be matched (a GLB or glTF on either side)
  *   not-compared  a `-sup` file is there, but this run compares nothing (the scan did not build)
- *   no-contacts   a `-sup` file is there, its contacts were never extracted (scripts/extract-sup-contacts.py)
- *   not-lined-up  contacts exist but none, or they do not sit on the scan: the target could not be registered
+ *   no-contacts   a `-sup` file is there, but the target matcher could not run (targetMatch.mjs says why)
+ *   not-lined-up  the matcher refused the pair (its reason), or its contacts do not sit on the scan
  *   ok            compared
+ * Since 2026-11-27 the matcher runs by itself when a case is reviewed (targetMatch.mjs), so "never extracted" is gone.
  */
-export type TargetState = 'none' | 'not-compared' | 'no-contacts' | 'not-lined-up' | 'ok';
+export type TargetState = 'none' | 'unsupported' | 'not-compared' | 'no-contacts' | 'not-lined-up' | 'ok';
 
-/** The compare state of a denture that built. `contacts` = null when there is no contacts file. */
-export function targetStateOf(supExists: boolean, contacts: number | null, linedUp: boolean): TargetState {
-  if (contacts === null) return supExists ? 'no-contacts' : 'none';
-  return contacts > 0 && linedUp ? 'ok' : 'not-lined-up';
+/** What targetMatch.mjs answers for a scan, as far as the compare state needs it. */
+export interface TargetMatch { status: 'ok' | 'failed' | 'unsupported'; reason: string | null; path: string | null }
+
+/** The compare state of a scan that built, from its match (null = no target) and whether its contacts sit on it. */
+export function targetStateOf(match: TargetMatch | null, linedUp: boolean): TargetState {
+  if (match === null) return 'none';
+  if (match.status === 'unsupported') return 'unsupported';
+  if (match.path === null) return 'no-contacts';
+  return match.status === 'ok' && linedUp ? 'ok' : 'not-lined-up';
 }
 
 /** The owner's -sup.stl beside a bare STL path; '' for any other scan. */
@@ -159,11 +163,11 @@ const median = (values: number[]): number => {
 
 interface OwnerFile { contacts: number[][]; transform: number[][] }
 
-function readOwnerFile(path: string): OwnerFile | undefined {
-  if (!existsSync(path)) return undefined;
-  const json = JSON.parse(readFileSync(path, 'utf8')) as { format?: string; contacts?: number[][]; transform_bare_to_sup?: number[][] };
-  if (json.format !== CONTACTS_FORMAT || !Array.isArray(json.contacts)) throw new Error('owner contacts file has an unexpected format');
-  return { contacts: json.contacts, transform: json.transform_bare_to_sup ?? [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]] };
+/** The contacts and pose of a match that lined up; undefined for any other. */
+function ownerFileOf(match: (TargetMatch & { format?: string; contacts?: number[][]; transform_bare_to_sup?: number[][] }) | null): OwnerFile | undefined {
+  if (!match || match.status !== 'ok') return undefined;
+  if (match.format !== CONTACTS_FORMAT || !Array.isArray(match.contacts)) throw new Error('target match has an unexpected format');
+  return { contacts: match.contacts, transform: match.transform_bare_to_sup ?? [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]] };
 }
 
 /** Bare-scan Z-up mm (x, y, z) to the review's Y-up mesh frame, minus the import centre. */
@@ -194,6 +198,8 @@ export interface TargetComparison {
   ownerAreaCoveredPct: number | null;
   outsideOwnerAreaPct: number | null;
   targetState: TargetState;
+  /** Why the target was not compared, in words (the matcher's reason); null when it was, or there is none. */
+  targetReason: string | null;
 }
 
 /**
@@ -206,7 +212,8 @@ export interface TargetComparison {
  */
 export function targetComparison(bare: string, mesh: TriangleMesh, centre: Vector, tips: Vector[]): TargetComparison {
   const layers: ReviewLayer[] = [];
-  const ownerFile = readOwnerFile(ownerContactsPath(bare));
+  const match = targetFor(bare) as (TargetMatch & { target: string }) | null;
+  const ownerFile = ownerFileOf(match);
   const points = ownerFile?.contacts.map((c) => toMeshFrame(c, centre));
   const medianMm = points && points.length > 0
     ? median(distancesToSurface(Float64Array.from(points.flat()), [{ name: 'scan', positions: mesh.positions, indices: mesh.indices }]))
@@ -214,18 +221,15 @@ export function targetComparison(bare: string, mesh: TriangleMesh, centre: Vecto
   const linedUp = points !== undefined && points.length > 0 && medianMm! <= CONTACT_MAPPING_LIMIT_MM;
   const pct = (share: number) => Math.round(share * 1000) / 10;
   let comparison: DentureAreaComparison | undefined;
-  if (linedUp && ownerFile) {
-    const supsPath = ownerSupportsPath(bare);
-    if (existsSync(supsPath)) {
-      const sups = parseStl(readFileSync(supsPath));
-      const toBare = supToBare(ownerFile.transform);
-      const positions = new Float32Array(sups.positions.length);
-      for (let at = 0; at < sups.positions.length; at += 3) {
-        const onBare = toBare(sups.positions, at);
-        for (let axis = 0; axis < 3; axis++) positions[at + axis] = onBare[axis]! - centre[axis]!;
-      }
-      layers.push({ name: 'YOUR SUPPORTS (from -sup file)', color: C.owner, positions, indices: Uint32Array.from(sups.indices) });
+  if (linedUp && ownerFile && match) {
+    const sups = parseStl(readFileSync(match.target));
+    const toBare = supToBare(ownerFile.transform);
+    const positions = new Float32Array(sups.positions.length);
+    for (let at = 0; at < sups.positions.length; at += 3) {
+      const onBare = toBare(sups.positions, at);
+      for (let axis = 0; axis < 3; axis++) positions[at + axis] = onBare[axis]! - centre[axis]!;
     }
+    layers.push({ name: 'YOUR SUPPORTS (from -sup file)', color: C.owner, positions, indices: Uint32Array.from(sups.indices) });
     comparison = compareDentureAreas(mesh, points!, tips);
     const sign = outwardSign(mesh);
     const areas: Array<[number, string, number]> = [
@@ -245,7 +249,9 @@ export function targetComparison(bare: string, mesh: TriangleMesh, centre: Vecto
     ownerContactsMedianMm: medianMm === undefined ? null : Math.round(medianMm * 100) / 100,
     ownerAreaCoveredPct: comparison ? pct(comparison.coverage) : null,
     outsideOwnerAreaPct: comparison ? pct(comparison.extra) : null,
-    targetState: targetStateOf(ownerSupportsPath(bare) !== '' && existsSync(ownerSupportsPath(bare)), ownerFile ? ownerFile.contacts.length : null, linedUp),
+    targetState: targetStateOf(match, linedUp),
+    targetReason: match?.reason ?? (ownerFile && !linedUp
+      ? `its contact points do not sit on this scan (median ${medianMm === undefined ? '-' : medianMm.toFixed(2)} mm, the limit is ${CONTACT_MAPPING_LIMIT_MM} mm)` : null),
   };
 }
 
@@ -614,6 +620,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     ownerAreaCoveredPct: target.ownerAreaCoveredPct,
     outsideOwnerAreaPct: target.outsideOwnerAreaPct,
     targetState: target.targetState,
+    targetReason: target.targetReason,
     rimPlane: review ? (review.rimPlane ? 'Rim plane fitted' : 'none (no rim)') : 'not computed',
     upDecision: review ? (review.upDecision ? describeUp(review.upDecision) : 'no box, so no up decision') : '',
     tipsBySource,

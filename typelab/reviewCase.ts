@@ -26,11 +26,23 @@ import { orientationGlb } from './orientationEvidenceGlb';
 import { LAYER_COLOURS } from './layerColours';
 import { alignerRules, buildDentureReview, dentureLayers, reviewProfileId, shapeNote, type DentalKind } from './profileSelect';
 import { peelReport } from './peelReport';
-import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureReviewDetail, ownerSupportsPath, targetComparison, type TargetState } from './dentureReviewLayers';
+import { CONTACT_MAPPING_LIMIT_MM, boundsCentre, displayedContactCheck, dentureReviewDetail, targetComparison, type TargetState } from './dentureReviewLayers';
+import { targetBeside } from './targetMatch.mjs';
 import { orientNodes } from '@mixo-geocore/host/dental/orientGraph';
 import { inverseTransformPoint, transformPoint } from '@mixo-geocore/host/state/transform';
 import { readoutLines, sideAnchors } from './orientReadout';
 import { setDentureDrawnRim, type DrawnDentureRim } from '@mixo-geocore/host/dental/dentureDrawnRim';
+
+/**
+ * The target state of a scan before (or without) a build: 'not-compared' when a -sup target is beside it - a scan that
+ * does not build compares nothing and must not look like a scan with no target - 'unsupported' with the reason when
+ * the pair cannot be matched, else 'none'. A folder listing only: the matcher runs once the scan builds.
+ */
+function unbuiltTargetState(file: string): { targetState: TargetState; targetReason: string | null } {
+  const beside = targetBeside(file);
+  if (!beside) return { targetState: 'none', targetReason: null };
+  return beside.reason ? { targetState: 'unsupported', targetReason: beside.reason } : { targetState: 'not-compared', targetReason: null };
+}
 
 /** The typelab candidate rim for `file` (see reviewDenture), moved into the centred frame; null when there is none. */
 function candidateRim(dir: string, file: string, centre: Vector): DrawnDentureRim | null {
@@ -63,6 +75,8 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   ownerContacts: number | null; ownerContactsMedianMm: number | null; ownerAreaCoveredPct: number | null; outsideOwnerAreaPct: number | null;
   /** Whether the case was compared with its -sup target, and if not why (dentureReviewLayers.ts targetStateOf); the page words each. */
   targetState: TargetState;
+  /** Why it was not compared with its target, in words (the matcher's reason); null when it was or there is none. */
+  targetReason: string | null;
   /** Aligner: why the review's diagnostic band and contour samples are not drawn ('' when they are). The case still builds. */
   diagnosticNote: string;
   /** Denture only: the rim plane's state (fitted, or none); '' for an aligner. Was `middlePlane`, a retired name. */
@@ -104,7 +118,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
     ownerContacts: null, ownerContactsMedianMm: null, ownerAreaCoveredPct: null, outsideOwnerAreaPct: null, rimPlane: '', rimNote: '',
     // A target beside the scan stays 'not-compared' unless the review below builds and compares it (a scan that does
     // not build compares nothing - and must not look like a scan with no target).
-    targetState: ownerSupportsPath(file) !== '' && existsSync(ownerSupportsPath(file)) ? 'not-compared' : 'none',
+    ...unbuiltTargetState(file),
     diagnosticNote: '',
     upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
     peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', zonesFile: '', stageTimes: '',
@@ -185,7 +199,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
         rimNeedsReview: rim?.needsReview ?? false, glb: `${name}.glb`,
         structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
         ownerContacts: target.ownerContacts, ownerContactsMedianMm: target.ownerContactsMedianMm, ownerAreaCoveredPct: target.ownerAreaCoveredPct,
-        outsideOwnerAreaPct: target.outsideOwnerAreaPct, targetState: target.targetState, diagnosticNote: review.diagnosticNote,
+        outsideOwnerAreaPct: target.outsideOwnerAreaPct, targetState: target.targetState, targetReason: target.targetReason, diagnosticNote: review.diagnosticNote,
       });
     }
   } catch (error) {
@@ -274,7 +288,7 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
     stableBand: scan.band ? `${tiltLabel(scan.rows[scan.band[0]]!.tiltDeg)}-${tiltLabel(scan.rows[scan.band[1]]!.tiltDeg)}` : 'none',
     structuresLeftOut: (supports.dentalStructureFallback ?? []).join('+'),
     ownerContacts: detail.ownerContacts, ownerContactsMedianMm: row.ownerContactsMedianMm ?? detail.ownerContactsMedianMm,
-    ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, targetState: detail.targetState, rimPlane: detail.rimPlane, rimNote: detail.rimNote,
+    ownerAreaCoveredPct: detail.ownerAreaCoveredPct, outsideOwnerAreaPct: detail.outsideOwnerAreaPct, targetState: detail.targetState, targetReason: detail.targetReason, rimPlane: detail.rimPlane, rimNote: detail.rimNote,
     stageTimes: process.env.MIXO_TIMERS ? `scan ${review.stageSeconds.scan} / policy ${review.stageSeconds.policy} / generate ${review.stageSeconds.generate} / flow ${review.stageSeconds.total}` : '',
     upDecision: detail.upDecision, tipsBySource: detail.tipsBySource, selfSupport: detail.selfSupport, traps: detail.traps, unsupportableTips: detail.unsupportableTips, tipsLeftOutReasons: detail.tipsLeftOutReasons,
   });

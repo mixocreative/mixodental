@@ -17,14 +17,25 @@ export const comparedRows = (rows) => rows.filter((row) => row.targetState === '
 const mean = (values) => (values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : 0);
 const round1 = (value) => Math.round(value * 10) / 10;
 
+/** A pair's own match: covered minus outside. */
+const pairScore = (row) => row.ownerAreaCoveredPct - row.outsideOwnerAreaPct;
+
+/** How far one pair may drop against the best so far before a candidate is refused (points of pair score). */
+export const PAIR_WORSE_TOLERANCE = 1;
+/** Under this many compared pairs a fit is labelled provisional: too few to trust beyond these scans. */
+export const PROVISIONAL_UNDER = 5;
+
 /**
  * Score `rows` (a run's summary.json cases) against `baseline` (the starting setup's rows), matched by source file.
- * @returns {{ score: number, covered: number, outside: number, pairs: number, disqualified: string[] }}
+ * @returns {{ score: number, covered: number, outside: number, pairs: number, perPair: Record<string, number>, disqualified: string[] }}
  */
 export function scoreRun(rows, baseline = rows) {
   const compared = comparedRows(rows);
   const before = new Map(baseline.map((row) => [row.source, row]));
   const disqualified = [];
+  const present = new Set(rows.map((row) => row.source));
+  // TRAP: a case that is missing from the run entirely would otherwise just not count - and a smaller set can score higher.
+  for (const base of baseline) if (!present.has(base.source)) disqualified.push(`${base.case}: missing from the run`);
   for (const row of rows) {
     const base = before.get(row.source);
     if (!base) continue;
@@ -39,8 +50,31 @@ export function scoreRun(rows, baseline = rows) {
   }
   const covered = mean(compared.map((row) => row.ownerAreaCoveredPct));
   const outside = mean(compared.map((row) => row.outsideOwnerAreaPct));
-  return { score: round1(covered - outside), covered: round1(covered), outside: round1(outside), pairs: compared.length, disqualified };
+  const perPair = Object.fromEntries(compared.map((row) => [row.source, round1(pairScore(row))]));
+  return { score: round1(covered - outside), covered: round1(covered), outside: round1(outside), pairs: compared.length, perPair, disqualified };
 }
 
-/** True when `candidate` should replace `best`: not disqualified, and a strictly higher score (ties keep the simpler, earlier one). */
-export const beats = (candidate, best) => candidate.disqualified.length === 0 && candidate.score > best.score;
+/**
+ * Why `candidate` does NOT replace `best`, or [] when it does. Not disqualified; a strictly higher score; NO pair worse
+ * than under `best` by more than PAIR_WORSE_TOLERANCE (a mean can hide one case made much worse); and it must win
+ * LEAVE-ONE-OUT - with any single pair left out, the rest still score higher - so a gain carried by one scan alone,
+ * which is how a fit on four scans overfits, is refused. Ties keep the simpler, earlier setup.
+ */
+export function refusals(candidate, best) {
+  if (candidate.disqualified.length) return ['disqualified'];
+  if (!(candidate.score > best.score)) return [`score ${candidate.score} is not above ${best.score}`];
+  const out = [];
+  const shared = Object.keys(best.perPair).filter((source) => source in candidate.perPair);
+  for (const source of shared) {
+    if (candidate.perPair[source] < best.perPair[source] - PAIR_WORSE_TOLERANCE) out.push(`a pair got worse (${best.perPair[source]} -> ${candidate.perPair[source]})`);
+  }
+  if (shared.length > 1) {
+    const sum = (run) => shared.reduce((total, source) => total + run.perPair[source], 0);
+    const lost = shared.filter((source) => sum(candidate) - candidate.perPair[source] <= sum(best) - best.perPair[source]);
+    if (lost.length) out.push(`the gain rests on ${lost.length === 1 ? 'one pair' : `${lost.length} pairs`} alone (leave-one-out)`);
+  }
+  return out;
+}
+
+/** True when `candidate` should replace `best` (refusals() is empty). */
+export const beats = (candidate, best) => refusals(candidate, best).length === 0;

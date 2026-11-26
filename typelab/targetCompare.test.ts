@@ -2,16 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { supToBare, targetStateOf } from './dentureReviewLayers';
 
 describe('why a case can or cannot be compared with its -sup target', () => {
-  it('no target at all, versus a target whose contacts were never extracted', () => {
-    expect(targetStateOf(false, null, false)).toBe('none');
-    expect(targetStateOf(true, null, false)).toBe('no-contacts');
+  const ok = { status: 'ok', reason: null, path: 'kept.json' } as const;
+  it('no target at all, a pair that cannot be matched, and a matcher that could not run are three different states', () => {
+    expect(targetStateOf(null, false)).toBe('none');
+    expect(targetStateOf({ status: 'unsupported', reason: 'STL only', path: null }, false)).toBe('unsupported');
+    expect(targetStateOf({ status: 'failed', reason: 'python missing', path: null }, false)).toBe('no-contacts');
   });
-  it('contacts that are empty or do not sit on the scan say the target could not be lined up', () => {
-    expect(targetStateOf(true, 0, false)).toBe('not-lined-up');
-    expect(targetStateOf(true, 40, false)).toBe('not-lined-up');
-    expect(targetStateOf(true, 0, true)).toBe('not-lined-up');
+  it('a refused pair, or contacts that do not sit on the scan, say the target could not be lined up', () => {
+    expect(targetStateOf({ status: 'failed', reason: 'never lines up', path: 'kept.json' }, false)).toBe('not-lined-up');
+    expect(targetStateOf({ status: 'failed', reason: 'joined', path: 'kept.json' }, true)).toBe('not-lined-up');
+    expect(targetStateOf(ok, false)).toBe('not-lined-up');
   });
-  it('compared only with contacts that line up', () => expect(targetStateOf(true, 40, true)).toBe('ok'));
+  it('compared only when the match is ok and its contacts line up', () => expect(targetStateOf(ok, true)).toBe('ok'));
 });
 
 describe('a -sup point back on the bare scan (Y-up both sides)', () => {

@@ -1,102 +1,122 @@
-// The FIT MODE: try setups on every scan whose -sup target lined up, and rank them by how close their supported area
-// comes to the targets - without letting our own safety rules slip. It never saves a type: it prints the winner and the
-// command to open it in the Type Lab, and the owner decides.
-//
-//   node typelab/fit.mjs --kind denture                    every denture sample with a lined-up target
-//   node typelab/fit.mjs --kind denture --zone-graph g.json --passes 1
-//   node typelab/fit.mjs --kind aligner --category retainer
-//
-// How it searches (coordinate descent, bounded): run the starting setup once; then for each setting in FIT_SPACE, try
-// its other values one at a time on top of the best so far and keep a value only if it BEATS the best (fitScore.mjs:
-// higher score, nothing disqualified). Repeat for --passes rounds (default 2), stop early when a round changes nothing.
-// Cost: one Type Lab run of all the pairs per try (about 35 s for the three usable dentures today).
-//
-// Why these settings and these values: the rules the sweep of 2026-11-27 showed move the match (overhang angle, the
-// rim's own overhang angle, rim tips obeying no-support), at the steps that sweep used. Not tilt or height: the owner
-// ruled neither is a match term. A node graph is passed whole with --zone-graph; searching node edits is a later step.
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+// Copyright (c) Mixo Creative.
+
+/*
+ * THE FIT: try setups on every scan of a category and rank them by how close their supported area comes to the -sup
+ * targets - without letting our own safety rules slip. It never saves a type: it writes the winner as a type file
+ * and the command to look at it, and the owner decides.
+ *
+ *   node typelab/fit.mjs --kind denture                          from the built-in denture type
+ *   node typelab/fit.mjs --kind denture --type types/denture/x.type.json --passes 1
+ *   node typelab/fit.mjs --kind aligner --category retainer
+ *
+ * The pieces, one job each: targetMatch.mjs (which scans have a target that lines up, and why not), fitSearch.mjs
+ * (the edits tried - values AND zone-graph structure - and the search), fitScore.mjs (score, per-pair and
+ * leave-one-out acceptance), runCache.mjs (each run of one scan with one type is kept where the review page finds it,
+ * so the page opens any setup tried here instantly, and Save finds its proof).
+ *
+ * EVERY scan of the category runs, paired or not: a scan without a target adds nothing to the score, but a setup that
+ * stops it building is still disqualified (Codex review, 2026-11-27).
+ */
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sampleScans } from '../scripts/samples.mjs';
-import { beats, scoreRun } from './fitScore.mjs';
+import { viteNodeCli } from '../scripts/viteNodeCli.mjs';
+import { PROVISIONAL_UNDER } from './fitScore.mjs';
+import { describe, EDITS, search } from './fitSearch.mjs';
 import { stampNow } from './rules.mjs';
+import { CACHE, finishRun, isKept, runKey } from './runCache.mjs';
+import { targetFor } from './targetMatch.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const repo = join(here, '..');
 const args = process.argv.slice(2);
 const valueOf = (flag) => { const at = args.indexOf(flag); return at < 0 ? undefined : args[at + 1]; };
 const kind = valueOf('--kind') ?? 'denture';
 const category = valueOf('--category') ?? kind;
 const passes = Number(valueOf('--passes') ?? 2);
-const zoneGraph = valueOf('--zone-graph');
+const typeArg = valueOf('--type');
 const out = resolve(valueOf('--out') ?? join(here, 'output', `fit-${category}-${stampNow()}`));
+// Scans given by path (the review page's session) run instead of the category's samples.
+const VALUED = new Set(['--kind', '--category', '--passes', '--type', '--out']);
+const given = args.filter((arg, at) => !arg.startsWith('--') && !VALUED.has(args[at - 1]));
+const AT_ONCE = 2; // as the review server: two builds at a time is what this machine holds
+if (!EDITS[kind]) { console.error(`--kind must be ${Object.keys(EDITS).join(' or ')}`); process.exit(2); }
 
-/** Settings the search turns, per kind: name -> values to try (the first is NOT a default; the start is the engine's own). */
-const FIT_SPACE = {
-  denture: { overhangAngleDeg: [45, 55, 60], dentalRimOverhangAngleDeg: [60, 45, 40], rimRespectsNoSupport: [0, 1] },
-  // The aligner reads only the shared overhang angle (rules.mjs), and it was never seen to move a result: tried anyway,
-  // and an unchanged score says so rather than being taken as proof.
-  aligner: { overhangAngleDeg: [35, 45, 55] },
-};
-if (!FIT_SPACE[kind]) { console.error(`--kind must be ${Object.keys(FIT_SPACE).join(' or ')}`); process.exit(2); }
+/** The starting type: a type file, or the built-in of the kind (read through the app's own type list). */
+function startType() {
+  if (typeArg && existsSync(typeArg)) return JSON.parse(readFileSync(typeArg, 'utf8'));
+  const file = join(out, 'catalog.json');
+  const run = spawnSync(process.execPath, [viteNodeCli, '--script', join('typelab', 'typeCatalogRun.ts'), '--out', file], { cwd: repo, encoding: 'utf8' });
+  if (run.status !== 0 || !existsSync(file)) throw new Error(`the type list could not be read: ${(run.stderr || run.stdout).slice(-600)}`);
+  const types = JSON.parse(readFileSync(file, 'utf8')).types.filter((t) => t.category === kind);
+  const pick = typeArg ? types.find((t) => t.id === typeArg) : types.find((t) => t.builtIn);
+  if (!pick) throw new Error(`no ${kind} type ${typeArg ?? '(built-in)'} - give --type <file> or a listed id`);
+  if (!pick.builtIn) return pick.type;
+  // A built-in's own id is read-only to a type file; a copy under another id runs the same (runPrint ignores the id).
+  const id = `${pick.type.id}-fit`;
+  return { ...pick.type, id, basedOn: pick.type.id, profile: { ...pick.type.profile, id } };
+}
 
-/** A scan is a pair when its -sup contacts were extracted, lined up, and gave contacts (scripts/extract-sup-contacts.py). */
-function linedUp(scan) {
-  if (!/\.stl$/i.test(scan)) return false;
-  const contacts = scan.replace(/\.stl$/i, '-sup.contacts.json');
-  if (!existsSync(contacts)) return false;
-  const file = JSON.parse(readFileSync(contacts, 'utf8'));
-  return file.registration !== 'failed' && Array.isArray(file.contacts) && file.contacts.length > 0;
+/** One run of one scan with one type, kept in the shared cache; the summary row. */
+function runOne(source, type) {
+  const key = runKey(source, type);
+  const part = join(CACHE, key);
+  const row = () => ({ ...JSON.parse(readFileSync(join(part, 'summary.json'), 'utf8')).cases[0], source });
+  if (isKept(key, source)) return Promise.resolve(row());
+  rmSync(part, { recursive: true, force: true });
+  mkdirSync(part, { recursive: true });
+  writeFileSync(join(part, 'type-in.json'), `${JSON.stringify(type, null, 2)}\n`);
+  return new Promise((done) => {
+    const child = spawn(process.execPath, [join(here, 'cli.mjs'), '--kind', kind, '--out', part, '--type', join(part, 'type-in.json'), source], { cwd: repo, stdio: ['ignore', 'pipe', 'pipe'] });
+    let log = '';
+    child.stdout.on('data', (c) => { log += c; });
+    child.stderr.on('data', (c) => { log += c; });
+    child.on('exit', (code) => {
+      const refused = code === 0 ? finishRun(part, source, type) : `the run stopped with exit ${code}`;
+      // A run that could not finish is a row that did not build - with the reason - never a missing row.
+      done(refused ? { case: source, source, result: 'error', reason: `${refused}: ${log.slice(-300)}`, targetState: 'not-compared' } : row());
+    });
+  });
 }
-const pairs = sampleScans(category).filter(linedUp);
-if (pairs.length === 0) {
-  console.error(`No ${category} scan with a lined-up target. Extract contacts first: python -I scripts/extract-sup-contacts.py samples`);
-  process.exit(1);
+
+/** Every scan with `type`, AT_ONCE at a time, in scan order. */
+async function evaluate(type) {
+  const rows = new Array(scans.length);
+  let next = 0;
+  const worker = async () => { while (next < scans.length) { const at = next++; rows[at] = { ...(await runOne(scans[at], type)), case: `scan ${at + 1}` }; } };
+  await Promise.all(Array.from({ length: AT_ONCE }, worker));
+  return rows;
 }
+
 mkdirSync(out, { recursive: true });
-console.log(`fit: ${pairs.length} ${category} pair(s), kind ${kind}${zoneGraph ? `, zone graph ${zoneGraph}` : ''} -> ${out}`);
+const scans = given.length ? given.map((p) => resolve(p)) : sampleScans(category);
+// Which scans are compared, and why the others are not: a fit ranked on a quietly smaller set reads as one of all.
+const matches = scans.map((scan) => targetFor(scan));
+const paired = matches.filter((m) => m?.status === 'ok').length;
+matches.forEach((m, at) => { if (m && m.status !== 'ok') console.log(`  scan ${at + 1}: target not used - ${m.reason}`); });
+if (paired === 0) { console.error(`No ${category} scan has a target that lines up (node typelab/targetMatch.mjs samples says why).`); process.exit(1); }
+const start = startType();
+console.log(`fit: ${scans.length} ${category} scan(s), ${paired} with a target; from type ${start.id}${paired < PROVISIONAL_UNDER ? ` - PROVISIONAL: under ${PROVISIONAL_UNDER} pairs` : ''} -> ${out}`);
 
-let runs = 0;
-/** One Type Lab run of every pair with `rules`; its rows from summary.json. */
-function run(rules) {
-  const dir = join(out, `run-${String(++runs).padStart(2, '0')}`);
-  const sets = Object.entries(rules).flatMap(([name, value]) => ['--set', `${name}=${value}`]);
-  const child = spawnSync(process.execPath, [join(here, 'cli.mjs'), '--kind', kind, ...(zoneGraph ? ['--zone-graph', zoneGraph] : []), ...sets, '--out', dir, ...pairs],
-    { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-  const summary = join(dir, 'summary.json');
-  if (!existsSync(summary)) throw new Error(`run ${runs} wrote no summary:\n${(child.stderr || child.stdout || '').slice(-800)}`);
-  return { dir, rows: JSON.parse(readFileSync(summary, 'utf8')).cases };
-}
-
-const label = (rules) => (Object.keys(rules).length ? Object.entries(rules).map(([k, v]) => `${k}=${v}`).join(' ') : '(starting setup)');
-const tried = [];
-const record = (rules, { dir, rows }, baselineRows) => {
-  const result = { rules, dir, ...scoreRun(rows, baselineRows) };
-  tried.push(result);
-  const flag = result.disqualified.length ? `  DISQUALIFIED: ${result.disqualified.join('; ')}` : '';
-  console.log(`  score ${String(result.score).padStart(6)}  covered ${result.covered}%  outside ${result.outside}%  ${label(rules)}${flag}`);
-  return result;
+const line = (t) => {
+  const r = t.result;
+  const head = r ? `score ${String(r.score).padStart(6)}  covered ${r.covered}%  outside ${r.outside}%` : 'not run';
+  const tail = t.refused.length ? `  refused: ${t.refused.join('; ')}${r?.disqualified.length ? ` (${r.disqualified.join('; ')})` : ''}` : (t.steps.length ? '  KEPT' : '');
+  console.log(`  ${head}  ${describe(t.steps)}${t.moved ? '' : '  (moved nothing)'}${tail}`);
 };
+const { start: first, best, tried } = await search({ start, kind, evaluate, passes, log: line });
 
-const start = run({});
-let best = record({}, start, start.rows);
-for (let pass = 1; pass <= passes; pass++) {
-  const before = best;
-  for (const [name, values] of Object.entries(FIT_SPACE[kind])) {
-    for (const value of values) {
-      if (best.rules[name] === value) continue;
-      const rules = { ...best.rules, [name]: value };
-      if (tried.some((t) => label(t.rules) === label(rules))) continue;
-      const candidate = record(rules, run(rules), start.rows);
-      if (beats(candidate, best)) best = candidate;
-    }
-  }
-  if (best === before) break;
-}
-
-const ranked = [...tried].sort((a, b) => (a.disqualified.length - b.disqualified.length) || (b.score - a.score));
-writeFileSync(join(out, 'fit.json'), JSON.stringify({ kind, category, pairs: pairs.length, zoneGraph: zoneGraph ?? null, start: tried[0], best, ranked }, null, 1));
-console.log(`\nbest: ${label(best.rules)}  score ${best.score} (start ${tried[0].score}): covered ${best.covered}% (was ${tried[0].covered}%), outside ${best.outside}% (was ${tried[0].outside}%)`);
-console.log(`look:  node typelab/serve.mjs "${best.dir}"   (press Compare with target on each case)`);
-console.log(`again: node typelab/cli.mjs --kind ${kind}${zoneGraph ? ` --zone-graph ${zoneGraph}` : ''} ${Object.entries(best.rules).map(([k, v]) => `--set ${k}=${v}`).join(' ')} <scans>`);
-console.log('Nothing is saved as a type: open the winner, look at it, and save it yourself if it is right.');
+const winnerId = start.id.endsWith('-fit') ? start.id : `${start.id}-fit`;
+const winner = { ...best.type, id: winnerId, basedOn: start.basedOn ?? start.id, validation: null,
+  profile: { ...best.type.profile, id: winnerId, name: Object.fromEntries(Object.entries(start.profile.name ?? { en: start.id }).map(([k, v]) => [k, `${v} (fit)`])) } };
+writeFileSync(join(out, 'winner.type.json'), `${JSON.stringify(winner, null, 2)}\n`);
+const slim = (t) => ({ setup: describe(t.steps), steps: t.steps, result: t.result, refused: t.refused, moved: t.moved });
+writeFileSync(join(out, 'fit.json'), JSON.stringify({ kind, category, scans: scans.length, paired, start: start.id, best: slim(best), tried: tried.map(slim) }, null, 1));
+const unmoved = tried.filter((t) => !t.moved && !t.problem).map((t) => describe(t.steps.slice(-1)));
+console.log(`\nbest: ${describe(best.steps)}  score ${best.result.score} (start ${first.result.score}); covered ${best.result.covered}% (was ${first.result.covered}%), outside ${best.result.outside}% (was ${first.result.outside}%)`);
+if (unmoved.length) console.log(`changed nothing on these scans (unproven, not neutral): ${unmoved.join('; ')}`);
+console.log(`winner type: ${join(out, 'winner.type.json')}`);
+console.log(`look:  node typelab/cli.mjs --kind ${kind} --type "${join(out, 'winner.type.json')}" --open <scans>`);
+console.log('Nothing is saved as a type: look at the winner, then save it yourself if it is right.');
