@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { exec, spawn } from 'node:child_process';
 import { stampNow } from '../../benchwork/rules.mjs';
 import { guardRun, notApplied, refusalReason } from './rerunReport.mjs';
-import { scanSet, scanSetWords } from './scanSet.mjs';
+import { SCAN_FILE, scanSet, scanSetWords } from './scanSet.mjs';
 import { createQueue, resultKey } from './runQueue.mjs';
 import { runPrint } from './typeDraft.mjs';
 import { clashRefusal, idLooksDated, saveName, saveRefusal } from '../../src/dentalTypes/typeSaves.mjs';
@@ -88,8 +88,8 @@ function runPreview(kind, request, response, prepare) {
     let ask;
     try { ask = JSON.parse(body); } catch { send(400, { error: 'not JSON' }); return; }
     const source = typeof ask?.source === 'string' ? resolve(ask.source) : '';
-    if (!source.toLowerCase().endsWith('.stl') || !existsSync(source) || !statSync(source).isFile()) {
-      send(400, { error: `not an STL on this machine: ${ask?.source ?? '(none)'}` });
+    if (!SCAN_FILE.test(source) || !existsSync(source) || !statSync(source).isFile()) {
+      send(400, { error: `not a scan file (STL, GLB or glTF) on this machine: ${ask?.source ?? '(none)'}` });
       return;
     }
     const slot = previews[kind];
@@ -207,10 +207,13 @@ function typeList(response) {
 /*
  * IMPORT (reviewer overhaul step 5): the workbench takes scans itself - a folder chosen in the system's own dialog, or a
  * pasted path - instead of needing a batch run first. Scans are READ WHERE THEY ARE, never copied (patient data), and
- * `scanSet.mjs` decides which are cases (an owner's -sup.stl is a reference, never a case). Both routes are refused when
+ * `scanSet.mjs` decides which are cases (an owner's -sup file is a reference, never a case; a result the reviewer wrote is never a scan). Both routes are refused when
  * the server listens on the network (--lan): they list and open folders on this machine (plan decision 10).
  */
 const MAX_FILES = 5000;
+// Everything the reviewer writes (results, cache, drafts) is under dentalwork/output: a GLB there is a drawing, not a scan.
+const OUTPUT = resolve(here, '..', 'output').toLowerCase();
+const isReviewResult = (path) => resolve(path).toLowerCase().startsWith(OUTPUT + sep);
 /** Every file under `path` (a file, or a folder walked recursively), at most MAX_FILES. */
 function filesUnder(path, found = []) {
   if (found.length >= MAX_FILES) return found;
@@ -238,22 +241,30 @@ function importScans(request, response) {
     const found = paths.filter((p) => existsSync(p));
     if (found.length === 0) { sendJson(response, 400, { error: `nothing at ${asked.join(', ') || '(no path)'}` }); return; }
     const files = found.reduce((all, p) => filesUnder(p, all), []);
-    const set = scanSet(files);
+    const set = scanSet(files, isReviewResult);
     const missing = paths.length - found.length;
     const gone = missing ? ` ${missing} scan(s) are no longer at their path and are left out.` : '';
     sendJson(response, 200, { root: found.length === 1 ? found[0] : null, ...set, missing, words: `${scanSetWords(set)}${gone}`, truncated: files.length >= MAX_FILES });
   });
 }
-/** The system's own folder dialog (Windows), as run-batch-review.bat opens it. Answers { path } or { cancelled }. */
-function pickFolder(response) {
-  if (lan) { sendJson(response, 403, { error: 'choosing a folder is off while the workbench is open to the network (--lan)' }); return; }
-  if (process.platform !== 'win32') { sendJson(response, 501, { error: 'the folder dialog is Windows only here - paste the folder path instead' }); return; }
-  const script = "Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true }; $d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Folder with the scans to review (subfolders are included)'; $d.ShowNewFolderButton = $false; if ($d.ShowDialog($f) -eq [System.Windows.Forms.DialogResult]::OK) { $d.SelectedPath }";
+/*
+ * The system's own dialogs (Windows): a folder (as run-batch-review.bat opens it) or one or more scan FILES. Both
+ * answer with paths on this machine, never the bytes - a browser file input gives no path, so a file chosen there
+ * would have to be copied, and scans are read where they are (patient data). Answers { paths } or { cancelled }.
+ */
+const DIALOGS = {
+  folder: "$d = New-Object System.Windows.Forms.FolderBrowserDialog; $d.Description = 'Folder with the scans to review (subfolders are included)'; $d.ShowNewFolderButton = $false; if ($d.ShowDialog($f) -eq [System.Windows.Forms.DialogResult]::OK) { $d.SelectedPath }",
+  files: "$d = New-Object System.Windows.Forms.OpenFileDialog; $d.Title = 'Scans to review'; $d.Multiselect = $true; $d.Filter = 'Scans (*.stl;*.glb;*.gltf)|*.stl;*.glb;*.gltf'; if ($d.ShowDialog($f) -eq [System.Windows.Forms.DialogResult]::OK) { $d.FileNames }",
+};
+function pickPaths(response, what) {
+  if (lan) { sendJson(response, 403, { error: 'choosing scans is off while the workbench is open to the network (--lan)' }); return; }
+  if (process.platform !== 'win32') { sendJson(response, 501, { error: 'the dialog is Windows only here - paste the folder or file path instead' }); return; }
+  const script = `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true }; ${DIALOGS[what]}`;
   const child = spawn('powershell', ['-NoProfile', '-STA', '-Command', script], { stdio: ['ignore', 'pipe', 'pipe'] });
   let out = '';
   child.stdout.on('data', (chunk) => { out += chunk; });
-  child.on('error', (error) => sendJson(response, 500, { error: `the folder dialog could not open: ${error.message}` }));
-  child.on('exit', () => { const path = out.trim(); sendJson(response, 200, path ? { path } : { cancelled: true }); });
+  child.on('error', (error) => sendJson(response, 500, { error: `the dialog could not open: ${error.message}` }));
+  child.on('exit', () => { const paths = out.split(/\r?\n/).map((p) => p.trim()).filter(Boolean); sendJson(response, 200, paths.length ? { paths } : { cancelled: true }); });
 }
 
 /*
@@ -318,7 +329,7 @@ function runScan(request, response) {
   readBody(request, async (ask) => {
     const kind = ask?.kind === 'aligner' ? 'aligner' : 'denture';
     const source = typeof ask?.source === 'string' ? resolve(ask.source) : '';
-    if (!source.toLowerCase().endsWith('.stl') || !existsSync(source) || !statSync(source).isFile()) { sendJson(response, 400, { error: `not an STL on this machine: ${ask?.source ?? '(none)'}` }); return; }
+    if (!SCAN_FILE.test(source) || !existsSync(source) || !statSync(source).isFile()) { sendJson(response, 400, { error: `not a scan file (STL, GLB or glTF) on this machine: ${ask?.source ?? '(none)'}` }); return; }
     const type = ask?.type;
     if (!type || typeof type !== 'object' || type.category !== kind) { sendJson(response, 400, { error: `send the whole ${kind} type file to run` }); return; }
     let runType = type;
@@ -463,7 +474,8 @@ const server = createServer((request, response) => {
   if (request.method === 'POST' && path === '/tilt-preview') { tiltPreview(request, response); return; }
   if (request.method === 'GET' && path === '/types') { typeList(response); return; }
   if (request.method === 'POST' && path === '/import') { importScans(request, response); return; }
-  if (request.method === 'POST' && path === '/pick-folder') { pickFolder(response); return; }
+  if (request.method === 'POST' && path === '/pick-folder') { pickPaths(response, 'folder'); return; }
+  if (request.method === 'POST' && path === '/pick-files') { pickPaths(response, 'files'); return; }
   if (request.method === 'POST' && path === '/run') { runScan(request, response); return; }
   if (request.method === 'POST' && path === '/save-draft') { saveDraft(request, response); return; }
   if (request.method === 'POST' && path === '/draft') { keepDraft(request, response); return; }

@@ -104,14 +104,19 @@ function describeUp(decision: NonNullable<DentureReview['upDecision']>): string 
 }
 const decided = (ok: boolean) => (ok ? 'decided' : 'not decided');
 
-/** The owner's -sup.contacts.json beside a bare STL path. */
+/*
+ * TRAP: both are '' for a scan that is not an STL (a GLB or glTF scan). The owner's files are in the bare STL's own
+ * Z-up frame, and a plain replace that matched nothing would hand back the scan's OWN path - read as contacts JSON or
+ * as a -sup STL, it crashed the review.
+ */
+/** The owner's -sup.contacts.json beside a bare STL path; '' for any other scan. */
 export function ownerContactsPath(bare: string): string {
-  return bare.replace(/\.stl$/i, '-sup.contacts.json');
+  return /\.stl$/i.test(bare) ? bare.replace(/\.stl$/i, '-sup.contacts.json') : '';
 }
 
-/** The owner's -sup.stl beside a bare STL path. */
+/** The owner's -sup.stl beside a bare STL path; '' for any other scan. */
 export function ownerSupportsPath(bare: string): string {
-  return bare.replace(/\.stl$/i, '-sup.stl');
+  return /\.stl$/i.test(bare) ? bare.replace(/\.stl$/i, '-sup.stl') : '';
 }
 
 /** Bounding-box centre of flat xyz positions: the import's centring (engine center_positions), before it is applied. */

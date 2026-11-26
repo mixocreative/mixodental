@@ -332,8 +332,9 @@
     <select id="category-pick" data-ui="category-pick" title="What the scans are. Asked once per import, never guessed from a scan.">
       <option value="denture">Denture</option><option value="aligner">Aligner</option>
     </select>
-    <button id="import-folder" data-ui="import-folder" title="Choose a folder of scans in the system's dialog (subfolders are included). Scans are read where they are, never copied.">Import scans</button>
-    <input id="import-path" data-ui="import-path" placeholder="or paste a folder or STL path, Enter" spellcheck="false">
+    <button id="import-files" data-ui="import-files" title="Choose one or more scan files (STL, GLB or glTF) in the system's dialog. Scans are read where they are, never copied.">Import files</button>
+    <button id="import-folder" data-ui="import-folder" title="Choose a folder of scans (STL, GLB or glTF) in the system's dialog (subfolders are included). Scans are read where they are, never copied.">Import folder</button>
+    <input id="import-path" data-ui="import-path" placeholder="or paste a folder or scan file path, Enter" spellcheck="false">
     <select id="type-pick" data-ui="type-pick" hidden title="The type the scans run with. Switch to compare: the same scans, another type."></select>
     <button id="type-duplicate" data-ui="type-duplicate" hidden title="Start a new type from this one: the Type strip gets a new id and name; this type is not touched. Edit, Apply, Save. Renaming a type's id is this too - projects store the id, so the old one keeps loading.">Duplicate</button>
     <select id="compare-pick" data-ui="compare-pick" hidden title="Pin a second type to compare with: the scan on screen runs with it too, and the flip shows one then the other at the same camera."></select>
@@ -2234,8 +2235,8 @@ canvas.addEventListener('pointerup', (event) => {
 // runs made before summary.json carried `explanation` read the same.
 const REASONS = await fetch('/reasons.json').then((r) => (r.ok ? r.json() : { reasons: [] })).then((j) => j.reasons ?? []).catch(() => []);
 const explain = (c) => c.explanation || REASONS.find(([prefix]) => (c.reason ?? '').startsWith(prefix))?.[1] || c.reason || '';
-// "case-003 · scan name" — the file name (no folder, no .stl) from summary.json's source path.
-const fileName = (c) => (c.source ?? '').split(/[\\/]/).pop().replace(/\.stl$/i, '');
+// "case-003 · scan name" — the file name (no folder, no .stl / .glb / .gltf) from summary.json's source path.
+const fileName = (c) => (c.source ?? '').split(/[\\/]/).pop().replace(/\.(stl|glb|gltf)$/i, '');
 const caseLabel = (c) => (fileName(c) ? `${c.case} · ${fileName(c)}` : c.case);
 const RESULT_WORDS = { inconclusive: 'Not built: the review could not decide', error: 'Not built: the file could not be read' };
 
@@ -2455,6 +2456,10 @@ async function openFiles(entries) {
     } catch { /* not a review summary */ }
   }
   const glbs = entries.filter(({ path }) => /\.glb$/i.test(path) && (!run || dirOf(path) === run.dir));
+  // A dropped SCAN cannot run from here: a dropped file has no path on this machine, and scans are read where they
+  // are, never copied (patient data). Say where it goes instead of opening it as a drawing with nothing on it.
+  const toRun = 'To run a scan, use Import files at the top - it is read where it is, never copied.';
+  if (!run && entries.some(({ path }) => /\.(stl|gltf)$/i.test(path))) { empty(`Dropping opens a review folder an earlier run made, not a scan. ${toRun}`); return; }
   if (!run && glbs.length === 0) { empty('No summary.json or .glb file in what was dropped. Drop a batch-... folder from dentalwork/output.'); return; }
   const byName = new Map(glbs.map(({ path, file }) => [nameOf(path), file]));
   const summary = run?.summary ?? {
@@ -2464,6 +2469,7 @@ async function openFiles(entries) {
   const csv = run && entries.find(({ path }) => path === `${run.dir}summary.csv`);
   openRun(summary, (name) => (byName.has(name) ? blob(byName.get(name)) : ''), csv ? blob(csv.file) : '');
   if (missing.length) document.getElementById('totals').textContent += `, ${missing.length} GLB(s) not in the drop`;
+  if (!run) document.getElementById('totals').textContent += `. Opened as review drawings to look at, not run. ${toRun}`;
 }
 
 async function readEntry(entry) {
@@ -3416,10 +3422,10 @@ async function refreshCacheSize() {
   document.getElementById('cache-clear').hidden = !size || size.runs === 0;
 }
 
-/** Import the scans at `path` (a folder or one STL) as a new session of the chosen category. */
-async function importFrom(path) {
+/** Import the scans at `path` (a folder or one scan file) - or every path in `paths` - as a new session of the chosen category. */
+async function importFrom(path, paths) {
   const kind = document.getElementById('category-pick').value;
-  const read = await fetch('/import', { method: 'POST', body: JSON.stringify({ path }) }).then((r) => r.json()).catch((error) => ({ error: error.message }));
+  const read = await fetch('/import', { method: 'POST', body: JSON.stringify(paths ? { paths } : { path }) }).then((r) => r.json()).catch((error) => ({ error: error.message }));
   if (read.error) { stageCard({ name: 'Nothing imported', text: read.error }); return; }
   if (read.cases.length === 0) { stageCard({ name: 'Nothing to run', text: read.words }); return; }
   // The type list as it is on disk now: a save made or deleted since the page opened shows (serve.mjs watches types/).
@@ -3492,11 +3498,14 @@ async function sessionFromReview() {
   return { carried: carry };
 }
 
-document.getElementById('import-folder').addEventListener('click', async () => {
-  const picked = await fetch('/pick-folder', { method: 'POST' }).then((r) => r.json()).catch((error) => ({ error: error.message }));
-  if (picked.error) { document.getElementById('note').textContent = picked.error; return; }
-  if (picked.path) importFrom(picked.path);
-});
+// Both dialogs are the system's own (serve.mjs pickPaths): they answer with paths, so a scan is read where it is.
+for (const [id, route] of [['import-folder', '/pick-folder'], ['import-files', '/pick-files']]) {
+  document.getElementById(id).addEventListener('click', async () => {
+    const picked = await fetch(route, { method: 'POST' }).then((r) => r.json()).catch((error) => ({ error: error.message }));
+    if (picked.error) { document.getElementById('note').textContent = picked.error; return; }
+    if (picked.paths) importFrom(null, picked.paths);
+  });
+}
 document.getElementById('import-path').addEventListener('keydown', (event) => {
   if (event.key === 'Enter' && event.target.value.trim()) importFrom(event.target.value.trim());
 });
@@ -3551,7 +3560,7 @@ function redrawSessionState() {
 const served = await fetch('/out/summary.json').then((r) => (r.ok ? r.json() : null)).catch(() => null);
 reviewServed = Boolean(served);
 if (served) openRun(served, (name) => `/out/${name}`, '/out/summary.csv');
-else empty('Import scans (top) to run them with any type, or drop a batch-... review folder from dentalwork/output here.');
+else empty('Import files or Import folder (top) to run scans (STL, GLB or glTF) with any type, or drop a batch-... review folder from dentalwork/output here.');
 // The scan session needs the server's type list; without it the bar stays hidden and the note says why.
 // A server is behind the page whenever its type list answers, with or without a review folder: the Type strip, Apply
 // and the live previews need only that.

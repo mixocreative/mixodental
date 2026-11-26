@@ -16,7 +16,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { removeDegenerateTriangles } from '@mixo-geocore/host/core/removeDegenerate';
 import { setZoneGraph, ZoneGraphRefused, zoneNodesOf } from '@mixo-geocore/host/dental/zoneGraph';
-import { nodeEngine, parseStl, useNodeEngine } from '../../scripts/node-engine';
+import { nodeEngine, useNodeEngine } from '../../scripts/node-engine';
+import { readMeshFile } from '../../scripts/meshFile';
 import { reviewProfileId } from './profileSelect';
 import { putInForce, typeOfRun } from './typeInForce';
 
@@ -29,7 +30,7 @@ const out = arg('--out');
 if (!source || !out) { process.stderr.write('zonePreviewRun: --source and --out are required\n'); process.exit(1); }
 const started = Date.now();
 const bytes = readFileSync(source);
-const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+const mesh = await readMeshFile(bytes, source);
 const cleaned = removeDegenerateTriangles(nodeEngine, mesh.positions, mesh.indices);
 if (cleaned.removed > 0) mesh.indices = cleaned.indices;
 nodeEngine.center_positions_in_place(mesh.positions);

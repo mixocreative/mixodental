@@ -23,7 +23,8 @@ import type { JobTransform } from '@mixo-geocore/host/core/jobs';
 import { openLiveTilt, scanDentureTilts } from '@mixo-geocore/host/dental/dentureTilt';
 import { setZoneGraph } from '@mixo-geocore/host/dental/zoneGraph';
 import { setOrientGraph } from '@mixo-geocore/host/dental/orientGraph';
-import { nodeEngine, parseStl, useNodeEngine } from '../../scripts/node-engine';
+import { nodeEngine, useNodeEngine } from '../../scripts/node-engine';
+import { readMeshFile } from '../../scripts/meshFile';
 import { dentureScanSettings, reviewProfileId } from './profileSelect';
 import { putInForce, typeOfRun } from './typeInForce';
 import { tiltPreviewOf } from './tiltPreview.mjs';
@@ -36,7 +37,7 @@ const out = arg('--out');
 if (!source || !out) { process.stderr.write('tiltPreviewRun: --source and --out are required\n'); process.exit(1); }
 const started = Date.now();
 const bytes = readFileSync(source);
-const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+const mesh = await readMeshFile(bytes, source);
 const cleaned = removeDegenerateTriangles(nodeEngine, mesh.positions, mesh.indices);
 if (cleaned.removed > 0) mesh.indices = cleaned.indices;
 nodeEngine.center_positions_in_place(mesh.positions);

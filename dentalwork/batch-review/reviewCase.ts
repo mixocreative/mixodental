@@ -1,5 +1,5 @@
 /*
- * One case of the folder review: every STL under the given folders goes through the app's own dental pipeline
+ * One case of the folder review: every scan (STL, GLB or glTF, via scripts/meshFile.ts) under the given folders goes through the app's own dental pipeline
  * (import, orientation, print-angle search and its confirm, region, placement, Rust `generate` with
  * its safety and island checks), and
  * each result is written as a review GLB plus one summary for the viewer (`serve.mjs`). Step 1's
@@ -14,7 +14,8 @@ import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
-import { nodeEngine, parseStl } from '../../scripts/node-engine';
+import { nodeEngine } from '../../scripts/node-engine';
+import { readMeshFile } from '../../scripts/meshFile';
 import { buildDentalReview, pickPrintAngle } from '../../scripts/dental-region-review/build';
 import { tiltLabel } from '@mixo-geocore/host/dental/dentalTilt';
 import { dentalModelRotation, exportDentalRegionReview } from '../../scripts/dental-region-review/review';
@@ -103,7 +104,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
   let shapeMesh: TriangleMesh | undefined;
   try {
     const bytes = readFileSync(file);
-    const mesh = parseStl(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+    const mesh = await readMeshFile(bytes, file);
     // Explicit, reported clean-up (batch only; the interactive import is unchanged).
     const cleaned = removeDegenerateTriangles(nodeEngine, mesh.positions, mesh.indices);
     if (cleaned.removed > 0) {

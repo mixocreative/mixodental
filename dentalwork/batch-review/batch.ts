@@ -1,5 +1,5 @@
 /*
- * Folder review: every STL under the given folders goes through the app's own dental pipeline
+ * Folder review: every scan (STL, GLB, glTF) under the given folders goes through the app's own dental pipeline
  * (see reviewCase.ts), and each result is written as a review GLB plus one summary for the viewer
  * (`serve.mjs`).
  *
@@ -17,6 +17,7 @@ import { RULE_DEFAULTS } from './ruleDefaults';
 import { setZoneGraph, ZoneGraphRefused } from '@mixo-geocore/host/dental/zoneGraph';
 import { OrientGraphRefused, orientGraphDigest, setOrientGraph } from '@mixo-geocore/host/dental/orientGraph';
 import { putInForce, recordType, typeOfRun } from './typeInForce';
+import { SCAN_FILE } from './scanSet.mjs';
 
 async function main(): Promise<void> {
 const args = process.argv.slice(2);
@@ -27,15 +28,16 @@ const kind = parseKind(kindAt < 0 ? undefined : args[kindAt + 1]);
 const out = resolve(args[outAt + 1]!);
 const roots = args.filter((_, k) => k !== outAt && k !== outAt + 1 && (kindAt < 0 || (k !== kindAt && k !== kindAt + 1))).map((root) => resolve(root.replace(/"/g, '')));
 
-function stlsUnder(path: string): string[] {
+// The same scan formats the workbench imports (scanSet.mjs SCAN_FILE): STL, GLB, glTF.
+function scansUnder(path: string): string[] {
   if (!statSync(path, { throwIfNoEntry: false })) return [];
-  if (statSync(path).isFile()) return path.toLowerCase().endsWith('.stl') ? [path] : [];
-  return readdirSync(path).sort().flatMap((name) => stlsUnder(join(path, name)));
+  if (statSync(path).isFile()) return SCAN_FILE.test(path) ? [path] : [];
+  return readdirSync(path).sort().flatMap((name) => scansUnder(join(path, name)));
 }
 
-const files = roots.flatMap(stlsUnder);
+const files = roots.flatMap(scansUnder);
 if (files.length === 0) {
-  process.stderr.write('No .stl files found in the given folders.\n');
+  process.stderr.write('No .stl files found in the given folders (nor .glb or .gltf).\n');
   process.exit(1);
 }
 mkdirSync(out, { recursive: true });
