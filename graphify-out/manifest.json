@@ -54,9 +54,9 @@
     "semantic_hash": ""
   },
   "scripts/dental-region-review/review.ts": {
-    "mtime": 1793302204.5273192,
-    "seen": 1793302228.0966969,
-    "ast_hash": "6ac1e5e1c30b855b6fd3e9488193864b",
+    "mtime": 1795714642.7684202,
+    "seen": 1795717492.839671,
+    "ast_hash": "782d62762ccdc537d9da839cbe02f578",
     "semantic_hash": ""
   },
   "scripts/gen-fonts-css.mjs": {
@@ -3787,9 +3787,9 @@
     "semantic_hash": ""
   },
   "scripts/extract-sup-contacts.py": {
-    "mtime": 1793310405.662949,
-    "seen": 1793310431.790463,
-    "ast_hash": "9a6e5ab400ccf09ab8edfac68a085d27",
+    "mtime": 1795713712.0001602,
+    "seen": 1795717492.839671,
+    "ast_hash": "19b10186ac97876dcd51fe8fb5f80a2e",
     "semantic_hash": ""
   },
   "vendor/mixo-geocore/host/dental/dentureReview.ts": {
@@ -4321,9 +4321,9 @@
     "semantic_hash": ""
   },
   "docs/ui-styling.md": {
-    "mtime": 1795686581.21731,
-    "seen": 1795689740.3481407,
-    "ast_hash": "47a7f84ae01374bcf487fa136eeeafd6",
+    "mtime": 1795710515.939123,
+    "seen": 1795717492.8421783,
+    "ast_hash": "8c8a8e143512af9b891d43bc37b5fb34",
     "semantic_hash": ""
   },
   "scripts/real-scan-gate-lib.mjs": {
@@ -6445,9 +6445,9 @@
     "semantic_hash": ""
   },
   "docs/TYPE-PIPELINE.md": {
-    "mtime": 1795686657.046932,
-    "seen": 1795689740.3481407,
-    "ast_hash": "57709d7d7637da7fb166e180039362fd",
+    "mtime": 1795705140.9039488,
+    "seen": 1795717492.8416746,
+    "ast_hash": "3f9474b33513a1c45e020e4d5be9a3d4",
     "semantic_hash": ""
   },
   "src/dentalTypes/typeFile.test.ts": {
@@ -6481,9 +6481,9 @@
     "semantic_hash": ""
   },
   "types/README.md": {
-    "mtime": 1795687574.164745,
-    "seen": 1795689740.3481407,
-    "ast_hash": "7ad738dffd76b467006a2d5b3c3d207c",
+    "mtime": 1795705391.8197427,
+    "seen": 1795717492.8421783,
+    "ast_hash": "431f738d9863bc34cdbe9d4db2786863",
     "semantic_hash": ""
   },
   "src/components/SceneLegend.test.tsx": {
@@ -6679,15 +6679,15 @@
     "semantic_hash": ""
   },
   "typelab/batch.ts": {
-    "mtime": 1795686656.5221741,
-    "seen": 1795689740.3471384,
-    "ast_hash": "bd8bd08bdb90ce4f785f243b75009603",
+    "mtime": 1795706624.6754446,
+    "seen": 1795717492.8416746,
+    "ast_hash": "d8b6da46d52cded3894a8dbb0c0444d3",
     "semantic_hash": ""
   },
   "typelab/cli.mjs": {
-    "mtime": 1795686774.2748928,
-    "seen": 1795689740.3471384,
-    "ast_hash": "757fcec7c2ade96a0a53318ea85561cb",
+    "mtime": 1795705391.8197427,
+    "seen": 1795717492.8416746,
+    "ast_hash": "8c7d32226d293c0a26a8a8247bd586e5",
     "semantic_hash": ""
   },
   "typelab/compareRuns.mjs": {
@@ -6703,9 +6703,9 @@
     "semantic_hash": ""
   },
   "typelab/dentureReviewLayers.ts": {
-    "mtime": 1795686617.8696022,
-    "seen": 1795689740.3471384,
-    "ast_hash": "16e7f0ad9cbb541adbc4edf54b097375",
+    "mtime": 1795714685.8487134,
+    "seen": 1795717492.8416746,
+    "ast_hash": "f83f24ee43859992282d1833260e8740",
     "semantic_hash": ""
   },
   "typelab/glbWorld.ts": {
@@ -6901,15 +6901,15 @@
     "semantic_hash": ""
   },
   "typelab/reviewCase.test.ts": {
-    "mtime": 1795702770.294109,
-    "seen": 1795705120.1856272,
-    "ast_hash": "18c1e01faa89d53701152e0242cfe196",
+    "mtime": 1795706625.7379043,
+    "seen": 1795717492.8416746,
+    "ast_hash": "c38947cc5df9120f0e06965a4abd7666",
     "semantic_hash": ""
   },
   "typelab/reviewCase.ts": {
-    "mtime": 1795686656.7098606,
-    "seen": 1795689740.3471384,
-    "ast_hash": "4f7c113cc5df2ab864ecd6f39d4c1aa8",
+    "mtime": 1795714690.8933542,
+    "seen": 1795717492.8416746,
+    "ast_hash": "4b6417505420109ee28e5dcdaf7f851a",
     "semantic_hash": ""
   },
   "typelab/reviewSession.mjs": {
@@ -7129,27 +7129,27 @@
     "semantic_hash": ""
   },
   "samples/README.md": {
-    "mtime": 1795702770.2921069,
-    "seen": 1795705120.1866288,
-    "ast_hash": "cb18fb617eefa6c4c289b5eaf688ec6a",
+    "mtime": 1795714492.2140675,
+    "seen": 1795717492.8421783,
+    "ast_hash": "f9080bd5a8c67310ae20674152e711a7",
     "semantic_hash": ""
   },
   "typelab/CLI.md": {
-    "mtime": 1795686744.0273912,
-    "seen": 1795689740.3481407,
-    "ast_hash": "ae40bc9961a0db3c60652d7feaf0bf9a",
+    "mtime": 1795705399.619623,
+    "seen": 1795717492.8421783,
+    "ast_hash": "8efd019faaccb918feebc1bf5a2428a4",
     "semantic_hash": ""
   },
   "typelab/README.md": {
-    "mtime": 1795700420.3299236,
-    "seen": 1795705120.1866288,
-    "ast_hash": "51a06a6b14fe92af4974ec4a5286b1d9",
+    "mtime": 1795715137.2726808,
+    "seen": 1795717492.8421783,
+    "ast_hash": "4ce1a433c04ad78385d12c5ba5984bb0",
     "semantic_hash": ""
   },
   "typelab/viewer.html": {
-    "mtime": 1795700418.2043488,
-    "seen": 1795705120.1866288,
-    "ast_hash": "907d28fbc7ff75dd91036d1256636012",
+    "mtime": 1795717059.9303362,
+    "seen": 1795717492.8421783,
+    "ast_hash": "5fae94b3273cbf5ddb611773b19cff9e",
     "semantic_hash": ""
   },
   "scripts/samplePins.mjs": {
@@ -7180,6 +7180,24 @@
     "mtime": 1795700430.223607,
     "seen": 1795705120.1856272,
     "ast_hash": "254aeb0efb2021dfb939a01b340cdf4c",
+    "semantic_hash": ""
+  },
+  "scripts/test_extract_sup_contacts.py": {
+    "mtime": 1795711585.396434,
+    "seen": 1795717492.8406758,
+    "ast_hash": "9b1359f7ee889cb5373b94a5dfbad20d",
+    "semantic_hash": ""
+  },
+  "typelab/batch.test.ts": {
+    "mtime": 1795706626.6321225,
+    "seen": 1795717492.8416746,
+    "ast_hash": "c10547cda386d47c630842a300661ba4",
+    "semantic_hash": ""
+  },
+  "typelab/targetCompare.test.ts": {
+    "mtime": 1795710130.4326687,
+    "seen": 1795717492.8416746,
+    "ast_hash": "6bfce95f8405df55d16e99c6b9e416bf",
     "semantic_hash": ""
   }
 }
