@@ -87,12 +87,13 @@ export const EDITS = {
     graph('support on the rim\'s outer side', [true], (g) => { const s = rimSide(g, 'outer', 2); return markOnTop(g, 'markSupport', s.id, [s]); }),
     graph('no support on the low rim belt', [true], (g) => markOnTop(g, 'markNoSupport', 'LOWRIMBAND')),
   ],
-  // The aligner reads no rules that were seen to move it and no graph; its STRIP numbers are profile fields
+  // The aligner reads no rules that were seen to move it and no graph; its strip numbers are profile fields
   // (profile.defaults), which a type carries to the engine (probe 2026-11-27, typelab/CLI.md).
+  // TRAP, left out on purpose: positionMm and stripWidthMm. Any change to either - even inside their legal range - made
+  // EVERY aligner build no tips ("no-proposed-dental-tips", fit of 2026-11-27), while density moved results normally.
+  // That is a wiring gap in how a type's strip reaches the run, not a fit result: it needs a reason before it is tuned.
   aligner: [
-    alignerDefault('positionMm', [0, 0.6, 1.2]),
-    alignerDefault('stripWidthMm', [0.3, 1, 1.6]),
-    alignerDefault('density', [0.7, 1.5]),
+    alignerDefault('density', [0.7, 1.25, 1.5, 2]),
     alignerDefault('outerSpacingMm', [2, 4]),
     alignerDefault('innerSpacingMm', [3, 5]),
   ],
