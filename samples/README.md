@@ -57,7 +57,7 @@ To add a sample: put the bare scan and, when there is one, its supported version
   `scripts/baselines/real-scan-baseline.json`, keyed by category + the scan's hash. A scan added or moved to
   another category has no baseline under its new key, so the gate lists it as a difference: after a deliberate
   change, `npm run gate:real -- --kinds <category> --update`.
-- **A rule override:** `npm run typelab -- --kind denture --set overhangAngleDeg=55 samples/denture --open`
+- **A rule override:** `node typelab/cli.mjs --kind denture --set overhangAngleDeg=55 samples/denture --open`
   writes a `bench-<date>` folder.
 - **A plain batch:** `typelab/run-batch-review.bat` with one of these folders, or
   `npx vite-node --script typelab/batch.ts --out typelab/output/batch-test samples/denture`

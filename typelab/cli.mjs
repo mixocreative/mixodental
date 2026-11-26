@@ -4,9 +4,9 @@
 // change before any of it touches the app; this is the tool you run it with. It drives the REAL
 // engine on real scans, never an approximation of it.
 //
-//   npm run typelab -- --list                                       the rules this tool offers
-//   npm run typelab -- --kind denture --set overhangAngleDeg=50 "<stl folder>"
-//   npm run typelab -- --kind denture --set socketNoSupport=1 --set noSupportSteepDeg=67.5 "<folder>" --open
+//   node typelab/cli.mjs --list                                       the rules this tool offers
+//   node typelab/cli.mjs --kind denture --set overhangAngleDeg=50 "<stl folder>"
+//   node typelab/cli.mjs --kind denture --set socketNoSupport=1 --set noSupportSteepDeg=67.5 "<folder>" --open
 //
 // WHAT IT ADDS, and it is deliberately only this: the folder review already runs the engine and the
 // viewer already draws its masks (`README.md`, `serve.mjs`). What was missing is the AUTHORING layer
@@ -56,7 +56,7 @@ if (has('--list') || args.length === 0) {
   console.log('\n  A flag takes 1 or 0. A mode takes a whole number. Everything else takes a number.');
   console.log(`  An aligner reads only: ${BENCH_RULES.filter((rule) => rule.kinds.includes('aligner')).map((rule) => rule.name).join(', ')}.`);
   console.log('  The rest belong to the denture\'s own modules, and are refused for an aligner rather than ignored.');
-  console.log('\n  npm run typelab -- --kind denture --set overhangAngleDeg=50 "S:\\path\\to\\stl folder" --open\n');
+  console.log('\n  node typelab/cli.mjs --kind denture --set overhangAngleDeg=50 "S:\\path\\to\\stl folder" --open\n');
   process.exit(0);
 }
 

@@ -35,7 +35,7 @@ the profile and graph, and fingerprints of the scans it ran on - fingerprints of
 names, because those are patient scans. `"proved": true` is the owner's hand override: it counts as
 proved, and is shown as "proved by hand".
 
-**Who reads them.** `npm run typelab -- --kind denture --type types/denture/<id>.type.json <folder>`
+**Who reads them.** `node typelab/cli.mjs --kind denture --type types/denture/<id>.type.json <folder>`
 runs one on real scans. The one reader is `src/dentalTypes/typeFile.ts`: a missing or unknown key, a
 rule the category does not read, or a graph that cannot run is refused by name.
 

@@ -17,7 +17,7 @@ import { RULE_DEFAULTS } from './ruleDefaults';
 import { setZoneGraph, ZoneGraphRefused } from '@mixo-geocore/host/dental/zoneGraph';
 import { OrientGraphRefused, orientGraphDigest, setOrientGraph } from '@mixo-geocore/host/dental/orientGraph';
 import { putInForce, recordType, typeOfRun } from './typeInForce';
-import { SCAN_FILE } from './scanSet.mjs';
+import { SCAN_FILE, scanSet, scanSetWords } from './scanSet.mjs';
 
 async function main(): Promise<void> {
 const args = process.argv.slice(2);
@@ -35,11 +35,15 @@ function scansUnder(path: string): string[] {
   return readdirSync(path).sort().flatMap((name) => scansUnder(join(path, name)));
 }
 
-const files = roots.flatMap(scansUnder);
-if (files.length === 0) {
-  process.stderr.write('No .stl files found in the given folders (nor .glb or .gltf).\n');
-  process.exit(1);
-}
+/*
+ * THE SAME RULE AS THE PAGE (scanSet): a `-sup` target is NEVER run. Until 2026-11-26 this took every scan under a
+ * folder, so `typelab/cli.mjs <folder>` and run-batch-review.bat ran each target as a case - 12 cases for 6 dentures,
+ * their supports read as parts of the scan (the 2026-11-21 mistake, through a door the page had already closed).
+ */
+const found = scanSet(roots.flatMap(scansUnder));
+const files = found.cases;
+process.stdout.write(`${scanSetWords(found)}\n`);
+if (files.length === 0) process.exit(1);
 mkdirSync(out, { recursive: true });
 
 // THE ZONE GRAPH the node editor composed, when one was sent (typelab --zone-graph, engine 69). The

@@ -8,7 +8,7 @@ type the app then loads. One folder, one name - it was `dentalwork/batch-review/
 | Part | Start it | What it is |
 |---|---|---|
 | The page | `npm run review`, then http://127.0.0.1:6705/ | `viewer.html` + `serve.mjs`: import scans (Import files / Import folder), pick a type, run, edit its graphs, compare, Save |
-| The command line | `npm run typelab -- --list` | `cli.mjs` + `rules.mjs`: run a folder with rules turned or a type file, no page. Its manual is [CLI.md](CLI.md) |
+| The command line | `node typelab/cli.mjs --list` | `cli.mjs` + `rules.mjs`: run a folder with rules turned or a type file, no page. Its manual is [CLI.md](CLI.md) |
 | The runners | (called by both) | `batch.ts` / `reviewCase.ts`: one scan through the app's pipeline into a review GLB and a summary row |
 | Results | `output/` (git-ignored) | every run, the page's cache (`output/review-cache/`) and unsaved drafts (`output/review-drafts/`) |
 
@@ -42,8 +42,8 @@ named rule overrides applied, plus validation before a run is spent and a writte
 turned.
 
 ```powershell
-npm run typelab -- --list
-npm run typelab -- --kind denture --set overhangAngleDeg=55 "D:\dentures\week-42" --open
+node typelab/cli.mjs --list
+node typelab/cli.mjs --kind denture --set overhangAngleDeg=55 "D:\dentures\week-42" --open
 ```
 
 It writes its output here, into `typelab/output/`, so the viewer below opens it unchanged. The

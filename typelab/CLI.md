@@ -8,15 +8,18 @@ archaeology project.
 Two jobs, same loop: **adjust an existing rule**, or **add a new kind**. Change it, run it out of the
 app on real files, look at the geometry, diff it against the baseline. Only then integrate.
 
-**`npm run typelab` is the tool. This file is its manual.**
+**`node typelab/cli.mjs` is the tool (`npm run typelab` with no flags). This file is its manual.**
+Pass flags to the node form, never as `npm run typelab -- --kind ...`: PowerShell drops the `--`, so npm
+takes `--kind` and `--set` as its own settings and the tool runs without them (2026-11-26: a batch read
+`denture` as a folder name and stopped).
 
 ```bash
-npm run typelab -- --list                                              the rules it offers
-npm run typelab -- --kind denture --set overhangAngleDeg=55 "<folder>" --open
-npm run typelab -- --kind denture --zone-graph zone-graph.json "<folder>"  a zone graph from the node editor
-npm run typelab -- --kind denture --orient-graph orient-graph.json "<folder>"  an Orient graph (Step 1) from the Orient canvas
-npm run typelab -- --kind denture --type types/denture/<id>.type.json "<folder>"  a saved type, as it is
-npm run typelab -- --kind denture --type-id my.type --pose pose.json "<folder>"   a draft type: the built-in + Orient edits
+node typelab/cli.mjs --list                                              the rules it offers
+node typelab/cli.mjs --kind denture --set overhangAngleDeg=55 "<folder>" --open
+node typelab/cli.mjs --kind denture --zone-graph zone-graph.json "<folder>"  a zone graph from the node editor
+node typelab/cli.mjs --kind denture --orient-graph orient-graph.json "<folder>"  an Orient graph (Step 1) from the Orient canvas
+node typelab/cli.mjs --kind denture --type types/denture/<id>.type.json "<folder>"  a saved type, as it is
+node typelab/cli.mjs --kind denture --type-id my.type --pose pose.json "<folder>"   a draft type: the built-in + Orient edits
 ```
 
 It decides **what a type's rules are** — for orient, rim and the support zones. It turns thirteen
