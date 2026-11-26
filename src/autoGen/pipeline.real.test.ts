@@ -43,8 +43,11 @@ import { runAutoGen, type AutoGenEngine, type AutoGenHost } from './pipeline';
  * case-001, and running this file against that exact scan is what proved the pipeline and the data
  * were both fine - which left the React host, where the bug was. One line, and it turned a guess
  * into a fork.
+ * The default is the committed public reference, not `samples/case-001/aligner.stl` (a byte-identical
+ * copy): when the owner rearranged samples/ on 2026-11-26 the old default vanished and this whole file
+ * skipped without a word.
  */
-const SCAN = resolve(process.env.AUTOGEN_SCAN ?? 'samples/case-001/aligner.stl');
+const SCAN = resolve(process.env.AUTOGEN_SCAN ?? 'docs/dental-reference/reference-aligner.stl');
 const PROFILE = DEFAULT_PROFILE_ID;
 
 /**

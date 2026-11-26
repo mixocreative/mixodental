@@ -22,14 +22,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PROJECT_VERSION = Number(/PROJECT_VERSION = (\d+)/.exec(readFileSync(path.join(ROOT, 'src', 'state', 'projectFile.ts'), 'utf8'))?.[1]);
 const FIXTURE = path.join(ROOT, 'scripts', 'fixtures', 'knot.stl');
 /**
- * The aligner the dental sections walk, in order of preference:
- *   1. DENTAL_WALK_FIXTURE, when the caller names one;
- *   2. case 01 of samples, when it is on this machine - the owner's local comparison case. The
- *      case directories are git-ignored and READ IN PLACE: no scan is ever copied into this repository;
- *   3. the already-approved public reference that ships with the repo, so a fresh clone still walks.
+ * The aligner the dental sections walk: DENTAL_WALK_FIXTURE when the caller names one (read in place,
+ * never copied into the repository), otherwise the approved public reference that ships with the repo.
+ * TRAP, 2026-11-26: this used to prefer `samples/case-001/aligner.stl` and, when that was absent, ran
+ * NO fixture at all - section `l` vanished and the check count failed, although this comment already
+ * promised the public fallback. The samples copy was byte-identical to the public file, so nothing
+ * the walk measures changed by dropping it; the samples folders are the owner's to rearrange.
  */
 const PUBLIC_ALIGNER = path.join(ROOT, 'docs', 'dental-reference', 'reference-aligner.stl');
-const CASE_01_ALIGNER = path.join(ROOT, 'samples', 'case-001', 'aligner.stl');
 const VIEWPORT = { width: 1440, height: 900 };
 
 /**
@@ -4449,12 +4449,12 @@ async function walk(url, scratch, dentalFixture) {
       check('x19 the two aligners sit apart on the plate', Math.abs(first.pos[0] - second.pos[0]) > 20 || Math.abs(first.pos[2] - second.pos[2]) > 20, `centres ${first.pos.map((v) => v.toFixed(0))} / ${second.pos.map((v) => v.toFixed(0))}`);
     }
 
-    // l. The dental flow against the REAL case fixture, when this machine has one - a separate section from
-    // `u`, which runs the same flow on the reference aligner that ships with the repo.
-    if (runs('l') && dentalFixture) {
+    // l. The dental flow against `dentalFixture` (DENTAL_WALK_FIXTURE, else the public reference) - a
+    // separate section from `u`, which always runs the same flow on the public reference.
+    if (runs('l')) {
       currentSection = 'l';
-      // The Dental lane never checks a patient model into the repository: the fixture is read in place from
-      // wherever it already lives (see PUBLIC_ALIGNER / CASE_01_ALIGNER at the top).
+      // The Dental lane never checks a patient model into the repository: a named fixture is read in place
+      // from wherever it already lives (see PUBLIC_ALIGNER at the top).
       await page.goto(url);
       await enterEditor(page);
       await d.button('Aligner Support Production').click();
@@ -5183,7 +5183,7 @@ try {
   const url = `http://127.0.0.1:${port}/mixodental/${RENDERER === 'babylon' ? '?renderer=babylon' : ''}`;
   await waitFor(url, vite);
   console.log(`walk on ${url}${RENDERER === 'three' ? '' : ` [renderer: ${RENDERER}]`}`);
-  const dentalFixture = process.env.DENTAL_WALK_FIXTURE ?? (existsSync(CASE_01_ALIGNER) ? CASE_01_ALIGNER : undefined);
+  const dentalFixture = process.env.DENTAL_WALK_FIXTURE ?? PUBLIC_ALIGNER;
   if (dentalFixture) console.log(`dental fixture: ${path.relative(ROOT, dentalFixture)}`);
   if (LOCALES) {
     browser = await launch();
