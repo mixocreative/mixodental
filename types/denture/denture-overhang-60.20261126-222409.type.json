@@ -1,0 +1,97 @@
+{
+  "badge": "D60",
+  "basedOn": "reference-denture",
+  "category": "denture",
+  "id": "denture-overhang-60",
+  "profile": {
+    "card": [
+      "M14 24 C14 10 106 10 106 24 L106 48 C106 62 96 70 86 66 L86 40 C86 26 34 26 34 40 L34 66 C24 70 14 62 14 48 Z",
+      "M34 52 L86 52 M34 60 L86 60"
+    ],
+    "description": {
+      "en": "A denture with saddles, connector bars and clasps, printed standing upright with the teeth end down and leaning by a searched angle.",
+      "ja": "床・連結バー・クラスプを持つ義歯。歯側を下にして立て、探索した角度に傾けて造形します。",
+      "zh-Hant": "含鞍部、連接桿與卡環的假牙，直立列印：牙齒端朝下，再依搜尋角度傾斜。"
+    },
+    "engine": {
+      "repairBudget": 8
+    },
+    "id": "denture-overhang-60",
+    "name": {
+      "en": "Denture overhang 60",
+      "ja": "Denture overhang 60",
+      "zh-Hant": "Denture overhang 60"
+    },
+    "placement": {
+      "barPitchMultiplier": 2,
+      "barThicknessMaxMm": 5,
+      "bottomBandMm": 6,
+      "downBandMm": 6,
+      "downEdgeMaxDeg": 90,
+      "downPitchMm": 2,
+      "hardEdgeDeg": 50,
+      "lightPitchMultiplier": 3,
+      "lowRimBandMm": 5,
+      "middleEdgeMinLengthMm": 10,
+      "middleEdgeNearMm": 3,
+      "minimumProminenceMm": 1.5,
+      "rimBandMm": 2,
+      "tipMinFromUpBarDeg": 150,
+      "tipPitchMm": 1.5
+    },
+    "pose": {
+      "overhangAngleDeg": 45,
+      "overhangTieFraction": 0.02,
+      "tiltMarginDeg": 2,
+      "tiltRangeDeg": 45,
+      "tiltStepDeg": 2
+    },
+    "schema": 1,
+    "stability": {
+      "maxSlendernessBraced": 50,
+      "maxSlendernessUnbraced": 25
+    },
+    "supports": {
+      "biteDepthMm": 0.3,
+      "frustumBaseMm": 1.1,
+      "frustumHeightMm": 2,
+      "lattice": true,
+      "liftHeightMm": 3.5,
+      "minClearanceMm": 1.5,
+      "neckMaxShiftMm": 10.5,
+      "pillarDiameterMm": 1.1,
+      "raftLayersMm": [
+        0.5,
+        1
+      ],
+      "tipBallMm": 0.5,
+      "upperDiameterMm": 0.3
+    },
+    "upright": {
+      "endBandFraction": 0.12,
+      "flatnessMax": 0.5,
+      "legsGapMinRatio": 0.2,
+      "teethBandFraction": 0.25,
+      "teethOffsetMinMm": 1
+    }
+  },
+  "rules": {
+    "overhangAngleDeg": 60
+  },
+  "typeFile": 1,
+  "validation": {
+    "at": "2026-11-26T22:24:09.780Z",
+    "engineVersion": 71,
+    "profileDigest": "afa5da05d3b5043c",
+    "scans": [
+      "1b6a4e0c565678cb",
+      "3cbc9a768182cd24",
+      "3e24e678e6177da5",
+      "aafea2257bf56661",
+      "c18ba9eb2e3e33a6",
+      "ec460f9b92f3af2d"
+    ],
+    "zoneGraphDigest": "default"
+  },
+  "zoneGraph": null
+}
