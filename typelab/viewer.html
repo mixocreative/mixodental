@@ -815,13 +815,14 @@ document.querySelectorAll('[data-view]').forEach((button) => button.addEventList
  * checkbox is left as it was, so turning compare off restores the view exactly.
  */
 let compareOn = false;
-const COMPARE_KEYS = ['DENTURE', 'NEUTRAL', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only'];
+// TEAL is an aligner's support area - part of its body, so it stays, but painted as the rest of the body while comparing:
+// its teal would read as "both support it" (applyVisibility).
+const COMPARE_KEYS = ['DENTURE', 'NEUTRAL', 'TEAL', 'YOUR CONTACTS', 'AREA both', 'AREA owner only', 'AREA ours only'];
 const COMPARE_SUPPORT_KEYS = ['SUPPORT PILLARS', 'YOUR SUPPORTS'];
 /* Why a case cannot be compared (reviewCase.ts targetState), in words. A run made before the field existed has none. */
 const TARGET_WORDS = {
   none: () => 'No target: there is no -sup file beside this scan.',
-  'not-compared': (row) => (row.kind !== 'denture' ? 'A -sup target is beside this scan, but the comparison works for dentures only so far.'
-    : 'A -sup target is beside this scan, but the scan did not build, so there is nothing of ours to compare.'),
+  'not-compared': () => 'A -sup target is beside this scan, but the scan did not build, so there is nothing of ours to compare.',
   'no-contacts': () => 'A -sup target is beside this scan, but its contact points were never extracted. Run: python -I scripts/extract-sup-contacts.py samples - then run this scan again.',
   'not-lined-up': () => 'The -sup target could not be lined up with this scan (it is turned, or gave no contact points), so it cannot be compared.',
 };
@@ -851,14 +852,18 @@ document.getElementById('compare-supports').addEventListener('change', () => app
 function applyVisibility() {
   if (compareOn) {
     const withSupports = document.getElementById('compare-supports').checked;
+    let body = null;
+    model?.traverse((object) => { if (!body && object.material?.color && object.name && keyOf(object.name) === 'NEUTRAL') body = object.material.color; });
     model?.traverse((object) => {
       const key = object.name && keyOf(object.name);
       if (key) object.visible = COMPARE_KEYS.includes(key) || (withSupports && COMPARE_SUPPORT_KEYS.includes(key));
+      if (key === 'TEAL' && body && object.material?.color) { object.userData.compareBase ??= object.material.color.clone(); object.material.color.copy(body); }
     });
     return;
   }
   model?.traverse((object) => {
     const key = object.name && keyOf(object.name);
+    if (object.userData.compareBase) { object.material.color.copy(object.userData.compareBase); delete object.userData.compareBase; }
     // A layer the selected node is shown by (isolatedKeys) is drawn even if its checkbox or the tab's step would hide it:
     // the rim crossing is step 4's layer, but it is selected on 2 Rim.
     if (key) object.visible = (isShown(key) || Boolean(isolatedKeys?.includes(key))) && !(underside && PILLAR_KEYS.includes(key)) && !(zoneOverlay && ZONE_LAYER_KEYS.includes(key)) && !(orientTurn && SUPPORT_KEYS.includes(key)) && !(orientRest && LEANING_KEYS.includes(key))
