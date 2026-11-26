@@ -3,7 +3,7 @@
  * or the read-only rim tab (`RimCanvas`).
  *
  * The review page is not a React app and is not served by Vite, so this is built on its own
- * (`npm run review:editor`, config `vite.editor.config.ts`) into `node-editor/node-editor.js`, one
+ * (`npm run review:editor`, config `vite.editor.config.ts`) into `built/node-editor.js`, one
  * self-contained ES module with React and React Flow inside and its stylesheet inlined. The page
  * loads it with a dynamic `import()`, and keeps its card editor as the fallback when the bundle is
  * missing - an editor that vanished because a build step was skipped would be worse than a plainer one.

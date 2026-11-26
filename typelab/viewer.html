@@ -964,7 +964,7 @@ const STAGES = [
 let stageNow = (() => { try { return localStorage.getItem('review-stage') || 'zones'; } catch { return 'zones'; } })();
 let graphLib = null;
 let zoneGraph = null;
-/* The React Flow canvas (node-editor/node-editor.js, built by `npm run review:editor`). Null when the
+/* The React Flow canvas (built/node-editor.js, built by `npm run review:editor`). Null when the
    bundle is missing; the card editor below is then the fallback rather than an empty stage. */
 let editorLib = null;
 let editorHandle = null;
@@ -2007,7 +2007,7 @@ async function loadGraphLib() {
     orientLib = null;
   }
   try {
-    editorLib = await import('./node-editor/node-editor.js');
+    editorLib = await import('./built/node-editor.js');
     let layout = null;
     try { layout = JSON.parse(localStorage.getItem('review-zone-layout-2') || 'null'); } catch { layout = null; }
     zonePositions = layout && graphLib ? layout : (graphLib ? editorLib.autoLayout(zoneGraph, graphLib.FIXED.outputs) : {});

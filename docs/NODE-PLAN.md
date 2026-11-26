@@ -424,7 +424,7 @@ view, as **three stage tabs**:
   end down), end 45°, step 2°, tie margin 2°, and what the case picked, with a figure of the plate and
   the lean. Read-only: these are profile fields, so they wait for `register_profile`.
 - **2 Zones** - a **React Flow canvas** (`nodeEditor/ZoneEditor.tsx`, built into
-  `node-editor/node-editor.js` by `npm run review:editor`): drag nodes, draw a wire socket to socket,
+  `built/node-editor.js` by `npm run review:editor`): drag nodes, draw a wire socket to socket,
   delete with Backspace or Delete, pan, zoom, minimap. The eight outputs the engine reads are ONE
   **Zone output** node with a socket each, like Blender's Material Output. Every rule lives in
   `nodeGraph.mjs` (pure, tested); the canvas only maps gestures onto it, and its connection check asks

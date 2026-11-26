@@ -25,7 +25,8 @@ export default defineConfig({
   esbuild: { jsx: 'automatic' },
   build: {
     target: ['chrome93', 'edge93', 'firefox114', 'safari15.4'],
-    outDir: resolve(here, 'node-editor'),
+    // `built/`, not `node-editor/`: one dash from the `nodeEditor/` sources, it read as a copy of them.
+    outDir: resolve(here, 'built'),
     emptyOutDir: true,
     lib: { entry: resolve(here, 'nodeEditor/main.tsx'), formats: ['es'], fileName: () => 'node-editor.js' },
     minify: true,
