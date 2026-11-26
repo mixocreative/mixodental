@@ -2,7 +2,11 @@ node_modules/
 dist/
 .playwright-mcp/
 walk-out/
-samples/case-*/
+# Patient scans: EVERYTHING under samples/ except its README, whatever the folders are called. The owner
+# keeps adding and renaming them (2026-11-26: case-* became aligner/, denture/, retainer/), and a pattern
+# on the old names left 41 patient files one `git add` away from a public repo.
+samples/*
+!samples/README.md
 __pycache__/
 
 # Agent and tool scratch, never part of the app.
