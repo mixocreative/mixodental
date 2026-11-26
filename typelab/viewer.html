@@ -349,7 +349,7 @@ button[aria-pressed="true"]:hover:not(:disabled) { background: var(--ink); color
     no batch run first. Shown only when the review server answers (it reads the folders and runs the builds).
   -->
   <span class="session" id="session-bar" data-ui="session-bar" hidden>
-    <select id="category-pick" data-ui="category-pick" title="What the scans are. Asked once per import, never guessed from a scan.">
+    <select id="category-pick" data-ui="category-pick" title="What the scans are - never guessed from a scan. Changing it runs the scans in the list again as that kind.">
       <option value="denture">Denture</option><option value="aligner">Aligner</option>
     </select>
     <button id="import-files" data-ui="import-files" title="Choose one or more scan files (STL, GLB or glTF) in the system's dialog. Scans are read where they are, never copied.">Import files</button>
@@ -3541,6 +3541,20 @@ async function refreshCacheSize() {
   label.textContent = size ? `Kept runs: ${size.runs}, ${(size.bytes / 1e9).toFixed(2)} GB` : '';
   document.getElementById('cache-clear').hidden = !size || size.runs === 0;
 }
+
+/*
+ * THE KIND IS THE SESSION'S, AND CHANGING IT CHANGES THE SESSION (2026-11-27). The menu was read only at import, so
+ * switching it to Aligner with denture scans loaded did nothing visible: they ran on as dentures under an "Aligner" label.
+ * Now a change restarts the session on the same scans with the new kind (its runs still going are stopped first), so the
+ * menu and what runs always agree.
+ */
+document.getElementById('category-pick').addEventListener('change', async (event) => {
+  const kind = event.target.value;
+  if (!session || session.kind === kind) return;
+  const scans = session.scans, words = session.words ?? '';
+  await stopSession(); // before the new session replaces this one: it finds the runs to stop through `session`
+  startSession(kind, { cases: scans, words });
+});
 
 /** Import the scans at `path` (a folder or one scan file) - or every path in `paths` - as a new session of the chosen category. */
 async function importFrom(path, paths) {
