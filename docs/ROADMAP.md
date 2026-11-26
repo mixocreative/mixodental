@@ -249,7 +249,6 @@ Each starts only when its trigger is met, and then gets a specification first.
 | P2 Curvature detector | Q4: a real file defeats the current detector | 3.5 units |
 | B4 Suggestion markers | After B2, if the owner wants them | 0.5 unit |
 | C1 One topology module | Maintenance window | Fold `dental/topology.rs`, `bands.rs` `FaceGraph`, `region.rs` and `raft_outline.rs` union-find, `core/overlay.rs` `edge_table`, `safety/index.rs` vertex table; keep the existing edge order (goldens) |
-| R1 Raspberry Pi | The owner asks for the app (or the workbench) to run on a Pi | Owner's question, 2026-11-26: "can our app run on a Raspberry Pi entirely". Answered, not measured: likely yes (the engine is wasm in the browser; the workbench and benchwork are Node, which runs on ARM). The risks are speed (a guess of 5-10x slower, never measured) and memory (an 8 GB Pi 5 assumed). The measurement was offered and withdrawn unasked: time `npm run gate:real` and one workbench run on a Pi 5 against this machine |
 | C2 Retire legacy | After painting an area from scratch no longer uses the legacy fill | Removes `dental/legacy.rs`, `DentalArea::Legacy`/`ManualArea`, WASM `dental_legacy_fill`/`dental_allowed_vertices`, TS `legacyArea.ts`/`manualArea.ts`, `rim.rs` loop and raster (keep `stable_tangent`); older saves then permit nothing, as `dental_policy` already documents |
 
 ## Cross-cutting
