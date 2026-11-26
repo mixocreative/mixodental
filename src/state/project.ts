@@ -787,7 +787,11 @@ function cloneDentalPolicy(policy: DentalPolicy, mesh: TriangleMesh): DentalPoli
     if (region.kind !== 'proposal' || !(region.allowedFaces instanceof Uint8Array) || region.allowedFaces.length !== mesh.indices.length / 3 ||
       !(region.outerEdges instanceof Uint32Array) || !(region.outerRidgeEdges instanceof Uint32Array) ||
       !(region.outerConnectorEdges instanceof Uint32Array) || !(region.openingEdges instanceof Uint32Array) ||
-      region.outerEdges.length < 6 || region.openingEdges.length < 6 || region.outerEdges.length % 2 !== 0 || region.openingEdges.length % 2 !== 0) {
+      // An open arch has NO inner opening (the engine returns an empty opening contour, dental/region.rs), so an empty
+      // opening is valid; a non-empty one is still a loop of at least three edges. Requiring >= 6 here crashed the app
+      // after Step 1 on every open-arch aligner (2026-11-27, found by walking real samples through section l).
+      region.outerEdges.length < 6 || (region.openingEdges.length !== 0 && region.openingEdges.length < 6) ||
+      region.outerEdges.length % 2 !== 0 || region.openingEdges.length % 2 !== 0) {
       throw new TypeError('dental region does not match the mesh');
     }
     for (const value of region.allowedFaces) if (value !== 0 && value !== 1) throw new TypeError('dental region mask must be binary');

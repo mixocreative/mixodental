@@ -200,6 +200,12 @@ describe('reduceScene', () => {
       region: { ...policy.region, contacts: [{ ...policy.region.contacts![0]!, rim: 'sideways' as 'outer' }] } } })).toThrow('dental contact rim');
     expect(() => reduceScene(scene, { type: 'dental/set', unitId: 'unit-a', policy: { ...policy,
       tuning: { positionMm: 0.2, stripWidthMm: 0, density: 1 } } })).toThrow('Invalid dental strip');
+    // An OPEN ARCH has no inner opening: its empty opening contour is valid (it crashed the app after Step 1 on every
+    // open-arch aligner until 2026-11-27). A non-empty opening still has to be a loop of at least three edges.
+    const openArch = { ...policy, region: { ...policy.region, openingEdges: new Uint32Array() } };
+    expect(reduceScene(scene, { type: 'dental/set', unitId: 'unit-a', policy: openArch }).units[0]!.dental).toEqual(openArch);
+    expect(() => reduceScene(scene, { type: 'dental/set', unitId: 'unit-a', policy: { ...policy,
+      region: { ...policy.region, openingEdges: new Uint32Array([0, 1, 1, 2]) } } })).toThrow('dental region does not match the mesh');
     // Older projects may still list provisional gap alternates: checked, then dropped (the policy offers its own).
     const withOldAlternates = { ...policy, gapAlternateIds: ['auto-1_2_3'] } as DentalPolicy;
     expect(reduceScene(scene, { type: 'dental/set', unitId: 'unit-a', policy: withOldAlternates }).units[0]!.dental).toEqual(policy);
