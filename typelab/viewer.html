@@ -201,6 +201,11 @@
 .type-note { margin: 0; font-size: 11px; color: var(--muted); }
 .type-note.type-warn { color: var(--warning); }
 .type-tune { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.busy { position: fixed; bottom: 8px; right: 8px; z-index: 50; display: flex; align-items: center; gap: 6px; padding: 2px 8px; font-size: 11px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 2px; }
+.busy[hidden] { display: none; }
+.spinner { width: 10px; height: 10px; flex: none; border: 2px solid var(--line); border-top-color: var(--ink); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 
 /* The three stages: one tab per stage, one stage on screen, so the 3D view keeps its height. */
 .stage-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -460,6 +465,49 @@ button[aria-pressed="true"]:hover:not(:disabled) { background: var(--ink); color
   <div class="hover-tip-facts" data-ui="review-hover-tip-facts"></div>
   <div class="hover-tip-note" data-ui="review-hover-tip-note" hidden></div>
 </div>
+<div class="busy" id="busy" data-ui="busy" role="status" aria-live="polite" hidden><span class="spinner" aria-hidden="true"></span><span id="busy-words"></span></div>
+<script>
+/*
+ * ONE WAIT SIGN FOR THE WHOLE PAGE (owner, 2026-11-27: "all process in type lab seem to lack loading progress"). Every
+ * request to the server goes through fetch, so fetch is wrapped ONCE, here, before the page's own script runs: any
+ * request still open after a quarter second shows the spinner, what it waits for in words and the seconds so far.
+ * A new request needs no code to be covered - only a line in BUSY_WORDS if the default "Working" is too vague.
+ * Not shown for the quiet background calls (the fit's progress poll, keeping a draft, the cache size).
+ */
+(() => {
+  const BUSY_WORDS = [
+    [/^\/import/, 'Reading the scans'], [/^\/run-stop/, 'Stopping the run'], [/^\/run/, 'Running the scan'],
+    [/^\/types/, 'Reading the types'], [/^\/save-draft/, 'Saving the type'], [/^\/zone-preview/, 'Drawing the zones'],
+    [/^\/tilt-preview/, 'Working out the print angle'], [/^\/pick-/, 'Waiting for the file dialog'], [/^\/fit-stop/, 'Stopping the fit'],
+    [/^\/fit/, 'Starting the fit'], [/^\/cache-clear/, 'Clearing kept runs'], [/^\/drafts/, 'Reading kept edits'],
+    [/\.glb$/i, 'Loading the 3D model'], [/summary\.json$/, 'Reading the results'], [/\.json$/i, 'Reading the case files'], [/\.bin$/i, 'Reading the zones'],
+  ];
+  const QUIET = [{ method: 'GET', path: /^\/fit$/ }, { method: 'POST', path: /^\/draft$/ }, { method: 'GET', path: /^\/cache-size/ }, { method: 'GET', path: /^\/jobs/ }];
+  const open = new Map();
+  let next = 0;
+  let ticker = null;
+  const draw = () => {
+    const box = document.getElementById('busy');
+    if (!box) return;
+    const shown = [...open.values()].filter((o) => performance.now() - o.at > 250);
+    box.hidden = shown.length === 0;
+    if (shown.length === 0) return;
+    const oldest = shown.reduce((a, b) => (a.at < b.at ? a : b));
+    const secs = Math.floor((performance.now() - oldest.at) / 1000);
+    document.getElementById('busy-words').textContent = `${oldest.words}${secs >= 1 ? ` - ${secs} s` : ''}${shown.length > 1 ? ` (+${shown.length - 1} more)` : ''}`;
+  };
+  const real = window.fetch.bind(window);
+  window.fetch = (input, init = {}) => {
+    const url = new URL(typeof input === 'string' ? input : input.url, location.href);
+    const method = (init.method ?? (typeof input === 'string' ? 'GET' : input.method) ?? 'GET').toUpperCase();
+    if (QUIET.some((q) => q.method === method && q.path.test(url.pathname))) return real(input, init);
+    const id = next++;
+    open.set(id, { at: performance.now(), words: BUSY_WORDS.find(([test]) => test.test(url.pathname))?.[1] ?? 'Working' });
+    ticker ??= setInterval(() => { draw(); if (open.size === 0) { clearInterval(ticker); ticker = null; } }, 250);
+    return real(input, init).finally(() => { open.delete(id); draw(); });
+  };
+})();
+</script>
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -1417,7 +1465,9 @@ function tuneRow() {
   go.addEventListener('click', () => (tuneState?.running ? stopTune() : startTune()));
   const words = Object.assign(document.createElement('p'), { className: `type-note${tuneState?.error ? ' type-warn' : ''}`, textContent: tuneWords() });
   words.dataset.ui = 'type-tune-words';
-  row.append(go, words);
+  // The fit runs for minutes to hours: a spinning mark says it is alive between its progress lines.
+  if (tuneState?.running) row.append(go, Object.assign(document.createElement('span'), { className: 'spinner' }), words);
+  else row.append(go, words);
   if (!tuneState?.running && tuneState?.winner && tuneState.result?.best?.steps?.length) {
     const open = Object.assign(document.createElement('button'), { type: 'button', textContent: 'Open the winner in the editors' });
     open.dataset.ui = 'type-tune-open';
