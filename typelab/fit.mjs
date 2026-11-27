@@ -25,8 +25,9 @@ import { sampleScans } from '../scripts/samples.mjs';
 import { viteNodeCli } from '../scripts/viteNodeCli.mjs';
 import { PROVISIONAL_UNDER } from './fitScore.mjs';
 import { probeBand, streamsOutside } from './fitEvidence.mjs';
-import { composeSearch } from './composeSearch.mjs';
-import { gapReport, PROBE_BAR } from './gapReport.mjs';
+import { composeSearch, GATE } from './composeSearch.mjs';
+import { gapReport, PROBE_RESCORE_BAR } from './gapReport.mjs';
+import { rescore } from './whatif.mjs';
 import { describe, EDITS, search } from './fitSearch.mjs';
 import { stampNow } from './rules.mjs';
 import { CACHE, finishRun, isKept, runKey } from './runCache.mjs';
@@ -182,7 +183,24 @@ if (args.includes('--compose')) {
       { name: 'slope band', unit: 'deg from horizontal', ...probeBand(probing.map((p) => ({ classes: p.classes, values: p.slope })), [0, 20, 40, 60, 80, 100, 120, 140, 160, 181]) },
       { name: 'height band', unit: '/255 of the model height', ...probeBand(probing.map((p) => ({ classes: p.classes, values: p.height })), [0, 26, 51, 77, 102, 128, 154, 179, 205, 230, 256]) },
     ] : [];
-    for (const p of probes) console.log(`  probe ${p.name} [${p.lo}, ${p.hi}) ${p.unit}: per-pair predicted faces ${p.gains.join('/')} ${p.worst > PROBE_BAR ? 'SEPARATES on every pair' : '- does not separate on every pair'}`);
+    // CONFIRMED BY THE RE-SCORE (whatif.mjs - Fable + Codex: face counts alone mispredicted three times): each probe's
+    // band re-scored on every pair with the engine's comparison, calibrated on the known-bad NS mark. A band separates
+    // only if the calibration comes out worse AND the band raises the score on every pair by more than PROBE_RESCORE_BAR.
+    if (probes.length) {
+      const typeFile = join(out, 'best.type.json');
+      writeFileSync(typeFile, `${JSON.stringify(composed.best.type, null, 2)}\n`);
+      const gated = GATE[composed.gap.stream]?.rule ? ['dental rim', 'hole', 'area'] : ['area'];
+      const rules = [{ name: 'calibration: no-support on NS', streams: ['dental rim', 'hole', 'area'], node: 'NS' },
+        ...probes.map((p) => ({ name: `${p.name} [${p.lo}, ${p.hi})`, streams: gated, [p.name === 'slope band' ? 'slopeBand' : 'heightBand']: [p.lo, p.hi] }))];
+      const rows = rescore({ typeFile, rules, out: join(out, 'whatif'), scans });
+      const calibrated = rows.length > 0 && rows.reduce((s, r) => s + r.whatIf[1].score - r.whatIf[0].score, 0) < 0;
+      probes.forEach((p, k) => {
+        p.rescoreGains = rows.map((r) => Math.round((r.whatIf[k + 2].score - r.whatIf[0].score) * 10) / 10);
+        p.calibrated = calibrated;
+        p.confirmed = calibrated && p.rescoreGains.length > 0 && p.rescoreGains.every((g) => g > PROBE_RESCORE_BAR);
+      });
+    }
+    for (const p of probes) console.log(`  probe ${p.name} [${p.lo}, ${p.hi}) ${p.unit}: faces ${p.gains.join('/')}; re-score gain ${p.rescoreGains?.join('/') ?? '-'} ${p.confirmed ? 'SEPARATES on every pair (re-score confirmed)' : '- does not separate on every pair'}`);
     writeFileSync(join(out, 'gap-report.md'), gapReport({ kind, stream: composed.gap.stream, outside: streamsOutside(evidenceOf(composed.best.rows)),
       ceilings: composed.gap.ceilings, refusedOnly: composed.gap.refusedOnly, tried: composed.tried, startScore: composed.best.result.score, probes }));
     console.log(`gap report (draft engine request, not sent): ${join(out, 'gap-report.md')}`);

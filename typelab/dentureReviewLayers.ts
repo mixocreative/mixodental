@@ -663,14 +663,15 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     };
   }
   if (evidence && process.env.MIXO_WHATIF && review) {
-    const rules = JSON.parse(process.env.MIXO_WHATIF) as Array<{ name: string; streams: string[]; node?: string; invert?: boolean; heightBand?: [number, number] }>;
-    const { height } = faceDescriptors(mesh.positions, mesh.indices);
+    const rules = JSON.parse(process.env.MIXO_WHATIF) as Array<{ name: string; streams: string[]; node?: string; invert?: boolean; heightBand?: [number, number]; slopeBand?: [number, number] }>;
+    const { height, slope } = faceDescriptors(mesh.positions, mesh.indices);
+    const inBand = (values: Uint8Array, face: number, band?: [number, number]) => band !== undefined && values[face]! >= band[0] && values[face]! < band[1];
     const score = (tips: Vector[]) => { const c = compareDentureAreas(mesh, target.ownerPoints!, tips); return Math.round((c.coverage - c.extra) * 1000) / 10; };
     const all = review.tips;
     (evidence as Record<string, unknown>).whatIf = [{ name: 'as built', score: score(placed.map((tip) => tip.position)) }, ...rules.map((rule) => {
       const node = rule.node ? review.zoneNodes.find((n) => n.id === rule.node) : undefined;
       const drop = (tip: (typeof all)[number]) => rule.streams.includes(sourceName(tip.stream))
-        && ((node !== undefined && ((node.values[tip.face] ?? 0) > 0) !== Boolean(rule.invert)) || (rule.heightBand !== undefined && height[tip.face]! >= rule.heightBand[0] && height[tip.face]! < rule.heightBand[1]));
+        && ((node !== undefined && ((node.values[tip.face] ?? 0) > 0) !== Boolean(rule.invert)) || inBand(height, tip.face, rule.heightBand) || inBand(slope, tip.face, rule.slopeBand));
       const kept = all.filter((tip) => !drop(tip));
       return { name: rule.name, dropped: all.length - kept.length, score: score(kept.map((tip) => tip.position)) };
     })];

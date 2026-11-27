@@ -17,6 +17,14 @@ describe('the gap report', () => {
     expect(report).toContain('40% / 20%');
     expect(report).toContain('not "impossible"');
   });
+  it('passes a probe only when the calibrated re-score confirms it - never on face counts alone', () => {
+    const base = { kind: 'denture', stream: 'dental rim', startScore: 15.6, outside: [], ceilings: [], tried: [] };
+    const faceOnly = gapReport({ ...base, probes: [{ name: 'height band', unit: '/255', lo: 26, hi: 51, gains: [5381, 2801], worst: 2801 }] });
+    expect(faceOnly).toContain('NOT SENT');
+    expect(faceOnly).toContain('does not separate on every pair');
+    const confirmed = gapReport({ ...base, probes: [{ name: 'height band', unit: '/255', lo: 26, hi: 51, gains: [5381, 2801], worst: 2801, rescoreGains: [2.1, 1.5], calibrated: true, confirmed: true }] });
+    expect(confirmed).toContain('a probe SEPARATES the misses on every pair (height band)');
+  });
   it('lists the procedural masks to probe next', () => {
     for (const [name] of PROCEDURAL_CANDIDATES) expect(report).toContain(`**${name}**`);
   });

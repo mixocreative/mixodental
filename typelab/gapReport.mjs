@@ -24,6 +24,11 @@ export const PROCEDURAL_CANDIDATES = [
 const pct = (share) => `${Math.round(share * 100)}%`;
 /** Faces a probe's band must clean beyond its cost on every pair: the composer's charge (5 per node) x the 2 nodes it adds. */
 export const PROBE_BAR = 10;
+/**
+ * Score points a probe band must add on EVERY pair in the calibrated re-score (whatif.mjs) to count as separating: the
+ * re-score ranking's charge (0.5 per node) x the 2 nodes it adds. The face counts alone mispredicted three times.
+ */
+export const PROBE_RESCORE_BAR = 1;
 
 /**
  * @param {{ kind: string, stream: string, outside: { stream: string, outsideMm2: number, tips: number }[],
@@ -35,7 +40,8 @@ export function gapReport({ kind, stream, outside, ceilings, refusedOnly = false
   const focus = outside.find((s) => s.stream === stream);
   // A probe "separates" when its band, as a no-support mark, cleans more ours-only faces than it costs both-faces on
   // EVERY pair, by more than the composer's charge for the two nodes it adds (the band and its mark).
-  const passed = probes.filter((p) => p.worst > PROBE_BAR);
+  // A probe passes only when the calibrated re-score confirms it (p.confirmed); face counts alone never pass one.
+  const passed = probes.filter((p) => p.confirmed === true);
   const lines = [
     `# geocore: a procedural mask so the ${kind} "${stream}" tips can follow the targets (DRAFT)`,
     '',
@@ -65,7 +71,7 @@ export function gapReport({ kind, stream, outside, ceilings, refusedOnly = false
     ...(probes.length ? [
       '## Probes run (diagnostic only, in the Type Lab)',
       '',
-      ...probes.map((p) => `- **${p.name}** best band [${p.lo}, ${p.hi}) ${p.unit}: predicted faces per pair ${p.gains.join(' / ')} - ${p.worst > PROBE_BAR ? 'SEPARATES on every pair' : 'does not separate on every pair'}`),
+      ...probes.map((p) => `- **${p.name}** best band [${p.lo}, ${p.hi}) ${p.unit}: faces per pair ${p.gains.join(' / ')}; calibrated re-score gain per pair ${p.rescoreGains?.join(' / ') ?? 'not run'}${p.calibrated === false ? ' (calibration FAILED - not trusted)' : ''} - ${p.confirmed ? 'SEPARATES on every pair' : 'does not separate on every pair'}`),
       '',
       'Not probed yet: distance from a feature, curvature, component size, grow / shrink (they need surface neighbourhoods).',
       '',
