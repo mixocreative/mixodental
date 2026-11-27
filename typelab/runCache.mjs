@@ -23,6 +23,11 @@ import { runPrint } from './typeDraft.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 export const CACHE = join(here, 'output', 'review-cache');
 export const FINISHED = 'finished.json';
+/**
+ * What a kept run's folder holds. Raise it when the review starts writing something a reader depends on: a kept run
+ * of an older format is run again rather than served without it. 2 = the fit's evidence file (2026-11-27).
+ */
+export const REVIEW_FORMAT = 2;
 
 const prints = new Map();
 /** A file's fingerprint (its bytes, never its name: patient data), remembered by path, size and time. */
@@ -49,7 +54,7 @@ export function isKept(key, source) {
   let finished;
   try { finished = JSON.parse(readFileSync(at, 'utf8')); } catch { return false; }
   // A result kept before this field existed knows nothing of its target: run it again rather than guess.
-  return 'target' in finished && finished.target === targetPrintOf(source);
+  return 'target' in finished && finished.target === targetPrintOf(source) && finished.format === REVIEW_FORMAT;
 }
 
 /**
@@ -61,6 +66,6 @@ export function finishRun(part, source, type) {
   let skipped = null;
   try { skipped = type ? notApplied(type, JSON.parse(readFileSync(join(part, 'summary.json'), 'utf8'))) : null; } catch (error) { skipped = `its summary could not be read: ${error.message}`; }
   if (skipped) return skipped;
-  writeFileSync(join(part, FINISHED), JSON.stringify({ at: new Date().toISOString(), target: targetPrintOf(source) }));
+  writeFileSync(join(part, FINISHED), JSON.stringify({ at: new Date().toISOString(), target: targetPrintOf(source), format: REVIEW_FORMAT }));
   return null;
 }

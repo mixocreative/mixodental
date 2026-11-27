@@ -33,6 +33,7 @@ import { facesInNone, maskLayers, maskOfNone } from './maskLayers';
 import { rayLayers } from './rayLayers';
 import { describeUnresolved, islandPoints, summariseIslands, type IslandSettle, type IslandSummary } from './islandReport';
 import { MATCH_FORMAT, targetFor } from './targetMatch.mjs';
+import { fitEvidence } from './fitEvidence.mjs';
 
 export const CONTACTS_FORMAT = MATCH_FORMAT;
 /** The largest median distance (mm) from an owner contact to the displayed scan that the mapping may have. */
@@ -96,6 +97,8 @@ export interface DentureDetail {
   unresolvedIslands: string;
   /** Every zone-graph node the run evaluated, with its value per face (plan D2); empty without a review. */
   zoneNodes: { id: string; values: Uint8Array }[];
+  /** The fit's evidence for this case (fitEvidence.ts); null when the case was not compared with a target. */
+  evidence: ReturnType<typeof fitEvidence> | null;
   /** Why the rim asked for (a drawn one, or the flat area's edge) was not used, in the engine's words; '' when it was. */
   rimNote: string;
 }
@@ -200,6 +203,9 @@ export interface TargetComparison {
   targetState: TargetState;
   /** Why the target was not compared, in words (the matcher's reason); null when it was, or there is none. */
   targetReason: string | null;
+  /** For the fit's evidence (fitEvidence.ts): the target's contacts in the mesh frame and the per-face area class; absent when not compared. */
+  ownerPoints?: Vector[];
+  faceClass?: Uint8Array;
 }
 
 /**
@@ -249,6 +255,7 @@ export function targetComparison(bare: string, mesh: TriangleMesh, centre: Vecto
     ownerContactsMedianMm: medianMm === undefined ? null : Math.round(medianMm * 100) / 100,
     ownerAreaCoveredPct: comparison ? pct(comparison.coverage) : null,
     outsideOwnerAreaPct: comparison ? pct(comparison.extra) : null,
+    ...(comparison && points ? { ownerPoints: points, faceClass: comparison.mask } : {}),
     targetState: targetStateOf(match, linedUp),
     targetReason: match?.reason ?? (ownerFile && !linedUp
       ? `its contact points do not sit on this scan (median ${medianMm === undefined ? '-' : medianMm.toFixed(2)} mm, the limit is ${CONTACT_MAPPING_LIMIT_MM} mm)` : null),
@@ -611,8 +618,20 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
   }
   const byReason = new Map<string, number>();
   for (const tip of leftOutTips) byReason.set(tip.reason, (byReason.get(tip.reason) ?? 0) + 1);
+  // THE FIT'S EVIDENCE (fitEvidence.ts): per tip source, its area inside / outside the target - measured by the ENGINE's
+  // own comparison, once per source, so this file does no geometry - and per zone node, the faces it holds per class.
+  const evidence = target.ownerPoints && target.faceClass ? fitEvidence({
+    streams: ordered.map((stream) => {
+      const tips = tipsByStream.get(stream)!;
+      const c = compareDentureAreas(mesh, target.ownerPoints!, tips.map((tip) => tip.position));
+      return { stream: sourceName(stream), tips: tips.length, oursMm2: c.generatedMm2, bothMm2: c.bothMm2 };
+    }),
+    faceClass: target.faceClass,
+    nodes: (review?.zoneNodes ?? []).filter((node) => node.values.length === target.faceClass!.length),
+  }) : null;
   return {
     layers,
+    evidence,
     zoneNodes: review?.zoneNodes ?? [],
     rimNote: review?.drawnRimProblem ?? '',
     ownerContacts: target.ownerContacts,

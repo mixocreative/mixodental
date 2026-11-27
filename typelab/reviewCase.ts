@@ -104,6 +104,8 @@ export type CaseRow = Omit<OrientationEvidence, 'rotation'> & {
   orientFile: string;
   /** The Zones tab's file for this case (`<case>-zones.json` + `.bin`): every zone-graph node's value per face (plan D2). */
   zonesFile: string;
+  /** Denture compared with a target: the fit's evidence file (`<case>-evidence.json`, fitEvidence.ts), else ''. */
+  evidenceFile: string;
   /** Denture only, when MIXO_TIMERS is set: seconds per stage of the flow ('scan 3.1 / policy 0.4 / generate 20 / flow 24'); '' otherwise. */
   stageTimes: string;
 };
@@ -121,7 +123,7 @@ export async function reviewCase(file: string, name: string, out: string, kind: 
     ...unbuiltTargetState(file),
     diagnosticNote: '',
     upDecision: '', tipsBySource: '', selfSupport: '', traps: '', unsupportableTips: 0, tipsLeftOutReasons: '',
-    peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', zonesFile: '', stageTimes: '',
+    peelMaxOurs: null, peelMaxOursAtMm: null, peelMaxOwner: null, peelMaxOwnerAtMm: null, peelRaftTopMm: null, peelModelOnlyRatio: null, peelLayersOver: null, maxTipsPerTrunk: null, trunkToNeckArea: null, peelFile: '', peelNote: '', orientFile: '', zonesFile: '', evidenceFile: '', stageTimes: '',
     ...noEvidence, orientationGlb: '' };
   let shapeMesh: TriangleMesh | undefined;
   try {
@@ -260,6 +262,11 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
     writeFileSync(join(out, `${name}-zones.bin`), Buffer.concat(detail.zoneNodes.map((n) => Buffer.from(n.values.buffer, n.values.byteOffset, n.values.byteLength))));
     writeFileSync(join(out, `${name}-zones.json`), JSON.stringify({ ids: detail.zoneNodes.map((n) => n.id), faces, bin: `${name}-zones.bin` }));
     row.zonesFile = `${name}-zones.json`;
+  }
+  // The fit's evidence (fitEvidence.ts): which tip source and which zone node the misses against the target come from.
+  if (detail.evidence) {
+    writeFileSync(join(out, `${name}-evidence.json`), JSON.stringify(detail.evidence));
+    row.evidenceFile = `${name}-evidence.json`;
   }
   // Peel and strength report: layer areas of our print against the owner print, from the GLB just written. Never stops the case.
   try {

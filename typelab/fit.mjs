@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { sampleScans } from '../scripts/samples.mjs';
 import { viteNodeCli } from '../scripts/viteNodeCli.mjs';
 import { PROVISIONAL_UNDER } from './fitScore.mjs';
+import { streamsOutside } from './fitEvidence.mjs';
 import { describe, EDITS, search } from './fitSearch.mjs';
 import { stampNow } from './rules.mjs';
 import { CACHE, finishRun, isKept, runKey } from './runCache.mjs';
@@ -63,7 +64,7 @@ function startType() {
 function runOne(source, type) {
   const key = runKey(source, type);
   const part = join(CACHE, key);
-  const row = () => ({ ...JSON.parse(readFileSync(join(part, 'summary.json'), 'utf8')).cases[0], source });
+  const row = () => ({ ...JSON.parse(readFileSync(join(part, 'summary.json'), 'utf8')).cases[0], source, dir: part });
   if (isKept(key, source)) return Promise.resolve(row());
   rmSync(part, { recursive: true, force: true });
   mkdirSync(part, { recursive: true });
@@ -114,6 +115,25 @@ const winner = { ...best.type, id: winnerId, basedOn: start.basedOn ?? start.id,
 writeFileSync(join(out, 'winner.type.json'), `${JSON.stringify(winner, null, 2)}\n`);
 const slim = (t) => ({ setup: describe(t.steps), steps: t.steps, result: t.result, refused: t.refused, moved: t.moved });
 writeFileSync(join(out, 'fit.json'), JSON.stringify({ kind, category, scans: scans.length, paired, start: start.id, best: slim(best), tried: tried.map(slim) }, null, 1));
+/*
+ * WHERE THE MISSES COME FROM (fitEvidence.mjs): per tip source, the support area outside the target, summed over the
+ * pairs - for the starting setup and the winner. The first thing to read when the fit "moved nothing": a source whose
+ * area outside does not shrink under zone edits is one the zone does not gate, and the next move is a node that gates
+ * it, or an engine request - not more of the same edits.
+ */
+const evidenceOf = (rows) => rows.filter((row) => row?.evidenceFile && row.dir)
+  .map((row) => { try { return JSON.parse(readFileSync(join(row.dir, row.evidenceFile), 'utf8')); } catch { return null; } }).filter(Boolean);
+const outsideBy = (rows) => streamsOutside(evidenceOf(rows));
+const startOutside = outsideBy(first.rows);
+const bestOutside = outsideBy(best.rows);
+writeFileSync(join(out, 'evidence.json'), JSON.stringify({ start: startOutside, best: bestOutside }, null, 1));
+if (startOutside.length) {
+  console.log('\nwhere our support area outside the target comes from (mm2, all pairs; start -> best):');
+  for (const s of startOutside) {
+    const b = bestOutside.find((x) => x.stream === s.stream);
+    console.log(`  ${s.stream.padEnd(16)} ${String(s.outsideMm2).padStart(8)} -> ${String(b?.outsideMm2 ?? '-').padStart(8)}   (${s.tips} tips)`);
+  }
+}
 const unmoved = tried.filter((t) => !t.moved && !t.problem).map((t) => describe(t.steps.slice(-1)));
 console.log(`\nbest: ${describe(best.steps)}  score ${best.result.score} (start ${first.result.score}); covered ${best.result.covered}% (was ${first.result.covered}%), outside ${best.result.outside}% (was ${first.result.outside}%)`);
 if (unmoved.length) console.log(`changed nothing on these scans (unproven, not neutral): ${unmoved.join('; ')}`);
