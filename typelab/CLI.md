@@ -196,8 +196,11 @@ node can be introduced." Fable and Codex designed it independently and agreed on
    stop overhanging. **TRAP:** the review mesh is Y-up, so a bare point (x, y, z) is (x, z, -y) there. The first pose run
    used Z-up and "found" most rim tips facing up.
 
-   Next: ask the owner what differs between the cases that keep rim support and the one that does not. Once the node
-   exists, a case-level no-support zone can be painted by hand.
+   The owner was asked what differs between those cases. Their answer, 2026-11-27: there is nothing more to tell, and
+   these are all the samples. So the rim stays as it is: the rim tips stay on, the way 3 of the 4 targets have them. A
+   missing support can fail a print, while an extra one only costs cleanup. With 1 case against 3, any case factor found
+   would be a guess. Revisit when new `-sup` samples arrive (`node typelab/rimProbe.mjs`). Until then, the route for a
+   case that needs no rim support is by hand: once the node exists, a no-support zone painted above Rim tips.
 
 ## Stage 2 — pin it before you tune it
 
