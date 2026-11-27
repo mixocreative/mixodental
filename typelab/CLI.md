@@ -202,6 +202,17 @@ node can be introduced." Fable and Codex designed it independently and agreed on
    would be a guess. Revisit when new `-sup` samples arrive (`node typelab/rimProbe.mjs`). Until then, the route for a
    case that needs no rim support is by hand: once the node exists, a no-support zone painted above Rim tips.
 
+   **The owner's discovery, 2026-11-27: two of the six denture scans are not dentures, because they are not U-shaped.**
+   Measured by geometry alone (each scan's vertices projected onto its own two main axes): scans `#ec460f9b92` and
+   `#c18ba9eb2e` are small solid pieces, about 28 × 19 mm with no arch. They are the two that orientation already refuses
+   (`no-legs`), so they were never compared, and every number above comes from the other four. The fit stands. The same
+   measurement also gives the first geometric difference between the four cases. The one pair whose target has no rim
+   tips (pair 4, `#3cbc9a7681`) is the only open horseshoe: the centre of its footprint is a gap, and 50% of its
+   bounding box is filled. The other three cover the middle (centre on material, 62–75% filled). This is a
+   **CANDIDATE** only, still 1 case against 3: "no rim tips on an open horseshoe" needs a second horseshoe with a `-sup`
+   target before it becomes a rule. The measurement was a scratch script and is not kept. Write it as a typelab probe
+   with a test if that second sample arrives.
+
 ## Stage 2 — pin it before you tune it
 
 ```bash

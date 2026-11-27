@@ -42,7 +42,7 @@ To add a sample: put the bare scan and, when there is one, its supported version
 
 | folder | what it holds | used by |
 |---|---|---|
-| `denture/g/` | denture scans, three with a `-sup.stl` target and `-sup.contacts.json`; two small ones the orientation step refuses ("no-legs") | `gate:real` (denture), pinned denture tests, the Type Lab |
+| `denture/g/` | six scans, each with a `-sup.stl` target and `-sup.contacts.json`. Two of them (`#ec460f9b92`, `#c18ba9eb2e`) are not dentures: small solid pieces with no U-shaped arch (owner, 2026-11-27). The orientation step refuses them ("no-legs") | `gate:real` (denture), pinned denture tests, the Type Lab |
 | `aligner/g/` | aligner scans, multi-part ones included, and the public reference copy with its `-sup` target and contacts | `gate:real` (aligner), one pinned open-arch scan |
 | `retainer/` | retainer scans (each also in `aligner/g/` at present) | `gate:real` (retainer, run as an aligner), pinned open-arch and print-angle scans |
 
