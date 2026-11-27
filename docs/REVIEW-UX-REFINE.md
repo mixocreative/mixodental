@@ -169,3 +169,10 @@ Agreed but NOT built, with the reason:
 Dropped because the reviewers disagreed: the card action grid (Codex: cards are ~208 px and wrap on purpose), which
 scan-progress indicator survives in Step 1, and the empty Step 1 dock (hide it vs name the STL). Owner questions both
 raised: should DEBUG stay in release builds; should "Ready" on the deck mean ready to review or ready to export.
+
+Settled the same morning (owner gave full control): **DEBUG stays in release** - the owner's ruling of 2026-11-21, which
+the walk tests by name; a reversal is the owner's. **"Ready" on the deck** means the orientation check passed, nothing
+more: since item 3 above, a card whose supports Auto-gen built says "Supports built - review needed" until the
+operator has been through it, so "Ready" no longer stands in for "ready to export". **The dental status line stays
+visible**: a status message carries no tone, so the app cannot tell a repeated instruction from an error; hiding it
+needs a tone on every message first (recorded here as the next step for that item).
