@@ -164,7 +164,12 @@ node can be introduced." Fable and Codex designed it independently and agreed on
    (`node typelab/whatif.mjs --type <winner>`: drop tips by face, re-score with the engine's comparison, calibrated on
    the known-bad mark) said no: the calibration reproduced the full run exactly (15.6 -> 14.9), the band scored 14.6
    and made one pair worse. NOT SENT. Lesson recorded: face counts mispredicted three times; the tip-drop re-score
-   matched the full run - the composer's ranking should use it (a design change, back to Fable and Codex). When no mask separates the misses, diagnostic-only procedural descriptors (slope / normal
+   matched the full run - so (agreed by both, after a second calibration: not(RIMBAND) re-scored -4.1 against -5.2
+   measured) the composer now RANKS by that re-score (`rankByRescore`; face counts stay a logged column), and a probe
+   band counts as separating only when the same calibrated re-score confirms it on every pair. End to end on the
+   dentures: no mask and no band separates the rim tips (slope band re-score +1.5/+0.3/-7.5/+0.9, height band
+   +7.7/-16.5/0/-1); the probes still to build need surface neighbourhoods (distance, curvature, component size,
+   grow / shrink). When no mask separates the misses, diagnostic-only procedural descriptors (slope / normal
    angle, height band, distance from a feature, curvature, component size, grow / shrink) are tested on the same faces
    across pairs; one that separates them on every pair becomes an engine request for that generic node
    (`docs/handoff/`, sent to mixo-geocore `docs/requests/`). Never a host-side node in placement.
