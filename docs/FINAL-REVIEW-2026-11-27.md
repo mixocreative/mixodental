@@ -50,6 +50,13 @@ distance from the rim, sector around the arch) separates the rim parts your targ
 So no engine request was sent for it. **What would move it: more denture samples with `-sup` targets** - then the
 composer can test two-factor rules (e.g. sector x distance), and a real separation would become an engine request.
 
+## Scope verdict (Fable and Codex, both)
+
+Asked independently whether anything left must be built now: both answered **COMPLETE - pending only the owner's
+sign-off and new samples**. Deferred by both: curvature / component-size / grow-shrink probes and two-descriptor probes
+(4 pairs cannot confirm them; wait for more denture targets), an aligner composer (no zone graph; profile numbers
+already fitted). Fable's one docs fix (the composer section's status words) is done (`d4c08b1f`).
+
 ## Not done, and why
 
 - Retainers are not tuned: there are no retainer `-sup` targets yet.
