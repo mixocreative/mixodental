@@ -192,12 +192,19 @@
 .type-field input.type-id { width: 130px; font-family: var(--font-mono, monospace); }
 .type-field input.type-badge-input { width: 56px; }
 .type-based { color: var(--muted); font-size: 11px; }
-.type-new { height: 22px; padding: 0 10px; font-size: 11px; }
-.type-steps { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; font-size: 11px; color: var(--muted); }
-.type-steps li { padding: 1px 8px; border: 1px solid var(--line); border-radius: 10px; }
-.type-steps li.done { color: var(--ink); border-color: var(--ink); }
-.type-steps li.now { color: var(--ink); border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
-.type-step-link { height: auto; padding: 0; border: 0; background: none; color: inherit; font-size: 11px; cursor: pointer; text-decoration: underline; }
+.type-row { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; }
+.type-row .type-fields { flex: 1 1 auto; }
+.type-row .type-fields select { height: 22px; font-size: 11px; max-width: 260px; }
+.type-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.type-actions[hidden] { display: none; }
+.type-category { font-size: 11px; color: var(--ink); }
+/* The two marks the old step list carried, on the buttons themselves: ran = Apply's tick, saved = Save's. */
+.type-actions button[data-done="true"]::before { content: '\2713\00a0'; }
+/* An icon-only button: the app's line icons at 16px in a square key; its words are its tooltip and aria-label. */
+.icon-button { width: calc(var(--row) + 2px); height: calc(var(--row) + 2px); padding: 0; display: inline-grid; place-items: center; }
+.icon-button svg { width: 16px; height: 16px; }
+.list-run { display: flex; gap: 4px; margin-bottom: 6px; }
+.views-gap { width: 10px; }
 .type-note { margin: 0; font-size: 11px; color: var(--muted); }
 .type-note.type-warn { color: var(--warning); }
 .type-tune { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
@@ -209,8 +216,10 @@
 
 /* The three stages: one tab per stage, one stage on screen, so the 3D view keeps its height. */
 .stage-tabs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.stage-tab { height: auto; padding: 4px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; font-weight: 600; }
-.stage-tab[aria-pressed="true"] { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
+/* House style (mixo-app-style): 2px corners, and the chosen tab is an INK fill - red is the page's one primary
+   (Apply), never a selection mark. */
+.stage-tab { height: auto; padding: 4px 12px; border: 1px solid var(--line); border-radius: 2px; background: var(--surface); cursor: pointer; font-weight: 600; }
+.stage-tab[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 /* A PRESSED button keeps its dark fill under the mouse. base.css turns every hovered button white
    (`button:hover`) while the pressed state paints its text paper-white, so the tab just clicked went
    blank exactly while the pointer was on it (UX check, 2026-11-20). Same trap in the segmented switch. */
@@ -358,25 +367,33 @@ button[aria-pressed="true"]:hover:not(:disabled) { background: var(--ink); color
     <select id="category-pick" data-ui="category-pick" title="What the scans are - never guessed from a scan. Changing it runs the scans in the list again as that kind.">
       <option value="denture">Denture</option><option value="aligner">Aligner</option>
     </select>
-    <button id="import-files" data-ui="import-files" title="Choose one or more scan files (STL, GLB or glTF) in the system's dialog. Scans are read where they are, never copied.">Import files</button>
-    <button id="import-folder" data-ui="import-folder" title="Choose a folder of scans (STL, GLB or glTF) in the system's dialog (subfolders are included). Scans are read where they are, never copied.">Import folder</button>
+    <!-- LAYOUT (Fable, owner "Do it", 2026-11-27): the header is step 1 only - bring scans in - plus housekeeping at the
+         right. Picking and editing the type lives in the Type strip, running in the case list, comparing on the 3D view.
+         Controls were MOVED, never renamed: every id and data-ui is what the script and the tests find them by. -->
+    <button id="import-folder" data-ui="import-folder" title="Import a folder of scans (STL, GLB or glTF) in the system's dialog; subfolders are included, and -sup target files beside a scan are paired with it. Scans are read where they are, never copied.">Import scans</button>
+    <button id="import-files" data-ui="import-files" class="icon-button" aria-label="Import single scan files" title="Import single scan files (STL, GLB or glTF) in the system's dialog. Scans are read where they are, never copied."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M12 12v6"/><path d="m15 15-3-3-3 3"/></svg></button>
     <input id="import-path" data-ui="import-path" placeholder="or paste a folder or scan file path, Enter" spellcheck="false">
-    <select id="type-pick" data-ui="type-pick" hidden title="The type the scans run with. Switch to compare: the same scans, another type."></select>
-    <button id="type-duplicate" data-ui="type-duplicate" hidden title="Start a new type from this one: the Type strip gets a new id and name; this type is not touched. Edit, Apply, Save. Renaming a type's id is this too - projects store the id, so the old one keeps loading.">Duplicate</button>
-    <select id="compare-pick" data-ui="compare-pick" hidden title="Pin a second type to compare with: the scan on screen runs with it too, and the flip shows one then the other at the same camera."></select>
-    <button id="compare-flip" data-ui="compare-flip" hidden title="Show the other type's result for this scan, at the same camera (key C).">Flip (C)</button>
-    <button id="run-all" data-ui="run-all" hidden title="Run every scan with this type, two at a time. Each scan runs on its own when you open it.">Run all</button>
-    <button id="run-stop" data-ui="run-stop" hidden title="Stop every run of this session that is waiting or going.">Stop</button>
     <span class="muted" id="cache-size" data-ui="cache-size" title="Every scan run with every type is kept, so switching back is instant. About 90 MB each."></span>
-    <button id="cache-clear" data-ui="cache-clear" hidden title="Delete every kept run. Scans and types are not touched.">Clear</button>
+    <button id="cache-clear" data-ui="cache-clear" class="danger" hidden title="Delete every kept run. Scans and types are not touched.">Clear</button>
   </span>
   <span class="open">
-    <input type="file" id="pick-folder" webkitdirectory><button data-pick="pick-folder" title="Open a review folder an earlier batch run made (summary.json and its GLBs).">Open review folder</button>
-    <input type="file" id="pick-files" multiple accept=".json,.glb,.csv"><button data-pick="pick-files" title="Open a review's summary.json and GLB files.">Open review files</button>
+    <!-- ONE way to an earlier batch result: a browser cannot pick a folder and loose files in one dialog, but a drop on the
+         page takes either (readEntry), so the files picker is kept only as the input the drop path shares. -->
+    <input type="file" id="pick-folder" webkitdirectory><button data-pick="pick-folder" title="Open the result folder an earlier batch run made (summary.json and its GLBs) - or drop that folder, or its files, onto the page.">Open earlier results</button>
+    <input type="file" id="pick-files" multiple accept=".json,.glb,.csv">
+  </span>
+  <!-- Held here until the Type strip and the 3D view take them (drawTypeStrip, the views bar): moved, never re-made. -->
+  <span id="control-holder" hidden>
+    <select id="type-pick" data-ui="type-pick" hidden title="The type the scans run with. Switch to compare: the same scans, another type."></select>
+    <button id="type-duplicate" data-ui="type-duplicate" hidden title="Start a new type from this one: the Type strip gets a new id and name; this type is not touched. Edit, Apply, Save. Renaming a type's id is this too - projects store the id, so the old one keeps loading.">Duplicate</button>
   </span>
 </header>
 <main>
   <div class="panel">
+    <div class="list-run" data-ui="list-run">
+      <button id="run-all" data-ui="run-all" hidden title="Run every scan with this type, two at a time. Each scan runs on its own when you open it.">Run all</button>
+      <button id="run-stop" data-ui="run-stop" hidden title="Stop every run of this session that is waiting or going.">Stop</button>
+    </div>
     <div class="segmented" role="group">
       <button id="show-look" aria-pressed="true">Needs a look</button>
       <button id="show-all" aria-pressed="false">All</button>
@@ -408,15 +425,18 @@ button[aria-pressed="true"]:hover:not(:disabled) { background: var(--ink); color
     </div>
     <div class="views">
       <button id="compare-target" data-ui="compare-target" aria-pressed="false" disabled>Compare with target</button>
+      <select id="compare-pick" data-ui="compare-pick" hidden title="Compare with another type: the scan on screen runs with it too, and the flip shows one then the other at the same camera."></select>
+      <button id="compare-flip" data-ui="compare-flip" hidden title="Show the other type's result for this scan, at the same camera (key C).">Flip (C)</button>
+      <span class="views-gap" aria-hidden="true"></span>
       <button data-view="fit">Fit view</button>
       <button data-view="top">Top view</button>
       <button data-view="bottom">Bottom view</button>
       <button data-view="side">Side view</button>
     </div>
     <div class="steps">
-      <button id="prev">Previous</button>
+      <button id="prev" class="icon-button" aria-label="Previous scan" title="Previous scan (Up)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg></button>
       <span class="muted" id="position"></span>
-      <button id="next">Next</button>
+      <button id="next" class="icon-button" aria-label="Next scan" title="Next scan (Down)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
     </div>
   </div>
   <div class="panel right" data-ui="review-panel-right">
@@ -444,8 +464,8 @@ button[aria-pressed="true"]:hover:not(:disabled) { background: var(--ink); color
       <p class="muted" id="bench-note">A re-run takes about 23 seconds per case and writes a new folder; this review is never overwritten.</p>
       <div id="bench-rules" data-ui="bench-rules"></div>
       <div class="bench-actions">
-        <button id="bench-run" data-ui="bench-run">Apply and run again</button>
-        <button id="bench-reset" data-ui="bench-reset" title="Put the search, the zone setup and every setting back to the standard ones. The review on screen is not touched.">Discard my changes</button>
+        <button id="bench-run" data-ui="bench-run" class="primary">Apply and run again</button>
+        <button id="bench-reset" data-ui="bench-reset" class="icon-button" aria-label="Discard my changes" title="Discard my changes: put the search, the zone setup and every setting back to the type's own. The review on screen is not touched."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
         <button id="type-save" data-ui="type-save" title="Save the draft the scans ran as a NEW dated file, types/&lt;category&gt;/&lt;id&gt;.&lt;date-time&gt;.type.json, with its proof - commit it to ship it. On a review folder, opens its scans as a session first.">Save type</button>
       </div>
       <p class="muted" id="bench-status" data-ui="bench-status"></p>
@@ -664,6 +684,16 @@ let typeIdTyped = false;
 /* The categories a type may belong to - the app's list (host `DENTAL_KINDS`), never typed. A new category is a code
    change (src/components/README.md, "Adding a category"); viewerScript.test.ts holds this list to the host's. */
 const TYPE_CATEGORIES = [['denture', 'Denture'], ['aligner', 'Aligner']];
+/** The app's own `tool-add` icon (src/ui/assets/icons, lucide circle-plus), for the New type button. */
+const ICON_ADD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>';
+/*
+ * The page's own controls the Type strip ARRANGES (moves in on every draw). TRAP: the strip empties itself before it
+ * redraws, and an element taken out of the page is no longer found by getElementById - so they are held here once,
+ * while still in the page, and the strip appends these references.
+ */
+const STRIP_HELD = Object.fromEntries(['type-pick', 'type-duplicate', 'bench-reset', 'type-save', 'bench-run', 'bench-status'].map((id) => [id, document.getElementById(id)]));
+// The Type strip's action buttons follow the rule panel's hidden state (drawTypeStrip): redraw when it changes.
+new MutationObserver(() => drawTypeStrip()).observe(document.getElementById('stage-run'), { attributes: true, attributeFilter: ['hidden'] });
 /* Set once the review server answers (the served summary, near the end of this script): the New-type strip and Save
    type need it. A plain variable up here, because drawChain may run before that const is reached. */
 let reviewServed = false;
@@ -1363,13 +1393,9 @@ function drawTypeStrip() {
     row.append(Object.assign(document.createElement('span'), { className: 'k', textContent: label }), input);
     return row;
   };
-  const category = document.createElement('select');
-  for (const [value, label] of TYPE_CATEGORIES) {
-    // The folder on screen was run as one category; a type of another needs a folder of those scans.
-    const option = Object.assign(document.createElement('option'), { value, textContent: label, selected: value === kindNow, disabled: value !== kindNow });
-    if (value !== kindNow) option.title = `This folder was run as ${kindNow === 'denture' ? 'dentures' : 'aligners'}: open a folder of ${label.toLowerCase()} scans to make a ${label.toLowerCase()} type.`;
-    category.append(option);
-  }
+  // The category is a FACT of the scans on screen (the header's pick), not a choice here: the old select offered the
+  // other category disabled, which read as "the types failed to load" (owner, 2026-11-27).
+  const category = Object.assign(document.createElement('span'), { className: 'type-category', textContent: TYPE_CATEGORIES.find(([value]) => value === kindNow)?.[1] ?? kindNow });
   const fullName = Object.assign(document.createElement('input'), { type: 'text', value: typeFullName, maxLength: 60, placeholder: 'Soft denture', spellcheck: false });
   const id = Object.assign(document.createElement('input'), { type: 'text', value: typeName, spellcheck: false, className: 'type-id' });
   const badge = Object.assign(document.createElement('input'), { type: 'text', value: typeBadge, maxLength: 5, placeholder: 'G', spellcheck: false, className: 'type-badge-input' });
@@ -1383,9 +1409,11 @@ function drawTypeStrip() {
   fullName.addEventListener('change', () => drawTypeStrip());
   id.addEventListener('change', () => { typeName = id.value.trim(); typeIdTyped = true; save('review-type-id', typeName); drawTypeStrip(); });
   badge.addEventListener('change', () => { typeBadge = badge.value.trim(); save('review-type-badge', typeBadge); drawTypeStrip(); });
-  const newType = Object.assign(document.createElement('button'), { type: 'button', textContent: 'New type', className: 'type-new' });
+  const newType = Object.assign(document.createElement('button'), { type: 'button', className: 'type-new icon-button' });
+  newType.innerHTML = ICON_ADD;
   newType.dataset.ui = 'type-new';
-  newType.title = 'Start a new type from the built-in one: opens the built-in as it is and clears the name, id and badge. The type you were editing keeps its unsaved edits.';
+  newType.setAttribute('aria-label', 'New type');
+  newType.title = 'New type: starts from the built-in one as it is, with the name, id and badge cleared. The type you were editing keeps its unsaved edits.';
   newType.addEventListener('click', () => {
     // In a session: the built-in opens as it is (the type left keeps its unsaved edits as its draft). On a review
     // folder: Discard, as before. Either way the name, id and badge are then cleared for the new type.
@@ -1396,47 +1424,46 @@ function drawTypeStrip() {
     drawTypeStrip();
     document.querySelector('[data-ui="type-full-name"]')?.focus();
   });
+  // ROW 1, in the order of the work (Fable's layout, 2026-11-27): which type (pick, Duplicate, New), what it is called,
+  // then - at the right - Discard, Save, and Apply, the page's one red button. The picker and the three action buttons
+  // are the page's own elements MOVED here on every draw (their listeners stay); the strip only arranges them.
   const fields = Object.assign(document.createElement('div'), { className: 'type-fields' });
+  const typePickNow = STRIP_HELD['type-pick'];
+  const duplicateNow = STRIP_HELD['type-duplicate'];
   fields.append(
     Object.assign(document.createElement('b'), { className: 'type-title', textContent: 'Type' }),
-    field('category', 'type-category', category, 'What the type is for - the app\'s list. The folder on screen decides which one runs.'),
+    ...[typePickNow, duplicateNow].filter(Boolean),
+    newType,
     field('name', 'type-full-name', fullName, 'The full name the app shows in its type list, one line, up to 60 characters.'),
     field('id', 'type-name', id, 'The file name: lower-case letters, digits, dots and dashes. Follows the name until you type it yourself. Save type writes a new dated file, types/<category>/<id>.<date-time>.type.json.'),
     field('badge', 'type-badge', badge, 'Up to 5 characters, no spaces: shown beside the name in the app\'s type list. Empty = the app\'s default badge.'),
+    field('category', 'type-category', category, 'What the type is for, from the scans on screen: change it with the category pick at the top left.'),
     // What the strip's type comes from: the opened type itself, or - with another id - a NEW type based on it.
     Object.assign(document.createElement('span'), { className: 'type-based', textContent: basedOnWords() }),
-    newType,
   );
-  // The steps, in order, each marked from what happened.
-  // A valid id is enough: with no full name the type is named after its id (typeInForce typeNameOf), and asking for one
-  // here left Apply and Save working but never ticked (Fable, 2026-11-23).
+  // The old step list (Name it ... Apply and run ... Save type) repeated the stage tabs and drew "Apply and run" as text
+  // that looked like a button: its two marks now sit ON the real buttons (data-done -> a tick). A valid id is enough
+  // to count as named: with no full name a type is named after its id (typeInForce typeNameOf).
   const named = /^[a-z0-9][a-z0-9.-]*$/.test(typeName);
   const marks = stripMarks();
   const ran = named && marks.ran;
   const saved = ran && marks.saved;
-  const steps = Object.assign(document.createElement('ol'), { className: 'type-steps' });
-  steps.dataset.ui = 'type-steps';
-  const current = !named ? 'name' : !ran ? 'apply' : !saved ? 'save' : null;
-  for (const [key, label, done, stage] of [
-    ['name', 'Name it', named, null], ['orient', '1 Orient', false, 'orient'], ['rim', '2 Rim', false, 'rim'], ['zones', '3 Zones', false, 'zones'],
-    ['support', '4 Settings', false, 'support'], ['angle', '5 Print angle', false, 'angle'], ['apply', 'Apply and run', ran, null], ['save', 'Save type', saved, null],
-  ]) {
-    const step = document.createElement('li');
-    step.dataset.ui = `type-step-${key}`;
-    step.className = `${done ? 'done' : ''}${current === key ? ' now' : ''}`.trim();
-    if (stage && kindNow === 'denture') {
-      // Optional edits: a link to the stage, not a box to tick.
-      const go = Object.assign(document.createElement('button'), { type: 'button', textContent: label, className: 'type-step-link' });
-      go.addEventListener('click', () => { stageNow = stage; save('review-stage', stage); if (lastChain) drawChain(...lastChain); });
-      step.append(go);
-    } else if (!stage) {
-      step.textContent = `${done ? '✓ ' : ''}${label}`;
-    } else {
-      continue; // an aligner run has no editable stages yet
-    }
-    steps.append(step);
+  const actions = Object.assign(document.createElement('div'), { className: 'type-actions' });
+  actions.dataset.ui = 'type-actions';
+  // The buttons live only once the rules module has loaded and the review is served (the end of the page script
+  // un-hides #stage-run then): a button that runs rules the engine does not know is worse than none. So the strip
+  // follows #stage-run's hidden state, also when it changes later (the observer above).
+  actions.hidden = Boolean(document.getElementById('stage-run')?.hidden);
+  for (const [buttonId, done] of [['bench-reset', null], ['type-save', saved], ['bench-run', ran]]) {
+    const button = STRIP_HELD[buttonId];
+    if (!button) continue;
+    if (done !== null) button.dataset.done = String(done);
+    actions.append(button);
   }
-  strip.append(fields, steps, tuneRow());
+  const status = STRIP_HELD['bench-status'];
+  const row = Object.assign(document.createElement('div'), { className: 'type-row' });
+  row.append(fields, actions);
+  strip.append(row, ...(status ? [status] : []), tuneRow());
   if (kindNow === 'aligner') {
     // An aligner run has no editable stages yet: say what an aligner type can change today, so the missing links read as
     // a fact rather than a fault. (The app loads aligner types since 2026-11-23, docs/TYPE-PIPELINE.md section 8a.)
