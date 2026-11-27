@@ -1861,7 +1861,8 @@ dialog.terms .terms-item > span { flex: none; }
     "shot    shot"
     "name    verdict"
     "meta    meta"
-    "purpose detect"
+    "purpose purpose"
+    "detect  detect"
     "actions actions";
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 4px 8px;
@@ -2021,7 +2022,9 @@ dialog.terms .terms-item > span { flex: none; }
 .verdict-mark { width: 14px; height: 14px; }
 /* What the batch found about THIS row's orientation — its own result, not the batch's. */
 /* The status chip: one or two words, the same width on every row so the column can be scanned. */
-.items-row .detect { color: var(--muted); font-size: var(--small-size, 11.5px); text-align: right; }
+/* Its own line under the type key (2026-11-27): beside it, the key with the type name and a chip like "Supports built -
+   review needed" overlapped on a ~208px card. */
+.items-row .detect { color: var(--muted); font-size: var(--small-size, 11.5px); text-align: left; }
 /* A row that needs the operator, and a row whose check could not run: not the same thing, and
    neither is the muted grey of a row that is fine. */
 .items-row .detect--todo { color: var(--warning); }
