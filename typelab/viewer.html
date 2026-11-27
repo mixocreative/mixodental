@@ -2601,13 +2601,26 @@ async function show(row) {
     });
     // ONE COLOUR PER PLANE, the same on its chip and in 3D (docs/ORIENT-NODES.md section 10): a plane takes its token
     // whatever colour its GLB was written with - the engine writes the trim plane, the host the others.
+    const filledPlanes = [];
     model.traverse((object) => {
       const key = keyOf(object.name || '') ?? keyOf(object.parent?.name || '');
       if (!object.material || !PLANE_KEYS.includes(key)) return;
       object.material.vertexColors = false;
       object.material.color.set(cssToken(SWATCH_VAR[key]));
       object.material.needsUpdate = true;
+      if (object.isMesh) filledPlanes.push({ object, key });
     });
+    // A PLANE IS DRAWN AS ITS EDGE, never filled (owner, 2026-11-28): a filled quad hides the model behind it. The
+    // arch plane is written as two triangles, and cached runs keep that, so the outline is made here, where every run
+    // passes. EdgesGeometry drops the diagonal because both triangles lie in one plane. The line keeps the mesh's name,
+    // so the layer toggles still find it.
+    for (const { object, key } of filledPlanes) {
+      const edge = new THREE.LineSegments(new THREE.EdgesGeometry(object.geometry), new THREE.LineBasicMaterial({ color: cssToken(SWATCH_VAR[key]) }));
+      edge.name = object.name;
+      edge.position.copy(object.position); edge.quaternion.copy(object.quaternion); edge.scale.copy(object.scale);
+      object.parent.add(edge);
+      object.parent.remove(object);
+    }
     scene.add(model);
     const supports = new THREE.Box3();
     model.traverse((object) => {
