@@ -665,16 +665,30 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     };
   }
   if (evidence && process.env.MIXO_WHATIF && review) {
-    const rules = JSON.parse(process.env.MIXO_WHATIF) as Array<{ name: string; streams: string[]; node?: string; invert?: boolean; heightBand?: [number, number]; slopeBand?: [number, number]; rimDistanceBand?: [number, number]; sectorBand?: [number, number] }>;
+    const rules = JSON.parse(process.env.MIXO_WHATIF) as Array<{ name: string; streams: string[]; node?: string; invert?: boolean; heightBand?: [number, number]; slopeBand?: [number, number]; rimDistanceBand?: [number, number]; sectorBand?: [number, number]; notOverhangingAlong?: [number, number, number, number] }>;
     const { height, slope, rimDistance, sector } = faceDescriptors(mesh.positions, mesh.indices, rimPointsOf(review));
     const inBand = (values: Uint8Array, face: number, band?: [number, number]) => band !== undefined && values[face]! >= band[0] && values[face]! < band[1];
+    // The print-pose probe (2026-11-27): `notOverhangingAlong` = [down x, y, z, limit deg from horizontal] in THIS MESH's
+    // frame. TRAP: the mesh is Y-up - a bare-scan point (x, y, z) is (x, z, -y) here (toMeshFrame) - so a down taken
+    // from the matcher's Z-up transform must be converted first; and the winding may point inward (outwardSign). Drops a
+    // tip whose face does NOT overhang in that pose: its outward normal is more than `limit` deg away from straight down.
+    const outward = rules.some((rule) => rule.notOverhangingAlong) ? outwardSign(mesh) : 1;
+    const notOverhanging = (face: number, along?: [number, number, number, number]) => {
+      if (!along) return false;
+      const p = mesh.positions, at = (k: number) => mesh.indices[face * 3 + k]! * 3;
+      const [a, b, c] = [at(0), at(1), at(2)];
+      const u = [p[b]! - p[a]!, p[b + 1]! - p[a + 1]!, p[b + 2]! - p[a + 2]!], v = [p[c]! - p[a]!, p[c + 1]! - p[a + 1]!, p[c + 2]! - p[a + 2]!];
+      const n = [u[1]! * v[2]! - u[2]! * v[1]!, u[2]! * v[0]! - u[0]! * v[2]!, u[0]! * v[1]! - u[1]! * v[0]!];
+      const cos = outward * (n[0]! * along[0] + n[1]! * along[1] + n[2]! * along[2]) / (Math.hypot(n[0]!, n[1]!, n[2]!) * Math.hypot(along[0], along[1], along[2]) || 1);
+      return cos <= Math.cos((along[3] * Math.PI) / 180);
+    };
     const score = (tips: Vector[]) => { const c = compareDentureAreas(mesh, target.ownerPoints!, tips); return Math.round((c.coverage - c.extra) * 1000) / 10; };
     const all = review.tips;
     (evidence as Record<string, unknown>).whatIf = [{ name: 'as built', score: score(placed.map((tip) => tip.position)) }, ...rules.map((rule) => {
       const node = rule.node ? review.zoneNodes.find((n) => n.id === rule.node) : undefined;
       const drop = (tip: (typeof all)[number]) => rule.streams.includes(sourceName(tip.stream))
         && ((node !== undefined && ((node.values[tip.face] ?? 0) > 0) !== Boolean(rule.invert)) || inBand(height, tip.face, rule.heightBand) || inBand(slope, tip.face, rule.slopeBand)
-          || inBand(rimDistance, tip.face, rule.rimDistanceBand) || inBand(sector, tip.face, rule.sectorBand));
+          || inBand(rimDistance, tip.face, rule.rimDistanceBand) || inBand(sector, tip.face, rule.sectorBand) || notOverhanging(tip.face, rule.notOverhangingAlong));
       const kept = all.filter((tip) => !drop(tip));
       return { name: rule.name, dropped: all.length - kept.length, score: score(kept.map((tip) => tip.position)) };
     })];
