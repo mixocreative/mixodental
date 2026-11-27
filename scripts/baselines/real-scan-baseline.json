@@ -2,83 +2,112 @@
   "note": "Numbers and hashes only; keyed by kind + SHA-256 of the scan bytes. Written by npm run gate:real -- --update.",
   "nondeterministic": {},
   "cases": {
-    "denture-1b6a4e0c5656": {
-      "kind": "denture",
-      "record": {
-        "tipsPlaced": 180,
-        "tipsLeftOut": 0,
-        "islandsUnresolved": 0,
-        "printAngleDeg": 8,
-        "tipsBySource": "dental rim 116 / hole 36 / area 10 / low 2 / island 16",
-        "unresolvedIslands": "none",
-        "verdict": "clear",
-        "result": "built",
-        "reason": "",
-        "hashes": {
-          "case-001-peel.json": "2320845d8e2f00b2f40901b4bed96e3284b266fe9a8d59a69debcdc763a73505",
-          "case-001.glb": "d43306ce78714186c8a4295bf0702a9b116e7470f3fbcb6b6feea3d8ad1b4834",
-          "client/case-001.glb": "e9ddfbf2c023b55f4bb418fad257e49805834628622746ac49be258f095c2923"
-        }
-      }
-    },
-    "denture-aafea2257bf5": {
-      "kind": "denture",
-      "record": {
-        "tipsPlaced": 99,
-        "tipsLeftOut": 0,
-        "islandsUnresolved": 0,
-        "printAngleDeg": 0,
-        "tipsBySource": "dental rim 87 / low 4 / island 8",
-        "unresolvedIslands": "none",
-        "verdict": "clear",
-        "result": "built",
-        "reason": "",
-        "hashes": {
-          "case-001-peel.json": "2befcb09893c0b5527808fe83ad679a25b8d2f016a4db4f2f59a7cd71932c025",
-          "case-001.glb": "ee39533e6dfa065399052b8b5cb49554aaea362ae58fc2e1910c76b37d739b69",
-          "client/case-001.glb": "b4f4182f44a5ac6684aaf406179491b8b1ee10ce483296eb15ca05216869504b"
-        }
-      }
-    },
-    "denture-3cbc9a768182": {
-      "kind": "denture",
-      "record": {
-        "tipsPlaced": 76,
-        "tipsLeftOut": 0,
-        "islandsUnresolved": 0,
-        "printAngleDeg": 18,
-        "tipsBySource": "dental rim 62 / area 7 / low 2 / island 5",
-        "unresolvedIslands": "none",
-        "verdict": "clear",
-        "result": "built",
-        "reason": "",
-        "hashes": {
-          "case-001-peel.json": "64aa1258af12c0f8404e25aeedba6da7fefd8e2717dd99db2d4b6ecccfd84440",
-          "case-001.glb": "0eb8bb5c6ff8d03acc8c458fb19567c2fc860106087a267e01dfe77c57e7e24b",
-          "client/case-001.glb": "b324399ab8d8428c675925b7b4db570ba55777e9c66e8024eca220fc58237e62"
-        }
-      }
-    },
-    "aligner-006a279ebb7d": {
+    "aligner-78dabb0775e2": {
       "kind": "aligner",
       "record": {
-        "tipsPlaced": 81,
+        "tipsPlaced": 94,
         "tipsLeftOut": 0,
         "islandsUnresolved": 0,
-        "printAngleDeg": 36.5,
+        "printAngleDeg": 44.5,
         "tipsBySource": "",
         "unresolvedIslands": "",
         "verdict": "clear",
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "17add4554a751b446650fac99153fba01f4c7c7a4174b99169ac22b656c80b54",
-          "case-001.glb": "b1b6a657c8866ce197f476c4cb1ec67b641f322cf1d8bbfdab4fa576a977cb44"
+          "case-001-orientation.glb": "89bc96bfa928f9f3a10d8e337a8ad7fdfd4f16ed6ed8d237d9383e0192850e4c",
+          "case-001.glb": "885ba1f4589a8dc0e2a559b56069f4cc024eab34f1060e27a4d18ec4266eb2b5"
         }
       }
     },
-    "retainer-006a279ebb7d": {
-      "kind": "retainer",
+    "aligner-4d3c901b6ff1": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 0,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": null,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "",
+        "result": "inconclusive",
+        "reason": "orientation-non-manifold-or-degenerate-mesh",
+        "hashes": {}
+      }
+    },
+    "aligner-37978abed8a1": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 94,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 44.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "89bc96bfa928f9f3a10d8e337a8ad7fdfd4f16ed6ed8d237d9383e0192850e4c",
+          "case-001.glb": "885ba1f4589a8dc0e2a559b56069f4cc024eab34f1060e27a4d18ec4266eb2b5"
+        }
+      }
+    },
+    "aligner-10f40a069c2f": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 124,
+        "tipsLeftOut": 27,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 26.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "islands: non-manifold edge",
+        "hashes": {
+          "case-001-orientation.glb": "ac2a5137284ffadde3a077077e11bfc5cc969d76dabec7de36866a92ca2b1b28",
+          "case-001.glb": "4590120f42e7c4127ea02b0403963d25fd67c64de35e1d99a8cbf5e66e8bde31"
+        }
+      }
+    },
+    "aligner-76ec63fbbedb": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 92,
+        "tipsLeftOut": 10,
+        "islandsUnresolved": 1,
+        "printAngleDeg": 46.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "ed077b6fcef0e551ee9a25dff2ce99e40e9d1078614292865a7e77ce29c5948a",
+          "case-001.glb": "9de0810707881c130779923eb549c5f20ac199c99c2d6c64034cdc902bef8484"
+        }
+      }
+    },
+    "aligner-dae3a95d5698": {
+      "kind": "aligner",
+      "record": {
+        "tipsPlaced": 0,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": null,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "",
+        "result": "inconclusive",
+        "reason": "surface-region-not-isolated",
+        "hashes": {
+          "case-001-orientation.glb": "b5f8ff4ea1c04ca027fcaceb933992aee9e5c80803ce0e75865454bc09afccee"
+        }
+      }
+    },
+    "aligner-006a279ebb7d": {
+      "kind": "aligner",
       "record": {
         "tipsPlaced": 81,
         "tipsLeftOut": 0,
@@ -113,44 +142,8 @@
         }
       }
     },
-    "retainer-ff7c3fb64a9b": {
-      "kind": "retainer",
-      "record": {
-        "tipsPlaced": 71,
-        "tipsLeftOut": 0,
-        "islandsUnresolved": 0,
-        "printAngleDeg": 29.5,
-        "tipsBySource": "",
-        "unresolvedIslands": "",
-        "verdict": "clear",
-        "result": "built",
-        "reason": "",
-        "hashes": {
-          "case-001-orientation.glb": "b1813eb602203208b55902edd52e078603739173464246148ff04f1cff50c327",
-          "case-001.glb": "0fa6024c4bd49aa80f38310680ea67eac6ded9e7265976fb2c5b45cc935f0ab9"
-        }
-      }
-    },
     "aligner-c69dfade9be3": {
       "kind": "aligner",
-      "record": {
-        "tipsPlaced": 73,
-        "tipsLeftOut": 0,
-        "islandsUnresolved": 0,
-        "printAngleDeg": 26.5,
-        "tipsBySource": "",
-        "unresolvedIslands": "",
-        "verdict": "clear",
-        "result": "built",
-        "reason": "",
-        "hashes": {
-          "case-001-orientation.glb": "192819a0c89e0f0dbeda4bae7e898e714a961de84b7538fdb8da9aafcdc678f0",
-          "case-001.glb": "f8fcabeec5cafbaa0928c7f5372b6e813518866f8beceb51abdbc54459c653ce"
-        }
-      }
-    },
-    "retainer-c69dfade9be3": {
-      "kind": "retainer",
       "record": {
         "tipsPlaced": 73,
         "tipsLeftOut": 0,
@@ -203,26 +196,23 @@
         }
       }
     },
-    "aligner-e73af178b9b0": {
+    "aligner-b65c27bb2572": {
       "kind": "aligner",
       "record": {
-        "tipsPlaced": 86,
+        "tipsPlaced": 0,
         "tipsLeftOut": 0,
         "islandsUnresolved": 0,
-        "printAngleDeg": 29.5,
+        "printAngleDeg": null,
         "tipsBySource": "",
         "unresolvedIslands": "",
-        "verdict": "clear",
-        "result": "built",
-        "reason": "",
-        "hashes": {
-          "case-001-orientation.glb": "a6e20d659c76bd4b8f03e89e552a5e3890d41d658db4a918935ea9db6e5b4176",
-          "case-001.glb": "b3280465ac8350d75c9c44bce831dd966c484b2ced63d7ec87804e133b39f9b2"
-        }
+        "verdict": "",
+        "result": "inconclusive",
+        "reason": "orientation-no-trim",
+        "hashes": {}
       }
     },
-    "retainer-e73af178b9b0": {
-      "kind": "retainer",
+    "aligner-e73af178b9b0": {
+      "kind": "aligner",
       "record": {
         "tipsPlaced": 86,
         "tipsLeftOut": 0,
@@ -257,24 +247,6 @@
         }
       }
     },
-    "retainer-6969105a32ea": {
-      "kind": "retainer",
-      "record": {
-        "tipsPlaced": 73,
-        "tipsLeftOut": 0,
-        "islandsUnresolved": 0,
-        "printAngleDeg": 33.5,
-        "tipsBySource": "",
-        "unresolvedIslands": "",
-        "verdict": "clear",
-        "result": "built",
-        "reason": "",
-        "hashes": {
-          "case-001-orientation.glb": "7df172d4528dbb696de9184180442a1b42a83ccf0db95c29d3f6ee6f8042b5d4",
-          "case-001.glb": "ad218d50f1bfb8246410f5772474a63d242eb0ba9330bb3dca9867c8af39e51f"
-        }
-      }
-    },
     "aligner-479d20d1a73d": {
       "kind": "aligner",
       "record": {
@@ -293,38 +265,214 @@
         }
       }
     },
-    "aligner-10f40a069c2f": {
+    "aligner-c41699153ab8": {
       "kind": "aligner",
       "record": {
         "tipsPlaced": 0,
         "tipsLeftOut": 0,
         "islandsUnresolved": 0,
-        "printAngleDeg": 26.5,
+        "printAngleDeg": null,
         "tipsBySource": "",
         "unresolvedIslands": "",
         "verdict": "",
         "result": "inconclusive",
-        "reason": "diagnostic-band-invalid-face-graph",
+        "reason": "orientation-no-trim",
+        "hashes": {}
+      }
+    },
+    "denture-ec460f9b92f3": {
+      "kind": "denture",
+      "record": {
+        "tipsPlaced": 0,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": null,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "",
+        "result": "inconclusive",
+        "reason": "denture-orient-no-legs",
+        "hashes": {}
+      }
+    },
+    "denture-c18ba9eb2e3e": {
+      "kind": "denture",
+      "record": {
+        "tipsPlaced": 0,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": null,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "",
+        "result": "inconclusive",
+        "reason": "denture-orient-no-legs",
+        "hashes": {}
+      }
+    },
+    "denture-3e24e678e617": {
+      "kind": "denture",
+      "record": {
+        "tipsPlaced": 127,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 38,
+        "tipsBySource": "dental rim 51 / hole 22 / area 2 / low 2 / island 50",
+        "unresolvedIslands": "none",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "fb72d8b5eda26dbb556dbe8e3a1c66139a165eef66732e3927e04873d34bd358"
+          "case-001-peel.json": "2dce4e89ba2e75b879ea00d573925bdfaa68bdfd397c422ccbf38d45e5b56207",
+          "case-001.glb": "c1a535454a3cd2b1e71c4437dfe8ed5793fdf177cb560383d0dd61bf8e63111e",
+          "client/case-001.glb": "e196129e83f4645736ed2b752cc1b51c06ebe4bec3d7a80d47dea24f9e83906a"
         }
       }
     },
-    "aligner-76ec63fbbedb": {
-      "kind": "aligner",
+    "denture-1b6a4e0c5656": {
+      "kind": "denture",
       "record": {
-        "tipsPlaced": 92,
-        "tipsLeftOut": 10,
-        "islandsUnresolved": 1,
-        "printAngleDeg": 46.5,
+        "tipsPlaced": 204,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 8,
+        "tipsBySource": "dental rim 116 / hole 55 / area 15 / low 2 / island 16",
+        "unresolvedIslands": "none",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-peel.json": "9e4d80854929559aa74a6e0dd716252e5a789a8d213e7aeb20d002a71c7db6aa",
+          "case-001.glb": "3a9e3558a4089368d85e2f8e85dc29e2ac7538acf49b17b1a5149fd005acb055",
+          "client/case-001.glb": "55dc1dab50f3a851e75f68bd5676d6b4680d7feed770c294f6cad511e1d7df80"
+        }
+      }
+    },
+    "denture-aafea2257bf5": {
+      "kind": "denture",
+      "record": {
+        "tipsPlaced": 125,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 0,
+        "tipsBySource": "dental rim 87 / area 26 / low 4 / island 8",
+        "unresolvedIslands": "none",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-peel.json": "c9ebaa40ab6a84c4360a998b7c2f4d10d7c86886f8a62bf7868d48730b3edfbf",
+          "case-001.glb": "de23b7376bf50ecdd7e5ef8b2460362ce43438e973d427bb9e61c67ee7787210",
+          "client/case-001.glb": "011f10120625e5e1424918790d0b44e5c2ecb88bed93beb5e985e6f767e1c5ac"
+        }
+      }
+    },
+    "denture-3cbc9a768182": {
+      "kind": "denture",
+      "record": {
+        "tipsPlaced": 106,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 18,
+        "tipsBySource": "dental rim 62 / area 37 / low 2 / island 5",
+        "unresolvedIslands": "none",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-peel.json": "a1b7b70721ef2275b315a11e9fd29b360c78fe07925a9d1fddacc8bd2a17e4fc",
+          "case-001.glb": "d456735b536c249f070a9dd64a287408ce79cea90eb21a2236876a5899a13097",
+          "client/case-001.glb": "5532ef020d39448fed56ecce566ab04acb5591a7a74ec379dc7cd3b768a0d0a8"
+        }
+      }
+    },
+    "retainer-006a279ebb7d": {
+      "kind": "retainer",
+      "record": {
+        "tipsPlaced": 81,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 36.5,
         "tipsBySource": "",
         "unresolvedIslands": "",
         "verdict": "clear",
         "result": "built",
         "reason": "",
         "hashes": {
-          "case-001-orientation.glb": "ed077b6fcef0e551ee9a25dff2ce99e40e9d1078614292865a7e77ce29c5948a",
-          "case-001.glb": "df91a81416fbbd3f0761250a2e321b550c1296c9080cfcab0d7b2fa3f3a7fbf7"
+          "case-001-orientation.glb": "17add4554a751b446650fac99153fba01f4c7c7a4174b99169ac22b656c80b54",
+          "case-001.glb": "b1b6a657c8866ce197f476c4cb1ec67b641f322cf1d8bbfdab4fa576a977cb44"
+        }
+      }
+    },
+    "retainer-ff7c3fb64a9b": {
+      "kind": "retainer",
+      "record": {
+        "tipsPlaced": 71,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 29.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "b1813eb602203208b55902edd52e078603739173464246148ff04f1cff50c327",
+          "case-001.glb": "0fa6024c4bd49aa80f38310680ea67eac6ded9e7265976fb2c5b45cc935f0ab9"
+        }
+      }
+    },
+    "retainer-c69dfade9be3": {
+      "kind": "retainer",
+      "record": {
+        "tipsPlaced": 73,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 26.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "192819a0c89e0f0dbeda4bae7e898e714a961de84b7538fdb8da9aafcdc678f0",
+          "case-001.glb": "f8fcabeec5cafbaa0928c7f5372b6e813518866f8beceb51abdbc54459c653ce"
+        }
+      }
+    },
+    "retainer-e73af178b9b0": {
+      "kind": "retainer",
+      "record": {
+        "tipsPlaced": 86,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 29.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "a6e20d659c76bd4b8f03e89e552a5e3890d41d658db4a918935ea9db6e5b4176",
+          "case-001.glb": "b3280465ac8350d75c9c44bce831dd966c484b2ced63d7ec87804e133b39f9b2"
+        }
+      }
+    },
+    "retainer-6969105a32ea": {
+      "kind": "retainer",
+      "record": {
+        "tipsPlaced": 73,
+        "tipsLeftOut": 0,
+        "islandsUnresolved": 0,
+        "printAngleDeg": 33.5,
+        "tipsBySource": "",
+        "unresolvedIslands": "",
+        "verdict": "clear",
+        "result": "built",
+        "reason": "",
+        "hashes": {
+          "case-001-orientation.glb": "7df172d4528dbb696de9184180442a1b42a83ccf0db95c29d3f6ee6f8042b5d4",
+          "case-001.glb": "ad218d50f1bfb8246410f5772474a63d242eb0ba9330bb3dca9867c8af39e51f"
         }
       }
     }
