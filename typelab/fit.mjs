@@ -26,6 +26,7 @@ import { viteNodeCli } from '../scripts/viteNodeCli.mjs';
 import { PROVISIONAL_UNDER } from './fitScore.mjs';
 import { streamsOutside } from './fitEvidence.mjs';
 import { composeSearch } from './composeSearch.mjs';
+import { gapReport } from './gapReport.mjs';
 import { describe, EDITS, search } from './fitSearch.mjs';
 import { stampNow } from './rules.mjs';
 import { CACHE, finishRun, isKept, runKey } from './runCache.mjs';
@@ -158,13 +159,23 @@ if (args.includes('--compose')) {
     }
     if (pairs.length === 0) return null;
     const stream = streamsOutside(pairs.map((p) => p.ev))[0]?.stream;
-    return { stream, pairs: pairs.filter((p) => p.ev.binOrder.includes(stream)).map((p) => ({ classes: p.classesOf(stream), nodes: p.nodes })) };
+    // TRAP (first real run, 2026-11-27): the gain must be predicted on ALL sources' classes. A no-support mark takes
+    // away every gated source's support under it, so judging it on the rim source alone predicted a large gain for
+    // "no support everywhere but the rim band" - which wiped out the area and hole tips the target needs (refused).
+    // The source the misses come from still names the rule the mark needs (GATE).
+    return { stream, pairs: pairs.filter((p) => p.ev.binOrder.includes('all')).map((p) => ({ classes: p.classesOf('all'), nodes: p.nodes })) };
   };
   console.log('\ncompose (from the winner above):');
   composed = await composeSearch({ start: best.type, startRows: best.rows, evaluate, evidenceOf: evidenceFor, log: (line) => console.log(line) });
   if (composed.best.steps.length) {
     console.log(`compose kept: ${composed.best.steps.join(' + ')} - score ${composed.best.result.score}`);
     writeFileSync(join(out, 'composed.type.json'), `${JSON.stringify({ ...composed.best.type, validation: null }, null, 2)}\n`);
+  }
+  // No arrangement of today's nodes got there: the draft engine request for a procedural node (gapReport.mjs).
+  if (composed.gap) {
+    writeFileSync(join(out, 'gap-report.md'), gapReport({ kind, stream: composed.gap.stream, outside: streamsOutside(evidenceOf(composed.best.rows)),
+      ceilings: composed.gap.ceilings, refusedOnly: composed.gap.refusedOnly, tried: composed.tried, startScore: composed.best.result.score }));
+    console.log(`gap report (draft engine request, not sent): ${join(out, 'gap-report.md')}`);
   }
   writeFileSync(join(out, 'compose.json'), JSON.stringify({ steps: composed.best.steps, gap: composed.gap,
     tried: composed.tried.map((t) => ({ steps: t.steps, result: t.result, refused: t.refused, predicted: t.predicted })) }, null, 1));

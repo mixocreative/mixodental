@@ -46,6 +46,8 @@ const describeBuild = (b) => (b.op ? `${b.op}(${b.a}${b.b ? `, ${b.b}` : ''})` :
 /**
  * @param {{ start: object, startRows: object[], evaluate: (type) => Promise<object[]>,
  *   evidenceOf: (rows) => { pairs: { classes: Uint8Array, nodes: { id: string, values: Uint8Array }[] }[], stream: string } | null,
+ *     (`classes` = ALL sources' per-face classes - a mark removes every gated source's support under it; `stream` = the
+ *     source the area outside the target mostly comes from, which names the rule the mark needs)
  *   log: (line: string) => void, depth?: number, cap?: number, top?: number, charge?: number }} opts
  */
 export async function composeSearch({ start, startRows, evaluate, evidenceOf, log, depth = 3, cap = 8, top = 3, charge = 5 }) {
@@ -82,7 +84,12 @@ export async function composeSearch({ start, startRows, evaluate, evidenceOf, lo
       log(`  ${name}: predicted faces ${candidate.gains.join('/')} -> measured score ${best.result.score} -> ${result.score}${why.length ? `  refused: ${why.join('; ')}` : '  ACCEPTED'}`);
       if (why.length === 0 && (!kept || result.score > kept.result.score)) kept = entry;
     }
-    if (!kept) { log('compose: no candidate was accepted this step - stop'); break; }
+    if (!kept) {
+      // Eligible on paper, refused by the full runs: today's masks do not get there either. That is a gap too.
+      log('compose: no candidate was accepted this step - stop');
+      if (best.steps.length === 0) return { best, tried, gap: { stream: ev.stream, ceilings: pairs.map((p) => reachableCeiling(p.classes, candidateMasks(p.classes, p.nodes))), refusedOnly: true } };
+      break;
+    }
     best = kept;
   }
   return { best, tried, gap: null };
