@@ -26,6 +26,7 @@ what was believed when. What changed is only where those records live.
 | `dental-kinds-and-types.md` | what an item kind is, and which profile answers for it | adding or changing a dental type |
 | `TYPE-PIPELINE.md` | **how a type made in the workbench reaches the app**: the type file, `register_profile` as the bridge, the build plan E1-E3 and five owner decisions | making a type editable, saving or loading one |
 | `REVIEWER-OVERHAUL-PLAN.md` | **the reviewer as one place to test, compare and save pipelines** (BUILT 2026-11-25; its differences from the plan at the top): import scans in the reviewer, every type loaded, switch type on the same scans, dated append-only saves, restore to the saved value, duplicate and copy | changing how the reviewer runs, loads or saves types |
+| `FINAL-REVIEW-2026-11-27.md` | **the owner's review of the night's work**: what changed, what to look at, the decisions Fable and Codex made, the open finding | reviewing the 2026-11-27 work |
 | `NODE-PLAN.md` · `REVIEWER-UI.md` · `REVIEW-UX-REFINE.md` | the node editor: the three stages, what a zone graph may and may not wire in this version, the review page layout, and the 2026-11-20 UX pass | touching the review page or its node editor |
 | `dental-rework-handoff.md` | the dental rework's own handoff | working the dental steps |
 | `dental/` | how dental support works, for a technician (`plain-language.md`) and an engineer (`technical-algorithm.md`, the wasm geometry notes); was `dentalwork/` until 2026-11-26 | explaining or rebuilding the dental pipeline |
