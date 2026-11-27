@@ -269,7 +269,7 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
     const classes = detail.evidenceClasses;
     writeFileSync(join(out, `${name}-evidence.bin`), Buffer.concat(classes.map((c) => Buffer.from(c.buffer, c.byteOffset, c.byteLength))));
     writeFileSync(join(out, `${name}-evidence.json`), JSON.stringify({ ...detail.evidence, bin: `${name}-evidence.bin`, faceCount: faces,
-      binOrder: ['all', ...detail.evidence.streams.map((s) => s.stream), 'slope', 'height'] }));
+      binOrder: ['all', ...detail.evidence.streams.map((s) => s.stream), 'slope', 'height', 'rimDistance', 'sector'] }));
     row.evidenceFile = `${name}-evidence.json`;
   }
   // Peel and strength report: layer areas of our print against the owner print, from the GLB just written. Never stops the case.

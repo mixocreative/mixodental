@@ -58,6 +58,8 @@ const SOURCE_COLOUR: Record<string, number> = { rim: C.sourceRim, hole: C.source
 const SOURCE_ORDER = ['rim', 'hole', 'area', 'low'];
 /** The source tag as shown to people: the tag `rim` is the dental rim (data and ids keep `rim`). */
 const sourceName = (stream: string): string => (stream === 'rim' ? 'dental rim' : stream);
+/** The rim line's points (every loop), for the gap probes' distance-from-rim descriptor; [] with no rim. */
+const rimPointsOf = (review: DentureReview | undefined): Vector[] => review?.rimLoops?.lines.flatMap((line) => line.points) ?? [];
 /** Vertices per owner-contact marker (markerPositions: 8 octants x 3 corners); their mean is the contact. */
 const MARKER_VERTICES = 24;
 
@@ -663,15 +665,16 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     };
   }
   if (evidence && process.env.MIXO_WHATIF && review) {
-    const rules = JSON.parse(process.env.MIXO_WHATIF) as Array<{ name: string; streams: string[]; node?: string; invert?: boolean; heightBand?: [number, number]; slopeBand?: [number, number] }>;
-    const { height, slope } = faceDescriptors(mesh.positions, mesh.indices);
+    const rules = JSON.parse(process.env.MIXO_WHATIF) as Array<{ name: string; streams: string[]; node?: string; invert?: boolean; heightBand?: [number, number]; slopeBand?: [number, number]; rimDistanceBand?: [number, number]; sectorBand?: [number, number] }>;
+    const { height, slope, rimDistance, sector } = faceDescriptors(mesh.positions, mesh.indices, rimPointsOf(review));
     const inBand = (values: Uint8Array, face: number, band?: [number, number]) => band !== undefined && values[face]! >= band[0] && values[face]! < band[1];
     const score = (tips: Vector[]) => { const c = compareDentureAreas(mesh, target.ownerPoints!, tips); return Math.round((c.coverage - c.extra) * 1000) / 10; };
     const all = review.tips;
     (evidence as Record<string, unknown>).whatIf = [{ name: 'as built', score: score(placed.map((tip) => tip.position)) }, ...rules.map((rule) => {
       const node = rule.node ? review.zoneNodes.find((n) => n.id === rule.node) : undefined;
       const drop = (tip: (typeof all)[number]) => rule.streams.includes(sourceName(tip.stream))
-        && ((node !== undefined && ((node.values[tip.face] ?? 0) > 0) !== Boolean(rule.invert)) || inBand(height, tip.face, rule.heightBand) || inBand(slope, tip.face, rule.slopeBand));
+        && ((node !== undefined && ((node.values[tip.face] ?? 0) > 0) !== Boolean(rule.invert)) || inBand(height, tip.face, rule.heightBand) || inBand(slope, tip.face, rule.slopeBand)
+          || inBand(rimDistance, tip.face, rule.rimDistanceBand) || inBand(sector, tip.face, rule.sectorBand));
       const kept = all.filter((tip) => !drop(tip));
       return { name: rule.name, dropped: all.length - kept.length, score: score(kept.map((tip) => tip.position)) };
     })];
@@ -680,7 +683,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     layers,
     evidence,
     // ...then the gap probes' per-face descriptors (fitEvidence.mjs faceDescriptors - diagnostic only, never placement).
-    evidenceClasses: evidence ? (() => { const d = faceDescriptors(mesh.positions, mesh.indices); return [target.faceClass!, ...streamClasses, d.slope, d.height]; })() : [],
+    evidenceClasses: evidence ? (() => { const d = faceDescriptors(mesh.positions, mesh.indices, rimPointsOf(review)); return [target.faceClass!, ...streamClasses, d.slope, d.height, d.rimDistance, d.sector]; })() : [],
     zoneNodes: review?.zoneNodes ?? [],
     rimNote: review?.drawnRimProblem ?? '',
     ownerContacts: target.ownerContacts,

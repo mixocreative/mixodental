@@ -64,10 +64,19 @@ export function fitEvidence({ streams, faceClass, nodes }) {
  * 0-255. A probe that separates the misses with one of these is EVIDENCE for asking the engine for that node.
  * @param {ArrayLike<number>} positions flat xyz @param {ArrayLike<number>} indices three per face
  */
-export function faceDescriptors(positions, indices) {
+export function faceDescriptors(positions, indices, rimPoints = []) {
   const faces = indices.length / 3;
   const slope = new Uint8Array(faces);
   const heightRaw = new Float32Array(faces);
+  // Two more for the rim (2026-11-27, the probe the rim gap needed): `rimDistance` = straight-line distance from the
+  // face to the nearest rim point, 0.1 mm per step (0-25.5 mm, capped) - a first stand-in for a geodesic distance;
+  // `sector` = where the face sits AROUND THE ARCH (its angle about the model's centre in the horizontal plane,
+  // 0-255 for 0-360 deg) - the targets support some parts of the rim and not others.
+  const rimDistance = new Uint8Array(faces).fill(255);
+  const sector = new Uint8Array(faces);
+  let cx = 0, cz = 0;
+  for (let v = 0; v < positions.length; v += 3) { cx += positions[v]; cz += positions[v + 2]; }
+  cx /= positions.length / 3 || 1; cz /= positions.length / 3 || 1;
   let lo = Infinity, hi = -Infinity;
   for (let f = 0; f < faces; f += 1) {
     const [a, b, c] = [indices[f * 3] * 3, indices[f * 3 + 1] * 3, indices[f * 3 + 2] * 3];
@@ -78,10 +87,15 @@ export function faceDescriptors(positions, indices) {
     slope[f] = Math.round((Math.acos(Math.max(-1, Math.min(1, ny / len))) * 180) / Math.PI);
     const h = (positions[a + 1] + positions[b + 1] + positions[c + 1]) / 3;
     heightRaw[f] = h; lo = Math.min(lo, h); hi = Math.max(hi, h);
+    const mx = (positions[a] + positions[b] + positions[c]) / 3, mz = (positions[a + 2] + positions[b + 2] + positions[c + 2]) / 3;
+    sector[f] = Math.round(((Math.atan2(mz - cz, mx - cx) + Math.PI) / (2 * Math.PI)) * 255);
+    let near = Infinity;
+    for (const [px, py, pz] of rimPoints) near = Math.min(near, (mx - px) ** 2 + (h - py) ** 2 + (mz - pz) ** 2);
+    if (rimPoints.length) rimDistance[f] = Math.min(255, Math.round(Math.sqrt(near) * 10));
   }
   const span = hi - lo || 1;
   const height = Uint8Array.from(heightRaw, (h) => Math.round(((h - lo) / span) * 255));
-  return { slope, height };
+  return { slope, height, rimDistance, sector };
 }
 
 /**

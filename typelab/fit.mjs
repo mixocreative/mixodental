@@ -165,7 +165,7 @@ if (args.includes('--compose')) {
     // "no support everywhere but the rim band" - which wiped out the area and hole tips the target needs (refused).
     // The source the misses come from still names the rule the mark needs (GATE).
     return { stream, pairs: pairs.filter((p) => p.ev.binOrder.includes('all')).map((p) => ({ classes: p.classesOf('all'), nodes: p.nodes, rescore: p.ev.composeScores,
-      ...(p.ev.binOrder.includes('slope') ? { slope: p.classesOf('slope'), height: p.classesOf('height') } : {}) })) };
+      ...(p.ev.binOrder.includes('slope') ? { slope: p.classesOf('slope'), height: p.classesOf('height'), ...(p.ev.binOrder.includes('sector') ? { rimDistance: p.classesOf('rimDistance'), sector: p.classesOf('sector') } : {}) } : {}) })) };
   };
   console.log('\ncompose (from the winner above):');
   composed = await composeSearch({ start: best.type, startRows: best.rows, evaluate, evidenceOf: evidenceFor, log: (line) => console.log(line) });
@@ -179,10 +179,15 @@ if (args.includes('--compose')) {
     // on EVERY pair? Same absolute bands on every pair; a band must clear the same per-node charge as a candidate.
     const ev = evidenceFor(composed.best.rows);
     const probing = (ev?.pairs ?? []).filter((p) => p.slope);
-    const probes = probing.length ? [
-      { name: 'slope band', unit: 'deg from horizontal', ...probeBand(probing.map((p) => ({ classes: p.classes, values: p.slope })), [0, 20, 40, 60, 80, 100, 120, 140, 160, 181]) },
-      { name: 'height band', unit: '/255 of the model height', ...probeBand(probing.map((p) => ({ classes: p.classes, values: p.height })), [0, 26, 51, 77, 102, 128, 154, 179, 205, 230, 256]) },
-    ] : [];
+    // Each probe: its descriptor, the band grid, and the what-if rule key that drops tips by it (dentureReviewLayers MIXO_WHATIF).
+    const PROBES = [
+      { name: 'slope band', key: 'slopeBand', by: 'slope', unit: 'deg from horizontal', grid: [0, 20, 40, 60, 80, 100, 120, 140, 160, 181] },
+      { name: 'height band', key: 'heightBand', by: 'height', unit: '/255 of the model height', grid: [0, 26, 51, 77, 102, 128, 154, 179, 205, 230, 256] },
+      { name: 'distance from the rim', key: 'rimDistanceBand', by: 'rimDistance', unit: 'x0.1 mm', grid: [0, 5, 10, 20, 30, 50, 80, 120, 256] },
+      { name: 'sector around the arch', key: 'sectorBand', by: 'sector', unit: '/255 of a turn', grid: [0, 32, 64, 96, 128, 160, 192, 224, 256] },
+    ];
+    const probes = probing.length ? PROBES.filter((p) => probing.every((pair) => pair[p.by]))
+      .map(({ grid, by, ...p }) => ({ ...p, ...probeBand(probing.map((pair) => ({ classes: pair.classes, values: pair[by] })), grid) })) : [];
     // CONFIRMED BY THE RE-SCORE (whatif.mjs - Fable + Codex: face counts alone mispredicted three times): each probe's
     // band re-scored on every pair with the engine's comparison, calibrated on the known-bad NS mark. A band separates
     // only if the calibration comes out worse AND the band raises the score on every pair by more than PROBE_RESCORE_BAR.
@@ -191,7 +196,7 @@ if (args.includes('--compose')) {
       writeFileSync(typeFile, `${JSON.stringify(composed.best.type, null, 2)}\n`);
       const gated = GATE[composed.gap.stream]?.rule ? ['dental rim', 'hole', 'area'] : ['area'];
       const rules = [{ name: 'calibration: no-support on NS', streams: ['dental rim', 'hole', 'area'], node: 'NS' },
-        ...probes.map((p) => ({ name: `${p.name} [${p.lo}, ${p.hi})`, streams: gated, [p.name === 'slope band' ? 'slopeBand' : 'heightBand']: [p.lo, p.hi] }))];
+        ...probes.map((p) => ({ name: `${p.name} [${p.lo}, ${p.hi})`, streams: gated, [p.key]: [p.lo, p.hi] }))];
       const rows = rescore({ typeFile, rules, out: join(out, 'whatif'), scans });
       const calibrated = rows.length > 0 && rows.reduce((s, r) => s + r.whatIf[1].score - r.whatIf[0].score, 0) < 0;
       probes.forEach((p, k) => {
