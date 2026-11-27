@@ -6439,9 +6439,9 @@
     "semantic_hash": ""
   },
   "docs/REVIEW-UX-REFINE.md": {
-    "mtime": 1795743570.0401149,
-    "seen": 1795748290.9333184,
-    "ast_hash": "1645d8a997c43974dca8e6e1f7d1f6fa",
+    "mtime": 1795749067.1878147,
+    "seen": 1795756216.2730334,
+    "ast_hash": "6f80a119e062946d6d05409ed01a824d",
     "semantic_hash": ""
   },
   "docs/TYPE-PIPELINE.md": {
@@ -6649,9 +6649,9 @@
     "semantic_hash": ""
   },
   "scripts/baselines/real-scan-baseline.json": {
-    "mtime": 1795702611.6184475,
-    "seen": 1795705120.1856272,
-    "ast_hash": "56207e6be615197d2890293c3d3e56e8",
+    "mtime": 1795749636.6873786,
+    "seen": 1795756216.2720335,
+    "ast_hash": "fadb349619d06215cf830f9b1512d2bb",
     "semantic_hash": ""
   },
   "scripts/meshFile.test.ts": {
@@ -6703,9 +6703,9 @@
     "semantic_hash": ""
   },
   "typelab/dentureReviewLayers.ts": {
-    "mtime": 1795737399.3437707,
-    "seen": 1795748290.9333184,
-    "ast_hash": "8e8e8e0019a7080c0c072b3a5be72969",
+    "mtime": 1795755869.4053338,
+    "seen": 1795756216.2730334,
+    "ast_hash": "01f600ceddb7a9d04d209fda6cec9c6e",
     "semantic_hash": ""
   },
   "typelab/glbWorld.ts": {
@@ -6907,9 +6907,9 @@
     "semantic_hash": ""
   },
   "typelab/reviewCase.ts": {
-    "mtime": 1795725279.6968708,
-    "seen": 1795748290.9333184,
-    "ast_hash": "82d547371671094fd2f0da17d7399632",
+    "mtime": 1795752232.7613428,
+    "seen": 1795756216.2730334,
+    "ast_hash": "fa475f371fa9f898170af642aafaac1e",
     "semantic_hash": ""
   },
   "typelab/reviewSession.mjs": {
@@ -7135,9 +7135,9 @@
     "semantic_hash": ""
   },
   "typelab/CLI.md": {
-    "mtime": 1795730029.9967732,
-    "seen": 1795748290.9333184,
-    "ast_hash": "59244ba4c7706181e77c0a9b54a411b5",
+    "mtime": 1795756153.1689289,
+    "seen": 1795756216.2730334,
+    "ast_hash": "8c575ce5d942e481c9ec80213bd60334",
     "semantic_hash": ""
   },
   "typelab/README.md": {
@@ -7201,9 +7201,9 @@
     "semantic_hash": ""
   },
   "typelab/fit.mjs": {
-    "mtime": 1795725867.5506637,
-    "seen": 1795748290.9333184,
-    "ast_hash": "c992d1ddefdd84e7a6d37b0dc087e1de",
+    "mtime": 1795755908.7476335,
+    "seen": 1795756216.2730334,
+    "ast_hash": "346ad574c3ae97de2d862086ecd5bc4e",
     "semantic_hash": ""
   },
   "typelab/fitScore.mjs": {
@@ -7231,9 +7231,9 @@
     "semantic_hash": ""
   },
   "typelab/runCache.mjs": {
-    "mtime": 1795725564.577425,
-    "seen": 1795748290.9333184,
-    "ast_hash": "27e998f42f25726368e1400d069a01a5",
+    "mtime": 1795754125.527269,
+    "seen": 1795756216.2730334,
+    "ast_hash": "f3e628471e8ee237c926a6105b94596d",
     "semantic_hash": ""
   },
   "typelab/targetMatch.mjs": {
@@ -7279,21 +7279,81 @@
     "semantic_hash": ""
   },
   "docs/GEOCORE-BOUNDARY.md": {
-    "mtime": 1795719646.3244746,
-    "seen": 1795748290.9333184,
-    "ast_hash": "1cf083e32b9cc742b76de61d983840f9",
+    "mtime": 1795749008.5815434,
+    "seen": 1795756216.2730334,
+    "ast_hash": "f0d0b65cbc900e60130ae97ccd47207a",
     "semantic_hash": ""
   },
   "docs/handoff/geocore-aligner-scans-that-do-not-build.md": {
-    "mtime": 1795720266.9052887,
-    "seen": 1795748290.9333184,
-    "ast_hash": "bdaf351e3b07cdb343cfb266da62a559",
+    "mtime": 1795749017.5939198,
+    "seen": 1795756216.2730334,
+    "ast_hash": "55d54731f58dfba5a407b66bf111a00b",
     "semantic_hash": ""
   },
   "docs/handoff/geocore-editor-destructive-roles.md": {
-    "mtime": 1795743570.0626564,
-    "seen": 1795748290.9333184,
-    "ast_hash": "52e7035bcc1417dcbae331971e40153c",
+    "mtime": 1795749017.6488464,
+    "seen": 1795756216.2730334,
+    "ast_hash": "9d50e3f34daedfd8bb7e1fbffc4c3f7a",
+    "semantic_hash": ""
+  },
+  "typelab/composeSearch.mjs": {
+    "mtime": 1795754138.793058,
+    "seen": 1795756216.2730334,
+    "ast_hash": "e471eae8b12b8dd01c646c108b59390b",
+    "semantic_hash": ""
+  },
+  "typelab/composeSearch.test.ts": {
+    "mtime": 1795750803.6467862,
+    "seen": 1795756216.2730334,
+    "ast_hash": "5b8c958491ee35f46b8628b3725dece9",
+    "semantic_hash": ""
+  },
+  "typelab/composer.mjs": {
+    "mtime": 1795754117.400911,
+    "seen": 1795756216.2730334,
+    "ast_hash": "74b5284d554c85f86de6b1f933661861",
+    "semantic_hash": ""
+  },
+  "typelab/composer.test.ts": {
+    "mtime": 1795754146.6212125,
+    "seen": 1795756216.2730334,
+    "ast_hash": "85115b3f369265d484767b507436d89b",
+    "semantic_hash": ""
+  },
+  "typelab/fitEvidence.mjs": {
+    "mtime": 1795752375.4797564,
+    "seen": 1795756216.2730334,
+    "ast_hash": "655a294c224a2b1819a8a4aa5b202f7c",
+    "semantic_hash": ""
+  },
+  "typelab/fitEvidence.test.ts": {
+    "mtime": 1795752267.7818594,
+    "seen": 1795756216.2730334,
+    "ast_hash": "c5ecf243c20ed74a66884c1aa6d180ab",
+    "semantic_hash": ""
+  },
+  "typelab/gapReport.mjs": {
+    "mtime": 1795755914.8223193,
+    "seen": 1795756216.2730334,
+    "ast_hash": "5d75f4843fa2f784b723d05ca46920ca",
+    "semantic_hash": ""
+  },
+  "typelab/gapReport.test.ts": {
+    "mtime": 1795755921.8743334,
+    "seen": 1795756216.2730334,
+    "ast_hash": "6918b2cadcf1fd73f90f1882dd3ee9ba",
+    "semantic_hash": ""
+  },
+  "typelab/whatif.mjs": {
+    "mtime": 1795755908.665572,
+    "seen": 1795756216.2730334,
+    "ast_hash": "5961a1490a02cbbe1b4e760af6c216ff",
+    "semantic_hash": ""
+  },
+  "docs/handoff/geocore-open-arch-rim-gap.md": {
+    "mtime": 1795749029.7405417,
+    "seen": 1795756216.2730334,
+    "ast_hash": "5facc682d69ab4176048e2f333041a98",
     "semantic_hash": ""
   }
 }
