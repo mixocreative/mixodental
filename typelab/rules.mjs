@@ -41,9 +41,10 @@ export const BENCH_RULES = [
      * the CLI, because a silent null result is how a tool teaches someone the wrong thing.
      */
     unprovenOn: ['aligner'],
-    says: 'The one overhang angle every stream inherits (slope from horizontal). Widens or narrows every mask at once.' },
+    // Measured FROM HORIZONTAL, as the app's Overhang control and PrusaSlicer / Orca / Bambu / PreForm (owner, 2026-11-27).
+    says: 'The one overhang angle every stream inherits. Measured from horizontal (0 = flat ceiling, 90 = vertical wall): downward faces flatter than this get supports, so a higher number means MORE supports.' },
   { name: 'dentalRimOverhangAngleDeg', label: 'rim overhang angle (°)', type: 'deg', was: null, kinds: ['denture'],
-    says: 'The overhang angle used along the dental rim, where the rim band is more forgiving than the rest.' },
+    says: 'The overhang angle along the dental rim, where the rim band is more forgiving. From horizontal: higher means more rim supports.' },
   {
     name: 'noSupportSteepDeg', label: 'steep no-support ray (°)', type: 'deg', was: 'MIXO_STEEP_NO_SUPPORT', kinds: ['denture'],
     /*
@@ -70,7 +71,7 @@ export const BENCH_RULES = [
   { name: 'overhangMinAngleDeg', label: 'self-support: shallowest slope (°)', type: 'deg', was: 'MIXO_SELF_ANGLE', kinds: ['denture'], says: 'Self-support: the shallowest slope still called self-supporting.' },
   { name: 'overhangSelfSupportStreams', label: 'rim and hole tips use self-support too', type: 'flag', was: 'MIXO_SELF_STREAMS', kinds: ['denture'],
     says: 'Whether the self-support test also filters the rim and hole-band streams, not just the open area.' },
-  { name: 'islandOverhangAngleDeg', label: 'island overhang angle (°)', type: 'deg', was: null, kinds: ['denture'], says: 'The overhang angle an island must meet to earn its own tip.' },
+  { name: 'islandOverhangAngleDeg', label: 'island overhang angle (°)', type: 'deg', was: null, kinds: ['denture'], says: 'The overhang angle an island must meet to earn its own tip. From horizontal: higher means more islands get one.' },
 ];
 
 /**

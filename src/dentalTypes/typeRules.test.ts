@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_DENTURE_OPTIONS, type DentureOptions } from '../denture/settings/dentureOptions';
 import { overhangRuleOf, rulesOfOptions } from '../denture/settings/dentureRules';
-import { defaultSupportSettings } from '@mixo-geocore/host/core/supports/settings';
-import { dentureSupportSettings } from '../denture/settings/dentureSupportSettings';
+import { DENTURE_OVERHANG_DEG, dentureSupportSettings } from '../denture/settings/dentureSupportSettings';
 import { UNIT_OWNED_RULES, rememberTypeRules, typeOptionsSeedOf, typeRuleProblem, typeRulesOf, typeSettingsSeedOf } from './typeRules';
 
 /*
@@ -32,7 +31,7 @@ describe('the rules a type may not pin', () => {
     expect(typeRuleProblem({ dentalModelLanding: 2 })).toBeNull();
     expect(typeRuleProblem({ dentalModelLanding: 5 })).toMatch(/model landing must be off, lows or any/);
     expect(typeRuleProblem({ lastResortClearanceMm: 0.1 })).toMatch(/clearance floor must be 0.5 to 1.5 mm/);
-    expect(dentureSupportSettings('reference-denture').scatterAngle).toBe(defaultSupportSettings.scatterAngle);
+    expect(dentureSupportSettings('reference-denture').scatterAngle).toBe(DENTURE_OVERHANG_DEG); // dentures start at 60, not the shared 45
     expect(typeRulesOf('reference-denture')).toEqual({});
     expect(typeRulesOf(undefined)).toEqual({});
     rememberTypeRules('test-ruled', {});

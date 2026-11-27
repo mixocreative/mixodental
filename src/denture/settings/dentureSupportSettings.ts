@@ -25,9 +25,19 @@ export const DENTURE_RAFT: Readonly<Pick<LiveSupportSettings, 'raftEnabled' | 'r
 };
 
 /**
+ * A denture's Overhang angle, degrees FROM HORIZONTAL (0 = flat ceiling, 90 = vertical wall; faces flatter than it get
+ * supports, so higher = more). Owner, 2026-11-27, from the fit against the -sup targets: 60 covered 70% of the targets'
+ * supported areas against 60% at the shared 45, with the same share of ours outside them. Dentures only - the shared 45
+ * stays for every other print. The Type Lab's built-in denture run reads this same number (typelab/profileSelect.ts),
+ * so what it measures is what the app builds.
+ */
+export const DENTURE_OVERHANG_DEG = 60;
+
+/**
  * The profile's settings for a new denture unit; `labelText` (the ID label) is kept from `current`. A saved type that
  * pinned the Overhang angle starts the unit's control at its number (`typeRules.ts` typeSettingsSeedOf); the unit owns it after.
  */
 export function dentureSupportSettings(profileId: string, current: Readonly<LiveSupportSettings> = defaultSupportSettings as LiveSupportSettings): LiveSupportSettings {
-  return { ...defaultSupportSettings, roofSeededModes: [], ...dentureSupportPreset(dentureProfileData(profileId)), contactShape: 'NONE', ...DENTURE_RAFT, ...typeSettingsSeedOf(profileId), labelText: current.labelText };
+  return { ...defaultSupportSettings, roofSeededModes: [], ...dentureSupportPreset(dentureProfileData(profileId)), contactShape: 'NONE', ...DENTURE_RAFT,
+    scatterAngle: DENTURE_OVERHANG_DEG, ...typeSettingsSeedOf(profileId), labelText: current.labelText };
 }

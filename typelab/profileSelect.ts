@@ -26,6 +26,7 @@ import type { Vector } from '@mixo-geocore/host/core/vec3';
 import { LAYER_COLOURS } from './layerColours';
 
 import { readBy } from './rules.mjs';
+import { DENTURE_OVERHANG_DEG } from '../src/denture/settings/dentureSupportSettings';
 
 export type { DentalKind };
 
@@ -68,6 +69,13 @@ export const selfSupportRule = (): { overhangSelfSupport?: boolean; overhangMinA
  * would be dropped rather than sent to an engine that ignores it. Both halves read the same `kinds`.
  */
 export const alignerRules = (): Record<string, unknown> => readBy('aligner', { ...steepRule(), ...selfSupportRule() }) as Record<string, unknown>;
+
+/**
+ * A DENTURE run's rules: the app's denture Overhang angle first (DENTURE_OVERHANG_DEG, 60 since 2026-11-27 - a new
+ * denture unit in the app starts there), then whatever this run turned (a type's pinned rule, --set, the MIXO_ switches).
+ * TRAP: without the first term the Type Lab and gate:real measured the engine's shared 45 while the app built at 60.
+ */
+export const dentureRules = () => ({ overhangAngleDeg: DENTURE_OVERHANG_DEG, ...steepRule(), ...selfSupportRule() });
 
 /** The kind from the `--kind` value: absent means aligner; anything else but aligner/denture is an error. */
 export function parseKind(value: string | undefined): DentalKind {
@@ -135,10 +143,9 @@ export function dentureScanSettings(profileId: string): TiltScanSettings {
   const settings = dentureReviewSettings(profileId);
   // MIXO_LANDING=1 picks the tilt by the landing-circle path score (rule landingTiltWeight); unset keeps the old pick.
   // TEMP experiment envs (not committed): MIXO_TILT_ALLOWED=1 -> tiltAllowedLowsOnly, MIXO_TILT_ORDER=1 -> tiltPickOrder 1.
-  const rules = process.env.MIXO_LANDING || process.env.MIXO_TILT_ALLOWED || process.env.MIXO_TILT_ORDER || process.env.MIXO_STEEP_NO_SUPPORT || process.env.MIXO_SELF_SUPPORT || process.env.MIXO_SELF_STREAMS || process.env.MIXO_RIM_NO_SUPPORT || process.env.MIXO_SOCKETS || process.env.MIXO_OVERHANG_ANGLE || process.env.MIXO_RULES
-    ? packRules({ ...steepRule(), ...selfSupportRule(), ...(process.env.MIXO_LANDING ? { landingTiltWeight: 1 } : {}), ...(process.env.MIXO_TILT_ALLOWED ? { tiltAllowedLowsOnly: true } : {}), ...(process.env.MIXO_TILT_ORDER ? { tiltPickOrder: 1 as const } : {}) })
-    : undefined;
-  return { neckLengthMm: settings.neckLength, pillarDiameterMm: settings.pillarDiameter, liftMm: settings.liftHeight, braced: settings.trussEnabled, ...(rules ? { rules } : {}) };
+  // Always packed now: the denture Overhang angle (dentureRules) is in every denture run, as in the app.
+  const rules = packRules({ ...dentureRules(), ...(process.env.MIXO_LANDING ? { landingTiltWeight: 1 } : {}), ...(process.env.MIXO_TILT_ALLOWED ? { tiltAllowedLowsOnly: true } : {}), ...(process.env.MIXO_TILT_ORDER ? { tiltPickOrder: 1 as const } : {}) });
+  return { neckLengthMm: settings.neckLength, pillarDiameterMm: settings.pillarDiameter, liftMm: settings.liftHeight, braced: settings.trussEnabled, rules };
 }
 
 /** The denture flow on a centred `mesh`: upright, print angle, tips, supports (one pipeline, no UI). */
@@ -173,7 +180,7 @@ export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfile
   // that id, at the policy's own position in the build frame, so the contacts are the policy's candidates as `frame` sees them.
   return withOneShotSite(mesh, (site) => {
     const policyStarted = performance.now();
-    const handle = makeDenturePolicy(site.session as unknown as Pick<DentalSession, 'denture_policy_ruled'>, site.source, policy, frame, [], { ...steepRule(), ...selfSupportRule() });
+    const handle = makeDenturePolicy(site.session as unknown as Pick<DentalSession, 'denture_policy_ruled'>, site.source, policy, frame, [], dentureRules());
     try {
       const ids = handle.candidate_ids();
       const flat = handle.candidate_points();
@@ -189,7 +196,7 @@ export function buildDentureReview(mesh: TriangleMesh, profileId = reviewProfile
       const out = generateSupports(contacts, settings, () => { throw new Error('policy is supplied by the site'); },
         { mode: 'export', model: mesh, frame, plateY: 0, labelText: '', zones: [], limits: GENERATE_LIMITS,
           // MIXO_MODEL_LANDING=1|2 tries the dental model-surface landing (rule dentalModelLanding); unset keeps plate-only.
-          ...(process.env.MIXO_MODEL_LANDING || process.env.MIXO_STEEP_NO_SUPPORT || process.env.MIXO_SELF_SUPPORT || process.env.MIXO_SELF_STREAMS || process.env.MIXO_RIM_NO_SUPPORT || process.env.MIXO_SOCKETS || process.env.MIXO_OVERHANG_ANGLE || process.env.MIXO_RULES ? { rules: { ...steepRule(), ...selfSupportRule(), ...(process.env.MIXO_MODEL_LANDING ? { dentalModelLanding: Number(process.env.MIXO_MODEL_LANDING) } : {}) } } : {}),
+          rules: { ...dentureRules(), ...(process.env.MIXO_MODEL_LANDING ? { dentalModelLanding: Number(process.env.MIXO_MODEL_LANDING) } : {}) },
           site: { session: site.session, source: site.source, placed: site.placed, policy: () => ({ handle, release() { /* the caller frees the one handle */ } }) } });
       const generateSeconds = lap(generateStarted);
       // Our placed tips: the build's contacts that the repair did not leave out, back in unit-local coordinates

@@ -20,7 +20,7 @@ import * as THREE from 'three';
 import type { TriangleMesh } from '@mixo-geocore/host/core/analysis/types';
 import type { Vector } from '@mixo-geocore/host/core/vec3';
 import type { JobTransform } from '@mixo-geocore/host/core/jobs';
-import { selfSupportRule, steepRule } from './profileSelect';
+import { dentureRules } from './profileSelect';
 import { AREA_CLASS, compareDentureAreas, reviewDenture, TRAP_LEVEL, type DentureAreaComparison, type DentureReview } from '@mixo-geocore/host/dental/dentureReview';
 import { zoneGraphDigest } from '@mixo-geocore/host/dental/zoneGraph';
 import { orientGraphDigest, orientNodes } from '@mixo-geocore/host/dental/orientGraph';
@@ -453,7 +453,7 @@ function steepStats(mesh: TriangleMesh, profile: string, tiltDeg: number, run: D
  * print angle the case chose: the review is run at that tilt.
  */
 export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Vector, placed: PlacedTip[], profile: string, tiltDeg: number, leftOutTips: LeftOutTip[] = [], settle?: IslandSettle): DentureDetail {
-  const review = reviewDenture(mesh, profile, tiltDeg, { ...steepRule(), ...selfSupportRule() });
+  const review = reviewDenture(mesh, profile, tiltDeg, dentureRules());
   steepStats(mesh, profile, tiltDeg, review);
   const islands = review && !review.islandsNote ? summariseIslands(review.islands, settle) : undefined;
   const layers: ReviewLayer[] = [];
