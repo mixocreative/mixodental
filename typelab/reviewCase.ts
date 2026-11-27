@@ -265,7 +265,11 @@ async function reviewDenture(file: string, mesh: TriangleMesh, name: string, out
   }
   // The fit's evidence (fitEvidence.ts): which tip source and which zone node the misses against the target come from.
   if (detail.evidence) {
-    writeFileSync(join(out, `${name}-evidence.json`), JSON.stringify(detail.evidence));
+    // The per-face classes beside it, raw: one byte per face, the all-tips classes then each source's (composer.mjs reads it).
+    const classes = detail.evidenceClasses;
+    writeFileSync(join(out, `${name}-evidence.bin`), Buffer.concat(classes.map((c) => Buffer.from(c.buffer, c.byteOffset, c.byteLength))));
+    writeFileSync(join(out, `${name}-evidence.json`), JSON.stringify({ ...detail.evidence, bin: `${name}-evidence.bin`, faceCount: faces,
+      binOrder: ['all', ...detail.evidence.streams.map((s) => s.stream)] }));
     row.evidenceFile = `${name}-evidence.json`;
   }
   // Peel and strength report: layer areas of our print against the owner print, from the GLB just written. Never stops the case.

@@ -136,6 +136,32 @@ Tilt and height are not match terms (owner, 2026-11-27). An edit that changed no
 Every run is kept in the review page's own cache (`runCache.mjs`), so any setup it tried opens instantly there. It
 writes `fit.json` and `winner.type.json`. **It never saves a type**: look at the winner, then save it yourself.
 
+### When the fit finds nothing: the composer (agreed design, being built)
+
+Owner, 2026-11-27: "a way for AI or script to intelligently figure out how nodes [are] arranged to get the desired
+result, even from blank, or add or remove or reshuffle nodes ... and know when none help how a procedural common used
+node can be introduced." Fable and Codex designed it independently and agreed on every point (decisions recorded in
+`docs/REVIEW-UX-REFINE.md`'s sibling notes and here):
+
+1. **Evidence first** (BUILT, `fitEvidence.mjs`): per tip source, its support area inside / outside the target (the
+   engine's own comparison, once per source); per zone node, the faces it holds per area class. The fit prints where
+   the area outside the target comes from. A source that does not shrink under zone edits is one the zone does not
+   gate: the next move is a gate for it (a node or a rule), not more of the same edits.
+2. **Reachable ceiling** (next): faces grouped by their signature across every available mask; any arrangement of
+   today's nodes is a union of those groups, so the best reachable result is known WITHOUT a run. Say "no separating
+   mask in the tested vocabulary", never "impossible".
+3. **Candidates** (next): masks, `not`, pairwise `union` / `intersect` / `subtract`, as Mark-support or Mark-no-support,
+   remove / reorder a Mark, a short grid of legal parameters - each ranked offline by predicted gain.
+4. **Search** (agreed rule): greedy, one edit per step, depth at most 3; dedupe masks identical per face; predicted
+   gain minus a charge per added node, positive on EVERY pair; full-run the top 3 per step, at most 8 full setups per
+   session; advance only with what `fitScore` accepts (refusals + leave-one-out); every run logs predicted vs measured.
+   An AI may propose edits in the same grammar - same scorer, same refusals, no exception. From blank = the same loop
+   from one empty Mark.
+5. **Gap report** (next): when no mask separates the misses, diagnostic-only procedural descriptors (slope / normal
+   angle, height band, distance from a feature, curvature, component size, grow / shrink) are tested on the same faces
+   across pairs; one that separates them on every pair becomes an engine request for that generic node
+   (`docs/handoff/`, sent to mixo-geocore `docs/requests/`). Never a host-side node in placement.
+
 ## Stage 2 — pin it before you tune it
 
 ```bash

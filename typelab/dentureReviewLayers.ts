@@ -99,6 +99,8 @@ export interface DentureDetail {
   zoneNodes: { id: string; values: Uint8Array }[];
   /** The fit's evidence for this case (fitEvidence.ts); null when the case was not compared with a target. */
   evidence: ReturnType<typeof fitEvidence> | null;
+  /** Per face: the all-tips area classes, then each source's (evidence.streams order); [] when not compared. */
+  evidenceClasses: Uint8Array[];
   /** Why the rim asked for (a drawn one, or the flat area's edge) was not used, in the engine's words; '' when it was. */
   rimNote: string;
 }
@@ -620,10 +622,14 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
   for (const tip of leftOutTips) byReason.set(tip.reason, (byReason.get(tip.reason) ?? 0) + 1);
   // THE FIT'S EVIDENCE (fitEvidence.ts): per tip source, its area inside / outside the target - measured by the ENGINE's
   // own comparison, once per source, so this file does no geometry - and per zone node, the faces it holds per class.
+  // Each source's own per-face classes too (streamClasses, same order as evidence.streams): the composer asks which
+  // faces ONE source covers that the target does not, which the all-tips classes cannot tell.
+  const streamClasses: Uint8Array[] = [];
   const evidence = target.ownerPoints && target.faceClass ? fitEvidence({
     streams: ordered.map((stream) => {
       const tips = tipsByStream.get(stream)!;
       const c = compareDentureAreas(mesh, target.ownerPoints!, tips.map((tip) => tip.position));
+      streamClasses.push(c.mask);
       return { stream: sourceName(stream), tips: tips.length, oursMm2: c.generatedMm2, bothMm2: c.bothMm2 };
     }),
     faceClass: target.faceClass,
@@ -632,6 +638,7 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
   return {
     layers,
     evidence,
+    evidenceClasses: evidence ? [target.faceClass!, ...streamClasses] : [],
     zoneNodes: review?.zoneNodes ?? [],
     rimNote: review?.drawnRimProblem ?? '',
     ownerContacts: target.ownerContacts,

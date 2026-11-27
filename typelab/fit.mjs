@@ -25,6 +25,7 @@ import { sampleScans } from '../scripts/samples.mjs';
 import { viteNodeCli } from '../scripts/viteNodeCli.mjs';
 import { PROVISIONAL_UNDER } from './fitScore.mjs';
 import { streamsOutside } from './fitEvidence.mjs';
+import { composeSearch } from './composeSearch.mjs';
 import { describe, EDITS, search } from './fitSearch.mjs';
 import { stampNow } from './rules.mjs';
 import { CACHE, finishRun, isKept, runKey } from './runCache.mjs';
@@ -133,6 +134,40 @@ if (startOutside.length) {
     const b = bestOutside.find((x) => x.stream === s.stream);
     console.log(`  ${s.stream.padEnd(16)} ${String(s.outsideMm2).padStart(8)} -> ${String(b?.outsideMm2 ?? '-').padStart(8)}   (${s.tips} tips)`);
   }
+}
+/*
+ * --compose: the composer (composeSearch.mjs) from the value fit's winner - Mark no-support edits chosen from the
+ * evidence, for the source the misses mostly come from, under the agreed search rule.
+ */
+let composed = null;
+if (args.includes('--compose')) {
+  const read = (dir, file) => readFileSync(join(dir, file));
+  const evidenceFor = (rows) => {
+    const pairs = [];
+    for (const row of rows) {
+      if (!row?.evidenceFile || !row.zonesFile || !row.dir) continue;
+      try {
+        const ev = JSON.parse(read(row.dir, row.evidenceFile).toString('utf8'));
+        const zones = JSON.parse(read(row.dir, row.zonesFile).toString('utf8'));
+        const bin = read(row.dir, ev.bin);
+        const zbin = read(row.dir, zones.bin);
+        const slice = (buf, at, n) => new Uint8Array(buf.buffer, buf.byteOffset + at * n, n);
+        pairs.push({ ev, classesOf: (stream) => slice(bin, ev.binOrder.indexOf(stream), ev.faceCount),
+          nodes: zones.ids.map((id, k) => ({ id, values: slice(zbin, k, zones.faces) })) });
+      } catch { /* a row whose files cannot be read is not evidence */ }
+    }
+    if (pairs.length === 0) return null;
+    const stream = streamsOutside(pairs.map((p) => p.ev))[0]?.stream;
+    return { stream, pairs: pairs.filter((p) => p.ev.binOrder.includes(stream)).map((p) => ({ classes: p.classesOf(stream), nodes: p.nodes })) };
+  };
+  console.log('\ncompose (from the winner above):');
+  composed = await composeSearch({ start: best.type, startRows: best.rows, evaluate, evidenceOf: evidenceFor, log: (line) => console.log(line) });
+  if (composed.best.steps.length) {
+    console.log(`compose kept: ${composed.best.steps.join(' + ')} - score ${composed.best.result.score}`);
+    writeFileSync(join(out, 'composed.type.json'), `${JSON.stringify({ ...composed.best.type, validation: null }, null, 2)}\n`);
+  }
+  writeFileSync(join(out, 'compose.json'), JSON.stringify({ steps: composed.best.steps, gap: composed.gap,
+    tried: composed.tried.map((t) => ({ steps: t.steps, result: t.result, refused: t.refused, predicted: t.predicted })) }, null, 1));
 }
 const unmoved = tried.filter((t) => !t.moved && !t.problem).map((t) => describe(t.steps.slice(-1)));
 console.log(`\nbest: ${describe(best.steps)}  score ${best.result.score} (start ${first.result.score}); covered ${best.result.covered}% (was ${first.result.covered}%), outside ${best.result.outside}% (was ${first.result.outside}%)`);
