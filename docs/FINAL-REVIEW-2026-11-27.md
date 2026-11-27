@@ -50,6 +50,13 @@ distance from the rim, sector around the arch) separates the rim parts your targ
 So no engine request was sent for it. **What would move it: more denture samples with `-sup` targets** - then the
 composer can test two-factor rules (e.g. sector x distance), and a real separation would become an engine request.
 
+**Added later on 2026-11-27, after the owner's idea of putting rim tips in the zone stack:** the probes above were
+confounded. Every rim attempt also dropped area and hole tips, and turning the rule on also let NS drop rim tips. Re-run
+on rim tips only, 80 rules (every band plus 18 ray casts), nothing helps every pair. Dropping all rim tips helps one pair
+(+20.1) and hurts the other three, so the difference is per case. The print pose is ruled out. The structural fix (rim
+and hole tips as Marks in the stack, a later Mark wins) is agreed by Fable and Codex and sent as an engine request:
+`docs/handoff/geocore-zone-stack-edge-tip-marks.md`. Details: `typelab/CLI.md`, "When the fit finds nothing", item 6.
+
 ## Scope verdict (Fable and Codex, both)
 
 Asked independently whether anything left must be built now: both answered **COMPLETE - pending only the owner's

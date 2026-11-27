@@ -176,6 +176,28 @@ node can be introduced." Fable and Codex designed it independently and agreed on
    angle, height band, distance from a feature, curvature, component size, grow / shrink) are tested on the same faces
    across pairs; one that separates them on every pair becomes an engine request for that generic node
    (`docs/handoff/`, sent to mixo-geocore `docs/requests/`). Never a host-side node in placement.
+6. **Rim tips as a node in the stack** (owner's idea 2026-11-27; design by Fable, agreed by Codex; engine request SENT:
+   `docs/handoff/geocore-zone-stack-edge-tip-marks.md`). Today rim and hole tips ignore the zone order: they obey a
+   no-support zone only through the global rule `rimRespectsNoSupport`, under which ANY no-support Mark drops them. Two
+   confounds followed, and every probe above carries both: the composer had to turn the rule on, which also let NS drop
+   rim tips, and the band probes dropped area and hole tips with the rim ones. The request adds `markRimTips` /
+   `markHoleTips`, so that a later no-support cancels them and an earlier one does not.
+
+   `node typelab/rimProbe.mjs --type <a fit folder's best.type.json>` re-ran the probes on RIM tips only. That is 80 rules:
+   - every slope / height / rim-distance / sector band;
+   - 18 parallel casts, each as "hit" and "NOT hit". The casts sit behind an empty mark, so they are evaluated without
+     moving any result.
+
+   Nothing separates on every pair. Dropping ALL rim tips scores -39.7 / -12 / -51.1 / +20.1: the pairs disagree per
+   CASE, which no per-face mask with one setting can fit.
+
+   `--pose` tested the print pose as the cause and ruled it out. In the owner's pose (from the matcher transform; frame
+   check: 79-100% of the owner's contacts face down), at the rim's 60-degree limit only 1 / 4 / 3 / 5 of our rim tips
+   stop overhanging. **TRAP:** the review mesh is Y-up, so a bare point (x, y, z) is (x, z, -y) there. The first pose run
+   used Z-up and "found" most rim tips facing up.
+
+   Next: ask the owner what differs between the cases that keep rim support and the one that does not. Once the node
+   exists, a case-level no-support zone can be painted by hand.
 
 ## Stage 2 — pin it before you tune it
 
