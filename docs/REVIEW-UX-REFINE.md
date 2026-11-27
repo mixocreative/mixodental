@@ -188,3 +188,11 @@ Each decided by Fable and Codex independently; acted on only where both agreed.
 | D3 dental status line | wrap to two lines | tone on Message, hide routine | NO AGREEMENT - stays as is |
 | D4 open-arch rim-gap review | engine request | engine request | docs/handoff/geocore-open-arch-rim-gap.md, sent |
 | D5 the dropped UX items | none | none | stay dropped |
+
+Round 2 (each saw the other's round-1 reason; the two settled by the assistant earlier are put to them too):
+
+| Item | Fable | Codex | Done |
+|---|---|---|---|
+| E1 dental status line | (d) wrap to two lines now, tone later | (d) | `footer.on-scene strong` clamps at two lines (was one, ellipsed) |
+| E2 DEBUG in release | keep showing (owner's 2026-11-21 ruling) | keep | unchanged |
+| E3 deck "Ready" chip | rename "Oriented" | rename "Oriented" | `detectState.ts`, ja / zh-Hant |

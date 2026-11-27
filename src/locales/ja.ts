@@ -743,7 +743,7 @@ export const ja: Dictionary = {
   '1 file still needs a category': '1つのファイルにカテゴリが未設定です',
   '{n} files still need a category': '{n}つのファイルにカテゴリが未設定です',
   // The row status chips on the deck (2026-11-18): the short form of the detect sentence.
-  'Ready': '準備完了',
+  'Oriented': '向き確認済み',
   'Checking…': '確認中…',
   'Needs rim': 'リムが必要',
   'Needs orienting': '向き調整が必要',

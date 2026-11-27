@@ -595,12 +595,12 @@ describe('what a card shows about its own auto-gen run', () => {
     const running = withQueue(one, new Map([['unit-a', { kind: 'running' } as AutoGenCard]]), oriented);
 
     expect(running).toContain('Generating supports');
-    expect(running).not.toContain('>Ready<');
+    expect(running).not.toContain('>Oriented<');
     // When the run is over the card says what it waits for: supports built by Auto-gen are not a finished file until the
     // operator has looked (Fable + Codex review, 2026-11-27) - "Ready" there read as done.
     const after = withQueue(built, new Map([['unit-a', done()]]), oriented);
     expect(after).toContain('Supports built - review needed');
-    expect(after).not.toContain('>Ready<');
+    expect(after).not.toContain('>Oriented<');
   });
 
   it('drops "review needed" once the operator has been through the file', () => {

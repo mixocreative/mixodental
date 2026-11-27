@@ -748,7 +748,7 @@ export const zhHant: Dictionary = {
   '1 file still needs a category': '尚有 1 個檔案需要分類',
   '{n} files still need a category': '尚有 {n} 個檔案需要分類',
   // The row status chips on the deck (2026-11-18): the short form of the detect sentence.
-  'Ready': '準備就緒',
+  'Oriented': '方向已確認',
   'Checking…': '檢查中…',
   'Needs rim': '需畫邊緣',
   'Needs orienting': '需調整方向',

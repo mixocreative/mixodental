@@ -189,7 +189,9 @@ export function detectChip(state: DetectState, kind: DentalKind = 'aligner'): Me
     // A row merely queued says nothing: the footer counts those once for the whole case.
     case 'waiting': return undefined;
     case 'running': return { key: 'Checking…' };
-    case 'oriented': return { key: 'Ready' };
+    // "Oriented", not "Ready" (Fable + Codex, 2026-11-27): the chip only says the orientation check passed; beside
+    // "Supports built - review needed", "Ready" read as ready to print.
+    case 'oriented': return { key: 'Oriented' };
     /*
      * TWO CHIPS, BECAUSE THEY SEND THE OPERATOR TO DIFFERENT PLACES. An unusable mesh is not an
      * orientation problem and "Check orientation" would be the wrong instruction on it; every other
