@@ -159,7 +159,12 @@ node can be introduced." Fable and Codex designed it independently and agreed on
    from one empty Mark.
 5. **Gap report** (BUILT as a draft, `gapReport.mjs` -> `gap-report.md` in the fit folder; the descriptor PROBES are
    next). First run (dentures, 2026-11-27): the rim tips cause 63% of the area outside the targets; the one eligible
-   mark was refused in full runs (15.6 -> 14.9); the draft asks for a procedural mask. When no mask separates the misses, diagnostic-only procedural descriptors (slope / normal
+   mark was refused in full runs (15.6 -> 14.9); the draft asks for a procedural mask. The probes then found a height
+   band [26,51)/255 that "separated" on face counts - and the CHECK Fable and Codex set before sending
+   (`node typelab/whatif.mjs --type <winner>`: drop tips by face, re-score with the engine's comparison, calibrated on
+   the known-bad mark) said no: the calibration reproduced the full run exactly (15.6 -> 14.9), the band scored 14.6
+   and made one pair worse. NOT SENT. Lesson recorded: face counts mispredicted three times; the tip-drop re-score
+   matched the full run - the composer's ranking should use it (a design change, back to Fable and Codex). When no mask separates the misses, diagnostic-only procedural descriptors (slope / normal
    angle, height band, distance from a feature, curvature, component size, grow / shrink) are tested on the same faces
    across pairs; one that separates them on every pair becomes an engine request for that generic node
    (`docs/handoff/`, sent to mixo-geocore `docs/requests/`). Never a host-side node in placement.

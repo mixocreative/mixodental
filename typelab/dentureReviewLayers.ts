@@ -635,6 +635,26 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
     faceClass: target.faceClass,
     nodes: (review?.zoneNodes ?? []).filter((node) => node.values.length === target.faceClass!.length),
   }) : null;
+  /*
+   * WHAT-IF RE-SCORING (typelab/whatif.mjs, diagnostic only; Fable + Codex's check before an engine request is sent):
+   * MIXO_WHATIF = [{ name, streams, node?, heightBand? }] - drop the tips of those sources whose FACE lies in the node's
+   * mask or in the height band, then ask the ENGINE's comparison again. No new geometry, no placement: it only says what
+   * the area match would be without those tips. It ignores that the engine might place other tips instead - which is
+   * why it is calibrated against a mark whose full run is already known.
+   */
+  if (evidence && process.env.MIXO_WHATIF && review) {
+    const rules = JSON.parse(process.env.MIXO_WHATIF) as Array<{ name: string; streams: string[]; node?: string; heightBand?: [number, number] }>;
+    const { height } = faceDescriptors(mesh.positions, mesh.indices);
+    const score = (tips: Vector[]) => { const c = compareDentureAreas(mesh, target.ownerPoints!, tips); return Math.round((c.coverage - c.extra) * 1000) / 10; };
+    const all = review.tips;
+    (evidence as Record<string, unknown>).whatIf = [{ name: 'as built', score: score(placed.map((tip) => tip.position)) }, ...rules.map((rule) => {
+      const node = rule.node ? review.zoneNodes.find((n) => n.id === rule.node) : undefined;
+      const drop = (tip: (typeof all)[number]) => rule.streams.includes(sourceName(tip.stream))
+        && ((node !== undefined && (node.values[tip.face] ?? 0) > 0) || (rule.heightBand !== undefined && height[tip.face]! >= rule.heightBand[0] && height[tip.face]! < rule.heightBand[1]));
+      const kept = all.filter((tip) => !drop(tip));
+      return { name: rule.name, dropped: all.length - kept.length, score: score(kept.map((tip) => tip.position)) };
+    })];
+  }
   return {
     layers,
     evidence,
