@@ -147,17 +147,19 @@ node can be introduced." Fable and Codex designed it independently and agreed on
    engine's own comparison, once per source); per zone node, the faces it holds per area class. The fit prints where
    the area outside the target comes from. A source that does not shrink under zone edits is one the zone does not
    gate: the next move is a gate for it (a node or a rule), not more of the same edits.
-2. **Reachable ceiling** (next): faces grouped by their signature across every available mask; any arrangement of
+2. **Reachable ceiling** (BUILT, `composer.mjs`): faces grouped by their signature across every available mask; any arrangement of
    today's nodes is a union of those groups, so the best reachable result is known WITHOUT a run. Say "no separating
    mask in the tested vocabulary", never "impossible".
-3. **Candidates** (next): masks, `not`, pairwise `union` / `intersect` / `subtract`, as Mark-support or Mark-no-support,
+3. **Candidates** (BUILT, `composer.mjs`; run with `node typelab/fit.mjs --kind denture --compose`): masks, `not`, pairwise `union` / `intersect` / `subtract`, as Mark-support or Mark-no-support,
    remove / reorder a Mark, a short grid of legal parameters - each ranked offline by predicted gain.
 4. **Search** (agreed rule): greedy, one edit per step, depth at most 3; dedupe masks identical per face; predicted
    gain minus a charge per added node, positive on EVERY pair; full-run the top 3 per step, at most 8 full setups per
    session; advance only with what `fitScore` accepts (refusals + leave-one-out); every run logs predicted vs measured.
    An AI may propose edits in the same grammar - same scorer, same refusals, no exception. From blank = the same loop
    from one empty Mark.
-5. **Gap report** (next): when no mask separates the misses, diagnostic-only procedural descriptors (slope / normal
+5. **Gap report** (BUILT as a draft, `gapReport.mjs` -> `gap-report.md` in the fit folder; the descriptor PROBES are
+   next). First run (dentures, 2026-11-27): the rim tips cause 63% of the area outside the targets; the one eligible
+   mark was refused in full runs (15.6 -> 14.9); the draft asks for a procedural mask. When no mask separates the misses, diagnostic-only procedural descriptors (slope / normal
    angle, height band, distance from a feature, curvature, component size, grow / shrink) are tested on the same faces
    across pairs; one that separates them on every pair becomes an engine request for that generic node
    (`docs/handoff/`, sent to mixo-geocore `docs/requests/`). Never a host-side node in placement.
