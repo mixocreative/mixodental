@@ -31,7 +31,7 @@ import type { Lang } from '../i18n';
  * Every part is named for the UNIT, never for the row's position: `items-row-3` would re-point every
  * later row the moment one is removed.
  */
-export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, onPurpose, lang, live, onLive, onRelease, onSelect, onOpen, onRemove, onRetry, autoGen, autoGenReady, onAutoGen, onEnlarge, recipe }: {
+export function ItemRow({ unit, done, reviewed = false, willOpen, detected, thumbnails, purpose, onPurpose, lang, live, onLive, onRelease, onSelect, onOpen, onRemove, onRetry, autoGen, autoGenReady, onAutoGen, onEnlarge, recipe }: {
   unit: PrintUnit;
   /**
    * WHAT THIS CARD IS: its own answer, absent until somebody gives one.
@@ -49,6 +49,8 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
   lang: Lang;
   /** Already through the flow: the row dims rather than disappearing. */
   done: boolean;
+  /** The operator went through this file's steps (it is in the finished list) - not merely given supports by Auto-gen. */
+  reviewed?: boolean;
   /** Try this row's detection again; shown only on a row whose detection failed. */
   onRetry: () => void;
   /**
@@ -156,7 +158,11 @@ export function ItemRow({ unit, done, willOpen, detected, thumbnails, purpose, o
    * opposite of the picture (app UX review 2026-11-21, finding 7, walk shot m11). One voice per card:
    * the run speaks until it ends, then the chip comes back.
    */
+  // SUPPORTS BUILT BY AUTO-GEN ARE NOT A FINISHED FILE (Fable + Codex review, 2026-11-27): the card used to keep the
+  // orientation's "Ready" while its supports still waited for the operator's look, and the footer counted it as left.
+  const awaitingReview = autoGen?.kind === 'done' && !reviewed;
   const chip = superseded || generating ? undefined
+    : awaitingReview ? { key: 'Supports built - review needed' }
     : detected === undefined
       ? (purpose !== undefined && kind === 'denture' ? { key: 'Needs orienting' } : undefined)
       : detectChip(detected, kind);

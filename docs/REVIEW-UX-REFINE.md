@@ -137,3 +137,35 @@ a run is really queued; a canvas edited before a reload starts nothing until it 
 and a new folder of about 70 MB in `typelab/output/`, so a long session of edits leaves folders to clear. Going back
 to the standard Step 1 after an edited run is now a change Apply runs (it said "Nothing is changed yet" and left the
 edited run on screen). Proved in the browser: an edit ran (8°, 106 tips); a second edit during it waited and ran once.
+
+# App UX-flow review - 2026-11-27 (Fable and Codex, both must agree)
+
+The owner, asleep, with full control: "refine it by user UX flow with Fable and Codex, both must agree." Both reviewed
+the app independently from the walk's screenshots (one per step, `WALK_SHOTS`) and the code, then voted on every item of
+the other's list. Only items BOTH agreed on were built; each change carries "(Fable + Codex review, 2026-11-27)" in a
+comment where it lives.
+
+| # | Agreed change | Where |
+|---|---|---|
+| 1 | Step 3 says what it KNOWS: "Supports built, not checked yet" until the support check has run on this build; "Every point is held" only after. The Check key sits beside the line (it was behind Details). Same for the denture. | `reviewLineText.ts` (`checked`), `ReviewSummary` action, `CheckKey` in `DentalReviewBlocks.tsx`, `App.tsx` (`checked` = a check verdict exists and is not behind the build) |
+| 2 | A grey key says why in the open: Export all STL (its existing sentence), Restore step (new). | `ItemsPage.tsx`, `RestoreStepButton.tsx`, `.help.key-reason` |
+| 3 | The deck says where each file stands: "N files left" leads the footer, larger; a card whose supports Auto-gen built says "Supports built - review needed" until the operator has been through it; while Auto-gen runs, Start stays enabled but is no longer the primary. | `ItemsPage.tsx`, `ItemRow.tsx` (`reviewed`) |
+| 4 | Step 2 leads with its result (the proposed tips), and its note is the hint of the tool in hand - it used to say "Drag on the model to paint" under Select. The build caveat is its own short line. | `DentalBar.tsx` |
+| 5 | The ID label is one compact row above Adjust (it was the last thing inside the fold). | `IdLabelBlock`, `DentalSupports.tsx`, `DentureReviewPanel.tsx` |
+| 6 | Step 1: Next is the one primary; Auto orientation is secondary. | `editingMode.ts` `dental.useDetected` |
+| 7 | The deck's type key shows the type's name after its badge, ellipsed on a narrow card. "Type default" kept. | `PurposeMenu.tsx` |
+| 8 | "Aligner Support Production" moved from the generic Supports keys to Modes. | `ModeEntry.tsx`, `App.tsx` |
+
+Agreed but NOT built, with the reason:
+- **Editor reds** (Clear manual edits / Remove supports neutral, red only on Delete): their `role: 'destructive'` lives in
+  `vendor/mixo-geocore/editing/commands.ts`, which this repo never edits - a geocore request
+  (`docs/handoff/geocore-editor-destructive-roles.md`), not sent.
+- **Hide the dental-step status line**: the same line carries error and refusal messages; hiding it visually would
+  silence them ("nothing dies silently", the brief's hard rule). Left visible; re-decide with a way to tell a repeat
+  from a new message.
+- **A line after Export**: its own condition ("only if not already said") holds - Step 3 already shows "Aligners
+  finished so far: N" beside Add another aligner, and the status line names the saved file.
+
+Dropped because the reviewers disagreed: the card action grid (Codex: cards are ~208 px and wrap on purpose), which
+scan-progress indicator survives in Step 1, and the empty Step 1 dock (hide it vs name the STL). Owner questions both
+raised: should DEBUG stay in release builds; should "Ready" on the deck mean ready to review or ready to export.

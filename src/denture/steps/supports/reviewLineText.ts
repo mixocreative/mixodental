@@ -24,12 +24,19 @@ export interface ReviewCounts {
   resolvable: number;
   /** Unresolved islands no tip can stand on, the build's notes and the check's real findings. */
   problems: number;
+  /**
+   * The support check has run on THIS build (its result is current). Absent = true, for a caller with no check.
+   * TRAP (Fable + Codex review, 2026-11-27): "Every point is held" used to show before anyone pressed Check, which is
+   * a claim about a check that had not run. Built and checked are two facts; the line says which one it knows.
+   */
+  checked?: boolean | undefined;
 }
 
-export function reviewLine({ built, failed, resolvable, problems }: ReviewCounts): ReviewLine {
+export function reviewLine({ built, failed, resolvable, problems, checked = true }: ReviewCounts): ReviewLine {
   if (failed && !built) return { kind: 'failed', key: 'The supports could not be built. Change a setting to build them again, or press Back.', n: 0 };
   if (!built) return { kind: 'building', key: 'Building supports…', n: 0 };
   if (resolvable > 0) return { kind: 'fix', key: '1 spot needs a support.', other: '{n} spots need a support.', n: resolvable };
   if (problems > 0) return { kind: 'look', key: '1 thing to look at.', other: '{n} things to look at.', n: problems };
+  if (!checked) return { kind: 'look', key: 'Supports built, not checked yet. Press Check for unsupported spots.', n: 0 };
   return { kind: 'ready', key: 'Supports ready. Every point is held.', n: 0 };
 }

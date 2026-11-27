@@ -178,6 +178,13 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         they came to change. `Panel` falls back to a single column on its own when the dock is narrow, which
         is what makes the dock responsive without a width being chosen for it anywhere.
       */}
+      {/*
+        THE RESULT LEADS (Fable + Codex review, 2026-11-27): what the marked area gives - the proposed tips - is read
+        before the tools that change it. Next is in the footer as before; the tools and sliders stay where they were.
+      */}
+      <Field label={t('Proposed support tips')} ui="dental-tip-count" layout="row" className="dental-tip-count">
+        <span className="num">{tipCount}</span>
+      </Field>
       <Panel title={t('Tool')} ui="dental-tool">
       <div className="edit-row">
         {/* There is always one chosen: a step rests on Select, so the switch is never empty. */}
@@ -239,10 +246,13 @@ export function DentalBar({ gesture, unitName, ui, tipCount = 0, previewStatus =
         the app's figure face and could not be found at a glance. The sentence keeps the guidance; the count
         is a readout, the way Step 1 gives the print angle its own face.
       */}
-      <Field label={t('Proposed support tips')} ui="dental-tip-count" layout="row" className="dental-tip-count">
-        <span className="num">{tipCount}</span>
-      </Field>
-      <p className="edit-note" role="note">{t('Drag on the model to paint; drag empty space to rotate the view. The final generation may leave out tips whose supports touch an unapproved face.')}</p>
+      {/*
+        ONE LINE FOR THE TOOL IN HAND (Fable + Codex review, 2026-11-27). This was one paragraph about painting
+        whatever the tool was - "Drag on the model to paint" under Select. The tool's own hint is that line, already
+        translated and already true for the tool; the build caveat stays as its own short note.
+      */}
+      {(AREA_TOOLS as readonly string[]).includes(ui.tool ?? '') && <p className="edit-note" role="note" data-ui="dental-tool-note">{t(resolve(`dental.tool.${ui.tool}` as CommandId, ui).hint)}</p>}
+      <p className="edit-note" role="note">{t('The final build may leave out tips whose supports touch an unapproved face.')}</p>
       {!gesture.notices.some((notice) => notice.kind === 'no-area') && (previewStatus !== 'ready' || tipCount === 0) ? <p className="edit-note" role="status">{t(previewStatus === 'error'
         ? 'Could not preview safe support tips. Adjust the area or retry.'
         : previewStatus === 'ready' ? 'No safe support tips were found. Automatic placement is paused.'

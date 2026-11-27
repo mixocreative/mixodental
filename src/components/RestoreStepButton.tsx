@@ -13,8 +13,11 @@ export interface StepRestore {
  * step to the state it had on entry (pose, dial, supports, policy, settings) as one undo step.
  */
 export function RestoreStepButton({ restore, unique, round = false }: { restore: StepRestore; unique: string; round?: boolean }) {
-  return <button type="button" className={round ? 'restore-step restore-round' : 'orient-free-btn restore-step'} data-ui={unique} disabled={!restore.can} onClick={restore.run}
+  const button = <button type="button" className={round ? 'restore-step restore-round' : 'orient-free-btn restore-step'} data-ui={unique} disabled={!restore.can} onClick={restore.run}
     {...hint('Put this step back the way it was when you entered it. Undo brings your changes back')}>
     {round ? <><span className="visually-hidden">{t('Restore step')}</span><Icon name="restore" /></> : t('Restore step')}
   </button>;
+  // A grey key says why in the open (Fable + Codex review, 2026-11-27); the round icon key in a tight bar keeps its tooltip.
+  if (round || restore.can) return button;
+  return <>{button}<span className="help key-reason" data-ui={`${unique}-reason`}>{t('Nothing to restore yet: this step is as you entered it.')}</span></>;
 }

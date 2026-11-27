@@ -145,7 +145,9 @@ export function PurposeMenu({ options, value, ui, label, onChoose }: {
       onClick={(event) => { event.stopPropagation(); setOpen((was) => !was); }}
       onKeyDown={(event) => { if (event.key === 'ArrowDown') { event.preventDefault(); setOpen(true); } }}>
       {chosen
-        ? face(chosen)
+        // A TYPE IS READ BY ITS NAME (Fable + Codex review, 2026-11-27): a lone "G" said nothing to someone who had not
+        // learned the badges. The badge stays; the name follows it and gives way (ellipsis) on a narrow card.
+        ? <>{face(chosen)}{chosen.badge !== undefined ? <span className="purpose-menu-name">{chosen.label}</span> : null}</>
         /* NOT A PICTURE WHILE THERE IS NO ANSWER. The first version of the old control fell back to
            the generic cube, which IS the "Any model" art - so an unanswered row looked exactly like
            one answered "not dental". That is the silent-default defect this screen exists to

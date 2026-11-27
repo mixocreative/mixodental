@@ -60,6 +60,8 @@ export interface DentalReview {
    * False only before the first build, where the line is "Building supports".
    */
   buildLanded: boolean;
+  /** The support check has run on the build on screen (a check result exists and is not behind the build). */
+  checked: boolean;
   rimGap: RimGap | undefined;
   structureFallback: readonly ('tree' | 'brace' | 'brace-pruned')[] | undefined;
   problems: readonly ReviewProblem[];
@@ -166,14 +168,22 @@ export function EditSupportsBlock({ gesture, ui, review, send, run, kind }: {
   </Panel>;
 }
 
-/** The support check inside the step: Check, the build's notes, the findings with Show me and Fix. `stale` greys it while a verdict is on its way. */
-export function ProblemsBlock({ review, ui, send, run, kind, stale }: {
-  review: DentalReview; ui: UiState; send: (event: SessionEvent) => void; run: (id: CommandId) => void; kind: DentalKind; stale: boolean;
+/**
+ * The Check key, for the verdict's action row (ReviewSummary `action`). It used to sit inside Details, behind a fold,
+ * while the line above already said "Every point is held" (Fable + Codex review, 2026-11-27): the one action that
+ * makes the line true now sits beside it. ONE key per step, so its data-ui stays unique.
+ */
+export function CheckKey({ ui, run, kind }: { ui: UiState; run: (id: CommandId) => void; kind: DentalKind }) {
+  return <CommandButton command={resolve('check.run', ui)} run={run} uiName={`${kind}-check-run`} />;
+}
+
+/** The evidence behind Details: the build's notes, the findings with Show me and Fix. `stale` greys it while a verdict is on its way. */
+export function ProblemsBlock({ review, send, kind, stale }: {
+  review: DentalReview; send: (event: SessionEvent) => void; kind: DentalKind; stale: boolean;
 }) {
   const notes = reviewNotes(review, kind);
   const fixHere = () => FIX_TOOL_EVENTS.forEach(send);
   return <Panel title={t('Problems')} ui={`${kind}-problems`} busy={stale}>
-    <CommandButton command={resolve('check.run', ui)} run={run} uiName={`${kind}-check-run`} />
     {notes.length > 0 && <ul className="problems">
       {notes.map((note) => <NoteProblem key={note.key} text={note.text} onShow={review.onShowRim} onFix={fixHere} />)}
     </ul>}
@@ -185,15 +195,17 @@ export function ProblemsBlock({ review, ui, send, run, kind, stale }: {
 /** The ID label embossed on the raft (letters, digits and "-", up to 8), with the note when the raft is off. */
 export function IdLabelBlock({ review, kind }: { review: DentalReview; kind: DentalKind }) {
   const { settings, onSetting } = review;
-  return <Panel title={t('ID label')} ui={`${kind}-id-label`}>
-    <Field label={t('Text')} ui={`${kind}-id-label-text`}
+  // ONE COMPACT ROW ABOVE ADJUST (Fable + Codex review, 2026-11-27): the label is typed on every file, and it was the
+  // last thing inside a fold, so a file could be exported without anyone seeing it. Same input, same names.
+  return <section className="dental-block id-label-row" data-ui={`${kind}-id-label`}>
+    <Field label={t('ID label')} ui={`${kind}-id-label-text`} layout="row"
       hint={t(kindText('Letters, digits and "-" only, up to 8. Embossed on the raft so printed aligners can be told apart', kind))}>
       <input className="dental-label" type="text" inputMode="text" autoComplete="off" spellCheck={false} value={settings.labelText}
         placeholder={DEFAULT_DENTAL_LABEL} aria-label={t('ID label')} data-max={DENTAL_LABEL_MAX}
         onChange={(event) => onSetting('labelText', filterDentalLabel(event.target.value), 'dental-label')} />
     </Field>
     {!settings.raftEnabled && <p className="help" role="note">{t('The ID label is embossed on the raft. Turn the raft on to print it.')}</p>}
-  </Panel>;
+  </section>;
 }
 
 /**

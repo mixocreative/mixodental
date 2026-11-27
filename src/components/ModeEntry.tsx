@@ -24,6 +24,9 @@ export function ModeSections({ ui, run, zones }: {
     <CommandButton command={zonesMode} run={run} locked={ui.mode !== 'off' && !zonesMode.enabled} className="mode-button">
       {zones !== undefined && !zonesMode.pressed && <small className="state">{zones ? t('Painted') : t('None')}</small>}
     </CommandButton>
+    {/* The aligner flow is a MODE the model enters, not one more way to make generic supports (Fable + Codex review,
+        2026-11-27): it sat among the generic support keys, where it read as a fourth button of the same kind. */}
+    <CommandButton command={resolve('supports.dentalAuto', ui)} run={run} />
     {waiting && <p className="help">{translateMessage(waiting)}</p>}
   </section>;
 }

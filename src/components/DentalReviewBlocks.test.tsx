@@ -14,7 +14,7 @@ const review = {
   settings: defaultSupportSettings, onSetting: () => {},
   structure: { treeEnabled: true, bracesEnabled: true }, onStructure: () => {}, structureFixed: false,
   clickReach: { value: 1, onChange: () => {} },
-  verdictPending: false, buildLanded: true, rimGap: undefined, structureFallback: undefined, problems: [],
+  verdictPending: false, buildLanded: true, checked: true, rimGap: undefined, structureFallback: undefined, problems: [],
   outOfDate: false, rechecking: () => false, unitName: () => 'sample',
   onShow: () => {}, onFix: () => {}, onShowRim: () => {}, finishedCount: 0, backAsk: undefined,
   onBackConfirm: () => {}, onBackCancel: () => {},

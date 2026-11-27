@@ -591,7 +591,9 @@ registerCommands({
     disabledReason: (s) => (s.generating ? generatingReason : s.mode !== 'off' ? entryReason(s) : undefined),
   },
   'dental.useDetected': {
-    role: 'primary', label: () => 'Auto orientation', hint: (s) => kindText('Rotate the aligner to the proposed orientation again', s.dentalKind),
+    // NOT primary (Fable + Codex review, 2026-11-27): Next is Step 1's one primary; a second red key in the same dock
+    // made the way back to the proposal look like the way on.
+    role: 'secondary', label: () => 'Auto orientation', hint: (s) => kindText('Rotate the aligner to the proposed orientation again', s.dentalKind),
     visible: (s) => s.mode === 'dental' && s.dentalStage === 'aligner', enabled: (s) => Boolean(s.dentalProposed),
     disabledReason: (s) => (s.dentalProposed ? undefined : { key: kindText('No orientation was proposed for this aligner.', s.dentalKind) }),
   },

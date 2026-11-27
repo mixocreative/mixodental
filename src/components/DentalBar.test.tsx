@@ -76,7 +76,7 @@ const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true,
     const base = {
       settings: defaultSupportSettings, onSetting: () => {},
       structure: { treeEnabled: true, bracesEnabled: true }, onStructure: () => {}, structureFixed: false, clickReach: { value: 1, onChange: () => {} },
-      verdictPending: false, buildLanded: true, rimGap: undefined, structureFallback: undefined, problems: [], outOfDate: false, rechecking: () => false, unitName: () => 'sample',
+      verdictPending: false, buildLanded: true, checked: true, rimGap: undefined, structureFallback: undefined, problems: [], outOfDate: false, rechecking: () => false, unitName: () => 'sample',
       onShow: () => {}, onFix: () => {}, onShowRim: () => {}, finishedCount: 0, backAsk: undefined, onBackConfirm: () => {}, onBackCancel: () => {},
     } satisfies DentalReview;
     const reviewHtml = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady review={base} send={() => {}} run={() => {}} />);
@@ -89,7 +89,9 @@ const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true,
     expect(reviewHtml).toContain('Supports ready. Every point is held.');
     expect(reviewHtml.indexOf('aligner-review-summary')).toBeLessThan(reviewHtml.indexOf('aligner-adjust'));
     expect(reviewHtml).toMatch(/data-ui="aligner-adjust-title" aria-expanded="false"/);
-    for (const word of ['Tip size', 'Lift height', 'Tree branches', 'Cross-braces', 'Add supports', 'ID label']) expect(reviewHtml).not.toContain(word);
+    for (const word of ['Tip size', 'Lift height', 'Tree branches', 'Cross-braces', 'Add supports']) expect(reviewHtml).not.toContain(word);
+    // The ID label is OUT of the fold, one row above Adjust (Fable + Codex review, 2026-11-27).
+    expect(reviewHtml.indexOf('aligner-id-label')).toBeLessThan(reviewHtml.indexOf('aligner-adjust'));
     // Opened, Adjust leads with the tools and puts the settings after them (finding 12: at 1280x720 the
     // tools fell below the fold behind some 300 px of sliders).
     vi.stubGlobal('sessionStorage', { getItem: () => '1', setItem: () => {} });
@@ -147,6 +149,16 @@ const stepUi = { mode: 'dental', dentalStage: 'review', dentalReviewReady: true,
       review={{ ...base, verdictPending: false }} send={() => {}} run={() => {}} />);
     expect(noCheckYet).toContain('Supports ready. Every point is held.');
     expect(noCheckYet).toContain('is-stale');
+    /*
+     * Built, never checked (Fable + Codex review, 2026-11-27): the line must not claim "every point is held" before the
+     * check has run on this build, and the Check key sits beside the line - in the action row, not behind Details.
+     */
+    const unchecked = renderToStaticMarkup(<DentalBar gesture={review} unitName="sample" ui={stepUi} reviewReady
+      review={{ ...base, checked: false }} send={() => {}} run={() => {}} />);
+    expect(unchecked).not.toContain('Every point is held');
+    expect(unchecked).toContain('Supports built, not checked yet. Press Check for unsupported spots.');
+    const actions = unchecked.slice(unchecked.indexOf('review-actions'), unchecked.indexOf('aligner-review-details-toggle'));
+    expect(actions).toContain('data-ui="aligner-check-run"');
     expect(noCheckYet).toContain('aria-busy="true"');
 
     // A build that FAILED is not a verdict on its way: keeping the old sentence would read as sound supports.

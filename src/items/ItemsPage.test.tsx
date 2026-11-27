@@ -596,8 +596,16 @@ describe('what a card shows about its own auto-gen run', () => {
 
     expect(running).toContain('Generating supports');
     expect(running).not.toContain('>Ready<');
-    // The chip comes back when the run is over: it was hidden, not lost.
-    expect(withQueue(built, new Map([['unit-a', done()]]), oriented)).toContain('>Ready<');
+    // When the run is over the card says what it waits for: supports built by Auto-gen are not a finished file until the
+    // operator has looked (Fable + Codex review, 2026-11-27) - "Ready" there read as done.
+    const after = withQueue(built, new Map([['unit-a', done()]]), oriented);
+    expect(after).toContain('Supports built - review needed');
+    expect(after).not.toContain('>Ready<');
+  });
+
+  it('drops "review needed" once the operator has been through the file', () => {
+    const oriented = { detected: new Map([['unit-a', { kind: 'oriented', turned: false }]]) };
+    expect(withQueue(built, new Map([['unit-a', done()]]), { ...oriented, finished: ['unit-a'] })).not.toContain('review needed');
   });
 
   it('offers Stop in place of Auto-gen all while the queue runs', () => {

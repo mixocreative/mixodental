@@ -352,6 +352,7 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
           // A finished mark stands only while the unit still carries its work: a type change or Exit removes it, and a
           // row with nothing on it must not look done (Fable's audit, 2026-11-23).
           done={(finished.includes(unit.id) && (unit.supports !== undefined || unit.dental !== undefined || unit.denture !== undefined)) || unit.supports !== undefined}
+          reviewed={finished.includes(unit.id)}
           willOpen={target?.id === unit.id}
           detected={detected.get(unit.id)}
           thumbnails={thumbnails}
@@ -439,9 +440,13 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
           {...(anySupports ? hint('One STL file per object, each with its supports')
             : { title: t('Nothing to export: no object in this export has supports left.') })}
         >{t('Export all STL')}</button>
+        {/* A grey key says why IN THE OPEN, not only on hover (Fable + Codex review, 2026-11-27). */}
+        {!anySupports && <span className="help key-reason" data-ui="items-export-reason">{t('Nothing to export: no object in this export has supports left.')}</span>}
       </div>
 
       <div className="items-foot">
+        {/* What is left to do leads the footer (Fable + Codex review, 2026-11-27): it is the operator's progress. */}
+        <span className="items-left" data-ui="items-left">{left === 1 ? t('1 file left') : t('{n} files left', { n: left })}</span>
         {/*
           TWO READOUTS, NEVER ONE. A count alone cannot warn - thirty aligners and thirty full-arch
           scans are different cases by an order of magnitude - and a byte figure alone is not
@@ -460,7 +465,6 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
           title={t('The biggest moment of a whole-case run: every model held, plus building supports for the largest one.')}>
           {t('{used} of {allowance} memory', { used: formatBytes(usage.peakBytes), allowance: formatBytes(usage.allowanceBytes) })}
         </span>
-        <span className="items-left" data-ui="items-left">{left === 1 ? t('1 file left') : t('{n} files left', { n: left })}</span>
         {waiting > 0 ? <span className="items-progress" data-ui="items-progress">
           {t('Checking {done} of {n}', { done: units.length - waiting + 1, n: units.length })}
         </span> : null}
@@ -476,7 +480,9 @@ export function ItemsPage({ units, refused, detected, thumbnails, finished, lang
         {usage.overBudget ? <span className="items-attention" data-ui="items-overbudget">
           {t('Auto-gen is off: this case is over its memory allowance. Remove a model, or open them one at a time.')}
         </span> : null}
-        {target && purposeOf(target) ? <button type="button" className="primary key-art" data-ui="items-start"
+        {/* While Auto-gen runs, Stop is the action of the moment: Start stays ENABLED but steps down from the one red
+            primary (Fable + Codex review, 2026-11-27). Never disabled or renamed - the walk reads it. */}
+        {target && purposeOf(target) ? <button type="button" className={autoGenBusy ? 'key-art' : 'primary key-art'} data-ui="items-start"
           /* The name goes in the title rather than the label: a long file name in the primary would
              either clip or wrap the row, and the label has to read the same in three languages. */
           title={target.name}

@@ -9,7 +9,7 @@ import { adjustRemembered, rememberAdjust } from '../dental/adjustMemory';
 import { reviewWayOn } from '../dental/editingMode';
 import { reviewLine } from '../denture/steps/supports/reviewLineText';
 import { CommandButton } from './CommandButton';
-import { BackAskBlock, EditSupportsBlock, IdLabelBlock, ProblemsBlock, SupportSettingsBlock, reviewNotes, type DentalReview } from './DentalReviewBlocks';
+import { BackAskBlock, CheckKey, EditSupportsBlock, IdLabelBlock, ProblemsBlock, SupportSettingsBlock, reviewNotes, type DentalReview } from './DentalReviewBlocks';
 import { Panel } from './Panel';
 import { ReviewSummary } from './ReviewSummary';
 import { RestoreStepButton, type StepRestore } from './RestoreStepButton';
@@ -59,13 +59,15 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, rest
   const failed = Boolean(ui.dentalBuildFailed);
   // Spots a rule accepts on purpose are the rules' own choice and are never counted as a problem.
   const findings = review.problems.filter((problem) => !problem.rule).length;
-  const line = reviewLine({ built: shown && !failed, failed, resolvable: 0, problems: findings + reviewNotes(review, 'aligner').length });
+  const line = reviewLine({ built: shown && !failed, failed, resolvable: 0, problems: findings + reviewNotes(review, 'aligner').length, checked: review.checked });
   return <aside className="dental-side" data-ui="dental-supports-panel" aria-label={t('Supports')}>
     <div className="dental-scroll">
     <ReviewSummary kind="aligner" tone={line.kind} stale={stale} line={line.other ? plural(line.n, line.key, line.other) : t(line.key)}
+      action={<CheckKey ui={ui} run={run} kind="aligner" />}
       {...(shown ? { open: detailsOpen, onToggle: setDetailsOpen } : {})}>
-      <ProblemsBlock review={review} ui={ui} send={send} run={run} kind="aligner" stale={stale} />
+      <ProblemsBlock review={review} send={send} kind="aligner" stale={stale} />
     </ReviewSummary>
+    <IdLabelBlock review={review} kind="aligner" />
     <Panel ui="aligner-adjust" title={t('Adjust')} collapsible open={adjustOpen} onToggle={(open) => { rememberAdjust('aligner', open); setAdjustOpen(open); }}>
       {/*
         TOOLS BEFORE SETTINGS (UX review finding 12, measured 2026-11-21). With Adjust open the settings run
@@ -75,7 +77,6 @@ export function DentalSupportsStep({ gesture, ui, review, ready, send, run, rest
       */}
       <EditSupportsBlock gesture={gesture} ui={ui} review={review} send={send} run={run} kind="aligner" />
       <SupportSettingsBlock review={review} kind="aligner" onAdjust={setAdjusting} />
-      <IdLabelBlock review={review} kind="aligner" />
     </Panel>
     </div>
     <div className="dental-footer">

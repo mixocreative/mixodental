@@ -13,7 +13,7 @@ const ui = { mode: 'dental', dentalStage: 'review', dentalKind: 'denture', denta
 const review = {
   settings: defaultSupportSettings, onSetting: () => {},
   structure: { treeEnabled: false, bracesEnabled: true }, onStructure: () => {}, structureFixed: false, clickReach: { value: 1, onChange: () => {} },
-  verdictPending: false, buildLanded: true, rimGap: undefined, structureFallback: undefined, problems: [], outOfDate: false, rechecking: () => false, unitName: () => 'sample',
+  verdictPending: false, buildLanded: true, checked: true, rimGap: undefined, structureFallback: undefined, problems: [], outOfDate: false, rechecking: () => false, unitName: () => 'sample',
   onShow: () => {}, onFix: () => {}, onShowRim: () => {}, finishedCount: 0, backAsk: undefined, onBackConfirm: () => {}, onBackCancel: () => {},
 } satisfies DentalReview;
 const point = (id: string): UnresolvedPoint => ({ id, kind: 'tip', stream: '', position: [0, 0, 0], normal: [0, -1, 0], heightMm: 5, reason: 'x', bestGapMm: null, neededMm: 1.5 });
@@ -30,7 +30,9 @@ describe('DentureReviewPanel', () => {
     expect(html).toContain('data-ui="denture-review-details-toggle"');
     expect(html).toContain('data-ui="denture-adjust-title"');
     expect(html).toMatch(/data-ui="denture-adjust-title" aria-expanded="false"/);
-    for (const hidden of ['Tip size', 'Support thickness', 'Supports may touch the denture', 'Add supports', 'ID label', 'Check for unsupported spots', 'Unresolved points']) expect(html).not.toContain(hidden);
+    for (const hidden of ['Tip size', 'Support thickness', 'Supports may touch the denture', 'Add supports', 'Unresolved points']) expect(html).not.toContain(hidden);
+    // The Check key sits beside the line, not behind Details (Fable + Codex review, 2026-11-27).
+    expect(html).toContain('data-ui="denture-check-run"');
     for (const name of ['restore-step-2', 'denture-add-another', 'denture-review-back', 'denture-review-ok']) expect(html).toContain(`data-ui="${name}"`);
     expect(html.indexOf('denture-review-back')).toBeLessThan(html.indexOf('denture-review-ok'));
     expect(html).not.toContain('denture-resolve-all');

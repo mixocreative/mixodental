@@ -973,7 +973,6 @@ export const zhHant: Dictionary = {
   'Tool': '工具',
   'Support area': '支撐區域',
   'Proposed support tips': '預計支撐頭',
-  'Drag on the model to paint; drag empty space to rotate the view. The final generation may leave out tips whose supports touch an unapproved face.': '在模型上拖曳以進行塗刷；在空白處拖曳以旋轉視角。最終產生時，若支撐接觸到未核准的面，可能會省略該支撐頭。',
   'A column would print too slender': '列印的支撐柱會過於細長。',
   'Angles that pass with room to spare': '寬裕通過的角度',
   'Build height': '列印高度',
@@ -1214,4 +1213,9 @@ export const zhHant: Dictionary = {
   'Recipe': '配方',
   'Support moved.': '支撐已移動。',
   'Support left where it was: a tip moves only onto the model.': '支撐留在原位：支撐頭只能移動到模型上。',
+  // App UX review (Fable + Codex, 2026-11-27).
+  'Supports built, not checked yet. Press Check for unsupported spots.': '支撐已建立，尚未檢查。請按「檢查缺少支撐的地方」。',
+  'Nothing to restore yet: this step is as you entered it.': '還沒有可還原的內容：這個步驟和剛進來時一樣。',
+  'Supports built - review needed': '支撐已建立 - 需要檢查',
+  'The final build may leave out tips whose supports touch an unapproved face.': '最後產生支撐時，可能會略過支撐碰到未核准面的支撐頭。',
 };

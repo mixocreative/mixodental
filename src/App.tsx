@@ -1589,6 +1589,8 @@ export default function App() {
      * check's verdict) is the WRONG signal here, because Step 3 shows a verdict before anyone presses Check.
      */
     buildLanded: Boolean(activeUnit && built.get(activeUnit.id)),
+    // A check verdict exists for this unit and is not behind its build: only then may the line say "every point is held".
+    checked: Boolean(verdictEntry) && !verdictBehind,
     rimGap: dentalRimGap,
     structureFallback: activeMesh?.dentalStructureFallback,
     problems: listedProblems,
@@ -2003,7 +2005,6 @@ export default function App() {
         <section {...(locked('supports') ? { inert: '' } : {})}>
           <h3>{t('Supports for {scope}', { scope: scopeLabel })}</h3>
           <CommandButton command={command('supports.generate')} run={runCommand} {...(scopeGenerated ? { className: scopePending ? 'regen attention' : 'regen' } : {})} />
-          <CommandButton command={command('supports.dentalAuto')} run={runCommand} />
           <CommandButton command={command('supports.clearManual')} run={runCommand} />
           <CommandButton command={command('supports.remove')} run={runCommand} />
         </section>

@@ -7,7 +7,7 @@ import { CommandButton } from '../../../components/CommandButton';
 import { Panel } from '../../../components/Panel';
 import { RestoreStepButton, type StepRestore } from '../../../components/RestoreStepButton';
 import { reviewWayOn } from '../../../dental/editingMode';
-import { BackAskBlock, EditSupportsBlock, IdLabelBlock, ProblemsBlock, SupportSettingsBlock, reviewNotes, type DentalReview } from '../../../components/DentalReviewBlocks';
+import { BackAskBlock, CheckKey, EditSupportsBlock, IdLabelBlock, ProblemsBlock, SupportSettingsBlock, reviewNotes, type DentalReview } from '../../../components/DentalReviewBlocks';
 import type { DentureMesh } from '../../engine/dentureCore';
 import { PartsList } from '../../parts/PartsList';
 import { DentureSettingsSection } from '../../settings/DentureSettingsSection';
@@ -63,22 +63,22 @@ export function DentureReviewPanel({ gesture, ui, review, ready, send, run, rest
   const stale = adjusting || review.verdictPending || (shown && !built);
   // A build that FAILED outranks the verdict it was meant to replace: there is nothing sound to keep reading.
   const failed = Boolean(ui.dentalBuildFailed);
-  const line = reviewLine({ built: shown && !failed, failed, resolvable, problems: refused + findings + reviewNotes(review, 'denture').length });
+  const line = reviewLine({ built: shown && !failed, failed, resolvable, problems: refused + findings + reviewNotes(review, 'denture').length, checked: review.checked });
   return <aside className="dental-side denture-review" data-ui="denture-supports-panel" aria-label={t('Supports')}>
     <div className="dental-scroll">
       <ReviewSummary kind="denture" tone={line.kind} stale={stale} line={line.other ? plural(line.n, line.key, line.other) : t(line.key)}
         {...(built ? { open: detailsOpen, onToggle: setDetailsOpen } : {})}
-        action={line.kind === 'fix' ? <CommandButton command={resolve('denture.resolveAll', ui)} run={run} uiName="denture-resolve-all" /> : undefined}>
+        action={<>{line.kind === 'fix' ? <CommandButton command={resolve('denture.resolveAll', ui)} run={run} uiName="denture-resolve-all" /> : null}<CheckKey ui={ui} run={run} kind="denture" /></>}>
         <ResolveSection mesh={mesh} />
         <PartsList parts={mesh?.dentureParts} />
-        <ProblemsBlock review={review} ui={ui} send={send} run={run} kind="denture" stale={stale} />
+        <ProblemsBlock review={review} send={send} kind="denture" stale={stale} />
       </ReviewSummary>
+      <IdLabelBlock review={review} kind="denture" />
       <Panel ui="denture-adjust" title={t('Adjust')} collapsible open={adjustOpen} onToggle={(open) => { rememberAdjust('denture', open); setAdjustOpen(open); }}>
         {/* Tools before settings: the aligner's Step 3 explains why (DentalSupports.tsx, finding 12). */}
         <EditSupportsBlock gesture={gesture} ui={ui} review={review} send={send} run={run} kind="denture" />
         <SupportSettingsBlock review={review} kind="denture" onAdjust={setAdjusting} />
         <DentureSettingsSection options={denture.options ?? DEFAULT_DENTURE_OPTIONS} onChange={denture.onOptions} />
-        <IdLabelBlock review={review} kind="denture" />
       </Panel>
     </div>
     <div className="dental-footer denture-review-footer" data-ui="denture-review-footer">

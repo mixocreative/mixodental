@@ -968,7 +968,6 @@ export const ja: Dictionary = {
   'Tool': 'ツール',
   'Support area': 'サポート領域',
   'Proposed support tips': '予定サポート先端数',
-  'Drag on the model to paint; drag empty space to rotate the view. The final generation may leave out tips whose supports touch an unapproved face.': 'モデル上をドラッグして塗ります、空白部分をドラッグして視点を回転します。最終生成時、サポートが未許可の面に接触しているサポート先端は除外される場合があります。',
   'A column would print too slender': 'サポート柱が細長くなりすぎます。',
   'Angles that pass with room to spare': '余裕のある合格角度',
   'Build height': '造形高さ',
@@ -1209,4 +1208,9 @@ export const ja: Dictionary = {
   'Recipe': 'レシピ',
   'Support moved.': 'サポートが移動しました。',
   'Support left where it was: a tip moves only onto the model.': 'サポートは元の位置に保持されました：先端はモデルの上にのみ移動できます。',
+  // App UX review (Fable + Codex, 2026-11-27).
+  'Supports built, not checked yet. Press Check for unsupported spots.': 'サポートを作成しました（未確認）。「サポートのない箇所を確認」を押してください。',
+  'Nothing to restore yet: this step is as you entered it.': 'まだ元に戻すものはありません：このステップは開始時のままです。',
+  'Supports built - review needed': 'サポート作成済み - 要確認',
+  'The final build may leave out tips whose supports touch an unapproved face.': '最終生成では、サポートが未承認の面に触れる先端が除外されることがあります。',
 };
