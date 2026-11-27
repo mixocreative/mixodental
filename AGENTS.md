@@ -11,3 +11,13 @@ Rules:
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 - After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
 - A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
+
+## The Type Lab and the fit (Codex: read this before changing how the app decides)
+
+The Type Lab (`typelab/`, `node typelab/serve.mjs`) is where detection rules, profile numbers and new types are proved
+OUTSIDE the app; its manual is `typelab/CLI.md` and the Claude skill `.claude/skills/typelab/SKILL.md` says the same.
+**The fit** (the page's "Tune to targets", or `node typelab/fit.mjs --kind denture|aligner`) tunes a type toward the
+owner's `-sup` target files. Its rules are in `typelab/CLI.md` ("Fitting a setup to the owner's targets"): `-sup` is the
+only meaningful part of a file name; a change is kept only if the area match rises, nothing guarded gets worse on any
+scan, no pair drops more than a point, and it survives leave-one-out; tilt and height are not match terms; it never
+saves a type - the owner does. Never name or interpret patient scan file names.
