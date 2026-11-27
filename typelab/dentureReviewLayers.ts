@@ -33,7 +33,7 @@ import { facesInNone, maskLayers, maskOfNone } from './maskLayers';
 import { rayLayers } from './rayLayers';
 import { describeUnresolved, islandPoints, summariseIslands, type IslandSettle, type IslandSummary } from './islandReport';
 import { MATCH_FORMAT, targetFor } from './targetMatch.mjs';
-import { fitEvidence } from './fitEvidence.mjs';
+import { faceDescriptors, fitEvidence } from './fitEvidence.mjs';
 
 export const CONTACTS_FORMAT = MATCH_FORMAT;
 /** The largest median distance (mm) from an owner contact to the displayed scan that the mapping may have. */
@@ -638,7 +638,8 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
   return {
     layers,
     evidence,
-    evidenceClasses: evidence ? [target.faceClass!, ...streamClasses] : [],
+    // ...then the gap probes' per-face descriptors (fitEvidence.mjs faceDescriptors - diagnostic only, never placement).
+    evidenceClasses: evidence ? (() => { const d = faceDescriptors(mesh.positions, mesh.indices); return [target.faceClass!, ...streamClasses, d.slope, d.height]; })() : [],
     zoneNodes: review?.zoneNodes ?? [],
     rimNote: review?.drawnRimProblem ?? '',
     ownerContacts: target.ownerContacts,

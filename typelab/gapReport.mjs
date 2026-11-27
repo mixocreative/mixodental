@@ -22,19 +22,26 @@ export const PROCEDURAL_CANDIDATES = [
 ];
 
 const pct = (share) => `${Math.round(share * 100)}%`;
+/** Faces a probe's band must clean beyond its cost on every pair: the composer's charge (5 per node) x the 2 nodes it adds. */
+export const PROBE_BAR = 10;
 
 /**
  * @param {{ kind: string, stream: string, outside: { stream: string, outsideMm2: number, tips: number }[],
  *   ceilings: { share: number, oursOnly: number }[], refusedOnly?: boolean,
  *   tried: { steps: string[], result: { score: number } | null, refused: string[], predicted?: number[] }[], startScore: number }} input
  */
-export function gapReport({ kind, stream, outside, ceilings, refusedOnly = false, tried, startScore }) {
+export function gapReport({ kind, stream, outside, ceilings, refusedOnly = false, tried, startScore, probes = [] }) {
   const total = outside.reduce((sum, s) => sum + s.outsideMm2, 0);
   const focus = outside.find((s) => s.stream === stream);
+  // A probe "separates" when its band, as a no-support mark, cleans more ours-only faces than it costs both-faces on
+  // EVERY pair, by more than the composer's charge for the two nodes it adds (the band and its mark).
+  const passed = probes.filter((p) => p.worst > PROBE_BAR);
   const lines = [
     `# geocore: a procedural mask so the ${kind} "${stream}" tips can follow the targets (DRAFT)`,
     '',
-    'STATUS: draft written by the Type Lab composer; NOT SENT. Send only with a probe below that separates the misses on every pair',
+    passed.length
+      ? `STATUS: draft; a probe SEPARATES the misses on every pair (${passed.map((p) => p.name).join(', ')}) - ready for Fable and Codex to decide whether to send.`
+      : 'STATUS: draft written by the Type Lab composer; NOT SENT. Send only with a probe below that separates the misses on every pair',
     '(owner delegation: Fable and Codex decide).',
     '',
     '## As the operator meets it',
@@ -55,6 +62,14 @@ export function gapReport({ kind, stream, outside, ceilings, refusedOnly = false
     'A mask node from the common procedural vocabulary that separates the faces these tips should keep from the ones they should not. Candidates to probe (diagnostic only, in the Type Lab, on the same faces across every pair):',
     ...PROCEDURAL_CANDIDATES.map(([name, what]) => `- **${name}** - ${what}`),
     '',
+    ...(probes.length ? [
+      '## Probes run (diagnostic only, in the Type Lab)',
+      '',
+      ...probes.map((p) => `- **${p.name}** best band [${p.lo}, ${p.hi}) ${p.unit}: predicted faces per pair ${p.gains.join(' / ')} - ${p.worst > PROBE_BAR ? 'SEPARATES on every pair' : 'does not separate on every pair'}`),
+      '',
+      'Not probed yet: distance from a feature, curvature, component size, grow / shrink (they need surface neighbourhoods).',
+      '',
+    ] : []),
     'Evidence to attach when picked up: the fit folder\'s evidence.json and compose.json (scans named by hash only).',
   ];
   return `${lines.join('\n')}\n`;

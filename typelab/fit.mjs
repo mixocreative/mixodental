@@ -24,9 +24,9 @@ import { fileURLToPath } from 'node:url';
 import { sampleScans } from '../scripts/samples.mjs';
 import { viteNodeCli } from '../scripts/viteNodeCli.mjs';
 import { PROVISIONAL_UNDER } from './fitScore.mjs';
-import { streamsOutside } from './fitEvidence.mjs';
+import { probeBand, streamsOutside } from './fitEvidence.mjs';
 import { composeSearch } from './composeSearch.mjs';
-import { gapReport } from './gapReport.mjs';
+import { gapReport, PROBE_BAR } from './gapReport.mjs';
 import { describe, EDITS, search } from './fitSearch.mjs';
 import { stampNow } from './rules.mjs';
 import { CACHE, finishRun, isKept, runKey } from './runCache.mjs';
@@ -163,7 +163,8 @@ if (args.includes('--compose')) {
     // away every gated source's support under it, so judging it on the rim source alone predicted a large gain for
     // "no support everywhere but the rim band" - which wiped out the area and hole tips the target needs (refused).
     // The source the misses come from still names the rule the mark needs (GATE).
-    return { stream, pairs: pairs.filter((p) => p.ev.binOrder.includes('all')).map((p) => ({ classes: p.classesOf('all'), nodes: p.nodes })) };
+    return { stream, pairs: pairs.filter((p) => p.ev.binOrder.includes('all')).map((p) => ({ classes: p.classesOf('all'), nodes: p.nodes,
+      ...(p.ev.binOrder.includes('slope') ? { slope: p.classesOf('slope'), height: p.classesOf('height') } : {}) })) };
   };
   console.log('\ncompose (from the winner above):');
   composed = await composeSearch({ start: best.type, startRows: best.rows, evaluate, evidenceOf: evidenceFor, log: (line) => console.log(line) });
@@ -173,8 +174,17 @@ if (args.includes('--compose')) {
   }
   // No arrangement of today's nodes got there: the draft engine request for a procedural node (gapReport.mjs).
   if (composed.gap) {
+    // THE PROBES (fitEvidence.mjs probeBand): would a slope band or a height band, as a no-support mark, clean the misses
+    // on EVERY pair? Same absolute bands on every pair; a band must clear the same per-node charge as a candidate.
+    const ev = evidenceFor(composed.best.rows);
+    const probing = (ev?.pairs ?? []).filter((p) => p.slope);
+    const probes = probing.length ? [
+      { name: 'slope band', unit: 'deg from horizontal', ...probeBand(probing.map((p) => ({ classes: p.classes, values: p.slope })), [0, 20, 40, 60, 80, 100, 120, 140, 160, 181]) },
+      { name: 'height band', unit: '/255 of the model height', ...probeBand(probing.map((p) => ({ classes: p.classes, values: p.height })), [0, 26, 51, 77, 102, 128, 154, 179, 205, 230, 256]) },
+    ] : [];
+    for (const p of probes) console.log(`  probe ${p.name} [${p.lo}, ${p.hi}) ${p.unit}: per-pair predicted faces ${p.gains.join('/')} ${p.worst > PROBE_BAR ? 'SEPARATES on every pair' : '- does not separate on every pair'}`);
     writeFileSync(join(out, 'gap-report.md'), gapReport({ kind, stream: composed.gap.stream, outside: streamsOutside(evidenceOf(composed.best.rows)),
-      ceilings: composed.gap.ceilings, refusedOnly: composed.gap.refusedOnly, tried: composed.tried, startScore: composed.best.result.score }));
+      ceilings: composed.gap.ceilings, refusedOnly: composed.gap.refusedOnly, tried: composed.tried, startScore: composed.best.result.score, probes }));
     console.log(`gap report (draft engine request, not sent): ${join(out, 'gap-report.md')}`);
   }
   writeFileSync(join(out, 'compose.json'), JSON.stringify({ steps: composed.best.steps, gap: composed.gap,

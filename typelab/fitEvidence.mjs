@@ -57,6 +57,61 @@ export function fitEvidence({ streams, faceClass, nodes }) {
 }
 
 /**
+ * PER-FACE DESCRIPTORS FOR THE GAP PROBES - diagnostic only (docs/GEOCORE-BOUNDARY.md rule 6: review tooling may live
+ * here; it never feeds placement). Each is a byte per face: `slope` = the face's angle from horizontal, 0-180 degrees
+ * (0 = facing straight up, 90 = a wall, 180 = facing straight down), in the review's unit frame (Y up, BEFORE the print
+ * tilt - a pose-free mask, which is what a node would be); `height` = the face's height in the model's own range,
+ * 0-255. A probe that separates the misses with one of these is EVIDENCE for asking the engine for that node.
+ * @param {ArrayLike<number>} positions flat xyz @param {ArrayLike<number>} indices three per face
+ */
+export function faceDescriptors(positions, indices) {
+  const faces = indices.length / 3;
+  const slope = new Uint8Array(faces);
+  const heightRaw = new Float32Array(faces);
+  let lo = Infinity, hi = -Infinity;
+  for (let f = 0; f < faces; f += 1) {
+    const [a, b, c] = [indices[f * 3] * 3, indices[f * 3 + 1] * 3, indices[f * 3 + 2] * 3];
+    const ux = positions[b] - positions[a], uy = positions[b + 1] - positions[a + 1], uz = positions[b + 2] - positions[a + 2];
+    const vx = positions[c] - positions[a], vy = positions[c + 1] - positions[a + 1], vz = positions[c + 2] - positions[a + 2];
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    const len = Math.hypot(nx, ny, nz) || 1;
+    slope[f] = Math.round((Math.acos(Math.max(-1, Math.min(1, ny / len))) * 180) / Math.PI);
+    const h = (positions[a + 1] + positions[b + 1] + positions[c + 1]) / 3;
+    heightRaw[f] = h; lo = Math.min(lo, h); hi = Math.max(hi, h);
+  }
+  const span = hi - lo || 1;
+  const height = Uint8Array.from(heightRaw, (h) => Math.round(((h - lo) / span) * 255));
+  return { slope, height };
+}
+
+/**
+ * The best BAND of one descriptor as a no-support mark, judged on EVERY pair (the composer's rule): over a fixed grid of
+ * [lo, hi) bands (same absolute values on every pair), the band whose WORST per-pair gain (ours-only faces in it minus
+ * both-faces in it) is highest. `grid` = band edges.
+ * @param {{ classes: Uint8Array, values: Uint8Array }[]} pairs
+ */
+export function probeBand(pairs, grid) {
+  let best = null;
+  for (let i = 0; i < grid.length - 1; i += 1) {
+    for (let j = i + 1; j < grid.length; j += 1) {
+      const [lo, hi] = [grid[i], grid[j]];
+      const gains = pairs.map(({ classes, values }) => {
+        let gain = 0;
+        for (let f = 0; f < classes.length; f += 1) {
+          if (values[f] < lo || values[f] >= hi) continue;
+          if (classes[f] === CLASS.oursOnly) gain += 1; else if (classes[f] === CLASS.both) gain -= 1;
+        }
+        return gain;
+      });
+      const worst = Math.min(...gains);
+      // A tie goes to the NARROWER band: the same faces cleaned by a tighter mask is the more specific ask.
+      if (!best || worst > best.worst || (worst === best.worst && hi - lo < best.hi - best.lo)) best = { lo, hi, gains, worst };
+    }
+  }
+  return best;
+}
+
+/**
  * Many runs' evidence summed per source (the fit reads it across the pairs): where the area outside the target COMES
  * FROM, the source to look at first on top.
  * @param {ReturnType<typeof fitEvidence>[]} runs

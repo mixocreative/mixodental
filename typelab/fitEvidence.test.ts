@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { CLASS, fitEvidence, streamsOutside } from './fitEvidence.mjs';
+import { CLASS, faceDescriptors, fitEvidence, probeBand, streamsOutside } from './fitEvidence.mjs';
+
+describe('the gap probes', () => {
+  it('measures a face\'s slope from horizontal (0 up, 90 wall, 180 down) and its height in the model\'s range', () => {
+    // three faces: one facing up at y=0, one wall, one facing down at y=10
+    const positions = [0, 0, 0, 0, 0, 1, 1, 0, 0, /* up */ 0, 0, 0, 0, 1, 0, 1, 0, 0, /* wall */ 0, 10, 0, 1, 10, 0, 0, 10, 1 /* down */];
+    const { slope, height } = faceDescriptors(positions, [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    expect([...slope]).toEqual([0, 90, 180]);
+    expect(height[0]).toBe(0);
+    expect(height[2]).toBe(255);
+  });
+  it('finds the band that cleans ours-only faces on EVERY pair, not the one a single pair likes', () => {
+    const classes = Uint8Array.of(CLASS.oursOnly, CLASS.oursOnly, CLASS.both, CLASS.both);
+    const pairA = { classes, values: Uint8Array.of(170, 175, 10, 20) };
+    const pairB = { classes, values: Uint8Array.of(165, 172, 30, 40) };
+    const best = probeBand([pairA, pairB], [0, 60, 120, 181]);
+    expect(best).toMatchObject({ lo: 120, hi: 181, gains: [2, 2], worst: 2 });
+  });
+});
 
 const faces = Uint8Array.of(CLASS.targetOnly, CLASS.oursOnly, CLASS.both, CLASS.neither, CLASS.oursOnly);
 
