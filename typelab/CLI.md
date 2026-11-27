@@ -136,7 +136,7 @@ Tilt and height are not match terms (owner, 2026-11-27). An edit that changed no
 Every run is kept in the review page's own cache (`runCache.mjs`), so any setup it tried opens instantly there. It
 writes `fit.json` and `winner.type.json`. **It never saves a type**: look at the winner, then save it yourself.
 
-### When the fit finds nothing: the composer (agreed design, being built)
+### When the fit finds nothing: the composer (agreed design, BUILT 2026-11-27)
 
 Owner, 2026-11-27: "a way for AI or script to intelligently figure out how nodes [are] arranged to get the desired
 result, even from blank, or add or remove or reshuffle nodes ... and know when none help how a procedural common used
@@ -152,13 +152,14 @@ node can be introduced." Fable and Codex designed it independently and agreed on
    mask in the tested vocabulary", never "impossible".
 3. **Candidates** (BUILT, `composer.mjs`; run with `node typelab/fit.mjs --kind denture --compose`): masks, `not`, pairwise `union` / `intersect` / `subtract`, as Mark-support or Mark-no-support,
    remove / reorder a Mark, a short grid of legal parameters - each ranked offline by predicted gain.
-4. **Search** (agreed rule): greedy, one edit per step, depth at most 3; dedupe masks identical per face; predicted
+4. **Search** (BUILT, `composeSearch.mjs`; agreed rule; ranking moved to the calibrated re-score, `rankByRescore`): greedy, one edit per step, depth at most 3; dedupe masks identical per face; predicted
    gain minus a charge per added node, positive on EVERY pair; full-run the top 3 per step, at most 8 full setups per
    session; advance only with what `fitScore` accepts (refusals + leave-one-out); every run logs predicted vs measured.
    An AI may propose edits in the same grammar - same scorer, same refusals, no exception. From blank = the same loop
    from one empty Mark.
-5. **Gap report** (BUILT as a draft, `gapReport.mjs` -> `gap-report.md` in the fit folder; the descriptor PROBES are
-   next). First run (dentures, 2026-11-27): the rim tips cause 63% of the area outside the targets; the one eligible
+5. **Gap report** (BUILT, `gapReport.mjs` -> `gap-report.md` in the fit folder, with four descriptor PROBES - slope,
+   height, distance from the rim, sector around the arch - each confirmed or refused by the calibrated re-score;
+   curvature, component size and grow / shrink are deferred, agreed by Fable and Codex, until more denture targets). First run (dentures, 2026-11-27): the rim tips cause 63% of the area outside the targets; the one eligible
    mark was refused in full runs (15.6 -> 14.9); the draft asks for a procedural mask. The probes then found a height
    band [26,51)/255 that "separated" on face counts - and the CHECK Fable and Codex set before sending
    (`node typelab/whatif.mjs --type <winner>`: drop tips by face, re-score with the engine's comparison, calibrated on
