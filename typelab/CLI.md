@@ -213,6 +213,12 @@ node can be introduced." Fable and Codex designed it independently and agreed on
    target before it becomes a rule. The measurement was a scratch script and is not kept. Write it as a typelab probe
    with a test if that second sample arrives.
 
+   **Owner's verdict on that pair, 2026-11-28:** they looked at case-006 in the Type Lab (Compare with target, bottom
+   view). The target leaves the two back ends of the horseshoe bare, and our rim tips support them. The owner judged
+   **our support superior** there. So that pair's gap is a weaker target, not a missing rule. The candidate above is
+   dropped, and the rim stays on. Read a low score on that pair as the target's choice, and never tune a type toward
+   it.
+
 ## Stage 2 — pin it before you tune it
 
 ```bash
