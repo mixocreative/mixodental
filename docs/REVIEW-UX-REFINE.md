@@ -176,3 +176,15 @@ more: since item 3 above, a card whose supports Auto-gen built says "Supports bu
 operator has been through it, so "Ready" no longer stands in for "ready to export". **The dental status line stays
 visible**: a status message carries no tone, so the app cannot tell a repeated instruction from an error; hiding it
 needs a tone on every message first (recorded here as the next step for that item).
+
+## Delegated decisions - 2026-11-27 (owner: "make those decisions with 2 consultants")
+
+Each decided by Fable and Codex independently; acted on only where both agreed.
+
+| Item | Fable | Codex | Done |
+|---|---|---|---|
+| D1 approve docs/GEOCORE-BOUNDARY.md | approve | approve | STATUS set to agreed |
+| D2 send the geocore requests | send (new docs/requests/, fix wording) | send | sent: mixo-geocore 5882c80, docs/requests/ |
+| D3 dental status line | wrap to two lines | tone on Message, hide routine | NO AGREEMENT - stays as is |
+| D4 open-arch rim-gap review | engine request | engine request | docs/handoff/geocore-open-arch-rim-gap.md, sent |
+| D5 the dropped UX items | none | none | stay dropped |

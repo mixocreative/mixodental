@@ -1,6 +1,6 @@
 # How mixo-geocore and mixodental divide the work
 
-> **STATUS: PROPOSAL, agreed by Fable and Codex (2026-11-27, three rounds, every cited path checked by both); waiting for the owner's approval.** Nothing here is built yet, and nothing in it has been sent to the mixo-geocore repository. Until approved, the owner's ruling in `docs/design.md` *WHO OWNS A NUMBER* is the rule in force; this page is how that ruling would be carried out.
+> **STATUS: AGREED - the project's rule (2026-11-27).** Agreed by Fable and Codex in three rounds (every cited path checked by both), then approved by both again under the owner's delegation the same day ("make those decisions with 2 consultants"). It carries out the owner's ruling in `docs/design.md` *WHO OWNS A NUMBER*. Migration steps 6-7 (the sequence rewrite and the crate split) still get their own go-ahead when reached; requests to geocore follow the placement rules below and go to its `docs/requests/`.
 
 Fable + Codex, 2026-11-27. Source review only: neither reviewer ran a scan or a build. Paths starting `crates/` or
 `host/` are in the mixo-geocore repo; all others are in mixodental. CANDIDATE = read, not run.

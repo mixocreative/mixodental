@@ -1,9 +1,9 @@
-# geocore: five aligner scans that do not build
+# geocore: four aligner scans that do not build
 
 Written 2026-11-27 from the owner's samples (`samples/aligner/g`, git-ignored patient data, named here by the first
 8 hex of each scan's SHA-256 only; file names are arbitrary labels and say nothing about the item). **Rewritten the same
-day** to the placement rules of `docs/GEOCORE-BOUNDARY.md` (agreed by Fable and Codex, awaiting the owner): the first
-version asked geocore to fix all five, which over-asked - only generic mesh work and evidence belong to geocore; the
+day** to the placement rules of `docs/GEOCORE-BOUNDARY.md` (agreed; sent to mixo-geocore docs/requests/ on 2026-11-27 under the owner's delegation to Fable + Codex): the first
+version asked geocore to fix all five (the hooks scan has since been fixed on our side, so four remain), which over-asked - only generic mesh work and evidence belong to geocore; the
 dental sequence and its numbers are mixodental's.
 
 ## What the operator meets
