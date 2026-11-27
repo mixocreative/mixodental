@@ -86,7 +86,33 @@ export function reachableCeiling(classes, masks) {
 }
 
 /**
- * Candidates over SEVERAL pairs: a mask is kept only if its predicted gain clears `charge` (faces per added node) on
+ * RANKING BY THE RE-SCORE (Fable + Codex, 2026-11-27, after the face counts mispredicted three times and the tip-drop
+ * re-score reproduced both known full runs: 15.6 -> 14.9 exactly, 15.6 -> -4.1 against -5.2). Each pair's review
+ * re-scored every candidate (dentureReviewLayers `composeScores`: the gated tips whose face is in the mask dropped,
+ * the engine's area comparison run again). Gain = re-score minus the pair's score as built; a candidate is eligible
+ * only if its WORST pair gain clears `charge` points per added node. Ranked by that worst gain, then fewer nodes. A
+ * candidate that drops over `lowShare` of a pair's tips is flagged low-confidence: there the engine would most likely
+ * place other tips instead, which the re-score cannot see. Full runs still decide.
+ * @param {{ asBuilt: number, tips: number, candidates: { build: object, score: number, dropped: number }[] }[]} perPair
+ */
+export function rankByRescore(perPair, { charge = 0.5, top = 3, lowShare = 0.3 } = {}) {
+  if (perPair.length === 0) return [];
+  const key = (build) => JSON.stringify(build);
+  const added = (build) => (build.op ? 2 : 1);
+  const keys = perPair[0].candidates.map((c) => key(c.build)).filter((k) => perPair.every((p) => p.candidates.some((c) => key(c.build) === k)));
+  return keys.map((k) => {
+    const each = perPair.map((p) => ({ p, c: p.candidates.find((c) => key(c.build) === k) }));
+    const gains = each.map(({ p, c }) => Math.round((c.score - p.asBuilt) * 10) / 10);
+    const build = JSON.parse(k);
+    return { build, gains, worst: Math.min(...gains), nodes: added(build),
+      lowConfidence: each.some(({ p, c }) => p.tips > 0 && c.dropped / p.tips > lowShare) };
+  }).filter((c) => c.worst > charge * c.nodes)
+    .sort((a, b) => (b.worst - a.worst) || (a.nodes - b.nodes))
+    .slice(0, top);
+}
+
+/**
+ * Candidates over SEVERAL pairs (FACE COUNTS - kept as a logged column since the ranking moved to rankByRescore): a mask is kept only if its predicted gain clears `charge` (faces per added node) on
  * EVERY pair - the agreed rule: a gain one scan carries is not a gain. Ranked by the smallest per-pair gain, then by
  * fewer added nodes. `perPair` = [{ classes, nodes }] in the same node order on every pair.
  */

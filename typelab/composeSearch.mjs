@@ -9,7 +9,7 @@
  *
  * Runs and files are injected (fit.mjs supplies them), so the rule is tested without the engine.
  */
-import { rankCandidates, reachableCeiling, candidateMasks } from './composer.mjs';
+import { candidateMasks, rankByRescore, rankCandidates, reachableCeiling } from './composer.mjs';
 import { refusals, scoreRun } from './fitScore.mjs';
 import { graphOf, markOnTop, typeProblem } from './fitSearch.mjs';
 import { KINDS } from './nodeGraph.mjs';
@@ -61,8 +61,16 @@ export async function composeSearch({ start, startRows, evaluate, evidenceOf, lo
     // Only nodes that GIVE FACES may feed a Mark (a Mark's own zone values are not a mask).
     const graph = graphOf(best.type);
     const maskIds = new Set(graph.nodes.filter((node) => KINDS[node.kind]?.out === 'mask').map((node) => node.id));
-    const pairs = ev.pairs.map((p) => ({ classes: p.classes, nodes: p.nodes.filter((n) => maskIds.has(n.id)) }));
-    const candidates = rankCandidates(pairs, { charge, top });
+    const pairs = ev.pairs.map((p) => ({ classes: p.classes, nodes: p.nodes.filter((n) => maskIds.has(n.id)), rescore: p.rescore }));
+    // Ranked by the RE-SCORE when every pair carries it (rankByRescore - agreed after the face counts mispredicted
+    // three times); only builds over real mask nodes. Face counts stay as the logged column.
+    const usesMasks = (build) => [build.id, build.a, build.b].filter(Boolean).every((id) => maskIds.has(id));
+    const rescored = pairs.every((p) => p.rescore)
+      ? rankByRescore(pairs.map((p) => ({ ...p.rescore, candidates: p.rescore.candidates.filter((c) => usesMasks(c.build)) })), { top })
+      : null;
+    const faceCounts = rankCandidates(pairs, { charge, top: 50 });
+    const candidates = (rescored ?? faceCounts.slice(0, top)).map((c) => ({ ...c,
+      faceGains: faceCounts.find((f) => JSON.stringify(f.build) === JSON.stringify(c.build))?.gains ?? null }));
     if (candidates.length === 0) {
       const ceilings = pairs.map((p) => reachableCeiling(p.classes, candidateMasks(p.classes, p.nodes)));
       log(`compose: no separating mask in the tested vocabulary for "${ev.stream}" - the best arrangement of today's masks could clean ${ceilings.map((c) => `${Math.round(c.share * 100)}%`).join(' / ')} of its ours-only faces per pair. Gap report: a new procedural node is the next question.`);
@@ -81,7 +89,8 @@ export async function composeSearch({ start, startRows, evaluate, evidenceOf, lo
       const why = refusals(result, best.result);
       const entry = { type, rows, result, refused: why, steps: [...best.steps, name], predicted: candidate.gains };
       tried.push(entry);
-      log(`  ${name}: predicted faces ${candidate.gains.join('/')} -> measured score ${best.result.score} -> ${result.score}${why.length ? `  refused: ${why.join('; ')}` : '  ACCEPTED'}`);
+      const predicted = rescored ? `predicted score gain ${candidate.gains.join('/')}${candidate.lowConfidence ? ' (LOW CONFIDENCE: drops many tips)' : ''}, face counts ${candidate.faceGains?.join('/') ?? '-'}` : `predicted faces ${candidate.gains.join('/')}`;
+      log(`  ${name}: ${predicted} -> measured score ${best.result.score} -> ${result.score}${why.length ? `  refused: ${why.join('; ')}` : '  ACCEPTED'}`);
       if (why.length === 0 && (!kept || result.score > kept.result.score)) kept = entry;
     }
     if (!kept) {

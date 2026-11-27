@@ -28,7 +28,8 @@ if (!typeFile || !existsSync(typeFile)) { console.error('--type <a type file, e.
 const band = (valueOf('--band') ?? '26,51').split(',').map(Number);
 const node = valueOf('--node') ?? 'NS';
 const gated = ['dental rim', 'hole', 'area']; // what a no-support mark with "rim obeys no-support" on takes away
-const rules = [
+// --rules '<json>' replaces the two below: [{ name, streams, node?, invert?, heightBand? }] - the first is the calibration.
+const rules = valueOf('--rules') ? JSON.parse(valueOf('--rules')) : [
   { name: `calibration: no-support on ${node}`, streams: gated, node },
   { name: `height band [${band[0]}, ${band[1]})`, streams: ['dental rim'], heightBand: band },
 ];
@@ -57,4 +58,4 @@ const everyPair = rows.every((r) => r.whatIf[2].score > r.whatIf[0].score);
 console.log(calibrated
   ? `calibration OK: the re-scorer also sees the known-bad mark as worse (${built} -> ${calib}).`
   : `calibration FAILED: the re-scorer sees the known-bad mark as better (${built} -> ${calib}) - it is blind to what the full run saw; the band result below means nothing.`);
-console.log(calibrated && everyPair ? `height band: BETTER on every pair (${built} -> ${banded}) - meets the check.` : `height band: does not meet the check (${calibrated ? `not better on every pair` : 'calibration failed'}).`);
+console.log(calibrated && everyPair ? `${rules[1].name}: BETTER on every pair (${built} -> ${banded}) - meets the check.` : `${rules[1].name}: does not meet the check (${calibrated ? `not better on every pair` : 'calibration failed'}).`);

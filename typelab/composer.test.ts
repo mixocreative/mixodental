@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { candidateMasks, rankCandidates, reachableCeiling, tally } from './composer.mjs';
+import { candidateMasks, rankByRescore, rankCandidates, reachableCeiling, tally } from './composer.mjs';
+
+describe('ranking by the re-score', () => {
+  const pair = (asBuilt: number, scores: Record<string, [number, number]>) => ({ asBuilt, tips: 100,
+    candidates: Object.entries(scores).map(([id, [score, dropped]]) => ({ build: { id }, score, dropped })) });
+  it('keeps a candidate only if it helps on EVERY pair, by its worst pair, and flags big drops as low confidence', () => {
+    const ranked = rankByRescore([pair(10, { A: [14, 5], B: [20, 40], C: [9, 1] }), pair(20, { A: [23, 5], B: [19, 40], C: [25, 1] })]);
+    expect(ranked.map((c) => c.build.id)).toEqual(['A']); // B is worse on pair 2, C on pair 1
+    expect(ranked[0]).toMatchObject({ gains: [4, 3], worst: 3, lowConfidence: false });
+    const big = rankByRescore([pair(10, { B: [20, 40] })]);
+    expect(big[0].lowConfidence).toBe(true);
+  });
+});
 
 // classes per face: 0 neither, 1 target only, 2 ours only, 3 both
 const classes = Uint8Array.of(2, 2, 2, 3, 3, 1, 0, 2);

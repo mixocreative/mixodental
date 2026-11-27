@@ -34,6 +34,7 @@ import { rayLayers } from './rayLayers';
 import { describeUnresolved, islandPoints, summariseIslands, type IslandSettle, type IslandSummary } from './islandReport';
 import { MATCH_FORMAT, targetFor } from './targetMatch.mjs';
 import { faceDescriptors, fitEvidence } from './fitEvidence.mjs';
+import { candidateMasks } from './composer.mjs';
 
 export const CONTACTS_FORMAT = MATCH_FORMAT;
 /** The largest median distance (mm) from an owner contact to the displayed scan that the mapping may have. */
@@ -642,15 +643,34 @@ export function dentureReviewDetail(bare: string, mesh: TriangleMesh, centre: Ve
    * the area match would be without those tips. It ignores that the engine might place other tips instead - which is
    * why it is calibrated against a mark whose full run is already known.
    */
+  /*
+   * THE COMPOSER'S RE-SCORES (composer.mjs rankByRescore): every candidate mask (candidateMasks over the zone nodes),
+   * re-scored by dropping the gated tips whose face is in it and running the engine's comparison again. Gated = the
+   * sources a no-support mark reaches: area always, rim and hole too when the composer turns "rim obeys no-support" on,
+   * which it does when the rim or hole tips are this pair's biggest source of area outside the target. No geometry.
+   */
+  if (evidence && review && target.faceClass && target.ownerPoints) {
+    const top = [...evidence.streams].sort((a, b) => b.outsideMm2 - a.outsideMm2)[0]?.stream ?? 'area';
+    const gated = top === 'dental rim' || top === 'hole' ? ['dental rim', 'hole', 'area'] : ['area'];
+    const scoreOf = (tips: Vector[]) => { const c = compareDentureAreas(mesh, target.ownerPoints!, tips); return Math.round((c.coverage - c.extra) * 1000) / 10; };
+    const masks = candidateMasks(target.faceClass, review.zoneNodes.filter((n) => n.values.length === target.faceClass!.length));
+    (evidence as Record<string, unknown>).composeScores = {
+      gated, tips: review.tips.length, asBuilt: scoreOf(placed.map((tip) => tip.position)),
+      candidates: masks.map(({ build, bits }) => {
+        const kept = review.tips.filter((tip) => !(gated.includes(sourceName(tip.stream)) && bits[tip.face]));
+        return { build, score: scoreOf(kept.map((tip) => tip.position)), dropped: review.tips.length - kept.length };
+      }),
+    };
+  }
   if (evidence && process.env.MIXO_WHATIF && review) {
-    const rules = JSON.parse(process.env.MIXO_WHATIF) as Array<{ name: string; streams: string[]; node?: string; heightBand?: [number, number] }>;
+    const rules = JSON.parse(process.env.MIXO_WHATIF) as Array<{ name: string; streams: string[]; node?: string; invert?: boolean; heightBand?: [number, number] }>;
     const { height } = faceDescriptors(mesh.positions, mesh.indices);
     const score = (tips: Vector[]) => { const c = compareDentureAreas(mesh, target.ownerPoints!, tips); return Math.round((c.coverage - c.extra) * 1000) / 10; };
     const all = review.tips;
     (evidence as Record<string, unknown>).whatIf = [{ name: 'as built', score: score(placed.map((tip) => tip.position)) }, ...rules.map((rule) => {
       const node = rule.node ? review.zoneNodes.find((n) => n.id === rule.node) : undefined;
       const drop = (tip: (typeof all)[number]) => rule.streams.includes(sourceName(tip.stream))
-        && ((node !== undefined && (node.values[tip.face] ?? 0) > 0) || (rule.heightBand !== undefined && height[tip.face]! >= rule.heightBand[0] && height[tip.face]! < rule.heightBand[1]));
+        && ((node !== undefined && ((node.values[tip.face] ?? 0) > 0) !== Boolean(rule.invert)) || (rule.heightBand !== undefined && height[tip.face]! >= rule.heightBand[0] && height[tip.face]! < rule.heightBand[1]));
       const kept = all.filter((tip) => !drop(tip));
       return { name: rule.name, dropped: all.length - kept.length, score: score(kept.map((tip) => tip.position)) };
     })];

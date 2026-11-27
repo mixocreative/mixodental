@@ -163,7 +163,7 @@ if (args.includes('--compose')) {
     // away every gated source's support under it, so judging it on the rim source alone predicted a large gain for
     // "no support everywhere but the rim band" - which wiped out the area and hole tips the target needs (refused).
     // The source the misses come from still names the rule the mark needs (GATE).
-    return { stream, pairs: pairs.filter((p) => p.ev.binOrder.includes('all')).map((p) => ({ classes: p.classesOf('all'), nodes: p.nodes,
+    return { stream, pairs: pairs.filter((p) => p.ev.binOrder.includes('all')).map((p) => ({ classes: p.classesOf('all'), nodes: p.nodes, rescore: p.ev.composeScores,
       ...(p.ev.binOrder.includes('slope') ? { slope: p.classesOf('slope'), height: p.classesOf('height') } : {}) })) };
   };
   console.log('\ncompose (from the winner above):');

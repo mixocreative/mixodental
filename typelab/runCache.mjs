@@ -27,7 +27,7 @@ export const FINISHED = 'finished.json';
  * What a kept run's folder holds. Raise it when the review starts writing something a reader depends on: a kept run
  * of an older format is run again rather than served without it. 2 = the fit's evidence file (2026-11-27).
  */
-export const REVIEW_FORMAT = 4; // 3 = per-face classes (evidence.bin); 4 = + slope and height descriptors for the gap probes
+export const REVIEW_FORMAT = 5; // 3 per-face classes; 4 slope / height descriptors; 5 the composer's re-scores (composeScores)
 
 const prints = new Map();
 /** A file's fingerprint (its bytes, never its name: patient data), remembered by path, size and time. */
