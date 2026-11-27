@@ -5677,9 +5677,9 @@
     "semantic_hash": ""
   },
   "docs/README.md": {
-    "mtime": 1795719649.488672,
-    "seen": 1795748290.9333184,
-    "ast_hash": "4e7d14d7408b28bca6560251c18d4554",
+    "mtime": 1795770963.5541935,
+    "seen": 1795771358.4282317,
+    "ast_hash": "e48bf126b57bae42e12ad65960d105af",
     "semantic_hash": ""
   },
   "docs/size-debt.md": {
@@ -6703,9 +6703,9 @@
     "semantic_hash": ""
   },
   "typelab/dentureReviewLayers.ts": {
-    "mtime": 1795756307.4998918,
-    "seen": 1795761745.9544454,
-    "ast_hash": "78e637b7e4fe7383983c7ba0c7d03789",
+    "mtime": 1795770505.8506134,
+    "seen": 1795771358.4282317,
+    "ast_hash": "344fc36accb715c7170cf19c03a8db5b",
     "semantic_hash": ""
   },
   "typelab/glbWorld.ts": {
@@ -7135,15 +7135,15 @@
     "semantic_hash": ""
   },
   "typelab/CLI.md": {
-    "mtime": 1795761683.4961662,
-    "seen": 1795761745.9554493,
-    "ast_hash": "e9996c71b5308cf84066b168904143b1",
+    "mtime": 1795770948.1396365,
+    "seen": 1795771358.4282317,
+    "ast_hash": "777fed2871c1d396b708cd20f44e4b4a",
     "semantic_hash": ""
   },
   "typelab/README.md": {
-    "mtime": 1795739948.863488,
-    "seen": 1795748290.9333184,
-    "ast_hash": "b9072e3569c3a2db5a3466eb8cf195af",
+    "mtime": 1795770962.451167,
+    "seen": 1795771358.4282317,
+    "ast_hash": "fef2b076d3057d35d19ad212d603f7d5",
     "semantic_hash": ""
   },
   "typelab/viewer.html": {
@@ -7354,6 +7354,30 @@
     "mtime": 1795749029.7405417,
     "seen": 1795756216.2730334,
     "ast_hash": "5facc682d69ab4176048e2f333041a98",
+    "semantic_hash": ""
+  },
+  "typelab/rimProbe.mjs": {
+    "mtime": 1795771130.8776276,
+    "seen": 1795771358.4282317,
+    "ast_hash": "858f27743a7fd1199526454b31230546",
+    "semantic_hash": ""
+  },
+  "typelab/rimProbe.test.ts": {
+    "mtime": 1795770926.2680745,
+    "seen": 1795771358.4282317,
+    "ast_hash": "def8f2aa81074eb5c6355621c7beeb61",
+    "semantic_hash": ""
+  },
+  "docs/FINAL-REVIEW-2026-11-27.md": {
+    "mtime": 1795770975.996931,
+    "seen": 1795771358.4282317,
+    "ast_hash": "0770bd1bbdda2f3460770ab6f8c527e7",
+    "semantic_hash": ""
+  },
+  "docs/handoff/geocore-zone-stack-edge-tip-marks.md": {
+    "mtime": 1795770949.7887907,
+    "seen": 1795771358.4282317,
+    "ast_hash": "543fbed26c678512dd462d88420c2109",
     "semantic_hash": ""
   }
 }
