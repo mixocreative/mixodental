@@ -168,8 +168,10 @@ node can be introduced." Fable and Codex designed it independently and agreed on
    measured) the composer now RANKS by that re-score (`rankByRescore`; face counts stay a logged column), and a probe
    band counts as separating only when the same calibrated re-score confirms it on every pair. End to end on the
    dentures: no mask and no band separates the rim tips (slope band re-score +1.5/+0.3/-7.5/+0.9, height band
-   +7.7/-16.5/0/-1); the probes still to build need surface neighbourhoods (distance, curvature, component size,
-   grow / shrink). When no mask separates the misses, diagnostic-only procedural descriptors (slope / normal
+   +7.7/-16.5/0/-1); distance from the rim (+1.1/-2.7/-1.4/-5.6) and the sector around the arch (+1.3/0/-7.7/-3.3),
+   added the same day, do not either. On 4 compared dentures, which parts of the rim the targets support follows no
+   single simple band: the next evidence is MORE denture targets, then two-descriptor bands (e.g. sector x distance);
+   curvature, component size and grow / shrink still need surface neighbourhoods. When no mask separates the misses, diagnostic-only procedural descriptors (slope / normal
    angle, height band, distance from a feature, curvature, component size, grow / shrink) are tested on the same faces
    across pairs; one that separates them on every pair becomes an engine request for that generic node
    (`docs/handoff/`, sent to mixo-geocore `docs/requests/`). Never a host-side node in placement.
